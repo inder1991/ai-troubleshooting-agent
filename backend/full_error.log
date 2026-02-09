@@ -1,0 +1,127 @@
+INFO:     Will watch for changes in these directories: ['/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend']
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [26511] using WatchFiles
+INFO:     Started server process [26514]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     127.0.0.1:64423 - "OPTIONS /api/troubleshoot/start HTTP/1.1" 200 OK
+
+================================================================================
+🔥 NEW TROUBLESHOOTING SESSION
+Session ID: c55c9223-fb78-4963-a349-dc29642e70ab
+Repository: inder1991/checkout-service
+ELK Index: logs-production-*
+Timeframe: 1h
+================================================================================
+
+INFO:     127.0.0.1:64423 - "POST /api/troubleshoot/start HTTP/1.1" 200 OK
+INFO:     ('127.0.0.1', 64427) - "WebSocket /ws/troubleshoot/c55c9223-fb78-4963-a349-dc29642e70ab" [accepted]
+INFO:     connection open
+⏳ Waiting for WebSocket connection...
+✅ WebSocket connected: c55c9223-fb78-4963-a349-dc29642e70ab
+✅ WebSocket connected after 0.5s
+
+================================================================================
+🚀 TROUBLESHOOTING ORCHESTRATOR - WORKFLOW START
+================================================================================
+Session ID: c55c9223-fb78-4963-a349-dc29642e70ab
+Repository: inder1991/checkout-service
+ELK Index: logs-production-*
+Timeframe: 1h
+Start Time: 2025-12-30 03:34:23
+================================================================================
+
+
+================================================================================
+📊 AGENT 1: LOG ANALYSIS & EXCEPTION EXTRACTION
+================================================================================
+  ELK Index: logs-production-*
+  Timeframe: 1h
+  Repository: inder1991/checkout-service
+
+================================================================================
+🤖 AGENT 1: LOG ANALYSIS
+================================================================================
+ELK Index: logs-production-*
+Timeframe: 1h
+Repo: inder1991/checkout-service
+================================================================================
+
+🎯 Analyzing service: checkout-service
+🎯 ingest multi level log: checkout-service
+🎯 Filtering by service: checkout-service
+📊 Querying ELK with 4 filters...
+✅ Using Elasticsearch API: 8.x
+22
+22
+✅ Ingested: 22 ERRORs, 0 WARNs, 0 INFOs, 0 DEBUGs
+6
+🔐 Fingerprinting: 22 errors → 5 unique patterns
+🍞 Enriched 5 patterns with breadcrumbs
+llm start 
+
+================================================================================
+📝 LLM Response Type: <class 'langchain_core.messages.ai.AIMessage'>
+📝 LLM Response: content='Based on the provided log analysis, I will generate a high-fidelity "Bug Report & Fix Directive" for Agent 2 to execute.\n\nHere is the output in JSON format:\n\n```\n{\n    "incident_id": "INC-1234567890",\n    "bug_id": "BUG_4_API_TIMEOUT",\n    "severity": "HIGH",\n    "diagnostic_summary": "Internal payment gateway failed due to connection timeout and circuit breaker disabled.",\n    "developer_recommendations": "Implement a retry mechanism with exponential backoff and adjust the circuit breaker settings.",\n    "sre_recommendations": "Consider using a more robust error handling mechanism, such as a try-except block with a custom exception.",\n    "overall_confidence": "HIGH",\n    "root_cause": "The root cause of this issue is the connection timeout in the payment gateway, which was triggered by the disabled circuit breaker.",\n    "file_path": "/app/checkout_service.py",\n    "function": "call_payment_gateway",\n    "line_number": 328,\n    "agent_2_directive": "1. Identify the Bug: Compare the \'message_fingerprint\' and \'stack_trace_sample\'. \n                    Determine Root Cause: Analyze why the code reached the error state.\n                    Pinpoint Location: Identify the exact file, function, and line number.\n                    Create a Task Directive: Implement retry mechanism with exponential backoff and adjust circuit breaker settings."\n}\n```\n\nPlease note that this output is generated based on the provided log analysis and may require further investigation to identify the root cause of the issue.' additional_kwargs={'refusal': None} response_metadata={'token_usage': {'completion_tokens': 321, 'prompt_tokens': 2865, 'total_tokens': 3186, 'completion_tokens_details': None, 'prompt_tokens_details': None}, 'model_name': 'llama3:8b-instruct-q2_K', 'system_fingerprint': 'fp_ollama', 'finish_reason': 'stop', 'logprobs': None} id='run-b088f0c9-146f-4a3f-95c8-2b36b92d03f7-0' usage_metadata={'input_tokens': 2865, 'output_tokens': 321, 'total_tokens': 3186}
+================================================================================
+
+{'incident_id': 'INC-1234567890', 'bug_id': 'BUG_4_API_TIMEOUT', 'severity': 'HIGH', 'diagnostic_summary': 'Internal payment gateway failed due to connection timeout and circuit breaker disabled.', 'developer_recommendations': 'Implement a retry mechanism with exponential backoff and adjust the circuit breaker settings.', 'sre_recommendations': 'Consider using a more robust error handling mechanism, such as a try-except block with a custom exception.', 'overall_confidence': 'HIGH', 'root_cause': 'The root cause of this issue is the connection timeout in the payment gateway, which was triggered by the disabled circuit breaker.', 'file_path': '/app/checkout_service.py', 'function': 'call_payment_gateway', 'line_number': 328, 'agent_2_directive': "1. Identify the Bug: Compare the 'message_fingerprint' and 'stack_trace_sample'.                      Determine Root Cause: Analyze why the code reached the error state.                     Pinpoint Location: Identify the exact file, function, and line number.                     Create a Task Directive: Implement retry mechanism with exponential backoff and adjust circuit breaker settings."}
+llm analysise {'incident_id': 'INC-1234567890', 'bug_id': 'BUG_4_API_TIMEOUT', 'severity': 'HIGH', 'diagnostic_summary': 'Internal payment gateway failed due to connection timeout and circuit breaker disabled.', 'developer_recommendations': 'Implement a retry mechanism with exponential backoff and adjust the circuit breaker settings.', 'sre_recommendations': 'Consider using a more robust error handling mechanism, such as a try-except block with a custom exception.', 'overall_confidence': 'HIGH', 'root_cause': 'The root cause of this issue is the connection timeout in the payment gateway, which was triggered by the disabled circuit breaker.', 'file_path': '/app/checkout_service.py', 'function': 'call_payment_gateway', 'line_number': 328, 'agent_2_directive': "1. Identify the Bug: Compare the 'message_fingerprint' and 'stack_trace_sample'.                      Determine Root Cause: Analyze why the code reached the error state.                     Pinpoint Location: Identify the exact file, function, and line number.                     Create a Task Directive: Implement retry mechanism with exponential backoff and adjust circuit breaker settings."}
+✅ Agent 1 analysis complete
+📦 Extracting data from 'structured_input' (nested format)
+✅ Found 5 error patterns
+✅ Total errors: 22
+
+📍 Primary Error Details:
+   Type: GeneralError
+   Message: Internal payment gateway failed
+   File: /app/checkout_service.py
+   Line: 328
+   Function: call_payment_gateway
+
+📊 Formatted Result for Agent 2:
+   Exception: GeneralError
+   File: /app/checkout_service.py:328
+   Function: call_payment_gateway
+   Confidence: 70%
+   Error Patterns: 5
+
+✅ Agent 1 Complete
+   Exception Type: GeneralError
+   Exception Message: Internal payment gateway failed...
+   Stack Trace Lines: 8
+   Preliminary RCA: Analysis complete...
+
+================================================================================
+📦 AGENT 2: CODE NAVIGATION & ANALYSIS (PRODUCTION)
+================================================================================
+
+📥 Cloning Repository...
+Cloning https://github.com/inder1991/checkout-service.git...
+✅ Repository cloned successfully
+   Path: /tmp/troubleshoot_c55c9223-fb78-4963-a349-dc29642e70ab
+   Files: 37
+
+⚙️  Running Production Agent 2 (All 4 Responsibilities)...
+
+================================================================================
+🔧 AGENT 2: CODE NAVIGATOR & ANALYZER
+================================================================================
+
+
+📊 Agent 1 Insights Available:
+   File: /app/checkout_service.py:328
+   Function: call_payment_gateway()
+   Agent 1 Confidence: 70%
+   Error Patterns: 5
+📂 Repository: inder1991/checkout-service
+📍 Local path: /tmp/troubleshoot_c55c9223-fb78-4963-a349-dc29642e70ab
+🔍 Exception: GeneralError
+💬 Message: Internal payment gateway failed...
+
+================================================================================
+1️⃣  CODEBASE MAPPING
+================================================================================
+
+🔍 Validating Agent 1's identified file...
+/tmp/troubleshoot_c55c9223-fb78-4963-a349-dc29642e70ab

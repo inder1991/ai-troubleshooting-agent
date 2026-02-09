@@ -1,0 +1,1 @@
+{"version":3,"file":"discardNegativeDuration.js","sourceRoot":"","sources":["../../src/domain/discardNegativeDuration.ts"],"names":[],"mappings":"AACA,OAAO,EAAE,QAAQ,EAAE,MAAM,uBAAuB,CAAA;AAEhD,MAAM,UAAU,uBAAuB,CAAC,QAAoC;IAC1E,OAAO,QAAQ,CAAC,QAAQ,CAAC,IAAI,QAAQ,GAAG,CAAC,CAAC,CAAC,CAAC,SAAS,CAAC,CAAC,CAAC,QAAQ,CAAA;AAClE,CAAC"}

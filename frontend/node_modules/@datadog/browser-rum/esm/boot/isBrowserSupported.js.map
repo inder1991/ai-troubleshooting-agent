@@ -1,0 +1,1 @@
+{"version":3,"file":"isBrowserSupported.js","sourceRoot":"","sources":["../../src/boot/isBrowserSupported.ts"],"names":[],"mappings":"AAAA;;GAEG;AACH,MAAM,UAAU,kBAAkB;IAChC,OAAO;IACL,8FAA8F;IAC9F,gGAAgG;IAChG,+BAA+B;IAC/B,OAAO,KAAK,CAAC,IAAI,KAAK,UAAU;QAChC,OAAO,eAAe,KAAK,UAAU;QACrC,OAAO,GAAG,CAAC,eAAe,KAAK,UAAU;QACzC,SAAS,IAAI,QAAQ,CAAC,SAAS,CAChC,CAAA;AACH,CAAC"}
