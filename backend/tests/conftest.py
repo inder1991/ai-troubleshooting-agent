@@ -54,3 +54,27 @@ for _mod_name in _stub_module_names:
         _stub.__path__ = []
         _stub.__package__ = _mod_name
         sys.modules[_mod_name] = _stub
+
+# Provide a minimal working StateGraph and END for workflow tests
+class _MinimalStateGraph:
+    """Minimal StateGraph stand-in so workflow tests can verify nodes/edges."""
+    def __init__(self, state_type):
+        self.nodes = {}
+        self._entry = None
+        self._conditional_edges = {}
+        self._edges = {}
+
+    def add_node(self, name, func):
+        self.nodes[name] = func
+
+    def set_entry_point(self, name):
+        self._entry = name
+
+    def add_conditional_edges(self, source, func, mapping):
+        self._conditional_edges[source] = (func, mapping)
+
+    def add_edge(self, source, target):
+        self._edges[source] = target
+
+sys.modules["langgraph.graph"].StateGraph = _MinimalStateGraph
+sys.modules["langgraph.graph"].END = "__end__"
