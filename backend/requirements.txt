@@ -9,11 +9,19 @@ langgraph==0.2.45
 langchain==0.3.7
 langchain-core==0.3.15
 
+# Anthropic LLM
+anthropic>=0.40.0
 
+# Kubernetes / OpenShift
+kubernetes>=28.0.0
 
 # Data Processing
 pydantic>=2.5.3
 python-dotenv==1.0.0
+
+# Observability Clients
+elasticsearch>=8.0.0
+httpx==0.26.0
 
 # Optional: Database & Caching
 # redis==5.0.1
@@ -22,6 +30,3 @@ python-dotenv==1.0.0
 # Testing
 pytest==7.4.4
 pytest-asyncio==0.23.3
-httpx==0.26.0
-langchain-openai==0.2.1          # LangChain OpenAI integration
-openai==1.54.0                   # OpenAI Python SDK
