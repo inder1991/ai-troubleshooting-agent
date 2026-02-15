@@ -1,0 +1,153 @@
+import uuid
+from datetime import datetime, timezone
+from fastapi import APIRouter, BackgroundTasks, HTTPException
+from typing import Dict, Any
+
+from src.api.models import (
+    ChatRequest, ChatResponse, StartSessionRequest, StartSessionResponse, SessionSummary
+)
+from src.agents.supervisor import SupervisorAgent
+from src.utils.event_emitter import EventEmitter
+from src.api.websocket import manager
+
+router_v4 = APIRouter(prefix="/api/v4", tags=["v4"])
+
+# In-memory session store
+sessions: Dict[str, Dict[str, Any]] = {}
+supervisors: Dict[str, SupervisorAgent] = {}
+
+
+@router_v4.post("/session/start", response_model=StartSessionResponse)
+async def start_session(request: StartSessionRequest, background_tasks: BackgroundTasks):
+    session_id = str(uuid.uuid4())[:8]
+    supervisor = SupervisorAgent()
+    emitter = EventEmitter(session_id=session_id, websocket_manager=manager)
+
+    sessions[session_id] = {
+        "service_name": request.serviceName,
+        "phase": "initial",
+        "confidence": 0,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "emitter": emitter,
+        "state": None,
+    }
+    supervisors[session_id] = supervisor
+
+    initial_input = {
+        "session_id": session_id,
+        "service_name": request.serviceName,
+        "elk_index": request.elkIndex,
+        "time_start": f"now-{request.timeframe}",
+        "time_end": "now",
+        "trace_id": request.traceId,
+        "namespace": request.namespace,
+        "cluster_url": request.clusterUrl,
+        "repo_url": request.repoUrl,
+    }
+
+    background_tasks.add_task(run_diagnosis, session_id, supervisor, initial_input, emitter)
+
+    return StartSessionResponse(
+        session_id=session_id,
+        status="started",
+        message=f"Diagnosis started for {request.serviceName}"
+    )
+
+
+async def run_diagnosis(session_id: str, supervisor: SupervisorAgent, initial_input: dict, emitter: EventEmitter):
+    try:
+        state = await supervisor.run(initial_input, emitter)
+        sessions[session_id]["state"] = state
+        sessions[session_id]["phase"] = state.phase.value
+        sessions[session_id]["confidence"] = state.overall_confidence
+    except Exception as e:
+        sessions[session_id]["phase"] = "error"
+        await emitter.emit("supervisor", "error", f"Diagnosis failed: {str(e)}")
+
+
+@router_v4.post("/session/{session_id}/chat", response_model=ChatResponse)
+async def chat(session_id: str, request: ChatRequest):
+    if session_id not in sessions:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    supervisor = supervisors.get(session_id)
+    state = sessions[session_id].get("state")
+
+    if not supervisor:
+        raise HTTPException(status_code=404, detail="Session supervisor not found")
+
+    if state:
+        response_text = await supervisor.handle_user_message(request.message, state)
+    else:
+        response_text = "Analysis is still starting up. Please wait a moment."
+
+    return ChatResponse(
+        response=response_text,
+        phase=sessions[session_id].get("phase", "initial"),
+        confidence=sessions[session_id].get("confidence", 0),
+    )
+
+
+@router_v4.get("/sessions", response_model=list[SessionSummary])
+async def list_sessions():
+    return [
+        SessionSummary(
+            session_id=sid,
+            service_name=data["service_name"],
+            phase=data["phase"],
+            confidence=data["confidence"],
+            created_at=data["created_at"],
+        )
+        for sid, data in sessions.items()
+    ]
+
+
+@router_v4.get("/session/{session_id}/status")
+async def get_session_status(session_id: str):
+    if session_id not in sessions:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    session = sessions[session_id]
+    state = session.get("state")
+
+    result = {
+        "session_id": session_id,
+        "service_name": session["service_name"],
+        "phase": session["phase"],
+        "confidence": session["confidence"],
+    }
+
+    if state:
+        result["agents_completed"] = state.agents_completed
+        result["findings_count"] = len(state.all_findings)
+        result["token_usage"] = [t.model_dump() for t in state.token_usage]
+
+    return result
+
+
+@router_v4.get("/session/{session_id}/findings")
+async def get_findings(session_id: str):
+    if session_id not in sessions:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    state = sessions[session_id].get("state")
+    if not state:
+        return {"findings": [], "message": "Analysis not yet complete"}
+
+    return {
+        "findings": [f.model_dump(mode="json") for f in state.all_findings],
+        "negative_findings": [nf.model_dump(mode="json") for nf in state.all_negative_findings],
+        "critic_verdicts": [cv.model_dump(mode="json") for cv in state.critic_verdicts],
+    }
+
+
+@router_v4.get("/session/{session_id}/events")
+async def get_events(session_id: str):
+    if session_id not in sessions:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    emitter = sessions[session_id].get("emitter")
+    if not emitter:
+        return {"events": []}
+
+    return {"events": [e.model_dump(mode="json") for e in emitter.get_all_events()]}

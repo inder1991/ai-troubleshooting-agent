@@ -21,3 +21,36 @@ if "src.models" not in sys.modules:
     models_mod.__path__ = [os.path.join(backend_dir, "src", "models")]
     models_mod.__package__ = "src.models"
     sys.modules["src.models"] = models_mod
+
+# Stub out missing third-party modules that old v3 routes depend on
+# so that importing create_app() doesn't fail during tests.
+# We use a MagicMock-style module that returns a dummy for any attribute.
+from unittest.mock import MagicMock
+
+
+class _StubModule(types.ModuleType):
+    """A module stub that returns a MagicMock for any missing attribute."""
+    def __getattr__(self, name):
+        return MagicMock()
+
+
+_stub_module_names = [
+    "langchain_openai",
+    "langchain_core",
+    "langchain_core.messages",
+    "langchain_core.prompts",
+    "langchain_core.output_parsers",
+    "langchain_anthropic",
+    "langgraph",
+    "langgraph.graph",
+    "langgraph.graph.state",
+    "elasticsearch",
+    "ddtrace",
+    "ddtrace.trace",
+]
+for _mod_name in _stub_module_names:
+    if _mod_name not in sys.modules:
+        _stub = _StubModule(_mod_name)
+        _stub.__path__ = []
+        _stub.__package__ = _mod_name
+        sys.modules[_mod_name] = _stub

@@ -47,3 +47,40 @@ class ApprovalRequest(BaseModel):
     session_id: str
     approved: bool
     comments: Optional[str]
+
+
+# ── v4 Models ──────────────────────────────────────────────────────────
+
+
+class ChatRequest(BaseModel):
+    message: str
+
+
+class ChatResponse(BaseModel):
+    response: str
+    phase: str
+    confidence: int
+
+
+class StartSessionRequest(BaseModel):
+    serviceName: str
+    elkIndex: str = "app-logs-*"
+    timeframe: str = "1h"
+    traceId: Optional[str] = None
+    namespace: Optional[str] = None
+    clusterUrl: Optional[str] = None
+    repoUrl: Optional[str] = None
+
+
+class StartSessionResponse(BaseModel):
+    session_id: str
+    status: str
+    message: str
+
+
+class SessionSummary(BaseModel):
+    session_id: str
+    service_name: str
+    phase: str
+    confidence: int
+    created_at: str

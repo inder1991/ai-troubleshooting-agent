@@ -9,6 +9,7 @@ from .pr_endpoints import router as pr_router
 from datetime import datetime
 
 from .routes import router
+from .routes_v4 import router_v4
 from .websocket import manager
 
 
@@ -39,6 +40,7 @@ def create_app() -> FastAPI:
     # Include routes
     app.include_router(router)
     app.include_router(pr_router, prefix="/api")
+    app.include_router(router_v4)
 
     # WebSocket endpoint
     @app.websocket("/ws/troubleshoot/{session_id}")
