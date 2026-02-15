@@ -1,7 +1,19 @@
+import type {
+  StartSessionRequest,
+  V4Session,
+  V4SessionStatus,
+  V4Findings,
+  TaskEvent,
+  ChatMessage,
+} from '../types';
+
 const API_BASE_URL = 'http://localhost:8000';
 
+// ===== V3 API (preserved for backward compatibility) =====
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const sendConversationMessage = async (message: string, conversationHistory?: any[]) => {
-  const response = await fetch('http://localhost:8000/api/conversation', {
+  const response = await fetch(`${API_BASE_URL}/api/conversation`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ message, conversation_history: conversationHistory })
@@ -9,7 +21,7 @@ export const sendConversationMessage = async (message: string, conversationHisto
   return response.json();
 };
 
-export const startTroubleshooting = async (formData: any) => {
+export const startTroubleshooting = async (formData: Record<string, unknown>) => {
   const response = await fetch(`${API_BASE_URL}/api/troubleshoot/start`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -18,7 +30,7 @@ export const startTroubleshooting = async (formData: any) => {
   return response.json();
 };
 
-export const getSessionStatus = async (sessionId: string) => {
+export const getSessionStatusV3 = async (sessionId: string) => {
   const response = await fetch(`${API_BASE_URL}/api/troubleshoot/status/${sessionId}`);
   return response.json();
 };
@@ -37,69 +49,108 @@ export const listSessions = async () => {
   return response.json();
 };
 
-
 export const createPullRequest = async (sessionId: string) => {
   const response = await fetch(`${API_BASE_URL}/api/troubleshoot/${sessionId}/create-pr`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ pr_data: {} }) 
+    body: JSON.stringify({ pr_data: {} })
   });
-  
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.detail || 'Failed to create pull request');
   }
-  
   return response.json();
 };
 
-/**
- * Reject Fix (Agent 3)
- * Called when user clicks "Reject" button
- * Cleans up the local branch and allows re-generation
- * 
- * @param sessionId - Troubleshooting session ID
- * @returns Rejection confirmation
- */
 export const rejectFix = async (sessionId: string) => {
   const response = await fetch(`${API_BASE_URL}/api/troubleshoot/${sessionId}/reject-fix`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' }
   });
-  
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.detail || 'Failed to reject fix');
   }
-  
   return response.json();
 };
 
-/**
- * Get PR Status (Agent 3)
- * Check the current status of PR creation
- * 
- * @param sessionId - Troubleshooting session ID
- * @returns PR status and validation results
- */
 export const getPRStatus = async (sessionId: string) => {
   const response = await fetch(`${API_BASE_URL}/api/troubleshoot/${sessionId}/pr-status`);
-  
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.detail || 'Failed to get PR status');
   }
-  
   return response.json();
 };
 
-/**
- * Check Agent 3 Health
- * Verify Agent 3 endpoints and GitHub token configuration
- * 
- * @returns Health status
- */
 export const checkAgent3Health = async () => {
   const response = await fetch(`${API_BASE_URL}/api/pr-endpoints/health`);
+  return response.json();
+};
+
+// ===== V4 API =====
+
+export const startSessionV4 = async (request: StartSessionRequest): Promise<V4Session> => {
+  const response = await fetch(`${API_BASE_URL}/api/v4/session/start`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(request),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to start session');
+  }
+  return response.json();
+};
+
+export const sendChatMessage = async (
+  sessionId: string,
+  message: string
+): Promise<ChatMessage> => {
+  const response = await fetch(`${API_BASE_URL}/api/v4/session/${sessionId}/chat`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message }),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to send message');
+  }
+  return response.json();
+};
+
+export const getSessionStatus = async (sessionId: string): Promise<V4SessionStatus> => {
+  const response = await fetch(`${API_BASE_URL}/api/v4/session/${sessionId}/status`);
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to get session status');
+  }
+  return response.json();
+};
+
+export const getFindings = async (sessionId: string): Promise<V4Findings> => {
+  const response = await fetch(`${API_BASE_URL}/api/v4/session/${sessionId}/findings`);
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to get findings');
+  }
+  return response.json();
+};
+
+export const getEvents = async (sessionId: string): Promise<TaskEvent[]> => {
+  const response = await fetch(`${API_BASE_URL}/api/v4/session/${sessionId}/events`);
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to get events');
+  }
+  return response.json();
+};
+
+export const listSessionsV4 = async (): Promise<V4Session[]> => {
+  const response = await fetch(`${API_BASE_URL}/api/v4/sessions`);
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to list sessions');
+  }
   return response.json();
 };
