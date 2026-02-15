@@ -1,0 +1,181 @@
+import json
+from abc import ABC, abstractmethod
+from datetime import datetime, timezone
+from typing import Any
+
+from src.models.schemas import Breadcrumb, NegativeFinding, TokenUsage
+from src.utils.llm_client import AnthropicClient
+from src.utils.event_emitter import EventEmitter
+
+
+class ReActAgent(ABC):
+    """Abstract base class implementing the ReAct (Reason + Act + Observe) pattern."""
+
+    def __init__(
+        self,
+        agent_name: str,
+        max_iterations: int = 10,
+        model: str = "claude-sonnet-4-5-20250929",
+    ):
+        self.agent_name = agent_name
+        self.max_iterations = max_iterations
+        self.llm_client = AnthropicClient(agent_name=agent_name, model=model)
+        self.breadcrumbs: list[Breadcrumb] = []
+        self.negative_findings: list[NegativeFinding] = []
+        self._tools: list[dict] = []
+        self._tool_handlers: dict[str, Any] = {}
+
+    @abstractmethod
+    async def _define_tools(self) -> list[dict]:
+        """Define the tools available to this agent. Return Anthropic tool format."""
+        ...
+
+    @abstractmethod
+    async def _build_system_prompt(self) -> str:
+        """Build the system prompt for this agent."""
+        ...
+
+    @abstractmethod
+    async def _build_initial_prompt(self, context: dict) -> str:
+        """Build the initial user prompt from the given context."""
+        ...
+
+    @abstractmethod
+    async def _handle_tool_call(self, tool_name: str, tool_input: dict) -> str:
+        """Execute a tool call and return the result as a string."""
+        ...
+
+    @abstractmethod
+    def _parse_final_response(self, text: str) -> dict:
+        """Parse the agent's final text response into structured output."""
+        ...
+
+    def add_breadcrumb(
+        self,
+        action: str,
+        source_type: str,
+        source_reference: str,
+        raw_evidence: str,
+    ) -> None:
+        """Record evidence trail for traceability."""
+        self.breadcrumbs.append(
+            Breadcrumb(
+                agent_name=self.agent_name,
+                action=action,
+                source_type=source_type,
+                source_reference=source_reference,
+                raw_evidence=raw_evidence,
+                timestamp=datetime.now(timezone.utc),
+            )
+        )
+
+    def add_negative_finding(
+        self,
+        what_was_checked: str,
+        result: str,
+        implication: str,
+        source_reference: str,
+    ) -> None:
+        """Record what was checked and NOT found — builds trust."""
+        self.negative_findings.append(
+            NegativeFinding(
+                agent_name=self.agent_name,
+                what_was_checked=what_was_checked,
+                result=result,
+                implication=implication,
+                source_reference=source_reference,
+            )
+        )
+
+    def get_token_usage(self) -> TokenUsage:
+        """Get cumulative token usage for this agent."""
+        return self.llm_client.get_total_usage()
+
+    async def run(self, context: dict, event_emitter: EventEmitter | None = None) -> dict:
+        """Execute the ReAct loop.
+
+        1. Build system prompt and initial user message
+        2. Send to LLM with tools
+        3. If LLM calls a tool: execute it, feed result back, loop
+        4. If LLM returns text (no tool call): parse and return
+        5. Stop after max_iterations
+        """
+        self._tools = await self._define_tools()
+        system_prompt = await self._build_system_prompt()
+        initial_prompt = await self._build_initial_prompt(context)
+
+        if event_emitter:
+            await event_emitter.emit(self.agent_name, "started", f"{self.agent_name} starting analysis")
+
+        messages = [{"role": "user", "content": initial_prompt}]
+
+        for iteration in range(self.max_iterations):
+            if event_emitter:
+                await event_emitter.emit(
+                    self.agent_name, "progress",
+                    f"Iteration {iteration + 1}/{self.max_iterations}"
+                )
+
+            # Call LLM with tools
+            response = await self.llm_client._client.messages.create(
+                model=self.llm_client.model,
+                max_tokens=4096,
+                system=system_prompt,
+                messages=messages,
+                tools=self._tools if self._tools else None,
+                temperature=0.0,
+            )
+
+            # Track tokens
+            self.llm_client._total_input_tokens += response.usage.input_tokens
+            self.llm_client._total_output_tokens += response.usage.output_tokens
+
+            # Check if the response contains tool use
+            tool_use_blocks = [b for b in response.content if b.type == "tool_use"]
+            text_blocks = [b for b in response.content if b.type == "text"]
+
+            if response.stop_reason == "end_turn" and not tool_use_blocks:
+                # Agent is done — parse final response
+                final_text = text_blocks[0].text if text_blocks else ""
+                if event_emitter:
+                    await event_emitter.emit(self.agent_name, "success", f"{self.agent_name} completed analysis")
+                return self._parse_final_response(final_text)
+
+            if tool_use_blocks:
+                # Add assistant message with all content blocks
+                messages.append({"role": "assistant", "content": response.content})
+
+                # Process each tool call
+                tool_results = []
+                for tool_block in tool_use_blocks:
+                    tool_name = tool_block.name
+                    tool_input = tool_block.input
+
+                    if event_emitter:
+                        await event_emitter.emit(
+                            self.agent_name, "progress",
+                            f"Calling tool: {tool_name}"
+                        )
+
+                    try:
+                        result = await self._handle_tool_call(tool_name, tool_input)
+                    except Exception as e:
+                        result = f"Error executing {tool_name}: {str(e)}"
+
+                    tool_results.append({
+                        "type": "tool_result",
+                        "tool_use_id": tool_block.id,
+                        "content": result,
+                    })
+
+                messages.append({"role": "user", "content": tool_results})
+            else:
+                # No tool calls and not end_turn — shouldn't happen, but handle gracefully
+                final_text = text_blocks[0].text if text_blocks else ""
+                return self._parse_final_response(final_text)
+
+        # Max iterations reached
+        if event_emitter:
+            await event_emitter.emit(self.agent_name, "warning", f"Max iterations ({self.max_iterations}) reached")
+
+        return {"error": "max_iterations_reached", "partial_results": self.breadcrumbs}
