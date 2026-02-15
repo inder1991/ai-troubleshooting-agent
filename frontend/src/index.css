@@ -19,17 +19,16 @@
 
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
   min-width: 320px;
   min-height: 100vh;
 }
 
 #root {
   width: 100%;
-  margin: 0 auto;
-  text-align: center;
+  height: 100vh;
+  margin: 0;
 }
+
 /* Mermaid diagram clarity fixes */
 .mermaid svg {
   max-width: 100%;
@@ -49,4 +48,37 @@ body {
 .mermaid text {
   font-size: 13px !important;
   fill: #e5e7eb !important;
+}
+
+/* Prose overrides for dark theme markdown rendering */
+.prose-invert code {
+  color: #e5e7eb;
+  background-color: rgba(0, 0, 0, 0.3);
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  font-size: 0.875em;
+}
+
+.prose-invert pre {
+  background-color: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
 }

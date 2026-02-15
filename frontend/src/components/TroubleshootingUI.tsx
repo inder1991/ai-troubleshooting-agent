@@ -1117,7 +1117,7 @@ const TroubleshootingChatbot: React.FC = () => {
 
            {showReviewScreen && agent3ReviewData && (
               <ReviewFixScreen
-                data={agent3ReviewData}
+                {...agent3ReviewData}
                 sessionId={currentSession?.backendSessionId || ''}
                 onCreatePR={handleCreatePR}
                 onReject={handleRejectFix}
