@@ -52,7 +52,7 @@ async def create_pull_request(
         )
     
     # Get GitHub token
-    github_token = "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"
+    github_token = os.getenv("GITHUB_TOKEN", "")
     if not github_token:
         raise HTTPException(
             status_code=500,

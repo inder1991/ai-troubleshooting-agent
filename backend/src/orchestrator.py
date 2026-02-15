@@ -556,9 +556,9 @@ class TroubleshootingOrchestrator:
                 max_tokens=8192,
                 timeout= 120,
                 max_retries=3,
-                api_key="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"
+                api_key=os.getenv("ANTHROPIC_API_KEY", "")
             )
-            
+
             # Initialize Agent 3
             self.agent3_instance = Agent3FixGenerator(
                 repo_path=self.repo_path,
@@ -650,9 +650,9 @@ class TroubleshootingOrchestrator:
                 max_tokens=8192,
                 timeout= 120,
                 max_retries=3,
-                api_key="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"
+                api_key=os.getenv("ANTHROPIC_API_KEY", "")
             )
-        
+
         # Read original file
         file_path = self.agent1_result.get('filePath', '')
         if not file_path:

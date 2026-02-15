@@ -25,6 +25,7 @@ from elasticsearch import Elasticsearch
 import json
 import logging
 import hashlib
+import os
 import re
 import numpy as np
 import warnings
@@ -976,7 +977,7 @@ import anthropic
 
 # Initialize
 elk = Elasticsearch(["http://localhost:9200"])
-claude = anthropic.Anthropic(api_key="your-key")
+claude = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY", ""))
 
 agent = EnterpriseAgent1_LogParser(elk, claude)
 
@@ -995,8 +996,8 @@ result = await agent.run(
 print(f"Found {len(result['structured_input']['error_pattern_summary'])} unique patterns")
 print(f"Root cause: {result['llm_analysis']['likely_root_causes'][0]['cause']}")
 """
-username = "elastic"
-password = "Z020j96A9TQ5k3j0NTuQVHB6"
+username = os.getenv("ELASTICSEARCH_USERNAME", "elastic")
+password = os.getenv("ELASTICSEARCH_PASSWORD", "")
 LLM= ChatOpenAI(temperature=0.9, model="llama3:8b-instruct-q2_K", base_url="http://localhost:11434/v1",api_key="ollama")
 
 # agent = EnterpriseAgent1_LogParser(
