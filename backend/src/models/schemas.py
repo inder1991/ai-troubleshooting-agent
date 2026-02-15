@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, model_validator
 from typing import Optional, Literal
 from datetime import datetime
 from enum import Enum
@@ -43,7 +43,7 @@ class CriticVerdict(BaseModel):
     reasoning: str
     contradicting_evidence: Optional[list[Breadcrumb]] = None
     recommendation: Optional[str] = None
-    confidence_in_verdict: int
+    confidence_in_verdict: int = Field(ge=0, le=100)
 
 
 class Finding(BaseModel):
@@ -51,7 +51,7 @@ class Finding(BaseModel):
     agent_name: str
     category: str
     summary: str
-    confidence_score: int  # 0-100
+    confidence_score: int = Field(ge=0, le=100)
     severity: Literal["critical", "high", "medium", "low"]
     breadcrumbs: list[Breadcrumb]
     negative_findings: list[NegativeFinding]
@@ -63,6 +63,12 @@ class TokenUsage(BaseModel):
     input_tokens: int
     output_tokens: int
     total_tokens: int
+
+    @model_validator(mode="after")
+    def check_total(self):
+        if self.total_tokens != self.input_tokens + self.output_tokens:
+            raise ValueError("total_tokens must equal input_tokens + output_tokens")
+        return self
 
 
 class TaskEvent(BaseModel):
@@ -91,7 +97,7 @@ class ErrorPattern(BaseModel):
     severity: Literal["critical", "high", "medium", "low"]
     affected_components: list[str]
     sample_logs: list[LogEvidence]
-    confidence_score: int
+    confidence_score: int = Field(ge=0, le=100)
     priority_rank: int
     priority_reasoning: str
 
@@ -101,7 +107,7 @@ class LogAnalysisResult(BaseModel):
     secondary_patterns: list[ErrorPattern]
     negative_findings: list[NegativeFinding]
     breadcrumbs: list[Breadcrumb]
-    overall_confidence: int
+    overall_confidence: int = Field(ge=0, le=100)
     tokens_used: TokenUsage
 
 
@@ -124,7 +130,7 @@ class MetricAnomaly(BaseModel):
     spike_end: datetime
     severity: Literal["critical", "high", "medium", "low"]
     correlation_to_incident: str
-    confidence_score: int
+    confidence_score: int = Field(ge=0, le=100)
 
 
 class MetricsAnalysisResult(BaseModel):
@@ -133,7 +139,7 @@ class MetricsAnalysisResult(BaseModel):
     chart_highlights: list[TimeRange]
     negative_findings: list[NegativeFinding]
     breadcrumbs: list[Breadcrumb]
-    overall_confidence: int
+    overall_confidence: int = Field(ge=0, le=100)
     tokens_used: TokenUsage
 
 
@@ -167,7 +173,7 @@ class K8sAnalysisResult(BaseModel):
     findings: list[Finding]
     negative_findings: list[NegativeFinding]
     breadcrumbs: list[Breadcrumb]
-    overall_confidence: int
+    overall_confidence: int = Field(ge=0, le=100)
     tokens_used: TokenUsage
 
 
@@ -194,11 +200,11 @@ class TraceAnalysisResult(BaseModel):
     retry_detected: bool
     service_dependency_graph: dict[str, list[str]]
     trace_source: Literal["jaeger", "tempo", "elasticsearch", "combined"]
-    elk_reconstruction_confidence: Optional[int] = None
+    elk_reconstruction_confidence: Optional[int] = Field(default=None, ge=0, le=100)
     findings: list[Finding]
     negative_findings: list[NegativeFinding]
     breadcrumbs: list[Breadcrumb]
-    overall_confidence: int
+    overall_confidence: int = Field(ge=0, le=100)
     tokens_used: TokenUsage
 
 
@@ -232,7 +238,7 @@ class CodeAnalysisResult(BaseModel):
     mermaid_diagram: str
     negative_findings: list[NegativeFinding]
     breadcrumbs: list[Breadcrumb]
-    overall_confidence: int
+    overall_confidence: int = Field(ge=0, le=100)
     tokens_used: TokenUsage
 
 
@@ -281,4 +287,4 @@ class DiagnosticState(BaseModel):
     supervisor_reasoning: list[str] = []
     agents_completed: list[str] = []
     agents_pending: list[str] = []
-    overall_confidence: int = 0
+    overall_confidence: int = Field(default=0, ge=0, le=100)
