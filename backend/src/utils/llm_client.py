@@ -1,0 +1,72 @@
+import os
+from anthropic import AsyncAnthropic
+from src.models.schemas import TokenUsage
+
+
+class LLMResponse:
+    """Wrapper for Anthropic API response."""
+    def __init__(self, text: str, input_tokens: int, output_tokens: int):
+        self.text = text
+        self.input_tokens = input_tokens
+        self.output_tokens = output_tokens
+
+
+class AnthropicClient:
+    """Anthropic API client with cumulative token tracking."""
+
+    def __init__(self, agent_name: str = "unknown", model: str = "claude-sonnet-4-5-20250929"):
+        self.agent_name = agent_name
+        self.model = model
+        self._client = AsyncAnthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+        self._total_input_tokens = 0
+        self._total_output_tokens = 0
+
+    async def chat(
+        self,
+        prompt: str,
+        system: str | None = None,
+        messages: list[dict] | None = None,
+        max_tokens: int = 4096,
+        temperature: float = 0.0,
+    ) -> LLMResponse:
+        """Send a message to Claude and track token usage."""
+        if messages is None:
+            messages = [{"role": "user", "content": prompt}]
+
+        kwargs = {
+            "model": self.model,
+            "max_tokens": max_tokens,
+            "messages": messages,
+            "temperature": temperature,
+        }
+        if system:
+            kwargs["system"] = system
+
+        response = await self._client.messages.create(**kwargs)
+
+        input_tokens = response.usage.input_tokens
+        output_tokens = response.usage.output_tokens
+        self._total_input_tokens += input_tokens
+        self._total_output_tokens += output_tokens
+
+        text = response.content[0].text if response.content else ""
+
+        return LLMResponse(
+            text=text,
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+        )
+
+    def get_total_usage(self) -> TokenUsage:
+        """Get cumulative token usage for this client instance."""
+        return TokenUsage(
+            agent_name=self.agent_name,
+            input_tokens=self._total_input_tokens,
+            output_tokens=self._total_output_tokens,
+            total_tokens=self._total_input_tokens + self._total_output_tokens,
+        )
+
+    def reset_usage(self) -> None:
+        """Reset token counters."""
+        self._total_input_tokens = 0
+        self._total_output_tokens = 0
