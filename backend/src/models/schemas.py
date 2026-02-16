@@ -341,6 +341,49 @@ class ReActBudget(BaseModel):
         self.current_tool_calls += 1
 
 
+class EvidenceNode(BaseModel):
+    id: str
+    pin: EvidencePin
+    node_type: Literal["symptom", "cause", "contributing_factor", "context"]
+    temporal_position: datetime
+
+
+class CausalEdge(BaseModel):
+    source_id: str
+    target_id: str
+    relationship: Literal["causes", "correlates", "precedes", "contributes_to"]
+    confidence: float = Field(..., ge=0.0, le=1.0)
+    reasoning: str
+
+
+class EvidenceGraph(BaseModel):
+    nodes: list[EvidenceNode] = Field(default_factory=list)
+    edges: list[CausalEdge] = Field(default_factory=list)
+    root_causes: list[str] = Field(default_factory=list)
+    timeline: list[str] = Field(default_factory=list)
+
+
+class TimelineEvent(BaseModel):
+    timestamp: datetime
+    source: str
+    event_type: str
+    description: str
+    evidence_node_id: str
+    severity: Literal["info", "warning", "error", "critical"]
+
+
+class IncidentTimeline(BaseModel):
+    events: list[TimelineEvent] = Field(default_factory=list)
+
+
+class Hypothesis(BaseModel):
+    hypothesis_id: str
+    description: str
+    confidence: float = Field(..., ge=0.0, le=1.0)
+    supporting_node_ids: list[str] = Field(default_factory=list)
+    causal_chain: list[str] = Field(default_factory=list)
+
+
 class DiagnosticState(BaseModel):
     session_id: str
     phase: DiagnosticPhase
@@ -383,6 +426,9 @@ class DiagnosticStateV5(DiagnosticState):
     attestation_gates: list[AttestationGate] = []
     reasoning_manifest: Optional[ReasoningManifest] = None
     integration_id: Optional[str] = None
+    evidence_graph: EvidenceGraph = Field(default_factory=EvidenceGraph)
+    hypotheses: list[Hypothesis] = Field(default_factory=list)
+    incident_timeline: IncidentTimeline = Field(default_factory=IncidentTimeline)
 
     @model_validator(mode="after")
     def _auto_init_reasoning_manifest(self):
