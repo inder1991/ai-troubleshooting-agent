@@ -1,9 +1,11 @@
 import json
 import asyncio
 from typing import Optional
+from datetime import datetime, timezone
 
 from src.models.schemas import (
-    DiagnosticState, DiagnosticPhase, Finding, CriticVerdict, TokenUsage, TimeWindow
+    DiagnosticState, DiagnosticPhase, Finding, CriticVerdict, TokenUsage, TimeWindow,
+    ConfidenceLedger, EvidencePin, ReasoningManifest, ReasoningStep,
 )
 from src.agents.log_agent import LogAnalysisAgent
 from src.agents.metrics_agent import MetricsAgent
@@ -13,6 +15,52 @@ from src.agents.code_agent import CodeNavigatorAgent
 from src.agents.critic_agent import CriticAgent
 from src.utils.llm_client import AnthropicClient
 from src.utils.event_emitter import EventEmitter
+
+
+def update_confidence_ledger(ledger: ConfidenceLedger, pins: list[EvidencePin]) -> None:
+    """Update ledger from evidence pins. Average confidence per type, then compute weighted final."""
+    type_map: dict[str, list[float]] = {
+        "log": [], "metric": [], "trace": [], "k8s_event": [], "code": [], "change": [],
+    }
+    for pin in pins:
+        if pin.evidence_type in type_map:
+            type_map[pin.evidence_type].append(pin.confidence)
+
+    if type_map["log"]:
+        ledger.log_confidence = sum(type_map["log"]) / len(type_map["log"])
+    if type_map["metric"]:
+        ledger.metrics_confidence = sum(type_map["metric"]) / len(type_map["metric"])
+    if type_map["trace"]:
+        ledger.tracing_confidence = sum(type_map["trace"]) / len(type_map["trace"])
+    if type_map["k8s_event"]:
+        ledger.k8s_confidence = sum(type_map["k8s_event"]) / len(type_map["k8s_event"])
+    if type_map["code"]:
+        ledger.code_confidence = sum(type_map["code"]) / len(type_map["code"])
+    if type_map["change"]:
+        ledger.change_confidence = sum(type_map["change"]) / len(type_map["change"])
+
+    ledger.compute_weighted_final()
+
+
+def add_reasoning_step(
+    manifest: ReasoningManifest,
+    decision: str,
+    reasoning: str,
+    evidence_considered: list[str],
+    confidence: float,
+    alternatives_rejected: list[str],
+) -> None:
+    """Append a new reasoning step to the manifest."""
+    step = ReasoningStep(
+        step_number=len(manifest.steps) + 1,
+        timestamp=datetime.now(timezone.utc),
+        decision=decision,
+        reasoning=reasoning,
+        evidence_considered=evidence_considered,
+        confidence_at_step=confidence,
+        alternatives_rejected=alternatives_rejected,
+    )
+    manifest.steps.append(step)
 
 
 class SupervisorAgent:
