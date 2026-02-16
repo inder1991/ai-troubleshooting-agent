@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from typing import Any
 
-from src.models.schemas import Breadcrumb, EvidencePin, NegativeFinding, TokenUsage
+from src.models.schemas import Breadcrumb, EvidencePin, NegativeFinding, ReActBudget, TokenUsage
 from src.utils.llm_client import AnthropicClient
 from src.utils.event_emitter import EventEmitter
 
@@ -23,6 +23,7 @@ class ReActAgent(ABC):
         self.breadcrumbs: list[Breadcrumb] = []
         self.negative_findings: list[NegativeFinding] = []
         self.evidence_pins: list[EvidencePin] = []
+        self.budget = ReActBudget()
         self._tools: list[dict] = []
         self._tool_handlers: dict[str, Any] = {}
 
@@ -132,6 +133,15 @@ class ReActAgent(ABC):
         messages = [{"role": "user", "content": initial_prompt}]
 
         for iteration in range(self.max_iterations):
+            if self.budget.is_exhausted():
+                if event_emitter:
+                    await event_emitter.emit(self.agent_name, "warning", "Budget exhausted")
+                return {
+                    "error": "budget_exhausted",
+                    "partial_results": self.breadcrumbs,
+                    "evidence_pins": [p.model_dump(mode="json") for p in self.evidence_pins],
+                }
+
             if event_emitter:
                 await event_emitter.emit(
                     self.agent_name, "progress",
@@ -151,6 +161,7 @@ class ReActAgent(ABC):
             # Track tokens
             self.llm_client._total_input_tokens += response.usage.input_tokens
             self.llm_client._total_output_tokens += response.usage.output_tokens
+            self.budget.record_llm_call(response.usage.input_tokens + response.usage.output_tokens)
 
             # Check if the response contains tool use
             tool_use_blocks = [b for b in response.content if b.type == "tool_use"]
@@ -185,6 +196,8 @@ class ReActAgent(ABC):
                         result = await self._handle_tool_call(tool_name, tool_input)
                     except Exception as e:
                         result = f"Error executing {tool_name}: {str(e)}"
+
+                    self.budget.record_tool_call()
 
                     tool_results.append({
                         "type": "tool_result",

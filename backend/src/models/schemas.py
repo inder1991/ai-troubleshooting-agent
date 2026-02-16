@@ -319,6 +319,28 @@ class ReasoningManifest(BaseModel):
     steps: list[ReasoningStep] = []
 
 
+class ReActBudget(BaseModel):
+    max_llm_calls: int = 10
+    max_tool_calls: int = 15
+    max_tokens: int = 50000
+    timeout_seconds: int = 120
+    current_llm_calls: int = 0
+    current_tool_calls: int = 0
+    current_tokens: int = 0
+
+    def is_exhausted(self) -> bool:
+        return (self.current_llm_calls >= self.max_llm_calls or
+                self.current_tool_calls >= self.max_tool_calls or
+                self.current_tokens >= self.max_tokens)
+
+    def record_llm_call(self, tokens: int = 0) -> None:
+        self.current_llm_calls += 1
+        self.current_tokens += tokens
+
+    def record_tool_call(self) -> None:
+        self.current_tool_calls += 1
+
+
 class DiagnosticState(BaseModel):
     session_id: str
     phase: DiagnosticPhase
