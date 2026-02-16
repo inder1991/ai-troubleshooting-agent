@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import AsyncMock, patch
-from backend.src.integrations.models import IntegrationConfig
-from backend.src.integrations.probe import ClusterProbe, ProbeResult
+from src.integrations.models import IntegrationConfig
+from src.integrations.probe import ClusterProbe, ProbeResult
 
 
 def _make_openshift_config():
@@ -31,7 +31,7 @@ def test_get_cli_tool():
 
 
 @pytest.mark.asyncio
-@patch("backend.src.integrations.probe.run_command")
+@patch("src.integrations.probe.run_command")
 async def test_probe_openshift_discovers_prometheus(mock_run):
     mock_run.side_effect = [
         # Prometheus route lookup -> success
@@ -52,7 +52,7 @@ async def test_probe_openshift_discovers_prometheus(mock_run):
 
 
 @pytest.mark.asyncio
-@patch("backend.src.integrations.probe.run_command")
+@patch("src.integrations.probe.run_command")
 async def test_probe_kubernetes(mock_run):
     mock_run.side_effect = [
         # prometheus-server svc -> success
@@ -73,7 +73,7 @@ async def test_probe_kubernetes(mock_run):
 
 
 @pytest.mark.asyncio
-@patch("backend.src.integrations.probe.run_command")
+@patch("src.integrations.probe.run_command")
 async def test_probe_handles_unreachable(mock_run):
     mock_run.return_value = (1, "", "Unable to connect to the server: dial tcp: connection refused")
     probe = ClusterProbe()

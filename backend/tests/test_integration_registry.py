@@ -1,7 +1,7 @@
 import pytest
 import os
-from backend.src.integrations.models import IntegrationConfig
-from backend.src.integrations.store import IntegrationStore
+from src.integrations.models import IntegrationConfig
+from src.integrations.store import IntegrationStore
 
 
 def _make_openshift_config(**kwargs):
