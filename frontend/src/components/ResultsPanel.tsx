@@ -1,11 +1,12 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { BarChart3, AlertTriangle, Server, GitBranch } from 'lucide-react';
-import type { V4Findings, TimelineEventData, EvidenceNodeData, CausalEdgeData, ChangeCorrelation, PastIncidentMatch } from '../types';
+import type { V4Findings, TimelineEventData, EvidenceNodeData, CausalEdgeData, ChangeCorrelation, PastIncidentMatch, BlastRadiusData, SeverityData } from '../types';
 import { getFindings, getTimeline, getEvidenceGraph } from '../services/api';
 import TimelineCard from './Dashboard/TimelineCard';
 import EvidenceGraphCard from './Dashboard/EvidenceGraphCard';
 import ChangeCorrelationCard from './Dashboard/ChangeCorrelationCard';
 import PastIncidentCard from './Dashboard/PastIncidentCard';
+import ImpactCard from './Dashboard/ImpactCard';
 
 interface ResultsPanelProps {
   sessionId: string;
@@ -79,6 +80,20 @@ const ResultsPanel: React.FC<ResultsPanelProps> = ({ sessionId }) => {
       timestamp: new Date(Date.now() - 86400000).toISOString(),
     },
   ]);
+
+  const [blastRadius] = useState<BlastRadiusData>({
+    primary_service: 'order-svc',
+    upstream_affected: ['api-gateway', 'auth-svc'],
+    downstream_affected: ['inventory-svc', 'payment-svc', 'notification-svc'],
+    shared_resources: ['postgres-primary', 'redis-cluster'],
+    estimated_user_impact: '~5000 users potentially affected',
+    scope: 'namespace',
+  });
+  const [severityData] = useState<SeverityData>({
+    recommended_severity: 'P2',
+    reasoning: "Service tier 'critical' with blast radius scope 'namespace'",
+    factors: { service_tier: 'critical', blast_radius_scope: 'namespace' },
+  });
 
   const fetchFindings = useCallback(async () => {
     try {
@@ -233,6 +248,9 @@ const ResultsPanel: React.FC<ResultsPanelProps> = ({ sessionId }) => {
           ))}
         </div>
       )}
+
+      {/* Impact Analysis */}
+      <ImpactCard blastRadius={blastRadius} severity={severityData} />
 
       {/* Incident Timeline */}
       <TimelineCard events={timelineEvents} />

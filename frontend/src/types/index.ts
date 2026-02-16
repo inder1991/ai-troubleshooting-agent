@@ -391,6 +391,22 @@ export interface HypothesisData {
   causal_chain: string[];
 }
 
+// ===== V5 Impact & Risk Types =====
+export interface BlastRadiusData {
+  primary_service: string;
+  upstream_affected: string[];
+  downstream_affected: string[];
+  shared_resources: string[];
+  estimated_user_impact: string;
+  scope: 'single_service' | 'service_group' | 'namespace' | 'cluster_wide';
+}
+
+export interface SeverityData {
+  recommended_severity: 'P1' | 'P2' | 'P3' | 'P4';
+  reasoning: string;
+  factors: Record<string, string>;
+}
+
 // ===== V5 Post-Mortem Memory Types =====
 export interface PastIncidentMatch {
   fingerprint_id: string;
