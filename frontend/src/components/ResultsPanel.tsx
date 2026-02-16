@@ -1,7 +1,9 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { BarChart3, AlertTriangle, Server, GitBranch } from 'lucide-react';
-import type { V4Findings } from '../types';
-import { getFindings } from '../services/api';
+import type { V4Findings, TimelineEventData, EvidenceNodeData, CausalEdgeData } from '../types';
+import { getFindings, getTimeline, getEvidenceGraph } from '../services/api';
+import TimelineCard from './Dashboard/TimelineCard';
+import EvidenceGraphCard from './Dashboard/EvidenceGraphCard';
 
 interface ResultsPanelProps {
   sessionId: string;
@@ -10,6 +12,10 @@ interface ResultsPanelProps {
 const ResultsPanel: React.FC<ResultsPanelProps> = ({ sessionId }) => {
   const [findings, setFindings] = useState<V4Findings | null>(null);
   const [loading, setLoading] = useState(true);
+  const [timelineEvents, setTimelineEvents] = useState<TimelineEventData[]>([]);
+  const [graphNodes, setGraphNodes] = useState<EvidenceNodeData[]>([]);
+  const [graphEdges, setGraphEdges] = useState<CausalEdgeData[]>([]);
+  const [rootCauses, setRootCauses] = useState<string[]>([]);
 
   const fetchFindings = useCallback(async () => {
     try {
@@ -22,11 +28,30 @@ const ResultsPanel: React.FC<ResultsPanelProps> = ({ sessionId }) => {
     }
   }, [sessionId]);
 
+  const fetchCausalData = useCallback(async () => {
+    try {
+      const [tlData, egData] = await Promise.all([
+        getTimeline(sessionId),
+        getEvidenceGraph(sessionId),
+      ]);
+      if (tlData?.events) setTimelineEvents(tlData.events);
+      if (egData?.nodes) setGraphNodes(egData.nodes);
+      if (egData?.edges) setGraphEdges(egData.edges);
+      if (egData?.root_causes) setRootCauses(egData.root_causes);
+    } catch {
+      // silently fail - causal data may not be available yet
+    }
+  }, [sessionId]);
+
   useEffect(() => {
     fetchFindings();
-    const interval = setInterval(fetchFindings, 5000);
+    fetchCausalData();
+    const interval = setInterval(() => {
+      fetchFindings();
+      fetchCausalData();
+    }, 5000);
     return () => clearInterval(interval);
-  }, [fetchFindings]);
+  }, [fetchFindings, fetchCausalData]);
 
   if (loading && !findings) {
     return (
@@ -145,6 +170,12 @@ const ResultsPanel: React.FC<ResultsPanelProps> = ({ sessionId }) => {
           ))}
         </div>
       )}
+
+      {/* Incident Timeline */}
+      <TimelineCard events={timelineEvents} />
+
+      {/* Evidence Graph */}
+      <EvidenceGraphCard nodes={graphNodes} edges={graphEdges} rootCauses={rootCauses} />
     </div>
   );
 };

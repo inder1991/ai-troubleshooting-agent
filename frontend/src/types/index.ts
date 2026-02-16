@@ -344,3 +344,38 @@ export interface ReasoningStepData {
   reasoning: string;
   confidence_at_step: number;
 }
+
+// ===== V5 Causal Intelligence Types =====
+
+export interface EvidenceNodeData {
+  id: string;
+  claim: string;
+  source_agent: string;
+  evidence_type: string;
+  node_type: 'symptom' | 'cause' | 'contributing_factor' | 'context';
+  confidence: number;
+  timestamp: string;
+}
+
+export interface CausalEdgeData {
+  source_id: string;
+  target_id: string;
+  relationship: string;
+  confidence: number;
+  reasoning: string;
+}
+
+export interface TimelineEventData {
+  timestamp: string;
+  source: string;
+  event_type: string;
+  description: string;
+  severity: 'info' | 'warning' | 'error' | 'critical';
+}
+
+export interface HypothesisData {
+  hypothesis_id: string;
+  description: string;
+  confidence: number;
+  causal_chain: string[];
+}
