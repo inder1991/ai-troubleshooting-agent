@@ -72,13 +72,13 @@ const DashboardTab: React.FC<DashboardTabProps> = ({ sessionId }) => {
 
   const hasData =
     findings &&
-    (findings.error_patterns.length > 0 ||
-      findings.metric_anomalies.length > 0 ||
-      findings.pod_statuses.length > 0 ||
-      findings.k8s_events.length > 0 ||
-      findings.trace_spans.length > 0 ||
-      findings.impacted_files.length > 0 ||
-      findings.findings.length > 0);
+    ((findings.error_patterns?.length ?? 0) > 0 ||
+      (findings.metric_anomalies?.length ?? 0) > 0 ||
+      (findings.pod_statuses?.length ?? 0) > 0 ||
+      (findings.k8s_events?.length ?? 0) > 0 ||
+      (findings.trace_spans?.length ?? 0) > 0 ||
+      (findings.impacted_files?.length ?? 0) > 0 ||
+      (findings.findings?.length ?? 0) > 0);
 
   if (!hasData) {
     return (
@@ -98,7 +98,7 @@ const DashboardTab: React.FC<DashboardTabProps> = ({ sessionId }) => {
     <div className="h-full overflow-y-auto p-4">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Summary always goes full width at top */}
-        {findings && status && findings.findings.length > 0 && (
+        {findings && status && (findings.findings?.length ?? 0) > 0 && (
           <div className="lg:col-span-2">
             <DiagnosisSummaryCard
               confidence={status.confidence}
@@ -109,23 +109,23 @@ const DashboardTab: React.FC<DashboardTabProps> = ({ sessionId }) => {
           </div>
         )}
 
-        {findings && findings.error_patterns.length > 0 && (
+        {findings && (findings.error_patterns?.length ?? 0) > 0 && (
           <ErrorPatternsCard patterns={findings.error_patterns} />
         )}
 
-        {findings && findings.metric_anomalies.length > 0 && (
+        {findings && (findings.metric_anomalies?.length ?? 0) > 0 && (
           <MetricsChartCard anomalies={findings.metric_anomalies} />
         )}
 
-        {findings && (findings.pod_statuses.length > 0 || findings.k8s_events.length > 0) && (
+        {findings && ((findings.pod_statuses?.length ?? 0) > 0 || (findings.k8s_events?.length ?? 0) > 0) && (
           <K8sStatusCard pods={findings.pod_statuses} events={findings.k8s_events} />
         )}
 
-        {findings && findings.trace_spans.length > 0 && (
+        {findings && (findings.trace_spans?.length ?? 0) > 0 && (
           <TraceCard spans={findings.trace_spans} />
         )}
 
-        {findings && findings.impacted_files.length > 0 && (
+        {findings && (findings.impacted_files?.length ?? 0) > 0 && (
           <CodeImpactCard impacts={findings.impacted_files} />
         )}
       </div>

@@ -88,6 +88,9 @@ export const useWebSocketV4 = (
           case 'chat_response':
             handlersRef.current.onChatResponse?.(message.data as ChatMessage);
             break;
+          case 'connected':
+            // Initial handshake from server — no action needed
+            break;
           default:
             console.warn('Unknown WebSocket message type:', message.type);
         }
