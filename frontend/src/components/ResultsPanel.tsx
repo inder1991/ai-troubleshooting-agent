@@ -1,12 +1,13 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { BarChart3, AlertTriangle, Server, GitBranch } from 'lucide-react';
-import type { V4Findings, TimelineEventData, EvidenceNodeData, CausalEdgeData, ChangeCorrelation, PastIncidentMatch, BlastRadiusData, SeverityData } from '../types';
+import type { V4Findings, TimelineEventData, EvidenceNodeData, CausalEdgeData, ChangeCorrelation, PastIncidentMatch, BlastRadiusData, SeverityData, RemediationDecisionData, RunbookMatchData } from '../types';
 import { getFindings, getTimeline, getEvidenceGraph } from '../services/api';
 import TimelineCard from './Dashboard/TimelineCard';
 import EvidenceGraphCard from './Dashboard/EvidenceGraphCard';
 import ChangeCorrelationCard from './Dashboard/ChangeCorrelationCard';
 import PastIncidentCard from './Dashboard/PastIncidentCard';
 import ImpactCard from './Dashboard/ImpactCard';
+import RemediationPanel from './Remediation/RemediationPanel';
 
 interface ResultsPanelProps {
   sessionId: string;
@@ -78,6 +79,31 @@ const ResultsPanel: React.FC<ResultsPanelProps> = ({ sessionId }) => {
       description: 'Bumped axios from 1.6.0 to 1.6.2',
       files_changed: ['package.json', 'package-lock.json'],
       timestamp: new Date(Date.now() - 86400000).toISOString(),
+    },
+  ]);
+
+  const [remediationDecision] = useState<RemediationDecisionData | null>({
+    proposed_action: 'Restart deployment order-svc with increased memory limits',
+    action_type: 'restart',
+    is_destructive: false,
+    dry_run_available: true,
+    rollback_plan: 'Scale back to previous resource limits and replica count',
+    pre_checks: ['Verify current pod health', 'Check pending traffic drain'],
+    post_checks: ['Verify pods are running', 'Run smoke tests', 'Check error rate'],
+  });
+  const [runbookMatches] = useState<RunbookMatchData[]>([
+    {
+      runbook_id: 'rb-001',
+      title: 'OOM Recovery Playbook',
+      match_score: 0.85,
+      steps: [
+        'Increase memory limits by 50%',
+        'Restart affected deployment',
+        'Monitor for 15 minutes',
+        'Verify error rate returns to baseline',
+      ],
+      success_rate: 0.92,
+      source: 'internal',
     },
   ]);
 
@@ -248,6 +274,13 @@ const ResultsPanel: React.FC<ResultsPanelProps> = ({ sessionId }) => {
           ))}
         </div>
       )}
+
+      {/* Remediation */}
+      <RemediationPanel
+        sessionId={sessionId}
+        decision={remediationDecision}
+        runbookMatches={runbookMatches}
+      />
 
       {/* Impact Analysis */}
       <ImpactCard blastRadius={blastRadius} severity={severityData} />

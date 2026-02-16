@@ -189,3 +189,26 @@ async def store_incident(data: dict):
 async def find_similar(session_id: str):
     # Placeholder — in production this would look up the session and create a fingerprint
     return {"similar_incidents": []}
+
+
+# --- Remediation endpoints ---
+
+
+@router.post("/session/{session_id}/remediation/propose")
+async def propose_remediation(session_id: str, data: dict):
+    return {"status": "proposed", "session_id": session_id, "decision": data}
+
+
+@router.post("/session/{session_id}/remediation/dry-run")
+async def dry_run_remediation(session_id: str, data: dict):
+    return {"status": "dry_run_complete", "output": f"Dry run: {data.get('action', 'unknown')}"}
+
+
+@router.post("/session/{session_id}/remediation/execute")
+async def execute_remediation(session_id: str, data: dict):
+    return {"status": "executed", "output": f"Executed: {data.get('action', 'unknown')}"}
+
+
+@router.post("/session/{session_id}/remediation/rollback")
+async def rollback_remediation(session_id: str):
+    return {"status": "rolled_back"}

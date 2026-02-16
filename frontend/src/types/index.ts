@@ -418,3 +418,24 @@ export interface PastIncidentMatch {
   affected_services: string[];
   time_to_resolve: number;
 }
+
+// ===== V5 Remediation Types =====
+
+export interface RemediationDecisionData {
+  proposed_action: string;
+  action_type: 'restart' | 'scale' | 'rollback' | 'config_change' | 'code_fix';
+  is_destructive: boolean;
+  dry_run_available: boolean;
+  rollback_plan: string;
+  pre_checks: string[];
+  post_checks: string[];
+}
+
+export interface RunbookMatchData {
+  runbook_id: string;
+  title: string;
+  match_score: number;
+  steps: string[];
+  success_rate: number;
+  source: 'internal' | 'vendor' | 'ai_generated';
+}

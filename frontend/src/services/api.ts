@@ -244,3 +244,40 @@ export const findSimilarIncidents = async (sessionId: string) => {
   if (!response.ok) throw new Error('Failed to find similar incidents');
   return response.json();
 };
+
+// ===== V5 Remediation API =====
+
+export const proposeRemediation = async (sessionId: string, data: Record<string, unknown>) => {
+  const response = await fetch(`${API_BASE_URL}/api/v5/session/${sessionId}/remediation/propose`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error('Failed to propose remediation');
+  return response.json();
+};
+
+export const dryRunRemediation = async (sessionId: string, data: Record<string, unknown>) => {
+  const response = await fetch(`${API_BASE_URL}/api/v5/session/${sessionId}/remediation/dry-run`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error('Failed to run dry-run');
+  return response.json();
+};
+
+export const executeRemediation = async (sessionId: string, data: Record<string, unknown>) => {
+  const response = await fetch(`${API_BASE_URL}/api/v5/session/${sessionId}/remediation/execute`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error('Failed to execute remediation');
+  return response.json();
+};
+
+export const rollbackRemediation = async (sessionId: string) => {
+  const response = await fetch(`${API_BASE_URL}/api/v5/session/${sessionId}/remediation/rollback`, {
+    method: 'POST'
+  });
+  if (!response.ok) throw new Error('Failed to rollback');
+  return response.json();
+};
