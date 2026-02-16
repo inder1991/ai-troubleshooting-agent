@@ -154,3 +154,38 @@ export const listSessionsV4 = async (): Promise<V4Session[]> => {
   }
   return response.json();
 };
+
+// ===== V5 Governance API =====
+export const getEvidenceGraph = async (sessionId: string) => {
+  const response = await fetch(`${API_BASE_URL}/api/v5/session/${sessionId}/evidence-graph`);
+  if (!response.ok) throw new Error('Failed to get evidence graph');
+  return response.json();
+};
+
+export const getConfidence = async (sessionId: string) => {
+  const response = await fetch(`${API_BASE_URL}/api/v5/session/${sessionId}/confidence`);
+  if (!response.ok) throw new Error('Failed to get confidence');
+  return response.json();
+};
+
+export const getReasoning = async (sessionId: string) => {
+  const response = await fetch(`${API_BASE_URL}/api/v5/session/${sessionId}/reasoning`);
+  if (!response.ok) throw new Error('Failed to get reasoning');
+  return response.json();
+};
+
+export const submitAttestation = async (sessionId: string, gateType: string, decision: string, decidedBy: string) => {
+  const response = await fetch(`${API_BASE_URL}/api/v5/session/${sessionId}/attestation`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ gate_type: gateType, decision, decided_by: decidedBy }),
+  });
+  if (!response.ok) throw new Error('Failed to submit attestation');
+  return response.json();
+};
+
+export const getTimeline = async (sessionId: string) => {
+  const response = await fetch(`${API_BASE_URL}/api/v5/session/${sessionId}/timeline`);
+  if (!response.ok) throw new Error('Failed to get timeline');
+  return response.json();
+};

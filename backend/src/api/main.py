@@ -10,6 +10,7 @@ from datetime import datetime
 
 from .routes import router
 from .routes_v4 import router_v4
+from .routes_v5 import router as v5_router
 from .websocket import manager
 
 
@@ -41,6 +42,7 @@ def create_app() -> FastAPI:
     app.include_router(router)
     app.include_router(pr_router, prefix="/api")
     app.include_router(router_v4)
+    app.include_router(v5_router)
 
     # WebSocket endpoint
     @app.websocket("/ws/troubleshoot/{session_id}")

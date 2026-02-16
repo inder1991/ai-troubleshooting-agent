@@ -292,3 +292,40 @@ export type CapabilityFormData =
   | PRReviewForm
   | GithubIssueFixForm
   | ClusterDiagnosticsForm;
+
+// ===== V5 Governance Types =====
+export interface EvidencePinData {
+  claim: string;
+  supporting_evidence: string[];
+  source_agent: string;
+  source_tool: string;
+  confidence: number;
+  timestamp: string;
+  evidence_type: 'log' | 'metric' | 'trace' | 'k8s_event' | 'code' | 'change';
+}
+
+export interface ConfidenceLedgerData {
+  log_confidence: number;
+  metrics_confidence: number;
+  tracing_confidence: number;
+  k8s_confidence: number;
+  code_confidence: number;
+  change_confidence: number;
+  weighted_final: number;
+}
+
+export interface AttestationGateData {
+  gate_type: 'discovery_complete' | 'pre_remediation' | 'post_remediation';
+  human_decision: 'approve' | 'reject' | 'modify' | null;
+  decided_by: string | null;
+  decided_at: string | null;
+  proposed_action: string | null;
+}
+
+export interface ReasoningStepData {
+  step_number: number;
+  timestamp: string;
+  decision: string;
+  reasoning: string;
+  confidence_at_step: number;
+}
