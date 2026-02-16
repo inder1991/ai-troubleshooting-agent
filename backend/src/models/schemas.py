@@ -384,6 +384,18 @@ class Hypothesis(BaseModel):
     causal_chain: list[str] = Field(default_factory=list)
 
 
+class ChangeRiskScore(BaseModel):
+    change_id: str
+    change_type: Literal["code_deploy", "config_change", "infra_change", "dependency_update"]
+    risk_score: float = Field(..., ge=0.0, le=1.0)
+    temporal_correlation: float = Field(..., ge=0.0, le=1.0)
+    scope_overlap: float = Field(..., ge=0.0, le=1.0)
+    author: str
+    description: str
+    files_changed: list[str] = Field(default_factory=list)
+    timestamp: Optional[datetime] = None
+
+
 class DiagnosticState(BaseModel):
     session_id: str
     phase: DiagnosticPhase
@@ -429,6 +441,7 @@ class DiagnosticStateV5(DiagnosticState):
     evidence_graph: EvidenceGraph = Field(default_factory=EvidenceGraph)
     hypotheses: list[Hypothesis] = Field(default_factory=list)
     incident_timeline: IncidentTimeline = Field(default_factory=IncidentTimeline)
+    change_correlations: list[ChangeRiskScore] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def _auto_init_reasoning_manifest(self):
