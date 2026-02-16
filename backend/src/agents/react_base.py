@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from typing import Any
 
-from src.models.schemas import Breadcrumb, NegativeFinding, TokenUsage
+from src.models.schemas import Breadcrumb, EvidencePin, NegativeFinding, TokenUsage
 from src.utils.llm_client import AnthropicClient
 from src.utils.event_emitter import EventEmitter
 
@@ -22,6 +22,7 @@ class ReActAgent(ABC):
         self.llm_client = AnthropicClient(agent_name=agent_name, model=model)
         self.breadcrumbs: list[Breadcrumb] = []
         self.negative_findings: list[NegativeFinding] = []
+        self.evidence_pins: list[EvidencePin] = []
         self._tools: list[dict] = []
         self._tool_handlers: dict[str, Any] = {}
 
@@ -87,6 +88,27 @@ class ReActAgent(ABC):
             )
         )
 
+    def add_evidence_pin(
+        self,
+        claim: str,
+        supporting_evidence: list[str],
+        source_tool: str,
+        confidence: float,
+        evidence_type: str,
+    ) -> EvidencePin:
+        """Pin a piece of evidence with structured metadata."""
+        pin = EvidencePin(
+            claim=claim,
+            supporting_evidence=supporting_evidence,
+            source_agent=self.agent_name,
+            source_tool=source_tool,
+            confidence=confidence,
+            timestamp=datetime.now(timezone.utc),
+            evidence_type=evidence_type,
+        )
+        self.evidence_pins.append(pin)
+        return pin
+
     def get_token_usage(self) -> TokenUsage:
         """Get cumulative token usage for this agent."""
         return self.llm_client.get_total_usage()
@@ -139,7 +161,9 @@ class ReActAgent(ABC):
                 final_text = text_blocks[0].text if text_blocks else ""
                 if event_emitter:
                     await event_emitter.emit(self.agent_name, "success", f"{self.agent_name} completed analysis")
-                return self._parse_final_response(final_text)
+                result = self._parse_final_response(final_text)
+                result["evidence_pins"] = [p.model_dump(mode="json") for p in self.evidence_pins]
+                return result
 
             if tool_use_blocks:
                 # Add assistant message with all content blocks
@@ -172,10 +196,16 @@ class ReActAgent(ABC):
             else:
                 # No tool calls and not end_turn — shouldn't happen, but handle gracefully
                 final_text = text_blocks[0].text if text_blocks else ""
-                return self._parse_final_response(final_text)
+                result = self._parse_final_response(final_text)
+                result["evidence_pins"] = [p.model_dump(mode="json") for p in self.evidence_pins]
+                return result
 
         # Max iterations reached
         if event_emitter:
             await event_emitter.emit(self.agent_name, "warning", f"Max iterations ({self.max_iterations}) reached")
 
-        return {"error": "max_iterations_reached", "partial_results": self.breadcrumbs}
+        return {
+            "error": "max_iterations_reached",
+            "partial_results": self.breadcrumbs,
+            "evidence_pins": [p.model_dump(mode="json") for p in self.evidence_pins],
+        }
