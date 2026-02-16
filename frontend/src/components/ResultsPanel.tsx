@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { BarChart3, AlertTriangle, Server, GitBranch } from 'lucide-react';
-import type { V4Findings, TimelineEventData, EvidenceNodeData, CausalEdgeData } from '../types';
+import type { V4Findings, TimelineEventData, EvidenceNodeData, CausalEdgeData, ChangeCorrelation } from '../types';
 import { getFindings, getTimeline, getEvidenceGraph } from '../services/api';
 import TimelineCard from './Dashboard/TimelineCard';
 import EvidenceGraphCard from './Dashboard/EvidenceGraphCard';
+import ChangeCorrelationCard from './Dashboard/ChangeCorrelationCard';
 
 interface ResultsPanelProps {
   sessionId: string;
@@ -16,6 +17,38 @@ const ResultsPanel: React.FC<ResultsPanelProps> = ({ sessionId }) => {
   const [graphNodes, setGraphNodes] = useState<EvidenceNodeData[]>([]);
   const [graphEdges, setGraphEdges] = useState<CausalEdgeData[]>([]);
   const [rootCauses, setRootCauses] = useState<string[]>([]);
+  const [changeCorrelations] = useState<ChangeCorrelation[]>([
+    {
+      change_id: 'placeholder-1',
+      change_type: 'code_deploy',
+      risk_score: 0.85,
+      temporal_correlation: 0.92,
+      author: 'deploy-bot',
+      description: 'Deployed v2.3.1 with updated connection pool settings',
+      files_changed: ['src/config/db.ts', 'src/services/pool.ts'],
+      timestamp: new Date().toISOString(),
+    },
+    {
+      change_id: 'placeholder-2',
+      change_type: 'config_change',
+      risk_score: 0.45,
+      temporal_correlation: 0.60,
+      author: 'ops-team',
+      description: 'Updated Redis timeout from 5s to 2s',
+      files_changed: ['configmap.yaml'],
+      timestamp: new Date(Date.now() - 3600000).toISOString(),
+    },
+    {
+      change_id: 'placeholder-3',
+      change_type: 'dependency_update',
+      risk_score: 0.2,
+      temporal_correlation: 0.15,
+      author: 'dependabot',
+      description: 'Bumped axios from 1.6.0 to 1.6.2',
+      files_changed: ['package.json', 'package-lock.json'],
+      timestamp: new Date(Date.now() - 86400000).toISOString(),
+    },
+  ]);
 
   const fetchFindings = useCallback(async () => {
     try {
@@ -176,6 +209,9 @@ const ResultsPanel: React.FC<ResultsPanelProps> = ({ sessionId }) => {
 
       {/* Evidence Graph */}
       <EvidenceGraphCard nodes={graphNodes} edges={graphEdges} rootCauses={rootCauses} />
+
+      {/* Change Correlations */}
+      <ChangeCorrelationCard changes={changeCorrelations} />
     </div>
   );
 };

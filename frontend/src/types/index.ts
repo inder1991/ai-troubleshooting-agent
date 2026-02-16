@@ -373,6 +373,17 @@ export interface TimelineEventData {
   severity: 'info' | 'warning' | 'error' | 'critical';
 }
 
+export interface ChangeCorrelation {
+  change_id: string;
+  change_type: 'code_deploy' | 'config_change' | 'infra_change' | 'dependency_update';
+  risk_score: number;
+  temporal_correlation: number;
+  author: string;
+  description: string;
+  files_changed: string[];
+  timestamp: string | null;
+}
+
 export interface HypothesisData {
   hypothesis_id: string;
   description: string;
