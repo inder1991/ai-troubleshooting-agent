@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, model_validator
-from typing import Optional, Literal
+from typing import Optional, Literal, TYPE_CHECKING
 from datetime import datetime
 from enum import Enum
 
@@ -254,6 +254,71 @@ class TimeWindow(BaseModel):
     end: str
 
 
+# ---------------------------------------------------------------------------
+# v5 Governance Models
+# ---------------------------------------------------------------------------
+
+
+class EvidencePin(BaseModel):
+    claim: str = Field(..., min_length=1)
+    supporting_evidence: list[str] = []
+    source_agent: str
+    source_tool: str
+    confidence: float = Field(..., ge=0.0, le=1.0)
+    timestamp: datetime
+    evidence_type: Literal["log", "metric", "trace", "k8s_event", "code", "change"]
+
+
+class ConfidenceLedger(BaseModel):
+    log_confidence: float = 0.0
+    metrics_confidence: float = 0.0
+    tracing_confidence: float = 0.0
+    k8s_confidence: float = 0.0
+    code_confidence: float = 0.0
+    change_confidence: float = 0.0
+    critic_adjustment: float = Field(default=0.0, ge=-0.3, le=0.1)
+    weighted_final: float = 0.0
+    weights: dict[str, float] = {
+        "log": 0.25, "metrics": 0.30, "tracing": 0.20,
+        "k8s": 0.15, "code": 0.05, "change": 0.05,
+    }
+
+    def compute_weighted_final(self) -> None:
+        sources = {
+            "log": self.log_confidence, "metrics": self.metrics_confidence,
+            "tracing": self.tracing_confidence, "k8s": self.k8s_confidence,
+            "code": self.code_confidence, "change": self.change_confidence,
+        }
+        raw = sum(sources[k] * self.weights[k] for k in sources)
+        self.weighted_final = max(0.0, min(1.0, raw + self.critic_adjustment))
+
+
+class AttestationGate(BaseModel):
+    gate_type: Literal["discovery_complete", "pre_remediation", "post_remediation"]
+    requires_human: bool = True
+    evidence_summary: list[EvidencePin] = []
+    proposed_action: Optional[str] = None
+    human_decision: Optional[Literal["approve", "reject", "modify"]] = None
+    human_notes: Optional[str] = None
+    decided_at: Optional[datetime] = None
+    decided_by: Optional[str] = None
+
+
+class ReasoningStep(BaseModel):
+    step_number: int
+    timestamp: datetime
+    decision: str
+    reasoning: str
+    evidence_considered: list[str] = []
+    confidence_at_step: float = 0.0
+    alternatives_rejected: list[str] = []
+
+
+class ReasoningManifest(BaseModel):
+    session_id: str
+    steps: list[ReasoningStep] = []
+
+
 class DiagnosticState(BaseModel):
     session_id: str
     phase: DiagnosticPhase
@@ -288,3 +353,17 @@ class DiagnosticState(BaseModel):
     agents_completed: list[str] = []
     agents_pending: list[str] = []
     overall_confidence: int = Field(default=0, ge=0, le=100)
+
+
+class DiagnosticStateV5(DiagnosticState):
+    evidence_pins: list[EvidencePin] = []
+    confidence_ledger: ConfidenceLedger = Field(default_factory=ConfidenceLedger)
+    attestation_gates: list[AttestationGate] = []
+    reasoning_manifest: Optional[ReasoningManifest] = None
+    integration_id: Optional[str] = None
+
+    @model_validator(mode="after")
+    def _auto_init_reasoning_manifest(self):
+        if self.reasoning_manifest is None:
+            self.reasoning_manifest = ReasoningManifest(session_id=self.session_id)
+        return self
