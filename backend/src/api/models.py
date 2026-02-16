@@ -63,13 +63,15 @@ class ChatResponse(BaseModel):
 
 
 class StartSessionRequest(BaseModel):
-    serviceName: str
-    elkIndex: str = "app-logs-*"
-    timeframe: str = "1h"
-    traceId: Optional[str] = None
+    model_config = {"populate_by_name": True}
+
+    serviceName: str = Field(alias="service_name", default=None)
+    elkIndex: str = Field(default="app-logs-*", alias="elk_index")
+    timeframe: str = Field(default="1h", alias="time_window")
+    traceId: Optional[str] = Field(default=None, alias="trace_id")
     namespace: Optional[str] = None
-    clusterUrl: Optional[str] = None
-    repoUrl: Optional[str] = None
+    clusterUrl: Optional[str] = Field(default=None, alias="cluster_url")
+    repoUrl: Optional[str] = Field(default=None, alias="repo_url")
 
 
 class StartSessionResponse(BaseModel):

@@ -31,19 +31,9 @@ import numpy as np
 import warnings
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
-#from ddtrace import patch_all
-from ddtrace import patch
-
-patch(openai=True)        # if using OpenAI
-patch(langchain=True)     # if using LangChain
-# DO NOT patch anthropic directly
-
-
 warnings.filterwarnings("ignore")
 
 logger = logging.getLogger(__name__)
-
-#patch_all(openai=True)
 # ============================================================================
 # LOG FINGERPRINTING - Deduplicate similar errors
 # ============================================================================

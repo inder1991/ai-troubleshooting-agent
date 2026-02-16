@@ -45,8 +45,6 @@ _stub_module_names = [
     "langgraph.graph",
     "langgraph.graph.state",
     "elasticsearch",
-    "ddtrace",
-    "ddtrace.trace",
 ]
 for _mod_name in _stub_module_names:
     if _mod_name not in sys.modules:
