@@ -8,6 +8,8 @@ import os
 
 from src.integrations.models import IntegrationConfig
 from src.integrations.store import IntegrationStore
+from src.memory.store import MemoryStore
+from src.memory.models import IncidentFingerprint
 
 router = APIRouter(prefix="/api/v5", tags=["v5"])
 
@@ -155,3 +157,35 @@ async def probe_integration(integration_id: str):
     config.auto_discovered = result.model_dump()
     store.update(config)
     return result.model_dump()
+
+
+# --- Memory store setup ---
+_memory_store = None
+
+
+def get_memory_store():
+    global _memory_store
+    if _memory_store is None:
+        _memory_store = MemoryStore()
+    return _memory_store
+
+
+@router.get("/memory/incidents")
+async def list_incidents():
+    return [fp.model_dump(mode="json") for fp in get_memory_store().list_all()]
+
+
+@router.post("/memory/incidents")
+async def store_incident(data: dict):
+    fp = IncidentFingerprint(**data)
+    store = get_memory_store()
+    if store.is_novel(fp):
+        store.store_incident(fp)
+        return {"stored": True, "fingerprint_id": fp.fingerprint_id}
+    return {"stored": False, "reason": "duplicate"}
+
+
+@router.get("/memory/similar")
+async def find_similar(session_id: str):
+    # Placeholder — in production this would look up the session and create a fingerprint
+    return {"similar_incidents": []}

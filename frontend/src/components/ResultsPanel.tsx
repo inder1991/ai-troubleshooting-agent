@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { BarChart3, AlertTriangle, Server, GitBranch } from 'lucide-react';
-import type { V4Findings, TimelineEventData, EvidenceNodeData, CausalEdgeData, ChangeCorrelation } from '../types';
+import type { V4Findings, TimelineEventData, EvidenceNodeData, CausalEdgeData, ChangeCorrelation, PastIncidentMatch } from '../types';
 import { getFindings, getTimeline, getEvidenceGraph } from '../services/api';
 import TimelineCard from './Dashboard/TimelineCard';
 import EvidenceGraphCard from './Dashboard/EvidenceGraphCard';
 import ChangeCorrelationCard from './Dashboard/ChangeCorrelationCard';
+import PastIncidentCard from './Dashboard/PastIncidentCard';
 
 interface ResultsPanelProps {
   sessionId: string;
@@ -17,6 +18,35 @@ const ResultsPanel: React.FC<ResultsPanelProps> = ({ sessionId }) => {
   const [graphNodes, setGraphNodes] = useState<EvidenceNodeData[]>([]);
   const [graphEdges, setGraphEdges] = useState<CausalEdgeData[]>([]);
   const [rootCauses, setRootCauses] = useState<string[]>([]);
+  const [pastIncidents] = useState<PastIncidentMatch[]>([
+    {
+      fingerprint_id: 'fp-001',
+      session_id: 'sess-a1b2c3d4-e5f6-7890',
+      similarity_score: 0.87,
+      root_cause: 'Connection pool exhaustion due to leaked database connections after deployment',
+      resolution_steps: [
+        'Rolled back deployment v2.3.1',
+        'Increased connection pool max size from 10 to 25',
+        'Added connection timeout of 30s',
+      ],
+      error_patterns: ['ConnectionTimeout', 'PoolExhausted'],
+      affected_services: ['order-svc', 'inventory-svc'],
+      time_to_resolve: 2340,
+    },
+    {
+      fingerprint_id: 'fp-002',
+      session_id: 'sess-x9y8z7w6-v5u4-3210',
+      similarity_score: 0.62,
+      root_cause: 'Redis timeout misconfiguration causing cascading failures',
+      resolution_steps: [
+        'Reverted Redis timeout from 2s to 5s',
+        'Added circuit breaker for Redis calls',
+      ],
+      error_patterns: ['ConnectionTimeout', 'RedisCommandTimeout'],
+      affected_services: ['order-svc', 'cache-svc'],
+      time_to_resolve: 1800,
+    },
+  ]);
   const [changeCorrelations] = useState<ChangeCorrelation[]>([
     {
       change_id: 'placeholder-1',
@@ -209,6 +239,9 @@ const ResultsPanel: React.FC<ResultsPanelProps> = ({ sessionId }) => {
 
       {/* Evidence Graph */}
       <EvidenceGraphCard nodes={graphNodes} edges={graphEdges} rootCauses={rootCauses} />
+
+      {/* Past Incident Matches */}
+      <PastIncidentCard incidents={pastIncidents} />
 
       {/* Change Correlations */}
       <ChangeCorrelationCard changes={changeCorrelations} />

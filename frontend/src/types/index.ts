@@ -390,3 +390,15 @@ export interface HypothesisData {
   confidence: number;
   causal_chain: string[];
 }
+
+// ===== V5 Post-Mortem Memory Types =====
+export interface PastIncidentMatch {
+  fingerprint_id: string;
+  session_id: string;
+  similarity_score: number;
+  root_cause: string;
+  resolution_steps: string[];
+  error_patterns: string[];
+  affected_services: string[];
+  time_to_resolve: number;
+}

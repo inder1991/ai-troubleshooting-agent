@@ -220,3 +220,27 @@ export const probeIntegration = async (id: string) => {
   if (!response.ok) throw new Error('Failed to probe integration');
   return response.json();
 };
+
+// ===== V5 Memory API =====
+
+export const listMemoryIncidents = async () => {
+  const response = await fetch(`${API_BASE_URL}/api/v5/memory/incidents`);
+  if (!response.ok) throw new Error('Failed to list memory incidents');
+  return response.json();
+};
+
+export const storeMemoryIncident = async (data: Record<string, unknown>) => {
+  const response = await fetch(`${API_BASE_URL}/api/v5/memory/incidents`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error('Failed to store memory incident');
+  return response.json();
+};
+
+export const findSimilarIncidents = async (sessionId: string) => {
+  const response = await fetch(`${API_BASE_URL}/api/v5/memory/similar?session_id=${sessionId}`);
+  if (!response.ok) throw new Error('Failed to find similar incidents');
+  return response.json();
+};
