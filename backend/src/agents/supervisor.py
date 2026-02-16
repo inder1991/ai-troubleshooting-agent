@@ -4,8 +4,8 @@ from typing import Optional
 from datetime import datetime, timezone
 
 from src.models.schemas import (
-    DiagnosticState, DiagnosticPhase, Finding, CriticVerdict, TokenUsage, TimeWindow,
-    ConfidenceLedger, EvidencePin, ReasoningManifest, ReasoningStep,
+    DiagnosticState, DiagnosticStateV5, DiagnosticPhase, Finding, CriticVerdict,
+    TokenUsage, TimeWindow, ConfidenceLedger, EvidencePin, ReasoningManifest, ReasoningStep,
 )
 from src.agents.log_agent import LogAnalysisAgent
 from src.agents.metrics_agent import MetricsAgent
@@ -13,6 +13,7 @@ from src.agents.k8s_agent import K8sAgent
 from src.agents.tracing_agent import TracingAgent
 from src.agents.code_agent import CodeNavigatorAgent
 from src.agents.critic_agent import CriticAgent
+from src.agents.causal_engine import EvidenceGraphBuilder
 from src.utils.llm_client import AnthropicClient
 from src.utils.event_emitter import EventEmitter
 
@@ -143,6 +144,57 @@ class SupervisorAgent:
 
         return state
 
+    async def run_v5(
+        self,
+        state: DiagnosticStateV5,
+        event_emitter: Optional[EventEmitter] = None,
+    ) -> DiagnosticStateV5:
+        """V5 pipeline with governance, causal intelligence, and confidence tracking."""
+        builder = EvidenceGraphBuilder()
+
+        # Reordered dispatch: Metrics -> Tracing -> K8s -> Log -> Code
+        agent_order = ["metrics_agent", "tracing_agent", "k8s_agent", "log_agent", "code_agent"]
+
+        for agent_name in agent_order:
+            if agent_name not in self._agents:
+                continue
+
+            # Record reasoning step
+            add_reasoning_step(
+                state.reasoning_manifest,
+                decision=f"dispatch_{agent_name}",
+                reasoning=f"Dispatching {agent_name} per v5 telemetry pivot priority",
+                evidence_considered=[p.claim for p in state.evidence_pins[-3:]],
+                confidence=state.confidence_ledger.weighted_final,
+                alternatives_rejected=[],
+            )
+
+            # Dispatch agent
+            result = await self._dispatch_agent(agent_name, state, event_emitter)
+
+            if result:
+                # Extract evidence pins from result
+                pins_data = result.get("evidence_pins", [])
+                for pin_data in pins_data:
+                    try:
+                        pin = EvidencePin(**pin_data) if isinstance(pin_data, dict) else pin_data
+                        state.evidence_pins.append(pin)
+                        builder.add_evidence(pin, node_type="symptom")
+                    except Exception:
+                        pass
+
+                # Update confidence ledger
+                update_confidence_ledger(state.confidence_ledger, state.evidence_pins)
+
+            state.agents_completed.append(agent_name)
+
+        # Build causal graph
+        builder.identify_root_causes()
+        state.evidence_graph = builder.graph
+        state.incident_timeline = builder.build_timeline()
+
+        return state
+
     def _decide_next_agents(self, state: DiagnosticState) -> list[str]:
         """Decide which agents to dispatch based on current state."""
         if state.phase == DiagnosticPhase.INITIAL:
@@ -196,7 +248,7 @@ class SupervisorAgent:
             return "ask_user"
 
     async def _dispatch_agent(
-        self, agent_name: str, state: DiagnosticState, event_emitter: EventEmitter
+        self, agent_name: str, state: DiagnosticState, event_emitter: Optional[EventEmitter] = None
     ) -> Optional[dict]:
         """Dispatch a specialized agent and return its result."""
         agent_cls = self._agents.get(agent_name)
@@ -212,7 +264,8 @@ class SupervisorAgent:
             state.token_usage.append(agent.get_token_usage())
             return result
         except Exception as e:
-            await event_emitter.emit(agent_name, "error", f"Agent failed: {str(e)}")
+            if event_emitter:
+                await event_emitter.emit(agent_name, "error", f"Agent failed: {str(e)}")
             return None
 
     def _build_agent_context(self, agent_name: str, state: DiagnosticState) -> dict:
