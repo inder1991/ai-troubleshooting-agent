@@ -396,6 +396,29 @@ class ChangeRiskScore(BaseModel):
     timestamp: Optional[datetime] = None
 
 
+class ServiceTier(BaseModel):
+    service_name: str
+    tier: Literal["critical", "standard", "internal"]
+    slo_target: float = 99.9
+    on_call_team: str = ""
+    escalation_channel: str = ""
+
+
+class BlastRadius(BaseModel):
+    primary_service: str
+    upstream_affected: list[str] = Field(default_factory=list)
+    downstream_affected: list[str] = Field(default_factory=list)
+    shared_resources: list[str] = Field(default_factory=list)
+    estimated_user_impact: str = ""
+    scope: Literal["single_service", "service_group", "namespace", "cluster_wide"]
+
+
+class SeverityRecommendation(BaseModel):
+    recommended_severity: Literal["P1", "P2", "P3", "P4"]
+    reasoning: str
+    factors: dict[str, str] = Field(default_factory=dict)
+
+
 class DiagnosticState(BaseModel):
     session_id: str
     phase: DiagnosticPhase
@@ -442,6 +465,8 @@ class DiagnosticStateV5(DiagnosticState):
     hypotheses: list[Hypothesis] = Field(default_factory=list)
     incident_timeline: IncidentTimeline = Field(default_factory=IncidentTimeline)
     change_correlations: list[ChangeRiskScore] = Field(default_factory=list)
+    blast_radius: Optional[BlastRadius] = None
+    severity_recommendation: Optional[SeverityRecommendation] = None
 
     @model_validator(mode="after")
     def _auto_init_reasoning_manifest(self):
