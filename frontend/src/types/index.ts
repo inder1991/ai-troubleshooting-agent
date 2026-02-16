@@ -242,3 +242,53 @@ export interface DiagnosisSummary {
   breadcrumbs: Breadcrumb[];
   root_cause_summary: string;
 }
+
+// ===== Action Center Types =====
+
+export type CapabilityType =
+  | 'troubleshoot_app'
+  | 'pr_review'
+  | 'github_issue_fix'
+  | 'cluster_diagnostics';
+
+export interface TroubleshootAppForm {
+  capability: 'troubleshoot_app';
+  service_name: string;
+  time_window: string;
+  trace_id?: string;
+  namespace?: string;
+  elk_index?: string;
+  repo_url?: string;
+}
+
+export interface PRReviewForm {
+  capability: 'pr_review';
+  repo_url: string;
+  pr_number: string;
+  branch_name?: string;
+  focus_areas?: string[];
+}
+
+export interface GithubIssueFixForm {
+  capability: 'github_issue_fix';
+  repo_url: string;
+  issue_number: string;
+  target_branch?: string;
+  priority?: 'low' | 'medium' | 'high' | 'critical';
+}
+
+export interface ClusterDiagnosticsForm {
+  capability: 'cluster_diagnostics';
+  cluster_url: string;
+  namespace?: string;
+  symptoms?: string;
+  auth_token?: string;
+  auth_method?: 'token' | 'kubeconfig';
+  resource_type?: string;
+}
+
+export type CapabilityFormData =
+  | TroubleshootAppForm
+  | PRReviewForm
+  | GithubIssueFixForm
+  | ClusterDiagnosticsForm;
