@@ -1,5 +1,6 @@
-import React from 'react';
-import type { ClusterDiagnosticsForm } from '../../../types';
+import React, { useState, useEffect } from 'react';
+import type { ClusterDiagnosticsForm, Integration } from '../../../types';
+import { listIntegrations } from '../../../services/api';
 
 interface ClusterDiagnosticsFieldsProps {
   data: ClusterDiagnosticsForm;
@@ -10,12 +11,54 @@ const namespaces = ['default', 'kube-system', 'monitoring', 'production', 'stagi
 const resourceTypes = ['All Resources', 'Pods', 'Deployments', 'Services', 'StatefulSets', 'DaemonSets', 'Nodes'];
 
 const ClusterDiagnosticsFields: React.FC<ClusterDiagnosticsFieldsProps> = ({ data, onChange }) => {
+  const [integrations, setIntegrations] = useState<Integration[]>([]);
+  const [selectedIntegration, setSelectedIntegration] = useState<string>('');
+
+  useEffect(() => {
+    listIntegrations()
+      .then(setIntegrations)
+      .catch(() => {});
+  }, []);
+
+  const handleIntegrationSelect = (integrationId: string) => {
+    setSelectedIntegration(integrationId);
+    if (integrationId) {
+      const integration = integrations.find((i) => i.id === integrationId);
+      if (integration) {
+        onChange({
+          ...data,
+          cluster_url: integration.cluster_url,
+          auth_method: integration.auth_method === 'kubeconfig' ? 'kubeconfig' : 'token',
+        });
+      }
+    }
+  };
+
   const update = (field: Partial<ClusterDiagnosticsForm>) => {
     onChange({ ...data, ...field });
   };
 
   return (
     <div className="space-y-4">
+      {/* Select Cluster */}
+      {integrations.length > 0 && (
+        <div>
+          <label className="block text-xs text-gray-400 mb-1.5 font-medium">Select Cluster</label>
+          <select
+            value={selectedIntegration}
+            onChange={(e) => handleIntegrationSelect(e.target.value)}
+            className="w-full px-3 py-2.5 bg-[#0f2023] border border-[#224349] rounded-lg text-sm text-white focus:border-[#07b6d5] focus:outline-none focus:ring-1 focus:ring-[#07b6d5]/30 transition-colors"
+          >
+            <option value="">-- Manual Entry --</option>
+            {integrations.map((i) => (
+              <option key={i.id} value={i.id}>
+                {i.name} ({i.cluster_type})
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       {/* Cluster API URL */}
       <div>
         <label className="block text-xs text-gray-400 mb-1.5 font-medium">

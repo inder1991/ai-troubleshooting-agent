@@ -9,6 +9,7 @@ interface SessionSidebarProps {
   sessions: V4Session[];
   onSessionsChange: (sessions: V4Session[]) => void;
   onNewMission: () => void;
+  onSettings?: () => void;
 }
 
 const phaseColors: Record<DiagnosticPhase, string> = {
@@ -43,6 +44,7 @@ const SessionSidebar: React.FC<SessionSidebarProps> = ({
   sessions,
   onSessionsChange,
   onNewMission,
+  onSettings,
 }) => {
   useEffect(() => {
     loadSessions();
@@ -94,6 +96,7 @@ const SessionSidebar: React.FC<SessionSidebarProps> = ({
             return (
               <button
                 key={item.id}
+                onClick={item.id === 'settings' ? onSettings : undefined}
                 className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-[#1e2f33]/50 transition-colors"
               >
                 <Icon className="w-4 h-4" />

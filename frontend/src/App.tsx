@@ -20,8 +20,9 @@ import DashboardTab from './components/Dashboard/DashboardTab';
 import ActivityLogTab from './components/ActivityLog/ActivityLogTab';
 import ResultsPanel from './components/ResultsPanel';
 import ProgressBar from './components/ProgressBar';
+import IntegrationSettings from './components/Settings/IntegrationSettings';
 
-type ViewState = 'home' | 'form' | 'session';
+type ViewState = 'home' | 'form' | 'session' | 'settings';
 
 function App() {
   const [viewState, setViewState] = useState<ViewState>('home');
@@ -97,6 +98,12 @@ function App() {
 
   const handleGoHome = useCallback(() => {
     setViewState('home');
+    setSelectedCapability(null);
+    setActiveSession(null);
+  }, []);
+
+  const handleSettings = useCallback(() => {
+    setViewState('settings');
     setSelectedCapability(null);
     setActiveSession(null);
   }, []);
@@ -192,6 +199,7 @@ function App() {
         sessions={sessions}
         onSessionsChange={setSessions}
         onNewMission={handleGoHome}
+        onSettings={handleSettings}
       />
 
       {/* Main content */}
@@ -202,6 +210,10 @@ function App() {
             sessions={sessions}
             onSelectSession={handleSelectSession}
           />
+        )}
+
+        {viewState === 'settings' && (
+          <IntegrationSettings onBack={handleGoHome} />
         )}
 
         {viewState === 'form' && selectedCapability && (

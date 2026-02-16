@@ -293,6 +293,21 @@ export type CapabilityFormData =
   | GithubIssueFixForm
   | ClusterDiagnosticsForm;
 
+// ===== V5 Integration Types =====
+export interface Integration {
+  id: string;
+  name: string;
+  cluster_type: 'openshift' | 'kubernetes';
+  cluster_url: string;
+  auth_method: 'kubeconfig' | 'token' | 'service_account';
+  prometheus_url: string | null;
+  elasticsearch_url: string | null;
+  status: 'active' | 'unreachable' | 'expired';
+  auto_discovered: Record<string, unknown>;
+  created_at: string;
+  last_verified: string | null;
+}
+
 // ===== V5 Governance Types =====
 export interface EvidencePinData {
   claim: string;

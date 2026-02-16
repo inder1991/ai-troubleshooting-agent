@@ -5,6 +5,7 @@ import type {
   V4Findings,
   TaskEvent,
   ChatMessage,
+  Integration,
 } from '../types';
 
 const API_BASE_URL = 'http://localhost:8000';
@@ -187,5 +188,35 @@ export const submitAttestation = async (sessionId: string, gateType: string, dec
 export const getTimeline = async (sessionId: string) => {
   const response = await fetch(`${API_BASE_URL}/api/v5/session/${sessionId}/timeline`);
   if (!response.ok) throw new Error('Failed to get timeline');
+  return response.json();
+};
+
+// ===== V5 Integration API =====
+
+export const listIntegrations = async (): Promise<Integration[]> => {
+  const response = await fetch(`${API_BASE_URL}/api/v5/integrations`);
+  if (!response.ok) throw new Error('Failed to list integrations');
+  return response.json();
+};
+
+export const addIntegration = async (data: Partial<Integration> & { auth_data: string }) => {
+  const response = await fetch(`${API_BASE_URL}/api/v5/integrations`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error('Failed to add integration');
+  return response.json();
+};
+
+export const deleteIntegration = async (id: string) => {
+  const response = await fetch(`${API_BASE_URL}/api/v5/integrations/${id}`, { method: 'DELETE' });
+  if (!response.ok) throw new Error('Failed to delete integration');
+  return response.json();
+};
+
+export const probeIntegration = async (id: string) => {
+  const response = await fetch(`${API_BASE_URL}/api/v5/integrations/${id}/probe`, { method: 'POST' });
+  if (!response.ok) throw new Error('Failed to probe integration');
   return response.json();
 };
