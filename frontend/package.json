@@ -8,8 +8,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@datadog/browser-rum": "^6.25.3",
-    "@datadog/browser-rum-react": "^6.25.3",
     "highlight.js": "^11.11.1",
     "html2canvas": "^1.4.1",
     "jspdf": "^2.5.1",
