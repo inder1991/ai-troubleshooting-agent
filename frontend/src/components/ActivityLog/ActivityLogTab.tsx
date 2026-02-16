@@ -36,7 +36,7 @@ const ActivityLogTab: React.FC<ActivityLogTabProps> = ({ sessionId, events: prop
         getSessionStatus(sessionId),
       ]);
       setAllEvents(eventsData);
-      setTokenUsage(statusData.token_usage);
+      setTokenUsage(statusData?.token_usage || []);
     } catch (err) {
       console.error('Failed to fetch activity log:', err);
     }
@@ -52,9 +52,9 @@ const ActivityLogTab: React.FC<ActivityLogTabProps> = ({ sessionId, events: prop
   useEffect(() => {
     if (propEvents.length > 0) {
       setAllEvents((prev) => {
-        const existing = new Set(prev.map((e) => `${e.timestamp}-${e.agent}-${e.message}`));
+        const existing = new Set(prev.map((e) => `${e.timestamp}-${e.agent_name}-${e.message}`));
         const newEvents = propEvents.filter(
-          (e) => !existing.has(`${e.timestamp}-${e.agent}-${e.message}`)
+          (e) => !existing.has(`${e.timestamp}-${e.agent_name}-${e.message}`)
         );
         return newEvents.length > 0 ? [...prev, ...newEvents] : prev;
       });
@@ -94,7 +94,7 @@ const ActivityLogTab: React.FC<ActivityLogTabProps> = ({ sessionId, events: prop
                   })}
                 </span>
                 <span className="text-xs text-blue-400 font-medium whitespace-nowrap">
-                  {event.agent}
+                  {event.agent_name}
                 </span>
                 <span className="text-sm text-gray-300 truncate">{event.message}</span>
               </div>

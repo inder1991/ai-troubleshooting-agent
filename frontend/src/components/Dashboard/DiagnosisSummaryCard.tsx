@@ -82,7 +82,7 @@ const DiagnosisSummaryCard: React.FC<DiagnosisSummaryCardProps> = ({
                   </div>
                   <div className="text-xs text-gray-400">{finding.description}</div>
                   <div className="text-xs text-gray-500 mt-1">
-                    Agent: {finding.agent} | Confidence: {Math.round(finding.confidence * 100)}%
+                    Agent: {finding.agent_name} | Confidence: {Math.round(finding.confidence * 100)}%
                   </div>
                   {verdict && (
                     <div className="text-xs text-gray-500 mt-1 italic">
@@ -108,7 +108,7 @@ const DiagnosisSummaryCard: React.FC<DiagnosisSummaryCardProps> = ({
                 <span className="text-gray-600 whitespace-nowrap font-mono">
                   {new Date(bc.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                 </span>
-                <span className="text-blue-400 font-medium whitespace-nowrap">{bc.agent}</span>
+                <span className="text-blue-400 font-medium whitespace-nowrap">{bc.agent_name}</span>
                 <span className="text-gray-400">{bc.action}</span>
                 <span className="text-gray-500 truncate">{bc.detail}</span>
               </div>

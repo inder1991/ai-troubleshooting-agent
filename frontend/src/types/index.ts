@@ -128,7 +128,7 @@ export interface SpanInfo {
 }
 
 export interface Finding {
-  agent: string;
+  agent_name: string;
   category: string;
   title: string;
   description: string;
@@ -154,13 +154,13 @@ export interface CriticVerdict {
 
 export interface Breadcrumb {
   timestamp: string;
-  agent: string;
+  agent_name: string;
   action: string;
   detail: string;
 }
 
 export interface TokenUsage {
-  agent: string;
+  agent_name: string;
   input_tokens: number;
   output_tokens: number;
   total_tokens: number;
@@ -168,11 +168,11 @@ export interface TokenUsage {
 
 export interface TaskEvent {
   session_id: string;
-  agent: string;
+  agent_name: string;
   event_type: 'started' | 'progress' | 'success' | 'warning' | 'error';
   message: string;
   timestamp: string;
-  data?: Record<string, unknown>;
+  details?: Record<string, unknown>;
 }
 
 export interface ChatMessage {
@@ -231,7 +231,7 @@ export interface StartSessionRequest {
 }
 
 export interface V4WebSocketMessage {
-  type: 'task_event' | 'chat_response';
+  type: 'task_event' | 'chat_response' | 'connected';
   data: TaskEvent | ChatMessage;
 }
 

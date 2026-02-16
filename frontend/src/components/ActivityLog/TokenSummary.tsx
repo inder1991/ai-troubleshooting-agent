@@ -27,7 +27,7 @@ const TokenSummary: React.FC<TokenSummaryProps> = ({ tokenUsage }) => {
         <tbody>
           {tokenUsage.map((t, i) => (
             <tr key={i} className="border-b border-gray-700/50">
-              <td className="py-1.5 pr-2 text-gray-300">{t.agent}</td>
+              <td className="py-1.5 pr-2 text-gray-300">{t.agent_name}</td>
               <td className="py-1.5 pr-2 text-right text-gray-400 font-mono">
                 {t.input_tokens.toLocaleString()}
               </td>

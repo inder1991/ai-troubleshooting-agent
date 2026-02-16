@@ -144,7 +144,8 @@ export const getEvents = async (sessionId: string): Promise<TaskEvent[]> => {
     const error = await response.json();
     throw new Error(error.detail || 'Failed to get events');
   }
-  return response.json();
+  const data = await response.json();
+  return data.events || data;
 };
 
 export const listSessionsV4 = async (): Promise<V4Session[]> => {
