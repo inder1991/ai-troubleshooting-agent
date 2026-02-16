@@ -70,7 +70,7 @@ export const useWebSocketV4 = (
   const connect = useCallback(() => {
     if (!sessionId) return;
 
-    const ws = new WebSocket(`ws://localhost:8000/ws/v4/${sessionId}`);
+    const ws = new WebSocket(`ws://localhost:8000/ws/troubleshoot/${sessionId}`);
 
     ws.onopen = () => {
       reconnectAttemptsRef.current = 0;

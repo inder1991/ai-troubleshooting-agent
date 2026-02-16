@@ -29,6 +29,17 @@ def get_integration_store():
 _v5_sessions: dict = {}
 
 
+def _get_session_or_empty(session_id: str) -> dict:
+    """Return v5 session data, falling back to v4 session with empty v5 defaults."""
+    if session_id in _v5_sessions:
+        return _v5_sessions[session_id]
+    # Check if v4 session exists — return empty v5 defaults so UI doesn't get 404
+    from src.api.routes_v4 import sessions as v4_sessions
+    if session_id in v4_sessions:
+        return {"session_id": session_id}
+    return None
+
+
 class AttestationRequest(BaseModel):
     gate_type: str
     decision: str
@@ -38,7 +49,7 @@ class AttestationRequest(BaseModel):
 
 @router.get("/session/{session_id}/evidence-graph")
 async def get_evidence_graph(session_id: str):
-    session = _v5_sessions.get(session_id)
+    session = _get_session_or_empty(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
     return {"evidence_pins": session.get("evidence_pins", []), "nodes": [], "edges": []}
@@ -46,7 +57,7 @@ async def get_evidence_graph(session_id: str):
 
 @router.get("/session/{session_id}/confidence")
 async def get_confidence(session_id: str):
-    session = _v5_sessions.get(session_id)
+    session = _get_session_or_empty(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
     return session.get("confidence_ledger", {})
@@ -54,7 +65,7 @@ async def get_confidence(session_id: str):
 
 @router.get("/session/{session_id}/reasoning")
 async def get_reasoning(session_id: str):
-    session = _v5_sessions.get(session_id)
+    session = _get_session_or_empty(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
     return session.get("reasoning_manifest", {"session_id": session_id, "steps": []})
@@ -62,7 +73,7 @@ async def get_reasoning(session_id: str):
 
 @router.post("/session/{session_id}/attestation")
 async def submit_attestation(session_id: str, request: AttestationRequest):
-    session = _v5_sessions.get(session_id)
+    session = _get_session_or_empty(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
     gate = {
@@ -78,7 +89,7 @@ async def submit_attestation(session_id: str, request: AttestationRequest):
 
 @router.get("/session/{session_id}/timeline")
 async def get_timeline(session_id: str):
-    session = _v5_sessions.get(session_id)
+    session = _get_session_or_empty(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
     return {"events": session.get("timeline_events", [])}

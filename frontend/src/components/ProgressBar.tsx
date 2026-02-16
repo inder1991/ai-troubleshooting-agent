@@ -47,7 +47,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
   wsConnected,
 }) => {
   const activeIdx = getActivePhaseIndex(phase);
-  const totalTokens = tokenUsage.reduce((sum, t) => sum + t.total_tokens, 0);
+  const totalTokens = (tokenUsage || []).reduce((sum, t) => sum + t.total_tokens, 0);
   const confidencePercent = Math.round(confidence * 100);
 
   return (
