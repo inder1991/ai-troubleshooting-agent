@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, model_validator
-from typing import Optional, Literal, TYPE_CHECKING
+from typing import Optional, Literal
 from datetime import datetime
 from enum import Enum
 
@@ -278,10 +278,10 @@ class ConfidenceLedger(BaseModel):
     change_confidence: float = 0.0
     critic_adjustment: float = Field(default=0.0, ge=-0.3, le=0.1)
     weighted_final: float = 0.0
-    weights: dict[str, float] = {
+    weights: dict[str, float] = Field(default_factory=lambda: {
         "log": 0.25, "metrics": 0.30, "tracing": 0.20,
         "k8s": 0.15, "code": 0.05, "change": 0.05,
-    }
+    })
 
     def compute_weighted_final(self) -> None:
         sources = {
@@ -305,12 +305,12 @@ class AttestationGate(BaseModel):
 
 
 class ReasoningStep(BaseModel):
-    step_number: int
+    step_number: int = Field(..., gt=0)
     timestamp: datetime
     decision: str
     reasoning: str
     evidence_considered: list[str] = []
-    confidence_at_step: float = 0.0
+    confidence_at_step: float = Field(default=0.0, ge=0.0, le=1.0)
     alternatives_rejected: list[str] = []
 
 
