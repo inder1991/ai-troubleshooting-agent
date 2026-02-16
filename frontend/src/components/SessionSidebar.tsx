@@ -27,7 +27,8 @@ const phaseColors: Record<DiagnosticPhase, string> = {
   complete: 'bg-green-600',
 };
 
-const phaseLabel = (phase: DiagnosticPhase): string => {
+const phaseLabel = (phase: DiagnosticPhase | undefined): string => {
+  if (!phase) return 'Unknown';
   return phase.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 };
 

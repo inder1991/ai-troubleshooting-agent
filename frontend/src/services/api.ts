@@ -153,7 +153,12 @@ export const listSessionsV4 = async (): Promise<V4Session[]> => {
     const error = await response.json();
     throw new Error(error.detail || 'Failed to list sessions');
   }
-  return response.json();
+  const data = await response.json();
+  return data.map((s: Record<string, unknown>) => ({
+    ...s,
+    status: s.status || s.phase || 'initial',
+    updated_at: s.updated_at || s.created_at,
+  }));
 };
 
 // ===== V5 Governance API =====
