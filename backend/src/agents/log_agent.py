@@ -28,8 +28,25 @@ class LogAnalysisAgent(ReActAgent):
             self.es_url = connection_config.elasticsearch_url
         else:
             self.es_url = os.getenv("ELASTICSEARCH_URL", "http://localhost:9200")
+        self._es_headers = self._build_es_headers(connection_config)
         self._raw_logs: list[dict] = []
         self._patterns: list[dict] = []
+
+    def _build_es_headers(self, connection_config) -> dict:
+        """Build HTTP headers for Elasticsearch requests, including auth."""
+        headers = {"Content-Type": "application/json"}
+        if not connection_config:
+            return headers
+        auth_method = getattr(connection_config, "elasticsearch_auth_method", "none")
+        credentials = getattr(connection_config, "elasticsearch_credentials", "")
+        if auth_method == "token" and credentials:
+            headers["Authorization"] = f"Bearer {credentials}"
+        elif auth_method == "api_key" and credentials:
+            headers["Authorization"] = f"ApiKey {credentials}"
+        elif auth_method == "basic" and credentials:
+            import base64
+            headers["Authorization"] = f"Basic {base64.b64encode(credentials.encode()).decode()}"
+        return headers
 
     async def _define_tools(self) -> list[dict]:
         return [
@@ -101,16 +118,21 @@ class LogAnalysisAgent(ReActAgent):
         return """You are a Log Analysis Agent for SRE troubleshooting. You use the ReAct pattern:
 THINK about what to search for, ACT by calling tools, OBSERVE results, then decide next steps.
 
-IMPORTANT: Call list_available_indices first to discover what log indices exist before searching. If Elasticsearch is unreachable, report the error immediately instead of attempting further queries.
+CRITICAL STEPS — follow this order:
+1. Call list_available_indices FIRST to discover what log indices exist. Do NOT assume index names.
+2. Pick the index that looks most relevant (could be logstash-*, filebeat-*, app-logs-*, or any other pattern).
+3. Search for ERROR logs for the target service. Use the service name in the query string (e.g. "checkout-service AND error" or just the service name).
+4. If a search returns zero results, try different approaches:
+   - Try a broader query (just the service name, or "*")
+   - Try a different index
+   - Try without the level_filter (set level_filter to empty string) to see what fields exist
+   - Try searching for the service name in different fields
+5. Also check WARN logs that preceded errors
+6. Search by trace_id if one is available
+7. Group errors into distinct patterns using analyze_patterns
+8. Prioritize patterns by: frequency, severity, likely root cause vs symptom
 
-Your goals:
-1. Discover available indices using list_available_indices
-2. Find all error logs in the given time window
-3. Also check WARN logs that preceded errors
-4. Search by trace_id if one is available
-5. Group errors into distinct patterns
-6. If a search returns zero results, report it as a negative finding
-7. Prioritize patterns by: frequency, severity, likely root cause vs symptom
+If Elasticsearch is unreachable, report the error immediately instead of attempting further queries.
 
 After gathering enough data, provide your final analysis as JSON with this structure:
 {
@@ -133,9 +155,13 @@ Always provide evidence: include raw log snippets in your reasoning.
 Always report what you searched and didn't find (negative evidence)."""
 
     async def _build_initial_prompt(self, context: dict) -> str:
-        parts = [f"Analyze logs for service: {context.get('service_name', 'unknown')}"]
-        if context.get("elk_index"):
-            parts.append(f"Elasticsearch index: {context['elk_index']}")
+        service = context.get("service_name", "unknown")
+        parts = [
+            f"Analyze logs for service: {service}",
+            f"IMPORTANT: First discover available indices with list_available_indices, then search for '{service}' in the most relevant index.",
+        ]
+        if context.get("elk_index") and context["elk_index"] != "*":
+            parts.append(f"Suggested Elasticsearch index hint: {context['elk_index']} (verify with list_available_indices first)")
         if context.get("timeframe"):
             parts.append(f"Time range: {context['timeframe']}")
         if context.get("trace_id"):
@@ -214,15 +240,30 @@ Always report what you searched and didn't find (negative evidence)."""
         }
 
         if level_filter:
-            es_query["query"]["bool"]["must"].append(
-                {"match": {"level": level_filter}}
-            )
+            # Search across common log level field names and case variants
+            level_lower = level_filter.lower()
+            level_upper = level_filter.upper()
+            es_query["query"]["bool"]["must"].append({
+                "bool": {
+                    "should": [
+                        {"match": {"level": level_upper}},
+                        {"match": {"level": level_lower}},
+                        {"match": {"log.level": level_lower}},
+                        {"match": {"log.level": level_upper}},
+                        {"match": {"severity": level_upper}},
+                        {"match": {"severity": level_lower}},
+                        {"match": {"loglevel": level_upper}},
+                        {"match": {"loglevel": level_lower}},
+                    ],
+                    "minimum_should_match": 1,
+                }
+            })
 
         try:
             resp = requests.post(
                 f"{self.es_url}/{index}/_search",
                 json=es_query,
-                headers={"Content-Type": "application/json"},
+                headers=self._es_headers,
                 timeout=30,
             )
             resp.raise_for_status()
@@ -247,7 +288,11 @@ Always report what you searched and didn't find (negative evidence)."""
                     "timestamp": src.get("@timestamp", ""),
                     "level": src.get("level", ""),
                     "message": src.get("message", ""),
-                    "service": src.get("service", src.get("kubernetes", {}).get("container", {}).get("name", "")),
+                    "service": (
+                        src.get("service", {}).get("name", "") if isinstance(src.get("service"), dict)
+                        else src.get("service", "")
+                    ) or src.get("kubernetes", {}).get("container", {}).get("name", "")
+                      or src.get("kubernetes", {}).get("labels", {}).get("app", ""),
                     "trace_id": src.get("trace_id", src.get("traceId", "")),
                     "stack_trace": src.get("stack_trace", src.get("stackTrace", "")),
                 }
@@ -301,7 +346,7 @@ Always report what you searched and didn't find (negative evidence)."""
             resp = requests.post(
                 f"{self.es_url}/{index}/_search",
                 json=es_query,
-                headers={"Content-Type": "application/json"},
+                headers=self._es_headers,
                 timeout=30,
             )
             resp.raise_for_status()
@@ -374,7 +419,7 @@ Always report what you searched and didn't find (negative evidence)."""
             resp = requests.post(
                 f"{self.es_url}/{index}/_search",
                 json=es_query,
-                headers={"Content-Type": "application/json"},
+                headers=self._es_headers,
                 timeout=30,
             )
             resp.raise_for_status()
@@ -429,7 +474,7 @@ Always report what you searched and didn't find (negative evidence)."""
             resp = requests.get(
                 f"{self.es_url}/_cat/indices/{pattern}",
                 params={"format": "json", "h": "index,docs.count,store.size,health,status"},
-                headers={"Content-Type": "application/json"},
+                headers=self._es_headers,
                 timeout=15,
             )
             resp.raise_for_status()

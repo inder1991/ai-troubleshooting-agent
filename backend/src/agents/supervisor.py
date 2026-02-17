@@ -105,6 +105,7 @@ class SupervisorAgent:
             cluster_url=initial_input.get("cluster_url"),
             namespace=initial_input.get("namespace"),
             repo_url=initial_input.get("repo_url"),
+            elk_index=initial_input.get("elk_index"),
         )
 
         await event_emitter.emit("supervisor", "started", f"Starting diagnosis for {state.service_name}")
@@ -291,8 +292,9 @@ class SupervisorAgent:
         if not agent_cls:
             return None
 
-        # Inject connection config into agents that support it
-        if agent_name in ("log_agent", "metrics_agent", "k8s_agent", "tracing_agent") and self._connection_config:
+        # Inject connection config into agents whose constructors accept it
+        import inspect
+        if self._connection_config and "connection_config" in inspect.signature(agent_cls.__init__).parameters:
             agent = agent_cls(connection_config=self._connection_config)
         else:
             agent = agent_cls()
@@ -316,7 +318,7 @@ class SupervisorAgent:
         }
 
         if agent_name == "log_agent":
-            base["elk_index"] = "app-logs-*"
+            base["elk_index"] = state.elk_index or "*"
             base["timeframe"] = state.time_window.start
             base["trace_id"] = state.trace_id
 
@@ -334,16 +336,22 @@ class SupervisorAgent:
 
         elif agent_name == "code_agent":
             base["repo_path"] = state.repo_url
-            if state.log_analysis:
+            if state.log_analysis and state.log_analysis.primary_pattern:
                 base["exception_type"] = state.log_analysis.primary_pattern.exception_type
-                base["stack_trace"] = ""  # Would come from log analysis
+                # Extract stack trace from sample logs if available
+                stack_trace = ""
+                for sample in state.log_analysis.primary_pattern.sample_logs:
+                    if sample.raw_line and len(sample.raw_line) > len(stack_trace):
+                        stack_trace = sample.raw_line
+                base["stack_trace"] = stack_trace
 
         elif agent_name == "change_agent":
             base["repo_url"] = state.repo_url
             base["namespace"] = state.namespace or "default"
             base["incident_start"] = state.time_window.start
             if self._connection_config:
-                base["cli_tool"] = self._connection_config.get("cli_tool", "kubectl")
+                cluster_type = getattr(self._connection_config, "cluster_type", "kubernetes")
+                base["cli_tool"] = "oc" if cluster_type == "openshift" else "kubectl"
 
         return base
 

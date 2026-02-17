@@ -155,6 +155,7 @@ function AppInner() {
             time_window: data.time_window,
             trace_id: data.trace_id,
             namespace: data.namespace,
+            elk_index: (data as TroubleshootAppForm).elk_index,
             repo_url: data.repo_url,
             profileId: (data as TroubleshootAppForm).profile_id,
           });

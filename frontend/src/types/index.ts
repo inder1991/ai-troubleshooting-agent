@@ -231,6 +231,7 @@ export interface StartSessionRequest {
   time_window: string;
   trace_id?: string;
   namespace?: string;
+  elk_index?: string;
   repo_url?: string;
   profile_id?: string;
 }

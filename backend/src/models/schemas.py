@@ -430,6 +430,7 @@ class DiagnosticState(BaseModel):
     cluster_url: Optional[str] = None
     namespace: Optional[str] = None
     repo_url: Optional[str] = None
+    elk_index: Optional[str] = None
 
     # Agent results
     log_analysis: Optional[LogAnalysisResult] = None

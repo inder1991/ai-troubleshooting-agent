@@ -85,6 +85,15 @@ async def start_session(request: StartSessionRequest, background_tasks: Backgrou
     }
     supervisors[session_id] = supervisor
 
+    # Fall back to profile values when form doesn't provide them
+    cluster_url = request.clusterUrl
+    namespace = request.namespace
+    if connection_config:
+        if not cluster_url and connection_config.cluster_url:
+            cluster_url = connection_config.cluster_url
+        if not namespace and connection_config.namespace:
+            namespace = connection_config.namespace
+
     initial_input = {
         "session_id": session_id,
         "service_name": request.serviceName,
@@ -92,8 +101,8 @@ async def start_session(request: StartSessionRequest, background_tasks: Backgrou
         "time_start": f"now-{request.timeframe}",
         "time_end": "now",
         "trace_id": request.traceId,
-        "namespace": request.namespace,
-        "cluster_url": request.clusterUrl,
+        "namespace": namespace,
+        "cluster_url": cluster_url,
         "repo_url": request.repoUrl,
     }
 
