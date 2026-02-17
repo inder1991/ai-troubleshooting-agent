@@ -305,6 +305,37 @@ async def probe_profile(profile_id: str):
     if result.cluster_version:
         profile.cluster_version = result.cluster_version
 
+    # Write discovered endpoint URLs back into the profile
+    if result.prometheus_url:
+        if not profile.endpoints.prometheus:
+            profile.endpoints.prometheus = EndpointConfig(url=result.prometheus_url, auth_method="none")
+        elif not profile.endpoints.prometheus.url:
+            profile.endpoints.prometheus.url = result.prometheus_url
+        ep = profile.endpoints.prometheus
+        ep.verified = True
+        ep.last_verified = datetime.now()
+        ep.status = "healthy"
+
+    if result.elasticsearch_url:
+        if not profile.endpoints.jaeger:
+            # Store in a discoverable field — elasticsearch isn't a separate endpoint type,
+            # but we log it for visibility
+            pass
+        # Log discovery for audit trail
+        logger.info(f"Discovered elasticsearch at {result.elasticsearch_url} for profile {profile_id}")
+
+    # Update endpoint statuses from probe results
+    for ep_name, ep_result in result.endpoint_results.items():
+        endpoint = getattr(profile.endpoints, ep_name, None)
+        if endpoint and ep_result.reachable:
+            endpoint.status = "healthy"
+            endpoint.verified = True
+            endpoint.last_verified = datetime.now()
+            if ep_result.discovered_url and not endpoint.url:
+                endpoint.url = ep_result.discovered_url
+        elif endpoint and ep_result.error:
+            endpoint.status = "unreachable"
+
     profile.last_synced = datetime.now()
     profile.updated_at = datetime.now()
     store.update(profile)
