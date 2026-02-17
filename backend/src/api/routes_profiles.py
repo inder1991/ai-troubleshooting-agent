@@ -85,9 +85,10 @@ async def create_profile(request: CreateProfileRequest):
         auth_method=request.auth_method,
     )
 
-    # Encrypt credentials if provided
+    # Encrypt credentials if provided (strip whitespace/newlines from pasted tokens)
     if request.auth_data:
-        handle = resolver.encrypt_and_store(profile.id, "cluster_token", request.auth_data)
+        clean_data = request.auth_data.strip()
+        handle = resolver.encrypt_and_store(profile.id, "cluster_token", clean_data)
         profile.auth_credential_handle = handle
 
     # Parse endpoints
@@ -145,9 +146,10 @@ async def update_profile(profile_id: str, request: UpdateProfileRequest):
     if request.auth_method is not None:
         profile.auth_method = request.auth_method
 
-    # Re-encrypt if new auth_data provided
+    # Re-encrypt if new auth_data provided (strip whitespace/newlines from pasted tokens)
     if request.auth_data:
-        handle = resolver.encrypt_and_store(profile.id, "cluster_token", request.auth_data)
+        clean_data = request.auth_data.strip()
+        handle = resolver.encrypt_and_store(profile.id, "cluster_token", clean_data)
         profile.auth_credential_handle = handle
         audit.log("cluster_profile", profile.id, "credential_rotated")
 
@@ -279,6 +281,7 @@ async def probe_profile(profile_id: str):
     if profile.auth_credential_handle:
         try:
             auth_data = resolver.resolve(profile.id, "cluster_token", profile.auth_credential_handle)
+            auth_data = auth_data.strip()
         except Exception:
             pass
 
@@ -321,7 +324,7 @@ def _parse_endpoints(profile_id: str, endpoints_data: dict, resolver) -> Cluster
         if ep_data:
             handle = None
             if ep_data.get("auth_data"):
-                handle = resolver.encrypt_and_store(profile_id, ep_name, ep_data["auth_data"])
+                handle = resolver.encrypt_and_store(profile_id, ep_name, ep_data["auth_data"].strip())
             ep = EndpointConfig(
                 url=ep_data.get("url", ""),
                 auth_method=ep_data.get("auth_method", "none"),

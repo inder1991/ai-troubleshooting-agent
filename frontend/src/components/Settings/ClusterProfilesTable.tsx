@@ -7,7 +7,7 @@ interface ClusterProfilesTableProps {
   onDelete: (id: string) => void;
   onActivate: (id: string) => void;
   onAddNew: () => void;
-  onProbe?: (id: string) => Promise<void>;
+  onProbe?: (id: string) => Promise<unknown>;
   probingId?: string | null;
 }
 

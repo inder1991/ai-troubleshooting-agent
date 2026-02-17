@@ -83,7 +83,7 @@ async def create_global_integration(request: CreateGlobalIntegrationRequest):
     )
 
     if request.auth_data:
-        handle = resolver.encrypt_and_store(gi.id, "credential", request.auth_data)
+        handle = resolver.encrypt_and_store(gi.id, "credential", request.auth_data.strip())
         gi.auth_credential_handle = handle
         gi.status = "not_validated"
 
@@ -132,7 +132,7 @@ async def update_global_integration(integration_id: str, request: UpdateGlobalIn
         gi.auth_method = request.auth_method
 
     if request.auth_data:
-        handle = resolver.encrypt_and_store(gi.id, "credential", request.auth_data)
+        handle = resolver.encrypt_and_store(gi.id, "credential", request.auth_data.strip())
         gi.auth_credential_handle = handle
         gi.status = "not_validated"
 
@@ -197,7 +197,7 @@ async def save_all_global_integrations(request: SaveAllRequest):
         if "auth_method" in item:
             gi.auth_method = item["auth_method"]
         if item.get("auth_data"):
-            handle = resolver.encrypt_and_store(gi.id, "credential", item["auth_data"])
+            handle = resolver.encrypt_and_store(gi.id, "credential", item["auth_data"].strip())
             gi.auth_credential_handle = handle
             gi.status = "not_validated"
 

@@ -7,7 +7,7 @@ interface ClusterConnectionFormProps {
   onSave: (data: Record<string, unknown>) => Promise<void>;
   onCancel: () => void;
   onTestEndpoint: (profileId: string, endpointName: string) => Promise<void>;
-  onProbe?: (profileId: string) => Promise<void>;
+  onProbe?: (profileId: string) => Promise<{ reachable?: boolean; errors?: string[] } | void>;
   testingEndpoint: string | null;
   probingId?: string | null;
 }
@@ -50,6 +50,8 @@ const ClusterConnectionForm: React.FC<ClusterConnectionFormProps> = ({
   };
 
   const [unsavedTestWarning, setUnsavedTestWarning] = useState('');
+  const [probeError, setProbeError] = useState<string | null>(null);
+  const [probeSuccess, setProbeSuccess] = useState(false);
 
   const handleTestEndpoint = async (endpointName: string) => {
     if (!profile?.id) {
@@ -63,7 +65,16 @@ const ClusterConnectionForm: React.FC<ClusterConnectionFormProps> = ({
 
   const handleProbeCluster = async () => {
     if (!profile?.id || !onProbe) return;
-    await onProbe(profile.id);
+    setProbeError(null);
+    setProbeSuccess(false);
+    const result = await onProbe(profile.id);
+    if (result) {
+      if (result.reachable) {
+        setProbeSuccess(true);
+      } else {
+        setProbeError(result.errors?.[0] || 'Connection failed');
+      }
+    }
   };
 
   const handleSave = async () => {
@@ -332,6 +343,18 @@ const ClusterConnectionForm: React.FC<ClusterConnectionFormProps> = ({
           <p className="mt-2 text-[10px] text-amber-500/80">
             Save the profile first, then test connection
           </p>
+        )}
+        {probeSuccess && (
+          <div className="mt-3 px-3 py-2 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 text-[11px] font-medium flex items-center gap-1.5">
+            <span className="material-symbols-outlined text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>check_circle</span>
+            Cluster connected successfully
+          </div>
+        )}
+        {probeError && (
+          <div className="mt-3 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-[11px] font-medium flex items-center gap-1.5">
+            <span className="material-symbols-outlined text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>error</span>
+            {probeError}
+          </div>
         )}
       </div>
 

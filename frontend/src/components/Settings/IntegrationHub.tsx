@@ -48,9 +48,9 @@ const IntegrationHub: React.FC<IntegrationHubProps> = ({ onBack }) => {
   // Track global integration local edits
   const [globalEdits, setGlobalEdits] = useState<Record<string, Record<string, unknown>>>({});
 
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (showSkeleton = true) => {
     try {
-      setLoading(true);
+      if (showSkeleton) setLoading(true);
       const [profileData, giData] = await Promise.all([
         listProfiles(),
         listGlobalIntegrations(),
@@ -60,9 +60,12 @@ const IntegrationHub: React.FC<IntegrationHubProps> = ({ onBack }) => {
     } catch (err) {
       addToast('error', 'Failed to load integration data');
     } finally {
-      setLoading(false);
+      if (showSkeleton) setLoading(false);
     }
   }, []);
+
+  /** Refresh data without showing skeleton loaders or resetting scroll */
+  const refreshData = useCallback(() => loadData(false), [loadData]);
 
   useEffect(() => {
     loadData();
@@ -118,7 +121,7 @@ const IntegrationHub: React.FC<IntegrationHubProps> = ({ onBack }) => {
       const result = await testEndpoint(profileId, endpointName);
       setEndpointTestResults((prev) => ({ ...prev, [endpointName]: result }));
       addToast(result.reachable ? 'success' : 'warning', result.reachable ? `${endpointName}: reachable (${result.latency_ms}ms)` : `${endpointName}: ${result.error}`);
-      await loadData();
+      await refreshData();
     } catch (err) {
       addToast('error', err instanceof Error ? err.message : 'Test failed');
     } finally {
@@ -147,7 +150,7 @@ const IntegrationHub: React.FC<IntegrationHubProps> = ({ onBack }) => {
       const result = await testGlobalIntegration(id);
       setGlobalTestResults((prev) => ({ ...prev, [id]: result }));
       addToast(result.reachable ? 'success' : 'warning', result.reachable ? `Connected (${result.latency_ms}ms)` : `Connection failed: ${result.error}`);
-      await loadData();
+      await refreshData();
     } catch (err) {
       addToast('error', err instanceof Error ? err.message : 'Test failed');
     } finally {
@@ -155,12 +158,19 @@ const IntegrationHub: React.FC<IntegrationHubProps> = ({ onBack }) => {
     }
   };
 
-  const handleProbeProfile = async (id: string) => {
+  const handleProbeProfile = async (id: string): Promise<{ reachable?: boolean; errors?: string[] } | void> => {
     setProbingId(id);
     try {
-      await probeProfile(id);
-      addToast('success', 'Probe complete');
-      await loadData();
+      const result = await probeProfile(id);
+      const probeData = result as { reachable?: boolean; errors?: string[] };
+      if (probeData.reachable) {
+        addToast('success', 'Cluster connected successfully');
+      } else {
+        const errorMsg = probeData.errors?.[0] || 'Connection failed';
+        addToast('error', errorMsg);
+      }
+      await refreshData();
+      return probeData;
     } catch (err) {
       addToast('error', err instanceof Error ? err.message : 'Probe failed');
     } finally {
