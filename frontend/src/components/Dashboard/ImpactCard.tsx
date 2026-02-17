@@ -3,8 +3,8 @@ import { Shield, ArrowUpRight, ArrowDownRight, Database, Users, Target } from 'l
 import type { BlastRadiusData, SeverityData } from '../../types';
 
 interface ImpactCardProps {
-  blastRadius: BlastRadiusData;
-  severity: SeverityData;
+  blastRadius: BlastRadiusData | null;
+  severity: SeverityData | null;
 }
 
 const severityConfig: Record<string, { bg: string; text: string; border: string; glow: string }> = {
@@ -22,6 +22,8 @@ const scopeLabels: Record<string, string> = {
 };
 
 const ImpactCard: React.FC<ImpactCardProps> = ({ blastRadius, severity }) => {
+  if (!blastRadius || !severity) return null;
+
   const config = severityConfig[severity.recommended_severity] || severityConfig.P3;
 
   return (

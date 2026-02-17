@@ -117,7 +117,13 @@ export const sendChatMessage = async (
     const error = await response.json();
     throw new Error(error.detail || 'Failed to send message');
   }
-  return response.json();
+  // Backend returns ChatResponse {response, phase, confidence} — transform to ChatMessage
+  const data = await response.json();
+  return {
+    role: 'assistant',
+    content: data.response,
+    timestamp: new Date().toISOString(),
+  };
 };
 
 export const getSessionStatus = async (sessionId: string): Promise<V4SessionStatus> => {

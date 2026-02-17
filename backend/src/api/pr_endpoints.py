@@ -91,6 +91,46 @@ async def create_pull_request(
         )
 
 
+@router.get("/troubleshoot/{session_id}/pr-status")
+async def get_pr_status(session_id: str):
+    """Get current PR status for a session."""
+    try:
+        from .session_manager import get_session_data
+        pr_data = get_session_data(session_id, 'pr_data')
+        if not pr_data:
+            return {
+                "session_id": session_id,
+                "status": "no_pr",
+                "pr_url": None,
+                "pr_number": None,
+                "message": "No PR has been created for this session",
+            }
+        return {
+            "session_id": session_id,
+            "status": pr_data.get("status", "created"),
+            "pr_url": pr_data.get("html_url"),
+            "pr_number": pr_data.get("number"),
+            "branch_name": pr_data.get("branch_name"),
+            "message": f"PR #{pr_data.get('number', 'N/A')}",
+        }
+    except ImportError:
+        return {
+            "session_id": session_id,
+            "status": "no_pr",
+            "pr_url": None,
+            "pr_number": None,
+            "message": "Session manager not configured",
+        }
+    except Exception:
+        return {
+            "session_id": session_id,
+            "status": "no_pr",
+            "pr_url": None,
+            "pr_number": None,
+            "message": "No PR data available",
+        }
+
+
 @router.post("/troubleshoot/{session_id}/reject-fix")
 async def reject_fix(session_id: str):
     """
@@ -124,4 +164,14 @@ async def reject_fix(session_id: str):
     return {
         "success": True,
         "message": "Fix rejected. Branch deleted."
+    }
+
+
+@router.get("/pr-endpoints/health")
+async def pr_health():
+    """Health check for PR creation service."""
+    github_token = os.getenv("GITHUB_TOKEN", "")
+    return {
+        "status": "healthy",
+        "github_configured": bool(github_token),
     }

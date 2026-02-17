@@ -48,7 +48,7 @@ export const getActiveProfile = async (): Promise<ClusterProfile | null> => {
   const response = await fetch(`${API_BASE_URL}/api/v5/profiles/active`);
   if (!response.ok) throw new Error('Failed to get active profile');
   const data = await response.json();
-  return data.active_profile === null ? null : data;
+  return data.active_profile ?? null;
 };
 
 export const testEndpoint = async (
@@ -73,6 +73,25 @@ export const probeProfile = async (id: string): Promise<Record<string, unknown>>
 };
 
 // ===== Global Integrations API =====
+
+export const createGlobalIntegration = async (
+  data: Record<string, unknown>
+): Promise<GlobalIntegration> => {
+  const response = await fetch(`${API_BASE_URL}/api/v5/global-integrations/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error('Failed to create global integration');
+  return response.json();
+};
+
+export const deleteGlobalIntegration = async (id: string): Promise<void> => {
+  const response = await fetch(`${API_BASE_URL}/api/v5/global-integrations/${id}`, {
+    method: 'DELETE',
+  });
+  if (!response.ok) throw new Error('Failed to delete global integration');
+};
 
 export const listGlobalIntegrations = async (): Promise<GlobalIntegration[]> => {
   const response = await fetch(`${API_BASE_URL}/api/v5/global-integrations/`);

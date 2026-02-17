@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { BarChart3, AlertTriangle, Server, GitBranch } from 'lucide-react';
 import type { V4Findings, TimelineEventData, EvidenceNodeData, CausalEdgeData, ChangeCorrelation, PastIncidentMatch, BlastRadiusData, SeverityData, RemediationDecisionData, RunbookMatchData } from '../types';
-import { getFindings, getTimeline, getEvidenceGraph } from '../services/api';
+import { getFindings, getTimeline, getEvidenceGraph, findSimilarIncidents } from '../services/api';
 import TimelineCard from './Dashboard/TimelineCard';
 import EvidenceGraphCard from './Dashboard/EvidenceGraphCard';
 import ChangeCorrelationCard from './Dashboard/ChangeCorrelationCard';
@@ -13,6 +13,81 @@ interface ResultsPanelProps {
   sessionId: string;
 }
 
+/** Derive blast radius from findings data. */
+function deriveBlastRadius(findings: V4Findings | null): BlastRadiusData | null {
+  if (!findings || findings.findings.length === 0) return null;
+  const services = new Set<string>();
+  for (const f of findings.findings) {
+    if (f.agent_name) services.add(f.agent_name);
+  }
+  const pods = findings.pod_statuses || [];
+  const namespaces = new Set(pods.map((p) => p.namespace).filter(Boolean));
+  const primaryService = findings.findings[0]?.title?.split(' ')[0] || 'unknown-svc';
+  const scope = namespaces.size > 1 ? 'cluster_wide' : pods.length > 3 ? 'namespace' : 'single_service';
+
+  return {
+    primary_service: primaryService,
+    upstream_affected: [],
+    downstream_affected: [...services].slice(0, 3),
+    shared_resources: [],
+    estimated_user_impact: pods.length > 0 ? `${pods.length} pod(s) affected` : 'Unknown',
+    scope: scope as BlastRadiusData['scope'],
+  };
+}
+
+/** Derive severity from findings data. */
+function deriveSeverity(findings: V4Findings | null): SeverityData | null {
+  if (!findings || findings.findings.length === 0) return null;
+  const critCount = findings.findings.filter((f) => f.severity === 'critical').length;
+  const highCount = findings.findings.filter((f) => f.severity === 'high').length;
+  let severity: SeverityData['recommended_severity'] = 'P4';
+  if (critCount > 0) severity = 'P1';
+  else if (highCount > 0) severity = 'P2';
+  else if (findings.findings.length > 3) severity = 'P3';
+
+  return {
+    recommended_severity: severity,
+    reasoning: `${critCount} critical, ${highCount} high severity findings across ${findings.findings.length} total`,
+    factors: {
+      critical_findings: String(critCount),
+      high_findings: String(highCount),
+      total_findings: String(findings.findings.length),
+    },
+  };
+}
+
+/** Derive change correlations from code impacts. */
+function deriveChangeCorrelations(findings: V4Findings | null): ChangeCorrelation[] {
+  if (!findings) return [];
+  const impacts = findings.impacted_files || [];
+  return impacts.map((ci, i) => ({
+    change_id: `impact-${i}`,
+    change_type: ci.impact_type === 'root_cause' ? 'code_deploy' as const : 'config_change' as const,
+    risk_score: ci.impact_type === 'root_cause' ? 0.9 : 0.4,
+    temporal_correlation: 0,
+    author: '',
+    description: ci.description,
+    files_changed: [ci.file_path],
+    timestamp: null,
+  }));
+}
+
+/** Derive remediation from findings suggested fixes. */
+function deriveRemediation(findings: V4Findings | null): RemediationDecisionData | null {
+  if (!findings) return null;
+  const withFix = findings.findings.find((f) => f.suggested_fix);
+  if (!withFix) return null;
+  return {
+    proposed_action: withFix.suggested_fix || '',
+    action_type: 'code_fix',
+    is_destructive: false,
+    dry_run_available: false,
+    rollback_plan: 'Revert the applied fix and restore previous state',
+    pre_checks: ['Review proposed changes', 'Verify affected services'],
+    post_checks: ['Run smoke tests', 'Monitor error rate'],
+  };
+}
+
 const ResultsPanel: React.FC<ResultsPanelProps> = ({ sessionId }) => {
   const [findings, setFindings] = useState<V4Findings | null>(null);
   const [loading, setLoading] = useState(true);
@@ -20,111 +95,23 @@ const ResultsPanel: React.FC<ResultsPanelProps> = ({ sessionId }) => {
   const [graphNodes, setGraphNodes] = useState<EvidenceNodeData[]>([]);
   const [graphEdges, setGraphEdges] = useState<CausalEdgeData[]>([]);
   const [rootCauses, setRootCauses] = useState<string[]>([]);
-  const [pastIncidents] = useState<PastIncidentMatch[]>([
-    {
-      fingerprint_id: 'fp-001',
-      session_id: 'sess-a1b2c3d4-e5f6-7890',
-      similarity_score: 0.87,
-      root_cause: 'Connection pool exhaustion due to leaked database connections after deployment',
-      resolution_steps: [
-        'Rolled back deployment v2.3.1',
-        'Increased connection pool max size from 10 to 25',
-        'Added connection timeout of 30s',
-      ],
-      error_patterns: ['ConnectionTimeout', 'PoolExhausted'],
-      affected_services: ['order-svc', 'inventory-svc'],
-      time_to_resolve: 2340,
-    },
-    {
-      fingerprint_id: 'fp-002',
-      session_id: 'sess-x9y8z7w6-v5u4-3210',
-      similarity_score: 0.62,
-      root_cause: 'Redis timeout misconfiguration causing cascading failures',
-      resolution_steps: [
-        'Reverted Redis timeout from 2s to 5s',
-        'Added circuit breaker for Redis calls',
-      ],
-      error_patterns: ['ConnectionTimeout', 'RedisCommandTimeout'],
-      affected_services: ['order-svc', 'cache-svc'],
-      time_to_resolve: 1800,
-    },
-  ]);
-  const [changeCorrelations] = useState<ChangeCorrelation[]>([
-    {
-      change_id: 'placeholder-1',
-      change_type: 'code_deploy',
-      risk_score: 0.85,
-      temporal_correlation: 0.92,
-      author: 'deploy-bot',
-      description: 'Deployed v2.3.1 with updated connection pool settings',
-      files_changed: ['src/config/db.ts', 'src/services/pool.ts'],
-      timestamp: new Date().toISOString(),
-    },
-    {
-      change_id: 'placeholder-2',
-      change_type: 'config_change',
-      risk_score: 0.45,
-      temporal_correlation: 0.60,
-      author: 'ops-team',
-      description: 'Updated Redis timeout from 5s to 2s',
-      files_changed: ['configmap.yaml'],
-      timestamp: new Date(Date.now() - 3600000).toISOString(),
-    },
-    {
-      change_id: 'placeholder-3',
-      change_type: 'dependency_update',
-      risk_score: 0.2,
-      temporal_correlation: 0.15,
-      author: 'dependabot',
-      description: 'Bumped axios from 1.6.0 to 1.6.2',
-      files_changed: ['package.json', 'package-lock.json'],
-      timestamp: new Date(Date.now() - 86400000).toISOString(),
-    },
-  ]);
-
-  const [remediationDecision] = useState<RemediationDecisionData | null>({
-    proposed_action: 'Restart deployment order-svc with increased memory limits',
-    action_type: 'restart',
-    is_destructive: false,
-    dry_run_available: true,
-    rollback_plan: 'Scale back to previous resource limits and replica count',
-    pre_checks: ['Verify current pod health', 'Check pending traffic drain'],
-    post_checks: ['Verify pods are running', 'Run smoke tests', 'Check error rate'],
-  });
-  const [runbookMatches] = useState<RunbookMatchData[]>([
-    {
-      runbook_id: 'rb-001',
-      title: 'OOM Recovery Playbook',
-      match_score: 0.85,
-      steps: [
-        'Increase memory limits by 50%',
-        'Restart affected deployment',
-        'Monitor for 15 minutes',
-        'Verify error rate returns to baseline',
-      ],
-      success_rate: 0.92,
-      source: 'internal',
-    },
-  ]);
-
-  const [blastRadius] = useState<BlastRadiusData>({
-    primary_service: 'order-svc',
-    upstream_affected: ['api-gateway', 'auth-svc'],
-    downstream_affected: ['inventory-svc', 'payment-svc', 'notification-svc'],
-    shared_resources: ['postgres-primary', 'redis-cluster'],
-    estimated_user_impact: '~5000 users potentially affected',
-    scope: 'namespace',
-  });
-  const [severityData] = useState<SeverityData>({
-    recommended_severity: 'P2',
-    reasoning: "Service tier 'critical' with blast radius scope 'namespace'",
-    factors: { service_tier: 'critical', blast_radius_scope: 'namespace' },
-  });
+  const [pastIncidents, setPastIncidents] = useState<PastIncidentMatch[]>([]);
+  const [changeCorrelations, setChangeCorrelations] = useState<ChangeCorrelation[]>([]);
+  const [remediationDecision, setRemediationDecision] = useState<RemediationDecisionData | null>(null);
+  const [runbookMatches] = useState<RunbookMatchData[]>([]);
+  const [blastRadius, setBlastRadius] = useState<BlastRadiusData | null>(null);
+  const [severityData, setSeverityData] = useState<SeverityData | null>(null);
 
   const fetchFindings = useCallback(async () => {
     try {
       const data = await getFindings(sessionId);
       setFindings(data);
+
+      // Derive computed data from findings
+      setBlastRadius(deriveBlastRadius(data));
+      setSeverityData(deriveSeverity(data));
+      setChangeCorrelations(deriveChangeCorrelations(data));
+      setRemediationDecision(deriveRemediation(data));
     } catch {
       // silently fail
     } finally {
@@ -147,15 +134,25 @@ const ResultsPanel: React.FC<ResultsPanelProps> = ({ sessionId }) => {
     }
   }, [sessionId]);
 
+  const fetchSimilarIncidents = useCallback(async () => {
+    try {
+      const data = await findSimilarIncidents(sessionId);
+      if (data?.similar_incidents) setPastIncidents(data.similar_incidents);
+    } catch {
+      // silently fail - memory store may be empty
+    }
+  }, [sessionId]);
+
   useEffect(() => {
     fetchFindings();
     fetchCausalData();
+    fetchSimilarIncidents();
     const interval = setInterval(() => {
       fetchFindings();
       fetchCausalData();
     }, 5000);
     return () => clearInterval(interval);
-  }, [fetchFindings, fetchCausalData]);
+  }, [fetchFindings, fetchCausalData, fetchSimilarIncidents]);
 
   if (loading && !findings) {
     return (

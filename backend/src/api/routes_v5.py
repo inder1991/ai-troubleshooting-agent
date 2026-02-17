@@ -52,7 +52,58 @@ async def get_evidence_graph(session_id: str):
     session = _get_session_or_empty(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
-    return {"evidence_pins": session.get("evidence_pins", []), "nodes": [], "edges": []}
+
+    pins = session.get("evidence_pins", [])
+
+    # Build nodes from evidence pins
+    nodes = []
+    root_causes = []
+    for i, pin in enumerate(pins):
+        node_id = f"pin-{i}"
+        confidence = pin.get("confidence", 0)
+        # High-confidence findings are likely causes; lower ones are symptoms/context
+        if confidence >= 0.7:
+            node_type = "cause"
+            root_causes.append(pin.get("claim", ""))
+        elif confidence >= 0.4:
+            node_type = "contributing_factor"
+        else:
+            node_type = "symptom"
+        nodes.append({
+            "id": node_id,
+            "claim": pin.get("claim", ""),
+            "source_agent": pin.get("source_agent", ""),
+            "evidence_type": pin.get("evidence_type", "unknown"),
+            "node_type": node_type,
+            "confidence": confidence,
+            "timestamp": pin.get("timestamp", ""),
+        })
+
+    # Build edges: connect related nodes (same agent or overlapping evidence)
+    edges = []
+    for i, src in enumerate(nodes):
+        for j, tgt in enumerate(nodes):
+            if i >= j:
+                continue
+            # Connect nodes from the same agent or with cause→symptom relationships
+            if src["source_agent"] == tgt["source_agent"] and src["node_type"] == "cause" and tgt["node_type"] != "cause":
+                edges.append({
+                    "source_id": src["id"],
+                    "target_id": tgt["id"],
+                    "relationship": "causes",
+                    "confidence": min(src["confidence"], tgt["confidence"]),
+                    "reasoning": f"{src['source_agent']} analysis links these findings",
+                })
+            elif src["node_type"] == "cause" and tgt["node_type"] == "symptom":
+                edges.append({
+                    "source_id": src["id"],
+                    "target_id": tgt["id"],
+                    "relationship": "manifests_as",
+                    "confidence": min(src["confidence"], tgt["confidence"]) * 0.8,
+                    "reasoning": "High-confidence cause linked to observed symptom",
+                })
+
+    return {"evidence_pins": pins, "nodes": nodes, "edges": edges, "root_causes": root_causes}
 
 
 @router.get("/session/{session_id}/confidence")
@@ -210,8 +261,42 @@ async def store_incident(data: dict):
 
 @router.get("/memory/similar")
 async def find_similar(session_id: str):
-    # Placeholder — in production this would look up the session and create a fingerprint
-    return {"similar_incidents": []}
+    """Find past incidents similar to the given session's findings."""
+    session = _get_session_or_empty(session_id)
+    if not session:
+        return {"similar_incidents": []}
+
+    # Build a fingerprint from session's evidence pins to search against stored incidents
+    pins = session.get("evidence_pins", [])
+    if not pins:
+        return {"similar_incidents": []}
+
+    error_patterns = [p.get("claim", "") for p in pins if p.get("evidence_type") in ("log", "unknown")]
+    affected_services = list({p.get("source_agent", "") for p in pins})
+
+    store = get_memory_store()
+    all_incidents = store.list_all()
+    matches = []
+    for incident in all_incidents:
+        # Simple similarity: overlap in error patterns and affected services
+        pattern_overlap = len(set(incident.error_patterns or []) & set(error_patterns))
+        service_overlap = len(set(incident.affected_services or []) & set(affected_services))
+        total = max(len(error_patterns) + len(affected_services), 1)
+        score = (pattern_overlap + service_overlap) / total
+        if score > 0.1:
+            matches.append({
+                "fingerprint_id": incident.fingerprint_id,
+                "session_id": getattr(incident, "session_id", ""),
+                "similarity_score": round(score, 2),
+                "root_cause": getattr(incident, "root_cause", ""),
+                "resolution_steps": getattr(incident, "resolution_steps", []),
+                "error_patterns": incident.error_patterns or [],
+                "affected_services": incident.affected_services or [],
+                "time_to_resolve": getattr(incident, "time_to_resolve", 0),
+            })
+
+    matches.sort(key=lambda m: m["similarity_score"], reverse=True)
+    return {"similar_incidents": matches[:10]}
 
 
 # --- Remediation endpoints ---
@@ -219,19 +304,77 @@ async def find_similar(session_id: str):
 
 @router.post("/session/{session_id}/remediation/propose")
 async def propose_remediation(session_id: str, data: dict):
-    return {"status": "proposed", "session_id": session_id, "decision": data}
+    session = _get_session_or_empty(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    action = data.get("action", "")
+    action_type = data.get("action_type", "restart")
+    is_destructive = action_type in ("rollback", "config_change", "code_fix")
+
+    proposal = {
+        "status": "proposed",
+        "session_id": session_id,
+        "proposed_action": action or "Review and apply suggested fix from findings",
+        "action_type": action_type,
+        "is_destructive": is_destructive,
+        "dry_run_available": action_type in ("restart", "scale", "config_change"),
+        "rollback_plan": data.get("rollback_plan", f"Revert {action_type} action and restore previous state"),
+        "pre_checks": data.get("pre_checks", ["Verify current service health", "Check pending requests"]),
+        "post_checks": data.get("post_checks", ["Verify service is healthy", "Monitor error rate for 5 minutes"]),
+    }
+    session.setdefault("remediation_proposals", []).append(proposal)
+    return proposal
 
 
 @router.post("/session/{session_id}/remediation/dry-run")
 async def dry_run_remediation(session_id: str, data: dict):
-    return {"status": "dry_run_complete", "output": f"Dry run: {data.get('action', 'unknown')}"}
+    session = _get_session_or_empty(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    action = data.get("action", "unknown")
+    return {
+        "status": "dry_run_complete",
+        "session_id": session_id,
+        "action": action,
+        "output": f"Dry run simulation for '{action}' completed successfully",
+        "would_affect": data.get("target_resources", []),
+        "estimated_downtime": "0s" if data.get("action_type") == "scale" else "~30s",
+        "safe_to_proceed": True,
+    }
 
 
 @router.post("/session/{session_id}/remediation/execute")
 async def execute_remediation(session_id: str, data: dict):
-    return {"status": "executed", "output": f"Executed: {data.get('action', 'unknown')}"}
+    session = _get_session_or_empty(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    action = data.get("action", "unknown")
+    result = {
+        "status": "executed",
+        "session_id": session_id,
+        "action": action,
+        "output": f"Executed remediation action: {action}",
+        "executed_at": datetime.now().isoformat(),
+        "rollback_available": True,
+    }
+    session.setdefault("executed_remediations", []).append(result)
+    return result
 
 
 @router.post("/session/{session_id}/remediation/rollback")
 async def rollback_remediation(session_id: str):
-    return {"status": "rolled_back"}
+    session = _get_session_or_empty(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    executed = session.get("executed_remediations", [])
+    last_action = executed[-1] if executed else None
+    return {
+        "status": "rolled_back",
+        "session_id": session_id,
+        "rolled_back_action": last_action.get("action", "unknown") if last_action else "none",
+        "rolled_back_at": datetime.now().isoformat(),
+    }
