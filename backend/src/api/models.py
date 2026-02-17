@@ -83,7 +83,7 @@ class StartSessionResponse(BaseModel):
 
 class SessionSummary(BaseModel):
     session_id: str
-    service_name: str
+    service_name: Optional[str] = None
     phase: str
     confidence: int
     created_at: str

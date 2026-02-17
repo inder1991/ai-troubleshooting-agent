@@ -2,7 +2,7 @@
 
 import os
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Optional, Literal
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -45,10 +45,10 @@ def get_audit() -> AuditLogger:
 class CreateProfileRequest(BaseModel):
     name: str
     display_name: Optional[str] = None
-    cluster_type: str = "openshift"
+    cluster_type: Literal["openshift", "kubernetes"] = "openshift"
     cluster_url: str = ""
-    environment: str = "dev"
-    auth_method: str = "token"
+    environment: Literal["prod", "staging", "dev"] = "dev"
+    auth_method: Literal["kubeconfig", "token", "service_account", "none"] = "token"
     auth_data: Optional[str] = None  # plaintext credential (will be encrypted)
     endpoints: Optional[dict] = None
 
@@ -56,10 +56,10 @@ class CreateProfileRequest(BaseModel):
 class UpdateProfileRequest(BaseModel):
     name: Optional[str] = None
     display_name: Optional[str] = None
-    cluster_type: Optional[str] = None
+    cluster_type: Optional[Literal["openshift", "kubernetes"]] = None
     cluster_url: Optional[str] = None
-    environment: Optional[str] = None
-    auth_method: Optional[str] = None
+    environment: Optional[Literal["prod", "staging", "dev"]] = None
+    auth_method: Optional[Literal["kubeconfig", "token", "service_account", "none"]] = None
     auth_data: Optional[str] = None
     endpoints: Optional[dict] = None
 

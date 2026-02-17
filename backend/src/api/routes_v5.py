@@ -123,12 +123,13 @@ def _deprecated_response(data) -> JSONResponse:
 async def add_integration(request: CreateIntegrationRequest):
     config = IntegrationConfig(**request.model_dump())
     stored = get_integration_store().add(config)
-    return _deprecated_response(stored.model_dump())
+    return _deprecated_response(stored.model_dump(mode="json"))
 
 
 @router.get("/integrations")
+@router.head("/integrations")
 async def list_integrations():
-    data = [c.model_dump() for c in get_integration_store().list_all()]
+    data = [c.model_dump(mode="json") for c in get_integration_store().list_all()]
     return _deprecated_response(data)
 
 
@@ -137,7 +138,7 @@ async def get_integration(integration_id: str):
     config = get_integration_store().get(integration_id)
     if not config:
         raise HTTPException(status_code=404, detail="Integration not found")
-    return _deprecated_response(config.model_dump())
+    return _deprecated_response(config.model_dump(mode="json"))
 
 
 @router.put("/integrations/{integration_id}")
@@ -148,7 +149,7 @@ async def update_integration(integration_id: str, request: CreateIntegrationRequ
         raise HTTPException(status_code=404, detail="Integration not found")
     updated = existing.model_copy(update=request.model_dump())
     store.update(updated)
-    return _deprecated_response(updated.model_dump())
+    return _deprecated_response(updated.model_dump(mode="json"))
 
 
 @router.delete("/integrations/{integration_id}")
@@ -178,7 +179,7 @@ async def probe_integration(integration_id: str):
     config.status = "active" if result.reachable else "unreachable"
     config.auto_discovered = result.model_dump()
     store.update(config)
-    return _deprecated_response(result.model_dump())
+    return _deprecated_response(result.model_dump(mode="json"))
 
 
 # --- Memory store setup ---
