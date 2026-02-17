@@ -1,3 +1,4 @@
+import json
 import pytest
 from unittest.mock import AsyncMock, patch
 from src.integrations.models import IntegrationConfig
@@ -24,6 +25,14 @@ def _make_kubernetes_config():
     )
 
 
+def _version_json(git_version: str, openshift_version: str = "") -> str:
+    """Build kubectl/oc version -o json response."""
+    data = {"serverVersion": {"gitVersion": git_version}}
+    if openshift_version:
+        data["openshiftVersion"] = openshift_version
+    return json.dumps(data)
+
+
 def test_get_cli_tool():
     probe = ClusterProbe()
     assert probe.get_cli_tool("openshift") == "oc"
@@ -34,8 +43,8 @@ def test_get_cli_tool():
 @patch("src.integrations.probe.run_command")
 async def test_probe_openshift_discovers_prometheus(mock_run):
     mock_run.side_effect = [
-        # 1. Version (connectivity check) -> success
-        (0, "4.14.5", ""),
+        # 1. Version (connectivity check) -> JSON success
+        (0, _version_json("v1.27.6", "4.14.5"), ""),
         # 2. Prometheus route lookup -> success
         (0, "prometheus-k8s-openshift-monitoring.apps.ocp.example.com", ""),
         # 3. Kibana route lookup -> not found
@@ -56,11 +65,11 @@ async def test_probe_openshift_discovers_prometheus(mock_run):
 async def test_probe_kubernetes_finds_by_label(mock_run):
     """Prometheus found on first label selector query."""
     mock_run.side_effect = [
-        # 1. Version (connectivity check) -> success
-        (0, "v1.28.3", ""),
-        # 2. Prometheus label search (app.kubernetes.io/name=prometheus) -> found
+        # 1. Version (connectivity check) -> JSON success
+        (0, _version_json("v1.28.3"), ""),
+        # 2. Prometheus label search -> found
         (0, "prometheus-kube-prom.monitoring.svc.cluster.local", ""),
-        # 3. Elasticsearch label search (app.kubernetes.io/name=elasticsearch) -> found
+        # 3. Elasticsearch label search -> found
         (0, "elasticsearch-master.elastic.svc.cluster.local", ""),
     ]
     probe = ClusterProbe()
@@ -77,10 +86,9 @@ async def test_probe_kubernetes_finds_by_label(mock_run):
 @patch("src.integrations.probe.run_command")
 async def test_probe_kubernetes_cluster_reachable_services_missing(mock_run):
     """Cluster reachable but no Prometheus/ES found — should still be reachable."""
-    # All discovery attempts fail with NotFound
     mock_run.side_effect = [
-        # 1. Version -> success (cluster reachable)
-        (0, "v1.28.3", ""),
+        # 1. Version -> JSON success (cluster reachable)
+        (0, _version_json("v1.28.3"), ""),
     ] + [
         # All subsequent label + name lookups fail
         (1, "", 'Error from server (NotFound): not found')

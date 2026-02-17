@@ -79,23 +79,31 @@ class ClusterProbe:
 
         return result
 
-    async def _check_connectivity(self, cli: str, safe_args: str, result: ProbeResult, api_name: str, version_jsonpath: str) -> bool:
+    async def _check_connectivity(self, cli: str, safe_args: str, result: ProbeResult, api_name: str, version_key: str) -> bool:
         """Check basic cluster connectivity via 'version' command.
 
         Returns True if the cluster API is reachable (authenticated successfully).
         A 'NotFound' or 'Forbidden' from the server still means the API is reachable.
+        Uses -o json since kubectl version doesn't support jsonpath output.
         """
+        import json as _json
+
         ep_api = EndpointProbeResult(name=api_name)
         code, stdout, stderr = await run_command(
-            f"{cli} version {safe_args} "
-            f"-o jsonpath='{version_jsonpath}' --insecure-skip-tls-verify"
+            f"{cli} version {safe_args} -o json --insecure-skip-tls-verify"
         )
         if code == 0:
             result.reachable = True
             ep_api.reachable = True
-            version = stdout.strip("'")
-            if version:
-                result.cluster_version = version
+            try:
+                version_data = _json.loads(stdout)
+                version = version_data.get("serverVersion", {}).get("gitVersion", "")
+                if version_key == "openshiftVersion":
+                    version = version_data.get("openshiftVersion", version)
+                if version:
+                    result.cluster_version = version
+            except _json.JSONDecodeError:
+                pass
         elif self._is_server_response(stderr):
             # Server responded (e.g. Forbidden, Unauthorized) — cluster is reachable
             # but may have auth issues for version endpoint
@@ -230,7 +238,7 @@ class ClusterProbe:
     async def _probe_openshift(self, cli: str, safe_args: str, result: ProbeResult) -> ProbeResult:
         # 1. Check cluster connectivity
         reachable = await self._check_connectivity(
-            cli, safe_args, result, "openshift_api", "{.openshiftVersion}"
+            cli, safe_args, result, "openshift_api", "openshiftVersion"
         )
         if not reachable:
             return result
@@ -262,7 +270,7 @@ class ClusterProbe:
     async def _probe_kubernetes(self, cli: str, safe_args: str, result: ProbeResult) -> ProbeResult:
         # 1. Check cluster connectivity
         reachable = await self._check_connectivity(
-            cli, safe_args, result, "kubernetes_api", "{.serverVersion.gitVersion}"
+            cli, safe_args, result, "kubernetes_api", "gitVersion"
         )
         if not reachable:
             return result
