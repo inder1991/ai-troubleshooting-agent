@@ -74,7 +74,7 @@ class TokenUsage(BaseModel):
 class TaskEvent(BaseModel):
     timestamp: datetime
     agent_name: str
-    event_type: Literal["started", "progress", "success", "warning", "error"]
+    event_type: Literal["started", "progress", "success", "warning", "error", "tool_call", "phase_change", "finding", "summary", "attestation_required"]
     message: str
     details: Optional[dict] = None
 
@@ -437,6 +437,12 @@ class DiagnosticState(BaseModel):
     k8s_analysis: Optional[K8sAnalysisResult] = None
     trace_analysis: Optional[TraceAnalysisResult] = None
     code_analysis: Optional[CodeAnalysisResult] = None
+    change_analysis: Optional[dict] = None
+
+    # Impact & memory
+    blast_radius_result: Optional[BlastRadius] = None
+    severity_result: Optional[SeverityRecommendation] = None
+    past_incidents: list[dict] = Field(default_factory=list)
 
     # Cross-cutting
     all_findings: list[Finding] = []

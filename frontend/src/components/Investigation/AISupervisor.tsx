@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import type { ChatMessage as ChatMessageType, TaskEvent } from '../../types';
 import { sendChatMessage } from '../../services/api';
 
@@ -10,55 +10,64 @@ interface AISupervisorProps {
   wsConnected: boolean;
 }
 
-// Map event types to display tags
-const eventTypeTag: Record<string, { label: string; color: string }> = {
-  started: { label: 'STARTED', color: 'text-blue-400' },
-  progress: { label: 'PROGRESS', color: 'text-slate-400' },
-  success: { label: 'SUCCESS', color: 'text-green-400' },
-  warning: { label: 'WARNING', color: 'text-amber-400' },
-  error: { label: 'ERROR', color: 'text-red-400' },
+// Severity colors for finding cards
+const severityStyles: Record<string, { border: string; bg: string; text: string; icon: string }> = {
+  critical: { border: 'border-red-500/40', bg: 'bg-red-500/10', text: 'text-red-400', icon: 'error' },
+  high: { border: 'border-orange-500/40', bg: 'bg-orange-500/10', text: 'text-orange-400', icon: 'warning' },
+  medium: { border: 'border-yellow-500/40', bg: 'bg-yellow-500/10', text: 'text-yellow-400', icon: 'info' },
+  low: { border: 'border-blue-500/40', bg: 'bg-blue-500/10', text: 'text-blue-400', icon: 'help' },
 };
 
-// Infer operation type from agent name / message content
-const inferOperationTag = (event: TaskEvent): { label: string; color: string } => {
-  const msg = event.message.toLowerCase();
-  const agent = event.agent_name.toLowerCase();
+// Group consecutive tool_call events from the same agent
+interface ToolCallGroup {
+  kind: 'tool_group';
+  agent: string;
+  events: TaskEvent[];
+  ts: number;
+}
 
-  if (msg.includes('tool') || msg.includes('calling') || msg.includes('querying') || msg.includes('fetching')) {
-    return { label: 'TOOL_CALL', color: 'text-purple-400' };
-  }
-  if (msg.includes('reasoning') || msg.includes('analyzing') || msg.includes('correlating') || msg.includes('hypothesis')) {
-    return { label: 'REASONING', color: 'text-cyan-400' };
-  }
-  if (msg.includes('validated') || msg.includes('verdict') || msg.includes('critic')) {
-    return { label: 'VALIDATION', color: 'text-emerald-400' };
-  }
-  if (agent.includes('log') || agent.includes('elk')) {
-    return { label: 'LOG_SCAN', color: 'text-amber-300' };
-  }
-  if (agent.includes('metric') || agent.includes('prometheus')) {
-    return { label: 'METRIC_CHECK', color: 'text-orange-400' };
-  }
-  if (agent.includes('k8s') || agent.includes('kube')) {
-    return { label: 'K8S_PROBE', color: 'text-blue-300' };
-  }
-  if (agent.includes('trace') || agent.includes('jaeger')) {
-    return { label: 'TRACE_WALK', color: 'text-teal-400' };
-  }
-  if (agent.includes('code') || agent.includes('git')) {
-    return { label: 'CODE_SCAN', color: 'text-violet-400' };
-  }
-  if (agent.includes('supervisor')) {
-    return { label: 'ORCHESTRATE', color: 'text-cyan-300' };
-  }
-  return eventTypeTag[event.event_type] || { label: 'EVENT', color: 'text-slate-400' };
-};
+type TimelineItem =
+  | { kind: 'chat'; msg: ChatMessageType; ts: number }
+  | { kind: 'event'; event: TaskEvent; ts: number }
+  | ToolCallGroup;
 
-// Check if events are from same agent (for grouping/nesting)
-const isSameAgentGroup = (events: TaskEvent[], idx: number): boolean => {
-  if (idx === 0) return false;
-  return events[idx].agent_name === events[idx - 1].agent_name;
-};
+function buildTimeline(messages: ChatMessageType[], events: TaskEvent[], showToolCalls: boolean): TimelineItem[] {
+  // First, build event items — group consecutive tool_calls from the same agent
+  const eventItems: TimelineItem[] = [];
+  let i = 0;
+  while (i < events.length) {
+    const ev = events[i];
+    if (ev.event_type === 'tool_call') {
+      // Collect consecutive tool_call events from the same agent
+      const group: TaskEvent[] = [ev];
+      let j = i + 1;
+      while (j < events.length && events[j].event_type === 'tool_call' && events[j].agent_name === ev.agent_name) {
+        group.push(events[j]);
+        j++;
+      }
+      if (showToolCalls) {
+        eventItems.push({
+          kind: 'tool_group',
+          agent: ev.agent_name,
+          events: group,
+          ts: new Date(ev.timestamp).getTime(),
+        });
+      }
+      i = j;
+    } else {
+      eventItems.push({ kind: 'event', event: ev, ts: new Date(ev.timestamp).getTime() });
+      i++;
+    }
+  }
+
+  const chatItems: TimelineItem[] = messages.map((msg) => ({
+    kind: 'chat' as const,
+    msg,
+    ts: new Date(msg.timestamp).getTime(),
+  }));
+
+  return [...chatItems, ...eventItems].sort((a, b) => a.ts - b.ts);
+}
 
 const AISupervisor: React.FC<AISupervisorProps> = ({
   sessionId,
@@ -69,7 +78,7 @@ const AISupervisor: React.FC<AISupervisorProps> = ({
 }) => {
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
-  const [showLogs, setShowLogs] = useState(true);
+  const [showToolCalls, setShowToolCalls] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -113,29 +122,17 @@ const AISupervisor: React.FC<AISupervisorProps> = ({
     }
   };
 
-  // Build an interleaved timeline of chat messages + events
-  type TimelineItem =
-    | { kind: 'chat'; msg: ChatMessageType; ts: number }
-    | { kind: 'event'; event: TaskEvent; ts: number };
+  const timeline = useMemo(
+    () => buildTimeline(messages, events, showToolCalls),
+    [messages, events, showToolCalls]
+  );
 
-  const timeline: TimelineItem[] = [
-    ...messages.map((msg) => ({
-      kind: 'chat' as const,
-      msg,
-      ts: new Date(msg.timestamp).getTime(),
-    })),
-    ...(showLogs
-      ? events.map((event) => ({
-          kind: 'event' as const,
-          event,
-          ts: new Date(event.timestamp).getTime(),
-        }))
-      : []),
-  ].sort((a, b) => a.ts - b.ts);
+  // Count tool call events for the toggle badge
+  const toolCallCount = events.filter((e) => e.event_type === 'tool_call').length;
 
   return (
     <div className="flex flex-col h-full bg-slate-900/20 border-r border-[#07b6d5]/10">
-      {/* Header - matches reference */}
+      {/* Header */}
       <div className="p-4 border-b border-primary/10 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="material-symbols-outlined text-primary text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>psychology</span>
@@ -143,21 +140,23 @@ const AISupervisor: React.FC<AISupervisorProps> = ({
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setShowLogs(!showLogs)}
+            onClick={() => setShowToolCalls(!showToolCalls)}
             className={`text-[10px] px-2 py-0.5 rounded border font-mono transition-colors ${
-              showLogs
-                ? 'bg-primary/20 text-primary border-primary/30'
+              showToolCalls
+                ? 'bg-purple-500/20 text-purple-400 border-purple-500/30'
                 : 'bg-slate-800/50 text-slate-500 border-slate-700'
             }`}
           >
-            {showLogs ? 'LOGS ON' : 'LOGS OFF'}
+            {showToolCalls ? 'TOOLS ON' : 'TOOLS OFF'}
+            {toolCallCount > 0 && (
+              <span className="ml-1 text-[9px] opacity-60">({toolCallCount})</span>
+            )}
           </button>
-          <span className="text-[10px] px-2 py-0.5 bg-primary/20 text-primary rounded border border-primary/30 font-mono">V4.2-STABLE</span>
         </div>
       </div>
 
-      {/* Scrollable content: interleaved chat + log feed */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
+      {/* Scrollable content */}
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
         {timeline.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-slate-500">
             <p className="text-sm">Waiting for investigation to begin...</p>
@@ -168,22 +167,10 @@ const AISupervisor: React.FC<AISupervisorProps> = ({
             if (item.kind === 'chat') {
               return <ChatBubble key={`chat-${idx}`} message={item.msg} />;
             }
-
-            const event = item.event;
-            const opTag = inferOperationTag(event);
-            const isNested = isSameAgentGroup(
-              events,
-              events.indexOf(event)
-            );
-
-            return (
-              <LogEntry
-                key={`event-${idx}`}
-                event={event}
-                opTag={opTag}
-                isNested={isNested}
-              />
-            );
+            if (item.kind === 'tool_group') {
+              return <ToolCallGroupCard key={`tg-${idx}`} group={item} />;
+            }
+            return <EventCard key={`ev-${idx}`} event={item.event} />;
           })
         )}
 
@@ -199,7 +186,7 @@ const AISupervisor: React.FC<AISupervisorProps> = ({
         )}
       </div>
 
-      {/* Chat Input - matches reference */}
+      {/* Chat Input */}
       <div className="p-4 border-t border-primary/10 bg-slate-900/40">
         <form onSubmit={handleSend} className="relative">
           <textarea
@@ -229,7 +216,330 @@ const AISupervisor: React.FC<AISupervisorProps> = ({
   );
 };
 
-// Chat message bubble (matches reference style)
+// ─── Event Card (type-specific rendering) ─────────────────────────────────
+
+const EventCard: React.FC<{ event: TaskEvent }> = ({ event }) => {
+  switch (event.event_type) {
+    case 'phase_change':
+      return <PhaseChangeCard event={event} />;
+    case 'finding':
+      return <FindingCard event={event} />;
+    case 'summary':
+      return <SummaryCard event={event} />;
+    case 'started':
+      return <StartedCard event={event} />;
+    case 'warning':
+      return <AlertCard event={event} variant="warning" />;
+    case 'error':
+      return <AlertCard event={event} variant="error" />;
+    case 'success':
+      return <SuccessCard event={event} />;
+    case 'attestation_required':
+      return <AttestationRequiredCard event={event} />;
+    default:
+      return <GenericLogEntry event={event} />;
+  }
+};
+
+// ─── Phase Change Divider ─────────────────────────────────────────────────
+
+const PhaseChangeCard: React.FC<{ event: TaskEvent }> = ({ event }) => {
+  const phaseName = event.details?.phase
+    ? String(event.details.phase).replace(/_/g, ' ').toUpperCase()
+    : event.message.toUpperCase();
+
+  return (
+    <div className="flex items-center gap-3 py-2">
+      <div className="flex-1 h-px bg-gradient-to-r from-transparent via-[#07b6d5]/40 to-transparent" />
+      <span className="text-[10px] font-bold tracking-[0.2em] text-[#07b6d5]">
+        {phaseName}
+      </span>
+      <div className="flex-1 h-px bg-gradient-to-r from-transparent via-[#07b6d5]/40 to-transparent" />
+    </div>
+  );
+};
+
+// ─── Finding Discovery Card ───────────────────────────────────────────────
+
+const FindingCard: React.FC<{ event: TaskEvent }> = ({ event }) => {
+  const severity = String(event.details?.severity || 'medium');
+  const confidence = Number(event.details?.confidence || 0);
+  const category = String(event.details?.category || '');
+  const style = severityStyles[severity] || severityStyles.medium;
+  const defaultExpanded = severity === 'critical' || severity === 'high';
+  const [expanded, setExpanded] = useState(defaultExpanded);
+
+  return (
+    <div className={`border rounded-lg overflow-hidden ${style.border} ${style.bg}`}>
+      {/* L1: Always visible — severity + title */}
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full px-3 py-2.5 text-left flex items-center gap-2"
+        aria-expanded={expanded}
+      >
+        <span
+          className={`material-symbols-outlined text-xs text-slate-400 transition-transform ${expanded ? 'rotate-90' : ''}`}
+          style={{ fontFamily: 'Material Symbols Outlined' }}
+        >
+          chevron_right
+        </span>
+        <span
+          className={`material-symbols-outlined text-sm ${style.text}`}
+          style={{ fontFamily: 'Material Symbols Outlined' }}
+        >
+          {style.icon}
+        </span>
+        <span className={`text-[10px] font-bold uppercase tracking-wider ${style.text}`}>
+          {severity}
+        </span>
+        <span className="text-xs text-slate-200 truncate flex-1">{event.message.split(' — ')[0]}</span>
+        {confidence > 0 && (
+          <span className="text-[10px] text-slate-400 shrink-0">{confidence}%</span>
+        )}
+      </button>
+      {/* L2: Expandable details */}
+      {expanded && (
+        <div className="px-3 pb-3 border-t border-black/10 pt-2">
+          <p className="text-sm text-slate-200 leading-snug">{event.message}</p>
+          {category && (
+            <span className="text-[10px] font-mono text-slate-400 mt-1 inline-block">{category}</span>
+          )}
+          {confidence > 0 && (
+            <div className="flex items-center gap-2 mt-2">
+              <div className="flex-1 h-1 bg-black/20 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full ${style.text.replace('text-', 'bg-')}`}
+                  style={{ width: `${confidence}%` }}
+                />
+              </div>
+              <span className="text-[10px] text-slate-400">{confidence}%</span>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─── Agent Summary Banner ─────────────────────────────────────────────────
+
+const SummaryCard: React.FC<{ event: TaskEvent }> = ({ event }) => {
+  const confidence = Number(event.details?.confidence || 0);
+  const findingsCount = Number(event.details?.findings_count || 0);
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div className="bg-[#07b6d5]/5 border border-[#07b6d5]/20 rounded-lg overflow-hidden">
+      {/* L1: Agent name + confidence badge */}
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full px-3 py-2.5 text-left flex items-center gap-2"
+        aria-expanded={expanded}
+      >
+        <span
+          className={`material-symbols-outlined text-xs text-slate-400 transition-transform ${expanded ? 'rotate-90' : ''}`}
+          style={{ fontFamily: 'Material Symbols Outlined' }}
+        >
+          chevron_right
+        </span>
+        <span
+          className="material-symbols-outlined text-[#07b6d5] text-sm"
+          style={{ fontFamily: 'Material Symbols Outlined' }}
+        >
+          check_circle
+        </span>
+        <span className="text-[10px] font-bold uppercase tracking-wider text-[#07b6d5]">
+          {event.agent_name.replace(/_/g, ' ')}
+        </span>
+        <div className="ml-auto flex items-center gap-2">
+          {findingsCount > 0 && (
+            <span className="text-[10px] px-1.5 py-0.5 bg-[#07b6d5]/20 text-[#07b6d5] rounded">
+              {findingsCount} findings
+            </span>
+          )}
+          <span className={`text-[10px] font-mono font-bold ${
+            confidence >= 70 ? 'text-green-400' : confidence >= 40 ? 'text-amber-400' : 'text-red-400'
+          }`}>
+            {confidence}%
+          </span>
+        </div>
+      </button>
+      {/* L2: Full message on expand */}
+      {expanded && (
+        <div className="px-3 pb-3 border-t border-[#07b6d5]/10 pt-2">
+          <p className="text-xs text-slate-300 leading-relaxed">{event.message}</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─── Started Card ─────────────────────────────────────────────────────────
+
+const StartedCard: React.FC<{ event: TaskEvent }> = ({ event }) => (
+  <div className="flex items-center gap-2 py-1">
+    <div className="w-6 h-6 rounded-md bg-blue-500/20 flex items-center justify-center">
+      <span
+        className="material-symbols-outlined text-blue-400 text-xs"
+        style={{ fontFamily: 'Material Symbols Outlined' }}
+      >
+        play_circle
+      </span>
+    </div>
+    <span className="text-xs text-blue-400">{event.agent_name}</span>
+    <span className="text-xs text-slate-400">{event.message}</span>
+    <span className="text-[10px] text-slate-600 ml-auto">
+      {new Date(event.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+    </span>
+  </div>
+);
+
+// ─── Warning / Error Alert Card ───────────────────────────────────────────
+
+const AlertCard: React.FC<{ event: TaskEvent; variant: 'warning' | 'error' }> = ({ event, variant }) => {
+  const isError = variant === 'error';
+  return (
+    <div className={`border rounded-lg px-3 py-2 ${
+      isError ? 'border-red-500/30 bg-red-500/10' : 'border-amber-500/30 bg-amber-500/10'
+    }`}>
+      <div className="flex items-center gap-2">
+        <span
+          className={`material-symbols-outlined text-sm ${isError ? 'text-red-400' : 'text-amber-400'}`}
+          style={{ fontFamily: 'Material Symbols Outlined' }}
+        >
+          {isError ? 'error' : 'warning'}
+        </span>
+        <span className={`text-[10px] font-bold uppercase ${isError ? 'text-red-400' : 'text-amber-400'}`}>
+          {event.agent_name}
+        </span>
+        <span className="text-[10px] text-slate-600 ml-auto">
+          {new Date(event.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+        </span>
+      </div>
+      <p className="text-xs text-slate-300 mt-1">{event.message}</p>
+    </div>
+  );
+};
+
+// ─── Success Card ─────────────────────────────────────────────────────────
+
+const SuccessCard: React.FC<{ event: TaskEvent }> = ({ event }) => (
+  <div className="flex items-center gap-2 py-1">
+    <span
+      className="material-symbols-outlined text-green-400 text-sm"
+      style={{ fontFamily: 'Material Symbols Outlined' }}
+    >
+      check_circle
+    </span>
+    <span className="text-xs text-green-400">{event.agent_name}</span>
+    <span className="text-xs text-slate-400">{event.message}</span>
+  </div>
+);
+
+// ─── Collapsible Tool Call Group ──────────────────────────────────────────
+
+const ToolCallGroupCard: React.FC<{ group: ToolCallGroup }> = ({ group }) => {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div className="border border-slate-800/50 rounded-lg overflow-hidden">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        aria-expanded={expanded}
+        className="w-full flex items-center gap-2 px-3 py-1.5 text-left hover:bg-slate-800/30 transition-colors"
+      >
+        <span
+          className={`material-symbols-outlined text-xs text-purple-400 transition-transform ${expanded ? 'rotate-90' : ''}`}
+          style={{ fontFamily: 'Material Symbols Outlined' }}
+        >
+          chevron_right
+        </span>
+        <span className="text-[10px] font-bold text-purple-400 uppercase">
+          {group.agent.replace(/_/g, ' ')}
+        </span>
+        <span className="text-[10px] text-slate-500">
+          — {group.events.length} tool call{group.events.length !== 1 ? 's' : ''}
+        </span>
+      </button>
+      {expanded && (
+        <div className="px-3 py-2 border-t border-slate-800/30 space-y-1 bg-slate-900/20">
+          {group.events.map((ev, i) => (
+            <div key={i} className="flex items-start gap-2 font-mono text-[11px]">
+              <span className="text-slate-600 shrink-0 w-[60px]">
+                {new Date(ev.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+              </span>
+              <span className="text-slate-400">{ev.message}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─── Attestation Required Card ───────────────────────────────────────────
+
+const AttestationRequiredCard: React.FC<{ event: TaskEvent }> = ({ event }) => {
+  const [expanded, setExpanded] = useState(true);
+  const findingsCount = Number(event.details?.findings_count || 0);
+  const confidence = Number(event.details?.confidence || 0);
+  const proposedAction = String(event.details?.proposed_action || 'Proceed to remediation');
+
+  return (
+    <div className="border-2 border-amber-500/40 bg-amber-500/10 rounded-lg overflow-hidden">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full px-3 py-2.5 text-left flex items-center gap-2"
+        aria-expanded={expanded}
+      >
+        <span
+          className={`material-symbols-outlined text-xs text-amber-400 transition-transform ${expanded ? 'rotate-90' : ''}`}
+          style={{ fontFamily: 'Material Symbols Outlined' }}
+        >
+          chevron_right
+        </span>
+        <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+        <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400">
+          Action Required
+        </span>
+        <span className="text-xs text-amber-300 ml-1">Human Review Needed</span>
+      </button>
+      {expanded && (
+        <div className="px-3 pb-3 border-t border-amber-500/20 pt-2 space-y-2">
+          <p className="text-sm text-slate-200">{event.message}</p>
+          <div className="flex items-center gap-4 text-[10px] text-slate-400">
+            <span>{findingsCount} findings</span>
+            <span>Confidence: {confidence}%</span>
+          </div>
+          <div className="text-[10px] text-slate-500">
+            Proposed: {proposedAction}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─── Generic Log Entry (fallback for progress, etc.) ──────────────────────
+
+const GenericLogEntry: React.FC<{ event: TaskEvent }> = ({ event }) => (
+  <div className="font-mono text-[11px] flex items-start gap-2 py-0.5">
+    <span
+      className="material-symbols-outlined text-[14px] mt-0.5 text-slate-500"
+      style={{ fontFamily: 'Material Symbols Outlined' }}
+    >
+      search
+    </span>
+    <span className="text-slate-600 shrink-0 w-[60px]">
+      {new Date(event.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+    </span>
+    <span className="text-[#07b6d5] shrink-0">{event.agent_name}</span>
+    <span className="text-slate-400 truncate">{event.message}</span>
+  </div>
+);
+
+// ─── Chat Bubble ──────────────────────────────────────────────────────────
+
 const ChatBubble: React.FC<{ message: ChatMessageType }> = ({ message }) => {
   if (message.role === 'user') {
     return (
@@ -259,98 +569,6 @@ const ChatBubble: React.FC<{ message: ChatMessageType }> = ({ message }) => {
           </p>
         </div>
       </div>
-    </div>
-  );
-};
-
-// Monospace log entry with operation tags and vertical connectors
-const LogEntry: React.FC<{
-  event: TaskEvent;
-  opTag: { label: string; color: string };
-  isNested: boolean;
-}> = ({ event, opTag, isNested }) => {
-  const levelColor =
-    event.event_type === 'error'
-      ? 'text-red-400'
-      : event.event_type === 'warning'
-      ? 'text-amber-400'
-      : event.event_type === 'success'
-      ? 'text-green-400'
-      : event.event_type === 'started'
-      ? 'text-blue-400'
-      : 'text-slate-500';
-
-  const levelIcon =
-    event.event_type === 'success'
-      ? 'check_circle'
-      : event.event_type === 'error'
-      ? 'error'
-      : event.event_type === 'warning'
-      ? 'warning'
-      : event.event_type === 'started'
-      ? 'play_circle'
-      : 'search';
-
-  const isActive = event.event_type === 'progress' || event.event_type === 'started';
-
-  return (
-    <div className={`${isNested ? 'ml-6 border-l-2 border-slate-800 pl-3' : ''}`}>
-      <div className={`font-mono text-[11px] flex items-start gap-2 ${isActive ? 'animate-pulse' : ''}`}>
-        {/* Status icon */}
-        <span
-          className={`material-symbols-outlined text-[14px] mt-0.5 shrink-0 ${levelColor}`}
-          style={{ fontFamily: 'Material Symbols Outlined' }}
-        >
-          {levelIcon}
-        </span>
-
-        {/* Timestamp */}
-        <span className="text-slate-600 shrink-0 w-[70px]">
-          {new Date(event.timestamp).toLocaleTimeString([], {
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-          })}
-        </span>
-
-        {/* Operation type tag */}
-        <span className={`font-bold shrink-0 ${opTag.color}`}>
-          [{opTag.label}]
-        </span>
-
-        {/* Agent name */}
-        <span className="text-[#07b6d5] shrink-0">
-          {event.agent_name}
-        </span>
-
-        {/* Message */}
-        <span className="text-slate-400 truncate">
-          {event.message}
-        </span>
-      </div>
-
-      {/* Nested detail expansion for events with details */}
-      {event.details && Object.keys(event.details).length > 0 && (
-        <details className="ml-6 mt-1 group">
-          <summary className="list-none cursor-pointer flex items-center gap-1 text-[10px] text-slate-600 hover:text-slate-400 transition-colors">
-            <span
-              className="material-symbols-outlined text-[12px] group-open:rotate-90 transition-transform"
-              style={{ fontFamily: 'Material Symbols Outlined' }}
-            >
-              chevron_right
-            </span>
-            View Details
-          </summary>
-          <div className="mt-1 ml-4 border-l border-slate-800 pl-2 space-y-0.5">
-            {Object.entries(event.details).map(([key, value]) => (
-              <div key={key} className="font-mono text-[10px]">
-                <span className="text-slate-500">{key}: </span>
-                <span className="text-slate-400">{typeof value === 'string' ? value : JSON.stringify(value)}</span>
-              </div>
-            ))}
-          </div>
-        </details>
-      )}
     </div>
   );
 };

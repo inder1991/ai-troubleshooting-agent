@@ -8,6 +8,7 @@ import type {
   CapabilityType,
   CapabilityFormData,
   TroubleshootAppForm,
+  AttestationGateData,
 } from './types';
 import { useWebSocketV4 } from './hooks/useWebSocket';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
@@ -35,6 +36,7 @@ function AppInner() {
   const [currentPhase, setCurrentPhase] = useState<DiagnosticPhase | null>(null);
   const [confidence, setConfidence] = useState(0);
   const [tokenUsage, setTokenUsage] = useState<TokenUsage[]>([]);
+  const [attestationGate, setAttestationGate] = useState<AttestationGateData | null>(null);
 
   const activeSessionId = activeSession?.session_id ?? null;
 
@@ -61,8 +63,33 @@ function AppInner() {
         [sid]: [...(prev[sid] || []), event],
       }));
 
-      // Refresh status on all event types for real-time updates
-      refreshStatus(sid);
+      // Extract phase from phase_change events directly (instant update)
+      if (event.event_type === 'phase_change' && event.details?.phase) {
+        setCurrentPhase(event.details.phase as DiagnosticPhase);
+      }
+
+      // Extract confidence from summary events directly
+      if (event.event_type === 'summary' && event.details?.confidence != null) {
+        setConfidence(event.details.confidence as number);
+      }
+
+      // Handle attestation gate
+      if (event.event_type === 'attestation_required' && event.details) {
+        setAttestationGate({
+          gate_type: event.details.gate_type as AttestationGateData['gate_type'],
+          human_decision: null,
+          decided_by: null,
+          decided_at: null,
+          proposed_action: event.details.proposed_action as string,
+          findings_count: event.details.findings_count as number,
+          confidence: event.details.confidence as number,
+        });
+      }
+
+      // Refresh full status on key events (summary, finding, phase_change, success)
+      if (['summary', 'finding', 'phase_change', 'success'].includes(event.event_type)) {
+        refreshStatus(sid);
+      }
     },
     [activeSessionId, refreshStatus]
   );
@@ -174,6 +201,14 @@ function AppInner() {
       }));
     },
     [activeSessionId]
+  );
+
+  const handleAttestationDecision = useCallback(
+    (decision: string) => {
+      setAttestationGate(null);
+      // Could send to backend via API in the future
+    },
+    []
   );
 
   const currentChatMessages = activeSessionId ? chatMessages[activeSessionId] || [] : [];
@@ -304,6 +339,8 @@ function AppInner() {
                 phase={currentPhase}
                 confidence={confidence}
                 tokenUsage={tokenUsage}
+                attestationGate={attestationGate}
+                onAttestationDecision={handleAttestationDecision}
               />
             </div>
           </>

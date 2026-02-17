@@ -14,6 +14,11 @@ const eventTypeColors: Record<TaskEvent['event_type'], string> = {
   success: 'border-l-green-500 bg-green-900/10',
   warning: 'border-l-orange-500 bg-orange-900/10',
   error: 'border-l-red-500 bg-red-900/10',
+  tool_call: 'border-l-purple-500 bg-purple-900/10',
+  phase_change: 'border-l-cyan-500 bg-cyan-900/10',
+  finding: 'border-l-yellow-500 bg-yellow-900/10',
+  summary: 'border-l-teal-500 bg-teal-900/10',
+  attestation_required: 'border-l-amber-500 bg-amber-900/10',
 };
 
 const eventTypeDot: Record<TaskEvent['event_type'], string> = {
@@ -22,6 +27,11 @@ const eventTypeDot: Record<TaskEvent['event_type'], string> = {
   success: 'bg-green-500',
   warning: 'bg-orange-500',
   error: 'bg-red-500',
+  tool_call: 'bg-purple-500',
+  phase_change: 'bg-cyan-500',
+  finding: 'bg-yellow-500',
+  summary: 'bg-teal-500',
+  attestation_required: 'bg-amber-500',
 };
 
 const ActivityLogTab: React.FC<ActivityLogTabProps> = ({ sessionId, events: propEvents }) => {

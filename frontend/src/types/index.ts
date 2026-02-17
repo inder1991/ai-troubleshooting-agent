@@ -169,7 +169,7 @@ export interface TokenUsage {
 export interface TaskEvent {
   session_id: string;
   agent_name: string;
-  event_type: 'started' | 'progress' | 'success' | 'warning' | 'error';
+  event_type: 'started' | 'progress' | 'success' | 'warning' | 'error' | 'tool_call' | 'phase_change' | 'finding' | 'summary' | 'attestation_required';
   message: string;
   timestamp: string;
   details?: Record<string, unknown>;
@@ -213,6 +213,10 @@ export interface V4Findings {
   k8s_events: K8sEvent[];
   trace_spans: SpanInfo[];
   impacted_files: CodeImpact[];
+  change_correlations: ChangeCorrelation[];
+  blast_radius: BlastRadiusData | null;
+  severity_recommendation: SeverityData | null;
+  past_incidents: PastIncidentMatch[];
 }
 
 export interface CodeImpact {
@@ -338,6 +342,8 @@ export interface AttestationGateData {
   decided_by: string | null;
   decided_at: string | null;
   proposed_action: string | null;
+  findings_count?: number;
+  confidence?: number;
 }
 
 export interface ReasoningStepData {

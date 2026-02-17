@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import type { V4Findings, V4SessionStatus, TaskEvent, Severity, CriticVerdict } from '../../types';
+import type { V4Findings, V4SessionStatus, TaskEvent, Severity, CriticVerdict, ChangeCorrelation, BlastRadiusData, SeverityData, SpanInfo, Breadcrumb } from '../../types';
 import { getFindings, getSessionStatus } from '../../services/api';
 
 interface EvidenceStackProps {
@@ -7,7 +7,7 @@ interface EvidenceStackProps {
   events: TaskEvent[];
 }
 
-type TabId = 'evidence' | 'timeline' | 'findings' | 'metrics';
+type TabId = 'evidence' | 'timeline' | 'findings' | 'metrics' | 'changes' | 'traces';
 
 const severityColor: Record<Severity, string> = {
   critical: 'bg-red-500/20 text-red-300 border-red-500/30',
@@ -24,11 +24,20 @@ const verdictColor: Record<CriticVerdict['verdict'], string> = {
   rejected: 'bg-red-500/20 text-red-300',
 };
 
+const severityPriorityColor: Record<string, { border: string; bg: string; text: string }> = {
+  P1: { border: 'border-red-500/40', bg: 'bg-red-500/10', text: 'text-red-400' },
+  P2: { border: 'border-orange-500/40', bg: 'bg-orange-500/10', text: 'text-orange-400' },
+  P3: { border: 'border-yellow-500/40', bg: 'bg-yellow-500/10', text: 'text-yellow-400' },
+  P4: { border: 'border-blue-500/40', bg: 'bg-blue-500/10', text: 'text-blue-400' },
+};
+
 const tabs: { id: TabId; label: string; icon: string }[] = [
   { id: 'evidence', label: 'Evidence', icon: 'inventory_2' },
   { id: 'timeline', label: 'Timeline', icon: 'timeline' },
   { id: 'findings', label: 'Findings', icon: 'target' },
   { id: 'metrics', label: 'Metrics', icon: 'bar_chart' },
+  { id: 'changes', label: 'Changes', icon: 'difference' },
+  { id: 'traces', label: 'Traces', icon: 'stacked_bar_chart' },
 ];
 
 const EvidenceStack: React.FC<EvidenceStackProps> = ({ sessionId, events }) => {
@@ -46,11 +55,23 @@ const EvidenceStack: React.FC<EvidenceStackProps> = ({ sessionId, events }) => {
     }
   }, [sessionId]);
 
+  // Reactive: refetch when summary/finding/phase_change events arrive
+  const relevantEventCount = events.filter(
+    (e) => e.event_type === 'summary' || e.event_type === 'finding' || e.event_type === 'phase_change'
+  ).length;
+
   useEffect(() => {
     fetchData();
     const interval = setInterval(fetchData, 5000);
     return () => clearInterval(interval);
   }, [fetchData]);
+
+  // Instant update on relevant events
+  useEffect(() => {
+    if (relevantEventCount > 0) {
+      fetchData();
+    }
+  }, [relevantEventCount, fetchData]);
 
   return (
     <div className="flex flex-col h-full bg-[#0f2023]">
@@ -93,6 +114,8 @@ const EvidenceStack: React.FC<EvidenceStackProps> = ({ sessionId, events }) => {
         {activeTab === 'timeline' && <TimelineTab events={events} breadcrumbs={status?.breadcrumbs || []} />}
         {activeTab === 'findings' && <FindingsTab findings={findings} />}
         {activeTab === 'metrics' && <MetricsTab findings={findings} />}
+        {activeTab === 'changes' && <ChangesTab findings={findings} />}
+        {activeTab === 'traces' && <TracesTab findings={findings} events={events} />}
       </div>
     </div>
   );
@@ -208,26 +231,17 @@ const EvidenceTab: React.FC<{ findings: V4Findings | null; events: TaskEvent[] }
         </div>
       )}
 
-      {/* Topology Hotspots - matches reference */}
-      <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-4">
-        <div className="flex items-center justify-between mb-4">
-          <span className="text-[11px] font-bold uppercase tracking-wider">Topology Hotspots</span>
-          <span className="text-[10px] text-primary bg-primary/10 px-2 py-0.5 rounded">Heatmap Active</span>
-        </div>
-        <div className="h-48 relative bg-slate-950/40 rounded-lg border border-slate-800/50 flex items-center justify-center overflow-hidden">
-          <svg className="w-full h-full" viewBox="0 0 400 200">
-            <path d="M100,100 L200,60 M100,100 L200,140 M200,60 L300,100 M200,140 L300,100" stroke="#1e293b" strokeWidth="2" />
-            <circle cx="100" cy="100" fill="#07b6d5" r="10" />
-            <circle cx="200" cy="60" fill="#07b6d5" r="10" />
-            <circle cx="200" cy="140" fill="#ef4444" r="12" className="animate-pulse" />
-            <circle cx="300" cy="100" fill="#07b6d5" r="10" />
-            <text fill="#64748b" fontFamily="monospace" fontSize="10" x="80" y="80">Ingress</text>
-            <text fill="#64748b" fontFamily="monospace" fontSize="10" x="180" y="40">Auth-Svc</text>
-            <text fill="#ef4444" fontFamily="monospace" fontSize="10" fontWeight="bold" x="160" y="170">Redis-C (CRITICAL)</text>
-            <text fill="#64748b" fontFamily="monospace" fontSize="10" x="280" y="80">Postgres</text>
-          </svg>
-        </div>
-      </div>
+      {/* Pod Health */}
+      <PodHealthSection findings={findings} />
+
+      {/* Topology — data-driven from trace spans and impacted files */}
+      <TopologySection findings={findings} />
+
+      {/* Blast Radius */}
+      <BlastRadiusCard findings={findings} />
+
+      {/* Source of Change */}
+      <ChangeCorrelationsSection findings={findings} />
 
       {/* Evidence items */}
       {evidenceItems.length > 0 && (
@@ -391,48 +405,59 @@ const FindingsTab: React.FC<{ findings: V4Findings | null }> = ({ findings }) =>
   );
 };
 
-// Metrics Tab
+// Metrics Tab — anomaly cards with deviation indicators
 const MetricsTab: React.FC<{ findings: V4Findings | null }> = ({ findings }) => {
   if (!findings || (findings.metric_anomalies?.length ?? 0) === 0) {
     return <EmptyState message="No metric anomalies detected yet..." />;
   }
 
+  const anomalySeverityColor: Record<string, { border: string; bg: string; text: string }> = {
+    critical: { border: 'border-red-500/30', bg: 'bg-red-500/10', text: 'text-red-400' },
+    high: { border: 'border-orange-500/30', bg: 'bg-orange-500/10', text: 'text-orange-400' },
+    medium: { border: 'border-yellow-500/30', bg: 'bg-yellow-500/10', text: 'text-yellow-400' },
+    low: { border: 'border-blue-500/30', bg: 'bg-blue-500/10', text: 'text-blue-400' },
+    info: { border: 'border-slate-700', bg: 'bg-slate-900/40', text: 'text-slate-400' },
+  };
+
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
-        {findings.metric_anomalies.map((ma, i) => (
-          <div key={i} className="bg-slate-900/40 border border-slate-800 rounded-xl p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{ma.metric_name}</span>
-              <span className={`text-xs font-bold font-mono ${
-                ma.severity === 'critical' || ma.severity === 'high' ? 'text-red-500' : 'text-[#07b6d5]'
-              }`}>
-                {ma.direction === 'above' ? '+' : '-'}{Math.round(ma.deviation_percent)}%
-              </span>
+        {findings.metric_anomalies.map((ma, i) => {
+          const style = anomalySeverityColor[ma.severity] || anomalySeverityColor.info;
+          return (
+            <div key={i} className={`border rounded-xl p-4 ${style.border} ${style.bg}`}>
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-300">{ma.metric_name}</span>
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${style.text} bg-black/20`}>
+                  {ma.severity}
+                </span>
+              </div>
+              <div className="flex items-baseline gap-3 mb-3">
+                <div>
+                  <div className="text-[10px] text-slate-500 mb-0.5">Current</div>
+                  <div className="text-lg font-bold font-mono text-white">{ma.current_value.toFixed(1)}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] text-slate-500 mb-0.5">Baseline</div>
+                  <div className="text-sm font-mono text-slate-400">{ma.baseline_value.toFixed(1)}</div>
+                </div>
+                <div className="ml-auto text-right">
+                  <div className="text-[10px] text-slate-500 mb-0.5">Deviation</div>
+                  <div className={`text-sm font-mono font-bold ${style.text}`}>
+                    {ma.direction === 'above' ? '\u25B2' : '\u25BC'} {ma.deviation_percent > 0 ? '+' : ''}{Math.round(ma.deviation_percent)}%
+                  </div>
+                </div>
+              </div>
+              {/* Deviation bar */}
+              <div className="h-2 bg-black/20 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all ${style.text.replace('text-', 'bg-')}`}
+                  style={{ width: `${Math.min(Math.abs(ma.deviation_percent), 100)}%` }}
+                />
+              </div>
             </div>
-            <div className="flex items-center gap-4 text-[10px] text-slate-500 mb-3">
-              <span>Current: {ma.current_value.toFixed(2)}</span>
-              <span>Baseline: {ma.baseline_value.toFixed(2)}</span>
-            </div>
-            <div className="h-12 flex items-end gap-1">
-              {Array.from({ length: 8 }, (_, j) => {
-                const height = 10 + (j * 12);
-                const isHot = j >= 5;
-                return (
-                  <div
-                    key={j}
-                    className={`w-full rounded-t-sm ${
-                      isHot && (ma.severity === 'critical' || ma.severity === 'high')
-                        ? 'bg-red-500'
-                        : `bg-[#07b6d5]`
-                    }`}
-                    style={{ height: `${Math.min(height, 100)}%`, opacity: isHot ? 1 : 0.2 + j * 0.1 }}
-                  />
-                );
-              })}
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Pod statuses */}
@@ -475,6 +500,428 @@ const MetricsTab: React.FC<{ findings: V4Findings | null }> = ({ findings }) => 
               ))}
             </div>
           </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Pod Health Section (for evidence tab)
+const PodHealthSection: React.FC<{ findings: V4Findings | null }> = ({ findings }) => {
+  const pods = findings?.pod_statuses || [];
+  if (pods.length === 0) return null;
+
+  return (
+    <div className="bg-slate-900/40 border border-slate-800 rounded-xl overflow-hidden">
+      <div className="px-4 py-2 border-b border-slate-800 flex items-center justify-between bg-slate-900/60">
+        <div className="flex items-center gap-2">
+          <span className="material-symbols-outlined text-blue-400 text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>dns</span>
+          <span className="text-[11px] font-bold uppercase tracking-wider">Pod Health</span>
+        </div>
+        <span className="text-[10px] font-mono text-slate-500">{pods.length} pods</span>
+      </div>
+      <div className="p-4 space-y-2">
+        {pods.map((pod, i) => (
+          <div key={i} className="flex items-center gap-3 text-[11px]">
+            <span className={`w-2 h-2 rounded-full ${pod.ready ? 'bg-green-500' : 'bg-red-500 animate-pulse'}`} />
+            <span className="font-mono text-slate-300">{pod.pod_name}</span>
+            <span className="text-slate-500">{pod.status}</span>
+            {pod.restart_count > 0 && (
+              <span className="text-amber-400 font-bold">{pod.restart_count} restarts</span>
+            )}
+            {pod.oom_killed && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30">OOM</span>
+            )}
+            {pod.crash_loop && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30">CrashLoop</span>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// Data-driven topology section
+const TopologySection: React.FC<{ findings: V4Findings | null }> = ({ findings }) => {
+  const traceSpans = findings?.trace_spans || [];
+  const impactedFiles = findings?.impacted_files || [];
+
+  // Extract service dependencies from trace spans
+  const services = new Set<string>();
+  const edges: { from: string; to: string }[] = [];
+  traceSpans.forEach((span) => {
+    services.add(span.service);
+    if (span.parent_span_id) {
+      const parent = traceSpans.find((s) => s.span_id === span.parent_span_id);
+      if (parent && parent.service !== span.service) {
+        edges.push({ from: parent.service, to: span.service });
+      }
+    }
+  });
+
+  const hasData = services.size > 0 || impactedFiles.length > 0;
+
+  return (
+    <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-4">
+      <div className="flex items-center justify-between mb-4">
+        <span className="text-[11px] font-bold uppercase tracking-wider">Topology</span>
+        {hasData && (
+          <span className="text-[10px] text-primary bg-primary/10 px-2 py-0.5 rounded">Live Data</span>
+        )}
+      </div>
+      {hasData ? (
+        <div className="space-y-3">
+          {/* Service nodes from traces */}
+          {services.size > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {[...services].map((svc) => {
+                const hasError = traceSpans.some((s) => s.service === svc && s.error);
+                return (
+                  <div
+                    key={svc}
+                    className={`px-3 py-1.5 rounded-lg border text-[11px] font-mono ${
+                      hasError
+                        ? 'bg-red-500/10 border-red-500/30 text-red-400'
+                        : 'bg-[#07b6d5]/10 border-[#07b6d5]/30 text-[#07b6d5]'
+                    }`}
+                  >
+                    {svc}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          {/* Dependency arrows */}
+          {edges.length > 0 && (
+            <div className="space-y-1">
+              {[...new Set(edges.map((e) => `${e.from}→${e.to}`))].map((edge) => {
+                const [from, to] = edge.split('→');
+                return (
+                  <div key={edge} className="text-[10px] text-slate-500 font-mono">
+                    {from} → {to}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          {/* Impacted files */}
+          {impactedFiles.length > 0 && (
+            <div className="border-t border-slate-800 pt-3">
+              <span className="text-[10px] text-slate-500 uppercase tracking-wider">Impacted Files</span>
+              <div className="mt-2 space-y-1">
+                {impactedFiles.map((f, i) => (
+                  <div key={i} className="flex items-center gap-2 text-[11px]">
+                    <span className={`w-1.5 h-1.5 rounded-full ${
+                      f.impact_type === 'root_cause' ? 'bg-red-500' : 'bg-[#07b6d5]'
+                    }`} />
+                    <span className="font-mono text-slate-300">{f.file_path}</span>
+                    <span className="text-[10px] text-slate-500">{f.impact_type}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="h-24 flex items-center justify-center text-[11px] text-slate-600">
+          Topology will populate as agents discover dependencies
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─── Blast Radius Card ────────────────────────────────────────────────────
+
+const BlastRadiusCard: React.FC<{ findings: V4Findings | null }> = ({ findings }) => {
+  const blast = findings?.blast_radius;
+  const severity = findings?.severity_recommendation;
+  if (!blast) return null;
+
+  const sev = severity?.recommended_severity || 'P4';
+  const style = severityPriorityColor[sev] || severityPriorityColor.P4;
+  const totalAffected = (blast.upstream_affected?.length || 0) + (blast.downstream_affected?.length || 0);
+  const defaultExpanded = sev === 'P1' || sev === 'P2';
+  const [expanded, setExpanded] = useState(defaultExpanded);
+
+  return (
+    <div className={`border rounded-xl overflow-hidden ${style.border} ${style.bg}`}>
+      {/* L1: Severity badge + scope */}
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full px-4 py-3 text-left flex items-center gap-3"
+        aria-expanded={expanded}
+      >
+        <span
+          className={`material-symbols-outlined text-xs text-slate-400 transition-transform ${expanded ? 'rotate-90' : ''}`}
+          style={{ fontFamily: 'Material Symbols Outlined' }}
+        >
+          chevron_right
+        </span>
+        <span className="material-symbols-outlined text-sm" style={{ fontFamily: 'Material Symbols Outlined', color: style.text.includes('red') ? '#f87171' : style.text.includes('orange') ? '#fb923c' : style.text.includes('yellow') ? '#facc15' : '#60a5fa' }}>
+          hub
+        </span>
+        <span className="text-[11px] font-bold uppercase tracking-wider">Blast Radius</span>
+        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${style.text} bg-black/20`}>
+          {sev}
+        </span>
+        <span className="text-[11px] text-slate-400">
+          {blast.scope.replace(/_/g, ' ')} — {totalAffected} affected
+        </span>
+      </button>
+      {/* L2: Service list */}
+      {expanded && (
+        <div className="px-4 pb-4 border-t border-black/10 pt-3 space-y-3">
+          {severity?.reasoning && (
+            <p className="text-xs text-slate-400">{severity.reasoning}</p>
+          )}
+          <div className="space-y-1.5">
+            {blast.upstream_affected?.map((svc, i) => (
+              <div key={`up-${i}`} className="flex items-center gap-2 text-[11px]">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                <span className="font-mono text-slate-300">{svc}</span>
+                <span className="text-[10px] text-slate-500">upstream</span>
+              </div>
+            ))}
+            {blast.downstream_affected?.map((svc, i) => (
+              <div key={`dn-${i}`} className="flex items-center gap-2 text-[11px]">
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+                <span className="font-mono text-slate-300">{svc}</span>
+                <span className="text-[10px] text-slate-500">downstream</span>
+              </div>
+            ))}
+            {blast.shared_resources?.map((res, i) => (
+              <div key={`sh-${i}`} className="flex items-center gap-2 text-[11px]">
+                <span className="w-1.5 h-1.5 rounded-full bg-purple-400" />
+                <span className="font-mono text-slate-300">{res}</span>
+                <span className="text-[10px] text-slate-500">shared</span>
+              </div>
+            ))}
+          </div>
+          {blast.estimated_user_impact && (
+            <div className="text-[10px] text-slate-500 pt-1 border-t border-slate-800">
+              Est. User Impact: {blast.estimated_user_impact}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─── Change Correlations Section ──────────────────────────────────────────
+
+const ChangeCorrelationsSection: React.FC<{ findings: V4Findings | null }> = ({ findings }) => {
+  const correlations = findings?.change_correlations || [];
+  const [expanded, setExpanded] = useState(correlations.some((c) => c.risk_score > 0.8));
+
+  if (correlations.length === 0) return null;
+
+  return (
+    <div className="bg-slate-900/40 border border-slate-800 rounded-xl overflow-hidden">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full px-4 py-3 text-left flex items-center gap-3"
+        aria-expanded={expanded}
+      >
+        <span
+          className={`material-symbols-outlined text-xs text-slate-400 transition-transform ${expanded ? 'rotate-90' : ''}`}
+          style={{ fontFamily: 'Material Symbols Outlined' }}
+        >
+          chevron_right
+        </span>
+        <span className="material-symbols-outlined text-violet-400 text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>
+          difference
+        </span>
+        <span className="text-[11px] font-bold uppercase tracking-wider">Source of Change</span>
+        <span className="text-[10px] text-slate-500 ml-auto">{correlations.length} changes</span>
+      </button>
+      {expanded && (
+        <div className="border-t border-slate-800 divide-y divide-slate-800/50">
+          {correlations.map((corr, i) => (
+            <ChangeCorrelationRow key={i} correlation={corr} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const ChangeCorrelationRow: React.FC<{ correlation: ChangeCorrelation }> = ({ correlation }) => {
+  const [expanded, setExpanded] = useState(correlation.risk_score > 0.8);
+  const riskPct = Math.round(correlation.risk_score * 100);
+  const riskColor = riskPct >= 80 ? 'text-red-400' : riskPct >= 50 ? 'text-amber-400' : 'text-blue-400';
+
+  return (
+    <div className="px-4 py-2.5">
+      {/* L1: One-line summary */}
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full text-left flex items-center gap-2"
+        aria-expanded={expanded}
+      >
+        <span
+          className={`material-symbols-outlined text-xs text-slate-500 transition-transform ${expanded ? 'rotate-90' : ''}`}
+          style={{ fontFamily: 'Material Symbols Outlined' }}
+        >
+          chevron_right
+        </span>
+        <span className="text-[11px] font-mono text-violet-400">
+          {correlation.change_id?.slice(0, 8) || '—'}
+        </span>
+        <span className="text-[11px] text-slate-300 truncate flex-1">{correlation.description}</span>
+        <span className={`text-[10px] font-bold ${riskColor}`}>{riskPct}%</span>
+      </button>
+      {/* L2: Details */}
+      {expanded && (
+        <div className="pl-6 mt-2 space-y-1 text-[10px] text-slate-400">
+          <div>Author: {correlation.author}</div>
+          <div>Type: {correlation.change_type.replace(/_/g, ' ')}</div>
+          {correlation.timestamp && (
+            <div>Time: {new Date(correlation.timestamp).toLocaleString()}</div>
+          )}
+          {correlation.files_changed.length > 0 && (
+            <div>Files: {correlation.files_changed.length} changed</div>
+          )}
+          <div>Temporal correlation: {Math.round(correlation.temporal_correlation * 100)}%</div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─── Changes Tab ──────────────────────────────────────────────────────────
+
+const ChangesTab: React.FC<{ findings: V4Findings | null }> = ({ findings }) => {
+  const correlations = findings?.change_correlations || [];
+
+  if (correlations.length === 0) {
+    return <EmptyState message="No correlated changes detected. The Change Agent will populate data when a repository URL is provided." />;
+  }
+
+  return (
+    <div className="space-y-4">
+      <ChangeCorrelationsSection findings={findings} />
+    </div>
+  );
+};
+
+// ─── Traces Tab — Waterfall Visualization ─────────────────────────────────
+
+const TracesTab: React.FC<{ findings: V4Findings | null; events: TaskEvent[] }> = ({ findings, events }) => {
+  const spans = findings?.trace_spans || [];
+
+  if (spans.length === 0) {
+    // Fallback: try to build pseudo-spans from events
+    const pseudoSpans = events
+      .filter((e) => e.event_type === 'tool_call' || e.event_type === 'finding')
+      .slice(0, 20);
+
+    if (pseudoSpans.length === 0) {
+      return <EmptyState message="No trace data available. Traces will populate when the Trace Walker agent completes analysis." />;
+    }
+
+    return (
+      <div className="space-y-4">
+        <div className="text-[10px] text-slate-500 uppercase tracking-wider">Reconstructed from Agent Activity</div>
+        <div className="space-y-1">
+          {pseudoSpans.map((ev, i) => (
+            <div key={i} className="flex items-center gap-3 text-[11px]">
+              <span className="text-slate-600 w-16 shrink-0 font-mono">
+                {new Date(ev.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+              </span>
+              <span className={`w-2 h-2 rounded-full ${ev.event_type === 'finding' ? 'bg-amber-400' : 'bg-slate-500'}`} />
+              <span className="text-[#07b6d5] shrink-0">{ev.agent_name}</span>
+              <span className="text-slate-400 truncate">{ev.message}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Real trace waterfall
+  const totalDuration = Math.max(...spans.map((s) => s.duration_ms), 1);
+  const errorCount = spans.filter((s) => s.status === 'error' || s.error).length;
+
+  // Build depth map from parent_span_id
+  const depthMap = new Map<string, number>();
+  const computeDepth = (span: SpanInfo): number => {
+    if (depthMap.has(span.span_id)) return depthMap.get(span.span_id)!;
+    if (!span.parent_span_id) {
+      depthMap.set(span.span_id, 0);
+      return 0;
+    }
+    const parent = spans.find((s) => s.span_id === span.parent_span_id);
+    const depth = parent ? computeDepth(parent) + 1 : 0;
+    depthMap.set(span.span_id, depth);
+    return depth;
+  };
+  spans.forEach(computeDepth);
+
+  return (
+    <div className="space-y-4">
+      {/* L1: Summary bar */}
+      <div className="flex items-center gap-4 text-[11px]">
+        <span className="text-slate-400">{spans.length} spans</span>
+        <span className="text-slate-400">Total: {totalDuration.toFixed(0)}ms</span>
+        {errorCount > 0 && (
+          <span className="text-red-400 font-bold">{errorCount} errors</span>
+        )}
+      </div>
+
+      {/* L2: Waterfall */}
+      <div className="space-y-1">
+        {spans.map((span, i) => (
+          <TraceSpanRow key={i} span={span} totalDuration={totalDuration} depth={depthMap.get(span.span_id) || 0} />
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const TraceSpanRow: React.FC<{ span: SpanInfo; totalDuration: number; depth: number }> = ({ span, totalDuration, depth }) => {
+  const [expanded, setExpanded] = useState(false);
+  const widthPct = Math.max((span.duration_ms / totalDuration) * 100, 2);
+  const isError = span.status === 'error' || span.error;
+  const barColor = isError ? 'bg-red-500' : span.status === 'timeout' ? 'bg-orange-500' : 'bg-green-500';
+
+  return (
+    <div>
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full text-left flex items-center gap-2 py-1 hover:bg-slate-800/30 rounded transition-colors"
+        aria-expanded={expanded}
+        style={{ paddingLeft: `${depth * 16 + 4}px` }}
+      >
+        <span
+          className={`material-symbols-outlined text-[10px] text-slate-500 transition-transform ${expanded ? 'rotate-90' : ''}`}
+          style={{ fontFamily: 'Material Symbols Outlined' }}
+        >
+          chevron_right
+        </span>
+        <span className="text-[10px] font-mono text-[#07b6d5] w-20 shrink-0 truncate">{span.service}</span>
+        <span className="text-[10px] text-slate-400 w-28 shrink-0 truncate">{span.operation}</span>
+        <div className="flex-1 h-4 bg-slate-800/50 rounded overflow-hidden relative">
+          <div
+            className={`h-full rounded ${barColor}`}
+            style={{ width: `${widthPct}%` }}
+          />
+        </div>
+        <span className={`text-[10px] font-mono w-14 text-right shrink-0 ${isError ? 'text-red-400' : 'text-slate-400'}`}>
+          {span.duration_ms.toFixed(0)}ms
+        </span>
+        {isError && (
+          <span className="text-red-400 text-[10px]">&#10005;</span>
+        )}
+      </button>
+      {/* L3: Expanded span details */}
+      {expanded && (
+        <div className="ml-8 pl-4 border-l border-slate-800 py-2 space-y-1 text-[10px] text-slate-400" style={{ marginLeft: `${depth * 16 + 24}px` }}>
+          <div>Span ID: <span className="font-mono">{span.span_id}</span></div>
+          {span.parent_span_id && <div>Parent: <span className="font-mono">{span.parent_span_id}</span></div>}
+          <div>Status: <span className={isError ? 'text-red-400 font-bold' : 'text-green-400'}>{span.status}</span></div>
         </div>
       )}
     </div>

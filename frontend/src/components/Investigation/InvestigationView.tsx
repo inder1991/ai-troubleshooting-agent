@@ -1,9 +1,10 @@
 import React from 'react';
-import type { V4Session, ChatMessage, TaskEvent, DiagnosticPhase, TokenUsage } from '../../types';
+import type { V4Session, ChatMessage, TaskEvent, DiagnosticPhase, TokenUsage, AttestationGateData } from '../../types';
 import AISupervisor from './AISupervisor';
 import EvidenceStack from './EvidenceStack';
 import ContextScope from './ContextScope';
 import RemediationProgressBar from './RemediationProgressBar';
+import AttestationGateUI from '../Remediation/AttestationGateUI';
 
 interface InvestigationViewProps {
   session: V4Session;
@@ -14,6 +15,8 @@ interface InvestigationViewProps {
   phase: DiagnosticPhase | null;
   confidence: number;
   tokenUsage: TokenUsage[];
+  attestationGate?: AttestationGateData | null;
+  onAttestationDecision?: (decision: string) => void;
 }
 
 const InvestigationView: React.FC<InvestigationViewProps> = ({
@@ -25,6 +28,8 @@ const InvestigationView: React.FC<InvestigationViewProps> = ({
   phase,
   confidence,
   tokenUsage,
+  attestationGate,
+  onAttestationDecision,
 }) => {
   return (
     <div className="flex flex-col h-full">
@@ -48,7 +53,7 @@ const InvestigationView: React.FC<InvestigationViewProps> = ({
 
         {/* Right: Context Scope */}
         <div className="w-[320px] flex-shrink-0">
-          <ContextScope session={session} />
+          <ContextScope session={session} events={events} />
         </div>
       </div>
 
@@ -59,6 +64,16 @@ const InvestigationView: React.FC<InvestigationViewProps> = ({
         tokenUsage={tokenUsage}
         wsConnected={wsConnected}
       />
+
+      {/* Attestation Gate Modal */}
+      {attestationGate && onAttestationDecision && (
+        <AttestationGateUI
+          gate={attestationGate}
+          evidencePins={[]}
+          onDecision={(decision, _notes) => onAttestationDecision(decision)}
+          onClose={() => onAttestationDecision('dismiss')}
+        />
+      )}
     </div>
   );
 };

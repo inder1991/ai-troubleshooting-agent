@@ -265,19 +265,40 @@ async def get_findings(session_id: str):
             "k8s_events": [],
             "trace_spans": [],
             "impacted_files": [],
+            "change_correlations": [],
+            "blast_radius": None,
+            "severity_recommendation": None,
+            "past_incidents": [],
             "message": "Analysis not yet complete",
         }
+
+    # Extract from nested agent results
+    error_patterns = []
+    if state.log_analysis:
+        if state.log_analysis.primary_pattern:
+            error_patterns.append(state.log_analysis.primary_pattern)
+        error_patterns.extend(state.log_analysis.secondary_patterns)
+
+    metric_anomalies = state.metrics_analysis.anomalies if state.metrics_analysis else []
+    pod_statuses = state.k8s_analysis.pod_statuses if state.k8s_analysis else []
+    k8s_events = state.k8s_analysis.events if state.k8s_analysis else []
+    trace_spans = state.trace_analysis.call_chain if state.trace_analysis else []
+    impacted_files = state.code_analysis.impacted_files if state.code_analysis else []
 
     return {
         "findings": [f.model_dump(mode="json") for f in state.all_findings],
         "negative_findings": [nf.model_dump(mode="json") for nf in state.all_negative_findings],
         "critic_verdicts": [cv.model_dump(mode="json") for cv in state.critic_verdicts],
-        "error_patterns": [ep.model_dump(mode="json") for ep in getattr(state, 'error_patterns', [])],
-        "metric_anomalies": [ma.model_dump(mode="json") for ma in getattr(state, 'metric_anomalies', [])],
-        "pod_statuses": [ps.model_dump(mode="json") for ps in getattr(state, 'pod_statuses', [])],
-        "k8s_events": [ke.model_dump(mode="json") for ke in getattr(state, 'k8s_events', [])],
-        "trace_spans": [ts.model_dump(mode="json") for ts in getattr(state, 'trace_spans', [])],
-        "impacted_files": [ci.model_dump(mode="json") for ci in getattr(state, 'impacted_files', [])],
+        "error_patterns": [ep.model_dump(mode="json") for ep in error_patterns],
+        "metric_anomalies": [ma.model_dump(mode="json") for ma in metric_anomalies],
+        "pod_statuses": [ps.model_dump(mode="json") for ps in pod_statuses],
+        "k8s_events": [ke.model_dump(mode="json") for ke in k8s_events],
+        "trace_spans": [ts.model_dump(mode="json") for ts in trace_spans],
+        "impacted_files": [ci.model_dump(mode="json") for ci in impacted_files],
+        "change_correlations": state.change_analysis.get("change_correlations", []) if state.change_analysis else [],
+        "blast_radius": state.blast_radius_result.model_dump(mode="json") if state.blast_radius_result else None,
+        "severity_recommendation": state.severity_result.model_dump(mode="json") if state.severity_result else None,
+        "past_incidents": state.past_incidents,
     }
 
 

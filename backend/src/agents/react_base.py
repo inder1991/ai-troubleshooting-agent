@@ -1,11 +1,17 @@
+import asyncio
 import json
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from typing import Any
 
+from anthropic import APIStatusError
+
 from src.models.schemas import Breadcrumb, EvidencePin, NegativeFinding, ReActBudget, TokenUsage
 from src.utils.llm_client import AnthropicClient
 from src.utils.event_emitter import EventEmitter
+
+MAX_RETRIES = 3
+RETRY_DELAYS = [2, 5, 15]  # seconds
 
 
 class ReActAgent(ABC):
@@ -114,6 +120,32 @@ class ReActAgent(ABC):
         """Get cumulative token usage for this agent."""
         return self.llm_client.get_total_usage()
 
+    def _summarize_tool_call(self, tool_name: str, tool_input: dict) -> str:
+        """Generate human-readable summary of a tool call. Subclasses may override."""
+        summaries = {
+            "search_elasticsearch": lambda i: f"Searching logs in '{i.get('index', 'default')}' for '{i.get('query', '')}' ({i.get('time_range', 'recent')})",
+            "analyze_patterns": lambda i: f"Analyzing error patterns in {i.get('log_count', 'collected')} log entries",
+            "query_prometheus": lambda i: f"Querying metric: {i.get('query', i.get('metric_name', 'unknown'))}",
+            "get_pod_status": lambda i: f"Checking pod health in namespace '{i.get('namespace', 'default')}'",
+            "get_recent_events": lambda i: f"Fetching recent K8s events for '{i.get('namespace', 'default')}'",
+            "search_traces": lambda i: f"Searching traces for service '{i.get('service_name', 'unknown')}'",
+            "analyze_code": lambda i: f"Analyzing code at '{i.get('file_path', 'unknown')}'",
+            "list_available_indices": lambda i: "Discovering available log indices",
+            "get_pod_logs": lambda i: f"Fetching logs for pod '{i.get('pod_name', 'unknown')}'",
+            "get_deployments": lambda i: f"Listing deployments in '{i.get('namespace', 'default')}'",
+            "describe_resource": lambda i: f"Describing {i.get('resource_type', 'resource')} '{i.get('name', 'unknown')}'",
+            "github_recent_commits": lambda i: f"Fetching recent commits from '{i.get('repo_url', 'repository')}'",
+            "deployment_history": lambda i: f"Checking deployment rollout history in '{i.get('namespace', 'default')}'",
+            "config_diff": lambda i: f"Checking ConfigMap changes in '{i.get('namespace', 'default')}'",
+        }
+        fn = summaries.get(tool_name)
+        if fn:
+            try:
+                return fn(tool_input)
+            except Exception:
+                pass
+        return f"Running {tool_name}"
+
     async def run(self, context: dict, event_emitter: EventEmitter | None = None) -> dict:
         """Execute the ReAct loop.
 
@@ -142,21 +174,41 @@ class ReActAgent(ABC):
                     "evidence_pins": [p.model_dump(mode="json") for p in self.evidence_pins],
                 }
 
-            if event_emitter:
-                await event_emitter.emit(
-                    self.agent_name, "progress",
-                    f"Iteration {iteration + 1}/{self.max_iterations}"
-                )
+            # Call LLM with tools (retry on transient errors)
+            response = None
+            for attempt in range(MAX_RETRIES + 1):
+                try:
+                    response = await self.llm_client._client.messages.create(
+                        model=self.llm_client.model,
+                        max_tokens=4096,
+                        system=system_prompt,
+                        messages=messages,
+                        tools=self._tools if self._tools else None,
+                        temperature=0.0,
+                    )
+                    break
+                except APIStatusError as e:
+                    if e.status_code in (429, 529) and attempt < MAX_RETRIES:
+                        delay = RETRY_DELAYS[attempt]
+                        if event_emitter:
+                            await event_emitter.emit(
+                                self.agent_name, "warning",
+                                f"API overloaded, retrying in {delay}s (attempt {attempt + 1}/{MAX_RETRIES})"
+                            )
+                        await asyncio.sleep(delay)
+                    elif e.status_code >= 500 and attempt < MAX_RETRIES:
+                        delay = RETRY_DELAYS[attempt]
+                        if event_emitter:
+                            await event_emitter.emit(
+                                self.agent_name, "warning",
+                                f"Server error ({e.status_code}), retrying in {delay}s (attempt {attempt + 1}/{MAX_RETRIES})"
+                            )
+                        await asyncio.sleep(delay)
+                    else:
+                        raise
 
-            # Call LLM with tools
-            response = await self.llm_client._client.messages.create(
-                model=self.llm_client.model,
-                max_tokens=4096,
-                system=system_prompt,
-                messages=messages,
-                tools=self._tools if self._tools else None,
-                temperature=0.0,
-            )
+            if response is None:
+                raise RuntimeError("LLM call failed after all retries")
 
             # Track tokens
             self.llm_client._total_input_tokens += response.usage.input_tokens
@@ -187,9 +239,11 @@ class ReActAgent(ABC):
                     tool_input = tool_block.input
 
                     if event_emitter:
+                        summary = self._summarize_tool_call(tool_name, tool_input)
                         await event_emitter.emit(
-                            self.agent_name, "progress",
-                            f"Calling tool: {tool_name}"
+                            self.agent_name, "tool_call",
+                            summary,
+                            details={"tool": tool_name, "input_keys": list(tool_input.keys())}
                         )
 
                     try:

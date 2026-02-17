@@ -83,8 +83,38 @@ class ChangeAgent(ReActAgent):
         return f"Unknown tool: {tool_name}"
 
     async def _get_github_commits(self, params: dict) -> str:
-        # Placeholder -- would call GitHub API in production
-        return "No GitHub integration configured"
+        from src.integrations.probe import run_command
+        import re as _re
+
+        repo_url = params.get("repo_url", self._repo_url)
+        since_hours = params.get("since_hours", 24)
+
+        if not repo_url:
+            return "No repository URL provided"
+
+        owner_repo = self._parse_repo_url(repo_url)
+        if not owner_repo:
+            return f"Could not parse repository URL: {repo_url}"
+
+        # Use gh api to fetch recent commits
+        jq_expr = '[.[] | {sha: .sha[:8], author: .commit.author.name, date: .commit.author.date, message: .commit.message[:200]}]'
+        cmd = f"gh api \"repos/{owner_repo}/commits?per_page=20\" --jq '{jq_expr}'"
+        code, stdout, stderr = await run_command(cmd)
+
+        return stdout if code == 0 else f"GitHub API error: {stderr}"
+
+    def _parse_repo_url(self, url: str) -> str | None:
+        """Extract 'owner/repo' from various GitHub URL formats."""
+        import re
+        patterns = [
+            r'github\.com[:/]([^/]+/[^/]+?)(?:\.git)?$',
+            r'^([^/]+/[^/]+)$',
+        ]
+        for pattern in patterns:
+            m = re.search(pattern, url)
+            if m:
+                return m.group(1)
+        return None
 
     async def _get_deployment_history(self, params: dict) -> str:
         from src.integrations.probe import run_command
