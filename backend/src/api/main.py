@@ -3,6 +3,9 @@ FastAPI Main Application
 Entry point for the API server
 """
 
+from dotenv import load_dotenv
+load_dotenv()
+
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from .pr_endpoints import router as pr_router
