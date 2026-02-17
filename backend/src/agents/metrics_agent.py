@@ -13,9 +13,14 @@ from src.models.schemas import MetricAnomaly, DataPoint, TimeRange, MetricsAnaly
 class MetricsAgent(ReActAgent):
     """ReAct agent for Prometheus metrics analysis with spike detection."""
 
-    def __init__(self, max_iterations: int = 8):
+    def __init__(self, max_iterations: int = 8, connection_config=None):
         super().__init__(agent_name="metrics_agent", max_iterations=max_iterations)
-        self.prometheus_url = os.getenv("PROMETHEUS_URL", "http://localhost:9090")
+        self._connection_config = connection_config
+        # Resolve Prometheus URL from config, falling back to env var
+        if connection_config and connection_config.prometheus_url:
+            self.prometheus_url = connection_config.prometheus_url
+        else:
+            self.prometheus_url = os.getenv("PROMETHEUS_URL", "http://localhost:9090")
         self._time_series_cache: dict[str, list[dict]] = {}
 
     async def _define_tools(self) -> list[dict]:
@@ -69,18 +74,32 @@ class MetricsAgent(ReActAgent):
                     "required": ["namespace", "service_name"],
                 },
             },
+            {
+                "name": "list_available_metrics",
+                "description": "List Prometheus metric names matching a search term. Call this to discover what metrics are available before writing PromQL queries.",
+                "input_schema": {
+                    "type": "object",
+                    "properties": {
+                        "search": {"type": "string", "description": "Metric name substring to search for (e.g. 'http_request')"},
+                    },
+                    "required": ["search"],
+                },
+            },
         ]
 
     async def _build_system_prompt(self) -> str:
         return """You are a Metrics Analysis Agent for SRE troubleshooting. You use the ReAct pattern.
 
+IMPORTANT: Call list_available_metrics first to discover what metrics exist before writing PromQL queries. If the Prometheus endpoint is unreachable, report the error immediately instead of attempting further queries.
+
 Your goals:
-1. Query Prometheus for CPU, memory, error rate, and latency metrics for the affected service
-2. Use get_default_metrics to get recommended queries, then execute them
-3. Detect anomalies and spikes in the time-series data
-4. Correlate metric anomalies with the incident time window
-5. Report negative findings for metrics that show no anomalies
-6. Compare incident window values against a baseline (1 hour before)
+1. Discover available metrics using list_available_metrics
+2. Query Prometheus for CPU, memory, error rate, and latency metrics for the affected service
+3. Use get_default_metrics to get recommended queries, then execute them
+4. Detect anomalies and spikes in the time-series data
+5. Correlate metric anomalies with the incident time window
+6. Report negative findings for metrics that show no anomalies
+7. Compare incident window values against a baseline (1 hour before)
 
 After analysis, provide your final answer as JSON:
 {
@@ -120,6 +139,8 @@ After analysis, provide your final answer as JSON:
             return self._detect_spikes_tool(tool_input)
         elif tool_name == "get_default_metrics":
             return self._get_default_metrics(tool_input)
+        elif tool_name == "list_available_metrics":
+            return await self._list_available_metrics(tool_input)
         return f"Unknown tool: {tool_name}"
 
     def _parse_final_response(self, text: str) -> dict:
@@ -258,6 +279,41 @@ After analysis, provide your final answer as JSON:
         namespace = params["namespace"]
         service = params["service_name"]
         return json.dumps(self._build_default_queries(namespace, service))
+
+    async def _list_available_metrics(self, params: dict) -> str:
+        """List Prometheus metric names matching a search term."""
+        search = params.get("search", "")
+        try:
+            resp = requests.get(
+                f"{self.prometheus_url}/api/v1/label/__name__/values",
+                timeout=15,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+
+            all_names = data.get("data", [])
+            if search:
+                matching = [n for n in all_names if search.lower() in n.lower()]
+            else:
+                matching = all_names
+
+            self.add_breadcrumb(
+                action="list_available_metrics",
+                source_type="metric",
+                source_reference=f"Prometheus at {self.prometheus_url}",
+                raw_evidence=f"Found {len(matching)} metrics matching '{search}' (total: {len(all_names)})",
+            )
+
+            return json.dumps({
+                "total_metrics": len(all_names),
+                "matching": len(matching),
+                "metrics": matching[:100],
+            })
+
+        except requests.exceptions.ConnectionError:
+            return json.dumps({"error": f"Cannot connect to Prometheus at {self.prometheus_url}"})
+        except Exception as e:
+            return json.dumps({"error": str(e)})
 
     # --- Pure logic ---
 

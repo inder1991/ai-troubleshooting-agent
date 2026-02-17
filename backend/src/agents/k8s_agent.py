@@ -10,22 +10,38 @@ from src.models.schemas import PodHealthStatus, K8sEvent, K8sAnalysisResult, Tok
 class K8sAgent(ReActAgent):
     """ReAct agent for Kubernetes/OpenShift cluster health analysis."""
 
-    def __init__(self, max_iterations: int = 8):
+    def __init__(self, max_iterations: int = 8, connection_config=None):
         super().__init__(agent_name="k8s_agent", max_iterations=max_iterations)
         self._k8s_client = None
+        self._connection_config = connection_config
 
     def _get_k8s_client(self):
         """Lazily initialize Kubernetes client."""
         if self._k8s_client is None:
             try:
                 from kubernetes import client, config
-                api_url = os.getenv("OPENSHIFT_API_URL")
-                token = os.getenv("OPENSHIFT_TOKEN")
+
+                # Use connection config from profile if available
+                api_url = None
+                token = None
+                verify_ssl = False
+
+                if self._connection_config:
+                    api_url = self._connection_config.cluster_url or None
+                    token = self._connection_config.cluster_token or None
+                    verify_ssl = self._connection_config.verify_ssl
+
+                # Fallback to env vars
+                if not api_url:
+                    api_url = os.getenv("OPENSHIFT_API_URL")
+                if not token:
+                    token = os.getenv("OPENSHIFT_TOKEN")
+
                 if api_url and token:
                     configuration = client.Configuration()
                     configuration.host = api_url
                     configuration.api_key = {"authorization": f"Bearer {token}"}
-                    configuration.verify_ssl = os.getenv("K8S_VERIFY_SSL", "false").lower() == "true"
+                    configuration.verify_ssl = verify_ssl
                     self._k8s_client = client.ApiClient(configuration)
                 else:
                     config.load_kube_config()
@@ -36,6 +52,15 @@ class K8sAgent(ReActAgent):
 
     async def _define_tools(self) -> list[dict]:
         return [
+            {
+                "name": "test_cluster_connectivity",
+                "description": "Test if the Kubernetes/OpenShift cluster is reachable and auth is valid. Call this FIRST before any other K8s tool to verify the connection. Returns cluster version and node count on success, or error details on failure.",
+                "input_schema": {
+                    "type": "object",
+                    "properties": {},
+                    "required": [],
+                },
+            },
             {
                 "name": "get_pod_status",
                 "description": "Get status of all pods matching a label selector in a namespace.",
@@ -77,13 +102,16 @@ class K8sAgent(ReActAgent):
     async def _build_system_prompt(self) -> str:
         return """You are a Kubernetes/OpenShift Health Agent for SRE troubleshooting. You use the ReAct pattern.
 
+IMPORTANT: Always call test_cluster_connectivity FIRST before any other K8s tool to verify the connection. If connectivity fails, report the error immediately instead of attempting further queries.
+
 Your goals:
-1. Check pod status — look for CrashLoopBackOff, Error, OOMKilled, Pending states
-2. Check restart counts and termination reasons
-3. Get events for the namespace/deployment — focus on Warning events
-4. Check resource requests vs limits
-5. Report negative findings when everything looks healthy
-6. Cross-reference with metrics data if provided
+1. Test cluster connectivity first
+2. Check pod status — look for CrashLoopBackOff, Error, OOMKilled, Pending states
+3. Check restart counts and termination reasons
+4. Get events for the namespace/deployment — focus on Warning events
+5. Check resource requests vs limits
+6. Report negative findings when everything looks healthy
+7. Cross-reference with metrics data if provided
 
 After analysis, provide your final answer as JSON:
 {
@@ -106,7 +134,9 @@ After analysis, provide your final answer as JSON:
         return "\n".join(parts)
 
     async def _handle_tool_call(self, tool_name: str, tool_input: dict) -> str:
-        if tool_name == "get_pod_status":
+        if tool_name == "test_cluster_connectivity":
+            return await self._test_cluster_connectivity()
+        elif tool_name == "get_pod_status":
             return await self._get_pod_status(tool_input)
         elif tool_name == "get_events":
             return await self._get_events(tool_input)
@@ -138,6 +168,44 @@ After analysis, provide your final answer as JSON:
         }
 
     # --- Tool implementations ---
+
+    async def _test_cluster_connectivity(self) -> str:
+        """Test if K8s/OpenShift cluster is reachable and auth is valid."""
+        try:
+            from kubernetes import client
+            v1 = client.CoreV1Api(self._get_k8s_client())
+            nodes = v1.list_node(limit=100)
+            version_api = client.VersionApi(self._get_k8s_client())
+            version_info = version_api.get_code()
+
+            node_count = len(nodes.items) if nodes.items else 0
+            version_str = f"{version_info.major}.{version_info.minor}"
+
+            self.add_breadcrumb(
+                action="test_cluster_connectivity",
+                source_type="k8s_event",
+                source_reference="K8s API server",
+                raw_evidence=f"Connected: version {version_str}, {node_count} nodes",
+            )
+
+            return json.dumps({
+                "reachable": True,
+                "version": version_str,
+                "nodes": node_count,
+                "platform": version_info.platform or "unknown",
+            })
+
+        except ImportError:
+            return json.dumps({"reachable": False, "error": "kubernetes package not installed"})
+        except RuntimeError as e:
+            return json.dumps({"reachable": False, "error": str(e)})
+        except Exception as e:
+            error_msg = str(e)
+            if "401" in error_msg or "Unauthorized" in error_msg:
+                error_msg = "401 Unauthorized — check cluster token"
+            elif "403" in error_msg or "Forbidden" in error_msg:
+                error_msg = "403 Forbidden — token lacks required permissions"
+            return json.dumps({"reachable": False, "error": error_msg})
 
     async def _get_pod_status(self, params: dict) -> str:
         namespace = params["namespace"]

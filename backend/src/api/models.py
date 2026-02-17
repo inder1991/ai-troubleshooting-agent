@@ -72,6 +72,7 @@ class StartSessionRequest(BaseModel):
     namespace: Optional[str] = None
     clusterUrl: Optional[str] = Field(default=None, alias="cluster_url")
     repoUrl: Optional[str] = Field(default=None, alias="repo_url")
+    profileId: Optional[str] = Field(default=None, alias="profile_id")
 
 
 class StartSessionResponse(BaseModel):

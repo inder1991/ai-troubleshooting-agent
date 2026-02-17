@@ -13,13 +13,30 @@ from src.models.schemas import SpanInfo, TraceAnalysisResult, TokenUsage
 class TracingAgent(ReActAgent):
     """ReAct agent for distributed tracing — Jaeger first, ELK fallback."""
 
-    def __init__(self, max_iterations: int = 8):
+    def __init__(self, max_iterations: int = 8, connection_config=None):
         super().__init__(agent_name="tracing_agent", max_iterations=max_iterations)
-        self.tracing_url = os.getenv("TRACING_URL", "http://localhost:16686")
-        self.es_url = os.getenv("ELASTICSEARCH_URL", "http://localhost:9200")
+        self._connection_config = connection_config
+        # Resolve URLs from config, falling back to env vars
+        if connection_config and connection_config.jaeger_url:
+            self.tracing_url = connection_config.jaeger_url
+        else:
+            self.tracing_url = os.getenv("TRACING_URL", "http://localhost:16686")
+        if connection_config and connection_config.elasticsearch_url:
+            self.es_url = connection_config.elasticsearch_url
+        else:
+            self.es_url = os.getenv("ELASTICSEARCH_URL", "http://localhost:9200")
 
     async def _define_tools(self) -> list[dict]:
         return [
+            {
+                "name": "list_traced_services",
+                "description": "List all services reporting traces to Jaeger. Call this first to discover available services before querying traces.",
+                "input_schema": {
+                    "type": "object",
+                    "properties": {},
+                    "required": [],
+                },
+            },
             {
                 "name": "query_jaeger",
                 "description": "Fetch a trace from Jaeger/Tempo by trace ID. Returns spans with timing and service info.",
@@ -48,10 +65,13 @@ class TracingAgent(ReActAgent):
     async def _build_system_prompt(self) -> str:
         return """You are a Distributed Tracing Agent for SRE troubleshooting. You use the ReAct pattern.
 
+IMPORTANT: Call list_traced_services first to discover available services and verify Jaeger connectivity. If Jaeger is unreachable, report the error immediately and fall back to Elasticsearch.
+
 Strategy:
-1. FIRST: Try Jaeger to get the trace (query_jaeger tool)
-2. IF Jaeger returns no data or errors: FALL BACK to Elasticsearch (search_elk_trace tool)
-3. Never skip the Jaeger step — always try it first
+1. FIRST: Call list_traced_services to verify Jaeger connectivity and discover services
+2. THEN: Try Jaeger to get the trace (query_jaeger tool)
+3. IF Jaeger returns no data or errors: FALL BACK to Elasticsearch (search_elk_trace tool)
+4. Never skip the Jaeger step — always try it first
 
 Your goals:
 1. Map the complete request flow across services
@@ -85,7 +105,9 @@ After analysis, provide your final answer as JSON:
         return "\n".join(parts)
 
     async def _handle_tool_call(self, tool_name: str, tool_input: dict) -> str:
-        if tool_name == "query_jaeger":
+        if tool_name == "list_traced_services":
+            return await self._list_traced_services()
+        elif tool_name == "query_jaeger":
             return await self._query_jaeger(tool_input)
         elif tool_name == "search_elk_trace":
             return await self._search_elk_trace(tool_input)
@@ -109,6 +131,42 @@ After analysis, provide your final answer as JSON:
         }
 
     # --- Tool implementations ---
+
+    async def _list_traced_services(self) -> str:
+        """List all services reporting traces to Jaeger."""
+        try:
+            resp = requests.get(
+                f"{self.tracing_url}/api/services",
+                timeout=15,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+
+            services = data.get("data", [])
+            # Filter out internal Jaeger services
+            services = [s for s in services if s != "jaeger-query"]
+
+            self.add_breadcrumb(
+                action="list_traced_services",
+                source_type="trace_span",
+                source_reference=f"Jaeger at {self.tracing_url}",
+                raw_evidence=f"Found {len(services)} traced services",
+            )
+
+            return json.dumps({
+                "reachable": True,
+                "total_services": len(services),
+                "services": services,
+            })
+
+        except requests.exceptions.ConnectionError:
+            return json.dumps({
+                "reachable": False,
+                "error": f"Cannot connect to Jaeger at {self.tracing_url}",
+                "suggestion": "Will fall back to Elasticsearch trace reconstruction",
+            })
+        except Exception as e:
+            return json.dumps({"reachable": False, "error": str(e)})
 
     async def _query_jaeger(self, params: dict) -> str:
         trace_id = params["trace_id"]

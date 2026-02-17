@@ -20,9 +20,14 @@ import os
 class LogAnalysisAgent(ReActAgent):
     """ReAct agent for log analysis with error pattern detection and prioritization."""
 
-    def __init__(self, max_iterations: int = 8):
+    def __init__(self, max_iterations: int = 8, connection_config=None):
         super().__init__(agent_name="log_agent", max_iterations=max_iterations)
-        self.es_url = os.getenv("ELASTICSEARCH_URL", "http://localhost:9200")
+        self._connection_config = connection_config
+        # Resolve Elasticsearch URL from config, falling back to env var
+        if connection_config and connection_config.elasticsearch_url:
+            self.es_url = connection_config.elasticsearch_url
+        else:
+            self.es_url = os.getenv("ELASTICSEARCH_URL", "http://localhost:9200")
         self._raw_logs: list[dict] = []
         self._patterns: list[dict] = []
 
@@ -79,19 +84,33 @@ class LogAnalysisAgent(ReActAgent):
                     "properties": {},
                 },
             },
+            {
+                "name": "list_available_indices",
+                "description": "List all Elasticsearch indices matching a pattern. Call this to discover what log indices exist before searching, so you can target the correct index.",
+                "input_schema": {
+                    "type": "object",
+                    "properties": {
+                        "pattern": {"type": "string", "description": "Index pattern (e.g. 'app-logs-*')", "default": "*"},
+                    },
+                    "required": [],
+                },
+            },
         ]
 
     async def _build_system_prompt(self) -> str:
         return """You are a Log Analysis Agent for SRE troubleshooting. You use the ReAct pattern:
 THINK about what to search for, ACT by calling tools, OBSERVE results, then decide next steps.
 
+IMPORTANT: Call list_available_indices first to discover what log indices exist before searching. If Elasticsearch is unreachable, report the error immediately instead of attempting further queries.
+
 Your goals:
-1. Find all error logs in the given time window
-2. Also check WARN logs that preceded errors
-3. Search by trace_id if one is available
-4. Group errors into distinct patterns
-5. If a search returns zero results, report it as a negative finding
-6. Prioritize patterns by: frequency, severity, likely root cause vs symptom
+1. Discover available indices using list_available_indices
+2. Find all error logs in the given time window
+3. Also check WARN logs that preceded errors
+4. Search by trace_id if one is available
+5. Group errors into distinct patterns
+6. If a search returns zero results, report it as a negative finding
+7. Prioritize patterns by: frequency, severity, likely root cause vs symptom
 
 After gathering enough data, provide your final analysis as JSON with this structure:
 {
@@ -134,6 +153,8 @@ Always report what you searched and didn't find (negative evidence)."""
             return await self._get_log_context(tool_input)
         elif tool_name == "analyze_patterns":
             return self._analyze_patterns_tool()
+        elif tool_name == "list_available_indices":
+            return await self._list_available_indices(tool_input)
         else:
             return f"Unknown tool: {tool_name}"
 
@@ -400,6 +421,39 @@ Always report what you searched and didn't find (negative evidence)."""
             "patterns_found": len(self._patterns),
             "patterns": self._patterns,
         }, default=str)
+
+    async def _list_available_indices(self, params: dict) -> str:
+        """List Elasticsearch indices matching a pattern."""
+        pattern = params.get("pattern", "*")
+        try:
+            resp = requests.get(
+                f"{self.es_url}/_cat/indices/{pattern}",
+                params={"format": "json", "h": "index,docs.count,store.size,health,status"},
+                headers={"Content-Type": "application/json"},
+                timeout=15,
+            )
+            resp.raise_for_status()
+            indices = resp.json()
+
+            # Filter out system indices
+            visible = [idx for idx in indices if not idx.get("index", "").startswith(".")]
+
+            self.add_breadcrumb(
+                action="list_available_indices",
+                source_type="log",
+                source_reference=f"Elasticsearch at {self.es_url}",
+                raw_evidence=f"Found {len(visible)} indices matching '{pattern}'",
+            )
+
+            return json.dumps({
+                "total_indices": len(visible),
+                "indices": visible[:50],
+            })
+
+        except requests.exceptions.ConnectionError:
+            return json.dumps({"error": f"Cannot connect to Elasticsearch at {self.es_url}"})
+        except Exception as e:
+            return json.dumps({"error": str(e)})
 
     # --- Pattern detection ---
 

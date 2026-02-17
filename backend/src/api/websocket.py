@@ -2,14 +2,16 @@
 WebSocket connection management
 """
 
+import logging
 from fastapi import WebSocket
 from typing import Dict
-import json
+
+logger = logging.getLogger(__name__)
 
 
 class ConnectionManager:
     """Manages WebSocket connections"""
-    
+
     def __init__(self):
         self.active_connections: Dict[str, WebSocket] = {}
 
@@ -17,13 +19,13 @@ class ConnectionManager:
         """Accept and store WebSocket connection"""
         await websocket.accept()
         self.active_connections[session_id] = websocket
-        print(f"✅ WebSocket connected: {session_id}")
+        logger.info("WebSocket connected: %s", session_id)
 
     def disconnect(self, session_id: str):
         """Remove WebSocket connection"""
         if session_id in self.active_connections:
             del self.active_connections[session_id]
-            print(f"❌ WebSocket disconnected: {session_id}")
+            logger.info("WebSocket disconnected: %s", session_id)
 
     async def send_message(self, session_id: str, message: dict):
         """Send message to specific session"""
@@ -31,21 +33,33 @@ class ConnectionManager:
             try:
                 await self.active_connections[session_id].send_json(message)
             except Exception as e:
-                print(f"❌ Error sending WebSocket message: {e}")
+                logger.warning("Error sending WebSocket message: %s", e)
                 self.disconnect(session_id)
-    
+
     async def broadcast(self, message: dict):
         """Broadcast message to all connections"""
         disconnected = []
         for session_id, connection in self.active_connections.items():
             try:
                 await connection.send_json(message)
-            except:
+            except Exception:
                 disconnected.append(session_id)
-        
-        # Clean up disconnected sessions
+
         for session_id in disconnected:
             self.disconnect(session_id)
+
+    async def broadcast_profile_change(self, profile_id: str, change_type: str):
+        """Broadcast a profile change event to all connected sessions."""
+        from datetime import datetime, timezone
+
+        await self.broadcast({
+            "type": "profile_change",
+            "data": {
+                "profile_id": profile_id,
+                "change_type": change_type,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            },
+        })
 
 
 # Global connection manager instance

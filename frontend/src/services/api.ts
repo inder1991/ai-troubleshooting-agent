@@ -91,7 +91,7 @@ export const checkAgent3Health = async () => {
 
 // ===== V4 API =====
 
-export const startSessionV4 = async (request: StartSessionRequest): Promise<V4Session> => {
+export const startSessionV4 = async (request: StartSessionRequest & { profileId?: string }): Promise<V4Session> => {
   const response = await fetch(`${API_BASE_URL}/api/v4/session/start`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

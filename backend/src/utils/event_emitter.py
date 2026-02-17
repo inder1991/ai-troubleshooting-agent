@@ -28,11 +28,13 @@ class EventEmitter:
         self._events.append(event)
 
         if self._websocket_manager:
+            event_data = event.model_dump(mode="json")
+            event_data["session_id"] = self.session_id
             await self._websocket_manager.send_message(
                 self.session_id,
                 {
                     "type": "task_event",
-                    "data": event.model_dump(mode="json"),
+                    "data": event_data,
                 },
             )
 

@@ -5,18 +5,42 @@ Entry point for the API server
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from .pr_endpoints import router as pr_router 
+from .pr_endpoints import router as pr_router
 from datetime import datetime
 
 from .routes import router
 from .routes_v4 import router_v4
 from .routes_v5 import router as v5_router
+from .routes_profiles import router as profiles_router
+from .routes_global_integrations import router as global_integrations_router
+from .routes_audit import router as audit_router
 from .websocket import manager
+from src.utils.logger import get_logger
+
+logger = get_logger("main")
+
+
+def _init_stores():
+    """Initialize database tables and seed defaults on startup."""
+    from src.integrations.profile_store import ProfileStore, GlobalIntegrationStore
+    from src.integrations.audit_store import AuditLogger
+
+    profile_store = ProfileStore()
+    profile_store._ensure_tables()
+
+    gi_store = GlobalIntegrationStore()
+    gi_store._ensure_tables()
+    gi_store.seed_defaults()
+
+    audit = AuditLogger()
+    audit._ensure_tables()
+
+    logger.info("Database tables initialized and defaults seeded")
 
 
 def create_app() -> FastAPI:
     """Create and configure FastAPI application"""
-    
+
     app = FastAPI(
         title="AI Multi-Agent Troubleshooting API",
         description="Intelligent troubleshooting with LangGraph orchestration",
@@ -24,7 +48,7 @@ def create_app() -> FastAPI:
         docs_url="/docs",
         redoc_url="/redoc"
     )
-    
+
     # CORS middleware
     app.add_middleware(
         CORSMiddleware,
@@ -37,12 +61,22 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    
+
     # Include routes
     app.include_router(router)
     app.include_router(pr_router, prefix="/api")
     app.include_router(router_v4)
     app.include_router(v5_router)
+    app.include_router(profiles_router)
+    app.include_router(global_integrations_router)
+    app.include_router(audit_router)
+
+    @app.on_event("startup")
+    async def startup():
+        _init_stores()
+        # Start session TTL cleanup loop
+        from .routes_v4 import start_cleanup_task
+        start_cleanup_task()
 
     # WebSocket endpoint
     @app.websocket("/ws/troubleshoot/{session_id}")
@@ -54,9 +88,11 @@ def create_app() -> FastAPI:
             # Send initial connection message
             await manager.send_message(session_id, {
                 "type": "connected",
-                "message": "WebSocket connection established",
-                "session_id": session_id,
-                "timestamp": datetime.now().isoformat()
+                "data": {
+                    "message": "WebSocket connection established",
+                    "session_id": session_id,
+                    "timestamp": datetime.now().isoformat()
+                }
             })
             
             # Keep connection alive and receive messages

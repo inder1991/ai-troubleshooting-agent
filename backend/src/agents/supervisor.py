@@ -1,5 +1,6 @@
 import json
 import asyncio
+import logging
 from typing import Optional
 from datetime import datetime, timezone
 
@@ -16,6 +17,8 @@ from src.agents.critic_agent import CriticAgent
 from src.agents.causal_engine import EvidenceGraphBuilder
 from src.utils.llm_client import AnthropicClient
 from src.utils.event_emitter import EventEmitter
+
+logger = logging.getLogger(__name__)
 
 
 def update_confidence_ledger(ledger: ConfidenceLedger, pins: list[EvidencePin]) -> None:
@@ -67,9 +70,10 @@ def add_reasoning_step(
 class SupervisorAgent:
     """State machine orchestrator that routes work to specialized agents."""
 
-    def __init__(self):
+    def __init__(self, connection_config=None):
         self.agent_name = "supervisor"
         self.llm_client = AnthropicClient(agent_name="supervisor")
+        self._connection_config = connection_config
         self._agents = {
             "log_agent": LogAnalysisAgent,
             "metrics_agent": MetricsAgent,
@@ -255,7 +259,11 @@ class SupervisorAgent:
         if not agent_cls:
             return None
 
-        agent = agent_cls()
+        # Inject connection config into agents that support it
+        if agent_name in ("log_agent", "metrics_agent", "k8s_agent", "tracing_agent") and self._connection_config:
+            agent = agent_cls(connection_config=self._connection_config)
+        else:
+            agent = agent_cls()
         context = self._build_agent_context(agent_name, state)
 
         try:

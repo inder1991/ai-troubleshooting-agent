@@ -95,7 +95,9 @@ async def get_timeline(session_id: str):
     return {"events": session.get("timeline_events", [])}
 
 
-# --- Integration CRUD endpoints ---
+# --- Integration CRUD endpoints (DEPRECATED - use /api/v5/profiles) ---
+
+from fastapi.responses import JSONResponse
 
 
 class CreateIntegrationRequest(BaseModel):
@@ -109,16 +111,25 @@ class CreateIntegrationRequest(BaseModel):
     jaeger_url: Optional[str] = None
 
 
+def _deprecated_response(data) -> JSONResponse:
+    """Wrap response with deprecation header."""
+    return JSONResponse(
+        content=data,
+        headers={"Deprecation": "true", "Link": "</api/v5/profiles>; rel=\"successor-version\""},
+    )
+
+
 @router.post("/integrations")
 async def add_integration(request: CreateIntegrationRequest):
     config = IntegrationConfig(**request.model_dump())
     stored = get_integration_store().add(config)
-    return stored.model_dump()
+    return _deprecated_response(stored.model_dump())
 
 
 @router.get("/integrations")
 async def list_integrations():
-    return [c.model_dump() for c in get_integration_store().list_all()]
+    data = [c.model_dump() for c in get_integration_store().list_all()]
+    return _deprecated_response(data)
 
 
 @router.get("/integrations/{integration_id}")
@@ -126,7 +137,7 @@ async def get_integration(integration_id: str):
     config = get_integration_store().get(integration_id)
     if not config:
         raise HTTPException(status_code=404, detail="Integration not found")
-    return config.model_dump()
+    return _deprecated_response(config.model_dump())
 
 
 @router.put("/integrations/{integration_id}")
@@ -137,7 +148,7 @@ async def update_integration(integration_id: str, request: CreateIntegrationRequ
         raise HTTPException(status_code=404, detail="Integration not found")
     updated = existing.model_copy(update=request.model_dump())
     store.update(updated)
-    return updated.model_dump()
+    return _deprecated_response(updated.model_dump())
 
 
 @router.delete("/integrations/{integration_id}")
@@ -147,7 +158,7 @@ async def delete_integration(integration_id: str):
     if not existing:
         raise HTTPException(status_code=404, detail="Integration not found")
     store.delete(integration_id)
-    return {"status": "deleted"}
+    return _deprecated_response({"status": "deleted"})
 
 
 @router.post("/integrations/{integration_id}/probe")
@@ -167,7 +178,7 @@ async def probe_integration(integration_id: str):
     config.status = "active" if result.reachable else "unreachable"
     config.auto_discovered = result.model_dump()
     store.update(config)
-    return result.model_dump()
+    return _deprecated_response(result.model_dump())
 
 
 # --- Memory store setup ---
