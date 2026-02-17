@@ -1,5 +1,7 @@
 import asyncio
+import os
 import shlex
+import tempfile
 from typing import Optional, Tuple
 from pydantic import BaseModel, Field
 from .models import IntegrationConfig
@@ -35,6 +37,18 @@ def _safe_cli_args(server: str, token: str) -> str:
     return f"--server={shlex.quote(server)} --token={shlex.quote(token)}"
 
 
+def _build_auth_args(server: str, auth_method: str, auth_data: str, kubeconfig_path: Optional[str] = None) -> str:
+    """Build CLI args based on auth method.
+
+    For kubeconfig: uses --kubeconfig=<path> + --server= (server overrides kubeconfig context).
+    For token/service_account: uses --server= --token=.
+    """
+    if auth_method == "kubeconfig" and kubeconfig_path:
+        return f"--kubeconfig={shlex.quote(kubeconfig_path)} --server={shlex.quote(server)}"
+    # token and service_account both use --server + --token
+    return f"--server={shlex.quote(server)} --token={shlex.quote(auth_data)}"
+
+
 class ClusterProbe:
     def get_cli_tool(self, cluster_type: str) -> str:
         return "oc" if cluster_type == "openshift" else "kubectl"
@@ -42,95 +56,238 @@ class ClusterProbe:
     async def probe(self, config: IntegrationConfig) -> ProbeResult:
         result = ProbeResult()
         cli = self.get_cli_tool(config.cluster_type)
-        safe_args = _safe_cli_args(config.cluster_url, config.auth_data)
 
-        if config.cluster_type == "openshift":
-            # 1. Discover Prometheus via route
-            code, stdout, stderr = await run_command(
-                f"{cli} get route prometheus-k8s -n openshift-monitoring "
-                f"{safe_args} "
-                f"-o jsonpath='{{.spec.host}}' --insecure-skip-tls-verify"
+        # Write kubeconfig to a temp file if needed
+        kubeconfig_path: Optional[str] = None
+        try:
+            if config.auth_method == "kubeconfig" and config.auth_data:
+                fd, kubeconfig_path = tempfile.mkstemp(suffix=".kubeconfig", prefix="probe_")
+                os.write(fd, config.auth_data.encode())
+                os.close(fd)
+
+            safe_args = _build_auth_args(
+                config.cluster_url, config.auth_method, config.auth_data, kubeconfig_path
             )
-            ep_prom = EndpointProbeResult(name="openshift_api")
-            if code != 0:
-                if "Unable to connect" in stderr:
-                    result.errors.append(stderr)
-                    ep_prom.error = stderr
-                    result.endpoint_results["openshift_api"] = ep_prom
-                    return result  # reachable stays False
+
+            if config.cluster_type == "openshift":
+                result = await self._probe_openshift(cli, safe_args, result)
             else:
-                result.reachable = True
-                ep_prom.reachable = True
-                host = stdout.strip("'")
-                result.prometheus_url = f"https://{host}" if not host.startswith("http") else host
-                ep_prom.discovered_url = result.prometheus_url
+                result = await self._probe_kubernetes(cli, safe_args, result)
+        finally:
+            if kubeconfig_path and os.path.exists(kubeconfig_path):
+                os.unlink(kubeconfig_path)
 
-            result.endpoint_results["openshift_api"] = ep_prom
+        return result
 
-            # 2. Discover ELK
-            ep_elk = EndpointProbeResult(name="elasticsearch")
-            code, stdout, stderr = await run_command(
-                f"{cli} get route kibana -n openshift-logging "
-                f"{safe_args} "
-                f"-o jsonpath='{{.spec.host}}' --insecure-skip-tls-verify"
-            )
-            if code == 0:
-                host = stdout.strip("'")
-                result.elasticsearch_url = f"https://{host}" if not host.startswith("http") else host
-                ep_elk.reachable = True
-                ep_elk.discovered_url = result.elasticsearch_url
-            else:
-                ep_elk.error = stderr or "Route not found"
-            result.endpoint_results["elasticsearch"] = ep_elk
+    async def _check_connectivity(self, cli: str, safe_args: str, result: ProbeResult, api_name: str, version_jsonpath: str) -> bool:
+        """Check basic cluster connectivity via 'version' command.
 
-            # 3. Version
-            code, stdout, stderr = await run_command(
-                f"{cli} version {safe_args} "
-                f"-o jsonpath='{{.openshiftVersion}}' --insecure-skip-tls-verify"
-            )
-            if code == 0:
-                result.cluster_version = stdout.strip("'")
+        Returns True if the cluster API is reachable (authenticated successfully).
+        A 'NotFound' or 'Forbidden' from the server still means the API is reachable.
+        """
+        ep_api = EndpointProbeResult(name=api_name)
+        code, stdout, stderr = await run_command(
+            f"{cli} version {safe_args} "
+            f"-o jsonpath='{version_jsonpath}' --insecure-skip-tls-verify"
+        )
+        if code == 0:
+            result.reachable = True
+            ep_api.reachable = True
+            version = stdout.strip("'")
+            if version:
+                result.cluster_version = version
+        elif self._is_server_response(stderr):
+            # Server responded (e.g. Forbidden, Unauthorized) — cluster is reachable
+            # but may have auth issues for version endpoint
+            result.reachable = True
+            ep_api.reachable = True
+            ep_api.error = stderr
+        else:
+            # Genuine connection failure
+            error_msg = stderr or f"Command failed with exit code {code}"
+            result.errors.append(error_msg)
+            ep_api.error = error_msg
+            result.endpoint_results[api_name] = ep_api
+            return False
 
-        else:  # kubernetes
-            ep_api = EndpointProbeResult(name="kubernetes_api")
-            code, stdout, stderr = await run_command(
-                f"{cli} get svc prometheus-server -n monitoring "
-                f"{safe_args} "
-                f"-o jsonpath='{{.metadata.name}}.{{.metadata.namespace}}.svc.cluster.local' "
-                f"--insecure-skip-tls-verify"
-            )
-            if code != 0 and "Unable to connect" in stderr:
-                result.errors.append(stderr)
-                ep_api.error = stderr
-                result.endpoint_results["kubernetes_api"] = ep_api
-                return result
-            elif code == 0:
-                result.reachable = True
-                ep_api.reachable = True
-                result.prometheus_url = f"http://{stdout}:9090"
-            result.endpoint_results["kubernetes_api"] = ep_api
+        result.endpoint_results[api_name] = ep_api
+        return True
 
-            ep_elk = EndpointProbeResult(name="elasticsearch")
-            code, stdout, stderr = await run_command(
-                f"{cli} get svc elasticsearch -n logging "
-                f"{safe_args} "
-                f"-o jsonpath='{{.metadata.name}}.{{.metadata.namespace}}.svc.cluster.local' "
-                f"--insecure-skip-tls-verify"
-            )
-            if code == 0:
-                result.elasticsearch_url = f"http://{stdout}:9200"
-                ep_elk.reachable = True
-                ep_elk.discovered_url = result.elasticsearch_url
-            else:
-                ep_elk.error = stderr or "Service not found"
-            result.endpoint_results["elasticsearch"] = ep_elk
+    def _is_server_response(self, stderr: str) -> bool:
+        """Check if stderr indicates the server actually responded (vs connection failure).
 
-            code, stdout, stderr = await run_command(
-                f"{cli} version {safe_args} "
-                f"-o jsonpath='{{.serverVersion.gitVersion}}' --insecure-skip-tls-verify"
-            )
-            if code == 0:
-                result.cluster_version = stdout.strip("'")
+        'Error from server (NotFound)' = server responded, cluster is reachable.
+        'Unable to connect to the server' = connection failure, cluster is NOT reachable.
+        """
+        # Connection failures — NOT a server response
+        connection_failures = [
+            "Unable to connect",
+            "dial tcp",
+            "no such host",
+            "connection refused",
+            "i/o timeout",
+        ]
+        if any(fail in stderr for fail in connection_failures):
+            return False
+
+        # Server actually responded with an API error
+        server_indicators = [
+            "Error from server",
+            "Forbidden",
+            "Unauthorized",
+            "NotFound",
+            "forbidden",
+        ]
+        return any(indicator in stderr for indicator in server_indicators)
+
+    async def _discover_svc_by_label(self, cli: str, safe_args: str, label: str, port: int) -> Optional[str]:
+        """Find a service across all namespaces using a label selector.
+
+        Returns the cluster-local URL (name.namespace.svc.cluster.local:port) or None.
+        """
+        code, stdout, stderr = await run_command(
+            f"{cli} get svc -A -l {shlex.quote(label)} "
+            f"{safe_args} "
+            f"-o jsonpath='{{.items[0].metadata.name}}.{{.items[0].metadata.namespace}}.svc.cluster.local' "
+            f"--insecure-skip-tls-verify"
+        )
+        if code == 0 and stdout.strip("'") and ".." not in stdout:
+            return f"http://{stdout.strip(chr(39))}:{port}"
+        return None
+
+    async def _discover_svc_by_name(self, cli: str, safe_args: str, name: str, namespace: str, port: int) -> Optional[str]:
+        """Find a service by exact name and namespace.
+
+        Returns the cluster-local URL or None.
+        """
+        code, stdout, stderr = await run_command(
+            f"{cli} get svc {shlex.quote(name)} -n {shlex.quote(namespace)} "
+            f"{safe_args} "
+            f"-o jsonpath='{{.metadata.name}}.{{.metadata.namespace}}.svc.cluster.local' "
+            f"--insecure-skip-tls-verify"
+        )
+        if code == 0 and stdout.strip("'"):
+            return f"http://{stdout.strip(chr(39))}:{port}"
+        return None
+
+    async def _discover_prometheus_k8s(self, cli: str, safe_args: str) -> Optional[str]:
+        """Try multiple strategies to find Prometheus on Kubernetes."""
+        # Strategy 1: Label selector (works for all Helm charts)
+        for label in [
+            "app.kubernetes.io/name=prometheus",
+            "app=prometheus",
+            "app=prometheus-server",
+            "app=kube-prometheus-stack-prometheus",
+        ]:
+            url = await self._discover_svc_by_label(cli, safe_args, label, 9090)
+            if url:
+                return url
+
+        # Strategy 2: Common service names across common namespaces
+        common_names = [
+            "prometheus-server", "prometheus", "prometheus-operated",
+            "prometheus-kube-prometheus-prometheus",
+        ]
+        common_namespaces = ["monitoring", "prometheus", "observability", "kube-monitoring", "default"]
+        for svc_name in common_names:
+            for ns in common_namespaces:
+                url = await self._discover_svc_by_name(cli, safe_args, svc_name, ns, 9090)
+                if url:
+                    return url
+        return None
+
+    async def _discover_elasticsearch_k8s(self, cli: str, safe_args: str) -> Optional[str]:
+        """Try multiple strategies to find Elasticsearch on Kubernetes."""
+        for label in [
+            "app.kubernetes.io/name=elasticsearch",
+            "app=elasticsearch",
+        ]:
+            url = await self._discover_svc_by_label(cli, safe_args, label, 9200)
+            if url:
+                return url
+
+        common_names = ["elasticsearch", "elasticsearch-master", "elasticsearch-coordinating"]
+        common_namespaces = ["logging", "elastic", "observability", "elk", "default"]
+        for svc_name in common_names:
+            for ns in common_namespaces:
+                url = await self._discover_svc_by_name(cli, safe_args, svc_name, ns, 9200)
+                if url:
+                    return url
+        return None
+
+    async def _discover_route(self, cli: str, safe_args: str, route_name: str, namespace: str) -> Optional[str]:
+        """Discover a service URL via OpenShift route."""
+        code, stdout, stderr = await run_command(
+            f"{cli} get route {shlex.quote(route_name)} -n {shlex.quote(namespace)} "
+            f"{safe_args} "
+            f"-o jsonpath='{{.spec.host}}' --insecure-skip-tls-verify"
+        )
+        if code == 0 and stdout.strip("'"):
+            host = stdout.strip("'")
+            return f"https://{host}" if not host.startswith("http") else host
+        return None
+
+    async def _probe_openshift(self, cli: str, safe_args: str, result: ProbeResult) -> ProbeResult:
+        # 1. Check cluster connectivity
+        reachable = await self._check_connectivity(
+            cli, safe_args, result, "openshift_api", "{.openshiftVersion}"
+        )
+        if not reachable:
+            return result
+
+        # 2. Discover Prometheus via route (optional)
+        ep_prom = EndpointProbeResult(name="prometheus")
+        prom_url = await self._discover_route(cli, safe_args, "prometheus-k8s", "openshift-monitoring")
+        if prom_url:
+            result.prometheus_url = prom_url
+            ep_prom.reachable = True
+            ep_prom.discovered_url = prom_url
+        else:
+            ep_prom.error = "Prometheus route not found in openshift-monitoring"
+        result.endpoint_results["prometheus"] = ep_prom
+
+        # 3. Discover ELK via route (optional)
+        ep_elk = EndpointProbeResult(name="elasticsearch")
+        elk_url = await self._discover_route(cli, safe_args, "kibana", "openshift-logging")
+        if elk_url:
+            result.elasticsearch_url = elk_url
+            ep_elk.reachable = True
+            ep_elk.discovered_url = elk_url
+        else:
+            ep_elk.error = "Kibana route not found in openshift-logging"
+        result.endpoint_results["elasticsearch"] = ep_elk
+
+        return result
+
+    async def _probe_kubernetes(self, cli: str, safe_args: str, result: ProbeResult) -> ProbeResult:
+        # 1. Check cluster connectivity
+        reachable = await self._check_connectivity(
+            cli, safe_args, result, "kubernetes_api", "{.serverVersion.gitVersion}"
+        )
+        if not reachable:
+            return result
+
+        # 2. Discover Prometheus (label selectors → common names → all namespaces)
+        ep_prom = EndpointProbeResult(name="prometheus")
+        prom_url = await self._discover_prometheus_k8s(cli, safe_args)
+        if prom_url:
+            result.prometheus_url = prom_url
+            ep_prom.reachable = True
+            ep_prom.discovered_url = prom_url
+        else:
+            ep_prom.error = "Prometheus service not found (searched by labels and common names)"
+        result.endpoint_results["prometheus"] = ep_prom
+
+        # 3. Discover Elasticsearch (label selectors → common names → all namespaces)
+        ep_elk = EndpointProbeResult(name="elasticsearch")
+        elk_url = await self._discover_elasticsearch_k8s(cli, safe_args)
+        if elk_url:
+            result.elasticsearch_url = elk_url
+            ep_elk.reachable = True
+            ep_elk.discovered_url = elk_url
+        else:
+            ep_elk.error = "Elasticsearch service not found (searched by labels and common names)"
+        result.endpoint_results["elasticsearch"] = ep_elk
 
         return result
 

@@ -25,6 +25,7 @@ export interface ClusterProfile {
   cluster_type: 'openshift' | 'kubernetes';
   cluster_url: string;
   environment: Environment;
+  auth_method: 'kubeconfig' | 'token' | 'service_account' | 'none';
   has_cluster_credentials: boolean;
   endpoints: ClusterEndpoints;
   created_at: string;

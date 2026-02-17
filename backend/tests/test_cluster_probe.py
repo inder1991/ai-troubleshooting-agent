@@ -34,12 +34,12 @@ def test_get_cli_tool():
 @patch("src.integrations.probe.run_command")
 async def test_probe_openshift_discovers_prometheus(mock_run):
     mock_run.side_effect = [
-        # Prometheus route lookup -> success
-        (0, "prometheus-k8s-openshift-monitoring.apps.ocp.example.com", ""),
-        # Kibana route lookup -> not found (non-zero but no connection error)
-        (1, "", "not found"),
-        # Version -> success
+        # 1. Version (connectivity check) -> success
         (0, "4.14.5", ""),
+        # 2. Prometheus route lookup -> success
+        (0, "prometheus-k8s-openshift-monitoring.apps.ocp.example.com", ""),
+        # 3. Kibana route lookup -> not found
+        (1, "", "not found"),
     ]
     probe = ClusterProbe()
     config = _make_openshift_config()
@@ -53,23 +53,46 @@ async def test_probe_openshift_discovers_prometheus(mock_run):
 
 @pytest.mark.asyncio
 @patch("src.integrations.probe.run_command")
-async def test_probe_kubernetes(mock_run):
+async def test_probe_kubernetes_finds_by_label(mock_run):
+    """Prometheus found on first label selector query."""
     mock_run.side_effect = [
-        # prometheus-server svc -> success
-        (0, "prometheus-server.monitoring.svc.cluster.local", ""),
-        # elasticsearch svc -> success
-        (0, "elasticsearch.logging.svc.cluster.local", ""),
-        # version -> success
+        # 1. Version (connectivity check) -> success
         (0, "v1.28.3", ""),
+        # 2. Prometheus label search (app.kubernetes.io/name=prometheus) -> found
+        (0, "prometheus-kube-prom.monitoring.svc.cluster.local", ""),
+        # 3. Elasticsearch label search (app.kubernetes.io/name=elasticsearch) -> found
+        (0, "elasticsearch-master.elastic.svc.cluster.local", ""),
     ]
     probe = ClusterProbe()
     config = _make_kubernetes_config()
     result = await probe.probe(config)
 
     assert result.reachable is True
-    assert result.prometheus_url == "http://prometheus-server.monitoring.svc.cluster.local:9090"
-    assert result.elasticsearch_url == "http://elasticsearch.logging.svc.cluster.local:9200"
+    assert result.prometheus_url == "http://prometheus-kube-prom.monitoring.svc.cluster.local:9090"
+    assert result.elasticsearch_url == "http://elasticsearch-master.elastic.svc.cluster.local:9200"
     assert result.cluster_version == "v1.28.3"
+
+
+@pytest.mark.asyncio
+@patch("src.integrations.probe.run_command")
+async def test_probe_kubernetes_cluster_reachable_services_missing(mock_run):
+    """Cluster reachable but no Prometheus/ES found — should still be reachable."""
+    # All discovery attempts fail with NotFound
+    mock_run.side_effect = [
+        # 1. Version -> success (cluster reachable)
+        (0, "v1.28.3", ""),
+    ] + [
+        # All subsequent label + name lookups fail
+        (1, "", 'Error from server (NotFound): not found')
+    ] * 50  # enough for all label + name attempts
+    probe = ClusterProbe()
+    config = _make_kubernetes_config()
+    result = await probe.probe(config)
+
+    assert result.reachable is True
+    assert result.prometheus_url is None
+    assert result.elasticsearch_url is None
+    assert "not found" in result.endpoint_results["prometheus"].error.lower()
 
 
 @pytest.mark.asyncio

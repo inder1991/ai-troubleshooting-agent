@@ -27,8 +27,8 @@ const ClusterConnectionForm: React.FC<ClusterConnectionFormProps> = ({
   );
   const [clusterUrl, setClusterUrl] = useState(profile?.cluster_url || '');
   const [environment, setEnvironment] = useState(profile?.environment || 'dev');
-  const [authMethod, setAuthMethod] = useState(
-    profile?.has_cluster_credentials ? 'token' : 'token'
+  const [authMethod, setAuthMethod] = useState<string>(
+    profile?.auth_method || 'token'
   );
   const [authToken, setAuthToken] = useState('');
   const [kubeconfigData, setKubeconfigData] = useState('');
