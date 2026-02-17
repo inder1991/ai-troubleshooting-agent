@@ -302,7 +302,9 @@ const IntegrationHub: React.FC<IntegrationHubProps> = ({ onBack }) => {
                     setEditingProfile(null);
                   }}
                   onTestEndpoint={handleTestEndpoint}
+                  onProbe={handleProbeProfile}
                   testingEndpoint={testingEndpoint}
+                  probingId={probingId}
                 />
               )}
 

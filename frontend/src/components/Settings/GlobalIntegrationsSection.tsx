@@ -81,19 +81,19 @@ function AuthFields({
 
   if (authMethod === 'basic_auth') {
     return (
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-1 min-w-0 basis-[200px]">
         <input
           type="text"
           value={username}
           onChange={(e) => onUsernameChange(e.target.value)}
-          className={`${inputClass} px-3 py-2 w-36`}
+          className={`${inputClass} px-3 py-2 flex-1 min-w-0`}
           placeholder={hasExistingCredentials ? '••••••' : 'Username'}
         />
         <input
           type="password"
           value={password}
           onChange={(e) => onPasswordChange(e.target.value)}
-          className={`${inputClass} px-3 py-2 w-36`}
+          className={`${inputClass} px-3 py-2 flex-1 min-w-0`}
           placeholder={hasExistingCredentials ? '••••••' : 'Password'}
         />
       </div>
@@ -107,7 +107,7 @@ function AuthFields({
       type="password"
       value={token}
       onChange={(e) => onTokenChange(e.target.value)}
-      className={`${inputClass} px-4 py-2 w-44`}
+      className={`${inputClass} px-4 py-2 flex-1 min-w-0 basis-[200px]`}
       placeholder={hasExistingCredentials ? '••••••••' : placeholder}
     />
   );

@@ -35,13 +35,15 @@ const EndpointSection: React.FC<EndpointSectionProps> = ({
 }) => {
   const [url, setUrl] = useState(endpoint?.url || '');
   const [authMethod, setAuthMethod] = useState(endpoint?.auth_method || 'none');
-  const [authData, setAuthData] = useState('');
+  const [authToken, setAuthToken] = useState('');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
 
   const status = testing ? 'testing' : (endpoint?.status || 'unknown');
   const badge = statusBadge[status];
 
-  const inputClass =
-    'w-full px-3 py-2 bg-[#0f2023] border border-[#224349] rounded-lg text-sm text-white placeholder-gray-600 focus:border-[#07b6d5] focus:outline-none focus:ring-1 focus:ring-[#07b6d5]/30 transition-colors';
+  const inputBase =
+    'px-3 py-2 bg-[#0f2023] border border-[#224349] rounded-lg text-sm text-white placeholder-gray-600 focus:border-[#07b6d5] focus:outline-none focus:ring-1 focus:ring-[#07b6d5]/30 transition-colors';
 
   const handleUrlChange = (val: string) => {
     setUrl(val);
@@ -50,12 +52,29 @@ const EndpointSection: React.FC<EndpointSectionProps> = ({
 
   const handleAuthChange = (val: string) => {
     setAuthMethod(val);
+    setAuthToken('');
+    setUsername('');
+    setPassword('');
     onUpdate(endpointName, { auth_method: val } as Partial<EndpointConfig>);
   };
 
-  const handleCredentialChange = (val: string) => {
-    setAuthData(val);
+  const handleTokenChange = (val: string) => {
+    setAuthToken(val);
     onUpdate(endpointName, { auth_data: val });
+  };
+
+  const handleUsernameChange = (val: string) => {
+    setUsername(val);
+    if (val || password) {
+      onUpdate(endpointName, { auth_data: `${val}:${password}` });
+    }
+  };
+
+  const handlePasswordChange = (val: string) => {
+    setPassword(val);
+    if (username || val) {
+      onUpdate(endpointName, { auth_data: `${username}:${val}` });
+    }
   };
 
   return (
@@ -83,57 +102,82 @@ const EndpointSection: React.FC<EndpointSectionProps> = ({
         </span>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      {/* Row 1: URL + Test button */}
+      <div className="mb-3">
+        <label className="block text-[10px] text-gray-500 mb-1 uppercase tracking-wider">Endpoint URL</label>
         <div className="relative">
-          <label className="block text-[10px] text-gray-500 mb-1 uppercase tracking-wider">Endpoint URL</label>
-          <div className="relative">
-            <input
-              type="text"
-              value={url}
-              onChange={(e) => handleUrlChange(e.target.value)}
-              className={`${inputClass} pr-14`}
-              placeholder="https://..."
-            />
-            <button
-              onClick={() => onTest(endpointName)}
-              disabled={!url || testing}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-[#07b6d5] hover:text-[#07b6d5]/80 disabled:text-gray-600 disabled:cursor-not-allowed transition-colors"
-            >
-              {testing ? 'Testing...' : 'Test'}
-            </button>
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-[10px] text-gray-500 mb-1 uppercase tracking-wider">Authentication</label>
-          <div className="flex gap-2">
-            <select
-              value={authMethod}
-              onChange={(e) => handleAuthChange(e.target.value)}
-              className={`${inputClass} w-36 shrink-0`}
-            >
-              <option value="none">None</option>
-              {authOptions.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-            {authMethod !== 'none' && (
-              <input
-                type="password"
-                value={authData}
-                onChange={(e) => handleCredentialChange(e.target.value)}
-                className={inputClass}
-                placeholder={endpoint?.has_credentials ? '••••••••' : 'Enter credentials'}
-              />
-            )}
-          </div>
+          <input
+            type="text"
+            value={url}
+            onChange={(e) => handleUrlChange(e.target.value)}
+            className={`w-full ${inputBase} pr-20`}
+            placeholder="https://..."
+          />
+          <button
+            onClick={() => onTest(endpointName)}
+            disabled={!url || testing}
+            className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1 text-[10px] font-bold text-[#07b6d5] bg-[#07b6d5]/10 border border-[#07b6d5]/20 rounded hover:bg-[#07b6d5]/20 disabled:text-gray-600 disabled:bg-transparent disabled:border-transparent disabled:cursor-not-allowed transition-colors"
+          >
+            {testing ? 'Testing...' : 'Test'}
+          </button>
         </div>
       </div>
 
+      {/* Row 2: Auth method */}
+      <div className="mb-3">
+        <label className="block text-[10px] text-gray-500 mb-1 uppercase tracking-wider">Authentication</label>
+        <select
+          value={authMethod}
+          onChange={(e) => handleAuthChange(e.target.value)}
+          className={`${inputBase} w-48`}
+        >
+          <option value="none">None</option>
+          {authOptions.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Row 3: Credentials (only when auth method selected) */}
+      {authMethod === 'basic_auth' && (
+        <div>
+          <label className="block text-[10px] text-gray-500 mb-1 uppercase tracking-wider">Credentials</label>
+          <div className="grid grid-cols-2 gap-3">
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => handleUsernameChange(e.target.value)}
+              className={`w-full ${inputBase}`}
+              placeholder={endpoint?.has_credentials ? '••••••' : 'Username'}
+            />
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => handlePasswordChange(e.target.value)}
+              className={`w-full ${inputBase}`}
+              placeholder={endpoint?.has_credentials ? '••••••' : 'Password'}
+            />
+          </div>
+        </div>
+      )}
+
+      {authMethod !== 'none' && authMethod !== 'basic_auth' && (
+        <div>
+          <label className="block text-[10px] text-gray-500 mb-1 uppercase tracking-wider">Credentials</label>
+          <input
+            type="password"
+            value={authToken}
+            onChange={(e) => handleTokenChange(e.target.value)}
+            className={`w-full ${inputBase}`}
+            placeholder={endpoint?.has_credentials ? '••••••••' : 'Enter credentials'}
+          />
+        </div>
+      )}
+
       {testResult && (
-        <div className={`mt-2 px-3 py-1.5 rounded-lg text-[10px] font-medium ${
+        <div className={`mt-3 px-3 py-1.5 rounded-lg text-[10px] font-medium ${
           testResult.reachable
             ? 'bg-green-500/10 border border-green-500/20 text-green-400'
             : 'bg-red-500/10 border border-red-500/20 text-red-400'
