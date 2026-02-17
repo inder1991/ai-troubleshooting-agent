@@ -2,7 +2,7 @@
 
 import os
 from datetime import datetime
-from typing import Optional
+from typing import Literal, Optional
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -42,6 +42,15 @@ def get_audit() -> AuditLogger:
 
 # --- Request models ---
 
+class CreateGlobalIntegrationRequest(BaseModel):
+    service_type: Literal["elk", "jira", "confluence", "remedy"]
+    name: str
+    category: Optional[str] = ""
+    url: Optional[str] = ""
+    auth_method: Optional[str] = "none"
+    auth_data: Optional[str] = None
+
+
 class UpdateGlobalIntegrationRequest(BaseModel):
     url: Optional[str] = None
     auth_method: Optional[str] = None
@@ -57,6 +66,54 @@ class SaveAllRequest(BaseModel):
 @router.get("/")
 async def list_global_integrations():
     return [gi.to_safe_dict() for gi in get_gi_store().list_all()]
+
+
+@router.post("/")
+async def create_global_integration(request: CreateGlobalIntegrationRequest):
+    store = get_gi_store()
+    audit = get_audit()
+    resolver = get_credential_resolver()
+
+    gi = GlobalIntegration(
+        service_type=request.service_type,
+        name=request.name,
+        category=request.category or "",
+        url=request.url or "",
+        auth_method=request.auth_method or "none",
+    )
+
+    if request.auth_data:
+        handle = resolver.encrypt_and_store(gi.id, "credential", request.auth_data)
+        gi.auth_credential_handle = handle
+        gi.status = "not_validated"
+
+    store.add(gi)
+    audit.log("global_integration", gi.id, "created", f"Created {gi.name}")
+
+    return gi.to_safe_dict()
+
+
+@router.delete("/{integration_id}")
+async def delete_global_integration(integration_id: str):
+    store = get_gi_store()
+    audit = get_audit()
+    resolver = get_credential_resolver()
+
+    gi = store.get(integration_id)
+    if not gi:
+        raise HTTPException(status_code=404, detail="Global integration not found")
+
+    # Clean up stored credentials
+    if gi.auth_credential_handle:
+        try:
+            resolver.delete(gi.id, "credential")
+        except Exception:
+            pass  # Best-effort cleanup
+
+    store.delete(integration_id)
+    audit.log("global_integration", integration_id, "deleted", f"Deleted {gi.name}")
+
+    return {"status": "deleted"}
 
 
 @router.put("/{integration_id}")

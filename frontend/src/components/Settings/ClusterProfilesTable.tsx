@@ -7,6 +7,8 @@ interface ClusterProfilesTableProps {
   onDelete: (id: string) => void;
   onActivate: (id: string) => void;
   onAddNew: () => void;
+  onProbe?: (id: string) => Promise<void>;
+  probingId?: string | null;
 }
 
 const envBadge: Record<Environment, string> = {
@@ -15,11 +17,11 @@ const envBadge: Record<Environment, string> = {
   dev: 'bg-emerald-900/30 text-emerald-400 border border-emerald-500/20',
 };
 
-const statusDot: Record<ProfileStatus, { color: string; glow: string; label: string }> = {
-  connected: { color: 'bg-green-500', glow: 'shadow-[0_0_8px_rgba(34,197,94,0.6)]', label: 'Connected' },
-  warning: { color: 'bg-amber-500', glow: 'shadow-[0_0_8px_rgba(245,158,11,0.6)]', label: 'Warning' },
-  unreachable: { color: 'bg-red-500', glow: 'shadow-[0_0_8px_rgba(239,68,68,0.6)]', label: 'Unreachable' },
-  pending_setup: { color: 'bg-gray-500', glow: '', label: 'Pending Setup' },
+const statusDot: Record<ProfileStatus, { color: string; glow: string; label: string; textColor: string }> = {
+  connected: { color: 'bg-green-500', glow: 'shadow-[0_0_8px_rgba(34,197,94,0.6)]', label: 'Connected', textColor: 'text-green-500' },
+  warning: { color: 'bg-amber-500', glow: 'shadow-[0_0_8px_rgba(245,158,11,0.6)]', label: 'Warning', textColor: 'text-amber-500' },
+  unreachable: { color: 'bg-red-500', glow: 'shadow-[0_0_8px_rgba(239,68,68,0.6)]', label: 'Unreachable', textColor: 'text-red-500' },
+  pending_setup: { color: 'bg-gray-500', glow: '', label: 'Pending Setup', textColor: 'text-gray-500' },
 };
 
 function timeAgo(dateStr: string | null): string {
@@ -39,110 +41,125 @@ const ClusterProfilesTable: React.FC<ClusterProfilesTableProps> = ({
   onDelete,
   onActivate,
   onAddNew,
+  onProbe,
+  probingId,
 }) => {
   return (
-    <div>
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-sm font-bold text-white uppercase tracking-wider">
-          Integrated Cluster Profiles
-        </h2>
+    <section>
+      <div className="flex justify-between items-center mb-4">
+        <div>
+          <h3 className="text-lg font-bold text-white">Integrated Cluster Profiles</h3>
+          <p className="text-[#8fc3cc] text-sm">Active observability pipelines and cluster endpoints.</p>
+        </div>
         <button
           onClick={onAddNew}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1e2f33] text-white border border-[#07b6d5]/20 rounded-lg text-xs font-medium hover:bg-[#1e2f33]/80 transition-colors"
+          className="flex items-center gap-2 bg-[#224349] text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-[#224349]/80 transition-colors border border-[#07b6d5]/20"
         >
           <span
-            className="material-symbols-outlined text-sm"
+            className="material-symbols-outlined text-[18px]"
             style={{ fontFamily: 'Material Symbols Outlined' }}
           >
-            add
+            add_circle
           </span>
           Add New Cluster
         </button>
       </div>
 
       {profiles.length === 0 ? (
-        <div className="text-center text-gray-600 text-xs py-10 border border-dashed border-[#224349] rounded-xl">
+        <div className="text-center text-gray-600 text-xs py-10 bg-[#183034]/30 border border-dashed border-[#224349] rounded-xl">
           No cluster profiles configured. Add one to get started.
         </div>
       ) : (
-        <div className="border border-[#224349] rounded-xl overflow-hidden">
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="bg-[#1e2f33]/50 text-gray-500 uppercase tracking-wider">
-                <th className="text-left px-4 py-2.5 font-medium">Profile Name</th>
-                <th className="text-left px-4 py-2.5 font-medium">Environment</th>
-                <th className="text-left px-4 py-2.5 font-medium">Cluster Type</th>
-                <th className="text-left px-4 py-2.5 font-medium">Status</th>
-                <th className="text-left px-4 py-2.5 font-medium">Last Synced</th>
-                <th className="text-right px-4 py-2.5 font-medium">Actions</th>
+        <div className="bg-[#183034]/30 rounded-xl border border-[#224349] overflow-hidden">
+          <table className="w-full text-left border-collapse">
+            <thead className="bg-[#183034]/50 border-b border-[#224349]">
+              <tr>
+                <th className="px-6 py-3 text-xs font-bold text-[#8fc3cc] uppercase tracking-wider">Profile Name</th>
+                <th className="px-6 py-3 text-xs font-bold text-[#8fc3cc] uppercase tracking-wider">Environment</th>
+                <th className="px-6 py-3 text-xs font-bold text-[#8fc3cc] uppercase tracking-wider">Cluster Type</th>
+                <th className="px-6 py-3 text-xs font-bold text-[#8fc3cc] uppercase tracking-wider">Status</th>
+                <th className="px-6 py-3 text-xs font-bold text-[#8fc3cc] uppercase tracking-wider">Last Synced</th>
+                <th className="px-6 py-3 text-xs font-bold text-[#8fc3cc] uppercase tracking-wider text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#224349]/50">
+            <tbody className="divide-y divide-[#224349]">
               {profiles.map((profile) => {
                 const status = statusDot[profile.status];
                 return (
                   <tr
                     key={profile.id}
-                    className="bg-[#0a1a1d] hover:bg-[#0a1a1d]/80 transition-colors"
+                    className="hover:bg-[#183034]/20 transition-colors"
                   >
-                    <td className="px-4 py-3">
+                    <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         {profile.is_active && (
                           <span className="w-1.5 h-1.5 rounded-full bg-[#07b6d5] shadow-[0_0_6px_rgba(7,182,213,0.6)]" />
                         )}
-                        <span className="font-semibold text-white">{profile.name}</span>
+                        <span className="text-sm font-medium text-white">{profile.name}</span>
                       </div>
-                      <span className="text-[10px] text-gray-600 font-mono block mt-0.5">
-                        {profile.cluster_url}
-                      </span>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-6 py-4 text-sm">
                       <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase ${envBadge[profile.environment]}`}
+                        className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-tighter ${envBadge[profile.environment]}`}
                       >
                         {profile.environment}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-gray-400">
+                    <td className="px-6 py-4 text-sm text-[#8fc3cc]">
                       {profile.cluster_type === 'openshift' ? 'OpenShift' : 'Kubernetes'}
                       {profile.cluster_version && (
-                        <span className="text-gray-600 ml-1">{profile.cluster_version}</span>
+                        <span className="ml-1">{profile.cluster_version}</span>
                       )}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <span
                           className={`w-2 h-2 rounded-full ${status.color} ${status.glow}`}
                         />
-                        <span className="text-gray-400">{status.label}</span>
+                        <span className={`text-xs font-medium ${status.textColor}`}>{status.label}</span>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-gray-500 italic">
+                    <td className="px-6 py-4 text-xs text-[#8fc3cc] italic">
                       {timeAgo(profile.last_synced)}
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-1">
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex justify-end gap-2">
                         {!profile.is_active && (
                           <button
                             onClick={() => onActivate(profile.id)}
-                            className="p-1.5 text-gray-500 hover:text-[#07b6d5] hover:bg-[#1e2f33] rounded transition-colors"
+                            className="p-1.5 hover:bg-[#07b6d5]/20 text-[#8fc3cc] hover:text-[#07b6d5] rounded transition-colors"
                             title="Set as active"
                           >
                             <span
-                              className="material-symbols-outlined text-sm"
+                              className="material-symbols-outlined text-[18px]"
                               style={{ fontFamily: 'Material Symbols Outlined' }}
                             >
                               check_circle
                             </span>
                           </button>
                         )}
+                        {onProbe && (
+                          <button
+                            onClick={() => onProbe(profile.id)}
+                            disabled={probingId === profile.id}
+                            className="p-1.5 hover:bg-[#07b6d5]/20 text-[#8fc3cc] hover:text-[#07b6d5] rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Probe / Auto-discover"
+                          >
+                            <span
+                              className={`material-symbols-outlined text-[18px] ${probingId === profile.id ? 'animate-spin' : ''}`}
+                              style={{ fontFamily: 'Material Symbols Outlined' }}
+                            >
+                              radar
+                            </span>
+                          </button>
+                        )}
                         <button
                           onClick={() => onEdit(profile)}
-                          className="p-1.5 text-gray-500 hover:text-white hover:bg-[#1e2f33] rounded transition-colors"
+                          className="p-1.5 hover:bg-[#07b6d5]/20 text-[#8fc3cc] hover:text-[#07b6d5] rounded transition-colors"
                           title="Edit"
                         >
                           <span
-                            className="material-symbols-outlined text-sm"
+                            className="material-symbols-outlined text-[18px]"
                             style={{ fontFamily: 'Material Symbols Outlined' }}
                           >
                             edit
@@ -150,11 +167,11 @@ const ClusterProfilesTable: React.FC<ClusterProfilesTableProps> = ({
                         </button>
                         <button
                           onClick={() => onDelete(profile.id)}
-                          className="p-1.5 text-gray-500 hover:text-red-400 hover:bg-[#1e2f33] rounded transition-colors"
+                          className="p-1.5 hover:bg-red-500/20 text-[#8fc3cc] hover:text-red-400 rounded transition-colors"
                           title="Delete"
                         >
                           <span
-                            className="material-symbols-outlined text-sm"
+                            className="material-symbols-outlined text-[18px]"
                             style={{ fontFamily: 'Material Symbols Outlined' }}
                           >
                             delete
@@ -169,7 +186,7 @@ const ClusterProfilesTable: React.FC<ClusterProfilesTableProps> = ({
           </table>
         </div>
       )}
-    </div>
+    </section>
   );
 };
 

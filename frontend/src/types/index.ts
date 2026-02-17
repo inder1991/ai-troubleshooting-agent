@@ -228,6 +228,7 @@ export interface StartSessionRequest {
   trace_id?: string;
   namespace?: string;
   repo_url?: string;
+  profile_id?: string;
 }
 
 export interface V4WebSocketMessage {
@@ -259,6 +260,7 @@ export interface TroubleshootAppForm {
   namespace?: string;
   elk_index?: string;
   repo_url?: string;
+  profile_id?: string;
 }
 
 export interface PRReviewForm {
@@ -285,6 +287,7 @@ export interface ClusterDiagnosticsForm {
   auth_token?: string;
   auth_method?: 'token' | 'kubeconfig';
   resource_type?: string;
+  profile_id?: string;
 }
 
 export type CapabilityFormData =

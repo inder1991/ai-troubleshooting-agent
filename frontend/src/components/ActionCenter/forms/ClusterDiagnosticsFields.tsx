@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import type { ClusterDiagnosticsForm, Integration } from '../../../types';
-import { listIntegrations } from '../../../services/api';
+import type { ClusterDiagnosticsForm } from '../../../types';
+import type { ClusterProfile } from '../../../types/profiles';
+import { listProfiles } from '../../../services/profileApi';
 
 interface ClusterDiagnosticsFieldsProps {
   data: ClusterDiagnosticsForm;
@@ -10,27 +11,43 @@ interface ClusterDiagnosticsFieldsProps {
 const namespaces = ['default', 'kube-system', 'monitoring', 'production', 'staging'];
 const resourceTypes = ['All Resources', 'Pods', 'Deployments', 'Services', 'StatefulSets', 'DaemonSets', 'Nodes'];
 
+const envBadge: Record<string, string> = {
+  prod: 'text-red-400',
+  staging: 'text-[#07b6d5]',
+  dev: 'text-emerald-400',
+};
+
+const statusDot: Record<string, string> = {
+  connected: 'bg-green-500',
+  warning: 'bg-amber-500',
+  unreachable: 'bg-red-500',
+  pending_setup: 'bg-gray-500',
+};
+
 const ClusterDiagnosticsFields: React.FC<ClusterDiagnosticsFieldsProps> = ({ data, onChange }) => {
-  const [integrations, setIntegrations] = useState<Integration[]>([]);
-  const [selectedIntegration, setSelectedIntegration] = useState<string>('');
+  const [profiles, setProfiles] = useState<ClusterProfile[]>([]);
+  const [selectedProfile, setSelectedProfile] = useState<string>(data.profile_id || '');
 
   useEffect(() => {
-    listIntegrations()
-      .then(setIntegrations)
+    listProfiles()
+      .then(setProfiles)
       .catch(() => {});
   }, []);
 
-  const handleIntegrationSelect = (integrationId: string) => {
-    setSelectedIntegration(integrationId);
-    if (integrationId) {
-      const integration = integrations.find((i) => i.id === integrationId);
-      if (integration) {
+  const handleProfileSelect = (profileId: string) => {
+    setSelectedProfile(profileId);
+    if (profileId) {
+      const profile = profiles.find((p) => p.id === profileId);
+      if (profile) {
         onChange({
           ...data,
-          cluster_url: integration.cluster_url,
-          auth_method: integration.auth_method === 'kubeconfig' ? 'kubeconfig' : 'token',
+          profile_id: profileId,
+          cluster_url: profile.cluster_url,
+          auth_method: 'token',
         });
       }
+    } else {
+      onChange({ ...data, profile_id: undefined });
     }
   };
 
@@ -40,22 +57,33 @@ const ClusterDiagnosticsFields: React.FC<ClusterDiagnosticsFieldsProps> = ({ dat
 
   return (
     <div className="space-y-4">
-      {/* Select Cluster */}
-      {integrations.length > 0 && (
+      {/* Select Cluster Profile */}
+      {profiles.length > 0 && (
         <div>
-          <label className="block text-xs text-gray-400 mb-1.5 font-medium">Select Cluster</label>
+          <label className="block text-xs text-gray-400 mb-1.5 font-medium">Select Cluster Profile</label>
           <select
-            value={selectedIntegration}
-            onChange={(e) => handleIntegrationSelect(e.target.value)}
+            value={selectedProfile}
+            onChange={(e) => handleProfileSelect(e.target.value)}
             className="w-full px-3 py-2.5 bg-[#0f2023] border border-[#224349] rounded-lg text-sm text-white focus:border-[#07b6d5] focus:outline-none focus:ring-1 focus:ring-[#07b6d5]/30 transition-colors"
           >
             <option value="">-- Manual Entry --</option>
-            {integrations.map((i) => (
-              <option key={i.id} value={i.id}>
-                {i.name} ({i.cluster_type})
+            {profiles.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name} [{p.environment}] {p.status === 'connected' ? '' : `(${p.status})`}
               </option>
             ))}
           </select>
+          {selectedProfile && (() => {
+            const p = profiles.find((pr) => pr.id === selectedProfile);
+            if (!p) return null;
+            return (
+              <div className="flex items-center gap-2 mt-1.5 text-[10px]">
+                <span className={`w-1.5 h-1.5 rounded-full ${statusDot[p.status] || 'bg-gray-500'}`} />
+                <span className={envBadge[p.environment] || 'text-gray-400'}>{p.environment}</span>
+                <span className="text-gray-600 font-mono">{p.cluster_url}</span>
+              </div>
+            );
+          })()}
         </div>
       )}
 

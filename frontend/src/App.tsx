@@ -7,24 +7,24 @@ import type {
   TokenUsage,
   CapabilityType,
   CapabilityFormData,
+  TroubleshootAppForm,
 } from './types';
 import { useWebSocketV4 } from './hooks/useWebSocket';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { getSessionStatus, startSessionV4 } from './services/api';
-import SessionSidebar from './components/SessionSidebar';
-import ActionCenter from './components/ActionCenter/ActionCenter';
+import { ToastProvider, useToast } from './components/Toast/ToastContext';
+import SidebarNav from './components/Layout/SidebarNav';
+import type { NavView } from './components/Layout/SidebarNav';
+import HomePage from './components/Home/HomePage';
 import CapabilityForm from './components/ActionCenter/CapabilityForm';
-import TabLayout from './components/TabLayout';
-import ChatTab from './components/Chat/ChatTab';
-import DashboardTab from './components/Dashboard/DashboardTab';
-import ActivityLogTab from './components/ActivityLog/ActivityLogTab';
-import ResultsPanel from './components/ResultsPanel';
-import ProgressBar from './components/ProgressBar';
+import InvestigationView from './components/Investigation/InvestigationView';
+import SessionManagerView from './components/Sessions/SessionManagerView';
 import IntegrationSettings from './components/Settings/IntegrationSettings';
 
-type ViewState = 'home' | 'form' | 'session' | 'settings';
+type ViewState = 'home' | 'form' | 'investigation' | 'sessions' | 'integrations' | 'settings';
 
-function App() {
+function AppInner() {
+  const { addToast } = useToast();
   const [viewState, setViewState] = useState<ViewState>('home');
   const [selectedCapability, setSelectedCapability] = useState<CapabilityType | null>(null);
   const [sessions, setSessions] = useState<V4Session[]>([]);
@@ -35,11 +35,10 @@ function App() {
   const [currentPhase, setCurrentPhase] = useState<DiagnosticPhase | null>(null);
   const [confidence, setConfidence] = useState(0);
   const [tokenUsage, setTokenUsage] = useState<TokenUsage[]>([]);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const activeSessionId = activeSession?.session_id ?? null;
 
-  // Refresh session status when events indicate progress
+  // Refresh session status
   const refreshStatus = useCallback(async (sessionId: string) => {
     try {
       const status = await getSessionStatus(sessionId);
@@ -47,7 +46,7 @@ function App() {
       setConfidence(status.confidence);
       setTokenUsage(status.token_usage);
     } catch {
-      // Status refresh failed silently
+      // silent
     }
   }, []);
 
@@ -62,9 +61,8 @@ function App() {
         [sid]: [...(prev[sid] || []), event],
       }));
 
-      if (event.event_type === 'success' || event.event_type === 'error') {
-        refreshStatus(sid);
-      }
+      // Refresh status on all event types for real-time updates
+      refreshStatus(sid);
     },
     [activeSessionId, refreshStatus]
   );
@@ -72,7 +70,6 @@ function App() {
   const handleChatResponse = useCallback(
     (message: ChatMessage) => {
       if (!activeSessionId) return;
-
       setChatMessages((prev) => ({
         ...prev,
         [activeSessionId]: [...(prev[activeSessionId] || []), message],
@@ -92,6 +89,14 @@ function App() {
   });
 
   // Navigation
+  const handleNavigate = useCallback((view: NavView) => {
+    setViewState(view);
+    if (view === 'home') {
+      setSelectedCapability(null);
+      setActiveSession(null);
+    }
+  }, []);
+
   const handleSelectCapability = useCallback((capability: CapabilityType) => {
     setSelectedCapability(capability);
     setViewState('form');
@@ -103,18 +108,12 @@ function App() {
     setActiveSession(null);
   }, []);
 
-  const handleSettings = useCallback(() => {
-    setViewState('settings');
-    setSelectedCapability(null);
-    setActiveSession(null);
-  }, []);
-
   const handleSelectSession = useCallback(
     (session: V4Session) => {
       setActiveSession(session);
       setCurrentPhase(session.status);
       setConfidence(session.confidence);
-      setViewState('session');
+      setViewState('investigation');
       refreshStatus(session.session_id);
     },
     [refreshStatus]
@@ -123,7 +122,6 @@ function App() {
   const handleFormSubmit = useCallback(
     async (data: CapabilityFormData) => {
       try {
-        // For troubleshoot_app, use the existing V4 API
         if (data.capability === 'troubleshoot_app') {
           const session = await startSessionV4({
             service_name: data.service_name,
@@ -131,22 +129,23 @@ function App() {
             trace_id: data.trace_id,
             namespace: data.namespace,
             repo_url: data.repo_url,
+            profileId: (data as TroubleshootAppForm).profile_id,
           });
           setSessions((prev) => [session, ...prev]);
           setActiveSession(session);
           setCurrentPhase(session.status);
           setConfidence(session.confidence);
-          setViewState('session');
+          setViewState('investigation');
           refreshStatus(session.session_id);
         } else {
-          // For other capabilities, create a placeholder session
           const placeholderSession: V4Session = {
             session_id: `${data.capability}-${Date.now()}`,
-            service_name: data.capability === 'pr_review'
-              ? `PR Review`
-              : data.capability === 'github_issue_fix'
-              ? `Issue Fix`
-              : `Cluster Diag`,
+            service_name:
+              data.capability === 'pr_review'
+                ? 'PR Review'
+                : data.capability === 'github_issue_fix'
+                ? 'Issue Fix'
+                : 'Cluster Diag',
             status: 'initial',
             confidence: 0,
             created_at: new Date().toISOString(),
@@ -156,12 +155,11 @@ function App() {
           setActiveSession(placeholderSession);
           setCurrentPhase('initial');
           setConfidence(0);
-          setViewState('session');
+          setViewState('investigation');
         }
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Failed to start session';
-        setErrorMessage(msg);
-        setTimeout(() => setErrorMessage(null), 8000);
+        addToast('error', msg);
       }
     },
     [refreshStatus]
@@ -193,41 +191,54 @@ function App() {
 
   useKeyboardShortcuts(shortcutHandlers);
 
-  return (
-    <div className="flex h-screen bg-[#0f2023] text-white">
-      {/* Sidebar */}
-      <SessionSidebar
-        activeSessionId={activeSessionId}
-        onSelectSession={handleSelectSession}
-        sessions={sessions}
-        onSessionsChange={setSessions}
-        onNewMission={handleGoHome}
-        onSettings={handleSettings}
-      />
+  // Derive nav view from viewState
+  const navView: NavView =
+    viewState === 'sessions' ? 'sessions' : viewState === 'integrations' ? 'integrations' : viewState === 'settings' ? 'settings' : 'home';
 
-      {/* Error toast */}
-      {errorMessage && (
-        <div className="fixed top-4 right-4 z-50 bg-red-900/90 border border-red-500 text-red-100 px-4 py-3 rounded-lg shadow-lg max-w-md">
-          <div className="flex items-center gap-2">
-            <span className="text-red-400 font-bold">Error</span>
-            <button onClick={() => setErrorMessage(null)} className="ml-auto text-red-300 hover:text-white">&times;</button>
-          </div>
-          <p className="text-sm mt-1">{errorMessage}</p>
-        </div>
+  const showSidebar = viewState !== 'investigation';
+
+  return (
+    <div className="flex h-screen w-full overflow-hidden text-slate-100 antialiased" style={{ backgroundColor: '#0f2023' }}>
+      {/* Sidebar Nav - hidden during investigation (war room is full width) */}
+      {showSidebar && (
+        <SidebarNav
+          activeView={navView}
+          onNavigate={handleNavigate}
+          onNewMission={() => {
+            setSelectedCapability(null);
+            setViewState('home');
+          }}
+        />
       )}
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {viewState === 'home' && (
-          <ActionCenter
+          <HomePage
             onSelectCapability={handleSelectCapability}
             sessions={sessions}
+            onSessionsChange={setSessions}
+            onSelectSession={handleSelectSession}
+            wsConnected={wsConnected}
+          />
+        )}
+
+        {viewState === 'sessions' && (
+          <SessionManagerView
+            sessions={sessions}
+            onSessionsChange={setSessions}
             onSelectSession={handleSelectSession}
           />
         )}
 
-        {viewState === 'settings' && (
+        {viewState === 'integrations' && (
           <IntegrationSettings onBack={handleGoHome} />
+        )}
+
+        {viewState === 'settings' && (
+          <div className="flex-1 flex items-center justify-center text-gray-500 text-sm">
+            Settings — Coming Soon
+          </div>
         )}
 
         {viewState === 'form' && selectedCapability && (
@@ -238,65 +249,75 @@ function App() {
           />
         )}
 
-        {viewState === 'session' && activeSession && (
+        {viewState === 'investigation' && activeSession && (
           <>
-            {/* Header */}
-            <div className="h-12 bg-[#1e2f33]/50 border-b border-[#224349] flex items-center px-4">
-              <button
-                onClick={handleGoHome}
-                className="text-gray-400 hover:text-white text-xs mr-3 transition-colors"
-              >
-                &larr; Home
-              </button>
-              <h1 className="text-sm font-semibold text-white">
-                {activeSession.service_name}
-              </h1>
-              <span className="ml-3 text-xs text-gray-500 font-mono">
-                {activeSession.session_id.substring(0, 8)}...
-              </span>
-            </div>
-
-            {/* Main area: Chat + Results */}
-            <div className="flex-1 flex overflow-hidden">
-              {/* Left: Tab layout */}
-              <div className="flex-1 min-w-0">
-                <TabLayout
-                  chatContent={
-                    <ChatTab
-                      sessionId={activeSession.session_id}
-                      messages={currentChatMessages}
-                      onNewMessage={handleNewChatMessage}
-                    />
-                  }
-                  dashboardContent={
-                    <DashboardTab sessionId={activeSession.session_id} />
-                  }
-                  activityContent={
-                    <ActivityLogTab
-                      sessionId={activeSession.session_id}
-                      events={currentTaskEvents}
-                    />
-                  }
-                />
+            {/* Investigation header - matches reference war room style */}
+            <header className="h-14 border-b border-primary/20 bg-background-dark/50 backdrop-blur-md flex items-center justify-between px-6 shrink-0">
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={handleGoHome}
+                  className="flex items-center gap-2 group"
+                >
+                  <div className="w-8 h-8 bg-primary rounded flex items-center justify-center">
+                    <span className="material-symbols-outlined text-white text-lg" style={{ fontFamily: 'Material Symbols Outlined' }}>bug_report</span>
+                  </div>
+                  <span className="font-bold tracking-tight text-lg">
+                    Debug<span className="text-primary">Duck</span>
+                  </span>
+                </button>
+                <div className="h-4 w-px bg-slate-700 mx-2" />
+                <div className="flex flex-col">
+                  <span className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Investigation ID</span>
+                  <span className="text-xs font-mono text-primary">{activeSession.session_id.substring(0, 8).toUpperCase()}</span>
+                </div>
               </div>
-
-              {/* Right: Results Panel */}
-              <div className="w-80 border-l border-[#224349] bg-[#0a1a1d]">
-                <ResultsPanel sessionId={activeSession.session_id} />
+              <div className="flex items-center gap-6">
+                {currentPhase && (
+                  <div className="flex items-center gap-2 px-3 py-1 bg-red-500/10 border border-red-500/20 rounded-full">
+                    <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                    <span className="text-[10px] font-bold text-red-500 uppercase tracking-wider">
+                      Phase: {currentPhase.replace(/_/g, ' ')}
+                    </span>
+                  </div>
+                )}
+                {/* User Avatars */}
+                <div className="flex -space-x-2">
+                  <div className="w-7 h-7 rounded-full border-2 border-background-dark bg-primary/20 flex items-center justify-center">
+                    <span className="material-symbols-outlined text-primary text-xs" style={{ fontFamily: 'Material Symbols Outlined' }}>person</span>
+                  </div>
+                  <div className="w-7 h-7 rounded-full border-2 border-background-dark bg-slate-800 flex items-center justify-center text-[10px] font-bold text-slate-400">+1</div>
+                </div>
+                <button className="bg-primary/10 hover:bg-primary/20 text-primary p-1.5 rounded-lg transition-colors">
+                  <span className="material-symbols-outlined text-xl" style={{ fontFamily: 'Material Symbols Outlined' }}>share</span>
+                </button>
               </div>
-            </div>
+            </header>
 
-            {/* Bottom: Progress Bar */}
-            <ProgressBar
-              phase={currentPhase}
-              confidence={confidence}
-              tokenUsage={tokenUsage}
-              wsConnected={wsConnected}
-            />
+            {/* 3-column investigation layout + bottom progress bar */}
+            <div className="flex-1 overflow-hidden">
+              <InvestigationView
+                session={activeSession}
+                messages={currentChatMessages}
+                events={currentTaskEvents}
+                onNewMessage={handleNewChatMessage}
+                wsConnected={wsConnected}
+                phase={currentPhase}
+                confidence={confidence}
+                tokenUsage={tokenUsage}
+              />
+            </div>
           </>
         )}
       </div>
     </div>
+  );
+}
+
+function App() {
+  return (
+    <ToastProvider>
+      <AppInner />
+    </ToastProvider>
   );
 }
 

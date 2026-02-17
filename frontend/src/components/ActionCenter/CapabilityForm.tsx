@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Rocket, Search, FileText, Bug, Container } from 'lucide-react';
 import type {
   CapabilityType,
   CapabilityFormData,
@@ -21,30 +20,30 @@ interface CapabilityFormProps {
 
 const capabilityMeta: Record<
   CapabilityType,
-  { title: string; subtitle: string; icon: typeof Search; color: string }
+  { title: string; subtitle: string; icon: string; color: string }
 > = {
   troubleshoot_app: {
     title: 'Troubleshoot Application',
     subtitle: 'Configure log and metric analysis parameters',
-    icon: Search,
+    icon: 'troubleshoot',
     color: '#07b6d5',
   },
   pr_review: {
     title: 'PR Review',
     subtitle: 'Set up automated code review pipeline',
-    icon: FileText,
+    icon: 'rate_review',
     color: '#a78bfa',
   },
   github_issue_fix: {
     title: 'Issue Fixer',
     subtitle: 'Configure automated patch generation',
-    icon: Bug,
+    icon: 'auto_fix_high',
     color: '#f97316',
   },
   cluster_diagnostics: {
     title: 'Cluster Diagnostics',
     subtitle: 'Set up cluster health check parameters',
-    icon: Container,
+    icon: 'hub',
     color: '#14b8a6',
   },
 };
@@ -65,7 +64,6 @@ const getInitialData = (capability: CapabilityType): CapabilityFormData => {
 const CapabilityForm: React.FC<CapabilityFormProps> = ({ capability, onBack, onSubmit }) => {
   const [formData, setFormData] = useState<CapabilityFormData>(getInitialData(capability));
   const meta = capabilityMeta[capability];
-  const Icon = meta.icon;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,7 +91,7 @@ const CapabilityForm: React.FC<CapabilityFormProps> = ({ capability, onBack, onS
           onClick={onBack}
           className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-white mb-6 transition-colors"
         >
-          <ArrowLeft className="w-4 h-4" />
+          <span className="material-symbols-outlined text-base" style={{ fontFamily: 'Material Symbols Outlined' }}>arrow_back</span>
           <span>Back to Launcher</span>
         </button>
 
@@ -103,7 +101,7 @@ const CapabilityForm: React.FC<CapabilityFormProps> = ({ capability, onBack, onS
             className="w-10 h-10 rounded-lg flex items-center justify-center"
             style={{ backgroundColor: `${meta.color}15`, border: `1px solid ${meta.color}30` }}
           >
-            <Icon className="w-5 h-5" style={{ color: meta.color }} />
+            <span className="material-symbols-outlined" style={{ fontFamily: 'Material Symbols Outlined', color: meta.color }}>{meta.icon}</span>
           </div>
           <div>
             <h1 className="text-xl font-bold text-white">{meta.title}</h1>
@@ -146,7 +144,7 @@ const CapabilityForm: React.FC<CapabilityFormProps> = ({ capability, onBack, onS
             disabled={!isValid()}
             className="mt-6 w-full flex items-center justify-center gap-2 px-6 py-3 bg-[#07b6d5] hover:bg-[#07b6d5]/90 disabled:bg-[#224349] disabled:text-gray-500 disabled:cursor-not-allowed text-[#0f2023] font-bold rounded-xl text-sm transition-colors"
           >
-            <Rocket className="w-4 h-4" />
+            <span className="material-symbols-outlined text-lg" style={{ fontFamily: 'Material Symbols Outlined' }}>rocket_launch</span>
             <span>Deploy Mission</span>
           </button>
         </form>

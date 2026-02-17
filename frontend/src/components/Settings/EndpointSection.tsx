@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { EndpointConfig, EndpointStatus } from '../../types/profiles';
+import type { EndpointConfig, EndpointStatus, EndpointTestResult } from '../../types/profiles';
 
 interface EndpointSectionProps {
   icon: string;
@@ -10,6 +10,7 @@ interface EndpointSectionProps {
   onTest: (endpointName: string) => Promise<void>;
   onUpdate: (endpointName: string, data: Partial<EndpointConfig> & { auth_data?: string }) => void;
   testing?: boolean;
+  testResult?: EndpointTestResult;
 }
 
 const statusBadge: Record<EndpointStatus, { text: string; icon: string; classes: string }> = {
@@ -30,6 +31,7 @@ const EndpointSection: React.FC<EndpointSectionProps> = ({
   onTest,
   onUpdate,
   testing = false,
+  testResult,
 }) => {
   const [url, setUrl] = useState(endpoint?.url || '');
   const [authMethod, setAuthMethod] = useState(endpoint?.auth_method || 'none');
@@ -129,6 +131,18 @@ const EndpointSection: React.FC<EndpointSectionProps> = ({
           </div>
         </div>
       </div>
+
+      {testResult && (
+        <div className={`mt-2 px-3 py-1.5 rounded-lg text-[10px] font-medium ${
+          testResult.reachable
+            ? 'bg-green-500/10 border border-green-500/20 text-green-400'
+            : 'bg-red-500/10 border border-red-500/20 text-red-400'
+        }`}>
+          {testResult.reachable
+            ? `Reachable - ${testResult.latency_ms}ms latency`
+            : `Unreachable - ${testResult.error}`}
+        </div>
+      )}
     </div>
   );
 };

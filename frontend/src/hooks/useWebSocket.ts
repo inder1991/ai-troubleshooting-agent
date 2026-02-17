@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react';
-import type { TaskEvent, ChatMessage, V4WebSocketMessage } from '../types';
+import type { TaskEvent, ChatMessage } from '../types';
 
 // ===== V3 WebSocket (preserved for backward compatibility) =====
 
@@ -65,59 +65,103 @@ export const useWebSocketV4 = (
 
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reconnectAttemptsRef = useRef(0);
-  const maxReconnectAttempts = 5;
+  const maxReconnectAttempts = 10;
+  const sessionIdRef = useRef(sessionId);
+  sessionIdRef.current = sessionId;
 
   const connect = useCallback(() => {
-    if (!sessionId) return;
+    if (!sessionIdRef.current) return;
 
-    const ws = new WebSocket(`ws://localhost:8000/ws/troubleshoot/${sessionId}`);
+    // Don't create duplicate connections
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) return;
+
+    const currentSessionId = sessionIdRef.current;
+    const ws = new WebSocket(`ws://localhost:8000/ws/troubleshoot/${currentSessionId}`);
 
     ws.onopen = () => {
+      console.log(`[WS] Connected to session ${currentSessionId}`);
       reconnectAttemptsRef.current = 0;
       handlersRef.current.onConnect?.();
     };
 
     ws.onmessage = (event) => {
       try {
-        const message: V4WebSocketMessage = JSON.parse(event.data);
+        const message = JSON.parse(event.data);
+        const type = message.type;
+        const data = message.data;
 
-        switch (message.type) {
+        switch (type) {
           case 'task_event':
-            handlersRef.current.onTaskEvent?.(message.data as TaskEvent);
+            if (data) {
+              // Ensure session_id is always present
+              const taskEvent: TaskEvent = {
+                ...data,
+                session_id: data.session_id || currentSessionId,
+              };
+              handlersRef.current.onTaskEvent?.(taskEvent);
+            }
             break;
           case 'chat_response':
-            handlersRef.current.onChatResponse?.(message.data as ChatMessage);
+            if (data) {
+              handlersRef.current.onChatResponse?.(data as ChatMessage);
+            }
             break;
           case 'connected':
-            // Initial handshake from server — no action needed
+            // Server handshake acknowledged
+            console.log(`[WS] Handshake complete for ${currentSessionId}`);
             break;
           default:
-            console.warn('Unknown WebSocket message type:', message.type);
+            // Try to handle as a raw task event (backward compat)
+            if (message.agent_name && message.event_type) {
+              const rawEvent: TaskEvent = {
+                ...message,
+                session_id: message.session_id || currentSessionId,
+              };
+              handlersRef.current.onTaskEvent?.(rawEvent);
+            }
         }
       } catch (e) {
-        console.error('WebSocket parse error:', e);
+        console.error('[WS] Parse error:', e);
       }
     };
 
     ws.onerror = (error) => {
+      console.error(`[WS] Error for session ${currentSessionId}:`, error);
       handlersRef.current.onError?.(error);
     };
 
-    ws.onclose = () => {
+    ws.onclose = (event) => {
+      console.log(`[WS] Disconnected from session ${currentSessionId} (code: ${event.code})`);
       handlersRef.current.onDisconnect?.();
 
-      if (reconnectAttemptsRef.current < maxReconnectAttempts) {
-        const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 10000);
+      // Only reconnect if this is still the active session
+      if (sessionIdRef.current === currentSessionId && reconnectAttemptsRef.current < maxReconnectAttempts) {
+        const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 15000);
         reconnectAttemptsRef.current += 1;
+        console.log(`[WS] Reconnecting in ${delay}ms (attempt ${reconnectAttemptsRef.current}/${maxReconnectAttempts})`);
         reconnectTimeoutRef.current = setTimeout(connect, delay);
       }
     };
 
     wsRef.current = ws;
-  }, [sessionId]);
+  }, []);
 
   useEffect(() => {
-    connect();
+    // Clean up previous connection
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+
+    reconnectAttemptsRef.current = 0;
+
+    if (sessionId) {
+      connect();
+    }
 
     return () => {
       if (reconnectTimeoutRef.current) {
@@ -125,7 +169,7 @@ export const useWebSocketV4 = (
       }
       wsRef.current?.close();
     };
-  }, [connect]);
+  }, [sessionId, connect]);
 
   return wsRef;
 };

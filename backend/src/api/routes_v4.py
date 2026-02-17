@@ -106,12 +106,76 @@ async def start_session(request: StartSessionRequest, background_tasks: Backgrou
     )
 
 
+def _push_to_v5(session_id: str, state):
+    """Bridge supervisor results to V5 session store for governance endpoints."""
+    try:
+        from src.api.routes_v5 import _v5_sessions
+
+        # Build evidence pins from findings
+        evidence_pins = []
+        for f in state.all_findings:
+            evidence_pins.append({
+                "claim": f.title,
+                "supporting_evidence": f.evidence if hasattr(f, 'evidence') else [],
+                "source_agent": f.agent_name,
+                "confidence": f.confidence,
+                "evidence_type": f.category if hasattr(f, 'category') else "unknown",
+            })
+
+        # Build confidence ledger from per-agent data
+        confidence_ledger = {
+            "weighted_final": state.overall_confidence,
+        }
+        for tu in state.token_usage:
+            agent_key = tu.agent_name.replace("_agent", "") + "_confidence"
+            confidence_ledger[agent_key] = state.overall_confidence
+
+        # Build reasoning manifest from supervisor reasoning
+        reasoning_steps = []
+        if hasattr(state, 'supervisor_reasoning') and state.supervisor_reasoning:
+            for i, step in enumerate(state.supervisor_reasoning):
+                reasoning_steps.append({
+                    "step_number": i + 1,
+                    "decision": step.get("decision", "") if isinstance(step, dict) else str(step),
+                    "reasoning": step.get("reasoning", "") if isinstance(step, dict) else str(step),
+                    "confidence_at_step": step.get("confidence", state.overall_confidence) if isinstance(step, dict) else state.overall_confidence,
+                })
+
+        # Build timeline events from task events
+        timeline_events = []
+        if hasattr(state, 'task_events') and state.task_events:
+            for evt in state.task_events:
+                timeline_events.append({
+                    "timestamp": evt.timestamp if hasattr(evt, 'timestamp') else datetime.now(timezone.utc).isoformat(),
+                    "source": evt.agent_name if hasattr(evt, 'agent_name') else "supervisor",
+                    "event_type": evt.event_type if hasattr(evt, 'event_type') else "info",
+                    "description": evt.message if hasattr(evt, 'message') else str(evt),
+                    "severity": "info",
+                })
+
+        _v5_sessions[session_id] = {
+            "session_id": session_id,
+            "evidence_pins": evidence_pins,
+            "confidence_ledger": confidence_ledger,
+            "reasoning_manifest": {
+                "session_id": session_id,
+                "steps": reasoning_steps,
+            },
+            "timeline_events": timeline_events,
+        }
+
+        logger.info("Pushed V5 governance data for session %s: %d evidence pins", session_id, len(evidence_pins))
+    except Exception as e:
+        logger.warning("Failed to push V5 governance data for session %s: %s", session_id, e)
+
+
 async def run_diagnosis(session_id: str, supervisor: SupervisorAgent, initial_input: dict, emitter: EventEmitter):
     try:
         state = await supervisor.run(initial_input, emitter)
         sessions[session_id]["state"] = state
         sessions[session_id]["phase"] = state.phase.value
         sessions[session_id]["confidence"] = state.overall_confidence
+        _push_to_v5(session_id, state)
     except Exception as e:
         sessions[session_id]["phase"] = "error"
         await emitter.emit("supervisor", "error", f"Diagnosis failed: {str(e)}")
