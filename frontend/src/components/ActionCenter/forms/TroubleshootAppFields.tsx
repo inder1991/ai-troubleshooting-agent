@@ -36,7 +36,7 @@ const TroubleshootAppFields: React.FC<TroubleshootAppFieldsProps> = ({ data, onC
     if (profileId) {
       const profile = profiles.find((p) => p.id === profileId);
       if (profile) {
-        onChange({ ...data, profile_id: profileId, namespace: profile.cluster_url });
+        onChange({ ...data, profile_id: profileId });
       }
     } else {
       onChange({ ...data, profile_id: undefined });
