@@ -343,6 +343,7 @@ class GlobalProbe:
             "jira": "/rest/api/2/serverInfo",
             "confluence": "/rest/api/space",
             "remedy": "/api/arsys/v1",
+            "github": "/user",
         }
         return paths.get(service_type, "/")
 

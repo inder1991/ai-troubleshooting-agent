@@ -43,18 +43,20 @@ def get_audit() -> AuditLogger:
 # --- Request models ---
 
 class CreateGlobalIntegrationRequest(BaseModel):
-    service_type: Literal["elk", "jira", "confluence", "remedy"]
+    service_type: Literal["elk", "jira", "confluence", "remedy", "github"]
     name: str
     category: Optional[str] = ""
     url: Optional[str] = ""
     auth_method: Optional[str] = "none"
     auth_data: Optional[str] = None
+    config: Optional[dict] = None
 
 
 class UpdateGlobalIntegrationRequest(BaseModel):
     url: Optional[str] = None
     auth_method: Optional[str] = None
     auth_data: Optional[str] = None  # plaintext, will be encrypted
+    config: Optional[dict] = None
 
 
 class SaveAllRequest(BaseModel):
@@ -80,6 +82,7 @@ async def create_global_integration(request: CreateGlobalIntegrationRequest):
         category=request.category or "",
         url=request.url or "",
         auth_method=request.auth_method or "none",
+        config=request.config or {},
     )
 
     if request.auth_data:
@@ -130,6 +133,8 @@ async def update_global_integration(integration_id: str, request: UpdateGlobalIn
         gi.url = request.url
     if request.auth_method is not None:
         gi.auth_method = request.auth_method
+    if request.config is not None:
+        gi.config = request.config
 
     if request.auth_data:
         handle = resolver.encrypt_and_store(gi.id, "credential", request.auth_data.strip())
@@ -196,6 +201,8 @@ async def save_all_global_integrations(request: SaveAllRequest):
             gi.url = item["url"]
         if "auth_method" in item:
             gi.auth_method = item["auth_method"]
+        if "config" in item:
+            gi.config = item["config"]
         if item.get("auth_data"):
             handle = resolver.encrypt_and_store(gi.id, "credential", item["auth_data"].strip())
             gi.auth_credential_handle = handle

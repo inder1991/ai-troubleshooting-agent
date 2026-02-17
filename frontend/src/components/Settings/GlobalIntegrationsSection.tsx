@@ -46,6 +46,14 @@ const serviceConfig: Record<string, { icon: string; bgColor: string; borderColor
     displayName: 'BMC Remedy',
     subtitle: 'Change Management',
   },
+  github: {
+    icon: 'code',
+    bgColor: 'bg-slate-600/10',
+    borderColor: 'border-slate-500/20',
+    textColor: 'text-slate-400',
+    displayName: 'GitHub Enterprise',
+    subtitle: 'Version Control',
+  },
 };
 
 const statusDisplay: Record<GlobalIntegrationStatus, { text: string; classes: string; dot?: boolean }> = {
@@ -134,6 +142,7 @@ const GlobalIntegrationsSection: React.FC<GlobalIntegrationsSectionProps> = ({
   const [newUsername, setNewUsername] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [newToken, setNewToken] = useState('');
+  const [newOrgs, setNewOrgs] = useState('');
 
   const getLocal = (id: string, field: string, fallback: string) => {
     return localUpdates[id]?.[field] ?? fallback;
@@ -172,19 +181,24 @@ const GlobalIntegrationsSection: React.FC<GlobalIntegrationsSectionProps> = ({
 
   const handleAddSubmit = () => {
     if (!newName.trim() || !onAdd) return;
-    onAdd({
+    const data: Record<string, unknown> = {
       service_type: newServiceType,
       name: newName.trim(),
       url: newUrl.trim(),
       auth_method: newAuthMethod,
       auth_data: buildAuthData(newAuthMethod, newUsername, newPassword, newToken),
-    });
+    };
+    if (newServiceType === 'github' && newOrgs.trim()) {
+      data.config = { orgs: newOrgs.split(',').map((s) => s.trim()).filter(Boolean) };
+    }
+    onAdd(data);
     setNewName('');
     setNewUrl('');
     setNewAuthMethod('none');
     setNewUsername('');
     setNewPassword('');
     setNewToken('');
+    setNewOrgs('');
     setNewServiceType('elk');
   };
 
@@ -224,13 +238,19 @@ const GlobalIntegrationsSection: React.FC<GlobalIntegrationsSectionProps> = ({
               <div>
                 <select
                   value={newServiceType}
-                  onChange={(e) => setNewServiceType(e.target.value)}
+                  onChange={(e) => {
+                    setNewServiceType(e.target.value);
+                    if (e.target.value === 'github') {
+                      setNewAuthMethod('bearer_token');
+                    }
+                  }}
                   className={`${inputClass} px-3 py-1.5 font-bold`}
                 >
                   <option value="elk">ELK / Log Stack</option>
                   <option value="jira">Atlassian Jira</option>
                   <option value="confluence">Confluence</option>
                   <option value="remedy">BMC Remedy</option>
+                  <option value="github">GitHub Enterprise</option>
                 </select>
                 <input
                   type="text"
@@ -250,6 +270,15 @@ const GlobalIntegrationsSection: React.FC<GlobalIntegrationsSectionProps> = ({
                 className={`w-full ${inputClass} px-4 py-2`}
                 placeholder={`Endpoint URL (e.g., https://${newServiceType}.corp.net)`}
               />
+              {newServiceType === 'github' && (
+                <input
+                  type="text"
+                  value={newOrgs}
+                  onChange={(e) => setNewOrgs(e.target.value)}
+                  className={`w-full mt-2 ${inputClass} px-4 py-2 text-xs`}
+                  placeholder="GitHub Orgs (comma-separated, e.g. org-a, org-b, org-c)"
+                />
+              )}
             </div>
 
             <div className="w-40">
@@ -343,6 +372,33 @@ const GlobalIntegrationsSection: React.FC<GlobalIntegrationsSectionProps> = ({
                     className={`w-full ${inputClass} px-4 py-2`}
                     placeholder={`${config.displayName} Endpoint URL (e.g., https://${gi.service_type}.corp.net)`}
                   />
+                  {gi.service_type === 'github' && (
+                    <div className="mt-2">
+                      {(() => {
+                        const orgs = (gi.config?.orgs as string[] | undefined) || [];
+                        return orgs.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mb-1.5">
+                            {orgs.map((org) => (
+                              <span key={org} className="inline-flex items-center px-2 py-0.5 rounded bg-slate-600/20 border border-slate-500/20 text-[10px] text-slate-300 font-mono">
+                                {org}
+                              </span>
+                            ))}
+                          </div>
+                        );
+                      })()}
+                      <input
+                        type="text"
+                        value={getLocal(gi.id, '_orgs', ((gi.config?.orgs as string[] | undefined) || []).join(', '))}
+                        onChange={(e) => {
+                          setLocal(gi.id, '_orgs', e.target.value);
+                          const orgs = e.target.value.split(',').map((s) => s.trim()).filter(Boolean);
+                          onUpdate(gi.id, { config: { orgs } });
+                        }}
+                        className={`w-full ${inputClass} px-4 py-1.5 text-xs`}
+                        placeholder="GitHub Orgs (comma-separated, e.g. org-a, org-b)"
+                      />
+                    </div>
+                  )}
                 </div>
 
                 {/* Auth Dropdown */}

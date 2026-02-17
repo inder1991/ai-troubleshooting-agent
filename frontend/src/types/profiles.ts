@@ -38,12 +38,13 @@ export interface ClusterProfile {
 
 export interface GlobalIntegration {
   id: string;
-  service_type: 'elk' | 'jira' | 'confluence' | 'remedy';
+  service_type: 'elk' | 'jira' | 'confluence' | 'remedy' | 'github';
   name: string;
   category: string;
   url: string;
   auth_method: string;
   has_credentials: boolean;
+  config?: Record<string, unknown>;
   status: GlobalIntegrationStatus;
   last_verified: string | null;
 }

@@ -90,7 +90,7 @@ class ClusterProfile(BaseModel):
 class GlobalIntegration(BaseModel):
     """A global ecosystem integration (ELK, Jira, Confluence, Remedy)."""
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    service_type: Literal["elk", "jira", "confluence", "remedy"]
+    service_type: Literal["elk", "jira", "confluence", "remedy", "github"]
     name: str
     category: str = ""
     url: str = ""
@@ -99,6 +99,7 @@ class GlobalIntegration(BaseModel):
         "api_token", "oauth2", "certificate", "none"
     ] = "none"
     auth_credential_handle: Optional[str] = None
+    config: dict = Field(default_factory=dict)  # Service-specific settings, e.g. {"orgs": ["org-a"]}
     status: Literal["connected", "not_validated", "not_linked", "conn_error"] = "not_linked"
     last_verified: Optional[datetime] = None
     created_at: datetime = Field(default_factory=datetime.now)
@@ -136,5 +137,11 @@ DEFAULT_GLOBAL_INTEGRATIONS = [
         "service_type": "remedy",
         "name": "BMC Remedy",
         "category": "Change Management",
+    },
+    {
+        "id": "global-github",
+        "service_type": "github",
+        "name": "GitHub Enterprise",
+        "category": "Version Control",
     },
 ]
