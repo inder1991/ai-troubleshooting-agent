@@ -49,11 +49,11 @@ class LogAnalysisAgent:
             return headers
         auth_method = getattr(connection_config, "elasticsearch_auth_method", "none")
         credentials = getattr(connection_config, "elasticsearch_credentials", "")
-        if auth_method == "token" and credentials:
+        if auth_method in ("token", "bearer_token", "api_token") and credentials:
             headers["Authorization"] = f"Bearer {credentials}"
         elif auth_method == "api_key" and credentials:
             headers["Authorization"] = f"ApiKey {credentials}"
-        elif auth_method == "basic" and credentials:
+        elif auth_method in ("basic", "basic_auth") and credentials:
             import base64
             headers["Authorization"] = f"Basic {base64.b64encode(credentials.encode()).decode()}"
         return headers
