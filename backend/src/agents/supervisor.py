@@ -398,6 +398,18 @@ class SupervisorAgent:
         elif agent_name == "k8s_agent":
             base["namespace"] = state.namespace or "default"
             base["cluster_url"] = state.cluster_url
+            base["suggested_label_selector"] = f"app={state.service_name}"
+            # Pass error patterns from log analysis for context
+            if state.log_analysis and state.log_analysis.primary_pattern:
+                pattern = state.log_analysis.primary_pattern
+                base["error_patterns"] = [
+                    {
+                        "exception_type": pattern.exception_type,
+                        "error_message": pattern.error_message,
+                        "severity": pattern.severity,
+                        "affected_components": pattern.affected_components,
+                    }
+                ]
 
         elif agent_name == "tracing_agent":
             base["trace_id"] = state.trace_id

@@ -300,6 +300,10 @@ class PodHealthStatus(BaseModel):
     last_restart_time: Optional[datetime] = None
     resource_requests: dict[str, str] = Field(default_factory=dict)
     resource_limits: dict[str, str] = Field(default_factory=dict)
+    init_container_failures: list[str] = Field(default_factory=list)
+    image_pull_errors: list[str] = Field(default_factory=list)
+    container_count: int = 0
+    ready_containers: int = 0
 
     @computed_field
     @property
@@ -333,11 +337,8 @@ class K8sEvent(BaseModel):
     reason: str
     message: str
     source_component: str
-
-    @computed_field
-    @property
-    def count(self) -> int:
-        return 1
+    count: int = 1
+    involved_object: str = ""
 
     @computed_field
     @property
@@ -348,11 +349,6 @@ class K8sEvent(BaseModel):
     @property
     def last_timestamp(self) -> str:
         return self.timestamp.isoformat()
-
-    @computed_field
-    @property
-    def involved_object(self) -> str:
-        return self.source_component
 
 
 class K8sAnalysisResult(BaseModel):

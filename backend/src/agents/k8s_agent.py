@@ -13,7 +13,7 @@ logger = get_logger(__name__)
 class K8sAgent(ReActAgent):
     """ReAct agent for Kubernetes/OpenShift cluster health analysis."""
 
-    def __init__(self, max_iterations: int = 8, connection_config=None):
+    def __init__(self, max_iterations: int = 12, connection_config=None):
         super().__init__(agent_name="k8s_agent", max_iterations=max_iterations)
         self._k8s_client = None
         self._connection_config = connection_config
@@ -66,7 +66,7 @@ class K8sAgent(ReActAgent):
             },
             {
                 "name": "get_pod_status",
-                "description": "Get status of all pods matching a label selector in a namespace.",
+                "description": "Get status of all pods matching a label selector in a namespace. Returns pod phase, restart counts, termination reasons, resource specs, init container failures, and image pull errors.",
                 "input_schema": {
                     "type": "object",
                     "properties": {
@@ -78,19 +78,20 @@ class K8sAgent(ReActAgent):
             },
             {
                 "name": "get_events",
-                "description": "Get Kubernetes events for a namespace, optionally filtered by involved object.",
+                "description": "Get Kubernetes events for a namespace, optionally filtered by involved object and time window.",
                 "input_schema": {
                     "type": "object",
                     "properties": {
                         "namespace": {"type": "string"},
                         "involved_object_name": {"type": "string", "description": "Filter events for this object name (deployment, pod, etc.)"},
+                        "since_minutes": {"type": "integer", "description": "Only return events from the last N minutes (default 60)", "default": 60},
                     },
                     "required": ["namespace"],
                 },
             },
             {
                 "name": "get_deployment",
-                "description": "Get deployment details including replicas, resource specs, and conditions.",
+                "description": "Get deployment details including replicas, resource specs, and conditions. For OpenShift clusters, falls back to DeploymentConfig if Deployment is not found.",
                 "input_schema": {
                     "type": "object",
                     "properties": {
@@ -100,26 +101,61 @@ class K8sAgent(ReActAgent):
                     "required": ["namespace", "name"],
                 },
             },
+            {
+                "name": "get_pod_logs",
+                "description": "Fetch tail logs from a specific pod/container. Useful for diagnosing CrashLoopBackOff, OOMKilled, and application errors. Supports fetching logs from terminated (previous) containers.",
+                "input_schema": {
+                    "type": "object",
+                    "properties": {
+                        "namespace": {"type": "string"},
+                        "pod_name": {"type": "string"},
+                        "container": {"type": "string", "description": "Container name (optional, defaults to first container)"},
+                        "tail_lines": {"type": "integer", "description": "Number of lines from the end (default 200, max 200)", "default": 200},
+                        "previous": {"type": "boolean", "description": "Fetch logs from previously terminated container (default false)", "default": False},
+                    },
+                    "required": ["namespace", "pod_name"],
+                },
+            },
+            {
+                "name": "get_hpa_status",
+                "description": "List Horizontal Pod Autoscalers in a namespace. Shows current/desired/min/max replicas and scaling conditions.",
+                "input_schema": {
+                    "type": "object",
+                    "properties": {
+                        "namespace": {"type": "string"},
+                    },
+                    "required": ["namespace"],
+                },
+            },
         ]
 
     async def _build_system_prompt(self) -> str:
         return """You are a Kubernetes/OpenShift Health Agent for SRE troubleshooting. You use the ReAct pattern.
 
-IMPORTANT: Always call test_cluster_connectivity FIRST before any other K8s tool to verify the connection. If connectivity fails, report the error immediately instead of attempting further queries.
+## Tool Workflow Order
+1. test_cluster_connectivity — ALWAYS call this FIRST. If it fails, report the error immediately.
+2. get_pod_status — use the suggested label selector if provided, otherwise try app={service_name}.
+3. get_events — check for Warning events. Use since_minutes to limit to the incident window.
+4. get_deployment — check replica counts, resource specs, and conditions.
+5. get_pod_logs — fetch logs from any pod in CrashLoopBackOff, OOMKilled, or Error state. Use previous=true for terminated containers.
+6. get_hpa_status — check if autoscaling is configured and if it's hitting limits.
 
-Your goals:
-1. Test cluster connectivity first
-2. Check pod status — look for CrashLoopBackOff, Error, OOMKilled, Pending states
-3. Check restart counts and termination reasons
-4. Get events for the namespace/deployment — focus on Warning events
-5. Check resource requests vs limits
-6. Report negative findings when everything looks healthy
-7. Cross-reference with metrics data if provided
+## Negative Findings
+When all pods are healthy (Running, 0 restarts), emit a negative finding: "All pods healthy".
+When no Warning events are found, emit a negative finding: "No warning events".
+Negative findings build trust in the diagnosis — always report them.
 
+## Label Selectors
+Use the suggested_label_selector from context if provided. Otherwise derive from service name: app={service_name}.
+
+## OpenShift DeploymentConfig
+If get_deployment returns a 404, the workload may be an OpenShift DeploymentConfig. The tool handles this fallback automatically.
+
+## Final Output
 After analysis, provide your final answer as JSON:
 {
-    "pod_statuses": [{"pod_name": "...", "status": "...", "restart_count": 0, "last_termination_reason": "...", "resource_requests": {}, "resource_limits": {}}],
-    "events": [{"timestamp": "...", "type": "Warning", "reason": "...", "message": "...", "source_component": "..."}],
+    "pod_statuses": [{"pod_name": "...", "namespace": "...", "status": "...", "restart_count": 0, "last_termination_reason": null, "resource_requests": {}, "resource_limits": {}, "init_container_failures": [], "image_pull_errors": [], "container_count": 1, "ready_containers": 1}],
+    "events": [{"timestamp": "...", "type": "Warning", "reason": "...", "message": "...", "source_component": "...", "count": 1, "involved_object": "pod-name"}],
     "is_crashloop": false,
     "total_restarts_last_hour": 0,
     "resource_mismatch": null,
@@ -132,6 +168,8 @@ After analysis, provide your final answer as JSON:
             parts.append(f"Namespace: {context['namespace']}")
         if context.get("cluster_url"):
             parts.append(f"Cluster: {context['cluster_url']}")
+        if context.get("suggested_label_selector"):
+            parts.append(f"Suggested label selector: {context['suggested_label_selector']}")
         if context.get("error_patterns"):
             parts.append(f"Error patterns from log analysis: {json.dumps(context['error_patterns'])}")
         return "\n".join(parts)
@@ -145,6 +183,10 @@ After analysis, provide your final answer as JSON:
             return await self._get_events(tool_input)
         elif tool_name == "get_deployment":
             return await self._get_deployment(tool_input)
+        elif tool_name == "get_pod_logs":
+            return await self._get_pod_logs(tool_input)
+        elif tool_name == "get_hpa_status":
+            return await self._get_hpa_status(tool_input)
         return f"Unknown tool: {tool_name}"
 
     def _parse_final_response(self, text: str) -> dict:
@@ -179,10 +221,11 @@ After analysis, provide your final answer as JSON:
         try:
             from kubernetes import client
             v1 = client.CoreV1Api(self._get_k8s_client())
-            nodes = v1.list_node(limit=100)
+            nodes = v1.list_node(limit=1, _request_timeout=10)
             version_api = client.VersionApi(self._get_k8s_client())
-            version_info = version_api.get_code()
+            version_info = version_api.get_code(_request_timeout=10)
 
+            # Use continue token metadata to get total count without fetching all nodes
             node_count = len(nodes.items) if nodes.items else 0
             version_str = f"{version_info.major}.{version_info.minor}"
 
@@ -219,12 +262,17 @@ After analysis, provide your final answer as JSON:
         try:
             from kubernetes import client
             v1 = client.CoreV1Api(self._get_k8s_client())
-            pods = v1.list_namespaced_pod(namespace=namespace, label_selector=label_selector)
+            pods = v1.list_namespaced_pod(
+                namespace=namespace, label_selector=label_selector, _request_timeout=10,
+            )
 
             result = []
+            all_healthy = True
             for pod in pods.items:
                 pod_info = self._extract_pod_info(pod)
                 result.append(pod_info)
+                if pod_info["status"] not in ("Running",) or pod_info["restart_count"] > 0:
+                    all_healthy = False
 
             if not result:
                 self.add_negative_finding(
@@ -232,6 +280,13 @@ After analysis, provide your final answer as JSON:
                     result="No pods found",
                     implication="Service may not be deployed or selector is incorrect",
                     source_reference=f"K8s API, namespace: {namespace}",
+                )
+            elif all_healthy:
+                self.add_negative_finding(
+                    what_was_checked=f"Pod health in namespace '{namespace}'",
+                    result="All pods healthy (Running, 0 restarts)",
+                    implication="No pod-level issues detected — problem may be elsewhere",
+                    source_reference=f"K8s API, namespace: {namespace}, {len(result)} pods checked",
                 )
 
             self.add_breadcrumb(
@@ -251,14 +306,26 @@ After analysis, provide your final answer as JSON:
     async def _get_events(self, params: dict) -> str:
         namespace = params["namespace"]
         involved_object = params.get("involved_object_name", "")
+        since_minutes = params.get("since_minutes", 60)
 
         try:
             from kubernetes import client
             v1 = client.CoreV1Api(self._get_k8s_client())
-            events = v1.list_namespaced_event(namespace=namespace)
+            events = v1.list_namespaced_event(namespace=namespace, _request_timeout=10)
+
+            cutoff = datetime.now(timezone.utc) - timedelta(minutes=since_minutes)
 
             result = []
             for event in events.items:
+                # Filter by time
+                event_time = event.last_timestamp or event.event_time
+                if event_time:
+                    # Ensure timezone-aware comparison
+                    if hasattr(event_time, 'tzinfo') and event_time.tzinfo is None:
+                        event_time = event_time.replace(tzinfo=timezone.utc)
+                    if event_time < cutoff:
+                        continue
+
                 if involved_object and event.involved_object.name and involved_object not in event.involved_object.name:
                     continue
                 result.append({
@@ -273,11 +340,19 @@ After analysis, provide your final answer as JSON:
 
             warning_events = [e for e in result if e["type"] == "Warning"]
 
+            if not warning_events:
+                self.add_negative_finding(
+                    what_was_checked=f"Warning events in namespace '{namespace}' (last {since_minutes} min)",
+                    result="No warning events found",
+                    implication="No K8s-level warnings — cluster events are healthy",
+                    source_reference=f"K8s API, namespace: {namespace}",
+                )
+
             self.add_breadcrumb(
                 action="get_events",
                 source_type="k8s_event",
                 source_reference=f"namespace: {namespace}",
-                raw_evidence=f"Found {len(result)} events ({len(warning_events)} warnings)",
+                raw_evidence=f"Found {len(result)} events ({len(warning_events)} warnings) in last {since_minutes} min",
             )
 
             return json.dumps({"total": len(result), "warnings": len(warning_events), "events": result}, default=str)
@@ -294,39 +369,191 @@ After analysis, provide your final answer as JSON:
         try:
             from kubernetes import client
             apps_v1 = client.AppsV1Api(self._get_k8s_client())
-            deployment = apps_v1.read_namespaced_deployment(name=name, namespace=namespace)
 
-            containers = deployment.spec.template.spec.containers
-            container_specs = []
-            for c in containers:
-                spec = {"name": c.name}
-                if c.resources:
-                    if c.resources.requests:
-                        spec["requests"] = dict(c.resources.requests)
-                    if c.resources.limits:
-                        spec["limits"] = dict(c.resources.limits)
-                container_specs.append(spec)
+            deployment = None
+            is_dc = False
+            try:
+                deployment = apps_v1.read_namespaced_deployment(
+                    name=name, namespace=namespace, _request_timeout=10,
+                )
+            except client.exceptions.ApiException as e:
+                if e.status == 404:
+                    # Fallback to OpenShift DeploymentConfig
+                    try:
+                        custom_api = client.CustomObjectsApi(self._get_k8s_client())
+                        deployment = custom_api.get_namespaced_custom_object(
+                            group="apps.openshift.io",
+                            version="v1",
+                            namespace=namespace,
+                            plural="deploymentconfigs",
+                            name=name,
+                            _request_timeout=10,
+                        )
+                        is_dc = True
+                    except Exception:
+                        return json.dumps({"error": f"Deployment '{name}' not found (tried Deployment and DeploymentConfig)"})
+                else:
+                    raise
 
-            result = {
-                "name": deployment.metadata.name,
-                "replicas_desired": deployment.spec.replicas,
-                "replicas_available": deployment.status.available_replicas or 0,
-                "replicas_ready": deployment.status.ready_replicas or 0,
-                "containers": container_specs,
-                "conditions": [
-                    {"type": c.type, "status": c.status, "reason": c.reason or "", "message": c.message or ""}
-                    for c in (deployment.status.conditions or [])
-                ],
-            }
+            if is_dc:
+                # Parse DeploymentConfig (raw dict from CustomObjectsApi)
+                spec = deployment.get("spec", {})
+                status = deployment.get("status", {})
+                containers = spec.get("template", {}).get("spec", {}).get("containers", [])
+                container_specs = []
+                for c in containers:
+                    cs = {"name": c.get("name", "")}
+                    resources = c.get("resources", {})
+                    if resources.get("requests"):
+                        cs["requests"] = resources["requests"]
+                    if resources.get("limits"):
+                        cs["limits"] = resources["limits"]
+                    container_specs.append(cs)
+
+                result = {
+                    "name": deployment.get("metadata", {}).get("name", name),
+                    "type": "DeploymentConfig",
+                    "replicas_desired": spec.get("replicas", 1),
+                    "replicas_available": status.get("availableReplicas", 0),
+                    "replicas_ready": status.get("readyReplicas", 0),
+                    "containers": container_specs,
+                    "conditions": [
+                        {"type": c.get("type", ""), "status": c.get("status", ""), "reason": c.get("reason", ""), "message": c.get("message", "")}
+                        for c in status.get("conditions", [])
+                    ],
+                }
+            else:
+                containers = deployment.spec.template.spec.containers
+                container_specs = []
+                for c in containers:
+                    spec = {"name": c.name}
+                    if c.resources:
+                        if c.resources.requests:
+                            spec["requests"] = dict(c.resources.requests)
+                        if c.resources.limits:
+                            spec["limits"] = dict(c.resources.limits)
+                    container_specs.append(spec)
+
+                result = {
+                    "name": deployment.metadata.name,
+                    "type": "Deployment",
+                    "replicas_desired": deployment.spec.replicas,
+                    "replicas_available": deployment.status.available_replicas or 0,
+                    "replicas_ready": deployment.status.ready_replicas or 0,
+                    "containers": container_specs,
+                    "conditions": [
+                        {"type": c.type, "status": c.status, "reason": c.reason or "", "message": c.message or ""}
+                        for c in (deployment.status.conditions or [])
+                    ],
+                }
 
             self.add_breadcrumb(
                 action="get_deployment",
                 source_type="k8s_event",
-                source_reference=f"deployment: {namespace}/{name}",
+                source_reference=f"{result.get('type', 'Deployment')}: {namespace}/{name}",
                 raw_evidence=f"Desired: {result['replicas_desired']}, Available: {result['replicas_available']}, Ready: {result['replicas_ready']}",
             )
 
             return json.dumps(result, default=str)
+
+        except ImportError:
+            return json.dumps({"error": "kubernetes package not installed"})
+        except Exception as e:
+            return json.dumps({"error": str(e)})
+
+    async def _get_pod_logs(self, params: dict) -> str:
+        """Fetch tail logs from a specific pod/container."""
+        namespace = params["namespace"]
+        pod_name = params["pod_name"]
+        container = params.get("container")
+        tail_lines = min(params.get("tail_lines", 200), 200)
+        previous = params.get("previous", False)
+
+        try:
+            from kubernetes import client
+            v1 = client.CoreV1Api(self._get_k8s_client())
+
+            kwargs = {
+                "name": pod_name,
+                "namespace": namespace,
+                "tail_lines": tail_lines,
+                "previous": previous,
+                "_request_timeout": 10,
+            }
+            if container:
+                kwargs["container"] = container
+
+            logs = v1.read_namespaced_pod_log(**kwargs)
+
+            # Cap at 8KB to avoid overwhelming the LLM context
+            max_bytes = 8192
+            if len(logs) > max_bytes:
+                logs = logs[-max_bytes:]
+                logs = f"[truncated to last {max_bytes} bytes]\n" + logs
+
+            self.add_breadcrumb(
+                action="get_pod_logs",
+                source_type="log",
+                source_reference=f"pod: {namespace}/{pod_name}",
+                raw_evidence=f"Fetched {tail_lines} tail lines (previous={previous})",
+            )
+
+            return json.dumps({
+                "pod_name": pod_name,
+                "container": container or "default",
+                "previous": previous,
+                "lines": len(logs.splitlines()),
+                "logs": logs,
+            })
+
+        except ImportError:
+            return json.dumps({"error": "kubernetes package not installed"})
+        except Exception as e:
+            error_msg = str(e)
+            if "previous terminated" in error_msg.lower() or "not found" in error_msg.lower():
+                return json.dumps({"error": f"No logs available: {error_msg}"})
+            return json.dumps({"error": error_msg})
+
+    async def _get_hpa_status(self, params: dict) -> str:
+        """List HPAs in namespace, show current/desired/min/max replicas and conditions."""
+        namespace = params["namespace"]
+
+        try:
+            from kubernetes import client
+            autoscaling_v1 = client.AutoscalingV1Api(self._get_k8s_client())
+            hpas = autoscaling_v1.list_namespaced_horizontal_pod_autoscaler(
+                namespace=namespace, _request_timeout=10,
+            )
+
+            result = []
+            for hpa in hpas.items:
+                result.append({
+                    "name": hpa.metadata.name,
+                    "target": hpa.spec.scale_target_ref.name if hpa.spec.scale_target_ref else "",
+                    "min_replicas": hpa.spec.min_replicas,
+                    "max_replicas": hpa.spec.max_replicas,
+                    "current_replicas": hpa.status.current_replicas or 0,
+                    "desired_replicas": hpa.status.desired_replicas or 0,
+                    "current_cpu_utilization": hpa.status.current_cpu_utilization_percentage,
+                    "target_cpu_utilization": hpa.spec.target_cpu_utilization_percentage,
+                })
+
+            if not result:
+                self.add_negative_finding(
+                    what_was_checked=f"HPA in namespace '{namespace}'",
+                    result="No HPA configured",
+                    implication="No autoscaling — replica count is static",
+                    source_reference=f"K8s API, namespace: {namespace}",
+                )
+
+            self.add_breadcrumb(
+                action="get_hpa_status",
+                source_type="k8s_event",
+                source_reference=f"namespace: {namespace}",
+                raw_evidence=f"Found {len(result)} HPAs",
+            )
+
+            return json.dumps({"hpas": result}, default=str)
 
         except ImportError:
             return json.dumps({"error": "kubernetes package not installed"})
@@ -339,15 +566,46 @@ After analysis, provide your final answer as JSON:
         """Extract relevant info from a K8s Pod object."""
         info = {
             "pod_name": pod.metadata.name,
+            "namespace": pod.metadata.namespace or "",
             "status": pod.status.phase,
             "restart_count": 0,
             "last_termination_reason": None,
+            "resource_requests": {},
+            "resource_limits": {},
+            "init_container_failures": [],
+            "image_pull_errors": [],
+            "container_count": 0,
+            "ready_containers": 0,
             "container_statuses": [],
         }
+
+        # Extract resource specs from pod spec containers
+        if pod.spec and pod.spec.containers:
+            info["container_count"] = len(pod.spec.containers)
+            for c in pod.spec.containers:
+                if c.resources:
+                    if c.resources.requests:
+                        for k, v in c.resources.requests.items():
+                            info["resource_requests"][f"{c.name}/{k}"] = str(v)
+                    if c.resources.limits:
+                        for k, v in c.resources.limits.items():
+                            info["resource_limits"][f"{c.name}/{k}"] = str(v)
+
+        # Check init container statuses for failures
+        if pod.status.init_container_statuses:
+            for ics in pod.status.init_container_statuses:
+                if ics.state and ics.state.waiting:
+                    reason = ics.state.waiting.reason or "Unknown"
+                    info["init_container_failures"].append(f"{ics.name}: {reason}")
+                elif ics.state and ics.state.terminated and ics.state.terminated.exit_code != 0:
+                    reason = ics.state.terminated.reason or f"exit code {ics.state.terminated.exit_code}"
+                    info["init_container_failures"].append(f"{ics.name}: {reason}")
 
         if pod.status.container_statuses:
             for cs in pod.status.container_statuses:
                 info["restart_count"] += cs.restart_count
+                if cs.ready:
+                    info["ready_containers"] += 1
 
                 container_info = {"name": cs.name, "ready": cs.ready, "restart_count": cs.restart_count}
 
@@ -358,6 +616,9 @@ After analysis, provide your final answer as JSON:
                         container_info["reason"] = cs.state.waiting.reason or ""
                         if cs.state.waiting.reason == "CrashLoopBackOff":
                             info["status"] = "CrashLoopBackOff"
+                        elif cs.state.waiting.reason in ("ImagePullBackOff", "ErrImagePull"):
+                            msg = cs.state.waiting.message or cs.state.waiting.reason
+                            info["image_pull_errors"].append(f"{cs.name}: {msg}")
                     elif cs.state.running:
                         container_info["state"] = "running"
                     elif cs.state.terminated:

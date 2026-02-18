@@ -134,6 +134,12 @@ export interface PodHealthStatus {
   conditions: string[];
   oom_killed: boolean;
   crash_loop: boolean;
+  init_container_failures?: string[];
+  image_pull_errors?: string[];
+  container_count?: number;
+  ready_containers?: number;
+  resource_requests?: Record<string, string>;
+  resource_limits?: Record<string, string>;
 }
 
 export interface K8sEvent {
