@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import type { ChatMessage as ChatMessageType, TaskEvent } from '../../types';
-import { sendChatMessage } from '../../services/api';
+import type { ChatMessage as ChatMessageType, TaskEvent, V4Findings, PatientZero, InferredDependency, ReasoningChainStep } from '../../types';
+import { sendChatMessage, getFindings } from '../../services/api';
 
 interface AISupervisorProps {
   sessionId: string;
@@ -79,14 +79,23 @@ const AISupervisor: React.FC<AISupervisorProps> = ({
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [showToolCalls, setShowToolCalls] = useState(false);
+  const [findings, setFindings] = useState<V4Findings | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Fetch findings when summary events arrive (agent completed)
+  const summaryCount = events.filter(e => e.event_type === 'summary').length;
+  useEffect(() => {
+    if (summaryCount > 0) {
+      getFindings(sessionId).then(setFindings).catch(() => {});
+    }
+  }, [sessionId, summaryCount]);
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages, events]);
+  }, [messages, events, findings]);
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -184,6 +193,11 @@ const AISupervisor: React.FC<AISupervisorProps> = ({
             </div>
           </div>
         )}
+
+        {/* AI Analysis Section — appears after log_agent completes */}
+        {findings?.patient_zero && <PatientZeroCard patientZero={findings.patient_zero} />}
+        {(findings?.reasoning_chain?.length ?? 0) > 0 && <ReasoningChainCard chain={findings!.reasoning_chain} />}
+        {(findings?.inferred_dependencies?.length ?? 0) > 0 && <InferredDependenciesCard deps={findings!.inferred_dependencies} />}
       </div>
 
       {/* Chat Input */}
@@ -568,6 +582,77 @@ const ChatBubble: React.FC<{ message: ChatMessageType }> = ({ message }) => {
             {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
           </p>
         </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── Patient Zero Card ────────────────────────────────────────────────────
+
+const PatientZeroCard: React.FC<{ patientZero: PatientZero }> = ({ patientZero }) => (
+  <div className="border-2 border-red-500/30 bg-red-500/5 rounded-lg p-3">
+    <div className="flex items-center gap-2 mb-2">
+      <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+      <span className="text-[10px] font-bold uppercase tracking-wider text-red-400">Patient Zero</span>
+    </div>
+    <div className="text-xs font-mono text-red-300 font-bold mb-1">{patientZero.service}</div>
+    <p className="text-[10px] text-slate-400">{patientZero.evidence}</p>
+    {patientZero.first_error_time && (
+      <div className="text-[10px] text-slate-500 mt-1">
+        First error: {new Date(patientZero.first_error_time).toLocaleString()}
+      </div>
+    )}
+  </div>
+);
+
+// ─── Reasoning Chain Card ─────────────────────────────────────────────────
+
+const ReasoningChainCard: React.FC<{ chain: ReasoningChainStep[] }> = ({ chain }) => {
+  if (!chain.length) return null;
+  return (
+    <div className="bg-[#07b6d5]/5 border border-[#07b6d5]/15 rounded-lg overflow-hidden">
+      <div className="px-3 py-2 border-b border-[#07b6d5]/10 flex items-center gap-2">
+        <span className="material-symbols-outlined text-[#07b6d5] text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>psychology</span>
+        <span className="text-[10px] font-bold uppercase tracking-wider text-[#07b6d5]">AI Reasoning Chain</span>
+      </div>
+      <div className="p-3 space-y-2">
+        {chain.map((step, i) => (
+          <div key={i} className="flex gap-2">
+            <div className="w-5 h-5 rounded-full bg-[#07b6d5]/20 flex items-center justify-center shrink-0 mt-0.5">
+              <span className="text-[9px] font-bold text-[#07b6d5]">{step.step}</span>
+            </div>
+            <div>
+              <p className="text-[11px] text-slate-300">{step.observation}</p>
+              <p className="text-[10px] text-slate-400 italic mt-0.5">{'\u2192'} {step.inference}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// ─── Inferred Dependencies Card ───────────────────────────────────────────
+
+const InferredDependenciesCard: React.FC<{ deps: InferredDependency[] }> = ({ deps }) => {
+  if (!deps.length) return null;
+  return (
+    <div className="bg-slate-900/40 border border-slate-800 rounded-lg overflow-hidden">
+      <div className="px-3 py-2 border-b border-slate-800 flex items-center gap-2 bg-slate-900/60">
+        <span className="material-symbols-outlined text-violet-400 text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>hub</span>
+        <span className="text-[10px] font-bold uppercase tracking-wider">Inferred Dependencies</span>
+      </div>
+      <div className="p-3 space-y-1.5">
+        {deps.map((dep, i) => (
+          <div key={i} className="flex items-center gap-2 text-[11px]">
+            <span className="font-mono text-[#07b6d5]">{dep.source}</span>
+            <span className="text-slate-600">{'\u2192'}</span>
+            <span className="font-mono text-slate-300">{dep.target || dep.targets?.join(', ')}</span>
+            {dep.evidence && (
+              <span className="text-[9px] text-slate-500 ml-auto truncate max-w-[200px]">{dep.evidence}</span>
+            )}
+          </div>
+        ))}
       </div>
     </div>
   );

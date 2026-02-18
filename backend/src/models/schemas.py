@@ -176,6 +176,10 @@ class ErrorPattern(BaseModel):
     confidence_score: int = Field(ge=0, le=100)
     priority_rank: int
     priority_reasoning: str
+    # Enrichment fields (backward compatible)
+    stack_traces: list[str] = Field(default_factory=list)
+    correlation_ids: list[str] = Field(default_factory=list)
+    sample_log_ids: list[str] = Field(default_factory=list)
 
     @computed_field
     @property
@@ -649,6 +653,11 @@ class DiagnosticState(BaseModel):
     service_flow: list[dict] = Field(default_factory=list)
     flow_source: Optional[str] = None
     flow_confidence: int = 0
+
+    # Log agent enrichment
+    patient_zero: Optional[dict] = None
+    inferred_dependencies: list[dict] = Field(default_factory=list)
+    reasoning_chain: list[dict] = Field(default_factory=list)
 
     # Impact & memory
     blast_radius_result: Optional[BlastRadius] = None

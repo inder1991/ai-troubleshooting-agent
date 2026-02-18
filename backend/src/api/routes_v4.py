@@ -288,6 +288,9 @@ async def get_findings(session_id: str):
             "service_flow": [],
             "flow_source": None,
             "flow_confidence": 0,
+            "patient_zero": None,
+            "inferred_dependencies": [],
+            "reasoning_chain": [],
             "message": "Analysis not yet complete",
         }
 
@@ -323,6 +326,9 @@ async def get_findings(session_id: str):
         "service_flow": state.service_flow,
         "flow_source": state.flow_source,
         "flow_confidence": state.flow_confidence,
+        "patient_zero": state.patient_zero,
+        "inferred_dependencies": state.inferred_dependencies,
+        "reasoning_chain": state.reasoning_chain,
     }
 
 

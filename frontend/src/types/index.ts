@@ -93,6 +93,10 @@ export interface ErrorPattern {
   confidence: number;
   first_seen: string | null;
   last_seen: string | null;
+  // Enrichment fields
+  stack_traces?: string[];
+  correlation_ids?: string[];
+  sample_log_ids?: string[];
 }
 
 export interface MetricAnomaly {
@@ -160,6 +164,25 @@ export interface SpanInfo {
   status: string;
   error: boolean;
   parent_span_id: string | null;
+}
+
+export interface PatientZero {
+  service: string;
+  evidence: string;
+  first_error_time: string;
+}
+
+export interface InferredDependency {
+  source: string;
+  target?: string;
+  evidence?: string;
+  targets?: string[];  // from deterministic inference
+}
+
+export interface ReasoningChainStep {
+  step: number;
+  observation: string;
+  inference: string;
 }
 
 export interface ServiceFlowStep {
@@ -275,6 +298,9 @@ export interface V4Findings {
   service_flow: ServiceFlowStep[];
   flow_source: string | null;
   flow_confidence: number;
+  patient_zero: PatientZero | null;
+  inferred_dependencies: InferredDependency[];
+  reasoning_chain: ReasoningChainStep[];
 }
 
 export interface CodeImpact {

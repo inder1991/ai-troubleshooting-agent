@@ -96,11 +96,11 @@ class SupervisorAgent:
         self._connection_config = connection_config
         self._agents = {
             "log_agent": LogAnalysisAgent,
-            "metrics_agent": MetricsAgent,
-            "k8s_agent": K8sAgent,
-            "tracing_agent": TracingAgent,
-            "code_agent": CodeNavigatorAgent,
-            "change_agent": ChangeAgent,
+            # "metrics_agent": MetricsAgent,
+            # "k8s_agent": K8sAgent,
+            # "tracing_agent": TracingAgent,
+            # "code_agent": CodeNavigatorAgent,
+            # "change_agent": ChangeAgent,
         }
         self._critic = CriticAgent()
 
@@ -587,6 +587,9 @@ class SupervisorAgent:
                         confidence_score=min(primary_raw.get("confidence_score", 50), 100),
                         priority_rank=primary_raw.get("priority_rank", 1),
                         priority_reasoning=primary_raw.get("priority_reasoning", ""),
+                        stack_traces=primary_raw.get("stack_traces", []),
+                        correlation_ids=primary_raw.get("correlation_ids", []),
+                        sample_log_ids=primary_raw.get("sample_log_ids", []),
                     )
 
                     secondary = []
@@ -609,6 +612,9 @@ class SupervisorAgent:
                                 confidence_score=min(sp_raw.get("confidence_score", 50), 100),
                                 priority_rank=sp_raw.get("priority_rank", len(secondary) + 2),
                                 priority_reasoning=sp_raw.get("priority_reasoning", ""),
+                                stack_traces=sp_raw.get("stack_traces", []),
+                                correlation_ids=sp_raw.get("correlation_ids", []),
+                                sample_log_ids=sp_raw.get("sample_log_ids", []),
                             ))
                         except Exception:
                             pass
@@ -632,6 +638,11 @@ class SupervisorAgent:
                     )
                 except Exception as e:
                     logger.warning("Failed to build LogAnalysisResult: %s", e)
+
+            # Store new enrichment fields from log agent
+            state.patient_zero = result.get("patient_zero")
+            state.inferred_dependencies = result.get("inferred_dependencies", [])
+            state.reasoning_chain = result.get("reasoning_chain", [])
 
         # Handle change_agent results
         if agent_name == "change_agent":

@@ -46,9 +46,19 @@ class LogAnalysisAgent:
         """Build HTTP headers for Elasticsearch requests, including auth."""
         headers = {"Content-Type": "application/json"}
         if not connection_config:
+            logger.warning("No connection_config passed to log_agent — ES requests will be unauthenticated")
             return headers
         auth_method = getattr(connection_config, "elasticsearch_auth_method", "none")
         credentials = getattr(connection_config, "elasticsearch_credentials", "")
+        logger.info("ES auth config", extra={
+            "agent_name": self.agent_name,
+            "action": "es_auth_resolve",
+            "extra": {
+                "auth_method": auth_method,
+                "has_credentials": bool(credentials),
+                "es_url": getattr(connection_config, "elasticsearch_url", ""),
+            },
+        })
         if auth_method in ("token", "bearer_token", "api_token") and credentials:
             headers["Authorization"] = f"Bearer {credentials}"
         elif auth_method == "api_key" and credentials:
@@ -240,9 +250,13 @@ class LogAnalysisAgent:
                 except (json.JSONDecodeError, AttributeError):
                     pass
 
-        # Count stats
+        # Derive stats from collected data
         error_count = sum(1 for l in self._raw_logs if (l.get("level") or "").upper() in ("ERROR", "FATAL", "CRITICAL"))
-        warn_count = sum(1 for l in self._raw_logs if (l.get("level") or "").upper() == "WARN")
+        warn_count = sum(1 for l in self._raw_logs if (l.get("level") or "").upper() in ("WARN", "WARNING"))
+        pattern_count = len(self._patterns)
+
+        # Infer service dependencies from patterns and flow
+        inferred_dependencies = self._infer_service_dependencies(self._patterns, service_flow)
 
         return {
             "indices_found": indices_found,
@@ -251,10 +265,13 @@ class LogAnalysisAgent:
             "patterns": self._patterns,
             "service_flow": service_flow,
             "context_logs": context_logs,
+            "inferred_dependencies": inferred_dependencies,
             "stats": {
                 "total_logs": len(self._raw_logs),
                 "error_count": error_count,
                 "warn_count": warn_count,
+                "pattern_count": pattern_count,
+                "unique_services": len(set(l.get("service", "unknown") for l in self._raw_logs)),
             },
         }
 
@@ -398,6 +415,23 @@ class LogAnalysisAgent:
 
     # ─── Phase 2: Single LLM Analysis ──────────────────────────────────────
 
+    SYSTEM_PROMPT = """You are a Senior SRE Incident Commander analyzing a production incident.
+
+Your role:
+1. Identify the ROOT CAUSE — not just symptoms. Trace the causal chain.
+2. Identify PATIENT ZERO — the first service/component where the failure originated.
+3. Map SERVICE DEPENDENCIES — which services are affected and in what order.
+4. Provide REASONING CHAIN — step-by-step analytical thinking.
+
+Analysis framework:
+- Start with the highest-frequency error pattern
+- Check if errors are symptoms of an upstream failure
+- Look for temporal correlation between patterns
+- Consider cascade effects: A fails → B times out → C retries → D overwhelmed
+- Distinguish between root causes and collateral damage
+
+Respond with JSON only. No markdown fences."""
+
     async def _analyze_with_llm(self, collection: dict, context: dict, event_emitter: EventEmitter | None) -> dict:
         """One LLM call with all collected data."""
         if not collection.get("patterns") and not collection.get("raw_logs"):
@@ -407,6 +441,9 @@ class LogAnalysisAgent:
                 "overall_confidence": 20,
                 "root_cause_hypothesis": "No log data found to analyze",
                 "flow_analysis": "",
+                "patient_zero": None,
+                "inferred_dependencies": [],
+                "reasoning_chain": [],
             }
 
         if event_emitter:
@@ -416,7 +453,7 @@ class LogAnalysisAgent:
 
         response = await self.llm_client.chat(
             prompt=prompt,
-            system="You are a log analysis expert. Analyze the provided error patterns and service flow. Respond with JSON only.",
+            system=self.SYSTEM_PROMPT,
             max_tokens=4096,
             temperature=0.0,
         )
@@ -432,26 +469,32 @@ class LogAnalysisAgent:
         stats = collection.get("stats", {})
 
         parts = [
-            f"Service: {service}",
+            f"# Incident Analysis: {service}",
             f"Time window: {timeframe}",
-            f"Stats: {stats.get('total_logs', 0)} total logs, {stats.get('error_count', 0)} errors, {stats.get('warn_count', 0)} warnings",
+            f"Stats: {stats.get('total_logs', 0)} logs, {stats.get('error_count', 0)} errors, "
+            f"{stats.get('warn_count', 0)} warnings, {stats.get('pattern_count', 0)} patterns, "
+            f"{stats.get('unique_services', 0)} services",
             f"Index: {collection.get('index_used', 'unknown')}",
             "",
-            "## Error Patterns (deterministic grouping)",
+            "## Error Patterns (deterministic grouping, sorted by frequency)",
         ]
 
         for i, p in enumerate(collection.get("patterns", [])[:10]):
             parts.append(
-                f"P{i+1}: exception={p.get('exception_type', '?')}, "
-                f"freq={p.get('frequency', 0)}, "
-                f"services={p.get('affected_components', [])}, "
-                f"msg={p.get('error_message', '')[:150]}"
+                f"\n### P{i+1}: {p.get('exception_type', '?')} ({p.get('frequency', 0)}x)"
             )
+            parts.append(f"Message: {p.get('error_message', '')[:200]}")
+            parts.append(f"Services: {', '.join(p.get('affected_components', []))}")
+            parts.append(f"Time range: {p.get('first_seen', '?')} → {p.get('last_seen', '?')}")
+            if p.get("correlation_ids"):
+                parts.append(f"Trace IDs: {', '.join(p['correlation_ids'][:3])}")
+            if p.get("stack_traces"):
+                parts.append(f"Stack trace (sample):\n{p['stack_traces'][0][:500]}")
 
+        # Service flow
         flow = collection.get("service_flow", [])
         if flow:
-            parts.append("")
-            parts.append("## Service Flow (temporal reconstruction)")
+            parts.append("\n## Service Flow (temporal reconstruction)")
             for step in flow[:20]:
                 parts.append(
                     f"  [{step.get('timestamp', '')}] {step.get('service', '?')} — "
@@ -459,10 +502,17 @@ class LogAnalysisAgent:
                     f"({step.get('status_detail', '')})"
                 )
 
+        # Inferred dependencies
+        deps = collection.get("inferred_dependencies", [])
+        if deps:
+            parts.append("\n## Inferred Dependencies (from log analysis)")
+            for d in deps:
+                parts.append(f"  {d['source']} → {', '.join(d['targets'])}")
+
+        # Context logs
         ctx_logs = collection.get("context_logs", [])
         if ctx_logs:
-            parts.append("")
-            parts.append("## Context Logs (around first error)")
+            parts.append("\n## Context Logs (around first error)")
             for cl in ctx_logs[:15]:
                 parts.append(f"  [{cl.get('timestamp', '')}] {cl.get('level', '')} {cl.get('message', '')[:120]}")
 
@@ -480,10 +530,22 @@ class LogAnalysisAgent:
         "priority_rank": 1,
         "priority_reasoning": "Why this is the top priority"
     },
-    "secondary_patterns": [],
+    "secondary_patterns": [...],
     "overall_confidence": 85,
-    "root_cause_hypothesis": "One-line root cause explanation",
-    "flow_analysis": "One-line explanation of request flow if service_flow data was provided"
+    "root_cause_hypothesis": "One-paragraph root cause explanation",
+    "flow_analysis": "How the failure propagated across services",
+    "patient_zero": {
+        "service": "service-name",
+        "evidence": "Why this service is the origin",
+        "first_error_time": "ISO timestamp"
+    },
+    "inferred_dependencies": [
+        {"source": "svc-a", "target": "svc-b", "evidence": "why"}
+    ],
+    "reasoning_chain": [
+        {"step": 1, "observation": "what was observed", "inference": "what it means"},
+        {"step": 2, "observation": "...", "inference": "..."}
+    ]
 }""")
 
         return "\n".join(parts)
@@ -503,6 +565,9 @@ class LogAnalysisAgent:
                 "overall_confidence": 30,
                 "root_cause_hypothesis": "Failed to parse LLM response",
                 "flow_analysis": "",
+                "patient_zero": None,
+                "inferred_dependencies": [],
+                "reasoning_chain": [],
             }
 
         return {
@@ -511,18 +576,48 @@ class LogAnalysisAgent:
             "overall_confidence": data.get("overall_confidence", 50),
             "root_cause_hypothesis": data.get("root_cause_hypothesis", ""),
             "flow_analysis": data.get("flow_analysis", ""),
+            "patient_zero": data.get("patient_zero", None),
+            "inferred_dependencies": data.get("inferred_dependencies", []),
+            "reasoning_chain": data.get("reasoning_chain", []),
         }
 
     # ─── Build Result ──────────────────────────────────────────────────────
 
     def _build_result(self, collection: dict, analysis: dict) -> dict:
         """Combine deterministic data + LLM analysis into output format."""
+        # Merge deterministic pattern data into LLM patterns
+        primary = analysis.get("primary_pattern", {})
+        if primary and collection.get("patterns"):
+            det_pattern = collection["patterns"][0]  # highest frequency
+            primary.setdefault("first_seen", det_pattern.get("first_seen", ""))
+            primary.setdefault("last_seen", det_pattern.get("last_seen", ""))
+            primary["stack_traces"] = det_pattern.get("stack_traces", [])
+            primary["correlation_ids"] = det_pattern.get("correlation_ids", [])
+            primary["sample_log_ids"] = det_pattern.get("sample_log_ids", [])
+
+        # Same for secondary patterns
+        for i, sp in enumerate(analysis.get("secondary_patterns", [])):
+            if i + 1 < len(collection.get("patterns", [])):
+                det = collection["patterns"][i + 1]
+                sp.setdefault("first_seen", det.get("first_seen", ""))
+                sp.setdefault("last_seen", det.get("last_seen", ""))
+                sp["stack_traces"] = det.get("stack_traces", [])
+                sp["correlation_ids"] = det.get("correlation_ids", [])
+                sp["sample_log_ids"] = det.get("sample_log_ids", [])
+
+        # Merge dependency sources: deterministic + LLM
+        det_deps = collection.get("inferred_dependencies", [])
+        llm_deps = analysis.get("inferred_dependencies", [])
+
         return {
-            "primary_pattern": analysis.get("primary_pattern", {}),
+            "primary_pattern": primary,
             "secondary_patterns": analysis.get("secondary_patterns", []),
             "overall_confidence": analysis.get("overall_confidence", 50),
             "root_cause_hypothesis": analysis.get("root_cause_hypothesis", ""),
             "flow_analysis": analysis.get("flow_analysis", ""),
+            "patient_zero": analysis.get("patient_zero", None),
+            "inferred_dependencies": det_deps + llm_deps,
+            "reasoning_chain": analysis.get("reasoning_chain", []),
             "breadcrumbs": [b.model_dump(mode="json") for b in self.breadcrumbs],
             "negative_findings": [n.model_dump(mode="json") for n in self.negative_findings],
             "tokens_used": self.get_token_usage().model_dump(),
@@ -837,6 +932,29 @@ class LogAnalysisAgent:
         for key, group_logs in pattern_groups.items():
             exception_type = self._extract_exception_type(group_logs[0].get("message", ""))
             services = list(set(l.get("service", "unknown") for l in group_logs))
+
+            # Collect timestamps for first_seen/last_seen
+            timestamps = sorted(l.get("timestamp", "") for l in group_logs if l.get("timestamp"))
+
+            # Collect unique stack traces (deduplicated, max 3)
+            stack_traces = []
+            seen_stacks: set[str] = set()
+            for l in group_logs:
+                st = l.get("stack_trace", "")
+                if st and st not in seen_stacks:
+                    seen_stacks.add(st)
+                    stack_traces.append(st[:2000])
+                    if len(stack_traces) >= 3:
+                        break
+
+            # Collect unique correlation/trace IDs
+            correlation_ids = list(set(
+                l.get("trace_id", "") for l in group_logs if l.get("trace_id")
+            ))[:10]
+
+            # Sample log IDs for linking back
+            sample_log_ids = [l.get("id", "") for l in group_logs[:5] if l.get("id")]
+
             patterns.append({
                 "pattern_key": key,
                 "exception_type": exception_type,
@@ -844,10 +962,46 @@ class LogAnalysisAgent:
                 "frequency": len(group_logs),
                 "affected_components": services,
                 "sample_log": group_logs[0],
+                # Enrichment fields
+                "first_seen": timestamps[0] if timestamps else "",
+                "last_seen": timestamps[-1] if timestamps else "",
+                "stack_traces": stack_traces,
+                "correlation_ids": correlation_ids,
+                "sample_log_ids": sample_log_ids,
             })
 
         patterns.sort(key=lambda p: p["frequency"], reverse=True)
         return patterns
+
+    def _infer_service_dependencies(self, patterns: list[dict], service_flow: list[dict]) -> list[dict]:
+        """Infer service dependencies from error patterns and service flow."""
+        deps: dict[str, set[str]] = defaultdict(set)
+
+        # From patterns: if service A mentions service B in error messages
+        all_services: set[str] = set()
+        for p in patterns:
+            all_services.update(p.get("affected_components", []))
+
+        for p in patterns:
+            msg = p.get("error_message", "").lower()
+            for svc in all_services:
+                svc_lower = svc.lower()
+                pattern_services = [s.lower() for s in p.get("affected_components", [])]
+                if svc_lower in msg and svc_lower not in pattern_services:
+                    for caller in p.get("affected_components", []):
+                        deps[caller].add(svc)
+
+        # From service flow: sequential calls imply dependency
+        for i in range(len(service_flow) - 1):
+            src = service_flow[i].get("service", "")
+            dst = service_flow[i + 1].get("service", "")
+            if src and dst and src != dst:
+                deps[src].add(dst)
+
+        return [
+            {"source": src, "targets": sorted(targets)}
+            for src, targets in deps.items()
+        ]
 
     def _extract_pattern_key(self, message: str) -> str:
         """Extract a fingerprint from a log message for grouping."""

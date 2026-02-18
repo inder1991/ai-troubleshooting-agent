@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import type { V4Findings, V4SessionStatus, TaskEvent, Severity, CriticVerdict, ChangeCorrelation, BlastRadiusData, SeverityData, SpanInfo, Breadcrumb, ServiceFlowStep, CorrelatedSignalGroup, EventMarker } from '../../types';
+import type { V4Findings, V4SessionStatus, TaskEvent, Severity, CriticVerdict, ChangeCorrelation, BlastRadiusData, SeverityData, SpanInfo, Breadcrumb, ServiceFlowStep, CorrelatedSignalGroup, EventMarker, ErrorPattern, PatientZero } from '../../types';
 import { getFindings, getSessionStatus } from '../../services/api';
 
 interface EvidenceStackProps {
@@ -141,34 +141,19 @@ const EvidenceTab: React.FC<{ findings: V4Findings | null; events: TaskEvent[] }
 
   return (
     <div className="space-y-6">
-      {/* Log Pattern Card - matches reference */}
+      {/* Aggregated Error Clusters */}
       {errorPatterns.length > 0 && (
-        <div className="bg-slate-900/40 border border-slate-800 rounded-xl overflow-hidden">
-          <div className="px-4 py-2 border-b border-slate-800 flex items-center justify-between bg-slate-900/60">
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-amber-500 text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>receipt_long</span>
-              <span className="text-[11px] font-bold uppercase tracking-wider">Log Patterns</span>
+              <span className="text-[11px] font-bold uppercase tracking-wider">Aggregated Error Clusters</span>
             </div>
             <span className="text-[10px] font-mono text-slate-500">{errorPatterns.length} patterns</span>
           </div>
-          <div className="p-4 font-mono text-[11px] space-y-1 text-slate-400">
-            {errorPatterns.map((ep, i) => (
-              <div key={i} className="flex gap-4">
-                <span className="text-slate-600 w-24 shrink-0">
-                  {ep.last_seen ? new Date(ep.last_seen).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '—'}
-                </span>
-                <span className={`font-bold w-12 shrink-0 ${
-                  ep.severity === 'critical' || ep.severity === 'high' ? 'text-red-400' :
-                  ep.severity === 'medium' ? 'text-amber-400' : 'text-blue-400'
-                }`}>
-                  [{ep.severity === 'critical' || ep.severity === 'high' ? 'ERROR' :
-                    ep.severity === 'medium' ? 'WARN' : 'INFO'}]
-                </span>
-                <span className="truncate">{ep.sample_message || ep.pattern}</span>
-                <span className="text-red-400 ml-auto shrink-0">{ep.count}x</span>
-              </div>
-            ))}
-          </div>
+          {errorPatterns.map((ep, i) => (
+            <ErrorPatternCluster key={ep.pattern_id || i} pattern={ep} rank={i + 1} />
+          ))}
         </div>
       )}
 
@@ -894,7 +879,8 @@ const TemporalFlowTimeline: React.FC<{
   steps: ServiceFlowStep[];
   source: string;
   confidence: number;
-}> = ({ steps, source, confidence }) => {
+  patientZero?: PatientZero | null;
+}> = ({ steps, source, confidence, patientZero }) => {
   const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
   const serviceCount = new Set(steps.map((s) => s.service)).size;
 
@@ -955,12 +941,18 @@ const TemporalFlowTimeline: React.FC<{
         <div className="absolute left-[31px] top-4 bottom-4 border-l border-dashed border-slate-700" />
 
         <div className="space-y-3">
-          {steps.map((step, i) => (
+          {steps.map((step, i) => {
+            const isPatientZero = patientZero?.service?.toLowerCase() === step.service.toLowerCase();
+            return (
             <div key={i} className="relative flex items-start gap-3 pl-2">
               {/* Node circle */}
               <div className="relative z-10 flex-shrink-0 mt-1">
                 <div
-                  className={`w-4 h-4 rounded-full border-2 border-slate-900 ${nodeColor(step.status, i === lastErrorIdx)}`}
+                  className={`w-4 h-4 rounded-full border-2 border-slate-900 ${
+                    isPatientZero
+                      ? 'bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.6)] ring-2 ring-red-500/30'
+                      : nodeColor(step.status, i === lastErrorIdx)
+                  }`}
                 />
               </div>
 
@@ -974,6 +966,11 @@ const TemporalFlowTimeline: React.FC<{
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight shrink-0">
                       {step.service}
                     </span>
+                    {isPatientZero && (
+                      <span className="text-[8px] px-1 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30">
+                        ORIGIN
+                      </span>
+                    )}
                     <span className="text-[11px] font-mono text-slate-300 truncate">
                       {step.operation}
                     </span>
@@ -998,7 +995,8 @@ const TemporalFlowTimeline: React.FC<{
                 )}
               </button>
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>
@@ -1019,6 +1017,7 @@ const TracesTab: React.FC<{ findings: V4Findings | null; events: TaskEvent[] }> 
           steps={serviceFlow}
           source={findings?.flow_source || 'elasticsearch'}
           confidence={findings?.flow_confidence || 0}
+          patientZero={findings?.patient_zero}
         />
       )}
 
@@ -1149,6 +1148,108 @@ const TraceSpanRow: React.FC<{ span: SpanInfo; totalDuration: number; depth: num
     </div>
   );
 };
+
+// ─── Expandable Error Pattern Cluster ─────────────────────────────────────
+
+const ErrorPatternCluster: React.FC<{ pattern: ErrorPattern; rank: number }> = ({ pattern, rank }) => {
+  const [expanded, setExpanded] = useState(rank === 1);
+  const sevColor = pattern.severity === 'critical' || pattern.severity === 'high'
+    ? 'border-red-500/30 bg-red-500/10'
+    : pattern.severity === 'medium'
+    ? 'border-amber-500/30 bg-amber-500/10'
+    : 'border-blue-500/30 bg-blue-500/10';
+
+  const sevTextColor = pattern.severity === 'critical' || pattern.severity === 'high'
+    ? 'text-red-400'
+    : pattern.severity === 'medium'
+    ? 'text-amber-400'
+    : 'text-blue-400';
+
+  return (
+    <div className={`border rounded-lg overflow-hidden ${sevColor}`}>
+      {/* L1: Always visible — severity + exception + count */}
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full px-3 py-2.5 text-left flex items-center gap-2"
+      >
+        <span
+          className={`material-symbols-outlined text-xs text-slate-400 transition-transform ${expanded ? 'rotate-90' : ''}`}
+          style={{ fontFamily: 'Material Symbols Outlined' }}
+        >
+          chevron_right
+        </span>
+        <span className={`text-[10px] font-bold uppercase ${sevTextColor}`}>{pattern.severity}</span>
+        <span className="text-xs font-mono text-slate-200 truncate flex-1">{pattern.exception_type}</span>
+        <span className="text-xs font-bold text-red-400">{pattern.count}x</span>
+      </button>
+
+      {/* L2: Expanded details */}
+      {expanded && (
+        <div className="px-3 pb-3 border-t border-black/10 pt-2 space-y-3">
+          {/* Error message */}
+          <p className="text-[11px] font-mono text-slate-300">{pattern.sample_message}</p>
+
+          {/* Time range */}
+          {pattern.first_seen && (
+            <div className="flex gap-4 text-[10px] text-slate-500">
+              <span>First: {new Date(pattern.first_seen).toLocaleString()}</span>
+              {pattern.last_seen && <span>Last: {new Date(pattern.last_seen).toLocaleString()}</span>}
+            </div>
+          )}
+
+          {/* Affected services */}
+          {pattern.affected_components?.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {pattern.affected_components.map((svc, i) => (
+                <span key={i} className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800/60 text-slate-300 border border-slate-700/50">
+                  {svc}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Stack traces (collapsible) */}
+          {(pattern.stack_traces?.length ?? 0) > 0 && (
+            <StackTraceSection traces={pattern.stack_traces!} />
+          )}
+
+          {/* Correlation IDs */}
+          {(pattern.correlation_ids?.length ?? 0) > 0 && (
+            <div className="text-[10px] text-slate-500">
+              Trace IDs: {pattern.correlation_ids!.slice(0, 3).join(', ')}
+            </div>
+          )}
+
+          {/* Priority reasoning from LLM */}
+          {pattern.priority_reasoning && (
+            <p className="text-[10px] text-slate-400 italic">{pattern.priority_reasoning}</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const StackTraceSection: React.FC<{ traces: string[] }> = ({ traces }) => {
+  const [showTrace, setShowTrace] = useState(false);
+  return (
+    <div>
+      <button
+        onClick={() => setShowTrace(!showTrace)}
+        className="text-[10px] text-purple-400 hover:underline"
+      >
+        {showTrace ? 'Hide' : 'Show'} stack trace ({traces.length})
+      </button>
+      {showTrace && (
+        <pre className="mt-1 p-2 bg-black/30 rounded text-[10px] font-mono text-slate-400 overflow-x-auto max-h-48 custom-scrollbar whitespace-pre-wrap">
+          {traces[0]}
+        </pre>
+      )}
+    </div>
+  );
+};
+
+// ─── Empty State ──────────────────────────────────────────────────────────
 
 const EmptyState: React.FC<{ message: string }> = ({ message }) => (
   <div className="flex items-center justify-center h-full min-h-[200px] text-slate-500">
