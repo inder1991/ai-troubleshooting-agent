@@ -5,6 +5,9 @@ from typing import Any
 
 from src.agents.react_base import ReActAgent
 from src.models.schemas import PodHealthStatus, K8sEvent, K8sAnalysisResult, TokenUsage
+from src.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class K8sAgent(ReActAgent):
@@ -155,7 +158,7 @@ After analysis, provide your final answer as JSON:
         except (json.JSONDecodeError, AttributeError):
             return {"error": "Failed to parse response", "raw_response": text}
 
-        return {
+        result = {
             "pod_statuses": data.get("pod_statuses", []),
             "events": data.get("events", []),
             "is_crashloop": data.get("is_crashloop", False),
@@ -166,6 +169,8 @@ After analysis, provide your final answer as JSON:
             "negative_findings": [n.model_dump(mode="json") for n in self.negative_findings],
             "tokens_used": self.get_token_usage().model_dump(),
         }
+        logger.info("K8s agent complete", extra={"agent_name": self.agent_name, "action": "complete", "extra": {"pods": len(result["pod_statuses"]), "events": len(result["events"]), "confidence": result["overall_confidence"]}})
+        return result
 
     # --- Tool implementations ---
 

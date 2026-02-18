@@ -1,5 +1,8 @@
 from datetime import datetime, timezone
 from src.models.schemas import TaskEvent
+from src.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class EventEmitter:
@@ -27,6 +30,8 @@ class EventEmitter:
         )
         self._events.append(event)
 
+        logger.debug("Event emitted", extra={"session_id": self.session_id, "agent_name": agent_name, "action": event_type, "extra": message})
+
         if self._websocket_manager:
             event_data = event.model_dump(mode="json")
             event_data["session_id"] = self.session_id
@@ -37,6 +42,7 @@ class EventEmitter:
                     "data": event_data,
                 },
             )
+            logger.debug("WebSocket broadcast", extra={"session_id": self.session_id, "action": "ws_broadcast", "extra": event_type})
 
         return event
 

@@ -9,6 +9,9 @@ from anthropic import APIStatusError
 from src.models.schemas import Breadcrumb, EvidencePin, NegativeFinding, ReActBudget, TokenUsage
 from src.utils.llm_client import AnthropicClient
 from src.utils.event_emitter import EventEmitter
+from src.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 MAX_RETRIES = 3
 RETRY_DELAYS = [2, 5, 15]  # seconds
@@ -159,6 +162,8 @@ class ReActAgent(ABC):
         system_prompt = await self._build_system_prompt()
         initial_prompt = await self._build_initial_prompt(context)
 
+        logger.info("Agent started", extra={"agent_name": self.agent_name, "action": "start", "extra": {"iteration": 0}})
+
         if event_emitter:
             await event_emitter.emit(self.agent_name, "started", f"{self.agent_name} starting analysis")
 
@@ -226,6 +231,7 @@ class ReActAgent(ABC):
                     await event_emitter.emit(self.agent_name, "success", f"{self.agent_name} completed analysis")
                 result = self._parse_final_response(final_text)
                 result["evidence_pins"] = [p.model_dump(mode="json") for p in self.evidence_pins]
+                logger.info("Agent completed", extra={"agent_name": self.agent_name, "action": "complete", "extra": {"iterations": iteration + 1, "findings": len(self.evidence_pins)}})
                 return result
 
             if tool_use_blocks:
@@ -237,6 +243,8 @@ class ReActAgent(ABC):
                 for tool_block in tool_use_blocks:
                     tool_name = tool_block.name
                     tool_input = tool_block.input
+
+                    logger.info("Tool called", extra={"agent_name": self.agent_name, "action": "tool_call", "tool": tool_name, "extra": {"iteration": iteration + 1}})
 
                     if event_emitter:
                         summary = self._summarize_tool_call(tool_name, tool_input)
@@ -268,6 +276,7 @@ class ReActAgent(ABC):
                 return result
 
         # Max iterations reached
+        logger.warning("Max iterations reached", extra={"agent_name": self.agent_name, "action": "max_iterations", "extra": {"max": self.max_iterations}})
         if event_emitter:
             await event_emitter.emit(self.agent_name, "warning", f"Max iterations ({self.max_iterations}) reached")
 

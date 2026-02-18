@@ -1,6 +1,9 @@
 import json
 
 from src.agents.react_base import ReActAgent
+from src.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class ChangeAgent(ReActAgent):
@@ -145,10 +148,12 @@ class ChangeAgent(ReActAgent):
             data = json.loads(text)
         except (json.JSONDecodeError, TypeError):
             data = {}
-        return {
+        result = {
             "change_correlations": data.get("change_correlations", []),
             "summary": data.get("summary", text[:500] if text else "No changes found"),
             "breadcrumbs": [b.model_dump(mode="json") for b in self.breadcrumbs],
             "negative_findings": [n.model_dump(mode="json") for n in self.negative_findings],
             "tokens_used": self.get_token_usage().model_dump(),
         }
+        logger.info("Change agent complete", extra={"agent_name": self.agent_name, "action": "complete", "extra": {"correlations": len(result["change_correlations"])}})
+        return result

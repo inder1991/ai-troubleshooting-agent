@@ -9,6 +9,7 @@ Usage:
 
 import json
 import logging
+import os
 import sys
 from datetime import datetime, timezone
 
@@ -24,8 +25,8 @@ class JSONFormatter(logging.Formatter):
             "message": record.getMessage(),
         }
 
-        # Include session_id and profile_id if present
-        for key in ("session_id", "profile_id", "action", "extra"):
+        for key in ("session_id", "profile_id", "action", "extra",
+                     "agent_name", "tool", "tokens", "duration_ms"):
             val = getattr(record, key, None)
             if val is not None:
                 log_entry[key] = val
@@ -40,6 +41,7 @@ def get_logger(name: str) -> logging.Logger:
     """Get a logger with JSON formatting.
 
     Returns a standard Python logger configured with JSON output.
+    The log level is controlled by the LOG_LEVEL environment variable (default: INFO).
     """
     logger = logging.getLogger(name)
 
@@ -47,7 +49,8 @@ def get_logger(name: str) -> logging.Logger:
         handler = logging.StreamHandler(sys.stdout)
         handler.setFormatter(JSONFormatter())
         logger.addHandler(handler)
-        logger.setLevel(logging.INFO)
+        level = os.environ.get("LOG_LEVEL", "INFO").upper()
+        logger.setLevel(getattr(logging, level, logging.INFO))
         logger.propagate = False
 
     return logger

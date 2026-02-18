@@ -1,6 +1,6 @@
 import json
 import asyncio
-import logging
+import time
 from typing import Optional
 from datetime import datetime, timezone
 
@@ -19,8 +19,9 @@ from src.agents.causal_engine import EvidenceGraphBuilder
 from src.agents.impact_analyzer import ImpactAnalyzer
 from src.utils.llm_client import AnthropicClient
 from src.utils.event_emitter import EventEmitter
+from src.utils.logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 def update_confidence_ledger(ledger: ConfidenceLedger, pins: list[EvidencePin]) -> None:
@@ -108,6 +109,7 @@ class SupervisorAgent:
             elk_index=initial_input.get("elk_index"),
         )
 
+        logger.info("Session started", extra={"session_id": state.session_id, "agent_name": "supervisor", "action": "session_start", "extra": state.service_name})
         await event_emitter.emit("supervisor", "started", f"Starting diagnosis for {state.service_name}")
 
         max_rounds = 10
@@ -122,6 +124,7 @@ class SupervisorAgent:
                 await self._query_past_incidents(state, event_emitter)
 
                 state.phase = DiagnosticPhase.DIAGNOSIS_COMPLETE
+                logger.info("Diagnosis complete", extra={"session_id": state.session_id, "agent_name": "supervisor", "action": "diagnosis_complete", "extra": {"overall_confidence": state.overall_confidence, "total_findings": len(state.all_findings)}})
                 await event_emitter.emit("supervisor", "success", "Diagnosis complete")
 
                 # Emit attestation gate event
@@ -141,6 +144,7 @@ class SupervisorAgent:
 
             # Dispatch agents (parallel if multiple)
             for agent_name in next_agents:
+                logger.info("Agent dispatched", extra={"session_id": state.session_id, "agent_name": agent_name, "action": "dispatch", "extra": {"phase": state.phase.value}})
                 await event_emitter.emit("supervisor", "progress", f"Dispatching {agent_name}")
                 agent_result = await self._dispatch_agent(agent_name, state, event_emitter)
 
@@ -162,6 +166,7 @@ class SupervisorAgent:
                             verdict = self._critic._evaluate_finding(finding)
                             finding.critic_verdict = verdict
                             state.critic_verdicts.append(verdict)
+                            logger.info("Critic validation", extra={"session_id": state.session_id, "agent_name": "critic", "action": "verdict", "extra": {"finding": finding.summary[:80], "verdict": verdict.verdict, "confidence": verdict.confidence_in_verdict}})
 
                             if verdict.verdict == "challenged" and verdict.confidence_in_verdict > 80:
                                 await event_emitter.emit(
@@ -300,12 +305,16 @@ class SupervisorAgent:
             agent = agent_cls()
         context = self._build_agent_context(agent_name, state)
 
+        start = time.monotonic()
         try:
             result = await agent.run(context, event_emitter)
+            elapsed_ms = round((time.monotonic() - start) * 1000)
             # Collect token usage
             state.token_usage.append(agent.get_token_usage())
+            logger.info("Agent completed", extra={"session_id": getattr(state, 'session_id', ''), "agent_name": agent_name, "action": "agent_complete", "extra": {"confidence": result.get("overall_confidence", 0), "findings": len(result.get("evidence_pins", []))}, "duration_ms": elapsed_ms})
             return result
         except Exception as e:
+            logger.error("Agent failed", extra={"session_id": getattr(state, 'session_id', ''), "agent_name": agent_name, "action": "agent_error", "extra": str(e)})
             if event_emitter:
                 await event_emitter.emit(agent_name, "error", f"Agent failed: {str(e)}")
             return None
@@ -412,6 +421,21 @@ class SupervisorAgent:
                         }
                     )
 
+        # Store service flow from log agent
+        if agent_name == "log_agent":
+            service_flow = result.get("service_flow", [])
+            if service_flow:
+                state.service_flow = service_flow
+                state.flow_source = result.get("flow_source", "elasticsearch")
+                state.flow_confidence = result.get("flow_confidence", 0)
+                if event_emitter:
+                    services_in_flow = list(dict.fromkeys(s["service"] for s in service_flow))
+                    await event_emitter.emit(
+                        "log_agent", "finding",
+                        f"Flow reconstructed: {' → '.join(services_in_flow)} ({len(service_flow)} steps)",
+                        details={"type": "service_flow", "services": services_in_flow}
+                    )
+
         # Handle change_agent results
         if agent_name == "change_agent":
             state.change_analysis = result
@@ -448,6 +472,8 @@ class SupervisorAgent:
             state.phase = DiagnosticPhase.LOGS_ANALYZED
         # change_agent runs in parallel and doesn't gate phase transitions
 
+        if state.phase != old_phase:
+            logger.info("Phase transition", extra={"session_id": state.session_id, "agent_name": "supervisor", "action": "phase_transition", "extra": {"from": old_phase.value, "to": state.phase.value}})
         if state.phase != old_phase and event_emitter:
             asyncio.ensure_future(event_emitter.emit(
                 "supervisor", "phase_change",
@@ -461,7 +487,9 @@ class SupervisorAgent:
         if agent_name == "log_agent":
             primary = result.get("primary_pattern", {})
             pattern_msg = primary.get("error_message", "No pattern found") if isinstance(primary, dict) else "No pattern found"
-            return f"Log analysis complete — Primary: {pattern_msg[:100]} (confidence: {confidence}%)"
+            flow = result.get("service_flow", [])
+            flow_part = f", flow: {len(flow)} steps across {len(set(s['service'] for s in flow))} services" if flow else ""
+            return f"Log analysis complete — Primary: {pattern_msg[:100]}{flow_part} (confidence: {confidence}%)"
         elif agent_name == "metrics_agent":
             anomalies = result.get("anomalies", [])
             return f"Metrics analysis complete — {len(anomalies)} anomalies detected (confidence: {confidence}%)"

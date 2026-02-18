@@ -6,6 +6,9 @@ from typing import Any
 
 from src.agents.react_base import ReActAgent
 from src.models.schemas import ImpactedFile, LineRange, FixArea, CodeAnalysisResult, TokenUsage
+from src.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class CodeNavigatorAgent(ReActAgent):
@@ -145,12 +148,14 @@ After analysis, provide your final answer as JSON:
         except (json.JSONDecodeError, AttributeError):
             return {"error": "Failed to parse response", "raw_response": text}
 
-        return {
+        result = {
             **data,
             "breadcrumbs": [b.model_dump(mode="json") for b in self.breadcrumbs],
             "negative_findings": [n.model_dump(mode="json") for n in self.negative_findings],
             "tokens_used": self.get_token_usage().model_dump(),
         }
+        logger.info("Code agent complete", extra={"agent_name": self.agent_name, "action": "complete", "extra": {"impacted_files": len(data.get("impacted_files", [])), "confidence": data.get("overall_confidence", 0)}})
+        return result
 
     # --- Tool implementations ---
 

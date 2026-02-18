@@ -5,6 +5,9 @@ from src.models.schemas import (
     Finding, CriticVerdict, DiagnosticState, Breadcrumb, TokenUsage
 )
 from src.utils.llm_client import AnthropicClient
+from src.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class CriticAgent:
@@ -16,6 +19,7 @@ class CriticAgent:
 
     async def validate(self, finding: Finding, state: DiagnosticState) -> CriticVerdict:
         """Validate a finding against all available evidence in the diagnostic state."""
+        logger.info("Critic started", extra={"agent_name": "critic", "action": "validate_start", "extra": {"finding": finding.finding_id}})
         context = self._build_context(finding, state)
 
         response = await self.llm_client.chat(
@@ -47,7 +51,7 @@ Respond with JSON:
             else:
                 data = json.loads(response.text)
 
-            return CriticVerdict(
+            verdict_obj = CriticVerdict(
                 finding_id=finding.finding_id,
                 agent_source=finding.agent_name,
                 verdict=data.get("verdict", "insufficient_data"),
@@ -55,6 +59,8 @@ Respond with JSON:
                 recommendation=data.get("recommendation"),
                 confidence_in_verdict=min(max(data.get("confidence_in_verdict", 50), 0), 100),
             )
+            logger.info("Verdict issued", extra={"agent_name": "critic", "action": "verdict", "extra": {"finding": finding.finding_id, "verdict": verdict_obj.verdict, "confidence": verdict_obj.confidence_in_verdict}})
+            return verdict_obj
         except (json.JSONDecodeError, Exception):
             return CriticVerdict(
                 finding_id=finding.finding_id,

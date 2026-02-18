@@ -1,6 +1,10 @@
 import os
+import time
 from anthropic import AsyncAnthropic
 from src.models.schemas import TokenUsage
+from src.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class LLMResponse:
@@ -42,12 +46,22 @@ class AnthropicClient:
         if system:
             kwargs["system"] = system
 
-        response = await self._client.messages.create(**kwargs)
+        logger.info("LLM call", extra={"agent_name": self.agent_name, "action": "llm_call", "tool": self.model, "tokens": {"max_tokens": max_tokens}})
 
+        start = time.monotonic()
+        try:
+            response = await self._client.messages.create(**kwargs)
+        except Exception as e:
+            logger.error("LLM call failed", extra={"agent_name": self.agent_name, "action": "llm_error", "extra": str(e)})
+            raise
+
+        elapsed_ms = round((time.monotonic() - start) * 1000)
         input_tokens = response.usage.input_tokens
         output_tokens = response.usage.output_tokens
         self._total_input_tokens += input_tokens
         self._total_output_tokens += output_tokens
+
+        logger.info("LLM response", extra={"agent_name": self.agent_name, "action": "llm_response", "tokens": {"input": input_tokens, "output": output_tokens}, "duration_ms": elapsed_ms})
 
         text = response.content[0].text if response.content else ""
 

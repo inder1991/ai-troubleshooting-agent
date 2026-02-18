@@ -9,6 +9,9 @@ from src.models.schemas import (
     IncidentTimeline,
     TimelineEvent,
 )
+from src.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class EvidenceGraphBuilder:
@@ -49,6 +52,7 @@ class EvidenceGraphBuilder:
 
     def identify_root_causes(self) -> list[str]:
         """Identify root causes: nodes that are sources but never targets."""
+        logger.info("Causal analysis started", extra={"agent_name": "causal_engine", "action": "analysis_start", "extra": {"nodes": len(self.graph.nodes), "edges": len(self.graph.edges)}})
         targets = {e.target_id for e in self.graph.edges}
         sources = {e.source_id for e in self.graph.edges}
         roots = [nid for nid in sources if nid not in targets]

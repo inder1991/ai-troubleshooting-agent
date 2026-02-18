@@ -7,21 +7,24 @@ from typing import Any
 
 import requests
 
-from src.agents.react_base import ReActAgent
 from src.models.schemas import (
     ErrorPattern, LogEvidence, LogAnalysisResult,
-    NegativeFinding, Breadcrumb, TokenUsage
+    NegativeFinding, Breadcrumb, TokenUsage, EvidencePin
 )
+from src.utils.llm_client import AnthropicClient
 from src.utils.event_emitter import EventEmitter
+from src.utils.logger import get_logger
 
 import os
 
+logger = get_logger(__name__)
 
-class LogAnalysisAgent(ReActAgent):
-    """ReAct agent for log analysis with error pattern detection and prioritization."""
 
-    def __init__(self, max_iterations: int = 8, connection_config=None):
-        super().__init__(agent_name="log_agent", max_iterations=max_iterations)
+class LogAnalysisAgent:
+    """Hybrid log agent: deterministic collection + single LLM analysis call."""
+
+    def __init__(self, connection_config=None):
+        self.agent_name = "log_agent"
         self._connection_config = connection_config
         # Resolve Elasticsearch URL from config, falling back to env var
         if connection_config and connection_config.elasticsearch_url:
@@ -29,8 +32,13 @@ class LogAnalysisAgent(ReActAgent):
         else:
             self.es_url = os.getenv("ELASTICSEARCH_URL", "http://localhost:9200")
         self._es_headers = self._build_es_headers(connection_config)
+        self.llm_client = AnthropicClient(agent_name="log_agent")
+        self.breadcrumbs: list[Breadcrumb] = []
+        self.negative_findings: list[NegativeFinding] = []
+        self.evidence_pins: list[EvidencePin] = []
         self._raw_logs: list[dict] = []
         self._patterns: list[dict] = []
+        self._service_flow: list[dict] = []
 
     def _build_es_headers(self, connection_config) -> dict:
         """Build HTTP headers for Elasticsearch requests, including auth."""
@@ -48,147 +56,436 @@ class LogAnalysisAgent(ReActAgent):
             headers["Authorization"] = f"Basic {base64.b64encode(credentials.encode()).decode()}"
         return headers
 
-    async def _define_tools(self) -> list[dict]:
-        return [
-            {
-                "name": "search_elasticsearch",
-                "description": "Search Elasticsearch for logs matching a query. Returns matching log entries.",
-                "input_schema": {
-                    "type": "object",
-                    "properties": {
-                        "index": {"type": "string", "description": "ES index pattern, e.g. 'app-logs-*'"},
-                        "query": {"type": "string", "description": "Lucene query string"},
-                        "time_range": {"type": "string", "description": "Time range, e.g. 'now-1h'"},
-                        "size": {"type": "integer", "description": "Max results to return", "default": 200},
-                        "level_filter": {"type": "string", "description": "Log level filter: ERROR, WARN, INFO", "default": "ERROR"},
-                    },
-                    "required": ["index", "query"],
-                },
+    async def run(self, context: dict, event_emitter: EventEmitter | None = None) -> dict:
+        """Two-phase hybrid execution."""
+        service_name = context.get("service_name", "unknown")
+        logger.info("Starting log analysis", extra={"agent_name": self.agent_name, "action": "start", "extra": service_name})
+
+        if event_emitter:
+            await event_emitter.emit(self.agent_name, "started", "log_agent starting analysis")
+
+        # Phase 1: Deterministic collection
+        collection = await self._collect(context, event_emitter)
+
+        # Phase 2: Single LLM analysis call
+        analysis = await self._analyze_with_llm(collection, context, event_emitter)
+
+        if event_emitter:
+            await event_emitter.emit(self.agent_name, "success", "log_agent completed analysis")
+
+        result = self._build_result(collection, analysis)
+        logger.info("Log analysis complete", extra={"agent_name": self.agent_name, "action": "complete", "extra": {"patterns": len(self._patterns), "raw_logs": len(self._raw_logs), "confidence": analysis.get("overall_confidence", 0)}})
+        return result
+
+    def get_token_usage(self) -> TokenUsage:
+        return self.llm_client.get_total_usage()
+
+    # ─── Helpers for evidence tracking ─────────────────────────────────────
+
+    def add_breadcrumb(
+        self, action: str, source_type: str, source_reference: str, raw_evidence: str
+    ) -> None:
+        self.breadcrumbs.append(
+            Breadcrumb(
+                agent_name=self.agent_name,
+                action=action,
+                source_type=source_type,
+                source_reference=source_reference,
+                raw_evidence=raw_evidence,
+                timestamp=datetime.now(timezone.utc),
+            )
+        )
+
+    def add_negative_finding(
+        self, what_was_checked: str, result: str, implication: str, source_reference: str
+    ) -> None:
+        self.negative_findings.append(
+            NegativeFinding(
+                agent_name=self.agent_name,
+                what_was_checked=what_was_checked,
+                result=result,
+                implication=implication,
+                source_reference=source_reference,
+            )
+        )
+
+    # ─── Phase 1: Deterministic Collection ─────────────────────────────────
+
+    async def _collect(self, context: dict, event_emitter: EventEmitter | None) -> dict:
+        """Run a fixed sequence of ES queries — no LLM involved."""
+
+        # Step 1: Resolve index
+        if event_emitter:
+            await event_emitter.emit(
+                self.agent_name, "tool_call",
+                "Discovering available ES indices...",
+                details={"tool": "list_available_indices"},
+            )
+        index, indices_found = await self._resolve_index(context, event_emitter)
+
+        # Step 2: Search ERROR logs
+        if event_emitter:
+            await event_emitter.emit(
+                self.agent_name, "tool_call",
+                f"Searching '{index}' for ERROR logs...",
+                details={"tool": "search_elasticsearch", "index": index},
+            )
+
+        service = context.get("service_name", "*")
+        timeframe = context.get("timeframe", "now-1h")
+        logs = await self._search_elasticsearch({
+            "index": index,
+            "query": service,
+            "time_range": timeframe,
+            "size": 200,
+            "level_filter": "ERROR",
+        })
+
+        # Step 3: Broaden if no results
+        if not self._raw_logs:
+            if event_emitter:
+                await event_emitter.emit(
+                    self.agent_name, "tool_call",
+                    f"No ERROR logs found, broadening to WARN in '{index}'...",
+                    details={"tool": "search_elasticsearch", "index": index},
+                )
+            logs = await self._search_elasticsearch({
+                "index": index,
+                "query": service,
+                "time_range": timeframe,
+                "size": 200,
+                "level_filter": "WARN",
+            })
+
+        if not self._raw_logs:
+            if event_emitter:
+                await event_emitter.emit(
+                    self.agent_name, "tool_call",
+                    f"No WARN logs found, searching all levels in '{index}'...",
+                    details={"tool": "search_elasticsearch", "index": index},
+                )
+            logs = await self._search_elasticsearch({
+                "index": index,
+                "query": service,
+                "time_range": timeframe,
+                "size": 200,
+                "level_filter": "",
+            })
+
+        # Step 4: Group into patterns
+        if self._raw_logs:
+            if event_emitter:
+                await event_emitter.emit(
+                    self.agent_name, "tool_call",
+                    "Grouping logs into error patterns...",
+                    details={"tool": "analyze_patterns"},
+                )
+            self._patterns = self._parse_patterns_from_logs(self._raw_logs)
+            logger.info("Patterns grouped", extra={"agent_name": self.agent_name, "action": "patterns_grouped", "extra": {"pattern_count": len(self._patterns), "total_logs": len(self._raw_logs)}})
+            self.add_breadcrumb(
+                action="analyzed_patterns",
+                source_type="log",
+                source_reference="in-memory log collection",
+                raw_evidence=f"Grouped {len(self._raw_logs)} logs into {len(self._patterns)} patterns",
+            )
+
+        # Step 5: Search by trace_id for flow reconstruction
+        trace_id = context.get("trace_id")
+        service_flow: list[dict] = []
+        if trace_id:
+            if event_emitter:
+                await event_emitter.emit(
+                    self.agent_name, "tool_call",
+                    f"Reconstructing service flow from trace {trace_id}...",
+                    details={"tool": "search_by_trace_id"},
+                )
+            trace_result = await self._search_by_trace_id({
+                "index": index,
+                "trace_id": trace_id,
+                "size": 100,
+            })
+            try:
+                trace_data = json.loads(trace_result)
+                trace_logs = trace_data.get("logs", [])
+                if trace_logs:
+                    service_flow = self._reconstruct_service_flow(trace_logs)
+                    self._service_flow = service_flow
+                    services = list(dict.fromkeys(s["service"] for s in service_flow))
+                    logger.info("Service flow reconstructed", extra={"agent_name": self.agent_name, "action": "flow_reconstructed", "extra": {"steps": len(service_flow), "services": services}})
+            except (json.JSONDecodeError, AttributeError):
+                pass
+
+        # Step 6: Get log context around first error
+        context_logs: list[dict] = []
+        if self._patterns:
+            first_pattern = self._patterns[0]
+            sample = first_pattern.get("sample_log", {})
+            ts = sample.get("timestamp")
+            svc = sample.get("service") or service
+            if ts and svc:
+                ctx_result = await self._get_log_context({
+                    "index": index,
+                    "timestamp": ts,
+                    "service": svc,
+                    "minutes_before": 5,
+                    "minutes_after": 2,
+                })
+                try:
+                    ctx_data = json.loads(ctx_result)
+                    context_logs = ctx_data.get("logs", [])
+                except (json.JSONDecodeError, AttributeError):
+                    pass
+
+        # Count stats
+        error_count = sum(1 for l in self._raw_logs if (l.get("level") or "").upper() in ("ERROR", "FATAL", "CRITICAL"))
+        warn_count = sum(1 for l in self._raw_logs if (l.get("level") or "").upper() == "WARN")
+
+        return {
+            "indices_found": indices_found,
+            "index_used": index,
+            "raw_logs": self._raw_logs,
+            "patterns": self._patterns,
+            "service_flow": service_flow,
+            "context_logs": context_logs,
+            "stats": {
+                "total_logs": len(self._raw_logs),
+                "error_count": error_count,
+                "warn_count": warn_count,
             },
-            {
-                "name": "search_by_trace_id",
-                "description": "Search for all logs associated with a specific trace/correlation ID.",
-                "input_schema": {
-                    "type": "object",
-                    "properties": {
-                        "index": {"type": "string"},
-                        "trace_id": {"type": "string"},
-                        "size": {"type": "integer", "default": 100},
-                    },
-                    "required": ["index", "trace_id"],
-                },
-            },
-            {
-                "name": "get_log_context",
-                "description": "Get surrounding log entries (before and after) for a specific log ID to understand the sequence of events.",
-                "input_schema": {
-                    "type": "object",
-                    "properties": {
-                        "index": {"type": "string"},
-                        "timestamp": {"type": "string", "description": "ISO timestamp of the target log entry"},
-                        "service": {"type": "string", "description": "Service name to filter by"},
-                        "minutes_before": {"type": "integer", "default": 5},
-                        "minutes_after": {"type": "integer", "default": 2},
-                    },
-                    "required": ["index", "timestamp", "service"],
-                },
-            },
-            {
-                "name": "analyze_patterns",
-                "description": "Group collected logs into error patterns by exception type and message similarity. Call this after collecting logs.",
-                "input_schema": {
-                    "type": "object",
-                    "properties": {},
-                },
-            },
-            {
-                "name": "list_available_indices",
-                "description": "List all Elasticsearch indices matching a pattern. Call this to discover what log indices exist before searching, so you can target the correct index.",
-                "input_schema": {
-                    "type": "object",
-                    "properties": {
-                        "pattern": {"type": "string", "description": "Index pattern (e.g. 'app-logs-*')", "default": "*"},
-                    },
-                    "required": [],
-                },
-            },
+        }
+
+    async def _resolve_index(self, context: dict, event_emitter: EventEmitter | None) -> tuple[str, list[dict]]:
+        """Determine which ES index to use."""
+        user_index = (context.get("elk_index") or "").strip()
+        all_indices: list[dict] = []
+
+        if user_index and user_index != "*":
+            # User provided an index — verify it exists
+            exists = await self._check_index_exists(user_index)
+            if exists:
+                logger.info("Index resolved", extra={"agent_name": self.agent_name, "action": "index_resolved", "extra": {"index": user_index, "method": "user_provided"}})
+                return user_index, []
+
+            # Try as pattern
+            result_str = await self._list_available_indices({"pattern": user_index + "*"})
+            try:
+                data = json.loads(result_str)
+                indices = data.get("indices", [])
+                if indices:
+                    return indices[0]["index"], indices
+            except (json.JSONDecodeError, KeyError):
+                pass
+
+        # Discovery: list all indices
+        result_str = await self._list_available_indices({"pattern": "*"})
+        try:
+            data = json.loads(result_str)
+            all_indices = data.get("indices", [])
+        except (json.JSONDecodeError, AttributeError):
+            pass
+
+        if not all_indices:
+            return user_index if user_index else "*", []
+
+        service = context.get("service_name", "")
+        best = self._pick_best_index(all_indices, service)
+        chosen = best or "*"
+        logger.info("Index resolved", extra={"agent_name": self.agent_name, "action": "index_resolved", "extra": {"index": chosen, "method": "discovered"}})
+        return chosen, all_indices
+
+    def _pick_best_index(self, indices: list[dict], service: str) -> str | None:
+        """Score indices by relevance and return the best one."""
+        if not indices:
+            return None
+
+        scored: list[tuple[int, str]] = []
+        service_lower = service.lower()
+
+        for idx in indices:
+            name = idx.get("index", "")
+            score = 0
+            # Name contains service
+            if service_lower and service_lower in name.lower():
+                score += 10
+            # Common log index patterns
+            for keyword in ("log", "filebeat", "logstash", "app"):
+                if keyword in name.lower():
+                    score += 3
+            # Has documents
+            try:
+                doc_count = int(idx.get("docs.count", 0))
+                if doc_count > 0:
+                    score += 2
+            except (ValueError, TypeError):
+                pass
+            scored.append((score, name))
+
+        scored.sort(key=lambda x: x[0], reverse=True)
+        return scored[0][1] if scored else None
+
+    async def _check_index_exists(self, index: str) -> bool:
+        """Check if an index exists in Elasticsearch."""
+        try:
+            resp = requests.head(
+                f"{self.es_url}/{index}",
+                headers=self._es_headers,
+                timeout=10,
+            )
+            return resp.status_code == 200
+        except Exception:
+            return False
+
+    # ─── Flow Reconstruction (NEW) ─────────────────────────────────────────
+
+    def _reconstruct_service_flow(self, trace_logs: list[dict]) -> list[dict]:
+        """Build temporal flow from trace-correlated logs."""
+        sorted_logs = sorted(trace_logs, key=lambda l: l.get("timestamp", ""))
+
+        flow_steps = []
+        seen_services: set[str] = set()
+
+        for log in sorted_logs:
+            service = log.get("service", "unknown") or "unknown"
+            level = (log.get("level") or "INFO").upper()
+            message = log.get("message", "")
+
+            if level in ("ERROR", "FATAL", "CRITICAL"):
+                status = "error"
+            elif "timeout" in message.lower():
+                status = "timeout"
+            else:
+                status = "ok"
+
+            is_new = service not in seen_services
+            seen_services.add(service)
+
+            flow_steps.append({
+                "service": service,
+                "timestamp": log.get("timestamp", ""),
+                "operation": self._extract_operation(message),
+                "status": status,
+                "status_detail": self._extract_status_detail(message, level),
+                "message": message[:200],
+                "is_new_service": is_new,
+            })
+
+        return flow_steps
+
+    def _extract_operation(self, message: str) -> str:
+        """Extract operation name from log message."""
+        http_match = re.search(r'(GET|POST|PUT|DELETE|PATCH)\s+(/\S+)', message)
+        if http_match:
+            return f"{http_match.group(1)} {http_match.group(2)[:50]}"
+        func_match = re.search(r'(?:calling|invoking|executing)\s+(\S+)', message, re.IGNORECASE)
+        if func_match:
+            return func_match.group(1)[:50]
+        return message[:40]
+
+    def _extract_status_detail(self, message: str, level: str) -> str:
+        """Extract a short status detail like '200 OK' or 'NullPointerException'."""
+        status_match = re.search(r'\b(\d{3})\s+([\w\s]+?)(?:\s|$|,)', message)
+        if status_match:
+            return f"{status_match.group(1)} {status_match.group(2).strip()}"
+        if level in ("ERROR", "FATAL"):
+            exc = self._extract_exception_type(message)
+            return exc if exc != "UnknownError" else "Error"
+        return "OK"
+
+    # ─── Phase 2: Single LLM Analysis ──────────────────────────────────────
+
+    async def _analyze_with_llm(self, collection: dict, context: dict, event_emitter: EventEmitter | None) -> dict:
+        """One LLM call with all collected data."""
+        if not collection.get("patterns") and not collection.get("raw_logs"):
+            return {
+                "primary_pattern": {},
+                "secondary_patterns": [],
+                "overall_confidence": 20,
+                "root_cause_hypothesis": "No log data found to analyze",
+                "flow_analysis": "",
+            }
+
+        if event_emitter:
+            await event_emitter.emit(self.agent_name, "progress", "Analyzing patterns with AI...")
+
+        prompt = self._build_analysis_prompt(collection, context)
+
+        response = await self.llm_client.chat(
+            prompt=prompt,
+            system="You are a log analysis expert. Analyze the provided error patterns and service flow. Respond with JSON only.",
+            max_tokens=4096,
+            temperature=0.0,
+        )
+
+        analysis = self._parse_llm_response(response.text)
+        logger.info("LLM analysis complete", extra={"agent_name": self.agent_name, "action": "llm_analysis", "extra": {"confidence": analysis.get("overall_confidence", 0)}, "tokens": {"input": response.input_tokens, "output": response.output_tokens}})
+        return analysis
+
+    def _build_analysis_prompt(self, collection: dict, context: dict) -> str:
+        """Build focused prompt with all deterministic data."""
+        service = context.get("service_name", "unknown")
+        timeframe = context.get("timeframe", "now-1h")
+        stats = collection.get("stats", {})
+
+        parts = [
+            f"Service: {service}",
+            f"Time window: {timeframe}",
+            f"Stats: {stats.get('total_logs', 0)} total logs, {stats.get('error_count', 0)} errors, {stats.get('warn_count', 0)} warnings",
+            f"Index: {collection.get('index_used', 'unknown')}",
+            "",
+            "## Error Patterns (deterministic grouping)",
         ]
 
-    async def _build_system_prompt(self) -> str:
-        return """You are a Log Analysis Agent for SRE troubleshooting. You use the ReAct pattern:
-THINK about what to search for, ACT by calling tools, OBSERVE results, then decide next steps.
+        for i, p in enumerate(collection.get("patterns", [])[:10]):
+            parts.append(
+                f"P{i+1}: exception={p.get('exception_type', '?')}, "
+                f"freq={p.get('frequency', 0)}, "
+                f"services={p.get('affected_components', [])}, "
+                f"msg={p.get('error_message', '')[:150]}"
+            )
 
-CRITICAL STEPS — follow this order:
-1. Call list_available_indices FIRST to discover what log indices exist. Do NOT assume index names.
-2. Pick the index that looks most relevant (could be logstash-*, filebeat-*, app-logs-*, or any other pattern).
-3. Search for ERROR logs for the target service. Use the service name in the query string (e.g. "checkout-service AND error" or just the service name).
-4. If a search returns zero results, try different approaches:
-   - Try a broader query (just the service name, or "*")
-   - Try a different index
-   - Try without the level_filter (set level_filter to empty string) to see what fields exist
-   - Try searching for the service name in different fields
-5. Also check WARN logs that preceded errors
-6. Search by trace_id if one is available
-7. Group errors into distinct patterns using analyze_patterns
-8. Prioritize patterns by: frequency, severity, likely root cause vs symptom
+        flow = collection.get("service_flow", [])
+        if flow:
+            parts.append("")
+            parts.append("## Service Flow (temporal reconstruction)")
+            for step in flow[:20]:
+                parts.append(
+                    f"  [{step.get('timestamp', '')}] {step.get('service', '?')} — "
+                    f"{step.get('operation', '?')} — {step.get('status', '?')} "
+                    f"({step.get('status_detail', '')})"
+                )
 
-If Elasticsearch is unreachable, report the error immediately instead of attempting further queries.
+        ctx_logs = collection.get("context_logs", [])
+        if ctx_logs:
+            parts.append("")
+            parts.append("## Context Logs (around first error)")
+            for cl in ctx_logs[:15]:
+                parts.append(f"  [{cl.get('timestamp', '')}] {cl.get('level', '')} {cl.get('message', '')[:120]}")
 
-After gathering enough data, provide your final analysis as JSON with this structure:
+        parts.append("")
+        parts.append("""Analyze and respond with JSON:
 {
     "primary_pattern": {
         "pattern_id": "p1",
-        "exception_type": "ExceptionName",
-        "error_message": "The error message",
+        "exception_type": "...",
+        "error_message": "...",
         "frequency": 47,
         "severity": "critical|high|medium|low",
-        "affected_components": ["service-name"],
+        "affected_components": ["..."],
         "confidence_score": 87,
         "priority_rank": 1,
         "priority_reasoning": "Why this is the top priority"
     },
-    "secondary_patterns": [...],
-    "overall_confidence": 85
-}
+    "secondary_patterns": [],
+    "overall_confidence": 85,
+    "root_cause_hypothesis": "One-line root cause explanation",
+    "flow_analysis": "One-line explanation of request flow if service_flow data was provided"
+}""")
 
-Always provide evidence: include raw log snippets in your reasoning.
-Always report what you searched and didn't find (negative evidence)."""
-
-    async def _build_initial_prompt(self, context: dict) -> str:
-        service = context.get("service_name", "unknown")
-        parts = [
-            f"Analyze logs for service: {service}",
-            f"IMPORTANT: First discover available indices with list_available_indices, then search for '{service}' in the most relevant index.",
-        ]
-        if context.get("elk_index") and context["elk_index"] != "*":
-            parts.append(f"Suggested Elasticsearch index hint: {context['elk_index']} (verify with list_available_indices first)")
-        if context.get("timeframe"):
-            parts.append(f"Time range: {context['timeframe']}")
-        if context.get("trace_id"):
-            parts.append(f"Trace ID to investigate: {context['trace_id']}")
-        if context.get("error_filter"):
-            parts.append(f"Error filter: {context['error_filter']}")
         return "\n".join(parts)
 
-    async def _handle_tool_call(self, tool_name: str, tool_input: dict) -> str:
-        if tool_name == "search_elasticsearch":
-            return await self._search_elasticsearch(tool_input)
-        elif tool_name == "search_by_trace_id":
-            return await self._search_by_trace_id(tool_input)
-        elif tool_name == "get_log_context":
-            return await self._get_log_context(tool_input)
-        elif tool_name == "analyze_patterns":
-            return self._analyze_patterns_tool()
-        elif tool_name == "list_available_indices":
-            return await self._list_available_indices(tool_input)
-        else:
-            return f"Unknown tool: {tool_name}"
-
-    def _parse_final_response(self, text: str) -> dict:
-        """Parse LLM's final JSON response into LogAnalysisResult."""
-        # Try to extract JSON from the response
+    def _parse_llm_response(self, text: str) -> dict:
+        """Parse LLM's JSON response."""
         try:
-            # Look for JSON block in the text
             json_match = re.search(r'\{[\s\S]*\}', text)
             if json_match:
                 data = json.loads(json_match.group())
@@ -196,25 +493,42 @@ Always report what you searched and didn't find (negative evidence)."""
                 data = json.loads(text)
         except (json.JSONDecodeError, AttributeError):
             return {
-                "error": "Failed to parse response",
-                "raw_response": text,
-                "breadcrumbs": [b.model_dump() for b in self.breadcrumbs],
-                "negative_findings": [n.model_dump() for n in self.negative_findings],
+                "primary_pattern": {},
+                "secondary_patterns": [],
+                "overall_confidence": 30,
+                "root_cause_hypothesis": "Failed to parse LLM response",
+                "flow_analysis": "",
             }
 
-        # Build structured result
         return {
             "primary_pattern": data.get("primary_pattern", {}),
             "secondary_patterns": data.get("secondary_patterns", []),
             "overall_confidence": data.get("overall_confidence", 50),
+            "root_cause_hypothesis": data.get("root_cause_hypothesis", ""),
+            "flow_analysis": data.get("flow_analysis", ""),
+        }
+
+    # ─── Build Result ──────────────────────────────────────────────────────
+
+    def _build_result(self, collection: dict, analysis: dict) -> dict:
+        """Combine deterministic data + LLM analysis into output format."""
+        return {
+            "primary_pattern": analysis.get("primary_pattern", {}),
+            "secondary_patterns": analysis.get("secondary_patterns", []),
+            "overall_confidence": analysis.get("overall_confidence", 50),
             "breadcrumbs": [b.model_dump(mode="json") for b in self.breadcrumbs],
             "negative_findings": [n.model_dump(mode="json") for n in self.negative_findings],
             "tokens_used": self.get_token_usage().model_dump(),
             "raw_logs_count": len(self._raw_logs),
             "patterns_found": len(self._patterns),
+            "evidence_pins": [p.model_dump(mode="json") for p in self.evidence_pins],
+            # NEW fields
+            "service_flow": collection.get("service_flow", []),
+            "flow_source": "elasticsearch",
+            "flow_confidence": 70 if collection.get("service_flow") else 0,
         }
 
-    # --- Tool implementations ---
+    # ─── ES Tool Implementations (reused from original) ────────────────────
 
     async def _search_elasticsearch(self, params: dict) -> str:
         """Query Elasticsearch and return matching logs."""
@@ -224,7 +538,7 @@ Always report what you searched and didn't find (negative evidence)."""
         size = params.get("size", 200)
         level_filter = params.get("level_filter", "ERROR")
 
-        es_query = {
+        es_query: dict[str, Any] = {
             "size": size,
             "sort": [{"@timestamp": {"order": "desc"}}],
             "query": {
@@ -240,7 +554,6 @@ Always report what you searched and didn't find (negative evidence)."""
         }
 
         if level_filter:
-            # Search across common log level field names and case variants
             level_lower = level_filter.lower()
             level_upper = level_filter.upper()
             es_query["query"]["bool"]["must"].append({
@@ -306,17 +619,20 @@ Always report what you searched and didn't find (negative evidence)."""
                 raw_evidence=f"Found {len(hits)} {level_filter} log entries",
             )
 
-            # Return summary to keep within context limits
+            logger.info("ES search complete", extra={"agent_name": self.agent_name, "action": "es_search", "extra": {"index": index, "hits": len(hits), "level_filter": level_filter}})
+
             summary = {
                 "total": len(hits),
-                "logs": logs[:50],  # First 50 for LLM analysis
+                "logs": logs[:50],
                 "truncated": len(hits) > 50,
             }
             return json.dumps(summary, default=str)
 
         except requests.exceptions.ConnectionError:
+            logger.warning("ES connection failed", extra={"agent_name": self.agent_name, "action": "es_error", "extra": f"Cannot connect to {self.es_url}"})
             return json.dumps({"error": f"Cannot connect to Elasticsearch at {self.es_url}"})
         except Exception as e:
+            logger.error("ES search failed", extra={"agent_name": self.agent_name, "action": "es_error", "extra": str(e)})
             return json.dumps({"error": str(e)})
 
     async def _search_by_trace_id(self, params: dict) -> str:
@@ -447,26 +763,6 @@ Always report what you searched and didn't find (negative evidence)."""
         except Exception as e:
             return json.dumps({"error": str(e)})
 
-    def _analyze_patterns_tool(self) -> str:
-        """Group collected raw logs into error patterns."""
-        if not self._raw_logs:
-            return json.dumps({"patterns": [], "message": "No logs collected yet. Search first."})
-
-        self._patterns = self._parse_patterns_from_logs(self._raw_logs)
-
-        self.add_breadcrumb(
-            action="analyzed_patterns",
-            source_type="log",
-            source_reference="in-memory log collection",
-            raw_evidence=f"Grouped {len(self._raw_logs)} logs into {len(self._patterns)} patterns",
-        )
-
-        return json.dumps({
-            "total_logs": len(self._raw_logs),
-            "patterns_found": len(self._patterns),
-            "patterns": self._patterns,
-        }, default=str)
-
     async def _list_available_indices(self, params: dict) -> str:
         """List Elasticsearch indices matching a pattern."""
         pattern = params.get("pattern", "*")
@@ -500,7 +796,7 @@ Always report what you searched and didn't find (negative evidence)."""
         except Exception as e:
             return json.dumps({"error": str(e)})
 
-    # --- Pattern detection ---
+    # ─── Pattern Detection (unchanged) ─────────────────────────────────────
 
     def _parse_patterns_from_logs(self, logs: list[dict]) -> list[dict]:
         """Group logs by exception type and similar error messages."""
@@ -524,17 +820,14 @@ Always report what you searched and didn't find (negative evidence)."""
                 "sample_log": group_logs[0],
             })
 
-        # Sort by frequency descending
         patterns.sort(key=lambda p: p["frequency"], reverse=True)
         return patterns
 
     def _extract_pattern_key(self, message: str) -> str:
         """Extract a fingerprint from a log message for grouping."""
-        # Remove timestamps, IDs, numbers
         normalized = re.sub(r'\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}[.\d]*[Z]?', '<TIMESTAMP>', message)
         normalized = re.sub(r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', '<UUID>', normalized)
         normalized = re.sub(r'\b\d+\b', '<NUM>', normalized)
-        # Extract exception type if present
         exc_match = re.search(r'([A-Z][a-zA-Z]*(?:Exception|Error|Timeout|Failure))', message)
         if exc_match:
             return exc_match.group(1)
@@ -545,7 +838,6 @@ Always report what you searched and didn't find (negative evidence)."""
         exc_match = re.search(r'([A-Z][a-zA-Z]*(?:Exception|Error|Timeout|Failure))', message)
         if exc_match:
             return exc_match.group(1)
-        # Fall back to first meaningful word
         if "timeout" in message.lower():
             return "Timeout"
         if "connection" in message.lower():

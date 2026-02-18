@@ -10,6 +10,9 @@ from src.integrations.models import IntegrationConfig
 from src.integrations.store import IntegrationStore
 from src.memory.store import MemoryStore
 from src.memory.models import IncidentFingerprint
+from src.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 router = APIRouter(prefix="/api/v5", tags=["v5"])
 
@@ -49,6 +52,7 @@ class AttestationRequest(BaseModel):
 
 @router.get("/session/{session_id}/evidence-graph")
 async def get_evidence_graph(session_id: str):
+    logger.info("Governance data requested", extra={"session_id": session_id, "action": "evidence_graph"})
     session = _get_session_or_empty(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
@@ -108,6 +112,7 @@ async def get_evidence_graph(session_id: str):
 
 @router.get("/session/{session_id}/confidence")
 async def get_confidence(session_id: str):
+    logger.info("Governance data requested", extra={"session_id": session_id, "action": "confidence"})
     session = _get_session_or_empty(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
@@ -116,6 +121,7 @@ async def get_confidence(session_id: str):
 
 @router.get("/session/{session_id}/reasoning")
 async def get_reasoning(session_id: str):
+    logger.info("Governance data requested", extra={"session_id": session_id, "action": "reasoning"})
     session = _get_session_or_empty(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
@@ -140,6 +146,7 @@ async def submit_attestation(session_id: str, request: AttestationRequest):
 
 @router.get("/session/{session_id}/timeline")
 async def get_timeline(session_id: str):
+    logger.info("Governance data requested", extra={"session_id": session_id, "action": "timeline"})
     session = _get_session_or_empty(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")

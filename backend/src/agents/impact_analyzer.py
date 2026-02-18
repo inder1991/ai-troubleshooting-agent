@@ -1,4 +1,7 @@
 from src.models.schemas import BlastRadius, SeverityRecommendation, ServiceTier
+from src.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 SEVERITY_MATRIX = {
     ("critical", "cluster_wide"): "P1",
@@ -31,6 +34,7 @@ class ImpactAnalyzer:
         tier = self.get_service_tier(service_name)
         key = (tier, blast_radius.scope)
         severity = SEVERITY_MATRIX.get(key, "P3")
+        logger.info("Severity recommended", extra={"agent_name": "impact_analyzer", "action": "severity", "extra": {"severity": severity, "reasoning": f"tier={tier}, scope={blast_radius.scope}"}})
         return SeverityRecommendation(
             recommended_severity=severity,
             reasoning=f"Service tier '{tier}' with blast radius scope '{blast_radius.scope}'",
@@ -56,6 +60,7 @@ class ImpactAnalyzer:
             scope = "service_group"
         else:
             scope = "single_service"
+        logger.info("Blast radius computed", extra={"agent_name": "impact_analyzer", "action": "blast_radius", "extra": {"primary_service": primary_service, "upstream": len(upstream), "downstream": len(downstream), "scope": scope}})
         return BlastRadius(
             primary_service=primary_service,
             upstream_affected=upstream,

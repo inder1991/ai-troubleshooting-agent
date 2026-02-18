@@ -1,6 +1,5 @@
 import uuid
 import asyncio
-import logging
 from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from typing import Dict, Any
@@ -11,8 +10,9 @@ from src.api.models import (
 from src.agents.supervisor import SupervisorAgent
 from src.utils.event_emitter import EventEmitter
 from src.api.websocket import manager
+from src.utils.logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 router_v4 = APIRouter(prefix="/api/v4", tags=["v4"])
 
@@ -106,6 +106,8 @@ async def start_session(request: StartSessionRequest, background_tasks: Backgrou
         "repo_url": request.repoUrl,
     }
 
+    logger.info("Session created", extra={"session_id": session_id, "action": "session_created", "extra": request.serviceName, "profile_id": profile_id})
+
     background_tasks.add_task(run_diagnosis, session_id, supervisor, initial_input, emitter)
 
     return StartSessionResponse(
@@ -186,12 +188,14 @@ async def run_diagnosis(session_id: str, supervisor: SupervisorAgent, initial_in
         sessions[session_id]["confidence"] = state.overall_confidence
         _push_to_v5(session_id, state)
     except Exception as e:
+        logger.error("Diagnosis failed", extra={"session_id": session_id, "action": "diagnosis_error", "extra": str(e)})
         sessions[session_id]["phase"] = "error"
         await emitter.emit("supervisor", "error", f"Diagnosis failed: {str(e)}")
 
 
 @router_v4.post("/session/{session_id}/chat", response_model=ChatResponse)
 async def chat(session_id: str, request: ChatRequest):
+    logger.info("Chat message received", extra={"session_id": session_id, "action": "chat"})
     if session_id not in sessions:
         raise HTTPException(status_code=404, detail="Session not found")
 
@@ -263,6 +267,7 @@ async def get_findings(session_id: str):
         raise HTTPException(status_code=404, detail="Session not found")
 
     state = sessions[session_id].get("state")
+    logger.info("Findings requested", extra={"session_id": session_id, "action": "findings_requested", "extra": {"findings_count": len(state.all_findings) if state else 0}})
     if not state:
         return {
             "findings": [],
@@ -278,6 +283,9 @@ async def get_findings(session_id: str):
             "blast_radius": None,
             "severity_recommendation": None,
             "past_incidents": [],
+            "service_flow": [],
+            "flow_source": None,
+            "flow_confidence": 0,
             "message": "Analysis not yet complete",
         }
 
@@ -308,6 +316,9 @@ async def get_findings(session_id: str):
         "blast_radius": state.blast_radius_result.model_dump(mode="json") if state.blast_radius_result else None,
         "severity_recommendation": state.severity_result.model_dump(mode="json") if state.severity_result else None,
         "past_incidents": state.past_incidents,
+        "service_flow": state.service_flow,
+        "flow_source": state.flow_source,
+        "flow_confidence": state.flow_confidence,
     }
 
 

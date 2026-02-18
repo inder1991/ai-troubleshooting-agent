@@ -8,6 +8,9 @@ import requests
 
 from src.agents.react_base import ReActAgent
 from src.models.schemas import MetricAnomaly, DataPoint, TimeRange, MetricsAnalysisResult, TokenUsage
+from src.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class MetricsAgent(ReActAgent):
@@ -154,7 +157,7 @@ After analysis, provide your final answer as JSON:
         except (json.JSONDecodeError, AttributeError):
             return {"error": "Failed to parse response", "raw_response": text}
 
-        return {
+        result = {
             "anomalies": data.get("anomalies", []),
             "time_series_data": {k: v for k, v in self._time_series_cache.items()},
             "overall_confidence": data.get("overall_confidence", 50),
@@ -162,6 +165,8 @@ After analysis, provide your final answer as JSON:
             "negative_findings": [n.model_dump(mode="json") for n in self.negative_findings],
             "tokens_used": self.get_token_usage().model_dump(),
         }
+        logger.info("Metrics agent complete", extra={"agent_name": self.agent_name, "action": "complete", "extra": {"anomalies": len(result["anomalies"]), "confidence": result["overall_confidence"]}})
+        return result
 
     # --- Tool implementations ---
 

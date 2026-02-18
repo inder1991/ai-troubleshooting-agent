@@ -2,11 +2,12 @@
 WebSocket connection management
 """
 
-import logging
 from fastapi import WebSocket
 from typing import Dict
 
-logger = logging.getLogger(__name__)
+from src.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class ConnectionManager:
@@ -19,13 +20,13 @@ class ConnectionManager:
         """Accept and store WebSocket connection"""
         await websocket.accept()
         self.active_connections[session_id] = websocket
-        logger.info("WebSocket connected: %s", session_id)
+        logger.info("WebSocket connected", extra={"session_id": session_id, "action": "ws_connect"})
 
     def disconnect(self, session_id: str):
         """Remove WebSocket connection"""
         if session_id in self.active_connections:
             del self.active_connections[session_id]
-            logger.info("WebSocket disconnected: %s", session_id)
+            logger.info("WebSocket disconnected", extra={"session_id": session_id, "action": "ws_disconnect"})
 
     async def send_message(self, session_id: str, message: dict):
         """Send message to specific session"""
@@ -33,7 +34,7 @@ class ConnectionManager:
             try:
                 await self.active_connections[session_id].send_json(message)
             except Exception as e:
-                logger.warning("Error sending WebSocket message: %s", e)
+                logger.warning("Error sending WebSocket message", extra={"session_id": session_id, "action": "ws_send_error", "extra": str(e)})
                 self.disconnect(session_id)
 
     async def broadcast(self, message: dict):
