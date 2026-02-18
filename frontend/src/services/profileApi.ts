@@ -53,12 +53,13 @@ export const getActiveProfile = async (): Promise<ClusterProfile | null> => {
 
 export const testEndpoint = async (
   profileId: string,
-  endpointName: string
+  endpointName: string,
+  url?: string
 ): Promise<EndpointTestResult> => {
   const response = await fetch(`${API_BASE_URL}/api/v5/profiles/${profileId}/test-endpoint`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ endpoint_name: endpointName }),
+    body: JSON.stringify({ endpoint_name: endpointName, url: url || undefined }),
   });
   if (!response.ok) throw new Error('Failed to test endpoint');
   return response.json();

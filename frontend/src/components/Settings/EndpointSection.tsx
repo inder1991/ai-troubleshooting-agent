@@ -7,7 +7,7 @@ interface EndpointSectionProps {
   endpointName: string;
   endpoint: EndpointConfig | null;
   authOptions: { value: string; label: string }[];
-  onTest: (endpointName: string) => Promise<void>;
+  onTest: (endpointName: string, url: string) => Promise<void>;
   onUpdate: (endpointName: string, data: Partial<EndpointConfig> & { auth_data?: string }) => void;
   testing?: boolean;
   testResult?: EndpointTestResult;
@@ -111,10 +111,10 @@ const EndpointSection: React.FC<EndpointSectionProps> = ({
             value={url}
             onChange={(e) => handleUrlChange(e.target.value)}
             className={`w-full ${inputBase} pr-20`}
-            placeholder="https://..."
+            placeholder="http://localhost:9090"
           />
           <button
-            onClick={() => onTest(endpointName)}
+            onClick={() => onTest(endpointName, url)}
             disabled={!url || testing}
             className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1 text-[10px] font-bold text-[#07b6d5] bg-[#07b6d5]/10 border border-[#07b6d5]/20 rounded hover:bg-[#07b6d5]/20 disabled:text-gray-600 disabled:bg-transparent disabled:border-transparent disabled:cursor-not-allowed transition-colors"
           >

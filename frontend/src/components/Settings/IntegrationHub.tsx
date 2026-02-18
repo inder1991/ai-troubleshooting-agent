@@ -115,10 +115,10 @@ const IntegrationHub: React.FC<IntegrationHubProps> = ({ onBack }) => {
     await loadData();
   };
 
-  const handleTestEndpoint = async (profileId: string, endpointName: string) => {
+  const handleTestEndpoint = async (profileId: string, endpointName: string, url: string) => {
     setTestingEndpoint(endpointName);
     try {
-      const result = await testEndpoint(profileId, endpointName);
+      const result = await testEndpoint(profileId, endpointName, url);
       setEndpointTestResults((prev) => ({ ...prev, [endpointName]: result }));
       addToast(result.reachable ? 'success' : 'warning', result.reachable ? `${endpointName}: reachable (${result.latency_ms}ms)` : `${endpointName}: ${result.error}`);
       await refreshData();

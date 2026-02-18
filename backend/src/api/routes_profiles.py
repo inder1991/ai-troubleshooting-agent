@@ -66,6 +66,7 @@ class UpdateProfileRequest(BaseModel):
 
 class TestEndpointRequest(BaseModel):
     endpoint_name: str  # openshift_api, prometheus, jaeger
+    url: Optional[str] = None  # Override URL to test (uses unsaved input value)
 
 
 # --- Routes ---
@@ -240,7 +241,7 @@ async def test_endpoint(profile_id: str, request: TestEndpointRequest):
             result.error = f"Credential resolution failed: {e}"
             return result.model_dump()
 
-    test_url = endpoint.url.rstrip("/")
+    test_url = (request.url or endpoint.url).rstrip("/")
     start = time.monotonic()
     try:
         async with httpx.AsyncClient(verify=False, timeout=10.0) as client:

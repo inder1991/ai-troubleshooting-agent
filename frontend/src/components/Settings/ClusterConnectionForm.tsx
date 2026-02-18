@@ -6,7 +6,7 @@ interface ClusterConnectionFormProps {
   profile?: ClusterProfile | null;
   onSave: (data: Record<string, unknown>) => Promise<void>;
   onCancel: () => void;
-  onTestEndpoint: (profileId: string, endpointName: string) => Promise<void>;
+  onTestEndpoint: (profileId: string, endpointName: string, url: string) => Promise<void>;
   onProbe?: (profileId: string) => Promise<{ reachable?: boolean; errors?: string[] } | void>;
   testingEndpoint: string | null;
   probingId?: string | null;
@@ -53,14 +53,14 @@ const ClusterConnectionForm: React.FC<ClusterConnectionFormProps> = ({
   const [probeError, setProbeError] = useState<string | null>(null);
   const [probeSuccess, setProbeSuccess] = useState(false);
 
-  const handleTestEndpoint = async (endpointName: string) => {
+  const handleTestEndpoint = async (endpointName: string, url: string) => {
     if (!profile?.id) {
       setUnsavedTestWarning('Save the profile first to test endpoints');
       setTimeout(() => setUnsavedTestWarning(''), 3000);
       return;
     }
     setUnsavedTestWarning('');
-    await onTestEndpoint(profile.id, endpointName);
+    await onTestEndpoint(profile.id, endpointName, url);
   };
 
   const handleProbeCluster = async () => {
