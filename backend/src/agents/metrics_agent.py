@@ -88,6 +88,35 @@ class MetricsAgent(ReActAgent):
                     "required": ["search"],
                 },
             },
+            {
+                "name": "query_prometheus_offset",
+                "description": "Compare a metric's current value to its value N hours ago. Returns current, baseline, and deviation. Use this for temporal baseline comparison.",
+                "input_schema": {
+                    "type": "object",
+                    "properties": {
+                        "query": {"type": "string", "description": "PromQL query expression"},
+                        "offset_hours": {"type": "integer", "description": "Hours to look back for baseline", "default": 24},
+                    },
+                    "required": ["query"],
+                },
+            },
+            {
+                "name": "get_saturation_metrics",
+                "description": "Get USE-method saturation queries triggered by specific error patterns. Call when log analysis reports resource-related errors (OOM, connection pool, disk, thread exhaustion).",
+                "input_schema": {
+                    "type": "object",
+                    "properties": {
+                        "namespace": {"type": "string"},
+                        "service_name": {"type": "string"},
+                        "error_hints": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": "Error keywords from log analysis (e.g. 'oom', 'connectionpool', 'disk', 'timeout')",
+                        },
+                    },
+                    "required": ["namespace", "service_name", "error_hints"],
+                },
+            },
         ]
 
     async def _build_system_prompt(self) -> str:
@@ -102,7 +131,33 @@ Your goals:
 4. Detect anomalies and spikes in the time-series data
 5. Correlate metric anomalies with the incident time window
 6. Report negative findings for metrics that show no anomalies
-7. Compare incident window values against a baseline (1 hour before)
+7. Use query_prometheus_offset to establish a 24h baseline for each anomalous metric
+
+CRITICAL: Only report metrics that show anomalies. If you queried 20 metrics and only 2 show spikes, your final JSON must contain ONLY those 2 anomalies. Suppress all normal-range metrics. An SRE during an incident needs signal, not noise.
+
+When log analysis provides error_hints, use get_saturation_metrics to query targeted resource metrics. For example:
+- OOMKilled -> query memory saturation ratio
+- ConnectionPoolTimeout -> query connection pool utilization
+- Timeout errors -> query CPU throttling rate
+
+After identifying anomalies, group them into correlated signal pairs in your final JSON:
+
+"correlated_signals": [
+    {
+        "group_name": "Traffic & Errors",
+        "signal_type": "RED",
+        "metrics": ["http_requests_total", "http_errors_total"],
+        "narrative": "Error rate spiked to 12% while request volume remained constant - not a traffic spike"
+    },
+    {
+        "group_name": "Saturation -> Latency",
+        "signal_type": "USE",
+        "metrics": ["container_memory_working_set_bytes", "http_request_duration_seconds_p99"],
+        "narrative": "Memory hit 95% of limit 2 min before P99 latency jumped 3x - resource exhaustion caused the slowdown"
+    }
+]
+
+Only create groups where at least one metric in the pair shows an anomaly.
 
 After analysis, provide your final answer as JSON:
 {
@@ -119,6 +174,7 @@ After analysis, provide your final answer as JSON:
             "confidence_score": 90
         }
     ],
+    "correlated_signals": [],
     "overall_confidence": 85
 }"""
 
@@ -131,6 +187,9 @@ After analysis, provide your final answer as JSON:
             parts.append(f"Incident time window: {tw.get('start', 'unknown')} to {tw.get('end', 'unknown')}")
         if context.get("error_patterns"):
             parts.append(f"Error patterns found by Log Agent: {json.dumps(context['error_patterns'])}")
+        if context.get("error_hints"):
+            parts.append(f"Error hints from log analysis: {context['error_hints']}")
+            parts.append("IMPORTANT: Use get_saturation_metrics with these error hints to query targeted resource saturation metrics.")
         return "\n".join(parts)
 
     async def _handle_tool_call(self, tool_name: str, tool_input: dict) -> str:
@@ -144,6 +203,10 @@ After analysis, provide your final answer as JSON:
             return self._get_default_metrics(tool_input)
         elif tool_name == "list_available_metrics":
             return await self._list_available_metrics(tool_input)
+        elif tool_name == "query_prometheus_offset":
+            return await self._query_offset(tool_input)
+        elif tool_name == "get_saturation_metrics":
+            return self._get_saturation_metrics(tool_input)
         return f"Unknown tool: {tool_name}"
 
     def _parse_final_response(self, text: str) -> dict:
@@ -157,9 +220,30 @@ After analysis, provide your final answer as JSON:
         except (json.JSONDecodeError, AttributeError):
             return {"error": "Failed to parse response", "raw_response": text}
 
+        # Only include time_series_data for anomalous metrics
+        anomaly_names = {a.get("metric_name", "") for a in data.get("anomalies", [])}
+
+        def _ts_key_matches_anomaly(cache_key: str, names: set[str]) -> bool:
+            kl = cache_key.lower()
+            for name in names:
+                nl = name.lower()
+                # Bidirectional substring: "cpu_usage" matches "cpu_query" via shared root
+                if nl in kl or kl in nl:
+                    return True
+                # Also match on shared root words (e.g. "cpu" in both "cpu_usage" and "cpu_query")
+                k_parts = set(kl.replace("_", " ").replace("-", " ").split())
+                n_parts = set(nl.replace("_", " ").replace("-", " ").split())
+                if k_parts & n_parts:
+                    return True
+            return False
+
+        filtered_ts = {k: v for k, v in self._time_series_cache.items()
+                       if _ts_key_matches_anomaly(k, anomaly_names)} if anomaly_names else {}
+
         result = {
             "anomalies": data.get("anomalies", []),
-            "time_series_data": {k: v for k, v in self._time_series_cache.items()},
+            "correlated_signals": data.get("correlated_signals", []),
+            "time_series_data": filtered_ts,
             "overall_confidence": data.get("overall_confidence", 50),
             "breadcrumbs": [b.model_dump(mode="json") for b in self.breadcrumbs],
             "negative_findings": [n.model_dump(mode="json") for n in self.negative_findings],
@@ -283,7 +367,9 @@ After analysis, provide your final answer as JSON:
     def _get_default_metrics(self, params: dict) -> str:
         namespace = params["namespace"]
         service = params["service_name"]
-        return json.dumps(self._build_default_queries(namespace, service))
+        job = params.get("job", "")
+        app_label = params.get("app_label", "")
+        return json.dumps(self._build_default_queries(namespace, service, job=job, app_label=app_label))
 
     async def _list_available_metrics(self, params: dict) -> str:
         """List Prometheus metric names matching a search term."""
@@ -320,34 +406,150 @@ After analysis, provide your final answer as JSON:
         except Exception as e:
             return json.dumps({"error": str(e)})
 
+    async def _query_offset(self, params: dict) -> str:
+        """Compare a metric's current value to its value N hours ago."""
+        query = params["query"]
+        offset_hours = params.get("offset_hours", 24)
+
+        try:
+            # Current value
+            resp_now = requests.get(
+                f"{self.prometheus_url}/api/v1/query",
+                params={"query": query},
+                timeout=30,
+            )
+            resp_now.raise_for_status()
+            now_results = resp_now.json().get("data", {}).get("result", [])
+
+            # Baseline value with offset
+            offset_query = f"{query} offset {offset_hours}h"
+            resp_base = requests.get(
+                f"{self.prometheus_url}/api/v1/query",
+                params={"query": offset_query},
+                timeout=30,
+            )
+            resp_base.raise_for_status()
+            base_results = resp_base.json().get("data", {}).get("result", [])
+
+            current_val = float(now_results[0]["value"][1]) if now_results else 0.0
+            baseline_val = float(base_results[0]["value"][1]) if base_results else 0.0
+
+            if baseline_val == 0:
+                deviation_pct = 100.0 if current_val > 0 else 0.0
+            else:
+                deviation_pct = round(((current_val - baseline_val) / baseline_val) * 100, 1)
+
+            direction = "above" if current_val >= baseline_val else "below"
+
+            self.add_breadcrumb(
+                action="query_prometheus_offset",
+                source_type="metric",
+                source_reference=f"Prometheus, query: {query}, offset: {offset_hours}h",
+                raw_evidence=f"Current: {current_val}, Baseline ({offset_hours}h ago): {baseline_val}, Deviation: {deviation_pct}%",
+            )
+
+            return json.dumps({
+                "query": query,
+                "offset_hours": offset_hours,
+                "current_value": current_val,
+                "baseline_value": baseline_val,
+                "deviation_percent": deviation_pct,
+                "direction": direction,
+            })
+
+        except requests.exceptions.ConnectionError:
+            return json.dumps({"error": f"Cannot connect to Prometheus at {self.prometheus_url}"})
+        except Exception as e:
+            return json.dumps({"error": str(e)})
+
+    def _get_saturation_metrics(self, params: dict) -> str:
+        """Return USE-method saturation queries based on error hints."""
+        namespace = params["namespace"]
+        service_name = params["service_name"]
+        error_hints = params.get("error_hints", [])
+
+        ERROR_TO_SATURATION = {
+            "oom": [
+                {
+                    "name": "memory_saturation",
+                    "query": f'container_memory_working_set_bytes{{namespace="{namespace}", pod=~"{service_name}.*"}} / container_spec_memory_limit_bytes{{namespace="{namespace}", pod=~"{service_name}.*"}}',
+                    "description": "Memory utilization ratio (>0.9 = saturated)",
+                },
+            ],
+            "connectionpool": [
+                {
+                    "name": "connection_pool_usage",
+                    "query": f'sum(db_pool_active_connections{{namespace="{namespace}", service="{service_name}"}}) / sum(db_pool_max_connections{{namespace="{namespace}", service="{service_name}"}})',
+                    "description": "Connection pool utilization",
+                },
+            ],
+            "disk": [
+                {
+                    "name": "disk_saturation",
+                    "query": f'1 - (node_filesystem_avail_bytes{{namespace="{namespace}"}} / node_filesystem_size_bytes{{namespace="{namespace}"}})',
+                    "description": "Disk utilization ratio",
+                },
+            ],
+            "timeout": [
+                {
+                    "name": "cpu_throttling",
+                    "query": f'rate(container_cpu_cfs_throttled_seconds_total{{namespace="{namespace}", pod=~"{service_name}.*"}}[5m])',
+                    "description": "CPU throttling rate",
+                },
+            ],
+        }
+
+        queries = []
+        for hint in error_hints:
+            hint_lower = hint.lower()
+            for key, saturation_queries in ERROR_TO_SATURATION.items():
+                if key in hint_lower:
+                    queries.extend(saturation_queries)
+
+        self.add_breadcrumb(
+            action="get_saturation_metrics",
+            source_type="metric",
+            source_reference=f"USE method, hints: {error_hints}",
+            raw_evidence=f"Generated {len(queries)} saturation queries for hints: {error_hints}",
+        )
+
+        return json.dumps({"saturation_queries": queries, "error_hints": error_hints})
+
     # --- Pure logic ---
 
-    def _build_default_queries(self, namespace: str, service_name: str) -> list[dict]:
+    def _build_default_queries(self, namespace: str, service_name: str,
+                               job: str = "", app_label: str = "") -> list[dict]:
         """Build default PromQL queries for a service."""
+        extra_labels = ""
+        if job:
+            extra_labels += f', job="{job}"'
+        if app_label:
+            extra_labels += f', app="{app_label}"'
+
         return [
             {
                 "name": "cpu_usage",
-                "query": f'rate(container_cpu_usage_seconds_total{{namespace="{namespace}", pod=~"{service_name}.*"}}[5m])',
+                "query": f'rate(container_cpu_usage_seconds_total{{namespace="{namespace}", pod=~"{service_name}.*"{extra_labels}}}[5m])',
                 "description": "CPU usage rate",
             },
             {
                 "name": "memory_usage",
-                "query": f'container_memory_working_set_bytes{{namespace="{namespace}", pod=~"{service_name}.*"}}',
+                "query": f'container_memory_working_set_bytes{{namespace="{namespace}", pod=~"{service_name}.*"{extra_labels}}}',
                 "description": "Memory working set",
             },
             {
                 "name": "error_rate",
-                "query": f'rate(http_requests_total{{namespace="{namespace}", service="{service_name}", code=~"5.."}}[5m])',
+                "query": f'rate(http_requests_total{{namespace="{namespace}", service="{service_name}"{extra_labels}, code=~"5.."}}[5m])',
                 "description": "HTTP 5xx error rate",
             },
             {
                 "name": "latency_p99",
-                "query": f'histogram_quantile(0.99, rate(http_request_duration_seconds_bucket{{namespace="{namespace}", service="{service_name}"}}[5m]))',
+                "query": f'histogram_quantile(0.99, rate(http_request_duration_seconds_bucket{{namespace="{namespace}", service="{service_name}"{extra_labels}}}[5m]))',
                 "description": "P99 request latency",
             },
             {
                 "name": "restart_count",
-                "query": f'kube_pod_container_status_restarts_total{{namespace="{namespace}", pod=~"{service_name}.*"}}',
+                "query": f'kube_pod_container_status_restarts_total{{namespace="{namespace}", pod=~"{service_name}.*"{extra_labels}}}',
                 "description": "Container restart count",
             },
         ]
@@ -401,6 +603,8 @@ After analysis, provide your final answer as JSON:
                     spike_peak_ts = point["timestamp"]
             else:
                 if in_spike:
+                    deviation_factor = round((spike_peak - baseline_center) / spread, 2) if spread > 0 else 0
+                    confidence = min(95, int(50 + (deviation_factor * 10)))
                     spikes.append({
                         "spike_start": spike_start,
                         "spike_end": point["timestamp"],
@@ -408,12 +612,15 @@ After analysis, provide your final answer as JSON:
                         "peak_timestamp": spike_peak_ts,
                         "baseline_mean": round(mean_val, 2),
                         "baseline_stddev": round(spread, 2),
-                        "deviation_factor": round((spike_peak - baseline_center) / spread, 2) if spread > 0 else 0,
+                        "deviation_factor": deviation_factor,
+                        "confidence_score": confidence,
                     })
                     in_spike = False
 
         # Handle spike at end of data
         if in_spike:
+            deviation_factor = round((spike_peak - baseline_center) / spread, 2) if spread > 0 else 0
+            confidence = min(95, int(50 + (deviation_factor * 10)))
             spikes.append({
                 "spike_start": spike_start,
                 "spike_end": data_points[-1]["timestamp"],
@@ -421,7 +628,8 @@ After analysis, provide your final answer as JSON:
                 "peak_timestamp": spike_peak_ts,
                 "baseline_mean": round(mean_val, 2),
                 "baseline_stddev": round(spread, 2),
-                "deviation_factor": round((spike_peak - baseline_center) / spread, 2) if spread > 0 else 0,
+                "deviation_factor": deviation_factor,
+                "confidence_score": confidence,
             })
 
         return spikes

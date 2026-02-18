@@ -1,12 +1,38 @@
+import json
 import pytest
+from unittest.mock import AsyncMock, patch, MagicMock
+
 from src.agents.log_agent import LogAnalysisAgent
 
+
+# ─── Init / basics ────────────────────────────────────────────────────────────
 
 def test_log_agent_init():
     agent = LogAnalysisAgent()
     assert agent.agent_name == "log_agent"
-    assert agent.max_iterations == 8
+    assert agent._raw_logs == []
+    assert agent._patterns == []
+    assert agent._service_flow == []
 
+
+def test_log_agent_init_with_connection_config():
+    config = MagicMock()
+    config.elasticsearch_url = "http://es-custom:9200"
+    config.elasticsearch_auth_method = "token"
+    config.elasticsearch_credentials = "my-token"
+    agent = LogAnalysisAgent(connection_config=config)
+    assert agent.es_url == "http://es-custom:9200"
+    assert "Authorization" in agent._es_headers
+    assert agent._es_headers["Authorization"] == "Bearer my-token"
+
+
+def test_log_agent_init_default_es_url():
+    agent = LogAnalysisAgent()
+    # Falls back to env var or default
+    assert "localhost" in agent.es_url or "ELASTICSEARCH" in agent.es_url or agent.es_url
+
+
+# ─── Pattern Detection (deterministic, no mocks needed) ───────────────────────
 
 def test_parse_patterns_groups_by_exception():
     agent = LogAnalysisAgent()
@@ -18,11 +44,9 @@ def test_parse_patterns_groups_by_exception():
     ]
     patterns = agent._parse_patterns_from_logs(logs)
     assert len(patterns) >= 2
-    # ConnectionTimeout should be grouped together
     ct_pattern = next((p for p in patterns if p["exception_type"] == "ConnectionTimeout"), None)
     assert ct_pattern is not None
     assert ct_pattern["frequency"] == 3
-    # NullPointerException should be separate
     npe_pattern = next((p for p in patterns if p["exception_type"] == "NullPointerException"), None)
     assert npe_pattern is not None
     assert npe_pattern["frequency"] == 1
@@ -52,7 +76,6 @@ def test_extract_pattern_key_normalizes():
     agent = LogAnalysisAgent()
     key1 = agent._extract_pattern_key("ConnectionTimeout after 30s at 2025-12-26T14:00:33Z")
     key2 = agent._extract_pattern_key("ConnectionTimeout after 25s at 2025-12-26T15:00:00Z")
-    # Both should extract "ConnectionTimeout" as the key
     assert key1 == key2 == "ConnectionTimeout"
 
 
@@ -61,14 +84,6 @@ def test_extract_pattern_key_uuid_removal():
     key1 = agent._extract_pattern_key("Failed processing request 550e8400-e29b-41d4-a716-446655440000")
     key2 = agent._extract_pattern_key("Failed processing request a1b2c3d4-e5f6-7890-abcd-ef1234567890")
     assert key1 == key2
-
-
-def test_analyze_patterns_tool_empty():
-    agent = LogAnalysisAgent()
-    result = agent._analyze_patterns_tool()
-    import json
-    data = json.loads(result)
-    assert data["patterns"] == []
 
 
 def test_affected_components_tracked():
@@ -81,3 +96,541 @@ def test_affected_components_tracked():
     ct_pattern = next(p for p in patterns if p["exception_type"] == "ConnectionTimeout")
     assert "order-service" in ct_pattern["affected_components"]
     assert "payment-service" in ct_pattern["affected_components"]
+
+
+# ─── Flow Reconstruction (deterministic, no mocks needed) ─────────────────────
+
+def test_reconstruct_service_flow_basic():
+    agent = LogAnalysisAgent()
+    trace_logs = [
+        {"timestamp": "2025-12-26T14:00:01Z", "service": "api-gateway", "level": "INFO", "message": "GET /api/checkout received"},
+        {"timestamp": "2025-12-26T14:00:02Z", "service": "coupon-service", "level": "WARN", "message": "validateCoupon returned 404 NOT FOUND"},
+        {"timestamp": "2025-12-26T14:00:03Z", "service": "checkout-service", "level": "ERROR", "message": "processOrder failed: NullPointerException"},
+    ]
+    flow = agent._reconstruct_service_flow(trace_logs)
+    assert len(flow) == 3
+    # First step
+    assert flow[0]["service"] == "api-gateway"
+    assert flow[0]["status"] == "ok"
+    assert flow[0]["is_new_service"] is True
+    # Second step
+    assert flow[1]["service"] == "coupon-service"
+    assert flow[1]["status"] == "ok"
+    assert flow[1]["is_new_service"] is True
+    # Third step — error
+    assert flow[2]["service"] == "checkout-service"
+    assert flow[2]["status"] == "error"
+    assert flow[2]["is_new_service"] is True
+
+
+def test_reconstruct_service_flow_timeout_detection():
+    agent = LogAnalysisAgent()
+    trace_logs = [
+        {"timestamp": "2025-12-26T14:00:01Z", "service": "svc-a", "level": "INFO", "message": "request timeout after 30s"},
+    ]
+    flow = agent._reconstruct_service_flow(trace_logs)
+    assert flow[0]["status"] == "timeout"
+
+
+def test_reconstruct_service_flow_same_service_twice():
+    agent = LogAnalysisAgent()
+    trace_logs = [
+        {"timestamp": "2025-12-26T14:00:01Z", "service": "api-gateway", "level": "INFO", "message": "request received"},
+        {"timestamp": "2025-12-26T14:00:02Z", "service": "order-service", "level": "INFO", "message": "processing"},
+        {"timestamp": "2025-12-26T14:00:03Z", "service": "api-gateway", "level": "INFO", "message": "response sent"},
+    ]
+    flow = agent._reconstruct_service_flow(trace_logs)
+    assert flow[0]["is_new_service"] is True  # first api-gateway
+    assert flow[2]["is_new_service"] is False  # second api-gateway
+
+
+def test_reconstruct_service_flow_sorted_by_timestamp():
+    agent = LogAnalysisAgent()
+    # Pass in reverse order to verify sorting
+    trace_logs = [
+        {"timestamp": "2025-12-26T14:00:03Z", "service": "svc-c", "level": "ERROR", "message": "failed"},
+        {"timestamp": "2025-12-26T14:00:01Z", "service": "svc-a", "level": "INFO", "message": "start"},
+        {"timestamp": "2025-12-26T14:00:02Z", "service": "svc-b", "level": "INFO", "message": "middle"},
+    ]
+    flow = agent._reconstruct_service_flow(trace_logs)
+    assert flow[0]["service"] == "svc-a"
+    assert flow[1]["service"] == "svc-b"
+    assert flow[2]["service"] == "svc-c"
+
+
+def test_reconstruct_service_flow_empty():
+    agent = LogAnalysisAgent()
+    flow = agent._reconstruct_service_flow([])
+    assert flow == []
+
+
+# ─── Extract Operation / Status Detail (deterministic) ────────────────────────
+
+def test_extract_operation_http():
+    agent = LogAnalysisAgent()
+    assert agent._extract_operation("GET /api/checkout?id=123") == "GET /api/checkout?id=123"
+    assert agent._extract_operation("POST /payment/process") == "POST /payment/process"
+
+
+def test_extract_operation_function_call():
+    agent = LogAnalysisAgent()
+    assert agent._extract_operation("calling OrderService.process()") == "OrderService.process()"
+    assert agent._extract_operation("Executing DatabasePool.getConnection") == "DatabasePool.getConnection"
+
+
+def test_extract_operation_fallback():
+    agent = LogAnalysisAgent()
+    op = agent._extract_operation("some random log message about things")
+    assert len(op) <= 40
+
+
+def test_extract_status_detail_http_code():
+    agent = LogAnalysisAgent()
+    assert "200" in agent._extract_status_detail("responded with 200 OK to client", "INFO")
+    assert "404" in agent._extract_status_detail("got 404 NOT FOUND from upstream", "WARN")
+
+
+def test_extract_status_detail_exception():
+    agent = LogAnalysisAgent()
+    detail = agent._extract_status_detail("NullPointerException at line 45", "ERROR")
+    assert detail == "NullPointerException"
+
+
+def test_extract_status_detail_ok():
+    agent = LogAnalysisAgent()
+    assert agent._extract_status_detail("request completed", "INFO") == "OK"
+
+
+# ─── Index Resolution (deterministic scoring) ─────────────────────────────────
+
+def test_pick_best_index_prefers_service_match():
+    agent = LogAnalysisAgent()
+    indices = [
+        {"index": "filebeat-2025.01", "docs.count": "1000"},
+        {"index": "checkout-logs-2025.01", "docs.count": "500"},
+        {"index": "system-logs", "docs.count": "2000"},
+    ]
+    best = agent._pick_best_index(indices, "checkout")
+    assert best == "checkout-logs-2025.01"
+
+
+def test_pick_best_index_prefers_log_keyword():
+    agent = LogAnalysisAgent()
+    indices = [
+        {"index": "random-data", "docs.count": "1000"},
+        {"index": "app-logs-2025.01", "docs.count": "500"},
+    ]
+    best = agent._pick_best_index(indices, "unknown-service")
+    assert best == "app-logs-2025.01"
+
+
+def test_pick_best_index_empty():
+    agent = LogAnalysisAgent()
+    assert agent._pick_best_index([], "anything") is None
+
+
+# ─── LLM Response Parsing ─────────────────────────────────────────────────────
+
+def test_parse_llm_response_valid_json():
+    agent = LogAnalysisAgent()
+    text = json.dumps({
+        "primary_pattern": {
+            "pattern_id": "p1",
+            "exception_type": "ConnectionTimeout",
+            "error_message": "Timed out after 30s",
+            "frequency": 47,
+            "severity": "critical",
+            "affected_components": ["order-service"],
+            "confidence_score": 87,
+            "priority_rank": 1,
+            "priority_reasoning": "High frequency timeout"
+        },
+        "secondary_patterns": [],
+        "overall_confidence": 85,
+        "root_cause_hypothesis": "Database pool exhaustion",
+        "flow_analysis": ""
+    })
+    result = agent._parse_llm_response(text)
+    assert result["primary_pattern"]["exception_type"] == "ConnectionTimeout"
+    assert result["overall_confidence"] == 85
+    assert result["root_cause_hypothesis"] == "Database pool exhaustion"
+
+
+def test_parse_llm_response_json_in_text():
+    agent = LogAnalysisAgent()
+    text = 'Here is the analysis:\n{"primary_pattern": {}, "overall_confidence": 60}\nDone.'
+    result = agent._parse_llm_response(text)
+    assert result["overall_confidence"] == 60
+
+
+def test_parse_llm_response_invalid():
+    agent = LogAnalysisAgent()
+    result = agent._parse_llm_response("not json at all")
+    assert result["overall_confidence"] == 30
+    assert result["primary_pattern"] == {}
+
+
+# ─── Build Result ─────────────────────────────────────────────────────────────
+
+def test_build_result_includes_all_fields():
+    agent = LogAnalysisAgent()
+    agent._raw_logs = [{"msg": "test"}]
+    agent._patterns = [{"pattern_key": "k"}]
+
+    collection = {
+        "service_flow": [{"service": "svc-a", "status": "ok"}],
+    }
+    analysis = {
+        "primary_pattern": {"exception_type": "TestError"},
+        "secondary_patterns": [],
+        "overall_confidence": 75,
+    }
+    result = agent._build_result(collection, analysis)
+
+    assert result["primary_pattern"]["exception_type"] == "TestError"
+    assert result["overall_confidence"] == 75
+    assert result["raw_logs_count"] == 1
+    assert result["patterns_found"] == 1
+    assert result["service_flow"] == [{"service": "svc-a", "status": "ok"}]
+    assert result["flow_source"] == "elasticsearch"
+    assert result["flow_confidence"] == 70
+    assert "breadcrumbs" in result
+    assert "negative_findings" in result
+    assert "tokens_used" in result
+    assert "evidence_pins" in result
+
+
+def test_build_result_no_flow():
+    agent = LogAnalysisAgent()
+    collection = {"service_flow": []}
+    analysis = {"primary_pattern": {}, "secondary_patterns": [], "overall_confidence": 50}
+    result = agent._build_result(collection, analysis)
+    assert result["service_flow"] == []
+    assert result["flow_confidence"] == 0
+
+
+# ─── Breadcrumb & Negative Finding Tracking ────────────────────────────────────
+
+def test_add_breadcrumb():
+    agent = LogAnalysisAgent()
+    agent.add_breadcrumb("test_action", "log", "test_ref", "test_evidence")
+    assert len(agent.breadcrumbs) == 1
+    assert agent.breadcrumbs[0].action == "test_action"
+    assert agent.breadcrumbs[0].agent_name == "log_agent"
+
+
+def test_add_negative_finding():
+    agent = LogAnalysisAgent()
+    agent.add_negative_finding("checked X", "nothing", "means Y", "ref")
+    assert len(agent.negative_findings) == 1
+    assert agent.negative_findings[0].what_was_checked == "checked X"
+
+
+# ─── Analysis Prompt Building ──────────────────────────────────────────────────
+
+def test_build_analysis_prompt_includes_patterns():
+    agent = LogAnalysisAgent()
+    collection = {
+        "patterns": [
+            {"exception_type": "TimeoutError", "frequency": 10, "affected_components": ["svc-a"], "error_message": "Timed out"},
+        ],
+        "service_flow": [],
+        "context_logs": [],
+        "index_used": "app-logs-*",
+        "stats": {"total_logs": 50, "error_count": 10, "warn_count": 5},
+    }
+    context = {"service_name": "checkout", "timeframe": "now-1h"}
+    prompt = agent._build_analysis_prompt(collection, context)
+    assert "checkout" in prompt
+    assert "TimeoutError" in prompt
+    assert "app-logs-*" in prompt
+
+
+def test_build_analysis_prompt_includes_flow():
+    agent = LogAnalysisAgent()
+    collection = {
+        "patterns": [],
+        "service_flow": [
+            {"timestamp": "2025-01-01T00:00:00Z", "service": "gw", "operation": "GET /api", "status": "ok", "status_detail": "200 OK"},
+        ],
+        "context_logs": [],
+        "index_used": "logs-*",
+        "stats": {"total_logs": 0, "error_count": 0, "warn_count": 0},
+    }
+    context = {"service_name": "svc", "timeframe": "now-1h"}
+    prompt = agent._build_analysis_prompt(collection, context)
+    assert "Service Flow" in prompt
+    assert "gw" in prompt
+
+
+# ─── Full run() with mocked ES + LLM ──────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_run_full_hybrid_pipeline():
+    """Test the complete run() pipeline with mocked ES and LLM."""
+    agent = LogAnalysisAgent()
+
+    # Mock ES responses
+    mock_indices_response = MagicMock()
+    mock_indices_response.status_code = 200
+    mock_indices_response.json.return_value = [
+        {"index": "app-logs-2025.01", "docs.count": "500", "store.size": "10mb", "health": "green", "status": "open"},
+    ]
+    mock_indices_response.raise_for_status = MagicMock()
+
+    mock_search_response = MagicMock()
+    mock_search_response.status_code = 200
+    mock_search_response.json.return_value = {
+        "hits": {
+            "hits": [
+                {
+                    "_id": "1", "_index": "app-logs-2025.01",
+                    "_source": {
+                        "@timestamp": "2025-01-26T14:00:33Z",
+                        "level": "ERROR",
+                        "message": "ConnectionTimeout after 30s calling payment-service",
+                        "service": "checkout-service",
+                    }
+                },
+                {
+                    "_id": "2", "_index": "app-logs-2025.01",
+                    "_source": {
+                        "@timestamp": "2025-01-26T14:00:34Z",
+                        "level": "ERROR",
+                        "message": "ConnectionTimeout after 25s calling payment-service",
+                        "service": "checkout-service",
+                    }
+                },
+            ]
+        }
+    }
+    mock_search_response.raise_for_status = MagicMock()
+
+    mock_context_response = MagicMock()
+    mock_context_response.status_code = 200
+    mock_context_response.json.return_value = {"hits": {"hits": []}}
+    mock_context_response.raise_for_status = MagicMock()
+
+    mock_head_response = MagicMock()
+    mock_head_response.status_code = 200
+
+    def mock_requests_side_effect(url, **kwargs):
+        if "/_cat/indices" in url:
+            return mock_indices_response
+        return mock_search_response
+
+    # Mock LLM
+    mock_llm_response = MagicMock()
+    mock_llm_response.text = json.dumps({
+        "primary_pattern": {
+            "pattern_id": "p1",
+            "exception_type": "ConnectionTimeout",
+            "error_message": "ConnectionTimeout after 30s calling payment-service",
+            "frequency": 2,
+            "severity": "high",
+            "affected_components": ["checkout-service"],
+            "confidence_score": 80,
+            "priority_rank": 1,
+            "priority_reasoning": "Repeated timeout to downstream dependency"
+        },
+        "secondary_patterns": [],
+        "overall_confidence": 78,
+        "root_cause_hypothesis": "payment-service is unresponsive",
+        "flow_analysis": ""
+    })
+
+    with patch("requests.get", side_effect=mock_requests_side_effect), \
+         patch("requests.post", return_value=mock_search_response), \
+         patch("requests.head", return_value=mock_head_response):
+        agent.llm_client.chat = AsyncMock(return_value=mock_llm_response)
+
+        result = await agent.run(
+            context={
+                "service_name": "checkout-service",
+                "elk_index": "app-logs-2025.01",
+                "timeframe": "now-1h",
+            },
+            event_emitter=None,
+        )
+
+    # Verify result structure
+    assert "primary_pattern" in result
+    assert "secondary_patterns" in result
+    assert "overall_confidence" in result
+    assert "breadcrumbs" in result
+    assert "negative_findings" in result
+    assert "tokens_used" in result
+    assert "service_flow" in result
+    assert "flow_source" in result
+    assert "flow_confidence" in result
+    assert result["primary_pattern"]["exception_type"] == "ConnectionTimeout"
+    assert result["overall_confidence"] == 78
+    assert result["raw_logs_count"] == 2
+    assert result["patterns_found"] >= 1
+
+
+@pytest.mark.asyncio
+async def test_run_emits_events():
+    """Test that run() emits appropriate events."""
+    agent = LogAnalysisAgent()
+    emitter = AsyncMock()
+
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {"hits": {"hits": []}}
+    mock_response.raise_for_status = MagicMock()
+
+    mock_indices = MagicMock()
+    mock_indices.status_code = 200
+    mock_indices.json.return_value = []
+    mock_indices.raise_for_status = MagicMock()
+
+    mock_llm = MagicMock()
+    mock_llm.text = '{"primary_pattern": {}, "overall_confidence": 20}'
+
+    with patch("requests.get", return_value=mock_indices), \
+         patch("requests.post", return_value=mock_response), \
+         patch("requests.head", return_value=MagicMock(status_code=404)):
+        agent.llm_client.chat = AsyncMock(return_value=mock_llm)
+        await agent.run(
+            context={"service_name": "test", "elk_index": "*", "timeframe": "now-1h"},
+            event_emitter=emitter,
+        )
+
+    # Should have emitted started, tool_call(s), and success events
+    event_types = [call.args[1] for call in emitter.emit.call_args_list]
+    assert "started" in event_types
+    assert "tool_call" in event_types
+    assert "success" in event_types
+
+
+@pytest.mark.asyncio
+async def test_run_no_data_returns_low_confidence():
+    """When ES returns no data, the result should have low confidence."""
+    agent = LogAnalysisAgent()
+
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {"hits": {"hits": []}}
+    mock_response.raise_for_status = MagicMock()
+
+    mock_indices = MagicMock()
+    mock_indices.status_code = 200
+    mock_indices.json.return_value = []
+    mock_indices.raise_for_status = MagicMock()
+
+    with patch("requests.get", return_value=mock_indices), \
+         patch("requests.post", return_value=mock_response), \
+         patch("requests.head", return_value=MagicMock(status_code=404)):
+        # LLM should not be called if no data
+        result = await agent.run(
+            context={"service_name": "test", "elk_index": "*", "timeframe": "now-1h"},
+            event_emitter=None,
+        )
+
+    assert result["overall_confidence"] <= 30
+    assert result["service_flow"] == []
+    assert result["flow_confidence"] == 0
+
+
+@pytest.mark.asyncio
+async def test_run_with_trace_id_reconstructs_flow():
+    """When trace_id is provided and trace logs exist, flow should be reconstructed."""
+    agent = LogAnalysisAgent()
+
+    mock_head = MagicMock(status_code=200)
+
+    mock_search = MagicMock()
+    mock_search.status_code = 200
+    mock_search.raise_for_status = MagicMock()
+    mock_search.json.return_value = {
+        "hits": {
+            "hits": [
+                {"_id": "1", "_index": "logs", "_source": {
+                    "@timestamp": "2025-01-01T00:00:01Z", "level": "ERROR",
+                    "message": "ConnectionTimeout", "service": "checkout",
+                }},
+            ]
+        }
+    }
+
+    # Trace search returns logs from multiple services
+    mock_trace_search = MagicMock()
+    mock_trace_search.status_code = 200
+    mock_trace_search.raise_for_status = MagicMock()
+    mock_trace_search.json.return_value = {
+        "hits": {
+            "hits": [
+                {"_id": "t1", "_index": "logs", "_source": {
+                    "@timestamp": "2025-01-01T00:00:01Z", "level": "INFO",
+                    "message": "GET /api/checkout", "service": "gateway",
+                }},
+                {"_id": "t2", "_index": "logs", "_source": {
+                    "@timestamp": "2025-01-01T00:00:02Z", "level": "ERROR",
+                    "message": "ConnectionTimeout calling DB", "service": "checkout",
+                }},
+            ]
+        }
+    }
+
+    mock_context = MagicMock()
+    mock_context.status_code = 200
+    mock_context.raise_for_status = MagicMock()
+    mock_context.json.return_value = {"hits": {"hits": []}}
+
+    call_count = {"post": 0}
+
+    def mock_post(url, **kwargs):
+        call_count["post"] += 1
+        # First post is ERROR search, subsequent are trace/context
+        if call_count["post"] <= 3:
+            return mock_search
+        return mock_trace_search
+
+    mock_indices = MagicMock()
+    mock_indices.status_code = 200
+    mock_indices.json.return_value = []
+    mock_indices.raise_for_status = MagicMock()
+
+    mock_llm = MagicMock()
+    mock_llm.text = json.dumps({
+        "primary_pattern": {"exception_type": "ConnectionTimeout", "error_message": "timeout", "frequency": 1,
+                           "severity": "high", "affected_components": ["checkout"], "confidence_score": 70,
+                           "priority_rank": 1, "priority_reasoning": "timeout"},
+        "overall_confidence": 70,
+    })
+
+    # For this test, directly mock _search_by_trace_id to return trace logs
+    with patch("requests.head", return_value=mock_head), \
+         patch("requests.get", return_value=mock_indices), \
+         patch("requests.post", return_value=mock_search):
+        agent.llm_client.chat = AsyncMock(return_value=mock_llm)
+
+        # Mock trace search specifically
+        original_trace = agent._search_by_trace_id
+        async def mock_trace_search_fn(params):
+            return json.dumps({
+                "total": 2,
+                "logs": [
+                    {"timestamp": "2025-01-01T00:00:01Z", "level": "INFO", "message": "GET /api/checkout", "service": "gateway"},
+                    {"timestamp": "2025-01-01T00:00:02Z", "level": "ERROR", "message": "ConnectionTimeout", "service": "checkout"},
+                ]
+            })
+        agent._search_by_trace_id = mock_trace_search_fn
+
+        result = await agent.run(
+            context={
+                "service_name": "checkout",
+                "elk_index": "logs",
+                "timeframe": "now-1h",
+                "trace_id": "abc123",
+            },
+            event_emitter=None,
+        )
+
+    assert len(result["service_flow"]) == 2
+    assert result["service_flow"][0]["service"] == "gateway"
+    assert result["service_flow"][1]["service"] == "checkout"
+    assert result["service_flow"][1]["status"] == "error"
+    assert result["flow_confidence"] == 70
+    assert result["flow_source"] == "elasticsearch"

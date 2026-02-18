@@ -77,23 +77,52 @@ export type DiagnosticPhase =
 export type Severity = 'critical' | 'high' | 'medium' | 'low' | 'info';
 
 export interface ErrorPattern {
+  pattern_id: string;
+  exception_type: string;
+  error_message: string;
+  frequency: number;
+  severity: Severity;
+  affected_components: string[];
+  confidence_score: number;
+  priority_rank: number;
+  priority_reasoning: string;
+  // Computed fields for display
   pattern: string;
   count: number;
-  severity: Severity;
-  first_seen: string;
-  last_seen: string;
   sample_message: string;
   confidence: number;
+  first_seen: string | null;
+  last_seen: string | null;
 }
 
 export interface MetricAnomaly {
   metric_name: string;
   current_value: number;
   baseline_value: number;
+  peak_value: number;
   deviation_percent: number;
   direction: 'above' | 'below';
   severity: Severity;
   timestamp: string;
+  spike_start: string;
+  spike_end: string;
+  promql_query: string;
+  correlation_to_incident: string;
+  confidence_score: number;
+}
+
+export interface CorrelatedSignalGroup {
+  group_name: string;
+  signal_type: 'RED' | 'USE';
+  metrics: string[];
+  narrative: string;
+}
+
+export interface EventMarker {
+  timestamp: string;
+  label: string;
+  source: string;
+  severity: Severity;
 }
 
 export interface PodHealthStatus {
@@ -125,6 +154,16 @@ export interface SpanInfo {
   status: string;
   error: boolean;
   parent_span_id: string | null;
+}
+
+export interface ServiceFlowStep {
+  service: string;
+  timestamp: string;
+  operation: string;
+  status: 'ok' | 'error' | 'timeout';
+  status_detail: string;
+  message: string;
+  is_new_service: boolean;
 }
 
 export interface Finding {
@@ -209,6 +248,8 @@ export interface V4Findings {
   critic_verdicts: CriticVerdict[];
   error_patterns: ErrorPattern[];
   metric_anomalies: MetricAnomaly[];
+  correlated_signals: CorrelatedSignalGroup[];
+  event_markers: EventMarker[];
   pod_statuses: PodHealthStatus[];
   k8s_events: K8sEvent[];
   trace_spans: SpanInfo[];
@@ -217,6 +258,9 @@ export interface V4Findings {
   blast_radius: BlastRadiusData | null;
   severity_recommendation: SeverityData | null;
   past_incidents: PastIncidentMatch[];
+  service_flow: ServiceFlowStep[];
+  flow_source: string | null;
+  flow_confidence: number;
 }
 
 export interface CodeImpact {

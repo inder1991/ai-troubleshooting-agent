@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, computed_field, model_validator
 from typing import Optional, Literal
 from datetime import datetime
 from enum import Enum
@@ -89,6 +89,17 @@ class LogEvidence(BaseModel):
     raw_line: str
 
 
+class ServiceFlowStep(BaseModel):
+    """A single step in the temporal flow reconstruction from logs."""
+    service: str
+    timestamp: str
+    operation: str
+    status: Literal["ok", "error", "timeout"]
+    status_detail: str = ""
+    message: str = ""
+    is_new_service: bool = True
+
+
 class ErrorPattern(BaseModel):
     pattern_id: str
     exception_type: str
@@ -100,6 +111,40 @@ class ErrorPattern(BaseModel):
     confidence_score: int = Field(ge=0, le=100)
     priority_rank: int
     priority_reasoning: str
+
+    @computed_field
+    @property
+    def pattern(self) -> str:
+        return self.exception_type
+
+    @computed_field
+    @property
+    def count(self) -> int:
+        return self.frequency
+
+    @computed_field
+    @property
+    def sample_message(self) -> str:
+        return self.error_message
+
+    @computed_field
+    @property
+    def confidence(self) -> int:
+        return self.confidence_score
+
+    @computed_field
+    @property
+    def first_seen(self) -> Optional[str]:
+        if self.sample_logs:
+            return self.sample_logs[0].timestamp.isoformat()
+        return None
+
+    @computed_field
+    @property
+    def last_seen(self) -> Optional[str]:
+        if self.sample_logs:
+            return self.sample_logs[-1].timestamp.isoformat()
+        return None
 
 
 class LogAnalysisResult(BaseModel):
@@ -132,9 +177,47 @@ class MetricAnomaly(BaseModel):
     correlation_to_incident: str
     confidence_score: int = Field(ge=0, le=100)
 
+    @computed_field
+    @property
+    def current_value(self) -> float:
+        return self.peak_value
+
+    @computed_field
+    @property
+    def deviation_percent(self) -> float:
+        if self.baseline_value == 0:
+            return 100.0
+        return round(((self.peak_value - self.baseline_value) / self.baseline_value) * 100, 1)
+
+    @computed_field
+    @property
+    def direction(self) -> str:
+        return "above" if self.peak_value >= self.baseline_value else "below"
+
+    @computed_field
+    @property
+    def timestamp(self) -> datetime:
+        return self.spike_start
+
+
+class CorrelatedSignalGroup(BaseModel):
+    group_name: str
+    signal_type: Literal["RED", "USE"]
+    metrics: list[str]
+    narrative: str
+
+
+class EventMarker(BaseModel):
+    timestamp: datetime
+    label: str
+    source: str
+    severity: Literal["critical", "high", "medium", "low", "info"] = "info"
+
 
 class MetricsAnalysisResult(BaseModel):
     anomalies: list[MetricAnomaly]
+    correlated_signals: list[CorrelatedSignalGroup] = []
+    event_markers: list[EventMarker] = []
     time_series_data: dict[str, list[DataPoint]]
     chart_highlights: list[TimeRange]
     negative_findings: list[NegativeFinding]
@@ -439,6 +522,11 @@ class DiagnosticState(BaseModel):
     trace_analysis: Optional[TraceAnalysisResult] = None
     code_analysis: Optional[CodeAnalysisResult] = None
     change_analysis: Optional[dict] = None
+
+    # Flow reconstruction
+    service_flow: list[dict] = Field(default_factory=list)
+    flow_source: Optional[str] = None
+    flow_confidence: int = 0
 
     # Impact & memory
     blast_radius_result: Optional[BlastRadius] = None

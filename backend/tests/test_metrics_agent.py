@@ -20,6 +20,9 @@ def test_spike_detection_finds_spikes():
     spikes = agent._detect_spikes(data_points, baseline_threshold=2.0)
     assert len(spikes) >= 1
     assert spikes[0]["peak_value"] == 95.0
+    # Verify confidence_score is present and within valid range
+    assert "confidence_score" in spikes[0]
+    assert 0 <= spikes[0]["confidence_score"] <= 95
 
 
 def test_spike_detection_no_spikes():
@@ -83,3 +86,73 @@ def test_spike_at_end_of_data():
     spikes = agent._detect_spikes(data_points, baseline_threshold=2.0)
     assert len(spikes) >= 1
     assert spikes[0]["peak_value"] == 98.0
+    assert "confidence_score" in spikes[0]
+    assert spikes[0]["confidence_score"] <= 95
+
+
+def test_build_default_queries_with_metadata():
+    agent = MetricsAgent()
+    queries = agent._build_default_queries(
+        namespace="prod", service_name="order-service",
+        job="order-job", app_label="order-app",
+    )
+    assert len(queries) == 5
+    for q in queries:
+        assert 'job="order-job"' in q["query"]
+        assert 'app="order-app"' in q["query"]
+
+
+def test_build_default_queries_without_metadata():
+    agent = MetricsAgent()
+    queries = agent._build_default_queries(
+        namespace="prod", service_name="order-service",
+    )
+    for q in queries:
+        assert "job=" not in q["query"]
+        assert "app=" not in q["query"]
+
+
+def test_get_saturation_metrics():
+    import json
+    agent = MetricsAgent()
+    result = json.loads(agent._get_saturation_metrics({
+        "namespace": "prod",
+        "service_name": "order-service",
+        "error_hints": ["oom", "timeout"],
+    }))
+    assert "saturation_queries" in result
+    query_names = [q["name"] for q in result["saturation_queries"]]
+    assert "memory_saturation" in query_names
+    assert "cpu_throttling" in query_names
+
+
+def test_get_saturation_metrics_no_match():
+    import json
+    agent = MetricsAgent()
+    result = json.loads(agent._get_saturation_metrics({
+        "namespace": "prod",
+        "service_name": "svc",
+        "error_hints": ["unknown_error"],
+    }))
+    assert result["saturation_queries"] == []
+
+
+def test_parse_final_response_filters_time_series():
+    import json
+    agent = MetricsAgent()
+    # Cache some time series data
+    agent._time_series_cache = {
+        "cpu_query": [{"timestamp": 1000, "value": 10.0}],
+        "memory_query": [{"timestamp": 1000, "value": 500.0}],
+        "network_query": [{"timestamp": 1000, "value": 1.0}],
+    }
+    text = json.dumps({
+        "anomalies": [{"metric_name": "cpu_usage"}],
+        "correlated_signals": [],
+        "overall_confidence": 75,
+    })
+    result = agent._parse_final_response(text)
+    # Only cpu_query should be in time_series_data (matches "cpu_usage" in key "cpu_query")
+    assert "cpu_query" in result["time_series_data"]
+    assert "network_query" not in result["time_series_data"]
+    assert result["correlated_signals"] == []

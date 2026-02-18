@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import type { V4Findings, V4SessionStatus, TaskEvent, Severity, CriticVerdict, ChangeCorrelation, BlastRadiusData, SeverityData, SpanInfo, Breadcrumb } from '../../types';
+import type { V4Findings, V4SessionStatus, TaskEvent, Severity, CriticVerdict, ChangeCorrelation, BlastRadiusData, SeverityData, SpanInfo, Breadcrumb, ServiceFlowStep, CorrelatedSignalGroup, EventMarker } from '../../types';
 import { getFindings, getSessionStatus } from '../../services/api';
 
 interface EvidenceStackProps {
@@ -419,8 +419,82 @@ const MetricsTab: React.FC<{ findings: V4Findings | null }> = ({ findings }) => 
     info: { border: 'border-slate-700', bg: 'bg-slate-900/40', text: 'text-slate-400' },
   };
 
+  const signalTypeStyle: Record<string, string> = {
+    RED: 'bg-red-500/20 text-red-400 border-red-500/30',
+    USE: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
+  };
+
+  // Compute event marker positions as percentage of the incident window
+  const computePositionPercent = (timestamp: string): number => {
+    const markers = findings?.event_markers || [];
+    const anomalies = findings?.metric_anomalies || [];
+    const allTimes = [
+      ...markers.map((m) => new Date(m.timestamp).getTime()),
+      ...anomalies.map((a) => new Date(a.spike_start || a.timestamp).getTime()),
+      ...anomalies.map((a) => new Date(a.spike_end || a.timestamp).getTime()),
+    ].filter((t) => !isNaN(t));
+    if (allTimes.length < 2) return 50;
+    const minT = Math.min(...allTimes);
+    const maxT = Math.max(...allTimes);
+    const range = maxT - minT || 1;
+    const t = new Date(timestamp).getTime();
+    return Math.max(2, Math.min(98, ((t - minT) / range) * 100));
+  };
+
   return (
     <div className="space-y-4">
+      {/* Correlated Signal Groups */}
+      {(findings?.correlated_signals?.length ?? 0) > 0 && (
+        <div className="space-y-3">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Golden Signal Correlations</div>
+          {findings!.correlated_signals.map((cs, i) => (
+            <div key={i} className="bg-slate-900/40 border border-slate-800 rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold border ${signalTypeStyle[cs.signal_type] || signalTypeStyle.RED}`}>
+                  {cs.signal_type}
+                </span>
+                <span className="text-[11px] font-bold text-slate-200">{cs.group_name}</span>
+              </div>
+              <p className="text-xs text-slate-400 mb-2">{cs.narrative}</p>
+              <div className="flex flex-wrap gap-1.5">
+                {cs.metrics.map((m, j) => (
+                  <span key={j} className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800/60 text-slate-300 border border-slate-700/50">
+                    {m}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Event Markers Timeline */}
+      {(findings?.event_markers?.length ?? 0) > 0 && (
+        <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-4">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-3">
+            Log Events on Timeline
+          </div>
+          <div className="relative h-8 bg-slate-800/50 rounded-lg overflow-visible">
+            {findings!.event_markers.map((marker, i) => (
+              <div
+                key={i}
+                className={`absolute top-0 h-full w-0.5 ${
+                  marker.severity === 'critical' || marker.severity === 'high' ? 'bg-red-500' :
+                  marker.severity === 'medium' ? 'bg-amber-500' : 'bg-blue-500'
+                }`}
+                style={{ left: `${computePositionPercent(marker.timestamp)}%` }}
+                title={`${marker.label} (${marker.source})`}
+              >
+                <div className="absolute -top-5 left-1 text-[9px] text-red-400 whitespace-nowrap">
+                  {marker.label}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Anomaly Cards Grid */}
       <div className="grid grid-cols-2 gap-4">
         {findings.metric_anomalies.map((ma, i) => {
           const style = anomalySeverityColor[ma.severity] || anomalySeverityColor.info;
@@ -448,6 +522,9 @@ const MetricsTab: React.FC<{ findings: V4Findings | null }> = ({ findings }) => 
                   </div>
                 </div>
               </div>
+              {ma.correlation_to_incident && (
+                <p className="text-[10px] text-slate-400 mb-2 italic">{ma.correlation_to_incident}</p>
+              )}
               {/* Deviation bar */}
               <div className="h-2 bg-black/20 rounded-full overflow-hidden">
                 <div
@@ -455,6 +532,11 @@ const MetricsTab: React.FC<{ findings: V4Findings | null }> = ({ findings }) => 
                   style={{ width: `${Math.min(Math.abs(ma.deviation_percent), 100)}%` }}
                 />
               </div>
+              {ma.confidence_score != null && (
+                <div className="text-[9px] text-slate-500 mt-1.5 text-right">
+                  Confidence: {ma.confidence_score}%
+                </div>
+              )}
             </div>
           );
         })}
@@ -807,41 +889,182 @@ const ChangesTab: React.FC<{ findings: V4Findings | null }> = ({ findings }) => 
   );
 };
 
-// ─── Traces Tab — Waterfall Visualization ─────────────────────────────────
+// ─── Temporal Flow Timeline ────────────────────────────────────────────────
 
-const TracesTab: React.FC<{ findings: V4Findings | null; events: TaskEvent[] }> = ({ findings, events }) => {
-  const spans = findings?.trace_spans || [];
+const TemporalFlowTimeline: React.FC<{
+  steps: ServiceFlowStep[];
+  source: string;
+  confidence: number;
+}> = ({ steps, source, confidence }) => {
+  const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
+  const serviceCount = new Set(steps.map((s) => s.service)).size;
 
-  if (spans.length === 0) {
-    // Fallback: try to build pseudo-spans from events
-    const pseudoSpans = events
-      .filter((e) => e.event_type === 'tool_call' || e.event_type === 'finding')
-      .slice(0, 20);
-
-    if (pseudoSpans.length === 0) {
-      return <EmptyState message="No trace data available. Traces will populate when the Trace Walker agent completes analysis." />;
+  const nodeColor = (status: ServiceFlowStep['status'], isLast: boolean) => {
+    if (status === 'error') {
+      return isLast
+        ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)] animate-pulse'
+        : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]';
     }
+    if (status === 'timeout') return 'bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.4)]';
+    return 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]';
+  };
 
+  const statusBadge = (status: ServiceFlowStep['status'], detail: string) => {
+    const colors: Record<string, string> = {
+      ok: 'text-green-400 border-green-500/30 bg-green-500/10',
+      error: 'text-red-400 border-red-500/30 bg-red-500/10',
+      timeout: 'text-orange-400 border-orange-500/30 bg-orange-500/10',
+    };
     return (
-      <div className="space-y-4">
-        <div className="text-[10px] text-slate-500 uppercase tracking-wider">Reconstructed from Agent Activity</div>
-        <div className="space-y-1">
-          {pseudoSpans.map((ev, i) => (
-            <div key={i} className="flex items-center gap-3 text-[11px]">
-              <span className="text-slate-600 w-16 shrink-0 font-mono">
-                {new Date(ev.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-              </span>
-              <span className={`w-2 h-2 rounded-full ${ev.event_type === 'finding' ? 'bg-amber-400' : 'bg-slate-500'}`} />
-              <span className="text-[#07b6d5] shrink-0">{ev.agent_name}</span>
-              <span className="text-slate-400 truncate">{ev.message}</span>
+      <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border ${colors[status] || colors.ok}`}>
+        {detail || status.toUpperCase()}
+      </span>
+    );
+  };
+
+  // Find the last error index for the pulse effect
+  const lastErrorIdx = (() => {
+    for (let i = steps.length - 1; i >= 0; i--) {
+      if (steps[i].status === 'error') return i;
+    }
+    return -1;
+  })();
+
+  return (
+    <div className="bg-slate-900/40 border border-slate-800 rounded-xl overflow-hidden">
+      {/* Header */}
+      <div className="px-4 py-2 border-b border-slate-800 flex items-center justify-between bg-slate-900/60">
+        <div className="flex items-center gap-2">
+          <span className="material-symbols-outlined text-violet-400 text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>
+            timeline
+          </span>
+          <span className="text-[11px] font-bold uppercase tracking-wider">Temporal Flow</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] text-slate-500">
+            {serviceCount} services, {steps.length} steps
+          </span>
+          <span className="text-[9px] px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-400 border border-violet-500/20 font-mono">
+            {source} {confidence}%
+          </span>
+        </div>
+      </div>
+
+      {/* Timeline */}
+      <div className="p-4 relative">
+        {/* Vertical dashed line */}
+        <div className="absolute left-[31px] top-4 bottom-4 border-l border-dashed border-slate-700" />
+
+        <div className="space-y-3">
+          {steps.map((step, i) => (
+            <div key={i} className="relative flex items-start gap-3 pl-2">
+              {/* Node circle */}
+              <div className="relative z-10 flex-shrink-0 mt-1">
+                <div
+                  className={`w-4 h-4 rounded-full border-2 border-slate-900 ${nodeColor(step.status, i === lastErrorIdx)}`}
+                />
+              </div>
+
+              {/* Service card */}
+              <button
+                onClick={() => setExpandedIdx(expandedIdx === i ? null : i)}
+                className="flex-1 bg-slate-800/30 p-2 rounded-lg border border-slate-700/50 text-left hover:border-slate-600/50 transition-colors"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight shrink-0">
+                      {step.service}
+                    </span>
+                    <span className="text-[11px] font-mono text-slate-300 truncate">
+                      {step.operation}
+                    </span>
+                  </div>
+                  {statusBadge(step.status, step.status_detail)}
+                </div>
+
+                {/* L3: Expanded details */}
+                {expandedIdx === i && (
+                  <div className="mt-2 pt-2 border-t border-slate-700/50 space-y-1">
+                    {step.timestamp && (
+                      <div className="text-[10px] text-slate-500 font-mono">
+                        {new Date(step.timestamp).toLocaleString()}
+                      </div>
+                    )}
+                    {step.message && (
+                      <div className="text-[10px] text-slate-400 font-mono break-all">
+                        {step.message}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </button>
             </div>
           ))}
         </div>
       </div>
-    );
+    </div>
+  );
+};
+
+// ─── Traces Tab — Waterfall Visualization ─────────────────────────────────
+
+const TracesTab: React.FC<{ findings: V4Findings | null; events: TaskEvent[] }> = ({ findings, events }) => {
+  const serviceFlow = findings?.service_flow || [];
+  const spans = findings?.trace_spans || [];
+
+  return (
+    <div className="space-y-6">
+      {/* Temporal Flow from log agent */}
+      {serviceFlow.length > 0 && (
+        <TemporalFlowTimeline
+          steps={serviceFlow}
+          source={findings?.flow_source || 'elasticsearch'}
+          confidence={findings?.flow_confidence || 0}
+        />
+      )}
+
+      {/* Existing trace waterfall from tracing agent */}
+      {spans.length > 0 && (
+        <TraceWaterfall spans={spans} />
+      )}
+
+      {/* Fallback: pseudo-spans from events */}
+      {serviceFlow.length === 0 && spans.length === 0 && (
+        <TraceFallback events={events} />
+      )}
+    </div>
+  );
+};
+
+const TraceFallback: React.FC<{ events: TaskEvent[] }> = ({ events }) => {
+  const pseudoSpans = events
+    .filter((e) => e.event_type === 'tool_call' || e.event_type === 'finding')
+    .slice(0, 20);
+
+  if (pseudoSpans.length === 0) {
+    return <EmptyState message="No trace data available. Traces will populate when the Trace Walker agent completes analysis." />;
   }
 
-  // Real trace waterfall
+  return (
+    <div className="space-y-4">
+      <div className="text-[10px] text-slate-500 uppercase tracking-wider">Reconstructed from Agent Activity</div>
+      <div className="space-y-1">
+        {pseudoSpans.map((ev, i) => (
+          <div key={i} className="flex items-center gap-3 text-[11px]">
+            <span className="text-slate-600 w-16 shrink-0 font-mono">
+              {new Date(ev.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+            </span>
+            <span className={`w-2 h-2 rounded-full ${ev.event_type === 'finding' ? 'bg-amber-400' : 'bg-slate-500'}`} />
+            <span className="text-[#07b6d5] shrink-0">{ev.agent_name}</span>
+            <span className="text-slate-400 truncate">{ev.message}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const TraceWaterfall: React.FC<{ spans: SpanInfo[] }> = ({ spans }) => {
   const totalDuration = Math.max(...spans.map((s) => s.duration_ms), 1);
   const errorCount = spans.filter((s) => s.status === 'error' || s.error).length;
 

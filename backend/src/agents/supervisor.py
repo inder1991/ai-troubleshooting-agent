@@ -7,6 +7,8 @@ from datetime import datetime, timezone
 from src.models.schemas import (
     DiagnosticState, DiagnosticStateV5, DiagnosticPhase, Finding, CriticVerdict,
     TokenUsage, TimeWindow, ConfidenceLedger, EvidencePin, ReasoningManifest, ReasoningStep,
+    MetricAnomaly, MetricsAnalysisResult, CorrelatedSignalGroup, EventMarker,
+    LogAnalysisResult, ErrorPattern, LogEvidence,
 )
 from src.agents.log_agent import LogAnalysisAgent
 from src.agents.metrics_agent import MetricsAgent
@@ -334,7 +336,22 @@ class SupervisorAgent:
         elif agent_name == "metrics_agent":
             base["namespace"] = state.namespace or "default"
             if state.log_analysis:
-                base["error_patterns"] = state.log_analysis.primary_pattern.model_dump() if state.log_analysis else None
+                base["error_patterns"] = state.log_analysis.primary_pattern.model_dump() if state.log_analysis.primary_pattern else None
+                # Extract error hints for USE-method saturation queries
+                error_hints = []
+                if state.log_analysis.primary_pattern:
+                    exc = (state.log_analysis.primary_pattern.exception_type or "").lower()
+                    msg = (state.log_analysis.primary_pattern.error_message or "").lower()
+                    combined = f"{exc} {msg}"
+                    if "oom" in combined or "memory" in combined:
+                        error_hints.append("oom")
+                    if "pool" in combined or "connection" in combined:
+                        error_hints.append("connectionpool")
+                    if "timeout" in combined:
+                        error_hints.append("timeout")
+                    if "disk" in combined or "storage" in combined:
+                        error_hints.append("disk")
+                base["error_hints"] = error_hints
 
         elif agent_name == "k8s_agent":
             base["namespace"] = state.namespace or "default"
@@ -436,6 +453,77 @@ class SupervisorAgent:
                         details={"type": "service_flow", "services": services_in_flow}
                     )
 
+        # Populate state.log_analysis from log_agent result
+        if agent_name == "log_agent":
+            primary_raw = result.get("primary_pattern", {})
+            if isinstance(primary_raw, dict) and primary_raw.get("exception_type"):
+                try:
+                    # Ensure sample_logs is a list of LogEvidence (LLM may omit it)
+                    sample_logs_raw = primary_raw.get("sample_logs", [])
+                    sample_logs = []
+                    for sl in sample_logs_raw:
+                        try:
+                            sample_logs.append(LogEvidence(**sl) if isinstance(sl, dict) else sl)
+                        except Exception:
+                            pass
+
+                    primary = ErrorPattern(
+                        pattern_id=primary_raw.get("pattern_id", "p1"),
+                        exception_type=primary_raw.get("exception_type", "UnknownError"),
+                        error_message=primary_raw.get("error_message", ""),
+                        frequency=primary_raw.get("frequency", 1),
+                        severity=primary_raw.get("severity", "medium"),
+                        affected_components=primary_raw.get("affected_components", []),
+                        sample_logs=sample_logs,
+                        confidence_score=min(primary_raw.get("confidence_score", 50), 100),
+                        priority_rank=primary_raw.get("priority_rank", 1),
+                        priority_reasoning=primary_raw.get("priority_reasoning", ""),
+                    )
+
+                    secondary = []
+                    for sp_raw in result.get("secondary_patterns", []):
+                        try:
+                            sp_samples = []
+                            for sl in sp_raw.get("sample_logs", []):
+                                try:
+                                    sp_samples.append(LogEvidence(**sl) if isinstance(sl, dict) else sl)
+                                except Exception:
+                                    pass
+                            secondary.append(ErrorPattern(
+                                pattern_id=sp_raw.get("pattern_id", f"s{len(secondary)+1}"),
+                                exception_type=sp_raw.get("exception_type", "UnknownError"),
+                                error_message=sp_raw.get("error_message", ""),
+                                frequency=sp_raw.get("frequency", 1),
+                                severity=sp_raw.get("severity", "medium"),
+                                affected_components=sp_raw.get("affected_components", []),
+                                sample_logs=sp_samples,
+                                confidence_score=min(sp_raw.get("confidence_score", 50), 100),
+                                priority_rank=sp_raw.get("priority_rank", len(secondary) + 2),
+                                priority_reasoning=sp_raw.get("priority_reasoning", ""),
+                            ))
+                        except Exception:
+                            pass
+
+                    # Parse tokens_used from result
+                    tu_raw = result.get("tokens_used", {})
+                    tokens = TokenUsage(
+                        agent_name="log_agent",
+                        input_tokens=tu_raw.get("input_tokens", 0),
+                        output_tokens=tu_raw.get("output_tokens", 0),
+                        total_tokens=tu_raw.get("total_tokens", 0),
+                    )
+
+                    state.log_analysis = LogAnalysisResult(
+                        primary_pattern=primary,
+                        secondary_patterns=secondary,
+                        negative_findings=[nf for nf in state.all_negative_findings if nf.agent_name == "log_agent"],
+                        breadcrumbs=[b for b in state.all_breadcrumbs if b.agent_name == "log_agent"],
+                        overall_confidence=min(result.get("overall_confidence", 50), 100),
+                        tokens_used=tokens,
+                    )
+                except Exception as e:
+                    logger.warning("Failed to build LogAnalysisResult: %s", e)
+
         # Handle change_agent results
         if agent_name == "change_agent":
             state.change_analysis = result
@@ -449,6 +537,107 @@ class SupervisorAgent:
                         f"Change detected: {desc} — correlation: {score}",
                         details={"type": "change_correlation", **corr}
                     )
+
+        # Handle metrics_agent results
+        if agent_name == "metrics_agent":
+            anomalies_raw = result.get("anomalies", [])
+            anomalies = []
+            for a in anomalies_raw:
+                try:
+                    anomalies.append(MetricAnomaly(**a) if isinstance(a, dict) else a)
+                except Exception:
+                    pass
+
+            correlated_raw = result.get("correlated_signals", [])
+            correlated = []
+            for cs in correlated_raw:
+                try:
+                    correlated.append(CorrelatedSignalGroup(**cs) if isinstance(cs, dict) else cs)
+                except Exception:
+                    pass
+
+            # Parse time_series_data from agent result
+            ts_data_raw = result.get("time_series_data", {})
+            ts_data: dict = {}
+            from src.models.schemas import DataPoint
+            for key, points in ts_data_raw.items():
+                parsed_points = []
+                for pt in points:
+                    try:
+                        parsed_points.append(DataPoint(**pt) if isinstance(pt, dict) else pt)
+                    except Exception:
+                        pass
+                if parsed_points:
+                    ts_data[key] = parsed_points
+
+            # Parse tokens_used from result
+            tu_raw = result.get("tokens_used", {})
+            if isinstance(tu_raw, dict) and tu_raw.get("total_tokens", 0) > 0:
+                metrics_tokens = TokenUsage(
+                    agent_name="metrics_agent",
+                    input_tokens=tu_raw.get("input_tokens", 0),
+                    output_tokens=tu_raw.get("output_tokens", 0),
+                    total_tokens=tu_raw.get("total_tokens", 0),
+                )
+            else:
+                metrics_tokens = TokenUsage(agent_name="metrics_agent", input_tokens=0, output_tokens=0, total_tokens=0)
+
+            state.metrics_analysis = MetricsAnalysisResult(
+                anomalies=anomalies,
+                correlated_signals=correlated,
+                time_series_data=ts_data,
+                chart_highlights=[],
+                negative_findings=[nf for nf in state.all_negative_findings if nf.agent_name == "metrics_agent"],
+                breadcrumbs=[b for b in state.all_breadcrumbs if b.agent_name == "metrics_agent"],
+                overall_confidence=min(result.get("overall_confidence", 50), 100),
+                tokens_used=metrics_tokens,
+            )
+
+            # Build event markers from log analysis
+            event_markers = []
+            if state.log_analysis and state.log_analysis.primary_pattern:
+                pattern = state.log_analysis.primary_pattern
+                if pattern.sample_logs:
+                    first_log = pattern.sample_logs[0]
+                    event_markers.append(EventMarker(
+                        timestamp=first_log.timestamp,
+                        label=f"First: {pattern.exception_type or 'error'}",
+                        source="log_agent",
+                        severity=pattern.severity or "medium",
+                    ))
+            for b in state.all_breadcrumbs:
+                if b.agent_name == "log_agent" and b.timestamp:
+                    if any(kw in b.action.lower() for kw in ("error", "exception", "failure", "timeout")):
+                        event_markers.append(EventMarker(
+                            timestamp=b.timestamp,
+                            label=b.action[:60],
+                            source=b.agent_name,
+                        ))
+            state.metrics_analysis.event_markers = event_markers[:10]
+
+            # Promote critical/high anomalies to Findings
+            for a in anomalies:
+                if a.severity in ("critical", "high"):
+                    state.all_findings.append(Finding(
+                        finding_id=f"metric_{a.metric_name}",
+                        agent_name="metrics_agent",
+                        category="metric_anomaly",
+                        summary=f"{a.metric_name}: peak {a.peak_value} vs baseline {a.baseline_value} — {a.correlation_to_incident}",
+                        confidence_score=min(a.confidence_score, 100),
+                        severity=a.severity,
+                        breadcrumbs=[],
+                        negative_findings=[],
+                    ))
+
+            if event_emitter and anomalies:
+                severity_counts: dict[str, int] = {}
+                for a in anomalies:
+                    severity_counts[a.severity] = severity_counts.get(a.severity, 0) + 1
+                await event_emitter.emit(
+                    "metrics_agent", "finding",
+                    f"Found {len(anomalies)} metric anomalies",
+                    details={"anomaly_count": len(anomalies), "severity_breakdown": severity_counts}
+                )
 
         # Store reasoning
         state.supervisor_reasoning.append(
