@@ -13,8 +13,12 @@ logger = get_logger(__name__)
 class K8sAgent(ReActAgent):
     """ReAct agent for Kubernetes/OpenShift cluster health analysis."""
 
-    def __init__(self, max_iterations: int = 12, connection_config=None):
-        super().__init__(agent_name="k8s_agent", max_iterations=max_iterations)
+    def __init__(self, max_iterations: int = 10, connection_config=None):
+        super().__init__(
+            agent_name="k8s_agent",
+            max_iterations=max_iterations,
+            connection_config=connection_config,
+        )
         self._k8s_client = None
         self._connection_config = connection_config
 

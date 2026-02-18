@@ -10,8 +10,13 @@ logger = get_logger(__name__)
 class ChangeAgent(ReActAgent):
     """Investigates recent changes that may correlate with a production incident."""
 
-    def __init__(self):
-        super().__init__(agent_name="change_agent", max_iterations=5)
+    def __init__(self, connection_config=None):
+        super().__init__(
+            agent_name="change_agent",
+            max_iterations=4,
+            connection_config=connection_config,
+        )
+        self._connection_config = connection_config
         self._repo_url = ""
         self._namespace = ""
         self._incident_start = None

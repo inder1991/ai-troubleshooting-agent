@@ -48,6 +48,14 @@ class ResolvedConnectionConfig:
     confluence_url: str = ""
     confluence_credentials: str = ""
 
+    # LLM configuration
+    llm_model: str = ""              # Global override (empty = use code default)
+    llm_model_overrides: tuple = ()  # Tuple of (agent_name, model) pairs (frozen-friendly)
+
+    # Iteration limits
+    max_iterations: int = 0          # Global override (0 = use code default)
+    max_iterations_overrides: tuple = ()  # Tuple of (agent_name, limit) pairs
+
 
 def resolve_active_profile(profile_id: Optional[str] = None) -> ResolvedConnectionConfig:
     """Resolve a connection config from a profile, falling back to env vars.
@@ -159,6 +167,25 @@ def resolve_active_profile(profile_id: Optional[str] = None) -> ResolvedConnecti
             except Exception:
                 pass
 
+    # Resolve LLM and iteration configuration from env vars
+    import json as _json
+
+    llm_model = os.getenv("ANTHROPIC_MODEL", "")
+    llm_overrides_raw = os.getenv("ANTHROPIC_MODEL_OVERRIDES", "{}")
+    try:
+        overrides_dict = _json.loads(llm_overrides_raw)
+        llm_overrides = tuple(overrides_dict.items())
+    except Exception:
+        llm_overrides = ()
+
+    max_iter = int(os.getenv("AGENT_MAX_ITERATIONS", "0"))
+    iter_overrides_raw = os.getenv("AGENT_MAX_ITERATIONS_OVERRIDES", "{}")
+    try:
+        iter_overrides_dict = _json.loads(iter_overrides_raw)
+        iter_overrides = tuple((k, int(v)) for k, v in iter_overrides_dict.items())
+    except Exception:
+        iter_overrides = ()
+
     return ResolvedConnectionConfig(
         cluster_url=profile.cluster_url,
         cluster_token=cluster_token,
@@ -178,11 +205,33 @@ def resolve_active_profile(profile_id: Optional[str] = None) -> ResolvedConnecti
         jira_credentials=jira_creds,
         confluence_url=confluence_url,
         confluence_credentials=confluence_creds,
+        llm_model=llm_model,
+        llm_model_overrides=llm_overrides,
+        max_iterations=max_iter,
+        max_iterations_overrides=iter_overrides,
     )
 
 
 def _config_from_env() -> ResolvedConnectionConfig:
     """Build config from environment variables (legacy fallback)."""
+    import json as _json
+
+    llm_model = os.getenv("ANTHROPIC_MODEL", "")
+    llm_overrides_raw = os.getenv("ANTHROPIC_MODEL_OVERRIDES", "{}")
+    try:
+        overrides_dict = _json.loads(llm_overrides_raw)
+        llm_overrides = tuple(overrides_dict.items())
+    except Exception:
+        llm_overrides = ()
+
+    max_iter = int(os.getenv("AGENT_MAX_ITERATIONS", "0"))
+    iter_overrides_raw = os.getenv("AGENT_MAX_ITERATIONS_OVERRIDES", "{}")
+    try:
+        iter_overrides_dict = _json.loads(iter_overrides_raw)
+        iter_overrides = tuple((k, int(v)) for k, v in iter_overrides_dict.items())
+    except Exception:
+        iter_overrides = ()
+
     return ResolvedConnectionConfig(
         cluster_url=os.getenv("OPENSHIFT_API_URL", ""),
         cluster_token=os.getenv("OPENSHIFT_TOKEN", ""),
@@ -192,4 +241,8 @@ def _config_from_env() -> ResolvedConnectionConfig:
         prometheus_url=os.getenv("PROMETHEUS_URL", "http://localhost:9090"),
         elasticsearch_url=os.getenv("ELASTICSEARCH_URL", "http://localhost:9200"),
         jaeger_url=os.getenv("TRACING_URL", "http://localhost:16686"),
+        llm_model=llm_model,
+        llm_model_overrides=llm_overrides,
+        max_iterations=max_iter,
+        max_iterations_overrides=iter_overrides,
     )

@@ -17,7 +17,11 @@ class MetricsAgent(ReActAgent):
     """ReAct agent for Prometheus metrics analysis with spike detection."""
 
     def __init__(self, max_iterations: int = 8, connection_config=None):
-        super().__init__(agent_name="metrics_agent", max_iterations=max_iterations)
+        super().__init__(
+            agent_name="metrics_agent",
+            max_iterations=max_iterations,
+            connection_config=connection_config,
+        )
         self._connection_config = connection_config
         # Resolve Prometheus URL from config, falling back to env var
         if connection_config and connection_config.prometheus_url:

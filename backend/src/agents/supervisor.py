@@ -1,6 +1,7 @@
 import json
 import asyncio
 import time
+from pathlib import Path
 from typing import Optional
 from datetime import datetime, timezone
 
@@ -81,7 +82,17 @@ class SupervisorAgent:
 
     def __init__(self, connection_config=None):
         self.agent_name = "supervisor"
-        self.llm_client = AnthropicClient(agent_name="supervisor")
+        # Resolve model from config/env for supervisor's own LLM usage
+        supervisor_model = ""
+        if connection_config:
+            overrides = dict(getattr(connection_config, 'llm_model_overrides', ()))
+            supervisor_model = overrides.get("supervisor", "")
+            if not supervisor_model:
+                supervisor_model = getattr(connection_config, 'llm_model', "")
+        if not supervisor_model:
+            import os
+            supervisor_model = os.getenv("ANTHROPIC_MODEL", "claude-3-5-haiku-20241022")
+        self.llm_client = AnthropicClient(agent_name="supervisor", model=supervisor_model)
         self._connection_config = connection_config
         self._agents = {
             "log_agent": LogAnalysisAgent,
@@ -333,20 +344,62 @@ class SupervisorAgent:
         else:
             return "ask_user"
 
+    def _check_prerequisites(self, agent_name: str, state: DiagnosticState) -> str | None:
+        """Return skip reason if agent's data sources are unavailable, else None."""
+        cfg = self._connection_config
+
+        if agent_name == "code_agent":
+            repo = getattr(state, "repo_url", None)
+            if not repo or not repo.strip():
+                return "No repository URL configured — skipping code analysis"
+            # Reject URLs — code_agent needs a local filesystem path
+            if repo.startswith(("http://", "https://", "git@", "ssh://")):
+                return f"Repository is a remote URL ({repo[:60]}) — code_agent requires a cloned local path. Skipping."
+            if not Path(repo).is_dir():
+                return f"Repository path does not exist: {repo} — skipping code analysis"
+
+        if agent_name == "change_agent":
+            has_repo = getattr(state, "repo_url", None) and state.repo_url.strip()
+            has_cluster = cfg and cfg.cluster_url
+            if not has_repo and not has_cluster:
+                return "No repo URL or cluster configured — skipping change correlation"
+
+        if agent_name == "k8s_agent":
+            if not cfg or not cfg.cluster_url:
+                return "No cluster URL configured — skipping K8s analysis"
+
+        if agent_name == "metrics_agent":
+            if not cfg or not cfg.prometheus_url:
+                return "No Prometheus URL configured — skipping metrics analysis"
+
+        if agent_name == "tracing_agent":
+            has_jaeger = cfg and cfg.jaeger_url
+            has_elk = cfg and cfg.elasticsearch_url
+            has_trace_id = getattr(state, "trace_id", None)
+            if not has_trace_id and not has_jaeger and not has_elk:
+                return "No trace_id or tracing endpoints configured — skipping"
+
+        return None
+
     async def _dispatch_agent(
         self, agent_name: str, state: DiagnosticState, event_emitter: Optional[EventEmitter] = None
     ) -> Optional[dict]:
         """Dispatch a specialized agent and return its result."""
+        # Check prerequisites before dispatching
+        skip_reason = self._check_prerequisites(agent_name, state)
+        if skip_reason:
+            logger.info("Agent skipped", extra={
+                "agent_name": agent_name, "action": "skipped", "extra": skip_reason
+            })
+            if event_emitter:
+                await event_emitter.emit(agent_name, "skipped", skip_reason)
+            return None
+
         agent_cls = self._agents.get(agent_name)
         if not agent_cls:
             return None
 
-        # Inject connection config into agents whose constructors accept it
-        import inspect
-        if self._connection_config and "connection_config" in inspect.signature(agent_cls.__init__).parameters:
-            agent = agent_cls(connection_config=self._connection_config)
-        else:
-            agent = agent_cls()
+        agent = agent_cls(connection_config=self._connection_config)
         context = self._build_agent_context(agent_name, state)
 
         start = time.monotonic()

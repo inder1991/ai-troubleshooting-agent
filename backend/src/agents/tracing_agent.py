@@ -16,8 +16,12 @@ logger = get_logger(__name__)
 class TracingAgent(ReActAgent):
     """ReAct agent for distributed tracing — Jaeger first, ELK fallback."""
 
-    def __init__(self, max_iterations: int = 8, connection_config=None):
-        super().__init__(agent_name="tracing_agent", max_iterations=max_iterations)
+    def __init__(self, max_iterations: int = 6, connection_config=None):
+        super().__init__(
+            agent_name="tracing_agent",
+            max_iterations=max_iterations,
+            connection_config=connection_config,
+        )
         self._connection_config = connection_config
         # Resolve URLs from config, falling back to env vars
         if connection_config and connection_config.jaeger_url:

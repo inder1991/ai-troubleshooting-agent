@@ -12,7 +12,7 @@ from src.models.schemas import K8sEvent, PodHealthStatus
 def test_k8s_agent_init():
     agent = K8sAgent()
     assert agent.agent_name == "k8s_agent"
-    assert agent.max_iterations == 12
+    assert agent.max_iterations == 10
 
 
 def test_detect_crashloopbackoff():

@@ -14,8 +14,13 @@ logger = get_logger(__name__)
 class CodeNavigatorAgent(ReActAgent):
     """ReAct agent for multi-file code impact analysis."""
 
-    def __init__(self, max_iterations: int = 10):
-        super().__init__(agent_name="code_agent", max_iterations=max_iterations)
+    def __init__(self, max_iterations: int = 6, connection_config=None):
+        super().__init__(
+            agent_name="code_agent",
+            max_iterations=max_iterations,
+            connection_config=connection_config,
+        )
+        self._connection_config = connection_config
         self.repo_path: str = ""
 
     async def _define_tools(self) -> list[dict]:

@@ -1,5 +1,6 @@
 import asyncio
 import json
+import os
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from typing import Any
@@ -16,25 +17,55 @@ logger = get_logger(__name__)
 MAX_RETRIES = 3
 RETRY_DELAYS = [2, 5, 15]  # seconds
 
+DEFAULT_MODEL = "claude-3-5-haiku-20241022"
+
 
 class ReActAgent(ABC):
     """Abstract base class implementing the ReAct (Reason + Act + Observe) pattern."""
+
+    _INFRA_ERROR_PATTERNS = [
+        "connection refused", "connection error", "connect timeout",
+        "name or service not known", "no route to host", "unreachable",
+        "connectionerror", "readtimeouterror", "cannot connect",
+        "404 not found", "403 forbidden", "401 unauthorized",
+    ]
 
     def __init__(
         self,
         agent_name: str,
         max_iterations: int = 10,
-        model: str = "claude-sonnet-4-5-20250929",
+        model: str = "",
+        connection_config=None,
     ):
+        # Model resolution: explicit > per-agent override > global config > env > default
+        resolved_model = model
+        if not resolved_model and connection_config:
+            overrides = dict(getattr(connection_config, 'llm_model_overrides', ()))
+            resolved_model = overrides.get(agent_name, "")
+            if not resolved_model:
+                resolved_model = getattr(connection_config, 'llm_model', "")
+        if not resolved_model:
+            resolved_model = os.getenv("ANTHROPIC_MODEL", DEFAULT_MODEL)
+
+        # Iteration resolution: per-agent override > global config > constructor default
+        resolved_iters = max_iterations
+        if connection_config:
+            iter_overrides = dict(getattr(connection_config, 'max_iterations_overrides', ()))
+            if agent_name in iter_overrides:
+                resolved_iters = iter_overrides[agent_name]
+            elif getattr(connection_config, 'max_iterations', 0) > 0:
+                resolved_iters = connection_config.max_iterations
+
         self.agent_name = agent_name
-        self.max_iterations = max_iterations
-        self.llm_client = AnthropicClient(agent_name=agent_name, model=model)
+        self.max_iterations = resolved_iters
+        self.llm_client = AnthropicClient(agent_name=agent_name, model=resolved_model)
         self.breadcrumbs: list[Breadcrumb] = []
         self.negative_findings: list[NegativeFinding] = []
         self.evidence_pins: list[EvidencePin] = []
         self.budget = ReActBudget()
         self._tools: list[dict] = []
         self._tool_handlers: dict[str, Any] = {}
+        self._consecutive_infra_failures = 0
 
     @abstractmethod
     async def _define_tools(self) -> list[dict]:
@@ -183,13 +214,10 @@ class ReActAgent(ABC):
             response = None
             for attempt in range(MAX_RETRIES + 1):
                 try:
-                    response = await self.llm_client._client.messages.create(
-                        model=self.llm_client.model,
-                        max_tokens=4096,
+                    response = await self.llm_client.chat_with_tools(
                         system=system_prompt,
                         messages=messages,
                         tools=self._tools if self._tools else None,
-                        temperature=0.0,
                     )
                     break
                 except APIStatusError as e:
@@ -215,9 +243,7 @@ class ReActAgent(ABC):
             if response is None:
                 raise RuntimeError("LLM call failed after all retries")
 
-            # Track tokens
-            self.llm_client._total_input_tokens += response.usage.input_tokens
-            self.llm_client._total_output_tokens += response.usage.output_tokens
+            # Budget tracking (token accounting is handled by chat_with_tools)
             self.budget.record_llm_call(response.usage.input_tokens + response.usage.output_tokens)
 
             # Check if the response contains tool use
@@ -261,11 +287,34 @@ class ReActAgent(ABC):
 
                     self.budget.record_tool_call()
 
+                    # Track consecutive infrastructure failures for early exit
+                    result_lower = result.lower() if isinstance(result, str) else ""
+                    if any(pat in result_lower for pat in self._INFRA_ERROR_PATTERNS):
+                        self._consecutive_infra_failures += 1
+                    else:
+                        self._consecutive_infra_failures = 0
+
                     tool_results.append({
                         "type": "tool_result",
                         "tool_use_id": tool_block.id,
                         "content": result,
                     })
+
+                # Early exit if infrastructure is consistently unreachable
+                if self._consecutive_infra_failures >= 2:
+                    logger.warning("Early exit: infrastructure unavailable", extra={
+                        "agent_name": self.agent_name, "action": "early_exit_infra",
+                    })
+                    if event_emitter:
+                        await event_emitter.emit(
+                            self.agent_name, "warning",
+                            f"{self.agent_name}: data source unreachable after {self._consecutive_infra_failures} failures — stopping early"
+                        )
+                    return {
+                        "error": "data_source_unreachable",
+                        "partial_results": self.breadcrumbs,
+                        "evidence_pins": [p.model_dump(mode="json") for p in self.evidence_pins],
+                    }
 
                 messages.append({"role": "user", "content": tool_results})
             else:
