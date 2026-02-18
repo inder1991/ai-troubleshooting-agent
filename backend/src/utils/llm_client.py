@@ -46,7 +46,20 @@ class AnthropicClient:
         if system:
             kwargs["system"] = system
 
-        logger.info("LLM call", extra={"agent_name": self.agent_name, "action": "llm_call", "tool": self.model, "tokens": {"max_tokens": max_tokens}})
+        logger.info("LLM call", extra={
+            "agent_name": self.agent_name,
+            "action": "llm_call",
+            "tool": self.model,
+            "tokens": {"max_tokens": max_tokens},
+            "extra": {
+                "system": (system[:500] + "...") if system and len(system) > 500 else system,
+                "messages": [
+                    {"role": m["role"], "content": m["content"][:1000] + "..." if len(m.get("content", "")) > 1000 else m.get("content", "")}
+                    for m in messages
+                ],
+                "temperature": temperature,
+            },
+        })
 
         start = time.monotonic()
         try:
@@ -61,9 +74,18 @@ class AnthropicClient:
         self._total_input_tokens += input_tokens
         self._total_output_tokens += output_tokens
 
-        logger.info("LLM response", extra={"agent_name": self.agent_name, "action": "llm_response", "tokens": {"input": input_tokens, "output": output_tokens}, "duration_ms": elapsed_ms})
-
         text = response.content[0].text if response.content else ""
+
+        logger.info("LLM response", extra={
+            "agent_name": self.agent_name,
+            "action": "llm_response",
+            "tokens": {"input": input_tokens, "output": output_tokens},
+            "duration_ms": elapsed_ms,
+            "extra": {
+                "response": text[:2000] + "..." if len(text) > 2000 else text,
+                "stop_reason": response.stop_reason,
+            },
+        })
 
         return LLMResponse(
             text=text,
