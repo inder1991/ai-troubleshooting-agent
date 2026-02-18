@@ -21,10 +21,9 @@ const severityBadge = (severity: Severity): string => {
 
 const verdictBadge = (verdict: CriticVerdict['verdict']): string => {
   const colors: Record<CriticVerdict['verdict'], string> = {
-    confirmed: 'bg-green-700 text-green-200',
-    plausible: 'bg-blue-700 text-blue-200',
-    weak: 'bg-yellow-700 text-yellow-200',
-    rejected: 'bg-red-700 text-red-200',
+    validated: 'bg-green-700 text-green-200',
+    challenged: 'bg-red-700 text-red-200',
+    insufficient_data: 'bg-yellow-700 text-yellow-200',
   };
   return colors[verdict];
 };

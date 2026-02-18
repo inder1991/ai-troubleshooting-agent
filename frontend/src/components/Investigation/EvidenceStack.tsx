@@ -18,10 +18,9 @@ const severityColor: Record<Severity, string> = {
 };
 
 const verdictColor: Record<CriticVerdict['verdict'], string> = {
-  confirmed: 'bg-green-500/20 text-green-300',
-  plausible: 'bg-blue-500/20 text-blue-300',
-  weak: 'bg-yellow-500/20 text-yellow-300',
-  rejected: 'bg-red-500/20 text-red-300',
+  validated: 'bg-green-500/20 text-green-300',
+  challenged: 'bg-red-500/20 text-red-300',
+  insufficient_data: 'bg-yellow-500/20 text-yellow-300',
 };
 
 const severityPriorityColor: Record<string, { border: string; bg: string; text: string }> = {
@@ -695,7 +694,7 @@ const TopologySection: React.FC<{ findings: V4Findings | null }> = ({ findings }
                 {impactedFiles.map((f, i) => (
                   <div key={i} className="flex items-center gap-2 text-[11px]">
                     <span className={`w-1.5 h-1.5 rounded-full ${
-                      f.impact_type === 'root_cause' ? 'bg-red-500' : 'bg-[#07b6d5]'
+                      f.impact_type === 'direct_error' ? 'bg-red-500' : 'bg-[#07b6d5]'
                     }`} />
                     <span className="font-mono text-slate-300">{f.file_path}</span>
                     <span className="text-[10px] text-slate-500">{f.impact_type}</span>

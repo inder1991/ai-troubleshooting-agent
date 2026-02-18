@@ -1,4 +1,5 @@
 import json
+import shlex
 
 from src.agents.react_base import ReActAgent
 from src.utils.logger import get_logger
@@ -122,31 +123,39 @@ class ChangeAgent(ReActAgent):
     async def _get_deployment_history(self, params: dict) -> str:
         from src.integrations.probe import run_command
 
-        ns = params.get("namespace", self._namespace)
-        dep = params.get("deployment_name", "")
-        if dep:
-            cmd = f"{self._cli_tool} rollout history deployment/{dep} -n {ns}"
+        ns = shlex.quote(params.get("namespace", self._namespace))
+        dep = shlex.quote(params.get("deployment_name", ""))
+        cli = shlex.quote(self._cli_tool)
+        if dep and dep != "''":
+            cmd = f"{cli} rollout history deployment/{dep} -n {ns}"
         else:
-            cmd = f"{self._cli_tool} rollout history deployment -n {ns}"
+            cmd = f"{cli} rollout history deployment -n {ns}"
         code, stdout, stderr = await run_command(cmd)
         return stdout if code == 0 else f"Error: {stderr}"
 
     async def _get_config_diff(self, params: dict) -> str:
         from src.integrations.probe import run_command
 
-        ns = params.get("namespace", self._namespace)
-        name = params.get("resource_name", "")
-        if name:
-            cmd = f"{self._cli_tool} get configmap {name} -n {ns} -o yaml"
+        ns = shlex.quote(params.get("namespace", self._namespace))
+        name = shlex.quote(params.get("resource_name", ""))
+        cli = shlex.quote(self._cli_tool)
+        if name and name != "''":
+            cmd = f"{cli} get configmap {name} -n {ns} -o yaml"
         else:
-            cmd = f"{self._cli_tool} get configmap -n {ns}"
+            cmd = f"{cli} get configmap -n {ns}"
         code, stdout, stderr = await run_command(cmd)
         return stdout if code == 0 else f"Error: {stderr}"
 
     def _parse_final_response(self, text: str) -> dict:
+        import re
         try:
-            data = json.loads(text)
-        except (json.JSONDecodeError, TypeError):
+            json_match = re.search(r'```(?:json)?\s*(\{[\s\S]*?\})\s*```', text)
+            if json_match:
+                data = json.loads(json_match.group(1))
+            else:
+                json_match = re.search(r'\{[\s\S]*\}', text)
+                data = json.loads(json_match.group()) if json_match else json.loads(text)
+        except (json.JSONDecodeError, TypeError, AttributeError):
             data = {}
         result = {
             "change_correlations": data.get("change_correlations", []),

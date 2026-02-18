@@ -188,12 +188,24 @@ After analysis, provide your final answer as JSON:
 
         return json.dumps({"matches": matches[:50], "total": len(matches)})
 
+    def _validate_path(self, rel_path: str) -> tuple[bool, Path, str]:
+        """Validate that a relative path stays within the repo root. Returns (ok, full_path, error)."""
+        if not self.repo_path:
+            return False, Path(), "No repo_path set"
+        repo_root = Path(self.repo_path).resolve()
+        full_path = (repo_root / rel_path).resolve()
+        if not full_path.is_relative_to(repo_root):
+            return False, full_path, f"Path traversal blocked: {rel_path}"
+        return True, full_path, ""
+
     def _read_file(self, params: dict) -> str:
         rel_path = params["path"]
         start = params.get("start_line", 1)
         end = params.get("end_line", 0)
 
-        full_path = Path(self.repo_path) / rel_path
+        ok, full_path, err = self._validate_path(rel_path)
+        if not ok:
+            return json.dumps({"error": err})
         if not full_path.exists():
             return json.dumps({"error": f"File not found: {rel_path}"})
 
@@ -284,7 +296,9 @@ After analysis, provide your final answer as JSON:
         rel_path = params["path"]
         func_name = params["function_name"]
 
-        full_path = Path(self.repo_path) / rel_path
+        ok, full_path, err = self._validate_path(rel_path)
+        if not ok:
+            return json.dumps({"error": err})
         if not full_path.exists():
             return json.dumps({"error": f"File not found: {rel_path}"})
 

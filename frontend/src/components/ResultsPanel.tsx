@@ -62,11 +62,11 @@ function deriveChangeCorrelations(findings: V4Findings | null): ChangeCorrelatio
   const impacts = findings.impacted_files || [];
   return impacts.map((ci, i) => ({
     change_id: `impact-${i}`,
-    change_type: ci.impact_type === 'root_cause' ? 'code_deploy' as const : 'config_change' as const,
-    risk_score: ci.impact_type === 'root_cause' ? 0.9 : 0.4,
+    change_type: ci.impact_type === 'direct_error' ? 'code_deploy' as const : 'config_change' as const,
+    risk_score: ci.impact_type === 'direct_error' ? 0.9 : 0.4,
     temporal_correlation: 0,
     author: '',
-    description: ci.description,
+    description: ci.relationship,
     files_changed: [ci.file_path],
     timestamp: null,
   }));

@@ -7,9 +7,11 @@ interface CodeImpactCardProps {
 
 const impactTypeBadge = (type: CodeImpact['impact_type']): string => {
   const colors: Record<CodeImpact['impact_type'], string> = {
-    root_cause: 'bg-red-900 text-red-300',
-    affected: 'bg-orange-900 text-orange-300',
-    dependency: 'bg-blue-900 text-blue-300',
+    direct_error: 'bg-red-900 text-red-300',
+    caller: 'bg-orange-900 text-orange-300',
+    callee: 'bg-yellow-900 text-yellow-300',
+    shared_resource: 'bg-blue-900 text-blue-300',
+    config: 'bg-purple-900 text-purple-300',
     test: 'bg-green-900 text-green-300',
   };
   return colors[type];
@@ -17,9 +19,11 @@ const impactTypeBadge = (type: CodeImpact['impact_type']): string => {
 
 const impactTypeLabel = (type: CodeImpact['impact_type']): string => {
   const labels: Record<CodeImpact['impact_type'], string> = {
-    root_cause: 'Root Cause',
-    affected: 'Affected',
-    dependency: 'Dependency',
+    direct_error: 'Root Cause',
+    caller: 'Caller',
+    callee: 'Callee',
+    shared_resource: 'Shared',
+    config: 'Config',
     test: 'Test',
   };
   return labels[type];
@@ -45,10 +49,10 @@ const CodeImpactCard: React.FC<CodeImpactCardProps> = ({ impacts }) => {
                 {impactTypeLabel(impact.impact_type)}
               </span>
             </div>
-            <div className="text-xs text-gray-400">{impact.description}</div>
-            {impact.fix_area && (
+            <div className="text-xs text-gray-400">{impact.relationship}</div>
+            {impact.fix_relevance === 'must_fix' && (
               <div className="text-xs text-green-400 mt-1">
-                Fix area: {impact.fix_area}
+                Fix relevance: must fix
               </div>
             )}
           </div>

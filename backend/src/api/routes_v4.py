@@ -60,7 +60,7 @@ def start_cleanup_task():
 
 @router_v4.post("/session/start", response_model=StartSessionResponse)
 async def start_session(request: StartSessionRequest, background_tasks: BackgroundTasks):
-    session_id = str(uuid.uuid4())[:8]
+    session_id = str(uuid.uuid4())
 
     # Resolve connection config from profile
     connection_config = None
@@ -255,8 +255,8 @@ async def get_session_status(session_id: str):
         result["agents_completed"] = state.agents_completed
         result["findings_count"] = len(state.all_findings)
         result["token_usage"] = [t.model_dump() for t in state.token_usage]
-        if hasattr(state, 'breadcrumbs') and state.breadcrumbs:
-            result["breadcrumbs"] = [b.model_dump(mode="json") for b in state.breadcrumbs]
+        if state.all_breadcrumbs:
+            result["breadcrumbs"] = [b.model_dump(mode="json") for b in state.all_breadcrumbs]
 
     return result
 

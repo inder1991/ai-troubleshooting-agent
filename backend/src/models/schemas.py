@@ -27,6 +27,11 @@ class Breadcrumb(BaseModel):
     raw_evidence: str
     timestamp: datetime
 
+    @computed_field
+    @property
+    def detail(self) -> str:
+        return f"[{self.source_type}] {self.raw_evidence}" if self.raw_evidence else self.source_reference
+
 
 class NegativeFinding(BaseModel):
     agent_name: str
@@ -34,6 +39,21 @@ class NegativeFinding(BaseModel):
     result: str
     implication: str
     source_reference: str
+
+    @computed_field
+    @property
+    def agent(self) -> str:
+        return self.agent_name
+
+    @computed_field
+    @property
+    def category(self) -> str:
+        return self.what_was_checked
+
+    @computed_field
+    @property
+    def description(self) -> str:
+        return f"{self.result} — {self.implication}"
 
 
 class CriticVerdict(BaseModel):
@@ -44,6 +64,24 @@ class CriticVerdict(BaseModel):
     contradicting_evidence: Optional[list[Breadcrumb]] = None
     recommendation: Optional[str] = None
     confidence_in_verdict: int = Field(ge=0, le=100)
+
+    @computed_field
+    @property
+    def finding_index(self) -> int:
+        # Extract numeric suffix from finding_id for frontend compatibility
+        import re
+        nums = re.findall(r'\d+', self.finding_id)
+        return int(nums[-1]) if nums else 0
+
+    @computed_field
+    @property
+    def finding_title(self) -> str:
+        return self.agent_source
+
+    @computed_field
+    @property
+    def confidence(self) -> int:
+        return self.confidence_in_verdict
 
 
 class Finding(BaseModel):
@@ -56,6 +94,33 @@ class Finding(BaseModel):
     breadcrumbs: list[Breadcrumb]
     negative_findings: list[NegativeFinding]
     critic_verdict: Optional[CriticVerdict] = None
+
+    @computed_field
+    @property
+    def title(self) -> str:
+        return self.summary
+
+    @computed_field
+    @property
+    def description(self) -> str:
+        return self.summary
+
+    @computed_field
+    @property
+    def confidence(self) -> int:
+        return self.confidence_score
+
+    @computed_field
+    @property
+    def evidence(self) -> list[str]:
+        return [f"[{b.source_type}] {b.action}: {b.raw_evidence}" for b in self.breadcrumbs]
+
+    @computed_field
+    @property
+    def suggested_fix(self) -> Optional[str]:
+        if self.critic_verdict and self.critic_verdict.recommendation:
+            return self.critic_verdict.recommendation
+        return None
 
 
 class TokenUsage(BaseModel):
@@ -186,7 +251,7 @@ class MetricAnomaly(BaseModel):
     @property
     def deviation_percent(self) -> float:
         if self.baseline_value == 0:
-            return 100.0
+            return 0.0 if self.peak_value == 0 else round(self.peak_value * 100, 1)
         return round(((self.peak_value - self.baseline_value) / self.baseline_value) * 100, 1)
 
     @computed_field
@@ -228,12 +293,38 @@ class MetricsAnalysisResult(BaseModel):
 
 class PodHealthStatus(BaseModel):
     pod_name: str
+    namespace: str = ""
     status: str
     restart_count: int
     last_termination_reason: Optional[str] = None
     last_restart_time: Optional[datetime] = None
-    resource_requests: dict[str, str]
-    resource_limits: dict[str, str]
+    resource_requests: dict[str, str] = Field(default_factory=dict)
+    resource_limits: dict[str, str] = Field(default_factory=dict)
+
+    @computed_field
+    @property
+    def ready(self) -> bool:
+        return self.status.lower() in ("running", "ready")
+
+    @computed_field
+    @property
+    def conditions(self) -> list[str]:
+        conds = []
+        if self.status:
+            conds.append(self.status)
+        if self.last_termination_reason:
+            conds.append(self.last_termination_reason)
+        return conds
+
+    @computed_field
+    @property
+    def oom_killed(self) -> bool:
+        return self.last_termination_reason == "OOMKilled" if self.last_termination_reason else False
+
+    @computed_field
+    @property
+    def crash_loop(self) -> bool:
+        return self.restart_count >= 3 and self.status.lower() in ("crashloopbackoff", "error", "waiting")
 
 
 class K8sEvent(BaseModel):
@@ -242,6 +333,26 @@ class K8sEvent(BaseModel):
     reason: str
     message: str
     source_component: str
+
+    @computed_field
+    @property
+    def count(self) -> int:
+        return 1
+
+    @computed_field
+    @property
+    def first_timestamp(self) -> str:
+        return self.timestamp.isoformat()
+
+    @computed_field
+    @property
+    def last_timestamp(self) -> str:
+        return self.timestamp.isoformat()
+
+    @computed_field
+    @property
+    def involved_object(self) -> str:
+        return self.source_component
 
 
 class K8sAnalysisResult(BaseModel):
@@ -268,7 +379,22 @@ class SpanInfo(BaseModel):
     status: Literal["ok", "error", "timeout"]
     error_message: Optional[str] = None
     parent_span_id: Optional[str] = None
-    tags: dict[str, str]
+    tags: dict[str, str] = Field(default_factory=dict)
+
+    @computed_field
+    @property
+    def service(self) -> str:
+        return self.service_name
+
+    @computed_field
+    @property
+    def operation(self) -> str:
+        return self.operation_name
+
+    @computed_field
+    @property
+    def error(self) -> bool:
+        return self.status == "error" or self.error_message is not None
 
 
 class TraceAnalysisResult(BaseModel):
@@ -534,26 +660,26 @@ class DiagnosticState(BaseModel):
     past_incidents: list[dict] = Field(default_factory=list)
 
     # Cross-cutting
-    all_findings: list[Finding] = []
-    all_negative_findings: list[NegativeFinding] = []
-    all_breadcrumbs: list[Breadcrumb] = []
-    critic_verdicts: list[CriticVerdict] = []
+    all_findings: list[Finding] = Field(default_factory=list)
+    all_negative_findings: list[NegativeFinding] = Field(default_factory=list)
+    all_breadcrumbs: list[Breadcrumb] = Field(default_factory=list)
+    critic_verdicts: list[CriticVerdict] = Field(default_factory=list)
 
     # Tracking
-    token_usage: list[TokenUsage] = []
-    task_events: list[TaskEvent] = []
+    token_usage: list[TokenUsage] = Field(default_factory=list)
+    task_events: list[TaskEvent] = Field(default_factory=list)
 
     # Supervisor decisions
-    supervisor_reasoning: list[str] = []
-    agents_completed: list[str] = []
-    agents_pending: list[str] = []
+    supervisor_reasoning: list[str] = Field(default_factory=list)
+    agents_completed: list[str] = Field(default_factory=list)
+    agents_pending: list[str] = Field(default_factory=list)
     overall_confidence: int = Field(default=0, ge=0, le=100)
 
 
 class DiagnosticStateV5(DiagnosticState):
-    evidence_pins: list[EvidencePin] = []
+    evidence_pins: list[EvidencePin] = Field(default_factory=list)
     confidence_ledger: ConfidenceLedger = Field(default_factory=ConfidenceLedger)
-    attestation_gates: list[AttestationGate] = []
+    attestation_gates: list[AttestationGate] = Field(default_factory=list)
     reasoning_manifest: Optional[ReasoningManifest] = None
     integration_id: Optional[str] = None
     evidence_graph: EvidenceGraph = Field(default_factory=EvidenceGraph)

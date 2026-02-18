@@ -167,14 +167,18 @@ export interface ServiceFlowStep {
 }
 
 export interface Finding {
+  finding_id: string;
   agent_name: string;
   category: string;
+  summary: string;
   title: string;
   description: string;
   severity: Severity;
+  confidence_score: number;
   confidence: number;
   evidence: string[];
   suggested_fix?: string;
+  critic_verdict?: CriticVerdict;
 }
 
 export interface NegativeFinding {
@@ -184,11 +188,15 @@ export interface NegativeFinding {
 }
 
 export interface CriticVerdict {
+  finding_id: string;
+  agent_source: string;
   finding_index: number;
   finding_title: string;
-  verdict: 'confirmed' | 'plausible' | 'weak' | 'rejected';
+  verdict: 'validated' | 'challenged' | 'insufficient_data';
   confidence: number;
+  confidence_in_verdict: number;
   reasoning: string;
+  recommendation?: string;
 }
 
 export interface Breadcrumb {
@@ -265,9 +273,11 @@ export interface V4Findings {
 
 export interface CodeImpact {
   file_path: string;
-  impact_type: 'root_cause' | 'affected' | 'dependency' | 'test';
-  description: string;
-  fix_area?: string;
+  impact_type: 'direct_error' | 'caller' | 'callee' | 'shared_resource' | 'config' | 'test';
+  relevant_lines: { start: number; end: number }[];
+  code_snippet: string;
+  relationship: string;
+  fix_relevance: 'must_fix' | 'should_review' | 'informational';
 }
 
 export interface StartSessionRequest {

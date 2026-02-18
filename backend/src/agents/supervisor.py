@@ -9,6 +9,10 @@ from src.models.schemas import (
     TokenUsage, TimeWindow, ConfidenceLedger, EvidencePin, ReasoningManifest, ReasoningStep,
     MetricAnomaly, MetricsAnalysisResult, CorrelatedSignalGroup, EventMarker,
     LogAnalysisResult, ErrorPattern, LogEvidence,
+    K8sAnalysisResult, PodHealthStatus, K8sEvent,
+    TraceAnalysisResult, SpanInfo,
+    CodeAnalysisResult, ImpactedFile, LineRange, FixArea,
+    Breadcrumb, NegativeFinding, DataPoint,
 )
 from src.agents.log_agent import LogAnalysisAgent
 from src.agents.metrics_agent import MetricsAgent
@@ -144,12 +148,25 @@ class SupervisorAgent:
 
             state.agents_pending = next_agents
 
-            # Dispatch agents (parallel if multiple)
+            # Dispatch agents in parallel
             for agent_name in next_agents:
                 logger.info("Agent dispatched", extra={"session_id": state.session_id, "agent_name": agent_name, "action": "dispatch", "extra": {"phase": state.phase.value}})
                 await event_emitter.emit("supervisor", "progress", f"Dispatching {agent_name}")
-                agent_result = await self._dispatch_agent(agent_name, state, event_emitter)
 
+            if len(next_agents) > 1:
+                results = await asyncio.gather(
+                    *(self._dispatch_agent(name, state, event_emitter) for name in next_agents),
+                    return_exceptions=True,
+                )
+                agent_results = list(zip(next_agents, results))
+            else:
+                r = await self._dispatch_agent(next_agents[0], state, event_emitter)
+                agent_results = [(next_agents[0], r)]
+
+            for agent_name, agent_result in agent_results:
+                if isinstance(agent_result, Exception):
+                    logger.error("Agent raised exception", extra={"agent_name": agent_name, "extra": str(agent_result)})
+                    continue
                 if agent_result:
                     await self._update_state_with_result(state, agent_name, agent_result, event_emitter)
                     state.agents_completed.append(agent_name)
@@ -165,7 +182,19 @@ class SupervisorAgent:
                     # Run Critic validation on major findings
                     for finding in state.all_findings:
                         if finding.critic_verdict is None:
-                            verdict = self._critic._evaluate_finding(finding)
+                            # Build agent contexts for cross-validation
+                            metrics_ctx = {}
+                            if state.metrics_analysis:
+                                for a in state.metrics_analysis.anomalies:
+                                    metrics_ctx[a.metric_name] = {"value": a.peak_value, "status": a.severity}
+                            k8s_ctx = {}
+                            if state.k8s_analysis:
+                                k8s_ctx["oom_kills"] = sum(1 for p in state.k8s_analysis.pod_statuses if p.oom_killed)
+                                k8s_ctx["memory_percent"] = 0
+                                k8s_ctx["crashloop"] = state.k8s_analysis.is_crashloop
+                            verdict = self._critic._evaluate_finding(
+                                finding, metrics_context=metrics_ctx, k8s_context=k8s_ctx,
+                            )
                             finding.critic_verdict = verdict
                             state.critic_verdicts.append(verdict)
                             logger.info("Critic validation", extra={"session_id": state.session_id, "agent_name": "critic", "action": "verdict", "extra": {"finding": finding.summary[:80], "verdict": verdict.verdict, "confidence": verdict.confidence_in_verdict}})
@@ -193,8 +222,8 @@ class SupervisorAgent:
         """V5 pipeline with governance, causal intelligence, and confidence tracking."""
         builder = EvidenceGraphBuilder()
 
-        # Reordered dispatch: Metrics -> Tracing -> K8s -> Log -> Code
-        agent_order = ["metrics_agent", "tracing_agent", "k8s_agent", "log_agent", "code_agent"]
+        # Reordered dispatch: Metrics -> Tracing -> K8s -> Log -> Code -> Change
+        agent_order = ["metrics_agent", "tracing_agent", "k8s_agent", "log_agent", "code_agent", "change_agent"]
 
         for agent_name in agent_order:
             if agent_name not in self._agents:
@@ -227,7 +256,10 @@ class SupervisorAgent:
                 # Update confidence ledger
                 update_confidence_ledger(state.confidence_ledger, state.evidence_pins)
 
-            state.agents_completed.append(agent_name)
+                # Populate typed agent analysis on state
+                await self._update_state_with_result(state, agent_name, result, event_emitter)
+
+                state.agents_completed.append(agent_name)
 
         # Build causal graph
         builder.identify_root_causes()
@@ -276,6 +308,16 @@ class SupervisorAgent:
 
         if state.phase == DiagnosticPhase.CODE_ANALYZED:
             return []
+
+        if state.phase == DiagnosticPhase.RE_INVESTIGATING:
+            # Re-dispatch the challenged agent's domain
+            agents = []
+            for cv in state.critic_verdicts:
+                if cv.verdict == "challenged" and cv.confidence_in_verdict > 80:
+                    challenged_agent = cv.agent_source
+                    if challenged_agent in self._agents and challenged_agent not in agents:
+                        agents.append(challenged_agent)
+            return agents if agents else []
 
         if state.phase == DiagnosticPhase.DIAGNOSIS_COMPLETE:
             return []
@@ -403,13 +445,15 @@ class SupervisorAgent:
             except Exception:
                 pass
 
-        # Update confidence
+        # Update confidence — proper running average (order-independent)
         confidence = result.get("overall_confidence", 50)
-        # Running weighted average
-        if state.overall_confidence == 0:
+        n = len(state.agents_completed) + 1  # agents already completed + this one
+        if n <= 1:
             state.overall_confidence = min(confidence, 100)
         else:
-            state.overall_confidence = min((state.overall_confidence + confidence) // 2, 100)
+            state.overall_confidence = min(
+                (state.overall_confidence * (n - 1) + confidence) // n, 100
+            )
 
         # Add findings
         if agent_name == "log_agent" and result.get("primary_pattern"):
@@ -639,6 +683,237 @@ class SupervisorAgent:
                     details={"anomaly_count": len(anomalies), "severity_breakdown": severity_counts}
                 )
 
+        # Handle k8s_agent results
+        if agent_name == "k8s_agent":
+            pods_raw = result.get("pod_statuses", [])
+            pod_statuses = []
+            for p in pods_raw:
+                try:
+                    pod_statuses.append(PodHealthStatus(**p) if isinstance(p, dict) else p)
+                except Exception:
+                    pass
+
+            events_raw = result.get("events", [])
+            events = []
+            for e in events_raw:
+                try:
+                    events.append(K8sEvent(**e) if isinstance(e, dict) else e)
+                except Exception:
+                    pass
+
+            tu_raw = result.get("tokens_used", {})
+            k8s_tokens = TokenUsage(
+                agent_name="k8s_agent",
+                input_tokens=tu_raw.get("input_tokens", 0),
+                output_tokens=tu_raw.get("output_tokens", 0),
+                total_tokens=tu_raw.get("total_tokens", 0),
+            )
+
+            # Promote k8s findings
+            k8s_findings = []
+            if result.get("is_crashloop"):
+                k8s_findings.append(Finding(
+                    finding_id="k8s_crashloop",
+                    agent_name="k8s_agent",
+                    category="crashloop",
+                    summary=f"CrashLoopBackOff detected — {result.get('total_restarts_last_hour', 0)} restarts in last hour",
+                    confidence_score=min(result.get("overall_confidence", 70), 100),
+                    severity="critical",
+                    breadcrumbs=[],
+                    negative_findings=[],
+                ))
+            for p in pod_statuses:
+                if p.oom_killed:
+                    k8s_findings.append(Finding(
+                        finding_id=f"k8s_oom_{p.pod_name}",
+                        agent_name="k8s_agent",
+                        category="oom_killed",
+                        summary=f"Pod {p.pod_name} OOMKilled",
+                        confidence_score=90,
+                        severity="critical",
+                        breadcrumbs=[],
+                        negative_findings=[],
+                    ))
+            state.all_findings.extend(k8s_findings)
+
+            state.k8s_analysis = K8sAnalysisResult(
+                cluster_name=state.cluster_url or "unknown",
+                namespace=state.namespace or "default",
+                service_name=state.service_name,
+                pod_statuses=pod_statuses,
+                events=events,
+                is_crashloop=result.get("is_crashloop", False),
+                total_restarts_last_hour=result.get("total_restarts_last_hour", 0),
+                resource_mismatch=result.get("resource_mismatch"),
+                findings=k8s_findings,
+                negative_findings=[nf for nf in state.all_negative_findings if nf.agent_name == "k8s_agent"],
+                breadcrumbs=[b for b in state.all_breadcrumbs if b.agent_name == "k8s_agent"],
+                overall_confidence=min(result.get("overall_confidence", 50), 100),
+                tokens_used=k8s_tokens,
+            )
+
+            if event_emitter and (result.get("is_crashloop") or any(p.oom_killed for p in pod_statuses)):
+                await event_emitter.emit(
+                    "k8s_agent", "finding",
+                    f"K8s issues: crashloop={result.get('is_crashloop')}, OOM pods={sum(1 for p in pod_statuses if p.oom_killed)}",
+                    details={"pods": len(pod_statuses), "events": len(events)}
+                )
+
+        # Handle tracing_agent results
+        if agent_name == "tracing_agent":
+            chain_raw = result.get("call_chain", [])
+            call_chain = []
+            for s in chain_raw:
+                try:
+                    call_chain.append(SpanInfo(**s) if isinstance(s, dict) else s)
+                except Exception:
+                    pass
+
+            failure_point = None
+            fp_raw = result.get("failure_point")
+            if fp_raw and isinstance(fp_raw, dict):
+                try:
+                    failure_point = SpanInfo(**fp_raw)
+                except Exception:
+                    pass
+
+            bottlenecks_raw = result.get("latency_bottlenecks", [])
+            bottlenecks = []
+            for b in bottlenecks_raw:
+                try:
+                    bottlenecks.append(SpanInfo(**b) if isinstance(b, dict) else b)
+                except Exception:
+                    pass
+
+            tu_raw = result.get("tokens_used", {})
+            trace_tokens = TokenUsage(
+                agent_name="tracing_agent",
+                input_tokens=tu_raw.get("input_tokens", 0),
+                output_tokens=tu_raw.get("output_tokens", 0),
+                total_tokens=tu_raw.get("total_tokens", 0),
+            )
+
+            # Promote trace findings
+            trace_findings = []
+            if failure_point:
+                trace_findings.append(Finding(
+                    finding_id=f"trace_failure_{failure_point.span_id}",
+                    agent_name="tracing_agent",
+                    category="trace_failure",
+                    summary=f"Failure at {failure_point.service_name}:{failure_point.operation_name} — {failure_point.error_message or failure_point.status}",
+                    confidence_score=min(result.get("overall_confidence", 70), 100),
+                    severity="high",
+                    breadcrumbs=[],
+                    negative_findings=[],
+                ))
+            state.all_findings.extend(trace_findings)
+
+            trace_source = result.get("trace_source", "jaeger")
+            valid_sources = ("jaeger", "tempo", "elasticsearch", "combined")
+            if trace_source not in valid_sources:
+                trace_source = "jaeger"
+
+            state.trace_analysis = TraceAnalysisResult(
+                trace_id=result.get("trace_id", state.trace_id or "unknown"),
+                total_duration_ms=result.get("total_duration_ms", 0),
+                total_services=result.get("total_services", 0),
+                total_spans=result.get("total_spans", 0),
+                call_chain=call_chain,
+                failure_point=failure_point,
+                cascade_path=result.get("cascade_path", []),
+                latency_bottlenecks=bottlenecks,
+                retry_detected=result.get("retry_detected", False),
+                service_dependency_graph=result.get("service_dependency_graph", {}),
+                trace_source=trace_source,
+                elk_reconstruction_confidence=result.get("elk_reconstruction_confidence"),
+                findings=trace_findings,
+                negative_findings=[nf for nf in state.all_negative_findings if nf.agent_name == "tracing_agent"],
+                breadcrumbs=[b for b in state.all_breadcrumbs if b.agent_name == "tracing_agent"],
+                overall_confidence=min(result.get("overall_confidence", 50), 100),
+                tokens_used=trace_tokens,
+            )
+
+            if event_emitter and failure_point:
+                await event_emitter.emit(
+                    "tracing_agent", "finding",
+                    f"Trace failure: {failure_point.service_name}:{failure_point.operation_name}",
+                    details={"total_spans": result.get("total_spans", 0), "cascade_path": result.get("cascade_path", [])}
+                )
+
+        # Handle code_agent results
+        if agent_name == "code_agent":
+            root_loc_raw = result.get("root_cause_location", {})
+            impacted_raw = result.get("impacted_files", [])
+            fix_areas_raw = result.get("suggested_fix_areas", [])
+
+            def _parse_impacted(raw: dict) -> ImpactedFile:
+                lines = []
+                for lr in raw.get("relevant_lines", []):
+                    try:
+                        lines.append(LineRange(**lr) if isinstance(lr, dict) else lr)
+                    except Exception:
+                        pass
+                return ImpactedFile(
+                    file_path=raw.get("file_path", "unknown"),
+                    impact_type=raw.get("impact_type", "shared_resource"),
+                    relevant_lines=lines,
+                    code_snippet=raw.get("code_snippet", ""),
+                    relationship=raw.get("relationship", ""),
+                    fix_relevance=raw.get("fix_relevance", "informational"),
+                )
+
+            try:
+                root_loc = _parse_impacted(root_loc_raw) if isinstance(root_loc_raw, dict) and root_loc_raw else ImpactedFile(
+                    file_path="unknown", impact_type="direct_error", relevant_lines=[], code_snippet="", relationship="error origin", fix_relevance="must_fix"
+                )
+            except Exception:
+                root_loc = ImpactedFile(
+                    file_path="unknown", impact_type="direct_error", relevant_lines=[], code_snippet="", relationship="error origin", fix_relevance="must_fix"
+                )
+
+            impacted = []
+            for f in impacted_raw:
+                try:
+                    impacted.append(_parse_impacted(f) if isinstance(f, dict) else f)
+                except Exception:
+                    pass
+
+            fix_areas = []
+            for fa in fix_areas_raw:
+                try:
+                    fix_areas.append(FixArea(**fa) if isinstance(fa, dict) else fa)
+                except Exception:
+                    pass
+
+            tu_raw = result.get("tokens_used", {})
+            code_tokens = TokenUsage(
+                agent_name="code_agent",
+                input_tokens=tu_raw.get("input_tokens", 0),
+                output_tokens=tu_raw.get("output_tokens", 0),
+                total_tokens=tu_raw.get("total_tokens", 0),
+            )
+
+            state.code_analysis = CodeAnalysisResult(
+                root_cause_location=root_loc,
+                impacted_files=impacted,
+                call_chain=result.get("call_chain", []),
+                dependency_graph=result.get("dependency_graph", {}),
+                shared_resource_conflicts=result.get("shared_resource_conflicts", []),
+                suggested_fix_areas=fix_areas,
+                mermaid_diagram=result.get("mermaid_diagram", ""),
+                negative_findings=[nf for nf in state.all_negative_findings if nf.agent_name == "code_agent"],
+                breadcrumbs=[b for b in state.all_breadcrumbs if b.agent_name == "code_agent"],
+                overall_confidence=min(result.get("overall_confidence", 50), 100),
+                tokens_used=code_tokens,
+            )
+
+            if event_emitter and impacted:
+                await event_emitter.emit(
+                    "code_agent", "finding",
+                    f"Code impact: {len(impacted)} files, root cause in {root_loc.file_path}",
+                    details={"impacted_count": len(impacted), "fix_areas": len(fix_areas)}
+                )
+
         # Store reasoning
         state.supervisor_reasoning.append(
             f"Round: {agent_name} completed with confidence {confidence}"
@@ -647,6 +922,11 @@ class SupervisorAgent:
     def _update_phase(self, state: DiagnosticState, event_emitter: Optional[EventEmitter] = None) -> None:
         """Update diagnostic phase based on completed agents."""
         old_phase = state.phase
+
+        # Don't overwrite RE_INVESTIGATING — let the state machine handle it
+        if state.phase == DiagnosticPhase.RE_INVESTIGATING:
+            return
+
         completed = set(state.agents_completed)
 
         if "code_agent" in completed:
@@ -664,11 +944,16 @@ class SupervisorAgent:
         if state.phase != old_phase:
             logger.info("Phase transition", extra={"session_id": state.session_id, "agent_name": "supervisor", "action": "phase_transition", "extra": {"from": old_phase.value, "to": state.phase.value}})
         if state.phase != old_phase and event_emitter:
-            asyncio.ensure_future(event_emitter.emit(
-                "supervisor", "phase_change",
-                f"Phase: {state.phase.value.replace('_', ' ').title()}",
-                details={"phase": state.phase.value, "previous_phase": old_phase.value}
-            ))
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    asyncio.ensure_future(event_emitter.emit(
+                        "supervisor", "phase_change",
+                        f"Phase: {state.phase.value.replace('_', ' ').title()}",
+                        details={"phase": state.phase.value, "previous_phase": old_phase.value}
+                    ))
+            except Exception:
+                logger.debug("Could not emit phase_change event")
 
     def _build_agent_summary(self, agent_name: str, result: dict, state: DiagnosticState) -> str:
         """Build a human-readable summary of agent completion."""
@@ -677,7 +962,7 @@ class SupervisorAgent:
             primary = result.get("primary_pattern", {})
             pattern_msg = primary.get("error_message", "No pattern found") if isinstance(primary, dict) else "No pattern found"
             flow = result.get("service_flow", [])
-            flow_part = f", flow: {len(flow)} steps across {len(set(s['service'] for s in flow))} services" if flow else ""
+            flow_part = f", flow: {len(flow)} steps across {len(set(s.get('service', 'unknown') for s in flow))} services" if flow else ""
             return f"Log analysis complete — Primary: {pattern_msg[:100]}{flow_part} (confidence: {confidence}%)"
         elif agent_name == "metrics_agent":
             anomalies = result.get("anomalies", [])
