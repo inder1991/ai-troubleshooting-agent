@@ -32,6 +32,7 @@ class LogAnalysisAgent:
         else:
             self.es_url = os.getenv("ELASTICSEARCH_URL", "http://localhost:9200")
         self._es_headers = self._build_es_headers(connection_config)
+        self._verify_ssl = getattr(connection_config, "verify_ssl", False) if connection_config else False
         self.llm_client = AnthropicClient(agent_name="log_agent")
         self.breadcrumbs: list[Breadcrumb] = []
         self.negative_findings: list[NegativeFinding] = []
@@ -39,6 +40,7 @@ class LogAnalysisAgent:
         self._raw_logs: list[dict] = []
         self._patterns: list[dict] = []
         self._service_flow: list[dict] = []
+        self._event_emitter: EventEmitter | None = None
 
     def _build_es_headers(self, connection_config) -> dict:
         """Build HTTP headers for Elasticsearch requests, including auth."""
@@ -60,6 +62,8 @@ class LogAnalysisAgent:
         """Two-phase hybrid execution."""
         service_name = context.get("service_name", "unknown")
         logger.info("Starting log analysis", extra={"agent_name": self.agent_name, "action": "start", "extra": service_name})
+
+        self._event_emitter = event_emitter
 
         if event_emitter:
             await event_emitter.emit(self.agent_name, "started", "log_agent starting analysis")
@@ -330,6 +334,7 @@ class LogAnalysisAgent:
                 f"{self.es_url}/{index}",
                 headers=self._es_headers,
                 timeout=10,
+                verify=self._verify_ssl,
             )
             return resp.status_code == 200
         except Exception:
@@ -579,6 +584,7 @@ class LogAnalysisAgent:
                 json=es_query,
                 headers=self._es_headers,
                 timeout=30,
+                verify=self._verify_ssl,
             )
             resp.raise_for_status()
             data = resp.json()
@@ -631,9 +637,19 @@ class LogAnalysisAgent:
 
         except requests.exceptions.ConnectionError:
             logger.warning("ES connection failed", extra={"agent_name": self.agent_name, "action": "es_error", "extra": f"Cannot connect to {self.es_url}"})
+            if self._event_emitter:
+                await self._event_emitter.emit(
+                    self.agent_name, "warning",
+                    f"Cannot connect to Elasticsearch at {self.es_url}",
+                )
             return json.dumps({"error": f"Cannot connect to Elasticsearch at {self.es_url}"})
         except Exception as e:
             logger.error("ES search failed", extra={"agent_name": self.agent_name, "action": "es_error", "extra": str(e)})
+            if self._event_emitter:
+                await self._event_emitter.emit(
+                    self.agent_name, "error",
+                    f"Elasticsearch query failed: {e}",
+                )
             return json.dumps({"error": str(e)})
 
     async def _search_by_trace_id(self, params: dict) -> str:
@@ -665,6 +681,7 @@ class LogAnalysisAgent:
                 json=es_query,
                 headers=self._es_headers,
                 timeout=30,
+                verify=self._verify_ssl,
             )
             resp.raise_for_status()
             data = resp.json()
@@ -738,6 +755,7 @@ class LogAnalysisAgent:
                 json=es_query,
                 headers=self._es_headers,
                 timeout=30,
+                verify=self._verify_ssl,
             )
             resp.raise_for_status()
             data = resp.json()
@@ -773,6 +791,7 @@ class LogAnalysisAgent:
                 params={"format": "json", "h": "index,docs.count,store.size,health,status"},
                 headers=self._es_headers,
                 timeout=15,
+                verify=self._verify_ssl,
             )
             resp.raise_for_status()
             indices = resp.json()
@@ -793,6 +812,12 @@ class LogAnalysisAgent:
             })
 
         except requests.exceptions.ConnectionError:
+            logger.warning("ES connection failed", extra={"agent_name": self.agent_name, "action": "es_error", "extra": f"Cannot connect to {self.es_url}"})
+            if self._event_emitter:
+                await self._event_emitter.emit(
+                    self.agent_name, "warning",
+                    f"Cannot connect to Elasticsearch at {self.es_url}",
+                )
             return json.dumps({"error": f"Cannot connect to Elasticsearch at {self.es_url}"})
         except Exception as e:
             return json.dumps({"error": str(e)})
