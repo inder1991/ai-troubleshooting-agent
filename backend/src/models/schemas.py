@@ -620,6 +620,7 @@ class BlastRadius(BaseModel):
     shared_resources: list[str] = Field(default_factory=list)
     estimated_user_impact: str = ""
     scope: Literal["single_service", "service_group", "namespace", "cluster_wide"]
+    business_impact: list[dict] = Field(default_factory=list)
 
 
 class SeverityRecommendation(BaseModel):
@@ -630,6 +631,7 @@ class SeverityRecommendation(BaseModel):
 
 class DiagnosticState(BaseModel):
     session_id: str
+    incident_id: str = ""
     phase: DiagnosticPhase
 
     # User input

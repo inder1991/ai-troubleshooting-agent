@@ -504,8 +504,14 @@ Respond with JSON only. No markdown fences."""
             parts.append(f"Time range: {p.get('first_seen', '?')} → {p.get('last_seen', '?')}")
             if p.get("correlation_ids"):
                 parts.append(f"Trace IDs: {', '.join(p['correlation_ids'][:3])}")
-            if p.get("stack_traces"):
+            if p.get("filtered_stack_trace"):
+                parts.append(f"Stack trace (app frames only):\n{p['filtered_stack_trace']}")
+            elif p.get("stack_traces"):
                 parts.append(f"Stack trace (sample):\n{p['stack_traces'][0][:500]}")
+            if p.get("preceding_context"):
+                parts.append("Preceding context (3 logs before first error):")
+                for ctx_line in p["preceding_context"]:
+                    parts.append(f"  {ctx_line}")
 
         # Architecture Map
         parts.append("\n## Architecture Map")
@@ -583,6 +589,16 @@ Respond with JSON only. No markdown fences."""
                 downstream.update(d["targets"])
             if downstream:
                 parts.append(f"Downstream impact: {', '.join(sorted(downstream))}")
+
+        # Business Impact (if available from context)
+        business_impact = context.get("business_impact", [])
+        if business_impact:
+            parts.append("\n## Business Impact")
+            for cap in business_impact:
+                parts.append(
+                    f"  - {cap['capability']}: Risk={cap['risk_level'].upper()}, "
+                    f"Services: {', '.join(cap['affected_services'])}"
+                )
 
         parts.append("")
         parts.append("""Analyze and respond with JSON:
@@ -1051,6 +1067,21 @@ Respond with JSON only. No markdown fences."""
             # Sample log IDs for linking back
             sample_log_ids = [l.get("id", "") for l in group_logs[:5] if l.get("id")]
 
+            # Collect 3 log lines immediately preceding the first error in this pattern group
+            sorted_group = sorted(group_logs, key=lambda l: l.get("timestamp", ""))
+            preceding_context = []
+            first_error_idx = next(
+                (i for i, l in enumerate(sorted_group)
+                 if (l.get("level") or "").upper() in ("ERROR", "FATAL", "CRITICAL")),
+                None
+            )
+            if first_error_idx is not None and first_error_idx > 0:
+                start = max(0, first_error_idx - 3)
+                for ctx_log in sorted_group[start:first_error_idx]:
+                    preceding_context.append(
+                        f"[{ctx_log.get('level', '?')}] {ctx_log.get('message', '')[:150]}"
+                    )
+
             patterns.append({
                 "pattern_key": key,
                 "exception_type": exception_type,
@@ -1062,8 +1093,10 @@ Respond with JSON only. No markdown fences."""
                 "first_seen": timestamps[0] if timestamps else "",
                 "last_seen": timestamps[-1] if timestamps else "",
                 "stack_traces": stack_traces,
+                "filtered_stack_trace": self._filter_stack_trace(stack_traces[0]) if stack_traces else "",
                 "correlation_ids": correlation_ids,
                 "sample_log_ids": sample_log_ids,
+                "preceding_context": preceding_context,
             })
 
         # Classify severity for each pattern
@@ -1193,6 +1226,88 @@ Respond with JSON only. No markdown fences."""
             if any(kw in msg_lower for kw in ("deprecated", "migration", "deprecation", "overdue")):
                 return "low"
         return "medium"
+
+    # Framework noise prefixes to filter out of stack traces
+    FRAMEWORK_NOISE_PREFIXES = (
+        "org.springframework", "org.apache.tomcat", "org.apache.catalina",
+        "io.netty", "java.lang.reflect", "sun.reflect", "jdk.internal",
+        "org.apache.coyote", "org.apache.http", "reactor.core",
+        "io.micrometer", "com.sun", "java.util.concurrent",
+        "org.hibernate.internal", "com.zaxxer.hikari",
+    )
+
+    # Regex matching file path + line number references (Java, Python, Go, JS/TS, etc.)
+    _FILE_LINE_RE = re.compile(
+        r'(?:'
+        r'\.\w+:\d+\)'       # Java: (FileName.java:45)
+        r'|File ".+", line \d+'  # Python: File "/app/svc.py", line 12
+        r'|\S+\.go:\d+'      # Go: /app/main.go:42
+        r'|\S+\.[jt]sx?:\d+' # JS/TS: app.ts:10
+        r')'
+    )
+
+    def _filter_stack_trace(self, raw_trace: str, max_lines: int = 15) -> str:
+        """Keep application frames, file:line references, and exception causes. Saves ~60% tokens."""
+        if not raw_trace:
+            return ""
+        lines = raw_trace.strip().splitlines()
+        kept: list[str] = []
+        skipped_framework = 0
+        for line in lines:
+            stripped = line.strip()
+            # Always keep exception/cause lines
+            if any(kw in stripped for kw in ("Exception", "Error", "Caused by", "Timeout", "Failure")):
+                # Flush framework skip counter before this line
+                if skipped_framework > 0:
+                    kept.append(f"  ... ({skipped_framework} framework frames omitted)")
+                    skipped_framework = 0
+                kept.append(line)
+                continue
+            # Always keep lines with file path + line number (regardless of framework)
+            if self._FILE_LINE_RE.search(stripped):
+                # If it's a framework frame, still keep it but only the file:line part
+                if stripped.startswith("at "):
+                    frame = stripped[3:]
+                    if any(frame.startswith(prefix) for prefix in self.FRAMEWORK_NOISE_PREFIXES):
+                        skipped_framework += 1
+                        continue
+                # Application frame or non-"at" line with file reference — keep as-is
+                if skipped_framework > 0:
+                    kept.append(f"  ... ({skipped_framework} framework frames omitted)")
+                    skipped_framework = 0
+                kept.append(line)
+                continue
+            # Handle "at " lines without file references
+            if stripped.startswith("at "):
+                frame = stripped[3:]
+                if any(frame.startswith(prefix) for prefix in self.FRAMEWORK_NOISE_PREFIXES):
+                    skipped_framework += 1
+                    continue
+                # Application frame without file ref — still keep
+                if skipped_framework > 0:
+                    kept.append(f"  ... ({skipped_framework} framework frames omitted)")
+                    skipped_framework = 0
+                kept.append(line)
+                continue
+            # Keep "... N more" summary lines
+            if stripped.startswith("..."):
+                if skipped_framework > 0:
+                    kept.append(f"  ... ({skipped_framework} framework frames omitted)")
+                    skipped_framework = 0
+                kept.append(line)
+                continue
+            # Keep non-"at" lines (message headers, Python traceback format, etc.)
+            if skipped_framework > 0:
+                kept.append(f"  ... ({skipped_framework} framework frames omitted)")
+                skipped_framework = 0
+            kept.append(line)
+        # Flush any remaining skipped count
+        if skipped_framework > 0:
+            kept.append(f"  ... ({skipped_framework} framework frames omitted)")
+        if not kept:
+            # Fallback: return first few + last few lines of original
+            return "\n".join(lines[:3] + ["  ... (filtered)"] + lines[-2:])
+        return "\n".join(kept[:max_lines])
 
     def _extract_exception_type(self, message: str) -> str:
         """Extract the exception class name from a log message."""

@@ -77,6 +77,7 @@ class StartSessionRequest(BaseModel):
 
 class StartSessionResponse(BaseModel):
     session_id: str
+    incident_id: str
     status: str
     message: str
 

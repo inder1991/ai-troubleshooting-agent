@@ -696,3 +696,257 @@ async def test_run_with_trace_id_reconstructs_flow():
     assert result["service_flow"][1]["status"] == "error"
     assert result["flow_confidence"] == 70
     assert result["flow_source"] == "elasticsearch"
+
+
+# ─── Stack Trace Filtering ─────────────────────────────────────────────────────
+
+def test_filter_stack_trace_removes_framework_noise():
+    """Framework frames should be replaced with a skip summary, application frames and file:line kept."""
+    agent = LogAnalysisAgent()
+    raw_trace = """java.lang.NullPointerException: Cannot invoke method on null
+\tat com.myapp.service.OrderService.processOrder(OrderService.java:45)
+\tat org.springframework.web.servlet.FrameworkServlet.service(FrameworkServlet.java:897)
+\tat org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:166)
+\tat org.apache.tomcat.websocket.server.WsFilter.doFilter(WsFilter.java:52)
+\tat com.myapp.controller.OrderController.createOrder(OrderController.java:32)
+\tat java.lang.reflect.Method.invoke(Method.java:498)
+\tat io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:379)
+Caused by: java.sql.SQLException: Connection refused
+\tat com.myapp.db.ConnectionPool.getConnection(ConnectionPool.java:78)
+\tat com.zaxxer.hikari.pool.HikariPool.getConnection(HikariPool.java:128)"""
+    filtered = agent._filter_stack_trace(raw_trace)
+    # Application frames with file:line should be present
+    assert "com.myapp.service.OrderService.processOrder(OrderService.java:45)" in filtered
+    assert "com.myapp.controller.OrderController.createOrder(OrderController.java:32)" in filtered
+    assert "com.myapp.db.ConnectionPool.getConnection(ConnectionPool.java:78)" in filtered
+    # Exception/cause lines should be present
+    assert "NullPointerException" in filtered
+    assert "Caused by" in filtered
+    assert "SQLException" in filtered
+    # Framework noise should be replaced with skip summaries
+    assert "org.springframework" not in filtered
+    assert "org.apache.catalina" not in filtered
+    assert "org.apache.tomcat" not in filtered
+    assert "io.netty" not in filtered
+    assert "java.lang.reflect" not in filtered
+    assert "com.zaxxer.hikari" not in filtered
+    # Skip summaries should appear instead
+    assert "framework frames omitted" in filtered
+
+
+def test_filter_stack_trace_empty():
+    agent = LogAnalysisAgent()
+    assert agent._filter_stack_trace("") == ""
+    assert agent._filter_stack_trace(None) == ""
+
+
+def test_filter_stack_trace_no_at_lines():
+    """If there are no 'at' lines, non-framework lines should be kept."""
+    agent = LogAnalysisAgent()
+    raw_trace = "SomeError: something broke\nDetails: more info"
+    filtered = agent._filter_stack_trace(raw_trace)
+    assert "SomeError" in filtered
+    assert "Details" in filtered
+
+
+def test_filter_stack_trace_all_framework():
+    """If all frames are framework, should produce a skip summary."""
+    agent = LogAnalysisAgent()
+    raw_trace = """at org.springframework.web.servlet.FrameworkServlet.service(FrameworkServlet.java:897)
+at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:166)
+at org.apache.tomcat.websocket.server.WsFilter.doFilter(WsFilter.java:52)
+at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:379)"""
+    filtered = agent._filter_stack_trace(raw_trace)
+    # Should produce a skip summary for the 4 framework frames
+    assert "4 framework frames omitted" in filtered
+
+
+def test_filter_stack_trace_max_lines():
+    """Filtered output should respect max_lines limit."""
+    agent = LogAnalysisAgent()
+    lines = ["SomeError: test"] + [f"at com.myapp.Svc{i}.method(Svc{i}.java:{i})" for i in range(30)]
+    raw_trace = "\n".join(lines)
+    filtered = agent._filter_stack_trace(raw_trace, max_lines=5)
+    assert len(filtered.strip().splitlines()) <= 5
+
+
+def test_filter_stack_trace_preserves_java_file_line():
+    """Java file:line references like (OrderService.java:45) must be preserved."""
+    agent = LogAnalysisAgent()
+    raw_trace = """NullPointerException: test
+\tat com.myapp.OrderService.process(OrderService.java:45)
+\tat com.myapp.Controller.handle(Controller.java:12)"""
+    filtered = agent._filter_stack_trace(raw_trace)
+    assert "OrderService.java:45" in filtered
+    assert "Controller.java:12" in filtered
+
+
+def test_filter_stack_trace_preserves_python_file_line():
+    """Python File '...', line N references must be preserved."""
+    agent = LogAnalysisAgent()
+    raw_trace = """Traceback (most recent call last):
+  File "/app/services/payment.py", line 45, in process_payment
+    result = db.execute(query)
+  File "/app/db/pool.py", line 12, in execute
+    conn = self.get_connection()
+ConnectionError: Connection refused"""
+    filtered = agent._filter_stack_trace(raw_trace)
+    assert "/app/services/payment.py" in filtered
+    assert "line 45" in filtered
+    assert "/app/db/pool.py" in filtered
+    assert "line 12" in filtered
+    assert "ConnectionError" in filtered
+
+
+def test_filter_stack_trace_preserves_ellipsis_more():
+    """Lines like '... 42 more' should be preserved."""
+    agent = LogAnalysisAgent()
+    raw_trace = """java.lang.RuntimeException: outer
+\tat com.myapp.Outer.run(Outer.java:10)
+Caused by: java.io.IOException: inner
+\tat com.myapp.Inner.read(Inner.java:20)
+\t... 42 more"""
+    filtered = agent._filter_stack_trace(raw_trace)
+    assert "... 42 more" in filtered
+    assert "Outer.java:10" in filtered
+    assert "Inner.java:20" in filtered
+
+
+def test_filter_stack_trace_framework_skip_count():
+    """Consecutive framework frames should produce a single skip summary with correct count."""
+    agent = LogAnalysisAgent()
+    raw_trace = """NullPointerException: test
+\tat com.myapp.Service.run(Service.java:10)
+\tat org.springframework.web.A.a(A.java:1)
+\tat org.springframework.web.B.b(B.java:2)
+\tat org.springframework.web.C.c(C.java:3)
+\tat com.myapp.Controller.handle(Controller.java:20)"""
+    filtered = agent._filter_stack_trace(raw_trace)
+    assert "Service.java:10" in filtered
+    assert "Controller.java:20" in filtered
+    assert "3 framework frames omitted" in filtered
+    # Framework class names should not appear
+    assert "org.springframework" not in filtered
+
+
+# ─── Inline Preceding Context ──────────────────────────────────────────────────
+
+def test_parse_patterns_includes_preceding_context():
+    """Patterns should include preceding log lines before the first ERROR in the group.
+
+    Note: grouping is by pattern key (exception type), so logs in the same group
+    share the same error fingerprint. Preceding context comes from WARN/INFO logs
+    within the same pattern group that occur before the first ERROR.
+    """
+    agent = LogAnalysisAgent()
+    # All logs share the same pattern key "ConnectionTimeout" but vary in level
+    logs = [
+        {"level": "WARN", "message": "ConnectionTimeout warning: retrying attempt 1", "service": "order-svc", "timestamp": "2025-12-26T14:00:01Z"},
+        {"level": "WARN", "message": "ConnectionTimeout warning: retrying attempt 2", "service": "order-svc", "timestamp": "2025-12-26T14:00:02Z"},
+        {"level": "INFO", "message": "ConnectionTimeout threshold reached, escalating", "service": "order-svc", "timestamp": "2025-12-26T14:00:03Z"},
+        {"level": "ERROR", "message": "ConnectionTimeout after 30s", "service": "order-svc", "timestamp": "2025-12-26T14:00:04Z"},
+        {"level": "ERROR", "message": "ConnectionTimeout after 25s", "service": "order-svc", "timestamp": "2025-12-26T14:00:05Z"},
+    ]
+    patterns = agent._parse_patterns_from_logs(logs)
+    assert len(patterns) >= 1
+    ct_pattern = next((p for p in patterns if p["exception_type"] == "ConnectionTimeout"), None)
+    assert ct_pattern is not None
+    ctx = ct_pattern.get("preceding_context", [])
+    assert len(ctx) == 3  # 3 logs before first ERROR in the same group
+    assert any("retrying attempt 1" in c for c in ctx)
+    assert any("retrying attempt 2" in c for c in ctx)
+    assert any("threshold reached" in c for c in ctx)
+
+
+def test_parse_patterns_preceding_context_empty_when_no_prior_logs():
+    """If the first log is an ERROR, preceding_context should be empty."""
+    agent = LogAnalysisAgent()
+    logs = [
+        {"level": "ERROR", "message": "ConnectionTimeout after 30s", "service": "svc-a", "timestamp": "2025-12-26T14:00:01Z"},
+    ]
+    patterns = agent._parse_patterns_from_logs(logs)
+    ct_pattern = next((p for p in patterns if p["exception_type"] == "ConnectionTimeout"), None)
+    assert ct_pattern is not None
+    assert ct_pattern.get("preceding_context", []) == []
+
+
+def test_parse_patterns_includes_filtered_stack_trace():
+    """Patterns should include filtered_stack_trace when stack traces exist."""
+    agent = LogAnalysisAgent()
+    logs = [
+        {
+            "level": "ERROR",
+            "message": "NullPointerException at processOrder",
+            "service": "order-svc",
+            "timestamp": "2025-12-26T14:00:01Z",
+            "stack_trace": "NullPointerException\n\tat com.myapp.Order.process(Order.java:10)\n\tat org.springframework.web.Servlet.service(Servlet.java:50)",
+        },
+    ]
+    patterns = agent._parse_patterns_from_logs(logs)
+    npe = next((p for p in patterns if p["exception_type"] == "NullPointerException"), None)
+    assert npe is not None
+    assert npe.get("filtered_stack_trace") != ""
+    assert "com.myapp.Order.process" in npe["filtered_stack_trace"]
+    assert "org.springframework" not in npe["filtered_stack_trace"]
+
+
+# ─── Business Impact Inference ──────────────────────────────────────────────────
+
+def test_infer_business_impact_basic():
+    """Services should map to correct business capabilities and risk levels."""
+    from src.agents.impact_analyzer import ImpactAnalyzer
+    analyzer = ImpactAnalyzer()
+    result = analyzer.infer_business_impact(["checkout-service", "payment-gateway", "inventory-service"])
+    assert len(result) >= 2
+    # Revenue Generation should be critical and come first
+    assert result[0]["capability"] == "Revenue Generation"
+    assert result[0]["risk_level"] == "critical"
+    assert "checkout-service" in result[0]["affected_services"]
+    assert "payment-gateway" in result[0]["affected_services"]
+    # Order Fulfillment should be high
+    fulfillment = next((c for c in result if c["capability"] == "Order Fulfillment"), None)
+    assert fulfillment is not None
+    assert fulfillment["risk_level"] == "high"
+    assert "inventory-service" in fulfillment["affected_services"]
+
+
+def test_infer_business_impact_unknown_service():
+    """Unknown services should map to General Operations."""
+    from src.agents.impact_analyzer import ImpactAnalyzer
+    analyzer = ImpactAnalyzer()
+    result = analyzer.infer_business_impact(["mystery-service"])
+    assert len(result) == 1
+    assert result[0]["capability"] == "General Operations"
+    assert result[0]["risk_level"] == "medium"
+
+
+def test_infer_business_impact_empty():
+    from src.agents.impact_analyzer import ImpactAnalyzer
+    analyzer = ImpactAnalyzer()
+    result = analyzer.infer_business_impact([])
+    assert result == []
+
+
+def test_infer_business_impact_sorted_by_risk():
+    """Results should be sorted critical > high > medium > low."""
+    from src.agents.impact_analyzer import ImpactAnalyzer
+    analyzer = ImpactAnalyzer()
+    result = analyzer.infer_business_impact([
+        "monitoring-service", "checkout-service", "auth-service", "catalog-service",
+    ])
+    risk_levels = [c["risk_level"] for c in result]
+    risk_order = {"critical": 0, "high": 1, "medium": 2, "low": 3}
+    for i in range(len(risk_levels) - 1):
+        assert risk_order[risk_levels[i]] <= risk_order[risk_levels[i + 1]]
+
+
+def test_blast_radius_schema_has_business_impact():
+    """BlastRadius model should accept business_impact field."""
+    from src.models.schemas import BlastRadius
+    br = BlastRadius(
+        primary_service="checkout",
+        scope="service_group",
+        business_impact=[{"capability": "Revenue Generation", "risk_level": "critical", "affected_services": ["checkout"]}],
+    )
+    assert len(br.business_impact) == 1
+    assert br.business_impact[0]["capability"] == "Revenue Generation"

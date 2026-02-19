@@ -1,6 +1,7 @@
 import json
 import asyncio
 import time
+import secrets
 from pathlib import Path
 from typing import Optional
 from datetime import datetime, timezone
@@ -77,6 +78,13 @@ def add_reasoning_step(
     manifest.steps.append(step)
 
 
+def generate_incident_id() -> str:
+    """Generate a human-friendly incident ID like INC-20250219-A3F7."""
+    date_part = datetime.now(timezone.utc).strftime("%Y%m%d")
+    rand_part = secrets.token_hex(2).upper()
+    return f"INC-{date_part}-{rand_part}"
+
+
 class SupervisorAgent:
     """State machine orchestrator that routes work to specialized agents."""
 
@@ -113,6 +121,7 @@ class SupervisorAgent:
         """Run the full diagnostic workflow."""
         state = DiagnosticState(
             session_id=initial_input.get("session_id", "unknown"),
+            incident_id=initial_input.get("incident_id") or generate_incident_id(),
             phase=DiagnosticPhase.INITIAL,
             service_name=initial_input.get("service_name", "unknown"),
             trace_id=initial_input.get("trace_id"),
@@ -126,8 +135,8 @@ class SupervisorAgent:
             elk_index=initial_input.get("elk_index"),
         )
 
-        logger.info("Session started", extra={"session_id": state.session_id, "agent_name": "supervisor", "action": "session_start", "extra": state.service_name})
-        await event_emitter.emit("supervisor", "started", f"Starting diagnosis for {state.service_name}")
+        logger.info("Session started", extra={"session_id": state.session_id, "incident_id": state.incident_id, "agent_name": "supervisor", "action": "session_start", "extra": state.service_name})
+        await event_emitter.emit("supervisor", "started", f"Starting diagnosis for {state.service_name} [{state.incident_id}]")
 
         max_rounds = 10
         for round_num in range(max_rounds):
@@ -1084,6 +1093,16 @@ class SupervisorAgent:
                 downstream=downstream,
                 shared=shared,
             )
+
+            # Infer business impact from all affected services
+            all_affected_services = (
+                [blast_radius.primary_service]
+                + blast_radius.upstream_affected
+                + blast_radius.downstream_affected
+            )
+            business_impact = analyzer.infer_business_impact(all_affected_services)
+            blast_radius.business_impact = business_impact
+
             severity = analyzer.recommend_severity(state.service_name, blast_radius)
 
             state.blast_radius_result = blast_radius

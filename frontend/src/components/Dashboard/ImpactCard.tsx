@@ -1,5 +1,5 @@
 import React from 'react';
-import { Shield, ArrowUpRight, ArrowDownRight, Database, Users, Target } from 'lucide-react';
+import { Shield, ArrowUpRight, ArrowDownRight, Database, Users, Target, Briefcase } from 'lucide-react';
 import type { BlastRadiusData, SeverityData } from '../../types';
 
 interface ImpactCardProps {
@@ -12,6 +12,13 @@ const severityConfig: Record<string, { bg: string; text: string; border: string;
   P2: { bg: 'bg-orange-500/20', text: 'text-orange-400', border: 'border-orange-500/50', glow: 'shadow-orange-500/20' },
   P3: { bg: 'bg-yellow-500/20', text: 'text-yellow-400', border: 'border-yellow-500/50', glow: 'shadow-yellow-500/20' },
   P4: { bg: 'bg-green-500/20', text: 'text-green-400', border: 'border-green-500/50', glow: 'shadow-green-500/20' },
+};
+
+const riskConfig: Record<string, { bg: string; text: string }> = {
+  critical: { bg: 'bg-red-500/20', text: 'text-red-400' },
+  high: { bg: 'bg-orange-500/20', text: 'text-orange-400' },
+  medium: { bg: 'bg-yellow-500/20', text: 'text-yellow-400' },
+  low: { bg: 'bg-green-500/20', text: 'text-green-400' },
 };
 
 const scopeLabels: Record<string, string> = {
@@ -140,6 +147,32 @@ const ImpactCard: React.FC<ImpactCardProps> = ({ blastRadius, severity }) => {
             {blastRadius.estimated_user_impact}
           </span>
         </div>
+
+        {/* Business Impact */}
+        {blastRadius.business_impact && blastRadius.business_impact.length > 0 && (
+          <div className="mt-3 pt-2 border-t border-[#224349]">
+            <div className="flex items-center gap-1 mb-2">
+              <Briefcase className="w-3.5 h-3.5 text-amber-400" />
+              <span className="text-xs text-gray-400 uppercase tracking-wider font-semibold">
+                Business Impact
+              </span>
+            </div>
+            <div className="space-y-1.5">
+              {blastRadius.business_impact.map((cap) => (
+                <div key={cap.capability} className="flex items-center justify-between">
+                  <span className="text-xs text-gray-300">{cap.capability}</span>
+                  <span className={`text-xs font-medium px-2 py-0.5 rounded ${
+                    riskConfig[cap.risk_level]?.bg || 'bg-gray-500/20'
+                  } ${riskConfig[cap.risk_level]?.text || 'text-gray-400'}`}>
+                    {cap.risk_level === 'critical' ? 'At Risk' :
+                     cap.risk_level === 'high' ? 'Degraded' :
+                     cap.risk_level === 'medium' ? 'Monitoring' : 'Stable'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Factors */}
         {Object.keys(severity.factors).length > 0 && (

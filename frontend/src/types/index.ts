@@ -259,6 +259,7 @@ export interface ChatMessage {
 
 export interface V4Session {
   session_id: string;
+  incident_id?: string;
   service_name: string;
   status: DiagnosticPhase;
   confidence: number;
@@ -268,6 +269,7 @@ export interface V4Session {
 
 export interface V4SessionStatus {
   session_id: string;
+  incident_id?: string;
   service_name: string;
   phase: DiagnosticPhase;
   confidence: number;
@@ -280,6 +282,7 @@ export interface V4SessionStatus {
 
 export interface V4Findings {
   session_id: string;
+  incident_id?: string;
   findings: Finding[];
   negative_findings: NegativeFinding[];
   critic_verdicts: CriticVerdict[];
@@ -488,6 +491,12 @@ export interface HypothesisData {
 }
 
 // ===== V5 Impact & Risk Types =====
+export interface BusinessCapabilityImpact {
+  capability: string;
+  risk_level: 'critical' | 'high' | 'medium' | 'low';
+  affected_services: string[];
+}
+
 export interface BlastRadiusData {
   primary_service: string;
   upstream_affected: string[];
@@ -495,6 +504,7 @@ export interface BlastRadiusData {
   shared_resources: string[];
   estimated_user_impact: string;
   scope: 'single_service' | 'service_group' | 'namespace' | 'cluster_wide';
+  business_impact?: BusinessCapabilityImpact[];
 }
 
 export interface SeverityData {

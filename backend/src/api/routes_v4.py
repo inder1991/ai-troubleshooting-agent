@@ -62,6 +62,9 @@ def start_cleanup_task():
 async def start_session(request: StartSessionRequest, background_tasks: BackgroundTasks):
     session_id = str(uuid.uuid4())
 
+    from src.agents.supervisor import generate_incident_id
+    incident_id = generate_incident_id()
+
     # Resolve connection config from profile
     connection_config = None
     profile_id = request.profileId
@@ -76,6 +79,7 @@ async def start_session(request: StartSessionRequest, background_tasks: Backgrou
 
     sessions[session_id] = {
         "service_name": request.serviceName,
+        "incident_id": incident_id,
         "phase": "initial",
         "confidence": 0,
         "created_at": datetime.now(timezone.utc).isoformat(),
@@ -96,6 +100,7 @@ async def start_session(request: StartSessionRequest, background_tasks: Backgrou
 
     initial_input = {
         "session_id": session_id,
+        "incident_id": incident_id,
         "service_name": request.serviceName,
         "elk_index": request.elkIndex,
         "time_start": f"now-{request.timeframe}",
@@ -112,6 +117,7 @@ async def start_session(request: StartSessionRequest, background_tasks: Backgrou
 
     return StartSessionResponse(
         session_id=session_id,
+        incident_id=incident_id,
         status="started",
         message=f"Diagnosis started for {request.serviceName}"
     )
@@ -241,6 +247,7 @@ async def get_session_status(session_id: str):
 
     result = {
         "session_id": session_id,
+        "incident_id": state.incident_id if state else None,
         "service_name": session["service_name"],
         "phase": session["phase"],
         "confidence": session["confidence"],
@@ -308,6 +315,7 @@ async def get_findings(session_id: str):
     impacted_files = state.code_analysis.impacted_files if state.code_analysis else []
 
     return {
+        "incident_id": state.incident_id,
         "findings": [f.model_dump(mode="json") for f in state.all_findings],
         "negative_findings": [nf.model_dump(mode="json") for nf in state.all_negative_findings],
         "critic_verdicts": [cv.model_dump(mode="json") for cv in state.critic_verdicts],
