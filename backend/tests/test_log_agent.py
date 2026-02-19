@@ -52,16 +52,29 @@ def test_parse_patterns_groups_by_exception():
     assert npe_pattern["frequency"] == 1
 
 
-def test_parse_patterns_sorted_by_frequency():
+def test_parse_patterns_sorted_by_severity_then_frequency():
+    """Patterns sort by severity rank first (critical > high > medium > low), then frequency descending."""
     agent = LogAnalysisAgent()
     logs = [
-        {"level": "ERROR", "message": "NullPointerException", "service": "svc-a"},
-        {"level": "ERROR", "message": "ConnectionTimeout after 30s", "service": "svc-b"},
-        {"level": "ERROR", "message": "ConnectionTimeout after 25s", "service": "svc-b"},
-        {"level": "ERROR", "message": "ConnectionTimeout after 30s", "service": "svc-c"},
+        # 40x low-severity deprecation warnings — _extract_exception_type returns "UnknownError"
+        # but _classify_pattern_severity detects "deprecated" keyword → low severity
+        *[{"level": "ERROR", "message": "deprecated header format overdue migration", "service": "svc-a"} for _ in range(40)],
+        # 6x critical ConnectError (low frequency, critical priority)
+        *[{"level": "ERROR", "message": "ConnectError: connection refused to database", "service": "svc-b"} for _ in range(6)],
+        # 21x high-severity RedisTimeout
+        *[{"level": "ERROR", "message": "RedisTimeout after 5s on cache lookup", "service": "svc-c"} for _ in range(21)],
     ]
     patterns = agent._parse_patterns_from_logs(logs)
-    assert patterns[0]["frequency"] >= patterns[-1]["frequency"]
+    assert len(patterns) == 3
+    # Critical sorts first despite having lowest frequency
+    assert patterns[0]["exception_type"] == "ConnectError"
+    assert patterns[0]["severity"] == "critical"
+    # High sorts second
+    assert patterns[1]["exception_type"] == "RedisTimeout"
+    assert patterns[1]["severity"] == "high"
+    # Low sorts last despite having highest frequency (40x)
+    assert patterns[2]["severity"] == "low"
+    assert patterns[2]["frequency"] == 40
 
 
 def test_extract_exception_type():
@@ -84,6 +97,41 @@ def test_extract_pattern_key_uuid_removal():
     key1 = agent._extract_pattern_key("Failed processing request 550e8400-e29b-41d4-a716-446655440000")
     key2 = agent._extract_pattern_key("Failed processing request a1b2c3d4-e5f6-7890-abcd-ef1234567890")
     assert key1 == key2
+
+
+def test_classify_pattern_severity():
+    """Severity classification covers known types, 5xx codes, and deprecation heuristic."""
+    agent = LogAnalysisAgent()
+    # Known critical type
+    assert agent._classify_pattern_severity("ConnectError", "") == "critical"
+    # Known high type
+    assert agent._classify_pattern_severity("RedisTimeout", "") == "high"
+    # Known medium type
+    assert agent._classify_pattern_severity("AuthenticationError", "") == "medium"
+    # Known low type
+    assert agent._classify_pattern_severity("DeprecationWarning", "") == "low"
+    # UnknownError with deprecation keyword → low
+    assert agent._classify_pattern_severity("UnknownError", "deprecated header format") == "low"
+    # 5xx in error message → critical
+    assert agent._classify_pattern_severity("SomeError", "HTTP 503 Service Unavailable") == "critical"
+    # Unknown type, no special keywords → medium default
+    assert agent._classify_pattern_severity("SomeRandomError", "some message") == "medium"
+
+
+def test_build_cross_service_correlations():
+    """Traces spanning multiple services produce correlation entries."""
+    agent = LogAnalysisAgent()
+    raw_logs = [
+        {"trace_id": "trace-1", "service": "checkout-service", "level": "INFO", "message": "processing order"},
+        {"trace_id": "trace-1", "service": "inventory-service", "level": "ERROR", "message": "ConnectError to redis"},
+        {"trace_id": "trace-2", "service": "api-gateway", "level": "INFO", "message": "routing request"},
+    ]
+    correlations = agent._build_cross_service_correlations(raw_logs)
+    # Only trace-1 spans 2 services
+    assert len(correlations) == 1
+    assert set(correlations[0]["services"]) == {"checkout-service", "inventory-service"}
+    assert correlations[0]["error_service"] == "inventory-service"
+    assert correlations[0]["error_type"] == "ConnectError"
 
 
 def test_affected_components_tracked():
@@ -279,11 +327,13 @@ def test_build_result_includes_all_fields():
 
     collection = {
         "service_flow": [{"service": "svc-a", "status": "ok"}],
+        "patterns": [{"pattern_key": "k", "exception_type": "TestError"}],
     }
     analysis = {
-        "primary_pattern": {"exception_type": "TestError"},
+        "primary_pattern": {"exception_type": "TestError", "pattern_id": "p1"},
         "secondary_patterns": [],
         "overall_confidence": 75,
+        "suggested_promql_queries": [{"metric": "cpu", "query": "rate(cpu[5m])", "rationale": "test"}],
     }
     result = agent._build_result(collection, analysis)
 
@@ -298,6 +348,8 @@ def test_build_result_includes_all_fields():
     assert "negative_findings" in result
     assert "tokens_used" in result
     assert "evidence_pins" in result
+    assert "suggested_promql_queries" in result
+    assert len(result["suggested_promql_queries"]) == 1
 
 
 def test_build_result_no_flow():
@@ -332,10 +384,17 @@ def test_build_analysis_prompt_includes_patterns():
     agent = LogAnalysisAgent()
     collection = {
         "patterns": [
-            {"exception_type": "TimeoutError", "frequency": 10, "affected_components": ["svc-a"], "error_message": "Timed out"},
+            {"exception_type": "TimeoutError", "frequency": 10, "severity": "high",
+             "affected_components": ["svc-a"], "error_message": "Timed out", "pattern_key": "TimeoutError"},
+        ],
+        "raw_logs": [
+            {"service": "svc-a", "level": "ERROR", "message": "Timed out"},
         ],
         "service_flow": [],
         "context_logs": [],
+        "error_breadcrumbs": {},
+        "cross_service_correlations": [],
+        "inferred_dependencies": [],
         "index_used": "app-logs-*",
         "stats": {"total_logs": 50, "error_count": 10, "warn_count": 5},
     }
@@ -344,6 +403,9 @@ def test_build_analysis_prompt_includes_patterns():
     assert "checkout" in prompt
     assert "TimeoutError" in prompt
     assert "app-logs-*" in prompt
+    assert "Severity: high" in prompt
+    assert "Architecture Map" in prompt
+    assert "suggested_promql_queries" in prompt
 
 
 def test_build_analysis_prompt_includes_flow():

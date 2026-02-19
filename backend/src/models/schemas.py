@@ -658,6 +658,7 @@ class DiagnosticState(BaseModel):
     patient_zero: Optional[dict] = None
     inferred_dependencies: list[dict] = Field(default_factory=list)
     reasoning_chain: list[dict] = Field(default_factory=list)
+    suggested_promql_queries: list[dict] = Field(default_factory=list)
 
     # Impact & memory
     blast_radius_result: Optional[BlastRadius] = None

@@ -194,6 +194,11 @@ After analysis, provide your final answer as JSON:
         if context.get("error_hints"):
             parts.append(f"Error hints from log analysis: {context['error_hints']}")
             parts.append("IMPORTANT: Use get_saturation_metrics with these error hints to query targeted resource saturation metrics.")
+        if context.get("suggested_promql_queries"):
+            parts.append("Suggested PromQL queries from Log Agent root cause analysis:")
+            for sq in context["suggested_promql_queries"]:
+                parts.append(f"  - {sq.get('query', '')} (rationale: {sq.get('rationale', '')})")
+            parts.append("IMPORTANT: Execute these suggested queries in addition to your standard analysis.")
         return "\n".join(parts)
 
     async def _handle_tool_call(self, tool_name: str, tool_input: dict) -> str:

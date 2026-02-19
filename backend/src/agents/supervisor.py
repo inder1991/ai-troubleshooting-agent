@@ -447,6 +447,8 @@ class SupervisorAgent:
                     if "disk" in combined or "storage" in combined:
                         error_hints.append("disk")
                 base["error_hints"] = error_hints
+            if state.suggested_promql_queries:
+                base["suggested_promql_queries"] = state.suggested_promql_queries
 
         elif agent_name == "k8s_agent":
             base["namespace"] = state.namespace or "default"
@@ -643,6 +645,7 @@ class SupervisorAgent:
             state.patient_zero = result.get("patient_zero")
             state.inferred_dependencies = result.get("inferred_dependencies", [])
             state.reasoning_chain = result.get("reasoning_chain", [])
+            state.suggested_promql_queries = result.get("suggested_promql_queries", [])
 
         # Handle change_agent results
         if agent_name == "change_agent":

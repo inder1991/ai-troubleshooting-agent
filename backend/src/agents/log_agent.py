@@ -203,6 +203,11 @@ class LogAnalysisAgent:
                 raw_evidence=f"Grouped {len(self._raw_logs)} logs into {len(self._patterns)} patterns",
             )
 
+        # Step 4b: Collect error breadcrumbs for critical/high patterns
+        error_breadcrumbs: dict[str, list[dict]] = {}
+        if self._patterns:
+            error_breadcrumbs = await self._collect_error_breadcrumbs(self._patterns, index)
+
         # Step 5: Search by trace_id for flow reconstruction
         trace_id = context.get("trace_id")
         service_flow: list[dict] = []
@@ -258,6 +263,9 @@ class LogAnalysisAgent:
         # Infer service dependencies from patterns and flow
         inferred_dependencies = self._infer_service_dependencies(self._patterns, service_flow)
 
+        # Build cross-service correlations
+        cross_service_correlations = self._build_cross_service_correlations(self._raw_logs)
+
         return {
             "indices_found": indices_found,
             "index_used": index,
@@ -266,6 +274,8 @@ class LogAnalysisAgent:
             "service_flow": service_flow,
             "context_logs": context_logs,
             "inferred_dependencies": inferred_dependencies,
+            "error_breadcrumbs": error_breadcrumbs,
+            "cross_service_correlations": cross_service_correlations,
             "stats": {
                 "total_logs": len(self._raw_logs),
                 "error_count": error_count,
@@ -422,13 +432,18 @@ Your role:
 2. Identify PATIENT ZERO — the first service/component where the failure originated.
 3. Map SERVICE DEPENDENCIES — which services are affected and in what order.
 4. Provide REASONING CHAIN — step-by-step analytical thinking.
+5. Suggest PROMQL QUERIES — specific Prometheus queries to validate the hypothesis.
 
 Analysis framework:
-- Start with the highest-frequency error pattern
-- Check if errors are symptoms of an upstream failure
-- Look for temporal correlation between patterns
-- Consider cascade effects: A fails → B times out → C retries → D overwhelmed
-- Distinguish between root causes and collateral damage
+- Patterns are pre-sorted by operational severity. Focus on critical/high patterns first.
+- Deprecation warnings, header migration notices, and info-level noise are NOT outage causes — skip them. A high-frequency deprecation warning is P4; a single OOMKilled is P1.
+- Assign incident priority (P1/P2/P3/P4) based on OPERATIONAL IMPACT and ERROR CRITICALITY, not frequency.
+- Check if errors are symptoms of an upstream failure.
+- Look for temporal correlation between patterns.
+- Consider cascade effects: A fails → B times out → C retries → D overwhelmed.
+- Distinguish between root causes and collateral damage.
+- Use the Error Breadcrumbs to understand WHAT OPERATION was in progress when the error occurred.
+- For the identified Patient Zero, suggest 3 specific PromQL queries that a Metrics Agent should run to validate the hypothesis (e.g., redis_connection_pool_active_connections, container_memory_working_set_bytes).
 
 Respond with JSON only. No markdown fences."""
 
@@ -476,13 +491,14 @@ Respond with JSON only. No markdown fences."""
             f"{stats.get('unique_services', 0)} services",
             f"Index: {collection.get('index_used', 'unknown')}",
             "",
-            "## Error Patterns (deterministic grouping, sorted by frequency)",
+            "## Error Patterns (deterministic grouping, sorted by severity then frequency)",
         ]
 
         for i, p in enumerate(collection.get("patterns", [])[:10]):
             parts.append(
                 f"\n### P{i+1}: {p.get('exception_type', '?')} ({p.get('frequency', 0)}x)"
             )
+            parts.append(f"Severity: {p.get('severity', 'medium')}")
             parts.append(f"Message: {p.get('error_message', '')[:200]}")
             parts.append(f"Services: {', '.join(p.get('affected_components', []))}")
             parts.append(f"Time range: {p.get('first_seen', '?')} → {p.get('last_seen', '?')}")
@@ -490,6 +506,28 @@ Respond with JSON only. No markdown fences."""
                 parts.append(f"Trace IDs: {', '.join(p['correlation_ids'][:3])}")
             if p.get("stack_traces"):
                 parts.append(f"Stack trace (sample):\n{p['stack_traces'][0][:500]}")
+
+        # Architecture Map
+        parts.append("\n## Architecture Map")
+        parts.append(f"Service under investigation: {service}")
+        svc_counts: dict[str, int] = defaultdict(int)
+        for log in collection.get("raw_logs", []):
+            svc_counts[log.get("service", "unknown")] += 1
+        if svc_counts:
+            parts.append("Services observed in logs (with log counts):")
+            for svc_name, count in sorted(svc_counts.items(), key=lambda x: -x[1]):
+                parts.append(f"  - {svc_name}: {count} log entries")
+
+        # Cross-Service Correlation
+        correlations = collection.get("cross_service_correlations", [])
+        if correlations:
+            parts.append("\n## Cross-Service Correlation")
+            for corr in correlations[:5]:
+                chain = " -> ".join(corr["services"])
+                error_part = ""
+                if corr.get("error_service") and corr.get("error_type"):
+                    error_part = f" (FAILED in {corr['error_service']}: {corr['error_type']})"
+                parts.append(f"  Trace '{corr['trace_id'][:20]}...': {chain}{error_part}")
 
         # Service flow
         flow = collection.get("service_flow", [])
@@ -507,7 +545,24 @@ Respond with JSON only. No markdown fences."""
         if deps:
             parts.append("\n## Inferred Dependencies (from log analysis)")
             for d in deps:
-                parts.append(f"  {d['source']} → {', '.join(d['targets'])}")
+                parts.append(f"  {d['source']} -> {', '.join(d['targets'])}")
+
+        # Error Breadcrumbs
+        error_breadcrumbs = collection.get("error_breadcrumbs", {})
+        if error_breadcrumbs:
+            parts.append("\n## Error Breadcrumbs (logs preceding each critical/high error)")
+            for pattern_key, crumbs in error_breadcrumbs.items():
+                pattern_label = pattern_key
+                for p in collection.get("patterns", []):
+                    if p.get("pattern_key") == pattern_key:
+                        pattern_label = f"{p['exception_type']} ({p['frequency']}x)"
+                        break
+                parts.append(f"\n### Breadcrumbs for {pattern_label}:")
+                for cl in crumbs[-10:]:
+                    parts.append(
+                        f"  [{cl.get('timestamp', '')}] {cl.get('level', '')} "
+                        f"[{cl.get('service', '?')}] {cl.get('message', '')[:120]}"
+                    )
 
         # Context logs
         ctx_logs = collection.get("context_logs", [])
@@ -515,6 +570,19 @@ Respond with JSON only. No markdown fences."""
             parts.append("\n## Context Logs (around first error)")
             for cl in ctx_logs[:15]:
                 parts.append(f"  [{cl.get('timestamp', '')}] {cl.get('level', '')} {cl.get('message', '')[:120]}")
+
+        # Inferred Impact
+        parts.append("\n## Inferred Impact")
+        affected_services = set()
+        for p in collection.get("patterns", []):
+            affected_services.update(p.get("affected_components", []))
+        parts.append(f"Affected services: {', '.join(sorted(affected_services)) if affected_services else 'unknown'}")
+        if deps:
+            downstream = set()
+            for d in deps:
+                downstream.update(d["targets"])
+            if downstream:
+                parts.append(f"Downstream impact: {', '.join(sorted(downstream))}")
 
         parts.append("")
         parts.append("""Analyze and respond with JSON:
@@ -545,6 +613,9 @@ Respond with JSON only. No markdown fences."""
     "reasoning_chain": [
         {"step": 1, "observation": "what was observed", "inference": "what it means"},
         {"step": 2, "observation": "...", "inference": "..."}
+    ],
+    "suggested_promql_queries": [
+        {"metric": "...", "query": "PromQL query string", "rationale": "Why this validates the hypothesis"}
     ]
 }""")
 
@@ -568,6 +639,7 @@ Respond with JSON only. No markdown fences."""
                 "patient_zero": None,
                 "inferred_dependencies": [],
                 "reasoning_chain": [],
+                "suggested_promql_queries": [],
             }
 
         return {
@@ -579,31 +651,54 @@ Respond with JSON only. No markdown fences."""
             "patient_zero": data.get("patient_zero", None),
             "inferred_dependencies": data.get("inferred_dependencies", []),
             "reasoning_chain": data.get("reasoning_chain", []),
+            "suggested_promql_queries": data.get("suggested_promql_queries", []),
         }
 
     # ─── Build Result ──────────────────────────────────────────────────────
 
+    @staticmethod
+    def _find_det_pattern(llm_pattern: dict, det_patterns: list[dict]) -> dict | None:
+        """Match an LLM pattern to a deterministic pattern by pattern_id or exception_type."""
+        # Try pattern_id -> index (e.g., "p1" -> patterns[0])
+        pid = llm_pattern.get("pattern_id", "")
+        if pid and pid.startswith("p"):
+            try:
+                idx = int(pid[1:]) - 1
+                if 0 <= idx < len(det_patterns):
+                    return det_patterns[idx]
+            except ValueError:
+                pass
+        # Fallback to exception_type match
+        exc = llm_pattern.get("exception_type", "")
+        for p in det_patterns:
+            if p.get("exception_type") == exc:
+                return p
+        return None
+
     def _build_result(self, collection: dict, analysis: dict) -> dict:
         """Combine deterministic data + LLM analysis into output format."""
-        # Merge deterministic pattern data into LLM patterns
-        primary = analysis.get("primary_pattern", {})
-        if primary and collection.get("patterns"):
-            det_pattern = collection["patterns"][0]  # highest frequency
-            primary.setdefault("first_seen", det_pattern.get("first_seen", ""))
-            primary.setdefault("last_seen", det_pattern.get("last_seen", ""))
-            primary["stack_traces"] = det_pattern.get("stack_traces", [])
-            primary["correlation_ids"] = det_pattern.get("correlation_ids", [])
-            primary["sample_log_ids"] = det_pattern.get("sample_log_ids", [])
+        det_patterns = collection.get("patterns", [])
 
-        # Same for secondary patterns
-        for i, sp in enumerate(analysis.get("secondary_patterns", [])):
-            if i + 1 < len(collection.get("patterns", [])):
-                det = collection["patterns"][i + 1]
-                sp.setdefault("first_seen", det.get("first_seen", ""))
-                sp.setdefault("last_seen", det.get("last_seen", ""))
-                sp["stack_traces"] = det.get("stack_traces", [])
-                sp["correlation_ids"] = det.get("correlation_ids", [])
-                sp["sample_log_ids"] = det.get("sample_log_ids", [])
+        # Merge deterministic pattern data into LLM primary pattern
+        primary = analysis.get("primary_pattern", {})
+        if primary and det_patterns:
+            det_match = self._find_det_pattern(primary, det_patterns)
+            if det_match:
+                primary.setdefault("first_seen", det_match.get("first_seen", ""))
+                primary.setdefault("last_seen", det_match.get("last_seen", ""))
+                primary["stack_traces"] = det_match.get("stack_traces", [])
+                primary["correlation_ids"] = det_match.get("correlation_ids", [])
+                primary["sample_log_ids"] = det_match.get("sample_log_ids", [])
+
+        # Same for secondary patterns — match by exception_type instead of positional index
+        for sp in analysis.get("secondary_patterns", []):
+            det_match = self._find_det_pattern(sp, det_patterns)
+            if det_match:
+                sp.setdefault("first_seen", det_match.get("first_seen", ""))
+                sp.setdefault("last_seen", det_match.get("last_seen", ""))
+                sp["stack_traces"] = det_match.get("stack_traces", [])
+                sp["correlation_ids"] = det_match.get("correlation_ids", [])
+                sp["sample_log_ids"] = det_match.get("sample_log_ids", [])
 
         # Merge dependency sources: deterministic + LLM
         det_deps = collection.get("inferred_dependencies", [])
@@ -618,6 +713,7 @@ Respond with JSON only. No markdown fences."""
             "patient_zero": analysis.get("patient_zero", None),
             "inferred_dependencies": det_deps + llm_deps,
             "reasoning_chain": analysis.get("reasoning_chain", []),
+            "suggested_promql_queries": analysis.get("suggested_promql_queries", []),
             "breadcrumbs": [b.model_dump(mode="json") for b in self.breadcrumbs],
             "negative_findings": [n.model_dump(mode="json") for n in self.negative_findings],
             "tokens_used": self.get_token_usage().model_dump(),
@@ -970,8 +1066,32 @@ Respond with JSON only. No markdown fences."""
                 "sample_log_ids": sample_log_ids,
             })
 
-        patterns.sort(key=lambda p: p["frequency"], reverse=True)
+        # Classify severity for each pattern
+        for p in patterns:
+            p["severity"] = self._classify_pattern_severity(p["exception_type"], p["error_message"])
+
+        # Sort by severity rank (critical first), then frequency descending within same rank
+        patterns.sort(key=lambda p: (self.SEVERITY_RANK.get(p["severity"], 2), -p["frequency"]))
         return patterns
+
+    def _build_cross_service_correlations(self, raw_logs: list[dict]) -> list[dict]:
+        """Identify traces that span multiple services, annotating where errors occur."""
+        trace_info: dict[str, dict] = defaultdict(
+            lambda: {"services": set(), "error_service": None, "error_type": None}
+        )
+        for log in raw_logs:
+            tid = log.get("trace_id", "")
+            if not tid:
+                continue
+            trace_info[tid]["services"].add(log.get("service", "unknown"))
+            if (log.get("level") or "").upper() in ("ERROR", "FATAL", "CRITICAL"):
+                trace_info[tid]["error_service"] = log.get("service", "unknown")
+                trace_info[tid]["error_type"] = self._extract_exception_type(log.get("message", ""))
+        return [
+            {"trace_id": tid, "services": sorted(info["services"]),
+             "error_service": info["error_service"], "error_type": info["error_type"]}
+            for tid, info in trace_info.items() if len(info["services"]) >= 2
+        ][:10]
 
     def _infer_service_dependencies(self, patterns: list[dict], service_flow: list[dict]) -> list[dict]:
         """Infer service dependencies from error patterns and service flow."""
@@ -1003,6 +1123,40 @@ Respond with JSON only. No markdown fences."""
             for src, targets in deps.items()
         ]
 
+    async def _collect_error_breadcrumbs(
+        self, patterns: list[dict], index: str, max_patterns: int = 3, max_breadcrumb_logs: int = 10
+    ) -> dict[str, list[dict]]:
+        """For top critical/high patterns, fetch logs preceding the first ERROR to reveal the operation in progress."""
+        breadcrumbs_by_pattern: dict[str, list[dict]] = {}
+        for pattern in patterns[:max_patterns]:
+            if pattern.get("severity", "medium") not in ("critical", "high"):
+                continue
+            trace_ids = pattern.get("correlation_ids", [])
+            if not trace_ids:
+                continue
+            trace_result = await self._search_by_trace_id({
+                "index": index, "trace_id": trace_ids[0], "size": 50,
+            })
+            try:
+                trace_logs = json.loads(trace_result).get("logs", [])
+            except (json.JSONDecodeError, AttributeError):
+                continue
+            if not trace_logs:
+                continue
+            sorted_logs = sorted(trace_logs, key=lambda l: l.get("timestamp", ""))
+            error_idx = next(
+                (i for i, l in enumerate(sorted_logs)
+                 if (l.get("level") or "").upper() in ("ERROR", "FATAL", "CRITICAL")),
+                None
+            )
+            if error_idx is not None:
+                start = max(0, error_idx - max_breadcrumb_logs)
+                preceding = sorted_logs[start:error_idx + 1]
+            else:
+                preceding = sorted_logs[-max_breadcrumb_logs:]
+            breadcrumbs_by_pattern[pattern["pattern_key"]] = preceding
+        return breadcrumbs_by_pattern
+
     def _extract_pattern_key(self, message: str) -> str:
         """Extract a fingerprint from a log message for grouping."""
         normalized = re.sub(r'\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}[.\d]*[Z]?', '<TIMESTAMP>', message)
@@ -1012,6 +1166,33 @@ Respond with JSON only. No markdown fences."""
         if exc_match:
             return exc_match.group(1)
         return hashlib.md5(normalized.encode()).hexdigest()[:12]
+
+    # ─── Severity Classification ─────────────────────────────────────────
+
+    SEVERITY_RANK = {"critical": 0, "high": 1, "medium": 2, "low": 3}
+
+    SEVERITY_KEYWORDS = {
+        "critical": {"ConnectError", "OOMKilled", "CrashLoopBackOff", "DatabaseError",
+                     "DataCorruption", "OutOfMemoryError", "SegmentationFault"},
+        "high": {"Timeout", "RedisTimeout", "ConnectionPoolExhausted", "CircuitBreakerOpen",
+                 "ServiceUnavailable", "ConnectionTimeout", "SocketTimeout", "GatewayTimeout"},
+        "medium": {"RetryExhausted", "RateLimited", "AuthenticationError",
+                   "CertificateError", "PermissionError", "TLSError"},
+        "low": {"DeprecationWarning", "HeaderWarning"},
+    }
+
+    def _classify_pattern_severity(self, exception_type: str, error_message: str) -> str:
+        """Classify a pattern's operational severity deterministically."""
+        for severity, types in self.SEVERITY_KEYWORDS.items():
+            if exception_type in types:
+                return severity
+        if re.search(r'\b5\d{2}\b', error_message):
+            return "critical"
+        if exception_type == "UnknownError":
+            msg_lower = error_message.lower()
+            if any(kw in msg_lower for kw in ("deprecated", "migration", "deprecation", "overdue")):
+                return "low"
+        return "medium"
 
     def _extract_exception_type(self, message: str) -> str:
         """Extract the exception class name from a log message."""
