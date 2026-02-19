@@ -97,6 +97,7 @@ export interface ErrorPattern {
   stack_traces?: string[];
   correlation_ids?: string[];
   sample_log_ids?: string[];
+  causal_role?: 'root_cause' | 'cascading_failure' | 'correlated_anomaly';
 }
 
 export interface MetricAnomaly {
@@ -283,6 +284,7 @@ export interface V4SessionStatus {
 export interface V4Findings {
   session_id: string;
   incident_id?: string;
+  target_service?: string;
   findings: Finding[];
   negative_findings: NegativeFinding[];
   critic_verdicts: CriticVerdict[];

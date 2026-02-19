@@ -197,7 +197,7 @@ const AISupervisor: React.FC<AISupervisorProps> = ({
         {/* AI Analysis Section — appears after log_agent completes */}
         {findings?.patient_zero && <PatientZeroCard patientZero={findings.patient_zero} />}
         {(findings?.reasoning_chain?.length ?? 0) > 0 && <ReasoningChainCard chain={findings!.reasoning_chain} />}
-        {(findings?.inferred_dependencies?.length ?? 0) > 0 && <InferredDependenciesCard deps={findings!.inferred_dependencies} />}
+        {(findings?.inferred_dependencies?.length ?? 0) > 0 && <InferredDependenciesCard deps={findings!.inferred_dependencies} targetService={findings?.target_service} />}
       </div>
 
       {/* Chat Input */}
@@ -634,8 +634,9 @@ const ReasoningChainCard: React.FC<{ chain: ReasoningChainStep[] }> = ({ chain }
 
 // ─── Inferred Dependencies Card ───────────────────────────────────────────
 
-const InferredDependenciesCard: React.FC<{ deps: InferredDependency[] }> = ({ deps }) => {
+const InferredDependenciesCard: React.FC<{ deps: InferredDependency[]; targetService?: string }> = ({ deps, targetService }) => {
   if (!deps.length) return null;
+  const isTarget = (name: string) => targetService && name.toLowerCase() === targetService.toLowerCase();
   return (
     <div className="bg-slate-900/40 border border-slate-800 rounded-lg overflow-hidden">
       <div className="px-3 py-2 border-b border-slate-800 flex items-center gap-2 bg-slate-900/60">
@@ -645,7 +646,12 @@ const InferredDependenciesCard: React.FC<{ deps: InferredDependency[] }> = ({ de
       <div className="p-3 space-y-1.5">
         {deps.map((dep, i) => (
           <div key={i} className="flex items-center gap-2 text-[11px]">
-            <span className="font-mono text-[#07b6d5]">{dep.source}</span>
+            <span className={`font-mono ${isTarget(dep.source) ? 'text-[#07b6d5] font-bold' : 'text-[#07b6d5]'}`}>
+              {dep.source}
+            </span>
+            {isTarget(dep.source) && (
+              <span className="text-[8px] px-1 py-0.5 rounded bg-[#07b6d5]/20 text-[#07b6d5] border border-[#07b6d5]/30 font-bold">TARGET</span>
+            )}
             <span className="text-slate-600">{'\u2192'}</span>
             <span className="font-mono text-slate-300">{dep.target || dep.targets?.join(', ')}</span>
             {dep.evidence && (

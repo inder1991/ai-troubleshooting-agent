@@ -31,6 +31,7 @@ const ErrorPatternsCard: React.FC<ErrorPatternsCardProps> = ({ patterns }) => {
             <tr className="text-gray-400 text-xs border-b border-gray-700">
               <th className="text-left py-2 pr-3">Pattern</th>
               <th className="text-left py-2 pr-3">Severity</th>
+              <th className="text-left py-2 pr-3">Role</th>
               <th className="text-right py-2 pr-3">Count</th>
               <th className="text-right py-2">Confidence</th>
             </tr>
@@ -45,6 +46,20 @@ const ErrorPatternsCard: React.FC<ErrorPatternsCardProps> = ({ patterns }) => {
                   <span className={`text-xs px-2 py-0.5 rounded-full ${severityBadge(p.severity)}`}>
                     {p.severity}
                   </span>
+                </td>
+                <td className="py-2 pr-3">
+                  {p.causal_role ? (
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${
+                      p.causal_role === 'root_cause' ? 'bg-red-600 text-red-100' :
+                      p.causal_role === 'cascading_failure' ? 'bg-orange-600 text-orange-100' :
+                      'bg-gray-600 text-gray-100'
+                    }`}>
+                      {p.causal_role === 'root_cause' ? 'Root' :
+                       p.causal_role === 'cascading_failure' ? 'Cascade' : 'Correlated'}
+                    </span>
+                  ) : (
+                    <span className="text-gray-500">-</span>
+                  )}
                 </td>
                 <td className="py-2 pr-3 text-right text-gray-300 font-mono">{p.count}</td>
                 <td className="py-2 text-right text-gray-300 font-mono">

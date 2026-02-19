@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import type { V4Findings, V4SessionStatus, TaskEvent, Severity, CriticVerdict, ChangeCorrelation, BlastRadiusData, SeverityData, SpanInfo, Breadcrumb, ServiceFlowStep, CorrelatedSignalGroup, EventMarker, ErrorPattern, PatientZero } from '../../types';
 import { getFindings, getSessionStatus } from '../../services/api';
 
@@ -120,10 +120,44 @@ const EvidenceStack: React.FC<EvidenceStackProps> = ({ sessionId, events }) => {
   );
 };
 
+// ─── Causal Role Grouping Helper ──────────────────────────────────────────
+
+interface CausalGroup {
+  role: 'root_cause' | 'cascading_failure' | 'correlated_anomaly';
+  label: string;
+  icon: string;
+  borderColor: string;
+  patterns: ErrorPattern[];
+}
+
+function groupByCausalRole(patterns: ErrorPattern[]): CausalGroup[] {
+  const hasCausalData = patterns.some((p) => p.causal_role);
+  if (!hasCausalData) return [];
+
+  const groups: CausalGroup[] = [
+    { role: 'root_cause', label: 'Root Cause', icon: 'target', borderColor: 'border-l-red-500', patterns: [] },
+    { role: 'cascading_failure', label: 'Cascading Failures', icon: 'bolt', borderColor: 'border-l-orange-500', patterns: [] },
+    { role: 'correlated_anomaly', label: 'Correlated Anomalies', icon: 'link', borderColor: 'border-l-slate-500', patterns: [] },
+  ];
+
+  for (const p of patterns) {
+    const group = groups.find((g) => g.role === p.causal_role);
+    if (group) {
+      group.patterns.push(p);
+    } else {
+      // Patterns without causal_role go to correlated anomalies
+      groups[2].patterns.push(p);
+    }
+  }
+
+  return groups.filter((g) => g.patterns.length > 0);
+}
+
 // Evidence Tab - Log patterns and evidence cards matching reference
 const EvidenceTab: React.FC<{ findings: V4Findings | null; events: TaskEvent[] }> = ({ findings, events }) => {
   // Show log patterns if we have error_patterns
   const errorPatterns = findings?.error_patterns || [];
+  const causalGroups = useMemo(() => groupByCausalRole(errorPatterns), [errorPatterns]);
   const k8sEvents = findings?.k8s_events || [];
   const evidenceItems: { severity: Severity; source: string; claim: string }[] = [];
 
@@ -141,7 +175,7 @@ const EvidenceTab: React.FC<{ findings: V4Findings | null; events: TaskEvent[] }
 
   return (
     <div className="space-y-6">
-      {/* Aggregated Error Clusters */}
+      {/* Aggregated Error Clusters — grouped by causal role when available */}
       {errorPatterns.length > 0 && (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
@@ -151,9 +185,26 @@ const EvidenceTab: React.FC<{ findings: V4Findings | null; events: TaskEvent[] }
             </div>
             <span className="text-[10px] font-mono text-slate-500">{errorPatterns.length} patterns</span>
           </div>
-          {errorPatterns.map((ep, i) => (
-            <ErrorPatternCluster key={ep.pattern_id || i} pattern={ep} rank={i + 1} />
-          ))}
+          {causalGroups.length > 0 ? (
+            /* Grouped by causal role */
+            causalGroups.map((group) => (
+              <div key={group.role} className={`border-l-4 ${group.borderColor} pl-3 space-y-2`}>
+                <div className="flex items-center gap-2 pt-1">
+                  <span className="material-symbols-outlined text-sm text-slate-400" style={{ fontFamily: 'Material Symbols Outlined' }}>{group.icon}</span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{group.label}</span>
+                  <span className="text-[10px] text-slate-600">{group.patterns.length}</span>
+                </div>
+                {group.patterns.map((ep, i) => (
+                  <ErrorPatternCluster key={ep.pattern_id || i} pattern={ep} rank={i + 1} />
+                ))}
+              </div>
+            ))
+          ) : (
+            /* Flat fallback — no causal_role data */
+            errorPatterns.map((ep, i) => (
+              <ErrorPatternCluster key={ep.pattern_id || i} pattern={ep} rank={i + 1} />
+            ))
+          )}
         </div>
       )}
 
@@ -1179,6 +1230,16 @@ const ErrorPatternCluster: React.FC<{ pattern: ErrorPattern; rank: number }> = (
           chevron_right
         </span>
         <span className={`text-[10px] font-bold uppercase ${sevTextColor}`}>{pattern.severity}</span>
+        {pattern.causal_role && (
+          <span className={`text-[9px] px-1.5 py-0.5 rounded font-medium ${
+            pattern.causal_role === 'root_cause' ? 'bg-red-500/20 text-red-400 border border-red-500/30' :
+            pattern.causal_role === 'cascading_failure' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' :
+            'bg-slate-500/20 text-slate-400 border border-slate-500/30'
+          }`}>
+            {pattern.causal_role === 'root_cause' ? 'Root' :
+             pattern.causal_role === 'cascading_failure' ? 'Cascade' : 'Correlated'}
+          </span>
+        )}
         <span className="text-xs font-mono text-slate-200 truncate flex-1">{pattern.exception_type}</span>
         <span className="text-xs font-bold text-red-400">{pattern.count}x</span>
       </button>

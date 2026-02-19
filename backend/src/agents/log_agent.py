@@ -261,7 +261,8 @@ class LogAnalysisAgent:
         pattern_count = len(self._patterns)
 
         # Infer service dependencies from patterns and flow
-        inferred_dependencies = self._infer_service_dependencies(self._patterns, service_flow)
+        target_service = context.get("service_name", "")
+        inferred_dependencies = self._infer_service_dependencies(self._patterns, service_flow, target_service=target_service)
 
         # Build cross-service correlations
         cross_service_correlations = self._build_cross_service_correlations(self._raw_logs)
@@ -444,6 +445,10 @@ Analysis framework:
 - Distinguish between root causes and collateral damage.
 - Use the Error Breadcrumbs to understand WHAT OPERATION was in progress when the error occurred.
 - For the identified Patient Zero, suggest 3 specific PromQL queries that a Metrics Agent should run to validate the hypothesis (e.g., redis_connection_pool_active_connections, container_memory_working_set_bytes).
+6. CLASSIFY CAUSAL ROLE — For each error pattern, assign one of:
+   - "root_cause": The primary failure that started the cascade (typically 1 pattern)
+   - "cascading_failure": Downstream symptoms caused by the root cause propagating through service calls
+   - "correlated_anomaly": Concurrent patterns not proven to be causally linked
 
 Respond with JSON only. No markdown fences."""
 
@@ -490,6 +495,14 @@ Respond with JSON only. No markdown fences."""
             f"{stats.get('warn_count', 0)} warnings, {stats.get('pattern_count', 0)} patterns, "
             f"{stats.get('unique_services', 0)} services",
             f"Index: {collection.get('index_used', 'unknown')}",
+            "",
+        ]
+
+        parts.append(f"\nINVESTIGATION TARGET: The user is investigating '{service}'. "
+                     f"Even if errors originate in dependent services, explain how they relate back to {service}. "
+                     f"If {service} is a caller of a failing downstream service, make that relationship explicit in inferred_dependencies.")
+
+        parts += [
             "",
             "## Error Patterns (deterministic grouping, sorted by severity then frequency)",
         ]
@@ -612,9 +625,10 @@ Respond with JSON only. No markdown fences."""
         "affected_components": ["..."],
         "confidence_score": 87,
         "priority_rank": 1,
-        "priority_reasoning": "Why this is the top priority"
+        "priority_reasoning": "Why this is the top priority",
+        "causal_role": "root_cause|cascading_failure|correlated_anomaly"
     },
-    "secondary_patterns": [...],
+    "secondary_patterns": [{"...same fields as primary_pattern incl causal_role..."}],
     "overall_confidence": 85,
     "root_cause_hypothesis": "One-paragraph root cause explanation",
     "flow_analysis": "How the failure propagated across services",
@@ -697,6 +711,8 @@ Respond with JSON only. No markdown fences."""
 
         # Merge deterministic pattern data into LLM primary pattern
         primary = analysis.get("primary_pattern", {})
+        if primary and "causal_role" not in primary:
+            primary["causal_role"] = "root_cause"
         if primary and det_patterns:
             det_match = self._find_det_pattern(primary, det_patterns)
             if det_match:
@@ -1126,7 +1142,7 @@ Respond with JSON only. No markdown fences."""
             for tid, info in trace_info.items() if len(info["services"]) >= 2
         ][:10]
 
-    def _infer_service_dependencies(self, patterns: list[dict], service_flow: list[dict]) -> list[dict]:
+    def _infer_service_dependencies(self, patterns: list[dict], service_flow: list[dict], target_service: str = "") -> list[dict]:
         """Infer service dependencies from error patterns and service flow."""
         deps: dict[str, set[str]] = defaultdict(set)
 
@@ -1150,6 +1166,27 @@ Respond with JSON only. No markdown fences."""
             dst = service_flow[i + 1].get("service", "")
             if src and dst and src != dst:
                 deps[src].add(dst)
+
+        # Ensure target_service appears in the dependency chain
+        if target_service:
+            target_lower = target_service.lower()
+            pattern_services = set()
+            for p in patterns:
+                pattern_services.update(s.lower() for s in p.get("affected_components", []))
+
+            if target_lower not in pattern_services:
+                # Target service is the caller — it depends on the error-producing services
+                for svc in all_services:
+                    if svc.lower() != target_lower:
+                        deps[target_service].add(svc)
+            else:
+                # Target service IS in the patterns — add edges to services mentioned in its errors
+                for p in patterns:
+                    msg = p.get("error_message", "").lower()
+                    if target_lower in [s.lower() for s in p.get("affected_components", [])]:
+                        for svc in all_services:
+                            if svc.lower() != target_lower and svc.lower() in msg:
+                                deps[target_service].add(svc)
 
         return [
             {"source": src, "targets": sorted(targets)}

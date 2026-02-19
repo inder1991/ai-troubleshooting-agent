@@ -950,3 +950,103 @@ def test_blast_radius_schema_has_business_impact():
     )
     assert len(br.business_impact) == 1
     assert br.business_impact[0]["capability"] == "Revenue Generation"
+
+
+# ─── Target Service Dependency Inference ─────────────────────────────────────
+
+def test_infer_deps_target_service_not_in_patterns():
+    """When target_service is NOT in any pattern's affected_components, it becomes a caller of all error-producing services."""
+    agent = LogAnalysisAgent()
+    patterns = [
+        {"error_message": "redis connection refused", "affected_components": ["inventory-service"]},
+        {"error_message": "timeout on cache lookup", "affected_components": ["cache-service"]},
+    ]
+    deps = agent._infer_service_dependencies(patterns, [], target_service="checkout-service")
+    target_dep = next((d for d in deps if d["source"] == "checkout-service"), None)
+    assert target_dep is not None
+    assert "inventory-service" in target_dep["targets"]
+    assert "cache-service" in target_dep["targets"]
+
+
+def test_infer_deps_target_service_in_patterns():
+    """When target_service IS in pattern affected_components, add edges to services mentioned in its error messages."""
+    agent = LogAnalysisAgent()
+    patterns = [
+        {"error_message": "timeout calling redis-cluster", "affected_components": ["checkout-service", "redis-cluster"]},
+    ]
+    deps = agent._infer_service_dependencies(patterns, [], target_service="checkout-service")
+    target_dep = next((d for d in deps if d["source"] == "checkout-service"), None)
+    assert target_dep is not None
+    assert "redis-cluster" in target_dep["targets"]
+
+
+def test_infer_deps_no_target_service():
+    """Without target_service, behavior is unchanged (backward compatible)."""
+    agent = LogAnalysisAgent()
+    patterns = [
+        {"error_message": "redis connection refused", "affected_components": ["inventory-service"]},
+    ]
+    deps = agent._infer_service_dependencies(patterns, [])
+    # No target service edge added
+    sources = [d["source"] for d in deps]
+    assert "checkout-service" not in sources
+
+
+def test_infer_deps_target_service_empty_string():
+    """Empty target_service string should be treated as no target_service."""
+    agent = LogAnalysisAgent()
+    patterns = [
+        {"error_message": "redis error", "affected_components": ["svc-a"]},
+    ]
+    deps_empty = agent._infer_service_dependencies(patterns, [], target_service="")
+    deps_none = agent._infer_service_dependencies(patterns, [])
+    assert deps_empty == deps_none
+
+
+# ─── Causal Role Default in _build_result ────────────────────────────────────
+
+def test_build_result_defaults_primary_causal_role():
+    """If LLM doesn't return causal_role for primary_pattern, it should default to root_cause."""
+    agent = LogAnalysisAgent()
+    collection = {"service_flow": [], "patterns": [], "inferred_dependencies": []}
+    analysis = {
+        "primary_pattern": {"exception_type": "TestError", "error_message": "test"},
+        "secondary_patterns": [],
+        "overall_confidence": 60,
+    }
+    result = agent._build_result(collection, analysis)
+    assert result["primary_pattern"]["causal_role"] == "root_cause"
+
+
+def test_build_result_preserves_llm_causal_role():
+    """If LLM returns causal_role, it should NOT be overwritten."""
+    agent = LogAnalysisAgent()
+    collection = {"service_flow": [], "patterns": [], "inferred_dependencies": []}
+    analysis = {
+        "primary_pattern": {"exception_type": "TestError", "error_message": "test", "causal_role": "cascading_failure"},
+        "secondary_patterns": [],
+        "overall_confidence": 60,
+    }
+    result = agent._build_result(collection, analysis)
+    assert result["primary_pattern"]["causal_role"] == "cascading_failure"
+
+
+# ─── ErrorPattern Schema causal_role ─────────────────────────────────────────
+
+def test_error_pattern_schema_causal_role():
+    """ErrorPattern should accept causal_role and default to None."""
+    from src.models.schemas import ErrorPattern
+    ep = ErrorPattern(
+        pattern_id="p1", exception_type="TestError", error_message="test",
+        frequency=1, severity="medium", affected_components=[],
+        sample_logs=[], confidence_score=50, priority_rank=1, priority_reasoning="test",
+    )
+    assert ep.causal_role is None
+
+    ep_with_role = ErrorPattern(
+        pattern_id="p2", exception_type="TestError", error_message="test",
+        frequency=1, severity="medium", affected_components=[],
+        sample_logs=[], confidence_score=50, priority_rank=1, priority_reasoning="test",
+        causal_role="root_cause",
+    )
+    assert ep_with_role.causal_role == "root_cause"

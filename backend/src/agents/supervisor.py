@@ -601,6 +601,7 @@ class SupervisorAgent:
                         stack_traces=primary_raw.get("stack_traces", []),
                         correlation_ids=primary_raw.get("correlation_ids", []),
                         sample_log_ids=primary_raw.get("sample_log_ids", []),
+                        causal_role=primary_raw.get("causal_role"),
                     )
 
                     secondary = []
@@ -626,6 +627,7 @@ class SupervisorAgent:
                                 stack_traces=sp_raw.get("stack_traces", []),
                                 correlation_ids=sp_raw.get("correlation_ids", []),
                                 sample_log_ids=sp_raw.get("sample_log_ids", []),
+                                causal_role=sp_raw.get("causal_role"),
                             ))
                         except Exception:
                             pass

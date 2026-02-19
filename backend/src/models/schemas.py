@@ -180,6 +180,7 @@ class ErrorPattern(BaseModel):
     stack_traces: list[str] = Field(default_factory=list)
     correlation_ids: list[str] = Field(default_factory=list)
     sample_log_ids: list[str] = Field(default_factory=list)
+    causal_role: Optional[Literal["root_cause", "cascading_failure", "correlated_anomaly"]] = None
 
     @computed_field
     @property

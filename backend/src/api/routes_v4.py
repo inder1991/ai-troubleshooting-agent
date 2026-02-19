@@ -316,6 +316,7 @@ async def get_findings(session_id: str):
 
     return {
         "incident_id": state.incident_id,
+        "target_service": sessions[session_id]["service_name"],
         "findings": [f.model_dump(mode="json") for f in state.all_findings],
         "negative_findings": [nf.model_dump(mode="json") for nf in state.all_negative_findings],
         "critic_verdicts": [cv.model_dump(mode="json") for cv in state.critic_verdicts],
