@@ -1529,6 +1529,11 @@ Respond with JSON only. No markdown fences."""
         """Extract a fingerprint from a log message for grouping."""
         normalized = re.sub(r'\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}[.\d]*[Z]?', '<TIMESTAMP>', message)
         normalized = re.sub(r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', '<UUID>', normalized)
+        # IP addresses (v4)
+        normalized = re.sub(r'\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b', '<IP>', normalized)
+        # Hex strings (8+ chars, e.g. 0x7f3a2b4c, a1b2c3d4e5f6)
+        normalized = re.sub(r'\b0x[0-9a-fA-F]+\b', '<HEX>', normalized)
+        normalized = re.sub(r'\b[0-9a-f]{8,}\b', '<HEX>', normalized)
         normalized = re.sub(r'\b\d+\b', '<NUM>', normalized)
         exc_match = re.search(r'([A-Z][a-zA-Z]*(?:Exception|Error|Timeout|Failure))', message)
         if exc_match:
@@ -1655,6 +1660,23 @@ Respond with JSON only. No markdown fences."""
         if not kept:
             # Fallback: return first few + last few lines of original
             return "\n".join(lines[:3] + ["  ... (filtered)"] + lines[-2:])
+        if len(kept) <= max_lines:
+            return "\n".join(kept)
+        # Smart truncation: preserve "Caused by" sections that would be cut off.
+        # Find the last "Caused by" index — everything from there to end is the root cause tail.
+        last_cause_idx = None
+        for i in range(len(kept) - 1, -1, -1):
+            if "Caused by" in kept[i]:
+                last_cause_idx = i
+                break
+        if last_cause_idx is not None and last_cause_idx >= max_lines:
+            # Root cause section would be truncated — preserve it
+            tail = kept[last_cause_idx:]
+            head_budget = max_lines - len(tail) - 1  # -1 for truncation marker
+            if head_budget > 0:
+                head = kept[:head_budget]
+                head.append("  ... (truncated to show root cause)")
+                return "\n".join(head + tail)
         return "\n".join(kept[:max_lines])
 
     def _extract_exception_type(self, message: str, source: dict | None = None) -> str:

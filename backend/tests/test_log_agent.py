@@ -2520,3 +2520,87 @@ def test_prompt_shows_per_service_counts():
     prompt = agent._build_analysis_prompt(collection, context)
     assert "checkout (20x)" in prompt
     assert "payment (15x)" in prompt
+
+
+# ─── Pattern key masking: hex strings, IP addresses ─────────────────────────
+
+def test_extract_pattern_key_hex_masking():
+    """Hex strings (8+ chars) should be masked to collapse patterns."""
+    agent = LogAnalysisAgent()
+    key1 = agent._extract_pattern_key("Failed lookup for session a1b2c3d4e5f6a7b8 in cache")
+    key2 = agent._extract_pattern_key("Failed lookup for session ff00ff00ff00ff00 in cache")
+    assert key1 == key2
+
+
+def test_extract_pattern_key_0x_hex_masking():
+    """0x-prefixed hex should be masked."""
+    agent = LogAnalysisAgent()
+    key1 = agent._extract_pattern_key("Segfault at address 0x7f3a2b4c")
+    key2 = agent._extract_pattern_key("Segfault at address 0xdeadbeef")
+    assert key1 == key2
+
+
+def test_extract_pattern_key_ip_masking():
+    """IP addresses should be masked to collapse patterns."""
+    agent = LogAnalysisAgent()
+    key1 = agent._extract_pattern_key("Connection refused to 10.0.1.42 port 5432")
+    key2 = agent._extract_pattern_key("Connection refused to 192.168.1.100 port 5432")
+    assert key1 == key2
+
+
+def test_extract_pattern_key_mixed_ids():
+    """Messages differing only in user/order IDs should collapse."""
+    agent = LogAnalysisAgent()
+    key1 = agent._extract_pattern_key("Connection failed for User 12345 on host 10.0.0.1")
+    key2 = agent._extract_pattern_key("Connection failed for User 67890 on host 172.16.0.5")
+    assert key1 == key2
+
+
+# ─── Stack trace: "Caused by" survives max_lines truncation ─────────────────
+
+def test_filter_stack_trace_caused_by_survives_truncation():
+    """Caused-by root cause at the bottom must survive max_lines truncation."""
+    agent = LogAnalysisAgent()
+    # Build a deep trace: top exception + 20 app frames + Caused by at the bottom
+    lines = ["java.lang.RuntimeException: outer wrapper"]
+    for i in range(20):
+        lines.append(f"\tat com.myapp.Layer{i}.call(Layer{i}.java:{i+10})")
+    lines.append("Caused by: java.net.ConnectException: Connection refused")
+    lines.append("\tat com.myapp.db.Pool.getConnection(Pool.java:78)")
+    raw_trace = "\n".join(lines)
+    filtered = agent._filter_stack_trace(raw_trace, max_lines=10)
+    # The root cause MUST be present despite being past line 20
+    assert "Caused by" in filtered
+    assert "ConnectException" in filtered
+    assert "Pool.java:78" in filtered
+
+
+def test_filter_stack_trace_multiple_caused_by():
+    """Multiple Caused-by chains should preserve the deepest root cause."""
+    agent = LogAnalysisAgent()
+    lines = [
+        "java.lang.RuntimeException: Service call failed",
+        "\tat com.myapp.Service.call(Service.java:10)",
+    ]
+    # Add enough frames to exceed max_lines
+    for i in range(15):
+        lines.append(f"\tat com.myapp.Mid{i}.process(Mid{i}.java:{i})")
+    lines += [
+        "Caused by: java.io.IOException: stream closed",
+        "\tat com.myapp.IO.read(IO.java:55)",
+        "Caused by: java.net.SocketException: Connection reset",
+        "\tat com.myapp.Net.connect(Net.java:30)",
+    ]
+    raw_trace = "\n".join(lines)
+    filtered = agent._filter_stack_trace(raw_trace, max_lines=8)
+    assert "SocketException" in filtered
+    assert "Connection reset" in filtered
+
+
+def test_filter_stack_trace_no_caused_by_truncates_normally():
+    """Without Caused-by, normal max_lines truncation still works."""
+    agent = LogAnalysisAgent()
+    lines = ["SomeError: test"] + [f"\tat com.myapp.Svc{i}.method(Svc{i}.java:{i})" for i in range(30)]
+    raw_trace = "\n".join(lines)
+    filtered = agent._filter_stack_trace(raw_trace, max_lines=5)
+    assert len(filtered.strip().splitlines()) <= 6  # 5 + possible truncation marker
