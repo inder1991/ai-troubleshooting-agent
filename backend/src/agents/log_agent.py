@@ -318,21 +318,52 @@ class LogAnalysisAgent:
                 raw_evidence=f"Grouped {len(self._raw_logs)} logs into {len(self._patterns)} patterns",
             )
 
-        # Step 4b: Collect error breadcrumbs for critical/high patterns
-        error_breadcrumbs: dict[str, list[dict]] = {}
+        # Step 4b: Two-pass trace enrichment
+        # Pass 1 already done (fetched target-service errors above).
+        # Pass 2: For top critical/high patterns, use their trace_ids to fetch
+        # cross-service logs — this reveals what DOWNSTREAM services did.
+        trace_enrichment: dict[str, list[dict]] = {}
         if self._patterns:
-            error_breadcrumbs = await self._collect_error_breadcrumbs(self._patterns, index)
+            trace_enrichment = await self._enrich_via_trace_ids(
+                self._patterns, index, event_emitter
+            )
 
-        # Step 4c: Detect solo-service blind spot
+        # Step 4c: Extract egress targets from error messages/stack traces
+        # (e.g., "ConnectError" → which host/service was it trying to reach?)
+        for p in (self._patterns or []):
+            targets = self._extract_connection_targets(p)
+            if targets:
+                p["inferred_targets"] = targets
+
+        # Step 4d: Collect error breadcrumbs — prefer trace-linked breadcrumbs
+        error_breadcrumbs: dict[str, list[dict]] = {}
+        # Use trace enrichment as breadcrumbs: they show the full request journey
+        for pk, trace_logs in trace_enrichment.items():
+            if trace_logs:
+                error_breadcrumbs[pk] = trace_logs
+        # Fallback: collect breadcrumbs the old way for patterns without trace enrichment
+        patterns_needing_breadcrumbs = [
+            p for p in (self._patterns or [])
+            if p["pattern_key"] not in error_breadcrumbs
+        ]
+        if patterns_needing_breadcrumbs:
+            old_breadcrumbs = await self._collect_error_breadcrumbs(
+                patterns_needing_breadcrumbs, index
+            )
+            error_breadcrumbs.update(old_breadcrumbs)
+
+        # Step 4e: Detect solo-service blind spot
         target_service = context.get("service_name", "")
         observed_services = set(l.get("service", "") for l in self._raw_logs)
+        # Include services from trace enrichment
+        for trace_logs in trace_enrichment.values():
+            observed_services.update(l.get("service", "") for l in trace_logs)
         target_service_absent = (
             target_service
             and target_service.lower() not in {s.lower() for s in observed_services}
         )
         target_service_logs: list[dict] = []
         if target_service_absent and self._patterns:
-            # Fetch recent logs (any level) from the target service to show its activity
             first_pattern = self._patterns[0]
             ts = first_pattern.get("first_seen", "")
             if ts:
@@ -348,7 +379,7 @@ class LogAnalysisAgent:
                 except (json.JSONDecodeError, AttributeError):
                     target_service_logs = []
 
-        # Step 4d: Breadcrumb fallback — synthesize from raw_logs when breadcrumbs empty
+        # Step 4f: Breadcrumb fallback — synthesize from raw_logs when breadcrumbs empty
         if not error_breadcrumbs and self._raw_logs:
             for pattern in self._patterns[:3]:
                 if pattern.get("severity", "medium") not in ("critical", "high"):
@@ -357,7 +388,6 @@ class LogAnalysisAgent:
                 first_seen = pattern.get("first_seen", "")
                 if not first_seen:
                     continue
-                # Find raw_logs near this pattern's first_seen from ANY service
                 nearby = [
                     l for l in self._raw_logs
                     if l.get("timestamp", "") and l["timestamp"] <= first_seen
@@ -439,6 +469,7 @@ class LogAnalysisAgent:
             "context_logs": context_logs,
             "inferred_dependencies": inferred_dependencies,
             "error_breadcrumbs": error_breadcrumbs,
+            "trace_enrichment": trace_enrichment,
             "cross_service_correlations": cross_service_correlations,
             "target_service_absent": target_service_absent,
             "target_service_logs": target_service_logs,
@@ -739,6 +770,8 @@ Respond with JSON only. No markdown fences."""
                 parts.append(f"Stack trace (sample):\n{p['stack_traces'][0][:500]}")
             elif p.get("inline_stack_trace"):
                 parts.append(f"Stack trace (extracted from message):\n{p['inline_stack_trace']}")
+            if p.get("inferred_targets"):
+                parts.append(f"Inferred Target: {', '.join(p['inferred_targets'])} (extracted from error/stack trace)")
             if p.get("preceding_context"):
                 parts.append("Preceding context (3 logs before first error):")
                 for ctx_line in p["preceding_context"]:
@@ -823,18 +856,24 @@ Respond with JSON only. No markdown fences."""
             for d in deps:
                 parts.append(f"  {d['source']} -> {', '.join(d['targets'])}")
 
-        # Error Breadcrumbs
+        # Error Breadcrumbs (trace-linked when available)
         error_breadcrumbs = collection.get("error_breadcrumbs", {})
+        trace_enrichment = collection.get("trace_enrichment", {})
         if error_breadcrumbs:
-            parts.append("\n## Error Breadcrumbs (logs preceding each critical/high error)")
+            parts.append("\n## Error Breadcrumbs (request journey for each critical/high error)")
             for pattern_key, crumbs in error_breadcrumbs.items():
                 pattern_label = pattern_key
                 for p in collection.get("patterns", []):
                     if p.get("pattern_key") == pattern_key:
                         pattern_label = f"{p['exception_type']} ({p['frequency']}x)"
                         break
-                parts.append(f"\n### Breadcrumbs for {pattern_label}:")
-                for cl in crumbs[-10:]:
+                is_trace_linked = pattern_key in trace_enrichment
+                source = "TRACE-LINKED cross-service journey" if is_trace_linked else "logs preceding error"
+                services_in_crumbs = sorted(set(cl.get("service", "?") for cl in crumbs))
+                parts.append(f"\n### Breadcrumbs for {pattern_label} ({source}):")
+                if is_trace_linked and len(services_in_crumbs) > 1:
+                    parts.append(f"  Services in trace: {', '.join(services_in_crumbs)}")
+                for cl in crumbs[-15:]:
                     parts.append(
                         f"  [{cl.get('timestamp', '')}] {cl.get('level', '')} "
                         f"[{cl.get('service', '?')}] {cl.get('message', '')[:120]}"
@@ -1233,6 +1272,119 @@ Respond with JSON only. No markdown fences."""
 
         except Exception as e:
             return json.dumps({"error": str(e)})
+
+    # ─── Two-Pass Trace Enrichment ─────────────────────────────────────────
+
+    async def _enrich_via_trace_ids(
+        self,
+        patterns: list[dict],
+        index: str,
+        event_emitter: EventEmitter | None,
+        max_patterns: int = 3,
+    ) -> dict[str, list[dict]]:
+        """Pass 2 of the two-pass fetch: for top critical/high patterns,
+        use their trace_ids to fetch ALL logs across ALL services.
+
+        Returns {pattern_key: [cross-service log entries]} sorted by timestamp.
+        """
+        enrichment: dict[str, list[dict]] = {}
+        for pattern in patterns[:max_patterns]:
+            if pattern.get("severity", "medium") not in ("critical", "high"):
+                continue
+            trace_ids = pattern.get("correlation_ids", [])
+            if not trace_ids:
+                continue
+
+            pk = pattern["pattern_key"]
+            # Fetch cross-service logs using the first trace_id (wildcard index)
+            trace_id = trace_ids[0]
+            if event_emitter:
+                await event_emitter.emit(
+                    self.agent_name, "tool_call",
+                    f"Enrichment pass: fetching cross-service logs for trace {trace_id[:20]}...",
+                    details={"tool": "search_by_trace_id", "trace_id": trace_id},
+                )
+
+            # Use wildcard index to search across ALL indices (not just the target service's)
+            trace_result = await self._search_by_trace_id({
+                "index": "*",
+                "trace_id": trace_id,
+                "size": 100,
+            })
+            try:
+                trace_logs = json.loads(trace_result).get("logs", [])
+            except (json.JSONDecodeError, AttributeError):
+                continue
+
+            if trace_logs:
+                # Sort chronologically for the LLM to follow the request journey
+                trace_logs.sort(key=lambda l: l.get("timestamp", ""))
+                enrichment[pk] = trace_logs
+                self.add_breadcrumb(
+                    action="trace_enrichment",
+                    source_type="log",
+                    source_reference=f"trace_id: {trace_id}",
+                    raw_evidence=(
+                        f"Cross-service trace for {pk}: {len(trace_logs)} logs, "
+                        f"services: {', '.join(sorted(set(l.get('service', '?') for l in trace_logs)))}"
+                    ),
+                )
+        return enrichment
+
+    # ─── Egress Target Extraction ──────────────────────────────────────────
+
+    _TARGET_PATTERNS = [
+        # host:port patterns (e.g., "inventory-service:8080", "10.0.1.5:5432")
+        re.compile(r'(?:connecting to|connection to|connect to|failed to connect|refused by|timed out|target[=: ]+)[: ]\s*["\']?([a-zA-Z0-9._-]+:\d+)', re.IGNORECASE),
+        # URL patterns (e.g., "http://inventory-service:8080/api/v1/stock")
+        re.compile(r'https?://([a-zA-Z0-9._-]+(?::\d+)?)', re.IGNORECASE),
+        # "service:port" in stack trace or error
+        re.compile(r'(?:host|server|endpoint|addr|address)[=: ]+["\']?([a-zA-Z0-9._-]+:\d+)', re.IGNORECASE),
+        # gRPC-style targets
+        re.compile(r'(?:grpc|rpc).*?([a-zA-Z0-9._-]+:\d+)', re.IGNORECASE),
+        # Generic "ExceptionText: host:port" (common in Java/netty)
+        re.compile(r'(?:Exception|Error|Timeout|Refused).*?:\s*([a-zA-Z][a-zA-Z0-9._-]*:\d{2,5})', re.IGNORECASE),
+    ]
+
+    def _extract_connection_targets(self, pattern: dict) -> list[str]:
+        """Extract target host:port or URLs from error message and stack trace.
+
+        Returns unique targets found, e.g. ["inventory-service:8080"].
+        """
+        targets: list[str] = []
+        seen: set[str] = set()
+
+        # Check structured deps first
+        sample = pattern.get("sample_log", {})
+        dep_meta = sample.get("_deps", {})
+        if dep_meta.get("downstream"):
+            ds = dep_meta["downstream"]
+            if ds not in seen:
+                targets.append(ds)
+                seen.add(ds)
+
+        # Scan message and stack trace
+        texts = [
+            pattern.get("error_message", ""),
+            pattern.get("filtered_stack_trace", ""),
+        ]
+        for st in pattern.get("stack_traces", [])[:2]:
+            texts.append(st[:2000])
+
+        for text in texts:
+            if not text:
+                continue
+            for regex in self._TARGET_PATTERNS:
+                for match in regex.finditer(text):
+                    target = match.group(1)
+                    # Skip localhost/loopback
+                    if target.startswith(("localhost", "127.0.0.1", "0.0.0.0")):
+                        continue
+                    if target not in seen:
+                        targets.append(target)
+                        seen.add(target)
+
+        return targets
 
     async def _get_log_context(self, params: dict) -> str:
         """Get surrounding logs for context."""

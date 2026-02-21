@@ -3072,3 +3072,242 @@ async def test_collect_searches_message_keywords_before_all_levels():
     # Fourth call should NOT have message_filter but should exclude noise
     assert not call_params[3].get("message_filter"), "Fourth search should not filter messages"
     assert call_params[3].get("exclude_noise"), "Fourth search should exclude noise"
+
+
+# ─── Egress target extraction ──────────────────────────────────────────────
+
+def test_extract_connection_targets_from_url():
+    """Should extract host:port from URLs in error messages."""
+    agent = LogAnalysisAgent()
+    pattern = {
+        "error_message": "ConnectError: connection to http://inventory-service:8080/api/v1/stock failed",
+        "sample_log": {},
+        "stack_traces": [],
+    }
+    targets = agent._extract_connection_targets(pattern)
+    assert "inventory-service:8080" in targets
+
+
+def test_extract_connection_targets_from_connect_error():
+    """Should extract targets from 'connection to X' patterns."""
+    agent = LogAnalysisAgent()
+    pattern = {
+        "error_message": "Failed to connect to db-primary:5432 - connection refused",
+        "sample_log": {},
+        "stack_traces": [],
+    }
+    targets = agent._extract_connection_targets(pattern)
+    assert "db-primary:5432" in targets
+
+
+def test_extract_connection_targets_from_structured_deps():
+    """Should prefer structured _deps.downstream."""
+    agent = LogAnalysisAgent()
+    pattern = {
+        "error_message": "Timeout occurred",
+        "sample_log": {"_deps": {"downstream": "inventory-service"}},
+        "stack_traces": [],
+    }
+    targets = agent._extract_connection_targets(pattern)
+    assert "inventory-service" in targets
+
+
+def test_extract_connection_targets_skip_localhost():
+    """Should skip localhost/loopback targets."""
+    agent = LogAnalysisAgent()
+    pattern = {
+        "error_message": "Failed to connect to localhost:3000",
+        "sample_log": {},
+        "stack_traces": [],
+    }
+    targets = agent._extract_connection_targets(pattern)
+    assert len(targets) == 0
+
+
+def test_extract_connection_targets_from_stack_trace():
+    """Should scan stack traces for host:port."""
+    agent = LogAnalysisAgent()
+    pattern = {
+        "error_message": "ConnectError",
+        "sample_log": {},
+        "stack_traces": [
+            "io.netty.channel.ConnectTimeoutException: connection timed out: redis-cluster:6379"
+        ],
+    }
+    targets = agent._extract_connection_targets(pattern)
+    assert "redis-cluster:6379" in targets
+
+
+def test_extract_connection_targets_no_duplicates():
+    """Same target in message and stack trace should appear once."""
+    agent = LogAnalysisAgent()
+    pattern = {
+        "error_message": "connect to http://api-service:8080/foo failed",
+        "filtered_stack_trace": "at connect(http://api-service:8080/foo)",
+        "sample_log": {},
+        "stack_traces": [],
+    }
+    targets = agent._extract_connection_targets(pattern)
+    assert targets.count("api-service:8080") == 1
+
+
+# ─── Two-pass trace enrichment ─────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_enrich_via_trace_ids_fetches_cross_service():
+    """Should use wildcard index to fetch cross-service logs for top pattern's trace_id."""
+    agent = LogAnalysisAgent()
+    patterns = [{
+        "pattern_key": "ConnectError",
+        "severity": "critical",
+        "correlation_ids": ["trace-abc-123"],
+    }]
+
+    cross_service_logs = [
+        {"timestamp": "2026-02-21T08:00:01Z", "level": "INFO", "service": "checkout-service",
+         "message": "Starting order processing"},
+        {"timestamp": "2026-02-21T08:00:02Z", "level": "ERROR", "service": "inventory-service",
+         "message": "ReadTimeout: database connection pool exhausted"},
+        {"timestamp": "2026-02-21T08:00:03Z", "level": "ERROR", "service": "checkout-service",
+         "message": "ConnectError: All connection attempts failed"},
+    ]
+
+    async def mock_search_by_trace_id(params):
+        assert params["index"] == "*", "Should use wildcard index for cross-service search"
+        return json.dumps({"total": len(cross_service_logs), "logs": cross_service_logs})
+
+    agent._search_by_trace_id = mock_search_by_trace_id
+
+    result = await agent._enrich_via_trace_ids(patterns, "logstash*", event_emitter=None)
+
+    assert "ConnectError" in result
+    assert len(result["ConnectError"]) == 3
+    # Should include inventory-service logs (cross-service)
+    services = {l["service"] for l in result["ConnectError"]}
+    assert "inventory-service" in services
+    assert "checkout-service" in services
+
+
+@pytest.mark.asyncio
+async def test_enrich_via_trace_ids_skips_low_severity():
+    """Should only enrich critical/high patterns."""
+    agent = LogAnalysisAgent()
+    patterns = [{
+        "pattern_key": "DeprecationWarning",
+        "severity": "low",
+        "correlation_ids": ["trace-xyz"],
+    }]
+
+    called = {"count": 0}
+
+    async def mock_search_by_trace_id(params):
+        called["count"] += 1
+        return json.dumps({"total": 0, "logs": []})
+
+    agent._search_by_trace_id = mock_search_by_trace_id
+    result = await agent._enrich_via_trace_ids(patterns, "logstash*", event_emitter=None)
+    assert called["count"] == 0
+    assert result == {}
+
+
+@pytest.mark.asyncio
+async def test_enrich_via_trace_ids_skips_no_trace_ids():
+    """Should skip patterns with no correlation_ids."""
+    agent = LogAnalysisAgent()
+    patterns = [{
+        "pattern_key": "ConnectError",
+        "severity": "critical",
+        "correlation_ids": [],
+    }]
+
+    called = {"count": 0}
+
+    async def mock_search_by_trace_id(params):
+        called["count"] += 1
+        return json.dumps({"total": 0, "logs": []})
+
+    agent._search_by_trace_id = mock_search_by_trace_id
+    result = await agent._enrich_via_trace_ids(patterns, "logstash*", event_emitter=None)
+    assert called["count"] == 0
+
+
+# ─── Prompt rendering: inferred targets and trace-linked breadcrumbs ───────
+
+def test_prompt_includes_inferred_target():
+    """LLM prompt should include 'Inferred Target' when pattern has targets."""
+    agent = LogAnalysisAgent()
+    collection = {
+        "stats": {"total_logs": 10, "error_count": 10, "warn_count": 0,
+                  "pattern_count": 1, "unique_services": 1},
+        "patterns": [{
+            "pattern_key": "ConnectError",
+            "exception_type": "ConnectError",
+            "severity": "critical",
+            "frequency": 10,
+            "error_message": "ConnectError: All connection attempts failed",
+            "affected_components": ["checkout-service"],
+            "first_seen": "2026-02-21T08:00:00Z",
+            "last_seen": "2026-02-21T08:01:00Z",
+            "inferred_targets": ["inventory-service:8080"],
+            "correlation_ids": [],
+            "stack_traces": [],
+        }],
+        "raw_logs": [],
+        "service_flow": [],
+        "context_logs": [],
+        "inferred_dependencies": [],
+        "error_breadcrumbs": {},
+        "trace_enrichment": {},
+        "cross_service_correlations": [],
+        "traffic_context": [],
+    }
+    context = {"service_name": "checkout-service", "timeframe": "now-1h"}
+    prompt = agent._build_analysis_prompt(collection, context)
+    assert "Inferred Target: inventory-service:8080" in prompt
+
+
+def test_prompt_trace_linked_breadcrumbs_labeled():
+    """Trace-linked breadcrumbs should be labeled as 'TRACE-LINKED cross-service journey'."""
+    agent = LogAnalysisAgent()
+    collection = {
+        "stats": {"total_logs": 10, "error_count": 10, "warn_count": 0,
+                  "pattern_count": 1, "unique_services": 2},
+        "patterns": [{
+            "pattern_key": "ConnectError",
+            "exception_type": "ConnectError",
+            "severity": "critical",
+            "frequency": 10,
+            "error_message": "ConnectError",
+            "affected_components": ["checkout-service"],
+            "first_seen": "2026-02-21T08:00:00Z",
+            "last_seen": "2026-02-21T08:01:00Z",
+            "correlation_ids": [],
+            "stack_traces": [],
+        }],
+        "raw_logs": [],
+        "service_flow": [],
+        "context_logs": [],
+        "inferred_dependencies": [],
+        "error_breadcrumbs": {
+            "ConnectError": [
+                {"timestamp": "2026-02-21T08:00:01Z", "level": "INFO",
+                 "service": "checkout-service", "message": "Processing order"},
+                {"timestamp": "2026-02-21T08:00:02Z", "level": "ERROR",
+                 "service": "inventory-service", "message": "ReadTimeout on DB pool"},
+            ]
+        },
+        "trace_enrichment": {
+            "ConnectError": [
+                {"timestamp": "2026-02-21T08:00:01Z", "level": "INFO",
+                 "service": "checkout-service", "message": "Processing order"},
+                {"timestamp": "2026-02-21T08:00:02Z", "level": "ERROR",
+                 "service": "inventory-service", "message": "ReadTimeout on DB pool"},
+            ]
+        },
+        "cross_service_correlations": [],
+        "traffic_context": [],
+    }
+    context = {"service_name": "checkout-service", "timeframe": "now-1h"}
+    prompt = agent._build_analysis_prompt(collection, context)
+    assert "TRACE-LINKED cross-service journey" in prompt
+    assert "Services in trace:" in prompt
