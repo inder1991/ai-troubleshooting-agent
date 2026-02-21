@@ -109,6 +109,9 @@ class LogAnalysisAgent:
                 pass
 
         level = self._get_field(src, *self.FIELD_MAP["level"]) or ""
+        # Guard against HTTP status codes (e.g. "200", "500") from the 'status' field
+        if isinstance(level, str) and level.isdigit():
+            level = ""
         message = self._get_field(src, *self.FIELD_MAP["message"]) or ""
 
         # Service: bare "service" can be str, dict, or list (ES multi-value)
@@ -986,15 +989,33 @@ Respond with JSON only. No markdown fences."""
             "sort": [{"@timestamp": {"order": "desc"}}],
             "query": {
                 "bool": {
-                    "must": [
-                        {"query_string": {"query": query}},
-                    ],
+                    "must": [],
                     "filter": [
                         {"range": {"@timestamp": {"gte": time_range, "lte": "now"}}},
                     ],
                 }
             },
         }
+
+        # Service matching: use targeted field search instead of query_string
+        # to avoid hyphenated names like "checkout-service" matching all docs
+        if query and query != "*":
+            es_query["query"]["bool"]["must"].append({
+                "bool": {
+                    "should": [
+                        {"match_phrase": {"service": query}},
+                        {"match_phrase": {"service.name": query}},
+                        {"match_phrase": {"service_name": query}},
+                        {"match_phrase": {"kubernetes.container.name": query}},
+                        {"match_phrase": {"kubernetes.labels.app": query}},
+                        {"match_phrase": {"app": query}},
+                        {"match_phrase": {"host.name": query}},
+                        {"match_phrase": {"container.name": query}},
+                        {"query_string": {"query": f'"{query}"'}},
+                    ],
+                    "minimum_should_match": 1,
+                }
+            })
 
         if level_filter:
             level_lower = level_filter.lower()
@@ -1012,6 +1033,8 @@ Respond with JSON only. No markdown fences."""
                         {"match": {"status": level_lower}},
                         {"match": {"loglevel": level_upper}},
                         {"match": {"loglevel": level_lower}},
+                        {"match": {"log_level": level_upper}},
+                        {"match": {"log_level": level_lower}},
                     ],
                     "minimum_should_match": 1,
                 }
@@ -1159,10 +1182,14 @@ Respond with JSON only. No markdown fences."""
                     "must": [
                         {"bool": {
                             "should": [
-                                {"match": {"service": service}},
-                                {"match": {"service.name": service}},
-                                {"match": {"kubernetes.container.name": service}},
-                                {"match": {"kubernetes.labels.app": service}},
+                                {"match_phrase": {"service": service}},
+                                {"match_phrase": {"service.name": service}},
+                                {"match_phrase": {"service_name": service}},
+                                {"match_phrase": {"kubernetes.container.name": service}},
+                                {"match_phrase": {"kubernetes.labels.app": service}},
+                                {"match_phrase": {"app": service}},
+                                {"match_phrase": {"host.name": service}},
+                                {"match_phrase": {"container.name": service}},
                             ],
                             "minimum_should_match": 1,
                         }},

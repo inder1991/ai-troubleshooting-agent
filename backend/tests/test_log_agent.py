@@ -2211,9 +2211,15 @@ async def test_search_elasticsearch_level_filter_includes_status():
     with patch("requests.post", side_effect=mock_post):
         await agent._search_elasticsearch({"index": "logs", "query": "*", "level_filter": "ERROR"})
 
-    should_clause = captured_body["json"]["query"]["bool"]["must"][1]["bool"]["should"]
+    # Level filter is the only must clause when query is "*"
+    level_clause = next(
+        c for c in captured_body["json"]["query"]["bool"]["must"]
+        if "bool" in c and "should" in c["bool"]
+    )
+    should_clause = level_clause["bool"]["should"]
     field_names = [list(m["match"].keys())[0] for m in should_clause]
     assert "status" in field_names
+    assert "log_level" in field_names
 
 
 @pytest.mark.asyncio
@@ -2234,11 +2240,18 @@ async def test_get_log_context_multi_field_service_query():
         await agent._get_log_context({"index": "logs", "timestamp": "2025-01-01T00:00:01Z", "service": "checkout"})
 
     service_clause = captured_body["json"]["query"]["bool"]["must"][0]["bool"]["should"]
-    field_names = [list(m["match"].keys())[0] for m in service_clause]
+    field_names = []
+    for clause in service_clause:
+        if "match_phrase" in clause:
+            field_names.extend(clause["match_phrase"].keys())
+        elif "match" in clause:
+            field_names.extend(clause["match"].keys())
     assert "service" in field_names
     assert "service.name" in field_names
+    assert "service_name" in field_names
     assert "kubernetes.container.name" in field_names
     assert "kubernetes.labels.app" in field_names
+    assert "app" in field_names
 
 
 def test_extract_log_entry_error_type_field():
@@ -2651,3 +2664,85 @@ def test_extract_log_entry_level_as_list():
     }}
     entry = agent._extract_log_entry(hit)
     assert entry["level"] == "ERROR"
+
+
+# ─── HTTP status code guard for level extraction ────────────────────────────
+
+def test_extract_log_entry_status_code_not_treated_as_level():
+    """HTTP status codes (200, 500) in 'status' field must NOT become the log level."""
+    agent = LogAnalysisAgent()
+    hit = {"_id": "1", "_index": "logs", "_source": {
+        "message": "GET /health HTTP/1.1", "status": "200",
+    }}
+    entry = agent._extract_log_entry(hit)
+    assert entry["level"] != "200"
+    assert entry["level"] == ""
+
+
+def test_extract_log_entry_status_error_string_is_valid_level():
+    """'status': 'error' (string) should be extracted as a valid level."""
+    agent = LogAnalysisAgent()
+    hit = {"_id": "1", "_index": "logs", "_source": {
+        "message": "Something failed", "status": "error",
+    }}
+    entry = agent._extract_log_entry(hit)
+    assert entry["level"] == "error"
+
+
+# ─── Targeted service matching in ES query ──────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_search_elasticsearch_uses_targeted_service_fields():
+    """When query is a service name (not *), ES query should use match_phrase on service fields."""
+    agent = LogAnalysisAgent()
+    captured_body = {}
+
+    def mock_post(url, json=None, **kwargs):
+        captured_body["json"] = json
+        resp = MagicMock()
+        resp.status_code = 200
+        resp.raise_for_status = MagicMock()
+        resp.json.return_value = {"hits": {"hits": []}}
+        return resp
+
+    with patch("requests.post", side_effect=mock_post):
+        await agent._search_elasticsearch({"index": "logs", "query": "checkout-service", "level_filter": "ERROR"})
+
+    must_clauses = captured_body["json"]["query"]["bool"]["must"]
+    # First must clause should be service matching (not query_string)
+    service_clause = must_clauses[0]["bool"]["should"]
+    field_names = []
+    for clause in service_clause:
+        if "match_phrase" in clause:
+            field_names.extend(clause["match_phrase"].keys())
+    assert "service" in field_names
+    assert "service.name" in field_names
+    assert "kubernetes.container.name" in field_names
+    # Should NOT have bare query_string that splits on hyphens
+    has_bare_query_string = any(
+        "query_string" in c and '"' not in c.get("query_string", {}).get("query", "")
+        for c in service_clause
+    )
+    assert not has_bare_query_string
+
+
+@pytest.mark.asyncio
+async def test_search_elasticsearch_star_query_skips_service_filter():
+    """When query is '*', no service filter clause should be added."""
+    agent = LogAnalysisAgent()
+    captured_body = {}
+
+    def mock_post(url, json=None, **kwargs):
+        captured_body["json"] = json
+        resp = MagicMock()
+        resp.status_code = 200
+        resp.raise_for_status = MagicMock()
+        resp.json.return_value = {"hits": {"hits": []}}
+        return resp
+
+    with patch("requests.post", side_effect=mock_post):
+        await agent._search_elasticsearch({"index": "logs", "query": "*", "level_filter": "ERROR"})
+
+    must_clauses = captured_body["json"]["query"]["bool"]["must"]
+    # Only the level filter clause should be present (no service clause)
+    assert len(must_clauses) == 1
