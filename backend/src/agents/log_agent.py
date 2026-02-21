@@ -358,29 +358,14 @@ class LogAnalysisAgent:
             if targets:
                 p["inferred_targets"] = targets
 
-        # Step 4d: Collect error breadcrumbs — prefer trace-linked breadcrumbs
+        # Step 4d: Collect error breadcrumbs — trace enrichment goes to its own
+        # "Downstream Evidence" section; breadcrumbs are for pre-error activity only
         error_breadcrumbs: dict[str, list[dict]] = {}
-        # Use trace enrichment as breadcrumbs only if they add cross-service or non-ERROR context
         primary_services = {l.get("service", "") for l in self._raw_logs if l.get("service")}
-        for pk, trace_logs in trace_enrichment.items():
-            if not trace_logs:
-                continue
-            trace_services = {l.get("service", "") for l in trace_logs if l.get("service")}
-            has_cross_service = bool(trace_services - primary_services)
-            has_non_error = any(
-                l.get("level", "").upper() not in ("ERROR", "FATAL", "CRITICAL")
-                for l in trace_logs
-            )
-            if has_cross_service or has_non_error:
-                error_breadcrumbs[pk] = trace_logs
-        # Fallback: collect breadcrumbs the old way for patterns without trace enrichment
-        patterns_needing_breadcrumbs = [
-            p for p in (self._patterns or [])
-            if p["pattern_key"] not in error_breadcrumbs
-        ]
-        if patterns_needing_breadcrumbs:
+        # Collect breadcrumbs the standard way for all patterns
+        if self._patterns:
             old_breadcrumbs = await self._collect_error_breadcrumbs(
-                patterns_needing_breadcrumbs, index
+                self._patterns, index
             )
             error_breadcrumbs.update(old_breadcrumbs)
 
@@ -411,16 +396,9 @@ class LogAnalysisAgent:
                 except (json.JSONDecodeError, AttributeError):
                     target_service_logs = []
 
-        # Step 4f: Breadcrumb fallback — fetch ALL-level pre-error activity when
-        # breadcrumbs are empty and trace enrichment has no cross-service data
-        trace_has_cross_svc_breadcrumbs = False
-        if error_breadcrumbs:
-            for pk, bc_logs in error_breadcrumbs.items():
-                bc_services = {l.get("service", "") for l in bc_logs if l.get("service")}
-                if bc_services - primary_services:
-                    trace_has_cross_svc_breadcrumbs = True
-                    break
-        if not trace_has_cross_svc_breadcrumbs and self._patterns:
+        # Step 4f: Breadcrumb fallback — always fetch ALL-level pre-error activity
+        # to provide the "transaction narrative" (what happened BEFORE the crash)
+        if self._patterns:
             # Collect trace_ids from error patterns for boosting
             error_trace_ids = []
             for p in self._patterns[:5]:
@@ -463,7 +441,7 @@ class LogAnalysisAgent:
                     pattern["_breadcrumb_source"] = "pre_error_activity"
 
         # Secondary fallback: use raw_logs when ES query fails
-        elif not error_breadcrumbs and self._raw_logs and self._patterns:
+        if not error_breadcrumbs and self._raw_logs and self._patterns:
             for pattern in self._patterns[:3]:
                 if pattern.get("severity", "medium") not in ("critical", "high"):
                     continue
@@ -484,16 +462,8 @@ class LogAnalysisAgent:
         blast_radius_logs: list[dict] = []
         blast_radius_patterns: list[dict] = []
         non_empty_services = {l.get("service", "") for l in self._raw_logs if l.get("service")}
-        trace_has_cross_service = False
-        if trace_enrichment:
-            for trace_logs in trace_enrichment.values():
-                trace_services = {l.get("service", "") for l in trace_logs if l.get("service")}
-                if trace_services - non_empty_services:
-                    trace_has_cross_service = True
-                    break
         if (self._patterns
-                and len(non_empty_services) <= 1
-                and not trace_has_cross_service):
+                and len(non_empty_services) <= 1):
             if event_emitter:
                 await event_emitter.emit(
                     self.agent_name, "tool_call",
@@ -616,6 +586,7 @@ class LogAnalysisAgent:
                 "unique_services": len(
                     set(l.get("service", "unknown") for l in self._raw_logs)
                     | set(l.get("service", "unknown") for l in blast_radius_logs)
+                    | {l.get("service", "") for tl in trace_enrichment.values() for l in tl if l.get("service")}
                 ),
             },
         }
@@ -979,6 +950,34 @@ Respond with JSON only. No markdown fences."""
                     f"{bp.get('error_message', '')[:10000]}"
                 )
 
+        # Downstream Evidence (trace-linked logs from dependent services)
+        trace_enrichment = collection.get("trace_enrichment", {})
+        if trace_enrichment:
+            parts.append("\n## Downstream Evidence (trace-linked logs from dependent services)")
+            parts.append("These logs share trace IDs with error patterns — they show what downstream services did for the SAME requests that failed.")
+            for pattern_key, trace_logs in trace_enrichment.items():
+                pattern_label = pattern_key
+                for p in collection.get("patterns", []):
+                    if p.get("pattern_key") == pattern_key:
+                        pattern_label = f"{p['exception_type']} ({p['frequency']}x)"
+                        break
+                services_in_trace = sorted(set(l.get("service", "?") for l in trace_logs))
+                parts.append(f"\n### Downstream trace for {pattern_label}:")
+                parts.append(f"  Services: {', '.join(services_in_trace)}")
+                for tl in trace_logs:
+                    svc = tl.get("service", "?")
+                    parts.append(
+                        f"  [{tl.get('timestamp', '')}] {tl.get('level', '')} "
+                        f"[{svc}] {tl.get('message', '')[:10000]}"
+                    )
+                    st = tl.get("stack_trace", "")
+                    if st:
+                        parts.append(f"  Stack: {st[:5000]}")
+                    meta = tl.get("_metadata", {})
+                    if meta:
+                        meta_str = ", ".join(f"{k}={v}" for k, v in list(meta.items())[:8])
+                        parts.append(f"  Metadata: {meta_str}")
+
         # Cross-Service Correlation
         correlations = collection.get("cross_service_correlations", [])
         if correlations:
@@ -1021,33 +1020,26 @@ Respond with JSON only. No markdown fences."""
             for d in deps:
                 parts.append(f"  {d['source']} -> {', '.join(d['targets'])}")
 
-        # Error Breadcrumbs (trace-linked when available)
+        # Error Breadcrumbs (pre-error narrative)
         error_breadcrumbs = collection.get("error_breadcrumbs", {})
-        trace_enrichment = collection.get("trace_enrichment", {})
         if error_breadcrumbs:
-            parts.append("\n## Error Breadcrumbs (request journey for each critical/high error)")
+            parts.append("\n## Error Breadcrumbs (activity before each critical/high error)")
             for pattern_key, crumbs in error_breadcrumbs.items():
                 pattern_label = pattern_key
                 for p in collection.get("patterns", []):
                     if p.get("pattern_key") == pattern_key:
                         pattern_label = f"{p['exception_type']} ({p['frequency']}x)"
                         break
-                is_trace_linked = pattern_key in trace_enrichment
                 # Determine breadcrumb source label
                 matched_pattern = next(
                     (p for p in collection.get("patterns", []) if p.get("pattern_key") == pattern_key),
                     None
                 )
-                if is_trace_linked:
-                    source = "TRACE-LINKED cross-service journey"
-                elif matched_pattern and matched_pattern.get("_breadcrumb_source") == "pre_error_activity":
+                if matched_pattern and matched_pattern.get("_breadcrumb_source") == "pre_error_activity":
                     source = "pre-error activity (all levels)"
                 else:
                     source = "logs preceding error"
-                services_in_crumbs = sorted(set(cl.get("service", "?") for cl in crumbs))
                 parts.append(f"\n### Breadcrumbs for {pattern_label} ({source}):")
-                if is_trace_linked and len(services_in_crumbs) > 1:
-                    parts.append(f"  Services in trace: {', '.join(services_in_crumbs)}")
                 for cl in crumbs:
                     parts.append(
                         f"  [{cl.get('timestamp', '')}] {cl.get('level', '')} "

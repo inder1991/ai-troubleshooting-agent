@@ -3270,8 +3270,8 @@ def test_prompt_includes_inferred_target():
     assert "Inferred Target: inventory-service:8080" in prompt
 
 
-def test_prompt_trace_linked_breadcrumbs_labeled():
-    """Trace-linked breadcrumbs should be labeled as 'TRACE-LINKED cross-service journey'."""
+def test_prompt_trace_enrichment_rendered_as_downstream_evidence():
+    """Trace enrichment should appear in the Downstream Evidence section, not breadcrumbs."""
     agent = LogAnalysisAgent()
     collection = {
         "stats": {"total_logs": 10, "error_count": 10, "warn_count": 0,
@@ -3292,20 +3292,15 @@ def test_prompt_trace_linked_breadcrumbs_labeled():
         "service_flow": [],
         "context_logs": [],
         "inferred_dependencies": [],
-        "error_breadcrumbs": {
-            "ConnectError": [
-                {"timestamp": "2026-02-21T08:00:01Z", "level": "INFO",
-                 "service": "checkout-service", "message": "Processing order"},
-                {"timestamp": "2026-02-21T08:00:02Z", "level": "ERROR",
-                 "service": "inventory-service", "message": "ReadTimeout on DB pool"},
-            ]
-        },
+        "error_breadcrumbs": {},
         "trace_enrichment": {
             "ConnectError": [
                 {"timestamp": "2026-02-21T08:00:01Z", "level": "INFO",
-                 "service": "checkout-service", "message": "Processing order"},
+                 "service": "checkout-service", "message": "Processing order",
+                 "stack_trace": "", "_metadata": {}},
                 {"timestamp": "2026-02-21T08:00:02Z", "level": "ERROR",
-                 "service": "inventory-service", "message": "ReadTimeout on DB pool"},
+                 "service": "inventory-service", "message": "ReadTimeout on DB pool",
+                 "stack_trace": "", "_metadata": {}},
             ]
         },
         "cross_service_correlations": [],
@@ -3313,8 +3308,11 @@ def test_prompt_trace_linked_breadcrumbs_labeled():
     }
     context = {"service_name": "checkout-service", "timeframe": "now-1h"}
     prompt = agent._build_analysis_prompt(collection, context)
-    assert "TRACE-LINKED cross-service journey" in prompt
-    assert "Services in trace:" in prompt
+    assert "## Downstream Evidence" in prompt
+    assert "inventory-service" in prompt
+    assert "ReadTimeout on DB pool" in prompt
+    # Should NOT have TRACE-LINKED label in breadcrumbs anymore
+    assert "TRACE-LINKED cross-service journey" not in prompt
 
 
 # ─── Change D: Pattern Key Masking ─────────────────────────────────────────────
@@ -3697,8 +3695,8 @@ async def test_blast_radius_triggers_on_solo_service_no_trace():
 
 
 @pytest.mark.asyncio
-async def test_blast_radius_skips_when_cross_service_trace_enrichment_exists():
-    """Blast radius scan should NOT trigger when trace enrichment has cross-service data."""
+async def test_blast_radius_runs_even_with_cross_service_trace_enrichment():
+    """Blast radius scan SHOULD trigger even when trace enrichment has cross-service data."""
     agent = LogAnalysisAgent()
     agent._raw_logs = [
         {"id": "1", "level": "ERROR", "message": "ConnectError: refused",
@@ -3707,10 +3705,22 @@ async def test_blast_radius_skips_when_cross_service_trace_enrichment_exists():
     ]
     agent._patterns = agent._parse_patterns_from_logs(agent._raw_logs)
 
+    blast_radius_data = [
+        {"id": "br1", "level": "ERROR", "message": "RedisTimeout",
+         "service": "cache-service", "timestamp": "2026-02-21T08:05:02Z",
+         "trace_id": "", "stack_trace": "", "error_type": "RedisTimeout"},
+    ]
+
     async def mock_resolve_index(ctx, emitter):
         return "test-*", []
 
+    call_count = 0
     async def mock_search_es(params):
+        nonlocal call_count
+        call_count += 1
+        if params.get("index") == "*" and params.get("level_filter") == "ERROR":
+            # Blast radius scan — inject blast radius logs
+            agent._raw_logs.extend(blast_radius_data)
         return json.dumps({"total": 0, "logs": []})
 
     async def mock_enrich_traces(patterns, idx, emitter, **kw):
@@ -3728,8 +3738,9 @@ async def test_blast_radius_skips_when_cross_service_trace_enrichment_exists():
             {"service_name": "checkout-service", "timeframe": "now-1h"}, None
         )
 
-    assert collection.get("blast_radius_logs", []) == []
-    assert collection.get("blast_radius_patterns", []) == []
+    # Blast radius should fire even with cross-service trace enrichment
+    assert len(collection.get("blast_radius_logs", [])) > 0
+    assert collection["blast_radius_logs"][0]["service"] == "cache-service"
 
 
 @pytest.mark.asyncio
@@ -4150,4 +4161,194 @@ async def test_unique_services_includes_blast_radius():
         )
 
     # Should include checkout-service + inventory-service + cache-service = 3
+    assert collection["stats"]["unique_services"] >= 3
+
+
+# ─── New tests: Downstream Evidence, Always-on Blast Radius/Breadcrumbs ────────
+
+
+def test_downstream_evidence_rendered_in_prompt():
+    """When trace_enrichment has cross-service logs, the prompt contains a Downstream Evidence section."""
+    agent = LogAnalysisAgent()
+    collection = {
+        "patterns": [
+            {"pattern_key": "ConnectError", "exception_type": "ConnectError",
+             "severity": "critical", "frequency": 5, "error_message": "refused",
+             "affected_components": ["checkout-service"], "first_seen": "T1",
+             "last_seen": "T2", "sample_log": {}, "correlation_ids": []},
+        ],
+        "raw_logs": [],
+        "blast_radius_logs": [],
+        "blast_radius_patterns": [],
+        "trace_enrichment": {
+            "ConnectError": [
+                {"service": "inventory-service", "level": "ERROR",
+                 "timestamp": "2026-02-21T08:05:01Z",
+                 "message": "DB timeout after 5000ms",
+                 "stack_trace": "at InventoryDB.query()",
+                 "_metadata": {"pod": "inv-abc123"}},
+                {"service": "inventory-service", "level": "INFO",
+                 "timestamp": "2026-02-21T08:05:00Z",
+                 "message": "Processing order request",
+                 "stack_trace": "", "_metadata": {}},
+            ],
+        },
+        "error_breadcrumbs": {},
+        "cross_service_correlations": [],
+        "traffic_context": [],
+        "service_flow": [],
+        "context_logs": [],
+        "inferred_dependencies": [],
+        "stats": {"total_logs": 10, "error_count": 5, "warn_count": 0,
+                  "pattern_count": 1, "unique_services": 2},
+        "index_used": "test-*",
+        "target_service_absent": False,
+    }
+    prompt = agent._build_analysis_prompt(collection, {"service_name": "checkout-service"})
+    assert "## Downstream Evidence" in prompt
+    assert "inventory-service" in prompt
+    assert "DB timeout after 5000ms" in prompt
+    assert "Stack: at InventoryDB.query()" in prompt
+    assert "Metadata: pod=inv-abc123" in prompt
+    assert "Downstream trace for ConnectError (5x):" in prompt
+
+
+@pytest.mark.asyncio
+async def test_blast_radius_always_runs_for_solo_service():
+    """Blast radius fires for solo-service regardless of trace enrichment content."""
+    agent = LogAnalysisAgent()
+    agent._raw_logs = [
+        {"id": "1", "level": "ERROR", "message": "TimeoutError",
+         "service": "checkout-service", "timestamp": "2026-02-21T08:05:00Z",
+         "trace_id": "t1", "stack_trace": "", "error_type": "TimeoutError"},
+    ]
+    agent._patterns = agent._parse_patterns_from_logs(agent._raw_logs)
+
+    blast_fired = False
+
+    async def mock_resolve_index(ctx, emitter):
+        return "test-*", []
+
+    async def mock_search_es(params):
+        nonlocal blast_fired
+        if params.get("index") == "*" and params.get("level_filter") == "ERROR":
+            blast_fired = True
+            agent._raw_logs.append(
+                {"id": "br1", "level": "ERROR", "message": "RedisTimeout",
+                 "service": "redis-service", "timestamp": "2026-02-21T08:05:02Z",
+                 "trace_id": "", "stack_trace": "", "error_type": "RedisTimeout"})
+        return json.dumps({"total": 0, "logs": []})
+
+    async def mock_enrich_traces(patterns, idx, emitter, **kw):
+        # Return cross-service trace enrichment
+        return {"TimeoutError": [
+            {"service": "payment-service", "level": "ERROR", "message": "Gateway timeout"},
+        ]}
+
+    async def mock_get_log_context(params):
+        return json.dumps({"total": 0, "logs": []})
+
+    with patch.object(agent, "_resolve_index", side_effect=mock_resolve_index), \
+         patch.object(agent, "_search_elasticsearch", side_effect=mock_search_es), \
+         patch.object(agent, "_enrich_via_trace_ids", side_effect=mock_enrich_traces), \
+         patch.object(agent, "_get_log_context", side_effect=mock_get_log_context):
+        collection = await agent._collect(
+            {"service_name": "checkout-service", "timeframe": "now-1h"}, None
+        )
+
+    assert blast_fired, "Blast radius scan should have been triggered"
+    assert len(collection.get("blast_radius_logs", [])) > 0
+
+
+@pytest.mark.asyncio
+async def test_breadcrumb_fallback_always_runs():
+    """Breadcrumb fallback fires even when trace enrichment has cross-service data."""
+    agent = LogAnalysisAgent()
+    agent._raw_logs = [
+        {"id": "1", "level": "ERROR", "message": "NullPointerException",
+         "service": "checkout-service", "timestamp": "2026-02-21T08:05:00Z",
+         "trace_id": "t1", "stack_trace": "", "error_type": "NullPointerException"},
+    ]
+    agent._patterns = agent._parse_patterns_from_logs(agent._raw_logs)
+
+    log_context_called = False
+
+    async def mock_resolve_index(ctx, emitter):
+        return "test-*", []
+
+    async def mock_search_es(params):
+        return json.dumps({"total": 0, "logs": []})
+
+    async def mock_enrich_traces(patterns, idx, emitter, **kw):
+        # Cross-service trace data
+        return {"NullPointerException": [
+            {"service": "inventory-service", "level": "WARN", "message": "Slow query"},
+        ]}
+
+    async def mock_collect_breadcrumbs(patterns, index):
+        return {}
+
+    async def mock_get_log_context(params):
+        nonlocal log_context_called
+        # This is the breadcrumb fallback call (minutes_after=0 is the signature)
+        if params.get("minutes_after") == 0:
+            log_context_called = True
+            return json.dumps({"logs": [
+                {"timestamp": "2026-02-21T08:04:55Z", "level": "INFO",
+                 "service": "checkout-service", "message": "Order started for SKU-123"},
+            ]})
+        return json.dumps({"total": 0, "logs": []})
+
+    with patch.object(agent, "_resolve_index", side_effect=mock_resolve_index), \
+         patch.object(agent, "_search_elasticsearch", side_effect=mock_search_es), \
+         patch.object(agent, "_enrich_via_trace_ids", side_effect=mock_enrich_traces), \
+         patch.object(agent, "_collect_error_breadcrumbs", side_effect=mock_collect_breadcrumbs), \
+         patch.object(agent, "_get_log_context", side_effect=mock_get_log_context):
+        collection = await agent._collect(
+            {"service_name": "checkout-service", "timeframe": "now-1h"}, None
+        )
+
+    assert log_context_called, "Breadcrumb fallback should have been called"
+    assert len(collection.get("error_breadcrumbs", {})) > 0
+    # Verify the pre-error narrative is present
+    first_pk = list(collection["error_breadcrumbs"].keys())[0]
+    msgs = [l["message"] for l in collection["error_breadcrumbs"][first_pk]]
+    assert any("Order started" in m for m in msgs)
+
+
+@pytest.mark.asyncio
+async def test_unique_services_includes_trace_enrichment():
+    """Stats unique_services should count services from trace enrichment."""
+    agent = LogAnalysisAgent()
+    agent._raw_logs = [
+        {"id": "1", "level": "ERROR", "message": "ConnectError",
+         "service": "checkout-service", "timestamp": "2026-02-21T08:05:00Z",
+         "trace_id": "t1", "stack_trace": "", "error_type": "ConnectError"},
+    ]
+    agent._patterns = agent._parse_patterns_from_logs(agent._raw_logs)
+
+    async def mock_resolve_index(ctx, emitter):
+        return "test-*", []
+
+    async def mock_search_es(params):
+        return json.dumps({"total": 0, "logs": []})
+
+    async def mock_enrich_traces(patterns, idx, emitter, **kw):
+        return {"ConnectError": [
+            {"service": "inventory-service", "level": "ERROR", "message": "DB timeout"},
+            {"service": "payment-service", "level": "WARN", "message": "Slow response"},
+        ]}
+
+    async def mock_get_log_context(params):
+        return json.dumps({"total": 0, "logs": []})
+
+    with patch.object(agent, "_resolve_index", side_effect=mock_resolve_index), \
+         patch.object(agent, "_search_elasticsearch", side_effect=mock_search_es), \
+         patch.object(agent, "_enrich_via_trace_ids", side_effect=mock_enrich_traces), \
+         patch.object(agent, "_get_log_context", side_effect=mock_get_log_context):
+        collection = await agent._collect(
+            {"service_name": "checkout-service", "timeframe": "now-1h"}, None
+        )
+
+    # checkout-service (raw_logs) + inventory-service + payment-service (trace enrichment) = 3
     assert collection["stats"]["unique_services"] >= 3
