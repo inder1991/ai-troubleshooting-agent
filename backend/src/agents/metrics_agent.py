@@ -16,7 +16,7 @@ logger = get_logger(__name__)
 class MetricsAgent(ReActAgent):
     """ReAct agent for Prometheus metrics analysis with spike detection."""
 
-    def __init__(self, max_iterations: int = 8, connection_config=None):
+    def __init__(self, max_iterations: int = 5, connection_config=None):
         super().__init__(
             agent_name="metrics_agent",
             max_iterations=max_iterations,
@@ -126,27 +126,35 @@ class MetricsAgent(ReActAgent):
     async def _build_system_prompt(self) -> str:
         return """You are a Metrics Analysis Agent for SRE troubleshooting. You use the ReAct pattern.
 
-IMPORTANT: Call list_available_metrics first to discover what metrics exist before writing PromQL queries. If the Prometheus endpoint is unreachable, report the error immediately instead of attempting further queries.
+EXECUTION STRATEGY — Batch & Refine (3 turns):
 
-Your goals:
-1. Discover available metrics using list_available_metrics
-2. Query Prometheus for CPU, memory, error rate, and latency metrics for the affected service
-3. Use get_default_metrics to get recommended queries, then execute them
-4. Detect anomalies and spikes in the time-series data
-5. Correlate metric anomalies with the incident time window
-6. Report negative findings for metrics that show no anomalies
-7. Use query_prometheus_offset to establish a 24h baseline for each anomalous metric
+═══ TURN 1 — Discovery ═══
+Emit ALL of these tool calls in a SINGLE response:
+  • list_available_metrics  — discover what exists
+  • get_default_metrics     — get recommended PromQL for the service
+  • get_saturation_metrics  — ONLY if error_hints were provided
+If Prometheus is unreachable on any call, report the error immediately and stop.
 
-CRITICAL LABEL RULE: Every PromQL query you execute MUST include namespace= and pod=~ or service= labels to scope to the target service. Never execute a query without these labels — it will return data for the wrong services.
+═══ TURN 2 — Signal Acquisition ═══
+Using the metric names and queries returned in Turn 1, emit ALL data-fetching calls in a SINGLE response:
+  • query_prometheus_range  (x4-8) — one per default/saturation/suggested query, scoped to the incident time window
+  • query_prometheus_offset (x2-4) — 24h baseline for the most important metrics (CPU, memory, error rate, latency)
+Do NOT call these one at a time. Batch every range and offset query into one response.
 
-CRITICAL: Only report metrics that show anomalies. If you queried 20 metrics and only 2 show spikes, your final JSON must contain ONLY those 2 anomalies. Suppress all normal-range metrics. An SRE during an incident needs signal, not noise.
+═══ TURN 3 — Synthesis ═══
+Analyze all returned data. If any metric warrants spike detection, call detect_spikes for those metrics, then output your final JSON.
+If no spike detection is needed, output the final JSON directly.
 
-When log analysis provides error_hints, use get_saturation_metrics to query targeted resource metrics. For example:
+CRITICAL LABEL RULE: Every PromQL query MUST include namespace= and pod=~ or service= labels to scope to the target service. Never execute a query without these labels.
+
+SIGNAL OVER NOISE: Only report metrics that show anomalies. If you queried 20 metrics and only 2 show spikes, your final JSON must contain ONLY those 2 anomalies. Suppress all normal-range metrics. Report negative findings for metrics that show no anomalies.
+
+SATURATION TRIGGERS (when error_hints provided):
 - OOMKilled -> query memory saturation ratio
 - ConnectionPoolTimeout -> query connection pool utilization
 - Timeout errors -> query CPU throttling rate
 
-After identifying anomalies, group them into correlated signal pairs in your final JSON:
+CORRELATED SIGNALS: Group anomalies into signal pairs in your final JSON:
 
 "correlated_signals": [
     {
@@ -165,7 +173,7 @@ After identifying anomalies, group them into correlated signal pairs in your fin
 
 Only create groups where at least one metric in the pair shows an anomaly.
 
-After analysis, provide your final answer as JSON:
+OUTPUT FORMAT — Final answer as JSON:
 {
     "anomalies": [
         {
@@ -207,6 +215,13 @@ After analysis, provide your final answer as JSON:
                          f'Use namespace="{ns}" and pod=~"{svc}.*" or service="{svc}" as appropriate.')
             parts.append("VALIDATION: Before executing suggested queries, use list_available_metrics to check if the metric exists. "
                          "If a suggested metric does not exist, skip it and look for a similar available metric to query instead.")
+
+        parts.append("")
+        parts.append(
+            "BEGIN TURN 1: Call list_available_metrics + get_default_metrics"
+            + (" + get_saturation_metrics" if context.get("error_hints") else "")
+            + " in parallel NOW."
+        )
         return "\n".join(parts)
 
     async def _handle_tool_call(self, tool_name: str, tool_input: dict) -> str:
