@@ -437,6 +437,19 @@ class SupervisorAgent:
             base["timeframe"] = state.time_window.start
             base["trace_id"] = state.trace_id
 
+            # Inject known dependencies from config + prior agent results
+            known_deps = []
+            if self._connection_config:
+                cfg_deps = getattr(self._connection_config, "known_dependencies", ())
+                known_deps.extend(
+                    {"source": src, "target": tgt, "relationship": rel}
+                    for src, tgt, rel in cfg_deps
+                )
+            if state.inferred_dependencies:
+                known_deps.extend(state.inferred_dependencies)
+            if known_deps:
+                base["known_dependencies"] = known_deps
+
         elif agent_name == "metrics_agent":
             base["namespace"] = state.namespace or "default"
             if state.log_analysis:

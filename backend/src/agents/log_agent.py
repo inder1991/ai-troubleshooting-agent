@@ -436,7 +436,7 @@ Your role:
 5. Suggest PROMQL QUERIES — specific Prometheus queries to validate the hypothesis.
 
 Analysis framework:
-- Patterns are pre-sorted by operational severity. Focus on critical/high patterns first.
+- Patterns are pre-sorted by operational severity for TRIAGE PRIORITY, but severity ordering does NOT imply causation.
 - Deprecation warnings, header migration notices, and info-level noise are NOT outage causes — skip them. A high-frequency deprecation warning is P4; a single OOMKilled is P1.
 - Assign incident priority (P1/P2/P3/P4) based on OPERATIONAL IMPACT and ERROR CRITICALITY, not frequency.
 - Check if errors are symptoms of an upstream failure.
@@ -444,6 +444,11 @@ Analysis framework:
 - Consider cascade effects: A fails → B times out → C retries → D overwhelmed.
 - Distinguish between root causes and collateral damage.
 - Use the Error Breadcrumbs to understand WHAT OPERATION was in progress when the error occurred.
+- TEMPORAL CAUSATION CHECK: Before assigning causal_role, compare first_seen timestamps
+  in the Chronological Timeline section. A pattern whose first_seen is AFTER another
+  pattern's first_seen cannot be that earlier pattern's root cause. If a critical-severity
+  pattern started after a high-severity one, the high-severity pattern may be the actual
+  root cause cascading upward into more severe symptoms.
 - For the identified Patient Zero, suggest 3 specific PromQL queries that a Metrics Agent should run to validate the hypothesis (e.g., redis_connection_pool_active_connections, container_memory_working_set_bytes).
 6. CLASSIFY CAUSAL ROLE — For each error pattern, assign one of:
    - "root_cause": The primary failure that started the cascade (typically 1 pattern)
@@ -521,10 +526,38 @@ Respond with JSON only. No markdown fences."""
                 parts.append(f"Stack trace (app frames only):\n{p['filtered_stack_trace']}")
             elif p.get("stack_traces"):
                 parts.append(f"Stack trace (sample):\n{p['stack_traces'][0][:500]}")
+            elif p.get("inline_stack_trace"):
+                parts.append(f"Stack trace (extracted from message):\n{p['inline_stack_trace']}")
             if p.get("preceding_context"):
                 parts.append("Preceding context (3 logs before first error):")
                 for ctx_line in p["preceding_context"]:
                     parts.append(f"  {ctx_line}")
+
+        # Chronological Timeline
+        chronological = sorted(
+            collection.get("patterns", [])[:10],
+            key=lambda p: p.get("first_seen", "9999")
+        )
+        if len(chronological) > 1:
+            parts.append("\n## Chronological Timeline (patterns ordered by first occurrence)")
+            parts.append("NOTE: A pattern that started AFTER another cannot be its root cause.")
+            all_patterns = collection.get("patterns", [])
+            for p in chronological:
+                sev_idx = all_patterns.index(p) + 1 if p in all_patterns else "?"
+                svc_list = ", ".join(p.get("affected_components", []))
+                parts.append(
+                    f"  [{p.get('first_seen', '?')}] P{sev_idx}: "
+                    f"{p.get('exception_type', '?')} ({p.get('severity', '?')}, "
+                    f"{p.get('frequency', 0)}x) -- {svc_list}"
+                )
+
+        # Known Architecture (from configuration/prior analysis)
+        known_deps = context.get("known_dependencies", [])
+        if known_deps:
+            parts.append("\n## Known Architecture (from configuration/prior analysis)")
+            for dep in known_deps[:20]:
+                rel = dep.get("relationship", dep.get("evidence", "calls"))
+                parts.append(f"  {dep.get('source', '?')} -> {dep.get('target', '?')} ({rel})")
 
         # Architecture Map
         parts.append("\n## Architecture Map")
@@ -626,7 +659,7 @@ Respond with JSON only. No markdown fences."""
         "confidence_score": 87,
         "priority_rank": 1,
         "priority_reasoning": "Why this is the top priority",
-        "causal_role": "root_cause|cascading_failure|correlated_anomaly"
+        "causal_role": "root_cause|cascading_failure|correlated_anomaly (validate against first_seen timestamps)"
     },
     "secondary_patterns": [{"...same fields as primary_pattern incl causal_role..."}],
     "overall_confidence": 85,
@@ -1115,6 +1148,14 @@ Respond with JSON only. No markdown fences."""
                 "preceding_context": preceding_context,
             })
 
+            # Inline stack trace extraction fallback
+            if not stack_traces:
+                for l in group_logs[:5]:
+                    inline = self._extract_inline_stack_trace(l.get("message", ""))
+                    if inline:
+                        patterns[-1]["inline_stack_trace"] = self._filter_stack_trace(inline)
+                        break
+
         # Classify severity for each pattern
         for p in patterns:
             p["severity"] = self._classify_pattern_severity(p["exception_type"], p["error_message"])
@@ -1202,29 +1243,57 @@ Respond with JSON only. No markdown fences."""
             if pattern.get("severity", "medium") not in ("critical", "high"):
                 continue
             trace_ids = pattern.get("correlation_ids", [])
-            if not trace_ids:
-                continue
-            trace_result = await self._search_by_trace_id({
-                "index": index, "trace_id": trace_ids[0], "size": 50,
-            })
-            try:
-                trace_logs = json.loads(trace_result).get("logs", [])
-            except (json.JSONDecodeError, AttributeError):
-                continue
-            if not trace_logs:
-                continue
-            sorted_logs = sorted(trace_logs, key=lambda l: l.get("timestamp", ""))
-            error_idx = next(
-                (i for i, l in enumerate(sorted_logs)
-                 if (l.get("level") or "").upper() in ("ERROR", "FATAL", "CRITICAL")),
-                None
-            )
-            if error_idx is not None:
-                start = max(0, error_idx - max_breadcrumb_logs)
-                preceding = sorted_logs[start:error_idx + 1]
+            if trace_ids:
+                trace_result = await self._search_by_trace_id({
+                    "index": index, "trace_id": trace_ids[0], "size": 50,
+                })
+                try:
+                    trace_logs = json.loads(trace_result).get("logs", [])
+                except (json.JSONDecodeError, AttributeError):
+                    continue
+                if not trace_logs:
+                    continue
+                sorted_logs = sorted(trace_logs, key=lambda l: l.get("timestamp", ""))
+                error_idx = next(
+                    (i for i, l in enumerate(sorted_logs)
+                     if (l.get("level") or "").upper() in ("ERROR", "FATAL", "CRITICAL")),
+                    None
+                )
+                if error_idx is not None:
+                    start = max(0, error_idx - max_breadcrumb_logs)
+                    preceding = sorted_logs[start:error_idx + 1]
+                else:
+                    preceding = sorted_logs[-max_breadcrumb_logs:]
+                breadcrumbs_by_pattern[pattern["pattern_key"]] = preceding
             else:
-                preceding = sorted_logs[-max_breadcrumb_logs:]
-            breadcrumbs_by_pattern[pattern["pattern_key"]] = preceding
+                # Fallback: use _get_log_context() with pattern's first_seen timestamp
+                first_seen = pattern.get("first_seen", "")
+                services = pattern.get("affected_components", [])
+                if first_seen and services:
+                    ctx_result = await self._get_log_context({
+                        "index": index,
+                        "timestamp": first_seen,
+                        "service": services[0],
+                        "minutes_before": 3,
+                        "minutes_after": 1,
+                    })
+                    try:
+                        ctx_logs = json.loads(ctx_result).get("logs", [])
+                    except (json.JSONDecodeError, AttributeError):
+                        ctx_logs = []
+                    if ctx_logs:
+                        sorted_ctx = sorted(ctx_logs, key=lambda l: l.get("timestamp", ""))
+                        error_idx = next(
+                            (i for i, l in enumerate(sorted_ctx)
+                             if (l.get("level") or "").upper() in ("ERROR", "FATAL", "CRITICAL")),
+                            None
+                        )
+                        if error_idx is not None:
+                            start = max(0, error_idx - max_breadcrumb_logs)
+                            preceding = sorted_ctx[start:error_idx + 1]
+                        else:
+                            preceding = sorted_ctx[-max_breadcrumb_logs:]
+                        breadcrumbs_by_pattern[pattern["pattern_key"]] = preceding
         return breadcrumbs_by_pattern
 
     def _extract_pattern_key(self, message: str) -> str:
@@ -1356,3 +1425,22 @@ Respond with JSON only. No markdown fences."""
         if "connection" in message.lower():
             return "ConnectionError"
         return "UnknownError"
+
+    _INLINE_STACK_PATTERNS = [
+        re.compile(r'(Traceback \(most recent call last\):.*?\n\S[^\n]*)', re.DOTALL),
+        re.compile(r'((?:[A-Z]\w*(?:Exception|Error|Timeout|Failure)[^\n]*\n)(?:\s+at \S+.*\n?)+)', re.MULTILINE),
+        re.compile(r'(goroutine \d+ \[.*?\]:.*?)(?=\ngoroutine |\Z)', re.DOTALL),
+        re.compile(r'((?:^\tat .+$\n?){2,})', re.MULTILINE),
+    ]
+
+    def _extract_inline_stack_trace(self, message: str) -> str:
+        """Extract stack trace embedded in a log message body."""
+        if not message or len(message) < 50:
+            return ""
+        for pattern in self._INLINE_STACK_PATTERNS:
+            match = pattern.search(message)
+            if match:
+                raw = match.group(1).strip()
+                if len(raw) > 100:
+                    return raw[:2000]
+        return ""

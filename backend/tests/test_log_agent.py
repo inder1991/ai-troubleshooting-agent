@@ -1050,3 +1050,390 @@ def test_error_pattern_schema_causal_role():
         causal_role="root_cause",
     )
     assert ep_with_role.causal_role == "root_cause"
+
+
+# ─── Change 1: Timestamp-based Breadcrumb Fallback ──────────────────────────
+
+@pytest.mark.asyncio
+async def test_breadcrumb_fallback_uses_log_context_when_no_trace_ids():
+    """When a pattern has no correlation_ids, breadcrumbs should fall back to _get_log_context()."""
+    agent = LogAnalysisAgent()
+    patterns = [
+        {
+            "pattern_key": "ConnectError",
+            "severity": "critical",
+            "correlation_ids": [],
+            "first_seen": "2025-01-01T05:21:00Z",
+            "affected_components": ["checkout-service"],
+        }
+    ]
+    # Mock _get_log_context to return surrounding logs
+    async def mock_get_log_context(params):
+        return json.dumps({
+            "logs": [
+                {"timestamp": "2025-01-01T05:20:00Z", "level": "INFO", "message": "Processing order #123"},
+                {"timestamp": "2025-01-01T05:20:30Z", "level": "INFO", "message": "Calling inventory-service"},
+                {"timestamp": "2025-01-01T05:21:00Z", "level": "ERROR", "message": "ConnectError: connection refused"},
+            ]
+        })
+    agent._get_log_context = mock_get_log_context
+
+    result = await agent._collect_error_breadcrumbs(patterns, "app-logs-*")
+    assert "ConnectError" in result
+    crumbs = result["ConnectError"]
+    assert len(crumbs) == 3
+    assert crumbs[0]["level"] == "INFO"
+    assert crumbs[-1]["level"] == "ERROR"
+
+
+@pytest.mark.asyncio
+async def test_breadcrumb_fallback_skips_when_no_first_seen():
+    """When pattern has no first_seen, fallback should not attempt _get_log_context()."""
+    agent = LogAnalysisAgent()
+    patterns = [
+        {
+            "pattern_key": "ConnectError",
+            "severity": "critical",
+            "correlation_ids": [],
+            "first_seen": "",
+            "affected_components": ["checkout-service"],
+        }
+    ]
+    result = await agent._collect_error_breadcrumbs(patterns, "app-logs-*")
+    assert "ConnectError" not in result
+
+
+@pytest.mark.asyncio
+async def test_breadcrumb_trace_path_still_works():
+    """Existing trace-based breadcrumb path should still work when correlation_ids exist."""
+    agent = LogAnalysisAgent()
+    patterns = [
+        {
+            "pattern_key": "ConnectError",
+            "severity": "critical",
+            "correlation_ids": ["trace-abc"],
+            "first_seen": "2025-01-01T05:21:00Z",
+            "affected_components": ["checkout-service"],
+        }
+    ]
+    async def mock_search_by_trace_id(params):
+        return json.dumps({
+            "logs": [
+                {"timestamp": "2025-01-01T05:20:55Z", "level": "INFO", "message": "Starting checkout"},
+                {"timestamp": "2025-01-01T05:21:00Z", "level": "ERROR", "message": "ConnectError"},
+            ]
+        })
+    agent._search_by_trace_id = mock_search_by_trace_id
+
+    result = await agent._collect_error_breadcrumbs(patterns, "app-logs-*")
+    assert "ConnectError" in result
+    assert len(result["ConnectError"]) == 2
+
+
+# ─── Change 2: Inline Stack Trace Extraction ────────────────────────────────
+
+def test_extract_inline_stack_trace_python():
+    agent = LogAnalysisAgent()
+    msg = (
+        "Failed to process request\n"
+        "Traceback (most recent call last):\n"
+        '  File "/app/services/payment.py", line 45, in process_payment\n'
+        "    result = db.execute(query)\n"
+        '  File "/app/db/pool.py", line 12, in execute\n'
+        "    conn = self.get_connection()\n"
+        "ConnectionError: Connection refused\n"
+        "Request terminated."
+    )
+    trace = agent._extract_inline_stack_trace(msg)
+    assert "Traceback" in trace
+    assert "payment.py" in trace
+    assert "ConnectionError" in trace
+
+
+def test_extract_inline_stack_trace_java():
+    agent = LogAnalysisAgent()
+    msg = (
+        "Order processing failed\n"
+        "NullPointerException: Cannot invoke on null\n"
+        "\tat com.myapp.Order.process(Order.java:45)\n"
+        "\tat com.myapp.Controller.handle(Controller.java:12)\n"
+        "\tat com.myapp.Main.run(Main.java:8)\n"
+        "End of error."
+    )
+    trace = agent._extract_inline_stack_trace(msg)
+    assert trace != ""
+    assert "Order.java:45" in trace or "NullPointerException" in trace
+
+
+def test_extract_inline_stack_trace_go():
+    agent = LogAnalysisAgent()
+    msg = (
+        "panic in service handler\n"
+        "goroutine 1 [running]:\n"
+        "main.(*Server).handleRequest(0xc0000b6000, 0xc0000b8000)\n"
+        "\t/app/server.go:45 +0x1a2\n"
+        "main.main()\n"
+        "\t/app/main.go:12 +0x85\n"
+    )
+    trace = agent._extract_inline_stack_trace(msg)
+    assert "goroutine" in trace
+
+
+def test_extract_inline_stack_trace_short_message():
+    agent = LogAnalysisAgent()
+    assert agent._extract_inline_stack_trace("short") == ""
+    assert agent._extract_inline_stack_trace("") == ""
+    assert agent._extract_inline_stack_trace(None) == ""
+
+
+def test_extract_inline_stack_trace_no_trace():
+    agent = LogAnalysisAgent()
+    msg = "This is a normal log message without any stack trace information, just a regular error log entry that happens to be fairly long."
+    assert agent._extract_inline_stack_trace(msg) == ""
+
+
+def test_parse_patterns_adds_inline_stack_trace():
+    """When stack_trace field is empty but message contains a trace, inline_stack_trace should be populated."""
+    agent = LogAnalysisAgent()
+    logs = [
+        {
+            "level": "ERROR",
+            "message": (
+                "Request failed\n"
+                "Traceback (most recent call last):\n"
+                '  File "/app/handler.py", line 10, in handle\n'
+                "    raise ConnectionError('refused')\n"
+                "ConnectionError: refused"
+            ),
+            "service": "checkout-service",
+            "timestamp": "2025-01-01T00:00:01Z",
+            "stack_trace": "",
+        },
+    ]
+    patterns = agent._parse_patterns_from_logs(logs)
+    assert len(patterns) >= 1
+    p = patterns[0]
+    assert p.get("inline_stack_trace", "") != ""
+    assert "handler.py" in p["inline_stack_trace"]
+
+
+def test_parse_patterns_no_inline_when_stack_trace_exists():
+    """When stack_trace field is populated, inline_stack_trace should NOT be added."""
+    agent = LogAnalysisAgent()
+    logs = [
+        {
+            "level": "ERROR",
+            "message": "ConnectionError: refused",
+            "service": "svc-a",
+            "timestamp": "2025-01-01T00:00:01Z",
+            "stack_trace": "ConnectionError\n\tat com.app.Svc.run(Svc.java:10)",
+        },
+    ]
+    patterns = agent._parse_patterns_from_logs(logs)
+    assert "inline_stack_trace" not in patterns[0]
+
+
+def test_prompt_includes_inline_stack_trace():
+    """The analysis prompt should include inline_stack_trace when present."""
+    agent = LogAnalysisAgent()
+    collection = {
+        "patterns": [
+            {
+                "exception_type": "ConnectError",
+                "frequency": 5,
+                "severity": "critical",
+                "affected_components": ["checkout"],
+                "error_message": "Connection refused",
+                "pattern_key": "ConnectError",
+                "first_seen": "2025-01-01T05:21:00Z",
+                "last_seen": "2025-01-01T05:25:00Z",
+                "inline_stack_trace": "Traceback (most recent call last):\n  File \"/app/svc.py\", line 10\nConnectError: refused",
+            },
+        ],
+        "raw_logs": [],
+        "service_flow": [],
+        "context_logs": [],
+        "error_breadcrumbs": {},
+        "cross_service_correlations": [],
+        "inferred_dependencies": [],
+        "index_used": "app-logs-*",
+        "stats": {"total_logs": 5, "error_count": 5, "warn_count": 0},
+    }
+    context = {"service_name": "checkout", "timeframe": "now-1h"}
+    prompt = agent._build_analysis_prompt(collection, context)
+    assert "Stack trace (extracted from message)" in prompt
+    assert "Traceback" in prompt
+
+
+# ─── Change 3: Chronological Timeline ───────────────────────────────────────
+
+def test_prompt_includes_chronological_timeline():
+    """When multiple patterns exist, a chronological timeline section should appear."""
+    agent = LogAnalysisAgent()
+    collection = {
+        "patterns": [
+            {
+                "exception_type": "ConnectError",
+                "frequency": 10,
+                "severity": "critical",
+                "affected_components": ["checkout"],
+                "error_message": "Connection refused",
+                "pattern_key": "ConnectError",
+                "first_seen": "2025-01-01T05:23:00Z",
+                "last_seen": "2025-01-01T05:25:00Z",
+            },
+            {
+                "exception_type": "RedisTimeout",
+                "frequency": 20,
+                "severity": "high",
+                "affected_components": ["inventory"],
+                "error_message": "Redis timeout",
+                "pattern_key": "RedisTimeout",
+                "first_seen": "2025-01-01T05:21:00Z",
+                "last_seen": "2025-01-01T05:24:00Z",
+            },
+        ],
+        "raw_logs": [],
+        "service_flow": [],
+        "context_logs": [],
+        "error_breadcrumbs": {},
+        "cross_service_correlations": [],
+        "inferred_dependencies": [],
+        "index_used": "app-logs-*",
+        "stats": {"total_logs": 30, "error_count": 30, "warn_count": 0},
+    }
+    context = {"service_name": "checkout", "timeframe": "now-1h"}
+    prompt = agent._build_analysis_prompt(collection, context)
+    assert "Chronological Timeline" in prompt
+    assert "cannot be its root cause" in prompt
+    # RedisTimeout (05:21) should appear BEFORE ConnectError (05:23) in timeline
+    redis_pos = prompt.find("RedisTimeout")
+    connect_pos = prompt.find("ConnectError")
+    timeline_section = prompt[prompt.find("Chronological Timeline"):]
+    redis_in_timeline = timeline_section.find("RedisTimeout")
+    connect_in_timeline = timeline_section.find("ConnectError")
+    assert redis_in_timeline < connect_in_timeline
+
+
+def test_prompt_no_timeline_single_pattern():
+    """With only one pattern, no chronological timeline should appear."""
+    agent = LogAnalysisAgent()
+    collection = {
+        "patterns": [
+            {
+                "exception_type": "ConnectError",
+                "frequency": 10,
+                "severity": "critical",
+                "affected_components": ["checkout"],
+                "error_message": "Connection refused",
+                "pattern_key": "ConnectError",
+                "first_seen": "2025-01-01T05:21:00Z",
+                "last_seen": "2025-01-01T05:25:00Z",
+            },
+        ],
+        "raw_logs": [],
+        "service_flow": [],
+        "context_logs": [],
+        "error_breadcrumbs": {},
+        "cross_service_correlations": [],
+        "inferred_dependencies": [],
+        "index_used": "app-logs-*",
+        "stats": {"total_logs": 10, "error_count": 10, "warn_count": 0},
+    }
+    context = {"service_name": "checkout", "timeframe": "now-1h"}
+    prompt = agent._build_analysis_prompt(collection, context)
+    assert "Chronological Timeline" not in prompt
+
+
+# ─── Change 4: Known Dependencies Rendering ─────────────────────────────────
+
+def test_prompt_includes_known_dependencies():
+    """Known dependencies from context should appear in prompt."""
+    agent = LogAnalysisAgent()
+    collection = {
+        "patterns": [],
+        "raw_logs": [],
+        "service_flow": [],
+        "context_logs": [],
+        "error_breadcrumbs": {},
+        "cross_service_correlations": [],
+        "inferred_dependencies": [],
+        "index_used": "app-logs-*",
+        "stats": {"total_logs": 0, "error_count": 0, "warn_count": 0},
+    }
+    context = {
+        "service_name": "checkout",
+        "timeframe": "now-1h",
+        "known_dependencies": [
+            {"source": "checkout", "target": "inventory", "relationship": "gRPC"},
+            {"source": "inventory", "target": "redis", "relationship": "cache"},
+        ],
+    }
+    prompt = agent._build_analysis_prompt(collection, context)
+    assert "Known Architecture" in prompt
+    assert "checkout -> inventory (gRPC)" in prompt
+    assert "inventory -> redis (cache)" in prompt
+
+
+def test_prompt_no_known_deps_when_empty():
+    """When no known_dependencies, the section should not appear."""
+    agent = LogAnalysisAgent()
+    collection = {
+        "patterns": [],
+        "raw_logs": [],
+        "service_flow": [],
+        "context_logs": [],
+        "error_breadcrumbs": {},
+        "cross_service_correlations": [],
+        "inferred_dependencies": [],
+        "index_used": "app-logs-*",
+        "stats": {"total_logs": 0, "error_count": 0, "warn_count": 0},
+    }
+    context = {"service_name": "checkout", "timeframe": "now-1h"}
+    prompt = agent._build_analysis_prompt(collection, context)
+    assert "Known Architecture" not in prompt
+
+
+def test_connection_config_known_dependencies_field():
+    """ResolvedConnectionConfig should accept known_dependencies."""
+    from src.integrations.connection_config import ResolvedConnectionConfig
+    config = ResolvedConnectionConfig(
+        known_dependencies=(
+            ("checkout", "inventory", "gRPC"),
+            ("inventory", "redis", "cache"),
+        )
+    )
+    assert len(config.known_dependencies) == 2
+    assert config.known_dependencies[0] == ("checkout", "inventory", "gRPC")
+
+
+# ─── Change 5: SYSTEM_PROMPT Temporal Reasoning ─────────────────────────────
+
+def test_system_prompt_has_temporal_causation_check():
+    """SYSTEM_PROMPT should contain temporal reasoning guidance."""
+    assert "TEMPORAL CAUSATION CHECK" in LogAnalysisAgent.SYSTEM_PROMPT
+    assert "first_seen" in LogAnalysisAgent.SYSTEM_PROMPT
+
+
+def test_system_prompt_severity_not_causation():
+    """SYSTEM_PROMPT should clarify severity ordering does NOT imply causation."""
+    assert "does NOT imply causation" in LogAnalysisAgent.SYSTEM_PROMPT
+
+
+def test_system_prompt_causal_role_timestamp_validation():
+    """The JSON schema causal_role hint should mention timestamp validation."""
+    agent = LogAnalysisAgent()
+    collection = {
+        "patterns": [],
+        "raw_logs": [],
+        "service_flow": [],
+        "context_logs": [],
+        "error_breadcrumbs": {},
+        "cross_service_correlations": [],
+        "inferred_dependencies": [],
+        "index_used": "app-logs-*",
+        "stats": {"total_logs": 0, "error_count": 0, "warn_count": 0},
+    }
+    context = {"service_name": "svc", "timeframe": "now-1h"}
+    prompt = agent._build_analysis_prompt(collection, context)
+    assert "validate against first_seen timestamps" in prompt

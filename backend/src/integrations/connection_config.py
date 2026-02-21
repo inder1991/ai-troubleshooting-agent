@@ -56,6 +56,9 @@ class ResolvedConnectionConfig:
     max_iterations: int = 0          # Global override (0 = use code default)
     max_iterations_overrides: tuple = ()  # Tuple of (agent_name, limit) pairs
 
+    # Known service topology (manually configured or from prior analysis)
+    known_dependencies: tuple = ()  # Tuple of (source, target, relationship) triples
+
 
 def resolve_active_profile(profile_id: Optional[str] = None) -> ResolvedConnectionConfig:
     """Resolve a connection config from a profile, falling back to env vars.
@@ -140,8 +143,8 @@ def resolve_active_profile(profile_id: Optional[str] = None) -> ResolvedConnecti
         if elk.auth_credential_handle:
             try:
                 elk_creds = resolver.resolve(elk.id, "credential", elk.auth_credential_handle)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning("Failed to decrypt ELK credentials: %s (handle=%s)", e, elk.auth_credential_handle)
 
     jira_url = ""
     jira_creds = ""
