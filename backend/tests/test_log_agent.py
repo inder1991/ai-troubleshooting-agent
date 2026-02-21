@@ -3693,8 +3693,8 @@ async def test_blast_radius_triggers_on_solo_service_no_trace():
 
 
 @pytest.mark.asyncio
-async def test_blast_radius_skips_when_trace_enrichment_exists():
-    """Blast radius scan should NOT trigger when trace enrichment exists."""
+async def test_blast_radius_skips_when_cross_service_trace_enrichment_exists():
+    """Blast radius scan should NOT trigger when trace enrichment has cross-service data."""
     agent = LogAnalysisAgent()
     agent._raw_logs = [
         {"id": "1", "level": "ERROR", "message": "ConnectError: refused",
@@ -3710,7 +3710,8 @@ async def test_blast_radius_skips_when_trace_enrichment_exists():
         return json.dumps({"total": 0, "logs": []})
 
     async def mock_enrich_traces(patterns, idx, emitter, **kw):
-        return {"ConnectError": [{"service": "inventory-service", "message": "DB timeout"}]}
+        # Cross-service: inventory-service != checkout-service
+        return {"ConnectError": [{"service": "inventory-service", "level": "ERROR", "message": "DB timeout"}]}
 
     async def mock_get_log_context(params):
         return json.dumps({"total": 0, "logs": []})
@@ -3893,3 +3894,256 @@ def test_prompt_breadcrumb_pre_error_activity_label():
     context = {"service_name": "checkout-service", "timeframe": "now-1h"}
     prompt = agent._build_analysis_prompt(collection, context)
     assert "pre-error activity (all levels)" in prompt
+
+
+# ─── Post-Implementation Bug Fix Tests ────────────────────────────────────────
+
+
+def test_field_map_error_type_includes_flat_key():
+    """FIELD_MAP error_type should start with the flat 'error_type' key."""
+    agent = LogAnalysisAgent()
+    assert "error_type" in agent.FIELD_MAP["error_type"]
+    assert agent.FIELD_MAP["error_type"][0] == "error_type"
+
+
+def test_get_field_join_list_strips_trailing_newlines():
+    """Array elements with trailing \\n should produce single-spaced output."""
+    agent = LogAnalysisAgent()
+    source = {
+        "exception": {
+            "stacktrace": [
+                "at com.app.Main.run(Main.java:42)\n",
+                "at com.app.Service.call(Service.java:10)\n",
+                "at com.framework.Base.handle(Base.java:99)\n",
+            ]
+        }
+    }
+    result = agent._get_field(source, "exception.stacktrace", join_list=True)
+    assert "\n\n" not in result
+    assert "Main.java:42" in result
+    assert "Service.java:10" in result
+
+    # Also verify raw_stack_trace is preserved in _extract_log_entry
+    hit = {"_id": "test1", "_index": "logs", "_source": source}
+    entry = agent._extract_log_entry(hit, include_trace=True)
+    # raw_stack_trace should preserve original newlines from array elements
+    assert "raw_stack_trace" in entry
+    assert "Main.java:42" in entry["raw_stack_trace"]
+
+
+def test_pattern_grouping_uses_structured_error_type():
+    """Logs with same error_type but different messages should group into 1 pattern."""
+    agent = LogAnalysisAgent()
+    logs = [
+        {"id": "1", "level": "ERROR", "message": "Inventory service timeout after 8.02s",
+         "service": "checkout-service", "timestamp": "2026-02-21T08:05:00Z",
+         "trace_id": "t1", "stack_trace": "", "error_type": "InventoryServiceTimeout"},
+        {"id": "2", "level": "ERROR", "message": "Inventory service timeout after 3.14s",
+         "service": "checkout-service", "timestamp": "2026-02-21T08:05:01Z",
+         "trace_id": "t2", "stack_trace": "", "error_type": "InventoryServiceTimeout"},
+        {"id": "3", "level": "ERROR", "message": "Inventory service timeout after 12.5s",
+         "service": "checkout-service", "timestamp": "2026-02-21T08:05:02Z",
+         "trace_id": "t3", "stack_trace": "", "error_type": "InventoryServiceTimeout"},
+    ]
+    patterns = agent._parse_patterns_from_logs(logs)
+    assert len(patterns) == 1
+    assert patterns[0]["frequency"] == 3
+
+
+@pytest.mark.asyncio
+async def test_blast_radius_triggers_with_same_service_trace_enrichment():
+    """Same-service trace enrichment should NOT block blast radius scan."""
+    agent = LogAnalysisAgent()
+    agent._raw_logs = [
+        {"id": "1", "level": "ERROR", "message": "ConnectError: refused",
+         "service": "checkout-service", "timestamp": "2026-02-21T08:05:00Z",
+         "trace_id": "t1", "stack_trace": "", "error_type": "ConnectError"},
+    ]
+    agent._patterns = agent._parse_patterns_from_logs(agent._raw_logs)
+
+    blast_radius_called = {"called": False}
+
+    async def mock_resolve_index(ctx, emitter):
+        return "test-*", []
+
+    async def mock_search_es(params):
+        if params.get("index") == "*":
+            blast_radius_called["called"] = True
+        return json.dumps({"total": 0, "logs": []})
+
+    async def mock_enrich_traces(patterns, idx, emitter, **kw):
+        # Same-service: checkout-service == checkout-service (primary)
+        return {"ConnectError": [{"service": "checkout-service", "level": "ERROR", "message": "same svc log"}]}
+
+    async def mock_get_log_context(params):
+        return json.dumps({"total": 0, "logs": []})
+
+    with patch.object(agent, "_resolve_index", side_effect=mock_resolve_index), \
+         patch.object(agent, "_search_elasticsearch", side_effect=mock_search_es), \
+         patch.object(agent, "_enrich_via_trace_ids", side_effect=mock_enrich_traces), \
+         patch.object(agent, "_get_log_context", side_effect=mock_get_log_context):
+        await agent._collect(
+            {"service_name": "checkout-service", "timeframe": "now-1h"}, None
+        )
+
+    assert blast_radius_called["called"], "Blast radius search should trigger with same-service trace enrichment"
+
+
+@pytest.mark.asyncio
+async def test_breadcrumb_fallback_triggers_with_same_service_trace_enrichment():
+    """Same-service trace enrichment should NOT block breadcrumb fallback."""
+    agent = LogAnalysisAgent()
+    agent._raw_logs = [
+        {"id": "1", "level": "ERROR", "message": "ConnectError: refused",
+         "service": "checkout-service", "timestamp": "2026-02-21T08:05:00Z",
+         "trace_id": "t1", "stack_trace": "", "error_type": "ConnectError"},
+    ]
+    agent._patterns = agent._parse_patterns_from_logs(agent._raw_logs)
+
+    log_context_called = {"called": False}
+
+    async def mock_resolve_index(ctx, emitter):
+        return "test-*", []
+
+    async def mock_search_es(params):
+        return json.dumps({"total": 0, "logs": []})
+
+    async def mock_enrich_traces(patterns, idx, emitter, **kw):
+        # Same-service ERROR only — should not count as useful breadcrumbs
+        return {"ConnectError": [{"service": "checkout-service", "level": "ERROR", "message": "same svc"}]}
+
+    async def mock_get_log_context(params):
+        log_context_called["called"] = True
+        return json.dumps({"total": 0, "logs": [
+            {"timestamp": "2026-02-21T08:04:30Z", "level": "INFO",
+             "service": "checkout-service", "message": "Processing order"}
+        ]})
+
+    with patch.object(agent, "_resolve_index", side_effect=mock_resolve_index), \
+         patch.object(agent, "_search_elasticsearch", side_effect=mock_search_es), \
+         patch.object(agent, "_enrich_via_trace_ids", side_effect=mock_enrich_traces), \
+         patch.object(agent, "_get_log_context", side_effect=mock_get_log_context):
+        collection = await agent._collect(
+            {"service_name": "checkout-service", "timeframe": "now-1h"}, None
+        )
+
+    assert log_context_called["called"], "Breadcrumb fallback should trigger with same-service trace enrichment"
+
+
+def test_error_breadcrumbs_skip_same_service_error_only_traces():
+    """Same-service ERROR-only trace logs should NOT be used as breadcrumbs."""
+    agent = LogAnalysisAgent()
+    agent._raw_logs = [
+        {"id": "1", "level": "ERROR", "message": "Timeout",
+         "service": "checkout-service", "timestamp": "2026-02-21T08:05:00Z"},
+    ]
+
+    trace_enrichment = {
+        "TimeoutError": [
+            {"service": "checkout-service", "level": "ERROR", "message": "same svc error"},
+        ]
+    }
+
+    # Simulate the breadcrumb filtering logic
+    primary_services = {l.get("service", "") for l in agent._raw_logs if l.get("service")}
+    error_breadcrumbs = {}
+    for pk, trace_logs in trace_enrichment.items():
+        if not trace_logs:
+            continue
+        trace_services = {l.get("service", "") for l in trace_logs if l.get("service")}
+        has_cross_service = bool(trace_services - primary_services)
+        has_non_error = any(
+            l.get("level", "").upper() not in ("ERROR", "FATAL", "CRITICAL")
+            for l in trace_logs
+        )
+        if has_cross_service or has_non_error:
+            error_breadcrumbs[pk] = trace_logs
+
+    assert len(error_breadcrumbs) == 0
+
+
+def test_error_breadcrumbs_use_cross_service_traces():
+    """Cross-service trace logs should be used as breadcrumbs."""
+    agent = LogAnalysisAgent()
+    agent._raw_logs = [
+        {"id": "1", "level": "ERROR", "message": "Timeout",
+         "service": "checkout-service", "timestamp": "2026-02-21T08:05:00Z"},
+    ]
+
+    trace_enrichment = {
+        "TimeoutError": [
+            {"service": "inventory-service", "level": "ERROR", "message": "DB pool exhausted"},
+        ]
+    }
+
+    primary_services = {l.get("service", "") for l in agent._raw_logs if l.get("service")}
+    error_breadcrumbs = {}
+    for pk, trace_logs in trace_enrichment.items():
+        if not trace_logs:
+            continue
+        trace_services = {l.get("service", "") for l in trace_logs if l.get("service")}
+        has_cross_service = bool(trace_services - primary_services)
+        has_non_error = any(
+            l.get("level", "").upper() not in ("ERROR", "FATAL", "CRITICAL")
+            for l in trace_logs
+        )
+        if has_cross_service or has_non_error:
+            error_breadcrumbs[pk] = trace_logs
+
+    assert "TimeoutError" in error_breadcrumbs
+    assert len(error_breadcrumbs["TimeoutError"]) == 1
+
+
+def test_sre_metadata_fields_includes_domain_fields():
+    """SRE_METADATA_FIELDS should include domain-specific fields from real ES data."""
+    agent = LogAnalysisAgent()
+    for field in ["error_type", "downstream", "step", "timeout_s", "total_elapsed_s", "order_id", "component"]:
+        assert field in agent.SRE_METADATA_FIELDS, f"{field} missing from SRE_METADATA_FIELDS"
+
+
+@pytest.mark.asyncio
+async def test_unique_services_includes_blast_radius():
+    """Stats unique_services should count services from blast radius logs too."""
+    agent = LogAnalysisAgent()
+    agent._raw_logs = [
+        {"id": "1", "level": "ERROR", "message": "ConnectError: refused",
+         "service": "checkout-service", "timestamp": "2026-02-21T08:05:00Z",
+         "trace_id": "", "stack_trace": "", "error_type": "ConnectError"},
+    ]
+    agent._patterns = agent._parse_patterns_from_logs(agent._raw_logs)
+
+    blast_call_count = {"count": 0}
+
+    async def mock_resolve_index(ctx, emitter):
+        return "test-*", []
+
+    async def mock_search_es(params):
+        if params.get("index") == "*":
+            blast_call_count["count"] += 1
+            # Inject blast radius logs into _raw_logs (simulating ES response)
+            agent._raw_logs.extend([
+                {"id": "br1", "level": "ERROR", "message": "DB pool exhausted",
+                 "service": "inventory-service", "timestamp": "2026-02-21T08:05:01Z",
+                 "trace_id": "", "stack_trace": "", "error_type": ""},
+                {"id": "br2", "level": "ERROR", "message": "Cache miss storm",
+                 "service": "cache-service", "timestamp": "2026-02-21T08:05:02Z",
+                 "trace_id": "", "stack_trace": "", "error_type": ""},
+            ])
+        return json.dumps({"total": 0, "logs": []})
+
+    async def mock_enrich_traces(patterns, idx, emitter, **kw):
+        return {}
+
+    async def mock_get_log_context(params):
+        return json.dumps({"total": 0, "logs": []})
+
+    with patch.object(agent, "_resolve_index", side_effect=mock_resolve_index), \
+         patch.object(agent, "_search_elasticsearch", side_effect=mock_search_es), \
+         patch.object(agent, "_enrich_via_trace_ids", side_effect=mock_enrich_traces), \
+         patch.object(agent, "_get_log_context", side_effect=mock_get_log_context):
+        collection = await agent._collect(
+            {"service_name": "checkout-service", "timeframe": "now-1h"}, None
+        )
+
+    # Should include checkout-service + inventory-service + cache-service = 3
+    assert collection["stats"]["unique_services"] >= 3

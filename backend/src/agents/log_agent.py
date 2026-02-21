@@ -87,7 +87,7 @@ class LogAnalysisAgent:
                     break
             if isinstance(val, list):
                 if join_list:
-                    val = "\n".join(str(v) for v in val if v) if val else None
+                    val = "\n".join(str(v).rstrip("\n") for v in val if v) if val else None
                 else:
                     val = val[0] if val else None
             if val is not None and val != "":
@@ -142,6 +142,20 @@ class LogAnalysisAgent:
         if include_trace:
             entry["trace_id"] = self._get_field(src, *self.FIELD_MAP["trace_id"]) or ""
             entry["stack_trace"] = self._get_field(src, *self.FIELD_MAP["stack_trace"], join_list=True) or ""
+            # Raw stack trace for Code Agent: preserve original without stripping
+            for st_key in self.FIELD_MAP["stack_trace"]:
+                parts = st_key.split(".")
+                v = src
+                for part in parts:
+                    v = v.get(part) if isinstance(v, dict) else None
+                    if v is None:
+                        break
+                if isinstance(v, list):
+                    entry["raw_stack_trace"] = "".join(str(el) for el in v if el)
+                    break
+                elif isinstance(v, str) and v:
+                    entry["raw_stack_trace"] = v
+                    break
             entry["error_type"] = self._get_field(src, *self.FIELD_MAP["error_type"]) or ""
 
         # Structured dependency metadata (downstream/target service references)
@@ -346,9 +360,18 @@ class LogAnalysisAgent:
 
         # Step 4d: Collect error breadcrumbs — prefer trace-linked breadcrumbs
         error_breadcrumbs: dict[str, list[dict]] = {}
-        # Use trace enrichment as breadcrumbs: they show the full request journey
+        # Use trace enrichment as breadcrumbs only if they add cross-service or non-ERROR context
+        primary_services = {l.get("service", "") for l in self._raw_logs if l.get("service")}
         for pk, trace_logs in trace_enrichment.items():
-            if trace_logs:
+            if not trace_logs:
+                continue
+            trace_services = {l.get("service", "") for l in trace_logs if l.get("service")}
+            has_cross_service = bool(trace_services - primary_services)
+            has_non_error = any(
+                l.get("level", "").upper() not in ("ERROR", "FATAL", "CRITICAL")
+                for l in trace_logs
+            )
+            if has_cross_service or has_non_error:
                 error_breadcrumbs[pk] = trace_logs
         # Fallback: collect breadcrumbs the old way for patterns without trace enrichment
         patterns_needing_breadcrumbs = [
@@ -389,8 +412,15 @@ class LogAnalysisAgent:
                     target_service_logs = []
 
         # Step 4f: Breadcrumb fallback — fetch ALL-level pre-error activity when
-        # breadcrumbs AND trace enrichment are both empty
-        if not error_breadcrumbs and not trace_enrichment and self._patterns:
+        # breadcrumbs are empty and trace enrichment has no cross-service data
+        trace_has_cross_svc_breadcrumbs = False
+        if error_breadcrumbs:
+            for pk, bc_logs in error_breadcrumbs.items():
+                bc_services = {l.get("service", "") for l in bc_logs if l.get("service")}
+                if bc_services - primary_services:
+                    trace_has_cross_svc_breadcrumbs = True
+                    break
+        if not trace_has_cross_svc_breadcrumbs and self._patterns:
             # Collect trace_ids from error patterns for boosting
             error_trace_ids = []
             for p in self._patterns[:5]:
@@ -454,9 +484,16 @@ class LogAnalysisAgent:
         blast_radius_logs: list[dict] = []
         blast_radius_patterns: list[dict] = []
         non_empty_services = {l.get("service", "") for l in self._raw_logs if l.get("service")}
+        trace_has_cross_service = False
+        if trace_enrichment:
+            for trace_logs in trace_enrichment.values():
+                trace_services = {l.get("service", "") for l in trace_logs if l.get("service")}
+                if trace_services - non_empty_services:
+                    trace_has_cross_service = True
+                    break
         if (self._patterns
                 and len(non_empty_services) <= 1
-                and not trace_enrichment):
+                and not trace_has_cross_service):
             if event_emitter:
                 await event_emitter.emit(
                     self.agent_name, "tool_call",
@@ -576,7 +613,10 @@ class LogAnalysisAgent:
                 "error_count": error_count,
                 "warn_count": warn_count,
                 "pattern_count": pattern_count,
-                "unique_services": len(set(l.get("service", "unknown") for l in self._raw_logs)),
+                "unique_services": len(
+                    set(l.get("service", "unknown") for l in self._raw_logs)
+                    | set(l.get("service", "unknown") for l in blast_radius_logs)
+                ),
             },
         }
 
@@ -864,7 +904,7 @@ Respond with JSON only. No markdown fences."""
             if p.get("filtered_stack_trace"):
                 parts.append(f"Stack trace (app frames only):\n{p['filtered_stack_trace']}")
             elif p.get("stack_traces"):
-                parts.append(f"Stack trace (sample):\n{p['stack_traces'][0][:500]}")
+                parts.append(f"Stack trace (sample):\n{p['stack_traces'][0]}")
             elif p.get("inline_stack_trace"):
                 parts.append(f"Stack trace (extracted from message):\n{p['inline_stack_trace']}")
             if p.get("inferred_targets"):
@@ -1639,7 +1679,8 @@ Respond with JSON only. No markdown fences."""
 
         for log in logs:
             message = log.get("message", "")
-            key = self._extract_pattern_key(message)
+            error_type = log.get("error_type", "")
+            key = error_type if error_type else self._extract_pattern_key(message)
             pattern_groups[key].append(log)
 
         patterns = []
@@ -1657,10 +1698,10 @@ Respond with JSON only. No markdown fences."""
             stack_traces = []
             seen_stacks: set[str] = set()
             for l in group_logs:
-                st = l.get("stack_trace", "")
+                st = l.get("raw_stack_trace") or l.get("stack_trace", "")
                 if st and st not in seen_stacks:
                     seen_stacks.add(st)
-                    stack_traces.append(st[:2000])
+                    stack_traces.append(st[:10000])
                     if len(stack_traces) >= 3:
                         break
 
@@ -1970,13 +2011,17 @@ Respond with JSON only. No markdown fences."""
     SRE_METADATA_FIELDS = [
         # Priority 1: Latencies (smoking gun for timeouts/SLO breaches)
         "response_time_s", "response_time", "duration", "elapsed", "latency",
+        "total_elapsed_s", "timeout_s",
         # Priority 2: Versions (detect bad deploys)
         "version", "app.version", "container.image.name", "container.image.tag",
         # Priority 3: Error typing (structured error > generic message)
-        "error.type", "exception.type", "exception.message", "error.code", "status_code",
+        "error_type", "error.type", "exception.type", "exception.message",
+        "error.code", "status_code",
         # Priority 4: HTTP context
         "http.status_code", "http.method", "http.url", "url.path",
-        # Priority 5: Infrastructure
+        # Priority 5: Domain context
+        "step", "order_id", "downstream", "component",
+        # Priority 6: Infrastructure
         "kubernetes.pod.name", "kubernetes.namespace",
         "environment", "env",
     ]
@@ -2003,7 +2048,7 @@ Respond with JSON only. No markdown fences."""
                       "x-request-id", "span.id"],
         "stack_trace": ["stack_trace", "stackTrace", "exception.stacktrace",
                         "exception_stacktrace", "error.stack_trace", "error.stacktrace"],
-        "error_type":  ["error.type", "exception.type", "exception_type", "error_class"],
+        "error_type":  ["error_type", "error.type", "exception.type", "exception_type", "error_class"],
     }
 
     SEVERITY_KEYWORDS = {
@@ -2063,7 +2108,7 @@ Respond with JSON only. No markdown fences."""
         r')'
     )
 
-    def _filter_stack_trace(self, raw_trace: str, max_lines: int = 15) -> str:
+    def _filter_stack_trace(self, raw_trace: str, max_lines: int = 200) -> str:
         """Keep application frames, file:line references, and exception causes. Saves ~60% tokens."""
         if not raw_trace:
             return ""
