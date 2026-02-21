@@ -205,6 +205,8 @@ After analysis, provide your final answer as JSON:
             svc = context.get("service_name", "unknown")
             parts.append(f'NOTE: If any suggested query lacks namespace= or pod~/service= labels, add them before executing. '
                          f'Use namespace="{ns}" and pod=~"{svc}.*" or service="{svc}" as appropriate.')
+            parts.append("VALIDATION: Before executing suggested queries, use list_available_metrics to check if the metric exists. "
+                         "If a suggested metric does not exist, skip it and look for a similar available metric to query instead.")
         return "\n".join(parts)
 
     async def _handle_tool_call(self, tool_name: str, tool_input: dict) -> str:
