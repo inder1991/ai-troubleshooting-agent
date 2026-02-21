@@ -70,7 +70,11 @@ class LogAnalysisAgent:
         return headers
 
     def _get_field(self, source: dict, *keys: str):
-        """Check multiple field names, supporting dot-notation for nested dicts."""
+        """Check multiple field names, supporting dot-notation for nested dicts.
+
+        If a resolved value is a list (common in ES multi-valued fields),
+        the first element is returned so downstream set/hash operations are safe.
+        """
         for key in keys:
             parts = key.split(".")
             val = source
@@ -80,6 +84,9 @@ class LogAnalysisAgent:
                 else:
                     val = None
                     break
+            # ES multi-valued fields can be lists — unwrap to first element
+            if isinstance(val, list):
+                val = val[0] if val else None
             if val is not None and val != "":
                 return val
         return None
@@ -104,8 +111,10 @@ class LogAnalysisAgent:
         level = self._get_field(src, *self.FIELD_MAP["level"]) or ""
         message = self._get_field(src, *self.FIELD_MAP["message"]) or ""
 
-        # Service: bare "service" can be str OR dict, so handle specially
+        # Service: bare "service" can be str, dict, or list (ES multi-value)
         raw_svc = src.get("service", "")
+        if isinstance(raw_svc, list):
+            raw_svc = raw_svc[0] if raw_svc else ""
         if isinstance(raw_svc, dict):
             service = raw_svc.get("name", "")
         elif raw_svc:

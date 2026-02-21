@@ -2604,3 +2604,50 @@ def test_filter_stack_trace_no_caused_by_truncates_normally():
     raw_trace = "\n".join(lines)
     filtered = agent._filter_stack_trace(raw_trace, max_lines=5)
     assert len(filtered.strip().splitlines()) <= 6  # 5 + possible truncation marker
+
+
+# ─── ES multi-valued (list) field handling ──────────────────────────────────
+
+def test_get_field_unwraps_list():
+    """ES multi-valued fields (lists) should be unwrapped to first element."""
+    agent = LogAnalysisAgent()
+    src = {"service": ["checkout-svc", "payment-svc"]}
+    assert agent._get_field(src, "service") == "checkout-svc"
+
+
+def test_get_field_empty_list_returns_none():
+    agent = LogAnalysisAgent()
+    assert agent._get_field({"level": []}, "level") is None
+
+
+def test_extract_log_entry_service_as_list():
+    """When ES returns service as a list, it should not crash set operations."""
+    agent = LogAnalysisAgent()
+    hit = {"_id": "1", "_index": "logs", "_source": {
+        "service": ["order-api", "order-api-v2"],
+        "level": "ERROR", "message": "Connection refused",
+    }}
+    entry = agent._extract_log_entry(hit)
+    assert entry["service"] == "order-api"
+
+
+def test_parse_patterns_with_list_service_no_crash():
+    """Patterns from logs with list-valued service fields should not raise unhashable type."""
+    agent = LogAnalysisAgent()
+    logs = [
+        {"level": "ERROR", "message": "ConnectionTimeout", "service": "checkout", "timestamp": "2025-01-01T00:00:01Z"},
+        {"level": "ERROR", "message": "ConnectionTimeout", "service": "checkout", "timestamp": "2025-01-01T00:00:02Z"},
+    ]
+    # Should not raise
+    patterns = agent._parse_patterns_from_logs(logs)
+    assert len(patterns) >= 1
+
+
+def test_extract_log_entry_level_as_list():
+    """When ES returns level as a list, it should be unwrapped."""
+    agent = LogAnalysisAgent()
+    hit = {"_id": "1", "_index": "logs", "_source": {
+        "level": ["ERROR"], "message": "fail", "service": "svc",
+    }}
+    entry = agent._extract_log_entry(hit)
+    assert entry["level"] == "ERROR"
