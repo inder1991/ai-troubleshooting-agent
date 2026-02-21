@@ -69,11 +69,12 @@ class LogAnalysisAgent:
             headers["Authorization"] = f"Basic {base64.b64encode(credentials.encode()).decode()}"
         return headers
 
-    def _get_field(self, source: dict, *keys: str):
+    def _get_field(self, source: dict, *keys: str, join_list: bool = False):
         """Check multiple field names, supporting dot-notation for nested dicts.
 
-        If a resolved value is a list (common in ES multi-valued fields),
-        the first element is returned so downstream set/hash operations are safe.
+        If a resolved value is a list (common in ES multi-valued fields):
+        - join_list=True: join list elements with newlines (for stack traces, messages)
+        - join_list=False (default): unwrap to first element (for scalar fields)
         """
         for key in keys:
             parts = key.split(".")
@@ -84,9 +85,11 @@ class LogAnalysisAgent:
                 else:
                     val = None
                     break
-            # ES multi-valued fields can be lists — unwrap to first element
             if isinstance(val, list):
-                val = val[0] if val else None
+                if join_list:
+                    val = "\n".join(str(v) for v in val if v) if val else None
+                else:
+                    val = val[0] if val else None
             if val is not None and val != "":
                 return val
         return None
@@ -112,7 +115,7 @@ class LogAnalysisAgent:
         # Guard against HTTP status codes (e.g. "200", "500") from the 'status' field
         if isinstance(level, str) and level.isdigit():
             level = ""
-        message = self._get_field(src, *self.FIELD_MAP["message"]) or ""
+        message = self._get_field(src, *self.FIELD_MAP["message"], join_list=True) or ""
 
         # Service: bare "service" can be str, dict, or list (ES multi-value)
         raw_svc = src.get("service", "")
@@ -138,7 +141,7 @@ class LogAnalysisAgent:
 
         if include_trace:
             entry["trace_id"] = self._get_field(src, *self.FIELD_MAP["trace_id"]) or ""
-            entry["stack_trace"] = self._get_field(src, *self.FIELD_MAP["stack_trace"]) or ""
+            entry["stack_trace"] = self._get_field(src, *self.FIELD_MAP["stack_trace"], join_list=True) or ""
             entry["error_type"] = self._get_field(src, *self.FIELD_MAP["error_type"]) or ""
 
         return entry

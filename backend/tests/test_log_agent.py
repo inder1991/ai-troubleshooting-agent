@@ -2746,3 +2746,62 @@ async def test_search_elasticsearch_star_query_skips_service_filter():
     must_clauses = captured_body["json"]["query"]["bool"]["must"]
     # Only the level filter clause should be present (no service clause)
     assert len(must_clauses) == 1
+
+
+# ─── Stack trace list flattening ────────────────────────────────────────────
+
+def test_get_field_join_list_for_stack_traces():
+    """join_list=True should join list elements with newlines."""
+    agent = LogAnalysisAgent()
+    src = {"exception": {"stacktrace": [
+        "java.lang.NullPointerException: null",
+        "\tat com.myapp.Service.run(Service.java:10)",
+        "\tat com.myapp.Main.main(Main.java:5)",
+    ]}}
+    result = agent._get_field(src, "exception.stacktrace", join_list=True)
+    assert "NullPointerException" in result
+    assert "Service.java:10" in result
+    assert "Main.java:5" in result
+    assert "\n" in result
+
+
+def test_get_field_join_list_false_takes_first():
+    """join_list=False (default) should still take first element."""
+    agent = LogAnalysisAgent()
+    src = {"tags": ["web", "production"]}
+    assert agent._get_field(src, "tags") == "web"
+
+
+def test_extract_log_entry_stack_trace_as_list():
+    """exception.stacktrace as a list of strings should be joined into a single trace."""
+    agent = LogAnalysisAgent()
+    hit = {"_id": "1", "_index": "logs", "_source": {
+        "level": "ERROR", "message": "NullPointerException",
+        "exception": {"stacktrace": [
+            "java.lang.NullPointerException: null",
+            "\tat com.myapp.Order.process(Order.java:45)",
+            "\tat com.myapp.Controller.handle(Controller.java:12)",
+        ]},
+    }}
+    entry = agent._extract_log_entry(hit)
+    assert "Order.java:45" in entry["stack_trace"]
+    assert "Controller.java:12" in entry["stack_trace"]
+    # Should be a single string, not a list
+    assert isinstance(entry["stack_trace"], str)
+
+
+def test_extract_log_entry_stack_trace_as_string_unchanged():
+    """A normal string stack_trace should still work."""
+    agent = LogAnalysisAgent()
+    hit = {"_id": "1", "_index": "logs", "_source": {
+        "level": "ERROR", "message": "fail",
+        "stack_trace": "NullPointerException\n\tat com.myapp.Svc.run(Svc.java:10)",
+    }}
+    entry = agent._extract_log_entry(hit)
+    assert "Svc.java:10" in entry["stack_trace"]
+
+
+def test_get_field_join_list_empty_list():
+    """join_list=True with empty list should return None."""
+    agent = LogAnalysisAgent()
+    assert agent._get_field({"trace": []}, "trace", join_list=True) is None
