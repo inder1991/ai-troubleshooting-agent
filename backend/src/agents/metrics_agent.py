@@ -137,6 +137,8 @@ Your goals:
 6. Report negative findings for metrics that show no anomalies
 7. Use query_prometheus_offset to establish a 24h baseline for each anomalous metric
 
+CRITICAL LABEL RULE: Every PromQL query you execute MUST include namespace= and pod=~ or service= labels to scope to the target service. Never execute a query without these labels — it will return data for the wrong services.
+
 CRITICAL: Only report metrics that show anomalies. If you queried 20 metrics and only 2 show spikes, your final JSON must contain ONLY those 2 anomalies. Suppress all normal-range metrics. An SRE during an incident needs signal, not noise.
 
 When log analysis provides error_hints, use get_saturation_metrics to query targeted resource metrics. For example:
@@ -199,6 +201,10 @@ After analysis, provide your final answer as JSON:
             for sq in context["suggested_promql_queries"]:
                 parts.append(f"  - {sq.get('query', '')} (rationale: {sq.get('rationale', '')})")
             parts.append("IMPORTANT: Execute these suggested queries in addition to your standard analysis.")
+            ns = context.get("namespace", "default")
+            svc = context.get("service_name", "unknown")
+            parts.append(f'NOTE: If any suggested query lacks namespace= or pod~/service= labels, add them before executing. '
+                         f'Use namespace="{ns}" and pod=~"{svc}.*" or service="{svc}" as appropriate.')
         return "\n".join(parts)
 
     async def _handle_tool_call(self, tool_name: str, tool_input: dict) -> str:
@@ -560,6 +566,21 @@ After analysis, provide your final answer as JSON:
                 "name": "restart_count",
                 "query": f'kube_pod_container_status_restarts_total{{namespace="{namespace}", pod=~"{service_name}.*"{extra_labels}}}',
                 "description": "Container restart count",
+            },
+            {
+                "name": "crashloop_pods",
+                "query": f'kube_pod_container_status_waiting_reason{{namespace="{namespace}", pod=~"{service_name}.*", reason="CrashLoopBackOff"}}',
+                "description": "Pods in CrashLoopBackOff state",
+            },
+            {
+                "name": "oom_killed",
+                "query": f'kube_pod_container_status_last_terminated_reason{{namespace="{namespace}", pod=~"{service_name}.*", reason="OOMKilled"}}',
+                "description": "OOM-killed container count",
+            },
+            {
+                "name": "pending_pods",
+                "query": f'kube_pod_status_phase{{namespace="{namespace}", pod=~"{service_name}.*", phase="Pending"}}',
+                "description": "Pods stuck in Pending state",
             },
         ]
 

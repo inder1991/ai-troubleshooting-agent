@@ -53,13 +53,16 @@ def test_spike_detection_constant_values():
 def test_build_default_queries():
     agent = MetricsAgent()
     queries = agent._build_default_queries(namespace="prod", service_name="order-service")
-    assert len(queries) == 5
+    assert len(queries) == 8
     names = [q["name"] for q in queries]
     assert "cpu_usage" in names
     assert "memory_usage" in names
     assert "error_rate" in names
     assert "latency_p99" in names
     assert "restart_count" in names
+    assert "crashloop_pods" in names
+    assert "oom_killed" in names
+    assert "pending_pods" in names
     # Verify namespace and service are in queries
     for q in queries:
         assert "prod" in q["query"]
@@ -96,8 +99,9 @@ def test_build_default_queries_with_metadata():
         namespace="prod", service_name="order-service",
         job="order-job", app_label="order-app",
     )
-    assert len(queries) == 5
-    for q in queries:
+    assert len(queries) == 8
+    # The first 5 queries (cpu, memory, error_rate, latency, restarts) use extra_labels
+    for q in queries[:5]:
         assert 'job="order-job"' in q["query"]
         assert 'app="order-app"' in q["query"]
 

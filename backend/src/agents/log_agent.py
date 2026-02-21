@@ -803,11 +803,13 @@ Respond with JSON only. No markdown fences."""
     def _build_analysis_prompt(self, collection: dict, context: dict) -> str:
         """Build focused prompt with all deterministic data."""
         service = context.get("service_name", "unknown")
+        namespace = context.get("namespace", "default")
         timeframe = context.get("timeframe", "now-1h")
         stats = collection.get("stats", {})
 
         parts = [
             f"# Incident Analysis: {service}",
+            f"Namespace: {namespace}",
             f"Time window: {timeframe}",
             f"Stats: {stats.get('total_logs', 0)} logs, {stats.get('error_count', 0)} errors, "
             f"{stats.get('warn_count', 0)} warnings, {stats.get('pattern_count', 0)} patterns, "
@@ -1111,6 +1113,11 @@ Respond with JSON only. No markdown fences."""
         {"metric": "...", "query": "PromQL query string", "rationale": "Why this validates the hypothesis"}
     ]
 }""")
+        parts.append(
+            f'IMPORTANT: All suggested_promql_queries MUST include namespace="{namespace}" '
+            f'and pod=~"{service}.*" or service="{service}" labels so the metrics agent '
+            f"queries the correct service."
+        )
 
         return "\n".join(parts)
 

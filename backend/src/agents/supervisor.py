@@ -104,7 +104,7 @@ class SupervisorAgent:
         self._connection_config = connection_config
         self._agents = {
             "log_agent": LogAnalysisAgent,
-            # "metrics_agent": MetricsAgent,
+            "metrics_agent": MetricsAgent,
             # "k8s_agent": K8sAgent,
             # "tracing_agent": TracingAgent,
             # "code_agent": CodeNavigatorAgent,
@@ -436,6 +436,7 @@ class SupervisorAgent:
             base["elk_index"] = state.elk_index or "*"
             base["timeframe"] = state.time_window.start
             base["trace_id"] = state.trace_id
+            base["namespace"] = state.namespace or "default"
 
             # Inject known dependencies from config + prior agent results
             known_deps = []
