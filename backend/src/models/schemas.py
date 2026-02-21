@@ -531,7 +531,7 @@ class ReasoningManifest(BaseModel):
 
 class ReActBudget(BaseModel):
     max_llm_calls: int = 10
-    max_tool_calls: int = 15
+    max_tool_calls: int = 30
     max_tokens: int = 50000
     timeout_seconds: int = 120
     current_llm_calls: int = 0

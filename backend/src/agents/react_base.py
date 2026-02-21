@@ -48,6 +48,7 @@ class ReActAgent(ABC):
             resolved_model = os.getenv("ANTHROPIC_MODEL", DEFAULT_MODEL)
 
         # Iteration resolution: per-agent override > global config > constructor default
+        MIN_ITERATIONS = 3
         resolved_iters = max_iterations
         if connection_config:
             iter_overrides = dict(getattr(connection_config, 'max_iterations_overrides', ()))
@@ -55,6 +56,11 @@ class ReActAgent(ABC):
                 resolved_iters = iter_overrides[agent_name]
             elif getattr(connection_config, 'max_iterations', 0) > 0:
                 resolved_iters = connection_config.max_iterations
+        resolved_iters = max(resolved_iters, MIN_ITERATIONS)
+        logger.info("Iteration config resolved", extra={
+            "agent_name": agent_name, "action": "iter_config",
+            "extra": {"constructor_arg": max_iterations, "config_val": getattr(connection_config, 'max_iterations', None), "resolved": resolved_iters},
+        })
 
         self.agent_name = agent_name
         self.max_iterations = resolved_iters
@@ -202,6 +208,15 @@ class ReActAgent(ABC):
 
         for iteration in range(self.max_iterations):
             if self.budget.is_exhausted():
+                logger.warning("Budget exhausted", extra={
+                    "agent_name": self.agent_name, "action": "budget_exhausted",
+                    "extra": {
+                        "llm_calls": f"{self.budget.current_llm_calls}/{self.budget.max_llm_calls}",
+                        "tool_calls": f"{self.budget.current_tool_calls}/{self.budget.max_tool_calls}",
+                        "tokens": f"{self.budget.current_tokens}/{self.budget.max_tokens}",
+                        "iteration": iteration,
+                    },
+                })
                 if event_emitter:
                     await event_emitter.emit(self.agent_name, "warning", "Budget exhausted")
                 return {
@@ -284,6 +299,14 @@ class ReActAgent(ABC):
                         result = await self._handle_tool_call(tool_name, tool_input)
                     except Exception as e:
                         result = f"Error executing {tool_name}: {str(e)}"
+
+                    # Log tool result (truncated for readability)
+                    result_preview = result[:500] if isinstance(result, str) else str(result)[:500]
+                    logger.info("Tool result", extra={
+                        "agent_name": self.agent_name, "action": "tool_result",
+                        "tool": tool_name,
+                        "extra": {"iteration": iteration + 1, "result_length": len(result) if isinstance(result, str) else 0, "preview": result_preview},
+                    })
 
                     self.budget.record_tool_call()
 

@@ -1,0 +1,181 @@
+{
+    "anomalies": [
+        {
+            "metric_name": "redis_pool_timeout_total",
+            "promql_query": "redis_pool_timeout_total{namespace=\"checkout\"}",
+            "baseline_value": 71.57,
+            "peak_value": 291.0,
+            "spike_start": "2026-02-21T16:19:00Z",
+            "spike_end": "2026-02-21T16:22:00Z",
+            "severity": "critical",
+            "correlation_to_incident": "Redis connection timeouts spiked to 291 at incident start, directly causing the ConnectError cascade in checkout-service",
+            "confidence_score": 91
+        },
+        {
+            "metric_name": "redis_pool_active_connections_ratio",
+            "promql_query": "redis_pool_active_connections{namespace=\"checkout\"} / redis_pool_max_connections{namespace=\"checkout\"}",
+            "baseline_value": 0.0,
+            "peak_value": 1.0,
+            "spike_start": "2026-02-21T16:18:00Z",
+            "spike_end": "2026-02-21T16:55:00Z",
+            "severity": "critical",
+            "correlation_to_incident": "Redis pool reached 100% saturation (10/10 connections) for 40+ minutes, blocking new connections and causing inventory-service failures",
+            "confidence_score": 95
+        },
+        {
+            "metric_name": "kube_pod_container_status_restarts_total",
+            "promql_query": "kube_pod_container_status_restarts_total{namespace=\"checkout\", pod=~\"inventory-service.*\"}",
+            "baseline_value": 3.72,
+            "peak_value": 6.0,
+            "spike_start": "2026-02-21T16:20:00Z",
+            "spike_end": "2026-02-21T16:35:00Z",
+            "severity": "high",
+            "correlation_to_incident": "Inventory-service pods restarted 6 times during incident, indicating service instability from connection pool exhaustion",
+            "confidence_score": 65
+        },
+        {
+            "metric_name": "container_memory_working_set_bytes_checkout",
+            "promql_query": "container_memory_working_set_bytes{namespace=\"checkout\", pod=~\"checkout-service.*\"}",
+            "baseline_value": 0.0,
+            "peak_value": 61796352.0,
+            "spike_start": "2026-02-21T16:00:00Z",
+            "spike_end": "2026-02-21T16:55:00Z",
+            "severity": "low",
+            "correlation_to_incident": "Checkout-service memory usage stable at ~59MB — within normal range, rules out memory exhaustion",
+            "confidence_score": 100
+        },
+        {
+            "metric_name": "container_memory_working_set_bytes_inventory",
+            "promql_query": "container_memory_working_set_bytes{namespace=\"checkout\", pod=~\"inventory-service.*\"}",
+            "baseline_value": 0.0,
+            "peak_value": 65286144.0,
+            "spike_start": "2026-02-21T16:00:00Z",
+            "spike_end": "2026-02-21T16:55:00Z",
+            "severity": "low",
+            "correlation_to_incident": "Inventory-service memory usage stable at ~57MB — within normal range, rules out memory exhaustion",
+            "confidence_score": 100
+        },
+        {
+            "metric_name": "container_cpu_usage_rate_checkout",
+            "promql_query": "rate(container_cpu_usage_seconds_total{namespace=\"checkout\", pod=~\"checkout-service.*\"}[5m])",
+            "baseline_value": 0.0,
+            "peak_value": 0.0099,
+            "spike_start": "2026-02-21T16:00:00Z",
+            "spike_end": "2026-02-21T16:55:00Z",
+            "severity": "low",
+            "correlation_to_incident": "Checkout-service CPU usage normal at ~0.3% — rules out CPU saturation",
+            "confidence_score": 100
+        },
+        {
+            "metric_name": "container_cpu_usage_rate_inventory",
+            "promql_query": "rate(container_cpu_usage_seconds_total{namespace=\"checkout\", pod=~\"inventory-service.*\"}[5m])",
+            "baseline_value": 0.0,
+            "peak_value": 0.016,
+            "spike_start": "2026-02-21T16:00:00Z",
+            "spike_end": "2026-02-21T16:55:00Z",
+            "severity": "low",
+            "correlation_to_incident": "Inventory-service CPU usage normal at ~0.4% — rules out CPU saturation",
+            "confidence_score": 100
+        }
+    ],
+    "correlated_signals": [
+        {
+            "group_name": "Connection Pool Saturation → Service Instability",
+            "signal_type": "USE",
+            "metrics": ["redis_pool_active_connections_ratio", "redis_pool_timeout_total", "kube_pod_container_status_restarts_total"],
+            "narrative": "Redis pool hitting 100% capacity triggered inventory-service pod restarts (6 total), creating a cascading failure through checkout-service"
+        }
+    ],
+    "time_series_data": {
+        "redis_pool_active_connections{namespace=\"checkout\", service=\"inventory-service\"}": [
+            {"timestamp": "2026-02-21T16:00:00Z", "value": 3.0},
+            {"timestamp": "2026-02-21T16:10:00Z", "value": 5.0},
+            {"timestamp": "2026-02-21T16:18:00Z", "value": 9.0},
+            {"timestamp": "2026-02-21T16:19:00Z", "value": 10.0},
+            {"timestamp": "2026-02-21T16:20:00Z", "value": 10.0},
+            {"timestamp": "2026-02-21T16:25:00Z", "value": 10.0},
+            {"timestamp": "2026-02-21T16:30:00Z", "value": 10.0},
+            {"timestamp": "2026-02-21T16:40:00Z", "value": 10.0},
+            {"timestamp": "2026-02-21T16:50:00Z", "value": 10.0},
+            {"timestamp": "2026-02-21T16:55:00Z", "value": 9.0}
+        ],
+        "redis_pool_active_connections{namespace=\"checkout\"} / redis_pool_max_connections{namespace=\"checkout\"}": [
+            {"timestamp": "2026-02-21T16:00:00Z", "value": 0.3},
+            {"timestamp": "2026-02-21T16:10:00Z", "value": 0.5},
+            {"timestamp": "2026-02-21T16:18:00Z", "value": 0.9},
+            {"timestamp": "2026-02-21T16:19:00Z", "value": 1.0},
+            {"timestamp": "2026-02-21T16:20:00Z", "value": 1.0},
+            {"timestamp": "2026-02-21T16:25:00Z", "value": 1.0},
+            {"timestamp": "2026-02-21T16:30:00Z", "value": 1.0},
+            {"timestamp": "2026-02-21T16:40:00Z", "value": 1.0},
+            {"timestamp": "2026-02-21T16:50:00Z", "value": 1.0},
+            {"timestamp": "2026-02-21T16:55:00Z", "value": 0.9}
+        ],
+        "redis_pool_timeout_total{namespace=\"checkout\"}": [
+            {"timestamp": "2026-02-21T16:00:00Z", "value": 0.0},
+            {"timestamp": "2026-02-21T16:10:00Z", "value": 2.0},
+            {"timestamp": "2026-02-21T16:18:00Z", "value": 15.0},
+            {"timestamp": "2026-02-21T16:19:00Z", "value": 288.0},
+            {"timestamp": "2026-02-21T16:20:00Z", "value": 291.0},
+            {"timestamp": "2026-02-21T16:25:00Z", "value": 45.0},
+            {"timestamp": "2026-02-21T16:30:00Z", "value": 12.0},
+            {"timestamp": "2026-02-21T16:40:00Z", "value": 7.0},
+            {"timestamp": "2026-02-21T16:50:00Z", "value": 4.0},
+            {"timestamp": "2026-02-21T16:55:00Z", "value": 1.0}
+        ],
+        "container_memory_working_set_bytes{namespace=\"checkout\", pod=~\"checkout-service.*\"}": [
+            {"timestamp": "2026-02-21T16:00:00Z", "value": 59000000.0},
+            {"timestamp": "2026-02-21T16:10:00Z", "value": 59500000.0},
+            {"timestamp": "2026-02-21T16:20:00Z", "value": 60200000.0},
+            {"timestamp": "2026-02-21T16:30:00Z", "value": 61000000.0},
+            {"timestamp": "2026-02-21T16:40:00Z", "value": 61500000.0},
+            {"timestamp": "2026-02-21T16:55:00Z", "value": 61796352.0}
+        ],
+        "container_memory_working_set_bytes{namespace=\"checkout\", pod=~\"inventory-service.*\"}": [
+            {"timestamp": "2026-02-21T16:00:00Z", "value": 55000000.0},
+            {"timestamp": "2026-02-21T16:10:00Z", "value": 56000000.0},
+            {"timestamp": "2026-02-21T16:20:00Z", "value": 57000000.0},
+            {"timestamp": "2026-02-21T16:30:00Z", "value": 57400000.0},
+            {"timestamp": "2026-02-21T16:40:00Z", "value": 57475072.0},
+            {"timestamp": "2026-02-21T16:55:00Z", "value": 57500000.0}
+        ],
+        "rate(container_cpu_usage_seconds_total{namespace=\"checkout\", pod=~\"checkout-service.*\"}[5m])": [
+            {"timestamp": "2026-02-21T16:00:00Z", "value": 0.003},
+            {"timestamp": "2026-02-21T16:10:00Z", "value": 0.004},
+            {"timestamp": "2026-02-21T16:20:00Z", "value": 0.005},
+            {"timestamp": "2026-02-21T16:30:00Z", "value": 0.008},
+            {"timestamp": "2026-02-21T16:40:00Z", "value": 0.006},
+            {"timestamp": "2026-02-21T16:55:00Z", "value": 0.004}
+        ],
+        "rate(container_cpu_usage_seconds_total{namespace=\"checkout\", pod=~\"inventory-service.*\"}[5m])": [
+            {"timestamp": "2026-02-21T16:00:00Z", "value": 0.005},
+            {"timestamp": "2026-02-21T16:10:00Z", "value": 0.007},
+            {"timestamp": "2026-02-21T16:20:00Z", "value": 0.012},
+            {"timestamp": "2026-02-21T16:30:00Z", "value": 0.016},
+            {"timestamp": "2026-02-21T16:40:00Z", "value": 0.009},
+            {"timestamp": "2026-02-21T16:55:00Z", "value": 0.006}
+        ],
+        "kube_pod_container_status_restarts_total{namespace=\"checkout\", pod=~\"inventory-service.*\"}": [
+            {"timestamp": "2026-02-21T16:00:00Z", "value": 0.0},
+            {"timestamp": "2026-02-21T16:10:00Z", "value": 0.0},
+            {"timestamp": "2026-02-21T16:19:00Z", "value": 1.0},
+            {"timestamp": "2026-02-21T16:22:00Z", "value": 3.0},
+            {"timestamp": "2026-02-21T16:25:00Z", "value": 4.0},
+            {"timestamp": "2026-02-21T16:30:00Z", "value": 5.0},
+            {"timestamp": "2026-02-21T16:35:00Z", "value": 6.0},
+            {"timestamp": "2026-02-21T16:40:00Z", "value": 6.0},
+            {"timestamp": "2026-02-21T16:50:00Z", "value": 6.0},
+            {"timestamp": "2026-02-21T16:55:00Z", "value": 6.0}
+        ],
+        "redis_pool_max_connections{namespace=\"checkout\"}": [
+            {"timestamp": "2026-02-21T16:00:00Z", "value": 10.0},
+            {"timestamp": "2026-02-21T16:20:00Z", "value": 10.0},
+            {"timestamp": "2026-02-21T16:40:00Z", "value": 10.0},
+            {"timestamp": "2026-02-21T16:55:00Z", "value": 10.0}
+        ]
+    },
+    "overall_confidence": 90,
+    "breadcrumbs": [],
+    "negative_findings": [],
+    "tokens_used": {"agent_name": "metrics_agent", "input_tokens": 0, "output_tokens": 0, "total_tokens": 0}
+}

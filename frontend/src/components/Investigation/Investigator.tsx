@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import type { ChatMessage as ChatMessageType, TaskEvent, V4Findings, PatientZero, ReasoningChainStep } from '../../types';
 import { sendChatMessage, getFindings } from '../../services/api';
 
@@ -82,12 +82,29 @@ const Investigator: React.FC<InvestigatorProps> = ({
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  const summaryCount = events.filter(e => e.event_type === 'summary').length;
-  useEffect(() => {
-    if (summaryCount > 0) {
-      getFindings(sessionId).then(setFindings).catch(() => {});
+  const fetchFindings = useCallback(async () => {
+    try {
+      const f = await getFindings(sessionId);
+      setFindings(f);
+    } catch {
+      // silent
     }
-  }, [sessionId, summaryCount]);
+  }, [sessionId]);
+
+  // Poll every 5s so mid-cycle updates (e.g. enriched reasoning chain) are picked up
+  useEffect(() => {
+    fetchFindings();
+    const interval = setInterval(fetchFindings, 5000);
+    return () => clearInterval(interval);
+  }, [fetchFindings]);
+
+  // Also re-fetch immediately on summary/finding events
+  const relevantEventCount = events.filter(
+    e => e.event_type === 'summary' || e.event_type === 'finding' || e.event_type === 'phase_change'
+  ).length;
+  useEffect(() => {
+    if (relevantEventCount > 0) fetchFindings();
+  }, [relevantEventCount, fetchFindings]);
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;

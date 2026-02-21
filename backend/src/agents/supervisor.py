@@ -105,7 +105,7 @@ class SupervisorAgent:
         self._agents = {
             "log_agent": LogAnalysisAgent,
             "metrics_agent": MetricsAgent,
-            # "k8s_agent": K8sAgent,
+            "k8s_agent": K8sAgent,
             # "tracing_agent": TracingAgent,
             # "code_agent": CodeNavigatorAgent,
             # "change_agent": ChangeAgent,
@@ -117,6 +117,7 @@ class SupervisorAgent:
         initial_input: dict,
         event_emitter: EventEmitter,
         websocket_manager=None,
+        on_state_created=None,
     ) -> DiagnosticState:
         """Run the full diagnostic workflow."""
         state = DiagnosticState(
@@ -134,6 +135,10 @@ class SupervisorAgent:
             repo_url=initial_input.get("repo_url"),
             elk_index=initial_input.get("elk_index"),
         )
+
+        # Expose state immediately so API endpoints can read partial results
+        if on_state_created:
+            on_state_created(state)
 
         logger.info("Session started", extra={"session_id": state.session_id, "incident_id": state.incident_id, "agent_name": "supervisor", "action": "session_start", "extra": state.service_name})
         await event_emitter.emit("supervisor", "started", f"Starting diagnosis for {state.service_name} [{state.incident_id}]")
@@ -227,6 +232,10 @@ class SupervisorAgent:
                                 state.phase = DiagnosticPhase.RE_INVESTIGATING
 
             self._update_phase(state, event_emitter)
+
+            # Enrich reasoning chain after metrics analysis completes
+            if "metrics_agent" in [n for n, _ in agent_results if not isinstance(_, Exception)]:
+                await self._enrich_reasoning_chain(state, event_emitter)
 
         # Compile token usage
         state.token_usage.append(self.llm_client.get_total_usage())
@@ -374,8 +383,10 @@ class SupervisorAgent:
                 return "No repo URL or cluster configured — skipping change correlation"
 
         if agent_name == "k8s_agent":
-            if not cfg or not cfg.cluster_url:
-                return "No cluster URL configured — skipping K8s analysis"
+            import os
+            has_cluster_config = (cfg and cfg.cluster_url) or os.getenv("OPENSHIFT_API_URL") or os.getenv("KUBECONFIG") or Path.home().joinpath(".kube/config").exists()
+            if not has_cluster_config:
+                return "No cluster URL or kubeconfig found — skipping K8s analysis"
 
         if agent_name == "metrics_agent":
             if not cfg or not cfg.prometheus_url:
@@ -390,10 +401,27 @@ class SupervisorAgent:
 
         return None
 
+    _MOCK_FIXTURES_DIR = Path(__file__).parent / "fixtures"
+
     async def _dispatch_agent(
         self, agent_name: str, state: DiagnosticState, event_emitter: Optional[EventEmitter] = None
     ) -> Optional[dict]:
         """Dispatch a specialized agent and return its result."""
+        # Mock mode: return fixture data instead of running the real agent
+        import os
+        mock_agents = [a.strip() for a in os.getenv("MOCK_AGENTS", "").split(",") if a.strip()]
+        if agent_name in mock_agents:
+            fixture_path = self._MOCK_FIXTURES_DIR / f"{agent_name}_mock.json"
+            if fixture_path.exists():
+                logger.info("Agent mocked", extra={
+                    "agent_name": agent_name, "action": "mocked",
+                    "extra": str(fixture_path),
+                })
+                if event_emitter:
+                    await event_emitter.emit(agent_name, "started", f"{agent_name} (MOCKED)")
+                    await event_emitter.emit(agent_name, "success", f"{agent_name} completed (mocked fixture)")
+                return json.loads(fixture_path.read_text())
+
         # Check prerequisites before dispatching
         skip_reason = self._check_prerequisites(agent_name, state)
         if skip_reason:
@@ -455,6 +483,9 @@ class SupervisorAgent:
             base["namespace"] = state.namespace or "default"
             if state.log_analysis:
                 base["error_patterns"] = state.log_analysis.primary_pattern.model_dump() if state.log_analysis.primary_pattern else None
+                # Pass affected components so agent queries metrics for all involved services
+                if state.log_analysis.primary_pattern and state.log_analysis.primary_pattern.affected_components:
+                    base["affected_services"] = state.log_analysis.primary_pattern.affected_components
                 # Extract error hints for USE-method saturation queries
                 error_hints = []
                 if state.log_analysis.primary_pattern:
@@ -590,6 +621,16 @@ class SupervisorAgent:
         # Populate state.log_analysis from log_agent result
         if agent_name == "log_agent":
             primary_raw = result.get("primary_pattern", {})
+            logger.info("Log agent primary_pattern", extra={
+                "session_id": getattr(state, 'session_id', ''),
+                "agent_name": "supervisor",
+                "action": "log_result_inspect",
+                "extra": {
+                    "has_primary": bool(primary_raw),
+                    "exception_type": primary_raw.get("exception_type") if isinstance(primary_raw, dict) else None,
+                    "keys": list(primary_raw.keys()) if isinstance(primary_raw, dict) else str(type(primary_raw)),
+                },
+            })
             if isinstance(primary_raw, dict) and primary_raw.get("exception_type"):
                 try:
                     # Ensure sample_logs is a list of LogEvidence (LLM may omit it)
@@ -671,6 +712,17 @@ class SupervisorAgent:
             state.inferred_dependencies = result.get("inferred_dependencies", [])
             state.reasoning_chain = result.get("reasoning_chain", [])
             state.suggested_promql_queries = result.get("suggested_promql_queries", [])
+
+            # Auto-detect namespace from logs when user didn't provide one
+            detected_ns = result.get("detected_namespace")
+            if detected_ns and (not state.namespace or state.namespace == "default"):
+                logger.info("Namespace auto-detected from logs", extra={
+                    "session_id": getattr(state, 'session_id', ''),
+                    "agent_name": "supervisor",
+                    "action": "namespace_detected",
+                    "extra": {"namespace": detected_ns},
+                })
+                state.namespace = detected_ns
 
         # Handle change_agent results
         if agent_name == "change_agent":
@@ -763,19 +815,19 @@ class SupervisorAgent:
                         ))
             state.metrics_analysis.event_markers = event_markers[:10]
 
-            # Promote critical/high anomalies to Findings
+            # Promote all metric observations to Findings (anomalies + baselines)
             for a in anomalies:
-                if a.severity in ("critical", "high"):
-                    state.all_findings.append(Finding(
-                        finding_id=f"metric_{a.metric_name}",
-                        agent_name="metrics_agent",
-                        category="metric_anomaly",
-                        summary=f"{a.metric_name}: peak {a.peak_value} vs baseline {a.baseline_value} — {a.correlation_to_incident}",
-                        confidence_score=min(a.confidence_score, 100),
-                        severity=a.severity,
-                        breadcrumbs=[],
-                        negative_findings=[],
-                    ))
+                category = "metric_anomaly" if a.severity in ("critical", "high", "medium") else "metric_baseline"
+                state.all_findings.append(Finding(
+                    finding_id=f"metric_{a.metric_name}",
+                    agent_name="metrics_agent",
+                    category=category,
+                    summary=f"{a.metric_name}: peak {a.peak_value} vs baseline {a.baseline_value} — {a.correlation_to_incident}",
+                    confidence_score=min(a.confidence_score, 100),
+                    severity=a.severity,
+                    breadcrumbs=[],
+                    negative_findings=[],
+                ))
 
             if event_emitter and anomalies:
                 severity_counts: dict[str, int] = {}
@@ -1085,6 +1137,115 @@ class SupervisorAgent:
             correlations = result.get("change_correlations", [])
             return f"Change analysis complete — {len(correlations)} correlated changes found (confidence: {confidence}%)"
         return f"{agent_name} completed (confidence: {confidence}%)"
+
+    async def _enrich_reasoning_chain(
+        self, state: DiagnosticState, event_emitter: EventEmitter
+    ) -> None:
+        """Send combined log + metrics evidence to LLM to produce comprehensive reasoning chain."""
+        try:
+            await event_emitter.emit("supervisor", "progress", "Synthesizing AI reasoning from all evidence")
+
+            # Build evidence summary for the LLM
+            evidence_parts = []
+
+            # Log evidence
+            if state.log_analysis:
+                evidence_parts.append("## Log Analysis Evidence")
+                if state.log_analysis.primary_pattern:
+                    p = state.log_analysis.primary_pattern
+                    evidence_parts.append(f"- Primary pattern: {p.exception_type} — \"{p.error_message}\" (freq={p.frequency}, severity={p.severity}, causal_role={p.causal_role})")
+                    if p.affected_components:
+                        evidence_parts.append(f"  Affected: {', '.join(p.affected_components)}")
+                for sp in (state.log_analysis.secondary_patterns or []):
+                    evidence_parts.append(f"- Secondary: {sp.exception_type} — \"{sp.error_message}\" (freq={sp.frequency}, causal_role={sp.causal_role})")
+            if state.patient_zero:
+                pz = state.patient_zero
+                evidence_parts.append(f"- Patient Zero: {pz.get('service', 'unknown')} at {pz.get('first_error_time', '?')}")
+                evidence_parts.append(f"  Evidence: {pz.get('evidence', '')}")
+            if state.inferred_dependencies:
+                evidence_parts.append("- Inferred dependencies:")
+                for dep in state.inferred_dependencies:
+                    evidence_parts.append(f"  {dep.get('source', '?')} → {dep.get('target', '?')} ({dep.get('evidence', '')})")
+
+            # Metrics evidence
+            if state.metrics_analysis and state.metrics_analysis.anomalies:
+                evidence_parts.append("\n## Metrics Analysis Evidence")
+                for a in state.metrics_analysis.anomalies:
+                    evidence_parts.append(f"- [{a.severity.upper()}] {a.metric_name}: peak={a.peak_value}, baseline={a.baseline_value} (confidence={a.confidence_score})")
+                    evidence_parts.append(f"  Correlation: {a.correlation_to_incident}")
+                if state.metrics_analysis.correlated_signals:
+                    evidence_parts.append("- Correlated signal groups:")
+                    for cs in state.metrics_analysis.correlated_signals:
+                        evidence_parts.append(f"  {cs.group_name} [{cs.signal_type}]: {cs.narrative}")
+
+            # Negative findings (what was ruled out)
+            ruled_out = [nf for nf in state.all_negative_findings]
+            if ruled_out:
+                evidence_parts.append("\n## Ruled Out")
+                for nf in ruled_out[:5]:
+                    evidence_parts.append(f"- {nf.what_was_checked}: {nf.result} → {nf.implication}")
+
+            # Existing reasoning chain from log agent (if any)
+            existing_chain = ""
+            if state.reasoning_chain:
+                existing_chain = "\n## Previous Reasoning (from log analysis)\n"
+                for step in state.reasoning_chain:
+                    existing_chain += f"- Step {step.get('step', '?')}: {step.get('observation', '')} → {step.get('inference', '')}\n"
+
+            evidence_text = "\n".join(evidence_parts)
+
+            prompt = f"""You are the Lead SRE synthesizing evidence from multiple investigation agents into a coherent diagnostic reasoning chain.
+
+{evidence_text}
+{existing_chain}
+Your task: Produce a complete reasoning chain that weaves together ALL evidence (logs, metrics, dependencies, negative findings) into a step-by-step causal narrative. Each step should build on the previous one, showing how the incident unfolded.
+
+Rules:
+- 5-8 steps maximum
+- Each step needs a clear observation (what the data shows) and inference (what it means)
+- Start with the earliest signal and work forward chronologically
+- Include metrics evidence that validates or refutes the log-based hypothesis
+- Include negative findings (what was ruled out) as steps — they build trust
+- End with the root cause conclusion and confidence level
+
+Respond ONLY with a JSON array:
+[
+  {{"step": 1, "observation": "...", "inference": "..."}},
+  {{"step": 2, "observation": "...", "inference": "..."}}
+]"""
+
+            response = await self.llm_client.chat(
+                prompt=prompt,
+                system="You are an expert SRE diagnostician. Respond with ONLY a valid JSON array, no markdown fencing.",
+                max_tokens=2048,
+            )
+
+            # Parse the JSON response
+            text = response.text.strip()
+            # Strip markdown code fences if present
+            if text.startswith("```"):
+                text = text.split("\n", 1)[1] if "\n" in text else text[3:]
+                if text.endswith("```"):
+                    text = text[:-3]
+                text = text.strip()
+
+            chain = json.loads(text)
+            if isinstance(chain, list) and len(chain) > 0:
+                state.reasoning_chain = chain
+                logger.info("Reasoning chain enriched", extra={
+                    "session_id": state.session_id, "agent_name": "supervisor",
+                    "action": "reasoning_enriched",
+                    "extra": {"steps": len(chain)},
+                })
+                await event_emitter.emit(
+                    "supervisor", "summary",
+                    f"AI reasoning chain synthesized — {len(chain)} steps from combined log + metrics evidence",
+                )
+        except Exception as e:
+            logger.warning("Failed to enrich reasoning chain: %s", e, extra={
+                "session_id": state.session_id, "agent_name": "supervisor",
+                "action": "reasoning_enrichment_failed",
+            })
 
     async def _run_impact_analysis(
         self, state: DiagnosticState, event_emitter: EventEmitter

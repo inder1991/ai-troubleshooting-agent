@@ -83,11 +83,12 @@ class MetricsAgent(ReActAgent):
             },
             {
                 "name": "list_available_metrics",
-                "description": "List Prometheus metric names matching a search term. Call this to discover what metrics are available before writing PromQL queries.",
+                "description": "List Prometheus metric names matching a search term. Optionally filter to only metrics that have data for a specific namespace.",
                 "input_schema": {
                     "type": "object",
                     "properties": {
-                        "search": {"type": "string", "description": "Metric name substring to search for (e.g. 'http_request')"},
+                        "search": {"type": "string", "description": "Metric name substring to search for (e.g. 'container_cpu', 'http_request')"},
+                        "namespace": {"type": "string", "description": "Kubernetes namespace to scope discovery to. When provided, only returns metrics that have data in this namespace."},
                     },
                     "required": ["search"],
                 },
@@ -130,7 +131,7 @@ EXECUTION STRATEGY — Batch & Refine (3 turns):
 
 ═══ TURN 1 — Discovery ═══
 Emit ALL of these tool calls in a SINGLE response:
-  • list_available_metrics  — discover what exists
+  • list_available_metrics  — discover what exists. ALWAYS pass the namespace parameter to scope results to the target namespace. Use broad search terms like "container", "kube_pod", "http" to find infrastructure metrics.
   • get_default_metrics     — get recommended PromQL for the service
   • get_saturation_metrics  — ONLY if error_hints were provided
 If Prometheus is unreachable on any call, report the error immediately and stop.
@@ -147,7 +148,10 @@ If no spike detection is needed, output the final JSON directly.
 
 CRITICAL LABEL RULE: Every PromQL query MUST include namespace= and pod=~ or service= labels to scope to the target service. Never execute a query without these labels.
 
-SIGNAL OVER NOISE: Only report metrics that show anomalies. If you queried 20 metrics and only 2 show spikes, your final JSON must contain ONLY those 2 anomalies. Suppress all normal-range metrics. Report negative findings for metrics that show no anomalies.
+SIGNAL OVER NOISE: Prioritize anomalies but ALWAYS include baseline metrics. Your final JSON must contain:
+- All anomalous metrics (with severity critical/high/medium)
+- Key baseline metrics (CPU, memory, connection pools) even if normal — mark them severity "low" with confidence_score 100 and correlation_to_incident "Within normal range — rules out resource exhaustion"
+This ensures the UI always shows the metrics landscape, not just anomalies.
 
 SATURATION TRIGGERS (when error_hints provided):
 - OOMKilled -> query memory saturation ratio
@@ -199,6 +203,8 @@ OUTPUT FORMAT — Final answer as JSON:
         if context.get("time_window"):
             tw = context["time_window"]
             parts.append(f"Incident time window: {tw.get('start', 'unknown')} to {tw.get('end', 'unknown')}")
+        if context.get("affected_services"):
+            parts.append(f"Affected services (query metrics for ALL of these): {context['affected_services']}")
         if context.get("error_patterns"):
             parts.append(f"Error patterns found by Log Agent: {json.dumps(context['error_patterns'])}")
         if context.get("error_hints"):
@@ -209,10 +215,8 @@ OUTPUT FORMAT — Final answer as JSON:
             for sq in context["suggested_promql_queries"]:
                 parts.append(f"  - {sq.get('query', '')} (rationale: {sq.get('rationale', '')})")
             parts.append("IMPORTANT: Execute these suggested queries in addition to your standard analysis.")
-            ns = context.get("namespace", "default")
-            svc = context.get("service_name", "unknown")
-            parts.append(f'NOTE: If any suggested query lacks namespace= or pod~/service= labels, add them before executing. '
-                         f'Use namespace="{ns}" and pod=~"{svc}.*" or service="{svc}" as appropriate.')
+            parts.append("NOTE: Suggested queries already contain correct labels (namespace, service, pod). "
+                         "Do NOT override their existing labels. Only add namespace= if it is completely missing.")
             parts.append("VALIDATION: Before executing suggested queries, use list_available_metrics to check if the metric exists. "
                          "If a suggested metric does not exist, skip it and look for a similar available metric to query instead.")
 
@@ -252,30 +256,12 @@ OUTPUT FORMAT — Final answer as JSON:
         except (json.JSONDecodeError, AttributeError):
             return {"error": "Failed to parse response", "raw_response": text}
 
-        # Only include time_series_data for anomalous metrics
-        anomaly_names = {a.get("metric_name", "") for a in data.get("anomalies", [])}
-
-        def _ts_key_matches_anomaly(cache_key: str, names: set[str]) -> bool:
-            kl = cache_key.lower()
-            for name in names:
-                nl = name.lower()
-                # Bidirectional substring: "cpu_usage" matches "cpu_query" via shared root
-                if nl in kl or kl in nl:
-                    return True
-                # Also match on shared root words (e.g. "cpu" in both "cpu_usage" and "cpu_query")
-                k_parts = set(kl.replace("_", " ").replace("-", " ").split())
-                n_parts = set(nl.replace("_", " ").replace("-", " ").split())
-                if k_parts & n_parts:
-                    return True
-            return False
-
-        filtered_ts = {k: v for k, v in self._time_series_cache.items()
-                       if _ts_key_matches_anomaly(k, anomaly_names)} if anomaly_names else {}
+        # Include all queried time series data — even normal metrics provide context
 
         result = {
             "anomalies": data.get("anomalies", []),
             "correlated_signals": data.get("correlated_signals", []),
-            "time_series_data": filtered_ts,
+            "time_series_data": dict(self._time_series_cache),
             "overall_confidence": data.get("overall_confidence", 50),
             "breadcrumbs": [b.model_dump(mode="json") for b in self.breadcrumbs],
             "negative_findings": [n.model_dump(mode="json") for n in self.negative_findings],
@@ -286,10 +272,49 @@ OUTPUT FORMAT — Final answer as JSON:
 
     # --- Tool implementations ---
 
+    @staticmethod
+    def _resolve_time(value: str) -> float:
+        """Convert a time value to Unix timestamp.
+
+        Accepts: Unix timestamps, ISO 8601, relative expressions (now, now-3h, now-30m).
+        """
+        import re as _re
+        v = value.strip()
+        # Already a number
+        try:
+            return float(v)
+        except ValueError:
+            pass
+        # Relative: "now", "now-3h", "now-1h30m"
+        if v.lower().startswith("now"):
+            now = datetime.now(timezone.utc).timestamp()
+            suffix = v[3:].strip()
+            if not suffix:
+                return now
+            m = _re.match(r'^-\s*(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?$', suffix)
+            if m:
+                hours = int(m.group(1) or 0)
+                minutes = int(m.group(2) or 0)
+                seconds = int(m.group(3) or 0)
+                return now - hours * 3600 - minutes * 60 - seconds
+            # Fallback: try just hours
+            m2 = _re.match(r'^-\s*(\d+)\s*h$', suffix, _re.IGNORECASE)
+            if m2:
+                return now - int(m2.group(1)) * 3600
+            return now
+        # ISO 8601
+        try:
+            dt = datetime.fromisoformat(v.replace("Z", "+00:00"))
+            return dt.timestamp()
+        except ValueError:
+            pass
+        # Last resort: return current time
+        return datetime.now(timezone.utc).timestamp()
+
     async def _query_range(self, params: dict) -> str:
         query = params["query"]
-        start = params["start"]
-        end = params["end"]
+        start = self._resolve_time(params["start"])
+        end = self._resolve_time(params["end"])
         step = params.get("step", "60s")
 
         try:
@@ -404,11 +429,17 @@ OUTPUT FORMAT — Final answer as JSON:
         return json.dumps(self._build_default_queries(namespace, service, job=job, app_label=app_label))
 
     async def _list_available_metrics(self, params: dict) -> str:
-        """List Prometheus metric names matching a search term."""
+        """List Prometheus metric names matching a search term, optionally scoped to a namespace."""
         search = params.get("search", "")
+        namespace = params.get("namespace", "")
         try:
+            api_params = {}
+            if namespace:
+                api_params["match[]"] = '{namespace="' + namespace + '"}'
+
             resp = requests.get(
                 f"{self.prometheus_url}/api/v1/label/__name__/values",
+                params=api_params,
                 timeout=15,
             )
             resp.raise_for_status()
@@ -420,11 +451,12 @@ OUTPUT FORMAT — Final answer as JSON:
             else:
                 matching = all_names
 
+            scope_desc = f" in namespace '{namespace}'" if namespace else ""
             self.add_breadcrumb(
                 action="list_available_metrics",
                 source_type="metric",
                 source_reference=f"Prometheus at {self.prometheus_url}",
-                raw_evidence=f"Found {len(matching)} metrics matching '{search}' (total: {len(all_names)})",
+                raw_evidence=f"Found {len(matching)} metrics matching '{search}'{scope_desc} (total: {len(all_names)})",
             )
 
             return json.dumps({
@@ -444,20 +476,22 @@ OUTPUT FORMAT — Final answer as JSON:
         offset_hours = params.get("offset_hours", 24)
 
         try:
+            now_ts = datetime.now(timezone.utc).timestamp()
+            baseline_ts = now_ts - offset_hours * 3600
+
             # Current value
             resp_now = requests.get(
                 f"{self.prometheus_url}/api/v1/query",
-                params={"query": query},
+                params={"query": query, "time": now_ts},
                 timeout=30,
             )
             resp_now.raise_for_status()
             now_results = resp_now.json().get("data", {}).get("result", [])
 
-            # Baseline value with offset
-            offset_query = f"{query} offset {offset_hours}h"
+            # Baseline value at N hours ago (using time parameter instead of PromQL offset)
             resp_base = requests.get(
                 f"{self.prometheus_url}/api/v1/query",
-                params={"query": offset_query},
+                params={"query": query, "time": baseline_ts},
                 timeout=30,
             )
             resp_base.raise_for_status()
