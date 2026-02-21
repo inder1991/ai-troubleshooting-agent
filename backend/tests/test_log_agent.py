@@ -1437,3 +1437,1086 @@ def test_system_prompt_causal_role_timestamp_validation():
     context = {"service_name": "svc", "timeframe": "now-1h"}
     prompt = agent._build_analysis_prompt(collection, context)
     assert "validate against first_seen timestamps" in prompt
+
+
+# ─── Change 1: Solo Service Detection + Caller Context ───────────────────────
+
+def test_prompt_includes_solo_service_warning():
+    """When target_service_absent is True, prompt should include a warning about the absent service."""
+    agent = LogAnalysisAgent()
+    collection = {
+        "patterns": [
+            {
+                "exception_type": "RedisTimeout",
+                "frequency": 20,
+                "severity": "high",
+                "affected_components": ["inventory-service"],
+                "error_message": "Redis pool exhausted",
+                "pattern_key": "RedisTimeout",
+                "first_seen": "2025-01-01T05:21:00Z",
+                "last_seen": "2025-01-01T05:25:00Z",
+            },
+        ],
+        "raw_logs": [{"service": "inventory-service", "level": "ERROR", "message": "Redis pool exhausted"}],
+        "service_flow": [],
+        "context_logs": [],
+        "error_breadcrumbs": {},
+        "cross_service_correlations": [],
+        "inferred_dependencies": [],
+        "target_service_absent": True,
+        "target_service_logs": [
+            {"timestamp": "2025-01-01T05:20:00Z", "level": "INFO", "message": "GET /api/checkout processed"},
+            {"timestamp": "2025-01-01T05:21:05Z", "level": "WARN", "message": "504 Gateway Timeout from inventory"},
+        ],
+        "index_used": "app-logs-*",
+        "stats": {"total_logs": 20, "error_count": 20, "warn_count": 0},
+    }
+    context = {"service_name": "checkout-service", "timeframe": "now-1h"}
+    prompt = agent._build_analysis_prompt(collection, context)
+    assert "WARNING: checkout-service has ZERO error logs" in prompt
+    assert "CALLER" in prompt
+    assert "checkout-service Recent Activity (2 logs)" in prompt
+    assert "504 Gateway Timeout from inventory" in prompt
+
+
+def test_prompt_no_solo_service_warning_when_present():
+    """When target_service_absent is False, no warning should appear."""
+    agent = LogAnalysisAgent()
+    collection = {
+        "patterns": [
+            {
+                "exception_type": "ConnectError",
+                "frequency": 5,
+                "severity": "critical",
+                "affected_components": ["checkout-service"],
+                "error_message": "Connection refused",
+                "pattern_key": "ConnectError",
+                "first_seen": "2025-01-01T05:21:00Z",
+                "last_seen": "2025-01-01T05:25:00Z",
+            },
+        ],
+        "raw_logs": [{"service": "checkout-service", "level": "ERROR", "message": "Connection refused"}],
+        "service_flow": [],
+        "context_logs": [],
+        "error_breadcrumbs": {},
+        "cross_service_correlations": [],
+        "inferred_dependencies": [],
+        "target_service_absent": False,
+        "target_service_logs": [],
+        "index_used": "app-logs-*",
+        "stats": {"total_logs": 5, "error_count": 5, "warn_count": 0},
+    }
+    context = {"service_name": "checkout-service", "timeframe": "now-1h"}
+    prompt = agent._build_analysis_prompt(collection, context)
+    assert "WARNING: checkout-service has ZERO error logs" not in prompt
+
+
+def test_system_prompt_has_absent_target_service_guidance():
+    """SYSTEM_PROMPT should contain guidance about absent target services."""
+    assert "ABSENT TARGET SERVICE" in LogAnalysisAgent.SYSTEM_PROMPT
+    assert "CALLER" in LogAnalysisAgent.SYSTEM_PROMPT
+
+
+# ─── Change 2: Traffic Context ────────────────────────────────────────────────
+
+def test_build_traffic_context_from_correlations():
+    """Traffic context should derive edges from cross-service correlations."""
+    agent = LogAnalysisAgent()
+    correlations = [
+        {"trace_id": "t1", "services": ["checkout", "inventory"], "error_service": "inventory", "error_type": "RedisTimeout"},
+        {"trace_id": "t2", "services": ["checkout", "inventory"], "error_service": None, "error_type": None},
+    ]
+    dependencies = []
+    traffic = agent._build_traffic_context(correlations, dependencies, "checkout")
+    assert len(traffic) == 1
+    edge = traffic[0]
+    assert edge["source"] == "checkout"
+    assert edge["target"] == "inventory"
+    assert edge["trace_count"] == 2
+    assert edge["has_error"] is True
+    assert edge["evidence"] == "trace_correlation"
+
+
+def test_build_traffic_context_from_dependencies():
+    """Traffic context should include edges from inferred dependencies."""
+    agent = LogAnalysisAgent()
+    correlations = []
+    dependencies = [
+        {"source": "api-gateway", "targets": ["checkout-service", "user-service"]},
+    ]
+    traffic = agent._build_traffic_context(correlations, dependencies, "api-gateway")
+    assert len(traffic) == 2
+    sources = {e["source"] for e in traffic}
+    targets = {e["target"] for e in traffic}
+    assert sources == {"api-gateway"}
+    assert targets == {"checkout-service", "user-service"}
+    assert all(e["evidence"] == "dependency_inference" for e in traffic)
+
+
+def test_build_traffic_context_deduplicates():
+    """When both correlations and dependencies produce the same edge, it should not duplicate."""
+    agent = LogAnalysisAgent()
+    correlations = [
+        {"trace_id": "t1", "services": ["checkout", "inventory"], "error_service": None, "error_type": None},
+    ]
+    dependencies = [
+        {"source": "checkout", "targets": ["inventory"]},
+    ]
+    traffic = agent._build_traffic_context(correlations, dependencies, "checkout")
+    # The edge checkout->inventory should appear once (from correlation, since it was created first)
+    assert len(traffic) == 1
+    assert traffic[0]["trace_count"] == 1
+    assert traffic[0]["evidence"] == "trace_correlation"
+
+
+def test_build_traffic_context_empty():
+    """Empty inputs should return empty traffic context."""
+    agent = LogAnalysisAgent()
+    traffic = agent._build_traffic_context([], [], "svc")
+    assert traffic == []
+
+
+def test_prompt_includes_traffic_context():
+    """Traffic context should appear in prompt when present."""
+    agent = LogAnalysisAgent()
+    collection = {
+        "patterns": [],
+        "raw_logs": [],
+        "service_flow": [],
+        "context_logs": [],
+        "error_breadcrumbs": {},
+        "cross_service_correlations": [],
+        "inferred_dependencies": [],
+        "traffic_context": [
+            {"source": "checkout", "target": "inventory", "trace_count": 5, "has_error": True, "evidence": "trace_correlation"},
+        ],
+        "index_used": "app-logs-*",
+        "stats": {"total_logs": 0, "error_count": 0, "warn_count": 0},
+    }
+    context = {"service_name": "checkout", "timeframe": "now-1h"}
+    prompt = agent._build_analysis_prompt(collection, context)
+    assert "Traffic Context" in prompt
+    assert "checkout --> inventory" in prompt
+    assert "[ERRORS]" in prompt
+    assert "5 traced requests" in prompt
+
+
+# ─── Change 3: Breadcrumb Fixes ──────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_get_log_context_includes_service_field():
+    """_get_log_context() returned logs should include the 'service' field."""
+    agent = LogAnalysisAgent()
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.raise_for_status = MagicMock()
+    mock_response.json.return_value = {
+        "hits": {
+            "hits": [
+                {"_source": {"@timestamp": "2025-01-01T00:00:01Z", "level": "INFO", "message": "test", "service": "checkout-svc"}},
+                {"_source": {"@timestamp": "2025-01-01T00:00:02Z", "level": "ERROR", "message": "fail", "service": {"name": "inventory-svc"}}},
+                {"_source": {"@timestamp": "2025-01-01T00:00:03Z", "level": "WARN", "message": "warn", "kubernetes": {"container": {"name": "cache-pod"}}}},
+            ]
+        }
+    }
+
+    with patch("requests.post", return_value=mock_response):
+        result = await agent._get_log_context({"index": "logs", "timestamp": "2025-01-01T00:00:01Z", "service": "checkout-svc"})
+
+    logs = json.loads(result)["logs"]
+    assert logs[0]["service"] == "checkout-svc"
+    assert logs[1]["service"] == "inventory-svc"
+    assert logs[2]["service"] == "cache-pod"
+
+
+def test_breadcrumb_fallback_synthesizes_from_raw_logs():
+    """When error_breadcrumbs is empty, _collect should synthesize breadcrumbs from raw_logs."""
+    agent = LogAnalysisAgent()
+
+    # Set up raw_logs and patterns directly (simulating post-collection state)
+    agent._raw_logs = [
+        {"timestamp": "2025-01-01T05:19:00Z", "level": "INFO", "message": "deployment started", "service": "svc-a"},
+        {"timestamp": "2025-01-01T05:20:00Z", "level": "INFO", "message": "health check passed", "service": "svc-a"},
+        {"timestamp": "2025-01-01T05:21:00Z", "level": "ERROR", "message": "ConnectError: refused", "service": "svc-b"},
+    ]
+    agent._patterns = [
+        {
+            "pattern_key": "ConnectError",
+            "severity": "critical",
+            "correlation_ids": [],
+            "first_seen": "2025-01-01T05:21:00Z",
+            "affected_components": ["svc-b"],
+        }
+    ]
+
+    # Simulate empty breadcrumbs and raw_logs existing
+    error_breadcrumbs: dict[str, list[dict]] = {}
+    if not error_breadcrumbs and agent._raw_logs:
+        for pattern in agent._patterns[:3]:
+            if pattern.get("severity", "medium") not in ("critical", "high"):
+                continue
+            pk = pattern["pattern_key"]
+            first_seen = pattern.get("first_seen", "")
+            if not first_seen:
+                continue
+            nearby = [
+                l for l in agent._raw_logs
+                if l.get("timestamp", "") and l["timestamp"] <= first_seen
+            ]
+            nearby.sort(key=lambda l: l.get("timestamp", ""))
+            if nearby:
+                error_breadcrumbs[pk] = nearby[-10:]
+
+    assert "ConnectError" in error_breadcrumbs
+    crumbs = error_breadcrumbs["ConnectError"]
+    assert len(crumbs) == 3
+    assert crumbs[0]["message"] == "deployment started"
+    assert crumbs[-1]["message"] == "ConnectError: refused"
+
+
+# ─── Change 4: Impact Metadata ───────────────────────────────────────────────
+
+def test_parse_patterns_includes_impact_meta():
+    """Patterns should include impact_meta with score, service_count, duration_seconds."""
+    agent = LogAnalysisAgent()
+    logs = [
+        {"level": "ERROR", "message": "ConnectError: connection refused", "service": "svc-a",
+         "timestamp": "2025-01-01T05:21:00Z"},
+        {"level": "ERROR", "message": "ConnectError: connection refused", "service": "svc-b",
+         "timestamp": "2025-01-01T05:23:00Z"},
+    ]
+    patterns = agent._parse_patterns_from_logs(logs)
+    assert len(patterns) >= 1
+    p = patterns[0]
+    assert "impact_meta" in p
+    meta = p["impact_meta"]
+    assert meta["service_count"] == 2
+    assert meta["duration_seconds"] == 120  # 2 minutes
+    # critical severity (ConnectError) = weight 4, freq 2, 2 services
+    # score = 4*25 + 2 + 2*10 = 100 + 2 + 20 = 122
+    assert meta["impact_score"] == 122
+
+
+def test_parse_patterns_impact_meta_no_timestamps():
+    """Impact metadata should handle missing timestamps gracefully."""
+    agent = LogAnalysisAgent()
+    logs = [
+        {"level": "ERROR", "message": "ConnectError: refused", "service": "svc-a"},
+    ]
+    patterns = agent._parse_patterns_from_logs(logs)
+    meta = patterns[0]["impact_meta"]
+    assert meta["duration_seconds"] == 0
+    assert meta["service_count"] == 1
+
+
+def test_prompt_includes_impact_line():
+    """Each pattern in the prompt should have an Impact line when impact_meta is present."""
+    agent = LogAnalysisAgent()
+    collection = {
+        "patterns": [
+            {
+                "exception_type": "ConnectError",
+                "frequency": 10,
+                "severity": "critical",
+                "affected_components": ["svc-a", "svc-b"],
+                "error_message": "Connection refused",
+                "pattern_key": "ConnectError",
+                "first_seen": "2025-01-01T05:21:00Z",
+                "last_seen": "2025-01-01T05:25:00Z",
+                "impact_meta": {"impact_score": 130, "service_count": 2, "duration_seconds": 240},
+            },
+        ],
+        "raw_logs": [],
+        "service_flow": [],
+        "context_logs": [],
+        "error_breadcrumbs": {},
+        "cross_service_correlations": [],
+        "inferred_dependencies": [],
+        "index_used": "app-logs-*",
+        "stats": {"total_logs": 10, "error_count": 10, "warn_count": 0},
+    }
+    context = {"service_name": "checkout", "timeframe": "now-1h"}
+    prompt = agent._build_analysis_prompt(collection, context)
+    assert "Impact: score=130" in prompt
+    assert "2 services" in prompt
+    assert "duration=240s" in prompt
+
+
+# ─── Change 5: Decision-Making Metadata and Pattern Tiers ────────────────────
+
+def test_prompt_includes_decision_guide():
+    """The prompt should include a DECISION GUIDE with tier counts."""
+    agent = LogAnalysisAgent()
+    collection = {
+        "patterns": [
+            {"exception_type": "ConnectError", "frequency": 5, "severity": "critical",
+             "affected_components": ["svc-a"], "error_message": "refused", "pattern_key": "k1",
+             "first_seen": "2025-01-01T05:21:00Z", "last_seen": "2025-01-01T05:25:00Z"},
+            {"exception_type": "DeprecationWarning", "frequency": 40, "severity": "low",
+             "affected_components": ["svc-b"], "error_message": "deprecated", "pattern_key": "k2",
+             "first_seen": "2025-01-01T05:20:00Z", "last_seen": "2025-01-01T05:25:00Z"},
+        ],
+        "raw_logs": [],
+        "service_flow": [],
+        "context_logs": [],
+        "error_breadcrumbs": {},
+        "cross_service_correlations": [],
+        "inferred_dependencies": [],
+        "index_used": "app-logs-*",
+        "stats": {"total_logs": 45, "error_count": 5, "warn_count": 40},
+    }
+    context = {"service_name": "checkout", "timeframe": "now-1h"}
+    prompt = agent._build_analysis_prompt(collection, context)
+    assert "DECISION GUIDE" in prompt
+    assert "1 patterns are TIER 1" in prompt
+    assert "1 patterns are TIER 2" in prompt
+    assert "Do NOT assume the most frequent pattern is the most impactful" in prompt
+
+
+def test_prompt_patterns_have_tier_labels():
+    """Each pattern header should include a TIER label."""
+    agent = LogAnalysisAgent()
+    collection = {
+        "patterns": [
+            {"exception_type": "ConnectError", "frequency": 5, "severity": "critical",
+             "affected_components": ["svc-a"], "error_message": "refused", "pattern_key": "k1",
+             "first_seen": "2025-01-01T05:21:00Z", "last_seen": "2025-01-01T05:25:00Z"},
+            {"exception_type": "RedisTimeout", "frequency": 20, "severity": "high",
+             "affected_components": ["svc-b"], "error_message": "timeout", "pattern_key": "k2",
+             "first_seen": "2025-01-01T05:20:00Z", "last_seen": "2025-01-01T05:25:00Z"},
+            {"exception_type": "DeprecationWarning", "frequency": 40, "severity": "low",
+             "affected_components": ["svc-c"], "error_message": "deprecated", "pattern_key": "k3",
+             "first_seen": "2025-01-01T05:19:00Z", "last_seen": "2025-01-01T05:25:00Z"},
+        ],
+        "raw_logs": [],
+        "service_flow": [],
+        "context_logs": [],
+        "error_breadcrumbs": {},
+        "cross_service_correlations": [],
+        "inferred_dependencies": [],
+        "index_used": "app-logs-*",
+        "stats": {"total_logs": 65, "error_count": 25, "warn_count": 40},
+    }
+    context = {"service_name": "checkout", "timeframe": "now-1h"}
+    prompt = agent._build_analysis_prompt(collection, context)
+    assert "P1 [TIER 1]: ConnectError" in prompt
+    assert "P2 [TIER 1]: RedisTimeout" in prompt
+    assert "P3 [TIER 2]: DeprecationWarning" in prompt
+
+
+def test_system_prompt_has_pattern_tiers_guidance():
+    """SYSTEM_PROMPT should contain PATTERN TIERS guidance."""
+    assert "PATTERN TIERS" in LogAnalysisAgent.SYSTEM_PROMPT
+    assert "TIER 1" in LogAnalysisAgent.SYSTEM_PROMPT
+    assert "TIER 2" in LogAnalysisAgent.SYSTEM_PROMPT
+    assert "Frequency alone does not determine impact" in LogAnalysisAgent.SYSTEM_PROMPT
+
+
+# ─── Change A: _extract_log_entry() field mapping ──────────────────────────────
+
+def test_extract_log_entry_standard_fields():
+    """_extract_log_entry should extract standard ES fields correctly."""
+    agent = LogAnalysisAgent()
+    hit = {
+        "_id": "abc123",
+        "_index": "app-logs-2025.01",
+        "_source": {
+            "@timestamp": "2025-01-01T00:00:01Z",
+            "level": "ERROR",
+            "message": "Connection refused",
+            "service": "checkout-service",
+            "trace_id": "trace-xyz",
+            "stack_trace": "NullPointerException\n\tat com.app.Svc.run(Svc.java:10)",
+        },
+    }
+    entry = agent._extract_log_entry(hit)
+    assert entry["id"] == "abc123"
+    assert entry["index"] == "app-logs-2025.01"
+    assert entry["timestamp"] == "2025-01-01T00:00:01Z"
+    assert entry["level"] == "ERROR"
+    assert entry["message"] == "Connection refused"
+    assert entry["service"] == "checkout-service"
+    assert entry["trace_id"] == "trace-xyz"
+    assert "NullPointerException" in entry["stack_trace"]
+
+
+def test_extract_log_entry_ecs_fields():
+    """_extract_log_entry should handle ECS-style nested fields (log.level, service.name)."""
+    agent = LogAnalysisAgent()
+    hit = {
+        "_id": "ecs1",
+        "_index": "logs",
+        "_source": {
+            "@timestamp": "2025-01-01T00:00:01Z",
+            "log": {"level": "error"},
+            "message": "Something failed",
+            "service": {"name": "inventory-svc"},
+            "traceId": "trace-ecs",
+            "error": {"stack_trace": "java.lang.Error\n\tat Svc.run(Svc.java:5)", "type": "NullPointerException"},
+        },
+    }
+    entry = agent._extract_log_entry(hit)
+    assert entry["level"] == "error"
+    assert entry["service"] == "inventory-svc"
+    assert entry["trace_id"] == "trace-ecs"
+    assert "java.lang.Error" in entry["stack_trace"]
+    assert entry["error_type"] == "NullPointerException"
+
+
+def test_extract_log_entry_kubernetes_service():
+    """_extract_log_entry should fall back to kubernetes.container.name for service."""
+    agent = LogAnalysisAgent()
+    hit = {
+        "_id": "k8s1",
+        "_index": "logs",
+        "_source": {
+            "@timestamp": "2025-01-01T00:00:01Z",
+            "level": "WARN",
+            "message": "pool exhausted",
+            "kubernetes": {"container": {"name": "redis-pod"}, "labels": {"app": "redis"}},
+        },
+    }
+    entry = agent._extract_log_entry(hit)
+    assert entry["service"] == "redis-pod"
+
+
+def test_extract_log_entry_kubernetes_labels_app():
+    """_extract_log_entry should fall back to kubernetes.labels.app when container.name missing."""
+    agent = LogAnalysisAgent()
+    hit = {
+        "_id": "k8s2",
+        "_index": "logs",
+        "_source": {
+            "@timestamp": "2025-01-01T00:00:01Z",
+            "level": "INFO",
+            "message": "ready",
+            "kubernetes": {"labels": {"app": "my-app"}},
+        },
+    }
+    entry = agent._extract_log_entry(hit)
+    assert entry["service"] == "my-app"
+
+
+def test_extract_log_entry_host_name_fallback():
+    """_extract_log_entry should fall back to host.name for service."""
+    agent = LogAnalysisAgent()
+    hit = {
+        "_id": "host1",
+        "_index": "logs",
+        "_source": {
+            "@timestamp": "2025-01-01T00:00:01Z",
+            "level": "ERROR",
+            "message": "disk full",
+            "host": {"name": "prod-worker-01"},
+        },
+    }
+    entry = agent._extract_log_entry(hit)
+    assert entry["service"] == "prod-worker-01"
+
+
+def test_extract_log_entry_include_trace_false():
+    """When include_trace=False, trace_id/stack_trace/error_type should be absent."""
+    agent = LogAnalysisAgent()
+    hit = {
+        "_id": "ctx1",
+        "_index": "logs",
+        "_source": {
+            "@timestamp": "2025-01-01T00:00:01Z",
+            "level": "INFO",
+            "message": "processing",
+            "service": "checkout",
+            "trace_id": "trace-abc",
+            "stack_trace": "some trace",
+        },
+    }
+    entry = agent._extract_log_entry(hit, include_trace=False)
+    assert "trace_id" not in entry
+    assert "stack_trace" not in entry
+    assert "error_type" not in entry
+    assert entry["service"] == "checkout"
+    assert entry["message"] == "processing"
+
+
+def test_extract_log_entry_alternate_timestamp_fields():
+    """_extract_log_entry should handle timestamp, time, ts fields."""
+    agent = LogAnalysisAgent()
+    # 'timestamp' field
+    hit1 = {"_id": "1", "_index": "logs", "_source": {"timestamp": "2025-01-01T00:00:01Z", "level": "INFO", "message": "m"}}
+    assert agent._extract_log_entry(hit1)["timestamp"] == "2025-01-01T00:00:01Z"
+
+    # 'time' field
+    hit2 = {"_id": "2", "_index": "logs", "_source": {"time": "2025-01-01T00:00:02Z", "level": "INFO", "message": "m"}}
+    assert agent._extract_log_entry(hit2)["timestamp"] == "2025-01-01T00:00:02Z"
+
+    # 'ts' field
+    hit3 = {"_id": "3", "_index": "logs", "_source": {"ts": "2025-01-01T00:00:03Z", "level": "INFO", "message": "m"}}
+    assert agent._extract_log_entry(hit3)["timestamp"] == "2025-01-01T00:00:03Z"
+
+
+def test_extract_log_entry_trace_id_variants():
+    """_extract_log_entry should resolve trace_id from multiple field names."""
+    agent = LogAnalysisAgent()
+    variants = [
+        ("trace_id", "t1"),
+        ("traceId", "t2"),
+        ("correlation_id", "t3"),
+        ("request_id", "t4"),
+        ("x-request-id", "t5"),
+    ]
+    for field, value in variants:
+        hit = {"_id": "1", "_index": "logs", "_source": {field: value, "level": "INFO", "message": "m"}}
+        entry = agent._extract_log_entry(hit)
+        assert entry["trace_id"] == value, f"Failed for field {field}"
+
+
+def test_extract_log_entry_stack_trace_variants():
+    """_extract_log_entry should resolve stack_trace from multiple field names."""
+    agent = LogAnalysisAgent()
+    variants = [
+        ("stack_trace", "st1"),
+        ("stackTrace", "st2"),
+        ("exception_stacktrace", "st4"),
+    ]
+    for field, value in variants:
+        hit = {"_id": "1", "_index": "logs", "_source": {field: value, "level": "ERROR", "message": "err"}}
+        entry = agent._extract_log_entry(hit)
+        assert entry["stack_trace"] == value, f"Failed for field {field}"
+
+    # Nested: exception.stacktrace
+    hit_exc = {"_id": "1", "_index": "logs", "_source": {"exception": {"stacktrace": "st3"}, "level": "ERROR", "message": "err"}}
+    assert agent._extract_log_entry(hit_exc)["stack_trace"] == "st3"
+
+    # Nested: error.stack_trace
+    hit_err = {"_id": "1", "_index": "logs", "_source": {"error": {"stack_trace": "st5"}, "level": "ERROR", "message": "err"}}
+    assert agent._extract_log_entry(hit_err)["stack_trace"] == "st5"
+
+
+def test_extract_log_entry_message_variants():
+    """_extract_log_entry should resolve message from message, log.message, error.message."""
+    agent = LogAnalysisAgent()
+    # log.message
+    hit1 = {"_id": "1", "_index": "logs", "_source": {"log": {"message": "from log.message"}, "level": "INFO"}}
+    assert agent._extract_log_entry(hit1)["message"] == "from log.message"
+
+    # error.message
+    hit2 = {"_id": "2", "_index": "logs", "_source": {"error": {"message": "from error.message"}, "level": "ERROR"}}
+    assert agent._extract_log_entry(hit2)["message"] == "from error.message"
+
+
+def test_extract_log_entry_level_variants():
+    """_extract_log_entry should resolve level from level, log.level, severity, status."""
+    agent = LogAnalysisAgent()
+    # log.level
+    hit1 = {"_id": "1", "_index": "logs", "_source": {"log": {"level": "warn"}, "message": "m"}}
+    assert agent._extract_log_entry(hit1)["level"] == "warn"
+
+    # severity
+    hit2 = {"_id": "2", "_index": "logs", "_source": {"severity": "ERROR", "message": "m"}}
+    assert agent._extract_log_entry(hit2)["level"] == "ERROR"
+
+    # status (last resort)
+    hit3 = {"_id": "3", "_index": "logs", "_source": {"status": "FATAL", "message": "m"}}
+    assert agent._extract_log_entry(hit3)["level"] == "FATAL"
+
+
+# ─── Change E: Raw log deduplication ──────────────────────────────────────────
+
+def test_seen_log_ids_initialized():
+    """LogAnalysisAgent should initialize _seen_log_ids as empty set."""
+    agent = LogAnalysisAgent()
+    assert hasattr(agent, "_seen_log_ids")
+    assert isinstance(agent._seen_log_ids, set)
+    assert len(agent._seen_log_ids) == 0
+
+
+@pytest.mark.asyncio
+async def test_search_elasticsearch_deduplicates_logs():
+    """_search_elasticsearch should skip duplicate log IDs on repeated calls."""
+    agent = LogAnalysisAgent()
+
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.raise_for_status = MagicMock()
+    mock_response.json.return_value = {
+        "hits": {
+            "hits": [
+                {"_id": "log-1", "_index": "logs", "_source": {
+                    "@timestamp": "2025-01-01T00:00:01Z", "level": "ERROR",
+                    "message": "fail", "service": "svc-a",
+                }},
+                {"_id": "log-2", "_index": "logs", "_source": {
+                    "@timestamp": "2025-01-01T00:00:02Z", "level": "ERROR",
+                    "message": "fail again", "service": "svc-a",
+                }},
+            ]
+        }
+    }
+
+    with patch("requests.post", return_value=mock_response):
+        await agent._search_elasticsearch({"index": "logs", "query": "*", "level_filter": "ERROR"})
+        assert len(agent._raw_logs) == 2
+        assert len(agent._seen_log_ids) == 2
+
+        # Call again with same hits — should not add duplicates
+        await agent._search_elasticsearch({"index": "logs", "query": "*", "level_filter": "ERROR"})
+        assert len(agent._raw_logs) == 2  # No duplicates added
+
+
+# ─── Change F: Epoch timestamp handling ──────────────────────────────────────
+
+def test_extract_log_entry_epoch_milliseconds():
+    """Epoch millisecond timestamps (>1e12) should be converted to ISO format."""
+    agent = LogAnalysisAgent()
+    # 1704067200000 ms = 2024-01-01T00:00:00Z
+    hit = {
+        "_id": "ep1",
+        "_index": "logs",
+        "_source": {
+            "@timestamp": "1704067200000",
+            "level": "ERROR",
+            "message": "epoch test",
+            "service": "svc-a",
+        },
+    }
+    entry = agent._extract_log_entry(hit)
+    assert "2024-01-01" in entry["timestamp"]
+    assert "T" in entry["timestamp"]
+
+
+def test_extract_log_entry_epoch_seconds():
+    """Epoch second timestamps (>1e9, <1e12) should be converted to ISO format."""
+    agent = LogAnalysisAgent()
+    # 1704067200 s = 2024-01-01T00:00:00Z
+    hit = {
+        "_id": "ep2",
+        "_index": "logs",
+        "_source": {
+            "@timestamp": "1704067200",
+            "level": "ERROR",
+            "message": "epoch seconds test",
+            "service": "svc-a",
+        },
+    }
+    entry = agent._extract_log_entry(hit)
+    assert "2024-01-01" in entry["timestamp"]
+    assert "T" in entry["timestamp"]
+
+
+def test_extract_log_entry_epoch_numeric_type():
+    """Numeric (int/float) epoch timestamps should also be converted."""
+    agent = LogAnalysisAgent()
+    hit = {
+        "_id": "ep3",
+        "_index": "logs",
+        "_source": {
+            "@timestamp": 1704067200000,
+            "level": "INFO",
+            "message": "numeric epoch",
+            "service": "svc-a",
+        },
+    }
+    entry = agent._extract_log_entry(hit)
+    assert "2024-01-01" in entry["timestamp"]
+
+
+def test_extract_log_entry_iso_timestamp_unchanged():
+    """ISO format timestamps should pass through unchanged."""
+    agent = LogAnalysisAgent()
+    hit = {
+        "_id": "iso1",
+        "_index": "logs",
+        "_source": {
+            "@timestamp": "2025-06-15T10:30:00Z",
+            "level": "INFO",
+            "message": "iso test",
+            "service": "svc-a",
+        },
+    }
+    entry = agent._extract_log_entry(hit)
+    assert entry["timestamp"] == "2025-06-15T10:30:00Z"
+
+
+# ─── Change D: Structured error_type extraction ──────────────────────────────
+
+def test_extract_exception_type_from_source():
+    """_extract_exception_type should prefer structured source fields over regex."""
+    agent = LogAnalysisAgent()
+    # error.type
+    assert agent._extract_exception_type("some message", source={"error": {"type": "RedisConnectionError"}}) == "RedisConnectionError"
+    # exception.type
+    assert agent._extract_exception_type("some message", source={"exception": {"type": "TimeoutException"}}) == "TimeoutException"
+    # exception_type flat field
+    assert agent._extract_exception_type("some message", source={"exception_type": "CustomError"}) == "CustomError"
+    # error_class flat field
+    assert agent._extract_exception_type("some message", source={"error_class": "FatalCrash"}) == "FatalCrash"
+
+
+def test_extract_exception_type_source_fallback_to_regex():
+    """When source has no type fields, _extract_exception_type should fall back to regex."""
+    agent = LogAnalysisAgent()
+    assert agent._extract_exception_type("NullPointerException at line 5", source={}) == "NullPointerException"
+    assert agent._extract_exception_type("NullPointerException at line 5", source=None) == "NullPointerException"
+
+
+def test_extract_exception_type_backward_compatible():
+    """Without source param, _extract_exception_type should work as before."""
+    agent = LogAnalysisAgent()
+    assert agent._extract_exception_type("java.lang.NullPointerException at line 45") == "NullPointerException"
+    assert agent._extract_exception_type("ConnectionTimeout after 30000ms") == "ConnectionTimeout"
+    assert agent._extract_exception_type("some random error message") == "UnknownError"
+    assert agent._extract_exception_type("request timeout after 5s") == "Timeout"
+
+
+def test_parse_patterns_uses_structured_error_type():
+    """_parse_patterns_from_logs should use error_type from log entries when available."""
+    agent = LogAnalysisAgent()
+    logs = [
+        {
+            "level": "ERROR",
+            "message": "something went wrong",
+            "service": "svc-a",
+            "timestamp": "2025-01-01T00:00:01Z",
+            "error_type": "CustomDatabaseError",
+        },
+        {
+            "level": "ERROR",
+            "message": "something went wrong again",
+            "service": "svc-a",
+            "timestamp": "2025-01-01T00:00:02Z",
+            "error_type": "CustomDatabaseError",
+        },
+    ]
+    patterns = agent._parse_patterns_from_logs(logs)
+    # Should use the structured error_type instead of regex fallback
+    found = any(p["exception_type"] == "CustomDatabaseError" for p in patterns)
+    assert found
+
+
+# ─── Change C: ES query alignment ────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_search_elasticsearch_level_filter_includes_status():
+    """Level filter query should include status field matches."""
+    agent = LogAnalysisAgent()
+    captured_body = {}
+
+    def mock_post(url, json=None, **kwargs):
+        captured_body["json"] = json
+        resp = MagicMock()
+        resp.status_code = 200
+        resp.raise_for_status = MagicMock()
+        resp.json.return_value = {"hits": {"hits": []}}
+        return resp
+
+    with patch("requests.post", side_effect=mock_post):
+        await agent._search_elasticsearch({"index": "logs", "query": "*", "level_filter": "ERROR"})
+
+    should_clause = captured_body["json"]["query"]["bool"]["must"][1]["bool"]["should"]
+    field_names = [list(m["match"].keys())[0] for m in should_clause]
+    assert "status" in field_names
+
+
+@pytest.mark.asyncio
+async def test_get_log_context_multi_field_service_query():
+    """_get_log_context should query across service, service.name, k8s fields."""
+    agent = LogAnalysisAgent()
+    captured_body = {}
+
+    def mock_post(url, json=None, **kwargs):
+        captured_body["json"] = json
+        resp = MagicMock()
+        resp.status_code = 200
+        resp.raise_for_status = MagicMock()
+        resp.json.return_value = {"hits": {"hits": []}}
+        return resp
+
+    with patch("requests.post", side_effect=mock_post):
+        await agent._get_log_context({"index": "logs", "timestamp": "2025-01-01T00:00:01Z", "service": "checkout"})
+
+    service_clause = captured_body["json"]["query"]["bool"]["must"][0]["bool"]["should"]
+    field_names = [list(m["match"].keys())[0] for m in service_clause]
+    assert "service" in field_names
+    assert "service.name" in field_names
+    assert "kubernetes.container.name" in field_names
+    assert "kubernetes.labels.app" in field_names
+
+
+def test_extract_log_entry_error_type_field():
+    """_extract_log_entry should populate error_type from multiple ES source fields."""
+    agent = LogAnalysisAgent()
+    # error.type
+    hit1 = {"_id": "1", "_index": "logs", "_source": {
+        "level": "ERROR", "message": "fail", "error": {"type": "TimeoutException"},
+    }}
+    assert agent._extract_log_entry(hit1)["error_type"] == "TimeoutException"
+
+    # exception.type
+    hit2 = {"_id": "2", "_index": "logs", "_source": {
+        "level": "ERROR", "message": "fail", "exception": {"type": "NullPointerException"},
+    }}
+    assert agent._extract_log_entry(hit2)["error_type"] == "NullPointerException"
+
+    # exception_type flat
+    hit3 = {"_id": "3", "_index": "logs", "_source": {
+        "level": "ERROR", "message": "fail", "exception_type": "CustomError",
+    }}
+    assert agent._extract_log_entry(hit3)["error_type"] == "CustomError"
+
+    # error_class flat
+    hit4 = {"_id": "4", "_index": "logs", "_source": {
+        "level": "ERROR", "message": "fail", "error_class": "FatalError",
+    }}
+    assert agent._extract_log_entry(hit4)["error_type"] == "FatalError"
+
+
+# ─── FIELD_MAP constant ──────────────────────────────────────────────────────
+
+def test_field_map_exists_and_has_all_keys():
+    """FIELD_MAP should exist as class constant with all expected canonical keys."""
+    fm = LogAnalysisAgent.FIELD_MAP
+    assert isinstance(fm, dict)
+    for key in ("timestamp", "level", "message", "service", "trace_id", "stack_trace", "error_type"):
+        assert key in fm
+        assert isinstance(fm[key], list)
+        assert len(fm[key]) >= 2
+
+
+# ─── _get_field() helper ─────────────────────────────────────────────────────
+
+def test_get_field_flat_key():
+    agent = LogAnalysisAgent()
+    assert agent._get_field({"level": "ERROR"}, "level") == "ERROR"
+
+
+def test_get_field_dot_notation():
+    agent = LogAnalysisAgent()
+    assert agent._get_field({"log": {"level": "WARN"}}, "log.level") == "WARN"
+
+
+def test_get_field_deep_dot_notation():
+    agent = LogAnalysisAgent()
+    src = {"kubernetes": {"container": {"name": "checkout"}}}
+    assert agent._get_field(src, "kubernetes.container.name") == "checkout"
+
+
+def test_get_field_priority_order():
+    """First matching key wins."""
+    agent = LogAnalysisAgent()
+    src = {"level": "ERROR", "severity": "WARN"}
+    assert agent._get_field(src, "level", "severity") == "ERROR"
+
+
+def test_get_field_skips_missing():
+    """Missing keys are skipped, next candidate used."""
+    agent = LogAnalysisAgent()
+    src = {"severity": "CRITICAL"}
+    assert agent._get_field(src, "level", "severity") == "CRITICAL"
+
+
+def test_get_field_skips_empty_string():
+    """Empty string is treated as missing."""
+    agent = LogAnalysisAgent()
+    src = {"level": "", "severity": "HIGH"}
+    assert agent._get_field(src, "level", "severity") == "HIGH"
+
+
+def test_get_field_returns_none_when_all_missing():
+    agent = LogAnalysisAgent()
+    assert agent._get_field({"foo": "bar"}, "level", "severity") is None
+
+
+def test_get_field_non_dict_intermediate():
+    """Dot-notation traversal through a non-dict intermediate returns None and falls through."""
+    agent = LogAnalysisAgent()
+    src = {"log": "just-a-string"}
+    assert agent._get_field(src, "log.level") is None
+    # But a fallback key should still work
+    assert agent._get_field(src, "log.level", "severity") is None
+    src2 = {"log": "just-a-string", "severity": "ERROR"}
+    assert agent._get_field(src2, "log.level", "severity") == "ERROR"
+
+
+# ─── New field variant coverage via _extract_log_entry() ────────────────────
+
+def test_extract_log_entry_msg_field():
+    """'msg' field (structlog/bunyan) should map to message."""
+    agent = LogAnalysisAgent()
+    hit = {"_id": "1", "_index": "logs", "_source": {"msg": "request processed", "level": "INFO"}}
+    entry = agent._extract_log_entry(hit)
+    assert entry["message"] == "request processed"
+
+
+def test_extract_log_entry_service_name_field():
+    """'service_name' field should map to service."""
+    agent = LogAnalysisAgent()
+    hit = {"_id": "1", "_index": "logs", "_source": {"service_name": "payment-svc", "level": "ERROR", "message": "fail"}}
+    entry = agent._extract_log_entry(hit)
+    assert entry["service"] == "payment-svc"
+
+
+def test_extract_log_entry_app_field():
+    """'app' field should map to service."""
+    agent = LogAnalysisAgent()
+    hit = {"_id": "1", "_index": "logs", "_source": {"app": "order-api", "level": "ERROR", "message": "fail"}}
+    entry = agent._extract_log_entry(hit)
+    assert entry["service"] == "order-api"
+
+
+def test_extract_log_entry_trace_dot_id():
+    """'trace.id' nested field should map to trace_id."""
+    agent = LogAnalysisAgent()
+    hit = {"_id": "1", "_index": "logs", "_source": {
+        "level": "ERROR", "message": "fail", "trace": {"id": "abc-123"},
+    }}
+    entry = agent._extract_log_entry(hit)
+    assert entry["trace_id"] == "abc-123"
+
+
+def test_extract_log_entry_loglevel_field():
+    """'loglevel' field should map to level."""
+    agent = LogAnalysisAgent()
+    hit = {"_id": "1", "_index": "logs", "_source": {"loglevel": "ERROR", "message": "fail"}}
+    entry = agent._extract_log_entry(hit)
+    assert entry["level"] == "ERROR"
+
+
+def test_extract_log_entry_log_level_field():
+    """'log_level' field (underscore variant) should map to level."""
+    agent = LogAnalysisAgent()
+    hit = {"_id": "1", "_index": "logs", "_source": {"log_level": "WARN", "message": "warning"}}
+    entry = agent._extract_log_entry(hit)
+    assert entry["level"] == "WARN"
+
+
+def test_extract_log_entry_service_dict_with_name():
+    """service as dict with 'name' key should extract the name."""
+    agent = LogAnalysisAgent()
+    hit = {"_id": "1", "_index": "logs", "_source": {
+        "service": {"name": "checkout-svc"}, "level": "ERROR", "message": "fail",
+    }}
+    entry = agent._extract_log_entry(hit)
+    assert entry["service"] == "checkout-svc"
+
+
+def test_extract_log_entry_service_dict_without_name_falls_through():
+    """service as dict without 'name' should fall through to FIELD_MAP alternatives."""
+    agent = LogAnalysisAgent()
+    hit = {"_id": "1", "_index": "logs", "_source": {
+        "service": {"version": "1.0"}, "service_name": "fallback-svc",
+        "level": "ERROR", "message": "fail",
+    }}
+    entry = agent._extract_log_entry(hit)
+    assert entry["service"] == "fallback-svc"
+
+
+def test_extract_log_entry_error_stacktrace_via_field_map():
+    """'error.stacktrace' should map to stack_trace."""
+    agent = LogAnalysisAgent()
+    hit = {"_id": "1", "_index": "logs", "_source": {
+        "level": "ERROR", "message": "fail",
+        "error": {"stacktrace": "at com.myapp.Foo.bar(Foo.java:10)"},
+    }}
+    entry = agent._extract_log_entry(hit)
+    assert entry["stack_trace"] == "at com.myapp.Foo.bar(Foo.java:10)"
+
+
+def test_extract_log_entry_span_id_trace():
+    """'span.id' nested field should map to trace_id when no other trace fields exist."""
+    agent = LogAnalysisAgent()
+    hit = {"_id": "1", "_index": "logs", "_source": {
+        "level": "ERROR", "message": "fail", "span": {"id": "span-456"},
+    }}
+    entry = agent._extract_log_entry(hit)
+    assert entry["trace_id"] == "span-456"
+
+
+# ─── per_service_breakdown ──────────────────────────────────────────────────
+
+def test_per_service_breakdown_basic():
+    """Each pattern should have per_service_breakdown with correct counts."""
+    agent = LogAnalysisAgent()
+    logs = [
+        {"level": "ERROR", "message": "ConnectionTimeout", "service": "checkout", "timestamp": "2025-01-01T00:00:01Z"},
+        {"level": "ERROR", "message": "ConnectionTimeout", "service": "checkout", "timestamp": "2025-01-01T00:00:02Z"},
+        {"level": "ERROR", "message": "ConnectionTimeout", "service": "payment", "timestamp": "2025-01-01T00:00:03Z"},
+    ]
+    patterns = agent._parse_patterns_from_logs(logs)
+    ct = next(p for p in patterns if p["exception_type"] == "ConnectionTimeout")
+    breakdown = ct["per_service_breakdown"]
+    assert breakdown["checkout"]["count"] == 2
+    assert breakdown["payment"]["count"] == 1
+
+
+def test_per_service_breakdown_timestamps():
+    """per_service_breakdown should track first_seen/last_seen per service."""
+    agent = LogAnalysisAgent()
+    logs = [
+        {"level": "ERROR", "message": "ConnectionTimeout", "service": "svc-a", "timestamp": "2025-01-01T00:00:01Z"},
+        {"level": "ERROR", "message": "ConnectionTimeout", "service": "svc-a", "timestamp": "2025-01-01T00:00:05Z"},
+        {"level": "ERROR", "message": "ConnectionTimeout", "service": "svc-a", "timestamp": "2025-01-01T00:00:03Z"},
+    ]
+    patterns = agent._parse_patterns_from_logs(logs)
+    ct = next(p for p in patterns if p["exception_type"] == "ConnectionTimeout")
+    breakdown = ct["per_service_breakdown"]["svc-a"]
+    assert breakdown["first_seen"] == "2025-01-01T00:00:01Z"
+    assert breakdown["last_seen"] == "2025-01-01T00:00:05Z"
+
+
+def test_per_service_breakdown_single_service():
+    """Single-service pattern should have one entry in breakdown."""
+    agent = LogAnalysisAgent()
+    logs = [
+        {"level": "ERROR", "message": "NullPointerException at line 1", "service": "user-svc", "timestamp": "2025-01-01T00:00:01Z"},
+    ]
+    patterns = agent._parse_patterns_from_logs(logs)
+    npe = next(p for p in patterns if p["exception_type"] == "NullPointerException")
+    assert len(npe["per_service_breakdown"]) == 1
+    assert npe["per_service_breakdown"]["user-svc"]["count"] == 1
+
+
+def test_per_service_breakdown_unknown_service_default():
+    """Logs with missing service should be bucketed under 'unknown'."""
+    agent = LogAnalysisAgent()
+    logs = [
+        {"level": "ERROR", "message": "ConnectionTimeout", "service": "", "timestamp": "2025-01-01T00:00:01Z"},
+        {"level": "ERROR", "message": "ConnectionTimeout", "timestamp": "2025-01-01T00:00:02Z"},
+    ]
+    patterns = agent._parse_patterns_from_logs(logs)
+    ct = next(p for p in patterns if p["exception_type"] == "ConnectionTimeout")
+    assert "unknown" in ct["per_service_breakdown"]
+    assert ct["per_service_breakdown"]["unknown"]["count"] == 2
+
+
+def test_prompt_shows_per_service_counts():
+    """LLM prompt should show 'service (Nx)' format instead of flat service list."""
+    agent = LogAnalysisAgent()
+    collection = {
+        "patterns": [
+            {
+                "exception_type": "ConnectError",
+                "frequency": 35,
+                "severity": "critical",
+                "affected_components": ["checkout", "payment"],
+                "error_message": "Connection refused",
+                "pattern_key": "ConnectError",
+                "first_seen": "2025-01-01T05:21:00Z",
+                "last_seen": "2025-01-01T05:25:00Z",
+                "per_service_breakdown": {
+                    "checkout": {"count": 20, "first_seen": "2025-01-01T05:21:00Z", "last_seen": "2025-01-01T05:25:00Z"},
+                    "payment": {"count": 15, "first_seen": "2025-01-01T05:22:00Z", "last_seen": "2025-01-01T05:24:00Z"},
+                },
+            },
+        ],
+        "raw_logs": [],
+        "service_flow": [],
+        "context_logs": [],
+        "error_breadcrumbs": {},
+        "cross_service_correlations": [],
+        "inferred_dependencies": [],
+        "index_used": "app-logs-*",
+        "stats": {"total_logs": 35, "error_count": 35, "warn_count": 0},
+    }
+    context = {"service_name": "checkout", "timeframe": "now-1h"}
+    prompt = agent._build_analysis_prompt(collection, context)
+    assert "checkout (20x)" in prompt
+    assert "payment (15x)" in prompt

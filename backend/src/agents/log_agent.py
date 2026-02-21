@@ -38,6 +38,7 @@ class LogAnalysisAgent:
         self.negative_findings: list[NegativeFinding] = []
         self.evidence_pins: list[EvidencePin] = []
         self._raw_logs: list[dict] = []
+        self._seen_log_ids: set[str] = set()
         self._patterns: list[dict] = []
         self._service_flow: list[dict] = []
         self._event_emitter: EventEmitter | None = None
@@ -67,6 +68,68 @@ class LogAnalysisAgent:
             import base64
             headers["Authorization"] = f"Basic {base64.b64encode(credentials.encode()).decode()}"
         return headers
+
+    def _get_field(self, source: dict, *keys: str):
+        """Check multiple field names, supporting dot-notation for nested dicts."""
+        for key in keys:
+            parts = key.split(".")
+            val = source
+            for part in parts:
+                if isinstance(val, dict):
+                    val = val.get(part)
+                else:
+                    val = None
+                    break
+            if val is not None and val != "":
+                return val
+        return None
+
+    def _extract_log_entry(self, hit: dict, include_trace: bool = True) -> dict:
+        """Normalize an ES hit into a consistent log dict using field mapping."""
+        src = hit.get("_source", {})
+
+        # Timestamp
+        ts = self._get_field(src, *self.FIELD_MAP["timestamp"]) or ""
+        # Epoch millisecond / second detection
+        if ts:
+            try:
+                numeric = float(ts)
+                if numeric > 1e12:
+                    ts = datetime.fromtimestamp(numeric / 1000, tz=timezone.utc).isoformat()
+                elif numeric > 1e9:
+                    ts = datetime.fromtimestamp(numeric, tz=timezone.utc).isoformat()
+            except (ValueError, TypeError, OSError):
+                pass
+
+        level = self._get_field(src, *self.FIELD_MAP["level"]) or ""
+        message = self._get_field(src, *self.FIELD_MAP["message"]) or ""
+
+        # Service: bare "service" can be str OR dict, so handle specially
+        raw_svc = src.get("service", "")
+        if isinstance(raw_svc, dict):
+            service = raw_svc.get("name", "")
+        elif raw_svc:
+            service = raw_svc
+        else:
+            service = ""
+        if not service:
+            service = self._get_field(src, *self.FIELD_MAP["service"]) or ""
+
+        entry: dict[str, Any] = {
+            "id": hit.get("_id", ""),
+            "index": hit.get("_index", ""),
+            "timestamp": ts,
+            "level": level,
+            "message": message,
+            "service": service,
+        }
+
+        if include_trace:
+            entry["trace_id"] = self._get_field(src, *self.FIELD_MAP["trace_id"]) or ""
+            entry["stack_trace"] = self._get_field(src, *self.FIELD_MAP["stack_trace"]) or ""
+            entry["error_type"] = self._get_field(src, *self.FIELD_MAP["error_type"]) or ""
+
+        return entry
 
     async def run(self, context: dict, event_emitter: EventEmitter | None = None) -> dict:
         """Two-phase hybrid execution."""
@@ -208,6 +271,49 @@ class LogAnalysisAgent:
         if self._patterns:
             error_breadcrumbs = await self._collect_error_breadcrumbs(self._patterns, index)
 
+        # Step 4c: Detect solo-service blind spot
+        target_service = context.get("service_name", "")
+        observed_services = set(l.get("service", "") for l in self._raw_logs)
+        target_service_absent = (
+            target_service
+            and target_service.lower() not in {s.lower() for s in observed_services}
+        )
+        target_service_logs: list[dict] = []
+        if target_service_absent and self._patterns:
+            # Fetch recent logs (any level) from the target service to show its activity
+            first_pattern = self._patterns[0]
+            ts = first_pattern.get("first_seen", "")
+            if ts:
+                ctx_result = await self._get_log_context({
+                    "index": index,
+                    "timestamp": ts,
+                    "service": target_service,
+                    "minutes_before": 5,
+                    "minutes_after": 2,
+                })
+                try:
+                    target_service_logs = json.loads(ctx_result).get("logs", [])
+                except (json.JSONDecodeError, AttributeError):
+                    target_service_logs = []
+
+        # Step 4d: Breadcrumb fallback — synthesize from raw_logs when breadcrumbs empty
+        if not error_breadcrumbs and self._raw_logs:
+            for pattern in self._patterns[:3]:
+                if pattern.get("severity", "medium") not in ("critical", "high"):
+                    continue
+                pk = pattern["pattern_key"]
+                first_seen = pattern.get("first_seen", "")
+                if not first_seen:
+                    continue
+                # Find raw_logs near this pattern's first_seen from ANY service
+                nearby = [
+                    l for l in self._raw_logs
+                    if l.get("timestamp", "") and l["timestamp"] <= first_seen
+                ]
+                nearby.sort(key=lambda l: l.get("timestamp", ""))
+                if nearby:
+                    error_breadcrumbs[pk] = nearby[-10:]
+
         # Step 5: Search by trace_id for flow reconstruction
         trace_id = context.get("trace_id")
         service_flow: list[dict] = []
@@ -267,6 +373,11 @@ class LogAnalysisAgent:
         # Build cross-service correlations
         cross_service_correlations = self._build_cross_service_correlations(self._raw_logs)
 
+        # Build traffic context from cross-service correlations and dependencies
+        traffic_context = self._build_traffic_context(
+            cross_service_correlations, inferred_dependencies, target_service
+        )
+
         return {
             "indices_found": indices_found,
             "index_used": index,
@@ -277,6 +388,9 @@ class LogAnalysisAgent:
             "inferred_dependencies": inferred_dependencies,
             "error_breadcrumbs": error_breadcrumbs,
             "cross_service_correlations": cross_service_correlations,
+            "target_service_absent": target_service_absent,
+            "target_service_logs": target_service_logs,
+            "traffic_context": traffic_context,
             "stats": {
                 "total_logs": len(self._raw_logs),
                 "error_count": error_count,
@@ -454,6 +568,14 @@ Analysis framework:
    - "root_cause": The primary failure that started the cascade (typically 1 pattern)
    - "cascading_failure": Downstream symptoms caused by the root cause propagating through service calls
    - "correlated_anomaly": Concurrent patterns not proven to be causally linked
+- ABSENT TARGET SERVICE: If the investigation target has zero error logs but dependent services
+  are failing, the target is likely a CALLER experiencing cascading failures. Infer the
+  relationship and include it in inferred_dependencies.
+- PATTERN TIERS: Patterns are labeled TIER 1 (critical/high) and TIER 2 (medium/low).
+  Focus root cause analysis on TIER 1 patterns. However, ALWAYS check if a TIER 2 event
+  (deployment, config change, scaling event) TRIGGERED a TIER 1 failure. A low-severity
+  "deployment started" log at 05:19 followed by critical errors at 05:21 is a strong
+  causal signal. Frequency alone does not determine impact.
 
 Respond with JSON only. No markdown fences."""
 
@@ -507,19 +629,56 @@ Respond with JSON only. No markdown fences."""
                      f"Even if errors originate in dependent services, explain how they relate back to {service}. "
                      f"If {service} is a caller of a failing downstream service, make that relationship explicit in inferred_dependencies.")
 
+        if collection.get("target_service_absent"):
+            parts.append(
+                f"\n** WARNING: {service} has ZERO error logs in this collection. "
+                f"All errors originate in downstream/dependent services. "
+                f"{service} is likely affected as a CALLER — look for 504 Gateway Timeout, "
+                f"DependencyFailure, or cascading timeout patterns.**"
+            )
+            caller_logs = collection.get("target_service_logs", [])
+            if caller_logs:
+                parts.append(f"\n### {service} Recent Activity ({len(caller_logs)} logs):")
+                for cl in caller_logs[:10]:
+                    parts.append(
+                        f"  [{cl.get('timestamp', '')}] {cl.get('level', '')} "
+                        f"{cl.get('message', '')[:120]}"
+                    )
+
+        all_pats = collection.get("patterns", [])[:10]
+        high_sev = [p for p in all_pats if p.get("severity") in ("critical", "high")]
+        info_sev = [p for p in all_pats if p.get("severity") in ("medium", "low")]
         parts += [
             "",
             "## Error Patterns (deterministic grouping, sorted by severity then frequency)",
+            f"DECISION GUIDE: {len(high_sev)} patterns are TIER 1 (critical/high severity) — focus root cause analysis here. "
+            f"{len(info_sev)} patterns are TIER 2 (medium/low) — these are informational but MAY reveal the trigger "
+            f"(e.g., a deployment event or config change causing a critical failure). "
+            f"Do NOT assume the most frequent pattern is the most impactful.",
         ]
 
         for i, p in enumerate(collection.get("patterns", [])[:10]):
+            tier = "TIER 1" if p.get("severity") in ("critical", "high") else "TIER 2"
             parts.append(
-                f"\n### P{i+1}: {p.get('exception_type', '?')} ({p.get('frequency', 0)}x)"
+                f"\n### P{i+1} [{tier}]: {p.get('exception_type', '?')} ({p.get('frequency', 0)}x)"
             )
             parts.append(f"Severity: {p.get('severity', 'medium')}")
             parts.append(f"Message: {p.get('error_message', '')[:200]}")
-            parts.append(f"Services: {', '.join(p.get('affected_components', []))}")
+            breakdown = p.get("per_service_breakdown", {})
+            if breakdown:
+                svc_parts = [f"{svc} ({info['count']}x)" for svc, info in
+                             sorted(breakdown.items(), key=lambda x: -x[1]["count"])]
+                parts.append(f"Services: {', '.join(svc_parts)}")
+            else:
+                parts.append(f"Services: {', '.join(p.get('affected_components', []))}")
             parts.append(f"Time range: {p.get('first_seen', '?')} → {p.get('last_seen', '?')}")
+            impact = p.get("impact_meta", {})
+            if impact:
+                parts.append(
+                    f"Impact: score={impact.get('impact_score', '?')}, "
+                    f"{impact.get('service_count', 1)} services, "
+                    f"duration={impact.get('duration_seconds', 0)}s"
+                )
             if p.get("correlation_ids"):
                 parts.append(f"Trace IDs: {', '.join(p['correlation_ids'][:3])}")
             if p.get("filtered_stack_trace"):
@@ -580,6 +739,19 @@ Respond with JSON only. No markdown fences."""
                 if corr.get("error_service") and corr.get("error_type"):
                     error_part = f" (FAILED in {corr['error_service']}: {corr['error_type']})"
                 parts.append(f"  Trace '{corr['trace_id'][:20]}...': {chain}{error_part}")
+
+        # Traffic Context
+        traffic = collection.get("traffic_context", [])
+        if traffic:
+            parts.append("\n## Traffic Context (caller → callee relationships)")
+            parts.append("Use this to determine if a failing service is being overwhelmed by upstream traffic.")
+            for edge in traffic[:10]:
+                error_mark = " [ERRORS]" if edge.get("has_error") else ""
+                count_info = f", {edge['trace_count']} traced requests" if edge["trace_count"] else ""
+                parts.append(
+                    f"  {edge['source']} --> {edge['target']}"
+                    f" ({edge.get('evidence', 'inferred')}{count_info}){error_mark}"
+                )
 
         # Service flow
         flow = collection.get("service_flow", [])
@@ -827,6 +999,8 @@ Respond with JSON only. No markdown fences."""
                         {"match": {"log.level": level_upper}},
                         {"match": {"severity": level_upper}},
                         {"match": {"severity": level_lower}},
+                        {"match": {"status": level_upper}},
+                        {"match": {"status": level_lower}},
                         {"match": {"loglevel": level_upper}},
                         {"match": {"loglevel": level_lower}},
                     ],
@@ -857,21 +1031,12 @@ Respond with JSON only. No markdown fences."""
 
             logs = []
             for hit in hits:
-                src = hit.get("_source", {})
-                log_entry = {
-                    "id": hit.get("_id", ""),
-                    "index": hit.get("_index", ""),
-                    "timestamp": src.get("@timestamp", ""),
-                    "level": src.get("level", ""),
-                    "message": src.get("message", ""),
-                    "service": (
-                        src.get("service", {}).get("name", "") if isinstance(src.get("service"), dict)
-                        else src.get("service", "")
-                    ) or src.get("kubernetes", {}).get("container", {}).get("name", "")
-                      or src.get("kubernetes", {}).get("labels", {}).get("app", ""),
-                    "trace_id": src.get("trace_id", src.get("traceId", "")),
-                    "stack_trace": src.get("stack_trace", src.get("stackTrace", "")),
-                }
+                log_id = hit.get("_id", "")
+                if log_id and log_id in self._seen_log_ids:
+                    continue
+                if log_id:
+                    self._seen_log_ids.add(log_id)
+                log_entry = self._extract_log_entry(hit)
                 logs.append(log_entry)
                 self._raw_logs.append(log_entry)
 
@@ -954,15 +1119,7 @@ Respond with JSON only. No markdown fences."""
 
             logs = []
             for hit in hits:
-                src = hit.get("_source", {})
-                log_entry = {
-                    "id": hit.get("_id", ""),
-                    "index": hit.get("_index", ""),
-                    "timestamp": src.get("@timestamp", ""),
-                    "level": src.get("level", ""),
-                    "message": src.get("message", ""),
-                    "service": src.get("service", ""),
-                }
+                log_entry = self._extract_log_entry(hit)
                 logs.append(log_entry)
 
             self.add_breadcrumb(
@@ -991,7 +1148,15 @@ Respond with JSON only. No markdown fences."""
             "query": {
                 "bool": {
                     "must": [
-                        {"match": {"service": service}},
+                        {"bool": {
+                            "should": [
+                                {"match": {"service": service}},
+                                {"match": {"service.name": service}},
+                                {"match": {"kubernetes.container.name": service}},
+                                {"match": {"kubernetes.labels.app": service}},
+                            ],
+                            "minimum_should_match": 1,
+                        }},
                     ],
                     "filter": [
                         {"range": {
@@ -1019,12 +1184,8 @@ Respond with JSON only. No markdown fences."""
 
             logs = []
             for hit in hits:
-                src = hit.get("_source", {})
-                logs.append({
-                    "timestamp": src.get("@timestamp", ""),
-                    "level": src.get("level", ""),
-                    "message": src.get("message", ""),
-                })
+                log_entry = self._extract_log_entry(hit, include_trace=False)
+                logs.append(log_entry)
 
             self.add_breadcrumb(
                 action="get_log_context",
@@ -1091,7 +1252,10 @@ Respond with JSON only. No markdown fences."""
 
         patterns = []
         for key, group_logs in pattern_groups.items():
-            exception_type = self._extract_exception_type(group_logs[0].get("message", ""))
+            first_log = group_logs[0]
+            # Use structured error_type from extracted log entry if available
+            structured_source = {"error": {"type": first_log["error_type"]}} if first_log.get("error_type") else None
+            exception_type = self._extract_exception_type(first_log.get("message", ""), source=structured_source)
             services = list(set(l.get("service", "unknown") for l in group_logs))
 
             # Collect timestamps for first_seen/last_seen
@@ -1131,6 +1295,20 @@ Respond with JSON only. No markdown fences."""
                         f"[{ctx_log.get('level', '?')}] {ctx_log.get('message', '')[:150]}"
                     )
 
+            # Per-service breakdown: count, first_seen, last_seen per service
+            per_service_breakdown: dict[str, dict] = {}
+            for log in group_logs:
+                svc = log.get("service", "unknown") or "unknown"
+                log_ts = log.get("timestamp", "")
+                if svc not in per_service_breakdown:
+                    per_service_breakdown[svc] = {"count": 0, "first_seen": log_ts, "last_seen": log_ts}
+                per_service_breakdown[svc]["count"] += 1
+                if log_ts:
+                    if not per_service_breakdown[svc]["first_seen"] or log_ts < per_service_breakdown[svc]["first_seen"]:
+                        per_service_breakdown[svc]["first_seen"] = log_ts
+                    if not per_service_breakdown[svc]["last_seen"] or log_ts > per_service_breakdown[svc]["last_seen"]:
+                        per_service_breakdown[svc]["last_seen"] = log_ts
+
             patterns.append({
                 "pattern_key": key,
                 "exception_type": exception_type,
@@ -1146,6 +1324,7 @@ Respond with JSON only. No markdown fences."""
                 "correlation_ids": correlation_ids,
                 "sample_log_ids": sample_log_ids,
                 "preceding_context": preceding_context,
+                "per_service_breakdown": per_service_breakdown,
             })
 
             # Inline stack trace extraction fallback
@@ -1156,9 +1335,24 @@ Respond with JSON only. No markdown fences."""
                         patterns[-1]["inline_stack_trace"] = self._filter_stack_trace(inline)
                         break
 
-        # Classify severity for each pattern
+        # Classify severity and compute impact metadata for each pattern
         for p in patterns:
             p["severity"] = self._classify_pattern_severity(p["exception_type"], p["error_message"])
+            # Impact metadata
+            duration_seconds = 0
+            if p["first_seen"] and p["last_seen"]:
+                try:
+                    t0 = datetime.fromisoformat(p["first_seen"].replace("Z", "+00:00"))
+                    t1 = datetime.fromisoformat(p["last_seen"].replace("Z", "+00:00"))
+                    duration_seconds = max(0, int((t1 - t0).total_seconds()))
+                except (ValueError, TypeError):
+                    pass
+            sev_weight = {"critical": 4, "high": 3, "medium": 2, "low": 1}.get(p["severity"], 2)
+            p["impact_meta"] = {
+                "service_count": len(p["affected_components"]),
+                "duration_seconds": duration_seconds,
+                "impact_score": sev_weight * 25 + min(p["frequency"], 100) + len(p["affected_components"]) * 10,
+            }
 
         # Sort by severity rank (critical first), then frequency descending within same rank
         patterns.sort(key=lambda p: (self.SEVERITY_RANK.get(p["severity"], 2), -p["frequency"]))
@@ -1182,6 +1376,41 @@ Respond with JSON only. No markdown fences."""
              "error_service": info["error_service"], "error_type": info["error_type"]}
             for tid, info in trace_info.items() if len(info["services"]) >= 2
         ][:10]
+
+    def _build_traffic_context(
+        self, correlations: list[dict], dependencies: list[dict], target_service: str
+    ) -> list[dict]:
+        """Build caller->callee traffic relationships from correlations and dependencies."""
+        edges: dict[str, dict] = {}  # "src->tgt" -> {source, target, trace_count, has_error}
+
+        for corr in correlations:
+            services = corr.get("services", [])
+            error_svc = corr.get("error_service")
+            for i in range(len(services) - 1):
+                src, tgt = services[i], services[i + 1]
+                key = f"{src}->{tgt}"
+                if key not in edges:
+                    edges[key] = {
+                        "source": src, "target": tgt,
+                        "trace_count": 0, "has_error": False,
+                        "evidence": "trace_correlation",
+                    }
+                edges[key]["trace_count"] += 1
+                if error_svc and error_svc in (src, tgt):
+                    edges[key]["has_error"] = True
+
+        for dep in dependencies:
+            src = dep.get("source", "")
+            for tgt in dep.get("targets", []):
+                key = f"{src}->{tgt}"
+                if key not in edges:
+                    edges[key] = {
+                        "source": src, "target": tgt,
+                        "trace_count": 0, "has_error": False,
+                        "evidence": "dependency_inference",
+                    }
+
+        return sorted(edges.values(), key=lambda e: -e["trace_count"])
 
     def _infer_service_dependencies(self, patterns: list[dict], service_flow: list[dict], target_service: str = "") -> list[dict]:
         """Infer service dependencies from error patterns and service flow."""
@@ -1310,6 +1539,19 @@ Respond with JSON only. No markdown fences."""
 
     SEVERITY_RANK = {"critical": 0, "high": 1, "medium": 2, "low": 3}
 
+    FIELD_MAP = {
+        "timestamp": ["@timestamp", "timestamp", "time", "ts"],
+        "level":     ["level", "log.level", "severity", "status", "loglevel", "log_level"],
+        "message":   ["message", "log.message", "error.message", "msg"],
+        "service":   ["service.name", "service_name", "kubernetes.container.name",
+                      "kubernetes.labels.app", "app", "app.name", "host.name", "container.name"],
+        "trace_id":  ["trace_id", "traceId", "trace.id", "correlation_id", "request_id",
+                      "x-request-id", "span.id"],
+        "stack_trace": ["stack_trace", "stackTrace", "exception.stacktrace",
+                        "exception_stacktrace", "error.stack_trace", "error.stacktrace"],
+        "error_type":  ["error.type", "exception.type", "exception_type", "error_class"],
+    }
+
     SEVERITY_KEYWORDS = {
         "critical": {"ConnectError", "OOMKilled", "CrashLoopBackOff", "DatabaseError",
                      "DataCorruption", "OutOfMemoryError", "SegmentationFault"},
@@ -1415,8 +1657,22 @@ Respond with JSON only. No markdown fences."""
             return "\n".join(lines[:3] + ["  ... (filtered)"] + lines[-2:])
         return "\n".join(kept[:max_lines])
 
-    def _extract_exception_type(self, message: str) -> str:
-        """Extract the exception class name from a log message."""
+    def _extract_exception_type(self, message: str, source: dict | None = None) -> str:
+        """Extract the exception class name from structured fields or log message."""
+        # Check structured fields first when source is provided
+        if source:
+            error_obj = source.get("error", {}) if isinstance(source.get("error"), dict) else {}
+            exception_obj = source.get("exception", {}) if isinstance(source.get("exception"), dict) else {}
+            structured_type = (
+                error_obj.get("type")
+                or exception_obj.get("type")
+                or source.get("exception_type")
+                or source.get("error_class")
+            )
+            if structured_type:
+                return structured_type
+
+        # Fallback to regex on message text
         exc_match = re.search(r'([A-Z][a-zA-Z]*(?:Exception|Error|Timeout|Failure))', message)
         if exc_match:
             return exc_match.group(1)
