@@ -144,6 +144,22 @@ class LogAnalysisAgent:
             entry["stack_trace"] = self._get_field(src, *self.FIELD_MAP["stack_trace"], join_list=True) or ""
             entry["error_type"] = self._get_field(src, *self.FIELD_MAP["error_type"]) or ""
 
+        # Structured dependency metadata (downstream/target service references)
+        downstream = self._get_field(
+            src, "downstream", "downstream_service", "target_service",
+            "dependency", "called_service", "dest_service",
+        ) or ""
+        upstream = self._get_field(
+            src, "upstream", "upstream_service", "caller_service",
+            "source_service", "src_service",
+        ) or ""
+        if downstream or upstream:
+            entry["_deps"] = {}
+            if downstream:
+                entry["_deps"]["downstream"] = downstream
+            if upstream:
+                entry["_deps"]["upstream"] = upstream
+
         return entry
 
     async def run(self, context: dict, event_emitter: EventEmitter | None = None) -> dict:
@@ -1452,10 +1468,31 @@ Respond with JSON only. No markdown fences."""
         return sorted(edges.values(), key=lambda e: -e["trace_count"])
 
     def _infer_service_dependencies(self, patterns: list[dict], service_flow: list[dict], target_service: str = "") -> list[dict]:
-        """Infer service dependencies from error patterns and service flow."""
+        """Infer service dependencies from error patterns and service flow.
+
+        Priority: structured metadata fields (downstream, target_service) >
+        message-text regex > sequential service flow.
+        """
         deps: dict[str, set[str]] = defaultdict(set)
 
-        # From patterns: if service A mentions service B in error messages
+        # Phase 1: Structured dependency metadata from log entries
+        for p in patterns:
+            sample = p.get("sample_log", {})
+            dep_meta = sample.get("_deps", {})
+            downstream = dep_meta.get("downstream", "")
+            upstream = dep_meta.get("upstream", "")
+            pattern_services = p.get("affected_components", [])
+
+            if downstream:
+                for caller in pattern_services:
+                    if caller.lower() != downstream.lower():
+                        deps[caller].add(downstream)
+            if upstream:
+                for svc in pattern_services:
+                    if svc.lower() != upstream.lower():
+                        deps[upstream].add(svc)
+
+        # Phase 2: From patterns — service A mentions service B in error messages
         all_services: set[str] = set()
         for p in patterns:
             all_services.update(p.get("affected_components", []))

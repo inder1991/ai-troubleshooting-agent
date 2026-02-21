@@ -2805,3 +2805,105 @@ def test_get_field_join_list_empty_list():
     """join_list=True with empty list should return None."""
     agent = LogAnalysisAgent()
     assert agent._get_field({"trace": []}, "trace", join_list=True) is None
+
+
+# ─── Structured dependency metadata extraction ─────────────────────────────
+
+def test_extract_log_entry_deps_downstream():
+    """Structured downstream field should be extracted into _deps."""
+    agent = LogAnalysisAgent()
+    hit = {"_id": "1", "_index": "logs", "_source": {
+        "level": "ERROR", "message": "Timeout",
+        "service": "checkout-service",
+        "downstream": "inventory-service",
+    }}
+    entry = agent._extract_log_entry(hit)
+    assert "_deps" in entry
+    assert entry["_deps"]["downstream"] == "inventory-service"
+
+
+def test_extract_log_entry_deps_target_service():
+    """target_service field should map to downstream in _deps."""
+    agent = LogAnalysisAgent()
+    hit = {"_id": "1", "_index": "logs", "_source": {
+        "level": "ERROR", "message": "Connection refused",
+        "service": "api-gateway",
+        "target_service": "auth-service",
+    }}
+    entry = agent._extract_log_entry(hit)
+    assert entry["_deps"]["downstream"] == "auth-service"
+
+
+def test_extract_log_entry_deps_upstream():
+    """upstream field should be extracted into _deps."""
+    agent = LogAnalysisAgent()
+    hit = {"_id": "1", "_index": "logs", "_source": {
+        "level": "ERROR", "message": "Overloaded",
+        "service": "db-service",
+        "upstream": "order-service",
+    }}
+    entry = agent._extract_log_entry(hit)
+    assert entry["_deps"]["upstream"] == "order-service"
+
+
+def test_extract_log_entry_no_deps_when_absent():
+    """No _deps key when neither downstream nor upstream is present."""
+    agent = LogAnalysisAgent()
+    hit = {"_id": "1", "_index": "logs", "_source": {
+        "level": "ERROR", "message": "fail",
+    }}
+    entry = agent._extract_log_entry(hit)
+    assert "_deps" not in entry
+
+
+def test_infer_deps_structured_metadata_priority():
+    """Structured downstream should create dependency even when message has no service mention."""
+    agent = LogAnalysisAgent()
+    patterns = [{
+        "error_message": "Timeout occurred",  # no service name in message
+        "affected_components": ["checkout-service"],
+        "sample_log": {
+            "service": "checkout-service",
+            "_deps": {"downstream": "inventory-service"},
+        },
+    }]
+    result = agent._infer_service_dependencies(patterns, [])
+    # checkout-service → inventory-service via structured metadata
+    dep_map = {d["source"]: d["targets"] for d in result}
+    assert "inventory-service" in dep_map.get("checkout-service", [])
+
+
+def test_infer_deps_upstream_metadata():
+    """Structured upstream should create reverse dependency."""
+    agent = LogAnalysisAgent()
+    patterns = [{
+        "error_message": "Pool exhausted",
+        "affected_components": ["db-service"],
+        "sample_log": {
+            "service": "db-service",
+            "_deps": {"upstream": "order-service"},
+        },
+    }]
+    result = agent._infer_service_dependencies(patterns, [])
+    dep_map = {d["source"]: d["targets"] for d in result}
+    assert "db-service" in dep_map.get("order-service", [])
+
+
+def test_infer_deps_falls_back_to_message_regex():
+    """Without _deps, should still infer from message text mentioning service names."""
+    agent = LogAnalysisAgent()
+    patterns = [
+        {
+            "error_message": "Failed calling inventory-service",
+            "affected_components": ["checkout-service"],
+            "sample_log": {"service": "checkout-service"},
+        },
+        {
+            "error_message": "DB pool exhausted",
+            "affected_components": ["inventory-service"],
+            "sample_log": {"service": "inventory-service"},
+        },
+    ]
+    result = agent._infer_service_dependencies(patterns, [])
+    dep_map = {d["source"]: d["targets"] for d in result}
+    assert "inventory-service" in dep_map.get("checkout-service", [])
