@@ -18,7 +18,7 @@ class LLMResponse:
 class AnthropicClient:
     """Anthropic API client with cumulative token tracking."""
 
-    def __init__(self, agent_name: str = "unknown", model: str = "claude-3-5-haiku-20241022"):
+    def __init__(self, agent_name: str = "unknown", model: str = "claude-sonnet-4-20250514"):
         self.agent_name = agent_name
         self.model = model  # Caller handles resolution
         self._client = AsyncAnthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))

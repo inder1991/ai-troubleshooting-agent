@@ -99,7 +99,7 @@ class SupervisorAgent:
                 supervisor_model = getattr(connection_config, 'llm_model', "")
         if not supervisor_model:
             import os
-            supervisor_model = os.getenv("ANTHROPIC_MODEL", "claude-3-5-haiku-20241022")
+            supervisor_model = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-20250514")
         self.llm_client = AnthropicClient(agent_name="supervisor", model=supervisor_model)
         self._connection_config = connection_config
         self._agents = {

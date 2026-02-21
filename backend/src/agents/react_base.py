@@ -17,7 +17,7 @@ logger = get_logger(__name__)
 MAX_RETRIES = 3
 RETRY_DELAYS = [2, 5, 15]  # seconds
 
-DEFAULT_MODEL = "claude-3-5-haiku-20241022"
+DEFAULT_MODEL = "claude-sonnet-4-20250514"
 
 
 class ReActAgent(ABC):
