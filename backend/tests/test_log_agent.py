@@ -3311,3 +3311,585 @@ def test_prompt_trace_linked_breadcrumbs_labeled():
     prompt = agent._build_analysis_prompt(collection, context)
     assert "TRACE-LINKED cross-service journey" in prompt
     assert "Services in trace:" in prompt
+
+
+# ─── Change D: Pattern Key Masking ─────────────────────────────────────────────
+
+def test_pattern_key_masks_ephemeral_ports():
+    """Ephemeral port numbers after colon should be masked to :<PORT>."""
+    agent = LogAnalysisAgent()
+    key1 = agent._extract_pattern_key("ConnectError to host:55050")
+    key2 = agent._extract_pattern_key("ConnectError to host:48321")
+    assert key1 == key2 == "ConnectError"
+
+
+def test_pattern_key_masks_ip_port_combos():
+    """IP:port combos should be masked to <IP:PORT>."""
+    agent = LogAnalysisAgent()
+    key1 = agent._extract_pattern_key("ConnectError: 10.244.0.1:55050 refused")
+    key2 = agent._extract_pattern_key("ConnectError: 192.168.1.5:8080 refused")
+    assert key1 == key2 == "ConnectError"
+
+
+def test_pattern_key_masks_http_paths():
+    """HTTP paths should be masked."""
+    agent = LogAnalysisAgent()
+    key1 = agent._extract_pattern_key("Failed request to /api/v1/orders/12345")
+    key2 = agent._extract_pattern_key("Failed request to /api/v1/users/67890")
+    assert key1 == key2
+
+
+def test_pattern_key_masks_quoted_strings():
+    """Quoted strings (4+ chars) should be masked."""
+    agent = LogAnalysisAgent()
+    key1 = agent._extract_pattern_key('Error: "connection refused to inventory"')
+    key2 = agent._extract_pattern_key('Error: "timeout waiting for response"')
+    # Both should normalize to the same key since the dynamic quoted content is masked
+    assert key1 == key2
+
+
+def test_27_connect_errors_collapse_to_few_patterns():
+    """27 similar ConnectError messages with varying ports/IPs should collapse to <=3 patterns."""
+    agent = LogAnalysisAgent()
+    logs = []
+    for i in range(27):
+        port = 50000 + i
+        ip_last = i % 256
+        logs.append({
+            "level": "ERROR",
+            "message": f"ConnectError: connection to 10.244.0.{ip_last}:{port} refused",
+            "service": "checkout-service",
+            "timestamp": f"2026-02-21T08:00:{i:02d}Z",
+        })
+    patterns = agent._parse_patterns_from_logs(logs)
+    assert len(patterns) <= 3, f"Expected <=3 patterns but got {len(patterns)}"
+    total_freq = sum(p["frequency"] for p in patterns)
+    assert total_freq == 27
+
+
+# ─── Change E: Python Framework Noise Filtering ───────────────────────────────
+
+def test_framework_noise_prefixes_contain_python():
+    """FRAMEWORK_NOISE_PREFIXES should include Python framework names."""
+    agent = LogAnalysisAgent()
+    python_frameworks = ["httpx", "httpcore", "anyio", "asyncio", "uvicorn",
+                         "starlette", "fastapi", "aiohttp", "urllib3"]
+    for fw in python_frameworks:
+        assert fw in agent.FRAMEWORK_NOISE_PREFIXES, f"{fw} missing from FRAMEWORK_NOISE_PREFIXES"
+
+
+def test_filter_stack_trace_skips_python_httpx_frames():
+    """Python httpx/asyncio frames should be filtered out, app frames preserved."""
+    agent = LogAnalysisAgent()
+    trace = """Traceback (most recent call last):
+  File "/app/services/checkout.py", line 42, in process_order
+    result = await client.post(url, json=data)
+  File "/usr/lib/python3.11/site-packages/httpx/_client.py", line 1842, in post
+    return await self.request("POST", url)
+  File "/usr/lib/python3.11/site-packages/httpx/_client.py", line 1530, in request
+    return await self.send(request)
+  File "/usr/lib/python3.11/site-packages/httpcore/_async/connection_pool.py", line 216, in handle_async_request
+    raise exc
+  File "/usr/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1148, in connect_tcp
+    raise OSError
+ConnectError: connection refused"""
+    filtered = agent._filter_stack_trace(trace)
+    # App frame should be preserved
+    assert "checkout.py" in filtered
+    # Framework frames should be omitted
+    assert "site-packages/httpx" not in filtered
+    assert "site-packages/httpcore" not in filtered
+    assert "site-packages/anyio" not in filtered
+    # Exception line should be preserved
+    assert "ConnectError" in filtered
+    # Should show omitted count
+    assert "framework frames omitted" in filtered
+
+
+def test_filter_stack_trace_preserves_app_python_frames():
+    """Application Python frames should NOT be filtered."""
+    agent = LogAnalysisAgent()
+    trace = """Traceback (most recent call last):
+  File "/app/main.py", line 10, in main
+    await handler.run()
+  File "/app/handlers/order.py", line 55, in run
+    raise ValueError("bad input")
+ValueError: bad input"""
+    filtered = agent._filter_stack_trace(trace)
+    assert "/app/main.py" in filtered
+    assert "/app/handlers/order.py" in filtered
+    assert "ValueError" in filtered
+    assert "framework frames omitted" not in filtered
+
+
+# ─── Change B: Context Logs Noise Exclusion ────────────────────────────────────
+
+def test_noise_exclusion_clauses_exist():
+    """_NOISE_EXCLUSION_CLAUSES should exist and contain health check patterns."""
+    assert hasattr(LogAnalysisAgent, "_NOISE_EXCLUSION_CLAUSES")
+    clauses = LogAnalysisAgent._NOISE_EXCLUSION_CLAUSES
+    assert len(clauses) >= 5
+    messages = [c["match_phrase"]["message"] for c in clauses]
+    assert "GET /health" in messages
+    assert "GET /healthz" in messages
+    assert "liveness probe" in messages
+    assert "readiness probe" in messages
+
+
+@pytest.mark.asyncio
+async def test_get_log_context_has_noise_exclusion():
+    """_get_log_context should include must_not noise exclusion clauses."""
+    agent = LogAnalysisAgent()
+    # Mock requests.post to capture the query
+    captured_queries = []
+    def mock_post(url, json=None, **kwargs):
+        captured_queries.append(json)
+        resp = MagicMock()
+        resp.status_code = 200
+        resp.raise_for_status = MagicMock()
+        resp.json.return_value = {"hits": {"hits": []}}
+        return resp
+
+    with patch("src.agents.log_agent.requests.post", side_effect=mock_post):
+        await agent._get_log_context({
+            "index": "test-*",
+            "timestamp": "2026-02-21T08:00:00Z",
+            "service": "checkout-service",
+            "minutes_before": 5,
+            "minutes_after": 2,
+        })
+
+    assert len(captured_queries) == 1
+    query = captured_queries[0]
+    must_not = query["query"]["bool"].get("must_not", [])
+    assert len(must_not) >= 5
+    must_not_messages = [c.get("match_phrase", {}).get("message", "") for c in must_not]
+    assert "GET /health" in must_not_messages
+    assert "liveness probe" in must_not_messages
+
+
+# ─── Change C: Breadcrumb Fallback ────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_breadcrumb_fallback_fetches_all_level_pre_error_logs():
+    """When breadcrumbs and trace enrichment are empty, should fetch ALL-level pre-error logs."""
+    agent = LogAnalysisAgent()
+    agent._raw_logs = [
+        {"id": "1", "level": "ERROR", "message": "ConnectError: refused",
+         "service": "checkout-service", "timestamp": "2026-02-21T08:05:00Z",
+         "trace_id": "", "stack_trace": "", "error_type": "ConnectError"},
+    ]
+    agent._patterns = agent._parse_patterns_from_logs(agent._raw_logs)
+
+    # Mock _get_log_context to return pre-error activity
+    pre_error_logs = [
+        {"timestamp": "2026-02-21T08:04:30Z", "level": "INFO",
+         "service": "checkout-service", "message": "Processing order #123"},
+        {"timestamp": "2026-02-21T08:04:45Z", "level": "INFO",
+         "service": "checkout-service", "message": "Calling inventory API"},
+        {"timestamp": "2026-02-21T08:04:58Z", "level": "WARN",
+         "service": "checkout-service", "message": "Inventory response slow (3s)"},
+    ]
+
+    async def mock_get_log_context(params):
+        return json.dumps({"total": len(pre_error_logs), "logs": pre_error_logs})
+
+    # Mock other async methods
+    async def mock_resolve_index(ctx, emitter):
+        return "test-*", []
+
+    async def mock_search_es(params):
+        return json.dumps({"total": 0, "logs": []})
+
+    async def mock_enrich_traces(patterns, idx, emitter, **kw):
+        return {}
+
+    with patch.object(agent, "_resolve_index", side_effect=mock_resolve_index), \
+         patch.object(agent, "_search_elasticsearch", side_effect=mock_search_es), \
+         patch.object(agent, "_enrich_via_trace_ids", side_effect=mock_enrich_traces), \
+         patch.object(agent, "_get_log_context", side_effect=mock_get_log_context):
+        collection = await agent._collect(
+            {"service_name": "checkout-service", "timeframe": "now-1h"}, None
+        )
+
+    breadcrumbs = collection.get("error_breadcrumbs", {})
+    assert len(breadcrumbs) > 0
+    # Should contain the pre-error logs
+    first_key = list(breadcrumbs.keys())[0]
+    crumb_messages = [l.get("message", "") for l in breadcrumbs[first_key]]
+    assert any("Processing order" in m for m in crumb_messages)
+
+
+@pytest.mark.asyncio
+async def test_breadcrumb_fallback_pins_trace_linked_logs():
+    """Trace-linked logs should be pinned to the top of breadcrumbs."""
+    agent = LogAnalysisAgent()
+    agent._raw_logs = [
+        {"id": "1", "level": "ERROR", "message": "ConnectError: refused",
+         "service": "checkout-service", "timestamp": "2026-02-21T08:05:00Z",
+         "trace_id": "trace-abc", "stack_trace": "", "error_type": "ConnectError"},
+    ]
+    agent._patterns = agent._parse_patterns_from_logs(agent._raw_logs)
+
+    pre_error_logs = [
+        {"timestamp": "2026-02-21T08:04:30Z", "level": "INFO",
+         "service": "checkout-service", "message": "Startup complete", "trace_id": ""},
+        {"timestamp": "2026-02-21T08:04:45Z", "level": "INFO",
+         "service": "checkout-service", "message": "Traced request start", "trace_id": "trace-abc"},
+        {"timestamp": "2026-02-21T08:04:58Z", "level": "WARN",
+         "service": "checkout-service", "message": "Slow response", "trace_id": ""},
+    ]
+
+    async def mock_get_log_context(params):
+        return json.dumps({"total": len(pre_error_logs), "logs": pre_error_logs})
+
+    async def mock_resolve_index(ctx, emitter):
+        return "test-*", []
+
+    async def mock_search_es(params):
+        return json.dumps({"total": 0, "logs": []})
+
+    async def mock_enrich_traces(patterns, idx, emitter, **kw):
+        return {}
+
+    with patch.object(agent, "_resolve_index", side_effect=mock_resolve_index), \
+         patch.object(agent, "_search_elasticsearch", side_effect=mock_search_es), \
+         patch.object(agent, "_enrich_via_trace_ids", side_effect=mock_enrich_traces), \
+         patch.object(agent, "_get_log_context", side_effect=mock_get_log_context):
+        collection = await agent._collect(
+            {"service_name": "checkout-service", "timeframe": "now-1h"}, None
+        )
+
+    breadcrumbs = collection.get("error_breadcrumbs", {})
+    first_key = list(breadcrumbs.keys())[0]
+    crumbs = breadcrumbs[first_key]
+    # Trace-linked log should be pinned to top
+    assert crumbs[0].get("trace_id") == "trace-abc"
+    assert crumbs[0].get("message") == "Traced request start"
+
+
+# ─── Change F: Metadata Extraction ────────────────────────────────────────────
+
+def test_metadata_extraction_response_time():
+    """response_time_s should appear in _metadata when present in source."""
+    agent = LogAnalysisAgent()
+    hit = {
+        "_id": "test1",
+        "_index": "app-logs",
+        "_source": {
+            "@timestamp": "2026-02-21T08:00:00Z",
+            "level": "ERROR",
+            "message": "Request failed",
+            "service": "checkout-service",
+            "response_time_s": 8.02,
+            "container": {"image": {"name": "checkout:v3"}},
+        },
+    }
+    entry = agent._extract_log_entry(hit)
+    assert "_metadata" in entry
+    assert entry["_metadata"]["response_time_s"] == 8.02
+    assert entry["_metadata"]["container.image.name"] == "checkout:v3"
+
+
+def test_metadata_extraction_error_type():
+    """error.type and exception.message should appear in _metadata."""
+    agent = LogAnalysisAgent()
+    hit = {
+        "_id": "test2",
+        "_index": "app-logs",
+        "_source": {
+            "@timestamp": "2026-02-21T08:00:00Z",
+            "level": "ERROR",
+            "message": "Inventory timeout",
+            "service": "checkout-service",
+            "error": {"type": "InventoryServiceTimeoutError"},
+            "exception": {"message": "Timed out after 5s"},
+        },
+    }
+    entry = agent._extract_log_entry(hit)
+    assert "_metadata" in entry
+    assert entry["_metadata"]["error.type"] == "InventoryServiceTimeoutError"
+    assert entry["_metadata"]["exception.message"] == "Timed out after 5s"
+
+
+def test_metadata_priority_ordering():
+    """Latency fields should come before version fields in SRE_METADATA_FIELDS."""
+    fields = LogAnalysisAgent.SRE_METADATA_FIELDS
+    latency_idx = fields.index("response_time_s")
+    version_idx = fields.index("version")
+    error_type_idx = fields.index("error.type")
+    assert latency_idx < version_idx < error_type_idx
+
+
+def test_metadata_not_added_when_empty():
+    """_metadata should not be present when no SRE fields exist."""
+    agent = LogAnalysisAgent()
+    hit = {
+        "_id": "test3",
+        "_index": "app-logs",
+        "_source": {
+            "@timestamp": "2026-02-21T08:00:00Z",
+            "level": "ERROR",
+            "message": "Something failed",
+            "service": "svc-a",
+        },
+    }
+    entry = agent._extract_log_entry(hit)
+    assert "_metadata" not in entry
+
+
+# ─── Change A: Blast Radius ───────────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_blast_radius_triggers_on_solo_service_no_trace():
+    """Blast radius scan should trigger when only 1 service observed and no trace enrichment."""
+    agent = LogAnalysisAgent()
+    agent._raw_logs = [
+        {"id": "1", "level": "ERROR", "message": "ConnectError: refused",
+         "service": "checkout-service", "timestamp": "2026-02-21T08:05:00Z",
+         "trace_id": "", "stack_trace": "", "error_type": "ConnectError"},
+    ]
+    agent._patterns = agent._parse_patterns_from_logs(agent._raw_logs)
+
+    blast_logs = [
+        {"id": "br1", "level": "ERROR", "message": "RedisTimeout",
+         "service": "inventory-service", "timestamp": "2026-02-21T08:05:01Z",
+         "trace_id": "", "stack_trace": "", "error_type": "RedisTimeout"},
+    ]
+
+    search_call_count = [0]
+
+    async def mock_search_es(params):
+        search_call_count[0] += 1
+        if params.get("query") == "*" and params.get("index") == "*":
+            # Blast radius query — add logs to _raw_logs like real method does
+            for log in blast_logs:
+                agent._raw_logs.append(log)
+            return json.dumps({"total": len(blast_logs), "logs": blast_logs})
+        return json.dumps({"total": 0, "logs": []})
+
+    async def mock_resolve_index(ctx, emitter):
+        return "test-*", []
+
+    async def mock_enrich_traces(patterns, idx, emitter, **kw):
+        return {}
+
+    async def mock_get_log_context(params):
+        return json.dumps({"total": 0, "logs": []})
+
+    with patch.object(agent, "_resolve_index", side_effect=mock_resolve_index), \
+         patch.object(agent, "_search_elasticsearch", side_effect=mock_search_es), \
+         patch.object(agent, "_enrich_via_trace_ids", side_effect=mock_enrich_traces), \
+         patch.object(agent, "_get_log_context", side_effect=mock_get_log_context):
+        collection = await agent._collect(
+            {"service_name": "checkout-service", "timeframe": "now-1h"}, None
+        )
+
+    assert len(collection.get("blast_radius_logs", [])) > 0
+    assert len(collection.get("blast_radius_patterns", [])) > 0
+    # Target service logs should NOT be in blast radius
+    br_services = {l.get("service") for l in collection["blast_radius_logs"]}
+    assert "checkout-service" not in br_services
+
+
+@pytest.mark.asyncio
+async def test_blast_radius_skips_when_trace_enrichment_exists():
+    """Blast radius scan should NOT trigger when trace enrichment exists."""
+    agent = LogAnalysisAgent()
+    agent._raw_logs = [
+        {"id": "1", "level": "ERROR", "message": "ConnectError: refused",
+         "service": "checkout-service", "timestamp": "2026-02-21T08:05:00Z",
+         "trace_id": "t1", "stack_trace": "", "error_type": "ConnectError"},
+    ]
+    agent._patterns = agent._parse_patterns_from_logs(agent._raw_logs)
+
+    async def mock_resolve_index(ctx, emitter):
+        return "test-*", []
+
+    async def mock_search_es(params):
+        return json.dumps({"total": 0, "logs": []})
+
+    async def mock_enrich_traces(patterns, idx, emitter, **kw):
+        return {"ConnectError": [{"service": "inventory-service", "message": "DB timeout"}]}
+
+    async def mock_get_log_context(params):
+        return json.dumps({"total": 0, "logs": []})
+
+    with patch.object(agent, "_resolve_index", side_effect=mock_resolve_index), \
+         patch.object(agent, "_search_elasticsearch", side_effect=mock_search_es), \
+         patch.object(agent, "_enrich_via_trace_ids", side_effect=mock_enrich_traces), \
+         patch.object(agent, "_get_log_context", side_effect=mock_get_log_context):
+        collection = await agent._collect(
+            {"service_name": "checkout-service", "timeframe": "now-1h"}, None
+        )
+
+    assert collection.get("blast_radius_logs", []) == []
+    assert collection.get("blast_radius_patterns", []) == []
+
+
+@pytest.mark.asyncio
+async def test_blast_radius_skips_when_multiple_services():
+    """Blast radius scan should NOT trigger when multiple services are already observed."""
+    agent = LogAnalysisAgent()
+    agent._raw_logs = [
+        {"id": "1", "level": "ERROR", "message": "ConnectError: refused",
+         "service": "checkout-service", "timestamp": "2026-02-21T08:05:00Z",
+         "trace_id": "", "stack_trace": "", "error_type": "ConnectError"},
+        {"id": "2", "level": "ERROR", "message": "DBError: pool exhausted",
+         "service": "inventory-service", "timestamp": "2026-02-21T08:05:01Z",
+         "trace_id": "", "stack_trace": "", "error_type": ""},
+    ]
+    agent._patterns = agent._parse_patterns_from_logs(agent._raw_logs)
+
+    async def mock_resolve_index(ctx, emitter):
+        return "test-*", []
+
+    async def mock_search_es(params):
+        return json.dumps({"total": 0, "logs": []})
+
+    async def mock_enrich_traces(patterns, idx, emitter, **kw):
+        return {}
+
+    async def mock_get_log_context(params):
+        return json.dumps({"total": 0, "logs": []})
+
+    with patch.object(agent, "_resolve_index", side_effect=mock_resolve_index), \
+         patch.object(agent, "_search_elasticsearch", side_effect=mock_search_es), \
+         patch.object(agent, "_enrich_via_trace_ids", side_effect=mock_enrich_traces), \
+         patch.object(agent, "_get_log_context", side_effect=mock_get_log_context):
+        collection = await agent._collect(
+            {"service_name": "checkout-service", "timeframe": "now-1h"}, None
+        )
+
+    assert collection.get("blast_radius_logs", []) == []
+    assert collection.get("blast_radius_patterns", []) == []
+
+
+# ─── Change G: Prompt Rendering ───────────────────────────────────────────────
+
+def test_prompt_includes_blast_radius_section():
+    """Prompt should include blast radius section when patterns exist."""
+    agent = LogAnalysisAgent()
+    collection = {
+        "patterns": [
+            {"pattern_key": "ConnectError", "exception_type": "ConnectError",
+             "error_message": "Connection refused", "frequency": 5,
+             "severity": "critical", "affected_components": ["checkout-service"],
+             "first_seen": "2026-02-21T08:00:00Z", "last_seen": "2026-02-21T08:05:00Z",
+             "stack_traces": [], "filtered_stack_trace": "", "correlation_ids": [],
+             "sample_log_ids": [], "preceding_context": [], "per_service_breakdown": {},
+             "impact_meta": {}, "sample_log": {}},
+        ],
+        "blast_radius_patterns": [
+            {"pattern_key": "RedisTimeout", "exception_type": "RedisTimeout",
+             "error_message": "Redis pool exhausted", "frequency": 5,
+             "severity": "high", "affected_components": ["inventory-service"],
+             "first_seen": "", "last_seen": "", "stack_traces": [],
+             "filtered_stack_trace": "", "correlation_ids": [],
+             "sample_log_ids": [], "preceding_context": [], "per_service_breakdown": {},
+             "impact_meta": {}, "sample_log": {}},
+        ],
+        "blast_radius_logs": [
+            {"service": "inventory-service", "message": "Redis timeout"},
+        ],
+        "raw_logs": [],
+        "service_flow": [],
+        "context_logs": [],
+        "inferred_dependencies": [],
+        "error_breadcrumbs": {},
+        "trace_enrichment": {},
+        "cross_service_correlations": [],
+        "target_service_absent": False,
+        "target_service_logs": [],
+        "traffic_context": [],
+        "stats": {"total_logs": 5, "error_count": 5, "warn_count": 0,
+                  "pattern_count": 1, "unique_services": 1},
+    }
+    context = {"service_name": "checkout-service", "timeframe": "now-1h"}
+    prompt = agent._build_analysis_prompt(collection, context)
+    assert "Blast Radius" in prompt
+    assert "BR1:" in prompt
+    assert "RedisTimeout" in prompt
+    assert "inventory-service" in prompt
+    assert "[BLAST RADIUS]" in prompt
+
+
+def test_prompt_includes_metadata_snippet():
+    """Prompt should include metadata for pattern sample logs."""
+    agent = LogAnalysisAgent()
+    collection = {
+        "patterns": [
+            {"pattern_key": "ConnectError", "exception_type": "ConnectError",
+             "error_message": "Connection refused", "frequency": 5,
+             "severity": "critical", "affected_components": ["checkout-service"],
+             "first_seen": "2026-02-21T08:00:00Z", "last_seen": "2026-02-21T08:05:00Z",
+             "stack_traces": [], "filtered_stack_trace": "", "correlation_ids": [],
+             "sample_log_ids": [], "preceding_context": [], "per_service_breakdown": {},
+             "impact_meta": {},
+             "sample_log": {
+                 "_metadata": {
+                     "response_time_s": 8.02,
+                     "container.image.name": "checkout:v3",
+                     "error.type": "InventoryServiceTimeoutError",
+                 }
+             }},
+        ],
+        "blast_radius_patterns": [],
+        "blast_radius_logs": [],
+        "raw_logs": [],
+        "service_flow": [],
+        "context_logs": [],
+        "inferred_dependencies": [],
+        "error_breadcrumbs": {},
+        "trace_enrichment": {},
+        "cross_service_correlations": [],
+        "target_service_absent": False,
+        "target_service_logs": [],
+        "traffic_context": [],
+        "stats": {"total_logs": 5, "error_count": 5, "warn_count": 0,
+                  "pattern_count": 1, "unique_services": 1},
+    }
+    context = {"service_name": "checkout-service", "timeframe": "now-1h"}
+    prompt = agent._build_analysis_prompt(collection, context)
+    assert "Metadata:" in prompt
+    assert "response_time_s=8.02" in prompt
+    assert "container.image.name=checkout:v3" in prompt
+
+
+def test_prompt_breadcrumb_pre_error_activity_label():
+    """When breadcrumbs come from pre-error query, label should say 'pre-error activity'."""
+    agent = LogAnalysisAgent()
+    collection = {
+        "patterns": [
+            {"pattern_key": "ConnectError", "exception_type": "ConnectError",
+             "error_message": "Connection refused", "frequency": 5,
+             "severity": "critical", "affected_components": ["checkout-service"],
+             "first_seen": "2026-02-21T08:00:00Z", "last_seen": "2026-02-21T08:05:00Z",
+             "stack_traces": [], "filtered_stack_trace": "", "correlation_ids": [],
+             "sample_log_ids": [], "preceding_context": [], "per_service_breakdown": {},
+             "impact_meta": {}, "sample_log": {},
+             "_breadcrumb_source": "pre_error_activity"},
+        ],
+        "blast_radius_patterns": [],
+        "blast_radius_logs": [],
+        "raw_logs": [],
+        "service_flow": [],
+        "context_logs": [],
+        "inferred_dependencies": [],
+        "error_breadcrumbs": {
+            "ConnectError": [
+                {"timestamp": "2026-02-21T08:04:30Z", "level": "INFO",
+                 "service": "checkout-service", "message": "Processing order"},
+            ]
+        },
+        "trace_enrichment": {},
+        "cross_service_correlations": [],
+        "target_service_absent": False,
+        "target_service_logs": [],
+        "traffic_context": [],
+        "stats": {"total_logs": 5, "error_count": 5, "warn_count": 0,
+                  "pattern_count": 1, "unique_services": 1},
+    }
+    context = {"service_name": "checkout-service", "timeframe": "now-1h"}
+    prompt = agent._build_analysis_prompt(collection, context)
+    assert "pre-error activity (all levels)" in prompt

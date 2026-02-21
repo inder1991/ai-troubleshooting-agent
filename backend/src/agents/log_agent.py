@@ -160,6 +160,15 @@ class LogAnalysisAgent:
             if upstream:
                 entry["_deps"]["upstream"] = upstream
 
+        # SRE-relevant structured metadata
+        metadata = {}
+        for field in self.SRE_METADATA_FIELDS:
+            val = self._get_field(src, field)
+            if val is not None and val != "":
+                metadata[field] = val
+        if metadata:
+            entry["_metadata"] = metadata
+
         return entry
 
     async def run(self, context: dict, event_emitter: EventEmitter | None = None) -> dict:
@@ -379,8 +388,52 @@ class LogAnalysisAgent:
                 except (json.JSONDecodeError, AttributeError):
                     target_service_logs = []
 
-        # Step 4f: Breadcrumb fallback — synthesize from raw_logs when breadcrumbs empty
-        if not error_breadcrumbs and self._raw_logs:
+        # Step 4f: Breadcrumb fallback — fetch ALL-level pre-error activity when
+        # breadcrumbs AND trace enrichment are both empty
+        if not error_breadcrumbs and not trace_enrichment and self._patterns:
+            # Collect trace_ids from error patterns for boosting
+            error_trace_ids = []
+            for p in self._patterns[:5]:
+                error_trace_ids.extend(p.get("correlation_ids", [])[:2])
+
+            for pattern in self._patterns[:3]:
+                pk = pattern["pattern_key"]
+                first_seen = pattern.get("first_seen", "")
+                services = pattern.get("affected_components", [])
+                if not first_seen or not services:
+                    continue
+                try:
+                    ctx_result = await self._get_log_context({
+                        "index": index,
+                        "timestamp": first_seen,
+                        "service": services[0],
+                        "minutes_before": 5,
+                        "minutes_after": 0,
+                        "trace_ids": error_trace_ids,
+                        "include_trace": True,
+                    })
+                    ctx_logs = json.loads(ctx_result).get("logs", [])
+                except (json.JSONDecodeError, AttributeError, Exception):
+                    ctx_logs = []
+
+                if ctx_logs:
+                    # Sort chronologically and take last 15
+                    ctx_logs.sort(key=lambda l: l.get("timestamp", ""))
+                    breadcrumb_logs = ctx_logs[-15:]
+
+                    # Pin trace-linked logs to top of breadcrumbs
+                    if error_trace_ids:
+                        trace_id_set = set(error_trace_ids)
+                        pinned = [l for l in breadcrumb_logs if l.get("trace_id") in trace_id_set]
+                        unpinned = [l for l in breadcrumb_logs if l.get("trace_id") not in trace_id_set]
+                        breadcrumb_logs = pinned + unpinned
+
+                    error_breadcrumbs[pk] = breadcrumb_logs
+                    # Mark these as pre-error activity breadcrumbs
+                    pattern["_breadcrumb_source"] = "pre_error_activity"
+
+        # Secondary fallback: use raw_logs when ES query fails
+        elif not error_breadcrumbs and self._raw_logs and self._patterns:
             for pattern in self._patterns[:3]:
                 if pattern.get("severity", "medium") not in ("critical", "high"):
                     continue
@@ -395,6 +448,47 @@ class LogAnalysisAgent:
                 nearby.sort(key=lambda l: l.get("timestamp", ""))
                 if nearby:
                     error_breadcrumbs[pk] = nearby[-10:]
+
+        # Step 4g: Blast Radius Scan — when solo-service and no trace enrichment,
+        # search for ERROR logs across ALL services to reveal cross-service impact
+        blast_radius_logs: list[dict] = []
+        blast_radius_patterns: list[dict] = []
+        non_empty_services = {l.get("service", "") for l in self._raw_logs if l.get("service")}
+        if (self._patterns
+                and len(non_empty_services) <= 1
+                and not trace_enrichment):
+            if event_emitter:
+                await event_emitter.emit(
+                    self.agent_name, "tool_call",
+                    "Solo-service detected — scanning blast radius across all services...",
+                    details={"tool": "search_elasticsearch", "index": "*"},
+                )
+            raw_log_count_before = len(self._raw_logs)
+            await self._search_elasticsearch({
+                "index": "*",
+                "query": "*",
+                "time_range": timeframe,
+                "size": 100,
+                "level_filter": "ERROR",
+                "exclude_noise": True,
+            })
+            # Slice off blast radius logs from _raw_logs to avoid polluting primary data
+            all_blast_logs = self._raw_logs[raw_log_count_before:]
+            self._raw_logs = self._raw_logs[:raw_log_count_before]
+
+            # Filter out target service logs from blast radius
+            target_lower = target_service.lower() if target_service else ""
+            blast_radius_logs = [
+                l for l in all_blast_logs
+                if (l.get("service", "").lower() != target_lower) and l.get("service")
+            ]
+
+            if blast_radius_logs:
+                blast_radius_patterns = self._parse_patterns_from_logs(blast_radius_logs)
+                logger.info("Blast radius scan complete", extra={
+                    "agent_name": self.agent_name, "action": "blast_radius",
+                    "extra": {"logs": len(blast_radius_logs), "patterns": len(blast_radius_patterns)},
+                })
 
         # Step 5: Search by trace_id for flow reconstruction
         trace_id = context.get("trace_id")
@@ -448,9 +542,10 @@ class LogAnalysisAgent:
         warn_count = sum(1 for l in self._raw_logs if (l.get("level") or "").upper() in ("WARN", "WARNING"))
         pattern_count = len(self._patterns)
 
-        # Infer service dependencies from patterns and flow
+        # Infer service dependencies from patterns (including blast radius) and flow
         target_service = context.get("service_name", "")
-        inferred_dependencies = self._infer_service_dependencies(self._patterns, service_flow, target_service=target_service)
+        all_patterns_for_deps = self._patterns + blast_radius_patterns
+        inferred_dependencies = self._infer_service_dependencies(all_patterns_for_deps, service_flow, target_service=target_service)
 
         # Build cross-service correlations
         cross_service_correlations = self._build_cross_service_correlations(self._raw_logs)
@@ -473,6 +568,8 @@ class LogAnalysisAgent:
             "cross_service_correlations": cross_service_correlations,
             "target_service_absent": target_service_absent,
             "target_service_logs": target_service_logs,
+            "blast_radius_logs": blast_radius_logs,
+            "blast_radius_patterns": blast_radius_patterns,
             "traffic_context": traffic_context,
             "stats": {
                 "total_logs": len(self._raw_logs),
@@ -772,6 +869,15 @@ Respond with JSON only. No markdown fences."""
                 parts.append(f"Stack trace (extracted from message):\n{p['inline_stack_trace']}")
             if p.get("inferred_targets"):
                 parts.append(f"Inferred Target: {', '.join(p['inferred_targets'])} (extracted from error/stack trace)")
+            # Render structured SRE metadata from sample log (max 5 fields, priority ordered)
+            sample_meta = p.get("sample_log", {}).get("_metadata", {})
+            if sample_meta:
+                meta_items = []
+                for field in self.SRE_METADATA_FIELDS:
+                    if field in sample_meta and len(meta_items) < 5:
+                        meta_items.append(f"{field}={sample_meta[field]}")
+                if meta_items:
+                    parts.append(f"Metadata: {', '.join(meta_items)}")
             if p.get("preceding_context"):
                 parts.append("Preceding context (3 logs before first error):")
                 for ctx_line in p["preceding_context"]:
@@ -813,6 +919,25 @@ Respond with JSON only. No markdown fences."""
             parts.append("Services observed in logs (with log counts):")
             for svc_name, count in sorted(svc_counts.items(), key=lambda x: -x[1]):
                 parts.append(f"  - {svc_name}: {count} log entries")
+        # Include blast radius services in architecture map
+        blast_radius_svc_counts: dict[str, int] = defaultdict(int)
+        for log in collection.get("blast_radius_logs", []):
+            blast_radius_svc_counts[log.get("service", "unknown")] += 1
+        for svc_name, count in sorted(blast_radius_svc_counts.items(), key=lambda x: -x[1]):
+            if svc_name not in svc_counts:
+                parts.append(f"  - {svc_name}: {count} log entries [BLAST RADIUS]")
+
+        # Blast Radius (errors in OTHER services during same timeframe)
+        br_patterns = collection.get("blast_radius_patterns", [])
+        if br_patterns:
+            parts.append("\n## Blast Radius (errors in OTHER services during same timeframe)")
+            for i, bp in enumerate(br_patterns[:5]):
+                svc_list = ", ".join(bp.get("affected_components", []))
+                parts.append(
+                    f"  BR{i+1}: {bp.get('exception_type', '?')} ({bp.get('frequency', 0)}x) "
+                    f"in {svc_list} [{bp.get('severity', 'medium')}] -- "
+                    f"{bp.get('error_message', '')[:100]}"
+                )
 
         # Cross-Service Correlation
         correlations = collection.get("cross_service_correlations", [])
@@ -868,7 +993,17 @@ Respond with JSON only. No markdown fences."""
                         pattern_label = f"{p['exception_type']} ({p['frequency']}x)"
                         break
                 is_trace_linked = pattern_key in trace_enrichment
-                source = "TRACE-LINKED cross-service journey" if is_trace_linked else "logs preceding error"
+                # Determine breadcrumb source label
+                matched_pattern = next(
+                    (p for p in collection.get("patterns", []) if p.get("pattern_key") == pattern_key),
+                    None
+                )
+                if is_trace_linked:
+                    source = "TRACE-LINKED cross-service journey"
+                elif matched_pattern and matched_pattern.get("_breadcrumb_source") == "pre_error_activity":
+                    source = "pre-error activity (all levels)"
+                else:
+                    source = "logs preceding error"
                 services_in_crumbs = sorted(set(cl.get("service", "?") for cl in crumbs))
                 parts.append(f"\n### Breadcrumbs for {pattern_label} ({source}):")
                 if is_trace_linked and len(services_in_crumbs) > 1:
@@ -1136,16 +1271,7 @@ Respond with JSON only. No markdown fences."""
 
         # Exclude health-check / readiness / liveness probe noise
         if exclude_noise:
-            es_query["query"]["bool"]["must_not"] = [
-                {"match_phrase": {"message": "GET /health"}},
-                {"match_phrase": {"message": "GET /healthz"}},
-                {"match_phrase": {"message": "GET /readyz"}},
-                {"match_phrase": {"message": "GET /livez"}},
-                {"match_phrase": {"message": "GET /ready"}},
-                {"match_phrase": {"message": "health check"}},
-                {"match_phrase": {"message": "liveness probe"}},
-                {"match_phrase": {"message": "readiness probe"}},
-            ]
+            es_query["query"]["bool"]["must_not"] = list(self._NOISE_EXCLUSION_CLAUSES)
 
         try:
             resp = requests.post(
@@ -1422,9 +1548,18 @@ Respond with JSON only. No markdown fences."""
                             }
                         }},
                     ],
+                    "must_not": list(self._NOISE_EXCLUSION_CLAUSES),
                 }
             },
         }
+
+        # Optional: boost trace-correlated logs if trace_ids provided
+        trace_ids = params.get("trace_ids", [])
+        if trace_ids:
+            es_query["query"]["bool"].setdefault("should", [])
+            for tid in trace_ids[:5]:
+                es_query["query"]["bool"]["should"].append({"match": {"trace_id": tid}})
+                es_query["query"]["bool"]["should"].append({"match": {"traceId": tid}})
 
         try:
             resp = requests.post(
@@ -1439,8 +1574,9 @@ Respond with JSON only. No markdown fences."""
             hits = data.get("hits", {}).get("hits", [])
 
             logs = []
+            include_trace = params.get("include_trace", False)
             for hit in hits:
-                log_entry = self._extract_log_entry(hit, include_trace=False)
+                log_entry = self._extract_log_entry(hit, include_trace=include_trace)
                 logs.append(log_entry)
 
             self.add_breadcrumb(
@@ -1806,8 +1942,17 @@ Respond with JSON only. No markdown fences."""
         """Extract a fingerprint from a log message for grouping."""
         normalized = re.sub(r'\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}[.\d]*[Z]?', '<TIMESTAMP>', message)
         normalized = re.sub(r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', '<UUID>', normalized)
+        # IP:port combos (e.g., "10.244.0.1:55050") — before standalone IP
+        normalized = re.sub(r'\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d+\b', '<IP:PORT>', normalized)
         # IP addresses (v4)
         normalized = re.sub(r'\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b', '<IP>', normalized)
+        # Standalone port numbers after colon (e.g., ":55050", ":8080") — before generic NUM
+        normalized = re.sub(r':\d{2,5}\b', ':<PORT>', normalized)
+        # HTTP paths (e.g., "/api/v1/orders/12345")
+        normalized = re.sub(r'/[a-zA-Z0-9/_.-]+', '/<PATH>', normalized)
+        # Quoted strings (e.g., "some dynamic value")
+        normalized = re.sub(r'"[^"]{4,}"', '"<STR>"', normalized)
+        normalized = re.sub(r"'[^']{4,}'", "'<STR>'", normalized)
         # Hex strings (8+ chars, e.g. 0x7f3a2b4c, a1b2c3d4e5f6)
         normalized = re.sub(r'\b0x[0-9a-fA-F]+\b', '<HEX>', normalized)
         normalized = re.sub(r'\b[0-9a-f]{8,}\b', '<HEX>', normalized)
@@ -1820,6 +1965,33 @@ Respond with JSON only. No markdown fences."""
     # ─── Severity Classification ─────────────────────────────────────────
 
     SEVERITY_RANK = {"critical": 0, "high": 1, "medium": 2, "low": 3}
+
+    # SRE-relevant metadata fields, ordered by diagnostic priority
+    SRE_METADATA_FIELDS = [
+        # Priority 1: Latencies (smoking gun for timeouts/SLO breaches)
+        "response_time_s", "response_time", "duration", "elapsed", "latency",
+        # Priority 2: Versions (detect bad deploys)
+        "version", "app.version", "container.image.name", "container.image.tag",
+        # Priority 3: Error typing (structured error > generic message)
+        "error.type", "exception.type", "exception.message", "error.code", "status_code",
+        # Priority 4: HTTP context
+        "http.status_code", "http.method", "http.url", "url.path",
+        # Priority 5: Infrastructure
+        "kubernetes.pod.name", "kubernetes.namespace",
+        "environment", "env",
+    ]
+
+    # Noise exclusion clauses for ES must_not — shared by _search_elasticsearch and _get_log_context
+    _NOISE_EXCLUSION_CLAUSES = [
+        {"match_phrase": {"message": "GET /health"}},
+        {"match_phrase": {"message": "GET /healthz"}},
+        {"match_phrase": {"message": "GET /readyz"}},
+        {"match_phrase": {"message": "GET /livez"}},
+        {"match_phrase": {"message": "GET /ready"}},
+        {"match_phrase": {"message": "health check"}},
+        {"match_phrase": {"message": "liveness probe"}},
+        {"match_phrase": {"message": "readiness probe"}},
+    ]
 
     FIELD_MAP = {
         "timestamp": ["@timestamp", "timestamp", "time", "ts"],
@@ -1859,11 +2031,26 @@ Respond with JSON only. No markdown fences."""
 
     # Framework noise prefixes to filter out of stack traces
     FRAMEWORK_NOISE_PREFIXES = (
+        # Java
         "org.springframework", "org.apache.tomcat", "org.apache.catalina",
         "io.netty", "java.lang.reflect", "sun.reflect", "jdk.internal",
         "org.apache.coyote", "org.apache.http", "reactor.core",
         "io.micrometer", "com.sun", "java.util.concurrent",
         "org.hibernate.internal", "com.zaxxer.hikari",
+        # Python
+        "httpx", "httpcore", "anyio", "asyncio", "uvicorn", "starlette",
+        "fastapi", "aiohttp", "urllib3", "requests", "ssl", "h11", "h2",
+        "_pytest", "pluggy", "importlib",
+    )
+
+    # Python framework site-packages paths to filter from stack traces
+    _PYTHON_FRAMEWORK_PATHS = (
+        "site-packages/httpx", "site-packages/httpcore",
+        "site-packages/anyio", "site-packages/uvicorn",
+        "site-packages/starlette", "site-packages/fastapi",
+        "site-packages/aiohttp", "site-packages/urllib3",
+        "site-packages/requests", "site-packages/h11",
+        "site-packages/h2", "lib/python",
     )
 
     # Regex matching file path + line number references (Java, Python, Go, JS/TS, etc.)
@@ -1899,6 +2086,11 @@ Respond with JSON only. No markdown fences."""
                 if stripped.startswith("at "):
                     frame = stripped[3:]
                     if any(frame.startswith(prefix) for prefix in self.FRAMEWORK_NOISE_PREFIXES):
+                        skipped_framework += 1
+                        continue
+                # Python frame: File "/path/to/lib/python3.x/site-packages/httpx/...", line 123
+                if 'File "' in stripped:
+                    if any(fw in stripped for fw in self._PYTHON_FRAMEWORK_PATHS):
                         skipped_framework += 1
                         continue
                 # Application frame or non-"at" line with file reference — keep as-is
