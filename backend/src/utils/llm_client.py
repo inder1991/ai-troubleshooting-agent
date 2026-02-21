@@ -52,9 +52,9 @@ class AnthropicClient:
             "tool": self.model,
             "tokens": {"max_tokens": max_tokens},
             "extra": {
-                "system": (system[:500] + "...") if system and len(system) > 500 else system,
+                "system": (system[:10000] + "...") if system and len(system) > 10000 else system,
                 "messages": [
-                    {"role": m["role"], "content": m["content"][:1000] + "..." if len(m.get("content", "")) > 1000 else m.get("content", "")}
+                    {"role": m["role"], "content": m["content"][:10000] + "..." if len(m.get("content", "")) > 10000 else m.get("content", "")}
                     for m in messages
                 ],
                 "temperature": temperature,
@@ -82,7 +82,7 @@ class AnthropicClient:
             "tokens": {"input": input_tokens, "output": output_tokens},
             "duration_ms": elapsed_ms,
             "extra": {
-                "response": text[:2000] + "..." if len(text) > 2000 else text,
+                "response": text[:10000] + "..." if len(text) > 10000 else text,
                 "stop_reason": response.stop_reason,
             },
         })
@@ -117,7 +117,7 @@ class AnthropicClient:
             "action": "llm_call",
             "tool": self.model,
             "extra": {
-                "system": (system[:500] + "...") if len(system) > 500 else system,
+                "system": (system[:10000] + "...") if len(system) > 10000 else system,
                 "message_count": len(messages),
                 "tool_count": len(tools) if tools else 0,
             },
@@ -141,7 +141,7 @@ class AnthropicClient:
         text_preview = ""
         for b in response.content:
             if b.type == "text" and b.text:
-                text_preview = b.text[:1000] + "..." if len(b.text) > 1000 else b.text
+                text_preview = b.text[:10000] + "..." if len(b.text) > 10000 else b.text
 
         logger.info("LLM response", extra={
             "agent_name": self.agent_name,

@@ -3189,12 +3189,12 @@ async def test_enrich_via_trace_ids_fetches_cross_service():
 
 
 @pytest.mark.asyncio
-async def test_enrich_via_trace_ids_skips_low_severity():
-    """Should only enrich critical/high patterns."""
+async def test_enrich_via_trace_ids_enriches_any_severity_with_trace_ids():
+    """Should enrich patterns of any severity as long as they have trace IDs."""
     agent = LogAnalysisAgent()
     patterns = [{
-        "pattern_key": "DeprecationWarning",
-        "severity": "low",
+        "pattern_key": "InventoryTimeout",
+        "severity": "medium",
         "correlation_ids": ["trace-xyz"],
     }]
 
@@ -3202,12 +3202,16 @@ async def test_enrich_via_trace_ids_skips_low_severity():
 
     async def mock_search_by_trace_id(params):
         called["count"] += 1
-        return json.dumps({"total": 0, "logs": []})
+        return json.dumps({"total": 1, "logs": [
+            {"service": "inventory-service", "level": "ERROR",
+             "message": "RedisTimeout", "timestamp": "2026-02-21T08:05:00Z"}
+        ]})
 
     agent._search_by_trace_id = mock_search_by_trace_id
     result = await agent._enrich_via_trace_ids(patterns, "logstash*", event_emitter=None)
-    assert called["count"] == 0
-    assert result == {}
+    assert called["count"] == 1
+    assert "InventoryTimeout" in result
+    assert len(result["InventoryTimeout"]) == 1
 
 
 @pytest.mark.asyncio

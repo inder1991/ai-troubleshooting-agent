@@ -859,13 +859,13 @@ Respond with JSON only. No markdown fences."""
             caller_logs = collection.get("target_service_logs", [])
             if caller_logs:
                 parts.append(f"\n### {service} Recent Activity ({len(caller_logs)} logs):")
-                for cl in caller_logs[:10]:
+                for cl in caller_logs:
                     parts.append(
                         f"  [{cl.get('timestamp', '')}] {cl.get('level', '')} "
-                        f"{cl.get('message', '')[:120]}"
+                        f"{cl.get('message', '')[:10000]}"
                     )
 
-        all_pats = collection.get("patterns", [])[:10]
+        all_pats = collection.get("patterns", [])
         high_sev = [p for p in all_pats if p.get("severity") in ("critical", "high")]
         info_sev = [p for p in all_pats if p.get("severity") in ("medium", "low")]
         parts += [
@@ -877,13 +877,13 @@ Respond with JSON only. No markdown fences."""
             f"Do NOT assume the most frequent pattern is the most impactful.",
         ]
 
-        for i, p in enumerate(collection.get("patterns", [])[:10]):
+        for i, p in enumerate(collection.get("patterns", [])):
             tier = "TIER 1" if p.get("severity") in ("critical", "high") else "TIER 2"
             parts.append(
                 f"\n### P{i+1} [{tier}]: {p.get('exception_type', '?')} ({p.get('frequency', 0)}x)"
             )
             parts.append(f"Severity: {p.get('severity', 'medium')}")
-            parts.append(f"Message: {p.get('error_message', '')[:200]}")
+            parts.append(f"Message: {p.get('error_message', '')}")
             breakdown = p.get("per_service_breakdown", {})
             if breakdown:
                 svc_parts = [f"{svc} ({info['count']}x)" for svc, info in
@@ -900,7 +900,7 @@ Respond with JSON only. No markdown fences."""
                     f"duration={impact.get('duration_seconds', 0)}s"
                 )
             if p.get("correlation_ids"):
-                parts.append(f"Trace IDs: {', '.join(p['correlation_ids'][:3])}")
+                parts.append(f"Trace IDs: {', '.join(p['correlation_ids'][:10])}")
             if p.get("filtered_stack_trace"):
                 parts.append(f"Stack trace (app frames only):\n{p['filtered_stack_trace']}")
             elif p.get("stack_traces"):
@@ -925,7 +925,7 @@ Respond with JSON only. No markdown fences."""
 
         # Chronological Timeline
         chronological = sorted(
-            collection.get("patterns", [])[:10],
+            collection.get("patterns", []),
             key=lambda p: p.get("first_seen", "9999")
         )
         if len(chronological) > 1:
@@ -945,7 +945,7 @@ Respond with JSON only. No markdown fences."""
         known_deps = context.get("known_dependencies", [])
         if known_deps:
             parts.append("\n## Known Architecture (from configuration/prior analysis)")
-            for dep in known_deps[:20]:
+            for dep in known_deps:
                 rel = dep.get("relationship", dep.get("evidence", "calls"))
                 parts.append(f"  {dep.get('source', '?')} -> {dep.get('target', '?')} ({rel})")
 
@@ -971,19 +971,19 @@ Respond with JSON only. No markdown fences."""
         br_patterns = collection.get("blast_radius_patterns", [])
         if br_patterns:
             parts.append("\n## Blast Radius (errors in OTHER services during same timeframe)")
-            for i, bp in enumerate(br_patterns[:5]):
+            for i, bp in enumerate(br_patterns):
                 svc_list = ", ".join(bp.get("affected_components", []))
                 parts.append(
                     f"  BR{i+1}: {bp.get('exception_type', '?')} ({bp.get('frequency', 0)}x) "
                     f"in {svc_list} [{bp.get('severity', 'medium')}] -- "
-                    f"{bp.get('error_message', '')[:100]}"
+                    f"{bp.get('error_message', '')[:10000]}"
                 )
 
         # Cross-Service Correlation
         correlations = collection.get("cross_service_correlations", [])
         if correlations:
             parts.append("\n## Cross-Service Correlation")
-            for corr in correlations[:5]:
+            for corr in correlations:
                 chain = " -> ".join(corr["services"])
                 error_part = ""
                 if corr.get("error_service") and corr.get("error_type"):
@@ -995,7 +995,7 @@ Respond with JSON only. No markdown fences."""
         if traffic:
             parts.append("\n## Traffic Context (caller → callee relationships)")
             parts.append("Use this to determine if a failing service is being overwhelmed by upstream traffic.")
-            for edge in traffic[:10]:
+            for edge in traffic:
                 error_mark = " [ERRORS]" if edge.get("has_error") else ""
                 count_info = f", {edge['trace_count']} traced requests" if edge["trace_count"] else ""
                 parts.append(
@@ -1007,7 +1007,7 @@ Respond with JSON only. No markdown fences."""
         flow = collection.get("service_flow", [])
         if flow:
             parts.append("\n## Service Flow (temporal reconstruction)")
-            for step in flow[:20]:
+            for step in flow:
                 parts.append(
                     f"  [{step.get('timestamp', '')}] {step.get('service', '?')} — "
                     f"{step.get('operation', '?')} — {step.get('status', '?')} "
@@ -1048,18 +1048,18 @@ Respond with JSON only. No markdown fences."""
                 parts.append(f"\n### Breadcrumbs for {pattern_label} ({source}):")
                 if is_trace_linked and len(services_in_crumbs) > 1:
                     parts.append(f"  Services in trace: {', '.join(services_in_crumbs)}")
-                for cl in crumbs[-15:]:
+                for cl in crumbs:
                     parts.append(
                         f"  [{cl.get('timestamp', '')}] {cl.get('level', '')} "
-                        f"[{cl.get('service', '?')}] {cl.get('message', '')[:120]}"
+                        f"[{cl.get('service', '?')}] {cl.get('message', '')[:10000]}"
                     )
 
         # Context logs
         ctx_logs = collection.get("context_logs", [])
         if ctx_logs:
             parts.append("\n## Context Logs (around first error)")
-            for cl in ctx_logs[:15]:
-                parts.append(f"  [{cl.get('timestamp', '')}] {cl.get('level', '')} {cl.get('message', '')[:120]}")
+            for cl in ctx_logs:
+                parts.append(f"  [{cl.get('timestamp', '')}] {cl.get('level', '')} {cl.get('message', '')[:10000]}")
 
         # Inferred Impact
         parts.append("\n## Inferred Impact")
@@ -1446,17 +1446,18 @@ Respond with JSON only. No markdown fences."""
         patterns: list[dict],
         index: str,
         event_emitter: EventEmitter | None,
-        max_patterns: int = 3,
+        max_patterns: int = 5,
     ) -> dict[str, list[dict]]:
-        """Pass 2 of the two-pass fetch: for top critical/high patterns,
-        use their trace_ids to fetch ALL logs across ALL services.
+        """Pass 2 of the two-pass fetch: for patterns with trace_ids,
+        fetch ALL logs across ALL services to reveal cross-service context.
 
         Returns {pattern_key: [cross-service log entries]} sorted by timestamp.
         """
         enrichment: dict[str, list[dict]] = {}
-        for pattern in patterns[:max_patterns]:
-            if pattern.get("severity", "medium") not in ("critical", "high"):
-                continue
+        enriched_count = 0
+        for pattern in patterns:
+            if enriched_count >= max_patterns:
+                break
             trace_ids = pattern.get("correlation_ids", [])
             if not trace_ids:
                 continue
@@ -1486,6 +1487,7 @@ Respond with JSON only. No markdown fences."""
                 # Sort chronologically for the LLM to follow the request journey
                 trace_logs.sort(key=lambda l: l.get("timestamp", ""))
                 enrichment[pk] = trace_logs
+                enriched_count += 1
                 self.add_breadcrumb(
                     action="trace_enrichment",
                     source_type="log",
@@ -1725,7 +1727,7 @@ Respond with JSON only. No markdown fences."""
                 start = max(0, first_error_idx - 3)
                 for ctx_log in sorted_group[start:first_error_idx]:
                     preceding_context.append(
-                        f"[{ctx_log.get('level', '?')}] {ctx_log.get('message', '')[:150]}"
+                        f"[{ctx_log.get('level', '?')}] {ctx_log.get('message', '')[:10000]}"
                     )
 
             # Per-service breakdown: count, first_seen, last_seen per service
@@ -1745,7 +1747,7 @@ Respond with JSON only. No markdown fences."""
             patterns.append({
                 "pattern_key": key,
                 "exception_type": exception_type,
-                "error_message": group_logs[0].get("message", "")[:200],
+                "error_message": group_logs[0].get("message", "")[:10000],
                 "frequency": len(group_logs),
                 "affected_components": services,
                 "sample_log": group_logs[0],
