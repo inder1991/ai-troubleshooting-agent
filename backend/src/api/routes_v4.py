@@ -298,6 +298,7 @@ async def get_findings(session_id: str):
             "patient_zero": None,
             "inferred_dependencies": [],
             "reasoning_chain": [],
+            "suggested_promql_queries": [],
             "message": "Analysis not yet complete",
         }
 
@@ -338,6 +339,7 @@ async def get_findings(session_id: str):
         "patient_zero": state.patient_zero,
         "inferred_dependencies": state.inferred_dependencies,
         "reasoning_chain": state.reasoning_chain,
+        "suggested_promql_queries": state.suggested_promql_queries,
     }
 
 

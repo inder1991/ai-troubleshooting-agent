@@ -115,3 +115,50 @@ body {
   outline: 1px solid rgba(7, 182, 213, 0.5);
   outline-offset: 2px;
 }
+
+/* ─── War Room Animations ─────────────────────────────────────────────── */
+
+@keyframes pulse-red {
+  0%, 100% { box-shadow: 0 0 4px rgba(239, 68, 68, 0.4); }
+  50% { box-shadow: 0 0 16px rgba(239, 68, 68, 0.8); }
+}
+
+@keyframes topology-glow {
+  0%, 100% { stroke-opacity: 0.6; }
+  50% { stroke-opacity: 1; }
+}
+
+@keyframes node-glow-red {
+  0%, 100% { filter: drop-shadow(0 0 3px rgba(239, 68, 68, 0.4)); }
+  50% { filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.8)); }
+}
+
+.animate-pulse-red {
+  animation: pulse-red 2s ease-in-out infinite;
+}
+
+/* Agent left-border colors */
+.card-border-L { border-left: 3px solid #ef4444; }
+.card-border-M { border-left: 3px solid #06b6d4; }
+.card-border-K { border-left: 3px solid #f97316; }
+.card-border-C { border-left: 3px solid #10b981; }
+
+/* Topology edge styles */
+.topology-edge-error {
+  stroke: #ef4444;
+  stroke-width: 2;
+  animation: topology-glow 2s ease-in-out infinite;
+}
+.topology-edge-warning {
+  stroke: #f97316;
+  stroke-width: 1.5;
+}
+.topology-edge-normal {
+  stroke: #475569;
+  stroke-width: 1;
+}
+
+/* Topology node styles */
+.topology-node-error {
+  animation: node-glow-red 2s ease-in-out infinite;
+}

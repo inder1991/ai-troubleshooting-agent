@@ -281,6 +281,12 @@ export interface V4SessionStatus {
   updated_at: string;
 }
 
+export interface SuggestedPromQLQuery {
+  metric: string;
+  query: string;
+  rationale: string;
+}
+
 export interface V4Findings {
   session_id: string;
   incident_id?: string;
@@ -306,6 +312,7 @@ export interface V4Findings {
   patient_zero: PatientZero | null;
   inferred_dependencies: InferredDependency[];
   reasoning_chain: ReasoningChainStep[];
+  suggested_promql_queries: SuggestedPromQLQuery[];
 }
 
 export interface CodeImpact {

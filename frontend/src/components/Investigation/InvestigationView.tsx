@@ -1,8 +1,8 @@
 import React from 'react';
 import type { V4Session, ChatMessage, TaskEvent, DiagnosticPhase, TokenUsage, AttestationGateData } from '../../types';
-import AISupervisor from './AISupervisor';
-import EvidenceStack from './EvidenceStack';
-import ContextScope from './ContextScope';
+import Investigator from './Investigator';
+import EvidenceFindings from './EvidenceFindings';
+import Navigator from './Navigator';
 import RemediationProgressBar from './RemediationProgressBar';
 import AttestationGateUI from '../Remediation/AttestationGateUI';
 
@@ -33,11 +33,11 @@ const InvestigationView: React.FC<InvestigationViewProps> = ({
 }) => {
   return (
     <div className="flex flex-col h-full">
-      {/* 3-column layout */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Left: AI Supervisor with log feed */}
-        <div className="w-[380px] flex-shrink-0">
-          <AISupervisor
+      {/* War Room: 3-column CSS Grid layout */}
+      <div className="grid grid-cols-12 flex-1 overflow-hidden">
+        {/* Left: The Investigator */}
+        <div className="col-span-3 border-r border-slate-800 overflow-hidden">
+          <Investigator
             sessionId={session.session_id}
             messages={messages}
             events={events}
@@ -46,14 +46,14 @@ const InvestigationView: React.FC<InvestigationViewProps> = ({
           />
         </div>
 
-        {/* Center: Evidence Stack */}
-        <div className="flex-1 min-w-0">
-          <EvidenceStack sessionId={session.session_id} events={events} />
+        {/* Center: Evidence and Findings (NO TABS) */}
+        <div className="col-span-5 overflow-hidden">
+          <EvidenceFindings sessionId={session.session_id} events={events} />
         </div>
 
-        {/* Right: Context Scope */}
-        <div className="w-[320px] flex-shrink-0">
-          <ContextScope session={session} events={events} />
+        {/* Right: The Navigator */}
+        <div className="col-span-4 border-l border-slate-800 overflow-hidden">
+          <Navigator sessionId={session.session_id} events={events} />
         </div>
       </div>
 
