@@ -1,0 +1,29 @@
+{
+    "change_correlations": [
+        {
+            "change_id": "abc1234",
+            "change_type": "code_deploy",
+            "risk_score": 85,
+            "temporal_correlation": 0.92,
+            "author": "dev-team",
+            "description": "Increased connection pool timeout from 5s to 30s in inventory-service config",
+            "files_changed": ["config/redis.yaml", "src/config/pool.py"],
+            "timestamp": "2026-02-21T15:45:00Z"
+        },
+        {
+            "change_id": "def5678",
+            "change_type": "config_change",
+            "risk_score": 72,
+            "temporal_correlation": 0.78,
+            "author": "platform-team",
+            "description": "Scaled checkout-service replicas from 3 to 2 for cost optimization",
+            "files_changed": ["k8s/checkout-service/deployment.yaml"],
+            "timestamp": "2026-02-21T14:30:00Z"
+        }
+    ],
+    "summary": "Two recent changes correlate with the incident: (1) Redis pool timeout config change in inventory-service 34 minutes before incident, and (2) checkout-service replica reduction 1h45m before incident. The timeout change has strongest temporal correlation (0.92) and directly relates to the Redis connection pool exhaustion observed.",
+    "overall_confidence": 75,
+    "breadcrumbs": [],
+    "negative_findings": [],
+    "tokens_used": {"agent_name": "change_agent", "input_tokens": 0, "output_tokens": 0, "total_tokens": 0}
+}

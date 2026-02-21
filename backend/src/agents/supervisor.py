@@ -106,11 +106,17 @@ class SupervisorAgent:
             "log_agent": LogAnalysisAgent,
             "metrics_agent": MetricsAgent,
             "k8s_agent": K8sAgent,
+            "change_agent": ChangeAgent,
             # "tracing_agent": TracingAgent,
             # "code_agent": CodeNavigatorAgent,
-            # "change_agent": ChangeAgent,
         }
         self._critic = CriticAgent()
+
+        # Human-in-the-loop: repo URL confirmation for change_agent
+        self._repo_confirmation_event = asyncio.Event()
+        self._pending_repo_confirmation = False
+        self._candidate_repos: dict[str, str] = {}
+        self._confirmed_repo_map: dict[str, str] = {}
 
     async def run(
         self,
@@ -237,6 +243,14 @@ class SupervisorAgent:
             if "metrics_agent" in [n for n, _ in agent_results if not isinstance(_, Exception)]:
                 await self._enrich_reasoning_chain(state, event_emitter)
 
+            # Human-in-the-loop: ask user to confirm repos before dispatching change_agent
+            if (
+                "change_agent" in self._agents
+                and "change_agent" not in state.agents_completed
+                and "metrics_agent" in state.agents_completed
+            ):
+                await self._request_repo_confirmation(state, event_emitter)
+
         # Compile token usage
         state.token_usage.append(self.llm_client.get_total_usage())
         state.token_usage.append(self._critic.get_token_usage())
@@ -307,9 +321,7 @@ class SupervisorAgent:
             # If we have cluster info, dispatch K8s agent in parallel
             if state.cluster_url or state.namespace:
                 agents.append("k8s_agent")
-            # Dispatch change agent if repo_url is available
-            if state.repo_url and "change_agent" not in state.agents_completed:
-                agents.append("change_agent")
+            # change_agent is dispatched separately via human-in-the-loop repo confirmation
             return agents
 
         if state.phase == DiagnosticPhase.METRICS_ANALYZED:
@@ -1138,6 +1150,150 @@ class SupervisorAgent:
             return f"Change analysis complete — {len(correlations)} correlated changes found (confidence: {confidence}%)"
         return f"{agent_name} completed (confidence: {confidence}%)"
 
+    # ── Human-in-the-loop: repo URL confirmation for change_agent ────────────
+
+    def _get_affected_services(self, state: DiagnosticState) -> list[str]:
+        """Extract all affected services from log analysis, patient_zero, and dependencies."""
+        services: dict[str, None] = {}  # ordered set
+        services[state.service_name] = None
+        if state.log_analysis and state.log_analysis.primary_pattern:
+            for comp in state.log_analysis.primary_pattern.affected_components:
+                services[comp] = None
+        if state.patient_zero:
+            pz = state.patient_zero
+            pz_svc = pz.get("service") if isinstance(pz, dict) else getattr(pz, "service", None)
+            if pz_svc:
+                services[pz_svc] = None
+        if state.inferred_dependencies:
+            for dep in state.inferred_dependencies:
+                src = dep.get("source") if isinstance(dep, dict) else getattr(dep, "source", None)
+                tgt = dep.get("target") if isinstance(dep, dict) else getattr(dep, "target", None)
+                if src:
+                    services[src] = None
+                if tgt:
+                    services[tgt] = None
+        return list(services.keys())
+
+    def _derive_candidate_repos(
+        self, base_repo_url: str | None, affected_services: list[str], target_service: str,
+    ) -> dict[str, str]:
+        """Derive candidate repo URLs for each affected service from the base repo URL pattern."""
+        import re
+        repos: dict[str, str] = {}
+        if not base_repo_url:
+            for svc in affected_services:
+                repos[svc] = ""
+            return repos
+
+        for svc in affected_services:
+            if svc == target_service:
+                repos[svc] = base_repo_url
+            else:
+                # Try to derive: replace the repo name portion with the service name
+                # Handles: https://github.com/org/checkout-service → https://github.com/org/inventory-service
+                # Also: git@github.com:org/checkout-service.git → git@github.com:org/inventory-service.git
+                derived = re.sub(
+                    r'(/|:)([^/]+?)(?:\.git)?$',
+                    lambda m: f'{m.group(1)}{svc}',
+                    base_repo_url,
+                )
+                repos[svc] = derived if derived != base_repo_url else ""
+        return repos
+
+    async def _request_repo_confirmation(
+        self, state: DiagnosticState, event_emitter: EventEmitter,
+    ) -> None:
+        """Ask user to confirm repo URLs for affected services, wait for response, then dispatch change_agent."""
+        affected = self._get_affected_services(state)
+        if not affected:
+            return
+
+        candidates = self._derive_candidate_repos(state.repo_url, affected, state.service_name)
+        self._candidate_repos = candidates
+
+        # Build the chat message
+        lines = [
+            "I've identified these services for **change analysis** (recent commits, deployments, config changes):\n",
+        ]
+        for svc, repo in candidates.items():
+            if repo:
+                lines.append(f"  \u2022 **{svc}** \u2192 `{repo}`")
+            else:
+                lines.append(f"  \u2022 **{svc}** \u2192 *(no repo URL \u2014 please provide)*")
+        lines.append("")
+        lines.append("Please reply with one of:")
+        lines.append("  \u2022 **confirm** \u2014 proceed with these repos")
+        lines.append("  \u2022 **skip** \u2014 skip change analysis")
+        lines.append("  \u2022 Or provide corrections, e.g.: `inventory-service: https://github.com/org/inv-svc`")
+
+        msg = "\n".join(lines)
+
+        # Send as chat_response via WebSocket so it appears in the Investigator chat
+        if event_emitter._websocket_manager:
+            await event_emitter._websocket_manager.send_message(
+                state.session_id,
+                {
+                    "type": "chat_response",
+                    "data": {
+                        "role": "assistant",
+                        "content": msg,
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                    },
+                },
+            )
+
+        await event_emitter.emit(
+            "supervisor", "progress",
+            "Waiting for user to confirm repository URLs for change analysis",
+        )
+
+        # Wait for user response (up to 5 minutes)
+        self._pending_repo_confirmation = True
+        self._repo_confirmation_event.clear()
+        try:
+            await asyncio.wait_for(self._repo_confirmation_event.wait(), timeout=300)
+        except asyncio.TimeoutError:
+            self._pending_repo_confirmation = False
+            logger.warning("Repo confirmation timed out", extra={
+                "session_id": state.session_id, "agent_name": "supervisor",
+                "action": "repo_confirmation_timeout",
+            })
+            await event_emitter.emit(
+                "supervisor", "warning",
+                "Repo confirmation timed out \u2014 skipping change analysis",
+            )
+            return
+
+        self._pending_repo_confirmation = False
+
+        # Check if user chose to skip
+        if not self._confirmed_repo_map:
+            await event_emitter.emit("supervisor", "progress", "Change analysis skipped by user")
+            return
+
+        # Dispatch change_agent for each confirmed repo
+        for svc, repo in self._confirmed_repo_map.items():
+            if not repo:
+                continue
+            # Temporarily set repo_url and service context for change_agent
+            original_repo = state.repo_url
+            state.repo_url = repo
+
+            result = await self._dispatch_agent("change_agent", state, event_emitter)
+
+            state.repo_url = original_repo  # restore
+
+            if result and not isinstance(result, Exception):
+                await self._update_state_with_result(state, "change_agent", result, event_emitter)
+
+                summary = self._build_agent_summary("change_agent", result, state)
+                await event_emitter.emit(
+                    "change_agent", "summary", summary,
+                    details={"confidence": state.overall_confidence, "findings_count": len(state.all_findings)},
+                )
+
+        state.agents_completed.append("change_agent")
+
     async def _enrich_reasoning_chain(
         self, state: DiagnosticState, event_emitter: EventEmitter
     ) -> None:
@@ -1344,6 +1500,11 @@ Respond ONLY with a JSON array:
 
     async def handle_user_message(self, message: str, state: DiagnosticState) -> str:
         """Handle a user message during analysis."""
+
+        # Handle pending repo URL confirmation for change_agent
+        if self._pending_repo_confirmation:
+            return self._process_repo_confirmation(message)
+
         response = await self.llm_client.chat(
             prompt=f"""Current diagnostic state:
 - Phase: {state.phase.value}
@@ -1358,3 +1519,57 @@ Respond helpfully. If they're asking for status, give a brief update. If they're
             system="You are an AI SRE assistant. Respond concisely to user messages during an active diagnosis."
         )
         return response.text
+
+    def _process_repo_confirmation(self, message: str) -> str:
+        """Parse user's repo confirmation response and signal the waiting coroutine."""
+        import re
+        text = message.strip().lower()
+
+        if text in ("skip", "no", "cancel"):
+            self._confirmed_repo_map = {}
+            self._repo_confirmation_event.set()
+            return "Got it — skipping change analysis."
+
+        if text in ("confirm", "yes", "ok", "y", "proceed", "looks good", "lgtm"):
+            # Accept candidate repos as-is
+            self._confirmed_repo_map = {
+                svc: repo for svc, repo in self._candidate_repos.items() if repo
+            }
+            self._repo_confirmation_event.set()
+            confirmed_count = len(self._confirmed_repo_map)
+            return f"Confirmed {confirmed_count} repo(s) — starting change analysis now."
+
+        # Try to parse corrections: "service-name: https://github.com/org/repo"
+        corrections = re.findall(
+            r'(\S+)\s*:\s*(https?://\S+|git@\S+)',
+            message,
+        )
+        if corrections:
+            updated = dict(self._candidate_repos)
+            for svc_name, repo_url in corrections:
+                # Find closest service match (case-insensitive)
+                matched = None
+                for candidate_svc in updated:
+                    if candidate_svc.lower() == svc_name.lower():
+                        matched = candidate_svc
+                        break
+                if matched:
+                    updated[matched] = repo_url
+                else:
+                    updated[svc_name] = repo_url
+
+            self._confirmed_repo_map = {s: r for s, r in updated.items() if r}
+            self._repo_confirmation_event.set()
+
+            lines = ["Updated repos — starting change analysis:"]
+            for svc, repo in self._confirmed_repo_map.items():
+                lines.append(f"  \u2022 {svc} \u2192 {repo}")
+            return "\n".join(lines)
+
+        # Didn't understand — ask again
+        return (
+            "I didn't understand that. Please reply:\n"
+            "  \u2022 **confirm** to proceed with the listed repos\n"
+            "  \u2022 **skip** to skip change analysis\n"
+            "  \u2022 Or provide corrections like: `inventory-service: https://github.com/org/repo`"
+        )
