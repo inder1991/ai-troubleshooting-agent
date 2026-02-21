@@ -265,11 +265,13 @@ class LogAnalysisAgent:
                 "level_filter": "WARN",
             })
 
+        # Step 3b: Search for error keywords in message text (catches errors with
+        # non-standard level fields or missing level extraction)
         if not self._raw_logs:
             if event_emitter:
                 await event_emitter.emit(
                     self.agent_name, "tool_call",
-                    f"No WARN logs found, searching all levels in '{index}'...",
+                    f"No level-filtered logs found, searching for error keywords in message text...",
                     details={"tool": "search_elasticsearch", "index": index},
                 )
             logs = await self._search_elasticsearch({
@@ -278,6 +280,25 @@ class LogAnalysisAgent:
                 "time_range": timeframe,
                 "size": 200,
                 "level_filter": "",
+                "message_filter": True,
+                "exclude_noise": True,
+            })
+
+        # Step 3c: All-levels fallback but exclude health check noise
+        if not self._raw_logs:
+            if event_emitter:
+                await event_emitter.emit(
+                    self.agent_name, "tool_call",
+                    f"No error keywords found, searching all levels (excluding health checks) in '{index}'...",
+                    details={"tool": "search_elasticsearch", "index": index},
+                )
+            logs = await self._search_elasticsearch({
+                "index": index,
+                "query": service,
+                "time_range": timeframe,
+                "size": 200,
+                "level_filter": "",
+                "exclude_noise": True,
             })
 
         # Step 4: Group into patterns
@@ -1002,6 +1023,8 @@ Respond with JSON only. No markdown fences."""
         time_range = params.get("time_range", "now-1h")
         size = params.get("size", 200)
         level_filter = params.get("level_filter", "ERROR")
+        message_filter = params.get("message_filter", "")
+        exclude_noise = params.get("exclude_noise", False)
 
         es_query: dict[str, Any] = {
             "size": size,
@@ -1036,28 +1059,54 @@ Respond with JSON only. No markdown fences."""
                 }
             })
 
+        # Common abbreviations for level values across logging frameworks
+        _LEVEL_VARIANTS: dict[str, list[str]] = {
+            "ERROR": ["ERROR", "error", "Error", "ERR", "err", "FATAL", "fatal", "Fatal",
+                      "CRITICAL", "critical", "Critical", "CRIT", "crit", "EMERG", "emerg",
+                      "ALERT", "alert", "PANIC", "panic"],
+            "WARN":  ["WARN", "warn", "Warn", "WARNING", "warning", "Warning"],
+        }
+
         if level_filter:
-            level_lower = level_filter.lower()
-            level_upper = level_filter.upper()
+            level_fields = ["level", "log.level", "severity", "status", "loglevel", "log_level"]
+            variants = _LEVEL_VARIANTS.get(level_filter.upper(), [level_filter.upper(), level_filter.lower()])
+            should_clauses: list[dict] = []
+            for field in level_fields:
+                for val in variants:
+                    # match for text-mapped fields, term for keyword-mapped fields
+                    should_clauses.append({"match": {field: val}})
+                    should_clauses.append({"term": {field: val}})
+            es_query["query"]["bool"]["must"].append({
+                "bool": {"should": should_clauses, "minimum_should_match": 1}
+            })
+
+        # Message-content error filter: find errors by keywords in the message
+        # when structured level fields don't match
+        if message_filter:
             es_query["query"]["bool"]["must"].append({
                 "bool": {
                     "should": [
-                        {"match": {"level": level_upper}},
-                        {"match": {"level": level_lower}},
-                        {"match": {"log.level": level_lower}},
-                        {"match": {"log.level": level_upper}},
-                        {"match": {"severity": level_upper}},
-                        {"match": {"severity": level_lower}},
-                        {"match": {"status": level_upper}},
-                        {"match": {"status": level_lower}},
-                        {"match": {"loglevel": level_upper}},
-                        {"match": {"loglevel": level_lower}},
-                        {"match": {"log_level": level_upper}},
-                        {"match": {"log_level": level_lower}},
+                        {"match_phrase": {"message": kw}}
+                        for kw in ["error", "exception", "timeout", "failure",
+                                   "fatal", "crash", "refused", "failed",
+                                   "stacktrace", "traceback", "panic"]
                     ],
                     "minimum_should_match": 1,
                 }
             })
+
+        # Exclude health-check / readiness / liveness probe noise
+        if exclude_noise:
+            es_query["query"]["bool"]["must_not"] = [
+                {"match_phrase": {"message": "GET /health"}},
+                {"match_phrase": {"message": "GET /healthz"}},
+                {"match_phrase": {"message": "GET /readyz"}},
+                {"match_phrase": {"message": "GET /livez"}},
+                {"match_phrase": {"message": "GET /ready"}},
+                {"match_phrase": {"message": "health check"}},
+                {"match_phrase": {"message": "liveness probe"}},
+                {"match_phrase": {"message": "readiness probe"}},
+            ]
 
         try:
             resp = requests.post(

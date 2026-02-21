@@ -2217,9 +2217,17 @@ async def test_search_elasticsearch_level_filter_includes_status():
         if "bool" in c and "should" in c["bool"]
     )
     should_clause = level_clause["bool"]["should"]
-    field_names = [list(m["match"].keys())[0] for m in should_clause]
+    # Extract field names from both match and term clauses
+    field_names = set()
+    for clause in should_clause:
+        if "match" in clause:
+            field_names.update(clause["match"].keys())
+        elif "term" in clause:
+            field_names.update(clause["term"].keys())
     assert "status" in field_names
     assert "log_level" in field_names
+    assert "level" in field_names
+    assert "log.level" in field_names
 
 
 @pytest.mark.asyncio
@@ -2907,3 +2915,160 @@ def test_infer_deps_falls_back_to_message_regex():
     result = agent._infer_service_dependencies(patterns, [])
     dep_map = {d["source"]: d["targets"] for d in result}
     assert "inventory-service" in dep_map.get("checkout-service", [])
+
+
+# ─── ES search: level variants, message filter, noise exclusion ─────────────
+
+@pytest.mark.asyncio
+async def test_search_elasticsearch_level_filter_includes_term_queries():
+    """Level filter should include both match and term queries for keyword fields."""
+    agent = LogAnalysisAgent()
+    captured_body = {}
+
+    def mock_post(url, json=None, **kwargs):
+        captured_body["json"] = json
+        resp = MagicMock()
+        resp.status_code = 200
+        resp.raise_for_status = MagicMock()
+        resp.json.return_value = {"hits": {"hits": []}}
+        return resp
+
+    with patch("requests.post", side_effect=mock_post):
+        await agent._search_elasticsearch({"index": "logs", "query": "*", "level_filter": "ERROR"})
+
+    level_clause = next(
+        c for c in captured_body["json"]["query"]["bool"]["must"]
+        if "bool" in c and "should" in c["bool"]
+    )
+    should_clause = level_clause["bool"]["should"]
+    # Should have both match and term entries
+    has_match = any("match" in c for c in should_clause)
+    has_term = any("term" in c for c in should_clause)
+    assert has_match, "Level filter should include match queries"
+    assert has_term, "Level filter should include term queries for keyword fields"
+
+
+@pytest.mark.asyncio
+async def test_search_elasticsearch_level_filter_includes_variants():
+    """Level filter for ERROR should include FATAL, CRITICAL, ERR etc."""
+    agent = LogAnalysisAgent()
+    captured_body = {}
+
+    def mock_post(url, json=None, **kwargs):
+        captured_body["json"] = json
+        resp = MagicMock()
+        resp.status_code = 200
+        resp.raise_for_status = MagicMock()
+        resp.json.return_value = {"hits": {"hits": []}}
+        return resp
+
+    with patch("requests.post", side_effect=mock_post):
+        await agent._search_elasticsearch({"index": "logs", "query": "*", "level_filter": "ERROR"})
+
+    level_clause = next(
+        c for c in captured_body["json"]["query"]["bool"]["must"]
+        if "bool" in c and "should" in c["bool"]
+    )
+    should_clause = level_clause["bool"]["should"]
+    all_values = set()
+    for clause in should_clause:
+        for query_type in ("match", "term"):
+            if query_type in clause:
+                all_values.update(clause[query_type].values())
+    # Check key variants are present
+    assert "FATAL" in all_values
+    assert "CRITICAL" in all_values
+    assert "ERR" in all_values
+    assert "err" in all_values
+
+
+@pytest.mark.asyncio
+async def test_search_elasticsearch_message_filter():
+    """message_filter should add error keyword clauses to the query."""
+    agent = LogAnalysisAgent()
+    captured_body = {}
+
+    def mock_post(url, json=None, **kwargs):
+        captured_body["json"] = json
+        resp = MagicMock()
+        resp.status_code = 200
+        resp.raise_for_status = MagicMock()
+        resp.json.return_value = {"hits": {"hits": []}}
+        return resp
+
+    with patch("requests.post", side_effect=mock_post):
+        await agent._search_elasticsearch({
+            "index": "logs", "query": "*",
+            "level_filter": "", "message_filter": True,
+        })
+
+    must = captured_body["json"]["query"]["bool"]["must"]
+    # Find the message filter clause
+    msg_clause = next(
+        (c for c in must if "bool" in c and "should" in c["bool"]
+         and any("match_phrase" in s and "message" in s.get("match_phrase", {}) for s in c["bool"]["should"])),
+        None
+    )
+    assert msg_clause is not None, "Should have message keyword filter clause"
+    keywords = [list(s["match_phrase"].values())[0] for s in msg_clause["bool"]["should"]]
+    assert "error" in keywords
+    assert "exception" in keywords
+    assert "timeout" in keywords
+
+
+@pytest.mark.asyncio
+async def test_search_elasticsearch_exclude_noise():
+    """exclude_noise should add must_not clauses for health checks."""
+    agent = LogAnalysisAgent()
+    captured_body = {}
+
+    def mock_post(url, json=None, **kwargs):
+        captured_body["json"] = json
+        resp = MagicMock()
+        resp.status_code = 200
+        resp.raise_for_status = MagicMock()
+        resp.json.return_value = {"hits": {"hits": []}}
+        return resp
+
+    with patch("requests.post", side_effect=mock_post):
+        await agent._search_elasticsearch({
+            "index": "logs", "query": "*",
+            "level_filter": "", "exclude_noise": True,
+        })
+
+    must_not = captured_body["json"]["query"]["bool"].get("must_not", [])
+    assert len(must_not) > 0, "Should have must_not noise exclusion clauses"
+    excluded_phrases = [list(c["match_phrase"].values())[0] for c in must_not]
+    assert "GET /health" in excluded_phrases
+    assert "GET /healthz" in excluded_phrases
+
+
+@pytest.mark.asyncio
+async def test_collect_searches_message_keywords_before_all_levels():
+    """_collect should try message-keyword search before all-levels fallback."""
+    agent = LogAnalysisAgent()
+    call_count = {"n": 0}
+    call_params: list[dict] = []
+
+    original_search = agent._search_elasticsearch
+
+    async def tracking_search(params):
+        call_params.append(dict(params))
+        call_count["n"] += 1
+        return json.dumps({"total": 0, "logs": []})
+
+    agent._search_elasticsearch = tracking_search
+
+    context = {"service_name": "checkout-service", "timeframe": "now-1h"}
+    agent._resolve_index = AsyncMock(return_value=("logstash*", ["logstash*"]))
+
+    await agent._collect(context, event_emitter=None)
+
+    # Should have 4 searches: ERROR, WARN, message-keywords, all-levels-no-noise
+    assert len(call_params) >= 4, f"Expected 4 search calls, got {len(call_params)}"
+    # Third call should have message_filter
+    assert call_params[2].get("message_filter"), "Third search should use message_filter"
+    assert call_params[2].get("exclude_noise"), "Third search should exclude noise"
+    # Fourth call should NOT have message_filter but should exclude noise
+    assert not call_params[3].get("message_filter"), "Fourth search should not filter messages"
+    assert call_params[3].get("exclude_noise"), "Fourth search should exclude noise"
