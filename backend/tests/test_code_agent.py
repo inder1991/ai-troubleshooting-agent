@@ -8,7 +8,7 @@ from src.agents.code_agent import CodeNavigatorAgent
 def test_code_agent_init():
     agent = CodeNavigatorAgent()
     assert agent.agent_name == "code_agent"
-    assert agent.max_iterations == 6
+    assert agent.max_iterations == 8
 
 
 def test_find_callers(tmp_path):

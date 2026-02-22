@@ -256,6 +256,7 @@ export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   timestamp: string;
+  metadata?: { type?: string; patient_zero_service?: string };
 }
 
 export interface V4Session {
@@ -490,6 +491,7 @@ export interface ChangeCorrelation {
   description: string;
   files_changed: string[];
   timestamp: string | null;
+  service_name?: string;
 }
 
 export interface HypothesisData {

@@ -438,6 +438,13 @@ class FixArea(BaseModel):
     suggested_change: str
 
 
+class DiffAnalysisItem(BaseModel):
+    file: str
+    commit_sha: str = ""
+    verdict: Literal["likely_cause", "unrelated", "contributing"] = "unrelated"
+    reasoning: str = ""
+
+
 class CodeAnalysisResult(BaseModel):
     root_cause_location: ImpactedFile
     impacted_files: list[ImpactedFile]
@@ -445,6 +452,8 @@ class CodeAnalysisResult(BaseModel):
     dependency_graph: dict[str, list[str]]
     shared_resource_conflicts: list[str]
     suggested_fix_areas: list[FixArea]
+    diff_analysis: list[DiffAnalysisItem] = Field(default_factory=list)
+    cross_repo_findings: list[dict] = Field(default_factory=list)
     mermaid_diagram: str
     negative_findings: list[NegativeFinding]
     breadcrumbs: list[Breadcrumb]
@@ -643,6 +652,9 @@ class DiagnosticState(BaseModel):
     namespace: Optional[str] = None
     repo_url: Optional[str] = None
     elk_index: Optional[str] = None
+
+    # Multi-repo mapping (service_name -> repo_url)
+    repo_map: dict[str, str] = Field(default_factory=dict)
 
     # Agent results
     log_analysis: Optional[LogAnalysisResult] = None

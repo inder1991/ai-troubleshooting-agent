@@ -13,7 +13,7 @@ from src.models.schemas import (
     LogAnalysisResult, ErrorPattern, LogEvidence,
     K8sAnalysisResult, PodHealthStatus, K8sEvent,
     TraceAnalysisResult, SpanInfo,
-    CodeAnalysisResult, ImpactedFile, LineRange, FixArea,
+    CodeAnalysisResult, ImpactedFile, LineRange, FixArea, DiffAnalysisItem,
     Breadcrumb, NegativeFinding, DataPoint,
 )
 from src.agents.log_agent import LogAnalysisAgent
@@ -108,7 +108,7 @@ class SupervisorAgent:
             "k8s_agent": K8sAgent,
             "change_agent": ChangeAgent,
             # "tracing_agent": TracingAgent,
-            # "code_agent": CodeNavigatorAgent,
+            "code_agent": CodeNavigatorAgent,
         }
         self._critic = CriticAgent()
 
@@ -117,6 +117,11 @@ class SupervisorAgent:
         self._pending_repo_confirmation = False
         self._candidate_repos: dict[str, str] = {}
         self._confirmed_repo_map: dict[str, str] = {}
+
+        # Human-in-the-loop: repo mismatch detection for code_agent
+        self._repo_mismatch_event = asyncio.Event()
+        self._pending_repo_mismatch = False
+        self._mismatch_confirmed_repo: str | None = None
 
     async def run(
         self,
@@ -382,11 +387,12 @@ class SupervisorAgent:
             repo = getattr(state, "repo_url", None)
             if not repo or not repo.strip():
                 return "No repository URL configured — skipping code analysis"
-            # Reject URLs — code_agent needs a local filesystem path
-            if repo.startswith(("http://", "https://", "git@", "ssh://")):
-                return f"Repository is a remote URL ({repo[:60]}) — code_agent requires a cloned local path. Skipping."
-            if not Path(repo).is_dir():
+            if not repo.startswith(("http://", "https://", "git@", "ssh://")) and not Path(repo).is_dir():
                 return f"Repository path does not exist: {repo} — skipping code analysis"
+            if repo.startswith(("http://", "https://", "git@")):
+                import os
+                if not os.getenv("GITHUB_TOKEN"):
+                    return "GITHUB_TOKEN not set — required for GitHub API code analysis. Skipping."
 
         if agent_name == "change_agent":
             has_repo = getattr(state, "repo_url", None) and state.repo_url.strip()
@@ -433,6 +439,10 @@ class SupervisorAgent:
                     await event_emitter.emit(agent_name, "started", f"{agent_name} (MOCKED)")
                     await event_emitter.emit(agent_name, "success", f"{agent_name} completed (mocked fixture)")
                 return json.loads(fixture_path.read_text())
+
+        # Repo mismatch check for code_agent
+        if agent_name == "code_agent" and state.patient_zero:
+            await self._check_repo_mismatch(state, event_emitter)
 
         # Check prerequisites before dispatching
         skip_reason = self._check_prerequisites(agent_name, state)
@@ -536,15 +546,31 @@ class SupervisorAgent:
             base["trace_id"] = state.trace_id
 
         elif agent_name == "code_agent":
-            base["repo_path"] = state.repo_url
+            base["repo_url"] = state.repo_url
+            # Backward compat: local path
+            if state.repo_url and not state.repo_url.startswith(("http://", "https://", "git@")):
+                base["repo_path"] = state.repo_url
             if state.log_analysis and state.log_analysis.primary_pattern:
                 base["exception_type"] = state.log_analysis.primary_pattern.exception_type
-                # Extract stack trace from sample logs if available
+                base["stack_traces"] = list(state.log_analysis.primary_pattern.stack_traces or [])
                 stack_trace = ""
                 for sample in state.log_analysis.primary_pattern.sample_logs:
                     if sample.raw_line and len(sample.raw_line) > len(stack_trace):
                         stack_trace = sample.raw_line
                 base["stack_trace"] = stack_trace
+            # Wire files_changed from change_agent
+            if state.change_analysis:
+                all_files = []
+                for corr in state.change_analysis.get("change_correlations", []):
+                    all_files.extend(corr.get("files_changed", []))
+                base["files_changed"] = list(dict.fromkeys(all_files))
+            # Hand-off: top 3 high-risk files
+            high_priority = self._extract_high_priority_files(state)
+            if high_priority:
+                base["high_priority_files"] = high_priority
+            # Multi-repo context
+            if hasattr(state, "repo_map") and state.repo_map:
+                base["repo_map"] = state.repo_map
 
         elif agent_name == "change_agent":
             base["repo_url"] = state.repo_url
@@ -1053,6 +1079,15 @@ class SupervisorAgent:
                 except Exception:
                     pass
 
+            # Parse diff_analysis
+            diff_analysis = []
+            for da in result.get("diff_analysis", []):
+                try:
+                    diff_analysis.append(DiffAnalysisItem(**da) if isinstance(da, dict) else da)
+                except Exception:
+                    pass
+            cross_repo_findings = result.get("cross_repo_findings", [])
+
             tu_raw = result.get("tokens_used", {})
             code_tokens = TokenUsage(
                 agent_name="code_agent",
@@ -1068,6 +1103,8 @@ class SupervisorAgent:
                 dependency_graph=result.get("dependency_graph", {}),
                 shared_resource_conflicts=result.get("shared_resource_conflicts", []),
                 suggested_fix_areas=fix_areas,
+                diff_analysis=diff_analysis,
+                cross_repo_findings=cross_repo_findings,
                 mermaid_diagram=result.get("mermaid_diagram", ""),
                 negative_findings=[nf for nf in state.all_negative_findings if nf.agent_name == "code_agent"],
                 breadcrumbs=[b for b in state.all_breadcrumbs if b.agent_name == "code_agent"],
@@ -1149,6 +1186,99 @@ class SupervisorAgent:
             correlations = result.get("change_correlations", [])
             return f"Change analysis complete — {len(correlations)} correlated changes found (confidence: {confidence}%)"
         return f"{agent_name} completed (confidence: {confidence}%)"
+
+    # ── Hand-off helpers ─────────────────────────────────────────────────────
+
+    def _extract_high_priority_files(self, state: DiagnosticState) -> list[dict]:
+        """Extract top 3 high-risk changed files from change_agent for code_agent hand-off."""
+        if not state.change_analysis:
+            return []
+        correlations = state.change_analysis.get("change_correlations", [])
+        file_scores: list[dict] = []
+        for corr in correlations:
+            risk = corr.get("risk_score", corr.get("correlation_score", 0))
+            sha = corr.get("sha", corr.get("change_id", ""))
+            for f in corr.get("files_changed", []):
+                file_scores.append({
+                    "file_path": f,
+                    "risk_score": risk,
+                    "sha": sha,
+                    "description": corr.get("description", "")[:100],
+                })
+        file_scores.sort(key=lambda x: x["risk_score"], reverse=True)
+        return file_scores[:3]
+
+    async def _check_repo_mismatch(
+        self, state: DiagnosticState, event_emitter: Optional[EventEmitter] = None,
+    ) -> None:
+        """Check if patient_zero service differs from target service and ask user to confirm."""
+        if not state.patient_zero or not event_emitter:
+            return
+        pz_svc = state.patient_zero.get("service", "") if isinstance(state.patient_zero, dict) else ""
+        if not pz_svc or pz_svc.lower() == state.service_name.lower():
+            return
+
+        # Derive a candidate repo for the PZ service
+        candidate_repo = ""
+        if state.repo_url:
+            candidates = self._derive_candidate_repos(state.repo_url, [pz_svc], state.service_name)
+            candidate_repo = candidates.get(pz_svc, "")
+
+        msg_lines = [
+            f"**Repo mismatch detected:** Root cause appears to be in **{pz_svc}**, but the repo provided is for **{state.service_name}**.\n",
+        ]
+        if candidate_repo:
+            msg_lines.append(f"Derived repo for {pz_svc}: `{candidate_repo}`\n")
+        msg_lines.append("Please reply with one of:")
+        msg_lines.append(f"  \u2022 **confirm** \u2014 switch to `{candidate_repo or pz_svc}` repo")
+        msg_lines.append("  \u2022 **keep** \u2014 continue with current repo")
+        msg_lines.append("  \u2022 Or provide the correct URL, e.g.: `https://github.com/org/repo`")
+
+        if event_emitter._websocket_manager:
+            await event_emitter._websocket_manager.send_message(
+                state.session_id,
+                {
+                    "type": "chat_response",
+                    "data": {
+                        "role": "assistant",
+                        "content": "\n".join(msg_lines),
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                        "metadata": {
+                            "type": "repo_mismatch",
+                            "patient_zero_service": pz_svc,
+                        },
+                    },
+                },
+            )
+
+        await event_emitter.emit(
+            "supervisor", "warning",
+            f"Repo mismatch: patient_zero is {pz_svc}, repo is for {state.service_name}",
+        )
+
+        # Wait for user response (up to 3 minutes)
+        self._pending_repo_mismatch = True
+        self._mismatch_confirmed_repo = None
+        self._repo_mismatch_event.clear()
+        try:
+            await asyncio.wait_for(self._repo_mismatch_event.wait(), timeout=180)
+        except asyncio.TimeoutError:
+            self._pending_repo_mismatch = False
+            logger.warning("Repo mismatch confirmation timed out", extra={
+                "session_id": state.session_id, "agent_name": "supervisor",
+                "action": "repo_mismatch_timeout",
+            })
+            return
+
+        self._pending_repo_mismatch = False
+
+        # Apply the confirmed repo
+        if self._mismatch_confirmed_repo:
+            original_repo = state.repo_url
+            state.repo_url = self._mismatch_confirmed_repo
+            # Populate repo_map with both repos
+            state.repo_map[state.service_name] = original_repo or ""
+            state.repo_map[pz_svc] = self._mismatch_confirmed_repo
 
     # ── Human-in-the-loop: repo URL confirmation for change_agent ────────────
 
@@ -1271,6 +1401,9 @@ class SupervisorAgent:
             await event_emitter.emit("supervisor", "progress", "Change analysis skipped by user")
             return
 
+        # Populate repo_map from confirmed repos
+        state.repo_map = dict(self._confirmed_repo_map)
+
         # Dispatch change_agent for each confirmed repo
         for svc, repo in self._confirmed_repo_map.items():
             if not repo:
@@ -1284,6 +1417,10 @@ class SupervisorAgent:
             state.repo_url = original_repo  # restore
 
             if result and not isinstance(result, Exception):
+                # Tag change_correlations with service_name
+                for corr in result.get("change_correlations", []):
+                    corr["service_name"] = svc
+
                 await self._update_state_with_result(state, "change_agent", result, event_emitter)
 
                 summary = self._build_agent_summary("change_agent", result, state)
@@ -1501,6 +1638,10 @@ Respond ONLY with a JSON array:
     async def handle_user_message(self, message: str, state: DiagnosticState) -> str:
         """Handle a user message during analysis."""
 
+        # Handle pending repo mismatch confirmation for code_agent
+        if self._pending_repo_mismatch:
+            return self._process_repo_mismatch(message, state)
+
         # Handle pending repo URL confirmation for change_agent
         if self._pending_repo_confirmation:
             return self._process_repo_confirmation(message)
@@ -1572,4 +1713,44 @@ Respond helpfully. If they're asking for status, give a brief update. If they're
             "  \u2022 **confirm** to proceed with the listed repos\n"
             "  \u2022 **skip** to skip change analysis\n"
             "  \u2022 Or provide corrections like: `inventory-service: https://github.com/org/repo`"
+        )
+
+    def _process_repo_mismatch(self, message: str, state: DiagnosticState) -> str:
+        """Parse user's repo mismatch response and signal the waiting coroutine."""
+        import re
+        text = message.strip().lower()
+
+        if text in ("keep", "no", "skip"):
+            self._mismatch_confirmed_repo = None
+            self._repo_mismatch_event.set()
+            return "Keeping current repo — continuing code analysis."
+
+        if text in ("confirm", "yes", "ok", "y", "switch"):
+            # Derive the PZ repo and switch to it
+            pz_svc = ""
+            if state.patient_zero:
+                pz_svc = state.patient_zero.get("service", "") if isinstance(state.patient_zero, dict) else ""
+            if pz_svc and state.repo_url:
+                candidates = self._derive_candidate_repos(state.repo_url, [pz_svc], state.service_name)
+                derived = candidates.get(pz_svc, "")
+                if derived:
+                    self._mismatch_confirmed_repo = derived
+                    self._repo_mismatch_event.set()
+                    return f"Switching to `{derived}` for code analysis."
+            self._mismatch_confirmed_repo = None
+            self._repo_mismatch_event.set()
+            return "Could not derive repo URL — continuing with current repo."
+
+        # Try to parse a raw URL
+        url_match = re.search(r'(https?://\S+|git@\S+)', message)
+        if url_match:
+            self._mismatch_confirmed_repo = url_match.group(1)
+            self._repo_mismatch_event.set()
+            return f"Switching to `{self._mismatch_confirmed_repo}` for code analysis."
+
+        return (
+            "I didn't understand that. Please reply:\n"
+            "  \u2022 **confirm** to switch to the derived repo\n"
+            "  \u2022 **keep** to continue with the current repo\n"
+            "  \u2022 Or provide a URL like: `https://github.com/org/repo`"
         )

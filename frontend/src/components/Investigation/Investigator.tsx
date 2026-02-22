@@ -166,6 +166,21 @@ const Investigator: React.FC<InvestigatorProps> = ({
     return Array.from(started).map((a) => ({ name: a, active: !completed.has(a) }));
   }, [events]);
 
+  // Repo mismatch detection
+  const repoMismatch = useMemo(() => {
+    if (!findings?.patient_zero?.service || !findings?.target_service) return false;
+    return findings.patient_zero.service.toLowerCase() !== findings.target_service.toLowerCase();
+  }, [findings?.patient_zero?.service, findings?.target_service]);
+
+  const handleAttachRepo = useCallback(() => {
+    if (!sessionId) return;
+    const userMsg: ChatMessageType = { role: 'user', content: 'confirm', timestamp: new Date().toISOString() };
+    onNewMessage(userMsg);
+    sendChatMessage(sessionId, 'confirm').then((resp) => {
+      if (resp?.content) onNewMessage(resp);
+    }).catch(() => {});
+  }, [sessionId, onNewMessage]);
+
   // Time-to-impact
   const firstErrorTime = findings?.patient_zero?.first_error_time;
   const [elapsedSec, setElapsedSec] = useState(0);
@@ -196,8 +211,30 @@ const Investigator: React.FC<InvestigatorProps> = ({
               <span className="ml-auto text-lg font-mono font-bold text-red-400">{formatElapsed(elapsedSec)}</span>
             )}
           </div>
-          <div className="text-sm font-mono text-red-200 font-bold">{findings.patient_zero.service}</div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-mono text-red-200 font-bold">{findings.patient_zero.service}</span>
+            {repoMismatch && (
+              <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                <span className="material-symbols-outlined" style={{ fontFamily: 'Material Symbols Outlined', fontSize: '12px' }}>warning</span>
+                Repo Mismatch
+              </span>
+            )}
+          </div>
           <p className="text-[10px] text-red-300/70 mt-0.5">{findings.patient_zero.evidence}</p>
+          {repoMismatch && (
+            <div className="mt-1.5 flex items-center gap-2">
+              <p className="text-[10px] text-amber-300/80">
+                Root cause in <strong>{findings.patient_zero.service}</strong>, repo provided for <strong>{findings.target_service}</strong>
+              </p>
+              <button
+                onClick={handleAttachRepo}
+                className="text-[9px] font-bold uppercase px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30 transition-colors flex items-center gap-1"
+              >
+                <span className="material-symbols-outlined" style={{ fontFamily: 'Material Symbols Outlined', fontSize: '11px' }}>link</span>
+                Attach Repo
+              </button>
+            </div>
+          )}
         </div>
       )}
 
