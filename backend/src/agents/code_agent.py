@@ -22,6 +22,11 @@ class CodeNavigatorAgent(ReActAgent):
             agent_name="code_agent",
             max_iterations=max_iterations,
             connection_config=connection_config,
+            budget_overrides={
+                "max_llm_calls": 20,
+                "max_tokens": 150_000,
+                "max_tool_calls": 40,
+            },
         )
         self._connection_config = connection_config
         self.repo_path: str = ""
@@ -266,7 +271,19 @@ but the repo you're scanning is the TARGET service being called. Follow this str
 - You have 15 iterations — use them wisely
 - Asking human costs 1 iteration but saves wasted iterations on wrong paths
 - If high_priority_files are provided AND match the target repo, read those first
-- Prefer github_search_code over github_list_files when you know what you're looking for
+- **CRITICAL: Do NOT speculate with github_search_code.** If a search returns 0 results, do NOT
+  try variations of the same search. Instead, go back to reading files you already know about.
+  Reading the next section of a file you already opened is ALWAYS more productive than guessing
+  search terms that may not exist in the codebase.
+- When you have a file open (e.g., read lines 1-180), continue reading the next section
+  (lines 180-350, etc.) to build a complete picture BEFORE searching for other files.
+- Use github_search_code ONLY when you have a specific, concrete string to search for
+  (e.g., an endpoint path "/v1/reserve", an exception class name "PoolExhaustedError",
+  or a function name you saw imported). Never search for generic terms like "background thread"
+  or "stock" — these waste iterations.
+- **Budget your iterations:** Use iterations 1-10 for reading and investigation, and ALWAYS
+  reserve at least 2 iterations for producing your final JSON answer. If you are on iteration 12+,
+  stop investigating and produce your answer with what you have.
 
 After analysis, provide your final answer as JSON:
 {

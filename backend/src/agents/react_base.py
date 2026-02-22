@@ -36,6 +36,7 @@ class ReActAgent(ABC):
         max_iterations: int = 10,
         model: str = "",
         connection_config=None,
+        budget_overrides: dict | None = None,
     ):
         # Model resolution: explicit > per-agent override > global config > env > default
         resolved_model = model
@@ -68,10 +69,11 @@ class ReActAgent(ABC):
         self.breadcrumbs: list[Breadcrumb] = []
         self.negative_findings: list[NegativeFinding] = []
         self.evidence_pins: list[EvidencePin] = []
-        self.budget = ReActBudget()
+        self.budget = ReActBudget(**(budget_overrides or {}))
         self._tools: list[dict] = []
         self._tool_handlers: dict[str, Any] = {}
         self._consecutive_infra_failures = 0
+        self._wrap_up_nudge_sent = False
 
     @abstractmethod
     async def _define_tools(self) -> list[dict]:
@@ -208,9 +210,10 @@ class ReActAgent(ABC):
         messages = [{"role": "user", "content": initial_prompt}]
 
         for iteration in range(self.max_iterations):
+            # Check if budget is exhausted — force a final answer instead of returning nothing
             if self.budget.is_exhausted():
-                logger.warning("Budget exhausted", extra={
-                    "agent_name": self.agent_name, "action": "budget_exhausted",
+                logger.warning("Budget exhausted — forcing final answer", extra={
+                    "agent_name": self.agent_name, "action": "budget_exhausted_wrap_up",
                     "extra": {
                         "llm_calls": f"{self.budget.current_llm_calls}/{self.budget.max_llm_calls}",
                         "tool_calls": f"{self.budget.current_tool_calls}/{self.budget.max_tool_calls}",
@@ -219,12 +222,41 @@ class ReActAgent(ABC):
                     },
                 })
                 if event_emitter:
-                    await event_emitter.emit(self.agent_name, "warning", "Budget exhausted")
+                    await event_emitter.emit(self.agent_name, "warning", "Budget low — producing final answer")
+                # Force one last LLM call with NO tools to get a final answer
+                wrap_up_result = await self._force_final_answer(system_prompt, messages, event_emitter)
+                if wrap_up_result is not None:
+                    return wrap_up_result
+                # If wrap-up also failed, fall through to empty return
                 return {
                     "error": "budget_exhausted",
                     "partial_results": self.breadcrumbs,
                     "evidence_pins": [p.model_dump(mode="json") for p in self.evidence_pins],
                 }
+
+            # Inject wrap-up nudge when iterations are running low
+            remaining_iterations = self.max_iterations - iteration
+            remaining_llm_calls = self.budget.max_llm_calls - self.budget.current_llm_calls
+            remaining_budget_pct = 1.0 - (self.budget.current_tokens / self.budget.max_tokens) if self.budget.max_tokens > 0 else 1.0
+
+            if (remaining_iterations == 2 or remaining_llm_calls == 2 or remaining_budget_pct < 0.15):
+                if not getattr(self, '_wrap_up_nudge_sent', False):
+                    self._wrap_up_nudge_sent = True
+                    messages.append({
+                        "role": "user",
+                        "content": (
+                            "⚠️ SYSTEM: You are running low on budget. "
+                            "You have ~2 iterations remaining. "
+                            "STOP investigating and produce your FINAL JSON ANSWER NOW "
+                            "with everything you have found so far. Do NOT make any more tool calls."
+                        ),
+                    })
+                    logger.info("Wrap-up nudge injected", extra={
+                        "agent_name": self.agent_name, "action": "wrap_up_nudge",
+                        "extra": {"iteration": iteration, "remaining_iters": remaining_iterations,
+                                  "remaining_llm_calls": remaining_llm_calls,
+                                  "remaining_budget_pct": f"{remaining_budget_pct:.0%}"},
+                    })
 
             # Call LLM with tools (retry on transient errors)
             response = None
@@ -350,13 +382,54 @@ class ReActAgent(ABC):
                 result["evidence_pins"] = [p.model_dump(mode="json") for p in self.evidence_pins]
                 return result
 
-        # Max iterations reached
-        logger.warning("Max iterations reached", extra={"agent_name": self.agent_name, "action": "max_iterations", "extra": {"max": self.max_iterations}})
+        # Max iterations reached — force a final answer instead of returning nothing
+        logger.warning("Max iterations reached — forcing final answer", extra={"agent_name": self.agent_name, "action": "max_iterations", "extra": {"max": self.max_iterations}})
         if event_emitter:
-            await event_emitter.emit(self.agent_name, "warning", f"Max iterations ({self.max_iterations}) reached")
+            await event_emitter.emit(self.agent_name, "warning", f"Max iterations ({self.max_iterations}) reached — producing final answer")
+
+        wrap_up_result = await self._force_final_answer(system_prompt, messages, event_emitter)
+        if wrap_up_result is not None:
+            return wrap_up_result
 
         return {
             "error": "max_iterations_reached",
             "partial_results": self.breadcrumbs,
             "evidence_pins": [p.model_dump(mode="json") for p in self.evidence_pins],
         }
+
+    async def _force_final_answer(
+        self, system_prompt: str, messages: list, event_emitter: EventEmitter | None
+    ) -> dict | None:
+        """Make one last LLM call with no tools to force a final text answer."""
+        try:
+            wrap_up_messages = messages + [{
+                "role": "user",
+                "content": (
+                    "⚠️ SYSTEM: Budget/iterations exhausted. You MUST produce your FINAL JSON ANSWER NOW. "
+                    "Summarize ALL findings from the tool calls you already made. "
+                    "Do NOT call any tools. Respond ONLY with your final JSON answer."
+                ),
+            }]
+            response = await self.llm_client.chat_with_tools(
+                system=system_prompt,
+                messages=wrap_up_messages,
+                tools=None,  # No tools — force text-only response
+            )
+            text_blocks = [b for b in response.content if b.type == "text"]
+            if text_blocks:
+                final_text = text_blocks[0].text
+                logger.info("Forced final answer produced", extra={
+                    "agent_name": self.agent_name, "action": "forced_final_answer",
+                    "extra": {"response_length": len(final_text)},
+                })
+                if event_emitter:
+                    await event_emitter.emit(self.agent_name, "success", f"{self.agent_name} completed analysis")
+                result = self._parse_final_response(final_text)
+                result["evidence_pins"] = [p.model_dump(mode="json") for p in self.evidence_pins]
+                return result
+        except Exception as e:
+            logger.error("Failed to force final answer", extra={
+                "agent_name": self.agent_name, "action": "forced_final_answer_error",
+                "extra": {"error": str(e)},
+            })
+        return None
