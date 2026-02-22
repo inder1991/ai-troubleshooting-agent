@@ -77,6 +77,16 @@ class ChangeAgent(ReActAgent):
         self._namespace = context.get("namespace", "default")
         self._incident_start = context.get("incident_start")
         self._cli_tool = context.get("cli_tool", "kubectl")
+        logger.info("Change agent context", extra={
+            "agent_name": self.agent_name, "action": "context_loaded",
+            "extra": {
+                "repo_url": self._repo_url or "(none)",
+                "has_github_token": bool(self._github_token),
+                "namespace": self._namespace,
+                "incident_start": self._incident_start or "(unknown)",
+                "cli_tool": self._cli_tool,
+            },
+        })
         return (
             f"Investigate recent changes for service in namespace '{self._namespace}'. "
             f"Repository: {self._repo_url or 'not specified'}. "
@@ -94,7 +104,6 @@ class ChangeAgent(ReActAgent):
         return f"Unknown tool: {tool_name}"
 
     async def _get_github_commits(self, params: dict) -> str:
-        import os
         import httpx
         from datetime import datetime, timezone, timedelta
 
@@ -118,6 +127,7 @@ class ChangeAgent(ReActAgent):
 
         try:
             async with httpx.AsyncClient(timeout=15.0) as client:
+                # First try: commits within the time window
                 resp = await client.get(url, headers=headers, params={"per_page": 20, "since": since_iso})
                 if resp.status_code == 401:
                     return "GitHub API error: authentication required — set GITHUB_TOKEN env var"
@@ -125,6 +135,14 @@ class ChangeAgent(ReActAgent):
                     return f"GitHub API error: repository not found — {owner_repo}"
                 resp.raise_for_status()
                 commits = resp.json()
+
+                # Fallback: if no commits in time window, fetch last 10 commits
+                if not commits:
+                    resp = await client.get(url, headers=headers, params={"per_page": 10})
+                    resp.raise_for_status()
+                    commits = resp.json()
+                    if commits:
+                        logger.info("No commits in last %dh, falling back to last %d commits", since_hours, len(commits))
         except httpx.HTTPStatusError as e:
             return f"GitHub API error: {e.response.status_code} {e.response.text[:200]}"
         except httpx.ConnectError:
@@ -132,16 +150,18 @@ class ChangeAgent(ReActAgent):
         except httpx.TimeoutException:
             return "GitHub API error: request timed out"
 
-        result = [
-            {
+        def _fmt(c: dict) -> dict:
+            return {
                 "sha": c["sha"][:8],
                 "author": c["commit"]["author"]["name"],
                 "date": c["commit"]["author"]["date"],
                 "message": c["commit"]["message"][:200],
             }
-            for c in commits
-        ]
-        return json.dumps(result, indent=2) if result else "No commits found in the last {} hours".format(since_hours)
+
+        result = [_fmt(c) for c in commits]
+        if not result:
+            return f"No commits found in repository {owner_repo}"
+        return json.dumps(result, indent=2)
 
     def _parse_repo_url(self, url: str) -> str | None:
         """Extract 'owner/repo' from various GitHub URL formats."""

@@ -395,8 +395,13 @@ class SupervisorAgent:
                 return f"Repository path does not exist: {repo} — skipping code analysis"
             if repo.startswith(("http://", "https://", "git@")):
                 import os
-                has_github_token = (cfg and cfg.github_token) or os.getenv("GITHUB_TOKEN")
-                if not has_github_token:
+                cfg_token = bool(cfg and cfg.github_token) if cfg else False
+                env_token = bool(os.getenv("GITHUB_TOKEN"))
+                logger.info("code_agent token check", extra={
+                    "agent_name": agent_name, "action": "prereq_check",
+                    "extra": {"cfg_token": cfg_token, "env_token": env_token, "has_cfg": cfg is not None},
+                })
+                if not cfg_token and not env_token:
                     return "No GitHub token configured (add via Integrations or GITHUB_TOKEN env var) — skipping code analysis"
 
         if agent_name == "change_agent":
@@ -459,6 +464,9 @@ class SupervisorAgent:
             })
             if event_emitter:
                 await event_emitter.emit(agent_name, "warning", f"Skipped: {skip_reason}")
+            # Mark as completed to prevent infinite re-dispatch
+            if hasattr(state, 'agents_completed') and agent_name not in state.agents_completed:
+                state.agents_completed.append(agent_name)
             return None
 
         agent_cls = self._agents.get(agent_name)
@@ -1317,6 +1325,59 @@ class SupervisorAgent:
                     services[tgt] = None
         return list(services.keys())
 
+    @staticmethod
+    def _parse_owner_repo(url: str) -> str | None:
+        """Extract 'owner/repo' from a GitHub URL."""
+        import re
+        for pattern in [
+            r'github\.com[:/]([^/]+/[^/]+?)(?:\.git)?$',
+            r'^([^/]+/[^/]+)$',
+        ]:
+            m = re.search(pattern, url)
+            if m:
+                return m.group(1)
+        return None
+
+    async def _validate_github_repos(self, repos: dict[str, str]) -> dict[str, str]:
+        """Validate which GitHub repos actually exist. Returns only valid repos."""
+        import httpx
+        token = ""
+        if self._connection_config and self._connection_config.github_token:
+            token = self._connection_config.github_token
+        if not token:
+            import os
+            token = os.getenv("GITHUB_TOKEN", "")
+
+        headers = {"Accept": "application/vnd.github+json"}
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+
+        valid: dict[str, str] = {}
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            for svc, repo_url in repos.items():
+                if not repo_url:
+                    continue
+                owner_repo = self._parse_owner_repo(repo_url)
+                if not owner_repo:
+                    # Not a GitHub URL (could be local path) — keep it
+                    valid[svc] = repo_url
+                    continue
+                try:
+                    resp = await client.get(
+                        f"https://api.github.com/repos/{owner_repo}",
+                        headers=headers,
+                    )
+                    if resp.status_code == 200:
+                        valid[svc] = repo_url
+                    else:
+                        logger.info("Repo validation failed", extra={
+                            "agent_name": "supervisor", "action": "repo_validation",
+                            "extra": {"service": svc, "repo": owner_repo, "status": resp.status_code},
+                        })
+                except Exception as e:
+                    logger.warning("Repo validation error for %s: %s", owner_repo, e)
+        return valid
+
     def _derive_candidate_repos(
         self, base_repo_url: str | None, affected_services: list[str], target_service: str,
     ) -> dict[str, str]:
@@ -1351,8 +1412,35 @@ class SupervisorAgent:
         if not affected:
             return
 
+        logger.info("Change analysis: affected services detected", extra={
+            "session_id": state.session_id, "agent_name": "supervisor",
+            "action": "change_affected_services",
+            "extra": {"services": affected, "base_repo": state.repo_url},
+        })
+
         candidates = self._derive_candidate_repos(state.repo_url, affected, state.service_name)
+        logger.info("Change analysis: candidate repos derived", extra={
+            "session_id": state.session_id, "agent_name": "supervisor",
+            "action": "change_candidate_repos",
+            "extra": {svc: repo or "(none)" for svc, repo in candidates.items()},
+        })
+
+        # Validate derived repos exist on GitHub before showing to user
+        validated = await self._validate_github_repos(candidates)
+        invalid_repos = {s: r for s, r in candidates.items() if r and s not in validated}
+        if invalid_repos:
+            logger.info("Skipping invalid repos", extra={
+                "agent_name": "supervisor", "action": "repo_validation_skip",
+                "extra": {"invalid": list(invalid_repos.keys())},
+            })
+        # Keep services with valid repos + services with no repo (user may provide)
+        candidates = {s: (validated.get(s, "") if candidates[s] else "") for s in candidates}
         self._candidate_repos = candidates
+
+        # If no services have valid repos and none need user input, skip entirely
+        if not any(candidates.values()) and not any(r == "" for r in candidates.values()):
+            await event_emitter.emit("supervisor", "progress", "No valid repos found — skipping change analysis")
+            return
 
         # Build the chat message
         lines = [
@@ -1361,6 +1449,8 @@ class SupervisorAgent:
         for svc, repo in candidates.items():
             if repo:
                 lines.append(f"  \u2022 **{svc}** \u2192 `{repo}`")
+            elif svc in invalid_repos:
+                lines.append(f"  \u2022 **{svc}** \u2192 ~~`{invalid_repos[svc]}`~~ *(repo not found)*")
             else:
                 lines.append(f"  \u2022 **{svc}** \u2192 *(no repo URL \u2014 please provide)*")
         lines.append("")
@@ -1414,13 +1504,42 @@ class SupervisorAgent:
             await event_emitter.emit("supervisor", "progress", "Change analysis skipped by user")
             return
 
-        # Populate repo_map from confirmed repos
-        state.repo_map = dict(self._confirmed_repo_map)
+        # Validate user-confirmed repos (user may have provided corrections with bad URLs)
+        validated_repos = await self._validate_github_repos(self._confirmed_repo_map)
+        skipped = [s for s in self._confirmed_repo_map if s not in validated_repos and self._confirmed_repo_map[s]]
+        if skipped:
+            logger.info("Skipping unvalidated user repos", extra={
+                "agent_name": "supervisor", "action": "repo_dispatch_skip",
+                "extra": {"skipped_services": skipped},
+            })
+            if event_emitter:
+                await event_emitter.emit(
+                    "supervisor", "warning",
+                    f"Skipped repos not found on GitHub: {', '.join(skipped)}",
+                )
 
-        # Dispatch change_agent for each confirmed repo
-        for svc, repo in self._confirmed_repo_map.items():
+        if not validated_repos:
+            await event_emitter.emit("supervisor", "progress", "No valid repos — skipping change analysis")
+            return
+
+        # Populate repo_map from validated repos
+        state.repo_map = dict(validated_repos)
+
+        logger.info("Change analysis: dispatching for validated repos", extra={
+            "session_id": state.session_id, "agent_name": "supervisor",
+            "action": "change_dispatch_plan",
+            "extra": {"repos": {s: r for s, r in validated_repos.items() if r}, "count": sum(1 for r in validated_repos.values() if r)},
+        })
+
+        # Dispatch change_agent for each validated repo
+        for svc, repo in validated_repos.items():
             if not repo:
                 continue
+            logger.info("Change analysis: dispatching for service", extra={
+                "session_id": state.session_id, "agent_name": "change_agent",
+                "action": "dispatch_for_service",
+                "extra": {"service": svc, "repo_url": repo},
+            })
             # Temporarily set repo_url and service context for change_agent
             original_repo = state.repo_url
             state.repo_url = repo
@@ -1657,7 +1776,7 @@ Respond ONLY with a JSON array:
 
         # Handle pending repo URL confirmation for change_agent
         if self._pending_repo_confirmation:
-            return self._process_repo_confirmation(message)
+            return await self._process_repo_confirmation(message)
 
         response = await self.llm_client.chat(
             prompt=f"""Current diagnostic state:
@@ -1674,10 +1793,15 @@ Respond helpfully. If they're asking for status, give a brief update. If they're
         )
         return response.text
 
-    def _process_repo_confirmation(self, message: str) -> str:
+    async def _process_repo_confirmation(self, message: str) -> str:
         """Parse user's repo confirmation response and signal the waiting coroutine."""
         import re
         text = message.strip().lower()
+
+        logger.info("Repo confirmation response received", extra={
+            "agent_name": "supervisor", "action": "repo_confirmation_response",
+            "extra": {"response": text[:100]},
+        })
 
         if text in ("skip", "no", "cancel"):
             self._confirmed_repo_map = {}
@@ -1689,6 +1813,10 @@ Respond helpfully. If they're asking for status, give a brief update. If they're
             self._confirmed_repo_map = {
                 svc: repo for svc, repo in self._candidate_repos.items() if repo
             }
+            logger.info("Repos confirmed by user", extra={
+                "agent_name": "supervisor", "action": "repo_confirmed",
+                "extra": {svc: repo for svc, repo in self._confirmed_repo_map.items()},
+            })
             self._repo_confirmation_event.set()
             confirmed_count = len(self._confirmed_repo_map)
             return f"Confirmed {confirmed_count} repo(s) — starting change analysis now."
@@ -1699,34 +1827,153 @@ Respond helpfully. If they're asking for status, give a brief update. If they're
             message,
         )
         if corrections:
-            updated = dict(self._candidate_repos)
-            for svc_name, repo_url in corrections:
-                # Find closest service match (case-insensitive)
-                matched = None
-                for candidate_svc in updated:
-                    if candidate_svc.lower() == svc_name.lower():
-                        matched = candidate_svc
-                        break
-                if matched:
-                    updated[matched] = repo_url
-                else:
-                    updated[svc_name] = repo_url
+            return self._apply_repo_corrections(corrections)
 
-            self._confirmed_repo_map = {s: r for s, r in updated.items() if r}
-            self._repo_confirmation_event.set()
-
-            lines = ["Updated repos — starting change analysis:"]
-            for svc, repo in self._confirmed_repo_map.items():
-                lines.append(f"  \u2022 {svc} \u2192 {repo}")
-            return "\n".join(lines)
+        # Fallback: use LLM to parse natural language corrections
+        parsed = await self._llm_parse_repo_corrections(message)
+        if parsed is not None:
+            return parsed
 
         # Didn't understand — ask again
         return (
             "I didn't understand that. Please reply:\n"
             "  \u2022 **confirm** to proceed with the listed repos\n"
             "  \u2022 **skip** to skip change analysis\n"
-            "  \u2022 Or provide corrections like: `inventory-service: https://github.com/org/repo`"
+            "  \u2022 Or provide corrections, e.g.:\n"
+            "    `use https://github.com/org/repo for inventory-service`\n"
+            "    `skip redis`"
         )
+
+    def _apply_repo_corrections(self, corrections: list[tuple[str, str]]) -> str:
+        """Apply parsed service→repo corrections and signal the waiting coroutine."""
+        updated = dict(self._candidate_repos)
+        for svc_name, repo_url in corrections:
+            matched = None
+            for candidate_svc in updated:
+                if candidate_svc.lower() == svc_name.lower():
+                    matched = candidate_svc
+                    break
+            if matched:
+                updated[matched] = repo_url
+            else:
+                updated[svc_name] = repo_url
+
+        self._confirmed_repo_map = {s: r for s, r in updated.items() if r}
+        logger.info("Repos updated by user corrections", extra={
+            "agent_name": "supervisor", "action": "repo_corrected",
+            "extra": {svc: repo for svc, repo in self._confirmed_repo_map.items()},
+        })
+        self._repo_confirmation_event.set()
+
+        lines = ["Updated repos — starting change analysis:"]
+        for svc, repo in self._confirmed_repo_map.items():
+            lines.append(f"  \u2022 {svc} \u2192 {repo}")
+        return "\n".join(lines)
+
+    async def _llm_parse_repo_corrections(self, message: str) -> str | None:
+        """Use LLM to parse natural language repo corrections from user."""
+        candidates_str = json.dumps(
+            {s: r or "(no repo)" for s, r in self._candidate_repos.items()},
+            indent=2,
+        )
+        try:
+            response = await self.llm_client.chat(
+                prompt=f"""Current candidate repos for change analysis:
+{candidates_str}
+
+User message: "{message}"
+
+Parse the user's intent. Respond with ONLY a JSON object:
+{{
+  "action": "update" | "skip" | "confirm" | "unknown",
+  "corrections": {{
+    "service-name": "new-repo-url-or-empty-to-remove"
+  }},
+  "services_to_skip": ["service-name"]
+}}
+
+Examples:
+- "there is no redis repo, use https://github.com/org/inv for inventory-service"
+  → {{"action": "update", "corrections": {{"inventory-service": "https://github.com/org/inv"}}, "services_to_skip": ["redis"]}}
+- "skip all" → {{"action": "skip", "corrections": {{}}, "services_to_skip": []}}
+- "confirm" → {{"action": "confirm", "corrections": {{}}, "services_to_skip": []}}
+- "I don't know" → {{"action": "unknown", "corrections": {{}}, "services_to_skip": []}}""",
+                system="Parse user intent about repository URLs. Respond with ONLY valid JSON, no markdown.",
+                max_tokens=300,
+            )
+
+            text = response.text.strip()
+            if text.startswith("```"):
+                text = text.split("\n", 1)[1] if "\n" in text else text[3:]
+                if text.endswith("```"):
+                    text = text[:-3]
+                text = text.strip()
+
+            parsed = json.loads(text)
+            action = parsed.get("action", "unknown")
+
+            logger.info("LLM parsed repo correction", extra={
+                "agent_name": "supervisor", "action": "repo_llm_parsed",
+                "extra": {"parsed_action": action, "corrections": parsed.get("corrections", {}), "skips": parsed.get("services_to_skip", [])},
+            })
+
+            if action == "skip":
+                self._confirmed_repo_map = {}
+                self._repo_confirmation_event.set()
+                return "Got it — skipping change analysis."
+
+            if action == "confirm":
+                self._confirmed_repo_map = {
+                    svc: repo for svc, repo in self._candidate_repos.items() if repo
+                }
+                self._repo_confirmation_event.set()
+                return f"Confirmed {len(self._confirmed_repo_map)} repo(s) — starting change analysis now."
+
+            if action == "update":
+                updated = dict(self._candidate_repos)
+
+                # Remove skipped services
+                for skip_svc in parsed.get("services_to_skip", []):
+                    for candidate_svc in list(updated.keys()):
+                        if skip_svc.lower() in candidate_svc.lower() or candidate_svc.lower() in skip_svc.lower():
+                            updated[candidate_svc] = ""
+                            break
+
+                # Apply corrections
+                for svc_name, repo_url in parsed.get("corrections", {}).items():
+                    if not repo_url:
+                        continue
+                    matched = None
+                    for candidate_svc in updated:
+                        if svc_name.lower() in candidate_svc.lower() or candidate_svc.lower() in svc_name.lower():
+                            matched = candidate_svc
+                            break
+                    if matched:
+                        updated[matched] = repo_url
+                    else:
+                        updated[svc_name] = repo_url
+
+                self._confirmed_repo_map = {s: r for s, r in updated.items() if r}
+                logger.info("Repos updated via LLM parsing", extra={
+                    "agent_name": "supervisor", "action": "repo_llm_corrected",
+                    "extra": {svc: repo for svc, repo in self._confirmed_repo_map.items()},
+                })
+                self._repo_confirmation_event.set()
+
+                lines = ["Updated repos — starting change analysis:"]
+                for svc, repo in self._confirmed_repo_map.items():
+                    lines.append(f"  \u2022 {svc} \u2192 {repo}")
+                skipped = parsed.get("services_to_skip", [])
+                if skipped:
+                    lines.append(f"  Skipped: {', '.join(skipped)}")
+                return "\n".join(lines)
+
+            # action == "unknown"
+            return None
+
+        except Exception as e:
+            logger.warning("LLM repo correction parsing failed: %s", e)
+            return None
 
     def _process_repo_mismatch(self, message: str, state: DiagnosticState) -> str:
         """Parse user's repo mismatch response and signal the waiting coroutine."""

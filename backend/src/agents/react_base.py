@@ -285,7 +285,9 @@ class ReActAgent(ABC):
                     tool_name = tool_block.name
                     tool_input = tool_block.input
 
-                    logger.info("Tool called", extra={"agent_name": self.agent_name, "action": "tool_call", "tool": tool_name, "extra": {"iteration": iteration + 1}})
+                    # Log tool call with input params (redact tokens/credentials)
+                    safe_input = {k: ("***" if "token" in k.lower() or "secret" in k.lower() or "password" in k.lower() else v) for k, v in tool_input.items()}
+                    logger.info("Tool called", extra={"agent_name": self.agent_name, "action": "tool_call", "tool": tool_name, "extra": {"iteration": iteration + 1, "input": safe_input}})
 
                     if event_emitter:
                         summary = self._summarize_tool_call(tool_name, tool_input)
