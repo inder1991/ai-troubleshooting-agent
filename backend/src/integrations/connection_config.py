@@ -255,8 +255,78 @@ def resolve_active_profile(profile_id: Optional[str] = None) -> ResolvedConnecti
 
 
 def _config_from_env() -> ResolvedConnectionConfig:
-    """Build config from environment variables (legacy fallback)."""
+    """Build config from environment variables + global integration store.
+
+    Even without a cluster profile, global integrations (GitHub, Jira, etc.)
+    configured via Settings are still resolved from the store.
+    """
+    from src.integrations.profile_store import GlobalIntegrationStore
+    from src.integrations.credential_resolver import get_credential_resolver
     import json as _json
+
+    resolver = get_credential_resolver()
+
+    # Resolve global integrations from store (same as resolve_active_profile)
+    gi_store = GlobalIntegrationStore()
+    gi_store._ensure_tables()
+
+    github_token = ""
+    github = gi_store.get_by_service_type("github")
+    if github and github.auth_credential_handle:
+        try:
+            github_token = resolver.resolve(github.id, "credential", github.auth_credential_handle)
+        except Exception as e:
+            logger.warning("Failed to decrypt GitHub token: %s", e)
+    if not github_token:
+        github_token = os.getenv("GITHUB_TOKEN", "")
+
+    elk_url = os.getenv("ELASTICSEARCH_URL", "http://localhost:9200")
+    elk_auth = "none"
+    elk_creds = ""
+    elk = gi_store.get_by_service_type("elk")
+    if elk and elk.url:
+        elk_url = elk.url
+        elk_auth = elk.auth_method
+        if elk.auth_credential_handle:
+            try:
+                elk_creds = resolver.resolve(elk.id, "credential", elk.auth_credential_handle)
+            except Exception:
+                pass
+
+    jira_url = ""
+    jira_creds = ""
+    jira = gi_store.get_by_service_type("jira")
+    if jira and jira.url:
+        jira_url = jira.url
+        if jira.auth_credential_handle:
+            try:
+                jira_creds = resolver.resolve(jira.id, "credential", jira.auth_credential_handle)
+            except Exception:
+                pass
+
+    confluence_url = ""
+    confluence_creds = ""
+    confluence = gi_store.get_by_service_type("confluence")
+    if confluence and confluence.url:
+        confluence_url = confluence.url
+        if confluence.auth_credential_handle:
+            try:
+                confluence_creds = resolver.resolve(
+                    confluence.id, "credential", confluence.auth_credential_handle
+                )
+            except Exception:
+                pass
+
+    remedy_url = ""
+    remedy_creds = ""
+    remedy = gi_store.get_by_service_type("remedy")
+    if remedy and remedy.url:
+        remedy_url = remedy.url
+        if remedy.auth_credential_handle:
+            try:
+                remedy_creds = resolver.resolve(remedy.id, "credential", remedy.auth_credential_handle)
+            except Exception:
+                pass
 
     llm_model = os.getenv("ANTHROPIC_MODEL", "")
     llm_overrides_raw = os.getenv("ANTHROPIC_MODEL_OVERRIDES", "{}")
@@ -281,15 +351,17 @@ def _config_from_env() -> ResolvedConnectionConfig:
         namespace=os.getenv("K8S_NAMESPACE", "default"),
         verify_ssl=os.getenv("K8S_VERIFY_SSL", "false").lower() == "true",
         prometheus_url=os.getenv("PROMETHEUS_URL", "http://localhost:9090"),
-        elasticsearch_url=os.getenv("ELASTICSEARCH_URL", "http://localhost:9200"),
+        elasticsearch_url=elk_url,
+        elasticsearch_auth_method=elk_auth,
+        elasticsearch_credentials=elk_creds,
         jaeger_url=os.getenv("TRACING_URL", "http://localhost:16686"),
-        github_token=os.getenv("GITHUB_TOKEN", ""),
-        jira_url=os.getenv("JIRA_URL", ""),
-        jira_credentials=os.getenv("JIRA_CREDENTIALS", ""),
-        confluence_url=os.getenv("CONFLUENCE_URL", ""),
-        confluence_credentials=os.getenv("CONFLUENCE_CREDENTIALS", ""),
-        remedy_url=os.getenv("REMEDY_URL", ""),
-        remedy_credentials=os.getenv("REMEDY_CREDENTIALS", ""),
+        github_token=github_token,
+        jira_url=jira_url or os.getenv("JIRA_URL", ""),
+        jira_credentials=jira_creds or os.getenv("JIRA_CREDENTIALS", ""),
+        confluence_url=confluence_url or os.getenv("CONFLUENCE_URL", ""),
+        confluence_credentials=confluence_creds or os.getenv("CONFLUENCE_CREDENTIALS", ""),
+        remedy_url=remedy_url or os.getenv("REMEDY_URL", ""),
+        remedy_credentials=remedy_creds or os.getenv("REMEDY_CREDENTIALS", ""),
         llm_model=llm_model,
         llm_model_overrides=llm_overrides,
         max_iterations=max_iter,
