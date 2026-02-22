@@ -547,8 +547,6 @@ const CausalityChainCard: React.FC<{ findings: V4Findings | null }> = ({ finding
     ),
   [negativeFindings]);
 
-  if (correlations.length === 0 && diffs.length === 0 && fixes.length === 0 && !changeSummary && changeNegatives.length === 0) return null;
-
   const links: CausalityLink[] = useMemo(() => {
     return correlations
       .filter(c => c.risk_score > 0)
@@ -572,6 +570,9 @@ const CausalityChainCard: React.FC<{ findings: V4Findings | null }> = ({ finding
   const linkedFixFiles = new Set(links.flatMap(l => l.fixes.map(f => f.file_path)));
   const orphanDiffs = diffs.filter(d => !linkedDiffFiles.has(d.file));
   const orphanFixes = fixes.filter(f => !linkedFixFiles.has(f.file_path));
+
+  // Early return AFTER all hooks
+  if (correlations.length === 0 && diffs.length === 0 && fixes.length === 0 && !changeSummary && changeNegatives.length === 0) return null;
 
   return (
     <section className="space-y-3">
