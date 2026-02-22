@@ -1248,15 +1248,42 @@ class SupervisorAgent:
     # ── Hand-off helpers ─────────────────────────────────────────────────────
 
     def _extract_high_priority_files(self, state: DiagnosticState) -> list[dict]:
-        """Extract top 3 high-risk changed files from change_agent for code_agent hand-off."""
+        """Extract top 3 high-risk changed files from change_agent for code_agent hand-off.
+
+        Prefers the pre-filtered high_priority_files from change_agent (which
+        already strips noise like .gitignore, Dockerfile, CI configs, etc.).
+        Falls back to re-extracting from change_correlations with noise filter.
+        """
         if not state.change_analysis:
             return []
+
+        # Prefer the pre-filtered list from change_agent
+        pre_filtered = state.change_analysis.get("high_priority_files", [])
+        if pre_filtered:
+            return pre_filtered[:3]
+
+        # Fallback: build from correlations with noise filtering
+        import re
+        noise_re = re.compile(
+            r'(^docs?/|README|\.md$|__pycache__|\.lock$|'
+            r'\.eslintrc|\.prettierrc|\.editorconfig|\.babelrc|'
+            r'\.github/|\.circleci/|\.gitlab-ci|Jenkinsfile|'
+            r'Dockerfile|docker-compose|\.dockerignore$|\.gitignore$|'
+            r'helm/|charts?/|Chart\.yaml$|values\.yaml$|'
+            r'Makefile$|Procfile$|Vagrantfile$|'
+            r'\.env\b|LICENSE|CHANGELOG|CONTRIBUTING|'
+            r'requirements\.txt$|setup\.cfg$|tox\.ini$|'
+            r'tsconfig.*\.json$|jest\.config|webpack\.config|vite\.config)',
+            re.IGNORECASE,
+        )
         correlations = state.change_analysis.get("change_correlations", [])
         file_scores: list[dict] = []
         for corr in correlations:
             risk = corr.get("risk_score", corr.get("correlation_score", 0))
             sha = corr.get("sha", corr.get("change_id", ""))
             for f in corr.get("files_changed", []):
+                if noise_re.search(f):
+                    continue
                 file_scores.append({
                     "file_path": f,
                     "risk_score": risk,

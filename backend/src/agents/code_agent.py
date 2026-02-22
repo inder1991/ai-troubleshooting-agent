@@ -78,6 +78,18 @@ class CodeNavigatorAgent(ReActAgent):
                     "required": [],
                 },
             },
+            {
+                "name": "github_list_files",
+                "description": "List all files in the repository tree. Use this FIRST to discover the repo structure before reading files.",
+                "input_schema": {
+                    "type": "object",
+                    "properties": {
+                        "owner_repo": {"type": "string", "description": "GitHub owner/repo (defaults to primary repo)"},
+                        "path": {"type": "string", "description": "Subdirectory path to list (empty = root)", "default": ""},
+                    },
+                    "required": [],
+                },
+            },
         ]
 
     def _local_tools(self) -> list[dict]:
@@ -164,14 +176,21 @@ After analysis, provide your final answer as JSON:
 }"""
         return """You are a Code Navigator Agent for SRE troubleshooting. You use the ReAct pattern.
 
+CRITICAL STRATEGY — use your iterations wisely:
+1. FIRST: Call github_list_files to see the repo structure (costs 1 iteration, saves many)
+2. Then read the actual source code files relevant to the error (skip config/CI/docs files)
+3. If HIGH PRIORITY FILES are provided, verify they exist in the file list before reading
+4. Focus on .py/.java/.go/.js/.ts source files, not Dockerfile/requirements.txt/.gitignore
+
 Your goals:
-1. If HIGH PRIORITY FILES are provided, read those files AND their diffs FIRST
-2. Compare diff contents against the stack trace — did recent changes cause the error?
-3. Find the error location in the codebase (file + function + line)
-4. Trace upstream: who calls the broken function (use github_search_code)
-5. Trace downstream: what does the broken function call (read the file)
-6. Identify shared resources: config files, connection pools, utilities
-7. Build a complete impact map
+1. Discover the repo structure with github_list_files
+2. Read source files related to the error (match stack trace paths to actual repo files)
+3. If high priority files exist AND are actual source code, read those + their diffs
+4. Compare diff contents against the stack trace — did recent changes cause the error?
+5. Find the error location in the codebase (file + function + line)
+6. Trace upstream: who calls the broken function (use github_search_code)
+7. Trace downstream: what does the broken function call (read the file)
+8. Build a complete impact map
 
 When reading diffs (github_get_diff):
 - Look for logic changes that could introduce the observed error
@@ -257,7 +276,9 @@ After analysis, provide your final answer as JSON:
         return "\n".join(parts)
 
     async def _handle_tool_call(self, tool_name: str, tool_input: dict) -> str:
-        if tool_name == "github_read_file":
+        if tool_name == "github_list_files":
+            return await self._github_list_files(tool_input)
+        elif tool_name == "github_read_file":
             return await self._github_read_file(tool_input)
         elif tool_name == "github_search_code":
             return await self._github_search_code(tool_input)
@@ -518,6 +539,41 @@ After analysis, provide your final answer as JSON:
             return json.dumps({"error": f"GitHub API error {e.response.status_code}: {e.response.text[:200]}"})
         except Exception as e:
             return json.dumps({"error": f"Diff failed: {str(e)}"})
+
+    async def _github_list_files(self, params: dict) -> str:
+        """List repo tree to discover file structure before reading."""
+        owner_repo = self._resolve_owner_repo(params)
+        if not owner_repo:
+            return json.dumps({"error": "No repository configured"})
+
+        subdir = params.get("path", "").strip("/")
+        url = f"https://api.github.com/repos/{owner_repo}/git/trees/HEAD"
+        query_params = {"recursive": "1"}
+
+        try:
+            async with httpx.AsyncClient(timeout=15) as client:
+                resp = await client.get(url, headers=self._github_headers(), params=query_params)
+                if resp.status_code != 200:
+                    return json.dumps({"error": f"GitHub API error {resp.status_code}: {resp.text[:200]}"})
+
+                tree = resp.json().get("tree", [])
+                # Filter to files only (not directories), optionally by subdirectory
+                files = []
+                for item in tree:
+                    if item.get("type") != "blob":
+                        continue
+                    path = item.get("path", "")
+                    if subdir and not path.startswith(subdir + "/") and path != subdir:
+                        continue
+                    files.append(path)
+
+                return json.dumps({
+                    "repo": owner_repo,
+                    "total_files": len(files),
+                    "files": files[:200],  # Cap at 200 for token limit
+                })
+        except Exception as e:
+            return json.dumps({"error": f"Failed to list files: {str(e)}"})
 
     # --- Local tool implementations ---
 
