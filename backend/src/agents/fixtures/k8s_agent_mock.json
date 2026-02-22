@@ -1,0 +1,161 @@
+{
+    "pod_statuses": [
+        {
+            "pod_name": "inventory-service-7b4f9c6d8-x2k9m",
+            "namespace": "checkout",
+            "status": "CrashLoopBackOff",
+            "restart_count": 6,
+            "last_termination_reason": "Error",
+            "last_restart_time": "2026-02-21T16:35:12Z",
+            "resource_requests": {"inventory-service/cpu": "100m", "inventory-service/memory": "128Mi"},
+            "resource_limits": {"inventory-service/cpu": "500m", "inventory-service/memory": "256Mi"},
+            "init_container_failures": [],
+            "image_pull_errors": [],
+            "container_count": 1,
+            "ready_containers": 0
+        },
+        {
+            "pod_name": "inventory-service-7b4f9c6d8-p8j3n",
+            "namespace": "checkout",
+            "status": "Running",
+            "restart_count": 3,
+            "last_termination_reason": "Error",
+            "last_restart_time": "2026-02-21T16:28:44Z",
+            "resource_requests": {"inventory-service/cpu": "100m", "inventory-service/memory": "128Mi"},
+            "resource_limits": {"inventory-service/cpu": "500m", "inventory-service/memory": "256Mi"},
+            "init_container_failures": [],
+            "image_pull_errors": [],
+            "container_count": 1,
+            "ready_containers": 1
+        },
+        {
+            "pod_name": "checkout-service-5a8e2d1f7-q4w7r",
+            "namespace": "checkout",
+            "status": "Running",
+            "restart_count": 0,
+            "last_termination_reason": null,
+            "last_restart_time": null,
+            "resource_requests": {"checkout-service/cpu": "200m", "checkout-service/memory": "256Mi"},
+            "resource_limits": {"checkout-service/cpu": "1000m", "checkout-service/memory": "512Mi"},
+            "init_container_failures": [],
+            "image_pull_errors": [],
+            "container_count": 1,
+            "ready_containers": 1
+        },
+        {
+            "pod_name": "payment-service-3c6d4e9a2-m1n5t",
+            "namespace": "checkout",
+            "status": "Running",
+            "restart_count": 0,
+            "last_termination_reason": null,
+            "last_restart_time": null,
+            "resource_requests": {"payment-service/cpu": "100m", "payment-service/memory": "128Mi"},
+            "resource_limits": {"payment-service/cpu": "500m", "payment-service/memory": "256Mi"},
+            "init_container_failures": [],
+            "image_pull_errors": [],
+            "container_count": 1,
+            "ready_containers": 1
+        }
+    ],
+    "events": [
+        {
+            "timestamp": "2026-02-21T16:19:50Z",
+            "type": "Warning",
+            "reason": "Unhealthy",
+            "message": "Readiness probe failed: HTTP probe failed with status code 503",
+            "source_component": "kubelet",
+            "count": 12,
+            "involved_object": "inventory-service-7b4f9c6d8-x2k9m"
+        },
+        {
+            "timestamp": "2026-02-21T16:20:15Z",
+            "type": "Warning",
+            "reason": "BackOff",
+            "message": "Back-off restarting failed container inventory-service in pod inventory-service-7b4f9c6d8-x2k9m",
+            "source_component": "kubelet",
+            "count": 6,
+            "involved_object": "inventory-service-7b4f9c6d8-x2k9m"
+        },
+        {
+            "timestamp": "2026-02-21T16:20:05Z",
+            "type": "Warning",
+            "reason": "Unhealthy",
+            "message": "Liveness probe failed: HTTP probe failed with status code 503",
+            "source_component": "kubelet",
+            "count": 4,
+            "involved_object": "inventory-service-7b4f9c6d8-x2k9m"
+        },
+        {
+            "timestamp": "2026-02-21T16:22:30Z",
+            "type": "Warning",
+            "reason": "Unhealthy",
+            "message": "Readiness probe failed: HTTP probe failed with status code 503",
+            "source_component": "kubelet",
+            "count": 5,
+            "involved_object": "inventory-service-7b4f9c6d8-p8j3n"
+        },
+        {
+            "timestamp": "2026-02-21T16:18:00Z",
+            "type": "Normal",
+            "reason": "Scheduled",
+            "message": "Successfully assigned checkout/inventory-service-7b4f9c6d8-x2k9m to node-3",
+            "source_component": "default-scheduler",
+            "count": 1,
+            "involved_object": "inventory-service-7b4f9c6d8-x2k9m"
+        }
+    ],
+    "is_crashloop": true,
+    "total_restarts_last_hour": 9,
+    "resource_mismatch": "inventory-service memory limit 256Mi may be insufficient under connection pool pressure — consider increasing to 512Mi",
+    "overall_confidence": 78,
+    "breadcrumbs": [
+        {
+            "agent_name": "k8s_agent",
+            "action": "Detected CrashLoopBackOff on inventory-service pod x2k9m with 6 restarts",
+            "source_type": "k8s_pod_status",
+            "source_reference": "inventory-service-7b4f9c6d8-x2k9m",
+            "raw_evidence": "status=CrashLoopBackOff restart_count=6 last_termination_reason=Error",
+            "timestamp": "2026-02-21T16:35:12Z"
+        },
+        {
+            "agent_name": "k8s_agent",
+            "action": "Found 12 readiness probe failures on inventory-service indicating health check degradation",
+            "source_type": "k8s_event",
+            "source_reference": "Unhealthy event on inventory-service-7b4f9c6d8-x2k9m",
+            "raw_evidence": "Readiness probe failed: HTTP probe failed with status code 503 (12x)",
+            "timestamp": "2026-02-21T16:19:50Z"
+        },
+        {
+            "agent_name": "k8s_agent",
+            "action": "checkout-service and payment-service pods are healthy with 0 restarts",
+            "source_type": "k8s_pod_status",
+            "source_reference": "checkout-service-5a8e2d1f7-q4w7r, payment-service-3c6d4e9a2-m1n5t",
+            "raw_evidence": "status=Running ready=true restart_count=0",
+            "timestamp": "2026-02-21T16:35:12Z"
+        }
+    ],
+    "negative_findings": [
+        {
+            "agent_name": "k8s_agent",
+            "what_was_checked": "OOMKilled termination reason",
+            "result": "No OOMKilled events detected on any pod",
+            "implication": "Memory exhaustion is not the direct cause of pod restarts",
+            "source_reference": "All pod termination reasons = Error"
+        },
+        {
+            "agent_name": "k8s_agent",
+            "what_was_checked": "Image pull errors",
+            "result": "No ImagePullBackOff or ErrImagePull events",
+            "implication": "Container images are available and pulling correctly",
+            "source_reference": "0 image_pull_errors across all pods"
+        },
+        {
+            "agent_name": "k8s_agent",
+            "what_was_checked": "Init container failures",
+            "result": "No init container failures detected",
+            "implication": "Pod initialization is completing successfully before main container crashes",
+            "source_reference": "0 init_container_failures across all pods"
+        }
+    ],
+    "tokens_used": {"agent_name": "k8s_agent", "input_tokens": 0, "output_tokens": 0, "total_tokens": 0}
+}
