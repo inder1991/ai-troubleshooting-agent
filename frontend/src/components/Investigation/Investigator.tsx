@@ -551,9 +551,12 @@ const EvidenceTrail: React.FC<{ breadcrumbs: Breadcrumb[]; agentName: string }> 
       {expanded && (
         <div className="flex flex-wrap gap-1.5 mt-1.5">
           {breadcrumbs.map((crumb, i) => {
-            const icon = sourceTypeIcon[crumb.action] || sourceTypeIcon.log;
-            // Extract short label from action (e.g., "get_pod_status" → "pod_status")
-            const shortAction = crumb.action.replace(/^(get_|test_|search_|query_|list_|analyze_)/, '');
+            const icon = sourceTypeIcon[crumb.source_type || ''] || sourceTypeIcon.log;
+            // Show source_reference when available (e.g., "owner/repo@abc1234"), fall back to cleaned action
+            const shortAction = crumb.action.replace(/^(get_|test_|search_|query_|list_|analyze_|fetch_)/, '');
+            const refLabel = crumb.source_reference
+              ? crumb.source_reference.replace(/^[^/]+\//, '') // "owner/repo@sha" → "repo@sha"
+              : shortAction;
             return (
               <span
                 key={i}
@@ -561,7 +564,7 @@ const EvidenceTrail: React.FC<{ breadcrumbs: Breadcrumb[]; agentName: string }> 
                 title={crumb.detail}
               >
                 <span className="material-symbols-outlined" style={{ fontFamily: 'Material Symbols Outlined', fontSize: '10px' }}>{icon}</span>
-                {shortAction}
+                {refLabel}
               </span>
             );
           })}
