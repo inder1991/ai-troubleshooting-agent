@@ -1,16 +1,18 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import type {
   V4Findings, V4SessionStatus, TaskEvent, Severity, ErrorPattern,
   CriticVerdict, ChangeCorrelation, BlastRadiusData, SeverityData,
-  SpanInfo, ServiceFlowStep, PatientZero,
+  SpanInfo, ServiceFlowStep, PatientZero, MetricAnomaly,
 } from '../../types';
-import { getFindings, getSessionStatus } from '../../services/api';
 import AgentFindingCard from './cards/AgentFindingCard';
 import CausalRoleBadge from './cards/CausalRoleBadge';
 import StackTraceTelescope from './cards/StackTraceTelescope';
+import SaturationGauge from './cards/SaturationGauge';
+import AnomalySparkline, { findMatchingTimeSeries } from './cards/AnomalySparkline';
 
 interface EvidenceFindingsProps {
-  sessionId: string;
+  findings: V4Findings | null;
+  status: V4SessionStatus | null;
   events: TaskEvent[];
 }
 
@@ -35,33 +37,7 @@ const severityPriorityColor: Record<string, { border: string; bg: string; text: 
   P4: { border: 'border-blue-500/40', bg: 'bg-blue-500/10', text: 'text-blue-400' },
 };
 
-const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ sessionId, events }) => {
-  const [findings, setFindings] = useState<V4Findings | null>(null);
-  const [_status, setStatus] = useState<V4SessionStatus | null>(null);
-
-  const fetchData = useCallback(async () => {
-    try {
-      const [f, s] = await Promise.all([getFindings(sessionId), getSessionStatus(sessionId)]);
-      setFindings(f);
-      setStatus(s);
-    } catch {
-      // silent
-    }
-  }, [sessionId]);
-
-  const relevantEventCount = events.filter(
-    (e) => e.event_type === 'summary' || e.event_type === 'finding' || e.event_type === 'phase_change'
-  ).length;
-
-  useEffect(() => {
-    fetchData();
-    const interval = setInterval(fetchData, 5000);
-    return () => clearInterval(interval);
-  }, [fetchData]);
-
-  useEffect(() => {
-    if (relevantEventCount > 0) fetchData();
-  }, [relevantEventCount, fetchData]);
+const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _status, events }) => {
 
   const errorPatterns = findings?.error_patterns || [];
   const rootCausePatterns = errorPatterns.filter((p) => p.causal_role === 'root_cause');
@@ -108,12 +84,22 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ sessionId, events }
             {/* 1. Root Cause patterns */}
             {rootCausePatterns.length > 0 && (
               <section className="space-y-2">
-                {rootCausePatterns.map((ep, i) => (
-                  <AgentFindingCard key={ep.pattern_id || `rc-${i}`} agent="L" title="Error Pattern">
-                    <CausalRoleBadge role="root_cause" />
-                    <ErrorPatternContent pattern={ep} rank={i + 1} />
-                  </AgentFindingCard>
-                ))}
+                {rootCausePatterns.map((ep, i) => {
+                  const saturationMetrics = getSaturationMetrics(findings?.metric_anomalies || []);
+                  return (
+                    <AgentFindingCard key={ep.pattern_id || `rc-${i}`} agent="L" title="Error Pattern">
+                      <CausalRoleBadge role="root_cause" />
+                      {saturationMetrics.length > 0 && (
+                        <div className="flex gap-3 my-2">
+                          {saturationMetrics.map((sm, si) => (
+                            <SaturationGauge key={si} metricName={sm.metric_name} currentValue={sm.current_value} />
+                          ))}
+                        </div>
+                      )}
+                      <ErrorPatternContent pattern={ep} rank={i + 1} />
+                    </AgentFindingCard>
+                  );
+                })}
               </section>
             )}
 
@@ -178,22 +164,33 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ sessionId, events }
               <section>
                 <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Metric Anomalies</div>
                 <div className="grid grid-cols-2 gap-3">
-                  {findings!.metric_anomalies.map((ma, i) => (
-                    <AgentFindingCard key={i} agent="M" title={ma.metric_name}>
-                      <div className="flex items-baseline gap-3 mb-2">
-                        <div className="text-xl font-bold font-mono text-white">{ma.current_value.toFixed(1)}</div>
-                        <div className="text-xs font-mono text-slate-500">baseline {ma.baseline_value.toFixed(1)}</div>
-                        <div className={`text-sm font-mono font-bold ml-auto ${
-                          ma.severity === 'critical' || ma.severity === 'high' ? 'text-red-400' : 'text-cyan-400'
-                        }`}>
-                          {ma.direction === 'above' ? '\u25B2' : '\u25BC'}{Math.round(ma.deviation_percent)}%
+                  {findings!.metric_anomalies.map((ma, i) => {
+                    const tsData = findMatchingTimeSeries(findings!.time_series_data || {}, ma.metric_name);
+                    return (
+                      <AgentFindingCard key={i} agent="M" title={ma.metric_name}>
+                        <div className="flex items-baseline gap-3 mb-2">
+                          <div className="text-xl font-bold font-mono text-white">{ma.current_value.toFixed(1)}</div>
+                          <div className="text-xs font-mono text-slate-500">baseline {ma.baseline_value.toFixed(1)}</div>
+                          <div className={`text-sm font-mono font-bold ml-auto ${
+                            ma.severity === 'critical' || ma.severity === 'high' ? 'text-red-400' : 'text-cyan-400'
+                          }`}>
+                            {ma.direction === 'above' ? '\u25B2' : '\u25BC'}{Math.round(ma.deviation_percent)}%
+                          </div>
                         </div>
-                      </div>
-                      {ma.correlation_to_incident && (
-                        <p className="text-[10px] text-slate-400 italic">{ma.correlation_to_incident}</p>
-                      )}
-                    </AgentFindingCard>
-                  ))}
+                        <AnomalySparkline
+                          dataPoints={tsData || []}
+                          baselineValue={ma.baseline_value}
+                          peakValue={ma.peak_value}
+                          spikeStart={ma.spike_start}
+                          spikeEnd={ma.spike_end}
+                          severity={ma.severity}
+                        />
+                        {ma.correlation_to_incident && (
+                          <p className="text-[10px] text-slate-400 italic mt-1.5">{ma.correlation_to_incident}</p>
+                        )}
+                      </AgentFindingCard>
+                    );
+                  })}
                 </div>
               </section>
             )}
@@ -305,6 +302,13 @@ function getAgentCode(name: string): 'L' | 'M' | 'K' | 'C' {
   if (name.includes('metric')) return 'M';
   if (name.includes('k8s')) return 'K';
   return 'C';
+}
+
+function getSaturationMetrics(anomalies: MetricAnomaly[]): MetricAnomaly[] {
+  const saturationPattern = /saturation|pool|throttl/i;
+  return anomalies.filter(
+    (ma) => saturationPattern.test(ma.metric_name) && ma.current_value <= 1.5
+  );
 }
 
 const StatBox: React.FC<{ label: string; value: number; color?: string }> = ({ label, value, color = 'text-white' }) => (

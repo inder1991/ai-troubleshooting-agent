@@ -1,40 +1,18 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import type { V4Findings, V4SessionStatus, TaskEvent, SuggestedPromQLQuery } from '../../types';
-import { getFindings, getSessionStatus } from '../../services/api';
+import React, { useState } from 'react';
+import type { V4Findings, V4SessionStatus, TaskEvent, SuggestedPromQLQuery, TimeSeriesDataPoint } from '../../types';
+import { runPromQLQuery } from '../../services/api';
+import { Play, Copy, Check } from 'lucide-react';
 import ServiceTopologySVG from './topology/ServiceTopologySVG';
+import REDMethodStatusBar from './cards/REDMethodStatusBar';
+import PromQLRunResult from './cards/PromQLRunResult';
 
 interface NavigatorProps {
-  sessionId: string;
+  findings: V4Findings | null;
+  status: V4SessionStatus | null;
   events: TaskEvent[];
 }
 
-const Navigator: React.FC<NavigatorProps> = ({ sessionId, events }) => {
-  const [findings, setFindings] = useState<V4Findings | null>(null);
-  const [status, setStatus] = useState<V4SessionStatus | null>(null);
-
-  const fetchData = useCallback(async () => {
-    try {
-      const [f, s] = await Promise.all([getFindings(sessionId), getSessionStatus(sessionId)]);
-      setFindings(f);
-      setStatus(s);
-    } catch {
-      // silent
-    }
-  }, [sessionId]);
-
-  const relevantEventCount = events.filter(
-    (e) => e.event_type === 'summary' || e.event_type === 'finding' || e.event_type === 'phase_change'
-  ).length;
-
-  useEffect(() => {
-    fetchData();
-    const interval = setInterval(fetchData, 5000);
-    return () => clearInterval(interval);
-  }, [fetchData]);
-
-  useEffect(() => {
-    if (relevantEventCount > 0) fetchData();
-  }, [relevantEventCount, fetchData]);
+const Navigator: React.FC<NavigatorProps> = ({ findings, status, events }) => {
 
   const agentStatuses = buildAgentStatuses(status, events);
   const totalTokens = status?.token_usage?.reduce((sum, t) => sum + t.total_tokens, 0) ?? 0;
@@ -48,6 +26,14 @@ const Navigator: React.FC<NavigatorProps> = ({ sessionId, events }) => {
       </div>
 
       <div className="p-4 space-y-5">
+        {/* RED Method Status */}
+        {findings && (
+          <REDMethodStatusBar
+            metricAnomalies={findings.metric_anomalies || []}
+            correlatedSignals={findings.correlated_signals || []}
+          />
+        )}
+
         {/* Service Topology */}
         <section>
           <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Service Topology</h3>
@@ -108,10 +94,41 @@ const Navigator: React.FC<NavigatorProps> = ({ sessionId, events }) => {
 // ─── Metrics Validation Dock ──────────────────────────────────────────────
 
 const MetricsValidationDock: React.FC<{ queries: SuggestedPromQLQuery[] }> = ({ queries }) => {
+  const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
+  const [runResults, setRunResults] = useState<Record<number, {
+    loading: boolean;
+    dataPoints: TimeSeriesDataPoint[];
+    currentValue: number;
+    error?: string;
+  }>>({});
+
   if (queries.length === 0) return null;
 
-  const handleCopy = (query: string) => {
+  const handleCopy = (query: string, idx: number) => {
     navigator.clipboard.writeText(query).catch(() => {});
+    setCopiedIdx(idx);
+    setTimeout(() => setCopiedIdx(null), 2000);
+  };
+
+  const handleRun = async (query: string, idx: number) => {
+    setRunResults((prev) => ({
+      ...prev,
+      [idx]: { loading: true, dataPoints: [], currentValue: 0 },
+    }));
+
+    const end = Math.floor(Date.now() / 1000).toString();
+    const start = (Math.floor(Date.now() / 1000) - 3600).toString(); // last 1h
+
+    const result = await runPromQLQuery(query, start, end, '60s');
+    setRunResults((prev) => ({
+      ...prev,
+      [idx]: {
+        loading: false,
+        dataPoints: result.data_points,
+        currentValue: result.current_value,
+        error: result.error,
+      },
+    }));
   };
 
   return (
@@ -122,17 +139,41 @@ const MetricsValidationDock: React.FC<{ queries: SuggestedPromQLQuery[] }> = ({ 
           <div key={i} className="bg-slate-900/40 border border-slate-800 rounded-lg p-3">
             <div className="flex items-center justify-between mb-1.5">
               <span className="text-[10px] font-bold text-cyan-400 uppercase">{q.metric}</span>
-              <button
-                onClick={() => handleCopy(q.query)}
-                className="text-[9px] px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 hover:bg-cyan-500/20 transition-colors"
-              >
-                Run
-              </button>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => handleCopy(q.query, i)}
+                  className="p-1 rounded hover:bg-slate-700/50 transition-colors"
+                  title="Copy query"
+                >
+                  {copiedIdx === i ? (
+                    <Check size={12} className="text-green-400" />
+                  ) : (
+                    <Copy size={12} className="text-slate-400" />
+                  )}
+                </button>
+                <button
+                  onClick={() => handleRun(q.query, i)}
+                  disabled={runResults[i]?.loading}
+                  className="flex items-center gap-1 text-[9px] px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 hover:bg-cyan-500/20 transition-colors disabled:opacity-50"
+                  title="Execute query"
+                >
+                  <Play size={10} />
+                  Run
+                </button>
+              </div>
             </div>
             <pre className="text-[10px] font-mono text-slate-300 bg-black/20 rounded p-1.5 overflow-x-auto custom-scrollbar mb-1.5">
               {q.query}
             </pre>
             <p className="text-[9px] text-slate-500">{q.rationale}</p>
+            {runResults[i] && (
+              <PromQLRunResult
+                dataPoints={runResults[i].dataPoints}
+                currentValue={runResults[i].currentValue}
+                loading={runResults[i].loading}
+                error={runResults[i].error}
+              />
+            )}
           </div>
         ))}
       </div>

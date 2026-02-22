@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import type { ChatMessage as ChatMessageType, TaskEvent, V4Findings, PatientZero, ReasoningChainStep } from '../../types';
-import { sendChatMessage, getFindings } from '../../services/api';
+import { sendChatMessage } from '../../services/api';
 
 interface InvestigatorProps {
   sessionId: string;
@@ -8,6 +8,7 @@ interface InvestigatorProps {
   events: TaskEvent[];
   onNewMessage: (message: ChatMessageType) => void;
   wsConnected: boolean;
+  findings: V4Findings | null;
 }
 
 // ─── Timeline Builder ─────────────────────────────────────────────────────
@@ -92,38 +93,14 @@ const Investigator: React.FC<InvestigatorProps> = ({
   events,
   onNewMessage,
   wsConnected,
+  findings,
 }) => {
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [showToolCalls, setShowToolCalls] = useState(false);
-  const [findings, setFindings] = useState<V4Findings | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const userScrolledUpRef = useRef(false);
-
-  const fetchFindings = useCallback(async () => {
-    try {
-      const f = await getFindings(sessionId);
-      setFindings(f);
-    } catch {
-      // silent
-    }
-  }, [sessionId]);
-
-  // Poll every 5s so mid-cycle updates (e.g. enriched reasoning chain) are picked up
-  useEffect(() => {
-    fetchFindings();
-    const interval = setInterval(fetchFindings, 5000);
-    return () => clearInterval(interval);
-  }, [fetchFindings]);
-
-  // Also re-fetch immediately on summary/finding events
-  const relevantEventCount = events.filter(
-    e => e.event_type === 'summary' || e.event_type === 'finding' || e.event_type === 'phase_change'
-  ).length;
-  useEffect(() => {
-    if (relevantEventCount > 0) fetchFindings();
-  }, [relevantEventCount, fetchFindings]);
 
   // Only auto-scroll when user is near the bottom (not reading earlier content)
   const handleScroll = useCallback(() => {
