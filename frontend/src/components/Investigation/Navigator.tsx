@@ -102,13 +102,16 @@ const MetricsValidationDock: React.FC<{ queries: SuggestedPromQLQuery[] }> = ({ 
     currentValue: number;
     error?: string;
   }>>({});
+  const copyTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  React.useEffect(() => () => { if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current); }, []);
 
   if (queries.length === 0) return null;
 
   const handleCopy = (query: string, idx: number) => {
     navigator.clipboard.writeText(query).catch(() => {});
     setCopiedIdx(idx);
-    setTimeout(() => setCopiedIdx(null), 2000);
+    if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+    copyTimeoutRef.current = setTimeout(() => setCopiedIdx(null), 2000);
   };
 
   const handleRun = async (query: string, idx: number) => {
@@ -117,19 +120,26 @@ const MetricsValidationDock: React.FC<{ queries: SuggestedPromQLQuery[] }> = ({ 
       [idx]: { loading: true, dataPoints: [], currentValue: 0 },
     }));
 
-    const end = Math.floor(Date.now() / 1000).toString();
-    const start = (Math.floor(Date.now() / 1000) - 3600).toString(); // last 1h
+    try {
+      const end = Math.floor(Date.now() / 1000).toString();
+      const start = (Math.floor(Date.now() / 1000) - 3600).toString(); // last 1h
 
-    const result = await runPromQLQuery(query, start, end, '60s');
-    setRunResults((prev) => ({
-      ...prev,
-      [idx]: {
-        loading: false,
-        dataPoints: result.data_points,
-        currentValue: result.current_value,
-        error: result.error,
-      },
-    }));
+      const result = await runPromQLQuery(query, start, end, '60s');
+      setRunResults((prev) => ({
+        ...prev,
+        [idx]: {
+          loading: false,
+          dataPoints: result.data_points,
+          currentValue: result.current_value,
+          error: result.error,
+        },
+      }));
+    } catch {
+      setRunResults((prev) => ({
+        ...prev,
+        [idx]: { loading: false, dataPoints: [], currentValue: 0, error: 'Network request failed' },
+      }));
+    }
   };
 
   return (
