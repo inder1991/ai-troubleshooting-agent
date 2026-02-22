@@ -77,6 +77,7 @@ const InvestigationView: React.FC<InvestigationViewProps> = ({
             onNewMessage={onNewMessage}
             wsConnected={wsConnected}
             findings={findings}
+            status={sessionStatus}
           />
         </div>
 

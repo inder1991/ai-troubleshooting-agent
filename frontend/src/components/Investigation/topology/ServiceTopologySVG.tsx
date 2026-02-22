@@ -1,11 +1,12 @@
 import React from 'react';
-import type { InferredDependency, PatientZero, BlastRadiusData } from '../../../types';
+import type { InferredDependency, PatientZero, BlastRadiusData, PodHealthStatus } from '../../../types';
 import { useTopologyLayout, type TopologyNode, type TopologyEdge } from './useTopologyLayout';
 
 interface ServiceTopologySVGProps {
   dependencies: InferredDependency[];
   patientZero: PatientZero | null;
   blastRadius: BlastRadiusData | null;
+  podStatuses?: PodHealthStatus[];
 }
 
 const NODE_RADIUS = 20;
@@ -28,8 +29,27 @@ const ServiceTopologySVG: React.FC<ServiceTopologySVGProps> = ({
   dependencies,
   patientZero,
   blastRadius,
+  podStatuses = [],
 }) => {
   const { nodes, edges, width, height } = useTopologyLayout(dependencies, patientZero, blastRadius);
+
+  // Derive which services have crashlooping pods
+  const crashloopServices = new Set<string>();
+  for (const pod of podStatuses) {
+    if (pod.crash_loop || pod.oom_killed) {
+      // Match pod_name prefix against topology node IDs (e.g., "order-svc-abc123" → "order-svc")
+      for (const node of nodes) {
+        if (pod.pod_name.startsWith(node.id) || pod.pod_name.includes(node.id)) {
+          crashloopServices.add(node.id);
+        }
+      }
+    }
+  }
+  // Also mark patient_zero if any pod is crashlooping and no specific match was found
+  const hasCrashloop = podStatuses.some((p) => p.crash_loop || p.oom_killed);
+  if (hasCrashloop && crashloopServices.size === 0 && patientZero) {
+    crashloopServices.add(patientZero.service);
+  }
 
   if (nodes.length === 0) {
     return (
@@ -100,16 +120,30 @@ const ServiceTopologySVG: React.FC<ServiceTopologySVGProps> = ({
       {/* Nodes */}
       {nodes.map((node) => {
         const style = nodeStyles[node.role];
+        const isCrashloop = crashloopServices.has(node.id);
         return (
-          <g key={node.id} className={style.className}>
+          <g key={node.id} className={`${style.className || ''} ${isCrashloop ? 'topology-node-crashloop' : ''}`}>
+            {/* Pulsing outer ring for crashloop nodes */}
+            {isCrashloop && (
+              <circle
+                cx={node.x}
+                cy={node.y}
+                r={NODE_RADIUS + 4}
+                fill="none"
+                stroke="#ef4444"
+                strokeWidth={2}
+                className="animate-pulse-red"
+                opacity={0.6}
+              />
+            )}
             <circle
               cx={node.x}
               cy={node.y}
               r={NODE_RADIUS}
-              fill={style.fill}
-              stroke={style.stroke}
-              strokeWidth={node.role === 'patient_zero' ? 2.5 : 1.5}
-              filter={node.role === 'patient_zero' ? 'url(#glow-red)' : undefined}
+              fill={isCrashloop ? '#7f1d1d' : style.fill}
+              stroke={isCrashloop ? '#ef4444' : style.stroke}
+              strokeWidth={node.role === 'patient_zero' || isCrashloop ? 2.5 : 1.5}
+              filter={node.role === 'patient_zero' || isCrashloop ? 'url(#glow-red)' : undefined}
             />
             <text
               x={node.x}

@@ -13,7 +13,7 @@ logger = get_logger(__name__)
 class K8sAgent(ReActAgent):
     """ReAct agent for Kubernetes/OpenShift cluster health analysis."""
 
-    def __init__(self, max_iterations: int = 10, connection_config=None):
+    def __init__(self, max_iterations: int = 5, connection_config=None):
         super().__init__(
             agent_name="k8s_agent",
             max_iterations=max_iterations,
@@ -134,15 +134,27 @@ class K8sAgent(ReActAgent):
         ]
 
     async def _build_system_prompt(self) -> str:
-        return """You are a Kubernetes/OpenShift Health Agent for SRE troubleshooting. You use the ReAct pattern.
+        return """You are a Kubernetes/OpenShift Health Agent for SRE troubleshooting. You use the ReAct pattern with BATCHED tool calls to minimize round-trips.
 
-## Tool Workflow Order
-1. test_cluster_connectivity — ALWAYS call this FIRST. If it fails, report the error immediately.
-2. get_pod_status — use the suggested label selector if provided, otherwise try app={service_name}.
-3. get_events — check for Warning events. Use since_minutes to limit to the incident window.
-4. get_deployment — check replica counts, resource specs, and conditions.
-5. get_pod_logs — fetch logs from any pod in CrashLoopBackOff, OOMKilled, or Error state. Use previous=true for terminated containers.
-6. get_hpa_status — check if autoscaling is configured and if it's hitting limits.
+## TURN-BASED BATCHING (CRITICAL — follow exactly)
+
+### TURN 1 — Discovery (emit ALL of these in ONE response)
+Call these tools IN PARALLEL in a single response:
+- test_cluster_connectivity
+- get_pod_status (use suggested_label_selector if provided, otherwise app={service_name})
+- get_events (use since_minutes=60)
+
+### TURN 2 — Deep Dive (emit ALL of these in ONE response)
+Based on Turn 1 results, call these tools IN PARALLEL:
+- get_deployment (use service_name as deployment name)
+- get_pod_logs ONLY if any pod is in CrashLoopBackOff, OOMKilled, Error, or has restarts > 0. Use previous=true for terminated containers.
+- get_hpa_status
+If all pods are healthy and no warnings, you may skip get_pod_logs.
+
+### TURN 3 — Synthesis
+Emit your final JSON answer. Do NOT call any more tools.
+
+## IMPORTANT: You MUST batch multiple tool calls per turn. Do NOT call tools one at a time.
 
 ## Negative Findings
 When all pods are healthy (Running, 0 restarts), emit a negative finding: "All pods healthy".
@@ -176,6 +188,8 @@ After analysis, provide your final answer as JSON:
             parts.append(f"Suggested label selector: {context['suggested_label_selector']}")
         if context.get("error_patterns"):
             parts.append(f"Error patterns from log analysis: {json.dumps(context['error_patterns'])}")
+        parts.append("")
+        parts.append("BEGIN TURN 1: Call test_cluster_connectivity + get_pod_status + get_events in parallel NOW.")
         return "\n".join(parts)
 
     async def _handle_tool_call(self, tool_name: str, tool_input: dict) -> str:

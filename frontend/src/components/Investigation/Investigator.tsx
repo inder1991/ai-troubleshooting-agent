@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import type { ChatMessage as ChatMessageType, TaskEvent, V4Findings, PatientZero, ReasoningChainStep } from '../../types';
+import type { ChatMessage as ChatMessageType, TaskEvent, V4Findings, V4SessionStatus, Breadcrumb, PatientZero, ReasoningChainStep } from '../../types';
 import { sendChatMessage } from '../../services/api';
 
 interface InvestigatorProps {
@@ -9,6 +9,7 @@ interface InvestigatorProps {
   onNewMessage: (message: ChatMessageType) => void;
   wsConnected: boolean;
   findings: V4Findings | null;
+  status: V4SessionStatus | null;
 }
 
 // ─── Timeline Builder ─────────────────────────────────────────────────────
@@ -94,6 +95,7 @@ const Investigator: React.FC<InvestigatorProps> = ({
   onNewMessage,
   wsConnected,
   findings,
+  status,
 }) => {
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
@@ -142,6 +144,16 @@ const Investigator: React.FC<InvestigatorProps> = ({
     [messages, events, showToolCalls, findings?.reasoning_chain],
   );
   const toolCallCount = events.filter((e) => e.event_type === 'tool_call').length;
+
+  // Group breadcrumbs by agent for evidence trail rendering
+  const breadcrumbsByAgent = useMemo(() => {
+    const map: Record<string, Breadcrumb[]> = {};
+    for (const b of status?.breadcrumbs || []) {
+      if (!map[b.agent_name]) map[b.agent_name] = [];
+      map[b.agent_name].push(b);
+    }
+    return map;
+  }, [status?.breadcrumbs]);
 
   // Derive active agents
   const activeAgents = useMemo(() => {
@@ -247,7 +259,7 @@ const Investigator: React.FC<InvestigatorProps> = ({
                 if (item.kind === 'reasoning_chain') {
                   return <ReasoningChainSection key={`rc-${idx}`} chain={item.chain} />;
                 }
-                return <EventNode key={`ev-${idx}`} event={item.event} />;
+                return <EventNode key={`ev-${idx}`} event={item.event} breadcrumbs={item.event.event_type === 'summary' ? breadcrumbsByAgent[item.event.agent_name] : undefined} />;
               })}
             </div>
           </div>
@@ -293,7 +305,7 @@ const Investigator: React.FC<InvestigatorProps> = ({
 
 // ─── Event Node (vertical timeline style) ─────────────────────────────────
 
-const EventNode: React.FC<{ event: TaskEvent }> = ({ event }) => {
+const EventNode: React.FC<{ event: TaskEvent; breadcrumbs?: Breadcrumb[] }> = ({ event, breadcrumbs }) => {
   const icon = agentIcon[event.agent_name] || 'circle';
   const colorClass = agentColor[event.agent_name] || 'bg-slate-500/20 text-slate-400 border-slate-500/30';
 
@@ -342,6 +354,10 @@ const EventNode: React.FC<{ event: TaskEvent }> = ({ event }) => {
             <span className="font-bold uppercase text-[#07b6d5]">{event.agent_name.replace(/_/g, ' ')}</span>
             <span className={`ml-auto font-mono font-bold ${confidence >= 70 ? 'text-green-400' : confidence >= 40 ? 'text-amber-400' : 'text-red-400'}`}>{confidence}%</span>
           </div>
+          {/* Evidence Trail: breadcrumbs for this agent */}
+          {breadcrumbs && breadcrumbs.length > 0 && (
+            <EvidenceTrail breadcrumbs={breadcrumbs} agentName={event.agent_name} />
+          )}
         </div>
       </div>
     );
@@ -461,6 +477,59 @@ const ReasoningChainSection: React.FC<{ chain: ReasoningChainStep[] }> = ({ chai
           </div>
         ))}
       </div>
+    </div>
+  );
+};
+
+// ─── Evidence Trail (breadcrumbs under agent summary) ─────────────────────
+
+const sourceTypeIcon: Record<string, string> = {
+  log: 'description',
+  metric: 'bar_chart',
+  k8s_event: 'dns',
+  trace_span: 'route',
+  code: 'code',
+  config: 'settings',
+};
+
+const EvidenceTrail: React.FC<{ breadcrumbs: Breadcrumb[]; agentName: string }> = ({ breadcrumbs, agentName }) => {
+  const [expanded, setExpanded] = useState(false);
+  const colorClass = agentColor[agentName] || 'bg-slate-500/20 text-slate-400 border-slate-500/30';
+
+  return (
+    <div className="mt-2 pt-2 border-t border-slate-800/50">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="flex items-center gap-1.5 text-[9px] text-slate-500 hover:text-slate-300 transition-colors"
+      >
+        <span className="material-symbols-outlined text-xs" style={{ fontFamily: 'Material Symbols Outlined' }}>
+          attach_file
+        </span>
+        <span className="font-bold uppercase tracking-wider">Evidence</span>
+        <span className="font-mono">({breadcrumbs.length})</span>
+        <span className={`material-symbols-outlined text-xs transition-transform ${expanded ? 'rotate-90' : ''}`} style={{ fontFamily: 'Material Symbols Outlined' }}>
+          chevron_right
+        </span>
+      </button>
+      {expanded && (
+        <div className="flex flex-wrap gap-1.5 mt-1.5">
+          {breadcrumbs.map((crumb, i) => {
+            const icon = sourceTypeIcon[crumb.action] || sourceTypeIcon.log;
+            // Extract short label from action (e.g., "get_pod_status" → "pod_status")
+            const shortAction = crumb.action.replace(/^(get_|test_|search_|query_|list_|analyze_)/, '');
+            return (
+              <span
+                key={i}
+                className={`inline-flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.5 rounded border cursor-default ${colorClass}`}
+                title={crumb.detail}
+              >
+                <span className="material-symbols-outlined" style={{ fontFamily: 'Material Symbols Outlined', fontSize: '10px' }}>{icon}</span>
+                {shortAction}
+              </span>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };

@@ -42,6 +42,7 @@ const Navigator: React.FC<NavigatorProps> = ({ findings, status, events }) => {
               dependencies={findings?.inferred_dependencies || []}
               patientZero={findings?.patient_zero || null}
               blastRadius={findings?.blast_radius || null}
+              podStatuses={findings?.pod_statuses || []}
             />
           </div>
         </section>
