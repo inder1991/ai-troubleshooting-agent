@@ -17,7 +17,7 @@ logger = get_logger(__name__)
 class CodeNavigatorAgent(ReActAgent):
     """ReAct agent for multi-file code impact analysis with GitHub API support."""
 
-    def __init__(self, max_iterations: int = 8, connection_config=None):
+    def __init__(self, max_iterations: int = 15, connection_config=None):
         super().__init__(
             agent_name="code_agent",
             max_iterations=max_iterations,
@@ -32,6 +32,9 @@ class CodeNavigatorAgent(ReActAgent):
         self._stack_traces: list[str] = []
         self._repo_map: dict[str, str] = {}
         self._verification_mode: bool = False
+        self._ask_human_callback = None
+        self._event_emitter = None
+        self._state = None
 
     async def _define_tools(self) -> list[dict]:
         if self.repo_path and not self.repo_path.startswith(("http://", "https://", "git@")):
@@ -88,6 +91,27 @@ class CodeNavigatorAgent(ReActAgent):
                         "path": {"type": "string", "description": "Subdirectory path to list (empty = root)", "default": ""},
                     },
                     "required": [],
+                },
+            },
+            {
+                "name": "ask_human",
+                "description": (
+                    "Ask the human SRE a question when you need confirmation or clarification. "
+                    "Use this when: (1) you inferred which downstream call caused the error and want to confirm, "
+                    "(2) you found multiple matching handlers and need the human to pick one, "
+                    "(3) you need to confirm a repo URL guess, "
+                    "(4) you hit a fork in the call chain and want guidance on which path to follow. "
+                    "The human sees your question in the chat and types a reply."
+                ),
+                "input_schema": {
+                    "type": "object",
+                    "properties": {
+                        "question": {
+                            "type": "string",
+                            "description": "Clear, specific question for the human. Include what you found and what you need confirmed.",
+                        },
+                    },
+                    "required": ["question"],
                 },
             },
         ]
@@ -154,6 +178,27 @@ class CodeNavigatorAgent(ReActAgent):
                     "required": ["path", "function_name"],
                 },
             },
+            {
+                "name": "ask_human",
+                "description": (
+                    "Ask the human SRE a question when you need confirmation or clarification. "
+                    "Use this when: (1) you inferred which downstream call caused the error and want to confirm, "
+                    "(2) you found multiple matching handlers and need the human to pick one, "
+                    "(3) you need to confirm a repo URL guess, "
+                    "(4) you hit a fork in the call chain and want guidance on which path to follow. "
+                    "The human sees your question in the chat and types a reply."
+                ),
+                "input_schema": {
+                    "type": "object",
+                    "properties": {
+                        "question": {
+                            "type": "string",
+                            "description": "Clear, specific question for the human. Include what you found and what you need confirmed.",
+                        },
+                    },
+                    "required": ["question"],
+                },
+            },
         ]
 
     async def _build_system_prompt(self) -> str:
@@ -176,29 +221,52 @@ After analysis, provide your final answer as JSON:
 }"""
         return """You are a Code Navigator Agent for SRE troubleshooting. You use the ReAct pattern.
 
-CRITICAL STRATEGY — use your iterations wisely:
-1. FIRST: Call github_list_files to see the repo structure (costs 1 iteration, saves many)
-2. Then read the actual source code files relevant to the error (skip config/CI/docs files)
-3. If HIGH PRIORITY FILES are provided, verify they exist in the file list before reading
-4. Focus on .py/.java/.go/.js/.ts source files, not Dockerfile/requirements.txt/.gitignore
+## CROSS-SERVICE DEBUGGING STRATEGY
 
-Your goals:
-1. Discover the repo structure with github_list_files
-2. Read source files related to the error (match stack trace paths to actual repo files)
-3. If high priority files exist AND are actual source code, read those + their diffs
-4. Compare diff contents against the stack trace — did recent changes cause the error?
-5. Find the error location in the codebase (file + function + line)
-6. Trace upstream: who calls the broken function (use github_search_code)
-7. Trace downstream: what does the broken function call (read the file)
-8. Build a complete impact map
+You are investigating a production incident. The stack trace may come from a CALLER service,
+but the repo you're scanning is the TARGET service being called. Follow this strategy:
 
-When reading diffs (github_get_diff):
-- Look for logic changes that could introduce the observed error
-- Flag removed error handling, changed return types, new exception paths
-- Note if the diff touches files in the stack trace
+### Step 1: UNDERSTAND THE LANDSCAPE
+- Read the service_flow and trace_call_chain in your context to understand which services are involved
+- Identify: which service has the stack trace (caller) vs which repo you're scanning (target)
+- If they're the SAME service, skip to Step 3 directly
+- If they're DIFFERENT services, proceed to Step 2
 
-For multi-repo investigations, specify owner_repo on each tool call.
-Label cross-repo relationships as "upstream_trigger" or "downstream_failure".
+### Step 2: CALL SITE EXTRACTION (only if caller repo is in repo_map)
+- Read the caller's stack trace file using github_read_file with the caller's owner_repo
+- Find the outgoing HTTP/gRPC/message call to the target service
+- Extract: target URL/endpoint, HTTP method, request payload shape
+- **ask_human** to confirm: "I found [caller] calls [method] [endpoint] on [target]. Should I investigate this endpoint?"
+
+### Step 3: ENTRY POINT DISCOVERY
+- Use github_search_code to search the TARGET repo for the endpoint string (e.g., "/reserve", "/v1/process")
+- If no endpoint known, search for the error message or exception type
+- If you get the repo file tree with github_list_files, scan for controller/handler/route files
+- If multiple handlers match, **ask_human** which one to investigate
+- You should now have a specific file + function as the entry point
+
+### Step 4: LOGIC DRILL-DOWN
+- Read the entry point handler file
+- Follow the internal call chain: controller → service → repository/client
+- At each level, look for:
+  * Missing error handling, unchecked nulls, timeout issues
+  * Resource contention (DB locks, connection pools, thread exhaustion)
+  * Recent changes (use github_get_diff on high_priority_files)
+- Cross-reference with metrics_anomalies and k8s_warnings in your context
+- If you hit a fork with multiple code paths, **ask_human** which to follow first
+
+### WHEN TO USE ask_human
+- You inferred which downstream call caused the error → confirm before pivoting
+- Found multiple matching endpoint handlers → ask which one
+- Auto-derived a repo URL and want to verify → ask before reading from it
+- Hit a fork in the call chain → ask which path to prioritize
+- NOT for trivial decisions — use your judgment for obvious next steps
+
+### EFFICIENCY RULES
+- You have 15 iterations — use them wisely
+- Asking human costs 1 iteration but saves wasted iterations on wrong paths
+- If high_priority_files are provided AND match the target repo, read those first
+- Prefer github_search_code over github_list_files when you know what you're looking for
 
 After analysis, provide your final answer as JSON:
 {
@@ -210,6 +278,7 @@ After analysis, provide your final answer as JSON:
     "suggested_fix_areas": [{"file_path": "...", "description": "...", "suggested_change": "..."}],
     "diff_analysis": [{"file": "...", "commit_sha": "...", "verdict": "likely_cause|unrelated|contributing", "reasoning": "..."}],
     "cross_repo_findings": [{"repo": "org/service", "role": "upstream_trigger|downstream_failure", "evidence": "..."}],
+    "cross_service_trace": {"caller_service": "...", "target_endpoint": "...", "entry_point_file": "...", "entry_point_function": "..."},
     "mermaid_diagram": "graph TD; A-->B;",
     "overall_confidence": 85
 }"""
@@ -221,6 +290,9 @@ After analysis, provide your final answer as JSON:
         self._github_token = context.get("github_token") or os.getenv("GITHUB_TOKEN", "")
         self._high_priority_files = context.get("high_priority_files", [])
         self._stack_traces = context.get("stack_traces", [])
+        self._ask_human_callback = context.get("_ask_human_callback")
+        self._event_emitter = context.get("_event_emitter")
+        self._state = context.get("_state")
 
         self._verification_mode = context.get("verification_mode", False)
         if self._verification_mode:
@@ -260,6 +332,55 @@ After analysis, provide your final answer as JSON:
                 parts.append(f"  Stack trace #{i}:\n{st[:500]}")
         if context.get("exception_type"):
             parts.append(f"Exception type: {context['exception_type']}")
+
+        # Cross-service context
+        if context.get("error_message"):
+            parts.append(f"Error message: {context['error_message']}")
+
+        if context.get("service_flow"):
+            flow = context["service_flow"]
+            flow_str = " → ".join(
+                f"{s.get('service', '?')}({s.get('operation', '?')}, {s.get('status', '?')})"
+                for s in flow
+            )
+            parts.append(f"\n## SERVICE FLOW (request path)\n{flow_str}")
+
+        if context.get("patient_zero"):
+            pz = context["patient_zero"]
+            parts.append(f"\n## PATIENT ZERO\nService: {pz.get('service', '?')}, Evidence: {pz.get('evidence', '?')}")
+
+        if context.get("trace_failure_point"):
+            fp = context["trace_failure_point"]
+            parts.append("\n## TRACE FAILURE POINT")
+            parts.append(f"Service: {fp['service']}, Operation: {fp['operation']}")
+            if fp.get("error_message"):
+                parts.append(f"Error: {fp['error_message']}")
+            http_tags = {k: v for k, v in fp.get("tags", {}).items() if k.startswith("http.")}
+            if http_tags:
+                parts.append(f"HTTP context: {http_tags}")
+
+        if context.get("trace_call_chain"):
+            chain = context["trace_call_chain"]
+            parts.append("\n## TRACE CALL CHAIN")
+            for span in chain:
+                status_mark = "OK" if span["status"] == "ok" else f"ERROR: {span['error']}"
+                parts.append(f"  {span['service']} → {span['operation']} [{status_mark}]")
+
+        if context.get("metrics_anomalies"):
+            parts.append("\n## METRICS ANOMALIES (cross-reference during drill-down)")
+            for a in context["metrics_anomalies"]:
+                parts.append(f"  - [{a['severity']}] {a['metric']}: {a['correlation']}")
+
+        if context.get("k8s_warnings"):
+            parts.append("\n## K8S WARNINGS")
+            for w in context["k8s_warnings"]:
+                parts.append(f"  - {w}")
+
+        if context.get("inferred_dependencies"):
+            parts.append("\n## SERVICE DEPENDENCIES")
+            for dep in context["inferred_dependencies"]:
+                parts.append(f"  {dep.get('source', '?')} → {dep.get('target', '?')}")
+
         if self._high_priority_files:
             parts.append("\n## HIGH PRIORITY FILES (from change analysis)")
             parts.append("Read these FIRST and get their diffs. Compare against the stack trace:")
@@ -284,6 +405,8 @@ After analysis, provide your final answer as JSON:
             return await self._github_search_code(tool_input)
         elif tool_name == "github_get_diff":
             return await self._github_get_diff(tool_input)
+        elif tool_name == "ask_human":
+            return await self._ask_human(tool_input)
         elif tool_name == "search_file":
             return self._search_file(tool_input)
         elif tool_name == "read_file":
@@ -295,6 +418,21 @@ After analysis, provide your final answer as JSON:
         elif tool_name == "find_callees":
             return self._find_callees_tool(tool_input)
         return f"Unknown tool: {tool_name}"
+
+    async def _ask_human(self, params: dict) -> str:
+        question = params.get("question", "")
+        if not question:
+            return "Error: question is required"
+        if not self._ask_human_callback:
+            return "Human-in-the-loop not available. Proceed with your best judgment."
+        answer = await self._ask_human_callback(question, self._state, self._event_emitter)
+        self.add_breadcrumb(
+            action="ask_human",
+            source_type="human",
+            source_reference="code_agent_question",
+            raw_evidence=f"Q: {question[:100]} | A: {answer[:100]}",
+        )
+        return f"Human response: {answer}"
 
     def _parse_final_response(self, text: str) -> dict:
         try:

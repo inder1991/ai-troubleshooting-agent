@@ -150,6 +150,12 @@ class SupervisorAgent:
         self._fix_human_decision: str | None = None
         self._event_emitter: Optional[EventEmitter] = None
 
+        # Human-in-the-loop channel for code_agent questions
+        self._code_agent_question: str = ""
+        self._code_agent_answer: str = ""
+        self._code_agent_event = asyncio.Event()
+        self._pending_code_agent_question = False
+
     async def run(
         self,
         initial_input: dict,
@@ -504,7 +510,7 @@ class SupervisorAgent:
             return None
 
         agent = agent_cls(connection_config=self._connection_config)
-        context = self._build_agent_context(agent_name, state)
+        context = self._build_agent_context(agent_name, state, event_emitter)
 
         start = time.monotonic()
         try:
@@ -520,7 +526,8 @@ class SupervisorAgent:
                 await event_emitter.emit(agent_name, "error", f"Agent failed: {str(e)}")
             return None
 
-    def _build_agent_context(self, agent_name: str, state: DiagnosticState) -> dict:
+    def _build_agent_context(self, agent_name: str, state: DiagnosticState,
+                              event_emitter: Optional[EventEmitter] = None) -> dict:
         """Build context dict for a specific agent."""
         base = {
             "service_name": state.service_name,
@@ -606,6 +613,58 @@ class SupervisorAgent:
                     if sample.raw_line and len(sample.raw_line) > len(stack_trace):
                         stack_trace = sample.raw_line
                 base["stack_trace"] = stack_trace
+            # Cross-service context from prior agents
+            if state.log_analysis and state.log_analysis.primary_pattern:
+                base["error_message"] = state.log_analysis.primary_pattern.error_message or ""
+
+            if state.service_flow:
+                base["service_flow"] = state.service_flow
+
+            if state.patient_zero:
+                base["patient_zero"] = state.patient_zero
+
+            if state.inferred_dependencies:
+                base["inferred_dependencies"] = state.inferred_dependencies
+
+            # Trace failure point with HTTP endpoint tags
+            if state.trace_analysis:
+                if state.trace_analysis.failure_point:
+                    fp = state.trace_analysis.failure_point
+                    base["trace_failure_point"] = {
+                        "service": fp.service_name,
+                        "operation": fp.operation_name,
+                        "error_message": fp.error_message,
+                        "tags": fp.tags,
+                    }
+                if state.trace_analysis.call_chain:
+                    base["trace_call_chain"] = [
+                        {"service": s.service_name, "operation": s.operation_name,
+                         "status": s.status, "error": s.error_message or ""}
+                        for s in state.trace_analysis.call_chain
+                    ]
+
+            # Metrics anomaly summary (compact)
+            if state.metrics_analysis and state.metrics_analysis.anomalies:
+                base["metrics_anomalies"] = [
+                    {"metric": a.metric_name, "severity": a.severity,
+                     "correlation": a.correlation_to_incident}
+                    for a in state.metrics_analysis.anomalies[:5]
+                ]
+
+            # K8s crash/OOM summary (compact)
+            if state.k8s_analysis:
+                k8s_summary = []
+                if state.k8s_analysis.is_crashloop:
+                    k8s_summary.append("CrashLoopBackOff detected")
+                for pod in state.k8s_analysis.pod_statuses:
+                    if pod.oom_killed:
+                        k8s_summary.append(f"OOMKilled: {pod.pod_name}")
+                for evt in state.k8s_analysis.events[:3]:
+                    if evt.type == "Warning":
+                        k8s_summary.append(f"{evt.reason}: {evt.message[:80]}")
+                if k8s_summary:
+                    base["k8s_warnings"] = k8s_summary
+
             # Wire files_changed from change_agent
             if state.change_analysis:
                 all_files = []
@@ -616,9 +675,15 @@ class SupervisorAgent:
             high_priority = self._extract_high_priority_files(state)
             if high_priority:
                 base["high_priority_files"] = high_priority
+            # Auto-infer repo_map for cross-service analysis
+            self._auto_infer_repo_map(state)
             # Multi-repo context
             if hasattr(state, "repo_map") and state.repo_map:
                 base["repo_map"] = state.repo_map
+            # Human-in-the-loop relay for code_agent
+            base["_ask_human_callback"] = self._relay_code_agent_question
+            base["_event_emitter"] = event_emitter
+            base["_state"] = state
 
         elif agent_name == "change_agent":
             base["repo_url"] = state.repo_url
@@ -1265,14 +1330,12 @@ class SupervisorAgent:
         # Fallback: build from correlations with noise filtering
         import re
         noise_re = re.compile(
-            r'(^docs?/|README|\.md$|__pycache__|\.lock$|'
+            r'(^docs?/|README|__pycache__|\.pyc$|'
             r'\.eslintrc|\.prettierrc|\.editorconfig|\.babelrc|'
-            r'\.github/|\.circleci/|\.gitlab-ci|Jenkinsfile|'
-            r'Dockerfile|docker-compose|\.dockerignore$|\.gitignore$|'
-            r'helm/|charts?/|Chart\.yaml$|values\.yaml$|'
-            r'Makefile$|Procfile$|Vagrantfile$|'
-            r'\.env\b|LICENSE|CHANGELOG|CONTRIBUTING|'
-            r'requirements\.txt$|setup\.cfg$|tox\.ini$|'
+            r'test_\w+\.py$|_test\.go$|\.test\.[tj]sx?$|'
+            r'\.gitignore$|\.dockerignore$|\.lock$|'
+            r'LICENSE|CHANGELOG|CONTRIBUTING|'
+            r'\.flake8$|\.isort\.cfg$|\.pre-commit|\.coveragerc|\.pylintrc|mypy\.ini$|'
             r'tsconfig.*\.json$|jest\.config|webpack\.config|vite\.config)',
             re.IGNORECASE,
         )
@@ -1292,6 +1355,79 @@ class SupervisorAgent:
                 })
         file_scores.sort(key=lambda x: x["risk_score"], reverse=True)
         return file_scores[:3]
+
+    def _auto_infer_repo_map(self, state: DiagnosticState) -> None:
+        """Auto-populate repo_map for services not already mapped.
+
+        Strategy: If state.repo_url is github.com/org/X, infer that
+        service Y lives at github.com/org/Y. Only adds candidates —
+        human confirms via ask_human tool in code_agent.
+        """
+        if not state.repo_url:
+            return
+
+        import re
+        m = re.match(r'https?://github\.com/([^/]+)/', state.repo_url)
+        if not m:
+            return
+        org = m.group(1)
+
+        # Collect all service names from prior agents
+        services: set[str] = set()
+        if state.patient_zero:
+            pz_svc = state.patient_zero.get("service", "")
+            if pz_svc:
+                services.add(pz_svc)
+        for step in (state.service_flow or []):
+            svc = step.get("service", "")
+            if svc:
+                services.add(svc)
+        for dep in (state.inferred_dependencies or []):
+            services.add(dep.get("source", ""))
+            services.add(dep.get("target", ""))
+        if state.trace_analysis and state.trace_analysis.call_chain:
+            for span in state.trace_analysis.call_chain:
+                services.add(span.service_name)
+        services.discard("")
+        services.discard(state.service_name)  # Already have this repo
+
+        for svc in services:
+            if svc not in state.repo_map:
+                state.repo_map[svc] = f"https://github.com/{org}/{svc}"
+
+    async def _relay_code_agent_question(
+        self, question: str, state: DiagnosticState,
+        event_emitter: Optional[EventEmitter] = None,
+    ) -> str:
+        """Relay a question from code_agent to the human via WebSocket chat."""
+        self._pending_code_agent_question = True
+        self._code_agent_answer = ""
+        self._code_agent_event.clear()
+
+        # Send question to frontend via WebSocket
+        if event_emitter and event_emitter._websocket_manager:
+            await event_emitter._websocket_manager.send_message(
+                state.session_id,
+                {
+                    "type": "chat_response",
+                    "data": {
+                        "role": "assistant",
+                        "content": question,
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                        "metadata": {"type": "code_agent_question"},
+                    },
+                },
+            )
+
+        # Wait for human response (3 minute timeout)
+        try:
+            await asyncio.wait_for(self._code_agent_event.wait(), timeout=180)
+        except asyncio.TimeoutError:
+            self._pending_code_agent_question = False
+            return "No response from user (timed out). Proceed with your best judgment."
+
+        self._pending_code_agent_question = False
+        return self._code_agent_answer
 
     async def _check_repo_mismatch(
         self, state: DiagnosticState, event_emitter: Optional[EventEmitter] = None,
@@ -1841,6 +1977,12 @@ Respond ONLY with a JSON array:
         # Handle pending repo mismatch confirmation for code_agent
         if self._pending_repo_mismatch:
             return self._process_repo_mismatch(message, state)
+
+        # Code agent question response
+        if self._pending_code_agent_question:
+            self._code_agent_answer = message
+            self._code_agent_event.set()
+            return "Got it, passing your answer to the code analysis agent."
 
         # Handle pending repo URL confirmation for change_agent
         if self._pending_repo_confirmation:
