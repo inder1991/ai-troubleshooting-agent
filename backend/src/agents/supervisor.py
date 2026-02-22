@@ -510,7 +510,7 @@ class SupervisorAgent:
             return None
 
         agent = agent_cls(connection_config=self._connection_config)
-        context = self._build_agent_context(agent_name, state, event_emitter)
+        context = await self._build_agent_context(agent_name, state, event_emitter)
 
         start = time.monotonic()
         try:
@@ -526,8 +526,8 @@ class SupervisorAgent:
                 await event_emitter.emit(agent_name, "error", f"Agent failed: {str(e)}")
             return None
 
-    def _build_agent_context(self, agent_name: str, state: DiagnosticState,
-                              event_emitter: Optional[EventEmitter] = None) -> dict:
+    async def _build_agent_context(self, agent_name: str, state: DiagnosticState,
+                                    event_emitter: Optional[EventEmitter] = None) -> dict:
         """Build context dict for a specific agent."""
         base = {
             "service_name": state.service_name,
@@ -676,7 +676,7 @@ class SupervisorAgent:
             if high_priority:
                 base["high_priority_files"] = high_priority
             # Auto-infer repo_map for cross-service analysis
-            self._auto_infer_repo_map(state)
+            await self._auto_infer_repo_map(state)
             # Multi-repo context
             if hasattr(state, "repo_map") and state.repo_map:
                 base["repo_map"] = state.repo_map
@@ -1356,12 +1356,14 @@ class SupervisorAgent:
         file_scores.sort(key=lambda x: x["risk_score"], reverse=True)
         return file_scores[:3]
 
-    def _auto_infer_repo_map(self, state: DiagnosticState) -> None:
+    async def _auto_infer_repo_map(self, state: DiagnosticState) -> None:
         """Auto-populate repo_map for services not already mapped.
 
         Strategy: If state.repo_url is github.com/org/X, infer that
-        service Y lives at github.com/org/Y. Only adds candidates —
-        human confirms via ask_human tool in code_agent.
+        service Y lives at github.com/org/Y. Validates each candidate
+        with a HEAD request — only verified repos are added to repo_map.
+        Unverified candidates are logged but omitted to prevent the LLM
+        from burning iterations on 404s.
         """
         if not state.repo_url:
             return
@@ -1391,9 +1393,47 @@ class SupervisorAgent:
         services.discard("")
         services.discard(state.service_name)  # Already have this repo
 
-        for svc in services:
-            if svc not in state.repo_map:
-                state.repo_map[svc] = f"https://github.com/{org}/{svc}"
+        # Build auth headers if token is available
+        headers = {"Accept": "application/vnd.github+json"}
+        token = ""
+        if self._connection_config and self._connection_config.github_token:
+            token = self._connection_config.github_token
+            headers["Authorization"] = f"Bearer {token}"
+
+        # Validate each candidate repo with a HEAD request
+        import httpx
+        candidates = {
+            svc: f"https://github.com/{org}/{svc}"
+            for svc in services
+            if svc not in state.repo_map
+        }
+        if not candidates:
+            return
+
+        try:
+            async with httpx.AsyncClient(timeout=5) as client:
+                for svc, url in candidates.items():
+                    owner_repo = f"{org}/{svc}"
+                    api_url = f"https://api.github.com/repos/{owner_repo}"
+                    try:
+                        resp = await client.head(api_url, headers=headers)
+                        if resp.status_code == 200:
+                            state.repo_map[svc] = url
+                            logger.info("Auto-inferred repo verified",
+                                        extra={"agent_name": "supervisor",
+                                               "action": "repo_map_inferred",
+                                               "extra": {"service": svc, "repo": url}})
+                        else:
+                            logger.info("Auto-inferred repo not found, skipping",
+                                        extra={"agent_name": "supervisor",
+                                               "action": "repo_map_skipped",
+                                               "extra": {"service": svc, "repo": url,
+                                                          "status": resp.status_code}})
+                    except httpx.HTTPError:
+                        # Network error — skip this candidate silently
+                        logger.debug("Repo validation request failed for %s", owner_repo)
+        except Exception as e:
+            logger.warning("Auto-infer repo_map validation failed: %s", e)
 
     async def _relay_code_agent_question(
         self, question: str, state: DiagnosticState,
