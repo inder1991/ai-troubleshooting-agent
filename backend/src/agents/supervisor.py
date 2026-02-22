@@ -244,8 +244,10 @@ class SupervisorAgent:
 
             self._update_phase(state, event_emitter)
 
-            # Enrich reasoning chain after metrics analysis completes
-            if "metrics_agent" in [n for n, _ in agent_results if not isinstance(_, Exception)]:
+            # Enrich reasoning chain after metrics analysis completes (skip if mocked — no point reasoning over fixture data)
+            import os as _os
+            _mock_agents = [a.strip() for a in _os.getenv("MOCK_AGENTS", "").split(",") if a.strip()]
+            if "metrics_agent" in [n for n, _ in agent_results if not isinstance(_, Exception)] and "metrics_agent" not in _mock_agents:
                 await self._enrich_reasoning_chain(state, event_emitter)
 
             # Human-in-the-loop: ask user to confirm repos before dispatching change_agent
