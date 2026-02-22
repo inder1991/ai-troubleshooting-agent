@@ -6,7 +6,7 @@ import type {
   TaskEvent,
   ChatMessage,
   Integration,
-  FixResult,
+  FixStatusResponse,
 } from '../types';
 
 const API_BASE_URL = 'http://localhost:8000';
@@ -195,7 +195,7 @@ export const generateFix = async (
 
 export const getFixStatus = async (
   sessionId: string
-): Promise<FixResult> => {
+): Promise<FixStatusResponse> => {
   const response = await fetch(`${API_BASE_URL}/api/v4/session/${sessionId}/fix/status`);
   if (!response.ok) {
     const error = await response.json();

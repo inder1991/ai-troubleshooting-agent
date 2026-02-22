@@ -3,6 +3,7 @@ Repository management utilities
 """
 
 import os
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -11,6 +12,14 @@ from typing import Dict, Any
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
+
+# Pattern to strip tokens/credentials from URLs in error messages
+_TOKEN_URL_RE = re.compile(r"https://[^@]+@")
+
+
+def _sanitize_stderr(stderr: str) -> str:
+    """Remove embedded tokens/credentials from git stderr output."""
+    return _TOKEN_URL_RE.sub("https://***@", stderr)
 
 
 class RepoManager:
@@ -61,7 +70,7 @@ class RepoManager:
             if result.returncode != 0:
                 return {
                     "success": False,
-                    "error": f"Git clone failed: {result.stderr}"
+                    "error": f"Git clone failed: {_sanitize_stderr(result.stderr)}"
                 }
 
             # Count files
@@ -76,7 +85,7 @@ class RepoManager:
         except Exception as e:
             return {
                 "success": False,
-                "error": str(e)
+                "error": _sanitize_stderr(str(e))
             }
 
     @staticmethod

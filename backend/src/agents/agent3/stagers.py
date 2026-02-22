@@ -94,15 +94,19 @@ class PRStager:
         
         # Normalize path
         normalized_path = file_path.lstrip('/')
-        for prefix in ['app/', '/app/', 'usr/src/app/', '/usr/src/app/']:
+        for prefix in ['app/', 'usr/src/app/']:
             if normalized_path.startswith(prefix):
                 normalized_path = normalized_path[len(prefix):]
-        
-        full_path = self.repo_path / normalized_path
-        
+
+        full_path = (self.repo_path / normalized_path).resolve()
+
+        # Ensure path stays within repo directory
+        if not full_path.is_relative_to(self.repo_path.resolve()):
+            raise ValueError(f"Path traversal blocked: {file_path} resolves outside repo")
+
         # Ensure directory exists
         full_path.parent.mkdir(parents=True, exist_ok=True)
-        
+
         # Write fixed code
         with open(full_path, 'w') as f:
             f.write(fixed_code)

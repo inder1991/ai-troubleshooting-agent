@@ -346,13 +346,20 @@ class Agent3FixGenerator:
 
         fixed_code = response.text
 
-        # Strip markdown fences if present
-        if "```python" in fixed_code:
-            fixed_code = fixed_code.split("```python")[1].split("```")[0]
+        # Strip markdown fences if present (handles any language tag)
+        import re
+        fence_match = re.search(r'```\w*\n(.*?)```', fixed_code, re.DOTALL)
+        if fence_match:
+            fixed_code = fence_match.group(1)
         elif "```" in fixed_code:
             parts = fixed_code.split("```")
             if len(parts) >= 3:
-                fixed_code = parts[1]
+                # Strip optional language tag from first line
+                content = parts[1]
+                first_newline = content.find('\n')
+                if first_newline != -1 and content[:first_newline].strip().isalpha():
+                    content = content[first_newline + 1:]
+                fixed_code = content
 
         logger.info("Fix generated for %s (%d chars)", target_file, len(fixed_code.strip()))
         return fixed_code.strip()
@@ -465,13 +472,17 @@ class Agent3FixGenerator:
     # =========================================================================
 
     def _read_original_file(self, file_path: str) -> str:
-        """Read original file content."""
+        """Read original file content with path containment check."""
         normalized_path = file_path.lstrip("/")
-        for prefix in ["app/", "/app/", "usr/src/app/", "/usr/src/app/"]:
+        for prefix in ["app/", "usr/src/app/"]:
             if normalized_path.startswith(prefix):
                 normalized_path = normalized_path[len(prefix):]
 
-        full_path = self.repo_path / normalized_path
+        full_path = (self.repo_path / normalized_path).resolve()
+
+        # Ensure path stays within repo directory
+        if not full_path.is_relative_to(self.repo_path.resolve()):
+            raise ValueError(f"Path traversal blocked: {file_path} resolves outside repo")
 
         if not full_path.exists():
             raise FileNotFoundError(f"File not found: {full_path}")
@@ -494,6 +505,7 @@ class Agent3FixGenerator:
     def _push_branch(self, branch_name: str) -> None:
         """Push branch to remote."""
         import subprocess
+        from src.utils.repo_manager import _sanitize_stderr
 
         result = subprocess.run(
             ["git", "push", "-u", "origin", branch_name],
@@ -502,7 +514,7 @@ class Agent3FixGenerator:
             text=True,
         )
         if result.returncode != 0:
-            raise Exception(f"Failed to push branch: {result.stderr}")
+            raise Exception(f"Failed to push branch: {_sanitize_stderr(result.stderr)}")
 
     def _create_github_pr(
         self, branch: str, title: str, body: str, token: str
@@ -527,6 +539,23 @@ class Agent3FixGenerator:
         else:
             raise Exception("Not a GitHub repository")
 
+        # Detect default branch from GitHub API instead of hardcoding "main"
+        default_branch = "main"
+        try:
+            repo_resp = requests.get(
+                f"https://api.github.com/repos/{repo_path}",
+                headers={
+                    "Authorization": f"token {token}",
+                    "Accept": "application/vnd.github+json",
+                    "X-GitHub-Api-Version": "2022-11-28",
+                },
+                timeout=10,
+            )
+            if repo_resp.status_code == 200:
+                default_branch = repo_resp.json().get("default_branch", "main")
+        except Exception:
+            pass  # Fall back to "main" if detection fails
+
         response = requests.post(
             f"https://api.github.com/repos/{repo_path}/pulls",
             headers={
@@ -538,7 +567,7 @@ class Agent3FixGenerator:
                 "title": title,
                 "body": body,
                 "head": branch,
-                "base": "main",
+                "base": default_branch,
             },
         )
 
@@ -584,10 +613,18 @@ class Agent3FixGenerator:
         )
 
         corrected = response.text
-        if "```python" in corrected:
-            corrected = corrected.split("```python")[1].split("```")[0]
+        import re as _re
+        _fence_match = _re.search(r'```\w*\n(.*?)```', corrected, _re.DOTALL)
+        if _fence_match:
+            corrected = _fence_match.group(1)
         elif "```" in corrected:
-            corrected = corrected.split("```")[1].split("```")[0]
+            parts = corrected.split("```")
+            if len(parts) >= 3:
+                content = parts[1]
+                first_nl = content.find('\n')
+                if first_nl != -1 and content[:first_nl].strip().isalpha():
+                    content = content[first_nl + 1:]
+                corrected = content
 
         logger.info("   Self-correction attempted")
         return corrected.strip()

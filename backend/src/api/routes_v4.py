@@ -444,21 +444,28 @@ async def generate_fix(session_id: str, request: FixRequest, background_tasks: B
     if not state or not supervisor or not emitter:
         raise HTTPException(status_code=400, detail="Session not ready")
 
-    from src.models.schemas import DiagnosticPhase, FixStatus
+    from src.models.schemas import DiagnosticPhase, FixStatus, FixResult
     if state.phase != DiagnosticPhase.DIAGNOSIS_COMPLETE and state.phase != DiagnosticPhase.FIX_IN_PROGRESS:
         raise HTTPException(
             status_code=400,
             detail=f"Fix generation requires DIAGNOSIS_COMPLETE phase, current: {state.phase.value}",
         )
 
-    # Guard against parallel fix generation
-    if state.fix_result and state.fix_result.fix_status in (
-        FixStatus.GENERATING, FixStatus.VERIFICATION_IN_PROGRESS, FixStatus.AWAITING_REVIEW,
-    ):
+    # Guard against parallel fix generation — block all active/in-flight states
+    _active_statuses = (
+        FixStatus.GENERATING, FixStatus.VERIFICATION_IN_PROGRESS,
+        FixStatus.AWAITING_REVIEW, FixStatus.VERIFIED, FixStatus.PR_CREATING,
+        FixStatus.HUMAN_FEEDBACK,
+    )
+    if state.fix_result and state.fix_result.fix_status in _active_statuses:
         raise HTTPException(
             status_code=409,
             detail=f"Fix generation already in progress (status: {state.fix_result.fix_status.value})",
         )
+
+    # Set GENERATING immediately in the route handler to close TOCTOU gap
+    # before the background task starts. start_fix_generation will reset this.
+    state.fix_result = FixResult(fix_status=FixStatus.GENERATING)
 
     background_tasks.add_task(
         supervisor.start_fix_generation, state, emitter, request.guidance,

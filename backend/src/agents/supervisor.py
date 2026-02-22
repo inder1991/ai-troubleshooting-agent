@@ -1820,9 +1820,14 @@ Respond ONLY with a JSON array:
             return await self._process_repo_confirmation(message)
 
         # Check if user wants to trigger fix generation after diagnosis
-        if state.phase == DiagnosticPhase.DIAGNOSIS_COMPLETE:
+        if state.phase in (DiagnosticPhase.DIAGNOSIS_COMPLETE, DiagnosticPhase.FIX_IN_PROGRESS):
             trigger_words = ["fix", "generate fix", "create fix", "patch", "create pr", "remediate"]
             if any(tw in message.lower() for tw in trigger_words):
+                # Apply same guards as /fix/generate endpoint
+                if state.fix_result and state.fix_result.fix_status in (
+                    FixStatus.GENERATING, FixStatus.VERIFICATION_IN_PROGRESS, FixStatus.AWAITING_REVIEW,
+                ):
+                    return f"Fix generation is already in progress (status: {state.fix_result.fix_status.value}). Please wait."
                 if self._event_emitter:
                     asyncio.create_task(
                         self.start_fix_generation(state, self._event_emitter, human_guidance=message)
@@ -2108,12 +2113,20 @@ Examples:
                 await event_emitter.emit("fix_generator", "progress", "Verifying fix with code agent...")
                 await self._verify_fix_with_code_agent(state, event_emitter)
 
+                verification_failed = (state.fix_result.fix_status == FixStatus.VERIFICATION_FAILED)
+
                 # Run Agent 3 Phase 1 (validation, review, impact, staging)
                 pr_data = await agent3.run_verification_phase(state, generated_fix)
                 state.fix_result.pr_data = pr_data
 
                 state.fix_result.fix_status = FixStatus.AWAITING_REVIEW
                 state.fix_result.attempt_count += 1
+
+                # Arm the approval gate BEFORE sending WebSocket message to close timing gap.
+                # This ensures _pending_fix_approval is True by the time the user can respond.
+                self._pending_fix_approval = True
+                self._fix_human_decision = None
+                self._fix_event.clear()
 
                 # Present fix to human via WebSocket
                 summary_lines = [
@@ -2122,11 +2135,15 @@ Examples:
                 ]
                 if state.fix_result.fix_explanation:
                     summary_lines.append(f"**Explanation:** {state.fix_result.fix_explanation}\n")
+                if verification_failed:
+                    summary_lines.append("**WARNING: Code agent flagged issues with this fix.**")
                 if state.fix_result.verification_result:
                     vr = state.fix_result.verification_result
                     summary_lines.append(f"**Code agent verdict:** {vr.get('verdict', 'unknown')} (confidence: {vr.get('confidence', 0)}%)")
                     if vr.get("issues_found"):
                         summary_lines.append(f"**Issues:** {', '.join(vr['issues_found'][:3])}")
+                    if vr.get("regression_risks"):
+                        summary_lines.append(f"**Regression risks:** {', '.join(vr['regression_risks'][:3])}")
 
                 summary_lines.append("\nPlease reply with:")
                 summary_lines.append("  - **approve** — create a pull request")
@@ -2152,13 +2169,8 @@ Examples:
                 await event_emitter.emit(
                     "fix_generator", "fix_proposal",
                     f"Fix proposed for {target_file} — awaiting human review",
-                    details={"target_file": target_file, "diff_lines": len(diff.splitlines())},
+                    details={"target_file": target_file, "diff_lines": len(diff.splitlines()), "verification_failed": verification_failed},
                 )
-
-                # Wait for human decision
-                self._pending_fix_approval = True
-                self._fix_human_decision = None
-                self._fix_event.clear()
                 try:
                     await asyncio.wait_for(self._fix_event.wait(), timeout=600)
                 except asyncio.TimeoutError:
@@ -2284,8 +2296,17 @@ Examples:
         except Exception as e:
             logger.warning("Fix verification failed: %s", e)
             if state.fix_result:
-                state.fix_result.fix_status = FixStatus.VERIFIED  # Don't block on verification failure
-            return {"verdict": "approve", "confidence": 50, "reasoning": f"Verification skipped: {e}"}
+                state.fix_result.verification_result = {
+                    "verdict": "needs_changes",
+                    "confidence": 0,
+                    "issues_found": [],
+                    "regression_risks": [],
+                    "suggestions": [],
+                    "reasoning": f"Verification could not run: {e}",
+                }
+                # Don't block on verification crash, but don't pretend it passed
+                state.fix_result.fix_status = FixStatus.VERIFICATION_IN_PROGRESS
+            return {"verdict": "needs_changes", "confidence": 0, "reasoning": f"Verification skipped: {e}"}
 
     def _process_fix_decision(self, message: str) -> str:
         """Parse user's fix approval/rejection/feedback and signal the waiting coroutine."""

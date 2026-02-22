@@ -343,6 +343,28 @@ export type FixStatus =
   | 'approved' | 'rejected'
   | 'pr_creating' | 'pr_created' | 'failed';
 
+export interface FixVerificationResult {
+  verdict: 'approve' | 'reject' | 'needs_changes';
+  confidence: number;
+  issues_found: string[];
+  regression_risks: string[];
+  suggestions: string[];
+  reasoning: string;
+}
+
+// Matches backend FixStatusResponse — returned by GET /fix/status
+export interface FixStatusResponse {
+  fix_status: FixStatus;
+  target_file: string;
+  diff: string;
+  fix_explanation: string;
+  verification_result: FixVerificationResult | null;
+  pr_url: string | null;
+  pr_number: number | null;
+  attempt_count: number;
+}
+
+// Full fix result — returned in V4Findings.fix_data (from state.fix_result)
 export interface FixResult {
   fix_status: FixStatus;
   target_file: string;
@@ -350,14 +372,7 @@ export interface FixResult {
   generated_fix: string;
   diff: string;
   fix_explanation: string;
-  verification_result: {
-    verdict: 'approve' | 'reject' | 'needs_changes';
-    confidence: number;
-    issues_found: string[];
-    regression_risks: string[];
-    suggestions: string[];
-    reasoning: string;
-  } | null;
+  verification_result: FixVerificationResult | null;
   pr_url: string | null;
   pr_number: number | null;
   attempt_count: number;
