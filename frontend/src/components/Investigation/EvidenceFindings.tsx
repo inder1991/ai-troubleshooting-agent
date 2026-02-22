@@ -4,7 +4,7 @@ import type {
   CriticVerdict, ChangeCorrelation, BlastRadiusData, SeverityData,
   SpanInfo, ServiceFlowStep, PatientZero, MetricAnomaly, DiagnosticPhase,
   DiffAnalysisItem, SuggestedFixArea, NegativeFinding, HighPriorityFile,
-  CrossRepoFinding,
+  CrossRepoFinding, PastIncidentMatch, EventMarker, PodHealthStatus,
 } from '../../types';
 import AgentFindingCard from './cards/AgentFindingCard';
 import CausalRoleBadge from './cards/CausalRoleBadge';
@@ -12,6 +12,7 @@ import StackTraceTelescope from './cards/StackTraceTelescope';
 import SaturationGauge from './cards/SaturationGauge';
 import AnomalySparkline, { findMatchingTimeSeries } from './cards/AnomalySparkline';
 import IncidentClosurePanel from './IncidentClosurePanel';
+import FixPipelinePanel from './FixPipelinePanel';
 
 interface EvidenceFindingsProps {
   findings: V4Findings | null;
@@ -19,6 +20,7 @@ interface EvidenceFindingsProps {
   events: TaskEvent[];
   sessionId?: string;
   phase?: DiagnosticPhase | null;
+  onRefresh?: () => void;
 }
 
 const severityColor: Record<Severity, string> = {
@@ -42,7 +44,7 @@ const severityPriorityColor: Record<string, { border: string; bg: string; text: 
   P4: { border: 'border-blue-500/40', bg: 'bg-blue-500/10', text: 'text-blue-400' },
 };
 
-const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _status, events, sessionId, phase }) => {
+const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _status, events, sessionId, phase, onRefresh }) => {
 
   const errorPatterns = findings?.error_patterns || [];
   const rootCausePatterns = errorPatterns.filter((p) => p.causal_role === 'root_cause');
@@ -157,6 +159,34 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                             </span>
                           )}
                         </div>
+                        {verdict && (verdict.reasoning || verdict.recommendation) && (
+                          <div className="mt-2 bg-slate-800/30 rounded-lg border border-slate-700/30 p-2 space-y-1">
+                            {verdict.reasoning && (
+                              <p className="text-[10px] text-slate-400">{verdict.reasoning}</p>
+                            )}
+                            {verdict.recommendation && (
+                              <p className="text-[10px] text-cyan-400 italic">{verdict.recommendation}</p>
+                            )}
+                            {verdict.confidence_in_verdict > 0 && (
+                              <span className="text-[9px] text-slate-500 font-mono">Verdict confidence: {verdict.confidence_in_verdict}%</span>
+                            )}
+                            {verdict.verdict === 'challenged' && verdict.contradicting_evidence && verdict.contradicting_evidence.length > 0 && (
+                              <div className="mt-1.5 pt-1.5 border-t border-red-500/20">
+                                <span className="text-[9px] font-bold text-red-400 uppercase tracking-wider">Contradicting Evidence</span>
+                                <div className="mt-1 space-y-1">
+                                  {verdict.contradicting_evidence.map((b, bi) => (
+                                    <div key={bi} className="text-[10px] text-slate-400 flex items-start gap-1.5">
+                                      <span className="text-red-500 shrink-0 mt-0.5">
+                                        <span className="material-symbols-outlined" style={{ fontSize: 10 }}>error</span>
+                                      </span>
+                                      <span>{b.action}: {b.raw_evidence || b.detail}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
                         {finding.suggested_fix && (
                           <p className="text-[10px] text-cyan-400 mt-2">Fix: {finding.suggested_fix}</p>
                         )}
@@ -207,12 +237,15 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
               <section>
                 <AgentFindingCard agent="K" title="Kubernetes Health">
                   {(findings?.pod_statuses?.length ?? 0) > 0 && (
-                    <div className="grid grid-cols-4 gap-3 mb-3">
-                      <StatBox label="Pods" value={findings!.pod_statuses.length} />
-                      <StatBox label="Restarts" value={findings!.pod_statuses.reduce((s, p) => s + p.restart_count, 0)} color="text-amber-500" />
-                      <StatBox label="Healthy" value={findings!.pod_statuses.filter((p) => p.ready).length} color="text-green-500" />
-                      <StatBox label="Unhealthy" value={findings!.pod_statuses.filter((p) => !p.ready).length} color="text-red-500" />
-                    </div>
+                    <>
+                      <div className="grid grid-cols-4 gap-3 mb-3">
+                        <StatBox label="Pods" value={findings!.pod_statuses.length} />
+                        <StatBox label="Restarts" value={findings!.pod_statuses.reduce((s, p) => s + p.restart_count, 0)} color="text-amber-500" />
+                        <StatBox label="Healthy" value={findings!.pod_statuses.filter((p) => p.ready).length} color="text-green-500" />
+                        <StatBox label="Unhealthy" value={findings!.pod_statuses.filter((p) => !p.ready).length} color="text-red-500" />
+                      </div>
+                      <PodDetailsList pods={findings!.pod_statuses} />
+                    </>
                   )}
                   {(findings?.k8s_events?.length ?? 0) > 0 && (
                     <div className="space-y-1.5">
@@ -375,6 +408,21 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
               </section>
             )}
 
+            {/* 8c. Fix Pipeline */}
+            {sessionId && (
+              phase === 'diagnosis_complete' ||
+              phase === 'fix_in_progress' ||
+              phase === 'complete' ||
+              (findings?.fix_data && findings.fix_data.fix_status !== 'not_started')
+            ) && (
+              <FixPipelinePanel
+                sessionId={sessionId}
+                findings={findings}
+                phase={phase || null}
+                onRefresh={onRefresh || (() => {})}
+              />
+            )}
+
             {/* 9. Correlated anomalies */}
             {correlatedPatterns.length > 0 && (
               <section className="space-y-2">
@@ -391,6 +439,16 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
             {/* 10. Trace waterfall */}
             {(findings?.trace_spans?.length ?? 0) > 0 && (
               <TraceWaterfall spans={findings!.trace_spans} />
+            )}
+
+            {/* 10b. Event Markers */}
+            {(findings?.event_markers?.length ?? 0) > 0 && (
+              <EventMarkerTimeline markers={findings!.event_markers} />
+            )}
+
+            {/* 10c. Past Incidents */}
+            {(findings?.past_incidents?.length ?? 0) > 0 && (
+              <PastIncidentsSection incidents={findings!.past_incidents} />
             )}
 
             {/* 11. Incident Closure Panel */}
@@ -567,6 +625,17 @@ const BlastRadiusCard: React.FC<{ blast: BlastRadiusData | null; severity: Sever
             <div className="flex flex-wrap gap-1.5">
               {blast.shared_resources.map((res) => (
                 <span key={res} className="text-[10px] font-mono px-2 py-0.5 rounded bg-purple-500/15 text-purple-400 border border-purple-500/30">{res}</span>
+              ))}
+            </div>
+          )}
+          {severity?.factors && Object.keys(severity.factors).length > 0 && (
+            <div className="space-y-1 pt-1 border-t border-slate-800">
+              <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Severity Factors</span>
+              {Object.entries(severity.factors).map(([key, value]) => (
+                <div key={key} className="flex items-start gap-2 text-[10px]">
+                  <span className="text-slate-500 shrink-0">{key.replace(/_/g, ' ')}:</span>
+                  <span className="text-slate-400">{value}</span>
+                </div>
               ))}
             </div>
           )}
@@ -1057,6 +1126,7 @@ const FixRow: React.FC<{ fix: SuggestedFixArea }> = ({ fix }) => {
 // ─── Trace Waterfall ──────────────────────────────────────────────────────
 
 const TraceWaterfall: React.FC<{ spans: SpanInfo[] }> = ({ spans }) => {
+  const [expandedSpan, setExpandedSpan] = useState<number | null>(null);
   const totalDuration = Math.max(...spans.map((s) => s.duration_ms), 1);
   const errorCount = spans.filter((s) => s.status === 'error' || s.error).length;
 
@@ -1089,16 +1159,236 @@ const TraceWaterfall: React.FC<{ spans: SpanInfo[] }> = ({ spans }) => {
           const isError = span.status === 'error' || span.error;
           const barColor = isError ? 'bg-red-500' : 'bg-green-500';
           const depth = depthMap.get(span.span_id) || 0;
+          const isExpanded = expandedSpan === i;
+          const hasDetail = (isError && span.error_message) || (span.tags && Object.keys(span.tags).length > 0);
           return (
-            <div key={i} className="flex items-center gap-2 py-0.5" style={{ paddingLeft: `${depth * 16}px` }}>
-              <span className="text-[10px] font-mono text-[#07b6d5] w-20 shrink-0 truncate">{span.service}</span>
-              <span className="text-[10px] text-slate-400 w-28 shrink-0 truncate">{span.operation}</span>
-              <div className="flex-1 h-3 bg-slate-800/50 rounded overflow-hidden">
-                <div className={`h-full rounded ${barColor}`} style={{ width: `${widthPct}%` }} />
+            <div key={i}>
+              <button
+                onClick={() => hasDetail ? setExpandedSpan(isExpanded ? null : i) : undefined}
+                className={`flex items-center gap-2 py-0.5 w-full text-left ${hasDetail ? 'cursor-pointer hover:bg-slate-800/30 rounded' : 'cursor-default'}`}
+                style={{ paddingLeft: `${depth * 16}px` }}
+              >
+                <span className="text-[10px] font-mono text-[#07b6d5] w-20 shrink-0 truncate">{span.service}</span>
+                <span className="text-[10px] text-slate-400 w-28 shrink-0 truncate">{span.operation}</span>
+                <div className="flex-1 h-3 bg-slate-800/50 rounded overflow-hidden">
+                  <div className={`h-full rounded ${barColor}`} style={{ width: `${widthPct}%` }} />
+                </div>
+                <span className={`text-[10px] font-mono w-14 text-right shrink-0 ${isError ? 'text-red-400' : 'text-slate-400'}`}>
+                  {span.duration_ms.toFixed(0)}ms
+                </span>
+              </button>
+              {isExpanded && (
+                <div className="ml-6 mt-1 mb-2 bg-slate-800/30 rounded-lg border border-slate-700/30 p-2 space-y-1" style={{ marginLeft: `${depth * 16 + 24}px` }}>
+                  {span.error_message && (
+                    <p className="text-[10px] text-red-400 font-mono break-all">{span.error_message}</p>
+                  )}
+                  {span.tags && Object.keys(span.tags).length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {Object.entries(span.tags).map(([k, v]) => (
+                        <span key={k} className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-700/50 text-slate-400">
+                          {k}={v}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+// ─── Pod Details List (expandable per-pod view) ──────────────────────────
+
+const PodDetailsList: React.FC<{ pods: PodHealthStatus[] }> = ({ pods }) => {
+  const [expandedPod, setExpandedPod] = useState<string | null>(null);
+  const unhealthyPods = pods.filter((p) => !p.ready || p.oom_killed || p.crash_loop || p.restart_count > 0);
+  const displayPods = unhealthyPods.length > 0 ? unhealthyPods : pods.slice(0, 3);
+
+  if (displayPods.length === 0) return null;
+
+  return (
+    <div className="space-y-1 mb-2">
+      <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">
+        {unhealthyPods.length > 0 ? 'Unhealthy Pods' : 'Pod Details'}
+      </span>
+      {displayPods.map((pod) => {
+        const isExpanded = expandedPod === pod.pod_name;
+        return (
+          <div key={pod.pod_name} className="bg-slate-800/30 rounded-lg border border-slate-700/30 overflow-hidden">
+            <button
+              onClick={() => setExpandedPod(isExpanded ? null : pod.pod_name)}
+              className="w-full text-left px-2.5 py-1.5 flex items-center gap-2 hover:bg-slate-800/50 transition-colors"
+            >
+              <span className={`w-2 h-2 rounded-full shrink-0 ${pod.ready ? 'bg-green-500' : 'bg-red-500 animate-pulse'}`} />
+              <span className="text-[10px] font-mono text-slate-300 truncate flex-1">{pod.pod_name}</span>
+              {pod.oom_killed && <span className="text-[9px] px-1 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30">OOM</span>}
+              {pod.crash_loop && <span className="text-[9px] px-1 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30">CRASH</span>}
+              {pod.restart_count > 0 && <span className="text-[9px] text-amber-400 font-mono">{pod.restart_count}x</span>}
+              <span className={`material-symbols-outlined text-xs text-slate-600 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+                    style={{ fontFamily: 'Material Symbols Outlined' }}>chevron_right</span>
+            </button>
+            {isExpanded && (
+              <div className="px-2.5 pb-2 pt-1 border-t border-slate-700/30 space-y-1 text-[10px]">
+                <div className="flex gap-4 text-slate-500">
+                  <span>Status: <span className="text-slate-300">{pod.status}</span></span>
+                  {pod.namespace && <span>NS: <span className="text-slate-300">{pod.namespace}</span></span>}
+                  {pod.container_count !== undefined && (
+                    <span>Containers: <span className="text-slate-300">{pod.ready_containers ?? 0}/{pod.container_count}</span></span>
+                  )}
+                </div>
+                {pod.conditions && pod.conditions.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {pod.conditions.map((c, i) => (
+                      <span key={i} className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-700/50 text-slate-400">{c}</span>
+                    ))}
+                  </div>
+                )}
+                {pod.resource_requests && Object.keys(pod.resource_requests).length > 0 && (
+                  <div className="text-slate-500">
+                    Requests: {Object.entries(pod.resource_requests).map(([k, v]) => `${k}=${v}`).join(', ')}
+                  </div>
+                )}
+                {pod.resource_limits && Object.keys(pod.resource_limits).length > 0 && (
+                  <div className="text-slate-500">
+                    Limits: {Object.entries(pod.resource_limits).map(([k, v]) => `${k}=${v}`).join(', ')}
+                  </div>
+                )}
+                {(pod.init_container_failures?.length ?? 0) > 0 && (
+                  <div className="text-red-400">
+                    Init failures: {pod.init_container_failures!.join(', ')}
+                  </div>
+                )}
+                {(pod.image_pull_errors?.length ?? 0) > 0 && (
+                  <div className="text-red-400">
+                    Image errors: {pod.image_pull_errors!.join(', ')}
+                  </div>
+                )}
               </div>
-              <span className={`text-[10px] font-mono w-14 text-right shrink-0 ${isError ? 'text-red-400' : 'text-slate-400'}`}>
-                {span.duration_ms.toFixed(0)}ms
-              </span>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
+// ─── Event Marker Timeline ────────────────────────────────────────────────
+
+const severityMarkerColor: Record<string, string> = {
+  critical: 'bg-red-500',
+  high: 'bg-red-500',
+  medium: 'bg-amber-500',
+  low: 'bg-blue-500',
+  info: 'bg-slate-500',
+};
+
+const EventMarkerTimeline: React.FC<{ markers: EventMarker[] }> = ({ markers }) => {
+  if (markers.length === 0) return null;
+
+  const sorted = [...markers].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+
+  return (
+    <div className="bg-slate-900/40 border border-slate-800 rounded-xl overflow-hidden">
+      <div className="px-4 py-2 border-b border-slate-800 bg-slate-900/60 flex items-center gap-2">
+        <span className="material-symbols-outlined text-amber-400 text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>flag</span>
+        <span className="text-[11px] font-bold uppercase tracking-wider">Event Markers</span>
+        <span className="text-[10px] text-slate-500 ml-auto">{markers.length} events</span>
+      </div>
+      <div className="p-4 space-y-1.5">
+        {sorted.map((marker, i) => (
+          <div key={i} className="flex items-center gap-2 text-[11px]">
+            <span className={`w-2 h-2 rounded-full shrink-0 ${severityMarkerColor[marker.severity] || 'bg-slate-500'}`} />
+            <span className="text-[10px] font-mono text-slate-600 shrink-0">
+              {new Date(marker.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+            </span>
+            <span className="text-slate-300">{marker.label}</span>
+            <span className="text-[9px] text-slate-600 ml-auto shrink-0">{marker.source}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// ─── Past Incidents Section ───────────────────────────────────────────────
+
+const PastIncidentsSection: React.FC<{ incidents: PastIncidentMatch[] }> = ({ incidents }) => {
+  const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
+
+  return (
+    <div className="bg-slate-900/40 border border-slate-800 rounded-xl overflow-hidden">
+      <div className="px-4 py-2 border-b border-slate-800 bg-slate-900/60 flex items-center gap-2">
+        <span className="material-symbols-outlined text-violet-400 text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>history</span>
+        <span className="text-[11px] font-bold uppercase tracking-wider text-violet-400">Similar Past Incidents</span>
+        <span className="text-[10px] text-slate-500 ml-auto">{incidents.length} match{incidents.length !== 1 ? 'es' : ''}</span>
+      </div>
+      <div className="p-4 space-y-2">
+        {incidents.map((inc, i) => {
+          const isExpanded = expandedIdx === i;
+          const similarity = typeof inc.similarity_score === 'number'
+            ? Math.round(inc.similarity_score * 100)
+            : 0;
+          const simColor = similarity >= 80 ? 'text-red-400' : similarity >= 50 ? 'text-amber-400' : 'text-blue-400';
+
+          return (
+            <div key={inc.fingerprint_id || i} className="bg-slate-800/30 rounded-lg border border-slate-700/50 overflow-hidden">
+              <button
+                onClick={() => setExpandedIdx(isExpanded ? null : i)}
+                className="w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-slate-800/50 transition-colors"
+              >
+                <span className={`material-symbols-outlined text-xs text-slate-500 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+                      style={{ fontFamily: 'Material Symbols Outlined' }}>chevron_right</span>
+                <span className={`text-[10px] font-bold font-mono ${simColor}`}>{similarity}%</span>
+                <span className="text-[11px] text-slate-300 truncate flex-1">{inc.root_cause || 'Unknown root cause'}</span>
+                {inc.time_to_resolve > 0 && (
+                  <span className="text-[9px] text-slate-500 font-mono shrink-0">
+                    {inc.time_to_resolve < 3600
+                      ? `${Math.round(inc.time_to_resolve / 60)}m`
+                      : `${(inc.time_to_resolve / 3600).toFixed(1)}h`} to resolve
+                  </span>
+                )}
+              </button>
+              {isExpanded && (
+                <div className="px-3 pb-3 border-t border-slate-700/30 pt-2 space-y-2">
+                  {(inc.error_patterns?.length ?? 0) > 0 && (
+                    <div>
+                      <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Error Patterns</span>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {inc.error_patterns?.map((ep, j) => (
+                          <span key={j} className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-red-500/10 text-red-400 border border-red-500/20">{ep}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {(inc.affected_services?.length ?? 0) > 0 && (
+                    <div>
+                      <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Affected Services</span>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {inc.affected_services?.map((svc, j) => (
+                          <span key={j} className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-700/50 text-slate-300">{svc}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {(inc.resolution_steps?.length ?? 0) > 0 && (
+                    <div>
+                      <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Resolution Steps</span>
+                      <ol className="mt-1 space-y-0.5">
+                        {inc.resolution_steps?.map((step, j) => (
+                          <li key={j} className="text-[10px] text-slate-400 flex items-start gap-1.5">
+                            <span className="text-slate-600 shrink-0">{j + 1}.</span>
+                            <span>{step}</span>
+                          </li>
+                        ))}
+                      </ol>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           );
         })}

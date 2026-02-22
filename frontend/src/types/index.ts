@@ -99,6 +99,17 @@ export interface ErrorPattern {
   correlation_ids?: string[];
   sample_log_ids?: string[];
   causal_role?: 'root_cause' | 'cascading_failure' | 'correlated_anomaly';
+  sample_logs?: LogEvidence[];
+}
+
+export interface LogEvidence {
+  log_id: string;
+  index: string;
+  timestamp: string;
+  level: string;
+  message: string;
+  service?: string;
+  raw_line: string;
 }
 
 export interface MetricAnomaly {
@@ -151,6 +162,8 @@ export interface PodHealthStatus {
   ready_containers?: number;
   resource_requests?: Record<string, string>;
   resource_limits?: Record<string, string>;
+  last_termination_reason?: string;
+  last_restart_time?: string;
 }
 
 export interface K8sEvent {
@@ -219,12 +232,19 @@ export interface Finding {
   evidence: string[];
   suggested_fix?: string;
   critic_verdict?: CriticVerdict;
+  breadcrumbs?: Breadcrumb[];
+  negative_findings?: NegativeFinding[];
 }
 
 export interface NegativeFinding {
   agent: string;
   category: string;
   description: string;
+  agent_name?: string;
+  what_was_checked?: string;
+  result?: string;
+  implication?: string;
+  source_reference?: string;
 }
 
 export interface CriticVerdict {
@@ -237,6 +257,7 @@ export interface CriticVerdict {
   confidence_in_verdict: number;
   reasoning: string;
   recommendation?: string;
+  contradicting_evidence?: Breadcrumb[];
 }
 
 export interface Breadcrumb {

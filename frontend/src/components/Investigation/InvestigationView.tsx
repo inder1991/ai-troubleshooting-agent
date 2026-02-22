@@ -83,7 +83,7 @@ const InvestigationView: React.FC<InvestigationViewProps> = ({
 
         {/* Center: Evidence and Findings (NO TABS) */}
         <div className="col-span-5 overflow-hidden">
-          <EvidenceFindings findings={findings} status={sessionStatus} events={events} sessionId={session.session_id} phase={phase} />
+          <EvidenceFindings findings={findings} status={sessionStatus} events={events} sessionId={session.session_id} phase={phase} onRefresh={fetchSharedData} />
         </div>
 
         {/* Right: The Navigator */}
