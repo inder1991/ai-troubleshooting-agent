@@ -239,7 +239,9 @@ class ReActAgent(ABC):
             remaining_llm_calls = self.budget.max_llm_calls - self.budget.current_llm_calls
             remaining_budget_pct = 1.0 - (self.budget.current_tokens / self.budget.max_tokens) if self.budget.max_tokens > 0 else 1.0
 
-            if (remaining_iterations == 2 or remaining_llm_calls == 2 or remaining_budget_pct < 0.15):
+            # Only nudge if we've used at least 60% of iterations (avoids premature nudge on short agents)
+            used_pct = iteration / self.max_iterations if self.max_iterations > 0 else 0
+            if used_pct >= 0.6 and (remaining_iterations == 2 or remaining_llm_calls == 2 or remaining_budget_pct < 0.15):
                 if not getattr(self, '_wrap_up_nudge_sent', False):
                     self._wrap_up_nudge_sent = True
                     messages.append({
@@ -345,11 +347,15 @@ class ReActAgent(ABC):
 
                     self.budget.record_tool_call()
 
-                    # Track consecutive infrastructure failures for early exit
-                    result_lower = result.lower() if isinstance(result, str) else ""
-                    if any(pat in result_lower for pat in self._INFRA_ERROR_PATTERNS):
+                    # Track consecutive infrastructure failures for early exit.
+                    # Only check error results (from the except block above), NOT
+                    # successful tool results — source code files naturally contain
+                    # strings like "ConnectionError" that would false-positive here.
+                    result_str = result if isinstance(result, str) else ""
+                    is_tool_error = result_str.startswith("Error executing ")
+                    if is_tool_error and any(pat in result_str.lower() for pat in self._INFRA_ERROR_PATTERNS):
                         self._consecutive_infra_failures += 1
-                    else:
+                    elif not is_tool_error:
                         self._consecutive_infra_failures = 0
 
                     tool_results.append({
