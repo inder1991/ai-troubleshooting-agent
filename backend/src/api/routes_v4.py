@@ -298,6 +298,13 @@ async def get_findings(session_id: str):
             "impacted_files": [],
             "diff_analysis": [],
             "suggested_fix_areas": [],
+            "root_cause_location": None,
+            "code_call_chain": [],
+            "code_dependency_graph": {},
+            "code_shared_resource_conflicts": [],
+            "code_cross_repo_findings": [],
+            "code_mermaid_diagram": "",
+            "code_overall_confidence": 0,
             "change_correlations": [],
             "change_summary": None,
             "change_high_priority_files": [],
@@ -336,6 +343,22 @@ async def get_findings(session_id: str):
         diff_analysis = [da.model_dump(mode="json") for da in state.code_analysis.diff_analysis]
         suggested_fix_areas = [fa.model_dump(mode="json") for fa in state.code_analysis.suggested_fix_areas]
 
+    root_cause_location = None
+    code_call_chain = []
+    code_dependency_graph = {}
+    code_shared_resource_conflicts = []
+    code_cross_repo_findings = []
+    code_mermaid_diagram = ""
+    code_overall_confidence = 0
+    if state.code_analysis:
+        root_cause_location = state.code_analysis.root_cause_location.model_dump(mode="json")
+        code_call_chain = state.code_analysis.call_chain
+        code_dependency_graph = state.code_analysis.dependency_graph
+        code_shared_resource_conflicts = state.code_analysis.shared_resource_conflicts
+        code_cross_repo_findings = state.code_analysis.cross_repo_findings
+        code_mermaid_diagram = state.code_analysis.mermaid_diagram
+        code_overall_confidence = state.code_analysis.overall_confidence
+
     # Extract time series data capped at 30 points per metric
     ts_data_raw = {}
     if state.metrics_analysis and state.metrics_analysis.time_series_data:
@@ -359,6 +382,13 @@ async def get_findings(session_id: str):
         "impacted_files": [ci.model_dump(mode="json") for ci in impacted_files],
         "diff_analysis": diff_analysis,
         "suggested_fix_areas": suggested_fix_areas,
+        "root_cause_location": root_cause_location,
+        "code_call_chain": code_call_chain,
+        "code_dependency_graph": code_dependency_graph,
+        "code_shared_resource_conflicts": code_shared_resource_conflicts,
+        "code_cross_repo_findings": code_cross_repo_findings,
+        "code_mermaid_diagram": code_mermaid_diagram,
+        "code_overall_confidence": code_overall_confidence,
         "change_correlations": state.change_analysis.get("change_correlations", []) if state.change_analysis else [],
         "change_summary": state.change_analysis.get("summary") if state.change_analysis else None,
         "change_high_priority_files": state.change_analysis.get("high_priority_files", []) if state.change_analysis else [],

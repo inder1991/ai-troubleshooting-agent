@@ -4,6 +4,7 @@ import type {
   CriticVerdict, ChangeCorrelation, BlastRadiusData, SeverityData,
   SpanInfo, ServiceFlowStep, PatientZero, MetricAnomaly, DiagnosticPhase,
   DiffAnalysisItem, SuggestedFixArea, NegativeFinding, HighPriorityFile,
+  CrossRepoFinding,
 } from '../../types';
 import AgentFindingCard from './cards/AgentFindingCard';
 import CausalRoleBadge from './cards/CausalRoleBadge';
@@ -58,6 +59,8 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
     (findings?.findings?.length ?? 0) > 0 ||
     (findings?.metric_anomalies?.length ?? 0) > 0 ||
     (findings?.service_flow?.length ?? 0) > 0 ||
+    !!findings?.root_cause_location ||
+    (findings?.code_call_chain?.length ?? 0) > 0 ||
     events.length > 0;
 
   return (
@@ -243,6 +246,135 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
             {/* 8. Unified Causality Chain */}
             <CausalityChainCard findings={findings} />
 
+            {/* 8b. Code Navigator Section */}
+            {((findings?.code_overall_confidence ?? 0) > 0 || findings?.root_cause_location || (findings?.code_call_chain?.length ?? 0) > 0) && (
+              <section className="space-y-3">
+                {/* Section header with confidence badge */}
+                {(findings?.code_overall_confidence ?? 0) > 0 && (
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold bg-blue-500 text-white">D</span>
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Code Navigator</span>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                      findings!.code_overall_confidence >= 80 ? 'text-green-400 bg-green-500/10 border border-green-500/20' :
+                      findings!.code_overall_confidence >= 50 ? 'text-amber-400 bg-amber-500/10 border border-amber-500/20' :
+                      'text-blue-400 bg-blue-500/10 border border-blue-500/20'
+                    }`}>
+                      {findings!.code_overall_confidence}% confidence
+                    </span>
+                  </div>
+                )}
+
+                {/* Root Cause Location */}
+                {findings?.root_cause_location && (
+                  <AgentFindingCard agent="D" title="Root Cause Location">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${
+                          findings.root_cause_location.fix_relevance === 'must_fix'
+                            ? 'text-red-300 bg-red-500/20 border-red-500/30'
+                            : 'text-amber-300 bg-amber-500/20 border-amber-500/30'
+                        }`}>{findings.root_cause_location.fix_relevance.replace(/_/g, ' ').toUpperCase()}</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-700/50 text-slate-300 font-mono">
+                          {findings.root_cause_location.impact_type.replace(/_/g, ' ')}
+                        </span>
+                      </div>
+                      <div className="font-mono text-[11px] text-blue-400">{findings.root_cause_location.file_path}</div>
+                      {findings.root_cause_location.relevant_lines?.length > 0 && (
+                        <div className="text-[10px] text-slate-500">
+                          Lines: {findings.root_cause_location.relevant_lines.map(r => `${r.start}-${r.end}`).join(', ')}
+                        </div>
+                      )}
+                      <p className="text-[10px] text-slate-400">{findings.root_cause_location.relationship}</p>
+                      {findings.root_cause_location.code_snippet && (
+                        <pre className="text-[10px] font-mono bg-slate-900/60 rounded p-2 text-green-400 overflow-x-auto whitespace-pre-wrap max-h-[200px] overflow-y-auto">
+                          {findings.root_cause_location.code_snippet}
+                        </pre>
+                      )}
+                    </div>
+                  </AgentFindingCard>
+                )}
+
+                {/* Code Call Chain */}
+                {(findings?.code_call_chain?.length ?? 0) > 0 && (
+                  <AgentFindingCard agent="D" title="Code Call Chain">
+                    <div className="space-y-1">
+                      {findings!.code_call_chain.map((step, i) => (
+                        <div key={i} className="flex items-center gap-2">
+                          <div className="flex flex-col items-center w-4">
+                            <div className="w-2 h-2 rounded-full bg-blue-500" />
+                            {i < findings!.code_call_chain.length - 1 && (
+                              <div className="w-px h-4 bg-slate-700" />
+                            )}
+                          </div>
+                          <span className="text-[11px] font-mono text-slate-300">{step}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </AgentFindingCard>
+                )}
+
+                {/* Impacted Files */}
+                {(findings?.impacted_files?.length ?? 0) > 0 && (
+                  <AgentFindingCard agent="D" title={`Impacted Files (${findings!.impacted_files.length})`}>
+                    <div className="space-y-1.5">
+                      {findings!.impacted_files.map((file, i) => (
+                        <div key={i} className="flex items-center gap-2 text-[10px]">
+                          <span className={`px-1 py-0.5 rounded border text-[9px] font-bold ${
+                            file.fix_relevance === 'must_fix' ? 'text-red-300 bg-red-500/20 border-red-500/30' :
+                            file.fix_relevance === 'should_review' ? 'text-amber-300 bg-amber-500/20 border-amber-500/30' :
+                            'text-slate-400 bg-slate-500/20 border-slate-500/30'
+                          }`}>{file.fix_relevance.replace(/_/g, ' ').toUpperCase()}</span>
+                          <span className="font-mono text-blue-400 truncate">{file.file_path}</span>
+                          <span className="text-slate-500 ml-auto shrink-0">{file.impact_type.replace(/_/g, ' ')}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </AgentFindingCard>
+                )}
+
+                {/* Shared Resource Conflicts */}
+                {(findings?.code_shared_resource_conflicts?.length ?? 0) > 0 && (
+                  <AgentFindingCard agent="D" title="Shared Resource Conflicts">
+                    <div className="flex flex-wrap gap-2">
+                      {findings!.code_shared_resource_conflicts.map((conflict, i) => (
+                        <span key={i} className="text-[10px] font-mono px-2.5 py-1 rounded-full bg-purple-500/15 text-purple-400 border border-purple-500/30">
+                          {conflict}
+                        </span>
+                      ))}
+                    </div>
+                  </AgentFindingCard>
+                )}
+
+                {/* Cross-Repo Findings */}
+                {(findings?.code_cross_repo_findings?.length ?? 0) > 0 && (
+                  <AgentFindingCard agent="D" title="Cross-Repo Findings">
+                    <div className="space-y-2">
+                      {findings!.code_cross_repo_findings.map((crf: CrossRepoFinding, i: number) => (
+                        <div key={i} className="bg-slate-800/30 rounded-lg border border-slate-700/50 px-3 py-2">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-[11px] font-mono text-violet-400">{crf.repo}</span>
+                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-400 border border-violet-500/20 font-bold uppercase">
+                              {(crf.role || '').replace(/_/g, ' ')}
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-slate-400">{crf.evidence}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </AgentFindingCard>
+                )}
+
+                {/* Mermaid Diagram */}
+                {findings?.code_mermaid_diagram && (
+                  <AgentFindingCard agent="D" title="Service Flow Diagram">
+                    <pre className="text-[10px] font-mono bg-slate-900/60 rounded p-3 text-slate-300 overflow-x-auto whitespace-pre-wrap max-h-[250px] overflow-y-auto">
+                      {findings.code_mermaid_diagram}
+                    </pre>
+                  </AgentFindingCard>
+                )}
+              </section>
+            )}
+
             {/* 9. Correlated anomalies */}
             {correlatedPatterns.length > 0 && (
               <section className="space-y-2">
@@ -310,13 +442,13 @@ function severityRank(s: Severity): number {
   return ranks[s] ?? 4;
 }
 
-function getAgentCode(name: string): 'L' | 'M' | 'K' | 'C' {
+function getAgentCode(name: string): 'L' | 'M' | 'K' | 'C' | 'D' {
   if (name.includes('log')) return 'L';
   if (name.includes('metric')) return 'M';
   if (name.includes('k8s')) return 'K';
+  if (name.includes('code')) return 'D';
   if (name.includes('change')) return 'C';
   if (name.includes('trac')) return 'L';
-  if (name.includes('code')) return 'K';
   return 'C';
 }
 

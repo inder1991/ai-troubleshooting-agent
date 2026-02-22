@@ -319,6 +319,13 @@ export interface V4Findings {
   impacted_files: CodeImpact[];
   diff_analysis: DiffAnalysisItem[];
   suggested_fix_areas: SuggestedFixArea[];
+  root_cause_location: CodeImpact | null;
+  code_call_chain: string[];
+  code_dependency_graph: Record<string, string[]>;
+  code_shared_resource_conflicts: string[];
+  code_cross_repo_findings: CrossRepoFinding[];
+  code_mermaid_diagram: string;
+  code_overall_confidence: number;
   change_correlations: ChangeCorrelation[];
   change_summary: string | null;
   change_high_priority_files: HighPriorityFile[];
@@ -413,6 +420,12 @@ export interface SuggestedFixArea {
   file_path: string;
   description: string;
   suggested_change: string;
+}
+
+export interface CrossRepoFinding {
+  repo: string;
+  role: string;
+  evidence: string;
 }
 
 export interface StartSessionRequest {
