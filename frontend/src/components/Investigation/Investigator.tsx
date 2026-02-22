@@ -391,6 +391,9 @@ const EventNode: React.FC<{ event: TaskEvent; breadcrumbs?: Breadcrumb[] }> = ({
             <span className="font-bold uppercase text-[#07b6d5]">{event.agent_name.replace(/_/g, ' ')}</span>
             <span className={`ml-auto font-mono font-bold ${confidence >= 70 ? 'text-green-400' : confidence >= 40 ? 'text-amber-400' : 'text-red-400'}`}>{confidence}%</span>
           </div>
+          {event.message && (
+            <p className="text-[11px] text-slate-300 mt-1.5">{event.message}</p>
+          )}
           {/* Evidence Trail: breadcrumbs for this agent */}
           {breadcrumbs && breadcrumbs.length > 0 && (
             <EvidenceTrail breadcrumbs={breadcrumbs} agentName={event.agent_name} />
