@@ -28,6 +28,7 @@ def _init_stores():
     """Initialize database tables and seed defaults on startup."""
     from src.integrations.profile_store import ProfileStore, GlobalIntegrationStore
     from src.integrations.audit_store import AuditLogger
+    from src.integrations.credential_resolver import get_credential_resolver
 
     profile_store = ProfileStore()
     profile_store._ensure_tables()
@@ -38,6 +39,23 @@ def _init_stores():
 
     audit = AuditLogger()
     audit._ensure_tables()
+
+    # Validate that existing credentials can be decrypted
+    resolver = get_credential_resolver()
+    stale = []
+    for gi in gi_store.list_all():
+        if gi.auth_credential_handle:
+            try:
+                resolver.resolve(gi.id, "credential", gi.auth_credential_handle)
+            except Exception:
+                stale.append(gi.name)
+    if stale:
+        logger.warning(
+            "ENCRYPTION KEY MISMATCH: Cannot decrypt credentials for: %s. "
+            "These were saved with a different encryption key. "
+            "Please re-save them in Settings > Integrations.",
+            ", ".join(stale),
+        )
 
     logger.info("Database tables initialized and defaults seeded")
 

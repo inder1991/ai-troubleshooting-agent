@@ -99,7 +99,7 @@ def resolve_active_profile(profile_id: Optional[str] = None) -> ResolvedConnecti
                 profile.id, "cluster_token", profile.auth_credential_handle
             )
         except Exception as e:
-            logger.warning("Failed to decrypt cluster token: %s", e)
+            logger.warning("Failed to decrypt cluster token: %s: %s", type(e).__name__, e)
 
     # Decrypt endpoint credentials
     prom_url = ""
@@ -147,7 +147,7 @@ def resolve_active_profile(profile_id: Optional[str] = None) -> ResolvedConnecti
             try:
                 elk_creds = resolver.resolve(elk.id, "credential", elk.auth_credential_handle)
             except Exception as e:
-                logger.warning("Failed to decrypt ELK credentials: %s (handle=%s)", e, elk.auth_credential_handle)
+                logger.warning("Failed to decrypt ELK credentials: %s: %s", type(e).__name__, e)
 
     jira_url = ""
     jira_creds = ""
@@ -194,7 +194,7 @@ def resolve_active_profile(profile_id: Optional[str] = None) -> ResolvedConnecti
                 github_token = resolver.resolve(github.id, "credential", github.auth_credential_handle)
                 logger.info("GitHub token decrypted: length=%d", len(github_token))
             except Exception as e:
-                logger.warning("Failed to decrypt GitHub token: %s", e)
+                logger.warning("Failed to decrypt GitHub token: %s: %s", type(e).__name__, e)
         else:
             logger.warning("GitHub integration has no auth_credential_handle")
     else:
@@ -276,7 +276,7 @@ def _config_from_env() -> ResolvedConnectionConfig:
         try:
             github_token = resolver.resolve(github.id, "credential", github.auth_credential_handle)
         except Exception as e:
-            logger.warning("Failed to decrypt GitHub token: %s", e)
+            logger.warning("Failed to decrypt GitHub token: %s: %s", type(e).__name__, e)
     if not github_token:
         github_token = os.getenv("GITHUB_TOKEN", "")
 

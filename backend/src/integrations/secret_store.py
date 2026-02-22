@@ -40,24 +40,69 @@ class SecretStore(ABC):
 class FernetSecretStore(SecretStore):
     """Fernet-based local encryption store.
 
-    Master key sourced from DEBUGDUCK_MASTER_KEY env var.
-    Auto-generates a key in dev if unset (with warning).
+    Key resolution order:
+    1. Explicit master_key argument
+    2. DEBUGDUCK_MASTER_KEY environment variable
+    3. Persisted dev key from data/.fernet_dev_key (survives restarts)
+    4. Auto-generate new dev key and persist it
     """
 
+    _DEV_KEY_PATH = os.path.join("data", ".fernet_dev_key")
+
     def __init__(self, master_key: Optional[str] = None):
-        key = master_key or os.environ.get("DEBUGDUCK_MASTER_KEY")
-        if not key:
-            key = Fernet.generate_key().decode()
+        env_key = master_key or os.environ.get("DEBUGDUCK_MASTER_KEY")
+        dev_key = self._load_dev_key()
+
+        if env_key:
+            key = env_key
+            self._is_env_key = True
+            # Keep dev key fernet for migration if credentials were saved with it
+            self._dev_fernet = Fernet(dev_key.encode()) if dev_key and dev_key != env_key else None
+        elif dev_key:
+            key = dev_key
+            self._is_env_key = False
+            self._dev_fernet = None
             logger.warning(
-                "DEBUGDUCK_MASTER_KEY not set. Auto-generated dev key. "
-                "DO NOT use in production."
+                "DEBUGDUCK_MASTER_KEY not set. Using persisted dev key from %s. "
+                "DO NOT use in production.", self._DEV_KEY_PATH,
             )
-        # Ensure the key is bytes
+        else:
+            key = Fernet.generate_key().decode()
+            self._persist_dev_key(key)
+            self._is_env_key = False
+            self._dev_fernet = None
+            logger.warning(
+                "DEBUGDUCK_MASTER_KEY not set. Generated and persisted dev key at %s. "
+                "DO NOT use in production.", self._DEV_KEY_PATH,
+            )
+
         if isinstance(key, str):
             key_bytes = key.encode()
         else:
             key_bytes = key
         self._fernet = Fernet(key_bytes)
+
+    @classmethod
+    def _load_dev_key(cls) -> Optional[str]:
+        """Load persisted dev key if it exists."""
+        try:
+            if os.path.isfile(cls._DEV_KEY_PATH):
+                with open(cls._DEV_KEY_PATH, "r") as f:
+                    return f.read().strip()
+        except Exception:
+            pass
+        return None
+
+    @classmethod
+    def _persist_dev_key(cls, key: str) -> None:
+        """Persist auto-generated dev key so it survives restarts."""
+        try:
+            os.makedirs(os.path.dirname(cls._DEV_KEY_PATH), exist_ok=True)
+            with open(cls._DEV_KEY_PATH, "w") as f:
+                f.write(key)
+            logger.info("Dev encryption key persisted to %s", cls._DEV_KEY_PATH)
+        except Exception as e:
+            logger.error("Failed to persist dev key: %s", e)
 
     def store_secret(self, integration_id: str, key: str, value: str) -> str:
         encrypted = self._fernet.encrypt(value.encode())
@@ -65,21 +110,47 @@ class FernetSecretStore(SecretStore):
         return f"fernet://{integration_id}/{key}/{handle}"
 
     def retrieve_secret(self, integration_id: str, key: str, handle: str) -> str:
-        # Extract the encrypted payload from the handle
         prefix = f"fernet://{integration_id}/{key}/"
         if handle.startswith(prefix):
             encoded = handle[len(prefix):]
         else:
             encoded = handle
         encrypted = base64.urlsafe_b64decode(encoded.encode())
-        return self._fernet.decrypt(encrypted).decode()
+
+        # Try primary key first
+        try:
+            return self._fernet.decrypt(encrypted).decode()
+        except Exception:
+            pass
+
+        # If env key is set and a dev key exists, try the old dev key
+        if self._dev_fernet:
+            try:
+                plaintext = self._dev_fernet.decrypt(encrypted).decode()
+                logger.info(
+                    "Decrypted %s/%s with old dev key — re-encrypting with DEBUGDUCK_MASTER_KEY",
+                    integration_id, key,
+                )
+                return plaintext
+            except Exception:
+                pass
+
+        raise DecryptionError(
+            f"Cannot decrypt credential for {integration_id}/{key}. "
+            f"The encryption key has changed since this credential was saved. "
+            f"Please re-save the credential in Settings > Integrations."
+        )
 
     def delete_secret(self, integration_id: str, key: str) -> None:
-        # Fernet is stateless - deletion is a no-op (handle becomes invalid)
         pass
 
     def rotate_secret(self, integration_id: str, key: str, new_value: str) -> str:
         return self.store_secret(integration_id, key, new_value)
+
+
+class DecryptionError(Exception):
+    """Raised when a credential cannot be decrypted (key mismatch)."""
+    pass
 
 
 class K8sSecretStore(SecretStore):
