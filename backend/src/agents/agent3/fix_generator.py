@@ -23,6 +23,9 @@ from .stagers import PRStager
 from src.utils.llm_client import AnthropicClient
 from src.utils.event_emitter import EventEmitter
 from src.models.schemas import DiagnosticState
+from src.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class Agent3FixGenerator:
@@ -67,11 +70,11 @@ class Agent3FixGenerator:
 
         # Initialize components
         self.validator = StaticValidator(repo_path)
-        self.reviewer = CrossAgentReviewer(agent2_module)
+        self.reviewer = CrossAgentReviewer(agent2_module, llm_client=llm_client)
         self.assessor = ImpactAssessor(llm_client)
         self.stager = PRStager(repo_path)
 
-        print(f"Agent 3 initialized (repo: {repo_path})")
+        logger.info(f"Agent 3 initialized (repo: {repo_path})")
 
     # =========================================================================
     # PHASE 1: VERIFICATION (Automatic)
@@ -101,9 +104,9 @@ class Agent3FixGenerator:
         """
         session_id = state.session_id
 
-        print("\n" + "=" * 80)
-        print("AGENT 3: PHASE 1 - VERIFICATION")
-        print("=" * 80)
+        logger.info("\n" + "=" * 80)
+        logger.info("AGENT 3: PHASE 1 - VERIFICATION")
+        logger.info("=" * 80)
 
         # Extract file path from code analysis in state
         file_path = ""
@@ -122,7 +125,7 @@ class Agent3FixGenerator:
 
         # Self-correct if validation fails
         if not validation_result["passed"]:
-            print("\nValidation failed, attempting self-correction...")
+            logger.info("\nValidation failed, attempting self-correction...")
             generated_fix = await self._self_correct(generated_fix, validation_result)
             validation_result = self.validator.validate_all(file_path, generated_fix)
 
@@ -132,7 +135,7 @@ class Agent3FixGenerator:
 
         original_code = self._read_original_file(file_path)
 
-        agent2_review = self.reviewer.request_review(
+        agent2_review = await self.reviewer.request_review(
             original_code, generated_fix, agent2_analysis
         )
 
@@ -193,15 +196,166 @@ class Agent3FixGenerator:
             f"Verification complete. Branch: {branch_name}",
         )
 
-        print(f"\nPHASE 1 COMPLETE")
-        print(f"   Branch: {branch_name}")
-        print(f"   Commit: {commit_sha[:7]}")
-        print(f"   Validation: {'Passed' if validation_result['passed'] else 'Issues'}")
-        print(f"   Confidence: {agent2_review['confidence']:.0%}")
-        print(f"   Awaiting user approval...")
-        print("=" * 80 + "\n")
+        logger.info(f"\nPHASE 1 COMPLETE")
+        logger.info(f"   Branch: {branch_name}")
+        logger.info(f"   Commit: {commit_sha[:7]}")
+        logger.info(f"   Validation: {'Passed' if validation_result['passed'] else 'Issues'}")
+        logger.info(f"   Confidence: {agent2_review['confidence']:.0%}")
+        logger.info(f"   Awaiting user approval...")
+        logger.info("=" * 80 + "\n")
 
         return pr_data
+
+    # =========================================================================
+    # FULL-CONTEXT FIX GENERATION
+    # =========================================================================
+
+    async def generate_fix(
+        self,
+        state: DiagnosticState,
+        human_guidance: str = "",
+        event_emitter: Optional[EventEmitter] = None,
+    ) -> str:
+        """
+        Generate a fix using the full DiagnosticState from all agents.
+
+        Builds a comprehensive LLM prompt from log, metrics, k8s, trace,
+        code, and change analysis. Returns the fixed code string.
+        """
+        emitter = event_emitter or self.event_emitter
+
+        # Determine target file
+        target_file = ""
+        if state.code_analysis and state.code_analysis.root_cause_location:
+            target_file = state.code_analysis.root_cause_location.file_path
+
+        if not target_file:
+            raise ValueError("No target file identified in code analysis")
+
+        # Read original code from disk
+        original_code = self._read_original_file(target_file)
+
+        # Build comprehensive prompt from all agent findings
+        evidence_parts = []
+
+        # 1. Log analysis
+        if state.log_analysis:
+            p = state.log_analysis.primary_pattern
+            evidence_parts.append(
+                f"## Log Analysis\n"
+                f"- Exception: {p.exception_type}\n"
+                f"- Error: {p.error_message}\n"
+                f"- Severity: {p.severity}\n"
+                f"- Affected: {', '.join(p.affected_components)}"
+            )
+            if p.stack_traces:
+                evidence_parts.append(f"- Stack trace:\n{p.stack_traces[0][:1000]}")
+
+        # 2. Metrics analysis
+        if state.metrics_analysis and state.metrics_analysis.anomalies:
+            lines = ["## Metrics Analysis"]
+            for a in state.metrics_analysis.anomalies[:5]:
+                lines.append(f"- {a.metric_name}: peak={a.peak_value} baseline={a.baseline_value} ({a.severity})")
+                lines.append(f"  Correlation: {a.correlation_to_incident}")
+            evidence_parts.append("\n".join(lines))
+
+        # 3. K8s analysis
+        if state.k8s_analysis:
+            lines = ["## K8s Analysis"]
+            if state.k8s_analysis.is_crashloop:
+                lines.append(f"- CrashLoopBackOff detected, {state.k8s_analysis.total_restarts_last_hour} restarts")
+            for p in state.k8s_analysis.pod_statuses:
+                if p.oom_killed:
+                    lines.append(f"- Pod {p.pod_name} OOMKilled")
+            evidence_parts.append("\n".join(lines))
+
+        # 4. Trace analysis
+        if state.trace_analysis:
+            lines = ["## Trace Analysis"]
+            if state.trace_analysis.failure_point:
+                fp = state.trace_analysis.failure_point
+                lines.append(f"- Failure: {fp.service_name}:{fp.operation_name} — {fp.error_message}")
+            if state.trace_analysis.cascade_path:
+                lines.append(f"- Cascade: {' → '.join(state.trace_analysis.cascade_path)}")
+            evidence_parts.append("\n".join(lines))
+
+        # 5. Code analysis
+        if state.code_analysis:
+            ca = state.code_analysis
+            lines = ["## Code Analysis"]
+            lines.append(f"- Root cause: {ca.root_cause_location.file_path}")
+            lines.append(f"- Call chain: {' → '.join(ca.call_chain[:5])}")
+            for fa in ca.suggested_fix_areas:
+                lines.append(f"- Fix area: {fa.file_path} — {fa.description}")
+                lines.append(f"  Suggestion: {fa.suggested_change}")
+            if ca.diff_analysis:
+                for da in ca.diff_analysis[:3]:
+                    if da.verdict != "unrelated":
+                        lines.append(f"- Diff ({da.verdict}): {da.file} — {da.reasoning}")
+            evidence_parts.append("\n".join(lines))
+
+        # 6. Change analysis
+        if state.change_analysis:
+            correlations = state.change_analysis.get("change_correlations", [])
+            if correlations:
+                lines = ["## Change Analysis"]
+                for corr in correlations[:3]:
+                    lines.append(f"- {corr.get('description', 'unknown')[:100]} (risk: {corr.get('risk_score', 'N/A')})")
+                evidence_parts.append("\n".join(lines))
+
+        # 7. Human guidance
+        if human_guidance:
+            evidence_parts.append(f"## Human Guidance\n{human_guidance}")
+
+        # 8. Prior feedback (for regeneration loops)
+        if state.fix_result and state.fix_result.human_feedback:
+            evidence_parts.append(
+                "## Prior Human Feedback\n" +
+                "\n".join(f"- {fb}" for fb in state.fix_result.human_feedback)
+            )
+
+        evidence_text = "\n\n".join(evidence_parts)
+
+        system_prompt = (
+            "You are an expert SRE generating production-ready code fixes. "
+            "Given a comprehensive incident analysis and recommendations from 6 diagnostic agents, "
+            "generate the complete fixed file. Output ONLY the complete fixed source code — "
+            "no markdown fences, no explanations, no comments about what changed."
+        )
+
+        user_prompt = (
+            f"## Target File: {target_file}\n\n"
+            f"## Original Code\n{original_code}\n\n"
+            f"## Diagnostic Evidence\n{evidence_text}\n\n"
+            f"Generate the complete fixed file:"
+        )
+
+        if emitter:
+            await emitter.emit(
+                agent_name=self.AGENT_NAME,
+                event_type="progress",
+                message=f"Generating fix for {target_file}",
+                details={"stage": "generating"},
+            )
+
+        response = await self.llm_client.chat(
+            prompt=user_prompt,
+            system=system_prompt,
+            max_tokens=8192,
+        )
+
+        fixed_code = response.text
+
+        # Strip markdown fences if present
+        if "```python" in fixed_code:
+            fixed_code = fixed_code.split("```python")[1].split("```")[0]
+        elif "```" in fixed_code:
+            parts = fixed_code.split("```")
+            if len(parts) >= 3:
+                fixed_code = parts[1]
+
+        logger.info("Fix generated for %s (%d chars)", target_file, len(fixed_code.strip()))
+        return fixed_code.strip()
 
     # =========================================================================
     # PHASE 2: ACTION (On-Demand)
@@ -226,9 +380,9 @@ class Agent3FixGenerator:
         Returns:
             {"html_url": str, "number": int}
         """
-        print("\n" + "=" * 80)
-        print("AGENT 3: PHASE 2 - ACTION")
-        print("=" * 80)
+        logger.info("\n" + "=" * 80)
+        logger.info("AGENT 3: PHASE 2 - ACTION")
+        logger.info("=" * 80)
 
         await self._emit_progress("pushing", "Pushing branch to GitHub...")
 
@@ -241,9 +395,9 @@ class Agent3FixGenerator:
             branch_name, pr_data["pr_title"], pr_data["pr_body"], github_token
         )
 
-        print(f"\nPHASE 2 COMPLETE")
-        print(f"   PR #{pr_result['number']}: {pr_result['html_url']}")
-        print("=" * 80 + "\n")
+        logger.info(f"\nPHASE 2 COMPLETE")
+        logger.info(f"   PR #{pr_result['number']}: {pr_result['html_url']}")
+        logger.info("=" * 80 + "\n")
 
         return pr_result
 
@@ -402,7 +556,7 @@ class Agent3FixGenerator:
         """
         Attempt to auto-correct validation issues using AnthropicClient.
         """
-        print("\nSelf-correcting validation issues...")
+        logger.info("\nSelf-correcting validation issues...")
 
         errors = []
         if not validation["syntax"]["valid"]:
@@ -435,7 +589,7 @@ class Agent3FixGenerator:
         elif "```" in corrected:
             corrected = corrected.split("```")[1].split("```")[0]
 
-        print("   Self-correction attempted")
+        logger.info("   Self-correction attempted")
         return corrected.strip()
 
     async def _emit_progress(self, stage: str, message: str) -> None:

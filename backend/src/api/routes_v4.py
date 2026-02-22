@@ -7,7 +7,8 @@ from pydantic import BaseModel
 from typing import Dict, Any, Optional
 
 from src.api.models import (
-    ChatRequest, ChatResponse, StartSessionRequest, StartSessionResponse, SessionSummary
+    ChatRequest, ChatResponse, StartSessionRequest, StartSessionResponse, SessionSummary,
+    FixRequest, FixStatusResponse, FixDecisionRequest,
 )
 from src.agents.supervisor import SupervisorAgent
 from src.utils.event_emitter import EventEmitter
@@ -311,6 +312,7 @@ async def get_findings(session_id: str):
             "reasoning_chain": [],
             "suggested_promql_queries": [],
             "time_series_data": {},
+            "fix_data": None,
             "message": "Analysis not yet complete",
         }
 
@@ -370,6 +372,7 @@ async def get_findings(session_id: str):
         "reasoning_chain": state.reasoning_chain,
         "suggested_promql_queries": state.suggested_promql_queries,
         "time_series_data": ts_data_raw,
+        "fix_data": state.fix_result.model_dump(mode="json") if state.fix_result else None,
     }
 
 
@@ -423,6 +426,96 @@ async def proxy_promql_query(request: PromQLRequest):
     except Exception as e:
         logger.warning("PromQL proxy error: %s", e)
         return {"data_points": [], "current_value": 0, "error": str(e)}
+
+
+# ── Fix Pipeline Endpoints ────────────────────────────────────────────
+
+
+@router_v4.post("/session/{session_id}/fix/generate")
+async def generate_fix(session_id: str, request: FixRequest, background_tasks: BackgroundTasks):
+    """Start fix generation for a completed diagnosis."""
+    if session_id not in sessions:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    state = sessions[session_id].get("state")
+    supervisor = supervisors.get(session_id)
+    emitter = sessions[session_id].get("emitter")
+
+    if not state or not supervisor or not emitter:
+        raise HTTPException(status_code=400, detail="Session not ready")
+
+    from src.models.schemas import DiagnosticPhase, FixStatus
+    if state.phase != DiagnosticPhase.DIAGNOSIS_COMPLETE and state.phase != DiagnosticPhase.FIX_IN_PROGRESS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Fix generation requires DIAGNOSIS_COMPLETE phase, current: {state.phase.value}",
+        )
+
+    # Guard against parallel fix generation
+    if state.fix_result and state.fix_result.fix_status in (
+        FixStatus.GENERATING, FixStatus.VERIFICATION_IN_PROGRESS, FixStatus.AWAITING_REVIEW,
+    ):
+        raise HTTPException(
+            status_code=409,
+            detail=f"Fix generation already in progress (status: {state.fix_result.fix_status.value})",
+        )
+
+    background_tasks.add_task(
+        supervisor.start_fix_generation, state, emitter, request.guidance,
+    )
+
+    return {"status": "started"}
+
+
+@router_v4.get("/session/{session_id}/fix/status", response_model=FixStatusResponse)
+async def get_fix_status(session_id: str):
+    """Get current fix generation status."""
+    if session_id not in sessions:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    state = sessions[session_id].get("state")
+    if not state or not state.fix_result:
+        return FixStatusResponse(fix_status="not_started")
+
+    fr = state.fix_result
+    return FixStatusResponse(
+        fix_status=fr.fix_status.value if hasattr(fr.fix_status, 'value') else str(fr.fix_status),
+        target_file=fr.target_file,
+        diff=fr.diff,
+        fix_explanation=fr.fix_explanation,
+        verification_result=fr.verification_result,
+        pr_url=fr.pr_url,
+        pr_number=fr.pr_number,
+        attempt_count=fr.attempt_count,
+    )
+
+
+@router_v4.post("/session/{session_id}/fix/decide")
+async def fix_decide(session_id: str, request: FixDecisionRequest):
+    """Submit a fix decision (approve/reject/feedback)."""
+    if session_id not in sessions:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    supervisor = supervisors.get(session_id)
+    state = sessions[session_id].get("state")
+
+    if not supervisor or not state:
+        raise HTTPException(status_code=400, detail="Session not ready")
+
+    if not request.decision or not request.decision.strip():
+        raise HTTPException(status_code=400, detail="Decision cannot be empty")
+
+    # Verify fix is actually awaiting review
+    from src.models.schemas import FixStatus
+    if not state.fix_result or state.fix_result.fix_status != FixStatus.AWAITING_REVIEW:
+        current = state.fix_result.fix_status.value if state.fix_result else "not_started"
+        raise HTTPException(
+            status_code=400,
+            detail=f"No fix awaiting review (current status: {current})",
+        )
+
+    response_text = await supervisor.handle_user_message(request.decision, state)
+    return {"status": "ok", "response": response_text}
 
 
 @router_v4.get("/session/{session_id}/events")

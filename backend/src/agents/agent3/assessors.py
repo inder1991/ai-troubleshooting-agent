@@ -12,6 +12,9 @@ import difflib
 from typing import Dict, Any, List
 
 from src.utils.llm_client import AnthropicClient
+from src.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class ImpactAssessor:
@@ -51,17 +54,17 @@ class ImpactAssessor:
                 "diff_lines": int
             }
         """
-        print("\n" + "=" * 80)
-        print("IMPACT & RISK ASSESSMENT")
-        print("=" * 80)
+        logger.info("\n" + "=" * 80)
+        logger.info("IMPACT & RISK ASSESSMENT")
+        logger.info("=" * 80)
 
         # 1. Identify affected functions
         affected = self._find_affected_functions(fixed_code, call_chain)
-        print(f"\nAffected Functions: {len(affected)}")
+        logger.info(f"\nAffected Functions: {len(affected)}")
         for func in affected[:5]:
-            print(f"   - {func}")
+            logger.info(f"   - {func}")
         if len(affected) > 5:
-            print(f"   ... and {len(affected) - 5} more")
+            logger.info(f"   ... and {len(affected) - 5} more")
 
         # 2. Generate diff
         diff = list(
@@ -94,15 +97,15 @@ class ImpactAssessor:
             "diff_lines": len(diff),
         }
 
-        print(f"\nRegression Risk: {risk_score}")
-        print(f"Diff Size: {len(diff)} lines")
+        logger.info(f"\nRegression Risk: {risk_score}")
+        logger.info(f"Diff Size: {len(diff)} lines")
 
         if result["side_effects"]:
-            print(f"\nPotential Side Effects:")
+            logger.info(f"\nPotential Side Effects:")
             for effect in result["side_effects"][:3]:
-                print(f"   - {effect}")
+                logger.info(f"   - {effect}")
 
-        print("\n" + "=" * 80 + "\n")
+        logger.info("\n" + "=" * 80 + "\n")
 
         return result
 
@@ -176,7 +179,7 @@ class ImpactAssessor:
             return json.loads(content.strip())
 
         except Exception as e:
-            print(f"   LLM analysis failed: {e}")
+            logger.info(f"   LLM analysis failed: {e}")
             return self._heuristic_analysis(diff)
 
     def _heuristic_analysis(self, diff: str) -> Dict[str, Any]:

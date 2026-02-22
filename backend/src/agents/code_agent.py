@@ -31,6 +31,7 @@ class CodeNavigatorAgent(ReActAgent):
         self._high_priority_files: list[dict] = []
         self._stack_traces: list[str] = []
         self._repo_map: dict[str, str] = {}
+        self._verification_mode: bool = False
 
     async def _define_tools(self) -> list[dict]:
         if self.repo_path and not self.repo_path.startswith(("http://", "https://", "git@")):
@@ -144,6 +145,23 @@ class CodeNavigatorAgent(ReActAgent):
         ]
 
     async def _build_system_prompt(self) -> str:
+        if self._verification_mode:
+            return """You are a Code Verification Agent reviewing a proposed fix.
+Goals:
+1. Read the target file to understand context
+2. Analyze the diff for correctness
+3. Check callers for breakage (use github_search_code to find callers)
+4. Assess regression risk
+
+After analysis, provide your final answer as JSON:
+{
+    "verdict": "approve" | "reject" | "needs_changes",
+    "confidence": 85,
+    "issues_found": ["list of issues"],
+    "regression_risks": ["list of regression risks"],
+    "suggestions": ["list of improvement suggestions"],
+    "reasoning": "detailed reasoning for your verdict"
+}"""
         return """You are a Code Navigator Agent for SRE troubleshooting. You use the ReAct pattern.
 
 Your goals:
@@ -184,6 +202,22 @@ After analysis, provide your final answer as JSON:
         self._github_token = context.get("github_token") or os.getenv("GITHUB_TOKEN", "")
         self._high_priority_files = context.get("high_priority_files", [])
         self._stack_traces = context.get("stack_traces", [])
+
+        self._verification_mode = context.get("verification_mode", False)
+        if self._verification_mode:
+            parts = ["Verify the following proposed fix for correctness and regression risk."]
+            if self._owner_repo:
+                parts.append(f"Repository: {self._owner_repo}")
+            parts.append(f"\n## Target File\n`{context.get('fix_file', 'unknown')}`")
+            parts.append(f"\n## Diff\n```\n{context.get('fix_diff', '')}\n```")
+            if context.get("call_chain"):
+                parts.append(f"\n## Call Chain\n{context['call_chain']}")
+            if context.get("original_findings"):
+                parts.append("\n## Original Findings")
+                for f in context["original_findings"]:
+                    parts.append(f"- {f}")
+            parts.append("\nRead the target file, search for callers, and provide your verification verdict as JSON.")
+            return "\n".join(parts)
 
         # Multi-repo map
         raw_map = context.get("repo_map", {})

@@ -88,3 +88,25 @@ class SessionSummary(BaseModel):
     phase: str
     confidence: int
     created_at: str
+
+
+# ── Fix Pipeline Models ──────────────────────────────────────────────
+
+
+class FixRequest(BaseModel):
+    guidance: str = ""
+
+
+class FixStatusResponse(BaseModel):
+    fix_status: str
+    target_file: str = ""
+    diff: str = ""
+    fix_explanation: str = ""
+    verification_result: Optional[Dict] = None
+    pr_url: Optional[str] = None
+    pr_number: Optional[int] = None
+    attempt_count: int = 0
+
+
+class FixDecisionRequest(BaseModel):
+    decision: str = Field(..., min_length=1, description="approve, reject, or feedback text")

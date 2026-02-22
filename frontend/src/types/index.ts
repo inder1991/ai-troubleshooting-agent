@@ -259,7 +259,7 @@ export interface TokenUsage {
 export interface TaskEvent {
   session_id: string;
   agent_name: string;
-  event_type: 'started' | 'progress' | 'success' | 'warning' | 'error' | 'tool_call' | 'phase_change' | 'finding' | 'summary' | 'attestation_required';
+  event_type: 'started' | 'progress' | 'success' | 'warning' | 'error' | 'tool_call' | 'phase_change' | 'finding' | 'summary' | 'attestation_required' | 'fix_proposal' | 'fix_approved';
   message: string;
   timestamp: string;
   details?: Record<string, unknown>;
@@ -333,6 +333,48 @@ export interface V4Findings {
   reasoning_chain: ReasoningChainStep[];
   suggested_promql_queries: SuggestedPromQLQuery[];
   time_series_data: Record<string, TimeSeriesDataPoint[]>;
+  fix_data: FixResult | null;
+}
+
+export type FixStatus =
+  | 'not_started' | 'generating' | 'awaiting_review'
+  | 'human_feedback' | 'verification_in_progress'
+  | 'verified' | 'verification_failed'
+  | 'approved' | 'rejected'
+  | 'pr_creating' | 'pr_created' | 'failed';
+
+export interface FixResult {
+  fix_status: FixStatus;
+  target_file: string;
+  original_code: string;
+  generated_fix: string;
+  diff: string;
+  fix_explanation: string;
+  verification_result: {
+    verdict: 'approve' | 'reject' | 'needs_changes';
+    confidence: number;
+    issues_found: string[];
+    regression_risks: string[];
+    suggestions: string[];
+    reasoning: string;
+  } | null;
+  pr_url: string | null;
+  pr_number: number | null;
+  attempt_count: number;
+  max_attempts: number;
+  human_feedback: string[];
+  pr_data: {
+    branch_name: string;
+    commit_sha: string;
+    pr_title: string;
+    pr_body: string;
+    diff: string;
+    validation: Record<string, unknown>;
+    impact: Record<string, unknown>;
+    fixed_code: string;
+    status: string;
+    token_usage: Record<string, unknown>;
+  } | null;
 }
 
 export interface CodeImpact {

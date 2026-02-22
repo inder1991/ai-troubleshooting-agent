@@ -14,6 +14,10 @@ from typing import Dict, Any
 from pathlib import Path
 from datetime import datetime
 
+from src.utils.logger import get_logger
+
+logger = get_logger(__name__)
+
 
 class PRStager:
     """Stages PR locally without pushing"""
@@ -38,9 +42,9 @@ class PRStager:
         Returns:
             branch_name
         """
-        print("\n" + "="*80)
-        print("🌳 PR STAGING: Branch Creation")
-        print("="*80)
+        logger.info("\n" + "="*80)
+        logger.info("🌳 PR STAGING: Branch Creation")
+        logger.info("="*80)
         
         # Generate branch name
         timestamp = datetime.now().strftime("%Y%m%d")
@@ -59,7 +63,7 @@ class PRStager:
                 check=True
             )
             current_branch = result.stdout.strip()
-            print(f"   Current branch: {current_branch}")
+            logger.info(f"   Current branch: {current_branch}")
             
             # Create new branch
             subprocess.run(
@@ -70,12 +74,12 @@ class PRStager:
                 check=True
             )
             
-            print(f"   ✅ Created branch: {branch_name}")
+            logger.info(f"   ✅ Created branch: {branch_name}")
             
             return branch_name
         
         except subprocess.CalledProcessError as e:
-            print(f"   ❌ Branch creation failed: {e.stderr}")
+            logger.info(f"   ❌ Branch creation failed: {e.stderr}")
             raise
     
     def stage_changes(self, file_path: str, fixed_code: str) -> None:
@@ -86,7 +90,7 @@ class PRStager:
             file_path: Path to file
             fixed_code: Fixed code content
         """
-        print("\n📝 Staging Changes...")
+        logger.info("\n📝 Staging Changes...")
         
         # Normalize path
         normalized_path = file_path.lstrip('/')
@@ -103,7 +107,7 @@ class PRStager:
         with open(full_path, 'w') as f:
             f.write(fixed_code)
         
-        print(f"   ✅ Wrote: {normalized_path}")
+        logger.info(f"   ✅ Wrote: {normalized_path}")
         
         # Stage file
         subprocess.run(
@@ -112,7 +116,7 @@ class PRStager:
             check=True
         )
         
-        print(f"   ✅ Staged: {normalized_path}")
+        logger.info(f"   ✅ Staged: {normalized_path}")
     
     def create_commit(
         self,
@@ -133,7 +137,7 @@ class PRStager:
         Returns:
             commit_sha
         """
-        print("\n📝 Creating Commit...")
+        logger.info("\n📝 Creating Commit...")
         
         # Generate commit message following Conventional Commits
         commit_msg = self._generate_commit_message(
@@ -160,12 +164,12 @@ class PRStager:
             )
             commit_sha = sha_result.stdout.strip()
             
-            print(f"   ✅ Commit created: {commit_sha[:7]}")
+            logger.info(f"   ✅ Commit created: {commit_sha[:7]}")
             
             return commit_sha
         
         except subprocess.CalledProcessError as e:
-            print(f"   ❌ Commit failed: {e.stderr}")
+            logger.info(f"   ❌ Commit failed: {e.stderr}")
             raise
     
     def _generate_commit_message(
@@ -239,7 +243,7 @@ Confidence: {agent2.get('confidence_score', 0):.0%}
         Returns:
             Formatted PR body
         """
-        print("\n📄 Generating PR Template...")
+        logger.info("\n📄 Generating PR Template...")
         
         template = f"""## 🐛 Problem
 
@@ -309,7 +313,7 @@ git revert HEAD
 *Confidence Score: {agent2_analysis.get('confidence_score', 0):.0%}*
 """
         
-        print("   ✅ PR template generated")
+        logger.info("   ✅ PR template generated")
         
         return template
     

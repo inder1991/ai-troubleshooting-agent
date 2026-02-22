@@ -6,6 +6,7 @@ import type {
   TaskEvent,
   ChatMessage,
   Integration,
+  FixResult,
 } from '../types';
 
 const API_BASE_URL = 'http://localhost:8000';
@@ -101,7 +102,13 @@ export const startSessionV4 = async (request: StartSessionRequest & { profileId?
     const error = await response.json();
     throw new Error(error.detail || 'Failed to start session');
   }
-  return response.json();
+  const data = await response.json();
+  return {
+    ...data,
+    status: data.status || data.phase || 'initial',
+    confidence: data.confidence ?? 0,
+    updated_at: data.updated_at || data.created_at,
+  };
 };
 
 export const sendChatMessage = async (
@@ -166,6 +173,70 @@ export const listSessionsV4 = async (): Promise<V4Session[]> => {
     status: s.status || s.phase || 'initial',
     updated_at: s.updated_at || s.created_at,
   }));
+};
+
+// ===== V4 Fix Pipeline =====
+
+export const generateFix = async (
+  sessionId: string,
+  guidance: string = ''
+): Promise<{ status: string }> => {
+  const response = await fetch(`${API_BASE_URL}/api/v4/session/${sessionId}/fix/generate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ guidance }),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to start fix generation');
+  }
+  return response.json();
+};
+
+export const getFixStatus = async (
+  sessionId: string
+): Promise<FixResult> => {
+  const response = await fetch(`${API_BASE_URL}/api/v4/session/${sessionId}/fix/status`);
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to get fix status');
+  }
+  return response.json();
+};
+
+export const decideOnFix = async (
+  sessionId: string,
+  decision: string
+): Promise<{ status: string; response: string }> => {
+  const response = await fetch(`${API_BASE_URL}/api/v4/session/${sessionId}/fix/decide`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ decision }),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to submit fix decision');
+  }
+  return response.json();
+};
+
+// ===== V4 PromQL Proxy =====
+
+export const runPromQLQuery = async (
+  query: string,
+  start: string,
+  end: string,
+  step: string = '60s'
+): Promise<{ data_points: { timestamp: string; value: number }[]; current_value: number; error?: string }> => {
+  const response = await fetch(`${API_BASE_URL}/api/v4/promql/query`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query, start, end, step }),
+  });
+  if (!response.ok) {
+    return { data_points: [], current_value: 0, error: 'Request failed' };
+  }
+  return response.json();
 };
 
 // ===== V5 Governance API =====

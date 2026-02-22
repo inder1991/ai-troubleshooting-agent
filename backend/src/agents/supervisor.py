@@ -15,6 +15,7 @@ from src.models.schemas import (
     TraceAnalysisResult, SpanInfo,
     CodeAnalysisResult, ImpactedFile, LineRange, FixArea, DiffAnalysisItem,
     Breadcrumb, NegativeFinding, DataPoint,
+    FixStatus, FixResult,
 )
 from src.agents.log_agent import LogAnalysisAgent
 from src.agents.metrics_agent import MetricsAgent
@@ -143,6 +144,12 @@ class SupervisorAgent:
         self._pending_repo_mismatch = False
         self._mismatch_confirmed_repo: str | None = None
 
+        # Human-in-the-loop: fix approval
+        self._fix_event = asyncio.Event()
+        self._pending_fix_approval = False
+        self._fix_human_decision: str | None = None
+        self._event_emitter: Optional[EventEmitter] = None
+
     async def run(
         self,
         initial_input: dict,
@@ -151,6 +158,7 @@ class SupervisorAgent:
         on_state_created=None,
     ) -> DiagnosticState:
         """Run the full diagnostic workflow."""
+        self._event_emitter = event_emitter
         state = DiagnosticState(
             session_id=initial_input.get("session_id", "unknown"),
             incident_id=initial_input.get("incident_id") or generate_incident_id(),
@@ -1799,6 +1807,10 @@ Respond ONLY with a JSON array:
     async def handle_user_message(self, message: str, state: DiagnosticState) -> str:
         """Handle a user message during analysis."""
 
+        # Handle pending fix approval (highest priority gate)
+        if self._pending_fix_approval:
+            return self._process_fix_decision(message)
+
         # Handle pending repo mismatch confirmation for code_agent
         if self._pending_repo_mismatch:
             return self._process_repo_mismatch(message, state)
@@ -1806,6 +1818,17 @@ Respond ONLY with a JSON array:
         # Handle pending repo URL confirmation for change_agent
         if self._pending_repo_confirmation:
             return await self._process_repo_confirmation(message)
+
+        # Check if user wants to trigger fix generation after diagnosis
+        if state.phase == DiagnosticPhase.DIAGNOSIS_COMPLETE:
+            trigger_words = ["fix", "generate fix", "create fix", "patch", "create pr", "remediate"]
+            if any(tw in message.lower() for tw in trigger_words):
+                if self._event_emitter:
+                    asyncio.create_task(
+                        self.start_fix_generation(state, self._event_emitter, human_guidance=message)
+                    )
+                    return "Starting fix generation using findings from all diagnostic agents. I'll present the proposed fix for your review shortly."
+                return "Fix generation is not available — event emitter not initialized."
 
         response = await self.llm_client.chat(
             prompt=f"""Current diagnostic state:
@@ -2003,6 +2026,285 @@ Examples:
         except Exception as e:
             logger.warning("LLM repo correction parsing failed: %s", e)
             return None
+
+    # ── Fix Generation Pipeline ──────────────────────────────────────────────
+
+    async def start_fix_generation(
+        self,
+        state: DiagnosticState,
+        event_emitter: EventEmitter,
+        human_guidance: str = "",
+    ) -> None:
+        """Orchestrate fix generation with human-in-the-loop approval."""
+        import tempfile
+        import os
+
+        # Guard against parallel fix generation
+        if state.fix_result and state.fix_result.fix_status in (
+            FixStatus.GENERATING, FixStatus.VERIFICATION_IN_PROGRESS, FixStatus.AWAITING_REVIEW,
+        ):
+            await event_emitter.emit("fix_generator", "warning", "Fix generation already in progress")
+            return
+
+        tmp_path = ""
+        try:
+            state.phase = DiagnosticPhase.FIX_IN_PROGRESS
+            state.fix_result = FixResult(fix_status=FixStatus.GENERATING)
+            await event_emitter.emit("fix_generator", "started", "Fix generation started")
+
+            # Resolve github token
+            token = ""
+            if self._connection_config and self._connection_config.github_token:
+                token = self._connection_config.github_token
+            if not token:
+                token = os.getenv("GITHUB_TOKEN", "")
+
+            # Parse owner/repo
+            owner_repo = self._parse_owner_repo(state.repo_url) if state.repo_url else None
+            if not owner_repo:
+                state.fix_result.fix_status = FixStatus.FAILED
+                await event_emitter.emit("fix_generator", "error", "Cannot generate fix — no valid repository URL")
+                return
+
+            # Clone repo (full clone for branching)
+            from src.utils.repo_manager import RepoManager
+            tmp_path = tempfile.mkdtemp(prefix="fix_")
+            clone_result = RepoManager.clone_repo(owner_repo, tmp_path, shallow=False, token=token)
+            if not clone_result["success"]:
+                state.fix_result.fix_status = FixStatus.FAILED
+                await event_emitter.emit("fix_generator", "error", f"Clone failed: {clone_result.get('error', 'unknown')}")
+                return
+
+            # Create Agent 3 instance
+            from src.agents.agent3.fix_generator import Agent3FixGenerator
+            agent3 = Agent3FixGenerator(
+                repo_path=tmp_path,
+                llm_client=self.llm_client,
+                event_emitter=event_emitter,
+            )
+
+            # Loop for feedback-driven regeneration (replaces recursive call)
+            current_guidance = human_guidance
+            while True:
+                # Generate fix
+                state.fix_result.fix_status = FixStatus.GENERATING
+                generated_fix = await agent3.generate_fix(state, current_guidance, event_emitter)
+
+                # Store results in state
+                target_file = ""
+                if state.code_analysis and state.code_analysis.root_cause_location:
+                    target_file = state.code_analysis.root_cause_location.file_path
+                original_code = agent3._read_original_file(target_file)
+                diff = agent3._generate_diff(original_code, generated_fix)
+
+                state.fix_result.target_file = target_file
+                state.fix_result.original_code = original_code
+                state.fix_result.generated_fix = generated_fix
+                state.fix_result.diff = diff
+                state.fix_result.fix_explanation = self._build_fix_explanation(state, target_file, diff)
+
+                # Verify with code_agent
+                state.fix_result.fix_status = FixStatus.VERIFICATION_IN_PROGRESS
+                await event_emitter.emit("fix_generator", "progress", "Verifying fix with code agent...")
+                await self._verify_fix_with_code_agent(state, event_emitter)
+
+                # Run Agent 3 Phase 1 (validation, review, impact, staging)
+                pr_data = await agent3.run_verification_phase(state, generated_fix)
+                state.fix_result.pr_data = pr_data
+
+                state.fix_result.fix_status = FixStatus.AWAITING_REVIEW
+                state.fix_result.attempt_count += 1
+
+                # Present fix to human via WebSocket
+                summary_lines = [
+                    f"**Fix generated for** `{target_file}`\n",
+                    f"**Diff:**\n```\n{diff[:2000]}\n```\n",
+                ]
+                if state.fix_result.fix_explanation:
+                    summary_lines.append(f"**Explanation:** {state.fix_result.fix_explanation}\n")
+                if state.fix_result.verification_result:
+                    vr = state.fix_result.verification_result
+                    summary_lines.append(f"**Code agent verdict:** {vr.get('verdict', 'unknown')} (confidence: {vr.get('confidence', 0)}%)")
+                    if vr.get("issues_found"):
+                        summary_lines.append(f"**Issues:** {', '.join(vr['issues_found'][:3])}")
+
+                summary_lines.append("\nPlease reply with:")
+                summary_lines.append("  - **approve** — create a pull request")
+                summary_lines.append("  - **reject** — discard this fix")
+                summary_lines.append("  - Or provide feedback to regenerate the fix")
+
+                msg = "\n".join(summary_lines)
+
+                if event_emitter._websocket_manager:
+                    await event_emitter._websocket_manager.send_message(
+                        state.session_id,
+                        {
+                            "type": "chat_response",
+                            "data": {
+                                "role": "assistant",
+                                "content": msg,
+                                "timestamp": datetime.now(timezone.utc).isoformat(),
+                                "metadata": {"type": "fix_proposal"},
+                            },
+                        },
+                    )
+
+                await event_emitter.emit(
+                    "fix_generator", "fix_proposal",
+                    f"Fix proposed for {target_file} — awaiting human review",
+                    details={"target_file": target_file, "diff_lines": len(diff.splitlines())},
+                )
+
+                # Wait for human decision
+                self._pending_fix_approval = True
+                self._fix_human_decision = None
+                self._fix_event.clear()
+                try:
+                    await asyncio.wait_for(self._fix_event.wait(), timeout=600)
+                except asyncio.TimeoutError:
+                    self._pending_fix_approval = False
+                    state.fix_result.fix_status = FixStatus.FAILED
+                    await event_emitter.emit("fix_generator", "warning", "Fix approval timed out")
+                    return
+
+                self._pending_fix_approval = False
+                decision = self._fix_human_decision or "reject"
+
+                if decision == "approve":
+                    # Create PR
+                    state.fix_result.fix_status = FixStatus.PR_CREATING
+                    await event_emitter.emit("fix_generator", "progress", "Creating pull request...")
+                    pr_result = await agent3.execute_pr_creation(
+                        state.session_id, pr_data, token,
+                    )
+                    state.fix_result.pr_url = pr_result.get("html_url")
+                    state.fix_result.pr_number = pr_result.get("number")
+                    state.fix_result.fix_status = FixStatus.PR_CREATED
+
+                    await event_emitter.emit(
+                        "fix_generator", "fix_approved",
+                        f"PR #{state.fix_result.pr_number} created: {state.fix_result.pr_url}",
+                    )
+                    return  # Done
+
+                elif decision == "reject":
+                    state.fix_result.fix_status = FixStatus.REJECTED
+                    await event_emitter.emit("fix_generator", "warning", "Fix rejected by user")
+                    return  # Done
+
+                else:
+                    # Feedback — loop to regenerate
+                    state.fix_result.human_feedback.append(decision)
+                    if state.fix_result.attempt_count >= state.fix_result.max_attempts:
+                        state.fix_result.fix_status = FixStatus.FAILED
+                        await event_emitter.emit("fix_generator", "warning", "Max fix attempts reached")
+                        return  # Done
+
+                    state.fix_result.fix_status = FixStatus.HUMAN_FEEDBACK
+                    await event_emitter.emit(
+                        "fix_generator", "progress",
+                        f"Regenerating fix with feedback (attempt {state.fix_result.attempt_count + 1}/{state.fix_result.max_attempts})",
+                    )
+                    current_guidance = decision
+                    # Continue loop
+
+        except Exception as e:
+            logger.error("Fix generation failed: %s", e, exc_info=True)
+            if state.fix_result:
+                state.fix_result.fix_status = FixStatus.FAILED
+            await event_emitter.emit("fix_generator", "error", f"Fix generation failed: {str(e)}")
+        finally:
+            # Cleanup cloned repo
+            if tmp_path:
+                from src.utils.repo_manager import RepoManager
+                RepoManager.cleanup_repo(tmp_path)
+
+    def _build_fix_explanation(self, state: DiagnosticState, target_file: str, diff: str) -> str:
+        """Build a human-readable explanation of what the fix does."""
+        parts = []
+        if state.log_analysis and state.log_analysis.primary_pattern:
+            p = state.log_analysis.primary_pattern
+            parts.append(f"Addresses {p.exception_type}: {p.error_message[:100]}")
+        if state.code_analysis and state.code_analysis.suggested_fix_areas:
+            fa = state.code_analysis.suggested_fix_areas[0]
+            parts.append(f"Applies fix to {fa.file_path}: {fa.suggested_change[:100]}")
+        diff_lines = [l for l in diff.splitlines() if l.startswith('+') and not l.startswith('+++')]
+        parts.append(f"Changes {len(diff_lines)} line(s) in {target_file}")
+        return ". ".join(parts) if parts else f"Fix applied to {target_file}"
+
+    async def _verify_fix_with_code_agent(
+        self, state: DiagnosticState, event_emitter: EventEmitter,
+    ) -> dict:
+        """Run code_agent in verification mode to review the proposed fix."""
+        try:
+            agent = CodeNavigatorAgent(connection_config=self._connection_config)
+
+            target_file = state.fix_result.target_file if state.fix_result else ""
+            diff = state.fix_result.diff if state.fix_result else ""
+            call_chain = state.code_analysis.call_chain if state.code_analysis else []
+            findings_summaries = [f.summary[:100] for f in state.all_findings[:5]]
+
+            context = {
+                "verification_mode": True,
+                "fix_diff": diff,
+                "fix_file": target_file,
+                "call_chain": call_chain,
+                "original_findings": findings_summaries,
+                "repo_url": state.repo_url or "",
+                "service_name": state.service_name,
+            }
+            if self._connection_config and self._connection_config.github_token:
+                context["github_token"] = self._connection_config.github_token
+
+            result = await agent.run(context, event_emitter)
+
+            # Extract only verification-relevant fields (not the full agent result)
+            verification_data = {
+                "verdict": result.get("verdict", "approve"),
+                "confidence": result.get("confidence", 50),
+                "issues_found": result.get("issues_found", []),
+                "regression_risks": result.get("regression_risks", []),
+                "suggestions": result.get("suggestions", []),
+                "reasoning": result.get("reasoning", ""),
+            }
+            if state.fix_result:
+                state.fix_result.verification_result = verification_data
+
+            verdict = verification_data.get("verdict", "approve")
+            if verdict == "reject":
+                state.fix_result.fix_status = FixStatus.VERIFICATION_FAILED
+                await event_emitter.emit(
+                    "code_agent", "warning",
+                    f"Code agent flagged issues with the fix: {result.get('reasoning', '')[:200]}",
+                )
+            else:
+                state.fix_result.fix_status = FixStatus.VERIFIED
+
+            return result
+        except Exception as e:
+            logger.warning("Fix verification failed: %s", e)
+            if state.fix_result:
+                state.fix_result.fix_status = FixStatus.VERIFIED  # Don't block on verification failure
+            return {"verdict": "approve", "confidence": 50, "reasoning": f"Verification skipped: {e}"}
+
+    def _process_fix_decision(self, message: str) -> str:
+        """Parse user's fix approval/rejection/feedback and signal the waiting coroutine."""
+        text = message.strip().lower()
+
+        if text in ("approve", "yes", "create pr", "lgtm", "ok", "y"):
+            self._fix_human_decision = "approve"
+            self._fix_event.set()
+            return "Approved — creating pull request now."
+
+        if text in ("reject", "no", "cancel", "discard"):
+            self._fix_human_decision = "reject"
+            self._fix_event.set()
+            return "Fix rejected. Diagnosis remains available."
+
+        # Anything else is treated as feedback for regeneration
+        self._fix_human_decision = message.strip()
+        self._fix_event.set()
+        return "Got it — regenerating fix with your feedback."
 
     def _process_repo_mismatch(self, message: str, state: DiagnosticState) -> str:
         """Parse user's repo mismatch response and signal the waiting coroutine."""

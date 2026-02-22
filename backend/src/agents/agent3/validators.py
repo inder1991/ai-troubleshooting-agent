@@ -12,6 +12,10 @@ import subprocess
 from typing import Dict, Any, Tuple, List
 from pathlib import Path
 
+from src.utils.logger import get_logger
+
+logger = get_logger(__name__)
+
 
 class StaticValidator:
     """Validates generated code without executing it"""
@@ -36,88 +40,107 @@ class StaticValidator:
         Returns:
             (is_valid, error_message)
         """
-        print("\n🔍 Static Validation: Syntax Check")
+        logger.info("\n🔍 Static Validation: Syntax Check")
         
         try:
             # Parse code to AST
             ast.parse(code)
             
-            print("   ✅ Syntax: Valid Python code")
+            logger.info("   ✅ Syntax: Valid Python code")
             return True, "Syntax valid"
         
         except SyntaxError as e:
             error_msg = f"Syntax error at line {e.lineno}: {e.msg}"
-            print(f"   ❌ Syntax: {error_msg}")
+            logger.info(f"   ❌ Syntax: {error_msg}")
             return False, error_msg
         
         except Exception as e:
             error_msg = f"AST parsing failed: {str(e)}"
-            print(f"   ❌ Syntax: {error_msg}")
+            logger.info(f"   ❌ Syntax: {error_msg}")
             return False, error_msg
     
-    def run_linting(self, file_path: str) -> Tuple[bool, Dict[str, Any]]:
+    def run_linting(self, file_path: str, code: str = "") -> Tuple[bool, Dict[str, Any]]:
         """
-        Run static analysis with ruff
-        
+        Run static analysis with ruff on the generated code.
+
         Args:
-            file_path: Path to file to lint
-        
+            file_path: Path to file to lint (used for context)
+            code: Generated code to lint. If empty, lints the file on disk.
+
         Returns:
             (passed, issues_dict)
         """
-        print("\n🔍 Static Validation: Linting (ruff)")
-        
-        # Normalize path
-        normalized_path = file_path.lstrip('/')
-        for prefix in ['app/', '/app/', 'usr/src/app/', '/usr/src/app/']:
-            if normalized_path.startswith(prefix):
-                normalized_path = normalized_path[len(prefix):]
-        
-        full_path = self.repo_path / normalized_path
-        
-        if not full_path.exists():
-            print(f"   ⚠️  File not found: {file_path}")
-            return True, {"warnings": ["File not yet created - will lint after staging"]}
-        
+        import tempfile
+        logger.info("\n🔍 Static Validation: Linting (ruff)")
+
+        # If code provided, write to temp file and lint that instead of the original on disk
+        if code:
+            try:
+                suffix = Path(file_path).suffix or ".py"
+                with tempfile.NamedTemporaryFile(mode='w', suffix=suffix, delete=False) as tmp:
+                    tmp.write(code)
+                    lint_path = tmp.name
+            except Exception as e:
+                logger.info(f"   ⚠️  Linting: Could not write temp file — {e}")
+                return True, {"warnings": [f"Temp file error: {str(e)}"]}
+        else:
+            # Normalize path and lint original file
+            normalized_path = file_path.lstrip('/')
+            for prefix in ['app/', '/app/', 'usr/src/app/', '/usr/src/app/']:
+                if normalized_path.startswith(prefix):
+                    normalized_path = normalized_path[len(prefix):]
+            lint_path = str(self.repo_path / normalized_path)
+            if not Path(lint_path).exists():
+                logger.info(f"   ⚠️  File not found: {file_path}")
+                return True, {"warnings": ["File not yet created - will lint after staging"]}
+
         try:
             # Run ruff with JSON output
             result = subprocess.run(
-                ['ruff', 'check', '--output-format=json', str(full_path)],
+                ['ruff', 'check', '--output-format=json', lint_path],
                 capture_output=True,
                 text=True,
                 timeout=10
             )
-            
+
             if result.returncode == 0:
-                print("   ✅ Linting: No issues found")
+                logger.info("   ✅ Linting: No issues found")
                 return True, {"errors": [], "warnings": []}
-            
+
             # Parse issues
             import json
             issues = json.loads(result.stdout) if result.stdout else []
-            
+
             errors = [i for i in issues if i.get('type') == 'error']
             warnings = [i for i in issues if i.get('type') == 'warning']
-            
-            print(f"   ⚠️  Linting: {len(errors)} errors, {len(warnings)} warnings")
-            
+
+            logger.info(f"   ⚠️  Linting: {len(errors)} errors, {len(warnings)} warnings")
+
             # Only fail on errors, not warnings
             return len(errors) == 0, {
                 "errors": errors,
                 "warnings": warnings
             }
-        
+
         except subprocess.TimeoutExpired:
-            print("   ⚠️  Linting: Timeout (skipping)")
+            logger.info("   ⚠️  Linting: Timeout (skipping)")
             return True, {"warnings": ["Linting timeout - review manually"]}
-        
+
         except FileNotFoundError:
-            print("   ⚠️  Linting: ruff not installed (skipping)")
+            logger.info("   ⚠️  Linting: ruff not installed (skipping)")
             return True, {"warnings": ["ruff not installed"]}
-        
+
         except Exception as e:
-            print(f"   ⚠️  Linting: Error - {e}")
+            logger.info(f"   ⚠️  Linting: Error - {e}")
             return True, {"warnings": [f"Linting error: {str(e)}"]}
+
+        finally:
+            # Clean up temp file if we created one
+            if code:
+                try:
+                    Path(lint_path).unlink(missing_ok=True)
+                except Exception:
+                    pass
     
     def check_imports(self, code: str) -> Tuple[bool, List[str]]:
         """
@@ -129,7 +152,7 @@ class StaticValidator:
         Returns:
             (all_available, missing_imports)
         """
-        print("\n🔍 Static Validation: Import Check")
+        logger.info("\n🔍 Static Validation: Import Check")
         
         try:
             tree = ast.parse(code)
@@ -159,21 +182,31 @@ class StaticValidator:
             
             known_imports = standard_libs | third_party
             
-            # Find unknown imports
+            # Detect project-internal imports by scanning the repo for top-level packages
+            project_packages = set()
+            if self.repo_path.exists():
+                for child in self.repo_path.iterdir():
+                    if child.is_dir() and (child / "__init__.py").exists():
+                        project_packages.add(child.name)
+            # Also treat 'src' as a known project package (common convention)
+            project_packages.add("src")
+
+            # Find unknown imports (skip standard lib, third-party, and project-internal)
             unknown_imports = [
                 imp for imp in imports
                 if imp.split('.')[0] not in known_imports
+                and imp.split('.')[0] not in project_packages
             ]
             
             if unknown_imports:
-                print(f"   ⚠️  Imports: Unknown packages - {unknown_imports}")
+                logger.info(f"   ⚠️  Imports: Unknown packages - {unknown_imports}")
                 return False, unknown_imports
             else:
-                print(f"   ✅ Imports: All {len(imports)} imports recognized")
+                logger.info(f"   ✅ Imports: All {len(imports)} imports recognized")
                 return True, []
         
         except Exception as e:
-            print(f"   ⚠️  Imports: Check failed - {e}")
+            logger.info(f"   ⚠️  Imports: Check failed - {e}")
             return True, []  # Don't fail on check error
     
     def validate_all(self, file_path: str, code: str) -> Dict[str, Any]:
@@ -192,16 +225,16 @@ class StaticValidator:
                 "imports": {"valid": bool, "missing": list}
             }
         """
-        print("\n" + "="*80)
-        print("🛡️  STATIC VALIDATION SUITE")
-        print("="*80)
+        logger.info("\n" + "="*80)
+        logger.info("🛡️  STATIC VALIDATION SUITE")
+        logger.info("="*80)
         
         # 1. Syntax check
         syntax_valid, syntax_error = self.validate_syntax(file_path, code)
         
-        # 2. Linting (only if syntax is valid)
+        # 2. Linting (only if syntax is valid) — lint the generated code, not the original
         if syntax_valid:
-            linting_passed, linting_issues = self.run_linting(file_path)
+            linting_passed, linting_issues = self.run_linting(file_path, code)
         else:
             linting_passed = False
             linting_issues = {"error": "Skipped due to syntax errors"}
@@ -228,11 +261,11 @@ class StaticValidator:
             }
         }
         
-        print("\n" + "="*80)
+        logger.info("\n" + "="*80)
         if all_passed:
-            print("✅ VALIDATION PASSED - Code is syntactically correct")
+            logger.info("✅ VALIDATION PASSED - Code is syntactically correct")
         else:
-            print("❌ VALIDATION FAILED - Code needs corrections")
-        print("="*80 + "\n")
+            logger.info("❌ VALIDATION FAILED - Code needs corrections")
+        logger.info("="*80 + "\n")
         
         return result

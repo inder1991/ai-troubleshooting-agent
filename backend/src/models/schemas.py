@@ -19,6 +19,21 @@ class DiagnosticPhase(str, Enum):
     COMPLETE = "complete"
 
 
+class FixStatus(str, Enum):
+    NOT_STARTED = "not_started"
+    GENERATING = "generating"
+    AWAITING_REVIEW = "awaiting_review"
+    HUMAN_FEEDBACK = "human_feedback"
+    VERIFICATION_IN_PROGRESS = "verification_in_progress"
+    VERIFIED = "verified"
+    VERIFICATION_FAILED = "verification_failed"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    PR_CREATING = "pr_creating"
+    PR_CREATED = "pr_created"
+    FAILED = "failed"
+
+
 class Breadcrumb(BaseModel):
     agent_name: str
     action: str
@@ -139,7 +154,7 @@ class TokenUsage(BaseModel):
 class TaskEvent(BaseModel):
     timestamp: datetime
     agent_name: str
-    event_type: Literal["started", "progress", "success", "warning", "error", "tool_call", "phase_change", "finding", "summary", "attestation_required"]
+    event_type: Literal["started", "progress", "success", "warning", "error", "tool_call", "phase_change", "finding", "summary", "attestation_required", "fix_proposal", "fix_approved"]
     message: str
     details: Optional[dict] = None
 
@@ -438,6 +453,22 @@ class FixArea(BaseModel):
     suggested_change: str
 
 
+class FixResult(BaseModel):
+    fix_status: FixStatus = FixStatus.NOT_STARTED
+    target_file: str = ""
+    original_code: str = ""
+    generated_fix: str = ""
+    diff: str = ""
+    fix_explanation: str = ""
+    pr_data: Optional[dict] = None
+    pr_url: Optional[str] = None
+    pr_number: Optional[int] = None
+    verification_result: Optional[dict] = None
+    human_feedback: list[str] = Field(default_factory=list)
+    attempt_count: int = 0
+    max_attempts: int = 3
+
+
 class DiffAnalysisItem(BaseModel):
     file: str
     commit_sha: str = ""
@@ -663,6 +694,7 @@ class DiagnosticState(BaseModel):
     trace_analysis: Optional[TraceAnalysisResult] = None
     code_analysis: Optional[CodeAnalysisResult] = None
     change_analysis: Optional[dict] = None
+    fix_result: Optional[FixResult] = None
 
     # Flow reconstruction
     service_flow: list[dict] = Field(default_factory=list)
