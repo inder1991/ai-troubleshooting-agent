@@ -295,6 +295,8 @@ async def get_findings(session_id: str):
             "k8s_events": [],
             "trace_spans": [],
             "impacted_files": [],
+            "diff_analysis": [],
+            "suggested_fix_areas": [],
             "change_correlations": [],
             "blast_radius": None,
             "severity_recommendation": None,
@@ -323,6 +325,12 @@ async def get_findings(session_id: str):
     trace_spans = state.trace_analysis.call_chain if state.trace_analysis else []
     impacted_files = state.code_analysis.impacted_files if state.code_analysis else []
 
+    diff_analysis = []
+    suggested_fix_areas = []
+    if state.code_analysis:
+        diff_analysis = [da.model_dump(mode="json") for da in state.code_analysis.diff_analysis]
+        suggested_fix_areas = [fa.model_dump(mode="json") for fa in state.code_analysis.suggested_fix_areas]
+
     # Extract time series data capped at 30 points per metric
     ts_data_raw = {}
     if state.metrics_analysis and state.metrics_analysis.time_series_data:
@@ -344,6 +352,8 @@ async def get_findings(session_id: str):
         "k8s_events": [ke.model_dump(mode="json") for ke in k8s_events],
         "trace_spans": [ts.model_dump(mode="json") for ts in trace_spans],
         "impacted_files": [ci.model_dump(mode="json") for ci in impacted_files],
+        "diff_analysis": diff_analysis,
+        "suggested_fix_areas": suggested_fix_areas,
         "change_correlations": state.change_analysis.get("change_correlations", []) if state.change_analysis else [],
         "blast_radius": state.blast_radius_result.model_dump(mode="json") if state.blast_radius_result else None,
         "severity_recommendation": state.severity_result.model_dump(mode="json") if state.severity_result else None,

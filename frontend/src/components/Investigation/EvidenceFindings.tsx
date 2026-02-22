@@ -3,6 +3,7 @@ import type {
   V4Findings, V4SessionStatus, TaskEvent, Severity, ErrorPattern,
   CriticVerdict, ChangeCorrelation, BlastRadiusData, SeverityData,
   SpanInfo, ServiceFlowStep, PatientZero, MetricAnomaly,
+  DiffAnalysisItem, SuggestedFixArea,
 } from '../../types';
 import AgentFindingCard from './cards/AgentFindingCard';
 import CausalRoleBadge from './cards/CausalRoleBadge';
@@ -43,7 +44,7 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
   const rootCausePatterns = errorPatterns.filter((p) => p.causal_role === 'root_cause');
   const cascadingPatterns = errorPatterns.filter((p) => p.causal_role === 'cascading_failure');
   const correlatedPatterns = errorPatterns.filter(
-    (p) => p.causal_role === 'correlated_anomaly' || (!p.causal_role && rootCausePatterns.length > 0)
+    (p) => p.causal_role === 'correlated_anomaly'
   );
   const ungroupedPatterns = rootCausePatterns.length === 0 ? errorPatterns : [];
 
@@ -133,10 +134,10 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
             {(findings?.findings?.length ?? 0) > 0 && (
               <section className="space-y-2">
                 <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Findings</div>
-                {findings!.findings
+                {[...findings!.findings]
                   .sort((a, b) => severityRank(a.severity) - severityRank(b.severity))
                   .map((finding, i) => {
-                    const verdict = findings!.critic_verdicts?.find((v) => v.finding_index === i);
+                    const verdict = findings!.critic_verdicts?.find((v) => v.finding_id === finding.finding_id);
                     const agentCode = getAgentCode(finding.agent_name);
                     return (
                       <AgentFindingCard key={finding.finding_id || i} agent={agentCode} title={finding.title}>
@@ -239,6 +240,12 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
             {/* 8. Change correlations */}
             <ChangeCorrelationsSection findings={findings} />
 
+            {/* 8b. Diff Analysis (code_agent) */}
+            <DiffAnalysisSection findings={findings} />
+
+            {/* 8c. Suggested Fixes (code_agent) */}
+            <SuggestedFixSection findings={findings} />
+
             {/* 9. Correlated anomalies */}
             {correlatedPatterns.length > 0 && (
               <section className="space-y-2">
@@ -301,6 +308,9 @@ function getAgentCode(name: string): 'L' | 'M' | 'K' | 'C' {
   if (name.includes('log')) return 'L';
   if (name.includes('metric')) return 'M';
   if (name.includes('k8s')) return 'K';
+  if (name.includes('change')) return 'C';
+  if (name.includes('trac')) return 'L';
+  if (name.includes('code')) return 'K';
   return 'C';
 }
 
@@ -562,6 +572,97 @@ const ChangeRow: React.FC<{ correlation: ChangeCorrelation }> = ({ correlation }
   );
 };
 
+// ─── Diff Analysis Section ────────────────────────────────────────────────
+
+const verdictStyle: Record<DiffAnalysisItem['verdict'], { text: string; bg: string; border: string }> = {
+  likely_cause: { text: 'text-red-300', bg: 'bg-red-500/20', border: 'border-red-500/30' },
+  contributing: { text: 'text-amber-300', bg: 'bg-amber-500/20', border: 'border-amber-500/30' },
+  unrelated: { text: 'text-slate-400', bg: 'bg-slate-500/20', border: 'border-slate-500/30' },
+};
+
+const DiffAnalysisSection: React.FC<{ findings: V4Findings | null }> = ({ findings }) => {
+  const items = findings?.diff_analysis || [];
+  if (items.length === 0) return null;
+  const causeCount = items.filter(d => d.verdict === 'likely_cause').length;
+
+  return (
+    <AgentFindingCard agent="D" title="Diff Intelligence">
+      <div className="space-y-2">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-[10px] text-slate-500">{items.length} files analyzed</span>
+          {causeCount > 0 && (
+            <span className="text-[10px] font-bold text-red-400">{causeCount} likely cause{causeCount > 1 ? 's' : ''}</span>
+          )}
+        </div>
+        {items.map((item, i) => (
+          <DiffRow key={i} item={item} />
+        ))}
+      </div>
+    </AgentFindingCard>
+  );
+};
+
+const DiffRow: React.FC<{ item: DiffAnalysisItem }> = ({ item }) => {
+  const [expanded, setExpanded] = useState(item.verdict === 'likely_cause');
+  const style = verdictStyle[item.verdict];
+
+  return (
+    <div className="bg-slate-800/30 rounded-lg border border-slate-700/50">
+      <button onClick={() => setExpanded(!expanded)} className="w-full text-left px-3 py-2 flex items-center gap-2" aria-expanded={expanded}>
+        <span className={`material-symbols-outlined text-xs text-slate-500 transition-transform ${expanded ? 'rotate-90' : ''}`} style={{ fontFamily: 'Material Symbols Outlined' }}>chevron_right</span>
+        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${style.text} ${style.bg} ${style.border}`}>
+          {item.verdict.replace(/_/g, ' ').toUpperCase()}
+        </span>
+        <span className="text-[11px] font-mono text-blue-400 truncate flex-1">{item.file}</span>
+        {item.commit_sha && (
+          <span className="text-[10px] font-mono text-violet-400">{item.commit_sha.slice(0, 8)}</span>
+        )}
+      </button>
+      {expanded && item.reasoning && (
+        <div className="px-3 pb-2.5 text-[10px] text-slate-400 font-mono break-words">
+          {item.reasoning}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─── Suggested Fix Areas Section ──────────────────────────────────────────
+
+const SuggestedFixSection: React.FC<{ findings: V4Findings | null }> = ({ findings }) => {
+  const fixes = findings?.suggested_fix_areas || [];
+  if (fixes.length === 0) return null;
+
+  return (
+    <AgentFindingCard agent="D" title="Suggested Fixes">
+      <div className="space-y-2">
+        {fixes.map((fix, i) => (
+          <FixRow key={i} fix={fix} />
+        ))}
+      </div>
+    </AgentFindingCard>
+  );
+};
+
+const FixRow: React.FC<{ fix: SuggestedFixArea }> = ({ fix }) => {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div className="bg-slate-800/30 rounded-lg border border-slate-700/50">
+      <button onClick={() => setExpanded(!expanded)} className="w-full text-left px-3 py-2 flex items-center gap-2" aria-expanded={expanded}>
+        <span className={`material-symbols-outlined text-xs text-slate-500 transition-transform ${expanded ? 'rotate-90' : ''}`} style={{ fontFamily: 'Material Symbols Outlined' }}>chevron_right</span>
+        <span className="text-[11px] font-mono text-blue-400 truncate">{fix.file_path}</span>
+        <span className="text-[10px] text-slate-400 truncate flex-1 ml-1">{fix.description}</span>
+      </button>
+      {expanded && fix.suggested_change && (
+        <div className="px-3 pb-2.5">
+          <pre className="text-[10px] text-green-400 font-mono bg-slate-900/60 rounded p-2 overflow-x-auto whitespace-pre-wrap">{fix.suggested_change}</pre>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── Trace Waterfall ──────────────────────────────────────────────────────
 
 const TraceWaterfall: React.FC<{ spans: SpanInfo[] }> = ({ spans }) => {
@@ -569,11 +670,15 @@ const TraceWaterfall: React.FC<{ spans: SpanInfo[] }> = ({ spans }) => {
   const errorCount = spans.filter((s) => s.status === 'error' || s.error).length;
 
   const depthMap = new Map<string, number>();
+  const visiting = new Set<string>();
   const computeDepth = (span: SpanInfo): number => {
     if (depthMap.has(span.span_id)) return depthMap.get(span.span_id)!;
     if (!span.parent_span_id) { depthMap.set(span.span_id, 0); return 0; }
+    if (visiting.has(span.span_id)) { depthMap.set(span.span_id, 0); return 0; }
+    visiting.add(span.span_id);
     const parent = spans.find((s) => s.span_id === span.parent_span_id);
     const depth = parent ? computeDepth(parent) + 1 : 0;
+    visiting.delete(span.span_id);
     depthMap.set(span.span_id, depth);
     return depth;
   };

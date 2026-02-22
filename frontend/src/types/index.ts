@@ -72,7 +72,8 @@ export type DiagnosticPhase =
   | 're_investigating'
   | 'diagnosis_complete'
   | 'fix_in_progress'
-  | 'complete';
+  | 'complete'
+  | 'error';
 
 export type Severity = 'critical' | 'high' | 'medium' | 'low' | 'info';
 
@@ -116,6 +117,11 @@ export interface MetricAnomaly {
   confidence_score: number;
 }
 
+export interface TimeSeriesDataPoint {
+  timestamp: string;
+  value: number;
+}
+
 export interface CorrelatedSignalGroup {
   group_name: string;
   signal_type: 'RED' | 'USE';
@@ -155,6 +161,8 @@ export interface K8sEvent {
   first_timestamp: string;
   last_timestamp: string;
   involved_object: string;
+  source_component?: string;
+  timestamp?: string;
 }
 
 export interface SpanInfo {
@@ -165,6 +173,8 @@ export interface SpanInfo {
   status: string;
   error: boolean;
   parent_span_id: string | null;
+  error_message?: string;
+  tags?: Record<string, string>;
 }
 
 export interface PatientZero {
@@ -234,6 +244,9 @@ export interface Breadcrumb {
   agent_name: string;
   action: string;
   detail: string;
+  source_type?: string;
+  source_reference?: string;
+  raw_evidence?: string;
 }
 
 export interface TokenUsage {
@@ -278,6 +291,7 @@ export interface V4SessionStatus {
   findings_count: number;
   token_usage: TokenUsage[];
   breadcrumbs: Breadcrumb[];
+  agents_completed?: string[];
   created_at: string;
   updated_at: string;
 }
@@ -303,6 +317,8 @@ export interface V4Findings {
   k8s_events: K8sEvent[];
   trace_spans: SpanInfo[];
   impacted_files: CodeImpact[];
+  diff_analysis: DiffAnalysisItem[];
+  suggested_fix_areas: SuggestedFixArea[];
   change_correlations: ChangeCorrelation[];
   blast_radius: BlastRadiusData | null;
   severity_recommendation: SeverityData | null;
@@ -314,6 +330,7 @@ export interface V4Findings {
   inferred_dependencies: InferredDependency[];
   reasoning_chain: ReasoningChainStep[];
   suggested_promql_queries: SuggestedPromQLQuery[];
+  time_series_data: Record<string, TimeSeriesDataPoint[]>;
 }
 
 export interface CodeImpact {
@@ -323,6 +340,19 @@ export interface CodeImpact {
   code_snippet: string;
   relationship: string;
   fix_relevance: 'must_fix' | 'should_review' | 'informational';
+}
+
+export interface DiffAnalysisItem {
+  file: string;
+  commit_sha: string;
+  verdict: 'likely_cause' | 'unrelated' | 'contributing';
+  reasoning: string;
+}
+
+export interface SuggestedFixArea {
+  file_path: string;
+  description: string;
+  suggested_change: string;
 }
 
 export interface StartSessionRequest {
@@ -487,6 +517,7 @@ export interface ChangeCorrelation {
   change_type: 'code_deploy' | 'config_change' | 'infra_change' | 'dependency_update';
   risk_score: number;
   temporal_correlation: number;
+  scope_overlap?: number;
   author: string;
   description: string;
   files_changed: string[];

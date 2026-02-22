@@ -142,6 +142,7 @@ body {
 .card-border-M { border-left: 3px solid #06b6d4; }
 .card-border-K { border-left: 3px solid #f97316; }
 .card-border-C { border-left: 3px solid #10b981; }
+.card-border-D { border-left: 3px solid #3b82f6; }
 
 /* Topology edge styles */
 .topology-edge-error {
@@ -162,3 +163,17 @@ body {
 .topology-node-error {
   animation: node-glow-red 2s ease-in-out infinite;
 }
+
+/* ─── Metrics Visualization Animations ───────────────────────────────── */
+
+@keyframes gauge-pulse-red {
+  0%, 100% { filter: drop-shadow(0 0 2px rgba(239, 68, 68, 0.4)); }
+  50% { filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.8)); }
+}
+.gauge-critical { animation: gauge-pulse-red 2s ease-in-out infinite; }
+
+@keyframes deviation-pulse {
+  0%, 100% { opacity: 0.15; }
+  50% { opacity: 0.3; }
+}
+.sparkline-deviation { animation: deviation-pulse 3s ease-in-out infinite; }
