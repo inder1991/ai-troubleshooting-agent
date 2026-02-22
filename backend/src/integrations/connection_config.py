@@ -48,6 +48,8 @@ class ResolvedConnectionConfig:
     jira_credentials: str = ""
     confluence_url: str = ""
     confluence_credentials: str = ""
+    remedy_url: str = ""
+    remedy_credentials: str = ""
 
     # LLM configuration
     llm_model: str = ""              # Global override (empty = use code default)
@@ -171,6 +173,17 @@ def resolve_active_profile(profile_id: Optional[str] = None) -> ResolvedConnecti
             except Exception:
                 pass
 
+    remedy_url = ""
+    remedy_creds = ""
+    remedy = gi_store.get_by_service_type("remedy")
+    if remedy and remedy.url:
+        remedy_url = remedy.url
+        if remedy.auth_credential_handle:
+            try:
+                remedy_creds = resolver.resolve(remedy.id, "credential", remedy.auth_credential_handle)
+            except Exception:
+                pass
+
     github_token = ""
     github = gi_store.get_by_service_type("github")
     if github:
@@ -228,10 +241,12 @@ def resolve_active_profile(profile_id: Optional[str] = None) -> ResolvedConnecti
         jaeger_auth_method=jaeger_auth,
         jaeger_credentials=jaeger_creds,
         github_token=github_token,
-        jira_url=jira_url,
-        jira_credentials=jira_creds,
-        confluence_url=confluence_url,
-        confluence_credentials=confluence_creds,
+        jira_url=jira_url or os.getenv("JIRA_URL", ""),
+        jira_credentials=jira_creds or os.getenv("JIRA_CREDENTIALS", ""),
+        confluence_url=confluence_url or os.getenv("CONFLUENCE_URL", ""),
+        confluence_credentials=confluence_creds or os.getenv("CONFLUENCE_CREDENTIALS", ""),
+        remedy_url=remedy_url or os.getenv("REMEDY_URL", ""),
+        remedy_credentials=remedy_creds or os.getenv("REMEDY_CREDENTIALS", ""),
         llm_model=llm_model,
         llm_model_overrides=llm_overrides,
         max_iterations=max_iter,
@@ -268,6 +283,13 @@ def _config_from_env() -> ResolvedConnectionConfig:
         prometheus_url=os.getenv("PROMETHEUS_URL", "http://localhost:9090"),
         elasticsearch_url=os.getenv("ELASTICSEARCH_URL", "http://localhost:9200"),
         jaeger_url=os.getenv("TRACING_URL", "http://localhost:16686"),
+        github_token=os.getenv("GITHUB_TOKEN", ""),
+        jira_url=os.getenv("JIRA_URL", ""),
+        jira_credentials=os.getenv("JIRA_CREDENTIALS", ""),
+        confluence_url=os.getenv("CONFLUENCE_URL", ""),
+        confluence_credentials=os.getenv("CONFLUENCE_CREDENTIALS", ""),
+        remedy_url=os.getenv("REMEDY_URL", ""),
+        remedy_credentials=os.getenv("REMEDY_CREDENTIALS", ""),
         llm_model=llm_model,
         llm_model_overrides=llm_overrides,
         max_iterations=max_iter,

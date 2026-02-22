@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import type {
   V4Findings, V4SessionStatus, TaskEvent, Severity, ErrorPattern,
   CriticVerdict, ChangeCorrelation, BlastRadiusData, SeverityData,
-  SpanInfo, ServiceFlowStep, PatientZero, MetricAnomaly,
+  SpanInfo, ServiceFlowStep, PatientZero, MetricAnomaly, DiagnosticPhase,
   DiffAnalysisItem, SuggestedFixArea, NegativeFinding, HighPriorityFile,
 } from '../../types';
 import AgentFindingCard from './cards/AgentFindingCard';
@@ -10,11 +10,14 @@ import CausalRoleBadge from './cards/CausalRoleBadge';
 import StackTraceTelescope from './cards/StackTraceTelescope';
 import SaturationGauge from './cards/SaturationGauge';
 import AnomalySparkline, { findMatchingTimeSeries } from './cards/AnomalySparkline';
+import IncidentClosurePanel from './IncidentClosurePanel';
 
 interface EvidenceFindingsProps {
   findings: V4Findings | null;
   status: V4SessionStatus | null;
   events: TaskEvent[];
+  sessionId?: string;
+  phase?: DiagnosticPhase | null;
 }
 
 const severityColor: Record<Severity, string> = {
@@ -38,7 +41,7 @@ const severityPriorityColor: Record<string, { border: string; bg: string; text: 
   P4: { border: 'border-blue-500/40', bg: 'bg-blue-500/10', text: 'text-blue-400' },
 };
 
-const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _status, events }) => {
+const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _status, events, sessionId, phase }) => {
 
   const errorPatterns = findings?.error_patterns || [];
   const rootCausePatterns = errorPatterns.filter((p) => p.causal_role === 'root_cause');
@@ -256,6 +259,15 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
             {/* 10. Trace waterfall */}
             {(findings?.trace_spans?.length ?? 0) > 0 && (
               <TraceWaterfall spans={findings!.trace_spans} />
+            )}
+
+            {/* 11. Incident Closure Panel */}
+            {sessionId && (phase === 'diagnosis_complete' || phase === 'fix_in_progress' || phase === 'complete') && (
+              <IncidentClosurePanel
+                sessionId={sessionId}
+                findings={findings}
+                phase={phase}
+              />
             )}
 
             {/* Activity Feed fallback */}

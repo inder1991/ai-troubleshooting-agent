@@ -17,6 +17,7 @@ from .routes_v5 import router as v5_router
 from .routes_profiles import router as profiles_router
 from .routes_global_integrations import router as global_integrations_router
 from .routes_audit import router as audit_router
+from .routes_closure import router as closure_router
 from .websocket import manager
 from src.utils.logger import get_logger
 
@@ -73,6 +74,7 @@ def create_app() -> FastAPI:
     app.include_router(profiles_router)
     app.include_router(global_integrations_router)
     app.include_router(audit_router)
+    app.include_router(closure_router)
 
     @app.on_event("startup")
     async def startup():

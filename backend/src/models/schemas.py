@@ -695,6 +695,7 @@ class DiagnosticState(BaseModel):
     code_analysis: Optional[CodeAnalysisResult] = None
     change_analysis: Optional[dict] = None
     fix_result: Optional[FixResult] = None
+    closure_state: Optional["IncidentClosureState"] = None
 
     # Flow reconstruction
     service_flow: list[dict] = Field(default_factory=list)
@@ -747,3 +748,8 @@ class DiagnosticStateV5(DiagnosticState):
         if self.reasoning_manifest is None:
             self.reasoning_manifest = ReasoningManifest(session_id=self.session_id)
         return self
+
+
+# Resolve forward reference for IncidentClosureState
+from src.models.closure_models import IncidentClosureState  # noqa: E402
+DiagnosticState.model_rebuild()

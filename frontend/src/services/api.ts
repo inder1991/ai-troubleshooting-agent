@@ -7,6 +7,7 @@ import type {
   ChatMessage,
   Integration,
   FixStatusResponse,
+  ClosureStatusResponse,
 } from '../types';
 
 const API_BASE_URL = 'http://localhost:8000';
@@ -362,5 +363,79 @@ export const rollbackRemediation = async (sessionId: string) => {
     method: 'POST'
   });
   if (!response.ok) throw new Error('Failed to rollback');
+  return response.json();
+};
+
+// ===== Incident Closure API =====
+
+export const getClosureStatus = async (sessionId: string): Promise<ClosureStatusResponse> => {
+  const response = await fetch(`${API_BASE_URL}/api/v4/session/${sessionId}/closure/status`);
+  if (!response.ok) throw new Error('Failed to get closure status');
+  return response.json();
+};
+
+export const createJiraIssue = async (sessionId: string, data: {
+  project_key: string; summary?: string; description?: string; issue_type?: string; priority?: string;
+}) => {
+  const response = await fetch(`${API_BASE_URL}/api/v4/session/${sessionId}/closure/jira/create`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to create Jira issue');
+  }
+  return response.json();
+};
+
+export const linkJiraIssue = async (sessionId: string, issueKey: string) => {
+  const response = await fetch(`${API_BASE_URL}/api/v4/session/${sessionId}/closure/jira/link`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ issue_key: issueKey }),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to link Jira issue');
+  }
+  return response.json();
+};
+
+export const createRemedyIncident = async (sessionId: string, data: {
+  summary?: string; urgency?: string; assigned_group?: string; service_ci?: string;
+}) => {
+  const response = await fetch(`${API_BASE_URL}/api/v4/session/${sessionId}/closure/remedy/create`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to create Remedy incident');
+  }
+  return response.json();
+};
+
+export const previewPostMortem = async (sessionId: string): Promise<{ title: string; body_markdown: string }> => {
+  const response = await fetch(`${API_BASE_URL}/api/v4/session/${sessionId}/closure/confluence/preview`, {
+    method: 'POST',
+  });
+  if (!response.ok) throw new Error('Failed to generate post-mortem preview');
+  return response.json();
+};
+
+export const publishPostMortem = async (sessionId: string, data: {
+  space_key: string; title?: string; body_markdown: string; parent_page_id?: string;
+}) => {
+  const response = await fetch(`${API_BASE_URL}/api/v4/session/${sessionId}/closure/confluence/publish`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to publish post-mortem');
+  }
   return response.json();
 };

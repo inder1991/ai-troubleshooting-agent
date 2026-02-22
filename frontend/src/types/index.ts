@@ -334,6 +334,7 @@ export interface V4Findings {
   suggested_promql_queries: SuggestedPromQLQuery[];
   time_series_data: Record<string, TimeSeriesDataPoint[]>;
   fix_data: FixResult | null;
+  closure_state: IncidentClosureState | null;
 }
 
 export type FixStatus =
@@ -653,4 +654,62 @@ export interface RunbookMatchData {
   steps: string[];
   success_rate: number;
   source: 'internal' | 'vendor' | 'ai_generated';
+}
+
+// ===== Incident Closure Types =====
+
+export type ClosurePhase = 'not_started' | 'remediation' | 'tracking' | 'knowledge' | 'closed';
+
+export interface JiraActionResult {
+  status: 'success' | 'failed' | 'skipped';
+  issue_key: string;
+  issue_url: string;
+  error: string;
+  created_at: string | null;
+}
+
+export interface RemedyActionResult {
+  status: 'success' | 'failed' | 'skipped';
+  incident_number: string;
+  incident_url: string;
+  error: string;
+  created_at: string | null;
+}
+
+export interface ConfluenceActionResult {
+  status: 'success' | 'failed' | 'skipped';
+  page_id: string;
+  page_url: string;
+  space_key: string;
+  error: string;
+  created_at: string | null;
+}
+
+export interface IntegrationAvailability {
+  configured: boolean;
+  status: string;
+  has_credentials: boolean;
+}
+
+export interface IncidentClosureState {
+  phase: ClosurePhase;
+  jira_result: JiraActionResult;
+  remedy_result: RemedyActionResult;
+  confluence_result: ConfluenceActionResult;
+  postmortem_preview: string;
+  closed_at: string | null;
+}
+
+export interface ClosureStatusResponse {
+  closure_state: IncidentClosureState;
+  integrations: Record<'jira' | 'confluence' | 'remedy', IntegrationAvailability>;
+  can_start_closure: boolean;
+  pre_filled: {
+    jira_summary: string;
+    jira_description: string;
+    jira_priority: string;
+    remedy_summary: string;
+    remedy_urgency: string;
+    confluence_title: string;
+  };
 }

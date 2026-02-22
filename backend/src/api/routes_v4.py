@@ -313,6 +313,7 @@ async def get_findings(session_id: str):
             "suggested_promql_queries": [],
             "time_series_data": {},
             "fix_data": None,
+            "closure_state": None,
             "message": "Analysis not yet complete",
         }
 
@@ -373,6 +374,7 @@ async def get_findings(session_id: str):
         "suggested_promql_queries": state.suggested_promql_queries,
         "time_series_data": ts_data_raw,
         "fix_data": state.fix_result.model_dump(mode="json") if state.fix_result else None,
+        "closure_state": state.closure_state.model_dump(mode="json") if state.closure_state else None,
     }
 
 
