@@ -291,7 +291,7 @@ After analysis, provide your final answer as JSON:
     "impacted_files": [...],
     "call_chain": ["caller.py:handler()", "service.py:process()", "db.py:query()"],
     "dependency_graph": {"service.py": ["db.py", "cache.py"]},
-    "shared_resource_conflicts": [],
+    "shared_resource_conflicts": ["Redis connection pool exhaustion", "DB lock contention"],
     "suggested_fix_areas": [{"file_path": "...", "description": "...", "suggested_change": "..."}],
     "diff_analysis": [{"file": "...", "commit_sha": "...", "verdict": "likely_cause|unrelated|contributing", "reasoning": "..."}],
     "cross_repo_findings": [{"repo": "org/service", "role": "upstream_trigger|downstream_failure", "evidence": "..."}],

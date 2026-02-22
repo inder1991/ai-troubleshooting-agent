@@ -1224,7 +1224,10 @@ class SupervisorAgent:
                 impacted_files=impacted,
                 call_chain=result.get("call_chain", []),
                 dependency_graph=result.get("dependency_graph", {}),
-                shared_resource_conflicts=result.get("shared_resource_conflicts", []),
+                shared_resource_conflicts=[
+                    s if isinstance(s, str) else s.get("resource", "") or str(s)
+                    for s in result.get("shared_resource_conflicts", [])
+                ],
                 suggested_fix_areas=fix_areas,
                 diff_analysis=diff_analysis,
                 cross_repo_findings=cross_repo_findings,
