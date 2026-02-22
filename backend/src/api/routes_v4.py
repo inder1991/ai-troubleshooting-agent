@@ -1,8 +1,10 @@
+import os
 import uuid
 import asyncio
 from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter, BackgroundTasks, HTTPException
-from typing import Dict, Any
+from pydantic import BaseModel
+from typing import Dict, Any, Optional
 
 from src.api.models import (
     ChatRequest, ChatResponse, StartSessionRequest, StartSessionResponse, SessionSummary
@@ -188,7 +190,12 @@ def _push_to_v5(session_id: str, state):
 
 async def run_diagnosis(session_id: str, supervisor: SupervisorAgent, initial_input: dict, emitter: EventEmitter):
     try:
-        state = await supervisor.run(initial_input, emitter)
+        state = await supervisor.run(
+            initial_input, emitter,
+            # Callback to expose state immediately after creation so the
+            # findings endpoint can read partial results mid-investigation.
+            on_state_created=lambda s: sessions[session_id].__setitem__("state", s),
+        )
         sessions[session_id]["state"] = state
         sessions[session_id]["phase"] = state.phase.value
         sessions[session_id]["confidence"] = state.overall_confidence
@@ -299,6 +306,7 @@ async def get_findings(session_id: str):
             "inferred_dependencies": [],
             "reasoning_chain": [],
             "suggested_promql_queries": [],
+            "time_series_data": {},
             "message": "Analysis not yet complete",
         }
 
@@ -314,6 +322,13 @@ async def get_findings(session_id: str):
     k8s_events = state.k8s_analysis.events if state.k8s_analysis else []
     trace_spans = state.trace_analysis.call_chain if state.trace_analysis else []
     impacted_files = state.code_analysis.impacted_files if state.code_analysis else []
+
+    # Extract time series data capped at 30 points per metric
+    ts_data_raw = {}
+    if state.metrics_analysis and state.metrics_analysis.time_series_data:
+        for key, points in state.metrics_analysis.time_series_data.items():
+            capped = points[-30:] if len(points) > 30 else points
+            ts_data_raw[key] = [dp.model_dump(mode="json") for dp in capped]
 
     return {
         "incident_id": state.incident_id,
@@ -340,7 +355,60 @@ async def get_findings(session_id: str):
         "inferred_dependencies": state.inferred_dependencies,
         "reasoning_chain": state.reasoning_chain,
         "suggested_promql_queries": state.suggested_promql_queries,
+        "time_series_data": ts_data_raw,
     }
+
+
+class PromQLRequest(BaseModel):
+    query: str
+    start: str
+    end: str
+    step: str = "60s"
+
+
+@router_v4.post("/promql/query")
+async def proxy_promql_query(request: PromQLRequest):
+    """Proxy a PromQL range query to Prometheus for the frontend Run button."""
+    import httpx
+
+    prometheus_url = os.getenv("PROMETHEUS_URL", "http://localhost:9090")
+    url = f"{prometheus_url}/api/v1/query_range"
+    params = {
+        "query": request.query,
+        "start": request.start,
+        "end": request.end,
+        "step": request.step,
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(url, params=params)
+            resp.raise_for_status()
+            data = resp.json()
+
+        if data.get("status") != "success":
+            return {"data_points": [], "current_value": 0, "error": data.get("error", "Unknown Prometheus error")}
+
+        results = data.get("data", {}).get("result", [])
+        if not results:
+            return {"data_points": [], "current_value": 0, "error": "No data returned"}
+
+        # Take first result series, cap at 30 points
+        values = results[0].get("values", [])
+        capped = values[-30:] if len(values) > 30 else values
+        data_points = [
+            {"timestamp": datetime.fromtimestamp(float(ts), tz=timezone.utc).isoformat(), "value": float(val)}
+            for ts, val in capped
+        ]
+        current_value = float(capped[-1][1]) if capped else 0
+
+        return {"data_points": data_points, "current_value": current_value}
+    except httpx.HTTPStatusError as e:
+        logger.warning("Prometheus query failed: %s", e)
+        return {"data_points": [], "current_value": 0, "error": f"Prometheus returned {e.response.status_code}"}
+    except Exception as e:
+        logger.warning("PromQL proxy error: %s", e)
+        return {"data_points": [], "current_value": 0, "error": str(e)}
 
 
 @router_v4.get("/session/{session_id}/events")

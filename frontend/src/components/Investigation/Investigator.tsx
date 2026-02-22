@@ -22,9 +22,15 @@ interface ToolCallGroup {
 type TimelineItem =
   | { kind: 'chat'; msg: ChatMessageType; ts: number }
   | { kind: 'event'; event: TaskEvent; ts: number }
+  | { kind: 'reasoning_chain'; chain: ReasoningChainStep[]; ts: number }
   | ToolCallGroup;
 
-function buildTimeline(messages: ChatMessageType[], events: TaskEvent[], showToolCalls: boolean): TimelineItem[] {
+function buildTimeline(
+  messages: ChatMessageType[],
+  events: TaskEvent[],
+  showToolCalls: boolean,
+  reasoningChain?: ReasoningChainStep[],
+): TimelineItem[] {
   const eventItems: TimelineItem[] = [];
   let i = 0;
   while (i < events.length) {
@@ -45,6 +51,18 @@ function buildTimeline(messages: ChatMessageType[], events: TaskEvent[], showToo
       i++;
     }
   }
+
+  // Insert reasoning chain at the correct chronological position (after its summary event)
+  if (reasoningChain && reasoningChain.length > 0) {
+    const reasoningEvent = events.find(
+      (e) => e.event_type === 'summary' && e.message.toLowerCase().includes('reasoning chain'),
+    );
+    const ts = reasoningEvent
+      ? new Date(reasoningEvent.timestamp).getTime() + 1 // just after the summary event
+      : Date.now();
+    eventItems.push({ kind: 'reasoning_chain', chain: reasoningChain, ts });
+  }
+
   const chatItems: TimelineItem[] = messages.map((msg) => ({ kind: 'chat' as const, msg, ts: new Date(msg.timestamp).getTime() }));
   return [...chatItems, ...eventItems].sort((a, b) => a.ts - b.ts);
 }
@@ -81,6 +99,7 @@ const Investigator: React.FC<InvestigatorProps> = ({
   const [findings, setFindings] = useState<V4Findings | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const userScrolledUpRef = useRef(false);
 
   const fetchFindings = useCallback(async () => {
     try {
@@ -106,9 +125,18 @@ const Investigator: React.FC<InvestigatorProps> = ({
     if (relevantEventCount > 0) fetchFindings();
   }, [relevantEventCount, fetchFindings]);
 
+  // Only auto-scroll when user is near the bottom (not reading earlier content)
+  const handleScroll = useCallback(() => {
+    if (!scrollRef.current) return;
+    const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
+    userScrolledUpRef.current = scrollHeight - scrollTop - clientHeight > 120;
+  }, []);
+
   useEffect(() => {
-    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-  }, [messages, events, findings]);
+    if (scrollRef.current && !userScrolledUpRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages, events]);
 
   useEffect(() => { inputRef.current?.focus(); }, [sessionId]);
 
@@ -132,7 +160,10 @@ const Investigator: React.FC<InvestigatorProps> = ({
     }
   };
 
-  const timeline = useMemo(() => buildTimeline(messages, events, showToolCalls), [messages, events, showToolCalls]);
+  const timeline = useMemo(
+    () => buildTimeline(messages, events, showToolCalls, findings?.reasoning_chain),
+    [messages, events, showToolCalls, findings?.reasoning_chain],
+  );
   const toolCallCount = events.filter((e) => e.event_type === 'tool_call').length;
 
   // Derive active agents
@@ -217,7 +248,7 @@ const Investigator: React.FC<InvestigatorProps> = ({
       </div>
 
       {/* Investigative Timeline */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-3 custom-scrollbar">
+      <div ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-y-auto px-4 py-3 custom-scrollbar">
         {timeline.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-slate-500">
             <p className="text-sm">Waiting for investigation to begin...</p>
@@ -236,6 +267,9 @@ const Investigator: React.FC<InvestigatorProps> = ({
                 if (item.kind === 'tool_group') {
                   return <ToolCallGroupNode key={`tg-${idx}`} group={item} />;
                 }
+                if (item.kind === 'reasoning_chain') {
+                  return <ReasoningChainSection key={`rc-${idx}`} chain={item.chain} />;
+                }
                 return <EventNode key={`ev-${idx}`} event={item.event} />;
               })}
             </div>
@@ -253,10 +287,6 @@ const Investigator: React.FC<InvestigatorProps> = ({
           </div>
         )}
 
-        {/* Reasoning Chain */}
-        {(findings?.reasoning_chain?.length ?? 0) > 0 && (
-          <ReasoningChainSection chain={findings!.reasoning_chain} />
-        )}
       </div>
 
       {/* Chat Input (bottom, sticky) */}

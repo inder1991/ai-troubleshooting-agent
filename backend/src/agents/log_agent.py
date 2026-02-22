@@ -1225,7 +1225,16 @@ Respond with JSON only. No markdown fences."""
             "service_flow": collection.get("service_flow", []),
             "flow_source": "elasticsearch",
             "flow_confidence": 70 if collection.get("service_flow") else 0,
+            "detected_namespace": self._detect_namespace(),
         }
+
+    def _detect_namespace(self) -> str | None:
+        """Extract Kubernetes namespace from collected raw logs metadata."""
+        for log in self._raw_logs:
+            ns = (log.get("_metadata") or {}).get("kubernetes.namespace")
+            if ns:
+                return ns
+        return None
 
     # ─── ES Tool Implementations (reused from original) ────────────────────
 
