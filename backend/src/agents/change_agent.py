@@ -1,4 +1,5 @@
 import json
+import os
 import shlex
 
 from src.agents.react_base import ReActAgent
@@ -72,6 +73,7 @@ class ChangeAgent(ReActAgent):
 
     async def _build_initial_prompt(self, context: dict) -> str:
         self._repo_url = context.get("repo_url", "")
+        self._github_token = context.get("github_token") or os.getenv("GITHUB_TOKEN", "")
         self._namespace = context.get("namespace", "default")
         self._incident_start = context.get("incident_start")
         self._cli_tool = context.get("cli_tool", "kubectl")
@@ -92,8 +94,9 @@ class ChangeAgent(ReActAgent):
         return f"Unknown tool: {tool_name}"
 
     async def _get_github_commits(self, params: dict) -> str:
-        from src.integrations.probe import run_command
-        import re as _re
+        import os
+        import httpx
+        from datetime import datetime, timezone, timedelta
 
         repo_url = params.get("repo_url", self._repo_url)
         since_hours = params.get("since_hours", 24)
@@ -105,12 +108,40 @@ class ChangeAgent(ReActAgent):
         if not owner_repo:
             return f"Could not parse repository URL: {repo_url}"
 
-        # Use gh api to fetch recent commits
-        jq_expr = '[.[] | {sha: .sha[:8], author: .commit.author.name, date: .commit.author.date, message: .commit.message[:200]}]'
-        cmd = f"gh api \"repos/{owner_repo}/commits?per_page=20\" --jq '{jq_expr}'"
-        code, stdout, stderr = await run_command(cmd)
+        token = self._github_token or os.getenv("GITHUB_TOKEN", "")
+        headers = {"Accept": "application/vnd.github+json"}
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
 
-        return stdout if code == 0 else f"GitHub API error: {stderr}"
+        since_iso = (datetime.now(timezone.utc) - timedelta(hours=since_hours)).isoformat()
+        url = f"https://api.github.com/repos/{owner_repo}/commits"
+
+        try:
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                resp = await client.get(url, headers=headers, params={"per_page": 20, "since": since_iso})
+                if resp.status_code == 401:
+                    return "GitHub API error: authentication required — set GITHUB_TOKEN env var"
+                if resp.status_code == 404:
+                    return f"GitHub API error: repository not found — {owner_repo}"
+                resp.raise_for_status()
+                commits = resp.json()
+        except httpx.HTTPStatusError as e:
+            return f"GitHub API error: {e.response.status_code} {e.response.text[:200]}"
+        except httpx.ConnectError:
+            return "GitHub API error: connection failed — check network"
+        except httpx.TimeoutException:
+            return "GitHub API error: request timed out"
+
+        result = [
+            {
+                "sha": c["sha"][:8],
+                "author": c["commit"]["author"]["name"],
+                "date": c["commit"]["author"]["date"],
+                "message": c["commit"]["message"][:200],
+            }
+            for c in commits
+        ]
+        return json.dumps(result, indent=2) if result else "No commits found in the last {} hours".format(since_hours)
 
     def _parse_repo_url(self, url: str) -> str | None:
         """Extract 'owner/repo' from various GitHub URL formats."""

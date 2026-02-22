@@ -255,6 +255,10 @@ class SupervisorAgent:
                 and "metrics_agent" in state.agents_completed
             ):
                 await self._request_repo_confirmation(state, event_emitter)
+                # Ensure change_agent is marked complete regardless of outcome
+                # (timeout, skip, no affected services) to prevent re-dispatch
+                if "change_agent" not in state.agents_completed:
+                    state.agents_completed.append("change_agent")
 
         # Compile token usage
         state.token_usage.append(self.llm_client.get_total_usage())
@@ -391,8 +395,9 @@ class SupervisorAgent:
                 return f"Repository path does not exist: {repo} — skipping code analysis"
             if repo.startswith(("http://", "https://", "git@")):
                 import os
-                if not os.getenv("GITHUB_TOKEN"):
-                    return "GITHUB_TOKEN not set — required for GitHub API code analysis. Skipping."
+                has_github_token = (cfg and cfg.github_token) or os.getenv("GITHUB_TOKEN")
+                if not has_github_token:
+                    return "No GitHub token configured (add via Integrations or GITHUB_TOKEN env var) — skipping code analysis"
 
         if agent_name == "change_agent":
             has_repo = getattr(state, "repo_url", None) and state.repo_url.strip()
@@ -447,11 +452,13 @@ class SupervisorAgent:
         # Check prerequisites before dispatching
         skip_reason = self._check_prerequisites(agent_name, state)
         if skip_reason:
-            logger.info("Agent skipped", extra={
-                "agent_name": agent_name, "action": "skipped", "extra": skip_reason
+            logger.warning("Agent skipped due to missing prerequisites", extra={
+                "session_id": getattr(state, 'session_id', ''),
+                "agent_name": agent_name, "action": "skipped",
+                "extra": skip_reason,
             })
             if event_emitter:
-                await event_emitter.emit(agent_name, "skipped", skip_reason)
+                await event_emitter.emit(agent_name, "warning", f"Skipped: {skip_reason}")
             return None
 
         agent_cls = self._agents.get(agent_name)
@@ -547,6 +554,9 @@ class SupervisorAgent:
 
         elif agent_name == "code_agent":
             base["repo_url"] = state.repo_url
+            # Pass GitHub token from integration config
+            if self._connection_config and self._connection_config.github_token:
+                base["github_token"] = self._connection_config.github_token
             # Backward compat: local path
             if state.repo_url and not state.repo_url.startswith(("http://", "https://", "git@")):
                 base["repo_path"] = state.repo_url
@@ -574,6 +584,9 @@ class SupervisorAgent:
 
         elif agent_name == "change_agent":
             base["repo_url"] = state.repo_url
+            # Pass GitHub token from integration config
+            if self._connection_config and self._connection_config.github_token:
+                base["github_token"] = self._connection_config.github_token
             base["namespace"] = state.namespace or "default"
             base["incident_start"] = state.time_window.start
             if self._connection_config:

@@ -181,7 +181,7 @@ After analysis, provide your final answer as JSON:
         self._repo_url = context.get("repo_url", "")
         self.repo_path = context.get("repo_path", "")
         self._owner_repo = self._parse_repo_url(self._repo_url) or ""
-        self._github_token = os.getenv("GITHUB_TOKEN", "")
+        self._github_token = context.get("github_token") or os.getenv("GITHUB_TOKEN", "")
         self._high_priority_files = context.get("high_priority_files", [])
         self._stack_traces = context.get("stack_traces", [])
 

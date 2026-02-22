@@ -43,6 +43,7 @@ class ResolvedConnectionConfig:
     jaeger_credentials: str = ""
 
     # Global integrations
+    github_token: str = ""
     jira_url: str = ""
     jira_credentials: str = ""
     confluence_url: str = ""
@@ -170,6 +171,16 @@ def resolve_active_profile(profile_id: Optional[str] = None) -> ResolvedConnecti
             except Exception:
                 pass
 
+    github_token = ""
+    github = gi_store.get_by_service_type("github")
+    if github and github.auth_credential_handle:
+        try:
+            github_token = resolver.resolve(github.id, "credential", github.auth_credential_handle)
+        except Exception as e:
+            logger.warning("Failed to decrypt GitHub token: %s", e)
+    if not github_token:
+        github_token = os.getenv("GITHUB_TOKEN", "")
+
     # Resolve LLM and iteration configuration from env vars
     import json as _json
 
@@ -204,6 +215,7 @@ def resolve_active_profile(profile_id: Optional[str] = None) -> ResolvedConnecti
         jaeger_url=jaeger_url or os.getenv("TRACING_URL", ""),
         jaeger_auth_method=jaeger_auth,
         jaeger_credentials=jaeger_creds,
+        github_token=github_token,
         jira_url=jira_url,
         jira_credentials=jira_creds,
         confluence_url=confluence_url,
