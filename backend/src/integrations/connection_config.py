@@ -173,13 +173,25 @@ def resolve_active_profile(profile_id: Optional[str] = None) -> ResolvedConnecti
 
     github_token = ""
     github = gi_store.get_by_service_type("github")
-    if github and github.auth_credential_handle:
-        try:
-            github_token = resolver.resolve(github.id, "credential", github.auth_credential_handle)
-        except Exception as e:
-            logger.warning("Failed to decrypt GitHub token: %s", e)
+    if github:
+        logger.info("GitHub integration found: id=%s, url=%s, has_handle=%s",
+                     github.id, github.url, bool(github.auth_credential_handle))
+        if github.auth_credential_handle:
+            try:
+                github_token = resolver.resolve(github.id, "credential", github.auth_credential_handle)
+                logger.info("GitHub token decrypted: length=%d", len(github_token))
+            except Exception as e:
+                logger.warning("Failed to decrypt GitHub token: %s", e)
+        else:
+            logger.warning("GitHub integration has no auth_credential_handle")
+    else:
+        logger.info("No GitHub integration found in global_integrations store")
     if not github_token:
         github_token = os.getenv("GITHUB_TOKEN", "")
+        if github_token:
+            logger.info("GitHub token from env var: length=%d", len(github_token))
+        else:
+            logger.info("No GitHub token available (neither integration store nor env var)")
 
     # Resolve LLM and iteration configuration from env vars
     import json as _json
