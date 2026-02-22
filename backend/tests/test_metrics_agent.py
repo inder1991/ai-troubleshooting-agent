@@ -141,7 +141,7 @@ def test_get_saturation_metrics_no_match():
     assert result["saturation_queries"] == []
 
 
-def test_parse_final_response_filters_time_series():
+def test_parse_final_response_includes_all_time_series():
     import json
     agent = MetricsAgent()
     # Cache some time series data
@@ -156,7 +156,8 @@ def test_parse_final_response_filters_time_series():
         "overall_confidence": 75,
     })
     result = agent._parse_final_response(text)
-    # Only cpu_query should be in time_series_data (matches "cpu_usage" in key "cpu_query")
+    # All cached time series are included — even normal metrics provide context
     assert "cpu_query" in result["time_series_data"]
-    assert "network_query" not in result["time_series_data"]
+    assert "memory_query" in result["time_series_data"]
+    assert "network_query" in result["time_series_data"]
     assert result["correlated_signals"] == []

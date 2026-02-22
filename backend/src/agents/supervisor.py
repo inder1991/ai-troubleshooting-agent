@@ -88,6 +88,26 @@ def generate_incident_id() -> str:
 class SupervisorAgent:
     """State machine orchestrator that routes work to specialized agents."""
 
+    @staticmethod
+    def _extract_file_paths_from_traces(traces: list[str]) -> list[str]:
+        """Extract file paths from stack trace strings."""
+        import re
+        paths = set()
+        for trace in traces:
+            # Python: File "path/to/file.py", line 42
+            for m in re.finditer(r'File\s+"([^"]+\.py)"', trace):
+                paths.add(m.group(1))
+            # Java: at com.example.Foo (Foo.java:42)
+            for m in re.finditer(r'\((\w+\.java):\d+\)', trace):
+                paths.add(m.group(1))
+            # Node/TS: at fn (/path/to/file.ts:42:10)
+            for m in re.finditer(r'at\s+.*?\((.+?\.[tj]sx?):\d+', trace):
+                paths.add(m.group(1))
+            # Generic: src/service/handler.py
+            for m in re.finditer(r'([\w/.-]+\.(?:py|java|ts|js|go|rs|rb))', trace):
+                paths.add(m.group(1))
+        return sorted(paths)
+
     def __init__(self, connection_config=None):
         self.agent_name = "supervisor"
         # Resolve model from config/env for supervisor's own LLM usage
@@ -602,6 +622,13 @@ class SupervisorAgent:
             if self._connection_config:
                 cluster_type = getattr(self._connection_config, "cluster_type", "kubernetes")
                 base["cli_tool"] = "oc" if cluster_type == "openshift" else "kubectl"
+            # Pass stack trace file paths for cross-referencing
+            if state.log_analysis and state.log_analysis.primary_pattern:
+                stack_traces = list(state.log_analysis.primary_pattern.stack_traces or [])
+                stack_file_paths = self._extract_file_paths_from_traces(stack_traces)
+                if stack_file_paths:
+                    base["stack_trace_files"] = stack_file_paths
+                base["exception_type"] = state.log_analysis.primary_pattern.exception_type
 
         return base
 

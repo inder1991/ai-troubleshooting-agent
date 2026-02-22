@@ -177,6 +177,7 @@ class ReActAgent(ABC):
             "github_recent_commits": lambda i: f"Fetching recent commits from '{i.get('repo_url', 'repository')}'",
             "deployment_history": lambda i: f"Checking deployment rollout history in '{i.get('namespace', 'default')}'",
             "config_diff": lambda i: f"Checking ConfigMap changes in '{i.get('namespace', 'default')}'",
+            "github_get_commit_diff": lambda i: f"Fetching diff for commit '{i.get('commit_sha', 'unknown')[:8]}'",
         }
         fn = summaries.get(tool_name)
         if fn:

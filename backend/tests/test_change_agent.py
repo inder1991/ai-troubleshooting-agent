@@ -38,11 +38,12 @@ class TestChangeAgent:
     async def test_define_tools(self):
         agent = ChangeAgent()
         tools = await agent._define_tools()
-        assert len(tools) == 3
+        assert len(tools) == 4
         names = [t["name"] for t in tools]
         assert "github_recent_commits" in names
         assert "deployment_history" in names
         assert "config_diff" in names
+        assert "github_get_commit_diff" in names
 
     @pytest.mark.asyncio
     async def test_build_initial_prompt(self):

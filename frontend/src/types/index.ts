@@ -320,6 +320,8 @@ export interface V4Findings {
   diff_analysis: DiffAnalysisItem[];
   suggested_fix_areas: SuggestedFixArea[];
   change_correlations: ChangeCorrelation[];
+  change_summary: string | null;
+  change_high_priority_files: HighPriorityFile[];
   blast_radius: BlastRadiusData | null;
   severity_recommendation: SeverityData | null;
   past_incidents: PastIncidentMatch[];
@@ -523,6 +525,14 @@ export interface ChangeCorrelation {
   files_changed: string[];
   timestamp: string | null;
   service_name?: string;
+  reasoning?: string;
+}
+
+export interface HighPriorityFile {
+  file_path: string;
+  risk_score: number;
+  sha: string;
+  description: string;
 }
 
 export interface HypothesisData {

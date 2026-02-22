@@ -3,7 +3,7 @@ import type {
   V4Findings, V4SessionStatus, TaskEvent, Severity, ErrorPattern,
   CriticVerdict, ChangeCorrelation, BlastRadiusData, SeverityData,
   SpanInfo, ServiceFlowStep, PatientZero, MetricAnomaly,
-  DiffAnalysisItem, SuggestedFixArea,
+  DiffAnalysisItem, SuggestedFixArea, NegativeFinding, HighPriorityFile,
 } from '../../types';
 import AgentFindingCard from './cards/AgentFindingCard';
 import CausalRoleBadge from './cards/CausalRoleBadge';
@@ -237,14 +237,8 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
               />
             )}
 
-            {/* 8. Change correlations */}
-            <ChangeCorrelationsSection findings={findings} />
-
-            {/* 8b. Diff Analysis (code_agent) */}
-            <DiffAnalysisSection findings={findings} />
-
-            {/* 8c. Suggested Fixes (code_agent) */}
-            <SuggestedFixSection findings={findings} />
+            {/* 8. Unified Causality Chain */}
+            <CausalityChainCard findings={findings} />
 
             {/* 9. Correlated anomalies */}
             {correlatedPatterns.length > 0 && (
@@ -528,7 +522,259 @@ const TemporalFlowTimeline: React.FC<{
   );
 };
 
-// ─── Change Correlations Section ──────────────────────────────────────────
+// ─── Causality Chain Card (unified) ───────────────────────────────────────
+
+interface CausalityLink {
+  correlation: ChangeCorrelation;
+  diffs: DiffAnalysisItem[];
+  fixes: SuggestedFixArea[];
+}
+
+const CausalityChainCard: React.FC<{ findings: V4Findings | null }> = ({ findings }) => {
+  const correlations = findings?.change_correlations || [];
+  const diffs = findings?.diff_analysis || [];
+  const fixes = findings?.suggested_fix_areas || [];
+  const changeSummary = findings?.change_summary || null;
+  const highPriorityFiles = findings?.change_high_priority_files || [];
+  const negativeFindings = findings?.negative_findings || [];
+  const [ruledOutOpen, setRuledOutOpen] = useState(false);
+
+  // Filter negative findings to change/infra-related ones
+  const changeNegatives = useMemo(() =>
+    negativeFindings.filter(nf =>
+      nf.agent === 'change_agent' ||
+      /config|deploy|change|rollout|scaling|hpa/i.test(nf.category + ' ' + nf.description)
+    ),
+  [negativeFindings]);
+
+  if (correlations.length === 0 && diffs.length === 0 && fixes.length === 0 && !changeSummary && changeNegatives.length === 0) return null;
+
+  const links: CausalityLink[] = useMemo(() => {
+    return correlations
+      .filter(c => c.risk_score > 0)
+      .sort((a, b) => b.risk_score - a.risk_score)
+      .map(corr => {
+        const changedFiles = new Set((corr.files_changed || []).map(f => f.toLowerCase()));
+        const matchedDiffs = diffs.filter(d =>
+          changedFiles.has(d.file.toLowerCase()) ||
+          d.commit_sha?.startsWith(corr.change_id?.slice(0, 7) || '---')
+        );
+        const matchedFixes = fixes.filter(f =>
+          changedFiles.has(f.file_path.toLowerCase()) ||
+          matchedDiffs.some(d => d.file.toLowerCase() === f.file_path.toLowerCase())
+        );
+        return { correlation: corr, diffs: matchedDiffs, fixes: matchedFixes };
+      });
+  }, [correlations, diffs, fixes]);
+
+  // Orphaned diffs/fixes not linked to any correlation
+  const linkedDiffFiles = new Set(links.flatMap(l => l.diffs.map(d => d.file)));
+  const linkedFixFiles = new Set(links.flatMap(l => l.fixes.map(f => f.file_path)));
+  const orphanDiffs = diffs.filter(d => !linkedDiffFiles.has(d.file));
+  const orphanFixes = fixes.filter(f => !linkedFixFiles.has(f.file_path));
+
+  return (
+    <section className="space-y-3">
+      <div className="flex items-center gap-2 mb-1">
+        <span className="material-symbols-outlined text-violet-400 text-sm"
+              style={{ fontFamily: 'Material Symbols Outlined' }}>account_tree</span>
+        <span className="text-[11px] font-bold uppercase tracking-wider">Causality Chain</span>
+        <span className="text-[10px] text-slate-500">
+          {links.length} correlation{links.length !== 1 ? 's' : ''}
+        </span>
+      </div>
+
+      {/* Gap 3: System Insight — Executive Brief */}
+      {changeSummary && (
+        <div className="rounded-lg bg-blue-500/5 border border-blue-500/20 px-4 py-2.5 flex items-start gap-2.5">
+          <span className="material-symbols-outlined text-blue-400 text-sm mt-0.5 shrink-0"
+                style={{ fontFamily: 'Material Symbols Outlined' }}>lightbulb</span>
+          <p className="text-[11px] text-slate-300 leading-relaxed">{changeSummary}</p>
+        </div>
+      )}
+
+      {/* Gap 2: Top Suspects — High Priority Files */}
+      {highPriorityFiles.length > 0 && (
+        <div className="rounded-lg bg-slate-900/40 border border-slate-700/50 px-4 py-2.5">
+          <div className="flex items-center gap-1.5 mb-2">
+            <span className="material-symbols-outlined text-amber-400 text-xs"
+                  style={{ fontFamily: 'Material Symbols Outlined' }}>target</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400">Top Suspects</span>
+            <span className="text-[9px] text-slate-600 ml-1">Files the AI is investigating</span>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {highPriorityFiles.map((hpf, i) => (
+              <span key={i}
+                    className="group relative text-[10px] font-mono px-2 py-1 rounded-md bg-amber-500/10 text-amber-300 border border-amber-500/25 cursor-default"
+                    title={`Risk: ${Math.round(hpf.risk_score * 100)}% | ${hpf.description}`}>
+                {hpf.file_path.split('/').pop()}
+                <span className="ml-1.5 text-[9px] text-amber-500 font-bold">{Math.round(hpf.risk_score * 100)}%</span>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {links.map((link, i) => (
+        <CausalityLinkCard key={i} link={link} />
+      ))}
+
+      {/* Orphaned diffs from code_agent */}
+      {orphanDiffs.length > 0 && (
+        <AgentFindingCard agent="D" title="Additional Diff Analysis">
+          <div className="space-y-2">
+            {orphanDiffs.map((item, i) => <DiffRow key={i} item={item} />)}
+          </div>
+        </AgentFindingCard>
+      )}
+
+      {/* Orphaned fixes */}
+      {orphanFixes.length > 0 && (
+        <AgentFindingCard agent="D" title="Additional Fix Suggestions">
+          <div className="space-y-2">
+            {orphanFixes.map((fix, i) => <FixRow key={i} fix={fix} />)}
+          </div>
+        </AgentFindingCard>
+      )}
+
+      {/* Gap 4: Ruled Out — Dead Ends */}
+      {changeNegatives.length > 0 && (
+        <div className="rounded-lg bg-slate-900/20 border border-slate-800/50">
+          <button onClick={() => setRuledOutOpen(!ruledOutOpen)}
+                  className="w-full text-left px-4 py-2 flex items-center gap-2">
+            <span className={`material-symbols-outlined text-xs text-slate-600 transition-transform ${ruledOutOpen ? 'rotate-90' : ''}`}
+                  style={{ fontFamily: 'Material Symbols Outlined' }}>chevron_right</span>
+            <span className="material-symbols-outlined text-slate-600 text-xs"
+                  style={{ fontFamily: 'Material Symbols Outlined' }}>scan_delete</span>
+            <span className="text-[10px] text-slate-600 uppercase tracking-wider font-bold">Ruled Out</span>
+            <span className="text-[9px] text-slate-700">{changeNegatives.length} checked</span>
+          </button>
+          {ruledOutOpen && (
+            <div className="px-4 pb-3 space-y-1.5">
+              {changeNegatives.map((nf, i) => (
+                <div key={i} className="flex items-center gap-2 text-[10px] text-slate-500">
+                  <span className="text-green-600 shrink-0">&#10003;</span>
+                  <span className="text-slate-600 font-medium">{nf.category}:</span>
+                  <span className="text-slate-500">{nf.description}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </section>
+  );
+};
+
+const CausalityLinkCard: React.FC<{ link: CausalityLink }> = ({ link }) => {
+  const [expanded, setExpanded] = useState(link.correlation.risk_score > 0.7);
+  const riskPct = Math.round(link.correlation.risk_score * 100);
+  const riskColor = riskPct >= 80 ? 'text-red-400' : riskPct >= 50 ? 'text-amber-400' : 'text-blue-400';
+  const hasLikelyCause = link.diffs.some(d => d.verdict === 'likely_cause');
+  const temporalPct = Math.round((link.correlation.temporal_correlation ?? 0) * 100);
+  const temporalColor = temporalPct >= 80 ? 'text-red-400 bg-red-500/10 border-red-500/20'
+    : temporalPct >= 50 ? 'text-amber-400 bg-amber-500/10 border-amber-500/20'
+    : 'text-blue-400 bg-blue-500/10 border-blue-500/20';
+
+  return (
+    <div className="rounded-lg overflow-hidden bg-slate-900/40 border border-slate-700/50"
+         style={{ borderLeft: '3px solid', borderImage: 'linear-gradient(to bottom, #10b981, #3b82f6, #8b5cf6) 1' }}>
+
+      {/* Top: Change Agent - Who/When */}
+      <button onClick={() => setExpanded(!expanded)}
+              className="w-full text-left px-4 py-2.5 flex items-center gap-2">
+        <span className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold bg-emerald-500 text-white shrink-0">C</span>
+        <span className="text-[11px] font-mono text-violet-400">{link.correlation.change_id?.slice(0, 8) || '--'}</span>
+        <span className="text-[11px] text-slate-300 truncate flex-1">{link.correlation.description}</span>
+        {/* Gap 1: Temporal Correlation — Time Proximity Badge */}
+        {temporalPct > 0 && (
+          <span className={`text-[9px] px-1.5 py-0.5 rounded border font-mono flex items-center gap-1 shrink-0 ${temporalColor}`}
+                title="Time proximity to incident start">
+            <span className="material-symbols-outlined text-[10px]" style={{ fontFamily: 'Material Symbols Outlined' }}>schedule</span>
+            {temporalPct}% match
+          </span>
+        )}
+        <span className={`text-[10px] font-bold ${riskColor}`}>{riskPct}%</span>
+        {hasLikelyCause && (
+          <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30">LIKELY CAUSE</span>
+        )}
+      </button>
+
+      {expanded && (
+        <div className="border-t border-slate-800/50">
+          {/* Meta row */}
+          <div className="px-4 py-1.5 flex flex-wrap gap-x-4 gap-y-1 text-[10px] text-slate-500 bg-slate-800/20">
+            <span>Author: {link.correlation.author}</span>
+            <span>Type: {(link.correlation.change_type || 'code_deploy').replace(/_/g, ' ')}</span>
+            {link.correlation.timestamp && <span>{new Date(link.correlation.timestamp).toLocaleString()}</span>}
+            {link.correlation.service_name && <span className="text-cyan-400">{link.correlation.service_name}</span>}
+            {temporalPct > 0 && (
+              <span className="flex items-center gap-1">
+                <span className="material-symbols-outlined text-[10px] text-slate-600" style={{ fontFamily: 'Material Symbols Outlined' }}>schedule</span>
+                Time proximity: {temporalPct}%
+              </span>
+            )}
+          </div>
+
+          {/* Middle: Diff Analysis */}
+          {link.diffs.length > 0 && (
+            <div className="px-4 py-2 border-t border-slate-800/30">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <span className="w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold bg-blue-500 text-white">D</span>
+                <span className="text-[10px] text-slate-500 uppercase tracking-wider">Diff Analysis</span>
+              </div>
+              <div className="space-y-1.5">
+                {link.diffs.map((d, i) => {
+                  const style = verdictStyle[d.verdict];
+                  return (
+                    <div key={i} className="flex items-center gap-2 text-[10px]">
+                      <span className={`px-1 py-0.5 rounded border ${style.text} ${style.bg} ${style.border} text-[9px] font-bold`}>
+                        {d.verdict.replace(/_/g, ' ').toUpperCase()}
+                      </span>
+                      <span className="font-mono text-blue-400 truncate">{d.file}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Files changed fallback */}
+          {link.diffs.length === 0 && (link.correlation.files_changed?.length ?? 0) > 0 && (
+            <div className="px-4 py-2 border-t border-slate-800/30 text-[10px] text-slate-400">
+              Files: {link.correlation.files_changed.join(', ')}
+            </div>
+          )}
+
+          {/* Bottom: Suggested Fix */}
+          {link.fixes.length > 0 && (
+            <div className="px-4 py-2 border-t border-slate-800/30">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <span className="material-symbols-outlined text-green-400 text-xs" style={{ fontFamily: 'Material Symbols Outlined' }}>build</span>
+                <span className="text-[10px] text-slate-500 uppercase tracking-wider">Suggested Fix</span>
+              </div>
+              {link.fixes.map((fix, i) => (
+                <div key={i} className="text-[10px]">
+                  <span className="font-mono text-blue-400">{fix.file_path}</span>
+                  <span className="text-slate-400 ml-2">{fix.description}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Reasoning */}
+          {link.correlation.reasoning && (
+            <div className="px-4 py-2 border-t border-slate-800/30 text-[10px] text-slate-500 italic">
+              {link.correlation.reasoning}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─── Legacy: Change Correlations Section (kept for reference) ─────────────
 
 const ChangeCorrelationsSection: React.FC<{ findings: V4Findings | null }> = ({ findings }) => {
   const correlations = findings?.change_correlations || [];
@@ -572,7 +818,7 @@ const ChangeRow: React.FC<{ correlation: ChangeCorrelation }> = ({ correlation }
   );
 };
 
-// ─── Diff Analysis Section ────────────────────────────────────────────────
+// ─── Legacy: Diff Analysis Section (kept for reference + DiffRow reused) ──
 
 const verdictStyle: Record<DiffAnalysisItem['verdict'], { text: string; bg: string; border: string }> = {
   likely_cause: { text: 'text-red-300', bg: 'bg-red-500/20', border: 'border-red-500/30' },
@@ -627,7 +873,7 @@ const DiffRow: React.FC<{ item: DiffAnalysisItem }> = ({ item }) => {
   );
 };
 
-// ─── Suggested Fix Areas Section ──────────────────────────────────────────
+// ─── Legacy: Suggested Fix Areas Section (kept for reference + FixRow reused)
 
 const SuggestedFixSection: React.FC<{ findings: V4Findings | null }> = ({ findings }) => {
   const fixes = findings?.suggested_fix_areas || [];
