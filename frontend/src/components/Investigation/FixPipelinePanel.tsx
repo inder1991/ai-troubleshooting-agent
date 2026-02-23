@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import type { V4Findings, DiagnosticPhase, FixStatus, FixVerificationResult } from '../../types';
 import { generateFix, decideOnFix } from '../../services/api';
 import AgentFindingCard from './cards/AgentFindingCard';
+import HoldToConfirm from '../ui/HoldToConfirm';
+import CopyButton from '../ui/CopyButton';
 
 interface FixPipelinePanelProps {
   sessionId: string;
@@ -228,11 +230,15 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
       <button
         onClick={handleGenerateFix}
         disabled={loading === 'generating'}
-        className="text-[10px] font-bold px-4 py-1.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+        className="text-[10px] font-bold px-4 py-1.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:saturate-0 flex items-center gap-2"
       >
-        <span className="material-symbols-outlined text-xs" style={{ fontFamily: 'Material Symbols Outlined' }}>
-          auto_fix_high
-        </span>
+        {loading === 'generating' ? (
+          <div className="w-3 h-3 border-2 border-emerald-400/30 border-t-emerald-400 rounded-full animate-spin" />
+        ) : (
+          <span className="material-symbols-outlined text-xs" style={{ fontFamily: 'Material Symbols Outlined' }}>
+            auto_fix_high
+          </span>
+        )}
         {loading === 'generating' ? 'Starting...' : 'Generate Fix'}
       </button>
     </div>
@@ -276,18 +282,23 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
       {/* Diff */}
       {fixData?.diff && (
         <div>
-          <button
-            onClick={() => setShowDiff(!showDiff)}
-            className="flex items-center gap-1.5 text-[10px] text-slate-400 hover:text-slate-300 mb-1.5"
-          >
-            <span
-              className={`material-symbols-outlined text-xs transition-transform ${showDiff ? 'rotate-90' : ''}`}
-              style={{ fontFamily: 'Material Symbols Outlined' }}
+          <div className="flex items-center gap-2 mb-1.5">
+            <button
+              onClick={() => setShowDiff(!showDiff)}
+              className="flex items-center gap-1.5 text-[10px] text-slate-400 hover:text-slate-300"
+              aria-expanded={showDiff}
+              aria-label={`${showDiff ? 'Hide' : 'Show'} diff`}
             >
-              chevron_right
-            </span>
-            <span className="font-bold uppercase tracking-wider">Diff</span>
-          </button>
+              <span
+                className={`material-symbols-outlined text-xs transition-transform duration-200 ${showDiff ? 'rotate-90' : ''}`}
+                style={{ fontFamily: 'Material Symbols Outlined' }}
+              >
+                chevron_right
+              </span>
+              <span className="font-bold uppercase tracking-wider">Diff</span>
+            </button>
+            {showDiff && fixData?.diff && <CopyButton text={fixData.diff} size={11} />}
+          </div>
           {showDiff && <DiffViewer diff={fixData.diff} />}
         </div>
       )}
@@ -308,24 +319,36 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
       {fixStatus === 'awaiting_review' && (
         <div className="space-y-2 pt-1 border-t border-slate-800/50">
           <div className="flex items-center gap-2">
-            <button
-              onClick={handleApprove}
-              disabled={!!loading}
-              className="text-[10px] font-bold px-3 py-1.5 rounded bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
-            >
-              <span className="material-symbols-outlined text-xs" style={{ fontFamily: 'Material Symbols Outlined' }}>
-                check_circle
-              </span>
-              {loading === 'approving' ? 'Approving...' : 'Approve & Create PR'}
-            </button>
+            {loading === 'approving' ? (
+              <button
+                disabled
+                className="text-[10px] font-bold px-3 py-1.5 rounded bg-green-500/20 text-green-400 border border-green-500/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:saturate-0 flex items-center gap-1.5"
+              >
+                <div className="w-3 h-3 border-2 border-green-400/30 border-t-green-400 rounded-full animate-spin" />
+                Approving...
+              </button>
+            ) : (
+              <HoldToConfirm
+                onConfirm={handleApprove}
+                label="Approve & Create PR"
+                holdLabel="Hold to confirm..."
+                icon="check_circle"
+                disabled={!!loading}
+                className="text-[10px] font-bold px-3 py-1.5 rounded bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30"
+              />
+            )}
             <button
               onClick={handleReject}
               disabled={!!loading}
-              className="text-[10px] font-bold px-3 py-1.5 rounded bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
+              className="text-[10px] font-bold px-3 py-1.5 rounded bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:saturate-0 flex items-center gap-1.5"
             >
-              <span className="material-symbols-outlined text-xs" style={{ fontFamily: 'Material Symbols Outlined' }}>
-                cancel
-              </span>
+              {loading === 'rejecting' ? (
+                <div className="w-3 h-3 border-2 border-red-400/30 border-t-red-400 rounded-full animate-spin" />
+              ) : (
+                <span className="material-symbols-outlined text-xs" style={{ fontFamily: 'Material Symbols Outlined' }}>
+                  cancel
+                </span>
+              )}
               {loading === 'rejecting' ? 'Rejecting...' : 'Reject'}
             </button>
           </div>
@@ -341,7 +364,7 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
             <button
               onClick={handleFeedback}
               disabled={!feedbackText.trim() || !!loading}
-              className="text-[10px] font-bold px-3 py-1.5 rounded bg-violet-500/20 text-violet-400 border border-violet-500/30 hover:bg-violet-500/30 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="text-[10px] font-bold px-3 py-1.5 rounded bg-violet-500/20 text-violet-400 border border-violet-500/30 hover:bg-violet-500/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:saturate-0"
             >
               {loading === 'feedback' ? 'Sending...' : 'Send Feedback'}
             </button>
@@ -443,7 +466,7 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
           <button
             onClick={handleGenerateFix}
             disabled={loading === 'generating'}
-            className="text-[10px] font-bold px-3 py-1.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+            className="text-[10px] font-bold px-3 py-1.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:saturate-0 flex items-center gap-2"
           >
             <span className="material-symbols-outlined text-xs" style={{ fontFamily: 'Material Symbols Outlined' }}>
               refresh
@@ -471,18 +494,23 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
       {verification && renderVerificationResult(verification)}
       {fixData?.diff && (
         <div>
-          <button
-            onClick={() => setShowDiff(!showDiff)}
-            className="flex items-center gap-1.5 text-[10px] text-slate-400 hover:text-slate-300 mb-1.5"
-          >
-            <span
-              className={`material-symbols-outlined text-xs transition-transform ${showDiff ? 'rotate-90' : ''}`}
-              style={{ fontFamily: 'Material Symbols Outlined' }}
+          <div className="flex items-center gap-2 mb-1.5">
+            <button
+              onClick={() => setShowDiff(!showDiff)}
+              className="flex items-center gap-1.5 text-[10px] text-slate-400 hover:text-slate-300"
+              aria-expanded={showDiff}
+              aria-label={`${showDiff ? 'Hide' : 'Show'} diff`}
             >
-              chevron_right
-            </span>
-            <span className="font-bold uppercase tracking-wider">Diff</span>
-          </button>
+              <span
+                className={`material-symbols-outlined text-xs transition-transform duration-200 ${showDiff ? 'rotate-90' : ''}`}
+                style={{ fontFamily: 'Material Symbols Outlined' }}
+              >
+                chevron_right
+              </span>
+              <span className="font-bold uppercase tracking-wider">Diff</span>
+            </button>
+            {showDiff && fixData?.diff && <CopyButton text={fixData.diff} size={11} />}
+          </div>
           {showDiff && <DiffViewer diff={fixData.diff} />}
         </div>
       )}

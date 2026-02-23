@@ -12,7 +12,7 @@ import type {
 } from './types';
 import { useWebSocketV4 } from './hooks/useWebSocket';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
-import { getSessionStatus, startSessionV4 } from './services/api';
+import { getSessionStatus, startSessionV4, submitAttestation } from './services/api';
 import { ToastProvider, useToast } from './components/Toast/ToastContext';
 import SidebarNav from './components/Layout/SidebarNav';
 import type { NavView } from './components/Layout/SidebarNav';
@@ -21,6 +21,8 @@ import CapabilityForm from './components/ActionCenter/CapabilityForm';
 import InvestigationView from './components/Investigation/InvestigationView';
 import SessionManagerView from './components/Sessions/SessionManagerView';
 import IntegrationSettings from './components/Settings/IntegrationSettings';
+import ErrorBoundary from './components/ui/ErrorBoundary';
+import ErrorBanner from './components/ui/ErrorBanner';
 
 type ViewState = 'home' | 'form' | 'investigation' | 'sessions' | 'integrations' | 'settings';
 
@@ -37,6 +39,7 @@ function AppInner() {
   const [confidence, setConfidence] = useState(0);
   const [tokenUsage, setTokenUsage] = useState<TokenUsage[]>([]);
   const [attestationGate, setAttestationGate] = useState<AttestationGateData | null>(null);
+  const [wsMaxReconnectsHit, setWsMaxReconnectsHit] = useState(false);
 
   const activeSessionId = activeSession?.session_id ?? null;
 
@@ -105,14 +108,22 @@ function AppInner() {
     [activeSessionId]
   );
 
-  const handleWsConnect = useCallback(() => setWsConnected(true), []);
+  const handleWsConnect = useCallback(() => {
+    setWsConnected(true);
+    setWsMaxReconnectsHit(false);
+  }, []);
   const handleWsDisconnect = useCallback(() => setWsConnected(false), []);
+  const handleWsMaxReconnects = useCallback(() => {
+    setWsMaxReconnectsHit(true);
+    addToast('warning', 'Live connection lost — showing cached data');
+  }, [addToast]);
 
   useWebSocketV4(activeSessionId, {
     onTaskEvent: handleTaskEvent,
     onChatResponse: handleChatResponse,
     onConnect: handleWsConnect,
     onDisconnect: handleWsDisconnect,
+    onMaxReconnectsExhausted: handleWsMaxReconnects,
   });
 
   // Navigation
@@ -206,10 +217,14 @@ function AppInner() {
 
   const handleAttestationDecision = useCallback(
     (decision: string) => {
+      if (activeSessionId && attestationGate) {
+        submitAttestation(activeSessionId, attestationGate.gate_type, decision, 'user').catch((err) => {
+          addToast('error', err instanceof Error ? err.message : 'Failed to submit attestation');
+        });
+      }
       setAttestationGate(null);
-      // Could send to backend via API in the future
     },
-    []
+    [activeSessionId, attestationGate, addToast]
   );
 
   const currentChatMessages = activeSessionId ? chatMessages[activeSessionId] || [] : [];
@@ -323,26 +338,40 @@ function AppInner() {
                   </div>
                   <div className="w-7 h-7 rounded-full border-2 border-background-dark bg-slate-800 flex items-center justify-center text-[10px] font-bold text-slate-400">+1</div>
                 </div>
-                <button className="bg-primary/10 hover:bg-primary/20 text-primary p-1.5 rounded-lg transition-colors">
+                <button className="bg-primary/10 hover:bg-primary/20 text-primary p-1.5 rounded-lg transition-colors" aria-label="Share session">
                   <span className="material-symbols-outlined text-xl" style={{ fontFamily: 'Material Symbols Outlined' }}>share</span>
                 </button>
               </div>
             </header>
 
+            {/* WS disconnect banner */}
+            {wsMaxReconnectsHit && (
+              <div className="px-6 py-0">
+                <ErrorBanner
+                  message="Live connection lost — showing cached data"
+                  severity="warning"
+                  onDismiss={() => setWsMaxReconnectsHit(false)}
+                  onRetry={() => window.location.reload()}
+                />
+              </div>
+            )}
+
             {/* 3-column investigation layout + bottom progress bar */}
             <div className="flex-1 overflow-hidden">
-              <InvestigationView
-                session={activeSession}
-                messages={currentChatMessages}
-                events={currentTaskEvents}
-                onNewMessage={handleNewChatMessage}
-                wsConnected={wsConnected}
-                phase={currentPhase}
-                confidence={confidence}
-                tokenUsage={tokenUsage}
-                attestationGate={attestationGate}
-                onAttestationDecision={handleAttestationDecision}
-              />
+              <ErrorBoundary>
+                <InvestigationView
+                  session={activeSession}
+                  messages={currentChatMessages}
+                  events={currentTaskEvents}
+                  onNewMessage={handleNewChatMessage}
+                  wsConnected={wsConnected}
+                  phase={currentPhase}
+                  confidence={confidence}
+                  tokenUsage={tokenUsage}
+                  attestationGate={attestationGate}
+                  onAttestationDecision={handleAttestationDecision}
+                />
+              </ErrorBoundary>
             </div>
           </>
         )}

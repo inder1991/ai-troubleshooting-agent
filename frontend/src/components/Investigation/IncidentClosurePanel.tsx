@@ -215,7 +215,7 @@ const IncidentClosurePanel: React.FC<IncidentClosurePanelProps> = ({
                         <button
                           onClick={handleCreateJira}
                           disabled={!jiraProjectKey.trim() || loading === 'jira'}
-                          className="text-[10px] font-bold px-2.5 py-1 rounded bg-violet-500/20 text-violet-400 border border-violet-500/30 hover:bg-violet-500/30 disabled:opacity-40 disabled:cursor-not-allowed"
+                          className="text-[10px] font-bold px-2.5 py-1 rounded bg-violet-500/20 text-violet-400 border border-violet-500/30 hover:bg-violet-500/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:saturate-0"
                         >
                           {loading === 'jira' ? 'Creating...' : 'Create'}
                         </button>
@@ -238,7 +238,7 @@ const IncidentClosurePanel: React.FC<IncidentClosurePanelProps> = ({
                         <button
                           onClick={handleLinkJira}
                           disabled={!linkIssueKey.trim() || loading === 'jira-link'}
-                          className="text-[10px] font-bold px-2.5 py-1 rounded bg-violet-500/20 text-violet-400 border border-violet-500/30 hover:bg-violet-500/30 disabled:opacity-40 disabled:cursor-not-allowed"
+                          className="text-[10px] font-bold px-2.5 py-1 rounded bg-violet-500/20 text-violet-400 border border-violet-500/30 hover:bg-violet-500/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:saturate-0"
                         >
                           {loading === 'jira-link' ? 'Linking...' : 'Link'}
                         </button>
@@ -282,7 +282,7 @@ const IncidentClosurePanel: React.FC<IncidentClosurePanelProps> = ({
                   <button
                     onClick={handleCreateRemedy}
                     disabled={loading === 'remedy'}
-                    className="text-[10px] font-bold px-2.5 py-1 rounded bg-violet-500/20 text-violet-400 border border-violet-500/30 hover:bg-violet-500/30 disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="text-[10px] font-bold px-2.5 py-1 rounded bg-violet-500/20 text-violet-400 border border-violet-500/30 hover:bg-violet-500/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:saturate-0"
                   >
                     {loading === 'remedy' ? 'Creating...' : 'Create Incident'}
                   </button>

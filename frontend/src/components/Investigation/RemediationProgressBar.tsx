@@ -87,6 +87,8 @@ const RemediationProgressBar: React.FC<RemediationProgressBarProps> = ({
                         ? 'bg-[#07b6d5] ring-4 ring-[#07b6d5]/40 animate-pulse'
                         : 'bg-slate-800 text-slate-500'
                     }`}
+                    aria-label={`${step.label}: ${isComplete ? 'complete' : isActive ? 'in progress' : 'pending'}`}
+                    title={`${step.label}: ${isComplete ? 'Complete' : isActive ? 'In Progress' : 'Pending'}`}
                   >
                     <span
                       className="material-symbols-outlined text-sm"

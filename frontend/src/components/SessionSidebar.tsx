@@ -25,6 +25,7 @@ const phaseColors: Record<DiagnosticPhase, string> = {
   diagnosis_complete: 'bg-green-500',
   fix_in_progress: 'bg-purple-500',
   complete: 'bg-green-600',
+  error: 'bg-red-500',
 };
 
 const phaseLabel = (phase: DiagnosticPhase | undefined): string => {

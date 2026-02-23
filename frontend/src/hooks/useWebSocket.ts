@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react';
 import type { TaskEvent, ChatMessage } from '../types';
+import { getEvents } from '../services/api';
 
 // ===== V3 WebSocket (preserved for backward compatibility) =====
 
@@ -53,6 +54,7 @@ interface V4WebSocketHandlers {
   onConnect?: () => void;
   onDisconnect?: () => void;
   onError?: (error: Event) => void;
+  onMaxReconnectsExhausted?: () => void;
 }
 
 export const useWebSocketV4 = (
@@ -80,8 +82,15 @@ export const useWebSocketV4 = (
 
     ws.onopen = () => {
       console.log(`[WS] Connected to session ${currentSessionId}`);
+      const wasReconnect = reconnectAttemptsRef.current > 0;
       reconnectAttemptsRef.current = 0;
       handlersRef.current.onConnect?.();
+      // Replay missed events after reconnection
+      if (wasReconnect) {
+        getEvents(currentSessionId).then((events) => {
+          events.forEach((ev) => handlersRef.current.onTaskEvent?.(ev));
+        }).catch(() => {});
+      }
     };
 
     ws.onmessage = (event) => {
@@ -140,6 +149,9 @@ export const useWebSocketV4 = (
         reconnectAttemptsRef.current += 1;
         console.log(`[WS] Reconnecting in ${delay}ms (attempt ${reconnectAttemptsRef.current}/${maxReconnectAttempts})`);
         reconnectTimeoutRef.current = setTimeout(connect, delay);
+      } else if (sessionIdRef.current === currentSessionId && reconnectAttemptsRef.current >= maxReconnectAttempts) {
+        console.warn(`[WS] Max reconnect attempts (${maxReconnectAttempts}) exhausted`);
+        handlersRef.current.onMaxReconnectsExhausted?.();
       }
     };
 

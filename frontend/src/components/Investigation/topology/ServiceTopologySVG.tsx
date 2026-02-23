@@ -65,7 +65,9 @@ const ServiceTopologySVG: React.FC<ServiceTopologySVGProps> = ({
     <svg
       viewBox={`0 0 ${width} ${height}`}
       className="w-full"
-      style={{ maxHeight: '260px' }}
+      style={{ minHeight: '100px', maxHeight: '260px' }}
+      role="img"
+      aria-label="Service topology diagram"
     >
       <defs>
         <filter id="glow-red">
@@ -104,13 +106,19 @@ const ServiceTopologySVG: React.FC<ServiceTopologySVGProps> = ({
         if (!src || !tgt) return null;
 
         const marker = edge.type === 'error' ? 'url(#arrowhead-red)' : 'url(#arrowhead)';
+        // Calculate edge direction dynamically based on node positions
+        const dx = tgt.x - src.x;
+        const dy = tgt.y - src.y;
+        const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+        const nx = dx / dist;
+        const ny = dy / dist;
         return (
           <line
             key={i}
-            x1={src.x}
-            y1={src.y + NODE_RADIUS}
-            x2={tgt.x}
-            y2={tgt.y - NODE_RADIUS}
+            x1={src.x + nx * NODE_RADIUS}
+            y1={src.y + ny * NODE_RADIUS}
+            x2={tgt.x - nx * NODE_RADIUS}
+            y2={tgt.y - ny * NODE_RADIUS}
             className={edgeStyles[edge.type]}
             markerEnd={marker}
           />

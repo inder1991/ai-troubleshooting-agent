@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import type { ChatMessage as ChatMessageType, TaskEvent, V4Findings, V4SessionStatus, Breadcrumb, PatientZero, ReasoningChainStep } from '../../types';
 import { sendChatMessage } from '../../services/api';
+import { formatTime } from '../../utils/format';
 
 interface InvestigatorProps {
   sessionId: string;
@@ -103,19 +104,31 @@ const Investigator: React.FC<InvestigatorProps> = ({
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const userScrolledUpRef = useRef(false);
+  const lastUserMsgRef = useRef<HTMLDivElement>(null);
+  const [showScrollPill, setShowScrollPill] = useState(false);
 
   // Only auto-scroll when user is near the bottom (not reading earlier content)
   const handleScroll = useCallback(() => {
     if (!scrollRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
     userScrolledUpRef.current = scrollHeight - scrollTop - clientHeight > 120;
+
+    if (lastUserMsgRef.current && scrollRef.current) {
+      const container = scrollRef.current;
+      const msgEl = lastUserMsgRef.current;
+      const msgBottom = msgEl.offsetTop + msgEl.offsetHeight;
+      const viewBottom = container.scrollTop + container.clientHeight;
+      setShowScrollPill(msgBottom < container.scrollTop || msgEl.offsetTop > viewBottom);
+    } else {
+      setShowScrollPill(false);
+    }
   }, []);
 
   useEffect(() => {
     if (scrollRef.current && !userScrolledUpRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages, events]);
+  }, [messages]);
 
   useEffect(() => { inputRef.current?.focus(); }, [sessionId]);
 
@@ -144,6 +157,14 @@ const Investigator: React.FC<InvestigatorProps> = ({
     [messages, events, showToolCalls, findings?.reasoning_chain],
   );
   const toolCallCount = events.filter((e) => e.event_type === 'tool_call').length;
+
+  const lastUserMsgIdx = useMemo(() => {
+    for (let i = timeline.length - 1; i >= 0; i--) {
+      const item = timeline[i];
+      if (item.kind === 'chat' && item.msg.role === 'user') return i;
+    }
+    return -1;
+  }, [timeline]);
 
   // Group breadcrumbs by agent for evidence trail rendering
   const breadcrumbsByAgent = useMemo(() => {
@@ -267,6 +288,8 @@ const Investigator: React.FC<InvestigatorProps> = ({
           className={`text-[10px] px-2 py-0.5 rounded border font-mono transition-colors ${
             showToolCalls ? 'bg-purple-500/20 text-purple-400 border-purple-500/30' : 'bg-slate-800/50 text-slate-500 border-slate-700'
           }`}
+          aria-label={`${showToolCalls ? 'Hide' : 'Show'} tool calls`}
+          aria-pressed={showToolCalls}
         >
           {showToolCalls ? 'TOOLS ON' : 'TOOLS OFF'}
           {toolCallCount > 0 && <span className="ml-1 text-[9px] opacity-60">({toolCallCount})</span>}
@@ -288,7 +311,11 @@ const Investigator: React.FC<InvestigatorProps> = ({
             <div className="space-y-2">
               {timeline.map((item, idx) => {
                 if (item.kind === 'chat') {
-                  return <ChatBubble key={`chat-${idx}`} message={item.msg} />;
+                  return (
+                    <div key={`chat-${idx}`} ref={idx === lastUserMsgIdx ? lastUserMsgRef : undefined}>
+                      <ChatBubble message={item.msg} />
+                    </div>
+                  );
                 }
                 if (item.kind === 'tool_group') {
                   return <ToolCallGroupNode key={`tg-${idx}`} group={item} />;
@@ -313,6 +340,17 @@ const Investigator: React.FC<InvestigatorProps> = ({
           </div>
         )}
 
+        {showScrollPill && (
+          <button
+            onClick={() => lastUserMsgRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+            className="sticky bottom-2 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-800/90 border border-slate-600 text-[10px] text-slate-300 hover:bg-slate-700/90 hover:text-white transition-colors shadow-lg backdrop-blur-sm"
+          >
+            <span className="material-symbols-outlined text-sm text-slate-400"
+                  style={{ fontFamily: 'Material Symbols Outlined' }}>arrow_downward</span>
+            Scroll to your message
+          </button>
+        )}
+
       </div>
 
       {/* Chat Input (bottom, sticky) */}
@@ -330,7 +368,8 @@ const Investigator: React.FC<InvestigatorProps> = ({
           <button
             type="submit"
             disabled={sending || !input.trim()}
-            className="absolute bottom-2 right-2 p-1.5 bg-primary rounded-md text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-primary/80 transition-colors"
+            className="absolute bottom-2 right-2 p-1.5 bg-primary rounded-md text-white disabled:opacity-50 disabled:cursor-not-allowed disabled:saturate-0 hover:bg-primary/80 transition-colors"
+            aria-label="Send message"
           >
             <span className="material-symbols-outlined text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>send</span>
           </button>
@@ -410,7 +449,7 @@ const EventNode: React.FC<{ event: TaskEvent; breadcrumbs?: Breadcrumb[] }> = ({
         <span className="material-symbols-outlined text-blue-400 text-xs" style={{ fontFamily: 'Material Symbols Outlined' }}>{icon}</span>
         <span className="text-[10px] text-blue-400 font-bold">{event.agent_name.replace(/_/g, ' ')}</span>
         <span className="text-[10px] text-slate-500">{event.message}</span>
-        <span className="text-[9px] text-slate-600 ml-auto">{new Date(event.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+        <span className="text-[9px] text-slate-600 ml-auto">{formatTime(event.timestamp)}</span>
       </div>
     );
   }
@@ -435,7 +474,7 @@ const EventNode: React.FC<{ event: TaskEvent; breadcrumbs?: Breadcrumb[] }> = ({
     <div className="relative flex items-start gap-2 py-0.5">
       <div className="absolute left-[-18px] w-2.5 h-2.5 rounded-full bg-slate-600 border-2 border-slate-900" />
       <span className="text-[10px] text-slate-600 shrink-0">
-        {new Date(event.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+        {formatTime(event.timestamp)}
       </span>
       <span className="text-[10px] text-[#07b6d5]">{event.agent_name}</span>
       <span className="text-[10px] text-slate-400 truncate">{event.message}</span>
@@ -459,7 +498,7 @@ const ToolCallGroupNode: React.FC<{ group: ToolCallGroup }> = ({ group }) => {
         <div className="pl-4 mt-1 space-y-0.5 text-[10px] text-slate-400 font-mono">
           {group.events.map((ev, i) => (
             <div key={i} className="flex gap-2">
-              <span className="text-slate-600 shrink-0">{new Date(ev.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+              <span className="text-slate-600 shrink-0">{formatTime(ev.timestamp)}</span>
               <span className="truncate">{ev.message}</span>
             </div>
           ))}
@@ -475,10 +514,17 @@ const ChatBubble: React.FC<{ message: ChatMessageType }> = ({ message }) => {
   if (message.role === 'user') {
     return (
       <div className="relative flex justify-end">
-        <div className="absolute left-[-18px] w-2.5 h-2.5 rounded-full bg-slate-500 border-2 border-slate-900" />
-        <div className="max-w-[85%] bg-slate-800/60 border border-slate-700 rounded-xl px-3 py-2">
+        <div className="absolute left-[-18px] w-2.5 h-2.5 rounded-full bg-slate-400 border-2 border-slate-900" />
+        <div className="max-w-[85%] bg-slate-800/80 border border-slate-600 border-l-2 border-l-slate-400 rounded-xl px-3 py-2">
+          <div className="flex items-center gap-1.5 mb-1">
+            <span className="material-symbols-outlined text-slate-400"
+                  style={{ fontFamily: 'Material Symbols Outlined', fontSize: '11px' }}>person</span>
+            <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500">You</span>
+          </div>
           <p className="text-xs text-slate-200 whitespace-pre-wrap">{message.content}</p>
-          <p className="text-[9px] text-slate-600 mt-1 text-right">{new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+          <p className="text-[9px] text-slate-600 mt-1 text-right">
+            {formatTime(message.timestamp)}
+          </p>
         </div>
       </div>
     );
@@ -488,7 +534,7 @@ const ChatBubble: React.FC<{ message: ChatMessageType }> = ({ message }) => {
       <div className="absolute left-[-18px] w-2.5 h-2.5 rounded-full bg-[#07b6d5] border-2 border-slate-900" />
       <div className="bg-[#07b6d5]/5 border border-[#07b6d5]/10 rounded-xl p-3">
         <p className="text-xs text-slate-300 whitespace-pre-wrap leading-relaxed">{message.content}</p>
-        <p className="text-[9px] text-slate-600 mt-1">{new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</p>
+        <p className="text-[9px] text-slate-600 mt-1">{formatTime(message.timestamp)}</p>
       </div>
     </div>
   );
@@ -497,27 +543,67 @@ const ChatBubble: React.FC<{ message: ChatMessageType }> = ({ message }) => {
 // ─── Reasoning Chain Section ──────────────────────────────────────────────
 
 const ReasoningChainSection: React.FC<{ chain: ReasoningChainStep[] }> = ({ chain }) => {
+  const [expanded, setExpanded] = useState(false);
   if (!chain.length) return null;
+
   return (
-    <div className="mt-4 ml-6 bg-[#07b6d5]/5 border border-[#07b6d5]/15 rounded-lg overflow-hidden">
-      <div className="px-3 py-2 border-b border-[#07b6d5]/10 flex items-center gap-2">
-        <span className="material-symbols-outlined text-[#07b6d5] text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>psychology</span>
-        <span className="text-[10px] font-bold uppercase tracking-wider text-[#07b6d5]">AI Reasoning Chain</span>
-      </div>
-      <div className="p-3 space-y-2">
-        {chain.map((step, i) => (
-          <div key={i} className="flex gap-2">
-            <div className="w-5 h-5 rounded-full bg-[#07b6d5]/20 flex items-center justify-center shrink-0 mt-0.5">
-              <span className="text-[9px] font-bold text-[#07b6d5]">{step.step}</span>
-            </div>
-            <div>
-              <p className="text-[11px] text-slate-300">{step.observation}</p>
-              <p className="text-[10px] text-slate-400 italic mt-0.5">{'\u2192'} {step.inference}</p>
-            </div>
+    <div className="relative">
+      <div className="absolute left-[-18px] w-2.5 h-2.5 rounded-full bg-[#07b6d5] border-2 border-slate-900" />
+      <div className="bg-[#07b6d5]/5 border border-[#07b6d5]/15 rounded-lg overflow-hidden">
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-[#07b6d5]/10 transition-colors"
+          aria-expanded={expanded}
+          aria-label={`${expanded ? 'Collapse' : 'Expand'} AI reasoning chain`}
+        >
+          <span className={`material-symbols-outlined text-xs text-[#07b6d5] transition-transform ${expanded ? 'rotate-90' : ''}`}
+                style={{ fontFamily: 'Material Symbols Outlined' }}>chevron_right</span>
+          <span className="material-symbols-outlined text-[#07b6d5] text-sm"
+                style={{ fontFamily: 'Material Symbols Outlined' }}>psychology</span>
+          <span className="text-[10px] font-bold uppercase tracking-wider text-[#07b6d5]">AI Reasoning Chain</span>
+          <span className="text-[10px] font-mono text-slate-500">
+            {chain.length} step{chain.length !== 1 ? 's' : ''}
+          </span>
+        </button>
+        {expanded && (
+          <div className="p-3 pt-0 space-y-1.5 border-t border-[#07b6d5]/10">
+            {chain.map((step, i) => (
+              <ReasoningStepItem key={i} step={step} />
+            ))}
           </div>
-        ))}
+        )}
       </div>
     </div>
+  );
+};
+
+const ReasoningStepItem: React.FC<{ step: ReasoningChainStep }> = ({ step }) => {
+  const [expanded, setExpanded] = useState(false);
+  const preview = step.observation.length > 80
+    ? step.observation.slice(0, 80) + '...'
+    : step.observation;
+
+  return (
+    <button
+      onClick={() => setExpanded(!expanded)}
+      className="w-full text-left flex items-start gap-2 py-1 px-1 rounded hover:bg-slate-800/30 transition-colors"
+    >
+      <div className="w-5 h-5 rounded-full bg-[#07b6d5]/20 flex items-center justify-center shrink-0 mt-0.5">
+        <span className="text-[9px] font-bold text-[#07b6d5]">{step.step}</span>
+      </div>
+      <div className="flex-1 min-w-0">
+        {expanded ? (
+          <>
+            <p className="text-[11px] text-slate-300">{step.observation}</p>
+            <p className="text-[10px] text-slate-400 italic mt-0.5">{'\u2192'} {step.inference}</p>
+          </>
+        ) : (
+          <p className="text-[11px] text-slate-400 truncate">{preview}</p>
+        )}
+      </div>
+      <span className={`material-symbols-outlined text-[10px] text-slate-600 transition-transform mt-1 shrink-0 ${expanded ? 'rotate-90' : ''}`}
+            style={{ fontFamily: 'Material Symbols Outlined' }}>chevron_right</span>
+    </button>
   );
 };
 
@@ -541,6 +627,8 @@ const EvidenceTrail: React.FC<{ breadcrumbs: Breadcrumb[]; agentName: string }> 
       <button
         onClick={() => setExpanded(!expanded)}
         className="flex items-center gap-1.5 text-[9px] text-slate-500 hover:text-slate-300 transition-colors"
+        aria-expanded={expanded}
+        aria-label={`${expanded ? 'Collapse' : 'Expand'} evidence trail`}
       >
         <span className="material-symbols-outlined text-xs" style={{ fontFamily: 'Material Symbols Outlined' }}>
           attach_file

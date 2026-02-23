@@ -5,6 +5,7 @@ import { Play, Copy, Check } from 'lucide-react';
 import ServiceTopologySVG from './topology/ServiceTopologySVG';
 import REDMethodStatusBar from './cards/REDMethodStatusBar';
 import PromQLRunResult from './cards/PromQLRunResult';
+import SkeletonCard from '../ui/SkeletonCard';
 
 interface NavigatorProps {
   findings: V4Findings | null;
@@ -27,23 +28,29 @@ const Navigator: React.FC<NavigatorProps> = ({ findings, status, events }) => {
 
       <div className="p-4 space-y-5">
         {/* RED Method Status */}
-        {findings && (
+        {findings ? (
           <REDMethodStatusBar
             metricAnomalies={findings.metric_anomalies || []}
             correlatedSignals={findings.correlated_signals || []}
           />
+        ) : (
+          <SkeletonCard variant="metric" />
         )}
 
         {/* Service Topology */}
         <section>
           <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Service Topology</h3>
           <div className="bg-slate-900/40 border border-slate-800 rounded-lg p-3">
-            <ServiceTopologySVG
-              dependencies={findings?.inferred_dependencies || []}
-              patientZero={findings?.patient_zero || null}
-              blastRadius={findings?.blast_radius || null}
-              podStatuses={findings?.pod_statuses || []}
-            />
+            {findings ? (
+              <ServiceTopologySVG
+                dependencies={findings.inferred_dependencies || []}
+                patientZero={findings.patient_zero || null}
+                blastRadius={findings.blast_radius || null}
+                podStatuses={findings.pod_statuses || []}
+              />
+            ) : (
+              <GhostTopology />
+            )}
           </div>
         </section>
 
@@ -155,6 +162,7 @@ const MetricsValidationDock: React.FC<{ queries: SuggestedPromQLQuery[] }> = ({ 
                   onClick={() => handleCopy(q.query, i)}
                   className="p-1 rounded hover:bg-slate-700/50 transition-colors"
                   title="Copy query"
+                  aria-label="Copy query"
                 >
                   {copiedIdx === i ? (
                     <Check size={12} className="text-green-400" />
@@ -165,8 +173,9 @@ const MetricsValidationDock: React.FC<{ queries: SuggestedPromQLQuery[] }> = ({ 
                 <button
                   onClick={() => handleRun(q.query, i)}
                   disabled={runResults[i]?.loading}
-                  className="flex items-center gap-1 text-[9px] px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 hover:bg-cyan-500/20 transition-colors disabled:opacity-50"
+                  className="flex items-center gap-1 text-[9px] px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 hover:bg-cyan-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:saturate-0"
                   title="Execute query"
+                  aria-label="Execute query"
                 >
                   <Play size={10} />
                   Run
@@ -281,5 +290,20 @@ function buildAgentStatuses(status: V4SessionStatus | null, events: TaskEvent[])
     tokens: tokenMap[a.key] || 0,
   }));
 }
+
+// ─── Ghost Topology (placeholder while loading) ─────────────────────────
+
+const GhostTopology: React.FC = () => (
+  <svg viewBox="0 0 280 100" className="w-full opacity-20 blur-[1px]" style={{ maxHeight: '120px' }}>
+    <line x1="70" y1="50" x2="140" y2="50" stroke="#475569" strokeWidth={1} />
+    <line x1="140" y1="50" x2="210" y2="50" stroke="#475569" strokeWidth={1} />
+    <circle cx="70" cy="50" r="16" fill="#0f3443" stroke="#06b6d4" strokeWidth={1.5} />
+    <circle cx="140" cy="50" r="16" fill="#0f3443" stroke="#06b6d4" strokeWidth={1.5} />
+    <circle cx="210" cy="50" r="16" fill="#0f3443" stroke="#06b6d4" strokeWidth={1.5} />
+    <text x="70" y="80" textAnchor="middle" fill="#475569" fontSize="8" fontFamily="monospace">svc-a</text>
+    <text x="140" y="80" textAnchor="middle" fill="#475569" fontSize="8" fontFamily="monospace">svc-b</text>
+    <text x="210" y="80" textAnchor="middle" fill="#475569" fontSize="8" fontFamily="monospace">svc-c</text>
+  </svg>
+);
 
 export default Navigator;

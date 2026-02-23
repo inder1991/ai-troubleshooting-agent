@@ -177,3 +177,34 @@ body {
   50% { opacity: 0.3; }
 }
 .sparkline-deviation { animation: deviation-pulse 3s ease-in-out infinite; }
+
+/* ─── Yellow Flash for new data ────────────────────────────────────────── */
+
+@keyframes highlight-flash {
+  0% { background-color: rgba(234, 179, 8, 0.15); }
+  100% { background-color: transparent; }
+}
+.animate-highlight { animation: highlight-flash 1s ease-out; }
+
+/* ─── Focus ring refinements ───────────────────────────────────────────── */
+
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(7, 182, 213, 0.5);
+  border-radius: inherit;
+}
+
+/* ─── Expand/Collapse transitions ──────────────────────────────────────── */
+
+.expand-transition {
+  overflow: hidden;
+  transition: max-height 0.2s ease-out, opacity 0.2s ease-out;
+}
+
+/* ─── Smooth chevron rotation ──────────────────────────────────────────── */
+
+.chevron-rotate {
+  transition: transform 0.2s ease-out;
+}

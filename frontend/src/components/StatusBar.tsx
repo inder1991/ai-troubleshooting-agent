@@ -26,6 +26,7 @@ const phaseColor = (phase: DiagnosticPhase): string => {
     diagnosis_complete: 'text-green-400',
     fix_in_progress: 'text-purple-400',
     complete: 'text-green-500',
+    error: 'text-red-500',
   };
   return colors[phase];
 };

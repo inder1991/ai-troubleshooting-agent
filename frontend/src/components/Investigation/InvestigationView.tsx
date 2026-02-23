@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import type { V4Session, V4Findings, V4SessionStatus, ChatMessage, TaskEvent, DiagnosticPhase, TokenUsage, AttestationGateData } from '../../types';
 import { getFindings, getSessionStatus } from '../../services/api';
 import Investigator from './Investigator';
@@ -6,6 +6,7 @@ import EvidenceFindings from './EvidenceFindings';
 import Navigator from './Navigator';
 import RemediationProgressBar from './RemediationProgressBar';
 import AttestationGateUI from '../Remediation/AttestationGateUI';
+import ErrorBanner from '../ui/ErrorBanner';
 
 interface InvestigationViewProps {
   session: V4Session;
@@ -35,6 +36,19 @@ const InvestigationView: React.FC<InvestigationViewProps> = ({
   // ── Single source of truth for findings + status ──────────────────────
   const [findings, setFindings] = useState<V4Findings | null>(null);
   const [sessionStatus, setSessionStatus] = useState<V4SessionStatus | null>(null);
+  const [fetchFailCount, setFetchFailCount] = useState(0);
+  const [fetchErrorDismissed, setFetchErrorDismissed] = useState(false);
+  const [lastFetchTime, setLastFetchTime] = useState<number | null>(null);
+  const [lastFetchAgo, setLastFetchAgo] = useState(0);
+  const agoIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Tick "last updated X s ago" every second
+  useEffect(() => {
+    agoIntervalRef.current = setInterval(() => {
+      if (lastFetchTime) setLastFetchAgo(Math.floor((Date.now() - lastFetchTime) / 1000));
+    }, 1000);
+    return () => { if (agoIntervalRef.current) clearInterval(agoIntervalRef.current); };
+  }, [lastFetchTime]);
 
   const fetchSharedData = useCallback(async () => {
     try {
@@ -44,8 +58,11 @@ const InvestigationView: React.FC<InvestigationViewProps> = ({
       ]);
       setFindings(f);
       setSessionStatus(s);
+      setFetchFailCount(0);
+      setFetchErrorDismissed(false);
+      setLastFetchTime(Date.now());
     } catch {
-      // silent — keep previous state
+      setFetchFailCount((c) => c + 1);
     }
   }, [session.session_id]);
 
@@ -64,8 +81,31 @@ const InvestigationView: React.FC<InvestigationViewProps> = ({
     if (relevantEventCount > 0) fetchSharedData();
   }, [relevantEventCount, fetchSharedData]);
 
+  // Freshness indicator color
+  const freshnessColor = lastFetchAgo <= 10 ? 'bg-green-500' : lastFetchAgo <= 30 ? 'bg-amber-500' : 'bg-red-500';
+
   return (
     <div className="flex flex-col h-full">
+      {/* Fetch failure banner */}
+      {fetchFailCount >= 3 && !fetchErrorDismissed && (
+        <div className="px-4 pt-2">
+          <ErrorBanner
+            message={`Connection issue — data may be stale (${fetchFailCount} failed attempts)`}
+            severity="warning"
+            onDismiss={() => setFetchErrorDismissed(true)}
+            onRetry={fetchSharedData}
+          />
+        </div>
+      )}
+
+      {/* Last updated indicator */}
+      {lastFetchTime && (
+        <div className="flex items-center gap-1.5 px-6 py-1 text-[9px] text-slate-500">
+          <span className={`w-1.5 h-1.5 rounded-full ${freshnessColor}`} />
+          <span>Updated {lastFetchAgo}s ago</span>
+        </div>
+      )}
+
       {/* War Room: 3-column CSS Grid layout */}
       <div className="grid grid-cols-12 flex-1 overflow-hidden">
         {/* Left: The Investigator */}
