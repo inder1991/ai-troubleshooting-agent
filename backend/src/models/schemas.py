@@ -146,8 +146,10 @@ class TokenUsage(BaseModel):
 
     @model_validator(mode="after")
     def check_total(self):
-        if self.total_tokens != self.input_tokens + self.output_tokens:
-            raise ValueError("total_tokens must equal input_tokens + output_tokens")
+        # total_tokens may include cache tokens, so only validate it's >= sum
+        expected = self.input_tokens + self.output_tokens
+        if self.total_tokens < expected:
+            self.total_tokens = expected
         return self
 
 

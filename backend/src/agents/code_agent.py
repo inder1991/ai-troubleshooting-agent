@@ -445,7 +445,7 @@ After analysis, provide your final answer as JSON:
         answer = await self._ask_human_callback(question, self._state, self._event_emitter)
         self.add_breadcrumb(
             action="ask_human",
-            source_type="human",
+            source_type="code",
             source_reference="code_agent_question",
             raw_evidence=f"Q: {question[:100]} | A: {answer[:100]}",
         )

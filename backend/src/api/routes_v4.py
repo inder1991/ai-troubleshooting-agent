@@ -46,6 +46,8 @@ async def _session_cleanup_loop():
             for sid in expired:
                 sessions.pop(sid, None)
                 supervisors.pop(sid, None)
+                # Clean up any lingering WebSocket connections
+                manager.disconnect(sid)
 
             if expired:
                 logger.info(
@@ -142,13 +144,16 @@ def _push_to_v5(session_id: str, state):
                 "evidence_type": f.category if hasattr(f, 'category') else "unknown",
             })
 
-        # Build confidence ledger from per-agent data
+        # Build confidence ledger from per-agent findings
         confidence_ledger = {
             "weighted_final": state.overall_confidence,
         }
-        for tu in state.token_usage:
-            agent_key = tu.agent_name.replace("_agent", "") + "_confidence"
-            confidence_ledger[agent_key] = state.overall_confidence
+        agent_confidences: Dict[str, list] = {}
+        for f in state.all_findings:
+            key = f.agent_name.replace("_agent", "") + "_confidence"
+            agent_confidences.setdefault(key, []).append(f.confidence)
+        for key, values in agent_confidences.items():
+            confidence_ledger[key] = round(sum(values) / len(values)) if values else 0
 
         # Build reasoning manifest from supervisor reasoning
         reasoning_steps = []

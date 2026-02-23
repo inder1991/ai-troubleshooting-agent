@@ -61,13 +61,29 @@ Respond with JSON:
             )
             logger.info("Verdict issued", extra={"agent_name": "critic", "action": "verdict", "extra": {"finding": finding.finding_id, "verdict": verdict_obj.verdict, "confidence": verdict_obj.confidence_in_verdict}})
             return verdict_obj
-        except (json.JSONDecodeError, Exception):
+        except json.JSONDecodeError:
+            logger.warning("Failed to parse Critic JSON response", extra={
+                "agent_name": "critic", "action": "parse_error",
+                "extra": {"finding": finding.finding_id, "response_preview": response.text[:200]},
+            })
             return CriticVerdict(
                 finding_id=finding.finding_id,
                 agent_source=finding.agent_name,
                 verdict="insufficient_data",
                 reasoning=f"Failed to parse Critic response: {response.text[:200]}",
                 confidence_in_verdict=30,
+            )
+        except Exception as e:
+            logger.error("Critic validation unexpected error", extra={
+                "agent_name": "critic", "action": "validation_error",
+                "extra": {"finding": finding.finding_id, "error": str(e)},
+            })
+            return CriticVerdict(
+                finding_id=finding.finding_id,
+                agent_source=finding.agent_name,
+                verdict="insufficient_data",
+                reasoning=f"Critic validation error: {str(e)[:200]}",
+                confidence_in_verdict=20,
             )
 
     def _build_context(self, finding: Finding, state: DiagnosticState) -> str:

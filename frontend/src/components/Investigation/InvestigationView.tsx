@@ -73,12 +73,16 @@ const InvestigationView: React.FC<InvestigationViewProps> = ({
     return () => clearInterval(interval);
   }, [fetchSharedData]);
 
-  // Also re-fetch immediately on relevant WebSocket events
+  // Also re-fetch on relevant WebSocket events (debounced — only on new events)
   const relevantEventCount = events.filter(
     (e) => e.event_type === 'summary' || e.event_type === 'finding' || e.event_type === 'phase_change'
   ).length;
+  const prevRelevantCountRef = useRef(0);
   useEffect(() => {
-    if (relevantEventCount > 0) fetchSharedData();
+    if (relevantEventCount > prevRelevantCountRef.current) {
+      prevRelevantCountRef.current = relevantEventCount;
+      fetchSharedData();
+    }
   }, [relevantEventCount, fetchSharedData]);
 
   // Freshness indicator color

@@ -51,11 +51,17 @@ class EvidenceGraphBuilder:
         self.graph.edges.append(edge)
 
     def identify_root_causes(self) -> list[str]:
-        """Identify root causes: nodes that are sources but never targets."""
+        """Identify root causes: nodes that are sources but never targets, plus isolated nodes."""
         logger.info("Causal analysis started", extra={"agent_name": "causal_engine", "action": "analysis_start", "extra": {"nodes": len(self.graph.nodes), "edges": len(self.graph.edges)}})
         targets = {e.target_id for e in self.graph.edges}
         sources = {e.source_id for e in self.graph.edges}
+        all_node_ids = {n.id for n in self.graph.nodes}
+        # Nodes that are sources but never targets
         roots = [nid for nid in sources if nid not in targets]
+        # Isolated nodes (no edges at all) are also potential root causes
+        connected = sources | targets
+        isolated = [nid for nid in all_node_ids if nid not in connected]
+        roots.extend(isolated)
         self.graph.root_causes = roots
         return roots
 

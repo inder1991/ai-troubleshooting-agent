@@ -9,6 +9,8 @@ export const useWebSocket = (
   onMessage: (data: Record<string, unknown>) => void
 ) => {
   const wsRef = useRef<WebSocket | null>(null);
+  const onMessageRef = useRef(onMessage);
+  onMessageRef.current = onMessage;
 
   useEffect(() => {
     if (!sessionId) return;
@@ -22,7 +24,7 @@ export const useWebSocket = (
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        onMessage(data);
+        onMessageRef.current(data);
       } catch (e) {
         console.error('WebSocket JSON parse error:', e);
       }
@@ -41,7 +43,7 @@ export const useWebSocket = (
     return () => {
       ws.close();
     };
-  }, [sessionId, onMessage]);
+  }, [sessionId]);
 
   return wsRef;
 };
@@ -70,6 +72,7 @@ export const useWebSocketV4 = (
   const maxReconnectAttempts = 10;
   const sessionIdRef = useRef(sessionId);
   sessionIdRef.current = sessionId;
+  const receivedEventCountRef = useRef(0);
 
   const connect = useCallback(() => {
     if (!sessionIdRef.current) return;
@@ -85,10 +88,13 @@ export const useWebSocketV4 = (
       const wasReconnect = reconnectAttemptsRef.current > 0;
       reconnectAttemptsRef.current = 0;
       handlersRef.current.onConnect?.();
-      // Replay missed events after reconnection
+      // Replay only missed events after reconnection (skip already-received ones)
       if (wasReconnect) {
+        const alreadySeen = receivedEventCountRef.current;
         getEvents(currentSessionId).then((events) => {
-          events.forEach((ev) => handlersRef.current.onTaskEvent?.(ev));
+          const missed = events.slice(alreadySeen);
+          missed.forEach((ev) => handlersRef.current.onTaskEvent?.(ev));
+          receivedEventCountRef.current = events.length;
         }).catch(() => {});
       }
     };
@@ -107,6 +113,7 @@ export const useWebSocketV4 = (
                 ...data,
                 session_id: data.session_id || currentSessionId,
               };
+              receivedEventCountRef.current += 1;
               handlersRef.current.onTaskEvent?.(taskEvent);
             }
             break;
@@ -170,6 +177,7 @@ export const useWebSocketV4 = (
     }
 
     reconnectAttemptsRef.current = 0;
+    receivedEventCountRef.current = 0;
 
     if (sessionId) {
       connect();

@@ -139,7 +139,7 @@ def create_app() -> FastAPI:
                     break
         
         finally:
-            manager.disconnect(session_id)
+            manager.disconnect(session_id, websocket)
     
     return app
 

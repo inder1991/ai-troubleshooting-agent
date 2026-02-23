@@ -12,6 +12,16 @@ import type {
 
 const API_BASE_URL = 'http://localhost:8000';
 
+/** Safely extract error detail from a response (handles non-JSON like 502 nginx HTML). */
+const extractErrorDetail = async (response: Response, fallback: string): Promise<string> => {
+  try {
+    const error = await response.json();
+    return error.detail || fallback;
+  } catch {
+    return `${fallback} (HTTP ${response.status})`;
+  }
+};
+
 // ===== V3 API (preserved for backward compatibility) =====
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -100,8 +110,7 @@ export const startSessionV4 = async (request: StartSessionRequest & { profileId?
     body: JSON.stringify(request),
   });
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || 'Failed to start session');
+    throw new Error(await extractErrorDetail(response, 'Failed to start session'));
   }
   const data = await response.json();
   return {
@@ -122,8 +131,7 @@ export const sendChatMessage = async (
     body: JSON.stringify({ message }),
   });
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || 'Failed to send message');
+    throw new Error(await extractErrorDetail(response, 'Failed to send message'));
   }
   // Backend returns ChatResponse {response, phase, confidence} — transform to ChatMessage
   const data = await response.json();
@@ -137,8 +145,7 @@ export const sendChatMessage = async (
 export const getSessionStatus = async (sessionId: string): Promise<V4SessionStatus> => {
   const response = await fetch(`${API_BASE_URL}/api/v4/session/${sessionId}/status`);
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || 'Failed to get session status');
+    throw new Error(await extractErrorDetail(response, 'Failed to get session status'));
   }
   return response.json();
 };
@@ -146,8 +153,7 @@ export const getSessionStatus = async (sessionId: string): Promise<V4SessionStat
 export const getFindings = async (sessionId: string): Promise<V4Findings> => {
   const response = await fetch(`${API_BASE_URL}/api/v4/session/${sessionId}/findings`);
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || 'Failed to get findings');
+    throw new Error(await extractErrorDetail(response, 'Failed to get findings'));
   }
   return response.json();
 };
@@ -155,8 +161,7 @@ export const getFindings = async (sessionId: string): Promise<V4Findings> => {
 export const getEvents = async (sessionId: string): Promise<TaskEvent[]> => {
   const response = await fetch(`${API_BASE_URL}/api/v4/session/${sessionId}/events`);
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || 'Failed to get events');
+    throw new Error(await extractErrorDetail(response, 'Failed to get events'));
   }
   const data = await response.json();
   return data.events || data;
@@ -188,8 +193,7 @@ export const generateFix = async (
     body: JSON.stringify({ guidance }),
   });
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || 'Failed to start fix generation');
+    throw new Error(await extractErrorDetail(response, 'Failed to start fix generation'));
   }
   return response.json();
 };
@@ -199,8 +203,7 @@ export const getFixStatus = async (
 ): Promise<FixStatusResponse> => {
   const response = await fetch(`${API_BASE_URL}/api/v4/session/${sessionId}/fix/status`);
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || 'Failed to get fix status');
+    throw new Error(await extractErrorDetail(response, 'Failed to get fix status'));
   }
   return response.json();
 };
@@ -215,8 +218,7 @@ export const decideOnFix = async (
     body: JSON.stringify({ decision }),
   });
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || 'Failed to submit fix decision');
+    throw new Error(await extractErrorDetail(response, 'Failed to submit fix decision'));
   }
   return response.json();
 };
@@ -383,8 +385,7 @@ export const createJiraIssue = async (sessionId: string, data: {
     body: JSON.stringify(data),
   });
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || 'Failed to create Jira issue');
+    throw new Error(await extractErrorDetail(response, 'Failed to create Jira issue'));
   }
   return response.json();
 };
@@ -396,8 +397,7 @@ export const linkJiraIssue = async (sessionId: string, issueKey: string) => {
     body: JSON.stringify({ issue_key: issueKey }),
   });
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || 'Failed to link Jira issue');
+    throw new Error(await extractErrorDetail(response, 'Failed to link Jira issue'));
   }
   return response.json();
 };
@@ -411,8 +411,7 @@ export const createRemedyIncident = async (sessionId: string, data: {
     body: JSON.stringify(data),
   });
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || 'Failed to create Remedy incident');
+    throw new Error(await extractErrorDetail(response, 'Failed to create Remedy incident'));
   }
   return response.json();
 };
@@ -434,8 +433,7 @@ export const publishPostMortem = async (sessionId: string, data: {
     body: JSON.stringify(data),
   });
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || 'Failed to publish post-mortem');
+    throw new Error(await extractErrorDetail(response, 'Failed to publish post-mortem'));
   }
   return response.json();
 };

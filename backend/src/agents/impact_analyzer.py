@@ -110,7 +110,7 @@ class ImpactAnalyzer:
         upstream = upstream or []
         downstream = downstream or []
         shared = shared or []
-        total_affected = len(upstream) + len(downstream)
+        total_affected = len(upstream) + len(downstream) + len(shared)
         if total_affected > 10:
             scope = "cluster_wide"
         elif total_affected > 5:

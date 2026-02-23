@@ -189,6 +189,8 @@ class SupervisorAgent:
         await event_emitter.emit("supervisor", "started", f"Starting diagnosis for {state.service_name} [{state.incident_id}]")
 
         max_rounds = 10
+        re_investigation_count = 0
+        max_re_investigations = 1  # Allow at most 1 re-investigation cycle
         for round_num in range(max_rounds):
             next_agents = self._decide_next_agents(state)
 
@@ -274,7 +276,15 @@ class SupervisorAgent:
                                     "critic", "warning",
                                     f"Challenged: {finding.summary} — {verdict.reasoning}"
                                 )
-                                state.phase = DiagnosticPhase.RE_INVESTIGATING
+                                if re_investigation_count < max_re_investigations:
+                                    state.phase = DiagnosticPhase.RE_INVESTIGATING
+                                    re_investigation_count += 1
+                                else:
+                                    logger.warning("Max re-investigations reached, proceeding to diagnosis", extra={
+                                        "session_id": state.session_id, "agent_name": "supervisor",
+                                        "action": "re_investigation_capped",
+                                        "extra": {"re_investigation_count": re_investigation_count}
+                                    })
 
             self._update_phase(state, event_emitter)
 
@@ -371,7 +381,8 @@ class SupervisorAgent:
 
         if state.phase == DiagnosticPhase.METRICS_ANALYZED:
             agents = []
-            if state.trace_id and "tracing_agent" not in state.agents_completed:
+            # Only dispatch agents that are actually registered in self._agents
+            if state.trace_id and "tracing_agent" not in state.agents_completed and "tracing_agent" in self._agents:
                 agents.append("tracing_agent")
             if "k8s_agent" not in state.agents_completed and (state.cluster_url or state.namespace):
                 agents.append("k8s_agent")
@@ -381,7 +392,7 @@ class SupervisorAgent:
 
         if state.phase == DiagnosticPhase.K8S_ANALYZED:
             agents = []
-            if state.trace_id and "tracing_agent" not in state.agents_completed:
+            if state.trace_id and "tracing_agent" not in state.agents_completed and "tracing_agent" in self._agents:
                 agents.append("tracing_agent")
             if state.repo_url and "code_agent" not in state.agents_completed:
                 agents.append("code_agent")
@@ -396,14 +407,18 @@ class SupervisorAgent:
             return []
 
         if state.phase == DiagnosticPhase.RE_INVESTIGATING:
-            # Re-dispatch the challenged agent's domain
+            # Re-dispatch the challenged agent's domain, then advance phase
             agents = []
             for cv in state.critic_verdicts:
                 if cv.verdict == "challenged" and cv.confidence_in_verdict > 80:
                     challenged_agent = cv.agent_source
                     if challenged_agent in self._agents and challenged_agent not in agents:
                         agents.append(challenged_agent)
-            return agents if agents else []
+            # After re-dispatch, reset phase so _update_phase can advance normally
+            # This prevents staying locked in RE_INVESTIGATING forever
+            if not agents:
+                state.phase = DiagnosticPhase.DIAGNOSIS_COMPLETE
+            return agents
 
         if state.phase == DiagnosticPhase.DIAGNOSIS_COMPLETE:
             return []
@@ -734,7 +749,7 @@ class SupervisorAgent:
             state.overall_confidence = min(confidence, 100)
         else:
             state.overall_confidence = min(
-                (state.overall_confidence * (n - 1) + confidence) // n, 100
+                round((state.overall_confidence * (n - 1) + confidence) / n), 100
             )
 
         # Add findings
@@ -1254,8 +1269,10 @@ class SupervisorAgent:
         """Update diagnostic phase based on completed agents."""
         old_phase = state.phase
 
-        # Don't overwrite RE_INVESTIGATING — let the state machine handle it
+        # RE_INVESTIGATING is handled by _decide_next_agents; after re-dispatch
+        # completes, allow normal phase advancement
         if state.phase == DiagnosticPhase.RE_INVESTIGATING:
+            # Allow _decide_next_agents to reset it; don't overwrite here
             return
 
         completed = set(state.agents_completed)
@@ -1276,13 +1293,11 @@ class SupervisorAgent:
             logger.info("Phase transition", extra={"session_id": state.session_id, "agent_name": "supervisor", "action": "phase_transition", "extra": {"from": old_phase.value, "to": state.phase.value}})
         if state.phase != old_phase and event_emitter:
             try:
-                loop = asyncio.get_event_loop()
-                if loop.is_running():
-                    asyncio.ensure_future(event_emitter.emit(
-                        "supervisor", "phase_change",
-                        f"Phase: {state.phase.value.replace('_', ' ').title()}",
-                        details={"phase": state.phase.value, "previous_phase": old_phase.value}
-                    ))
+                asyncio.ensure_future(event_emitter.emit(
+                    "supervisor", "phase_change",
+                    f"Phase: {state.phase.value.replace('_', ' ').title()}",
+                    details={"phase": state.phase.value, "previous_phase": old_phase.value}
+                ))
             except Exception:
                 logger.debug("Could not emit phase_change event")
 
@@ -1804,7 +1819,8 @@ class SupervisorAgent:
                     details={"confidence": state.overall_confidence, "findings_count": len(state.all_findings)},
                 )
 
-        state.agents_completed.append("change_agent")
+        if "change_agent" not in state.agents_completed:
+            state.agents_completed.append("change_agent")
 
     async def _enrich_reasoning_chain(
         self, state: DiagnosticState, event_emitter: EventEmitter

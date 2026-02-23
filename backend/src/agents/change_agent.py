@@ -34,6 +34,7 @@ class ChangeAgent(ReActAgent):
         self._namespace = ""
         self._incident_start = None
         self._cli_tool = "kubectl"
+        self._github_token = ""
 
     async def _define_tools(self) -> list[dict]:
         return [

@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 import statistics
@@ -311,6 +312,11 @@ OUTPUT FORMAT — Final answer as JSON:
         # Last resort: return current time
         return datetime.now(timezone.utc).timestamp()
 
+    @staticmethod
+    async def _async_get(url: str, params: dict = None, timeout: int = 30):
+        """Run requests.get in a thread pool to avoid blocking the event loop."""
+        return await asyncio.to_thread(requests.get, url, params=params, timeout=timeout)
+
     async def _query_range(self, params: dict) -> str:
         query = params["query"]
         start = self._resolve_time(params["start"])
@@ -318,7 +324,7 @@ OUTPUT FORMAT — Final answer as JSON:
         step = params.get("step", "60s")
 
         try:
-            resp = requests.get(
+            resp = await self._async_get(
                 f"{self.prometheus_url}/api/v1/query_range",
                 params={"query": query, "start": start, "end": end, "step": step},
                 timeout=30,
@@ -375,7 +381,7 @@ OUTPUT FORMAT — Final answer as JSON:
     async def _query_instant(self, params: dict) -> str:
         query = params["query"]
         try:
-            resp = requests.get(
+            resp = await self._async_get(
                 f"{self.prometheus_url}/api/v1/query",
                 params={"query": query},
                 timeout=30,
@@ -437,7 +443,7 @@ OUTPUT FORMAT — Final answer as JSON:
             if namespace:
                 api_params["match[]"] = '{namespace="' + namespace + '"}'
 
-            resp = requests.get(
+            resp = await self._async_get(
                 f"{self.prometheus_url}/api/v1/label/__name__/values",
                 params=api_params,
                 timeout=15,
@@ -480,7 +486,7 @@ OUTPUT FORMAT — Final answer as JSON:
             baseline_ts = now_ts - offset_hours * 3600
 
             # Current value
-            resp_now = requests.get(
+            resp_now = await self._async_get(
                 f"{self.prometheus_url}/api/v1/query",
                 params={"query": query, "time": now_ts},
                 timeout=30,
@@ -489,7 +495,7 @@ OUTPUT FORMAT — Final answer as JSON:
             now_results = resp_now.json().get("data", {}).get("result", [])
 
             # Baseline value at N hours ago (using time parameter instead of PromQL offset)
-            resp_base = requests.get(
+            resp_base = await self._async_get(
                 f"{self.prometheus_url}/api/v1/query",
                 params={"query": query, "time": baseline_ts},
                 timeout=30,

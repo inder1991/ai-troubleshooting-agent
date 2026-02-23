@@ -65,7 +65,7 @@ class ChatResponse(BaseModel):
 class StartSessionRequest(BaseModel):
     model_config = {"populate_by_name": True}
 
-    serviceName: str = Field(alias="service_name", default=None)
+    serviceName: str = Field(alias="service_name", default="unknown")
     elkIndex: str = Field(default="app-logs-*", alias="elk_index")
     timeframe: str = Field(default="1h", alias="time_window")
     traceId: Optional[str] = Field(default=None, alias="trace_id")
