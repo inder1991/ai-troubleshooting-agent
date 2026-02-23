@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>DebugDuck | Integrations &amp; Connectivity</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#07b6d5",
+                        "background-light": "#f5f8f8",
+                        "background-dark": "#0f2023",
+                        "surface-dark": "#183034",
+                        "border-dark": "#224349",
+                        "neutral-text": "#8fc3cc",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f2023;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #224349;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #07b6d5;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-white font-display overflow-hidden">
+<div class="flex h-screen w-full">
+<!-- Sidebar -->
+<aside class="w-64 border-r border-border-dark flex flex-col shrink-0 bg-background-dark">
+<div class="p-6 flex items-center gap-3">
+<div class="bg-primary rounded-lg p-1.5 flex items-center justify-center">
+<span class="material-symbols-outlined text-background-dark font-bold">query_stats</span>
+</div>
+<div>
+<h1 class="text-white text-lg font-bold leading-none">DebugDuck</h1>
+<p class="text-neutral-text text-xs mt-1">AI SRE Engine</p>
+</div>
+</div>
+<nav class="flex-1 px-3 space-y-1 overflow-y-auto">
+<a class="flex items-center gap-3 px-3 py-2 text-neutral-text hover:bg-surface-dark hover:text-white rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="text-sm font-medium">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-neutral-text hover:bg-surface-dark hover:text-white rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined">warning</span>
+<span class="text-sm font-medium">Incidents</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-neutral-text hover:bg-surface-dark hover:text-white rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined">description</span>
+<span class="text-sm font-medium">Logs</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 bg-primary/10 text-primary border-l-2 border-primary rounded-r-lg transition-colors" href="#">
+<span class="material-symbols-outlined">hub</span>
+<span class="text-sm font-medium font-bold">Integrations</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-neutral-text hover:bg-surface-dark hover:text-white rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-sm font-medium">Settings</span>
+</a>
+</nav>
+<div class="p-4 mt-auto border-t border-border-dark">
+<button class="w-full flex items-center justify-center gap-2 bg-primary text-background-dark py-2 px-4 rounded-lg font-bold text-sm hover:brightness-110 transition-all">
+<span class="material-symbols-outlined text-[18px]">add</span>
+                    New Analysis
+                </button>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+<!-- Header -->
+<header class="h-16 border-b border-border-dark flex items-center justify-between px-8 bg-background-dark/50 backdrop-blur-md sticky top-0 z-10">
+<div class="flex items-center gap-4">
+<h2 class="text-xl font-bold tracking-tight">Integrations &amp; Cluster Management</h2>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative group">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-neutral-text text-[20px]">search</span>
+<input class="bg-surface-dark border-none rounded-lg pl-10 pr-4 py-1.5 text-sm w-64 focus:ring-1 focus:ring-primary placeholder:text-neutral-text/50" placeholder="Search clusters..." type="text"/>
+</div>
+<button class="text-neutral-text hover:text-white transition-colors relative">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-0 right-0 w-2 h-2 bg-primary rounded-full border border-background-dark"></span>
+</button>
+<div class="h-8 w-8 rounded-full bg-surface-dark border border-border-dark overflow-hidden">
+<img alt="User Profile" class="w-full h-full object-cover" data-alt="User avatar profile picture" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBXLCof9cX6lh6x3BOFpp2JSTOYBXaOASp7TMGVohn0waJEjBayKkyVsmBgGXNFiTRLRvRXEoydppFcFT0pKExjU97nrEGNVGikN7JZEleOB6mRcoJ-PBUNSBQB08u19KyWUVdeCIEG4ku3-aDlvElTS6tSTO3OYMXkJ3Ws1rjVqiVIa_HAPfFwJt6XHY6PT04AxaKuc02Id9wld7iAy1KsjHsXYmnQiOCDyh55-CPsn4tnu6QraugMzcXoLcILqS69emnGQxZ7BYpf"/>
+</div>
+</div>
+</header>
+<!-- Scrollable Content -->
+<div class="flex-1 overflow-y-auto pb-24">
+<div class="max-w-6xl mx-auto p-8 space-y-8">
+<!-- Section 1: Integrated Cluster Profiles -->
+<section>
+<div class="flex justify-between items-center mb-4">
+<div>
+<h3 class="text-lg font-bold">Integrated Cluster Profiles</h3>
+<p class="text-neutral-text text-sm">Active observability pipelines and cluster endpoints.</p>
+</div>
+<button class="flex items-center gap-2 bg-border-dark text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-border-dark/80 transition-colors border border-primary/20">
+<span class="material-symbols-outlined text-[18px]">add_circle</span>
+                                Add New Cluster
+                            </button>
+</div>
+<div class="bg-surface-dark/30 rounded-xl border border-border-dark overflow-hidden">
+<table class="w-full text-left border-collapse">
+<thead class="bg-surface-dark/50 border-b border-border-dark">
+<tr>
+<th class="px-6 py-3 text-xs font-bold text-neutral-text uppercase tracking-wider">Profile Name</th>
+<th class="px-6 py-3 text-xs font-bold text-neutral-text uppercase tracking-wider">Environment</th>
+<th class="px-6 py-3 text-xs font-bold text-neutral-text uppercase tracking-wider">Cluster Type</th>
+<th class="px-6 py-3 text-xs font-bold text-neutral-text uppercase tracking-wider">Status</th>
+<th class="px-6 py-3 text-xs font-bold text-neutral-text uppercase tracking-wider">Last Synced</th>
+<th class="px-6 py-3 text-xs font-bold text-neutral-text uppercase tracking-wider text-right">Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-border-dark">
+<tr class="hover:bg-surface-dark/20 transition-colors">
+<td class="px-6 py-4 text-sm font-medium">Production-US-East-1</td>
+<td class="px-6 py-4 text-sm">
+<span class="px-2 py-1 rounded bg-red-900/30 text-red-400 border border-red-500/20 text-[10px] font-bold uppercase tracking-tighter">Prod</span>
+</td>
+<td class="px-6 py-4 text-sm text-neutral-text">OpenShift 4.12</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></span>
+<span class="text-xs text-green-500 font-medium">Connected</span>
+</div>
+</td>
+<td class="px-6 py-4 text-xs text-neutral-text italic">2 mins ago</td>
+<td class="px-6 py-4 text-right">
+<div class="flex justify-end gap-2">
+<button class="p-1.5 hover:bg-primary/20 text-neutral-text hover:text-primary rounded transition-colors"><span class="material-symbols-outlined text-[18px]">edit</span></button>
+<button class="p-1.5 hover:bg-red-500/20 text-neutral-text hover:text-red-400 rounded transition-colors"><span class="material-symbols-outlined text-[18px]">delete</span></button>
+</div>
+</td>
+</tr>
+<tr class="hover:bg-surface-dark/20 transition-colors">
+<td class="px-6 py-4 text-sm font-medium">Staging-Cluster-Omega</td>
+<td class="px-6 py-4 text-sm">
+<span class="px-2 py-1 rounded bg-primary/10 text-primary border border-primary/20 text-[10px] font-bold uppercase tracking-tighter">Staging</span>
+</td>
+<td class="px-6 py-4 text-sm text-neutral-text">Kubernetes 1.25</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)]"></span>
+<span class="text-xs text-amber-500 font-medium">Warning</span>
+</div>
+</td>
+<td class="px-6 py-4 text-xs text-neutral-text italic">14 mins ago</td>
+<td class="px-6 py-4 text-right">
+<div class="flex justify-end gap-2">
+<button class="p-1.5 hover:bg-primary/20 text-neutral-text hover:text-primary rounded transition-colors"><span class="material-symbols-outlined text-[18px]">edit</span></button>
+<button class="p-1.5 hover:bg-red-500/20 text-neutral-text hover:text-red-400 rounded transition-colors"><span class="material-symbols-outlined text-[18px]">delete</span></button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<!-- Section 2: Add/Edit Cluster Connection Form -->
+<section class="bg-surface-dark/20 rounded-xl border border-border-dark p-6"><h3 class="text-lg font-bold mb-1">Add/Edit Cluster Connection</h3>
+<p class="text-neutral-text text-sm mb-6">Configure infrastructure observability and management endpoints with individual credentials.</p>
+<div class="space-y-8">
+<!-- Cluster Name -->
+<div class="space-y-2">
+<label class="text-xs font-bold text-neutral-text uppercase tracking-wider">Cluster Profile Name</label>
+<input class="w-full bg-surface-dark/50 border border-border-dark rounded-lg px-4 py-2.5 text-sm focus:ring-1 focus:ring-primary focus:border-primary transition-all" type="text" value="New-Internal-Cluster"/>
+</div>
+<!-- Endpoint: OpenShift -->
+<div class="p-4 rounded-lg bg-surface-dark/40 border border-border-dark/50 space-y-4">
+<div class="flex justify-between items-center">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">settings_input_component</span>
+<label class="text-xs font-bold text-white uppercase tracking-wider">OpenShift API</label>
+</div>
+<span class="flex items-center gap-1 text-[10px] font-bold text-green-500 bg-green-500/10 px-1.5 py-0.5 rounded border border-green-500/20 uppercase">
+<span class="material-symbols-outlined text-[12px]">check_circle</span> Verified
+            </span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<div class="relative">
+<input class="w-full bg-background-dark border border-border-dark rounded-lg px-4 py-2 text-sm focus:ring-1 focus:ring-primary" placeholder="https://api.ocp.url:6443" type="url" value="https://api.ocp-east.corp.net:6443"/>
+<button class="absolute right-3 top-1/2 -translate-y-1/2 text-primary text-xs font-bold hover:underline">Test</button>
+</div>
+<input class="bg-background-dark border border-border-dark rounded-lg px-4 py-2 text-sm focus:ring-1 focus:ring-primary" placeholder="API Token / Secret" type="password" value="••••••••••••••••"/>
+</div>
+</div>
+<!-- Endpoint: Prometheus -->
+<div class="p-4 rounded-lg bg-surface-dark/40 border border-border-dark/50 space-y-4">
+<div class="flex justify-between items-center">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">monitoring</span>
+<label class="text-xs font-bold text-white uppercase tracking-wider">Prometheus Endpoint</label>
+</div>
+<span class="flex items-center gap-1 text-[10px] font-bold text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20 uppercase">
+<span class="material-symbols-outlined text-[12px]">pending</span> Testing
+            </span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<div class="relative">
+<input class="w-full bg-background-dark border border-border-dark rounded-lg px-4 py-2 text-sm focus:ring-1 focus:ring-primary" placeholder="http://prometheus-service:9090" type="url" value="http://prometheus.monitoring.svc:9090"/>
+<button class="absolute right-3 top-1/2 -translate-y-1/2 text-primary text-xs font-bold hover:underline">Test</button>
+</div>
+<div class="flex gap-2">
+<select class="bg-background-dark border border-border-dark rounded-lg px-3 py-2 text-xs text-neutral-text focus:ring-1 focus:ring-primary">
+<option>Basic Auth</option>
+<option>Bearer Token</option>
+<option>None</option>
+</select>
+<input class="flex-1 bg-background-dark border border-border-dark rounded-lg px-4 py-2 text-sm focus:ring-1 focus:ring-primary" placeholder="Credentials" type="password"/>
+</div>
+</div>
+</div>
+<!-- Endpoint: Jaeger -->
+<div class="p-4 rounded-lg bg-surface-dark/40 border border-border-dark/50 space-y-4">
+<div class="flex justify-between items-center">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">account_tree</span>
+<label class="text-xs font-bold text-white uppercase tracking-wider">Jaeger / Tracing</label>
+</div>
+<span class="flex items-center gap-1 text-[10px] font-bold text-red-500 bg-red-500/10 px-1.5 py-0.5 rounded border border-red-500/20 uppercase">
+<span class="material-symbols-outlined text-[12px]">error</span> Connection Failed
+            </span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<div class="relative">
+<input class="w-full bg-background-dark border border-border-dark rounded-lg px-4 py-2 text-sm focus:ring-1 focus:ring-primary" placeholder="https://jaeger-query.net" type="url"/>
+<button class="absolute right-3 top-1/2 -translate-y-1/2 text-primary text-xs font-bold hover:underline">Test</button>
+</div>
+<input class="bg-background-dark border border-border-dark rounded-lg px-4 py-2 text-sm focus:ring-1 focus:ring-primary" placeholder="TLS Client Cert / Token" type="text"/>
+</div>
+</div>
+</div></section>
+<!-- Section 3: External Ecosystem Integrations -->
+<section><h3 class="text-lg font-bold mb-1">Global Ecosystem Integrations</h3>
+<p class="text-neutral-text text-sm mb-6">Manage shared services and enterprise ecosystem tools used across the global infrastructure.</p>
+<div class="space-y-4">
+<!-- Global ELK Configuration -->
+<div class="p-5 bg-surface-dark/30 border border-border-dark rounded-xl">
+<div class="flex flex-wrap items-center gap-4">
+<div class="flex items-center gap-3 min-w-[200px]">
+<div class="w-10 h-10 bg-primary/10 rounded flex items-center justify-center border border-primary/20 text-primary">
+<span class="material-symbols-outlined">analytics</span>
+</div>
+<div>
+<h4 class="font-bold text-sm">ELK / Log Stack</h4>
+<span class="text-[10px] text-neutral-text uppercase tracking-widest">Log Aggregation</span>
+</div>
+</div>
+<div class="flex-1 min-w-[300px]">
+<input class="w-full bg-background-dark border border-border-dark rounded-lg px-4 py-2 text-sm focus:ring-1 focus:ring-primary" placeholder="Kibana/Elasticsearch URL (e.g. https://elk.corp.net)" type="url" value="https://kibana.logging.net"/>
+</div>
+<div class="w-40">
+<select class="w-full bg-background-dark border border-border-dark rounded-lg px-3 py-2 text-xs text-neutral-text focus:ring-1 focus:ring-primary">
+<option>Basic Auth</option>
+<option selected="">Cloud ID</option>
+<option>Bearer Token</option>
+</select>
+</div>
+<div class="flex items-center gap-3">
+<button class="px-4 py-2 bg-primary/10 text-primary border border-primary/20 rounded-lg text-xs font-bold hover:bg-primary/20 transition-all">Test Connection</button>
+<span class="text-[10px] font-bold text-neutral-text uppercase">Not Validated</span>
+</div>
+</div>
+</div>
+<!-- Jira Configuration -->
+<div class="p-5 bg-surface-dark/30 border border-border-dark rounded-xl">
+<div class="flex flex-wrap items-center gap-4">
+<div class="flex items-center gap-3 min-w-[200px]">
+<div class="w-10 h-10 bg-blue-600/10 rounded flex items-center justify-center border border-blue-500/20 text-blue-400">
+<span class="material-symbols-outlined">task</span>
+</div>
+<div>
+<h4 class="font-bold text-sm">Atlassian Jira</h4>
+<span class="text-[10px] text-neutral-text uppercase tracking-widest">Ticketing System</span>
+</div>
+</div>
+<div class="flex-1 min-w-[300px]">
+<input class="w-full bg-background-dark border border-border-dark rounded-lg px-4 py-2 text-sm focus:ring-1 focus:ring-primary" placeholder="Jira API Endpoint URL" type="url" value="https://jira.internal.corp"/>
+</div>
+<div class="w-40">
+<select class="w-full bg-background-dark border border-border-dark rounded-lg px-3 py-2 text-xs text-neutral-text focus:ring-1 focus:ring-primary">
+<option>Basic Auth</option>
+<option selected="">API Token</option>
+<option>OAuth 2.0</option>
+</select>
+</div>
+<div class="flex items-center gap-3">
+<button class="px-4 py-2 bg-primary/10 text-primary border border-primary/20 rounded-lg text-xs font-bold hover:bg-primary/20 transition-all">Test Connection</button>
+<span class="text-[10px] font-bold text-green-500 uppercase flex items-center gap-1">
+<span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span> Connected
+                </span>
+</div>
+</div>
+</div>
+<!-- Confluence Configuration -->
+<div class="p-5 bg-surface-dark/30 border border-border-dark rounded-xl">
+<div class="flex flex-wrap items-center gap-4">
+<div class="flex items-center gap-3 min-w-[200px]">
+<div class="w-10 h-10 bg-indigo-600/10 rounded flex items-center justify-center border border-indigo-500/20 text-indigo-400">
+<span class="material-symbols-outlined">menu_book</span>
+</div>
+<div>
+<h4 class="font-bold text-sm">Confluence</h4>
+<span class="text-[10px] text-neutral-text uppercase tracking-widest">Documentation</span>
+</div>
+</div>
+<div class="flex-1 min-w-[300px]">
+<input class="w-full bg-background-dark border border-border-dark rounded-lg px-4 py-2 text-sm focus:ring-1 focus:ring-primary" placeholder="Confluence Space URL" type="url"/>
+</div>
+<div class="w-40">
+<select class="w-full bg-background-dark border border-border-dark rounded-lg px-3 py-2 text-xs text-neutral-text focus:ring-1 focus:ring-primary">
+<option>Basic Auth</option>
+<option>API Token</option>
+<option>OAuth 2.0</option>
+</select>
+</div>
+<div class="flex items-center gap-3">
+<button class="px-4 py-2 bg-primary/10 text-primary border border-primary/20 rounded-lg text-xs font-bold hover:bg-primary/20 transition-all">Test Connection</button>
+<span class="text-[10px] font-bold text-neutral-text uppercase">Not Linked</span>
+</div>
+</div>
+</div>
+<!-- Remedy Configuration -->
+<div class="p-5 bg-surface-dark/30 border border-border-dark rounded-xl">
+<div class="flex flex-wrap items-center gap-4">
+<div class="flex items-center gap-3 min-w-[200px]">
+<div class="w-10 h-10 bg-orange-600/10 rounded flex items-center justify-center border border-orange-500/20 text-orange-400">
+<span class="material-symbols-outlined">corporate_fare</span>
+</div>
+<div>
+<h4 class="font-bold text-sm">BMC Remedy</h4>
+<span class="text-[10px] text-neutral-text uppercase tracking-widest">Change Management</span>
+</div>
+</div>
+<div class="flex-1 min-w-[300px]">
+<input class="w-full bg-background-dark border border-border-dark rounded-lg px-4 py-2 text-sm focus:ring-1 focus:ring-primary" placeholder="Remedy ITSM Gateway URL" type="url"/>
+</div>
+<div class="w-40">
+<select class="w-full bg-background-dark border border-border-dark rounded-lg px-3 py-2 text-xs text-neutral-text focus:ring-1 focus:ring-primary">
+<option>Basic Auth</option>
+<option>Bearer Token</option>
+<option>Certificate</option>
+</select>
+</div>
+<div class="flex items-center gap-3">
+<button class="px-4 py-2 bg-primary/10 text-primary border border-primary/20 rounded-lg text-xs font-bold hover:bg-primary/20 transition-all">Test Connection</button>
+<span class="text-[10px] font-bold text-red-400 uppercase">Conn. Error</span>
+</div>
+</div>
+</div>
+</div></section>
+</div>
+</div>
+<!-- Sticky Footer Actions -->
+<footer class="absolute bottom-0 left-0 right-0 h-20 bg-background-dark border-t border-border-dark flex items-center justify-end px-8 gap-4 z-20 backdrop-blur-lg bg-opacity-90">
+<button class="px-6 py-2.5 rounded-lg text-sm font-bold text-neutral-text hover:text-white transition-colors">
+                    Discard Changes
+                </button>
+<button class="bg-primary text-background-dark px-8 py-2.5 rounded-lg text-sm font-black shadow-[0_0_20px_rgba(7,182,213,0.3)] hover:scale-[1.02] active:scale-95 transition-all">
+                    SAVE CONFIGURATION
+                </button>
+</footer>
+</main>
+</div>
+</body></html>

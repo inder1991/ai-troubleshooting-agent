@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>DebugDuck | Issue Fixer Initiation</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#07b6d5",
+                        "background-light": "#f5f8f8",
+                        "background-dark": "#0f2023",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #102023;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #306069;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white min-h-screen flex">
+<!-- Persistent Sidebar -->
+<aside class="w-64 bg-[#102023] border-r border-[#224349] flex flex-col h-screen sticky top-0">
+<div class="p-6 flex flex-col gap-8">
+<!-- Logo Section -->
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-full bg-primary/20 flex items-center justify-center border border-primary/40">
+<span class="material-symbols-outlined text-primary">terminal</span>
+</div>
+<div class="flex flex-col">
+<h1 class="text-white text-base font-bold leading-tight">DebugDuck</h1>
+<p class="text-[#8fc3cc] text-xs font-medium uppercase tracking-wider">Cyber-Ops Edition</p>
+</div>
+</div>
+<!-- Navigation -->
+<nav class="flex flex-col gap-2">
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#8fc3cc] hover:bg-[#224349] hover:text-white transition-colors group" href="#">
+<span class="material-symbols-outlined text-[22px]">dashboard</span>
+<span class="text-sm font-medium">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-[#224349] text-white transition-colors" href="#">
+<span class="material-symbols-outlined text-[22px] fill-1">bug_report</span>
+<span class="text-sm font-medium">Issues</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#8fc3cc] hover:bg-[#224349] hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined text-[22px]">account_tree</span>
+<span class="text-sm font-medium">Pipelines</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#8fc3cc] hover:bg-[#224349] hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined text-[22px]">security</span>
+<span class="text-sm font-medium">Security Scan</span>
+</a>
+<div class="my-4 border-t border-[#224349]"></div>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#8fc3cc] hover:bg-[#224349] hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined text-[22px]">settings</span>
+<span class="text-sm font-medium">Settings</span>
+</a>
+</nav>
+</div>
+<!-- System Status Footer -->
+<div class="mt-auto p-6">
+<div class="bg-[#183034] rounded-lg p-4 border border-[#224349]">
+<div class="flex items-center gap-2 mb-2">
+<div class="size-2 rounded-full bg-green-500 animate-pulse"></div>
+<span class="text-[10px] font-bold text-white uppercase tracking-widest">System Ready</span>
+</div>
+<p class="text-[11px] text-[#8fc3cc] leading-relaxed">Connected to GitHub &amp; Jira API endpoints.</p>
+</div>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col min-w-0 bg-background-light dark:bg-background-dark">
+<!-- Top Header & Breadcrumbs -->
+<header class="p-6 border-b border-[#224349]/30 flex flex-col gap-4">
+<div class="flex items-center gap-2 text-sm">
+<span class="text-[#8fc3cc]">Cyber-Ops</span>
+<span class="material-symbols-outlined text-xs text-[#8fc3cc]">chevron_right</span>
+<span class="text-[#8fc3cc]">DebugDuck</span>
+<span class="material-symbols-outlined text-xs text-[#8fc3cc]">chevron_right</span>
+<span class="text-white font-medium">Issue Fixer</span>
+</div>
+<div class="flex justify-between items-end">
+<div class="flex flex-col gap-1">
+<h2 class="text-white text-3xl font-black tracking-tight">Initiate Issue Fix</h2>
+<p class="text-[#8fc3cc] text-base">Configure the automated agent to analyze and patch the codebase.</p>
+</div>
+<!-- Progress Stepper -->
+<div class="flex flex-col gap-2 min-w-[240px]">
+<div class="flex justify-between text-xs font-bold uppercase tracking-widest">
+<span class="text-primary">Step 1: Initiation</span>
+<span class="text-white">33%</span>
+</div>
+<div class="h-1.5 w-full bg-[#306069] rounded-full overflow-hidden">
+<div class="h-full bg-primary w-1/3 shadow-[0_0_8px_rgba(7,182,213,0.5)]"></div>
+</div>
+<p class="text-[11px] text-[#8fc3cc] text-right italic">Next: Deep Analysis</p>
+</div>
+</div>
+</header>
+<!-- Form Container -->
+<section class="flex-1 p-8 overflow-y-auto custom-scrollbar">
+<div class="max-w-3xl mx-auto">
+<!-- Banner Image Component -->
+<div class="mb-8 rounded-xl overflow-hidden bg-[#183034] border border-[#224349] flex flex-col @container">
+<div class="h-48 w-full bg-center bg-cover relative" data-alt="Abstract cyber security digital grid interface background" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDCtD3PsZfscpkqzOCWI15gL4u0GHQqLUAvrXctUo9xVZdpWsbJb0fCSrBYlZayWyc_P21sDGYS5lHCJRvhkyg89YBBhyiP59x5R0PT_1766eMzYOIXssa026U0R5n2c_UQZ1l4AbhCHntXEkyFANaOrnzNqkwbAmCa-r-bvK0KdzEUigim2bNjILlMeN-awQKLhPc_Eb3ngTp99pDemZHFYTAIDIvt0pfZa2qisn37vB7K5xngLgoxR05WWuSmEQcP0YynZzMruJDb')">
+<div class="absolute inset-0 bg-gradient-to-t from-[#183034] to-transparent"></div>
+</div>
+<div class="p-6">
+<h3 class="text-white text-xl font-bold mb-1">Issue Configuration</h3>
+<p class="text-[#8fc3cc] text-sm">Fill in the technical parameters below. Our Cyber-Ops engine will clone the branch and begin diagnostic procedures immediately.</p>
+</div>
+</div>
+<!-- Actual Form Card -->
+<div class="bg-[#102023] border border-[#224349] rounded-xl shadow-2xl p-8">
+<form class="space-y-8">
+<!-- Repository URL -->
+<div class="space-y-3">
+<label class="flex items-center gap-2 text-sm font-semibold text-white">
+<span class="material-symbols-outlined text-primary text-sm">link</span>
+                                Repository URL
+                            </label>
+<div class="relative group">
+<input class="w-full bg-[#0f2023] border border-[#224349] rounded-lg px-4 py-3 text-white placeholder:text-[#306069] focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all font-mono text-sm" placeholder="https://github.com/org/repository-name.git" type="text"/>
+<div class="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 px-2 py-1 rounded bg-green-500/10 border border-green-500/20">
+<span class="material-symbols-outlined text-[14px] text-green-500">check_circle</span>
+<span class="text-[10px] text-green-500 font-bold uppercase tracking-tighter">Valid Repo</span>
+</div>
+</div>
+<p class="text-[#8fc3cc] text-xs">Ensure the DebugDuck SSH key or OAuth app has read/write access.</p>
+</div>
+<!-- Issue ID -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div class="space-y-3">
+<label class="flex items-center gap-2 text-sm font-semibold text-white">
+<span class="material-symbols-outlined text-primary text-sm">label</span>
+                                    Issue ID
+                                </label>
+<input class="w-full bg-[#0f2023] border border-[#224349] rounded-lg px-4 py-3 text-white placeholder:text-[#306069] focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all font-mono text-sm uppercase" placeholder="e.g. JIRA-402 or GH-15" type="text"/>
+<p class="text-[#8fc3cc] text-xs italic">Supports Jira keys and GitHub issue numbers.</p>
+</div>
+<div class="space-y-3">
+<label class="flex items-center gap-2 text-sm font-semibold text-white">
+<span class="material-symbols-outlined text-primary text-sm">account_tree</span>
+                                    Target Branch
+                                </label>
+<select class="w-full bg-[#0f2023] border border-[#224349] rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all text-sm appearance-none">
+<option>main</option>
+<option>develop</option>
+<option>staging</option>
+<option>hotfix/urgent-fixes</option>
+</select>
+</div>
+</div>
+<!-- Priority Selection -->
+<div class="space-y-4">
+<label class="flex items-center gap-2 text-sm font-semibold text-white">
+<span class="material-symbols-outlined text-primary text-sm">priority_high</span>
+                                Priority Level
+                            </label>
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+<label class="relative flex flex-col items-center justify-center p-4 bg-[#0f2023] border border-[#224349] rounded-lg cursor-pointer hover:border-primary/50 transition-all group">
+<input class="sr-only peer" name="priority" type="radio" value="low"/>
+<div class="peer-checked:bg-primary/10 peer-checked:border-primary absolute inset-0 rounded-lg border-transparent border-2"></div>
+<span class="text-xs font-bold text-[#8fc3cc] group-hover:text-white transition-colors uppercase tracking-widest relative z-10">Low</span>
+</label>
+<label class="relative flex flex-col items-center justify-center p-4 bg-[#0f2023] border border-[#224349] rounded-lg cursor-pointer hover:border-primary/50 transition-all group">
+<input checked="" class="sr-only peer" name="priority" type="radio" value="medium"/>
+<div class="peer-checked:bg-primary/10 peer-checked:border-primary absolute inset-0 rounded-lg border-transparent border-2"></div>
+<span class="text-xs font-bold text-[#8fc3cc] group-hover:text-white transition-colors uppercase tracking-widest relative z-10">Medium</span>
+</label>
+<label class="relative flex flex-col items-center justify-center p-4 bg-[#0f2023] border border-[#224349] rounded-lg cursor-pointer hover:border-primary/50 transition-all group">
+<input class="sr-only peer" name="priority" type="radio" value="high"/>
+<div class="peer-checked:bg-primary/10 peer-checked:border-primary absolute inset-0 rounded-lg border-transparent border-2"></div>
+<span class="text-xs font-bold text-[#8fc3cc] group-hover:text-white transition-colors uppercase tracking-widest relative z-10">High</span>
+</label>
+<label class="relative flex flex-col items-center justify-center p-4 bg-[#0f2023] border border-[#224349] rounded-lg cursor-pointer hover:border-primary/50 transition-all group">
+<input class="sr-only peer" name="priority" type="radio" value="critical"/>
+<div class="peer-checked:bg-primary/10 peer-checked:border-primary absolute inset-0 rounded-lg border-transparent border-2"></div>
+<span class="text-xs font-bold text-[#8fc3cc] group-hover:text-white transition-colors uppercase tracking-widest relative z-10 text-red-400">Critical</span>
+</label>
+</div>
+</div>
+<!-- Action Button -->
+<div class="pt-4 flex items-center justify-between gap-6 border-t border-[#224349] mt-8">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-yellow-500">info</span>
+<p class="text-[#8fc3cc] text-xs max-w-sm leading-relaxed">
+                                    Initiating will consume <span class="text-white font-bold">1 Credit</span>. Estimated resolution time: 4-12 minutes depending on complexity.
+                                </p>
+</div>
+<button class="bg-primary hover:bg-primary/90 text-white px-8 py-3.5 rounded-lg font-bold text-sm uppercase tracking-widest flex items-center gap-2 shadow-[0_0_20px_rgba(7,182,213,0.3)] transition-all active:scale-[0.98]" type="button">
+<span class="material-symbols-outlined">rocket_launch</span>
+                                Initiate Fix
+                            </button>
+</div>
+</form>
+</div>
+<!-- Footer Stats -->
+<div class="mt-8 grid grid-cols-3 gap-6">
+<div class="bg-[#183034]/50 p-4 rounded-lg border border-[#224349]/50 flex items-center gap-4">
+<div class="p-2 rounded bg-primary/10">
+<span class="material-symbols-outlined text-primary">speed</span>
+</div>
+<div>
+<p class="text-[10px] text-[#8fc3cc] uppercase font-bold tracking-tighter">Engine Speed</p>
+<p class="text-white font-mono font-bold">4.2 TFlops</p>
+</div>
+</div>
+<div class="bg-[#183034]/50 p-4 rounded-lg border border-[#224349]/50 flex items-center gap-4">
+<div class="p-2 rounded bg-primary/10">
+<span class="material-symbols-outlined text-primary">history</span>
+</div>
+<div>
+<p class="text-[10px] text-[#8fc3cc] uppercase font-bold tracking-tighter">Success Rate</p>
+<p class="text-white font-mono font-bold">94.8%</p>
+</div>
+</div>
+<div class="bg-[#183034]/50 p-4 rounded-lg border border-[#224349]/50 flex items-center gap-4">
+<div class="p-2 rounded bg-primary/10">
+<span class="material-symbols-outlined text-primary">database</span>
+</div>
+<div>
+<p class="text-[10px] text-[#8fc3cc] uppercase font-bold tracking-tighter">Patches Live</p>
+<p class="text-white font-mono font-bold">12,842</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+</body></html>

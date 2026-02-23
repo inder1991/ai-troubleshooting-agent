@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>DebugDuck | Unified Incident Command Center</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#07b6d5",
+                        "background-light": "#f5f8f8",
+                        "background-dark": "#0f172a", // Slate-900 derived
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"],
+                        "mono": ["JetBrains Mono", "monospace"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .pulse-red {
+            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+            animation: pulse-red 2s infinite;
+        }
+        @keyframes pulse-red {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+        .glow-cyan {
+            filter: drop-shadow(0 0 8px rgba(7, 182, 213, 0.4));
+        }
+        .topology-line {
+            stroke-dasharray: 8;
+            animation: dash 20s linear infinite;
+        }
+        @keyframes dash {
+            to { stroke-dashoffset: -1000; }
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 antialiased overflow-hidden h-screen flex flex-col">
+<!-- Header -->
+<header class="h-14 border-b border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md flex items-center justify-between px-6 shrink-0">
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-2 text-primary">
+<span class="material-symbols-outlined text-3xl font-bold">emergency_home</span>
+<h1 class="text-lg font-bold tracking-tight">DebugDuck <span class="text-slate-500 font-normal">| Unified Command</span></h1>
+</div>
+<div class="h-6 w-px bg-slate-800 mx-2"></div>
+<nav class="flex items-center gap-4 text-sm font-medium text-slate-500">
+<a class="hover:text-primary transition-colors" href="#">Incidents</a>
+<a class="hover:text-primary transition-colors" href="#">Metrics</a>
+<a class="hover:text-primary transition-colors" href="#">Traces</a>
+</nav>
+</div>
+<div class="hidden lg:flex items-center gap-6">
+<div class="flex items-center gap-2 text-[10px] font-bold tracking-widest uppercase">
+<span class="text-slate-500">Detection</span>
+<span class="text-slate-600">/</span>
+<span class="text-slate-500">Log Analysis</span>
+<span class="text-slate-600">/</span>
+<span class="text-primary animate-pulse">Context Enrichment</span>
+<span class="text-slate-600">/</span>
+<span class="text-slate-700">Mitigation</span>
+<span class="text-slate-600">/</span>
+<span class="text-slate-700">Resolution</span>
+</div>
+<div class="h-8 w-px bg-slate-800"></div>
+<div class="flex flex-col">
+<span class="text-[8px] uppercase font-bold text-primary leading-none">Est. Resolution</span>
+<span class="text-xs font-mono font-bold text-white leading-tight">92%</span>
+</div>
+</div><div class="flex items-center gap-6">
+<div class="flex items-center gap-3 bg-slate-800/50 p-1 rounded-lg border border-slate-700">
+<span class="text-xs font-bold px-2 text-slate-400 uppercase tracking-widest">Autopilot</span>
+<button class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none bg-primary">
+<span class="translate-x-5 pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"></span>
+</button>
+<span class="text-xs font-bold px-2 text-white uppercase tracking-widest">Assume Control</span>
+</div>
+<div class="flex items-center gap-3">
+<button class="p-2 text-slate-400 hover:text-white"><span class="material-symbols-outlined">notifications</span></button>
+<div class="h-8 w-8 rounded-full bg-slate-700 border border-slate-600 overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="User avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDdtZywXTzL5FYVEiwWiyb9S3kCf7sAdRvUr8VKDJy8n32x963EzQhSRHcNF55Dm1gOwGWu-2ZoyvE0BJuLkueTdNB_pim_jacAsFE8Tk1iTNY-2BeOsHs83t1jzzWcpxjDvkhmRmFjrgYcagDFncDmta00d8xq0T9GIIdsWxFkKFu-C24jRxdebxoaEu5tRVsaiuCxsoPWFaVC7XxXJBvIGTdVMHmSyE3PWZw-PHCDnbpv6gobzhgpECsOz7SmqCw8q5zgdhTJoEAy"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Content Grid -->
+<main class="flex-1 grid grid-cols-12 gap-0 overflow-hidden">
+<!-- THE INVESTIGATOR (Left, 25%) -->
+<section class="col-span-3 border-r border-slate-200 dark:border-slate-800 flex flex-col bg-slate-900/20">
+<!-- Patient Zero Banner -->
+<div class="p-4 bg-red-500/10 border-b border-red-500/20 sticky top-0 z-10 bg-slate-900" id="investigator-header">
+<div class="flex justify-between items-start mb-2">
+<span class="text-[10px] font-bold bg-red-500 text-white px-2 py-0.5 rounded uppercase tracking-tighter">Patient Zero</span>
+<div class="flex flex-col items-end">
+<span class="text-[10px] text-red-400 font-bold uppercase tracking-widest">Time to Impact</span>
+<span class="text-xl font-mono font-bold text-red-500 tabular-nums">00:33s</span>
+</div>
+</div>
+<h3 class="font-bold text-slate-100">inventory-service</h3>
+<p class="text-xs text-slate-400">Namespace: prod-us-east-1</p>
+</div><div class="px-4 py-2 bg-slate-800/50 border-b border-slate-700 flex justify-between items-center">
+<div class="flex items-center gap-2">
+<div class="flex gap-0.5">
+<div class="w-0.5 h-3 bg-primary animate-[pulse_1s_infinite]"></div>
+<div class="w-0.5 h-3 bg-primary/40"></div>
+<div class="w-0.5 h-3 bg-primary/20"></div>
+</div>
+<span class="text-[10px] font-bold text-slate-300 uppercase">Active Agent Pulse</span>
+</div>
+<div class="text-[10px] font-mono text-primary">Discovery: 78%</div>
+</div>
+<!-- Investigative Timeline -->
+<div class="flex-1 overflow-y-auto p-4 custom-scrollbar">
+<div class="relative space-y-6"><div class="absolute left-3 top-2 bottom-2 w-px bg-slate-700"></div>
+<!-- Step 1 -->
+<div class="relative pl-8 group">
+<div class="absolute left-0 top-1 w-6 h-6 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center">
+<span class="material-symbols-outlined text-sm text-slate-400">search</span>
+</div>
+<div class="flex items-center justify-between mb-1">
+<div class="text-xs text-slate-500">14:02:01</div>
+<span class="text-[9px] px-1 bg-slate-800 text-slate-400 border border-slate-700 rounded">LogAgent</span>
+</div>
+<p class="text-sm text-slate-200 font-medium">Connection Timeout Detected</p>
+<p class="text-xs text-slate-500 mt-1 italic italic">"Supervisor: Handing off to network_probe for egress validation..."</p>
+</div>
+<!-- Step 2 -->
+<div class="relative pl-8">
+<div class="absolute left-0 top-1 w-6 h-6 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center">
+<span class="material-symbols-outlined text-sm text-primary">auto_awesome</span>
+</div>
+<div class="flex items-center justify-between mb-1">
+<div class="text-xs text-primary font-bold">Inference • 14:02:15</div>
+<span class="text-[9px] px-1 bg-primary/20 text-primary border border-primary/40 rounded">InferenceAgent</span>
+</div>
+<p class="text-sm text-slate-100 font-medium bg-primary/5 p-2 rounded border border-primary/20">Redis Pool Exhaustion Suspected</p>
+<p class="text-xs text-slate-500 mt-1">"Supervisor: High confidence match in historical pattern [RED-04]. Dispatching metrics_agent..."</p>
+</div>
+<!-- Step 3 -->
+<div class="relative pl-8">
+<div class="absolute left-0 top-1 w-6 h-6 rounded-full bg-yellow-500/20 border border-yellow-500/40 flex items-center justify-center">
+<span class="material-symbols-outlined text-sm text-yellow-500 font-bold">rocket_launch</span>
+</div>
+<div class="text-xs text-yellow-500/70 font-bold mb-1">Deployment • 14:00:00</div>
+<p class="text-sm text-yellow-200/80 font-medium italic">v3.4.2-stable Deployed to Prod</p>
+</div></div>
+</div>
+<!-- Context Chat -->
+<div class="p-4 bg-slate-900 border-t border-slate-800">
+<div class="flex items-center gap-2 mb-3">
+<div class="flex gap-1">
+<div class="w-1 h-1 rounded-full bg-primary animate-bounce"></div>
+<div class="w-1 h-1 rounded-full bg-primary animate-bounce [animation-delay:-0.15s]"></div>
+<div class="w-1 h-1 rounded-full bg-primary animate-bounce [animation-delay:-0.3s]"></div>
+</div>
+<span class="text-[10px] uppercase font-bold text-primary tracking-widest">Agent is thinking...</span>
+</div>
+<div class="relative">
+<textarea class="w-full bg-slate-800 border-slate-700 rounded-lg text-xs font-mono text-slate-300 placeholder:text-slate-600 focus:ring-primary focus:border-primary resize-none min-h-[80px]" placeholder="Type /code or pin #evidence..."></textarea>
+<button class="p-1 hover:text-primary text-slate-500 transition-colors"><span class="material-symbols-outlined text-sm">push_pin</span></button><div class="absolute bottom-2 right-2 flex gap-2">
+<button class="p-1 hover:text-primary text-slate-500 transition-colors"><span class="material-symbols-outlined text-sm">terminal</span></button>
+<button class="p-1 hover:text-primary text-slate-500 transition-colors"><span class="material-symbols-outlined text-sm">database</span></button>
+<button class="bg-primary text-slate-900 p-1 rounded-md hover:bg-cyan-400 transition-colors"><span class="material-symbols-outlined text-sm">send</span></button>
+</div>
+</div>
+</div>
+</section>
+<!-- THE EVIDENCE (Middle, 45%) -->
+<section class="col-span-5 flex flex-col bg-slate-900 overflow-y-auto"><div class="p-4 border-b border-slate-800 bg-slate-900/50 flex justify-between items-center">
+<h2 class="text-xs font-bold uppercase tracking-[0.2em] text-slate-400 flex items-center gap-2">
+<span class="material-symbols-outlined text-sm text-primary">radar</span>
+        Evidence and Findings
+    </h2>
+<div class="flex gap-2">
+<span class="text-[10px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded border border-red-500/30 font-bold uppercase tracking-tighter">Priority: P1</span>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar bg-slate-900/20">
+<!-- Log Agent Card -->
+<div class="relative group border-l-2 border-red-500 bg-slate-800/40 p-4 rounded-r-lg">
+<div class="absolute -left-[11px] top-4 w-5 h-5 bg-red-500 text-slate-900 rounded-full flex items-center justify-center text-[10px] font-bold shadow-[0_0_10px_rgba(239,68,68,0.5)]">L</div>
+<div class="flex justify-between items-start mb-3">
+<div>
+<h3 class="text-sm font-bold text-slate-100">Latency Breach Detection</h3>
+<p class="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Target: inventory-service</p>
+</div>
+<div class="text-right">
+<div class="text-lg font-mono font-bold text-red-500">8.02s <span class="text-[10px] text-slate-600 tracking-normal">&gt; 8.00s</span></div>
+</div>
+</div>
+<div class="bg-slate-950 rounded border border-slate-800 p-2 font-mono text-[10px] space-y-1">
+<div class="text-slate-500 flex gap-3"><span>main.py:273</span> <span class="text-red-400">- resp = await redis.execute("GET", ...)</span></div>
+<div class="text-slate-700 italic border-t border-slate-800/50 mt-1 pt-1">Stack trace filtered for latency hotspots</div>
+</div>
+</div>
+<!-- Metrics Agent Card -->
+<div class="relative group border-l-2 border-primary bg-slate-800/40 p-4 rounded-r-lg">
+<div class="absolute -left-[11px] top-4 w-5 h-5 bg-primary text-slate-900 rounded-full flex items-center justify-center text-[10px] font-bold shadow-[0_0_10px_rgba(7,182,213,0.5)]">M</div>
+<div class="grid grid-cols-2 gap-4">
+<div>
+<p class="text-[10px] text-slate-500 uppercase font-bold mb-2">Redis Connection Pool</p>
+<div class="h-10 w-full">
+<svg class="w-full h-full" preserveaspectratio="none" viewbox="0 0 100 40">
+<path d="M0 35 L10 32 L20 38 L30 25 L40 15 L50 5 L60 2 L70 2 L80 2 L90 2 L100 2" fill="none" stroke="#07b6d5" stroke-width="2"></path>
+<path d="M0 35 L10 32 L20 38 L30 25 L40 15 L50 5 L60 2 L70 2 L80 2 L90 2 L100 2 L100 40 L0 40 Z" fill="url(#grad-blue)" opacity="0.1"></path>
+<defs>
+<lineargradient id="grad-blue" x1="0%" x2="0%" y1="0%" y2="100%">
+<stop offset="0%" style="stop-color:#07b6d5;stop-opacity:1"></stop>
+<stop offset="100%" style="stop-color:#07b6d5;stop-opacity:0"></stop>
+</lineargradient>
+</defs>
+</svg>
+</div>
+<div class="flex justify-between mt-1 font-mono text-[10px] text-primary">
+<span>50/50 Conn</span>
+<span>Peak Load</span>
+</div>
+</div>
+<div>
+<p class="text-[10px] text-slate-500 uppercase font-bold mb-2">Saturation Gauge</p>
+<div class="flex items-center gap-3">
+<div class="flex-1 h-2 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
+<div class="h-full bg-red-500 w-full shadow-[0_0_8px_rgba(239,68,68,0.5)]"></div>
+</div>
+<span class="font-mono font-bold text-red-500">100%</span>
+</div>
+<p class="text-[9px] text-slate-600 mt-2">Zero free connections available</p>
+</div>
+</div>
+</div>
+<!-- K8s Agent Card -->
+<div class="relative group border-l-2 border-orange-500 bg-slate-800/40 p-4 rounded-r-lg">
+<div class="absolute -left-[11px] top-4 w-5 h-5 bg-orange-500 text-slate-900 rounded-full flex items-center justify-center text-[10px] font-bold shadow-[0_0_10px_rgba(251,146,60,0.5)]">K</div>
+<div class="flex justify-between items-center mb-4">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-sm text-orange-500">history</span>
+<span class="text-xs font-bold text-slate-200">Deployment Marker</span>
+</div>
+<span class="text-[10px] font-mono text-orange-400">14:00:00 UTC</span>
+</div>
+<div class="flex items-center gap-4">
+<div class="px-3 py-2 bg-slate-950 rounded border border-slate-800 flex-1">
+<div class="text-[10px] text-slate-500 uppercase font-bold mb-1">Version</div>
+<div class="text-sm font-mono text-orange-200">v3.4.2-stable</div>
+</div>
+<div class="px-3 py-2 bg-red-500/10 rounded border border-red-500/30 flex-1">
+<div class="text-[10px] text-red-400 uppercase font-bold mb-1">Status</div>
+<div class="text-sm font-mono font-bold text-red-500">CrashLoopBackOff</div>
+</div>
+</div>
+</div>
+<!-- Code Agent Card -->
+<div class="relative group border-l-2 border-emerald-500 bg-slate-800/40 p-4 rounded-r-lg">
+<div class="absolute -left-[11px] top-4 w-5 h-5 bg-emerald-500 text-slate-900 rounded-full flex items-center justify-center text-[10px] font-bold shadow-[0_0_10px_rgba(16,185,129,0.5)]">C</div>
+<div class="flex justify-between items-center mb-3">
+<div class="flex items-center gap-2">
+<span class="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/30 font-bold uppercase tracking-widest">Proposed Fix</span>
+<span class="text-[10px] text-slate-500">Confidence: 94%</span>
+</div>
+<button class="text-[10px] bg-primary text-slate-900 px-3 py-1 rounded font-bold hover:bg-cyan-400 transition-colors shadow-lg shadow-primary/20">
+                Authorize Execution
+            </button>
+</div>
+<div class="grid grid-cols-2 bg-slate-950 rounded-lg overflow-hidden border border-slate-800 text-[10px] font-mono">
+<div class="p-3 border-r border-slate-800 space-y-1">
+<div class="text-slate-600"># Current</div>
+<div class="text-red-400 line-through">- resp = await redis.execute("GET", item_id)</div>
+</div>
+<div class="p-3 bg-emerald-500/5 space-y-1">
+<div class="text-emerald-500/70"># Proposed</div>
+<div class="text-emerald-400 font-bold">+ resp = await pool.get(item_id)</div>
+</div>
+</div>
+</div>
+</div></section>
+<!-- THE NAVIGATOR (Right, 30%) -->
+<section class="col-span-4 border-l border-slate-200 dark:border-slate-800 flex flex-col bg-slate-900/40 overflow-y-auto">
+<!-- Glow-Map Topology -->
+<div class="p-4 border-b border-slate-800">
+<div class="flex justify-between items-center mb-4">
+<h3 class="text-xs font-bold uppercase tracking-widest text-slate-500">Service Topology</h3>
+<div class="flex gap-2">
+<span class="flex items-center gap-1 text-[10px] text-red-500"><span class="w-2 h-2 rounded-full bg-red-500"></span> Critical</span>
+<span class="flex items-center gap-1 text-[10px] text-orange-500"><span class="w-2 h-2 rounded-full bg-orange-500"></span> Cascading</span>
+</div>
+</div>
+<div class="h-48 bg-slate-950/50 rounded-lg border border-slate-800 relative flex items-center justify-center overflow-hidden">
+<svg class="w-full h-full" viewbox="0 0 400 200">
+<defs>
+<filter id="glow">
+<fegaussianblur result="coloredBlur" stddeviation="2.5"></fegaussianblur>
+<femerge>
+<femergenode in="coloredBlur"></femergenode>
+<femergenode in="SourceGraphic"></femergenode>
+</femerge>
+</filter>
+</defs>
+<!-- Connections -->
+<path d="M100 100 L200 50" stroke="#fb923c" stroke-width="2"></path>
+<path class="topology-line" d="M100 100 L200 150" filter="url(#glow)" stroke="#ef4444" stroke-width="6"></path>
+<path class="topology-line" d="M200 150 L300 150" filter="url(#glow)" stroke="#ef4444" stroke-width="6"></path>
+<!-- Nodes -->
+<circle cx="100" cy="100" fill="#64748b" r="10"></circle> <!-- Gateway -->
+<circle cx="200" cy="50" fill="#fb923c" r="10"></circle> <!-- Checkout -->
+<circle cx="200" cy="150" fill="#ef4444" r="12"></circle> <!-- Inventory -->
+<circle cx="300" cy="150" fill="#ef4444" r="10"></circle> <!-- Redis -->
+<!-- Labels -->
+<text fill="#94a3b8" font-family="sans-serif" font-size="10" x="80" y="85">Gateway</text>
+<text fill="#fb923c" font-family="sans-serif" font-size="10" x="180" y="30">checkout-svc</text>
+<text fill="#ef4444" font-family="sans-serif" font-size="10" font-weight="bold" x="180" y="180">inventory-svc</text>
+<text fill="#ef4444" font-family="sans-serif" font-size="10" x="290" y="135">Redis</text>
+<!-- Glowing Edge Label -->
+<rect fill="#ef4444" height="15" rx="4" width="80" x="210" y="130"></rect>
+<text fill="white" font-family="sans-serif" font-size="8" font-weight="bold" x="215" y="141">Redis Pool Exhausted</text>
+</svg>
+</div>
+</div>
+<!-- Metrics Validation Dock -->
+<div class="p-4 border-b border-slate-800">
+<h3 class="text-xs font-bold uppercase tracking-widest text-slate-500 mb-4">Metrics Validation Dock</h3>
+<div class="space-y-3">
+<div class="flex items-center justify-between p-3 bg-slate-800/30 border border-slate-800 rounded-lg">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-green-500 text-sm">check_circle</span>
+<div>
+<p class="text-xs font-medium text-slate-200">CPU Saturation Check</p>
+<p class="text-[10px] text-slate-500">All nodes &lt; 70%</p>
+</div>
+</div>
+<span class="text-[10px] font-mono text-green-500 bg-green-500/10 px-1.5 py-0.5 rounded">42% Avg</span><div class="flex items-center gap-2">
+<div class="w-16 h-4 bg-slate-900/50 rounded overflow-hidden">
+<svg class="w-full h-full" preserveaspectratio="none" viewbox="0 0 60 20">
+<path d="M0 15 L10 12 L20 18 L30 10 L40 14 L50 16 L60 8" fill="none" stroke="#22c55e" stroke-width="1"></path>
+</svg>
+</div>
+<button class="text-[10px] bg-slate-700 px-2 py-1 rounded">Run</button>
+</div>
+</div>
+<div class="flex items-center justify-between p-3 bg-slate-800/30 border border-slate-800 rounded-lg">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-red-500 text-sm">warning</span>
+<div>
+<p class="text-xs font-medium text-slate-200">P99 DB Latency</p>
+<p class="text-[10px] text-red-400">Trending Up (+240ms)</p>
+</div>
+</div>
+<div class="flex flex-col items-end mr-2">
+<span class="text-[10px] font-mono text-red-400">50/50 Conn</span>
+<span class="text-[8px] text-slate-600 uppercase font-bold">Pool Exhausted</span>
+</div><div class="flex items-center gap-2">
+<div class="w-16 h-4 bg-slate-900/50 rounded overflow-hidden">
+<svg class="w-full h-full" preserveaspectratio="none" viewbox="0 0 60 20">
+<path d="M0 18 L10 17 L20 15 L30 12 L40 8 L50 4 L60 2" fill="none" stroke="#ef4444" stroke-width="1"></path>
+</svg>
+</div>
+<button class="text-[10px] bg-primary text-slate-900 px-2 py-1 rounded font-bold">Run</button>
+<span class="text-[9px] text-primary animate-pulse italic">Verifying...</span></div>
+</div>
+</div>
+</div>
+<!-- Infrastructure Health -->
+<div class="p-4 flex-1">
+<h3 class="text-xs font-bold uppercase tracking-widest text-slate-500 mb-4">Infrastructure Health</h3>
+<div class="grid grid-cols-2 gap-4">
+<div class="bg-slate-800/20 p-3 rounded-lg border border-slate-800">
+<p class="text-[10px] text-slate-500 uppercase font-bold mb-2">K8s Pod Status</p>
+<div class="flex items-center gap-4">
+<div class="flex flex-col">
+<span class="text-xl font-mono font-bold text-slate-100">12/16</span>
+<span class="text-[10px] text-slate-500">Pods Ready</span>
+</div>
+<div class="flex-1 h-2 bg-slate-800 rounded-full overflow-hidden">
+<div class="h-full bg-primary w-[75%]"></div>
+</div>
+</div>
+</div>
+<div class="bg-slate-800/20 p-3 rounded-lg border border-slate-800">
+<p class="text-[10px] text-slate-500 uppercase font-bold mb-2">Node Memory</p>
+<div class="flex items-center gap-4">
+<div class="flex flex-col">
+<span class="text-xl font-mono font-bold text-slate-100">84%</span>
+<span class="text-[10px] text-slate-500">Average Use</span>
+</div>
+<div class="flex-1 h-2 bg-slate-800 rounded-full overflow-hidden">
+<div class="h-full bg-orange-500 w-[84%]"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Active Instances List -->
+<div class="mt-6">
+<h3 class="text-xs font-bold uppercase tracking-widest text-slate-500 mb-4">Agent Status Matrix</h3>
+<div class="space-y-2">
+<div class="flex items-center justify-between text-[11px] p-2 bg-slate-800/30 border border-slate-700 rounded">
+<div class="flex items-center gap-2">
+<span class="text-green-500 text-xs">✅</span>
+<span class="text-slate-200">Log Analyzer</span>
+</div>
+<span class="text-[10px] text-slate-500">Complete (67,003 tokens)</span>
+</div>
+<div class="flex items-center justify-between text-[11px] p-2 bg-primary/10 border border-primary/20 rounded">
+<div class="flex items-center gap-2">
+<span class="text-primary text-xs animate-spin">🔄</span>
+<span class="text-slate-200">Metric Scanner</span>
+</div>
+<span class="text-[10px] text-primary">Active (Fetching...)</span>
+</div>
+<div class="flex items-center justify-between text-[11px] p-2 bg-slate-800/30 border border-slate-700 rounded opacity-60">
+<div class="flex items-center gap-2">
+<span class="text-slate-500 text-xs">⏳</span>
+<span class="text-slate-200">K8s Probe</span>
+</div>
+<span class="text-[10px] text-slate-500">Pending</span>
+</div>
+<div class="flex items-center justify-between text-[11px] p-2 bg-red-500/10 border border-red-500/30 rounded">
+<div class="flex items-center gap-2">
+<span class="text-red-500 text-xs text-bold">⚠️</span>
+<span class="text-slate-200">Code Navigator</span>
+</div>
+<span class="text-[10px] text-red-400 font-bold uppercase tracking-tighter">Blocked</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Global Alert Bar (Footer) -->
+<footer class="h-8 bg-slate-950 border-t border-slate-800 px-4 flex items-center justify-between text-[10px] font-mono text-slate-500 tracking-wider">
+<div class="flex items-center gap-4">
+<span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-green-500"></span> System Ready</span>
+<span>API Latency: 42ms</span>
+<span>Uptime: 99.998%</span>
+</div>
+<div class="flex items-center gap-4">
+<span class="text-primary">Agent UUID: db-duck-alpha-7</span>
+<span class="text-slate-700">|</span>
+<span>14:04:12 UTC</span>
+</div>
+</footer>
+</body></html>

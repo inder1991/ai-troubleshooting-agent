@@ -1,0 +1,97 @@
+{
+    "primary_pattern": {
+        "pattern_id": "p1",
+        "exception_type": "ConnectError",
+        "error_message": "All connection attempts failed",
+        "frequency": 47,
+        "severity": "critical",
+        "affected_components": ["checkout-service", "inventory-service"],
+        "confidence_score": 95,
+        "priority_rank": 1,
+        "priority_reasoning": "Critical severity with highest frequency, indicating complete connection failure to inventory-service.",
+        "causal_role": "cascading_failure"
+    },
+    "secondary_patterns": [
+        {
+            "pattern_id": "p2",
+            "exception_type": "InventoryServiceError",
+            "error_message": "Inventory service returned error after 7.97s",
+            "frequency": 28,
+            "severity": "medium",
+            "affected_components": ["checkout-service", "inventory-service"],
+            "confidence_score": 90,
+            "priority_rank": 2,
+            "priority_reasoning": "HTTP 503 errors from inventory-service indicating service unavailability",
+            "causal_role": "cascading_failure"
+        },
+        {
+            "pattern_id": "p3",
+            "exception_type": "InventoryServiceTimeout",
+            "error_message": "Inventory service timeout after 8.01s",
+            "frequency": 10,
+            "severity": "medium",
+            "affected_components": ["checkout-service", "inventory-service"],
+            "confidence_score": 88,
+            "priority_rank": 3,
+            "priority_reasoning": "Timeouts occurring before connection failures, indicating progressive degradation of inventory-service",
+            "causal_role": "root_cause"
+        },
+        {
+            "pattern_id": "p4",
+            "exception_type": "PaymentServiceError",
+            "error_message": "Payment service returned error after 0.25s",
+            "frequency": 1,
+            "severity": "medium",
+            "affected_components": ["checkout-service", "payment-service"],
+            "confidence_score": 60,
+            "priority_rank": 4,
+            "priority_reasoning": "Single payment decline, likely unrelated to the main incident",
+            "causal_role": "correlated_anomaly"
+        }
+    ],
+    "overall_confidence": 92,
+    "root_cause_hypothesis": "The inventory-service is experiencing Redis connection pool exhaustion (active=50, max=50) causing stock check operations to timeout. This Redis resource starvation cascaded into HTTP 503 responses, then complete connection failures.",
+    "flow_analysis": "Timeline: 1) InventoryServiceTimeout at 16:19:47 (Redis pool exhaustion), 2) InventoryServiceError at 16:20:05 (HTTP 503), 3) ConnectError at 16:20:07 (complete failure).",
+    "patient_zero": {
+        "service": "inventory-service",
+        "evidence": "Redis connection pool exhaustion (active=50, max=50) in inventory-service causing stock check failures.",
+        "first_error_time": "2026-02-21T16:19:47.818Z"
+    },
+    "inferred_dependencies": [
+        {"source": "checkout-service", "target": "inventory-service", "evidence": "checkout-service calling inventory-service at /reserve endpoint"},
+        {"source": "checkout-service", "target": "payment-service", "evidence": "checkout-service calling payment-service at /process endpoint"},
+        {"source": "inventory-service", "target": "redis", "evidence": "Redis connection pool exhaustion in inventory-service"}
+    ],
+    "reasoning_chain": [
+        {"step": 1, "observation": "InventoryServiceTimeout started first at 16:19:47", "inference": "Earliest symptom, inventory-service degradation is the trigger"},
+        {"step": 2, "observation": "Blast radius shows 67 RedisTimeout and 33 TimeoutError in inventory-service", "inference": "Redis connection pool exhaustion is the underlying issue"},
+        {"step": 3, "observation": "ConnectError appears last with highest frequency", "inference": "Final stage of cascade as inventory-service becomes unresponsive"}
+    ],
+    "suggested_promql_queries": [
+        {
+            "metric": "redis_pool_active_connections",
+            "query": "redis_pool_active_connections{namespace=\"checkout\", service=\"inventory-service\"}",
+            "rationale": "Validates Redis connection pool exhaustion hypothesis — compare active vs max"
+        },
+        {
+            "metric": "redis_pool_max_connections",
+            "query": "redis_pool_active_connections{namespace=\"checkout\"} / redis_pool_max_connections{namespace=\"checkout\"}",
+            "rationale": "Redis pool saturation ratio (1.0 = fully exhausted)"
+        },
+        {
+            "metric": "container_memory_working_set_bytes",
+            "query": "container_memory_working_set_bytes{namespace=\"checkout\", pod=~\"inventory-service.*\", container=\"inventory-service\"}",
+            "rationale": "Memory usage of inventory-service pods during incident"
+        }
+    ],
+    "breadcrumbs": [],
+    "negative_findings": [],
+    "tokens_used": {"agent_name": "log_agent", "input_tokens": 0, "output_tokens": 0, "total_tokens": 0},
+    "raw_logs_count": 85,
+    "patterns_found": 4,
+    "evidence_pins": [],
+    "service_flow": [],
+    "flow_source": "elasticsearch",
+    "flow_confidence": 0,
+    "detected_namespace": "checkout"
+}

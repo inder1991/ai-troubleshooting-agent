@@ -9,16 +9,12 @@ from src.utils.logger import get_logger
 logger = get_logger(__name__)
 
 NOISE_FILE_PATTERN = _re.compile(
-    r'(^docs?/|README|\.md$|__pycache__|\.lock$|'
+    r'(^docs?/|README|__pycache__|\.pyc$|'
     r'\.eslintrc|\.prettierrc|\.editorconfig|\.babelrc|'
-    r'\.github/|\.circleci/|\.gitlab-ci|Jenkinsfile|'
-    r'test_\w+\.py$|_test\.go$|\.test\.[tj]sx?$|\.pyc$|'
-    r'Dockerfile|docker-compose|\.dockerignore$|\.gitignore$|'
-    r'helm/|charts?/|Chart\.yaml$|values\.yaml$|_helpers\.tpl$|templates/NOTES\.txt|'
-    r'Makefile$|Procfile$|Vagrantfile$|'
-    r'\.env\b|LICENSE|CHANGELOG|CONTRIBUTING|'
-    r'requirements\.txt$|setup\.cfg$|tox\.ini$|\.flake8$|\.isort\.cfg$|'
-    r'\.pre-commit|\.coveragerc|\.pylintrc|mypy\.ini$|'
+    r'test_\w+\.py$|_test\.go$|\.test\.[tj]sx?$|'
+    r'\.gitignore$|\.dockerignore$|\.lock$|'
+    r'LICENSE|CHANGELOG|CONTRIBUTING|'
+    r'\.flake8$|\.isort\.cfg$|\.pre-commit|\.coveragerc|\.pylintrc|mypy\.ini$|'
     r'tsconfig.*\.json$|jest\.config|webpack\.config|vite\.config)',
     _re.IGNORECASE,
 )

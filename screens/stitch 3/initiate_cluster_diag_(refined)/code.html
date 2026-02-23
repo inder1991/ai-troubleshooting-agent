@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Cluster Diagnostics Initiation | Cyber-Ops Console</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#07b6d5",
+                        "background-light": "#f5f8f8",
+                        "background-dark": "#0f2023",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .sidebar-active { background-color: rgba(7, 182, 213, 0.15); border-right: 3px solid #07b6d5; }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #07b6d5;
+            cursor: pointer;
+            border-radius: 50%;
+            border: 2px solid #0f2023;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen flex overflow-hidden">
+<!-- Sidebar Navigation -->
+<aside class="w-72 flex-shrink-0 bg-[#0a181a] border-r border-[#1e3a40] flex flex-col h-screen">
+<div class="p-6 flex items-center gap-3">
+<div class="size-10 rounded-lg bg-primary flex items-center justify-center text-[#0f2023]">
+<span class="material-symbols-outlined font-bold">query_stats</span>
+</div>
+<div>
+<h1 class="text-white text-base font-bold leading-tight">Cyber-Ops</h1>
+<p class="text-primary/70 text-xs font-medium uppercase tracking-wider">Node-7 Console</p>
+</div>
+</div>
+<nav class="flex-1 px-4 space-y-2 mt-4">
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 hover:bg-white/5 transition-colors" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="text-sm font-medium">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 hover:bg-white/5 transition-colors" href="#">
+<span class="material-symbols-outlined">hub</span>
+<span class="text-sm font-medium">Clusters</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-white sidebar-active" href="#">
+<span class="material-symbols-outlined text-primary">analytics</span>
+<span class="text-sm font-semibold">Diagnostics</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 hover:bg-white/5 transition-colors" href="#">
+<span class="material-symbols-outlined">terminal</span>
+<span class="text-sm font-medium">Live Logs</span>
+</a>
+<div class="pt-4 pb-2 px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">System</div>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 hover:bg-white/5 transition-colors" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-sm font-medium">Settings</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 hover:bg-white/5 transition-colors" href="#">
+<span class="material-symbols-outlined">security</span>
+<span class="text-sm font-medium">Vault</span>
+</a>
+</nav>
+<div class="p-4 border-t border-[#1e3a40] bg-[#081315]">
+<div class="flex items-center gap-3 p-2">
+<div class="size-8 rounded-full bg-slate-700 flex-shrink-0 overflow-hidden border border-primary/30">
+<img alt="User Avatar" data-alt="Cybersecurity analyst user profile photo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBo-UPtzW_i6YJQDa37yqT9b94j8EbLVJj5FQ7UHxCze6nWpp4OC1km-jU1QJJj9fr6Lhkq3fAo6D2LCaeY_5XOMH5U7F5cxp9gfYTybEQm1nq6TCvd1ZWPeaYvsHGEFXkRamXjvI75Gn4m4ezJdt0pJuhnK-DGcg9fPU50DsBfKBQXJVIYZKsTFLCHI-hlTaP11jGrVdkUBIkSXq3tbGe8K5KOa_-YWV-ZAFK-Ssa93qp0oWBw6Ohao33r0Sk19mV2BcoOtOYg-TxI"/>
+</div>
+<div class="overflow-hidden">
+<p class="text-xs font-bold text-white truncate">Admin_Root</p>
+<p class="text-[10px] text-primary truncate">Security Level 4</p>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col overflow-y-auto bg-background-light dark:bg-background-dark">
+<!-- Breadcrumbs & Header -->
+<header class="px-8 py-6 border-b border-slate-200 dark:border-[#1e3a40]">
+<nav class="flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-primary/60 mb-4">
+<a class="hover:text-primary transition-colors" href="#">Clusters</a>
+<span class="material-symbols-outlined text-[14px]">chevron_right</span>
+<span class="text-slate-900 dark:text-white">Diagnostic Setup</span>
+</nav>
+<div class="flex justify-between items-end">
+<div class="max-w-2xl">
+<h2 class="text-3xl font-black text-slate-900 dark:text-white tracking-tight leading-none mb-3">Cluster Diagnostics Initiation</h2>
+<p class="text-slate-600 dark:text-slate-400 text-sm">Configure specialized parameters to begin deep-packet inspection and multi-node health analysis. Ensure your credentials have appropriate RBAC permissions.</p>
+</div>
+<div class="flex gap-3">
+<button class="px-4 py-2 text-xs font-bold text-slate-400 border border-slate-300 dark:border-[#306069] rounded-lg hover:bg-white/5 transition-all">
+                        View Documentation
+                    </button>
+</div>
+</div>
+</header>
+<!-- Form Content -->
+<div class="p-8 max-w-5xl mx-auto w-full">
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+<!-- Left Column: Primary Config -->
+<div class="lg:col-span-2 space-y-6">
+<!-- Endpoint Config Card -->
+<section class="bg-white dark:bg-[#152a2e] border border-slate-200 dark:border-[#224349] rounded-xl overflow-hidden shadow-sm">
+<div class="px-6 py-4 border-b border-slate-200 dark:border-[#224349] bg-slate-50/50 dark:bg-[#1a353a]">
+<h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-sm">dns</span>
+                                Endpoint Configuration
+                            </h3>
+</div>
+<div class="p-6 space-y-6">
+<div>
+<label class="block text-xs font-bold text-slate-500 dark:text-primary/70 uppercase tracking-widest mb-2">Cluster API URL</label>
+<div class="relative">
+<input class="w-full bg-slate-50 dark:bg-[#0f2023] border border-slate-300 dark:border-[#306069] rounded-lg py-3 px-4 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 focus:ring-2 focus:ring-primary/40 focus:border-primary outline-none transition-all" placeholder="https://api.cluster.domain:6443" type="text"/>
+<div class="absolute right-3 top-1/2 -translate-y-1/2 flex gap-2">
+<span class="material-symbols-outlined text-green-500 text-[18px]">check_circle</span>
+</div>
+</div>
+</div>
+<div class="space-y-4">
+<label class="block text-xs font-bold text-slate-500 dark:text-primary/70 uppercase tracking-widest">Authentication Method</label>
+<div class="flex gap-1 p-1 bg-slate-100 dark:bg-[#0f2023] rounded-lg w-fit">
+<button class="px-4 py-1.5 text-xs font-bold rounded-md bg-white dark:bg-[#224349] text-slate-900 dark:text-white shadow-sm transition-all">Auth Token</button>
+<button class="px-4 py-1.5 text-xs font-bold rounded-md text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-all">Kubeconfig File</button>
+</div>
+<div class="relative">
+<textarea class="w-full bg-slate-50 dark:bg-[#0f2023] border border-slate-300 dark:border-[#306069] rounded-lg py-3 px-4 text-sm font-mono text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 focus:ring-2 focus:ring-primary/40 focus:border-primary outline-none transition-all" placeholder="eyJhbGciOiJSUzI1NiIsImtpZCI6InN..." rows="3"></textarea>
+<p class="mt-2 text-[11px] text-slate-500 italic">Token must have 'cluster-admin' or 'diagnostic-reader' cluster role.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Scope Configuration -->
+<section class="bg-white dark:bg-[#152a2e] border border-slate-200 dark:border-[#224349] rounded-xl overflow-hidden shadow-sm">
+<div class="px-6 py-4 border-b border-slate-200 dark:border-[#224349] bg-slate-50/50 dark:bg-[#1a353a]">
+<h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-sm">layers</span>
+                                Inspection Scope
+                            </h3>
+</div>
+<div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+<div>
+<label class="block text-xs font-bold text-slate-500 dark:text-primary/70 uppercase tracking-widest mb-2">Target Namespace</label>
+<select class="w-full bg-slate-50 dark:bg-[#0f2023] border border-slate-300 dark:border-[#306069] rounded-lg py-3 px-4 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/40 focus:border-primary outline-none transition-all appearance-none">
+<option>all-namespaces</option>
+<option>default</option>
+<option>kube-system</option>
+<option>production-main</option>
+<option>staging-v2</option>
+</select>
+</div>
+<div>
+<label class="block text-xs font-bold text-slate-500 dark:text-primary/70 uppercase tracking-widest mb-2">Resource Type</label>
+<select class="w-full bg-slate-50 dark:bg-[#0f2023] border border-slate-300 dark:border-[#306069] rounded-lg py-3 px-4 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/40 focus:border-primary outline-none transition-all appearance-none">
+<option>All Resources</option>
+<option>Pods &amp; Deployments</option>
+<option>Nodes Only</option>
+<option>Network Policies</option>
+</select>
+</div>
+</div>
+</section>
+</div>
+<!-- Right Column: Parameters & Summary -->
+<div class="space-y-6">
+<!-- Probe Sensitivity Card -->
+<section class="bg-white dark:bg-[#152a2e] border border-slate-200 dark:border-[#224349] rounded-xl overflow-hidden shadow-sm">
+<div class="px-6 py-4 border-b border-slate-200 dark:border-[#224349] bg-slate-50/50 dark:bg-[#1a353a]">
+<h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-sm">speed</span>
+                                Probe Parameters
+                            </h3>
+</div>
+<div class="p-6 space-y-8">
+<div>
+<div class="flex justify-between items-center mb-4">
+<label class="text-xs font-bold text-slate-500 dark:text-primary/70 uppercase tracking-widest">Probe Sensitivity</label>
+<span class="px-2 py-0.5 rounded text-[10px] font-black bg-red-500/10 text-red-500 border border-red-500/20">AGGRESSIVE</span>
+</div>
+<input class="w-full h-1.5 bg-slate-200 dark:bg-[#0f2023] rounded-lg appearance-none cursor-pointer accent-primary" max="4" min="1" step="1" type="range" value="4"/>
+<div class="flex justify-between mt-2 px-1">
+<span class="text-[9px] font-bold text-slate-400 uppercase">Low</span>
+<span class="text-[9px] font-bold text-slate-400 uppercase">Med</span>
+<span class="text-[9px] font-bold text-slate-400 uppercase">High</span>
+<span class="text-[9px] font-bold text-primary uppercase">Aggressive</span>
+</div>
+</div>
+<div class="p-4 bg-red-500/5 border border-red-500/10 rounded-lg">
+<h4 class="text-xs font-bold text-red-500 flex items-center gap-2 mb-1">
+<span class="material-symbols-outlined text-sm">warning</span>
+                                    High Resource Impact
+                                </h4>
+<p class="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                                    'Aggressive' mode initiates deep-packet inspection on all nodes simultaneously. This may temporarily increase CPU latency by up to 15%.
+                                </p>
+</div>
+<div class="space-y-3 pt-4 border-t border-slate-200 dark:border-[#224349]">
+<label class="flex items-center gap-3 cursor-pointer group">
+<div class="relative flex items-center">
+<input checked="" class="peer sr-only" type="checkbox"/>
+<div class="h-5 w-5 border-2 border-slate-300 dark:border-[#306069] rounded peer-checked:bg-primary peer-checked:border-primary transition-all"></div>
+<span class="material-symbols-outlined absolute text-white text-[16px] left-0.5 opacity-0 peer-checked:opacity-100 transition-opacity">check</span>
+</div>
+<span class="text-xs font-medium text-slate-700 dark:text-slate-300 group-hover:text-primary transition-colors">Capture encrypted payloads</span>
+</label>
+<label class="flex items-center gap-3 cursor-pointer group">
+<div class="relative flex items-center">
+<input class="peer sr-only" type="checkbox"/>
+<div class="h-5 w-5 border-2 border-slate-300 dark:border-[#306069] rounded peer-checked:bg-primary peer-checked:border-primary transition-all"></div>
+<span class="material-symbols-outlined absolute text-white text-[16px] left-0.5 opacity-0 peer-checked:opacity-100 transition-opacity">check</span>
+</div>
+<span class="text-xs font-medium text-slate-700 dark:text-slate-300 group-hover:text-primary transition-colors">Auto-remediate minor leaks</span>
+</label>
+</div>
+</div>
+</section>
+<!-- Action Footer -->
+<div class="space-y-3">
+<button class="w-full bg-primary hover:bg-primary/90 text-[#0f2023] font-bold py-4 rounded-xl shadow-lg shadow-primary/20 flex items-center justify-center gap-2 transition-all transform hover:scale-[1.01] active:scale-[0.99]">
+<span class="material-symbols-outlined">rocket_launch</span>
+                            Initiate Diagnostics
+                        </button>
+<button class="w-full bg-transparent border border-slate-300 dark:border-[#306069] text-slate-600 dark:text-slate-400 font-bold py-3 rounded-xl hover:bg-white/5 transition-all">
+                            Clear Configuration
+                        </button>
+</div>
+</div>
+</div>
+<!-- Footer Meta -->
+<footer class="mt-12 pt-8 border-t border-slate-200 dark:border-[#1e3a40] flex flex-wrap justify-between gap-6 opacity-60">
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-2">
+<div class="size-2 rounded-full bg-green-500 animate-pulse"></div>
+<span class="text-[10px] font-bold uppercase tracking-widest">Node Healthy</span>
+</div>
+<div class="flex items-center gap-2">
+<div class="size-2 rounded-full bg-primary"></div>
+<span class="text-[10px] font-bold uppercase tracking-widest">VPN Secured</span>
+</div>
+</div>
+<div class="text-[10px] font-medium text-slate-500">
+                    System ID: DD-NODE-7-PROD-ALPHA | Kernel: v4.19.2-cyber
+                </div>
+</footer>
+</div>
+</main>
+</body></html>

@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>DebugDuck - Session Manager</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#07b6d5",
+                        "background-light": "#f5f8f8",
+                        "background-dark": "#0f2023",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .active-glow {
+            box-shadow: 0 0 10px rgba(7, 182, 213, 0.4);
+        }
+        .sidebar-item-active {
+            background-color: rgba(7, 182, 213, 0.1);
+            border-right: 3px solid #07b6d5;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 antialiased overflow-hidden h-screen flex">
+<!-- Sidebar -->
+<aside class="w-64 border-r border-slate-200 dark:border-primary/10 bg-white dark:bg-[#0f2023] flex flex-col h-full shrink-0">
+<div class="p-6 flex items-center gap-3">
+<div class="size-10 rounded-lg bg-primary flex items-center justify-center text-background-dark">
+<span class="material-symbols-outlined font-bold">bug_report</span>
+</div>
+<div>
+<h1 class="text-lg font-bold tracking-tight text-slate-900 dark:text-white leading-none">DebugDuck</h1>
+<span class="text-[10px] uppercase tracking-widest text-primary font-bold">Admin Console</span>
+</div>
+</div>
+<nav class="flex-1 px-3 space-y-1 mt-4">
+<a class="sidebar-item-active flex items-center gap-3 px-3 py-2.5 rounded-lg text-primary transition-all" href="#">
+<span class="material-symbols-outlined">analytics</span>
+<span class="text-sm font-semibold">Sessions</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-primary/5 hover:text-primary transition-all" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="text-sm font-semibold">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-primary/5 hover:text-primary transition-all" href="#">
+<span class="material-symbols-outlined">smart_toy</span>
+<span class="text-sm font-semibold">Agents</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-primary/5 hover:text-primary transition-all" href="#">
+<span class="material-symbols-outlined">database</span>
+<span class="text-sm font-semibold">Archives</span>
+</a>
+</nav>
+<div class="p-4 border-t border-slate-200 dark:border-primary/10">
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-primary/5 transition-all" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-sm font-semibold">Settings</span>
+</a>
+<div class="mt-4 p-3 rounded-xl bg-slate-100 dark:bg-primary/5 flex items-center gap-3">
+<div class="size-8 rounded-full bg-slate-300 dark:bg-primary/20 bg-cover" data-alt="User avatar profile picture" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBrZ4RY4j0fVRJY7h5G1tYreFWf1k7XAjnayBcCZidSS0ECC6-HrobmUm5ID406EOmpt5OjZeqfXhFTEt9a0S6uFKNiFUw4SA661DZFuA7Jvt0JGKkM0wSrKy1KGvF3ZzLoU3_MDeMOmZ3N2mCb16EZiEWgmXMPZfDibJ5j5eoxtxNKpMr-QCNKDqTlocZKbRaCAJTwPH0pH0agFYBvM-i2oRb5WOmszHc7RS346P6khaXeyVPobcwu3WeuRyNppeBm-L1jTg0UbXUj')"></div>
+<div class="flex-1 min-w-0">
+<p class="text-xs font-bold truncate">Alex Chen</p>
+<p class="text-[10px] text-slate-500 uppercase">Premium Plan</p>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 flex flex-col min-w-0 overflow-hidden bg-slate-50 dark:bg-background-dark/50">
+<!-- Top Header -->
+<header class="h-16 border-b border-slate-200 dark:border-primary/10 bg-white/80 dark:bg-[#0f2023]/80 backdrop-blur-md flex items-center justify-between px-8 shrink-0">
+<div class="flex items-center gap-4 flex-1 max-w-2xl">
+<div class="relative w-full max-w-md">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
+<input class="w-full bg-slate-100 dark:bg-primary/5 border-none rounded-lg py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/50 placeholder:text-slate-500 transition-all" placeholder="Search Agent IDs, Session names, or logs..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-primary/5 transition-all">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="bg-primary hover:bg-primary/90 text-background-dark px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined text-sm">add</span>
+                    New Session
+                </button>
+</div>
+</header>
+<!-- Content Area -->
+<div class="flex-1 overflow-y-auto p-8">
+<div class="max-w-7xl mx-auto space-y-6">
+<!-- Title & Tabs -->
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+<div>
+<h2 class="text-3xl font-black tracking-tight">Session Manager</h2>
+<p class="text-slate-500 dark:text-slate-400 mt-1">Monitor and manage real-time and historical debugging sessions.</p>
+</div>
+<div class="flex p-1 bg-slate-200/50 dark:bg-primary/5 rounded-xl border border-slate-200 dark:border-primary/10">
+<button class="px-4 py-1.5 text-xs font-bold rounded-lg bg-white dark:bg-primary text-slate-900 dark:text-background-dark shadow-sm">All</button>
+<button class="px-4 py-1.5 text-xs font-bold rounded-lg text-slate-500 hover:text-primary transition-colors">Active</button>
+<button class="px-4 py-1.5 text-xs font-bold rounded-lg text-slate-500 hover:text-primary transition-colors">Completed</button>
+<button class="px-4 py-1.5 text-xs font-bold rounded-lg text-slate-500 hover:text-primary transition-colors">Failed</button>
+</div>
+</div>
+<!-- Stats Overview -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+<div class="p-4 rounded-xl bg-white dark:bg-[#142a2e] border border-slate-200 dark:border-primary/10">
+<p class="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Active Sessions</p>
+<div class="flex items-baseline gap-2 mt-1">
+<span class="text-2xl font-black">12</span>
+<span class="text-xs font-bold text-emerald-500 flex items-center">
+<span class="material-symbols-outlined text-xs">trending_up</span> 20%
+                            </span>
+</div>
+</div>
+<div class="p-4 rounded-xl bg-white dark:bg-[#142a2e] border border-slate-200 dark:border-primary/10">
+<p class="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Avg. Resolution</p>
+<div class="flex items-baseline gap-2 mt-1">
+<span class="text-2xl font-black">18m</span>
+<span class="text-xs font-bold text-emerald-500 flex items-center">
+<span class="material-symbols-outlined text-xs">arrow_downward</span> 4m
+                            </span>
+</div>
+</div>
+<div class="p-4 rounded-xl bg-white dark:bg-[#142a2e] border border-slate-200 dark:border-primary/10">
+<p class="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Success Rate</p>
+<div class="flex items-baseline gap-2 mt-1">
+<span class="text-2xl font-black">94.2%</span>
+<span class="text-xs font-bold text-slate-400">Stable</span>
+</div>
+</div>
+<div class="p-4 rounded-xl bg-white dark:bg-[#142a2e] border border-slate-200 dark:border-primary/10">
+<p class="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Total Credits</p>
+<div class="flex items-baseline gap-2 mt-1">
+<span class="text-2xl font-black">8.4k</span>
+<span class="text-xs font-bold text-primary">Refilling</span>
+</div>
+</div>
+</div>
+<!-- Table Container -->
+<div class="rounded-xl border border-slate-200 dark:border-primary/10 bg-white dark:bg-[#102023] overflow-hidden shadow-sm">
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-slate-50 dark:bg-primary/5 border-b border-slate-200 dark:border-primary/10">
+<th class="px-6 py-4 text-[10px] font-black uppercase tracking-wider text-slate-500">Status</th>
+<th class="px-6 py-4 text-[10px] font-black uppercase tracking-wider text-slate-500">Session Name</th>
+<th class="px-6 py-4 text-[10px] font-black uppercase tracking-wider text-slate-500">Agent ID</th>
+<th class="px-6 py-4 text-[10px] font-black uppercase tracking-wider text-slate-500">Runtime</th>
+<th class="px-6 py-4 text-[10px] font-black uppercase tracking-wider text-slate-500">Latest Activity</th>
+<th class="px-6 py-4 text-[10px] font-black uppercase tracking-wider text-slate-500 text-right">Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-slate-100 dark:divide-primary/10">
+<!-- Row 1 -->
+<tr class="hover:bg-slate-50 dark:hover:bg-primary/5 transition-colors group">
+<td class="px-6 py-4 whitespace-nowrap">
+<div class="flex items-center gap-2">
+<span class="relative flex h-2 w-2">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+</span>
+<span class="text-xs font-bold text-primary uppercase">Running</span>
+</div>
+</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<div class="text-sm font-semibold">Production API Fix</div>
+<div class="text-[10px] text-slate-500 mt-0.5">Cluster: US-EAST-1</div>
+</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<code class="text-xs bg-slate-100 dark:bg-primary/10 px-2 py-1 rounded text-primary font-mono font-medium">duck-882-alpha</code>
+</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<div class="text-xs font-mono text-slate-500 dark:text-slate-400">00:45:12</div>
+</td>
+<td class="px-6 py-4">
+<p class="text-xs text-slate-600 dark:text-slate-400 truncate max-w-[200px]">Analyzing stack trace in auth_middleware.go...</p>
+</td>
+<td class="px-6 py-4 whitespace-nowrap text-right">
+<button class="bg-primary hover:bg-primary text-background-dark font-bold text-[11px] px-3 py-1.5 rounded-lg transition-all active-glow">
+                                            Jump to War Room
+                                        </button>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-slate-50 dark:hover:bg-primary/5 transition-colors group">
+<td class="px-6 py-4 whitespace-nowrap">
+<div class="flex items-center gap-2">
+<span class="relative flex h-2 w-2">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+</span>
+<span class="text-xs font-bold text-primary uppercase">Running</span>
+</div>
+</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<div class="text-sm font-semibold">Auth Service Patch</div>
+<div class="text-[10px] text-slate-500 mt-0.5">Cluster: EU-WEST-2</div>
+</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<code class="text-xs bg-slate-100 dark:bg-primary/10 px-2 py-1 rounded text-primary font-mono font-medium">duck-104-beta</code>
+</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<div class="text-xs font-mono text-slate-500 dark:text-slate-400">01:12:05</div>
+</td>
+<td class="px-6 py-4">
+<p class="text-xs text-slate-600 dark:text-slate-400 truncate max-w-[200px]">Applying hotfix to deployment 'auth-v2'</p>
+</td>
+<td class="px-6 py-4 whitespace-nowrap text-right">
+<button class="bg-primary hover:bg-primary text-background-dark font-bold text-[11px] px-3 py-1.5 rounded-lg transition-all active-glow">
+                                            Jump to War Room
+                                        </button>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-slate-50 dark:hover:bg-primary/5 transition-colors group">
+<td class="px-6 py-4 whitespace-nowrap">
+<div class="flex items-center gap-2 text-emerald-500">
+<span class="material-symbols-outlined text-sm">check_circle</span>
+<span class="text-xs font-bold uppercase">Success</span>
+</div>
+</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<div class="text-sm font-semibold">Database Migration</div>
+<div class="text-[10px] text-slate-500 mt-0.5">Cluster: PROD-MAIN</div>
+</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<code class="text-xs bg-slate-100 dark:bg-primary/10 px-2 py-1 rounded text-slate-400 font-mono font-medium">duck-992-omega</code>
+</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<div class="text-xs font-mono text-slate-500 dark:text-slate-400">00:05:22</div>
+</td>
+<td class="px-6 py-4">
+<p class="text-xs text-slate-400 truncate max-w-[200px]">Migration completed successfully. 4.2M records updated.</p>
+</td>
+<td class="px-6 py-4 whitespace-nowrap text-right">
+<button class="text-slate-500 dark:text-slate-400 hover:text-primary font-bold text-[11px] px-3 py-1.5 rounded-lg border border-slate-200 dark:border-primary/20 hover:border-primary transition-all">
+                                            View Post-Mortem
+                                        </button>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="hover:bg-slate-50 dark:hover:bg-primary/5 transition-colors group">
+<td class="px-6 py-4 whitespace-nowrap">
+<div class="flex items-center gap-2 text-rose-500">
+<span class="material-symbols-outlined text-sm">error</span>
+<span class="text-xs font-bold uppercase">Error</span>
+</div>
+</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<div class="text-sm font-semibold">Frontend Build</div>
+<div class="text-[10px] text-slate-500 mt-0.5">Environment: STAGING</div>
+</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<code class="text-xs bg-slate-100 dark:bg-primary/10 px-2 py-1 rounded text-rose-400 font-mono font-medium">duck-441-delta</code>
+</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<div class="text-xs font-mono text-slate-500 dark:text-slate-400">00:02:10</div>
+</td>
+<td class="px-6 py-4">
+<p class="text-xs text-rose-400 truncate max-w-[200px]">Build failed at step 4: out of memory on node-12.</p>
+</td>
+<td class="px-6 py-4 whitespace-nowrap text-right">
+<button class="text-rose-500 font-bold text-[11px] px-3 py-1.5 rounded-lg border border-rose-500/20 hover:bg-rose-500/10 transition-all">
+                                            Restart Session
+                                        </button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Pagination -->
+<div class="px-6 py-4 border-t border-slate-100 dark:divide-primary/10 flex items-center justify-between">
+<p class="text-xs text-slate-500">Showing 4 of 124 sessions</p>
+<div class="flex gap-2">
+<button class="p-1 rounded bg-slate-100 dark:bg-primary/10 text-slate-500 hover:text-primary disabled:opacity-50" disabled="">
+<span class="material-symbols-outlined text-sm">chevron_left</span>
+</button>
+<button class="p-1 rounded bg-slate-100 dark:bg-primary/10 text-slate-500 hover:text-primary">
+<span class="material-symbols-outlined text-sm">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Footer Info -->
+<div class="flex items-center justify-center py-4 opacity-50">
+<div class="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+<span class="relative flex h-2 w-2">
+<span class="absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+</span>
+                        System Online: 42 Active Nodes
+                    </div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

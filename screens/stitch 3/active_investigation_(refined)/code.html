@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>DebugDuck | Active Investigation War Room</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#07b6d5",
+                        "background-light": "#f5f8f8",
+                        "background-dark": "#0f2023",
+                    },
+                    fontFamily: {
+                        "display": ["Inter"],
+                        "mono": ["JetBrains Mono"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+            overflow: hidden; /* Prevent body scroll, use column scrolls */
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(7, 182, 213, 0.05);
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(7, 182, 213, 0.2);
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(7, 182, 213, 0.4);
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 h-screen flex flex-col font-display">
+<!-- Header / Navigation -->
+<header class="h-14 border-b border-primary/20 bg-background-light/50 dark:bg-background-dark/50 backdrop-blur-md flex items-center justify-between px-6 shrink-0">
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 bg-primary rounded flex items-center justify-center">
+<span class="material-icons text-white text-lg">bug_report</span>
+</div>
+<span class="font-bold tracking-tight text-lg">Debug<span class="text-primary">Duck</span></span>
+</div>
+<div class="h-4 w-px bg-slate-700 mx-2"></div>
+<div class="flex flex-col">
+<span class="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Investigation ID</span>
+<span class="text-xs font-mono text-primary">INC-9902-DELTA</span>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-2 px-3 py-1 bg-red-500/10 border border-red-500/20 rounded-full">
+<span class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+<span class="text-[10px] font-bold text-red-500 uppercase tracking-wider">Priority: Critical</span>
+</div>
+<div class="flex -space-x-2">
+<img alt="User" class="w-7 h-7 rounded-full border-2 border-background-dark" data-alt="Avatar of Lead Engineer" src="https://lh3.googleusercontent.com/aida-public/AB6AXuClcNO8Sl83EJxeAWDu55JF4ruDIPPfUBwXYaIOQKYovwTO5Yw7C229iTbJet5FhLZfQCqIrH2NVsTHmELBvMYKy8Z0oxy0snB6-ml7djASYkcvAGRb3B84osp-7bXMrha426cd_XLLFyLVr2HJ4fF4RYAaSudIK71oxvNYnTykvT3gY-GZCoLEzftS2kCyE1FO5yzzLojTiyxiegwBnX9Zr9rFEYP86-E93qrVF1hfxfA_ue3AzwUFDTErZNnv3c1khOmvuq3P6rba"/>
+<img alt="User" class="w-7 h-7 rounded-full border-2 border-background-dark" data-alt="Avatar of SRE Specialist" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCIcnljEfw4foVzoNWn89uvL8NGb6v5otob8wZqGfghdnJ0cIzrCRbxv205yzlWHa7h9DvSSRmzNDyXpjNl9mTV4TpY415tUY6duON9AAMlaYPpZ8_HXajCsSDUC24AnPduVkxvep52PFlgodooy0fhcYIOYq6bxPodfRIRKEBDV80XnD4M-73fTJ6cKxUchP13ZouMShruyC0yJ-ohVOVh8uDa6XC3R1GNyVNqhUbFW-uR4na8BjtF1Y6i4ZhEQlFlZ0Z6e5DlfSj6"/>
+<div class="w-7 h-7 rounded-full border-2 border-background-dark bg-slate-800 flex items-center justify-center text-[10px] font-bold">+3</div>
+</div>
+<button class="bg-primary/10 hover:bg-primary/20 text-primary p-1.5 rounded-lg transition-colors">
+<span class="material-icons text-xl">share</span>
+</button>
+</div>
+</header>
+<!-- Main Workspace -->
+<main class="flex-1 flex overflow-hidden">
+<!-- Left Column: AI Supervisor -->
+<aside class="w-[380px] border-r border-primary/10 flex flex-col bg-slate-900/20">
+<div class="p-4 border-b border-primary/10 flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-icons text-primary text-sm">psychology</span>
+<h2 class="text-xs font-bold uppercase tracking-widest text-slate-400">AI Supervisor</h2>
+</div>
+<span class="text-[10px] px-2 py-0.5 bg-primary/20 text-primary rounded border border-primary/30 font-mono">V4.2-STABLE</span>
+</div>
+<div class="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar">
+<!-- AI Message 1 -->
+<div class="space-y-3">
+<div class="flex items-start gap-3">
+<div class="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center shrink-0">
+<span class="material-icons text-primary text-sm">smart_toy</span>
+</div>
+<div class="flex-1">
+<div class="bg-primary/5 border border-primary/10 rounded-xl p-3 text-sm leading-relaxed text-slate-300">
+                                I've detected a correlation between <span class="text-primary font-mono">auth-service</span> latency and <span class="text-primary font-mono">redis-cache-01</span> connection timeouts.
+                            </div>
+</div>
+</div>
+<!-- Reasoning Steps -->
+<div class="ml-11 border-l-2 border-slate-800 pl-4 space-y-3">
+<details class="group" open="">
+<summary class="list-none cursor-pointer flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest hover:text-slate-300 transition-colors">
+<span class="material-icons text-xs group-open:rotate-90 transition-transform">chevron_right</span>
+                                View Reasoning Steps
+                            </summary>
+<div class="mt-3 space-y-2">
+<div class="flex items-center gap-2 text-[11px] text-slate-400">
+<span class="material-icons text-[14px] text-green-500">check_circle</span>
+<span>Analyzed 4.5k log entries (04:00 - 04:15)</span>
+</div>
+<div class="flex items-center gap-2 text-[11px] text-slate-400">
+<span class="material-icons text-[14px] text-green-500">check_circle</span>
+<span>Identified TCP retransmission spike</span>
+</div>
+<div class="flex items-center gap-2 text-[11px] text-primary animate-pulse">
+<span class="material-icons text-[14px]">search</span>
+<span>Checking K8s Node Pressure...</span>
+</div>
+</div>
+</details>
+</div>
+</div>
+<!-- AI Message 2 -->
+<div class="flex items-start gap-3">
+<div class="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center shrink-0">
+<span class="material-icons text-primary text-sm">smart_toy</span>
+</div>
+<div class="flex-1">
+<div class="bg-primary/5 border border-primary/10 rounded-xl p-3 text-sm leading-relaxed text-slate-300">
+                            Proposed Action: Scale <span class="text-primary font-mono">redis-cache-01</span> to handle 2.5x current throughput or flush dead connections. 
+                            <div class="mt-3 flex gap-2">
+<button class="bg-primary text-white text-[10px] font-bold px-3 py-1.5 rounded uppercase tracking-wider hover:bg-primary/80">Execute Scaling</button>
+<button class="bg-slate-800 text-slate-400 text-[10px] font-bold px-3 py-1.5 rounded uppercase tracking-wider border border-slate-700 hover:bg-slate-700">Dismiss</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Chat Input -->
+<div class="p-4 border-t border-primary/10 bg-slate-900/40">
+<div class="relative">
+<textarea class="w-full bg-slate-800/50 border border-slate-700 rounded-lg py-2 px-3 text-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none resize-none h-20 placeholder:text-slate-600 custom-scrollbar" placeholder="Ask supervisor for data analysis..."></textarea>
+<button class="absolute bottom-2 right-2 p-1.5 bg-primary rounded-md text-white">
+<span class="material-icons text-sm">send</span>
+</button>
+</div>
+</div>
+</aside>
+<!-- Center Column: Evidence Stack -->
+<section class="flex-1 flex flex-col min-w-0 bg-background-light dark:bg-background-dark">
+<div class="h-12 border-b border-primary/5 flex items-center justify-between px-6 bg-slate-900/10">
+<div class="flex items-center gap-2">
+<span class="material-icons text-slate-400 text-sm">inventory_2</span>
+<h2 class="text-xs font-bold uppercase tracking-widest text-slate-400">Dynamic Evidence Stack</h2>
+</div>
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-green-500"></span>
+<span class="text-[10px] text-slate-500 font-medium">Real-time Feed</span>
+</div>
+<button class="text-xs text-primary font-bold hover:underline">Clear Filter</button>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+<!-- Log Pattern Card -->
+<div class="bg-slate-900/40 border border-slate-800 rounded-xl overflow-hidden">
+<div class="px-4 py-2 border-b border-slate-800 flex items-center justify-between bg-slate-900/60">
+<div class="flex items-center gap-2">
+<span class="material-icons text-amber-500 text-sm">receipt_long</span>
+<span class="text-[11px] font-bold uppercase tracking-wider">Log Patterns: Auth-Service</span>
+</div>
+<span class="text-[10px] font-mono text-slate-500">T-minus 04:12s</span>
+</div>
+<div class="p-4 font-mono text-[11px] space-y-1 text-slate-400">
+<div class="flex gap-4">
+<span class="text-slate-600 w-24 shrink-0">04:12:33.001</span>
+<span class="text-red-400 font-bold w-12 shrink-0">[ERROR]</span>
+<span class="truncate">ConnectionPoolTimeoutException: No connections available...</span>
+</div>
+<div class="flex gap-4">
+<span class="text-slate-600 w-24 shrink-0">04:12:33.045</span>
+<span class="text-amber-400 font-bold w-12 shrink-0">[WARN]</span>
+<span class="truncate">Retrying connection attempt #3 for node 10.0.12.44</span>
+</div>
+<div class="flex gap-4 opacity-50">
+<span class="text-slate-600 w-24 shrink-0">04:12:33.090</span>
+<span class="text-blue-400 font-bold w-12 shrink-0">[INFO]</span>
+<span class="truncate">Health check signal received from load balancer</span>
+</div>
+</div>
+</div>
+<!-- Metric Graph Card -->
+<div class="grid grid-cols-2 gap-4">
+<div class="bg-slate-900/40 border border-slate-800 rounded-xl p-4">
+<div class="flex items-center justify-between mb-4">
+<span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Memory Usage (Pod-A)</span>
+<span class="text-xs font-bold text-red-500">94.2%</span>
+</div>
+<div class="h-16 flex items-end gap-1">
+<div class="w-full bg-primary/20 h-[30%] rounded-t-sm"></div>
+<div class="w-full bg-primary/20 h-[35%] rounded-t-sm"></div>
+<div class="w-full bg-primary/20 h-[40%] rounded-t-sm"></div>
+<div class="w-full bg-primary/30 h-[55%] rounded-t-sm"></div>
+<div class="w-full bg-primary/40 h-[70%] rounded-t-sm"></div>
+<div class="w-full bg-primary/60 h-[85%] rounded-t-sm"></div>
+<div class="w-full bg-red-500 h-[94%] rounded-t-sm"></div>
+<div class="w-full bg-red-500 h-[92%] rounded-t-sm"></div>
+</div>
+</div>
+<div class="bg-slate-900/40 border border-slate-800 rounded-xl p-4">
+<div class="flex items-center justify-between mb-4">
+<span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Network Latency</span>
+<span class="text-xs font-bold text-primary">240ms</span>
+</div>
+<div class="h-16 flex items-end gap-1">
+<div class="w-full bg-primary/20 h-[20%] rounded-t-sm"></div>
+<div class="w-full bg-primary/20 h-[22%] rounded-t-sm"></div>
+<div class="w-full bg-primary/20 h-[25%] rounded-t-sm"></div>
+<div class="w-full bg-primary/30 h-[45%] rounded-t-sm"></div>
+<div class="w-full bg-primary/50 h-[65%] rounded-t-sm"></div>
+<div class="w-full bg-primary/80 h-[80%] rounded-t-sm"></div>
+<div class="w-full bg-primary h-[60%] rounded-t-sm"></div>
+<div class="w-full bg-primary/70 h-[50%] rounded-t-sm"></div>
+</div>
+</div>
+</div>
+<!-- K8s Health Grid -->
+<div class="bg-slate-900/40 border border-slate-800 rounded-xl overflow-hidden">
+<div class="px-4 py-2 border-b border-slate-800 bg-slate-900/60">
+<span class="text-[11px] font-bold uppercase tracking-wider">K8s Pod Status: Production-East</span>
+</div>
+<div class="p-4 grid grid-cols-4 gap-4">
+<div class="bg-slate-800/50 p-3 rounded-lg border border-slate-700">
+<div class="text-[10px] text-slate-500 mb-1">Total Pods</div>
+<div class="text-lg font-bold font-mono">128</div>
+</div>
+<div class="bg-slate-800/50 p-3 rounded-lg border border-slate-700">
+<div class="text-[10px] text-slate-500 mb-1">Restarts</div>
+<div class="text-lg font-bold font-mono text-amber-500">12</div>
+</div>
+<div class="bg-slate-800/50 p-3 rounded-lg border border-slate-700">
+<div class="text-[10px] text-slate-500 mb-1">Healthy</div>
+<div class="text-lg font-bold font-mono text-green-500">114</div>
+</div>
+<div class="bg-slate-800/50 p-3 rounded-lg border border-slate-700">
+<div class="text-[10px] text-slate-500 mb-1">Pending</div>
+<div class="text-lg font-bold font-mono text-slate-400">2</div>
+</div>
+</div>
+<div class="px-4 py-3 bg-slate-800/20 border-t border-slate-800">
+<div class="flex items-center gap-4 overflow-x-auto pb-1 custom-scrollbar">
+<div class="flex items-center gap-2 shrink-0">
+<span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+<span class="text-[11px] font-mono">auth-v2-49x</span>
+</div>
+<div class="flex items-center gap-2 shrink-0">
+<span class="w-2 h-2 rounded-full bg-green-500"></span>
+<span class="text-[11px] font-mono">auth-v2-12z</span>
+</div>
+<div class="flex items-center gap-2 shrink-0">
+<span class="w-2 h-2 rounded-full bg-green-500"></span>
+<span class="text-[11px] font-mono">auth-v2-03p</span>
+</div>
+<div class="flex items-center gap-2 shrink-0">
+<span class="w-2 h-2 rounded-full bg-green-500"></span>
+<span class="text-[11px] font-mono">auth-v2-99m</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Dependency Analysis Map (Simulated) -->
+<div class="bg-slate-900/40 border border-slate-800 rounded-xl p-4">
+<div class="flex items-center justify-between mb-4">
+<span class="text-[11px] font-bold uppercase tracking-wider">Topology Hotspots</span>
+<span class="text-[10px] text-primary bg-primary/10 px-2 py-0.5 rounded">Heatmap Active</span>
+</div>
+<div class="h-48 relative bg-slate-950/40 rounded-lg border border-slate-800/50 flex items-center justify-center overflow-hidden">
+<!-- Simulated Network SVG -->
+<svg class="w-full h-full" viewbox="0 0 400 200">
+<path d="M100,100 L200,60 M100,100 L200,140 M200,60 L300,100 M200,140 L300,100" stroke="#1e293b" stroke-width="2"></path>
+<circle cx="100" cy="100" fill="#07b6d5" r="10"></circle>
+<circle cx="200" cy="60" fill="#07b6d5" r="10"></circle>
+<circle class="animate-pulse" cx="200" cy="140" fill="#ef4444" r="12"></circle>
+<circle cx="300" cy="100" fill="#07b6d5" r="10"></circle>
+<text fill="#64748b" font-family="monospace" font-size="10" x="80" y="80">Ingress</text>
+<text fill="#64748b" font-family="monospace" font-size="10" x="180" y="40">Auth-Svc</text>
+<text fill="#ef4444" font-family="monospace" font-size="10" font-weight="bold" x="180" y="170">Redis-C (CRITICAL)</text>
+<text fill="#64748b" font-family="monospace" font-size="10" x="280" y="80">Postgres</text>
+</svg>
+</div>
+</div>
+</div>
+</section>
+<!-- Right Column: Context & Metadata -->
+<aside class="w-[320px] border-l border-primary/10 flex flex-col bg-slate-900/20">
+<div class="p-4 border-b border-primary/10 flex items-center gap-2">
+<span class="material-icons text-slate-400 text-sm">info</span>
+<h2 class="text-xs font-bold uppercase tracking-widest text-slate-400">Context &amp; Scope</h2>
+</div>
+<div class="flex-1 overflow-y-auto p-4 space-y-8 custom-scrollbar">
+<!-- Metadata Table -->
+<section>
+<h3 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">System Info</h3>
+<div class="space-y-3">
+<div class="flex justify-between items-center border-b border-slate-800/50 pb-2">
+<span class="text-[11px] text-slate-400">Cluster</span>
+<span class="text-[11px] font-mono text-slate-200">prod-us-east-4</span>
+</div>
+<div class="flex justify-between items-center border-b border-slate-800/50 pb-2">
+<span class="text-[11px] text-slate-400">Namespace</span>
+<span class="text-[11px] font-mono text-slate-200">banking-core</span>
+</div>
+<div class="flex justify-between items-center border-b border-slate-800/50 pb-2">
+<span class="text-[11px] text-slate-400">Owner</span>
+<span class="text-[11px] font-mono text-slate-200">@fintech-sre</span>
+</div>
+<div class="flex justify-between items-center border-b border-slate-800/50 pb-2">
+<span class="text-[11px] text-slate-400">Session ID</span>
+<span class="text-[11px] font-mono text-primary">SESS_4410_XZ</span>
+</div>
+</div>
+</section>
+<!-- Dependency Map Area -->
+<section>
+<h3 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">Upstream Dependencies</h3>
+<div class="bg-slate-800/30 rounded-lg p-3 border border-slate-800 space-y-3">
+<div class="flex items-center gap-3">
+<div class="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+<span class="text-[11px] text-slate-300">Stripe Gateway</span>
+<span class="ml-auto text-[10px] text-slate-500">42ms</span>
+</div>
+<div class="flex items-center gap-3">
+<div class="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+<span class="text-[11px] text-slate-300">User-Profile API</span>
+<span class="ml-auto text-[10px] text-slate-500">12ms</span>
+</div>
+<div class="flex items-center gap-3">
+<div class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></div>
+<span class="text-[11px] text-red-400 font-medium">Internal Redis</span>
+<span class="ml-auto text-[10px] text-red-500">TIMEOUT</span>
+</div>
+</div>
+</section>
+<!-- Tags / Labels -->
+<section>
+<h3 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">Labels</h3>
+<div class="flex flex-wrap gap-2">
+<span class="bg-slate-800 px-2 py-1 rounded text-[10px] text-slate-400 border border-slate-700">env:production</span>
+<span class="bg-slate-800 px-2 py-1 rounded text-[10px] text-slate-400 border border-slate-700">app:auth-service</span>
+<span class="bg-slate-800 px-2 py-1 rounded text-[10px] text-slate-400 border border-slate-700">region:us-east-1</span>
+<span class="bg-slate-800 px-2 py-1 rounded text-[10px] text-slate-400 border border-slate-700">tier:critical</span>
+</div>
+</section>
+</div>
+<div class="p-4 border-t border-primary/10">
+<button class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-xs font-bold transition-colors border border-slate-700 flex items-center justify-center gap-2">
+<span class="material-icons text-sm">history</span>
+                    View Previous Incidents
+                </button>
+</div>
+</aside>
+</main>
+<!-- Bottom Remediation Progress Bar -->
+<footer class="h-20 border-t border-primary/20 bg-slate-950 px-8 flex items-center shrink-0">
+<div class="flex-1 flex items-center gap-12">
+<!-- Progress Tracker -->
+<div class="flex-1 flex items-center relative">
+<!-- Connectors -->
+<div class="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-1 bg-slate-800 -z-10"></div>
+<div class="absolute left-0 w-[66%] top-1/2 -translate-y-1/2 h-1 bg-primary -z-10"></div>
+<div class="flex items-center justify-between w-full">
+<!-- Step 1 -->
+<div class="flex flex-col items-center gap-2 bg-slate-950 px-3">
+<div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white ring-4 ring-primary/20">
+<span class="material-icons text-sm">check</span>
+</div>
+<span class="text-[10px] font-bold uppercase tracking-widest text-primary">Detection</span>
+</div>
+<!-- Step 2 -->
+<div class="flex flex-col items-center gap-2 bg-slate-950 px-3">
+<div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white ring-4 ring-primary/20">
+<span class="material-icons text-sm">check</span>
+</div>
+<span class="text-[10px] font-bold uppercase tracking-widest text-primary">Analysis</span>
+</div>
+<!-- Step 3 (Active) -->
+<div class="flex flex-col items-center gap-2 bg-slate-950 px-3">
+<div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white ring-4 ring-primary/40 animate-pulse">
+<span class="material-icons text-sm">engineering</span>
+</div>
+<span class="text-[10px] font-bold uppercase tracking-widest text-primary">Mitigation</span>
+</div>
+<!-- Step 4 -->
+<div class="flex flex-col items-center gap-2 bg-slate-950 px-3">
+<div class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-500">
+<span class="material-icons text-sm">verified</span>
+</div>
+<span class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Verification</span>
+</div>
+</div>
+</div>
+<!-- Resolution CTA -->
+<div class="shrink-0 flex items-center gap-4 pl-8 border-l border-slate-800">
+<div class="text-right">
+<div class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Est. Resolution</div>
+<div class="text-sm font-mono text-slate-300">00:14:55</div>
+</div>
+<button class="bg-primary hover:bg-primary/90 text-white px-6 py-2.5 rounded-lg font-bold text-xs uppercase tracking-wider flex items-center gap-2 transition-all shadow-lg shadow-primary/20">
+<span class="material-icons text-sm">task_alt</span>
+                    Resolve Incident
+                </button>
+</div>
+</div>
+</footer>
+</body></html>
