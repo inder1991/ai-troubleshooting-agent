@@ -27,19 +27,18 @@ class EventEmitter:
             event_type=event_type,
             message=message,
             details=details,
+            session_id=self.session_id,
         )
         self._events.append(event)
 
         logger.debug("Event emitted", extra={"session_id": self.session_id, "agent_name": agent_name, "action": event_type, "extra": message})
 
         if self._websocket_manager:
-            event_data = event.model_dump(mode="json")
-            event_data["session_id"] = self.session_id
             await self._websocket_manager.send_message(
                 self.session_id,
                 {
                     "type": "task_event",
-                    "data": event_data,
+                    "data": event.model_dump(mode="json"),
                 },
             )
             logger.debug("WebSocket broadcast", extra={"session_id": self.session_id, "action": "ws_broadcast", "extra": event_type})

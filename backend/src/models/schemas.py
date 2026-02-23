@@ -159,6 +159,7 @@ class TaskEvent(BaseModel):
     event_type: Literal["started", "progress", "success", "warning", "error", "tool_call", "phase_change", "finding", "summary", "attestation_required", "fix_proposal", "fix_approved"]
     message: str
     details: Optional[dict] = None
+    session_id: Optional[str] = None
 
 
 class LogEvidence(BaseModel):
@@ -180,6 +181,120 @@ class ServiceFlowStep(BaseModel):
     status_detail: str = ""
     message: str = ""
     is_new_service: bool = True
+
+
+# ---------------------------------------------------------------------------
+# Typed models for fields previously stored as untyped dicts
+# ---------------------------------------------------------------------------
+
+
+class PatientZeroInfo(BaseModel):
+    """Patient zero identification from log agent."""
+    service: str = ""
+    evidence: str = ""
+    first_error_time: str = ""
+
+
+class InferredDependencyInfo(BaseModel):
+    """Inferred service dependency from log agent."""
+    source: str = ""
+    target: Optional[str] = None
+    evidence: Optional[str] = None
+    targets: Optional[list[str]] = None
+
+
+class ReasoningChainStepInfo(BaseModel):
+    """A single step in the reasoning chain from log agent."""
+    step: int = 0
+    observation: str = ""
+    inference: str = ""
+
+
+class SuggestedPromQLInfo(BaseModel):
+    """A suggested PromQL query from log/metrics agent."""
+    metric: str = ""
+    query: str = ""
+    rationale: str = ""
+
+
+class PastIncidentMatchInfo(BaseModel):
+    """A matching past incident from memory/similarity search."""
+    fingerprint_id: str = ""
+    session_id: str = ""
+    similarity_score: float = 0.0
+    root_cause: str = ""
+    resolution_steps: list[str] = Field(default_factory=list)
+    error_patterns: list[str] = Field(default_factory=list)
+    affected_services: list[str] = Field(default_factory=list)
+    time_to_resolve: int = 0
+
+
+class CrossRepoFindingInfo(BaseModel):
+    """Cross-repo finding from code agent."""
+    repo: str = ""
+    role: str = ""
+    evidence: str = ""
+
+
+class FixVerificationResult(BaseModel):
+    """Verification result for a generated fix."""
+    verdict: Literal["approve", "reject", "needs_changes"] = "needs_changes"
+    confidence: int = 0
+    issues_found: list[str] = Field(default_factory=list)
+    regression_risks: list[str] = Field(default_factory=list)
+    suggestions: list[str] = Field(default_factory=list)
+    reasoning: str = ""
+
+
+class PRData(BaseModel):
+    """PR creation data from fix pipeline."""
+    branch_name: str = ""
+    commit_sha: str = ""
+    pr_title: str = ""
+    pr_body: str = ""
+    diff: str = ""
+    validation: dict = Field(default_factory=dict)
+    impact: dict = Field(default_factory=dict)
+    fixed_code: str = ""
+    status: str = ""
+    token_usage: dict = Field(default_factory=dict)
+    # Allow extra fields from agent3 which returns a different shape
+    model_config = {"extra": "allow"}
+
+
+class HighPriorityFileInfo(BaseModel):
+    """A high-priority file from change analysis."""
+    file_path: str = ""
+    risk_score: float = 0.0
+    sha: str = ""
+    description: str = ""
+
+
+class ChangeCorrelationInfo(BaseModel):
+    """A change correlation from change agent."""
+    change_id: str = ""
+    change_type: str = "code_deploy"
+    risk_score: float = 0.0
+    temporal_correlation: float = 0.0
+    scope_overlap: Optional[float] = None
+    author: str = ""
+    description: str = ""
+    files_changed: list[str] = Field(default_factory=list)
+    timestamp: Optional[str] = None
+    service_name: Optional[str] = None
+    reasoning: Optional[str] = None
+
+
+class ChangeAnalysisResult(BaseModel):
+    """Structured change analysis result from change agent."""
+    change_correlations: list[ChangeCorrelationInfo] = Field(default_factory=list)
+    high_priority_files: list[HighPriorityFileInfo] = Field(default_factory=list)
+    summary: Optional[str] = None
+    breadcrumbs: list = Field(default_factory=list)
+    negative_findings: list = Field(default_factory=list)
+    tokens_used: Optional[dict] = None
+    # Allow extra fields from agent
+    model_config = {"extra": "allow"}
 
 
 class ErrorPattern(BaseModel):
@@ -462,10 +577,10 @@ class FixResult(BaseModel):
     generated_fix: str = ""
     diff: str = ""
     fix_explanation: str = ""
-    pr_data: Optional[dict] = None
+    pr_data: Optional[PRData | dict] = None
     pr_url: Optional[str] = None
     pr_number: Optional[int] = None
-    verification_result: Optional[dict] = None
+    verification_result: Optional[FixVerificationResult | dict] = None
     human_feedback: list[str] = Field(default_factory=list)
     attempt_count: int = 0
     max_attempts: int = 3
@@ -486,7 +601,7 @@ class CodeAnalysisResult(BaseModel):
     shared_resource_conflicts: list[str]
     suggested_fix_areas: list[FixArea]
     diff_analysis: list[DiffAnalysisItem] = Field(default_factory=list)
-    cross_repo_findings: list[dict] = Field(default_factory=list)
+    cross_repo_findings: list[CrossRepoFindingInfo | dict] = Field(default_factory=list)
     mermaid_diagram: str
     negative_findings: list[NegativeFinding]
     breadcrumbs: list[Breadcrumb]
@@ -695,25 +810,25 @@ class DiagnosticState(BaseModel):
     k8s_analysis: Optional[K8sAnalysisResult] = None
     trace_analysis: Optional[TraceAnalysisResult] = None
     code_analysis: Optional[CodeAnalysisResult] = None
-    change_analysis: Optional[dict] = None
+    change_analysis: Optional[ChangeAnalysisResult | dict] = None
     fix_result: Optional[FixResult] = None
     closure_state: Optional["IncidentClosureState"] = None
 
     # Flow reconstruction
-    service_flow: list[dict] = Field(default_factory=list)
+    service_flow: list[ServiceFlowStep | dict] = Field(default_factory=list)
     flow_source: Optional[str] = None
     flow_confidence: int = 0
 
     # Log agent enrichment
-    patient_zero: Optional[dict] = None
-    inferred_dependencies: list[dict] = Field(default_factory=list)
-    reasoning_chain: list[dict] = Field(default_factory=list)
-    suggested_promql_queries: list[dict] = Field(default_factory=list)
+    patient_zero: Optional[PatientZeroInfo | dict] = None
+    inferred_dependencies: list[InferredDependencyInfo | dict] = Field(default_factory=list)
+    reasoning_chain: list[ReasoningChainStepInfo | dict] = Field(default_factory=list)
+    suggested_promql_queries: list[SuggestedPromQLInfo | dict] = Field(default_factory=list)
 
     # Impact & memory
     blast_radius_result: Optional[BlastRadius] = None
     severity_result: Optional[SeverityRecommendation] = None
-    past_incidents: list[dict] = Field(default_factory=list)
+    past_incidents: list[PastIncidentMatchInfo | dict] = Field(default_factory=list)
 
     # Cross-cutting
     all_findings: list[Finding] = Field(default_factory=list)

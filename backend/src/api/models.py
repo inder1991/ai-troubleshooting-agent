@@ -80,11 +80,14 @@ class StartSessionResponse(BaseModel):
     incident_id: str
     status: str
     message: str
+    service_name: str = ""
+    created_at: str = ""
 
 
 class SessionSummary(BaseModel):
     session_id: str
     service_name: Optional[str] = None
+    incident_id: Optional[str] = None
     phase: str
     confidence: int
     created_at: str
@@ -102,7 +105,7 @@ class FixStatusResponse(BaseModel):
     target_file: str = ""
     diff: str = ""
     fix_explanation: str = ""
-    verification_result: Optional[Dict] = None
+    verification_result: Optional[Dict[str, Any]] = None
     pr_url: Optional[str] = None
     pr_number: Optional[int] = None
     attempt_count: int = 0

@@ -115,9 +115,12 @@ export const startSessionV4 = async (request: StartSessionRequest & { profileId?
   const data = await response.json();
   return {
     ...data,
+    // Backend now returns service_name & created_at; fall back to request data
+    service_name: data.service_name || request.service_name || 'unknown',
     status: data.status || data.phase || 'initial',
     confidence: data.confidence ?? 0,
-    updated_at: data.updated_at || data.created_at,
+    created_at: data.created_at || new Date().toISOString(),
+    updated_at: data.updated_at || data.created_at || new Date().toISOString(),
   };
 };
 

@@ -17,6 +17,20 @@ from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
+
+def _dump(obj):
+    """Serialize a Pydantic BaseModel or pass through a dict/primitive unchanged."""
+    if obj is None:
+        return None
+    if isinstance(obj, BaseModel):
+        return obj.model_dump(mode="json")
+    return obj
+
+
+def _dump_list(items: list) -> list:
+    """Serialize a list of Pydantic models or dicts."""
+    return [_dump(item) for item in items]
+
 router_v4 = APIRouter(prefix="/api/v4", tags=["v4"])
 
 # In-memory session store
@@ -124,7 +138,9 @@ async def start_session(request: StartSessionRequest, background_tasks: Backgrou
         session_id=session_id,
         incident_id=incident_id,
         status="started",
-        message=f"Diagnosis started for {request.serviceName}"
+        message=f"Diagnosis started for {request.serviceName}",
+        service_name=request.serviceName,
+        created_at=sessions[session_id]["created_at"],
     )
 
 
@@ -242,6 +258,7 @@ async def list_sessions():
         SessionSummary(
             session_id=sid,
             service_name=data["service_name"],
+            incident_id=data.get("incident_id"),
             phase=data["phase"],
             confidence=data["confidence"],
             created_at=data["created_at"],
@@ -290,6 +307,7 @@ async def get_findings(session_id: str):
     logger.info("Findings requested", extra={"session_id": session_id, "action": "findings_requested", "extra": {"findings_count": len(state.all_findings) if state else 0}})
     if not state:
         return {
+            "session_id": session_id,
             "findings": [],
             "negative_findings": [],
             "critic_verdicts": [],
@@ -371,7 +389,23 @@ async def get_findings(session_id: str):
             capped = points[-30:] if len(points) > 30 else points
             ts_data_raw[key] = [dp.model_dump(mode="json") for dp in capped]
 
+    # Extract change analysis fields (handles both typed model and raw dict)
+    ca = state.change_analysis
+    if ca is not None and isinstance(ca, BaseModel):
+        change_correlations = _dump_list(ca.change_correlations)
+        change_summary = ca.summary
+        change_high_priority_files = _dump_list(ca.high_priority_files)
+    elif ca is not None and isinstance(ca, dict):
+        change_correlations = ca.get("change_correlations", [])
+        change_summary = ca.get("summary")
+        change_high_priority_files = ca.get("high_priority_files", [])
+    else:
+        change_correlations = []
+        change_summary = None
+        change_high_priority_files = []
+
     return {
+        "session_id": session_id,
         "incident_id": state.incident_id,
         "target_service": sessions[session_id]["service_name"],
         "findings": [f.model_dump(mode="json") for f in state.all_findings],
@@ -391,22 +425,22 @@ async def get_findings(session_id: str):
         "code_call_chain": code_call_chain,
         "code_dependency_graph": code_dependency_graph,
         "code_shared_resource_conflicts": code_shared_resource_conflicts,
-        "code_cross_repo_findings": code_cross_repo_findings,
+        "code_cross_repo_findings": _dump_list(code_cross_repo_findings),
         "code_mermaid_diagram": code_mermaid_diagram,
         "code_overall_confidence": code_overall_confidence,
-        "change_correlations": state.change_analysis.get("change_correlations", []) if state.change_analysis else [],
-        "change_summary": state.change_analysis.get("summary") if state.change_analysis else None,
-        "change_high_priority_files": state.change_analysis.get("high_priority_files", []) if state.change_analysis else [],
+        "change_correlations": change_correlations,
+        "change_summary": change_summary,
+        "change_high_priority_files": change_high_priority_files,
         "blast_radius": state.blast_radius_result.model_dump(mode="json") if state.blast_radius_result else None,
         "severity_recommendation": state.severity_result.model_dump(mode="json") if state.severity_result else None,
-        "past_incidents": state.past_incidents,
-        "service_flow": state.service_flow,
+        "past_incidents": _dump_list(state.past_incidents),
+        "service_flow": _dump_list(state.service_flow),
         "flow_source": state.flow_source,
         "flow_confidence": state.flow_confidence,
-        "patient_zero": state.patient_zero,
-        "inferred_dependencies": state.inferred_dependencies,
-        "reasoning_chain": state.reasoning_chain,
-        "suggested_promql_queries": state.suggested_promql_queries,
+        "patient_zero": _dump(state.patient_zero),
+        "inferred_dependencies": _dump_list(state.inferred_dependencies),
+        "reasoning_chain": _dump_list(state.reasoning_chain),
+        "suggested_promql_queries": _dump_list(state.suggested_promql_queries),
         "time_series_data": ts_data_raw,
         "fix_data": state.fix_result.model_dump(mode="json") if state.fix_result else None,
         "closure_state": state.closure_state.model_dump(mode="json") if state.closure_state else None,
@@ -527,7 +561,7 @@ async def get_fix_status(session_id: str):
         target_file=fr.target_file,
         diff=fr.diff,
         fix_explanation=fr.fix_explanation,
-        verification_result=fr.verification_result,
+        verification_result=_dump(fr.verification_result),
         pr_url=fr.pr_url,
         pr_number=fr.pr_number,
         attempt_count=fr.attempt_count,
