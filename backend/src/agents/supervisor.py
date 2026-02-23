@@ -150,6 +150,9 @@ class SupervisorAgent:
         self._fix_human_decision: str | None = None
         self._event_emitter: Optional[EventEmitter] = None
 
+        # Human-in-the-loop: discovery attestation
+        self._attestation_acknowledged = False
+
         # Human-in-the-loop channel for code_agent questions
         self._code_agent_question: str = ""
         self._code_agent_answer: str = ""
@@ -238,6 +241,10 @@ class SupervisorAgent:
             for agent_name, agent_result in agent_results:
                 if isinstance(agent_result, Exception):
                     logger.error("Agent raised exception", extra={"agent_name": agent_name, "extra": str(agent_result)})
+                    # C2: Mark failed agent as completed to prevent infinite re-dispatch
+                    state.agents_completed.append(agent_name)
+                    if event_emitter:
+                        await event_emitter.emit(agent_name, "error", f"Agent failed: {str(agent_result)}")
                     continue
                 if agent_result:
                     await self._update_state_with_result(state, agent_name, agent_result, event_emitter)
@@ -2051,6 +2058,12 @@ Respond ONLY with a JSON array:
         if state.phase in (DiagnosticPhase.DIAGNOSIS_COMPLETE, DiagnosticPhase.FIX_IN_PROGRESS):
             trigger_words = ["fix", "generate fix", "create fix", "patch", "create pr", "remediate"]
             if any(tw in message.lower() for tw in trigger_words):
+                # GATE: require attestation acknowledgment before fix generation
+                if not self._attestation_acknowledged:
+                    return (
+                        "Fix generation requires attestation of the diagnosis findings first. "
+                        "Please review and approve the findings before requesting a fix."
+                    )
                 # Apply same guards as /fix/generate endpoint
                 if state.fix_result and state.fix_result.fix_status in (
                     FixStatus.GENERATING, FixStatus.VERIFICATION_IN_PROGRESS, FixStatus.AWAITING_REVIEW,
@@ -2292,8 +2305,15 @@ Examples:
             if not token:
                 token = os.getenv("GITHUB_TOKEN", "")
 
+            # M2: Validate repo_url format before parsing
+            repo_url = state.repo_url or ""
+            if repo_url and not (repo_url.startswith("https://") or repo_url.startswith("http://") or repo_url.startswith("git@")):
+                state.fix_result.fix_status = FixStatus.FAILED
+                await event_emitter.emit("fix_generator", "error", f"Invalid repository URL format: {repo_url}")
+                return
+
             # Parse owner/repo
-            owner_repo = self._parse_owner_repo(state.repo_url) if state.repo_url else None
+            owner_repo = self._parse_owner_repo(repo_url) if repo_url else None
             if not owner_repo:
                 state.fix_result.fix_status = FixStatus.FAILED
                 await event_emitter.emit("fix_generator", "error", "Cannot generate fix — no valid repository URL")
@@ -2367,11 +2387,16 @@ Examples:
                     summary_lines.append("**WARNING: Code agent flagged issues with this fix.**")
                 if state.fix_result.verification_result:
                     vr = state.fix_result.verification_result
-                    summary_lines.append(f"**Code agent verdict:** {vr.get('verdict', 'unknown')} (confidence: {vr.get('confidence', 0)}%)")
-                    if vr.get("issues_found"):
-                        summary_lines.append(f"**Issues:** {', '.join(vr['issues_found'][:3])}")
-                    if vr.get("regression_risks"):
-                        summary_lines.append(f"**Regression risks:** {', '.join(vr['regression_risks'][:3])}")
+                    # H5: Use getattr() — vr may be a Pydantic model or a dict
+                    vr_verdict = getattr(vr, 'verdict', None) or (vr.get('verdict', 'unknown') if isinstance(vr, dict) else 'unknown')
+                    vr_confidence = getattr(vr, 'confidence', None) or (vr.get('confidence', 0) if isinstance(vr, dict) else 0)
+                    vr_issues = getattr(vr, 'issues_found', None) or (vr.get('issues_found', []) if isinstance(vr, dict) else [])
+                    vr_risks = getattr(vr, 'regression_risks', None) or (vr.get('regression_risks', []) if isinstance(vr, dict) else [])
+                    summary_lines.append(f"**Code agent verdict:** {vr_verdict} (confidence: {vr_confidence}%)")
+                    if vr_issues:
+                        summary_lines.append(f"**Issues:** {', '.join(vr_issues[:3])}")
+                    if vr_risks:
+                        summary_lines.append(f"**Regression risks:** {', '.join(vr_risks[:3])}")
 
                 summary_lines.append("\nPlease reply with:")
                 summary_lines.append("  - **approve** — create a pull request")
@@ -2405,7 +2430,8 @@ Examples:
                     self._pending_fix_approval = False
                     state.fix_result.fix_status = FixStatus.FAILED
                     await event_emitter.emit("fix_generator", "warning", "Fix approval timed out")
-                    return
+                    # H4: Don't return early — break to reach the finally block for cleanup
+                    break
 
                 self._pending_fix_approval = False
                 decision = self._fix_human_decision or "reject"
@@ -2554,6 +2580,16 @@ Examples:
         self._fix_human_decision = message.strip()
         self._fix_event.set()
         return "Got it — regenerating fix with your feedback."
+
+    def acknowledge_attestation(self, decision: str) -> str:
+        """Record that the user has acknowledged the discovery attestation gate."""
+        if decision == "approve":
+            self._attestation_acknowledged = True
+            return "Attestation acknowledged — fix generation is now available."
+        elif decision == "reject":
+            self._attestation_acknowledged = False
+            return "Attestation rejected — investigation findings need revision."
+        return "Unknown attestation decision."
 
     def _process_repo_mismatch(self, message: str, state: DiagnosticState) -> str:
         """Parse user's repo mismatch response and signal the waiting coroutine."""

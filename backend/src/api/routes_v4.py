@@ -1,4 +1,5 @@
 import os
+import re
 import uuid
 import asyncio
 from datetime import datetime, timezone, timedelta
@@ -16,6 +17,21 @@ from src.api.websocket import manager
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
+
+# C1: Per-session locks to prevent concurrent state mutation
+session_locks: Dict[str, asyncio.Lock] = {}
+
+# M1: UUID4 format validation
+_UUID4_RE = re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$', re.IGNORECASE)
+
+# M10: Track background diagnosis tasks for cancellation on cleanup
+_diagnosis_tasks: Dict[str, asyncio.Task] = {}
+
+
+def _validate_session_id(session_id: str) -> None:
+    """M1: Validate session_id is a proper UUID4 to prevent DoS via random lookups."""
+    if not _UUID4_RE.match(session_id):
+        raise HTTPException(status_code=400, detail="Invalid session ID format")
 
 
 def _dump(obj):
@@ -48,7 +64,7 @@ async def _session_cleanup_loop():
         try:
             cutoff = datetime.now(timezone.utc) - timedelta(hours=SESSION_TTL_HOURS)
             expired = []
-            for sid, data in sessions.items():
+            for sid, data in list(sessions.items()):
                 created = data.get("created_at", "")
                 try:
                     created_dt = datetime.fromisoformat(created.replace("Z", "+00:00"))
@@ -58,9 +74,19 @@ async def _session_cleanup_loop():
                     continue
 
             for sid in expired:
-                sessions.pop(sid, None)
-                supervisors.pop(sid, None)
-                # Clean up any lingering WebSocket connections
+                # M10: Cancel running diagnosis tasks before removing session
+                task = _diagnosis_tasks.pop(sid, None)
+                if task and not task.done():
+                    task.cancel()
+                # H1: Use lock during cleanup to prevent races with HTTP handlers
+                lock = session_locks.pop(sid, None)
+                if lock:
+                    async with lock:
+                        sessions.pop(sid, None)
+                        supervisors.pop(sid, None)
+                else:
+                    sessions.pop(sid, None)
+                    supervisors.pop(sid, None)
                 manager.disconnect(sid)
 
             if expired:
@@ -95,6 +121,9 @@ async def start_session(request: StartSessionRequest, background_tasks: Backgrou
 
     supervisor = SupervisorAgent(connection_config=connection_config)
     emitter = EventEmitter(session_id=session_id, websocket_manager=manager)
+
+    # C1: Create per-session lock
+    session_locks[session_id] = asyncio.Lock()
 
     sessions[session_id] = {
         "service_name": request.serviceName,
@@ -133,6 +162,8 @@ async def start_session(request: StartSessionRequest, background_tasks: Backgrou
     logger.info("Session created", extra={"session_id": session_id, "action": "session_created", "extra": request.serviceName, "profile_id": profile_id})
 
     background_tasks.add_task(run_diagnosis, session_id, supervisor, initial_input, emitter)
+    # Note: FastAPI BackgroundTasks don't return asyncio.Task handles;
+    # the task ref is stored inside run_diagnosis itself.
 
     return StartSessionResponse(
         session_id=session_id,
@@ -207,10 +238,17 @@ def _push_to_v5(session_id: str, state):
 
         logger.info("Pushed V5 governance data for session %s: %d evidence pins", session_id, len(evidence_pins))
     except Exception as e:
-        logger.warning("Failed to push V5 governance data for session %s: %s", session_id, e)
+        logger.error("Failed to push V5 governance data for session %s: %s", session_id, e, exc_info=True)
 
 
 async def run_diagnosis(session_id: str, supervisor: SupervisorAgent, initial_input: dict, emitter: EventEmitter):
+    # M10: Store current task for cancellation on cleanup
+    try:
+        _diagnosis_tasks[session_id] = asyncio.current_task()  # type: ignore[assignment]
+    except RuntimeError:
+        pass
+
+    lock = session_locks.get(session_id, asyncio.Lock())
     try:
         state = await supervisor.run(
             initial_input, emitter,
@@ -218,28 +256,40 @@ async def run_diagnosis(session_id: str, supervisor: SupervisorAgent, initial_in
             # findings endpoint can read partial results mid-investigation.
             on_state_created=lambda s: sessions[session_id].__setitem__("state", s),
         )
-        sessions[session_id]["state"] = state
-        sessions[session_id]["phase"] = state.phase.value
-        sessions[session_id]["confidence"] = state.overall_confidence
+        # C1: Acquire lock for state mutation
+        async with lock:
+            if session_id in sessions:
+                sessions[session_id]["state"] = state
+                sessions[session_id]["phase"] = state.phase.value
+                sessions[session_id]["confidence"] = state.overall_confidence
         _push_to_v5(session_id, state)
+    except asyncio.CancelledError:
+        logger.info("Diagnosis cancelled for session %s", session_id)
     except Exception as e:
         logger.error("Diagnosis failed", extra={"session_id": session_id, "action": "diagnosis_error", "extra": str(e)})
-        sessions[session_id]["phase"] = "error"
+        async with lock:
+            if session_id in sessions:
+                sessions[session_id]["phase"] = "error"
         await emitter.emit("supervisor", "error", f"Diagnosis failed: {str(e)}")
+    finally:
+        _diagnosis_tasks.pop(session_id, None)
 
 
 @router_v4.post("/session/{session_id}/chat", response_model=ChatResponse)
 async def chat(session_id: str, request: ChatRequest):
+    _validate_session_id(session_id)
     logger.info("Chat message received", extra={"session_id": session_id, "action": "chat"})
-    if session_id not in sessions:
+
+    # H1: Use .get() to avoid KeyError if session is cleaned up mid-request
+    session = sessions.get(session_id)
+    if not session:
         raise HTTPException(status_code=404, detail="Session not found")
 
     supervisor = supervisors.get(session_id)
-    state = sessions[session_id].get("state")
-
     if not supervisor:
         raise HTTPException(status_code=404, detail="Session supervisor not found")
 
+    state = session.get("state")
     if state:
         response_text = await supervisor.handle_user_message(request.message, state)
     else:
@@ -247,8 +297,8 @@ async def chat(session_id: str, request: ChatRequest):
 
     return ChatResponse(
         response=response_text,
-        phase=sessions[session_id].get("phase", "initial"),
-        confidence=sessions[session_id].get("confidence", 0),
+        phase=session.get("phase", "initial"),
+        confidence=session.get("confidence", 0),
     )
 
 
@@ -269,10 +319,11 @@ async def list_sessions():
 
 @router_v4.get("/session/{session_id}/status")
 async def get_session_status(session_id: str):
-    if session_id not in sessions:
+    _validate_session_id(session_id)
+    session = sessions.get(session_id)
+    if not session:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    session = sessions[session_id]
     state = session.get("state")
 
     result = {
@@ -300,10 +351,12 @@ async def get_session_status(session_id: str):
 
 @router_v4.get("/session/{session_id}/findings")
 async def get_findings(session_id: str):
-    if session_id not in sessions:
+    _validate_session_id(session_id)
+    session = sessions.get(session_id)
+    if not session:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    state = sessions[session_id].get("state")
+    state = session.get("state")
     logger.info("Findings requested", extra={"session_id": session_id, "action": "findings_requested", "extra": {"findings_count": len(state.all_findings) if state else 0}})
     if not state:
         return {
@@ -407,7 +460,7 @@ async def get_findings(session_id: str):
     return {
         "session_id": session_id,
         "incident_id": state.incident_id,
-        "target_service": sessions[session_id]["service_name"],
+        "target_service": session["service_name"],
         "findings": [f.model_dump(mode="json") for f in state.all_findings],
         "negative_findings": [nf.model_dump(mode="json") for nf in state.all_negative_findings],
         "critic_verdicts": [cv.model_dump(mode="json") for cv in state.critic_verdicts],
@@ -499,18 +552,45 @@ async def proxy_promql_query(request: PromQLRequest):
         return {"data_points": [], "current_value": 0, "error": str(e)}
 
 
+# ── Attestation Gate ──────────────────────────────────────────────────
+
+
+class AttestationDecision(BaseModel):
+    gate_type: str
+    decision: str
+    decided_by: str
+
+
+@router_v4.post("/session/{session_id}/attestation")
+async def submit_attestation(session_id: str, request: AttestationDecision):
+    """Submit attestation decision — gates fix generation."""
+    _validate_session_id(session_id)
+    session = sessions.get(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    supervisor = supervisors.get(session_id)
+    if not supervisor:
+        raise HTTPException(status_code=400, detail="Session not ready")
+
+    response_text = supervisor.acknowledge_attestation(request.decision)
+    return {"status": "recorded", "response": response_text}
+
+
 # ── Fix Pipeline Endpoints ────────────────────────────────────────────
 
 
 @router_v4.post("/session/{session_id}/fix/generate")
 async def generate_fix(session_id: str, request: FixRequest, background_tasks: BackgroundTasks):
     """Start fix generation for a completed diagnosis."""
-    if session_id not in sessions:
+    _validate_session_id(session_id)
+    session = sessions.get(session_id)
+    if not session:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    state = sessions[session_id].get("state")
+    state = session.get("state")
     supervisor = supervisors.get(session_id)
-    emitter = sessions[session_id].get("emitter")
+    emitter = session.get("emitter")
 
     if not state or not supervisor or not emitter:
         raise HTTPException(status_code=400, detail="Session not ready")
@@ -520,6 +600,13 @@ async def generate_fix(session_id: str, request: FixRequest, background_tasks: B
         raise HTTPException(
             status_code=400,
             detail=f"Fix generation requires DIAGNOSIS_COMPLETE phase, current: {state.phase.value}",
+        )
+
+    # Guard: require attestation before fix generation
+    if not supervisor._attestation_acknowledged:
+        raise HTTPException(
+            status_code=403,
+            detail="Attestation required — approve diagnosis findings before generating a fix",
         )
 
     # Guard against parallel fix generation — block all active/in-flight states
@@ -548,10 +635,12 @@ async def generate_fix(session_id: str, request: FixRequest, background_tasks: B
 @router_v4.get("/session/{session_id}/fix/status", response_model=FixStatusResponse)
 async def get_fix_status(session_id: str):
     """Get current fix generation status."""
-    if session_id not in sessions:
+    _validate_session_id(session_id)
+    session = sessions.get(session_id)
+    if not session:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    state = sessions[session_id].get("state")
+    state = session.get("state")
     if not state or not state.fix_result:
         return FixStatusResponse(fix_status="not_started")
 
@@ -571,11 +660,13 @@ async def get_fix_status(session_id: str):
 @router_v4.post("/session/{session_id}/fix/decide")
 async def fix_decide(session_id: str, request: FixDecisionRequest):
     """Submit a fix decision (approve/reject/feedback)."""
-    if session_id not in sessions:
+    _validate_session_id(session_id)
+    session = sessions.get(session_id)
+    if not session:
         raise HTTPException(status_code=404, detail="Session not found")
 
     supervisor = supervisors.get(session_id)
-    state = sessions[session_id].get("state")
+    state = session.get("state")
 
     if not supervisor or not state:
         raise HTTPException(status_code=400, detail="Session not ready")
@@ -598,10 +689,12 @@ async def fix_decide(session_id: str, request: FixDecisionRequest):
 
 @router_v4.get("/session/{session_id}/events")
 async def get_events(session_id: str):
-    if session_id not in sessions:
+    _validate_session_id(session_id)
+    session = sessions.get(session_id)
+    if not session:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    emitter = sessions[session_id].get("emitter")
+    emitter = session.get("emitter")
     if not emitter:
         return {"events": []}
 

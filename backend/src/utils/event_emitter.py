@@ -34,14 +34,18 @@ class EventEmitter:
         logger.debug("Event emitted", extra={"session_id": self.session_id, "agent_name": agent_name, "action": event_type, "extra": message})
 
         if self._websocket_manager:
-            await self._websocket_manager.send_message(
-                self.session_id,
-                {
-                    "type": "task_event",
-                    "data": event.model_dump(mode="json"),
-                },
-            )
-            logger.debug("WebSocket broadcast", extra={"session_id": self.session_id, "action": "ws_broadcast", "extra": event_type})
+            try:
+                await self._websocket_manager.send_message(
+                    self.session_id,
+                    {
+                        "type": "task_event",
+                        "data": event.model_dump(mode="json"),
+                    },
+                )
+                logger.debug("WebSocket broadcast", extra={"session_id": self.session_id, "action": "ws_broadcast", "extra": event_type})
+            except Exception as e:
+                # H3: Log at WARNING — event is stored locally; frontend can catch up via GET /events
+                logger.warning("WebSocket broadcast failed (event stored locally)", extra={"session_id": self.session_id, "action": "ws_broadcast_failed", "extra": str(e)})
 
         return event
 

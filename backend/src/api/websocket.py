@@ -39,16 +39,20 @@ class ConnectionManager:
         logger.info("WebSocket disconnected", extra={"session_id": session_id, "action": "ws_disconnect"})
 
     async def send_message(self, session_id: str, message: dict):
-        """Send message to all connections for a session"""
+        """Send message to all connections for a session. H2: Retries once on failure."""
         if session_id not in self.active_connections:
             return
         disconnected = []
         for ws in self.active_connections[session_id]:
             try:
                 await ws.send_json(message)
-            except Exception as e:
-                logger.warning("Error sending WebSocket message", extra={"session_id": session_id, "action": "ws_send_error", "extra": str(e)})
-                disconnected.append(ws)
+            except Exception:
+                # H2: Retry once before disconnecting
+                try:
+                    await ws.send_json(message)
+                except Exception as e:
+                    logger.warning("WebSocket send failed after retry", extra={"session_id": session_id, "action": "ws_send_error", "extra": str(e)})
+                    disconnected.append(ws)
         for ws in disconnected:
             self.disconnect(session_id, ws)
 

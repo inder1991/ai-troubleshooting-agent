@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import type {
   V4Session,
   ChatMessage,
@@ -23,6 +23,8 @@ import SessionManagerView from './components/Sessions/SessionManagerView';
 import IntegrationSettings from './components/Settings/IntegrationSettings';
 import ErrorBoundary from './components/ui/ErrorBoundary';
 import ErrorBanner from './components/ui/ErrorBanner';
+import ForemanHUD from './components/Foreman/ForemanHUD';
+
 
 type ViewState = 'home' | 'form' | 'investigation' | 'sessions' | 'integrations' | 'settings';
 
@@ -40,6 +42,8 @@ function AppInner() {
   const [tokenUsage, setTokenUsage] = useState<TokenUsage[]>([]);
   const [attestationGate, setAttestationGate] = useState<AttestationGateData | null>(null);
   const [wsMaxReconnectsHit, setWsMaxReconnectsHit] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
+  const commandTabRef = useRef<HTMLButtonElement>(null);
 
   const activeSessionId = activeSession?.session_id ?? null;
 
@@ -61,10 +65,12 @@ function AppInner() {
       const sid = event.session_id || activeSessionId;
       if (!sid) return;
 
-      setTaskEvents((prev) => ({
-        ...prev,
-        [sid]: [...(prev[sid] || []), event],
-      }));
+      // C3: Cap events per session at 500 to prevent unbounded memory growth
+      setTaskEvents((prev) => {
+        const existing = prev[sid] || [];
+        const updated = [...existing, event];
+        return { ...prev, [sid]: updated.length > 500 ? updated.slice(-500) : updated };
+      });
 
       // Extract phase from phase_change events directly (instant update)
       if (event.event_type === 'phase_change' && event.details?.phase) {
@@ -140,10 +146,16 @@ function AppInner() {
     setViewState('form');
   }, []);
 
+  // C5: Reset ALL investigation-related state atomically on session switch
   const handleGoHome = useCallback(() => {
     setViewState('home');
     setSelectedCapability(null);
     setActiveSession(null);
+    setChatOpen(false);
+    setCurrentPhase(null);
+    setConfidence(0);
+    setAttestationGate(null);
+    setTaskEvents({});
   }, []);
 
   const handleSelectSession = useCallback(
@@ -242,6 +254,15 @@ function AppInner() {
 
   useKeyboardShortcuts(shortcutHandlers);
 
+  // Detect if agent needs user input
+  const needsInput = useMemo(() => {
+    const msgs = currentChatMessages.filter(m => m.role === 'assistant');
+    if (!msgs.length) return false;
+    const last = msgs[msgs.length - 1];
+    return last.content.trim().endsWith('?') ||
+      /\b(confirm|approve|proceed|rollback|input needed)\b/i.test(last.content);
+  }, [currentChatMessages]);
+
   // Derive nav view from viewState
   const navView: NavView =
     viewState === 'sessions' ? 'sessions' : viewState === 'integrations' ? 'integrations' : viewState === 'settings' ? 'settings' : 'home';
@@ -302,47 +323,18 @@ function AppInner() {
 
         {viewState === 'investigation' && activeSession && (
           <>
-            {/* Investigation header - matches reference war room style */}
-            <header className="h-14 border-b border-primary/20 bg-background-dark/50 backdrop-blur-md flex items-center justify-between px-6 shrink-0">
-              <div className="flex items-center gap-4">
-                <button
-                  onClick={handleGoHome}
-                  className="flex items-center gap-2 group"
-                >
-                  <div className="w-8 h-8 bg-primary rounded flex items-center justify-center">
-                    <span className="material-symbols-outlined text-white text-lg" style={{ fontFamily: 'Material Symbols Outlined' }}>bug_report</span>
-                  </div>
-                  <span className="font-bold tracking-tight text-lg">
-                    Debug<span className="text-primary">Duck</span>
-                  </span>
-                </button>
-                <div className="h-4 w-px bg-slate-700 mx-2" />
-                <div className="flex flex-col">
-                  <span className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Investigation ID</span>
-                  <span className="text-xs font-mono text-primary">{activeSession.session_id.substring(0, 8).toUpperCase()}</span>
-                </div>
-              </div>
-              <div className="flex items-center gap-6">
-                {currentPhase && (
-                  <div className="flex items-center gap-2 px-3 py-1 bg-red-500/10 border border-red-500/20 rounded-full">
-                    <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                    <span className="text-[10px] font-bold text-red-500 uppercase tracking-wider">
-                      Phase: {currentPhase.replace(/_/g, ' ')}
-                    </span>
-                  </div>
-                )}
-                {/* User Avatars */}
-                <div className="flex -space-x-2">
-                  <div className="w-7 h-7 rounded-full border-2 border-background-dark bg-primary/20 flex items-center justify-center">
-                    <span className="material-symbols-outlined text-primary text-xs" style={{ fontFamily: 'Material Symbols Outlined' }}>person</span>
-                  </div>
-                  <div className="w-7 h-7 rounded-full border-2 border-background-dark bg-slate-800 flex items-center justify-center text-[10px] font-bold text-slate-400">+1</div>
-                </div>
-                <button className="bg-primary/10 hover:bg-primary/20 text-primary p-1.5 rounded-lg transition-colors" aria-label="Share session">
-                  <span className="material-symbols-outlined text-xl" style={{ fontFamily: 'Material Symbols Outlined' }}>share</span>
-                </button>
-              </div>
-            </header>
+            {/* Foreman HUD Header */}
+            <ForemanHUD
+              sessionId={activeSession.session_id}
+              serviceName={activeSession.service_name}
+              phase={currentPhase}
+              confidence={confidence}
+              events={currentTaskEvents}
+              wsConnected={wsConnected}
+              needsInput={needsInput}
+              onGoHome={handleGoHome}
+              onOpenChat={() => setChatOpen(true)}
+            />
 
             {/* WS disconnect banner */}
             {wsMaxReconnectsHit && (
@@ -370,6 +362,10 @@ function AppInner() {
                   tokenUsage={tokenUsage}
                   attestationGate={attestationGate}
                   onAttestationDecision={handleAttestationDecision}
+                  needsInput={needsInput}
+                  chatOpen={chatOpen}
+                  onChatToggle={setChatOpen}
+                  commandTabRef={commandTabRef}
                 />
               </ErrorBoundary>
             </div>

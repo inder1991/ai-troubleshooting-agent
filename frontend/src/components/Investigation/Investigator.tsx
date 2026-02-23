@@ -1,16 +1,15 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import type { ChatMessage as ChatMessageType, TaskEvent, V4Findings, V4SessionStatus, Breadcrumb, PatientZero, ReasoningChainStep } from '../../types';
-import { sendChatMessage } from '../../services/api';
+import { motion, AnimatePresence } from 'framer-motion';
+import type { TaskEvent, V4Findings, V4SessionStatus, Breadcrumb, ReasoningChainStep } from '../../types';
 import { formatTime } from '../../utils/format';
 
 interface InvestigatorProps {
   sessionId: string;
-  messages: ChatMessageType[];
   events: TaskEvent[];
-  onNewMessage: (message: ChatMessageType) => void;
   wsConnected: boolean;
   findings: V4Findings | null;
   status: V4SessionStatus | null;
+  onAttachRepo?: () => void;
 }
 
 // ─── Timeline Builder ─────────────────────────────────────────────────────
@@ -23,18 +22,16 @@ interface ToolCallGroup {
 }
 
 type TimelineItem =
-  | { kind: 'chat'; msg: ChatMessageType; ts: number }
   | { kind: 'event'; event: TaskEvent; ts: number }
   | { kind: 'reasoning_chain'; chain: ReasoningChainStep[]; ts: number }
   | ToolCallGroup;
 
 function buildTimeline(
-  messages: ChatMessageType[],
   events: TaskEvent[],
   showToolCalls: boolean,
   reasoningChain?: ReasoningChainStep[],
 ): TimelineItem[] {
-  const eventItems: TimelineItem[] = [];
+  const items: TimelineItem[] = [];
   let i = 0;
   while (i < events.length) {
     const ev = events[i];
@@ -46,28 +43,27 @@ function buildTimeline(
         j++;
       }
       if (showToolCalls) {
-        eventItems.push({ kind: 'tool_group', agent: ev.agent_name, events: group, ts: new Date(ev.timestamp).getTime() });
+        items.push({ kind: 'tool_group', agent: ev.agent_name, events: group, ts: new Date(ev.timestamp).getTime() });
       }
       i = j;
     } else {
-      eventItems.push({ kind: 'event', event: ev, ts: new Date(ev.timestamp).getTime() });
+      items.push({ kind: 'event', event: ev, ts: new Date(ev.timestamp).getTime() });
       i++;
     }
   }
 
-  // Insert reasoning chain at the correct chronological position (after its summary event)
+  // Insert reasoning chain at the correct chronological position
   if (reasoningChain && reasoningChain.length > 0) {
     const reasoningEvent = events.find(
       (e) => e.event_type === 'summary' && e.message.toLowerCase().includes('reasoning chain'),
     );
     const ts = reasoningEvent
-      ? new Date(reasoningEvent.timestamp).getTime() + 1 // just after the summary event
+      ? new Date(reasoningEvent.timestamp).getTime() + 1
       : Date.now();
-    eventItems.push({ kind: 'reasoning_chain', chain: reasoningChain, ts });
+    items.push({ kind: 'reasoning_chain', chain: reasoningChain, ts });
   }
 
-  const chatItems: TimelineItem[] = messages.map((msg) => ({ kind: 'chat' as const, msg, ts: new Date(msg.timestamp).getTime() }));
-  return [...chatItems, ...eventItems].sort((a, b) => a.ts - b.ts);
+  return items.sort((a, b) => a.ts - b.ts);
 }
 
 // Agent badge colors
@@ -91,82 +87,35 @@ const agentIcon: Record<string, string> = {
 
 const Investigator: React.FC<InvestigatorProps> = ({
   sessionId,
-  messages,
   events,
-  onNewMessage,
   wsConnected,
   findings,
   status,
+  onAttachRepo,
 }) => {
-  const [input, setInput] = useState('');
-  const [sending, setSending] = useState(false);
   const [showToolCalls, setShowToolCalls] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
   const userScrolledUpRef = useRef(false);
-  const lastUserMsgRef = useRef<HTMLDivElement>(null);
-  const [showScrollPill, setShowScrollPill] = useState(false);
 
-  // Only auto-scroll when user is near the bottom (not reading earlier content)
   const handleScroll = useCallback(() => {
     if (!scrollRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
     userScrolledUpRef.current = scrollHeight - scrollTop - clientHeight > 120;
-
-    if (lastUserMsgRef.current && scrollRef.current) {
-      const container = scrollRef.current;
-      const msgEl = lastUserMsgRef.current;
-      const msgBottom = msgEl.offsetTop + msgEl.offsetHeight;
-      const viewBottom = container.scrollTop + container.clientHeight;
-      setShowScrollPill(msgBottom < container.scrollTop || msgEl.offsetTop > viewBottom);
-    } else {
-      setShowScrollPill(false);
-    }
   }, []);
 
   useEffect(() => {
     if (scrollRef.current && !userScrolledUpRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages]);
-
-  useEffect(() => { inputRef.current?.focus(); }, [sessionId]);
-
-  const handleSend = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const trimmed = input.trim();
-    if (!trimmed || sending) return;
-
-    const userMessage: ChatMessageType = { role: 'user', content: trimmed, timestamp: new Date().toISOString() };
-    onNewMessage(userMessage);
-    setInput('');
-    setSending(true);
-
-    try {
-      const response = await sendChatMessage(sessionId, trimmed);
-      if (response?.content) onNewMessage(response);
-    } catch (err) {
-      onNewMessage({ role: 'assistant', content: `Error: ${err instanceof Error ? err.message : 'Failed to send message'}`, timestamp: new Date().toISOString() });
-    } finally {
-      setSending(false);
-    }
-  };
+  }, [events]);
 
   const timeline = useMemo(
-    () => buildTimeline(messages, events, showToolCalls, findings?.reasoning_chain),
-    [messages, events, showToolCalls, findings?.reasoning_chain],
+    () => buildTimeline(events, showToolCalls, findings?.reasoning_chain),
+    [events, showToolCalls, findings?.reasoning_chain],
   );
   const toolCallCount = events.filter((e) => e.event_type === 'tool_call').length;
 
-  const lastUserMsgIdx = useMemo(() => {
-    for (let i = timeline.length - 1; i >= 0; i--) {
-      const item = timeline[i];
-      if (item.kind === 'chat' && item.msg.role === 'user') return i;
-    }
-    return -1;
-  }, [timeline]);
-
-  // Group breadcrumbs by agent for evidence trail rendering
+  // Group breadcrumbs by agent
   const breadcrumbsByAgent = useMemo(() => {
     const map: Record<string, Breadcrumb[]> = {};
     for (const b of status?.breadcrumbs || []) {
@@ -193,15 +142,6 @@ const Investigator: React.FC<InvestigatorProps> = ({
     return findings.patient_zero.service.toLowerCase() !== findings.target_service.toLowerCase();
   }, [findings?.patient_zero?.service, findings?.target_service]);
 
-  const handleAttachRepo = useCallback(() => {
-    if (!sessionId) return;
-    const userMsg: ChatMessageType = { role: 'user', content: 'confirm', timestamp: new Date().toISOString() };
-    onNewMessage(userMsg);
-    sendChatMessage(sessionId, 'confirm').then((resp) => {
-      if (resp?.content) onNewMessage(resp);
-    }).catch(() => {});
-  }, [sessionId, onNewMessage]);
-
   // Time-to-impact
   const firstErrorTime = findings?.patient_zero?.first_error_time;
   const [elapsedSec, setElapsedSec] = useState(0);
@@ -219,6 +159,32 @@ const Investigator: React.FC<InvestigatorProps> = ({
     const s = sec % 60;
     return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
   };
+
+  // Current Best Guess — derived from the latest high-severity finding or summary
+  const bestGuess = useMemo(() => {
+    if (!findings) return null;
+    // Use the top finding's summary if available
+    const topFinding = findings.findings?.[0];
+    if (topFinding) {
+      return {
+        text: topFinding.title || topFinding.summary,
+        confidence: status?.confidence ?? findings.code_overall_confidence ?? 0,
+      };
+    }
+    // Fall back to latest summary event message
+    const summaryEvents = events.filter((e) => e.event_type === 'summary' && e.message);
+    const lastSummary = summaryEvents[summaryEvents.length - 1];
+    if (lastSummary) {
+      return {
+        text: lastSummary.message,
+        confidence: Number(lastSummary.details?.confidence || 0),
+      };
+    }
+    return null;
+  }, [findings, events, status?.confidence]);
+
+  const confidenceColor = (c: number) =>
+    c >= 70 ? 'bg-emerald-500' : c >= 40 ? 'bg-amber-500' : 'bg-red-500';
 
   return (
     <div className="flex flex-col h-full bg-slate-900/20">
@@ -242,13 +208,13 @@ const Investigator: React.FC<InvestigatorProps> = ({
             )}
           </div>
           <p className="text-[10px] text-red-300/70 mt-0.5">{findings.patient_zero.evidence}</p>
-          {repoMismatch && (
+          {repoMismatch && onAttachRepo && (
             <div className="mt-1.5 flex items-center gap-2">
               <p className="text-[10px] text-amber-300/80">
                 Root cause in <strong>{findings.patient_zero.service}</strong>, repo provided for <strong>{findings.target_service}</strong>
               </p>
               <button
-                onClick={handleAttachRepo}
+                onClick={onAttachRepo}
                 className="text-[9px] font-bold uppercase px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30 transition-colors flex items-center gap-1"
               >
                 <span className="material-symbols-outlined" style={{ fontFamily: 'Material Symbols Outlined', fontSize: '11px' }}>link</span>
@@ -281,7 +247,7 @@ const Investigator: React.FC<InvestigatorProps> = ({
       <div className="p-4 border-b border-slate-800/50 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="material-symbols-outlined text-primary text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>psychology</span>
-          <h2 className="text-xs font-bold uppercase tracking-widest text-slate-400">Investigator</h2>
+          <h2 className="text-xs font-bold uppercase tracking-widest text-slate-400">AI Investigation Log</h2>
         </div>
         <button
           onClick={() => setShowToolCalls(!showToolCalls)}
@@ -296,10 +262,11 @@ const Investigator: React.FC<InvestigatorProps> = ({
         </button>
       </div>
 
-      {/* Investigative Timeline */}
+      {/* AI Investigation Timeline */}
       <div ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-y-auto px-4 py-3 custom-scrollbar">
         {timeline.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-slate-500">
+            <span className="material-symbols-outlined text-3xl text-slate-600 mb-2" style={{ fontFamily: 'Material Symbols Outlined' }}>radar</span>
             <p className="text-sm">Waiting for investigation to begin...</p>
             <p className="text-[10px] mt-1">Agent events will stream here in real-time</p>
           </div>
@@ -310,71 +277,39 @@ const Investigator: React.FC<InvestigatorProps> = ({
 
             <div className="space-y-2">
               {timeline.map((item, idx) => {
-                if (item.kind === 'chat') {
-                  return (
-                    <div key={`chat-${idx}`} ref={idx === lastUserMsgIdx ? lastUserMsgRef : undefined}>
-                      <ChatBubble message={item.msg} />
-                    </div>
-                  );
-                }
                 if (item.kind === 'tool_group') {
                   return <ToolCallGroupNode key={`tg-${idx}`} group={item} />;
                 }
                 if (item.kind === 'reasoning_chain') {
-                  return <ReasoningChainSection key={`rc-${idx}`} chain={item.chain} />;
+                  return <ReasoningStream key={`rc-${idx}`} chain={item.chain} />;
                 }
                 return <EventNode key={`ev-${idx}`} event={item.event} breadcrumbs={item.event.event_type === 'summary' ? breadcrumbsByAgent[item.event.agent_name] : undefined} />;
               })}
             </div>
           </div>
         )}
+      </div>
 
-        {sending && (
-          <div className="flex justify-start ml-6 mt-2">
-            <div className="bg-[#07b6d5]/5 border border-[#07b6d5]/10 rounded-xl px-3 py-2">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-[#07b6d5] rounded-full animate-pulse" />
-                <span className="text-xs text-slate-400">Thinking...</span>
-              </div>
-            </div>
+      {/* Current Best Guess (sticky footer) */}
+      {bestGuess && (
+        <div className="flex-shrink-0 border-t border-slate-800/50 bg-slate-900/60 px-4 py-3">
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="material-symbols-outlined text-[#07b6d5] text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>neurology</span>
+            <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500">Current Best Guess</span>
+            <span className={`ml-auto text-sm font-mono font-bold ${bestGuess.confidence >= 70 ? 'text-emerald-400' : bestGuess.confidence >= 40 ? 'text-amber-400' : 'text-red-400'}`}>
+              {bestGuess.confidence}%
+            </span>
           </div>
-        )}
-
-        {showScrollPill && (
-          <button
-            onClick={() => lastUserMsgRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
-            className="sticky bottom-2 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-800/90 border border-slate-600 text-[10px] text-slate-300 hover:bg-slate-700/90 hover:text-white transition-colors shadow-lg backdrop-blur-sm"
-          >
-            <span className="material-symbols-outlined text-sm text-slate-400"
-                  style={{ fontFamily: 'Material Symbols Outlined' }}>arrow_downward</span>
-            Scroll to your message
-          </button>
-        )}
-
-      </div>
-
-      {/* Chat Input (bottom, sticky) */}
-      <div className="p-3 border-t border-slate-800/50 bg-slate-900/40 flex-shrink-0">
-        <form onSubmit={handleSend} className="relative">
-          <textarea
-            ref={inputRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(e); } }}
-            placeholder="Ask the investigator..."
-            disabled={sending}
-            className="w-full bg-slate-800/50 border border-slate-700 rounded-lg py-2 px-3 text-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none resize-none h-16 placeholder:text-slate-600 disabled:opacity-50 text-white custom-scrollbar"
-          />
-          <button
-            type="submit"
-            disabled={sending || !input.trim()}
-            className="absolute bottom-2 right-2 p-1.5 bg-primary rounded-md text-white disabled:opacity-50 disabled:cursor-not-allowed disabled:saturate-0 hover:bg-primary/80 transition-colors"
-            aria-label="Send message"
-          >
-            <span className="material-symbols-outlined text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>send</span>
-          </button>
-        </form>
-      </div>
+          <p className="text-[11px] text-slate-300 leading-relaxed line-clamp-2">{bestGuess.text}</p>
+          {/* Confidence bar */}
+          <div className="mt-2 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all duration-500 ${confidenceColor(bestGuess.confidence)}`}
+              style={{ width: `${Math.min(bestGuess.confidence, 100)}%` }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -383,7 +318,6 @@ const Investigator: React.FC<InvestigatorProps> = ({
 
 const EventNode: React.FC<{ event: TaskEvent; breadcrumbs?: Breadcrumb[] }> = ({ event, breadcrumbs }) => {
   const icon = agentIcon[event.agent_name] || 'circle';
-  const colorClass = agentColor[event.agent_name] || 'bg-slate-500/20 text-slate-400 border-slate-500/30';
 
   if (event.event_type === 'phase_change') {
     const phaseName = event.details?.phase
@@ -433,7 +367,6 @@ const EventNode: React.FC<{ event: TaskEvent; breadcrumbs?: Breadcrumb[] }> = ({
           {event.message && (
             <p className="text-[11px] text-slate-300 mt-1.5">{event.message}</p>
           )}
-          {/* Evidence Trail: breadcrumbs for this agent */}
           {breadcrumbs && breadcrumbs.length > 0 && (
             <EvidenceTrail breadcrumbs={breadcrumbs} agentName={event.agent_name} />
           )}
@@ -508,102 +441,103 @@ const ToolCallGroupNode: React.FC<{ group: ToolCallGroup }> = ({ group }) => {
   );
 };
 
-// ─── Chat Bubble ──────────────────────────────────────────────────────────
+// ─── Neural Reasoning Stream (always-on Live Thought Stream) ──────────────
 
-const ChatBubble: React.FC<{ message: ChatMessageType }> = ({ message }) => {
-  if (message.role === 'user') {
-    return (
-      <div className="relative flex justify-end">
-        <div className="absolute left-[-18px] w-2.5 h-2.5 rounded-full bg-slate-400 border-2 border-slate-900" />
-        <div className="max-w-[85%] bg-slate-800/80 border border-slate-600 border-l-2 border-l-slate-400 rounded-xl px-3 py-2">
-          <div className="flex items-center gap-1.5 mb-1">
-            <span className="material-symbols-outlined text-slate-400"
-                  style={{ fontFamily: 'Material Symbols Outlined', fontSize: '11px' }}>person</span>
-            <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500">You</span>
-          </div>
-          <p className="text-xs text-slate-200 whitespace-pre-wrap">{message.content}</p>
-          <p className="text-[9px] text-slate-600 mt-1 text-right">
-            {formatTime(message.timestamp)}
-          </p>
-        </div>
-      </div>
-    );
-  }
-  return (
-    <div className="relative">
-      <div className="absolute left-[-18px] w-2.5 h-2.5 rounded-full bg-[#07b6d5] border-2 border-slate-900" />
-      <div className="bg-[#07b6d5]/5 border border-[#07b6d5]/10 rounded-xl p-3">
-        <p className="text-xs text-slate-300 whitespace-pre-wrap leading-relaxed">{message.content}</p>
-        <p className="text-[9px] text-slate-600 mt-1">{formatTime(message.timestamp)}</p>
-      </div>
-    </div>
-  );
-};
-
-// ─── Reasoning Chain Section ──────────────────────────────────────────────
-
-const ReasoningChainSection: React.FC<{ chain: ReasoningChainStep[] }> = ({ chain }) => {
-  const [expanded, setExpanded] = useState(false);
+const ReasoningStream: React.FC<{ chain: ReasoningChainStep[] }> = ({ chain }) => {
   if (!chain.length) return null;
 
   return (
     <div className="relative">
       <div className="absolute left-[-18px] w-2.5 h-2.5 rounded-full bg-[#07b6d5] border-2 border-slate-900" />
-      <div className="bg-[#07b6d5]/5 border border-[#07b6d5]/15 rounded-lg overflow-hidden">
-        <button
-          onClick={() => setExpanded(!expanded)}
-          className="w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-[#07b6d5]/10 transition-colors"
-          aria-expanded={expanded}
-          aria-label={`${expanded ? 'Collapse' : 'Expand'} AI reasoning chain`}
-        >
-          <span className={`material-symbols-outlined text-xs text-[#07b6d5] transition-transform ${expanded ? 'rotate-90' : ''}`}
-                style={{ fontFamily: 'Material Symbols Outlined' }}>chevron_right</span>
-          <span className="material-symbols-outlined text-[#07b6d5] text-sm"
-                style={{ fontFamily: 'Material Symbols Outlined' }}>psychology</span>
-          <span className="text-[10px] font-bold uppercase tracking-wider text-[#07b6d5]">AI Reasoning Chain</span>
+      <div
+        className="bg-slate-950/20 border border-[#07b6d5]/15 rounded-lg overflow-hidden"
+        style={{
+          WebkitMaskImage: 'linear-gradient(to bottom, black 75%, transparent 100%)',
+          maskImage: 'linear-gradient(to bottom, black 75%, transparent 100%)',
+        }}
+      >
+        {/* Header */}
+        <div className="px-3 py-2 flex items-center gap-2 border-b border-[#07b6d5]/10">
+          <span
+            className="material-symbols-outlined text-[#07b6d5] text-sm"
+            style={{ fontFamily: 'Material Symbols Outlined' }}
+          >
+            psychology
+          </span>
+          <span className="text-[10px] font-bold uppercase tracking-wider text-[#07b6d5]">
+            Neural_Reasoning_Stream
+          </span>
           <span className="text-[10px] font-mono text-slate-500">
             {chain.length} step{chain.length !== 1 ? 's' : ''}
           </span>
-        </button>
-        {expanded && (
-          <div className="p-3 pt-0 space-y-1.5 border-t border-[#07b6d5]/10">
-            {chain.map((step, i) => (
-              <ReasoningStepItem key={i} step={step} />
-            ))}
-          </div>
-        )}
+        </div>
+
+        {/* Steps — always visible, no accordion */}
+        <div className="relative p-3 space-y-0">
+          {/* Vertical trace line */}
+          <div
+            className="absolute left-[22px] top-3 bottom-3 w-px"
+            style={{
+              background: 'linear-gradient(to bottom, #07b6d5 0%, #07b6d540 60%, transparent 100%)',
+            }}
+          />
+
+          <AnimatePresence initial={false}>
+            {chain.map((step, i) => {
+              const isLast = i === chain.length - 1;
+              const stepLabel = `Step_${String(step.step).padStart(2, '0')}`;
+
+              return (
+                <motion.div
+                  key={`step-${step.step}`}
+                  initial={{ opacity: 0, x: -12 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.3, delay: i * 0.05 }}
+                  className="relative flex items-start gap-3 py-1.5"
+                >
+                  {/* Neural node dot */}
+                  <div className="relative z-10 shrink-0 mt-0.5">
+                    <div
+                      className={`w-4 h-4 rounded-full flex items-center justify-center ${
+                        isLast
+                          ? 'bg-[#07b6d5] shadow-[0_0_8px_rgba(7,182,213,0.6)]'
+                          : 'bg-[#07b6d5]/20 border border-[#07b6d5]/40'
+                      }`}
+                    >
+                      {isLast && (
+                        <div className="absolute inset-0 rounded-full border-2 border-[#07b6d5]/50 animate-ping" />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Step content */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="text-[9px] font-mono font-bold text-[#07b6d5]/60">
+                        {stepLabel}
+                      </span>
+                      {step.tool && (
+                        <span className="text-[8px] font-mono px-1.5 py-0 rounded bg-purple-500/15 text-purple-400 border border-purple-500/20">
+                          {step.tool}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-slate-300 leading-relaxed">
+                      {step.observation}
+                    </p>
+                    {step.inference && (
+                      <p className="text-[10px] text-slate-500 italic mt-0.5">
+                        {'\u2192'} {step.inference}
+                      </p>
+                    )}
+                  </div>
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
+        </div>
       </div>
     </div>
-  );
-};
-
-const ReasoningStepItem: React.FC<{ step: ReasoningChainStep }> = ({ step }) => {
-  const [expanded, setExpanded] = useState(false);
-  const preview = step.observation.length > 80
-    ? step.observation.slice(0, 80) + '...'
-    : step.observation;
-
-  return (
-    <button
-      onClick={() => setExpanded(!expanded)}
-      className="w-full text-left flex items-start gap-2 py-1 px-1 rounded hover:bg-slate-800/30 transition-colors"
-    >
-      <div className="w-5 h-5 rounded-full bg-[#07b6d5]/20 flex items-center justify-center shrink-0 mt-0.5">
-        <span className="text-[9px] font-bold text-[#07b6d5]">{step.step}</span>
-      </div>
-      <div className="flex-1 min-w-0">
-        {expanded ? (
-          <>
-            <p className="text-[11px] text-slate-300">{step.observation}</p>
-            <p className="text-[10px] text-slate-400 italic mt-0.5">{'\u2192'} {step.inference}</p>
-          </>
-        ) : (
-          <p className="text-[11px] text-slate-400 truncate">{preview}</p>
-        )}
-      </div>
-      <span className={`material-symbols-outlined text-[10px] text-slate-600 transition-transform mt-1 shrink-0 ${expanded ? 'rotate-90' : ''}`}
-            style={{ fontFamily: 'Material Symbols Outlined' }}>chevron_right</span>
-    </button>
   );
 };
 
@@ -643,10 +577,9 @@ const EvidenceTrail: React.FC<{ breadcrumbs: Breadcrumb[]; agentName: string }> 
         <div className="flex flex-wrap gap-1.5 mt-1.5">
           {breadcrumbs.map((crumb, i) => {
             const icon = sourceTypeIcon[crumb.source_type || ''] || sourceTypeIcon.log;
-            // Show source_reference when available (e.g., "owner/repo@abc1234"), fall back to cleaned action
             const shortAction = crumb.action.replace(/^(get_|test_|search_|query_|list_|analyze_|fetch_)/, '');
             const refLabel = crumb.source_reference
-              ? crumb.source_reference.replace(/^[^/]+\//, '') // "owner/repo@sha" → "repo@sha"
+              ? crumb.source_reference.replace(/^[^/]+\//, '')
               : shortAction;
             return (
               <span

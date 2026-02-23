@@ -207,6 +207,7 @@ export interface ReasoningChainStep {
   step: number;
   observation: string;
   inference: string;
+  tool?: string;
 }
 
 export interface ServiceFlowStep {
@@ -323,46 +324,47 @@ export interface SuggestedPromQLQuery {
   rationale: string;
 }
 
+// M8: Array fields marked optional — backend may omit them during partial state
 export interface V4Findings {
   session_id: string;
   incident_id?: string;
   target_service?: string;
   findings: Finding[];
-  negative_findings: NegativeFinding[];
-  critic_verdicts: CriticVerdict[];
-  error_patterns: ErrorPattern[];
-  metric_anomalies: MetricAnomaly[];
-  correlated_signals: CorrelatedSignalGroup[];
-  event_markers: EventMarker[];
-  pod_statuses: PodHealthStatus[];
-  k8s_events: K8sEvent[];
-  trace_spans: SpanInfo[];
-  impacted_files: CodeImpact[];
-  diff_analysis: DiffAnalysisItem[];
-  suggested_fix_areas: SuggestedFixArea[];
-  root_cause_location: CodeImpact | null;
-  code_call_chain: string[];
-  code_dependency_graph: Record<string, string[]>;
-  code_shared_resource_conflicts: string[];
-  code_cross_repo_findings: CrossRepoFinding[];
-  code_mermaid_diagram: string;
-  code_overall_confidence: number;
-  change_correlations: ChangeCorrelation[];
-  change_summary: string | null;
-  change_high_priority_files: HighPriorityFile[];
-  blast_radius: BlastRadiusData | null;
-  severity_recommendation: SeverityData | null;
-  past_incidents: PastIncidentMatch[];
-  service_flow: ServiceFlowStep[];
-  flow_source: string | null;
-  flow_confidence: number;
-  patient_zero: PatientZero | null;
-  inferred_dependencies: InferredDependency[];
-  reasoning_chain: ReasoningChainStep[];
-  suggested_promql_queries: SuggestedPromQLQuery[];
-  time_series_data: Record<string, TimeSeriesDataPoint[]>;
-  fix_data: FixResult | null;
-  closure_state: IncidentClosureState | null;
+  negative_findings?: NegativeFinding[];
+  critic_verdicts?: CriticVerdict[];
+  error_patterns?: ErrorPattern[];
+  metric_anomalies?: MetricAnomaly[];
+  correlated_signals?: CorrelatedSignalGroup[];
+  event_markers?: EventMarker[];
+  pod_statuses?: PodHealthStatus[];
+  k8s_events?: K8sEvent[];
+  trace_spans?: SpanInfo[];
+  impacted_files?: CodeImpact[];
+  diff_analysis?: DiffAnalysisItem[];
+  suggested_fix_areas?: SuggestedFixArea[];
+  root_cause_location?: CodeImpact | null;
+  code_call_chain?: string[];
+  code_dependency_graph?: Record<string, string[]>;
+  code_shared_resource_conflicts?: string[];
+  code_cross_repo_findings?: CrossRepoFinding[];
+  code_mermaid_diagram?: string;
+  code_overall_confidence?: number;
+  change_correlations?: ChangeCorrelation[];
+  change_summary?: string | null;
+  change_high_priority_files?: HighPriorityFile[];
+  blast_radius?: BlastRadiusData | null;
+  severity_recommendation?: SeverityData | null;
+  past_incidents?: PastIncidentMatch[];
+  service_flow?: ServiceFlowStep[];
+  flow_source?: string | null;
+  flow_confidence?: number;
+  patient_zero?: PatientZero | null;
+  inferred_dependencies?: InferredDependency[];
+  reasoning_chain?: ReasoningChainStep[];
+  suggested_promql_queries?: SuggestedPromQLQuery[];
+  time_series_data?: Record<string, TimeSeriesDataPoint[]>;
+  fix_data?: FixResult | null;
+  closure_state?: IncidentClosureState | null;
 }
 
 export type FixStatus =
@@ -725,13 +727,14 @@ export interface IntegrationAvailability {
   has_credentials: boolean;
 }
 
+// M7: Fields marked optional — backend may send partial closure state
 export interface IncidentClosureState {
   phase: ClosurePhase;
-  jira_result: JiraActionResult;
-  remedy_result: RemedyActionResult;
-  confluence_result: ConfluenceActionResult;
-  postmortem_preview: string;
-  closed_at: string | null;
+  jira_result?: JiraActionResult;
+  remedy_result?: RemedyActionResult;
+  confluence_result?: ConfluenceActionResult;
+  postmortem_preview?: string;
+  closed_at?: string | null;
 }
 
 export interface ClosureStatusResponse {

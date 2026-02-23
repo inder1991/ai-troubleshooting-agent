@@ -141,6 +141,13 @@ async def submit_attestation(session_id: str, request: AttestationRequest):
         "decided_at": datetime.now().isoformat(),
     }
     session.setdefault("attestation_gates", []).append(gate)
+
+    # Wire attestation to supervisor to gate fix generation
+    from src.api.routes_v4 import supervisors
+    supervisor = supervisors.get(session_id)
+    if supervisor:
+        supervisor.acknowledge_attestation(request.decision)
+
     return {"status": "recorded", "gate": gate}
 
 
