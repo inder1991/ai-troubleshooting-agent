@@ -28,6 +28,7 @@ import VineCard from './hud/VineCard';
 import TargetingBrackets from './hud/TargetingBrackets';
 import WorkerSignature from './hud/WorkerSignature';
 import WeldSpark from './hud/WeldSpark';
+import MermaidChart from '../Agent2/Mermaid';
 import SymptomDeck from './hud/SymptomDeck';
 import AssemblyWorkbench from './hud/AssemblyWorkbench';
 import ResolveCinematic from './hud/ResolveCinematic';
@@ -249,6 +250,46 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                 </motion.div>
               )}
             </AnimatePresence>
+            {/* Evidence Anchor Bar - prevents infinite scroll doom */}
+            {findings && hasContent && (
+              <div className="sticky top-0 z-50 bg-slate-950/90 backdrop-blur border-b border-slate-800 flex gap-1.5 p-2 mb-4 rounded-lg overflow-x-auto scrollbar-hide">
+                {rootCausePatterns.length > 0 && (
+                  <a href="#section-root-cause" className="text-[10px] uppercase font-bold text-red-400 bg-red-500/10 px-2 py-1 rounded whitespace-nowrap hover:bg-red-500/20 transition-colors">
+                    Root Cause ({rootCausePatterns.length})
+                  </a>
+                )}
+                {cascadingPatterns.length > 0 && (
+                  <a href="#section-cascading" className="text-[10px] uppercase font-bold text-orange-400 bg-orange-500/10 px-2 py-1 rounded whitespace-nowrap hover:bg-orange-500/20 transition-colors">
+                    Cascading ({cascadingPatterns.length})
+                  </a>
+                )}
+                {filteredFindings.length > 0 && (
+                  <a href="#section-findings" className="text-[10px] uppercase font-bold text-cyan-400 bg-cyan-500/10 px-2 py-1 rounded whitespace-nowrap hover:bg-cyan-500/20 transition-colors">
+                    Findings ({filteredFindings.length})
+                  </a>
+                )}
+                {filteredMetrics.length > 0 && (
+                  <a href="#section-metrics" className="text-[10px] uppercase font-bold text-cyan-400 bg-cyan-500/10 px-2 py-1 rounded whitespace-nowrap hover:bg-cyan-500/20 transition-colors">
+                    Metrics ({filteredMetrics.length})
+                  </a>
+                )}
+                {(filteredK8sEvents.length > 0 || filteredPodStatuses.length > 0) && (
+                  <a href="#section-k8s" className="text-[10px] uppercase font-bold text-orange-400 bg-orange-500/10 px-2 py-1 rounded whitespace-nowrap hover:bg-orange-500/20 transition-colors">
+                    K8s ({filteredK8sEvents.length + filteredPodStatuses.length})
+                  </a>
+                )}
+                {(findings?.trace_spans?.length ?? 0) > 0 && (
+                  <a href="#section-traces" className="text-[10px] uppercase font-bold text-violet-400 bg-violet-500/10 px-2 py-1 rounded whitespace-nowrap hover:bg-violet-500/20 transition-colors">
+                    Traces ({findings?.trace_spans?.length})
+                  </a>
+                )}
+                {correlatedPatterns.length > 0 && (
+                  <a href="#section-correlated" className="text-[10px] uppercase font-bold text-blue-400 bg-blue-500/10 px-2 py-1 rounded whitespace-nowrap hover:bg-blue-500/20 transition-colors">
+                    Correlated ({correlatedPatterns.length})
+                  </a>
+                )}
+              </div>
+            )}
             {findings === null ? (
               <SkeletonStack count={3} />
             ) : !hasContent ? (
@@ -256,6 +297,7 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
             ) : (
               <LogicVineContainer>
                 {/* 1. Root Cause patterns */}
+                <div id="section-root-cause" className="scroll-mt-16" />
                 {rootCausePatterns.length > 0 && (
                   <VineCard
                     index={vineIndex++}
@@ -286,11 +328,12 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                         })}
                       </section>
                     </TargetingBrackets>
-                    <WorkerSignature confidence={85} agentCode="L" />
+                    <WorkerSignature confidence={rootCausePatterns.length > 0 ? Math.round(rootCausePatterns.reduce((s, p) => s + p.confidence_score, 0) / rootCausePatterns.length) : 0} agentCode="L" />
                   </VineCard>
                 )}
 
                 {/* 2. Cascading patterns */}
+                <div id="section-cascading" className="scroll-mt-16" />
                 {cascadingPatterns.length > 0 && (
                   <VineCard
                     index={vineIndex++}
@@ -319,7 +362,7 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                         ))}
                       </section>
                     )}
-                    <WorkerSignature confidence={72} agentCode="L" />
+                    <WorkerSignature confidence={cascadingPatterns.length > 0 ? Math.round(cascadingPatterns.reduce((s, p) => s + p.confidence_score, 0) / cascadingPatterns.length) : 0} agentCode="L" />
                   </VineCard>
                 )}
 
@@ -355,6 +398,7 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                 )}
 
                 {/* 3. High-severity findings */}
+                <div id="section-findings" className="scroll-mt-16" />
                 {filteredFindings.length > 0 && (
                   <VineCard
                     index={vineIndex++}
@@ -417,11 +461,12 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                           );
                         })}
                     </section>
-                    <WorkerSignature confidence={78} agentCode="C" />
+                    <WorkerSignature confidence={filteredFindings.length > 0 ? Math.round(filteredFindings.reduce((s, f) => s + f.confidence, 0) / filteredFindings.length) : 0} agentCode="C" />
                   </VineCard>
                 )}
 
                 {/* 4. Metric anomalies */}
+                <div id="section-metrics" className="scroll-mt-16" />
                 {filteredMetrics.length > 0 && (
                   <VineCard
                     index={vineIndex++}
@@ -462,11 +507,12 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                         })}
                       </div>
                     </section>
-                    <WorkerSignature confidence={90} agentCode="M" />
+                    <WorkerSignature confidence={filteredMetrics.length > 0 ? Math.round(filteredMetrics.reduce((s, ma) => s + ma.confidence_score, 0) / filteredMetrics.length) : 0} agentCode="M" />
                   </VineCard>
                 )}
 
                 {/* 5. K8s health + events */}
+                <div id="section-k8s" className="scroll-mt-16" />
                 {(filteredK8sEvents.length > 0 || filteredPodStatuses.length > 0) && (
                   <VineCard
                     index={vineIndex++}
@@ -505,7 +551,7 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                         )}
                       </AgentFindingCard>
                     </section>
-                    <WorkerSignature confidence={88} agentCode="K" />
+                    <WorkerSignature confidence={filteredPodStatuses.length > 0 ? Math.round((filteredPodStatuses.filter(p => !p.ready).length / filteredPodStatuses.length) * 100) : (filteredK8sEvents.length > 0 ? 70 : 0)} agentCode="K" />
                   </VineCard>
                 )}
 
@@ -550,7 +596,7 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                     isPinned={pinnedSections.has('causality')}
                   >
                     <CausalityChainCard findings={findings} />
-                    <WorkerSignature confidence={75} agentCode="C" />
+                    <WorkerSignature confidence={filteredChangeCorrelations.length > 0 ? Math.round(filteredChangeCorrelations.reduce((s, c) => s + c.risk_score * 100, 0) / filteredChangeCorrelations.length) : 0} agentCode="C" />
                   </VineCard>
                 )}
 
@@ -678,9 +724,10 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
 
                       {findings?.code_mermaid_diagram && (
                         <AgentFindingCard agent="D" title="Service Flow Diagram">
-                          <pre className="text-[10px] font-mono bg-slate-900/60 rounded p-3 text-slate-300 overflow-x-auto whitespace-pre-wrap max-h-[250px] overflow-y-auto">
-                            {findings.code_mermaid_diagram}
-                          </pre>
+                          {/* h-80 = strict 320px height for pan/zoom engine to anchor against */}
+                          <div className="rounded-xl overflow-hidden w-full h-80 border border-slate-700/50 relative">
+                            <MermaidChart chart={findings.code_mermaid_diagram} />
+                          </div>
                         </AgentFindingCard>
                       )}
                     </section>
@@ -706,6 +753,7 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                 )}
 
                 {/* 9. Correlated anomalies */}
+                <div id="section-correlated" className="scroll-mt-16" />
                 {correlatedPatterns.length > 0 && (
                   <VineCard
                     index={vineIndex++}
@@ -727,6 +775,7 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                 )}
 
                 {/* 10. Trace waterfall */}
+                <div id="section-traces" className="scroll-mt-16" />
                 {filteredTraceSpans.length > 0 && (
                   <VineCard
                     index={vineIndex++}

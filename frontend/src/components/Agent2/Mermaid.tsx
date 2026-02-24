@@ -1,73 +1,166 @@
-import React, { useEffect, useRef,useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import mermaid from 'mermaid';
-
-// Initialize mermaid with your UI theme
+import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
+import { AnimatePresence, motion } from 'framer-motion';
+import { ZoomIn, ZoomOut, RotateCcw, Loader2 } from 'lucide-react';
 
 mermaid.initialize({
   startOnLoad: false,
-  theme: "dark",
-  securityLevel: "loose",
+  theme: 'base',
+  securityLevel: 'loose',
   themeVariables: {
-    background: "#020617",
-
-    primaryColor: "#0f172a",
-    primaryBorderColor: "#38bdf8",
-    primaryTextColor: "#e5e7eb",
-
-    secondaryColor: "#1e293b",
-    secondaryBorderColor: "#22c55e",
-    secondaryTextColor: "#e5e7eb",
-
-    lineColor: "#94a3b8",
-    edgeLabelBackground: "#020617",
-
-    fontFamily: "JetBrains Mono, monospace",
-    fontSize: "14px",
-
-    clusterBkg: "#020617",
-    clusterBorder: "#334155"
-  }
+    background: 'transparent',
+    primaryColor: '#0f172a',
+    primaryBorderColor: '#07b6d5',
+    primaryTextColor: '#e5e7eb',
+    secondaryColor: '#1e293b',
+    secondaryBorderColor: '#22c55e',
+    secondaryTextColor: '#e5e7eb',
+    lineColor: '#94a3b8',
+    edgeLabelBackground: '#020617',
+    fontFamily: 'JetBrains Mono, monospace',
+    fontSize: '14px',
+    clusterBkg: '#020617',
+    clusterBorder: '#334155',
+  },
 });
 
+/** Strip ```mermaid ... ``` code fences that LLMs sometimes wrap around syntax */
+function stripCodeFences(raw: string): string {
+  let s = raw.trim();
+  // Remove opening fence: ```mermaid or ``` (with optional language tag)
+  s = s.replace(/^```(?:mermaid)?\s*\n?/, '');
+  // Remove closing fence
+  s = s.replace(/\n?```\s*$/, '');
+  return s.trim();
+}
 
-export const Mermaid: React.FC<{ chart: string }> = ({ chart }) => {
-  const ref = useRef<HTMLDivElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [svg, setSvg] = useState<string>("");
+type RenderState = 'loading' | 'rendered' | 'error';
+
+export const MermaidChart: React.FC<{ chart: string }> = ({ chart }) => {
+  const [svg, setSvg] = useState('');
+  const [state, setState] = useState<RenderState>('loading');
+
   useEffect(() => {
-    const renderChart = async () => {
-      if (chart) {
-        try {
-          // Generate a unique ID to prevent conflicts with multiple charts
-          const id = `mermaid-${Math.random().toString(36).substring(2, 9)}`;
-          const { svg: renderedSvg } = await mermaid.render(id, chart);
-          setSvg(renderedSvg);
-        } catch (error) {
-          console.error("Mermaid render failed:", error);
-          setSvg('<div class="text-red-500 p-4">Invalid Diagram Syntax</div>');
-        }
+    let cancelled = false;
+
+    const render = async () => {
+      if (!chart) { setState('error'); return; }
+      setState('loading');
+      try {
+        const id = `mermaid-${Math.random().toString(36).substring(2, 9)}`;
+        const cleaned = stripCodeFences(chart);
+        const { svg: raw } = await mermaid.render(id, cleaned);
+        if (cancelled) return;
+        // Make SVG responsive: replace hardcoded width/height with 100%
+        const responsive = raw
+          .replace(/width="[\d.]+(px)?"/, 'width="100%"')
+          .replace(/height="[\d.]+(px)?"/, 'height="100%"');
+        setSvg(responsive);
+        setState('rendered');
+      } catch (err) {
+        console.error('Mermaid render failed:', err);
+        if (!cancelled) setState('error');
       }
     };
 
-    renderChart();
+    render();
+    return () => { cancelled = true; };
   }, [chart]);
 
   return (
-  <div
-    ref={containerRef}
-    className="
-      mermaid
-      w-full
-      max-w-full
-      overflow-x-auto
-      bg-[#020617]
-      rounded-lg
-      p-6
-      border
-      border-slate-800
-    "
-    dangerouslySetInnerHTML={{ __html: svg }}
-  />
-);
+    <div
+      className="group relative w-full h-full"
+      style={{
+        backgroundImage:
+          'radial-gradient(circle, rgba(148,163,184,0.08) 1px, transparent 1px)',
+        backgroundSize: '16px 16px',
+      }}
+    >
+      <AnimatePresence mode="wait">
+        {state === 'loading' && (
+          <motion.div
+            key="loader"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 flex items-center justify-center"
+          >
+            <Loader2 className="w-6 h-6 text-cyan-400 animate-spin" />
+          </motion.div>
+        )}
 
+        {state === 'error' && (
+          <motion.div
+            key="error"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 flex items-center justify-center text-red-400 text-xs"
+          >
+            Invalid diagram syntax
+          </motion.div>
+        )}
+
+        {state === 'rendered' && (
+          <motion.div
+            key="chart"
+            initial={{ opacity: 0, scale: 0.97 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="w-full h-full"
+          >
+            <TransformWrapper
+              initialScale={1}
+              minScale={0.3}
+              maxScale={4}
+              centerOnInit
+              wheel={{ step: 0.08 }}
+            >
+              {({ zoomIn, zoomOut, resetTransform }) => (
+                <>
+                  {/* Floating controls — appear on hover */}
+                  <div className="absolute top-2 right-2 z-10 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                    <button
+                      onClick={() => zoomIn()}
+                      className="p-1.5 rounded-md bg-slate-800/80 backdrop-blur border border-slate-700/50 text-slate-300 hover:text-white hover:bg-slate-700/80 transition-colors"
+                    >
+                      <ZoomIn size={14} />
+                    </button>
+                    <button
+                      onClick={() => zoomOut()}
+                      className="p-1.5 rounded-md bg-slate-800/80 backdrop-blur border border-slate-700/50 text-slate-300 hover:text-white hover:bg-slate-700/80 transition-colors"
+                    >
+                      <ZoomOut size={14} />
+                    </button>
+                    <button
+                      onClick={() => resetTransform()}
+                      className="p-1.5 rounded-md bg-slate-800/80 backdrop-blur border border-slate-700/50 text-slate-300 hover:text-white hover:bg-slate-700/80 transition-colors"
+                    >
+                      <RotateCcw size={14} />
+                    </button>
+                  </div>
+
+                  <TransformComponent
+                    wrapperStyle={{ width: '100%', height: '100%', cursor: 'grab' }}
+                    contentStyle={{ width: '100%', height: '100%' }}
+                  >
+                    <div
+                      className="w-full h-full flex items-center justify-center [&_svg]:max-w-full [&_svg]:max-h-full"
+                      dangerouslySetInnerHTML={{ __html: svg }}
+                    />
+                  </TransformComponent>
+                </>
+              )}
+            </TransformWrapper>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
 };
+
+// Backward-compatible alias for existing imports
+export const Mermaid = MermaidChart;
+export default MermaidChart;

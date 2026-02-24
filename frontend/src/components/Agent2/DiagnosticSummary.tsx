@@ -1,5 +1,5 @@
 import React, {useState} from 'react';
-import { Mermaid } from './mermaid';
+import { Mermaid } from './Mermaid';
 import { 
   Fingerprint, AlertTriangle, ShieldCheck, GitPullRequest, 
   ExternalLink, Layers, Activity 

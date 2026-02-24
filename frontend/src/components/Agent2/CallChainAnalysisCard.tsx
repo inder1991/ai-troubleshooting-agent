@@ -1,6 +1,6 @@
 import React from 'react';
 import { ArrowRight, AlertTriangle, Activity } from 'lucide-react'; // Added Activity
-import { Mermaid } from './mermaid'; // Import the new component
+import { Mermaid } from './Mermaid';
 
 interface CallStep {
   function: string;
