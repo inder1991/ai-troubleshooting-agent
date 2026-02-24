@@ -1,28 +1,28 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { triggerTabVariants } from '../../styles/chat-animations';
 import { useChatContext } from '../../contexts/ChatContext';
 
-const LedgerSVG: React.FC<{ className?: string }> = ({ className }) => (
+const TacticalLogIcon: React.FC<{ isWaiting: boolean }> = ({ isWaiting }) => (
   <svg
-    width="24"
-    height="24"
+    width="16"
+    height="16"
     viewBox="0 0 24 24"
     fill="none"
-    className={className}
+    className={`transition-colors ${isWaiting ? 'stroke-amber-400' : 'stroke-cyan-400'}`}
     strokeWidth="1.5"
     strokeLinecap="round"
     strokeLinejoin="round"
   >
-    {/* Book body */}
-    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-    {/* Page lines */}
-    <line x1="8" y1="7" x2="16" y2="7" />
-    <line x1="8" y1="10" x2="14" y2="10" />
-    <line x1="8" y1="13" x2="12" y2="13" />
-    {/* Bookmark ribbon */}
-    <path d="M14 2v6l2-1.5L18 8V2" />
+    {/* Stamped metal plate */}
+    <rect x="2" y="2" width="20" height="20" rx="1" strokeOpacity={0.4} />
+    {/* Notebook binding notches */}
+    <path d="M2 6H5" strokeWidth="2.5" strokeLinecap="square" />
+    <path d="M2 12H5" strokeWidth="2.5" strokeLinecap="square" />
+    <path d="M2 18H5" strokeWidth="2.5" strokeLinecap="square" />
+    {/* Data entry lines */}
+    <line x1="9" y1="7" x2="19" y2="7" strokeWidth="2" />
+    <line x1="9" y1="12" x2="17" y2="12" strokeWidth="2" />
+    <line x1="9" y1="17" x2="14" y2="17" strokeWidth="2" />
   </svg>
 );
 
@@ -30,40 +30,63 @@ const LedgerTriggerTab: React.FC = () => {
   const { isOpen, toggleDrawer, unreadCount, isWaiting } = useChatContext();
 
   return (
-    <AnimatePresence mode="wait">
+    <AnimatePresence>
       {!isOpen && (
         <motion.button
           key="ledger-tab"
-          variants={triggerTabVariants}
-          initial="hidden"
-          animate="visible"
-          exit="exit"
+          layoutId="chat-trigger"
+          initial={{ x: 50, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          exit={{ x: 100 }}
+          whileHover={{ x: -4 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 25 }}
           onClick={toggleDrawer}
-          className={`fixed bottom-6 right-6 z-[60] w-12 h-12 rounded-full flex items-center justify-center shadow-lg shadow-black/40 transition-colors ${
+          className={`fixed right-0 top-1/2 -translate-y-1/2 z-[60] flex flex-col items-center gap-2 py-3 px-1.5 rounded-l-lg border-r-0 cursor-pointer ${
             isWaiting
-              ? 'bg-amber-500/20 border border-amber-500/50 hover:bg-amber-500/30'
-              : 'bg-slate-800 border border-cyan-500/30 hover:bg-slate-700'
+              ? 'bg-amber-950/30 border border-r-0 border-amber-500/50 shadow-[inset_-2px_0_12px_rgba(245,158,11,0.2)]'
+              : 'bg-slate-900/80 border border-r-0 border-cyan-500/30'
           }`}
+          style={{
+            boxShadow: isWaiting
+              ? '-10px 0 15px rgba(0,0,0,0.5), inset -2px 0 12px rgba(245,158,11,0.2)'
+              : '-10px 0 15px rgba(0,0,0,0.5)',
+          }}
           title={isWaiting ? 'Input Required — Open Mission Log' : 'Open Mission Log'}
         >
           {/* Unread badge */}
           {unreadCount > 0 && (
-            <span className="absolute -top-1 -left-1 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-amber-500 text-[9px] font-bold text-black px-1">
+            <span className="absolute -top-2 -left-2 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-red-600 ring-1 ring-slate-950 text-[9px] font-bold text-white px-1">
               {unreadCount > 9 ? '9+' : unreadCount}
             </span>
           )}
 
-          {/* SVG Icon */}
-          <LedgerSVG
-            className={`transition-colors ${
-              isWaiting ? 'stroke-amber-400' : 'stroke-cyan-400'
-            } hover:drop-shadow-[0_0_8px_rgba(7,182,213,0.4)]`}
-          />
+          {/* Hardware LED indicator */}
+          <span className="relative flex items-center justify-center w-1.5 h-1.5">
+            <span
+              className={`absolute inset-0 rounded-full ${
+                isWaiting ? 'bg-amber-400' : 'bg-cyan-500/50'
+              }`}
+            />
+            {isWaiting && (
+              <span className="absolute inset-0 rounded-full bg-amber-400 animate-ping blur-[1px]" />
+            )}
+          </span>
 
-          {/* Waiting pulse ring */}
-          {isWaiting && (
-            <span className="absolute inset-0 rounded-full border-2 border-amber-400/50 animate-ping" />
-          )}
+          {/* Tactical icon */}
+          <TacticalLogIcon isWaiting={isWaiting} />
+
+          {/* Dymo-label vertical text */}
+          <span
+            className={`text-[10px] font-mono font-black tracking-[0.3em] transition-colors ${
+              isWaiting ? 'text-amber-400' : 'text-cyan-500/70'
+            }`}
+            style={{ writingMode: 'vertical-lr' }}
+          >
+            {isWaiting ? 'ACTION' : 'LEDGER'}
+          </span>
+
+          {/* Machined edge highlight */}
+          <span className="absolute right-0 top-2 bottom-2 w-[1px] bg-gradient-to-b from-transparent via-cyan-500/20 to-transparent pointer-events-none" />
         </motion.button>
       )}
     </AnimatePresence>

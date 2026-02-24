@@ -133,7 +133,7 @@ const ChatDrawer: React.FC = () => {
             initial="hidden"
             animate="visible"
             exit="exit"
-            className={`fixed top-16 right-0 bottom-0 z-[60] w-full sm:w-[420px] max-w-[100vw] flex flex-col bg-slate-900/95 backdrop-blur-xl border-l-2 ${
+            className={`fixed top-16 right-0 bottom-0 z-[70] w-full sm:w-[420px] max-w-[100vw] flex flex-col bg-slate-900/95 backdrop-blur-xl border-l-2 ${
               isWaiting ? 'border-amber-500/40' : 'border-cyan-500/20'
             }`}
           >
