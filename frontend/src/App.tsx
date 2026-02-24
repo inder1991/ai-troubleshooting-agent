@@ -14,6 +14,7 @@ import { useWebSocketV4 } from './hooks/useWebSocket';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { getSessionStatus, startSessionV4, submitAttestation } from './services/api';
 import { ToastProvider, useToast } from './components/Toast/ToastContext';
+import { ChatProvider } from './contexts/ChatContext';
 import SidebarNav from './components/Layout/SidebarNav';
 import type { NavView } from './components/Layout/SidebarNav';
 import HomePage from './components/Home/HomePage';
@@ -34,7 +35,6 @@ function AppInner() {
   const [selectedCapability, setSelectedCapability] = useState<CapabilityType | null>(null);
   const [sessions, setSessions] = useState<V4Session[]>([]);
   const [activeSession, setActiveSession] = useState<V4Session | null>(null);
-  const [chatMessages, setChatMessages] = useState<Record<string, ChatMessage[]>>({});
   const [taskEvents, setTaskEvents] = useState<Record<string, TaskEvent[]>>({});
   const [wsConnected, setWsConnected] = useState(false);
   const [currentPhase, setCurrentPhase] = useState<DiagnosticPhase | null>(null);
@@ -42,8 +42,6 @@ function AppInner() {
   const [tokenUsage, setTokenUsage] = useState<TokenUsage[]>([]);
   const [attestationGate, setAttestationGate] = useState<AttestationGateData | null>(null);
   const [wsMaxReconnectsHit, setWsMaxReconnectsHit] = useState(false);
-  const [chatOpen, setChatOpen] = useState(false);
-  const commandTabRef = useRef<HTMLButtonElement>(null);
 
   const activeSessionId = activeSession?.session_id ?? null;
 
@@ -103,16 +101,11 @@ function AppInner() {
     [activeSessionId, refreshStatus]
   );
 
-  const handleChatResponse = useCallback(
-    (message: ChatMessage) => {
-      if (!activeSessionId) return;
-      setChatMessages((prev) => ({
-        ...prev,
-        [activeSessionId]: [...(prev[activeSessionId] || []), message],
-      }));
-    },
-    [activeSessionId]
-  );
+  // Chat responses bridged to ChatContext via ref callback
+  const chatResponseRef = useRef<((msg: ChatMessage) => void) | null>(null);
+  const handleChatResponse = useCallback((message: ChatMessage) => {
+    chatResponseRef.current?.(message);
+  }, []);
 
   const handleWsConnect = useCallback(() => {
     setWsConnected(true);
@@ -151,7 +144,6 @@ function AppInner() {
     setViewState('home');
     setSelectedCapability(null);
     setActiveSession(null);
-    setChatOpen(false);
     setCurrentPhase(null);
     setConfidence(0);
     setAttestationGate(null);
@@ -216,17 +208,6 @@ function AppInner() {
     [refreshStatus]
   );
 
-  const handleNewChatMessage = useCallback(
-    (message: ChatMessage) => {
-      if (!activeSessionId) return;
-      setChatMessages((prev) => ({
-        ...prev,
-        [activeSessionId]: [...(prev[activeSessionId] || []), message],
-      }));
-    },
-    [activeSessionId]
-  );
-
   const handleAttestationDecision = useCallback(
     (decision: string) => {
       if (activeSessionId && attestationGate) {
@@ -239,7 +220,6 @@ function AppInner() {
     [activeSessionId, attestationGate, addToast]
   );
 
-  const currentChatMessages = activeSessionId ? chatMessages[activeSessionId] || [] : [];
   const currentTaskEvents = activeSessionId ? taskEvents[activeSessionId] || [] : [];
 
   // Keyboard shortcuts
@@ -253,15 +233,6 @@ function AppInner() {
   );
 
   useKeyboardShortcuts(shortcutHandlers);
-
-  // Detect if agent needs user input
-  const needsInput = useMemo(() => {
-    const msgs = currentChatMessages.filter(m => m.role === 'assistant');
-    if (!msgs.length) return false;
-    const last = msgs[msgs.length - 1];
-    return last.content.trim().endsWith('?') ||
-      /\b(confirm|approve|proceed|rollback|input needed)\b/i.test(last.content);
-  }, [currentChatMessages]);
 
   // Derive nav view from viewState
   const navView: NavView =
@@ -322,7 +293,7 @@ function AppInner() {
         )}
 
         {viewState === 'investigation' && activeSession && (
-          <>
+          <ChatProvider sessionId={activeSessionId} events={currentTaskEvents} onRegisterChatHandler={chatResponseRef}>
             {/* Foreman HUD Header */}
             <ForemanHUD
               sessionId={activeSession.session_id}
@@ -331,9 +302,9 @@ function AppInner() {
               confidence={confidence}
               events={currentTaskEvents}
               wsConnected={wsConnected}
-              needsInput={needsInput}
+              needsInput={false}
               onGoHome={handleGoHome}
-              onOpenChat={() => setChatOpen(true)}
+              onOpenChat={() => {/* ChatContext handles open */}}
             />
 
             {/* WS disconnect banner */}
@@ -353,23 +324,17 @@ function AppInner() {
               <ErrorBoundary>
                 <InvestigationView
                   session={activeSession}
-                  messages={currentChatMessages}
                   events={currentTaskEvents}
-                  onNewMessage={handleNewChatMessage}
                   wsConnected={wsConnected}
                   phase={currentPhase}
                   confidence={confidence}
                   tokenUsage={tokenUsage}
                   attestationGate={attestationGate}
                   onAttestationDecision={handleAttestationDecision}
-                  needsInput={needsInput}
-                  chatOpen={chatOpen}
-                  onChatToggle={setChatOpen}
-                  commandTabRef={commandTabRef}
                 />
               </ErrorBoundary>
             </div>
-          </>
+          </ChatProvider>
         )}
       </div>
     </div>

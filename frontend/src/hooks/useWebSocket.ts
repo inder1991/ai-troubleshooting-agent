@@ -50,9 +50,19 @@ export const useWebSocket = (
 
 // ===== V4 WebSocket =====
 
+export interface ChatStreamEndPayload {
+  content: string;
+  done: true;
+  full_response: string;
+  phase?: string;
+  confidence?: number;
+}
+
 interface V4WebSocketHandlers {
   onTaskEvent?: (event: TaskEvent) => void;
   onChatResponse?: (message: ChatMessage) => void;
+  onChatChunk?: (chunk: string) => void;
+  onChatStreamEnd?: (payload: ChatStreamEndPayload) => void;
   onConnect?: () => void;
   onDisconnect?: () => void;
   onError?: (error: Event) => void;
@@ -74,11 +84,14 @@ export const useWebSocketV4 = (
   sessionIdRef.current = sessionId;
   const receivedEventCountRef = useRef(0);
 
+  // C4: Track whether we're replaying events to prevent duplicates
+  const replayingRef = useRef(false);
+
   const connect = useCallback(() => {
     if (!sessionIdRef.current) return;
 
-    // Don't create duplicate connections
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) return;
+    // M6: Don't create duplicate connections — check both OPEN and CONNECTING states
+    if (wsRef.current && (wsRef.current.readyState === WebSocket.OPEN || wsRef.current.readyState === WebSocket.CONNECTING)) return;
 
     const currentSessionId = sessionIdRef.current;
     const ws = new WebSocket(`ws://localhost:8000/ws/troubleshoot/${currentSessionId}`);
@@ -88,14 +101,20 @@ export const useWebSocketV4 = (
       const wasReconnect = reconnectAttemptsRef.current > 0;
       reconnectAttemptsRef.current = 0;
       handlersRef.current.onConnect?.();
-      // Replay only missed events after reconnection (skip already-received ones)
+      // C4: Replay only truly missed events after reconnection
       if (wasReconnect) {
         const alreadySeen = receivedEventCountRef.current;
+        replayingRef.current = true;
         getEvents(currentSessionId).then((events) => {
+          // Only replay events we haven't seen — account for events received
+          // via live WS between reconnect and replay response
+          const currentCount = receivedEventCountRef.current;
           const missed = events.slice(alreadySeen);
-          missed.forEach((ev) => handlersRef.current.onTaskEvent?.(ev));
-          receivedEventCountRef.current = events.length;
-        }).catch(() => {});
+          const trulyMissed = missed.slice(0, Math.max(0, missed.length - (currentCount - alreadySeen)));
+          trulyMissed.forEach((ev) => handlersRef.current.onTaskEvent?.(ev));
+          receivedEventCountRef.current = Math.max(currentCount, events.length);
+          replayingRef.current = false;
+        }).catch(() => { replayingRef.current = false; });
       }
     };
 
@@ -120,6 +139,15 @@ export const useWebSocketV4 = (
           case 'chat_response':
             if (data) {
               handlersRef.current.onChatResponse?.(data as ChatMessage);
+            }
+            break;
+          case 'chat_chunk':
+            if (data) {
+              if ((data as Record<string, unknown>).done) {
+                handlersRef.current.onChatStreamEnd?.(data as ChatStreamEndPayload);
+              } else {
+                handlersRef.current.onChatChunk?.((data as Record<string, unknown>).content as string);
+              }
             }
             break;
           case 'connected':
@@ -166,13 +194,16 @@ export const useWebSocketV4 = (
   }, []);
 
   useEffect(() => {
-    // Clean up previous connection
+    // M6: Clean up previous connection — handle both OPEN and CLOSING states
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
       reconnectTimeoutRef.current = null;
     }
     if (wsRef.current) {
-      wsRef.current.close();
+      // Force-close even if in CLOSING state to prevent event leaks from old session
+      if (wsRef.current.readyState === WebSocket.OPEN || wsRef.current.readyState === WebSocket.CONNECTING) {
+        wsRef.current.close();
+      }
       wsRef.current = null;
     }
 

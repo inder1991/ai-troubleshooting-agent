@@ -289,3 +289,37 @@ a:focus-visible,
   -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
 }
+
+/* ─── Chat Drawer Animations ─────────────────────────────────────────── */
+
+/* Streaming cursor blink */
+@keyframes cursor-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+.streaming-cursor::after {
+  content: '\2588';
+  color: #07b6d5;
+  animation: cursor-blink 1s step-end infinite;
+  margin-left: 1px;
+}
+
+/* Ledger icon ink draw effect */
+@keyframes ink-draw {
+  from { stroke-dashoffset: 100; }
+  to { stroke-dashoffset: 0; }
+}
+.ledger-icon-draw {
+  stroke-dasharray: 100;
+  animation: ink-draw 0.6s ease-out forwards;
+}
+
+/* Action chip success animation (fix for missing class) */
+@keyframes chip-success {
+  0% { transform: scale(1); }
+  50% { background-color: #10b981; transform: scale(1.05); }
+  100% { background-color: #10b981; transform: scale(1); }
+}
+.animate-chip-success {
+  animation: chip-success 0.3s ease-out forwards;
+}

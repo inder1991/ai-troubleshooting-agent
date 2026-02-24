@@ -1,18 +1,19 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import type { V4Session, V4Findings, V4SessionStatus, ChatMessage, TaskEvent, DiagnosticPhase, TokenUsage, AttestationGateData } from '../../types';
-import { getFindings, getSessionStatus } from '../../services/api';
+import { getFindings, getSessionStatus, sendChatMessage } from '../../services/api';
+import { useChatContext } from '../../contexts/ChatContext';
 import Investigator from './Investigator';
 import EvidenceFindings from './EvidenceFindings';
 import Navigator from './Navigator';
 import RemediationProgressBar from './RemediationProgressBar';
 import AttestationGateUI from '../Remediation/AttestationGateUI';
 import ErrorBanner from '../ui/ErrorBanner';
+import ChatDrawer from '../Chat/ChatDrawer';
+import LedgerTriggerTab from '../Chat/LedgerTriggerTab';
 
 interface InvestigationViewProps {
   session: V4Session;
-  messages: ChatMessage[];
   events: TaskEvent[];
-  onNewMessage: (message: ChatMessage) => void;
   wsConnected: boolean;
   phase: DiagnosticPhase | null;
   confidence: number;
@@ -23,9 +24,7 @@ interface InvestigationViewProps {
 
 const InvestigationView: React.FC<InvestigationViewProps> = ({
   session,
-  messages,
   events,
-  onNewMessage,
   wsConnected,
   phase,
   confidence,
@@ -41,6 +40,9 @@ const InvestigationView: React.FC<InvestigationViewProps> = ({
   const [lastFetchTime, setLastFetchTime] = useState<number | null>(null);
   const [lastFetchAgo, setLastFetchAgo] = useState(0);
   const agoIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Chat state now managed by ChatContext
+  const { addMessage: onNewMessage } = useChatContext();
 
   // Tick "last updated X s ago" every second
   useEffect(() => {
@@ -88,6 +90,16 @@ const InvestigationView: React.FC<InvestigationViewProps> = ({
   // Freshness indicator color
   const freshnessColor = lastFetchAgo <= 10 ? 'bg-green-500' : lastFetchAgo <= 30 ? 'bg-amber-500' : 'bg-red-500';
 
+  // Attach repo handler — sends "confirm" through chat
+  const handleAttachRepo = useCallback(() => {
+    if (!session.session_id) return;
+    const userMsg: ChatMessage = { role: 'user', content: 'confirm', timestamp: new Date().toISOString() };
+    onNewMessage(userMsg);
+    sendChatMessage(session.session_id, 'confirm').then((resp) => {
+      if (resp?.content) onNewMessage(resp);
+    }).catch(() => {});
+  }, [session.session_id, onNewMessage]);
+
   return (
     <div className="flex flex-col h-full">
       {/* Fetch failure banner */}
@@ -112,16 +124,15 @@ const InvestigationView: React.FC<InvestigationViewProps> = ({
 
       {/* War Room: 3-column CSS Grid layout */}
       <div className="grid grid-cols-12 flex-1 overflow-hidden">
-        {/* Left: The Investigator */}
+        {/* Left: The Investigator (AI reasoning only — no chat) */}
         <div className="col-span-3 border-r border-slate-800 overflow-hidden">
           <Investigator
             sessionId={session.session_id}
-            messages={messages}
             events={events}
-            onNewMessage={onNewMessage}
             wsConnected={wsConnected}
             findings={findings}
             status={sessionStatus}
+            onAttachRepo={handleAttachRepo}
           />
         </div>
 
@@ -153,6 +164,10 @@ const InvestigationView: React.FC<InvestigationViewProps> = ({
           onClose={() => onAttestationDecision('dismiss')}
         />
       )}
+
+      {/* Chat Drawer + Trigger Tab (self-contained via ChatContext) */}
+      <ChatDrawer />
+      <LedgerTriggerTab />
     </div>
   );
 };
