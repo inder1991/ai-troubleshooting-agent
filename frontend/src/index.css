@@ -323,3 +323,17 @@ a:focus-visible,
 .animate-chip-success {
   animation: chip-success 0.3s ease-out forwards;
 }
+
+/* ─── Neural Topology 2.0 Animations ──────────────────────────────────── */
+
+@keyframes causal-path-pulse {
+  0%, 100% { stroke-opacity: 0.7; filter: drop-shadow(0 0 3px rgba(239, 68, 68, 0.4)); }
+  50% { stroke-opacity: 1; filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.8)); }
+}
+.topology-causal-edge { animation: causal-path-pulse 2s ease-in-out infinite; }
+
+@keyframes node-select-breathe {
+  0%, 100% { stroke-opacity: 0.6; }
+  50% { stroke-opacity: 1; }
+}
+.topology-select-ring { animation: node-select-breathe 2s ease-in-out infinite; }

@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import type { V4Findings, V4SessionStatus, TaskEvent, SuggestedPromQLQuery, TimeSeriesDataPoint } from '../../types';
 import { runPromQLQuery } from '../../services/api';
 import { Play, Copy, Check } from 'lucide-react';
-import ServiceTopologySVG from './topology/ServiceTopologySVG';
+import InteractiveTopology from './topology/InteractiveTopology';
+import { useTopologySelection } from '../../contexts/TopologySelectionContext';
 import REDMethodStatusBar from './cards/REDMethodStatusBar';
 import PromQLRunResult from './cards/PromQLRunResult';
 import SkeletonCard from '../ui/SkeletonCard';
@@ -14,7 +15,7 @@ interface NavigatorProps {
 }
 
 const Navigator: React.FC<NavigatorProps> = ({ findings, status, events }) => {
-
+  const { selectedService, selectService } = useTopologySelection();
   const agentStatuses = buildAgentStatuses(status, events);
   const totalTokens = status?.token_usage?.reduce((sum, t) => sum + t.total_tokens, 0) ?? 0;
 
@@ -42,11 +43,10 @@ const Navigator: React.FC<NavigatorProps> = ({ findings, status, events }) => {
           <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Service Topology</h3>
           <div className="bg-slate-900/40 border border-slate-800 rounded-lg p-3">
             {findings ? (
-              <ServiceTopologySVG
-                dependencies={findings.inferred_dependencies || []}
-                patientZero={findings.patient_zero || null}
-                blastRadius={findings.blast_radius || null}
-                podStatuses={findings.pod_statuses || []}
+              <InteractiveTopology
+                findings={findings}
+                selectedService={selectedService}
+                onSelectService={selectService}
               />
             ) : (
               <GhostTopology />

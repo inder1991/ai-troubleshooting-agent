@@ -1,4 +1,7 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import { LayoutGroup, AnimatePresence, motion } from 'framer-motion';
+import { useTopologySelection } from '../../contexts/TopologySelectionContext';
+import { filterBannerVariants } from '../../styles/topology-animations';
 import type {
   V4Findings, V4SessionStatus, TaskEvent, Severity, ErrorPattern,
   CriticVerdict, ChangeCorrelation, BlastRadiusData, SeverityData,
@@ -16,6 +19,18 @@ import FixPipelinePanel from './FixPipelinePanel';
 import { SkeletonStack } from '../ui/SkeletonCard';
 import SkeletonCard from '../ui/SkeletonCard';
 import { safeFixed, formatTime, safeDate } from '../../utils/format';
+
+// HUD components
+import HUDAtmosphere from './hud/HUDAtmosphere';
+import BriefingHeader from './hud/BriefingHeader';
+import LogicVineContainer from './hud/LogicVineContainer';
+import VineCard from './hud/VineCard';
+import TargetingBrackets from './hud/TargetingBrackets';
+import WorkerSignature from './hud/WorkerSignature';
+import WeldSpark from './hud/WeldSpark';
+import SymptomDeck from './hud/SymptomDeck';
+import AssemblyWorkbench from './hud/AssemblyWorkbench';
+import ResolveCinematic from './hud/ResolveCinematic';
 
 interface EvidenceFindingsProps {
   findings: V4Findings | null;
@@ -47,9 +62,33 @@ const severityPriorityColor: Record<string, { border: string; bg: string; text: 
   P4: { border: 'border-blue-500/40', bg: 'bg-blue-500/10', text: 'text-blue-400' },
 };
 
-const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _status, events, sessionId, phase, onRefresh }) => {
+interface PinnedCard {
+  id: string;
+  agentType: string;
+  title: string;
+}
 
-  const errorPatterns = findings?.error_patterns || [];
+const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _status, events, sessionId, phase, onRefresh }) => {
+  const { selectedService, clearSelection } = useTopologySelection();
+
+  // Service filter: returns true if no service selected OR if text mentions the service
+  const matchesService = useCallback(
+    (text: string) => !selectedService || text.toLowerCase().includes(selectedService.toLowerCase()),
+    [selectedService],
+  );
+
+  const allErrorPatterns = findings?.error_patterns || [];
+
+  // Apply topology service filter to error patterns
+  const errorPatternMatchesSvc = useCallback(
+    (p: ErrorPattern) =>
+      !selectedService ||
+      p.affected_components.some((c) => matchesService(c)) ||
+      matchesService(p.exception_type) ||
+      matchesService(p.error_message),
+    [selectedService, matchesService],
+  );
+  const errorPatterns = allErrorPatterns.filter(errorPatternMatchesSvc);
   const rootCausePatterns = errorPatterns.filter((p) => p.causal_role === 'root_cause');
   const cascadingPatterns = errorPatterns.filter((p) => p.causal_role === 'cascading_failure');
   const correlatedPatterns = errorPatterns.filter(
@@ -57,8 +96,37 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
   );
   const ungroupedPatterns = rootCausePatterns.length === 0 ? errorPatterns : [];
 
-  const sev = findings?.severity_recommendation?.recommended_severity || 'P4';
-  const sevStyle = severityPriorityColor[sev] || severityPriorityColor.P4;
+  // Filtered sub-collections for other sections
+  const filteredFindings = useMemo(
+    () => (findings?.findings || []).filter((f) => matchesService(f.title) || matchesService(f.description)),
+    [findings?.findings, matchesService],
+  );
+  const filteredMetrics = useMemo(
+    () => (findings?.metric_anomalies || []).filter((ma) => matchesService(ma.metric_name)),
+    [findings?.metric_anomalies, matchesService],
+  );
+  const filteredServiceFlow = useMemo(
+    () => (findings?.service_flow || []).filter((step) => matchesService(step.service)),
+    [findings?.service_flow, matchesService],
+  );
+  const filteredTraceSpans = useMemo(
+    () => (findings?.trace_spans || []).filter((span) => matchesService(span.service)),
+    [findings?.trace_spans, matchesService],
+  );
+  const filteredChangeCorrelations = useMemo(
+    () => (findings?.change_correlations || []).filter((c) => matchesService(c.service_name || '')),
+    [findings?.change_correlations, matchesService],
+  );
+  const filteredPodStatuses = useMemo(
+    () => (findings?.pod_statuses || []).filter((p) => matchesService(p.pod_name)),
+    [findings?.pod_statuses, matchesService],
+  );
+  const filteredK8sEvents = useMemo(
+    () => (findings?.k8s_events || []).filter((e) => matchesService(e.involved_object)),
+    [findings?.k8s_events, matchesService],
+  );
+
+  const sev = (findings?.severity_recommendation?.recommended_severity || 'P4') as 'P1' | 'P2' | 'P3' | 'P4';
 
   const hasContent = errorPatterns.length > 0 ||
     (findings?.findings?.length ?? 0) > 0 ||
@@ -68,438 +136,692 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
     (findings?.code_call_chain?.length ?? 0) > 0 ||
     events.length > 0;
 
+  // ── Briefing Header data derivation ──
+  const latestEvent = events.filter(e => e.event_type !== 'tool_call').slice(-1)[0];
+  const latestEventText = latestEvent?.message || 'Initializing investigation...';
+  const agentName = latestEvent?.agent_name || 'System';
+  const isProcessing = phase !== 'complete' && phase !== 'diagnosis_complete';
+
+  // ── Pin state for Assembly Workbench ──
+  const [pinnedSections, setPinnedSections] = useState<Map<string, PinnedCard>>(new Map());
+  const handlePin = useCallback((sectionId: string, title: string, agentCode: string) => {
+    setPinnedSections(prev => {
+      const next = new Map(prev);
+      if (next.has(sectionId)) {
+        next.delete(sectionId);
+      } else {
+        next.set(sectionId, { id: sectionId, agentType: agentCode, title });
+      }
+      return next;
+    });
+  }, []);
+  const handleUnpin = useCallback((id: string) => {
+    setPinnedSections(prev => {
+      const next = new Map(prev);
+      next.delete(id);
+      return next;
+    });
+  }, []);
+  const fixReady = phase === 'diagnosis_complete' || phase === 'complete';
+
+  // ── Resolve Cinematic trigger ──
+  const [showResolve, setShowResolve] = useState(false);
+  const prevPhaseRef = useRef<DiagnosticPhase | null>(null);
+  useEffect(() => {
+    if (phase === 'complete' && prevPhaseRef.current !== 'complete') {
+      setShowResolve(true);
+    }
+    prevPhaseRef.current = phase || null;
+  }, [phase]);
+
+  // ── New card detection ──
+  const seenSectionsRef = useRef<Set<string>>(new Set());
+  const [newSections, setNewSections] = useState<Set<string>>(new Set());
+
+  const currentSectionIds = useMemo(() => {
+    const ids: string[] = [];
+    if (rootCausePatterns.length > 0) ids.push('root-cause');
+    if (cascadingPatterns.length > 0) ids.push('cascading');
+    if (ungroupedPatterns.length > 0) ids.push('ungrouped');
+    if ((findings?.findings?.length ?? 0) > 0) ids.push('findings');
+    if ((findings?.metric_anomalies?.length ?? 0) > 0) ids.push('metrics');
+    if ((findings?.k8s_events?.length ?? 0) > 0 || (findings?.pod_statuses?.length ?? 0) > 0) ids.push('k8s');
+    if (findings?.blast_radius) ids.push('blast-radius');
+    if ((findings?.service_flow?.length ?? 0) > 0) ids.push('service-flow');
+    if ((findings?.change_correlations?.length ?? 0) > 0) ids.push('causality');
+    if ((findings?.code_overall_confidence ?? 0) > 0 || findings?.root_cause_location) ids.push('code-nav');
+    if (correlatedPatterns.length > 0) ids.push('correlated');
+    if ((findings?.trace_spans?.length ?? 0) > 0) ids.push('traces');
+    if ((findings?.event_markers?.length ?? 0) > 0) ids.push('event-markers');
+    if ((findings?.past_incidents?.length ?? 0) > 0) ids.push('past-incidents');
+    return ids;
+  }, [findings, rootCausePatterns, cascadingPatterns, ungroupedPatterns, correlatedPatterns]);
+
+  useEffect(() => {
+    const newIds = currentSectionIds.filter(id => !seenSectionsRef.current.has(id));
+    if (newIds.length > 0) {
+      setNewSections(new Set(newIds));
+      newIds.forEach(id => seenSectionsRef.current.add(id));
+      const timer = setTimeout(() => setNewSections(new Set()), 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [currentSectionIds]);
+
+  // ── Track vine card index for stagger ──
+  let vineIndex = 0;
+
   return (
     <div className="flex flex-col h-full bg-[#0f2023]">
-      {/* Header */}
-      <div className="h-12 border-b border-slate-800/50 flex items-center justify-between px-6 bg-slate-900/10 sticky top-0 z-10 backdrop-blur">
-        <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-slate-400 text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>radar</span>
-          <h2 className="text-xs font-bold uppercase tracking-widest text-slate-400">Evidence and Findings</h2>
-        </div>
-        <div className="flex items-center gap-3">
-          <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${sevStyle.text} ${sevStyle.bg} border ${sevStyle.border}`}>
-            {sev}
-          </span>
-          <div className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-green-500" />
-            <span className="text-[10px] text-slate-500 font-medium">Live</span>
-          </div>
-        </div>
-      </div>
+      <HUDAtmosphere>
+        {/* Briefing Header */}
+        <BriefingHeader
+          latestEventText={latestEventText}
+          agentName={agentName}
+          severity={sev}
+          isProcessing={isProcessing}
+        />
 
-      {/* Single scrollable stack */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-5 custom-scrollbar">
-        {findings === null ? (
-          <SkeletonStack count={3} />
-        ) : !hasContent ? (
-          <PhaseAwareEmptyState phase={phase || null} />
-        ) : (
-          <>
-            {/* 1. Root Cause patterns */}
-            {rootCausePatterns.length > 0 && (
-              <section className="space-y-2">
-                {rootCausePatterns.map((ep, i) => {
-                  const saturationMetrics = getSaturationMetrics(findings?.metric_anomalies || []);
-                  return (
-                    <AgentFindingCard key={ep.pattern_id || `rc-${i}`} agent="L" title="Error Pattern">
-                      <CausalRoleBadge role="root_cause" />
-                      {saturationMetrics.length > 0 && (
-                        <div className="flex gap-3 my-2">
-                          {saturationMetrics.map((sm, si) => (
-                            <SaturationGauge key={si} metricName={sm.metric_name} currentValue={sm.current_value} />
-                          ))}
-                        </div>
-                      )}
-                      <ErrorPatternContent pattern={ep} rank={i + 1} />
-                    </AgentFindingCard>
-                  );
-                })}
-              </section>
-            )}
-
-            {/* 2. Cascading patterns */}
-            {cascadingPatterns.length > 0 && (
-              <section className="space-y-2">
-                {cascadingPatterns.map((ep, i) => (
-                  <AgentFindingCard key={ep.pattern_id || `cas-${i}`} agent="L" title="Cascading Error">
-                    <CausalRoleBadge role="cascading_failure" />
-                    <ErrorPatternContent pattern={ep} rank={i + 1} />
-                  </AgentFindingCard>
-                ))}
-              </section>
-            )}
-
-            {/* Ungrouped error patterns (when no causal_role data) */}
-            {ungroupedPatterns.length > 0 && (
-              <section className="space-y-2">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="material-symbols-outlined text-amber-500 text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>receipt_long</span>
-                  <span className="text-[11px] font-bold uppercase tracking-wider">Error Clusters</span>
-                  <span className="text-[10px] font-mono text-slate-500">{ungroupedPatterns.length}</span>
-                </div>
-                {ungroupedPatterns.map((ep, i) => (
-                  <ErrorPatternCluster key={ep.pattern_id || `ug-${i}`} pattern={ep} rank={i + 1} />
-                ))}
-              </section>
-            )}
-
-            {/* 3. High-severity findings */}
-            {(findings?.findings?.length ?? 0) > 0 && (
-              <section className="space-y-2">
-                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Findings</div>
-                {[...(findings?.findings || [])]
-                  .sort((a, b) => severityRank(a.severity) - severityRank(b.severity))
-                  .map((finding, i) => {
-                    const verdict = findings?.critic_verdicts?.find((v) => v.finding_id === finding.finding_id);
-                    const agentCode = getAgentCode(finding.agent_name);
-                    return (
-                      <AgentFindingCard key={finding.finding_id || i} agent={agentCode} title={finding.title}>
-                        <p className="text-xs text-slate-400 mb-2">{finding.description}</p>
-                        <div className="flex items-center gap-3 text-[10px] text-slate-500">
-                          <span className={`px-1.5 py-0.5 rounded ${severityColor[finding.severity]}`}>{finding.severity}</span>
-                          <span>Confidence: {Math.round(finding.confidence * 100)}%</span>
-                          {verdict && (
-                            <span className={`px-1.5 py-0.5 rounded ${verdictColor[verdict.verdict]}`}>
-                              {verdict.verdict}
-                            </span>
-                          )}
-                        </div>
-                        {verdict && (verdict.reasoning || verdict.recommendation) && (
-                          <div className="mt-2 bg-slate-800/30 rounded-lg border border-slate-700/30 p-2 space-y-1">
-                            {verdict.reasoning && (
-                              <p className="text-[10px] text-slate-400">{verdict.reasoning}</p>
-                            )}
-                            {verdict.recommendation && (
-                              <p className="text-[10px] text-cyan-400 italic">{verdict.recommendation}</p>
-                            )}
-                            {verdict.confidence_in_verdict > 0 && (
-                              <span className="text-[9px] text-slate-500 font-mono">Verdict confidence: {verdict.confidence_in_verdict}%</span>
-                            )}
-                            {verdict.verdict === 'challenged' && verdict.contradicting_evidence && verdict.contradicting_evidence.length > 0 && (
-                              <div className="mt-1.5 pt-1.5 border-t border-red-500/20">
-                                <span className="text-[9px] font-bold text-red-400 uppercase tracking-wider">Contradicting Evidence</span>
-                                <div className="mt-1 space-y-1">
-                                  {verdict.contradicting_evidence.map((b, bi) => (
-                                    <div key={bi} className="text-[10px] text-slate-400 flex items-start gap-1.5">
-                                      <span className="text-red-500 shrink-0 mt-0.5">
-                                        <span className="material-symbols-outlined" style={{ fontSize: 10 }}>error</span>
-                                      </span>
-                                      <span>{b.action}: {b.raw_evidence || b.detail}</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                        {finding.suggested_fix && (
-                          <p className="text-[10px] text-cyan-400 mt-2">Fix: {finding.suggested_fix}</p>
-                        )}
-                      </AgentFindingCard>
-                    );
-                  })}
-              </section>
-            )}
-
-            {/* 4. Metric anomalies */}
-            {(findings?.metric_anomalies?.length ?? 0) > 0 && (
-              <section>
-                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Metric Anomalies</div>
-                <div className="grid grid-cols-2 gap-3">
-                  {(findings?.metric_anomalies || []).map((ma, i) => {
-                    const tsData = findMatchingTimeSeries(findings?.time_series_data || {}, ma.metric_name);
-                    return (
-                      <AgentFindingCard key={i} agent="M" title={ma.metric_name}>
-                        <div className="flex items-baseline gap-3 mb-2">
-                          <div className="text-xl font-bold font-mono text-white">{safeFixed(ma.current_value, 1)}</div>
-                          <div className="text-xs font-mono text-slate-500">baseline {safeFixed(ma.baseline_value, 1)}</div>
-                          <div className={`text-sm font-mono font-bold ml-auto ${
-                            ma.severity === 'critical' || ma.severity === 'high' ? 'text-red-400' : 'text-cyan-400'
-                          }`}>
-                            {ma.direction === 'above' ? '\u25B2' : '\u25BC'}{Math.round(ma.deviation_percent)}%
-                          </div>
-                        </div>
-                        <AnomalySparkline
-                          dataPoints={tsData || []}
-                          baselineValue={ma.baseline_value}
-                          peakValue={ma.peak_value}
-                          spikeStart={ma.spike_start}
-                          spikeEnd={ma.spike_end}
-                          severity={ma.severity}
-                        />
-                        {ma.correlation_to_incident && (
-                          <p className="text-[10px] text-slate-400 italic mt-1.5">{ma.correlation_to_incident}</p>
-                        )}
-                      </AgentFindingCard>
-                    );
-                  })}
-                </div>
-              </section>
-            )}
-
-            {/* 5. K8s health + events */}
-            {((findings?.k8s_events?.length ?? 0) > 0 || (findings?.pod_statuses?.length ?? 0) > 0) && (
-              <section>
-                <AgentFindingCard agent="K" title="Kubernetes Health">
-                  {(findings?.pod_statuses?.length ?? 0) > 0 && (() => {
-                    const pods = findings?.pod_statuses || [];
-                    return (
-                    <>
-                      <div className="grid grid-cols-4 gap-3 mb-3">
-                        <StatBox label="Pods" value={pods.length} />
-                        <StatBox label="Restarts" value={pods.reduce((s, p) => s + (p.restart_count || 0), 0)} color="text-amber-500" />
-                        <StatBox label="Healthy" value={pods.filter((p) => p.ready).length} color="text-green-500" />
-                        <StatBox label="Unhealthy" value={pods.filter((p) => !p.ready).length} color="text-red-500" />
-                      </div>
-                      <PodDetailsList pods={pods} />
-                    </>
-                    );
-                  })()}
-                  {(findings?.k8s_events?.length ?? 0) > 0 && (
-                    <div className="space-y-1.5">
-                      {(findings?.k8s_events || []).map((ke, i) => (
-                        <div key={i} className="flex items-center gap-2 text-[11px]">
-                          <span className={`w-2 h-2 rounded-full ${ke.type === 'Warning' ? 'bg-red-500 animate-pulse' : 'bg-green-500'}`} />
-                          <span className="font-mono text-slate-300">{ke.involved_object}</span>
-                          <span className="text-slate-400 truncate">{ke.reason}: {ke.message}</span>
-                          <span className="text-[10px] text-slate-400 ml-auto shrink-0">{ke.count}x</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </AgentFindingCard>
-              </section>
-            )}
-
-            {/* 6. Blast Radius */}
-            <BlastRadiusCard blast={findings?.blast_radius || null} severity={findings?.severity_recommendation || null} />
-
-            {/* 7. Temporal Flow Timeline */}
-            {(findings?.service_flow?.length ?? 0) > 0 && (
-              <TemporalFlowTimeline
-                steps={findings?.service_flow || []}
-                source={findings?.flow_source || 'elasticsearch'}
-                confidence={findings?.flow_confidence || 0}
-                patientZero={findings?.patient_zero}
-              />
-            )}
-
-            {/* 8. Unified Causality Chain */}
-            <CausalityChainCard findings={findings} />
-
-            {/* 8b. Code Navigator Section */}
-            {((findings?.code_overall_confidence ?? 0) > 0 || findings?.root_cause_location || (findings?.code_call_chain?.length ?? 0) > 0) && (
-              <section className="space-y-3">
-                {/* Section header with confidence badge */}
-                {(findings?.code_overall_confidence ?? 0) > 0 && (() => {
-                  const conf = findings?.code_overall_confidence ?? 0;
-                  return (
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold bg-blue-500 text-white">D</span>
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Code Navigator</span>
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
-                      conf >= 80 ? 'text-green-400 bg-green-500/10 border border-green-500/20' :
-                      conf >= 50 ? 'text-amber-400 bg-amber-500/10 border border-amber-500/20' :
-                      'text-blue-400 bg-blue-500/10 border border-blue-500/20'
-                    }`}>
-                      {conf}% confidence
+        {/* Scrollable evidence stack */}
+        <LayoutGroup>
+          <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+            {/* Topology service filter banner */}
+            <AnimatePresence>
+              {selectedService && (
+                <motion.div
+                  variants={filterBannerVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
+                  className="mb-4 flex items-center justify-between px-3 py-2 rounded-lg bg-cyan-500/10 border border-cyan-500/20"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-cyan-400" />
+                    <span className="text-[11px] text-cyan-300">
+                      Showing evidence for: <span className="font-mono font-bold">{selectedService}</span>
                     </span>
                   </div>
-                  );
-                })()}
-
-                {/* Root Cause Location */}
-                {findings?.root_cause_location && (
-                  <AgentFindingCard agent="D" title="Root Cause Location">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${
-                          findings.root_cause_location.fix_relevance === 'must_fix'
-                            ? 'text-red-300 bg-red-500/20 border-red-500/30'
-                            : 'text-amber-300 bg-amber-500/20 border-amber-500/30'
-                        }`}>{findings.root_cause_location.fix_relevance.replace(/_/g, ' ').toUpperCase()}</span>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-700/50 text-slate-300 font-mono">
-                          {findings.root_cause_location.impact_type.replace(/_/g, ' ')}
-                        </span>
-                      </div>
-                      <div className="font-mono text-[11px] text-blue-400">{findings.root_cause_location.file_path}</div>
-                      {findings.root_cause_location.relevant_lines?.length > 0 && (
-                        <div className="text-[10px] text-slate-500">
-                          Lines: {findings.root_cause_location.relevant_lines.map(r => `${r.start}-${r.end}`).join(', ')}
-                        </div>
-                      )}
-                      <p className="text-[10px] text-slate-400">{findings.root_cause_location.relationship}</p>
-                      {findings.root_cause_location.code_snippet && (
-                        <pre className="text-[10px] font-mono bg-slate-900/60 rounded p-2 text-green-400 overflow-x-auto whitespace-pre-wrap max-h-[200px] overflow-y-auto">
-                          {findings.root_cause_location.code_snippet}
-                        </pre>
-                      )}
-                    </div>
-                  </AgentFindingCard>
+                  <button
+                    onClick={clearSelection}
+                    className="text-[10px] text-slate-400 hover:text-white px-2 py-0.5 rounded bg-slate-700/50 hover:bg-slate-600/50 transition-colors"
+                  >
+                    Clear filter
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+            {findings === null ? (
+              <SkeletonStack count={3} />
+            ) : !hasContent ? (
+              <PhaseAwareEmptyState phase={phase || null} />
+            ) : (
+              <LogicVineContainer>
+                {/* 1. Root Cause patterns */}
+                {rootCausePatterns.length > 0 && (
+                  <VineCard
+                    index={vineIndex++}
+                    isRootCause
+                    sectionId="root-cause"
+                    isNew={newSections.has('root-cause')}
+                    onPin={() => handlePin('root-cause', rootCausePatterns[0]?.exception_type || 'Root Cause', 'L')}
+                    isPinned={pinnedSections.has('root-cause')}
+                  >
+                    {newSections.has('root-cause') && <WeldSpark />}
+                    <TargetingBrackets>
+                      <section className="space-y-2">
+                        {rootCausePatterns.map((ep, i) => {
+                          const saturationMetrics = getSaturationMetrics(findings?.metric_anomalies || []);
+                          return (
+                            <AgentFindingCard key={ep.pattern_id || `rc-${i}`} agent="L" title="Error Pattern">
+                              <CausalRoleBadge role="root_cause" />
+                              {saturationMetrics.length > 0 && (
+                                <div className="flex gap-3 my-2">
+                                  {saturationMetrics.map((sm, si) => (
+                                    <SaturationGauge key={si} metricName={sm.metric_name} currentValue={sm.current_value} />
+                                  ))}
+                                </div>
+                              )}
+                              <ErrorPatternContent pattern={ep} rank={i + 1} />
+                            </AgentFindingCard>
+                          );
+                        })}
+                      </section>
+                    </TargetingBrackets>
+                    <WorkerSignature confidence={85} agentCode="L" />
+                  </VineCard>
                 )}
 
-                {/* Code Call Chain */}
-                {(findings?.code_call_chain?.length ?? 0) > 0 && (
-                  <AgentFindingCard agent="D" title="Code Call Chain">
-                    <div className="space-y-1">
-                      {(findings?.code_call_chain || []).map((step, i) => (
-                        <div key={i} className="flex items-center gap-2">
-                          <div className="flex flex-col items-center w-4">
-                            <div className="w-2 h-2 rounded-full bg-blue-500" />
-                            {i < (findings?.code_call_chain?.length ?? 0) - 1 && (
-                              <div className="w-px h-4 bg-slate-700" />
+                {/* 2. Cascading patterns */}
+                {cascadingPatterns.length > 0 && (
+                  <VineCard
+                    index={vineIndex++}
+                    sectionId="cascading"
+                    isNew={newSections.has('cascading')}
+                    onPin={() => handlePin('cascading', 'Cascading Failures', 'L')}
+                    isPinned={pinnedSections.has('cascading')}
+                  >
+                    {cascadingPatterns.length > 5 ? (
+                      <SymptomDeck
+                        symptoms={cascadingPatterns}
+                        renderSymptom={(ep, i) => (
+                          <AgentFindingCard key={ep.pattern_id || `cas-${i}`} agent="L" title="Cascading Error">
+                            <CausalRoleBadge role="cascading_failure" />
+                            <ErrorPatternContent pattern={ep} rank={i + 1} />
+                          </AgentFindingCard>
+                        )}
+                      />
+                    ) : (
+                      <section className="space-y-2">
+                        {cascadingPatterns.map((ep, i) => (
+                          <AgentFindingCard key={ep.pattern_id || `cas-${i}`} agent="L" title="Cascading Error">
+                            <CausalRoleBadge role="cascading_failure" />
+                            <ErrorPatternContent pattern={ep} rank={i + 1} />
+                          </AgentFindingCard>
+                        ))}
+                      </section>
+                    )}
+                    <WorkerSignature confidence={72} agentCode="L" />
+                  </VineCard>
+                )}
+
+                {/* Ungrouped error patterns */}
+                {ungroupedPatterns.length > 0 && (
+                  <VineCard
+                    index={vineIndex++}
+                    sectionId="ungrouped"
+                    isNew={newSections.has('ungrouped')}
+                    onPin={() => handlePin('ungrouped', 'Error Clusters', 'L')}
+                    isPinned={pinnedSections.has('ungrouped')}
+                  >
+                    {ungroupedPatterns.length > 5 ? (
+                      <SymptomDeck
+                        symptoms={ungroupedPatterns}
+                        renderSymptom={(ep, i) => (
+                          <ErrorPatternCluster key={ep.pattern_id || `ug-${i}`} pattern={ep} rank={i + 1} />
+                        )}
+                      />
+                    ) : (
+                      <section className="space-y-2">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="material-symbols-outlined text-amber-500 text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>receipt_long</span>
+                          <span className="text-[11px] font-bold uppercase tracking-wider">Error Clusters</span>
+                          <span className="text-[10px] font-mono text-slate-500">{ungroupedPatterns.length}</span>
+                        </div>
+                        {ungroupedPatterns.map((ep, i) => (
+                          <ErrorPatternCluster key={ep.pattern_id || `ug-${i}`} pattern={ep} rank={i + 1} />
+                        ))}
+                      </section>
+                    )}
+                  </VineCard>
+                )}
+
+                {/* 3. High-severity findings */}
+                {filteredFindings.length > 0 && (
+                  <VineCard
+                    index={vineIndex++}
+                    sectionId="findings"
+                    isNew={newSections.has('findings')}
+                    onPin={() => handlePin('findings', 'Investigation Findings', 'C')}
+                    isPinned={pinnedSections.has('findings')}
+                  >
+                    <section className="space-y-2">
+                      <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Findings</div>
+                      {[...filteredFindings]
+                        .sort((a, b) => severityRank(a.severity) - severityRank(b.severity))
+                        .map((finding, i) => {
+                          const verdict = findings?.critic_verdicts?.find((v) => v.finding_id === finding.finding_id);
+                          const agentCode = getAgentCode(finding.agent_name);
+                          return (
+                            <AgentFindingCard key={finding.finding_id || i} agent={agentCode} title={finding.title}>
+                              <p className="text-xs text-slate-400 mb-2">{finding.description}</p>
+                              <div className="flex items-center gap-3 text-[10px] text-slate-500">
+                                <span className={`px-1.5 py-0.5 rounded ${severityColor[finding.severity]}`}>{finding.severity}</span>
+                                <span>Confidence: {Math.round(finding.confidence)}%</span>
+                                {verdict && (
+                                  <span className={`px-1.5 py-0.5 rounded ${verdictColor[verdict.verdict]}`}>
+                                    {verdict.verdict}
+                                  </span>
+                                )}
+                              </div>
+                              {verdict && (verdict.reasoning || verdict.recommendation) && (
+                                <div className="mt-2 bg-slate-800/30 rounded-lg border border-slate-700/30 p-2 space-y-1">
+                                  {verdict.reasoning && (
+                                    <p className="text-[10px] text-slate-400">{verdict.reasoning}</p>
+                                  )}
+                                  {verdict.recommendation && (
+                                    <p className="text-[10px] text-cyan-400 italic">{verdict.recommendation}</p>
+                                  )}
+                                  {verdict.confidence_in_verdict > 0 && (
+                                    <span className="text-[9px] text-slate-500 font-mono">Verdict confidence: {verdict.confidence_in_verdict}%</span>
+                                  )}
+                                  {verdict.verdict === 'challenged' && verdict.contradicting_evidence && verdict.contradicting_evidence.length > 0 && (
+                                    <div className="mt-1.5 pt-1.5 border-t border-red-500/20">
+                                      <span className="text-[9px] font-bold text-red-400 uppercase tracking-wider">Contradicting Evidence</span>
+                                      <div className="mt-1 space-y-1">
+                                        {verdict.contradicting_evidence.map((b, bi) => (
+                                          <div key={bi} className="text-[10px] text-slate-400 flex items-start gap-1.5">
+                                            <span className="text-red-500 shrink-0 mt-0.5">
+                                              <span className="material-symbols-outlined" style={{ fontSize: 10 }}>error</span>
+                                            </span>
+                                            <span>{b.action}: {b.raw_evidence || b.detail}</span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                              {finding.suggested_fix && (
+                                <p className="text-[10px] text-cyan-400 mt-2">Fix: {finding.suggested_fix}</p>
+                              )}
+                            </AgentFindingCard>
+                          );
+                        })}
+                    </section>
+                    <WorkerSignature confidence={78} agentCode="C" />
+                  </VineCard>
+                )}
+
+                {/* 4. Metric anomalies */}
+                {filteredMetrics.length > 0 && (
+                  <VineCard
+                    index={vineIndex++}
+                    sectionId="metrics"
+                    isNew={newSections.has('metrics')}
+                    onPin={() => handlePin('metrics', 'Metric Anomalies', 'M')}
+                    isPinned={pinnedSections.has('metrics')}
+                  >
+                    <section>
+                      <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Metric Anomalies</div>
+                      <div className="grid grid-cols-2 gap-3">
+                        {filteredMetrics.map((ma, i) => {
+                          const tsData = findMatchingTimeSeries(findings?.time_series_data || {}, ma.metric_name);
+                          return (
+                            <AgentFindingCard key={i} agent="M" title={ma.metric_name}>
+                              <div className="flex items-baseline gap-3 mb-2">
+                                <div className="text-xl font-bold font-mono text-white">{safeFixed(ma.current_value, 1)}</div>
+                                <div className="text-xs font-mono text-slate-500">baseline {safeFixed(ma.baseline_value, 1)}</div>
+                                <div className={`text-sm font-mono font-bold ml-auto ${
+                                  ma.severity === 'critical' || ma.severity === 'high' ? 'text-red-400' : 'text-cyan-400'
+                                }`}>
+                                  {ma.direction === 'above' ? '\u25B2' : '\u25BC'}{Math.round(ma.deviation_percent)}%
+                                </div>
+                              </div>
+                              <AnomalySparkline
+                                dataPoints={tsData || []}
+                                baselineValue={ma.baseline_value}
+                                peakValue={ma.peak_value}
+                                spikeStart={ma.spike_start}
+                                spikeEnd={ma.spike_end}
+                                severity={ma.severity}
+                              />
+                              {ma.correlation_to_incident && (
+                                <p className="text-[10px] text-slate-400 italic mt-1.5">{ma.correlation_to_incident}</p>
+                              )}
+                            </AgentFindingCard>
+                          );
+                        })}
+                      </div>
+                    </section>
+                    <WorkerSignature confidence={90} agentCode="M" />
+                  </VineCard>
+                )}
+
+                {/* 5. K8s health + events */}
+                {(filteredK8sEvents.length > 0 || filteredPodStatuses.length > 0) && (
+                  <VineCard
+                    index={vineIndex++}
+                    sectionId="k8s"
+                    isNew={newSections.has('k8s')}
+                    onPin={() => handlePin('k8s', 'Kubernetes Health', 'K')}
+                    isPinned={pinnedSections.has('k8s')}
+                  >
+                    <section>
+                      <AgentFindingCard agent="K" title="Kubernetes Health">
+                        {filteredPodStatuses.length > 0 && (() => {
+                          const pods = filteredPodStatuses;
+                          return (
+                          <>
+                            <div className="grid grid-cols-4 gap-3 mb-3">
+                              <StatBox label="Pods" value={pods.length} />
+                              <StatBox label="Restarts" value={pods.reduce((s, p) => s + (p.restart_count || 0), 0)} color="text-amber-500" />
+                              <StatBox label="Healthy" value={pods.filter((p) => p.ready).length} color="text-green-500" />
+                              <StatBox label="Unhealthy" value={pods.filter((p) => !p.ready).length} color="text-red-500" />
+                            </div>
+                            <PodDetailsList pods={pods} />
+                          </>
+                          );
+                        })()}
+                        {filteredK8sEvents.length > 0 && (
+                          <div className="space-y-1.5">
+                            {filteredK8sEvents.map((ke, i) => (
+                              <div key={i} className="flex items-center gap-2 text-[11px]">
+                                <span className={`w-2 h-2 rounded-full ${ke.type === 'Warning' ? 'bg-red-500 animate-pulse' : 'bg-green-500'}`} />
+                                <span className="font-mono text-slate-300">{ke.involved_object}</span>
+                                <span className="text-slate-400 truncate">{ke.reason}: {ke.message}</span>
+                                <span className="text-[10px] text-slate-400 ml-auto shrink-0">{ke.count}x</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </AgentFindingCard>
+                    </section>
+                    <WorkerSignature confidence={88} agentCode="K" />
+                  </VineCard>
+                )}
+
+                {/* 6. Blast Radius */}
+                {findings?.blast_radius && (
+                  <VineCard
+                    index={vineIndex++}
+                    sectionId="blast-radius"
+                    isNew={newSections.has('blast-radius')}
+                    onPin={() => handlePin('blast-radius', 'Blast Radius', 'C')}
+                    isPinned={pinnedSections.has('blast-radius')}
+                  >
+                    <BlastRadiusCard blast={findings?.blast_radius || null} severity={findings?.severity_recommendation || null} />
+                  </VineCard>
+                )}
+
+                {/* 7. Temporal Flow Timeline */}
+                {filteredServiceFlow.length > 0 && (
+                  <VineCard
+                    index={vineIndex++}
+                    sectionId="service-flow"
+                    isNew={newSections.has('service-flow')}
+                    onPin={() => handlePin('service-flow', 'Temporal Flow', 'L')}
+                    isPinned={pinnedSections.has('service-flow')}
+                  >
+                    <TemporalFlowTimeline
+                      steps={filteredServiceFlow}
+                      source={findings?.flow_source || 'elasticsearch'}
+                      confidence={findings?.flow_confidence || 0}
+                      patientZero={findings?.patient_zero}
+                    />
+                  </VineCard>
+                )}
+
+                {/* 8. Unified Causality Chain */}
+                {(filteredChangeCorrelations.length > 0 || (findings?.diff_analysis?.length ?? 0) > 0 || (findings?.suggested_fix_areas?.length ?? 0) > 0 || findings?.change_summary) && (
+                  <VineCard
+                    index={vineIndex++}
+                    sectionId="causality"
+                    isNew={newSections.has('causality')}
+                    onPin={() => handlePin('causality', 'Causality Chain', 'C')}
+                    isPinned={pinnedSections.has('causality')}
+                  >
+                    <CausalityChainCard findings={findings} />
+                    <WorkerSignature confidence={75} agentCode="C" />
+                  </VineCard>
+                )}
+
+                {/* 8b. Code Navigator Section */}
+                {((findings?.code_overall_confidence ?? 0) > 0 || findings?.root_cause_location || (findings?.code_call_chain?.length ?? 0) > 0) && (
+                  <VineCard
+                    index={vineIndex++}
+                    sectionId="code-nav"
+                    isNew={newSections.has('code-nav')}
+                    onPin={() => handlePin('code-nav', 'Code Navigator', 'D')}
+                    isPinned={pinnedSections.has('code-nav')}
+                  >
+                    <section className="space-y-3">
+                      {(findings?.code_overall_confidence ?? 0) > 0 && (() => {
+                        const conf = findings?.code_overall_confidence ?? 0;
+                        return (
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold bg-blue-500 text-white">D</span>
+                          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Code Navigator</span>
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                            conf >= 80 ? 'text-green-400 bg-green-500/10 border border-green-500/20' :
+                            conf >= 50 ? 'text-amber-400 bg-amber-500/10 border border-amber-500/20' :
+                            'text-blue-400 bg-blue-500/10 border border-blue-500/20'
+                          }`}>
+                            {conf}% confidence
+                          </span>
+                        </div>
+                        );
+                      })()}
+
+                      {findings?.root_cause_location && (
+                        <AgentFindingCard agent="D" title="Root Cause Location">
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${
+                                findings.root_cause_location.fix_relevance === 'must_fix'
+                                  ? 'text-red-300 bg-red-500/20 border-red-500/30'
+                                  : 'text-amber-300 bg-amber-500/20 border-amber-500/30'
+                              }`}>{findings.root_cause_location.fix_relevance.replace(/_/g, ' ').toUpperCase()}</span>
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-700/50 text-slate-300 font-mono">
+                                {findings.root_cause_location.impact_type.replace(/_/g, ' ')}
+                              </span>
+                            </div>
+                            <div className="font-mono text-[11px] text-blue-400">{findings.root_cause_location.file_path}</div>
+                            {findings.root_cause_location.relevant_lines?.length > 0 && (
+                              <div className="text-[10px] text-slate-500">
+                                Lines: {findings.root_cause_location.relevant_lines.map(r => `${r.start}-${r.end}`).join(', ')}
+                              </div>
+                            )}
+                            <p className="text-[10px] text-slate-400">{findings.root_cause_location.relationship}</p>
+                            {findings.root_cause_location.code_snippet && (
+                              <pre className="text-[10px] font-mono bg-slate-900/60 rounded p-2 text-green-400 overflow-x-auto whitespace-pre-wrap max-h-[200px] overflow-y-auto">
+                                {findings.root_cause_location.code_snippet}
+                              </pre>
                             )}
                           </div>
-                          <span className="text-[11px] font-mono text-slate-300">{step}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </AgentFindingCard>
-                )}
+                        </AgentFindingCard>
+                      )}
 
-                {/* Impacted Files */}
-                {(findings?.impacted_files?.length ?? 0) > 0 && (
-                  <AgentFindingCard agent="D" title={`Impacted Files (${findings?.impacted_files?.length ?? 0})`}>
-                    <div className="space-y-1.5">
-                      {(findings?.impacted_files || []).map((file, i) => (
-                        <div key={i} className="flex items-center gap-2 text-[10px]">
-                          <span className={`px-1 py-0.5 rounded border text-[9px] font-bold ${
-                            file.fix_relevance === 'must_fix' ? 'text-red-300 bg-red-500/20 border-red-500/30' :
-                            file.fix_relevance === 'should_review' ? 'text-amber-300 bg-amber-500/20 border-amber-500/30' :
-                            'text-slate-400 bg-slate-500/20 border-slate-500/30'
-                          }`}>{file.fix_relevance.replace(/_/g, ' ').toUpperCase()}</span>
-                          <span className="font-mono text-blue-400 truncate" title={file.file_path}>{file.file_path}</span>
-                          <span className="text-slate-500 ml-auto shrink-0">{file.impact_type.replace(/_/g, ' ')}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </AgentFindingCard>
-                )}
-
-                {/* Shared Resource Conflicts */}
-                {(findings?.code_shared_resource_conflicts?.length ?? 0) > 0 && (
-                  <AgentFindingCard agent="D" title="Shared Resource Conflicts">
-                    <div className="flex flex-wrap gap-2">
-                      {(findings?.code_shared_resource_conflicts || []).map((conflict, i) => (
-                        <span key={i} className="text-[10px] font-mono px-2.5 py-1 rounded-full bg-purple-500/15 text-purple-400 border border-purple-500/30">
-                          {conflict}
-                        </span>
-                      ))}
-                    </div>
-                  </AgentFindingCard>
-                )}
-
-                {/* Cross-Repo Findings */}
-                {(findings?.code_cross_repo_findings?.length ?? 0) > 0 && (
-                  <AgentFindingCard agent="D" title="Cross-Repo Findings">
-                    <div className="space-y-2">
-                      {(findings?.code_cross_repo_findings || []).map((crf: CrossRepoFinding, i: number) => (
-                        <div key={i} className="bg-slate-800/30 rounded-lg border border-slate-700/50 px-3 py-2">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-[11px] font-mono text-violet-400">{crf.repo}</span>
-                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-400 border border-violet-500/20 font-bold uppercase">
-                              {(crf.role || '').replace(/_/g, ' ')}
-                            </span>
+                      {(findings?.code_call_chain?.length ?? 0) > 0 && (
+                        <AgentFindingCard agent="D" title="Code Call Chain">
+                          <div className="space-y-1">
+                            {(findings?.code_call_chain || []).map((step, i) => (
+                              <div key={i} className="flex items-center gap-2">
+                                <div className="flex flex-col items-center w-4">
+                                  <div className="w-2 h-2 rounded-full bg-blue-500" />
+                                  {i < (findings?.code_call_chain?.length ?? 0) - 1 && (
+                                    <div className="w-px h-4 bg-slate-700" />
+                                  )}
+                                </div>
+                                <span className="text-[11px] font-mono text-slate-300">{step}</span>
+                              </div>
+                            ))}
                           </div>
-                          <p className="text-[10px] text-slate-400">{crf.evidence}</p>
-                        </div>
+                        </AgentFindingCard>
+                      )}
+
+                      {(findings?.impacted_files?.length ?? 0) > 0 && (
+                        <AgentFindingCard agent="D" title={`Impacted Files (${findings?.impacted_files?.length ?? 0})`}>
+                          <div className="space-y-1.5">
+                            {(findings?.impacted_files || []).map((file, i) => (
+                              <div key={i} className="flex items-center gap-2 text-[10px]">
+                                <span className={`px-1 py-0.5 rounded border text-[9px] font-bold ${
+                                  file.fix_relevance === 'must_fix' ? 'text-red-300 bg-red-500/20 border-red-500/30' :
+                                  file.fix_relevance === 'should_review' ? 'text-amber-300 bg-amber-500/20 border-amber-500/30' :
+                                  'text-slate-400 bg-slate-500/20 border-slate-500/30'
+                                }`}>{file.fix_relevance.replace(/_/g, ' ').toUpperCase()}</span>
+                                <span className="font-mono text-blue-400 truncate" title={file.file_path}>{file.file_path}</span>
+                                <span className="text-slate-500 ml-auto shrink-0">{file.impact_type.replace(/_/g, ' ')}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </AgentFindingCard>
+                      )}
+
+                      {(findings?.code_shared_resource_conflicts?.length ?? 0) > 0 && (
+                        <AgentFindingCard agent="D" title="Shared Resource Conflicts">
+                          <div className="flex flex-wrap gap-2">
+                            {(findings?.code_shared_resource_conflicts || []).map((conflict, i) => (
+                              <span key={i} className="text-[10px] font-mono px-2.5 py-1 rounded-full bg-purple-500/15 text-purple-400 border border-purple-500/30">
+                                {conflict}
+                              </span>
+                            ))}
+                          </div>
+                        </AgentFindingCard>
+                      )}
+
+                      {(findings?.code_cross_repo_findings?.length ?? 0) > 0 && (
+                        <AgentFindingCard agent="D" title="Cross-Repo Findings">
+                          <div className="space-y-2">
+                            {(findings?.code_cross_repo_findings || []).map((crf: CrossRepoFinding, i: number) => (
+                              <div key={i} className="bg-slate-800/30 rounded-lg border border-slate-700/50 px-3 py-2">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="text-[11px] font-mono text-violet-400">{crf.repo}</span>
+                                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-400 border border-violet-500/20 font-bold uppercase">
+                                    {(crf.role || '').replace(/_/g, ' ')}
+                                  </span>
+                                </div>
+                                <p className="text-[10px] text-slate-400">{crf.evidence}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </AgentFindingCard>
+                      )}
+
+                      {findings?.code_mermaid_diagram && (
+                        <AgentFindingCard agent="D" title="Service Flow Diagram">
+                          <pre className="text-[10px] font-mono bg-slate-900/60 rounded p-3 text-slate-300 overflow-x-auto whitespace-pre-wrap max-h-[250px] overflow-y-auto">
+                            {findings.code_mermaid_diagram}
+                          </pre>
+                        </AgentFindingCard>
+                      )}
+                    </section>
+                    <WorkerSignature confidence={findings?.code_overall_confidence ?? 65} agentCode="D" />
+                  </VineCard>
+                )}
+
+                {/* 8c. Fix Pipeline */}
+                {sessionId && (
+                  phase === 'diagnosis_complete' ||
+                  phase === 'fix_in_progress' ||
+                  phase === 'complete' ||
+                  (findings?.fix_data && findings.fix_data.fix_status !== 'not_started')
+                ) && (
+                  <VineCard index={vineIndex++} sectionId="fix-pipeline">
+                    <FixPipelinePanel
+                      sessionId={sessionId}
+                      findings={findings}
+                      phase={phase || null}
+                      onRefresh={onRefresh || (() => {})}
+                    />
+                  </VineCard>
+                )}
+
+                {/* 9. Correlated anomalies */}
+                {correlatedPatterns.length > 0 && (
+                  <VineCard
+                    index={vineIndex++}
+                    sectionId="correlated"
+                    isNew={newSections.has('correlated')}
+                    onPin={() => handlePin('correlated', 'Correlated Anomalies', 'L')}
+                    isPinned={pinnedSections.has('correlated')}
+                  >
+                    <section className="space-y-2">
+                      <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Correlated Anomalies</div>
+                      {correlatedPatterns.map((ep, i) => (
+                        <AgentFindingCard key={ep.pattern_id || `cor-${i}`} agent="L" title="Correlated Pattern">
+                          <CausalRoleBadge role="correlated_anomaly" />
+                          <ErrorPatternContent pattern={ep} rank={i + 1} />
+                        </AgentFindingCard>
                       ))}
-                    </div>
-                  </AgentFindingCard>
+                    </section>
+                  </VineCard>
                 )}
 
-                {/* Mermaid Diagram */}
-                {findings?.code_mermaid_diagram && (
-                  <AgentFindingCard agent="D" title="Service Flow Diagram">
-                    <pre className="text-[10px] font-mono bg-slate-900/60 rounded p-3 text-slate-300 overflow-x-auto whitespace-pre-wrap max-h-[250px] overflow-y-auto">
-                      {findings.code_mermaid_diagram}
-                    </pre>
-                  </AgentFindingCard>
+                {/* 10. Trace waterfall */}
+                {filteredTraceSpans.length > 0 && (
+                  <VineCard
+                    index={vineIndex++}
+                    sectionId="traces"
+                    isNew={newSections.has('traces')}
+                    onPin={() => handlePin('traces', 'Trace Waterfall', 'L')}
+                    isPinned={pinnedSections.has('traces')}
+                  >
+                    <TraceWaterfall spans={filteredTraceSpans} />
+                  </VineCard>
                 )}
-              </section>
-            )}
 
-            {/* 8c. Fix Pipeline */}
-            {sessionId && (
-              phase === 'diagnosis_complete' ||
-              phase === 'fix_in_progress' ||
-              phase === 'complete' ||
-              (findings?.fix_data && findings.fix_data.fix_status !== 'not_started')
-            ) && (
-              <FixPipelinePanel
-                sessionId={sessionId}
-                findings={findings}
-                phase={phase || null}
-                onRefresh={onRefresh || (() => {})}
-              />
-            )}
+                {/* 10b. Event Markers */}
+                {(findings?.event_markers?.length ?? 0) > 0 && (
+                  <VineCard
+                    index={vineIndex++}
+                    sectionId="event-markers"
+                    isNew={newSections.has('event-markers')}
+                  >
+                    <EventMarkerTimeline markers={findings?.event_markers || []} />
+                  </VineCard>
+                )}
 
-            {/* 9. Correlated anomalies */}
-            {correlatedPatterns.length > 0 && (
-              <section className="space-y-2">
-                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Correlated Anomalies</div>
-                {correlatedPatterns.map((ep, i) => (
-                  <AgentFindingCard key={ep.pattern_id || `cor-${i}`} agent="L" title="Correlated Pattern">
-                    <CausalRoleBadge role="correlated_anomaly" />
-                    <ErrorPatternContent pattern={ep} rank={i + 1} />
-                  </AgentFindingCard>
-                ))}
-              </section>
-            )}
+                {/* 10c. Past Incidents */}
+                {(findings?.past_incidents?.length ?? 0) > 0 && (
+                  <VineCard
+                    index={vineIndex++}
+                    sectionId="past-incidents"
+                    isNew={newSections.has('past-incidents')}
+                  >
+                    <PastIncidentsSection incidents={findings?.past_incidents || []} />
+                  </VineCard>
+                )}
 
-            {/* 10. Trace waterfall */}
-            {(findings?.trace_spans?.length ?? 0) > 0 && (
-              <TraceWaterfall spans={findings?.trace_spans || []} />
-            )}
+                {/* 11. Incident Closure Panel */}
+                {sessionId && (phase === 'diagnosis_complete' || phase === 'fix_in_progress' || phase === 'complete') && (
+                  <VineCard index={vineIndex++} sectionId="closure">
+                    <IncidentClosurePanel
+                      sessionId={sessionId}
+                      findings={findings}
+                      phase={phase}
+                    />
+                  </VineCard>
+                )}
 
-            {/* 10b. Event Markers */}
-            {(findings?.event_markers?.length ?? 0) > 0 && (
-              <EventMarkerTimeline markers={findings?.event_markers || []} />
-            )}
-
-            {/* 10c. Past Incidents */}
-            {(findings?.past_incidents?.length ?? 0) > 0 && (
-              <PastIncidentsSection incidents={findings?.past_incidents || []} />
-            )}
-
-            {/* 11. Incident Closure Panel */}
-            {sessionId && (phase === 'diagnosis_complete' || phase === 'fix_in_progress' || phase === 'complete') && (
-              <IncidentClosurePanel
-                sessionId={sessionId}
-                findings={findings}
-                phase={phase}
-              />
-            )}
-
-            {/* Activity Feed fallback */}
-            {errorPatterns.length === 0 && (findings?.findings?.length ?? 0) === 0 && events.length > 0 && (
-              <div className="bg-slate-900/40 border border-slate-800 rounded-xl overflow-hidden">
-                <div className="px-4 py-2 border-b border-slate-800 bg-slate-900/60">
-                  <span className="text-[11px] font-bold uppercase tracking-wider">Agent Activity Feed</span>
-                </div>
-                <div className="p-4 font-mono text-[11px] space-y-1 text-slate-400 max-h-[300px] overflow-y-auto custom-scrollbar">
-                  {events.slice(-20).map((ev, i) => (
-                    <div key={i} className="flex gap-3">
-                      <span className="text-slate-400 shrink-0">
-                        {formatTime(ev.timestamp)}
-                      </span>
-                      <span className={`font-bold shrink-0 ${
-                        ev.event_type === 'error' ? 'text-red-400' :
-                        ev.event_type === 'warning' ? 'text-amber-400' :
-                        ev.event_type === 'success' ? 'text-green-400' : 'text-slate-500'
-                      }`}>
-                        [{ev.event_type.toUpperCase()}]
-                      </span>
-                      <span className="text-[#07b6d5]">{ev.agent_name}</span>
-                      <span className="truncate">{ev.message}</span>
+                {/* Activity Feed fallback */}
+                {errorPatterns.length === 0 && (findings?.findings?.length ?? 0) === 0 && events.length > 0 && (
+                  <VineCard index={vineIndex++} sectionId="activity-feed">
+                    <div className="bg-slate-900/40 border border-slate-800 rounded-xl overflow-hidden">
+                      <div className="px-4 py-2 border-b border-slate-800 bg-slate-900/60">
+                        <span className="text-[11px] font-bold uppercase tracking-wider">Agent Activity Feed</span>
+                      </div>
+                      <div className="p-4 font-mono text-[11px] space-y-1 text-slate-400 max-h-[300px] overflow-y-auto custom-scrollbar">
+                        {events.slice(-20).map((ev, i) => (
+                          <div key={i} className="flex gap-3">
+                            <span className="text-slate-400 shrink-0">
+                              {formatTime(ev.timestamp)}
+                            </span>
+                            <span className={`font-bold shrink-0 ${
+                              ev.event_type === 'error' ? 'text-red-400' :
+                              ev.event_type === 'warning' ? 'text-amber-400' :
+                              ev.event_type === 'success' ? 'text-green-400' : 'text-slate-500'
+                            }`}>
+                              [{ev.event_type.toUpperCase()}]
+                            </span>
+                            <span className="text-[#07b6d5]">{ev.agent_name}</span>
+                            <span className="truncate">{ev.message}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  ))}
-                </div>
-              </div>
+                  </VineCard>
+                )}
+              </LogicVineContainer>
             )}
-          </>
-        )}
-      </div>
+          </div>
+
+          {/* Assembly Workbench */}
+          <AssemblyWorkbench
+            pinnedItems={Array.from(pinnedSections.values())}
+            onUnpin={handleUnpin}
+            fixReady={fixReady}
+          />
+        </LayoutGroup>
+
+        {/* Resolve Cinematic */}
+        <AnimatePresence>
+          {showResolve && (
+            <ResolveCinematic
+              findings={findings}
+              onDismiss={() => setShowResolve(false)}
+            />
+          )}
+        </AnimatePresence>
+      </HUDAtmosphere>
     </div>
   );
 };
