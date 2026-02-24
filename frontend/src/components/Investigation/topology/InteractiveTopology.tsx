@@ -17,6 +17,7 @@ interface InteractiveTopologyProps {
   findings: V4Findings;
   selectedService: string | null;
   onSelectService: (id: string | null) => void;
+  highlightedService?: string | null;
 }
 
 // ─── Abbreviation helper ─────────────────────────────────────────────────────
@@ -31,6 +32,7 @@ const InteractiveTopology: React.FC<InteractiveTopologyProps> = ({
   findings,
   selectedService,
   onSelectService,
+  highlightedService,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
@@ -187,6 +189,7 @@ const InteractiveTopology: React.FC<InteractiveTopologyProps> = ({
                 isSelected={selectedService === node.id}
                 isHovered={hoveredNode === node.id}
                 isCausal={causalPathSet.has(node.id)}
+                isHighlighted={highlightedService === node.id}
                 onHoverStart={() => setHoveredNode(node.id)}
                 onHoverEnd={() => setHoveredNode(null)}
                 onClick={() => onSelectService(node.id)}
@@ -263,17 +266,18 @@ const TopologyNode: React.FC<{
   isSelected: boolean;
   isHovered: boolean;
   isCausal: boolean;
+  isHighlighted?: boolean;
   onHoverStart: () => void;
   onHoverEnd: () => void;
   onClick: () => void;
-}> = ({ node, dimmed, isSelected, isHovered, isCausal, onHoverStart, onHoverEnd, onClick }) => {
+}> = ({ node, dimmed, isSelected, isHovered, isCausal, isHighlighted, onHoverStart, onHoverEnd, onClick }) => {
   const colors = NODE_COLORS[node.role];
   const isP0 = node.role === 'patient_zero';
   const showCrashRing = node.isCrashloop || node.isOomKilled;
 
   const filter = isP0 || showCrashRing
     ? 'url(#glow-red-v2)'
-    : isCausal
+    : isCausal || isHighlighted
       ? 'url(#glow-amber-v2)'
       : undefined;
 
@@ -282,8 +286,8 @@ const TopologyNode: React.FC<{
     <motion.g
       initial={{ opacity: 0 }}
       animate={{
-        opacity: dimmed ? 0.2 : 1,
-        scale: isHovered ? 1.12 : 1,
+        opacity: dimmed && !isHighlighted ? 0.2 : 1,
+        scale: isHovered || isHighlighted ? 1.12 : 1,
       }}
       exit={{ opacity: 0 }}
       transition={{ type: 'spring', stiffness: 300, damping: 25 }}
@@ -313,6 +317,18 @@ const TopologyNode: React.FC<{
           stroke="#06b6d4"
           strokeWidth={2}
           className="topology-select-ring"
+        />
+      )}
+
+      {/* Campaign hover resonance ring */}
+      {isHighlighted && !isSelected && (
+        <circle
+          r={NODE_RADIUS + 6}
+          fill="none"
+          stroke="#f59e0b"
+          strokeWidth={2}
+          opacity={0.7}
+          className="campaign-node-generating"
         />
       )}
 

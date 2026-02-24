@@ -44,13 +44,17 @@ export const AgentCapsule: React.FC<AgentCapsuleProps> = ({ capsule, filterMode,
     <div className="relative bg-slate-800/20 border border-slate-700/30 rounded-lg overflow-hidden">
       {/* Agent Header */}
       <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-800/30">
-        <div className={`w-1 h-4 rounded-full ${barColor}`} />
-        <span
-          className="material-symbols-outlined text-slate-400 text-xs"
-          style={{ fontFamily: 'Material Symbols Outlined' }}
-        >
-          {icon}
-        </span>
+        <div className={`flex items-center gap-1.5 px-1.5 py-0.5 rounded-sm ${barColor}/20 border ${barColor.replace('bg-', 'border-')}/40`}>
+          <span
+            className="material-symbols-outlined text-[10px]"
+            style={{ fontFamily: 'Material Symbols Outlined' }}
+          >
+            {icon}
+          </span>
+          <span className={`text-[9px] font-mono font-bold tracking-widest uppercase ${barColor.replace('bg-', 'text-')}`}>
+            {capsule.agent.replace('_agent', '').replace('_', '')}
+          </span>
+        </div>
         <span className="text-[10px] font-bold uppercase tracking-wider text-slate-300">
           {capsule.agent.replace(/_/g, ' ')}
         </span>

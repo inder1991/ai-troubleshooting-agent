@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import { GitCommit, RotateCcw, FileCode, User, Clock } from 'lucide-react';
 import type { ChangeCorrelation } from '../../types';
 
@@ -86,9 +87,12 @@ const ChangeCorrelationCard: React.FC<ChangeCorrelationCardProps> = ({ changes }
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-[10px] text-gray-500 w-14 flex-shrink-0">Risk</span>
                 <div className="flex-1 h-1.5 bg-gray-700 rounded-full overflow-hidden">
-                  <div
-                    className="h-full rounded-full transition-all"
-                    style={{ width: `${Math.round(change.risk_score * 100)}%`, backgroundColor: color }}
+                  <motion.div
+                    className="h-full rounded-full w-full origin-left"
+                    style={{ backgroundColor: color }}
+                    initial={{ scaleX: 0 }}
+                    animate={{ scaleX: change.risk_score }}
+                    transition={{ type: 'spring', stiffness: 120, damping: 20 }}
                   />
                 </div>
                 <span className="text-[10px] font-mono text-gray-400 w-8 text-right">
@@ -100,9 +104,11 @@ const ChangeCorrelationCard: React.FC<ChangeCorrelationCardProps> = ({ changes }
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-[10px] text-gray-500 w-14 flex-shrink-0">Temporal</span>
                 <div className="flex-1 h-1.5 bg-gray-700 rounded-full overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-[#07b6d5] transition-all"
-                    style={{ width: `${Math.round(change.temporal_correlation * 100)}%` }}
+                  <motion.div
+                    className="h-full rounded-full w-full origin-left bg-[#07b6d5]"
+                    initial={{ scaleX: 0 }}
+                    animate={{ scaleX: change.temporal_correlation }}
+                    transition={{ type: 'spring', stiffness: 120, damping: 20 }}
                   />
                 </div>
                 <span className="text-[10px] font-mono text-gray-400 w-8 text-right">

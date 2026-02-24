@@ -63,7 +63,7 @@ const ErrorPatternsCard: React.FC<ErrorPatternsCardProps> = ({ patterns }) => {
                 </td>
                 <td className="py-2 pr-3 text-right text-gray-300 font-mono">{p.count}</td>
                 <td className="py-2 text-right text-gray-300 font-mono">
-                  {Math.round(p.confidence * 100)}%
+                  {Math.round(p.confidence)}%
                 </td>
               </tr>
             ))}

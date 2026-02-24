@@ -636,7 +636,8 @@ const ReasoningChainCard: React.FC<{ chain: ReasoningChainStep[] }> = ({ chain }
 
 const InferredDependenciesCard: React.FC<{ deps: InferredDependency[]; targetService?: string }> = ({ deps, targetService }) => {
   if (!deps.length) return null;
-  const isTarget = (name: string) => targetService && name.toLowerCase() === targetService.toLowerCase();
+  const normalizedTarget = targetService?.toLowerCase() ?? '';
+  const isTarget = (name: string) => normalizedTarget !== '' && name.toLowerCase() === normalizedTarget;
   return (
     <div className="bg-slate-900/40 border border-slate-800 rounded-lg overflow-hidden">
       <div className="px-3 py-2 border-b border-slate-800 flex items-center gap-2 bg-slate-900/60">

@@ -38,7 +38,7 @@ const StatusBar: React.FC<StatusBarProps> = ({
   wsConnected,
 }) => {
   const totalTokens = tokenUsage.reduce((sum, t) => sum + t.total_tokens, 0);
-  const confidencePercent = Math.round(confidence * 100);
+  const confidencePercent = Math.round(confidence);
 
   return (
     <div className="h-8 bg-gray-900 border-t border-gray-700 flex items-center px-4 gap-6 text-xs">

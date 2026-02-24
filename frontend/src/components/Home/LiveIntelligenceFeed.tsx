@@ -179,7 +179,7 @@ const LiveIntelligenceFeed: React.FC<LiveIntelligenceFeedProps> = ({
                     Investigating <span className="text-[#07b6d5]/80 font-mono">{session.service_name}</span>
                     {session.confidence > 0 && (
                       <span className="text-slate-500 ml-2">
-                        — Confidence: {Math.round(session.confidence * 100)}%
+                        — Confidence: {Math.round(session.confidence)}%
                       </span>
                     )}
                   </div>

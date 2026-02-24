@@ -4,6 +4,7 @@ import { Check, HelpCircle, XCircle, GitBranch, MessageCircle, SkipForward } fro
 import { drawerVariants, backdropVariants } from '../../styles/chat-animations';
 import { useChatContext } from '../../contexts/ChatContext';
 import MarkdownBubble from './MarkdownBubble';
+import RemediationPacketCard from './RemediationPacketCard';
 import ChatInputArea from './ChatInputArea';
 import ActionChip from './ActionChip';
 import type { ChatMessage } from '../../types';
@@ -43,6 +44,11 @@ function deriveActionChips(message: ChatMessage | undefined): DerivedChip[] {
       { label: 'Request Changes', icon: HelpCircle, variant: 'warning', action: 'request_changes' },
       { label: 'Reject', icon: XCircle, variant: 'danger', action: 'reject' },
     ];
+  }
+
+  // Campaign fix proposals have their own inline buttons — suppress chips
+  if (meta?.type === 'campaign_fix_proposal') {
+    return [];
   }
 
   // Generic question fallback
@@ -188,9 +194,13 @@ const ChatDrawer: React.FC = () => {
                 </div>
               ) : (
                 <>
-                  {messages.map((msg, i) => (
-                    <MarkdownBubble key={`msg-${i}`} message={msg} />
-                  ))}
+                  {messages.map((msg, i) =>
+                    msg.metadata?.type === 'campaign_fix_proposal' ? (
+                      <RemediationPacketCard key={`msg-${i}`} message={msg} />
+                    ) : (
+                      <MarkdownBubble key={`msg-${i}`} message={msg} />
+                    )
+                  )}
 
                   {/* Streaming bubble */}
                   {isStreaming && streamingContent && (

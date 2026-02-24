@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 
 interface SaturationGaugeProps {
   metricName: string;
@@ -59,14 +60,16 @@ const SaturationGauge: React.FC<SaturationGaugeProps> = ({
           strokeLinecap="round"
         />
         {/* Value arc */}
-        <path
+        <motion.path
           d={bgPath}
           fill="none"
           stroke={color}
           strokeWidth="8"
           strokeLinecap="round"
           strokeDasharray={fullLen}
-          strokeDashoffset={fullLen * (1 - pct)}
+          initial={false}
+          animate={{ strokeDashoffset: fullLen * (1 - pct) }}
+          transition={{ type: 'spring', stiffness: 80, damping: 15 }}
         />
         {/* Center value text */}
         <text

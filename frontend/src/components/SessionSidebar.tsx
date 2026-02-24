@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { Plus, LayoutDashboard, Clock, Bot, Settings, Zap } from 'lucide-react';
 import type { V4Session, DiagnosticPhase } from '../types';
 import { listSessionsV4 } from '../services/api';
@@ -124,12 +125,15 @@ const SessionSidebar: React.FC<SessionSidebarProps> = ({
               <button
                 key={session.session_id}
                 onClick={() => onSelectSession(session)}
-                className={`w-full text-left px-2.5 py-2.5 rounded-lg transition-colors ${
-                  activeSessionId === session.session_id
-                    ? 'bg-[#07b6d5]/10 border border-[#07b6d5]/20'
-                    : 'hover:bg-[#1e2f33]/50 border border-transparent'
-                }`}
+                className="relative w-full text-left px-2.5 py-2.5 rounded-lg border border-transparent"
               >
+                {activeSessionId === session.session_id && (
+                  <motion.div
+                    layoutId="sidebar-active-highlight"
+                    className="absolute inset-0 bg-[#07b6d5]/10 border border-[#07b6d5]/20 rounded-lg -z-10"
+                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                  />
+                )}
                 <div className="font-medium text-white text-xs truncate">
                   {session.service_name}
                 </div>
@@ -144,9 +148,11 @@ const SessionSidebar: React.FC<SessionSidebarProps> = ({
                 {session.confidence > 0 && (
                   <div className="mt-1">
                     <div className="h-1 bg-[#224349] rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-[#07b6d5] rounded-full"
-                        style={{ width: `${Math.round(session.confidence * 100)}%` }}
+                      <motion.div
+                        className="h-full bg-[#07b6d5] rounded-full shadow-[0_0_10px_rgba(34,211,238,0.5)]"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${Math.round(session.confidence)}%` }}
+                        transition={{ type: 'spring', bounce: 0, duration: 0.8 }}
                       />
                     </div>
                   </div>

@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface StackTraceTelescopeProps {
   traces: string[];
@@ -47,28 +48,50 @@ const StackTraceTelescope: React.FC<StackTraceTelescopeProps> = ({ traces }) => 
       >
         {showTrace ? 'Hide' : 'Show'} stack trace ({traces.length})
       </button>
-      {showTrace && (
-        <div className="mt-1 space-y-1">
-          <pre className="p-2 bg-black/30 rounded text-[10px] font-mono text-slate-300 overflow-x-auto max-h-48 custom-scrollbar whitespace-pre-wrap">
-            {app.join('\n')}
-          </pre>
-          {framework.length > 0 && (
-            <>
-              <button
-                onClick={() => setShowFramework(!showFramework)}
-                className="text-[9px] text-slate-500 hover:text-slate-400"
-              >
-                {showFramework ? 'Hide' : `${framework.length} framework frames hidden`}
-              </button>
-              {showFramework && (
-                <pre className="p-2 bg-black/20 rounded text-[10px] font-mono text-slate-500 overflow-x-auto max-h-32 custom-scrollbar whitespace-pre-wrap">
-                  {framework.join('\n')}
-                </pre>
-              )}
-            </>
-          )}
-        </div>
-      )}
+      <AnimatePresence initial={false}>
+        {showTrace && (
+          <motion.div
+            key="trace-content"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            className="overflow-hidden"
+          >
+            <div className="mt-1 space-y-1">
+              <pre className="p-2 bg-black/30 rounded text-[10px] font-mono text-slate-300 overflow-x-auto max-h-48 custom-scrollbar whitespace-pre-wrap">
+                {app.join('\n')}
+              </pre>
+              <AnimatePresence initial={false}>
+                {framework.length > 0 && (
+                  <>
+                    <button
+                      onClick={() => setShowFramework(!showFramework)}
+                      className="text-[9px] text-slate-500 hover:text-slate-400"
+                    >
+                      {showFramework ? 'Hide' : `${framework.length} framework frames hidden`}
+                    </button>
+                    {showFramework && (
+                      <motion.div
+                        key="framework-frames"
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                        className="overflow-hidden"
+                      >
+                        <pre className="p-2 bg-black/20 rounded text-[10px] font-mono text-slate-500 overflow-x-auto max-h-32 custom-scrollbar whitespace-pre-wrap">
+                          {framework.join('\n')}
+                        </pre>
+                      </motion.div>
+                    )}
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

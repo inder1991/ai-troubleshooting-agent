@@ -409,7 +409,7 @@ const FindingsTab: React.FC<{ findings: V4Findings | null }> = ({ findings }) =>
             <p className="text-xs text-slate-400 mb-2">{finding.description}</p>
             <div className="flex items-center gap-3 text-[10px] text-slate-500">
               <span>Agent: {finding.agent_name}</span>
-              <span>Confidence: {Math.round(finding.confidence * 100)}%</span>
+              <span>Confidence: {Math.round(finding.confidence)}%</span>
               {finding.suggested_fix && (
                 <span className="text-[#07b6d5]">Has fix suggestion</span>
               )}

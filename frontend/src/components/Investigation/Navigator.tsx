@@ -4,6 +4,7 @@ import { runPromQLQuery } from '../../services/api';
 import { Play, Copy, Check } from 'lucide-react';
 import InteractiveTopology from './topology/InteractiveTopology';
 import { useTopologySelection } from '../../contexts/TopologySelectionContext';
+import { useCampaignContext } from '../../contexts/CampaignContext';
 import REDMethodStatusBar from './cards/REDMethodStatusBar';
 import PromQLRunResult from './cards/PromQLRunResult';
 import SkeletonCard from '../ui/SkeletonCard';
@@ -16,6 +17,7 @@ interface NavigatorProps {
 
 const Navigator: React.FC<NavigatorProps> = ({ findings, status, events }) => {
   const { selectedService, selectService } = useTopologySelection();
+  const { hoveredRepo } = useCampaignContext();
   const agentStatuses = buildAgentStatuses(status, events);
   const totalTokens = status?.token_usage?.reduce((sum, t) => sum + t.total_tokens, 0) ?? 0;
 
@@ -47,6 +49,7 @@ const Navigator: React.FC<NavigatorProps> = ({ findings, status, events }) => {
                 findings={findings}
                 selectedService={selectedService}
                 onSelectService={selectService}
+                highlightedService={hoveredRepo}
               />
             ) : (
               <GhostTopology />

@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import type { V4Findings, DiagnosticPhase, FixStatus, FixVerificationResult } from '../../types';
-import { generateFix, decideOnFix } from '../../services/api';
+import { decideOnFix, submitAttestation } from '../../services/api';
+import { useChatContext } from '../../contexts/ChatContext';
+import { useCampaignContext } from '../../contexts/CampaignContext';
 import AgentFindingCard from './cards/AgentFindingCard';
 import HoldToConfirm from '../ui/HoldToConfirm';
 import CopyButton from '../ui/CopyButton';
+import CampaignOrchestrationHub from './CampaignOrchestrationHub';
 
 interface FixPipelinePanelProps {
   sessionId: string;
@@ -48,11 +51,35 @@ const verdictConfig: Record<string, { icon: string; color: string }> = {
 
 // ─── Diff Viewer ──────────────────────────────────────────────────────────
 
-const DiffViewer: React.FC<{ diff: string }> = ({ diff }) => {
-  if (!diff) return null;
-  const lines = diff.split('\n');
+/** Split combined diff on `--- filepath ---` headers into per-file sections. */
+function splitDiffByFile(diff: string): { file: string; content: string }[] {
+  const headerRe = /^--- (.+?) ---$/;
+  const sections: { file: string; content: string }[] = [];
+  let currentFile = '';
+  let currentLines: string[] = [];
+
+  for (const line of diff.split('\n')) {
+    const m = line.match(headerRe);
+    if (m) {
+      if (currentFile && currentLines.length > 0) {
+        sections.push({ file: currentFile, content: currentLines.join('\n') });
+      }
+      currentFile = m[1];
+      currentLines = [];
+    } else {
+      currentLines.push(line);
+    }
+  }
+  if (currentLines.length > 0) {
+    sections.push({ file: currentFile || 'diff', content: currentLines.join('\n') });
+  }
+  return sections;
+}
+
+const DiffLines: React.FC<{ text: string }> = ({ text }) => {
+  const lines = text.split('\n');
   return (
-    <pre className="text-[10px] font-mono bg-slate-900/60 rounded p-3 max-h-[300px] overflow-y-auto overflow-x-auto custom-scrollbar whitespace-pre">
+    <>
       {lines.map((line, i) => {
         let lineColor = 'text-slate-400';
         if (line.startsWith('+') && !line.startsWith('+++')) lineColor = 'text-green-400';
@@ -65,7 +92,44 @@ const DiffViewer: React.FC<{ diff: string }> = ({ diff }) => {
           </div>
         );
       })}
-    </pre>
+    </>
+  );
+};
+
+const DiffViewer: React.FC<{ diff: string }> = ({ diff }) => {
+  if (!diff) return null;
+  const sections = splitDiffByFile(diff);
+  const isMultiFile = sections.length > 1;
+
+  if (!isMultiFile) {
+    return (
+      <pre className="text-[10px] font-mono bg-slate-900/60 rounded p-3 max-h-[300px] overflow-y-auto overflow-x-auto custom-scrollbar whitespace-pre">
+        <DiffLines text={diff} />
+      </pre>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      {sections.map((s, i) => (
+        <details key={i} open={i === 0}>
+          <summary className="cursor-pointer flex items-center gap-2 text-[10px] font-mono text-blue-400 hover:text-blue-300 py-1">
+            <span className="material-symbols-outlined text-[11px]" style={{ fontFamily: 'Material Symbols Outlined' }}>
+              description
+            </span>
+            {s.file}
+            <span className="text-slate-500 ml-auto">
+              +{(s.content.match(/^\+[^+]/gm) || []).length}
+              &nbsp;
+              -{(s.content.match(/^-[^-]/gm) || []).length}
+            </span>
+          </summary>
+          <pre className="text-[10px] font-mono bg-slate-900/60 rounded p-3 max-h-[250px] overflow-y-auto overflow-x-auto custom-scrollbar whitespace-pre mt-1">
+            <DiffLines text={s.content} />
+          </pre>
+        </details>
+      ))}
+    </div>
   );
 };
 
@@ -83,6 +147,14 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
   const [feedbackText, setFeedbackText] = useState('');
   const [showDiff, setShowDiff] = useState(true);
 
+  const { sendMessage, openDrawer } = useChatContext();
+  const { campaign } = useCampaignContext();
+
+  // Campaign mode: if multi-repo campaign exists, show orchestration hub
+  if (campaign && campaign.total_count > 1) {
+    return <CampaignOrchestrationHub campaign={campaign} />;
+  }
+
   const fixData = findings?.fix_data || null;
   const fixStatus: FixStatus = fixData?.fix_status || 'not_started';
   const verification = fixData?.verification_result || null;
@@ -93,7 +165,17 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
     setLoading('generating');
     setError(null);
     try {
-      await generateFix(sessionId, guidance);
+      // Auto-approve attestation gate (may already be approved — ignore errors)
+      try {
+        await submitAttestation(sessionId, 'discovery_complete', 'approve', 'user');
+      } catch { /* already approved */ }
+
+      // Send through chat so the conversation appears in the drawer
+      const msg = guidance.trim()
+        ? `generate fix: ${guidance.trim()}`
+        : 'generate fix';
+      openDrawer();
+      await sendMessage(msg);
       onRefresh();
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to start fix generation');
@@ -166,7 +248,7 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
             {vr.verdict.replace(/_/g, ' ').toUpperCase()}
           </span>
           <span className="text-[10px] font-mono text-slate-400">
-            {Math.round(vr.confidence * 100)}% confidence
+            {Math.round(vr.confidence)}% confidence
           </span>
         </div>
 
@@ -254,24 +336,39 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
           {fixStatus === 'pr_creating' && 'Creating pull request...'}
           {fixStatus === 'human_feedback' && 'Processing your feedback...'}
         </div>
-        {fixData?.target_file && (
+        {fixData?.fixed_files && fixData.fixed_files.length > 1 ? (
+          <div className="text-[10px] font-mono text-slate-500 mt-0.5">
+            {fixData.fixed_files.length} files: {fixData.fixed_files.map(f => f.file_path.split('/').pop()).join(', ')}
+          </div>
+        ) : fixData?.target_file ? (
           <div className="text-[10px] font-mono text-slate-500 mt-0.5">{fixData.target_file}</div>
-        )}
+        ) : null}
       </div>
     </div>
   );
 
   const renderReviewSection = () => (
     <div className="space-y-3">
-      {/* Target file + explanation */}
-      {fixData?.target_file && (
+      {/* Target files + explanation */}
+      {fixData?.fixed_files && fixData.fixed_files.length > 0 ? (
+        <div className="space-y-1">
+          {fixData.fixed_files.map((ff, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-xs text-slate-500" style={{ fontFamily: 'Material Symbols Outlined' }}>
+                description
+              </span>
+              <span className="text-[11px] font-mono text-blue-400">{ff.file_path}</span>
+            </div>
+          ))}
+        </div>
+      ) : fixData?.target_file ? (
         <div className="flex items-center gap-2">
           <span className="material-symbols-outlined text-xs text-slate-500" style={{ fontFamily: 'Material Symbols Outlined' }}>
             description
           </span>
           <span className="text-[11px] font-mono text-blue-400">{fixData.target_file}</span>
         </div>
-      )}
+      ) : null}
       {fixData?.fix_explanation && (
         <p className="text-[11px] text-slate-300 leading-relaxed">{fixData.fix_explanation}</p>
       )}
@@ -480,14 +577,25 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
 
   const renderVerifiedReadOnly = () => (
     <div className="space-y-3">
-      {fixData?.target_file && (
+      {fixData?.fixed_files && fixData.fixed_files.length > 0 ? (
+        <div className="space-y-1">
+          {fixData.fixed_files.map((ff, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-xs text-slate-500" style={{ fontFamily: 'Material Symbols Outlined' }}>
+                description
+              </span>
+              <span className="text-[11px] font-mono text-blue-400">{ff.file_path}</span>
+            </div>
+          ))}
+        </div>
+      ) : fixData?.target_file ? (
         <div className="flex items-center gap-2">
           <span className="material-symbols-outlined text-xs text-slate-500" style={{ fontFamily: 'Material Symbols Outlined' }}>
             description
           </span>
           <span className="text-[11px] font-mono text-blue-400">{fixData.target_file}</span>
         </div>
-      )}
+      ) : null}
       {fixData?.fix_explanation && (
         <p className="text-[11px] text-slate-300 leading-relaxed">{fixData.fix_explanation}</p>
       )}

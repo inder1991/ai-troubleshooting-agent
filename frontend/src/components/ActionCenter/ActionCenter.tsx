@@ -115,7 +115,7 @@ const ActionCenter: React.FC<ActionCenterProps> = ({
                       </span>
                       {session.confidence > 0 && (
                         <span className="text-xs text-[#07b6d5] font-mono">
-                          {Math.round(session.confidence * 100)}%
+                          {Math.round(session.confidence)}%
                         </span>
                       )}
                     </div>

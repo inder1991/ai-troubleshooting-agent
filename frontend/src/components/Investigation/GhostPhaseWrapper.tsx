@@ -30,7 +30,7 @@ export const GhostPhaseWrapper: React.FC<GhostPhaseWrapperProps> = ({
       }}
       transition={{ duration: 0.6, ease: 'easeInOut' }}
       className={shouldGhost ? 'ghost-phase' : undefined}
-      style={shouldGhost ? { contentVisibility: 'auto' } : undefined}
+      style={shouldGhost ? { contentVisibility: 'auto', containIntrinsicSize: 'auto 500px' } : undefined}
     >
       {children}
     </motion.div>

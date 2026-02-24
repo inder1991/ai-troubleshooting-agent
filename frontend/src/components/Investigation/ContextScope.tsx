@@ -44,7 +44,7 @@ const ContextScope: React.FC<ContextScopeProps> = ({ session, events = [] }) => 
   }, [relevantEventCount, session.session_id, fetchStatus]);
 
   const confidence = status?.confidence ?? session.confidence;
-  const confidencePercent = Math.round(confidence * 100);
+  const confidencePercent = Math.round(confidence);
   const phase = status?.phase ?? session.status;
   const totalTokens = status?.token_usage?.reduce((sum, t) => sum + t.total_tokens, 0) ?? 0;
 

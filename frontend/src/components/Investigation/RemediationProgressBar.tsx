@@ -114,9 +114,9 @@ const RemediationProgressBar: React.FC<RemediationProgressBarProps> = ({
         <div className="shrink-0 flex items-center gap-4 pl-8 border-l border-slate-800">
           {/* Est. Resolution */}
           <div className="text-right">
-            <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Est. Resolution</div>
+            <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Fix Confidence</div>
             <div className="text-sm font-mono text-slate-300">
-              {confidence > 0 ? `${Math.round(confidence * 100)}%` : '00:14:55'}
+              {confidence > 0 ? `${Math.round(confidence)}%` : '--'}
             </div>
           </div>
 

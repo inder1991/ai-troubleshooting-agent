@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import type { V4Session, V4Findings, V4SessionStatus, ChatMessage, TaskEvent, DiagnosticPhase, TokenUsage, AttestationGateData } from '../../types';
 import { getFindings, getSessionStatus, sendChatMessage } from '../../services/api';
 import { useChatContext } from '../../contexts/ChatContext';
+import { useCampaignContext } from '../../contexts/CampaignContext';
 import Investigator from './Investigator';
 import EvidenceFindings from './EvidenceFindings';
 import Navigator from './Navigator';
@@ -10,6 +11,7 @@ import AttestationGateUI from '../Remediation/AttestationGateUI';
 import ErrorBanner from '../ui/ErrorBanner';
 import ChatDrawer from '../Chat/ChatDrawer';
 import LedgerTriggerTab from '../Chat/LedgerTriggerTab';
+import SurgicalTelescope from './SurgicalTelescope';
 import { TopologySelectionProvider } from '../../contexts/TopologySelectionContext';
 
 interface InvestigationViewProps {
@@ -44,6 +46,14 @@ const InvestigationView: React.FC<InvestigationViewProps> = ({
 
   // Chat state now managed by ChatContext
   const { addMessage: onNewMessage } = useChatContext();
+  const { setCampaign } = useCampaignContext();
+
+  // Sync campaign data from findings into CampaignContext
+  useEffect(() => {
+    if (findings?.campaign) {
+      setCampaign(findings.campaign);
+    }
+  }, [findings?.campaign, setCampaign]);
 
   // Tick "last updated X s ago" every second
   useEffect(() => {
@@ -149,6 +159,9 @@ const InvestigationView: React.FC<InvestigationViewProps> = ({
           </div>
         </div>
       </TopologySelectionProvider>
+
+      {/* Surgical Telescope overlay (rendered outside grid) */}
+      <SurgicalTelescope />
 
       {/* Bottom: Remediation Progress Bar */}
       <RemediationProgressBar

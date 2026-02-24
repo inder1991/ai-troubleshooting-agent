@@ -16,6 +16,7 @@ import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { getSessionStatus, startSessionV4, submitAttestation } from './services/api';
 import { ToastProvider, useToast } from './components/Toast/ToastContext';
 import { ChatProvider } from './contexts/ChatContext';
+import { CampaignProvider } from './contexts/CampaignContext';
 import SidebarNav from './components/Layout/SidebarNav';
 import type { NavView } from './components/Layout/SidebarNav';
 import HomePage from './components/Home/HomePage';
@@ -92,6 +93,11 @@ function AppInner() {
           findings_count: event.details.findings_count as number,
           confidence: event.details.confidence as number,
         });
+      }
+
+      // Handle waiting_for_input — refresh status to pick up latest state
+      if (event.event_type === 'waiting_for_input') {
+        refreshStatus(sid);
       }
 
       // Refresh full status on key events (summary, finding, phase_change, success)
@@ -328,6 +334,7 @@ function AppInner() {
 
         {viewState === 'investigation' && activeSession && (
           <ChatProvider sessionId={activeSessionId} events={currentTaskEvents} onRegisterChatHandler={chatResponseRef} onRegisterStreamStart={streamStartRef} onRegisterStreamAppend={streamAppendRef} onRegisterStreamFinish={streamFinishRef} onPhaseUpdate={handleChatPhaseUpdate}>
+          <CampaignProvider sessionId={activeSessionId}>
             {/* Foreman HUD Header */}
             <ForemanHUD
               sessionId={activeSession.session_id}
@@ -368,6 +375,7 @@ function AppInner() {
                 />
               </ErrorBoundary>
             </div>
+          </CampaignProvider>
           </ChatProvider>
         )}
       </div>

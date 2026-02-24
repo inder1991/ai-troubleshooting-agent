@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import type { TimelineEventData } from '../../types';
 
 interface TimelineCardProps {
@@ -26,6 +27,16 @@ const severityText: Record<string, string> = {
   critical: 'text-purple-400',
 };
 
+const containerVariants = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.1 } },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 12 },
+  visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 25 } },
+};
+
 const TimelineCard: React.FC<TimelineCardProps> = ({ events }) => {
   if (events.length === 0) return null;
 
@@ -37,7 +48,12 @@ const TimelineCard: React.FC<TimelineCardProps> = ({ events }) => {
       </h3>
 
       <div className="overflow-x-auto">
-        <div className="flex items-start gap-0 min-w-max pb-2">
+        <motion.div
+          className="flex items-start gap-0 min-w-max pb-2"
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
           {events.map((event, idx) => {
             const ts = new Date(event.timestamp);
             const timeStr = ts.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -46,7 +62,7 @@ const TimelineCard: React.FC<TimelineCardProps> = ({ events }) => {
             const textColor = severityText[event.severity] || 'text-gray-400';
 
             return (
-              <div key={idx} className="flex flex-col items-center" style={{ minWidth: '160px' }}>
+              <motion.div key={idx} className="flex flex-col items-center" style={{ minWidth: '160px' }} variants={itemVariants}>
                 {/* Dot and connecting line */}
                 <div className="flex items-center w-full justify-center relative">
                   {idx > 0 && (
@@ -66,10 +82,10 @@ const TimelineCard: React.FC<TimelineCardProps> = ({ events }) => {
                   </span>
                   <p className="text-xs text-gray-300 line-clamp-2">{event.description}</p>
                 </div>
-              </div>
+              </motion.div>
             );
           })}
-        </div>
+        </motion.div>
       </div>
 
       {/* Legend */}

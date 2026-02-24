@@ -1,3 +1,6 @@
+// Re-export campaign types
+export type { CampaignRepoStatus, CampaignRepoFix, RemediationCampaign, TelescopeData } from './campaign';
+
 // ===== V3 Types (preserved for backward compatibility) =====
 
 export interface Message {
@@ -281,7 +284,7 @@ export interface TokenUsage {
 export interface TaskEvent {
   session_id: string;
   agent_name: string;
-  event_type: 'started' | 'progress' | 'success' | 'warning' | 'error' | 'tool_call' | 'phase_change' | 'finding' | 'summary' | 'attestation_required' | 'fix_proposal' | 'fix_approved';
+  event_type: 'started' | 'progress' | 'success' | 'warning' | 'error' | 'tool_call' | 'phase_change' | 'finding' | 'summary' | 'attestation_required' | 'fix_proposal' | 'fix_approved' | 'waiting_for_input';
   message: string;
   timestamp: string;
   details?: Record<string, unknown>;
@@ -298,6 +301,12 @@ export interface ChatMessage {
     newPhase?: string;
     /** Confidence returned from chat response — used for instant confidence sync */
     newConfidence?: number;
+    // Campaign fix proposal fields
+    repo_url?: string;
+    service_name?: string;
+    causal_role?: string;
+    fix_explanation?: string;
+    fixed_files?: string[];
   };
 }
 
@@ -374,6 +383,7 @@ export interface V4Findings {
   time_series_data?: Record<string, TimeSeriesDataPoint[]>;
   fix_data?: FixResult | null;
   closure_state?: IncidentClosureState | null;
+  campaign?: import('./campaign').RemediationCampaign | null;
 }
 
 export type FixStatus =
@@ -392,12 +402,21 @@ export interface FixVerificationResult {
   reasoning: string;
 }
 
+// Single file within a multi-file fix
+export interface FixedFile {
+  file_path: string;
+  original_code: string;
+  fixed_code: string;
+  diff: string;
+}
+
 // Matches backend FixStatusResponse — returned by GET /fix/status
 export interface FixStatusResponse {
   fix_status: FixStatus;
   target_file: string;
   diff: string;
   fix_explanation: string;
+  fixed_files: { file_path: string; diff: string }[];
   verification_result: FixVerificationResult | null;
   pr_url: string | null;
   pr_number: number | null;
@@ -411,6 +430,7 @@ export interface FixResult {
   original_code: string;
   generated_fix: string;
   diff: string;
+  fixed_files: FixedFile[];
   fix_explanation: string;
   verification_result: FixVerificationResult | null;
   pr_url: string | null;
@@ -424,9 +444,11 @@ export interface FixResult {
     pr_title: string;
     pr_body: string;
     diff: string;
+    file_diffs: Record<string, string>;
     validation: Record<string, unknown>;
     impact: Record<string, unknown>;
     fixed_code: string;
+    fixed_files: string[];
     status: string;
     token_usage: Record<string, unknown>;
   } | null;
@@ -471,8 +493,8 @@ export interface StartSessionRequest {
 }
 
 export interface V4WebSocketMessage {
-  type: 'task_event' | 'chat_response' | 'connected';
-  data: TaskEvent | ChatMessage;
+  type: 'task_event' | 'chat_response' | 'chat_chunk' | 'profile_change' | 'connected';
+  data: TaskEvent | ChatMessage | Record<string, unknown>;
 }
 
 export interface DiagnosisSummary {
@@ -568,7 +590,9 @@ export interface ConfidenceLedgerData {
   k8s_confidence: number;
   code_confidence: number;
   change_confidence: number;
+  critic_adjustment?: number;
   weighted_final: number;
+  weights?: Record<string, number>;
 }
 
 export interface AttestationGateData {
@@ -614,6 +638,7 @@ export interface TimelineEventData {
   source: string;
   event_type: string;
   description: string;
+  evidence_node_id?: string;
   severity: 'info' | 'warning' | 'error' | 'critical';
 }
 

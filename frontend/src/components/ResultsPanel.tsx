@@ -237,11 +237,11 @@ const ResultsPanel: React.FC<ResultsPanelProps> = ({ sessionId }) => {
                 <div className="flex-1 h-1 bg-[#224349] rounded-full overflow-hidden">
                   <div
                     className="h-full bg-[#07b6d5] rounded-full"
-                    style={{ width: `${Math.round(f.confidence * 100)}%` }}
+                    style={{ width: `${Math.round(f.confidence)}%` }}
                   />
                 </div>
                 <span className="text-xs text-gray-500 font-mono">
-                  {Math.round(f.confidence * 100)}%
+                  {Math.round(f.confidence)}%
                 </span>
               </div>
             </div>

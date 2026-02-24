@@ -17,7 +17,7 @@ export const PhaseBreadcrumbs: React.FC<PhaseBreadcrumbsProps> = ({ phases, scro
   };
 
   return (
-    <div className="phase-breadcrumb-bar sticky top-0 z-40 h-8 flex items-center gap-1 px-3 backdrop-blur-md bg-slate-900/70 border-b border-slate-800/50 overflow-hidden"
+    <div className="phase-breadcrumb-bar sticky top-0 z-40 h-8 flex items-center gap-1 px-3 backdrop-blur-md bg-slate-900/70 border-b border-slate-800/50 overflow-x-auto whitespace-nowrap scrollbar-hide"
       style={{
         maskImage: 'linear-gradient(to right, black 85%, transparent 100%)',
         WebkitMaskImage: 'linear-gradient(to right, black 85%, transparent 100%)',

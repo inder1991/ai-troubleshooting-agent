@@ -48,7 +48,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
 }) => {
   const activeIdx = getActivePhaseIndex(phase);
   const totalTokens = (tokenUsage || []).reduce((sum, t) => sum + t.total_tokens, 0);
-  const confidencePercent = Math.round(confidence * 100);
+  const confidencePercent = Math.round(confidence);
 
   return (
     <div className="h-12 bg-[#1e2f33]/80 border-t border-[#224349] flex items-center px-4 gap-6">

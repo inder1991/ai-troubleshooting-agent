@@ -114,8 +114,11 @@ const IncidentClosurePanel: React.FC<IncidentClosurePanelProps> = ({
   };
 
   const handlePreviewPostMortem = () => {
+    if (loading === 'post_mortem') return;
+    setLoading('post_mortem');
     setError(null);
     setShowPostMortem(true);
+    setLoading(null);
   };
 
   return (
@@ -188,11 +191,11 @@ const IncidentClosurePanel: React.FC<IncidentClosurePanelProps> = ({
                 {jiraDone ? (
                   <div className="flex items-center gap-2 text-[11px]">
                     <span className="text-green-400">
-                      {closureState!.jira_result.issue_key}
+                      {closureState?.jira_result?.issue_key}
                     </span>
-                    {closureState!.jira_result.issue_url && (
+                    {closureState?.jira_result?.issue_url && (
                       <a
-                        href={closureState!.jira_result.issue_url}
+                        href={closureState.jira_result.issue_url}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-[#07b6d5] hover:underline"
@@ -265,11 +268,11 @@ const IncidentClosurePanel: React.FC<IncidentClosurePanelProps> = ({
                 {remedyDone ? (
                   <div className="flex items-center gap-2 text-[11px]">
                     <span className="text-green-400">
-                      {closureState!.remedy_result.incident_number}
+                      {closureState?.remedy_result?.incident_number}
                     </span>
-                    {closureState!.remedy_result.incident_url && (
+                    {closureState?.remedy_result?.incident_url && (
                       <a
-                        href={closureState!.remedy_result.incident_url}
+                        href={closureState.remedy_result.incident_url}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-[#07b6d5] hover:underline"
@@ -309,9 +312,9 @@ const IncidentClosurePanel: React.FC<IncidentClosurePanelProps> = ({
               {confluenceDone ? (
                 <div className="flex items-center gap-2 text-[11px]">
                   <span className="text-green-400">Post-mortem published</span>
-                  {closureState!.confluence_result.page_url && (
+                  {closureState?.confluence_result?.page_url && (
                     <a
-                      href={closureState!.confluence_result.page_url}
+                      href={closureState.confluence_result.page_url}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-[#07b6d5] hover:underline"
@@ -323,9 +326,18 @@ const IncidentClosurePanel: React.FC<IncidentClosurePanelProps> = ({
               ) : confluenceIntegration.configured && confluenceIntegration.has_credentials ? (
                 <button
                   onClick={handlePreviewPostMortem}
-                  className="text-[10px] font-bold px-2.5 py-1 rounded bg-violet-500/20 text-violet-400 border border-violet-500/30 hover:bg-violet-500/30"
+                  disabled={loading === 'post_mortem'}
+                  className={`text-[10px] font-bold px-2.5 py-1 rounded transition-all flex items-center gap-2 ${
+                    loading === 'post_mortem'
+                      ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                      : 'bg-violet-500/20 text-violet-400 border border-violet-500/30 hover:bg-violet-500/30'
+                  }`}
                 >
-                  Generate Preview
+                  {loading === 'post_mortem' ? (
+                    <><span className="material-symbols-outlined animate-spin text-[12px]" style={{ fontFamily: 'Material Symbols Outlined' }}>sync</span> Compiling...</>
+                  ) : (
+                    'Generate Preview'
+                  )}
                 </button>
               ) : (
                 <span className="text-[10px] text-slate-500">Configure Confluence in Settings to enable.</span>

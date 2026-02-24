@@ -427,12 +427,14 @@ const Investigator: React.FC<InvestigatorProps> = ({
       )}
 
       {/* Header */}
-      <div className="p-4 border-b border-slate-800/50 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-primary text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>psychology</span>
-          <h2 className="text-xs font-bold uppercase tracking-widest text-slate-400">AI Investigation Log</h2>
+      <div className="px-4 py-3 border-b border-slate-800/50 bg-slate-900/90 backdrop-blur z-20 shrink-0 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <span className="material-symbols-outlined text-primary text-sm shrink-0" style={{ fontFamily: 'Material Symbols Outlined' }}>psychology</span>
+          <h2 className="text-xs font-bold uppercase tracking-widest text-slate-400 truncate">AI Investigation Log</h2>
         </div>
-        <FilterToolbar mode={filterMode} onModeChange={handleFilterChange} counts={filterCounts} />
+        <div className="shrink-0">
+          <FilterToolbar mode={filterMode} onModeChange={handleFilterChange} counts={filterCounts} />
+        </div>
       </div>
 
       {/* AI Investigation Timeline */}
@@ -528,9 +530,11 @@ const Investigator: React.FC<InvestigatorProps> = ({
           <p className="text-[11px] text-slate-300 leading-relaxed line-clamp-2">{bestGuess.text}</p>
           {/* Confidence bar */}
           <div className="mt-2 h-1.5 bg-slate-800 rounded-full overflow-hidden">
-            <div
-              className={`h-full rounded-full transition-all duration-500 ${confidenceColor(bestGuess.confidence)}`}
-              style={{ width: `${Math.min(bestGuess.confidence, 100)}%` }}
+            <motion.div
+              className={`h-full rounded-full ${confidenceColor(bestGuess.confidence)}`}
+              initial={{ width: 0 }}
+              animate={{ width: `${Math.min(bestGuess.confidence, 100)}%` }}
+              transition={{ type: 'spring', bounce: 0, duration: 0.8 }}
             />
           </div>
         </div>

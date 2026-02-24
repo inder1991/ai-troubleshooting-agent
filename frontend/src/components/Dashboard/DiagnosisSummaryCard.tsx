@@ -34,7 +34,7 @@ const DiagnosisSummaryCard: React.FC<DiagnosisSummaryCardProps> = ({
   criticVerdicts,
   breadcrumbs,
 }) => {
-  const confidencePercent = Math.round(confidence * 100);
+  const confidencePercent = Math.round(confidence);
   const confidenceColor =
     confidencePercent >= 80
       ? 'text-green-400'
@@ -81,7 +81,7 @@ const DiagnosisSummaryCard: React.FC<DiagnosisSummaryCardProps> = ({
                   </div>
                   <div className="text-xs text-gray-400">{finding.description}</div>
                   <div className="text-xs text-gray-500 mt-1">
-                    Agent: {finding.agent_name} | Confidence: {Math.round(finding.confidence * 100)}%
+                    Agent: {finding.agent_name} | Confidence: {Math.round(finding.confidence)}%
                   </div>
                   {verdict && (
                     <div className="text-xs text-gray-500 mt-1 italic">

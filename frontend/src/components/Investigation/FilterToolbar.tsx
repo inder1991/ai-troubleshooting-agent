@@ -31,7 +31,7 @@ export const FilterToolbar: React.FC<FilterToolbarProps> = ({ mode, onModeChange
             aria-pressed={isActive}
           >
             {f.label}
-            <span className="ml-1 font-mono text-[8px] opacity-60">({counts[f.key]})</span>
+            <span className="ml-1 font-mono text-[8px] opacity-80 bg-slate-800 text-slate-300 px-1 rounded">({counts[f.key]})</span>
           </button>
         );
       })}
