@@ -10,7 +10,6 @@ import {
   type ResolvedNode,
   type ResolvedEdge,
 } from './topology.types';
-import { nodeEnterVariants } from '../../../styles/topology-animations';
 
 // ─── Props ───────────────────────────────────────────────────────────────────
 
@@ -36,15 +35,15 @@ const InteractiveTopology: React.FC<InteractiveTopologyProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
-  const [isVisible, setIsVisible] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
 
-  // IntersectionObserver guard — only compute layout when visible
+  // IntersectionObserver guard — pause layout computation when scrolled away
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
     const observer = new IntersectionObserver(
       ([entry]) => setIsVisible(entry.isIntersecting),
-      { threshold: 0.1 },
+      { threshold: 0 },
     );
     observer.observe(el);
     return () => observer.disconnect();
@@ -271,7 +270,6 @@ const TopologyNode: React.FC<{
   const colors = NODE_COLORS[node.role];
   const isP0 = node.role === 'patient_zero';
   const showCrashRing = node.isCrashloop || node.isOomKilled;
-  const scale = isHovered ? 1.12 : 1;
 
   const filter = isP0 || showCrashRing
     ? 'url(#glow-red-v2)'
@@ -279,83 +277,78 @@ const TopologyNode: React.FC<{
       ? 'url(#glow-amber-v2)'
       : undefined;
 
+  // Use SVG transform for positioning (reliable), Framer Motion only for entrance/opacity
   return (
     <motion.g
-      variants={nodeEnterVariants}
-      initial="hidden"
-      animate="visible"
-      exit="exit"
-      style={{ cursor: 'pointer' }}
+      initial={{ opacity: 0 }}
+      animate={{
+        opacity: dimmed ? 0.2 : 1,
+        scale: isHovered ? 1.12 : 1,
+      }}
+      exit={{ opacity: 0 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+      transform={`translate(${node.x}, ${node.y})`}
+      style={{ cursor: 'pointer', transformOrigin: `${node.x}px ${node.y}px` }}
       onPointerEnter={onHoverStart}
       onPointerLeave={onHoverEnd}
       onClick={onClick}
     >
-      <motion.g
-        animate={{
-          x: node.x,
-          y: node.y,
-          scale,
-          opacity: dimmed ? 0.2 : 1,
-        }}
-        transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-      >
-        {/* Crashloop pulsing outer ring */}
-        {showCrashRing && (
-          <circle
-            r={NODE_RADIUS + 5}
-            fill="none"
-            stroke="#ef4444"
-            strokeWidth={2}
-            className="animate-pulse-red"
-            opacity={0.6}
-          />
-        )}
-
-        {/* Selected breathing ring */}
-        {isSelected && (
-          <circle
-            r={NODE_RADIUS + 5}
-            fill="none"
-            stroke="#06b6d4"
-            strokeWidth={2}
-            className="topology-select-ring"
-          />
-        )}
-
-        {/* Main node circle */}
+      {/* Crashloop pulsing outer ring */}
+      {showCrashRing && (
         <circle
-          r={NODE_RADIUS}
-          fill={showCrashRing ? '#7f1d1d' : colors.fill}
-          stroke={showCrashRing ? '#ef4444' : colors.stroke}
-          strokeWidth={isP0 || showCrashRing ? 2.5 : 1.5}
-          filter={filter}
+          r={NODE_RADIUS + 5}
+          fill="none"
+          stroke="#ef4444"
+          strokeWidth={2}
+          className="animate-pulse-red"
+          opacity={0.6}
         />
+      )}
 
-        {/* Inner label: P0 or 3-letter abbreviation */}
-        <text
-          textAnchor="middle"
-          dy="4"
-          fill={isP0 ? '#ef4444' : '#94a3b8'}
-          fontSize={isP0 ? 10 : 8}
-          fontWeight={isP0 ? 'bold' : 'normal'}
-          fontFamily="monospace"
-          style={{ pointerEvents: 'none' }}
-        >
-          {isP0 ? 'P0' : abbreviate(node.id)}
-        </text>
+      {/* Selected breathing ring */}
+      {isSelected && (
+        <circle
+          r={NODE_RADIUS + 5}
+          fill="none"
+          stroke="#06b6d4"
+          strokeWidth={2}
+          className="topology-select-ring"
+        />
+      )}
 
-        {/* Service name below */}
-        <text
-          y={NODE_RADIUS + 14}
-          textAnchor="middle"
-          fill="#94a3b8"
-          fontSize="9"
-          fontFamily="monospace"
-          style={{ pointerEvents: 'none' }}
-        >
-          {node.id.length > 14 ? node.id.slice(0, 12) + '..' : node.id}
-        </text>
-      </motion.g>
+      {/* Main node circle */}
+      <circle
+        r={NODE_RADIUS}
+        fill={showCrashRing ? '#7f1d1d' : colors.fill}
+        stroke={showCrashRing ? '#ef4444' : colors.stroke}
+        strokeWidth={isP0 || showCrashRing ? 2.5 : 1.5}
+        filter={filter}
+      />
+
+      {/* Inner label: P0 or 3-letter abbreviation */}
+      <text
+        textAnchor="middle"
+        dy="4"
+        fill={isP0 ? '#ef4444' : '#94a3b8'}
+        fontSize={isP0 ? 10 : 8}
+        fontWeight={isP0 ? 'bold' : 'normal'}
+        fontFamily="monospace"
+        style={{ pointerEvents: 'none' }}
+      >
+        {isP0 ? 'P0' : abbreviate(node.id)}
+      </text>
+
+      {/* Service name below */}
+      <text
+        y={NODE_RADIUS + 14}
+        textAnchor="middle"
+        fill="#94a3b8"
+        fontSize="9"
+        fontFamily="monospace"
+        style={{ pointerEvents: 'none' }}
+      >
+        {node.id.length > 14 ? node.id.slice(0, 12) + '..' : node.id}
+      </text>
     </motion.g>
   );
 };
