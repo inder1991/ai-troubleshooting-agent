@@ -9,7 +9,9 @@ from typing import Dict, Any, Optional
 
 from src.api.models import (
     ChatRequest, ChatResponse, StartSessionRequest, StartSessionResponse, SessionSummary,
-    FixRequest, FixStatusResponse, FixDecisionRequest,
+    FixRequest, FixStatusResponse, FixStatusFileEntry, FixDecisionRequest,
+    CampaignStatusResponse, CampaignRepoStatusResponse, CampaignRepoDecisionRequest,
+    CampaignExecuteResponse,
 )
 from src.agents.supervisor import SupervisorAgent
 from src.utils.event_emitter import EventEmitter
@@ -46,6 +48,33 @@ def _dump(obj):
 def _dump_list(items: list) -> list:
     """Serialize a list of Pydantic models or dicts."""
     return [_dump(item) for item in items]
+
+
+def _dump_campaign(campaign) -> dict | None:
+    """Serialize RemediationCampaign to frontend-friendly format (repos as list)."""
+    if campaign is None:
+        return None
+    repos_list = []
+    for repo_url, fix in campaign.repos.items():
+        repos_list.append({
+            "repo_url": repo_url,
+            "service_name": fix.service_name,
+            "status": fix.status.value if hasattr(fix.status, 'value') else str(fix.status),
+            "causal_role": fix.causal_role,
+            "diff": fix.diff,
+            "fix_explanation": fix.fix_explanation,
+            "fixed_files": [{"file_path": f.get("file_path", ""), "diff": f.get("diff", "")} for f in fix.fixed_files],
+            "pr_url": fix.pr_url,
+            "pr_number": fix.pr_number,
+            "error_message": fix.error_message,
+        })
+    return {
+        "campaign_id": campaign.campaign_id,
+        "overall_status": campaign.overall_status,
+        "approved_count": campaign.approved_count,
+        "total_count": campaign.total_count,
+        "repos": repos_list,
+    }
 
 router_v4 = APIRouter(prefix="/api/v4", tags=["v4"])
 
@@ -497,6 +526,7 @@ async def get_findings(session_id: str):
         "time_series_data": ts_data_raw,
         "fix_data": state.fix_result.model_dump(mode="json") if state.fix_result else None,
         "closure_state": state.closure_state.model_dump(mode="json") if state.closure_state else None,
+        "campaign": _dump_campaign(state.campaign) if state.campaign else None,
     }
 
 
@@ -650,6 +680,10 @@ async def get_fix_status(session_id: str):
         target_file=fr.target_file,
         diff=fr.diff,
         fix_explanation=fr.fix_explanation,
+        fixed_files=[
+            FixStatusFileEntry(file_path=ff.file_path, diff=ff.diff)
+            for ff in (fr.fixed_files or [])
+        ],
         verification_result=_dump(fr.verification_result),
         pr_url=fr.pr_url,
         pr_number=fr.pr_number,
@@ -699,3 +733,176 @@ async def get_events(session_id: str):
         return {"events": []}
 
     return {"events": [e.model_dump(mode="json") for e in emitter.get_all_events()]}
+
+
+# ── Campaign (Multi-Repo) Endpoints ──────────────────────────────────
+
+
+@router_v4.get("/session/{session_id}/campaign/status", response_model=CampaignStatusResponse)
+async def get_campaign_status(session_id: str):
+    """Get campaign status for multi-repo fix orchestration."""
+    _validate_session_id(session_id)
+    session = sessions.get(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    state = session.get("state")
+    if not state or not state.campaign:
+        raise HTTPException(status_code=404, detail="No active campaign")
+
+    campaign = state.campaign
+    repos = []
+    for repo_url, repo_fix in campaign.repos.items():
+        repos.append(CampaignRepoStatusResponse(
+            repo_url=repo_url,
+            service_name=repo_fix.service_name,
+            status=repo_fix.status.value if hasattr(repo_fix.status, 'value') else str(repo_fix.status),
+            causal_role=repo_fix.causal_role,
+            diff=repo_fix.diff,
+            fix_explanation=repo_fix.fix_explanation,
+            fixed_files=[
+                FixStatusFileEntry(file_path=f.get("file_path", ""), diff=f.get("diff", ""))
+                for f in repo_fix.fixed_files
+            ],
+            pr_url=repo_fix.pr_url,
+            pr_number=repo_fix.pr_number,
+            error_message=repo_fix.error_message,
+        ))
+
+    return CampaignStatusResponse(
+        campaign_id=campaign.campaign_id,
+        overall_status=campaign.overall_status,
+        approved_count=campaign.approved_count,
+        total_count=campaign.total_count,
+        repos=repos,
+    )
+
+
+@router_v4.post("/session/{session_id}/campaign/generate")
+async def start_campaign_generation(session_id: str, background_tasks: BackgroundTasks):
+    """Start multi-repo campaign fix generation."""
+    _validate_session_id(session_id)
+    session = sessions.get(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    state = session.get("state")
+    supervisor = supervisors.get(session_id)
+    emitter = session.get("emitter")
+
+    if not state or not supervisor or not emitter:
+        raise HTTPException(status_code=400, detail="Session not ready")
+
+    from src.models.schemas import DiagnosticPhase
+    if state.phase not in (DiagnosticPhase.DIAGNOSIS_COMPLETE, DiagnosticPhase.FIX_IN_PROGRESS):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Campaign requires DIAGNOSIS_COMPLETE phase, current: {state.phase.value}",
+        )
+
+    if not supervisor._attestation_acknowledged:
+        raise HTTPException(
+            status_code=403,
+            detail="Attestation required before campaign generation",
+        )
+
+    background_tasks.add_task(supervisor.start_campaign_fix_generation, state, emitter)
+    return {"status": "started"}
+
+
+@router_v4.post("/session/{session_id}/campaign/{repo_url:path}/decide")
+async def campaign_repo_decide(session_id: str, repo_url: str, request: CampaignRepoDecisionRequest):
+    """Per-repo approve/reject/revoke decision within a campaign."""
+    _validate_session_id(session_id)
+    session = sessions.get(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    state = session.get("state")
+    supervisor = supervisors.get(session_id)
+    if not state or not supervisor or not state.campaign:
+        raise HTTPException(status_code=400, detail="No active campaign")
+
+    # URL decode the repo_url path param
+    import urllib.parse
+    decoded_repo_url = urllib.parse.unquote(repo_url)
+
+    if decoded_repo_url not in state.campaign.repos:
+        raise HTTPException(status_code=404, detail=f"Repo not in campaign: {decoded_repo_url}")
+
+    orchestrator = getattr(supervisor, '_campaign_orchestrator', None)
+    if not orchestrator:
+        raise HTTPException(status_code=400, detail="Campaign orchestrator not initialized")
+
+    if request.decision == "approve":
+        await orchestrator.approve_repo(state.campaign, decoded_repo_url, state)
+    elif request.decision == "reject":
+        await orchestrator.reject_repo(state.campaign, decoded_repo_url)
+    elif request.decision == "revoke":
+        await orchestrator.revoke_repo(state.campaign, decoded_repo_url)
+    else:
+        raise HTTPException(status_code=400, detail=f"Invalid decision: {request.decision}")
+
+    return {"status": "ok", "repo_status": state.campaign.repos[decoded_repo_url].status.value}
+
+
+@router_v4.get("/session/{session_id}/campaign/{repo_url:path}/telescope")
+async def campaign_telescope(session_id: str, repo_url: str):
+    """Get full diff + file contents for Surgical Telescope overlay."""
+    _validate_session_id(session_id)
+    session = sessions.get(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    state = session.get("state")
+    if not state or not state.campaign:
+        raise HTTPException(status_code=400, detail="No active campaign")
+
+    import urllib.parse
+    decoded_repo_url = urllib.parse.unquote(repo_url)
+    repo_fix = state.campaign.repos.get(decoded_repo_url)
+    if not repo_fix:
+        raise HTTPException(status_code=404, detail="Repo not in campaign")
+
+    files = []
+    for f in repo_fix.fixed_files:
+        files.append({
+            "file_path": f.get("file_path", ""),
+            "original_code": f.get("original_code", ""),
+            "fixed_code": f.get("fixed_code", ""),
+            "diff": f.get("diff", ""),
+        })
+
+    return {
+        "repo_url": decoded_repo_url,
+        "service_name": repo_fix.service_name,
+        "files": files,
+    }
+
+
+@router_v4.post("/session/{session_id}/campaign/execute", response_model=CampaignExecuteResponse)
+async def execute_campaign(session_id: str):
+    """Master Gate: coordinated PR creation/merge for all approved repos."""
+    _validate_session_id(session_id)
+    session = sessions.get(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    state = session.get("state")
+    supervisor = supervisors.get(session_id)
+    if not state or not supervisor or not state.campaign:
+        raise HTTPException(status_code=400, detail="No active campaign")
+
+    campaign = state.campaign
+    if campaign.approved_count < campaign.total_count:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Not all repos approved ({campaign.approved_count}/{campaign.total_count})",
+        )
+
+    orchestrator = getattr(supervisor, '_campaign_orchestrator', None)
+    if not orchestrator:
+        raise HTTPException(status_code=400, detail="Campaign orchestrator not initialized")
+
+    result = await orchestrator.execute_campaign(campaign, state)
+    return CampaignExecuteResponse(**result)

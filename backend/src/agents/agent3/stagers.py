@@ -85,13 +85,20 @@ class PRStager:
     def stage_changes(self, file_path: str, fixed_code: str) -> None:
         """
         Write fixed code to file and stage it
-        
+
         Args:
             file_path: Path to file
             fixed_code: Fixed code content
         """
         logger.info("\n📝 Staging Changes...")
-        
+
+        # Guard: reject unresolved placeholder paths
+        if not file_path or file_path == "unknown":
+            raise ValueError(
+                f"Cannot stage changes: file_path is '{file_path}'. "
+                "The target file could not be resolved from diagnostic evidence."
+            )
+
         # Normalize path
         normalized_path = file_path.lstrip('/')
         for prefix in ['app/', 'usr/src/app/']:

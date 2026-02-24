@@ -1,9 +1,11 @@
+import asyncio
 import json
 import os
 import re as _re
 import shlex
 
 from src.agents.react_base import ReActAgent
+from src.utils.event_emitter import EventEmitter
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -35,6 +37,361 @@ class ChangeAgent(ReActAgent):
         self._incident_start = None
         self._cli_tool = "kubectl"
         self._github_token = ""
+
+    # =========================================================================
+    # TWO-PASS MODE: 2 LLM calls instead of up to 4 ReAct iterations
+    # =========================================================================
+
+    async def run_two_pass(self, context: dict, event_emitter: EventEmitter | None = None) -> dict:
+        """Execute change analysis in exactly 1-2 LLM calls.
+
+        Phase 0:  Pre-fetch — GitHub commits, deployment history, config diff.
+                  Zero LLM calls, pure API.
+        Call 1:   Triage — LLM sees all commits + context, identifies which
+                  commits need detailed diffs. If trivial, produces final answer.
+        Phase 1b: Batch-fetch diffs for flagged commits. Zero LLM calls.
+        Call 2:   Analyze — LLM sees commits + diffs, produces final JSON.
+        """
+        # Initialize state from context
+        self._repo_url = context.get("repo_url", "")
+        self._github_token = context.get("github_token") or os.getenv("GITHUB_TOKEN", "")
+        self._namespace = context.get("namespace", "default")
+        self._incident_start = context.get("incident_start")
+        self._cli_tool = context.get("cli_tool", "kubectl")
+        self._stack_trace_files = context.get("stack_trace_files", [])
+
+        logger.info("Change agent two-pass starting", extra={
+            "agent_name": self.agent_name, "action": "two_pass_start",
+            "extra": {
+                "repo_url": self._repo_url or "(none)",
+                "namespace": self._namespace,
+                "stack_trace_files": len(self._stack_trace_files),
+            },
+        })
+
+        if event_emitter:
+            await event_emitter.emit(self.agent_name, "started", "Change agent starting two-pass analysis")
+
+        # ── Phase 0: Pre-fetch (0 LLM calls) ────────────────────────────
+        if event_emitter:
+            await event_emitter.emit(self.agent_name, "tool_call", "Pre-fetching commits, deployments, and config")
+
+        prefetched = await self._prefetch_changes(context)
+        logger.info("Pre-fetch complete", extra={
+            "agent_name": self.agent_name, "action": "prefetch_complete",
+            "extra": {
+                "commits": len(prefetched.get("commits", [])),
+                "has_deployments": bool(prefetched.get("deployment_history")),
+                "has_config": bool(prefetched.get("config_diff")),
+            },
+        })
+
+        # ── Call 1: Triage ───────────────────────────────────────────────
+        if event_emitter:
+            await event_emitter.emit(self.agent_name, "tool_call", "LLM Call 1: Triaging commits")
+
+        triage_prompt = self._build_triage_prompt(context, prefetched)
+        triage_response = await self.llm_client.chat(
+            prompt=triage_prompt,
+            system=self._two_pass_triage_system_prompt(),
+            max_tokens=4096,
+        )
+
+        triage = self._parse_triage_response(triage_response.text)
+        logger.info("Call 1 (Triage) complete", extra={
+            "agent_name": self.agent_name, "action": "triage_complete",
+            "extra": {
+                "commits_to_diff": len(triage.get("commits_to_diff", [])),
+                "can_produce_final": triage.get("can_produce_final_answer", False),
+            },
+        })
+
+        # If Call 1 already produced a final answer (e.g. no commits, or all trivial)
+        if triage.get("can_produce_final_answer") and triage.get("final_answer"):
+            logger.info("Call 1 produced final answer — skipping Call 2", extra={
+                "agent_name": self.agent_name, "action": "early_finish",
+            })
+            if event_emitter:
+                await event_emitter.emit(self.agent_name, "success", "Change agent completed (1 call)")
+            result = self._parse_final_response(json.dumps(triage["final_answer"]))
+            result["mode"] = "two_pass"
+            result["llm_calls"] = 1
+            return result
+
+        # ── Phase 1b: Batch-fetch diffs (0 LLM calls) ───────────────────
+        commits_to_diff = triage.get("commits_to_diff", [])[:3]
+        diff_results = {}
+        if commits_to_diff:
+            if event_emitter:
+                await event_emitter.emit(
+                    self.agent_name, "tool_call",
+                    f"Fetching diffs for {len(commits_to_diff)} commits"
+                )
+
+            async def _fetch_diff(sha: str) -> tuple[str, str]:
+                result_json = await self._get_commit_diff({"commit_sha": sha})
+                return sha, result_json
+
+            tasks = [_fetch_diff(sha) for sha in commits_to_diff]
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            for item in results:
+                if isinstance(item, tuple):
+                    sha, diff_json = item
+                    diff_results[sha] = diff_json
+
+        # ── Call 2: Analyze ──────────────────────────────────────────────
+        if event_emitter:
+            await event_emitter.emit(self.agent_name, "tool_call", "LLM Call 2: Final analysis")
+
+        analyze_prompt = self._build_change_analyze_prompt(context, prefetched, diff_results, triage)
+        analyze_response = await self.llm_client.chat(
+            prompt=analyze_prompt,
+            system=self._two_pass_analyze_system_prompt(),
+            max_tokens=4096,
+        )
+
+        if event_emitter:
+            await event_emitter.emit(self.agent_name, "success", "Change agent completed analysis")
+
+        result = self._parse_final_response(analyze_response.text)
+        result["mode"] = "two_pass"
+        result["llm_calls"] = 2
+        logger.info("Two-pass change analysis complete", extra={
+            "agent_name": self.agent_name, "action": "complete",
+            "extra": {"correlations": len(result.get("change_correlations", []))},
+        })
+        return result
+
+    # ── Pre-fetch ────────────────────────────────────────────────────────
+
+    async def _prefetch_changes(self, context: dict) -> dict:
+        """Gather all change data without LLM calls."""
+        result: dict = {
+            "commits": [],
+            "commits_raw": "",
+            "deployment_history": "",
+            "config_diff": "",
+        }
+
+        # Parallel fetch: commits + deployment history + config diff
+        async def _fetch_commits():
+            if self._repo_url:
+                return await self._get_github_commits({"repo_url": self._repo_url, "since_hours": 24})
+            return ""
+
+        async def _fetch_deployments():
+            try:
+                return await self._get_deployment_history({"namespace": self._namespace})
+            except Exception as e:
+                logger.warning("Pre-fetch deployment history failed: %s", e)
+                return ""
+
+        async def _fetch_config():
+            try:
+                return await self._get_config_diff({"namespace": self._namespace})
+            except Exception as e:
+                logger.warning("Pre-fetch config diff failed: %s", e)
+                return ""
+
+        commits_raw, deployments, config = await asyncio.gather(
+            _fetch_commits(), _fetch_deployments(), _fetch_config(),
+            return_exceptions=True,
+        )
+
+        if isinstance(commits_raw, str) and commits_raw:
+            result["commits_raw"] = commits_raw
+            try:
+                result["commits"] = json.loads(commits_raw)
+            except (json.JSONDecodeError, TypeError):
+                pass
+
+        if isinstance(deployments, str):
+            result["deployment_history"] = deployments
+        if isinstance(config, str):
+            result["config_diff"] = config
+
+        return result
+
+    # ── Prompt builders ──────────────────────────────────────────────────
+
+    def _two_pass_triage_system_prompt(self) -> str:
+        return (
+            "You are a Change Intelligence agent investigating recent changes "
+            "that may correlate with a production incident.\n\n"
+            "You are given pre-fetched data: recent commits, deployment history, "
+            "and configuration state. Your job is to:\n"
+            "1. Review the commits and identify which 1-3 are highest-risk\n"
+            "2. Return their SHAs so we can fetch detailed diffs\n"
+            "3. If there are NO commits or all are clearly unrelated, produce the final answer directly\n\n"
+            "Risk scoring rules:\n"
+            "- Commit touching a file in STACK TRACE FILES → risk >= 0.9\n"
+            "- Commit touching same module/package as the error → risk >= 0.6\n"
+            "- Commit only touching docs, tests, README, .lock, linting config → risk <= 0.1\n"
+        )
+
+    def _two_pass_analyze_system_prompt(self) -> str:
+        return (
+            "You are a Change Intelligence agent. You have all the data: "
+            "commits, detailed diffs, deployment history, and config state.\n\n"
+            "Produce your final analysis as JSON (no markdown, no extra text):\n"
+            "```json\n"
+            "{\n"
+            '  "change_correlations": [\n'
+            "    {\n"
+            '      "sha": "commit short sha",\n'
+            '      "description": "what changed",\n'
+            '      "author": "who",\n'
+            '      "date": "when",\n'
+            '      "risk_score": 0.0-1.0,\n'
+            '      "correlation_type": "code_change|config_change|deployment",\n'
+            '      "files_changed": ["file1.py"],\n'
+            '      "reasoning": "why this correlates"\n'
+            "    }\n"
+            "  ],\n"
+            '  "summary": "Brief summary"\n'
+            "}\n"
+            "```\n\n"
+            "Include ALL changes (even low-risk). Populate files_changed from the diffs provided."
+        )
+
+    def _build_triage_prompt(self, context: dict, prefetched: dict) -> str:
+        parts = [
+            "# Change Analysis — Phase 1: Triage\n",
+            f"Service: {context.get('service_name', 'unknown')}",
+            f"Namespace: {self._namespace}",
+            f"Incident start: {self._incident_start or 'unknown'}",
+        ]
+
+        if context.get("exception_type"):
+            parts.append(f"Exception: {context['exception_type']}")
+
+        if self._stack_trace_files:
+            parts.append("\n## Stack Trace Files (from error logs)")
+            for f in self._stack_trace_files[:10]:
+                parts.append(f"  - {f}")
+
+        # Commits
+        commits = prefetched.get("commits", [])
+        if commits:
+            parts.append(f"\n## Recent Commits ({len(commits)} found)")
+            for c in commits:
+                parts.append(
+                    f"  - `{c.get('sha', '?')}` by {c.get('author', '?')} "
+                    f"({c.get('date', '?')}): {c.get('message', '')[:150]}"
+                )
+        elif prefetched.get("commits_raw"):
+            parts.append(f"\n## Commits Raw\n{prefetched['commits_raw'][:3000]}")
+        else:
+            parts.append("\n## Commits\nNo commits found in the last 24 hours.")
+
+        # Deployment history
+        if prefetched.get("deployment_history"):
+            parts.append(f"\n## Deployment History\n{prefetched['deployment_history'][:2000]}")
+
+        # Config
+        if prefetched.get("config_diff"):
+            parts.append(f"\n## ConfigMap State\n{prefetched['config_diff'][:2000]}")
+
+        parts.append(
+            "\n## Your Task\n"
+            "Respond with JSON:\n"
+            "```json\n"
+            "{\n"
+            '  "commits_to_diff": ["sha1", "sha2"],  // max 3 highest-risk SHAs needing detailed diffs\n'
+            '  "preliminary_risk_assessment": "Brief assessment...",\n'
+            '  "can_produce_final_answer": false,  // true ONLY if no diffs needed\n'
+            '  "final_answer": null  // if true above, put full change_correlations JSON here\n'
+            "}\n"
+            "```\n"
+            "If there are no commits or all are clearly low-risk (docs/tests only), "
+            "set can_produce_final_answer=true and include the full analysis as final_answer."
+        )
+
+        return "\n".join(parts)
+
+    def _build_change_analyze_prompt(
+        self, context: dict, prefetched: dict, diff_results: dict, triage: dict,
+    ) -> str:
+        parts = [
+            "# Change Analysis — Phase 2: Final Analysis\n",
+            f"Service: {context.get('service_name', 'unknown')}",
+            f"Namespace: {self._namespace}",
+            f"Incident start: {self._incident_start or 'unknown'}",
+        ]
+
+        if context.get("exception_type"):
+            parts.append(f"Exception: {context['exception_type']}")
+
+        if self._stack_trace_files:
+            parts.append("\n## Stack Trace Files")
+            for f in self._stack_trace_files[:10]:
+                parts.append(f"  - {f}")
+
+        # All commits
+        commits = prefetched.get("commits", [])
+        if commits:
+            parts.append(f"\n## All Recent Commits ({len(commits)})")
+            for c in commits:
+                parts.append(
+                    f"  - `{c.get('sha', '?')}` by {c.get('author', '?')} "
+                    f"({c.get('date', '?')}): {c.get('message', '')[:150]}"
+                )
+
+        # Detailed diffs
+        if diff_results:
+            parts.append(f"\n## Detailed Commit Diffs ({len(diff_results)} commits)")
+            for sha, diff_json in diff_results.items():
+                try:
+                    diff_data = json.loads(diff_json)
+                    parts.append(f"\n### Commit {sha[:8]}: {diff_data.get('message', '')[:100]}")
+                    parts.append(f"Author: {diff_data.get('author', 'unknown')}")
+                    for f in diff_data.get("files", []):
+                        parts.append(f"  {f.get('filename', '?')} (+{f.get('additions', 0)}/-{f.get('deletions', 0)})")
+                        patch = f.get("patch", "")
+                        if patch:
+                            parts.append(f"  ```\n{patch[:1000]}\n  ```")
+                except (json.JSONDecodeError, TypeError):
+                    parts.append(f"\n### Commit {sha[:8]}\n{diff_json[:1000]}")
+
+        # Deployment + config
+        if prefetched.get("deployment_history"):
+            parts.append(f"\n## Deployment History\n{prefetched['deployment_history'][:2000]}")
+        if prefetched.get("config_diff"):
+            parts.append(f"\n## ConfigMap State\n{prefetched['config_diff'][:2000]}")
+
+        # Triage context
+        if triage.get("preliminary_risk_assessment"):
+            parts.append(f"\n## Preliminary Assessment (from Phase 1)\n{triage['preliminary_risk_assessment']}")
+
+        parts.append(
+            "\n## Your Task\n"
+            "Produce the final change correlation analysis as JSON. "
+            "Include ALL commits (even low-risk). Use files_changed from the diffs."
+        )
+
+        return "\n".join(parts)
+
+    def _parse_triage_response(self, text: str) -> dict:
+        """Parse Call 1's triage JSON response."""
+        try:
+            json_match = _re.search(r'\{[\s\S]*\}', text)
+            if json_match:
+                data = json.loads(json_match.group())
+            else:
+                data = json.loads(text)
+            data.setdefault("commits_to_diff", [])
+            data.setdefault("preliminary_risk_assessment", "")
+            data.setdefault("can_produce_final_answer", False)
+            data.setdefault("final_answer", None)
+            return data
+        except (json.JSONDecodeError, AttributeError):
+            logger.warning("Failed to parse triage response")
+            return {
+                "commits_to_diff": [],
+                "preliminary_risk_assessment": text[:500],
+                "can_produce_final_answer": False,
+                "final_answer": None,
+            }
 
     async def _define_tools(self) -> list[dict]:
         return [

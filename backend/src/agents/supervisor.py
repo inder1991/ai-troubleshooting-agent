@@ -15,7 +15,7 @@ from src.models.schemas import (
     TraceAnalysisResult, SpanInfo,
     CodeAnalysisResult, ImpactedFile, LineRange, FixArea, DiffAnalysisItem,
     Breadcrumb, NegativeFinding, DataPoint,
-    FixStatus, FixResult,
+    FixStatus, FixResult, FixedFile,
 )
 from src.agents.log_agent import LogAnalysisAgent
 from src.agents.metrics_agent import MetricsAgent
@@ -536,7 +536,11 @@ class SupervisorAgent:
 
         start = time.monotonic()
         try:
-            result = await agent.run(context, event_emitter)
+            # Use two-pass mode for agents that support it (1-2 LLM calls instead of many)
+            if agent_name in ("code_agent", "change_agent", "metrics_agent", "tracing_agent", "k8s_agent") and hasattr(agent, "run_two_pass"):
+                result = await agent.run_two_pass(context, event_emitter)
+            else:
+                result = await agent.run(context, event_emitter)
             elapsed_ms = round((time.monotonic() - start) * 1000)
             # Collect token usage
             state.token_usage.append(agent.get_token_usage())
@@ -2328,16 +2332,11 @@ Examples:
         import tempfile
         import os
 
-        # Guard against parallel fix generation
-        if state.fix_result and state.fix_result.fix_status in (
-            FixStatus.GENERATING, FixStatus.VERIFICATION_IN_PROGRESS, FixStatus.AWAITING_REVIEW,
-        ):
-            await event_emitter.emit("fix_generator", "warning", "Fix generation already in progress")
-            return
-
         tmp_path = ""
         try:
             state.phase = DiagnosticPhase.FIX_IN_PROGRESS
+            # Route handler already set fix_status=GENERATING and guards against
+            # parallel generation (HTTP 409), so no duplicate guard needed here.
             state.fix_result = FixResult(fix_status=FixStatus.GENERATING)
             await event_emitter.emit("fix_generator", "started", "Fix generation started")
 
@@ -2371,6 +2370,14 @@ Examples:
                 await event_emitter.emit("fix_generator", "error", f"Clone failed: {clone_result.get('error', 'unknown')}")
                 return
 
+            # Verify clone contents
+            import glob as _glob
+            cloned_files = _glob.glob(os.path.join(tmp_path, "**"), recursive=True)
+            logger.info("Clone contents", extra={
+                "extra": {"tmp_path": tmp_path, "file_count": len(cloned_files),
+                          "files": [f for f in cloned_files[:20] if not "/.git/" in f]}
+            })
+
             # Create Agent 3 instance
             from src.agents.agent3.fix_generator import Agent3FixGenerator
             agent3 = Agent3FixGenerator(
@@ -2382,21 +2389,36 @@ Examples:
             # Loop for feedback-driven regeneration (replaces recursive call)
             current_guidance = human_guidance
             while True:
-                # Generate fix
+                # Generate fix (returns dict[file_path → fixed_code])
                 state.fix_result.fix_status = FixStatus.GENERATING
-                generated_fix = await agent3.generate_fix(state, current_guidance, event_emitter)
+                generated_fixes = await agent3.generate_fix(state, current_guidance, event_emitter)
 
-                # Store results in state
-                target_file = ""
-                if state.code_analysis and state.code_analysis.root_cause_location:
-                    target_file = state.code_analysis.root_cause_location.file_path
-                original_code = agent3._read_original_file(target_file)
-                diff = agent3._generate_diff(original_code, generated_fix)
+                # Store results in state — build FixedFile entries for all files
+                fixed_files: list[FixedFile] = []
+                combined_diffs: list[str] = []
+                for fp, fixed_code in generated_fixes.items():
+                    try:
+                        orig, resolved = agent3._read_original_file(fp)
+                        if resolved != fp:
+                            fp = resolved
+                    except (FileNotFoundError, ValueError):
+                        orig = ""
+                    d = agent3._generate_diff(orig, fixed_code)
+                    fixed_files.append(FixedFile(
+                        file_path=fp, original_code=orig, fixed_code=fixed_code, diff=d,
+                    ))
+                    combined_diffs.append(f"--- {fp} ---\n{d}")
+
+                # Primary file = first (root cause) for backward compat
+                primary = fixed_files[0] if fixed_files else FixedFile(file_path="unknown")
+                target_file = primary.file_path
+                diff = "\n".join(combined_diffs)
 
                 state.fix_result.target_file = target_file
-                state.fix_result.original_code = original_code
-                state.fix_result.generated_fix = generated_fix
+                state.fix_result.original_code = primary.original_code
+                state.fix_result.generated_fix = primary.fixed_code
                 state.fix_result.diff = diff
+                state.fix_result.fixed_files = fixed_files
                 state.fix_result.fix_explanation = self._build_fix_explanation(state, target_file, diff)
 
                 # Verify with code_agent
@@ -2406,8 +2428,12 @@ Examples:
 
                 verification_failed = (state.fix_result.fix_status == FixStatus.VERIFICATION_FAILED)
 
-                # Run Agent 3 Phase 1 (validation, review, impact, staging)
-                pr_data = await agent3.run_verification_phase(state, generated_fix)
+                # Run Agent 3 Phase 1 (validation + staging; review/impact from code_agent above)
+                code_agent_vr = state.fix_result.verification_result if state.fix_result else None
+                # Normalize: vr may be Pydantic model or dict
+                if code_agent_vr and not isinstance(code_agent_vr, dict):
+                    code_agent_vr = code_agent_vr.model_dump() if hasattr(code_agent_vr, 'model_dump') else dict(code_agent_vr)
+                pr_data = await agent3.run_verification_phase(state, generated_fixes, verification_result=code_agent_vr)
                 state.fix_result.pr_data = pr_data
 
                 state.fix_result.fix_status = FixStatus.AWAITING_REVIEW
@@ -2425,9 +2451,10 @@ Examples:
                 )
 
                 # Present fix to human via WebSocket
+                file_label = ", ".join(f"`{ff.file_path}`" for ff in fixed_files)
                 summary_lines = [
-                    f"**Fix generated for** `{target_file}`\n",
-                    f"**Diff:**\n```\n{diff[:2000]}\n```\n",
+                    f"**Fix generated for** {file_label} ({len(fixed_files)} file(s))\n",
+                    f"**Diff:**\n```\n{diff[:3000]}\n```\n",
                 ]
                 if state.fix_result.fix_explanation:
                     summary_lines.append(f"**Explanation:** {state.fix_result.fix_explanation}\n")
@@ -2467,10 +2494,11 @@ Examples:
                         },
                     )
 
+                all_fix_files = [ff.file_path for ff in fixed_files]
                 await event_emitter.emit(
                     "fix_generator", "fix_proposal",
-                    f"Fix proposed for {target_file} — awaiting human review",
-                    details={"target_file": target_file, "diff_lines": len(diff.splitlines()), "verification_failed": verification_failed},
+                    f"Fix proposed for {', '.join(all_fix_files)} — awaiting human review",
+                    details={"target_file": target_file, "fixed_files": all_fix_files, "diff_lines": len(diff.splitlines()), "verification_failed": verification_failed},
                 )
                 try:
                     await asyncio.wait_for(self._fix_event.wait(), timeout=600)
@@ -2533,6 +2561,101 @@ Examples:
                 from src.utils.repo_manager import RepoManager
                 RepoManager.cleanup_repo(tmp_path)
 
+    # ── Campaign (Multi-Repo) Fix Generation ──────────────────────────────
+
+    async def start_campaign_fix_generation(
+        self,
+        state: DiagnosticState,
+        event_emitter: EventEmitter,
+    ) -> None:
+        """Initialize multi-repo campaign from diagnostic evidence."""
+        # Build repo map from blast_radius + code_analysis
+        repo_map = self._build_repo_map(state)
+        # If only 1 repo, fall back to existing single-repo flow
+        if len(repo_map) <= 1:
+            return await self.start_fix_generation(state, event_emitter)
+
+        from src.models.campaign import RemediationCampaign, CampaignRepoFix
+
+        # Create campaign
+        campaign = RemediationCampaign(
+            campaign_id=f"campaign-{state.session_id}",
+            session_id=state.session_id,
+            total_count=len(repo_map),
+        )
+        for svc, url in repo_map.items():
+            campaign.repos[url] = CampaignRepoFix(
+                repo_url=url,
+                service_name=svc,
+                causal_role=self._determine_causal_role(svc, state),
+            )
+        state.campaign = campaign
+
+        # Run campaign orchestrator
+        from src.agents.agent3.campaign_orchestrator import CampaignOrchestrator
+        orchestrator = CampaignOrchestrator(
+            self.llm_client, event_emitter, self._connection_config,
+        )
+        # Store for later approve/reject calls
+        self._campaign_orchestrator = orchestrator
+        await orchestrator.run_campaign(state, campaign)
+
+    def _build_repo_map(self, state: DiagnosticState) -> dict[str, str]:
+        """Build service_name → repo_url map from diagnostic evidence."""
+        repo_map: dict[str, str] = {}
+
+        # Start with explicitly-set repo_map on state
+        if state.repo_map:
+            repo_map.update(state.repo_map)
+
+        # Add primary repo
+        if state.repo_url and state.service_name:
+            repo_map.setdefault(state.service_name, state.repo_url)
+
+        # Add from blast_radius
+        if state.blast_radius_result:
+            br = state.blast_radius_result
+            for svc in br.upstream_affected + br.downstream_affected:
+                if svc and svc not in repo_map and svc in state.repo_map:
+                    repo_map[svc] = state.repo_map[svc]
+
+        # Add from cross_repo_findings
+        if state.code_analysis and state.code_analysis.cross_repo_findings:
+            for crf in state.code_analysis.cross_repo_findings:
+                if isinstance(crf, dict):
+                    repo = crf.get("repo", "")
+                    svc = repo.split("/")[-1] if "/" in repo else repo
+                else:
+                    repo = crf.repo
+                    svc = repo.split("/")[-1] if "/" in repo else repo
+                if svc and svc not in repo_map and repo:
+                    repo_map[svc] = repo
+
+        return repo_map
+
+    def _determine_causal_role(self, service: str, state: DiagnosticState) -> str:
+        """Determine causal role of a service in the incident."""
+        # Check if service is patient_zero → root_cause
+        if state.patient_zero:
+            pz_svc = ""
+            if isinstance(state.patient_zero, dict):
+                pz_svc = state.patient_zero.get("service", "")
+            else:
+                pz_svc = getattr(state.patient_zero, "service", "")
+            if pz_svc and pz_svc == service:
+                return "root_cause"
+
+        # Check if primary service
+        if service == state.service_name:
+            return "root_cause"
+
+        # Check if in downstream_affected → cascading
+        if state.blast_radius_result:
+            if service in state.blast_radius_result.downstream_affected:
+                return "cascading"
+
+        return "correlated"
+
     def _build_fix_explanation(self, state: DiagnosticState, target_file: str, diff: str) -> str:
         """Build a human-readable explanation of what the fix does."""
         parts = []
@@ -2570,7 +2693,11 @@ Examples:
             if self._connection_config and self._connection_config.github_token:
                 context["github_token"] = self._connection_config.github_token
 
-            result = await agent.run(context, event_emitter)
+            # Use two-pass mode (1 LLM call) instead of ReAct loop
+            if hasattr(agent, "run_two_pass"):
+                result = await agent.run_two_pass(context, event_emitter)
+            else:
+                result = await agent.run(context, event_emitter)
 
             # Extract only verification-relevant fields (not the full agent result)
             verification_data = {

@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 from datetime import datetime, timezone, timedelta
@@ -5,6 +6,7 @@ from typing import Any
 
 from src.agents.react_base import ReActAgent
 from src.models.schemas import PodHealthStatus, K8sEvent, K8sAnalysisResult, TokenUsage
+from src.utils.event_emitter import EventEmitter
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -685,3 +687,307 @@ After analysis, provide your final answer as JSON:
             "total_restarts": total_restarts,
             "termination_reasons": termination_reasons,
         }
+
+    # ══════════════════════════════════════════════════════════════════════
+    #  Two-Pass Mode (1 LLM call)
+    # ══════════════════════════════════════════════════════════════════════
+
+    async def run_two_pass(self, context: dict, event_emitter: EventEmitter | None = None) -> dict:
+        """Execute K8s health analysis in exactly 1 LLM call.
+
+        Phase 0a: Pre-fetch — test connectivity + get pod status + get events.
+                  Zero LLM calls, pure K8s API.
+        Phase 0b: Deep dive — get deployment + HPA + pod logs (for unhealthy pods).
+                  Zero LLM calls, pure K8s API.
+        Call 1:   Analyze — LLM sees ALL K8s data and produces final JSON.
+        """
+        service_name = context.get("service_name", "unknown")
+        namespace = context.get("namespace", "default")
+        label_selector = context.get("suggested_label_selector", f"app={service_name}")
+
+        logger.info("K8s agent two-pass starting", extra={
+            "agent_name": self.agent_name, "action": "two_pass_start",
+            "extra": {"service": service_name, "namespace": namespace, "selector": label_selector},
+        })
+
+        if event_emitter:
+            await event_emitter.emit(self.agent_name, "started", "K8s agent starting two-pass analysis")
+
+        # ── Phase 0a: Discovery (connectivity + pods + events) ───────────
+        if event_emitter:
+            await event_emitter.emit(self.agent_name, "tool_call", "Pre-fetching cluster connectivity, pods, and events")
+
+        connectivity_raw, pods_raw, events_raw = await asyncio.gather(
+            self._test_cluster_connectivity(),
+            self._get_pod_status({"namespace": namespace, "label_selector": label_selector}),
+            self._get_events({"namespace": namespace, "since_minutes": 60}),
+            return_exceptions=True,
+        )
+
+        connectivity = self._safe_parse(connectivity_raw)
+        pods_data = self._safe_parse(pods_raw)
+        events_data = self._safe_parse(events_raw)
+
+        # Check if cluster is unreachable — early exit
+        if not connectivity.get("reachable"):
+            logger.warning("Cluster unreachable", extra={
+                "agent_name": self.agent_name, "action": "cluster_unreachable",
+                "extra": {"error": connectivity.get("error", "unknown")},
+            })
+            if event_emitter:
+                await event_emitter.emit(self.agent_name, "error", f"Cluster unreachable: {connectivity.get('error', '')}")
+            return {
+                "pod_statuses": [],
+                "events": [],
+                "is_crashloop": False,
+                "total_restarts_last_hour": 0,
+                "resource_mismatch": None,
+                "overall_confidence": 10,
+                "error": f"Cluster unreachable: {connectivity.get('error', '')}",
+                "mode": "two_pass",
+                "llm_calls": 0,
+                "breadcrumbs": [b.model_dump(mode="json") for b in self.breadcrumbs],
+                "negative_findings": [n.model_dump(mode="json") for n in self.negative_findings],
+                "tokens_used": self.get_token_usage().model_dump(),
+            }
+
+        # Determine which pods need log fetching
+        pods_list = pods_data.get("pods", [])
+        unhealthy_pods = [
+            p for p in pods_list
+            if p.get("restart_count", 0) > 0
+            or p.get("status") in ("CrashLoopBackOff", "Error", "OOMKilled", "Pending", "Unknown")
+        ]
+
+        logger.info("Phase 0a complete", extra={
+            "agent_name": self.agent_name, "action": "discovery_complete",
+            "extra": {
+                "cluster_reachable": True,
+                "pods_found": len(pods_list),
+                "unhealthy_pods": len(unhealthy_pods),
+                "events": events_data.get("total", 0),
+                "warnings": events_data.get("warnings", 0),
+            },
+        })
+
+        # ── Phase 0b: Deep dive (deployment + HPA + pod logs) ────────────
+        if event_emitter:
+            await event_emitter.emit(self.agent_name, "tool_call", "Fetching deployment, HPA, and pod logs")
+
+        # Build deep-dive tasks
+        deep_dive_tasks = [
+            self._get_deployment({"namespace": namespace, "name": service_name}),
+            self._get_hpa_status({"namespace": namespace}),
+        ]
+
+        # Fetch logs for unhealthy pods (max 3 to control data volume)
+        log_pod_names = [p["pod_name"] for p in unhealthy_pods[:3]]
+        for pod_name in log_pod_names:
+            # Current container logs
+            deep_dive_tasks.append(
+                self._get_pod_logs({"namespace": namespace, "pod_name": pod_name, "tail_lines": 100})
+            )
+            # Previous (terminated) container logs for crashloops/OOM
+            if any(p.get("status") in ("CrashLoopBackOff", "OOMKilled") for p in unhealthy_pods if p["pod_name"] == pod_name):
+                deep_dive_tasks.append(
+                    self._get_pod_logs({"namespace": namespace, "pod_name": pod_name, "tail_lines": 100, "previous": True})
+                )
+
+        deep_results = await asyncio.gather(*deep_dive_tasks, return_exceptions=True)
+
+        # Parse results
+        deployment_data = self._safe_parse(deep_results[0]) if len(deep_results) > 0 else {}
+        hpa_data = self._safe_parse(deep_results[1]) if len(deep_results) > 1 else {}
+        pod_logs: list[dict] = []
+        for item in deep_results[2:]:
+            parsed = self._safe_parse(item)
+            if parsed and "logs" in parsed:
+                pod_logs.append(parsed)
+
+        logger.info("Phase 0b complete", extra={
+            "agent_name": self.agent_name, "action": "deep_dive_complete",
+            "extra": {
+                "has_deployment": "name" in deployment_data,
+                "hpas": len(hpa_data.get("hpas", [])),
+                "pod_logs_fetched": len(pod_logs),
+            },
+        })
+
+        # ── Call 1: Analyze (the only LLM call) ─────────────────────────
+        if event_emitter:
+            await event_emitter.emit(self.agent_name, "tool_call", "LLM Call 1: Analyzing all K8s data")
+
+        analyze_prompt = self._build_k8s_analyze_prompt(
+            context, connectivity, pods_data, events_data,
+            deployment_data, hpa_data, pod_logs
+        )
+        analyze_response = await self.llm_client.chat(
+            prompt=analyze_prompt,
+            system=self._two_pass_k8s_system_prompt(),
+            max_tokens=4096,
+        )
+
+        if event_emitter:
+            await event_emitter.emit(self.agent_name, "success", "K8s agent completed analysis")
+
+        result = self._parse_final_response(analyze_response.text)
+        result["mode"] = "two_pass"
+        result["llm_calls"] = 1
+        logger.info("Two-pass K8s analysis complete", extra={
+            "agent_name": self.agent_name, "action": "complete",
+            "extra": {
+                "pods": len(result.get("pod_statuses", [])),
+                "events": len(result.get("events", [])),
+                "confidence": result.get("overall_confidence", 0),
+            },
+        })
+        return result
+
+    # ── Two-pass helpers ─────────────────────────────────────────────────
+
+    @staticmethod
+    def _safe_parse(raw) -> dict:
+        """Safely parse a JSON string or return empty dict."""
+        if isinstance(raw, dict):
+            return raw
+        if isinstance(raw, str):
+            try:
+                return json.loads(raw)
+            except (json.JSONDecodeError, TypeError):
+                return {}
+        if isinstance(raw, Exception):
+            return {"error": str(raw)}
+        return {}
+
+    def _two_pass_k8s_system_prompt(self) -> str:
+        return (
+            "You are a Kubernetes/OpenShift Health Agent for SRE troubleshooting.\n\n"
+            "You are given ALL pre-fetched K8s data: cluster connectivity, pod statuses, "
+            "events, deployment info, HPA status, and pod logs (for unhealthy pods).\n\n"
+            "Analyze all this data and produce the final JSON.\n\n"
+            "NEGATIVE FINDINGS: When all pods are healthy, report it. When no warnings, report it. "
+            "Negative findings build trust in the diagnosis.\n\n"
+            "OUTPUT FORMAT — Respond with ONLY JSON (no markdown, no extra text):\n"
+            "{\n"
+            '    "pod_statuses": [{"pod_name": "...", "namespace": "...", "status": "...", '
+            '"restart_count": 0, "last_termination_reason": null, "resource_requests": {}, '
+            '"resource_limits": {}, "init_container_failures": [], "image_pull_errors": [], '
+            '"container_count": 1, "ready_containers": 1}],\n'
+            '    "events": [{"timestamp": "...", "type": "Warning", "reason": "...", '
+            '"message": "...", "source_component": "...", "count": 1, "involved_object": "pod-name"}],\n'
+            '    "is_crashloop": false,\n'
+            '    "total_restarts_last_hour": 0,\n'
+            '    "resource_mismatch": null,\n'
+            '    "overall_confidence": 80\n'
+            "}\n"
+        )
+
+    def _build_k8s_analyze_prompt(
+        self,
+        context: dict,
+        connectivity: dict,
+        pods_data: dict,
+        events_data: dict,
+        deployment_data: dict,
+        hpa_data: dict,
+        pod_logs: list[dict],
+    ) -> str:
+        parts = [
+            "# Kubernetes Health Analysis — All Data Pre-Fetched\n",
+            f"## Service: {context.get('service_name', 'unknown')}",
+            f"## Namespace: {context.get('namespace', 'default')}",
+        ]
+
+        if context.get("error_patterns"):
+            parts.append(f"\n## Error Patterns from Log Agent\n{json.dumps(context['error_patterns'], indent=2)}")
+
+        # Cluster connectivity
+        parts.append(f"\n## Cluster Connectivity")
+        if connectivity.get("reachable"):
+            parts.append(
+                f"  Connected: version {connectivity.get('version', '?')}, "
+                f"{connectivity.get('nodes', '?')} nodes, platform: {connectivity.get('platform', '?')}"
+            )
+        else:
+            parts.append(f"  ERROR: {connectivity.get('error', 'Unknown')}")
+
+        # Pod statuses
+        pods_list = pods_data.get("pods", [])
+        parts.append(f"\n## Pod Statuses ({len(pods_list)} pods)")
+        for pod in pods_list:
+            parts.append(
+                f"  - **{pod.get('pod_name', '?')}**: status={pod.get('status', '?')}, "
+                f"restarts={pod.get('restart_count', 0)}, "
+                f"containers={pod.get('ready_containers', 0)}/{pod.get('container_count', 0)}"
+            )
+            if pod.get("last_termination_reason"):
+                parts.append(f"    Last termination: {pod['last_termination_reason']}")
+            if pod.get("init_container_failures"):
+                parts.append(f"    Init failures: {pod['init_container_failures']}")
+            if pod.get("image_pull_errors"):
+                parts.append(f"    Image pull errors: {pod['image_pull_errors']}")
+            if pod.get("resource_requests"):
+                parts.append(f"    Requests: {json.dumps(pod['resource_requests'])}")
+            if pod.get("resource_limits"):
+                parts.append(f"    Limits: {json.dumps(pod['resource_limits'])}")
+
+        # Events
+        events_list = events_data.get("events", [])
+        warning_events = [e for e in events_list if e.get("type") == "Warning"]
+        parts.append(f"\n## Events ({len(events_list)} total, {len(warning_events)} warnings)")
+        for evt in warning_events[:20]:
+            parts.append(
+                f"  - [{evt.get('type', '?')}] {evt.get('reason', '?')}: "
+                f"{evt.get('message', '?')[:200]} (count={evt.get('count', 1)}, "
+                f"object={evt.get('involved_object', '?')})"
+            )
+        if not warning_events:
+            parts.append("  No warning events — cluster events are healthy")
+
+        # Deployment
+        if deployment_data and "name" in deployment_data:
+            parts.append(f"\n## Deployment: {deployment_data.get('name', '?')} ({deployment_data.get('type', 'Deployment')})")
+            parts.append(
+                f"  Replicas: desired={deployment_data.get('replicas_desired', '?')}, "
+                f"available={deployment_data.get('replicas_available', '?')}, "
+                f"ready={deployment_data.get('replicas_ready', '?')}"
+            )
+            for cond in deployment_data.get("conditions", []):
+                parts.append(f"  Condition: {cond.get('type', '?')}={cond.get('status', '?')} — {cond.get('message', '')[:100]}")
+            for cs in deployment_data.get("containers", []):
+                parts.append(f"  Container '{cs.get('name', '?')}': requests={cs.get('requests', {})}, limits={cs.get('limits', {})}")
+        elif deployment_data.get("error"):
+            parts.append(f"\n## Deployment: ERROR — {deployment_data['error']}")
+
+        # HPA
+        hpas = hpa_data.get("hpas", [])
+        if hpas:
+            parts.append(f"\n## HPA ({len(hpas)} autoscalers)")
+            for hpa in hpas:
+                parts.append(
+                    f"  - {hpa.get('name', '?')}: {hpa.get('current_replicas', 0)}/{hpa.get('max_replicas', '?')} replicas, "
+                    f"CPU: {hpa.get('current_cpu_utilization', '?')}% (target {hpa.get('target_cpu_utilization', '?')}%)"
+                )
+        else:
+            parts.append("\n## HPA: No autoscaler configured — replica count is static")
+
+        # Pod logs (for unhealthy pods)
+        if pod_logs:
+            parts.append(f"\n## Pod Logs ({len(pod_logs)} pods)")
+            for log_entry in pod_logs:
+                pod_name = log_entry.get("pod_name", "?")
+                previous = log_entry.get("previous", False)
+                label = f" (PREVIOUS container)" if previous else ""
+                lines = log_entry.get("lines", 0)
+                logs_text = log_entry.get("logs", "")
+                # Truncate to avoid overwhelming the prompt
+                if len(logs_text) > 4000:
+                    logs_text = logs_text[-4000:]
+                    logs_text = f"[truncated]\n{logs_text}"
+                parts.append(f"\n### {pod_name}{label} ({lines} lines)")
+                parts.append(f"```\n{logs_text}\n```")
+
+        parts.append("\n## Your Task")
+        parts.append("Analyze ALL the data above and produce the final K8s health analysis JSON.")
+
+        return "\n".join(parts)

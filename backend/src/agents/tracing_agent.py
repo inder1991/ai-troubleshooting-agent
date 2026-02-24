@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 import re
@@ -8,6 +9,7 @@ import requests
 
 from src.agents.react_base import ReActAgent
 from src.models.schemas import SpanInfo, TraceAnalysisResult, TokenUsage
+from src.utils.event_emitter import EventEmitter
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -372,3 +374,192 @@ After analysis, provide your final answer as JSON:
             seen_services.add(service)
 
         return chain
+
+    # ══════════════════════════════════════════════════════════════════════
+    #  Two-Pass Mode (1 LLM call)
+    # ══════════════════════════════════════════════════════════════════════
+
+    async def run_two_pass(self, context: dict, event_emitter: EventEmitter | None = None) -> dict:
+        """Execute tracing analysis in exactly 1 LLM call.
+
+        Phase 0:  Pre-fetch — list services, query Jaeger for trace, fallback
+                  to Elasticsearch if needed. Zero LLM calls, pure API.
+        Call 1:   Analyze — LLM sees all spans/logs and produces final JSON.
+        """
+        trace_id = context.get("trace_id", "unknown")
+        service_name = context.get("service_name", "unknown")
+        error_patterns = context.get("error_patterns", [])
+
+        logger.info("Tracing agent two-pass starting", extra={
+            "agent_name": self.agent_name, "action": "two_pass_start",
+            "extra": {"trace_id": trace_id, "service": service_name},
+        })
+
+        if event_emitter:
+            await event_emitter.emit(self.agent_name, "started", "Tracing agent starting two-pass analysis")
+
+        # ── Phase 0: Pre-fetch all tracing data ─────────────────────────
+        if event_emitter:
+            await event_emitter.emit(self.agent_name, "tool_call", "Pre-fetching trace data from Jaeger/ELK")
+
+        # Step 1: List services + query Jaeger in parallel
+        services_raw, jaeger_raw = await asyncio.gather(
+            self._list_traced_services(),
+            self._query_jaeger({"trace_id": trace_id}),
+            return_exceptions=True,
+        )
+
+        services_data = {}
+        if isinstance(services_raw, str):
+            try:
+                services_data = json.loads(services_raw)
+            except (json.JSONDecodeError, TypeError):
+                pass
+
+        jaeger_data = {}
+        if isinstance(jaeger_raw, str):
+            try:
+                jaeger_data = json.loads(jaeger_raw)
+            except (json.JSONDecodeError, TypeError):
+                pass
+
+        # Step 2: If Jaeger returned no data, fallback to Elasticsearch
+        elk_data = {}
+        trace_source = "jaeger"
+        if jaeger_data.get("status") in ("no_data", "connection_error", "error"):
+            trace_source = "elasticsearch"
+            if event_emitter:
+                await event_emitter.emit(self.agent_name, "tool_call", "Jaeger unavailable, falling back to Elasticsearch")
+            elk_raw = await self._search_elk_trace({"trace_id": trace_id})
+            try:
+                elk_data = json.loads(elk_raw)
+            except (json.JSONDecodeError, TypeError):
+                pass
+
+        logger.info("Phase 0 complete", extra={
+            "agent_name": self.agent_name, "action": "prefetch_complete",
+            "extra": {
+                "services_found": services_data.get("total_services", 0),
+                "trace_source": trace_source,
+                "jaeger_status": jaeger_data.get("status", "unknown"),
+                "elk_logs": elk_data.get("total_logs", 0),
+            },
+        })
+
+        # ── Call 1: Analyze (the only LLM call) ─────────────────────────
+        if event_emitter:
+            await event_emitter.emit(self.agent_name, "tool_call", "LLM Call 1: Analyzing trace data")
+
+        analyze_prompt = self._build_trace_analyze_prompt(
+            context, services_data, jaeger_data, elk_data, trace_source
+        )
+        analyze_response = await self.llm_client.chat(
+            prompt=analyze_prompt,
+            system=self._two_pass_trace_system_prompt(),
+            max_tokens=4096,
+        )
+
+        if event_emitter:
+            await event_emitter.emit(self.agent_name, "success", "Tracing agent completed analysis")
+
+        result = self._parse_final_response(analyze_response.text)
+        result["mode"] = "two_pass"
+        result["llm_calls"] = 1
+        logger.info("Two-pass tracing analysis complete", extra={
+            "agent_name": self.agent_name, "action": "complete",
+            "extra": {"spans": result.get("total_spans", 0), "source": trace_source},
+        })
+        return result
+
+    # ── Two-pass prompt builders ─────────────────────────────────────────
+
+    def _two_pass_trace_system_prompt(self) -> str:
+        return (
+            "You are a Distributed Tracing Agent for SRE troubleshooting.\n\n"
+            "You are given ALL pre-fetched trace data: Jaeger spans or Elasticsearch "
+            "log-reconstructed call chain. Analyze and produce the final JSON.\n\n"
+            "Your goals:\n"
+            "1. Map the complete request flow across services\n"
+            "2. Identify where the failure occurred and the cascade path\n"
+            "3. Detect retries and latency bottlenecks\n"
+            "4. Build a service dependency graph\n\n"
+            "OUTPUT FORMAT — Respond with ONLY JSON (no markdown, no extra text):\n"
+            "{\n"
+            '    "trace_id": "abc-123",\n'
+            '    "total_duration_ms": 31500.0,\n'
+            '    "total_services": 5,\n'
+            '    "total_spans": 12,\n'
+            '    "call_chain": [{"span_id": "s1", "service_name": "...", "operation_name": "...", '
+            '"duration_ms": 100, "status": "ok|error|timeout", "error_message": null, '
+            '"parent_span_id": null, "tags": {}}],\n'
+            '    "failure_point": {"span_id": "...", ...},\n'
+            '    "cascade_path": ["service-a", "service-b"],\n'
+            '    "latency_bottlenecks": [...],\n'
+            '    "retry_detected": false,\n'
+            '    "service_dependency_graph": {"api-gw": ["order-svc"]},\n'
+            '    "trace_source": "jaeger|elasticsearch",\n'
+            '    "overall_confidence": 85\n'
+            "}\n"
+        )
+
+    def _build_trace_analyze_prompt(
+        self,
+        context: dict,
+        services_data: dict,
+        jaeger_data: dict,
+        elk_data: dict,
+        trace_source: str,
+    ) -> str:
+        trace_id = context.get("trace_id", "unknown")
+        parts = [
+            "# Trace Analysis — All Data Pre-Fetched\n",
+            f"## Trace ID: {trace_id}",
+            f"## Affected Service: {context.get('service_name', 'unknown')}",
+            f"## Trace Source: {trace_source}",
+        ]
+
+        if context.get("error_patterns"):
+            parts.append(f"\n## Known Error Patterns\n{json.dumps(context['error_patterns'], indent=2)}")
+
+        # Services discovered
+        if services_data.get("reachable"):
+            services = services_data.get("services", [])
+            parts.append(f"\n## Traced Services ({len(services)} found)")
+            parts.append(", ".join(services[:50]))
+        elif services_data.get("error"):
+            parts.append(f"\n## Jaeger Service Discovery: FAILED — {services_data['error']}")
+
+        # Jaeger span data
+        if trace_source == "jaeger" and jaeger_data.get("status") == "success":
+            spans = jaeger_data.get("spans", [])
+            parts.append(f"\n## Jaeger Spans ({len(spans)} spans)")
+            for span in spans:
+                status_mark = span.get("status", "ok")
+                err_msg = f" — {span.get('error_message', '')}" if span.get("error_message") else ""
+                parts.append(
+                    f"  - [{status_mark}] {span.get('service_name', '?')} → "
+                    f"{span.get('operation_name', '?')} ({span.get('duration_ms', 0)}ms){err_msg}"
+                )
+                if span.get("parent_span_id"):
+                    parts.append(f"    parent: {span['parent_span_id']}")
+
+        # ELK fallback data
+        if trace_source == "elasticsearch":
+            if elk_data.get("status") == "success":
+                chain = elk_data.get("reconstructed_chain", [])
+                parts.append(f"\n## Elasticsearch Reconstructed Chain ({len(chain)} entries)")
+                for entry in chain:
+                    parts.append(
+                        f"  - [{entry.get('status', 'ok')}] {entry.get('service_name', '?')} "
+                        f"@ {entry.get('timestamp', '?')}: {entry.get('message', '')[:150]}"
+                    )
+                parts.append("\nNote: Chain reconstructed from logs — timings are approximate")
+            elif elk_data.get("status") == "no_data":
+                parts.append("\n## Elasticsearch: No logs found for this trace ID")
+            elif elk_data.get("error"):
+                parts.append(f"\n## Elasticsearch: ERROR — {elk_data.get('message', elk_data.get('error', ''))}")
+
+        parts.append("\n## Your Task")
+        parts.append("Analyze ALL the data above and produce the final trace analysis JSON.")
+
+        return "\n".join(parts)

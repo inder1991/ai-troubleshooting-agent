@@ -17,6 +17,7 @@ class DiagnosticPhase(str, Enum):
     DIAGNOSIS_COMPLETE = "diagnosis_complete"
     FIX_IN_PROGRESS = "fix_in_progress"
     COMPLETE = "complete"
+    ERROR = "error"
 
 
 class FixStatus(str, Enum):
@@ -570,12 +571,21 @@ class FixArea(BaseModel):
     suggested_change: str
 
 
+class FixedFile(BaseModel):
+    """A single file's fix data within a multi-file fix."""
+    file_path: str
+    original_code: str = ""
+    fixed_code: str = ""
+    diff: str = ""
+
+
 class FixResult(BaseModel):
     fix_status: FixStatus = FixStatus.NOT_STARTED
-    target_file: str = ""
-    original_code: str = ""
-    generated_fix: str = ""
-    diff: str = ""
+    target_file: str = ""               # Primary file (backward compat)
+    original_code: str = ""             # Primary file's original (backward compat)
+    generated_fix: str = ""             # Primary file's fix (backward compat)
+    diff: str = ""                      # Primary file's diff (backward compat)
+    fixed_files: list[FixedFile] = Field(default_factory=list)  # All files
     fix_explanation: str = ""
     pr_data: Optional[PRData | dict] = None
     pr_url: Optional[str] = None
@@ -583,7 +593,7 @@ class FixResult(BaseModel):
     verification_result: Optional[FixVerificationResult | dict] = None
     human_feedback: list[str] = Field(default_factory=list)
     attempt_count: int = 0
-    max_attempts: int = 3
+    max_attempts: int = 2
 
 
 class DiffAnalysisItem(BaseModel):
@@ -778,7 +788,7 @@ class BlastRadius(BaseModel):
     shared_resources: list[str] = Field(default_factory=list)
     estimated_user_impact: str = ""
     scope: Literal["single_service", "service_group", "namespace", "cluster_wide"]
-    business_impact: list[dict] = Field(default_factory=list)
+    business_impact: list[dict[str, str | list[str]]] = Field(default_factory=list)
 
 
 class SeverityRecommendation(BaseModel):
@@ -812,6 +822,7 @@ class DiagnosticState(BaseModel):
     code_analysis: Optional[CodeAnalysisResult] = None
     change_analysis: Optional[ChangeAnalysisResult | dict] = None
     fix_result: Optional[FixResult] = None
+    campaign: Optional['RemediationCampaign'] = None
     closure_state: Optional["IncidentClosureState"] = None
 
     # Flow reconstruction
@@ -867,6 +878,7 @@ class DiagnosticStateV5(DiagnosticState):
         return self
 
 
-# Resolve forward reference for IncidentClosureState
+# Resolve forward references
 from src.models.closure_models import IncidentClosureState  # noqa: E402
+from src.models.campaign import RemediationCampaign  # noqa: E402
 DiagnosticState.model_rebuild()

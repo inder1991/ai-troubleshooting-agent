@@ -83,84 +83,112 @@ class Agent3FixGenerator:
     async def run_verification_phase(
         self,
         state: DiagnosticState,
-        generated_fix: str,
+        generated_fixes: dict[str, str] | str,
+        verification_result: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
-        Execute Phase 1: Verification
+        Execute Phase 1: Verification for one or more files.
 
         Steps:
-        1. Static validation (AST, linting, imports)
-        2. Agent 2 peer review
-        3. Impact & risk assessment
-        4. PR staging (local branch + commit)
-        5. Emit progress events
+        1. Static validation (AST, linting, imports) per file
+        2. PR staging (local branch + commit for all files)
+        3. Prepare PR data
+
+        Code review and impact assessment are handled upstream by
+        _verify_fix_with_code_agent() — results passed via verification_result.
 
         Args:
             state: DiagnosticState with session context and agent results
-            generated_fix: Fixed code from LLM
+            generated_fixes: dict[file_path → fixed_code] or single string (backward compat)
+            verification_result: Output from code_agent verification
 
         Returns:
             PR data for user review
         """
-        session_id = state.session_id
-
         logger.info("\n" + "=" * 80)
         logger.info("AGENT 3: PHASE 1 - VERIFICATION")
         logger.info("=" * 80)
 
-        # Extract file path from code analysis in state
-        file_path = ""
-        if state.code_analysis and state.code_analysis.root_cause_location:
-            file_path = state.code_analysis.root_cause_location.file_path
+        # Normalize to dict (backward compat: single string → primary file)
+        if isinstance(generated_fixes, str):
+            primary_file = self._resolve_target_file(state)
+            fixes = {primary_file: generated_fixes}
+        else:
+            fixes = generated_fixes
 
         # Build context dicts from state for downstream components
         agent1_analysis = self._build_agent1_context(state)
         agent2_analysis = self._build_agent2_context(state)
 
-        # ---- STEP 1: STATIC VALIDATION ----
+        # ---- STEP 1: STATIC VALIDATION (per file) ----
 
-        await self._emit_progress("validation", "Running static validation...")
+        await self._emit_progress("validation", f"Validating {len(fixes)} file(s)...")
 
-        validation_result = self.validator.validate_all(file_path, generated_fix)
+        all_passed = True
+        for fp, code in list(fixes.items()):
+            validation = self.validator.validate_all(fp, code)
+            if not validation["passed"]:
+                logger.info("Validation failed for %s, attempting self-correction...", fp)
+                code = await self._self_correct(code, validation)
+                fixes[fp] = code
+                validation = self.validator.validate_all(fp, code)
+                if not validation["passed"]:
+                    all_passed = False
 
-        # Self-correct if validation fails
-        if not validation_result["passed"]:
-            logger.info("\nValidation failed, attempting self-correction...")
-            generated_fix = await self._self_correct(generated_fix, validation_result)
-            validation_result = self.validator.validate_all(file_path, generated_fix)
+        # Use primary file's validation for PR template
+        primary_file = list(fixes.keys())[0]
+        primary_code = fixes[primary_file]
+        validation_result_static = self.validator.validate_all(primary_file, primary_code)
+        validation_result_static["passed"] = all_passed
 
-        # ---- STEP 2: CROSS-AGENT PEER REVIEW ----
+        # Merge code_agent verification into validation for PR template
+        vr = verification_result or {}
+        validation_result_static["agent2_approved"] = vr.get("verdict", "approve") != "reject"
+        validation_result_static["agent2_confidence"] = (vr.get("confidence", 75)) / 100.0
 
-        await self._emit_progress("review", "Agent 2 reviewing fix...")
+        # Build impact report from code_agent verification (no separate LLM call)
+        impact_report = {
+            "side_effects": vr.get("suggestions", []),
+            "security_review": "Reviewed by code agent" if vr else "No review available",
+            "regression_risk": "High" if vr.get("regression_risks") else "Low",
+            "affected_functions": [],
+            "diff_lines": 0,
+            "files_changed": len(fixes),
+        }
+        if vr.get("issues_found"):
+            impact_report["side_effects"] = vr["issues_found"] + vr.get("suggestions", [])
+        if vr.get("regression_risks"):
+            impact_report["side_effects"] += [f"Regression risk: {r}" for r in vr["regression_risks"]]
 
-        original_code = self._read_original_file(file_path)
+        # ---- STEP 2: PR STAGING (all files) ----
 
-        agent2_review = await self.reviewer.request_review(
-            original_code, generated_fix, agent2_analysis
-        )
+        await self._emit_progress("staging", f"Staging {len(fixes)} file(s) for PR...")
 
-        validation_result["agent2_approved"] = agent2_review["approved"]
-        validation_result["agent2_confidence"] = agent2_review["confidence"]
+        # Read originals and resolve paths for all files
+        file_diffs: dict[str, str] = {}
+        total_diff_lines = 0
+        resolved_fixes: dict[str, str] = {}
 
-        # ---- STEP 3: IMPACT & RISK ASSESSMENT ----
-
-        await self._emit_progress("assessment", "Assessing impact...")
-
-        call_chain = agent2_analysis.get("call_chain", [])
-        impact_report = await self.assessor.assess_impact(
-            file_path, original_code, generated_fix, call_chain
-        )
-
-        # ---- STEP 4: PR STAGING ----
-
-        await self._emit_progress("staging", "Staging PR locally...")
+        for fp, code in fixes.items():
+            try:
+                original_code, resolved_path = self._read_original_file(fp)
+                if resolved_path != fp:
+                    logger.info("Resolved staging path: %s → %s", fp, resolved_path)
+                    fp = resolved_path
+            except (FileNotFoundError, ValueError):
+                original_code = ""
+            resolved_fixes[fp] = code
+            diff = self._generate_diff(original_code, code)
+            file_diffs[fp] = diff
+            total_diff_lines += len(diff.splitlines())
 
         branch_name = self.stager.create_branch(
             agent1_analysis.get("incident_id", "incident"),
             agent1_analysis.get("bug_id", "bug"),
         )
 
-        self.stager.stage_changes(file_path, generated_fix)
+        for fp, code in resolved_fixes.items():
+            self.stager.stage_changes(fp, code)
 
         commit_sha = self.stager.create_commit(
             agent1_analysis.get("incident_id", "incident"),
@@ -169,38 +197,48 @@ class Agent3FixGenerator:
             agent2_analysis,
         )
 
+        # Combine diffs for display
+        combined_diff = "\n".join(
+            f"--- {fp} ---\n{d}" for fp, d in file_diffs.items()
+        )
+        impact_report["diff_lines"] = total_diff_lines
+
         pr_body = self.stager.generate_pr_template(
-            agent1_analysis, agent2_analysis, impact_report, validation_result
+            agent1_analysis, agent2_analysis, impact_report, validation_result_static
         )
 
-        # ---- STEP 5: PREPARE PR DATA ----
+        # ---- STEP 3: PREPARE PR DATA ----
 
         summary = agent1_analysis.get("diagnostic_summary", "Fix issue")[:60]
+        file_list = list(resolved_fixes.keys())
         pr_data = {
             "branch_name": branch_name,
             "commit_sha": commit_sha,
             "pr_title": f"fix: {summary}",
             "pr_body": pr_body,
-            "diff": self._generate_diff(original_code, generated_fix),
-            "validation": validation_result,
+            "diff": combined_diff,
+            "file_diffs": file_diffs,
+            "validation": validation_result_static,
             "impact": impact_report,
-            "fixed_code": generated_fix,
+            "fixed_files": file_list,
+            "fixed_code": primary_code,  # backward compat
             "status": "awaiting_approval",
             "token_usage": self.llm_client.get_total_usage().model_dump(),
         }
 
-        # ---- STEP 6: NOTIFY ----
+        # ---- STEP 4: NOTIFY ----
 
         await self._emit_progress(
             "verification_complete",
-            f"Verification complete. Branch: {branch_name}",
+            f"Verification complete. Branch: {branch_name} ({len(file_list)} file(s))",
         )
 
         logger.info(f"\nPHASE 1 COMPLETE")
         logger.info(f"   Branch: {branch_name}")
         logger.info(f"   Commit: {commit_sha[:7]}")
-        logger.info(f"   Validation: {'Passed' if validation_result['passed'] else 'Issues'}")
-        logger.info(f"   Confidence: {agent2_review['confidence']:.0%}")
+        logger.info(f"   Files: {', '.join(file_list)}")
+        logger.info(f"   Validation: {'Passed' if validation_result_static['passed'] else 'Issues'}")
+        logger.info(f"   Code agent verdict: {vr.get('verdict', 'N/A')}")
         logger.info(f"   Awaiting user approval...")
         logger.info("=" * 80 + "\n")
 
@@ -210,30 +248,86 @@ class Agent3FixGenerator:
     # FULL-CONTEXT FIX GENERATION
     # =========================================================================
 
+    def _collect_fix_targets(self, state) -> list[str]:
+        """Collect all unique file paths that need fixing from diagnostic evidence.
+
+        Gathers files from suggested_fix_areas, must_fix impacted_files, and
+        the root_cause_location, deduplicates, and returns in priority order
+        (root cause first).
+        """
+        seen: set[str] = set()
+        targets: list[str] = []
+
+        def _add(fp: str) -> None:
+            if fp and fp != "unknown" and fp not in seen:
+                seen.add(fp)
+                targets.append(fp)
+
+        # Root cause file first
+        if state.code_analysis and state.code_analysis.root_cause_location:
+            _add(state.code_analysis.root_cause_location.file_path)
+
+        # All suggested fix areas
+        if state.code_analysis:
+            for fa in (state.code_analysis.suggested_fix_areas or []):
+                _add(fa.file_path)
+
+        # Must-fix impacted files
+        if state.code_analysis:
+            for imp in (state.code_analysis.impacted_files or []):
+                if imp.fix_relevance == "must_fix":
+                    _add(imp.file_path)
+
+        return targets
+
     async def generate_fix(
         self,
         state: DiagnosticState,
         human_guidance: str = "",
         event_emitter: Optional[EventEmitter] = None,
-    ) -> str:
+    ) -> dict[str, str]:
         """
-        Generate a fix using the full DiagnosticState from all agents.
+        Generate fixes for ALL affected files using a single LLM call.
 
         Builds a comprehensive LLM prompt from log, metrics, k8s, trace,
-        code, and change analysis. Returns the fixed code string.
+        code, and change analysis. Returns dict of file_path → fixed_code.
         """
         emitter = event_emitter or self.event_emitter
 
-        # Determine target file
-        target_file = ""
-        if state.code_analysis and state.code_analysis.root_cause_location:
-            target_file = state.code_analysis.root_cause_location.file_path
+        # Collect all files that need fixing
+        target_files = self._collect_fix_targets(state)
+        if not target_files:
+            # Fallback: resolve single target from broader evidence
+            single = self._resolve_target_file(state)
+            if single and single != "unknown":
+                target_files = [single]
+            else:
+                raise ValueError("No target files identified in code analysis")
 
-        if not target_file:
-            raise ValueError("No target file identified in code analysis")
-
-        # Read original code from disk
-        original_code = self._read_original_file(target_file)
+        # Read original code for each target file
+        file_originals: dict[str, str] = {}  # resolved_path → original_code
+        resolved_targets: list[str] = []     # resolved paths in order
+        repo_context = ""
+        for tf in target_files:
+            try:
+                original_code, resolved_path = self._read_original_file(tf)
+                file_originals[resolved_path] = original_code
+                if resolved_path not in resolved_targets:
+                    resolved_targets.append(resolved_path)
+                # Update state with resolved path
+                if resolved_path != tf and state.code_analysis:
+                    if state.code_analysis.root_cause_location and state.code_analysis.root_cause_location.file_path == tf:
+                        state.code_analysis.root_cause_location.file_path = resolved_path
+                    for fa in (state.code_analysis.suggested_fix_areas or []):
+                        if fa.file_path == tf:
+                            fa.file_path = resolved_path
+            except FileNotFoundError:
+                logger.warning("Target file not found in repo: %s", tf)
+                if not repo_context:
+                    repo_context = self._build_repo_context(tf)
+                # Keep original name — LLM will identify from repo context
+                if tf not in resolved_targets:
+                    resolved_targets.append(tf)
 
         # Build comprehensive prompt from all agent findings
         evidence_parts = []
@@ -316,53 +410,144 @@ class Agent3FixGenerator:
 
         evidence_text = "\n\n".join(evidence_parts)
 
-        system_prompt = (
-            "You are an expert SRE generating production-ready code fixes. "
-            "Given a comprehensive incident analysis and recommendations from 6 diagnostic agents, "
-            "generate the complete fixed file. Output ONLY the complete fixed source code — "
-            "no markdown fences, no explanations, no comments about what changed."
-        )
+        is_multi = len(resolved_targets) > 1
 
-        user_prompt = (
-            f"## Target File: {target_file}\n\n"
-            f"## Original Code\n{original_code}\n\n"
-            f"## Diagnostic Evidence\n{evidence_text}\n\n"
-            f"Generate the complete fixed file:"
-        )
+        if is_multi:
+            system_prompt = (
+                "You are an expert SRE generating production-ready code fixes. "
+                "Given a comprehensive incident analysis, generate fixes for ALL affected files. "
+                "Output each file using this exact format:\n\n"
+                "### FILE: path/to/file.py\n"
+                "<complete fixed source code>\n\n"
+                "### FILE: path/to/other.py\n"
+                "<complete fixed source code>\n\n"
+                "Output ONLY the file markers and code — no explanations, no markdown fences."
+            )
+        else:
+            system_prompt = (
+                "You are an expert SRE generating production-ready code fixes. "
+                "Given a comprehensive incident analysis and recommendations from 6 diagnostic agents, "
+                "generate the complete fixed file. Output ONLY the complete fixed source code — "
+                "no markdown fences, no explanations, no comments about what changed."
+            )
 
+        # Build user prompt with all target files
+        file_sections = []
+        for fp in resolved_targets:
+            orig = file_originals.get(fp, "")
+            if orig:
+                file_sections.append(f"### File: `{fp}`\n```\n{orig}\n```")
+            else:
+                file_sections.append(f"### File: `{fp}` (not found in repo — identify from repo context)")
+
+        files_text = "\n\n".join(file_sections)
+
+        if repo_context:
+            user_prompt = (
+                f"## Target Files\n{files_text}\n\n"
+                f"**Some files were not found in the cloned repo.** "
+                f"The full repository contents are provided below.\n\n"
+                f"{repo_context}\n\n"
+                f"## Diagnostic Evidence\n{evidence_text}\n\n"
+                f"Generate the complete fixed version of each file:"
+            )
+        else:
+            user_prompt = (
+                f"## Target Files\n{files_text}\n\n"
+                f"## Diagnostic Evidence\n{evidence_text}\n\n"
+                f"Generate the complete fixed version of {'each file' if is_multi else 'the file'}:"
+            )
+
+        file_list = ", ".join(resolved_targets)
         if emitter:
             await emitter.emit(
                 agent_name=self.AGENT_NAME,
                 event_type="progress",
-                message=f"Generating fix for {target_file}",
-                details={"stage": "generating"},
+                message=f"Generating fix for {file_list}",
+                details={"stage": "generating", "file_count": len(resolved_targets)},
             )
 
         response = await self.llm_client.chat(
             prompt=user_prompt,
             system=system_prompt,
-            max_tokens=8192,
+            max_tokens=16384 if is_multi else 8192,
         )
 
-        fixed_code = response.text
+        raw_output = response.text
 
-        # Strip markdown fences if present (handles any language tag)
+        # Parse output into per-file fixes
+        fixes = self._parse_multi_file_output(raw_output, resolved_targets, is_multi)
+
+        logger.info("Fix generated for %d files (%s)", len(fixes),
+                     ", ".join(f"{k}: {len(v)} chars" for k, v in fixes.items()))
+        return fixes
+
+    @staticmethod
+    def _parse_multi_file_output(
+        raw: str, expected_files: list[str], is_multi: bool
+    ) -> dict[str, str]:
+        """Parse LLM output into per-file fixed code.
+
+        For multi-file output, expects `### FILE: path` markers.
+        For single-file output, returns the whole output keyed to the one file.
+        """
         import re
-        fence_match = re.search(r'```\w*\n(.*?)```', fixed_code, re.DOTALL)
-        if fence_match:
-            fixed_code = fence_match.group(1)
-        elif "```" in fixed_code:
-            parts = fixed_code.split("```")
-            if len(parts) >= 3:
-                # Strip optional language tag from first line
-                content = parts[1]
-                first_newline = content.find('\n')
-                if first_newline != -1 and content[:first_newline].strip().isalpha():
-                    content = content[first_newline + 1:]
-                fixed_code = content
 
-        logger.info("Fix generated for %s (%d chars)", target_file, len(fixed_code.strip()))
-        return fixed_code.strip()
+        def _strip_fences(code: str) -> str:
+            """Remove markdown fences if present."""
+            fence_match = re.search(r'```\w*\n(.*?)```', code, re.DOTALL)
+            if fence_match:
+                return fence_match.group(1).strip()
+            if "```" in code:
+                parts = code.split("```")
+                if len(parts) >= 3:
+                    content = parts[1]
+                    first_nl = content.find('\n')
+                    if first_nl != -1 and content[:first_nl].strip().isalpha():
+                        content = content[first_nl + 1:]
+                    return content.strip()
+            return code.strip()
+
+        if not is_multi or len(expected_files) == 1:
+            return {expected_files[0]: _strip_fences(raw)}
+
+        # Split on ### FILE: markers
+        sections = re.split(r'###\s*FILE:\s*', raw, flags=re.IGNORECASE)
+        fixes: dict[str, str] = {}
+
+        for section in sections:
+            section = section.strip()
+            if not section:
+                continue
+            # First line is the file path (may have backticks)
+            first_nl = section.find('\n')
+            if first_nl == -1:
+                continue
+            file_path = section[:first_nl].strip().strip('`').strip()
+            code = section[first_nl + 1:]
+
+            # Match to expected files (exact or basename match)
+            matched = None
+            for ef in expected_files:
+                if ef == file_path or ef.endswith(file_path) or file_path.endswith(ef):
+                    matched = ef
+                    break
+            if not matched:
+                # Try basename matching
+                from pathlib import Path
+                for ef in expected_files:
+                    if Path(ef).name == Path(file_path).name:
+                        matched = ef
+                        break
+            if matched:
+                fixes[matched] = _strip_fences(code)
+
+        # If parsing failed, fall back: assign full output to primary file
+        if not fixes:
+            logger.warning("Multi-file parsing failed, assigning full output to primary file")
+            fixes[expected_files[0]] = _strip_fences(raw)
+
+        return fixes
 
     # =========================================================================
     # PHASE 2: ACTION (On-Demand)
@@ -471,10 +656,63 @@ class Agent3FixGenerator:
     # HELPER METHODS
     # =========================================================================
 
-    def _read_original_file(self, file_path: str) -> str:
-        """Read original file content with path containment check."""
+    def _resolve_target_file(self, state) -> str:
+        """Resolve actual target file path from multiple evidence sources.
+
+        When the code_agent fails to return a proper file_path (defaulting to
+        "unknown"), we try progressively less-specific sources to find it.
+        """
+        # Priority 1: root_cause_location.file_path
+        if state.code_analysis and state.code_analysis.root_cause_location:
+            fp = state.code_analysis.root_cause_location.file_path
+            if fp and fp != "unknown":
+                return fp
+
+        # Priority 2: suggested_fix_areas (code_agent's targeted fix suggestions)
+        if state.code_analysis and state.code_analysis.suggested_fix_areas:
+            for fa in state.code_analysis.suggested_fix_areas:
+                if fa.file_path and fa.file_path != "unknown":
+                    return fa.file_path
+
+        # Priority 3: impacted_files (code_agent's broader impact analysis)
+        if state.code_analysis and state.code_analysis.impacted_files:
+            for imp in state.code_analysis.impacted_files:
+                if imp.file_path and imp.file_path != "unknown" and imp.fix_relevance == "must_fix":
+                    return imp.file_path
+            # If none are must_fix, take first non-unknown
+            for imp in state.code_analysis.impacted_files:
+                if imp.file_path and imp.file_path != "unknown":
+                    return imp.file_path
+
+        # Priority 4: extract file paths from stack traces
+        if state.log_analysis and state.log_analysis.primary_pattern:
+            import re
+            for trace in (state.log_analysis.primary_pattern.stack_traces or []):
+                # Match common stack trace file patterns: File "path.py", at path.py:123
+                matches = re.findall(r'(?:File "([^"]+\.py)"|at\s+([^\s:]+\.\w+))', trace)
+                for m in matches:
+                    path = m[0] or m[1]
+                    # Skip stdlib/framework paths
+                    if path and not any(skip in path for skip in [
+                        "site-packages", "/lib/python", "importlib", "<frozen",
+                    ]):
+                        return path
+
+        return "unknown"
+
+    def _read_original_file(self, file_path: str) -> tuple[str, str]:
+        """Read original file content with path containment check.
+
+        Handles container paths (/app/src/main.py) that don't match repo
+        layout (backend/src/main.py) by falling back to a filename search.
+
+        Returns:
+            (file_content, resolved_relative_path) — the resolved path is the
+            actual repo-relative path found on disk, which may differ from the
+            input when container-path normalization or filename search was used.
+        """
         normalized_path = file_path.lstrip("/")
-        for prefix in ["app/", "usr/src/app/"]:
+        for prefix in ["app/", "usr/src/app/", "opt/app/", "home/app/"]:
             if normalized_path.startswith(prefix):
                 normalized_path = normalized_path[len(prefix):]
 
@@ -485,10 +723,107 @@ class Agent3FixGenerator:
             raise ValueError(f"Path traversal blocked: {file_path} resolves outside repo")
 
         if not full_path.exists():
-            raise FileNotFoundError(f"File not found: {full_path}")
+            # Fallback: search repo for the filename (handles container→repo path mismatch)
+            from pathlib import Path
+            filename = Path(normalized_path).name
+            if not filename or filename == "unknown":
+                raise FileNotFoundError(f"File not found: {file_path} (no valid filename to search)")
+            candidates = sorted(self.repo_path.rglob(filename))
+            # Filter to files within repo and prefer shortest path (closest to root)
+            candidates = [
+                c for c in candidates
+                if c.is_file() and c.resolve().is_relative_to(self.repo_path.resolve())
+            ]
+            if candidates:
+                full_path = candidates[0]
+            else:
+                raise FileNotFoundError(f"File not found: {file_path} (searched repo for {filename})")
+
+        resolved_relative = str(full_path.relative_to(self.repo_path))
 
         with open(full_path, "r") as f:
-            return f.read()
+            return f.read(), resolved_relative
+
+    def _build_repo_context(self, target_file: str, max_total_chars: int = 30000) -> str:
+        """Build a repo file tree + source file contents for LLM context.
+
+        When the target file path (from container runtime) doesn't match the
+        cloned repo structure, we give the LLM the full picture so it can
+        identify the correct file itself.
+
+        Args:
+            target_file: The file path we were looking for (for relevance scoring)
+            max_total_chars: Budget for total source content to avoid token overflow
+        """
+        from pathlib import Path
+
+        # Collect all files (skip .git, __pycache__, node_modules, .venv)
+        skip_dirs = {".git", "__pycache__", "node_modules", ".venv", "venv", ".tox", ".mypy_cache"}
+        source_exts = {".py", ".java", ".go", ".js", ".ts", ".rb", ".rs", ".c", ".cpp", ".h", ".cs", ".kt", ".scala", ".yaml", ".yml", ".toml", ".json", ".cfg", ".ini"}
+
+        all_files: list[Path] = []
+        for p in sorted(self.repo_path.rglob("*")):
+            # Skip hidden/build directories
+            if any(part in skip_dirs for part in p.parts):
+                continue
+            if p.is_file():
+                all_files.append(p)
+
+        # Build tree listing (relative paths)
+        tree_lines = ["## Repository File Tree"]
+        for f in all_files:
+            rel = f.relative_to(self.repo_path)
+            tree_lines.append(f"  {rel}")
+        tree_text = "\n".join(tree_lines)
+
+        # Identify source files to include (prioritize by relevance to target)
+        target_name = Path(target_file).name
+        target_stem = Path(target_file).stem
+
+        source_files: list[tuple[int, Path]] = []
+        for f in all_files:
+            if f.suffix.lower() not in source_exts:
+                continue
+            # Score: 0 = exact name match, 1 = stem match, 2 = same extension, 3 = other source
+            if f.name == target_name:
+                score = 0
+            elif f.stem == target_stem:
+                score = 1
+            elif f.suffix == Path(target_file).suffix:
+                score = 2
+            else:
+                score = 3
+            source_files.append((score, f))
+
+        source_files.sort(key=lambda x: (x[0], str(x[1])))
+
+        # Read file contents within budget
+        content_parts = ["## Repository Source Files"]
+        chars_used = 0
+        files_included = 0
+
+        for _score, f in source_files:
+            if chars_used >= max_total_chars:
+                content_parts.append(f"\n... ({len(source_files) - files_included} more source files omitted due to size limit)")
+                break
+            try:
+                text = f.read_text(errors="replace")
+            except Exception:
+                continue
+
+            remaining = max_total_chars - chars_used
+            if len(text) > remaining:
+                text = text[:remaining] + "\n... (truncated)"
+
+            rel = f.relative_to(self.repo_path)
+            content_parts.append(f"\n### {rel}\n```\n{text}\n```")
+            chars_used += len(text)
+            files_included += 1
+
+        logger.info("Built repo context: %d files in tree, %d source files included (%d chars)",
+                     len(all_files), files_included, chars_used)
+
+        return f"{tree_text}\n\n{''.join(content_parts)}"
 
     def _generate_diff(self, original: str, fixed: str) -> str:
         """Generate unified diff."""
