@@ -291,7 +291,14 @@ export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   timestamp: string;
-  metadata?: { type?: string; patient_zero_service?: string };
+  metadata?: {
+    type?: string;
+    patient_zero_service?: string;
+    /** Phase returned from chat response — used for instant phase sync */
+    newPhase?: string;
+    /** Confidence returned from chat response — used for instant confidence sync */
+    newConfidence?: number;
+  };
 }
 
 export interface V4Session {
@@ -327,6 +334,8 @@ export interface SuggestedPromQLQuery {
 // M8: Array fields marked optional — backend may omit them during partial state
 export interface V4Findings {
   session_id: string;
+  /** Backend returns this field when findings are empty (e.g., "No findings yet") */
+  message?: string;
   incident_id?: string;
   target_service?: string;
   findings: Finding[];

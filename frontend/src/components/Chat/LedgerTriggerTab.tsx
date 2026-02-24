@@ -39,16 +39,16 @@ const LedgerTriggerTab: React.FC = () => {
           animate="visible"
           exit="exit"
           onClick={toggleDrawer}
-          className={`fixed top-16 right-0 bottom-0 z-[60] w-12 flex flex-col items-center justify-center gap-3 border-l transition-colors ${
+          className={`fixed bottom-6 right-6 z-[60] w-12 h-12 rounded-full flex items-center justify-center shadow-lg shadow-black/40 transition-colors ${
             isWaiting
-              ? 'bg-amber-500/10 border-amber-500/40 hover:bg-amber-500/20'
-              : 'bg-slate-900/90 border-cyan-500/20 hover:bg-slate-800/90'
+              ? 'bg-amber-500/20 border border-amber-500/50 hover:bg-amber-500/30'
+              : 'bg-slate-800 border border-cyan-500/30 hover:bg-slate-700'
           }`}
-          title="Open Mission Log"
+          title={isWaiting ? 'Input Required — Open Mission Log' : 'Open Mission Log'}
         >
           {/* Unread badge */}
           {unreadCount > 0 && (
-            <span className="absolute top-20 left-1 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-amber-500 text-[9px] font-bold text-black px-1">
+            <span className="absolute -top-1 -left-1 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-amber-500 text-[9px] font-bold text-black px-1">
               {unreadCount > 9 ? '9+' : unreadCount}
             </span>
           )}
@@ -60,19 +60,9 @@ const LedgerTriggerTab: React.FC = () => {
             } hover:drop-shadow-[0_0_8px_rgba(7,182,213,0.4)]`}
           />
 
-          {/* Vertical label */}
-          <span
-            className={`text-[9px] font-bold tracking-[0.2em] writing-mode-vertical ${
-              isWaiting ? 'text-amber-400' : 'text-slate-500'
-            }`}
-            style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}
-          >
-            {isWaiting ? 'INPUT REQUIRED' : 'MISSION LOG'}
-          </span>
-
-          {/* Waiting pulse dot */}
+          {/* Waiting pulse ring */}
           {isWaiting && (
-            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+            <span className="absolute inset-0 rounded-full border-2 border-amber-400/50 animate-ping" />
           )}
         </motion.button>
       )}

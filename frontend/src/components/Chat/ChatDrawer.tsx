@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, HelpCircle, XCircle } from 'lucide-react';
+import { Check, HelpCircle, XCircle, GitBranch, MessageCircle, SkipForward } from 'lucide-react';
 import { drawerVariants, backdropVariants } from '../../styles/chat-animations';
 import { useChatContext } from '../../contexts/ChatContext';
 import MarkdownBubble from './MarkdownBubble';
@@ -22,8 +22,22 @@ function deriveActionChips(message: ChatMessage | undefined): DerivedChip[] {
   const content = message.content;
   const meta = message.metadata;
 
-  // Fix proposal
-  if (meta?.type === 'fix_proposal' || (content.includes('fix') && content.includes('?'))) {
+  // Purpose-built chips for specific metadata types
+  if (meta?.type === 'code_agent_question') {
+    return [
+      { label: 'Answer', icon: MessageCircle, variant: 'primary', action: '' },
+      { label: 'Skip', icon: SkipForward, variant: 'warning', action: 'skip' },
+    ];
+  }
+
+  if (meta?.type === 'repo_mismatch') {
+    return [
+      { label: 'Switch Repo', icon: GitBranch, variant: 'primary', action: 'confirm' },
+      { label: 'Keep Current', icon: Check, variant: 'warning', action: 'keep' },
+    ];
+  }
+
+  if (meta?.type === 'fix_proposal') {
     return [
       { label: 'Approve Fix', icon: Check, variant: 'primary', action: 'approve' },
       { label: 'Request Changes', icon: HelpCircle, variant: 'warning', action: 'request_changes' },
@@ -31,7 +45,7 @@ function deriveActionChips(message: ChatMessage | undefined): DerivedChip[] {
     ];
   }
 
-  // Generic yes/no question
+  // Generic question fallback
   if (content.trim().endsWith('?')) {
     return [
       { label: 'Yes', icon: Check, variant: 'primary', action: 'yes' },
@@ -94,6 +108,7 @@ const ChatDrawer: React.FC = () => {
   const actionChips = useMemo(() => deriveActionChips(lastAssistantMsg), [lastAssistantMsg]);
 
   const handleQuickAction = useCallback((action: string) => {
+    if (!action) return; // Empty action = focus input (e.g. "Answer" chip)
     sendMessage(action);
   }, [sendMessage]);
 

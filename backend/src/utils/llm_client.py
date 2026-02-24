@@ -93,6 +93,63 @@ class AnthropicClient:
             output_tokens=output_tokens,
         )
 
+    async def chat_stream(
+        self,
+        prompt: str,
+        system: str | None = None,
+        messages: list[dict] | None = None,
+        max_tokens: int = 4096,
+        temperature: float = 0.0,
+    ):
+        """Stream a message from Claude, yielding text chunks as they arrive.
+
+        Yields str chunks. After iteration, the caller can read
+        self._last_stream_usage for token counts.
+        """
+        if messages is None:
+            messages = [{"role": "user", "content": prompt}]
+
+        kwargs = {
+            "model": self.model,
+            "max_tokens": max_tokens,
+            "messages": messages,
+            "temperature": temperature,
+        }
+        if system:
+            kwargs["system"] = system
+
+        logger.info("LLM stream call", extra={
+            "agent_name": self.agent_name,
+            "action": "llm_stream_call",
+            "tool": self.model,
+        })
+
+        start = time.monotonic()
+        try:
+            async with self._client.messages.stream(**kwargs) as stream:
+                async for text in stream.text_stream:
+                    yield text
+
+                # After stream completes, collect usage
+                response = await stream.get_final_message()
+                elapsed_ms = round((time.monotonic() - start) * 1000)
+                input_tokens = response.usage.input_tokens
+                output_tokens = response.usage.output_tokens
+                self._total_input_tokens += input_tokens
+                self._total_output_tokens += output_tokens
+
+                logger.info("LLM stream complete", extra={
+                    "agent_name": self.agent_name,
+                    "action": "llm_stream_response",
+                    "tokens": {"input": input_tokens, "output": output_tokens},
+                    "duration_ms": elapsed_ms,
+                })
+        except Exception as e:
+            logger.error("LLM stream failed", extra={
+                "agent_name": self.agent_name, "action": "llm_stream_error", "extra": str(e),
+            })
+            raise
+
     async def chat_with_tools(
         self,
         system: str,

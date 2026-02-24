@@ -142,6 +142,10 @@ export const sendChatMessage = async (
     role: 'assistant',
     content: data.response,
     timestamp: new Date().toISOString(),
+    metadata: {
+      newPhase: data.phase,
+      newConfidence: data.confidence,
+    },
   };
 };
 

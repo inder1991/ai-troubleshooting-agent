@@ -1469,6 +1469,13 @@ class SupervisorAgent:
         self._code_agent_answer = ""
         self._code_agent_event.clear()
 
+        if event_emitter:
+            await event_emitter.emit(
+                "supervisor", "waiting_for_input",
+                "Code agent needs your input",
+                details={"input_type": "code_agent_question"},
+            )
+
         # Send question to frontend via WebSocket
         if event_emitter and event_emitter._websocket_manager:
             await event_emitter._websocket_manager.send_message(
@@ -1546,6 +1553,11 @@ class SupervisorAgent:
         self._pending_repo_mismatch = True
         self._mismatch_confirmed_repo = None
         self._repo_mismatch_event.clear()
+        await event_emitter.emit(
+            "supervisor", "waiting_for_input",
+            f"Repo mismatch: confirm switch to {pz_svc} repo or keep current",
+            details={"input_type": "repo_mismatch", "patient_zero_service": pz_svc},
+        )
         try:
             await asyncio.wait_for(self._repo_mismatch_event.wait(), timeout=180)
         except asyncio.TimeoutError:
@@ -1748,6 +1760,11 @@ class SupervisorAgent:
         # Wait for user response (up to 5 minutes)
         self._pending_repo_confirmation = True
         self._repo_confirmation_event.clear()
+        await event_emitter.emit(
+            "supervisor", "waiting_for_input",
+            "Waiting for user to confirm repository URLs",
+            details={"input_type": "repo_confirmation"},
+        )
         try:
             await asyncio.wait_for(self._repo_confirmation_event.wait(), timeout=300)
         except asyncio.TimeoutError:
@@ -2076,8 +2093,8 @@ Respond ONLY with a JSON array:
                     return "Starting fix generation using findings from all diagnostic agents. I'll present the proposed fix for your review shortly."
                 return "Fix generation is not available — event emitter not initialized."
 
-        response = await self.llm_client.chat(
-            prompt=f"""Current diagnostic state:
+        # Stream LLM response — emit chat_chunk messages via WebSocket for live typing
+        prompt_text = f"""Current diagnostic state:
 - Phase: {state.phase.value}
 - Service: {state.service_name}
 - Agents completed: {state.agents_completed}
@@ -2086,10 +2103,36 @@ Respond ONLY with a JSON array:
 
 User message: {message}
 
-Respond helpfully. If they're asking for status, give a brief update. If they're providing additional context, acknowledge it.""",
-            system="You are an AI SRE assistant. Respond concisely to user messages during an active diagnosis."
-        )
-        return response.text
+Respond helpfully. If they're asking for status, give a brief update. If they're providing additional context, acknowledge it."""
+        system_text = "You are an AI SRE assistant. Respond concisely to user messages during an active diagnosis."
+
+        ws_mgr = self._event_emitter._websocket_manager if self._event_emitter else None
+        full_response = ""
+        async for chunk in self.llm_client.chat_stream(prompt=prompt_text, system=system_text):
+            full_response += chunk
+            if ws_mgr:
+                await ws_mgr.send_message(
+                    state.session_id,
+                    {"type": "chat_chunk", "data": {"content": chunk, "done": False}},
+                )
+
+        # Send final chat_chunk with done=True and full_response
+        if ws_mgr:
+            await ws_mgr.send_message(
+                state.session_id,
+                {
+                    "type": "chat_chunk",
+                    "data": {
+                        "content": "",
+                        "done": True,
+                        "full_response": full_response,
+                        "phase": state.phase.value,
+                        "confidence": state.overall_confidence,
+                    },
+                },
+            )
+
+        return full_response
 
     async def _process_repo_confirmation(self, message: str) -> str:
         """Parse user's repo confirmation response and signal the waiting coroutine."""
@@ -2375,6 +2418,11 @@ Examples:
                 self._pending_fix_approval = True
                 self._fix_human_decision = None
                 self._fix_event.clear()
+                await event_emitter.emit(
+                    "fix_generator", "waiting_for_input",
+                    "Fix proposed — awaiting human review",
+                    details={"input_type": "fix_approval"},
+                )
 
                 # Present fix to human via WebSocket
                 summary_lines = [

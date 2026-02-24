@@ -154,6 +154,10 @@ export const useWebSocketV4 = (
             // Server handshake acknowledged
             console.log(`[WS] Handshake complete for ${currentSessionId}`);
             break;
+          case 'profile_change':
+            // Profile configuration changed — log for now
+            console.log(`[WS] Profile change:`, data);
+            break;
           default:
             // Try to handle as a raw task event (backward compat)
             if (message.agent_name && message.event_type) {

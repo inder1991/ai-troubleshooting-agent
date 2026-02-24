@@ -44,10 +44,16 @@ interface ChatProviderProps {
   sessionId: string | null;
   events: TaskEvent[];
   onRegisterChatHandler?: React.MutableRefObject<((msg: ChatMessage) => void) | null>;
+  /** Ref callbacks for bridging WebSocket streaming to ChatContext */
+  onRegisterStreamStart?: React.MutableRefObject<(() => void) | null>;
+  onRegisterStreamAppend?: React.MutableRefObject<((chunk: string) => void) | null>;
+  onRegisterStreamFinish?: React.MutableRefObject<((full: string, meta?: ChatMessage['metadata']) => void) | null>;
+  /** Called when a chat response carries a phase/confidence update — allows instant sync */
+  onPhaseUpdate?: (phase: string, confidence: number) => void;
   children: React.ReactNode;
 }
 
-export const ChatProvider: React.FC<ChatProviderProps> = ({ sessionId, events, onRegisterChatHandler, children }) => {
+export const ChatProvider: React.FC<ChatProviderProps> = ({ sessionId, events, onRegisterChatHandler, onRegisterStreamStart, onRegisterStreamAppend, onRegisterStreamFinish, onPhaseUpdate, children }) => {
   const [messagesBySession, setMessagesBySession] = useState<Record<string, ChatMessage[]>>({});
   const [isOpen, setIsOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -130,6 +136,10 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ sessionId, events, o
     try {
       const response = await sendChatMessage(sessionId, content.trim());
       addMessage(response);
+      // Instant phase/confidence sync from chat response metadata
+      if (onPhaseUpdate && response.metadata?.newPhase) {
+        onPhaseUpdate(response.metadata.newPhase, response.metadata.newConfidence ?? 0);
+      }
     } catch (err) {
       const errorMsg: ChatMessage = {
         role: 'assistant',
@@ -141,7 +151,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ sessionId, events, o
     } finally {
       setIsSending(false);
     }
-  }, [sessionId, addMessage]);
+  }, [sessionId, addMessage, onPhaseUpdate]);
 
   // Streaming actions
   const startStream = useCallback(() => {
@@ -172,6 +182,36 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ sessionId, events, o
     setStreaming({ isStreaming: false, content: '', messageId: null });
     setIsSending(false);
   }, [sessionId, addMessage]);
+
+  // Register streaming handlers for parent (WebSocket bridge)
+  const streamStartedRef = useRef(false);
+  useEffect(() => {
+    if (onRegisterStreamStart) {
+      onRegisterStreamStart.current = () => {
+        if (!streamStartedRef.current) {
+          streamStartedRef.current = true;
+          startStream();
+        }
+      };
+    }
+    if (onRegisterStreamAppend) {
+      onRegisterStreamAppend.current = appendChunk;
+    }
+    if (onRegisterStreamFinish) {
+      onRegisterStreamFinish.current = (full, meta) => {
+        streamStartedRef.current = false;
+        finishStream(full, meta);
+        if (onPhaseUpdate && meta?.newPhase) {
+          onPhaseUpdate(meta.newPhase, meta.newConfidence ?? 0);
+        }
+      };
+    }
+    return () => {
+      if (onRegisterStreamStart) onRegisterStreamStart.current = null;
+      if (onRegisterStreamAppend) onRegisterStreamAppend.current = null;
+      if (onRegisterStreamFinish) onRegisterStreamFinish.current = null;
+    };
+  }, [startStream, appendChunk, finishStream, onRegisterStreamStart, onRegisterStreamAppend, onRegisterStreamFinish, onPhaseUpdate]);
 
   const toggleDrawer = useCallback(() => setIsOpen(prev => !prev), []);
   const openDrawer = useCallback(() => setIsOpen(true), []);

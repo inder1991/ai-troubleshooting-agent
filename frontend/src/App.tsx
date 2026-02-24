@@ -11,6 +11,7 @@ import type {
   AttestationGateData,
 } from './types';
 import { useWebSocketV4 } from './hooks/useWebSocket';
+import type { ChatStreamEndPayload } from './hooks/useWebSocket';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { getSessionStatus, startSessionV4, submitAttestation } from './services/api';
 import { ToastProvider, useToast } from './components/Toast/ToastContext';
@@ -107,6 +108,37 @@ function AppInner() {
     chatResponseRef.current?.(message);
   }, []);
 
+  // Streaming bridged to ChatContext via ref callbacks
+  const streamStartRef = useRef<(() => void) | null>(null);
+  const streamAppendRef = useRef<((chunk: string) => void) | null>(null);
+  const streamFinishRef = useRef<((full: string, meta?: ChatMessage['metadata']) => void) | null>(null);
+
+  const handleChatChunk = useCallback((chunk: string) => {
+    // Auto-start stream on first chunk if not already streaming
+    streamStartRef.current?.();
+    streamAppendRef.current?.(chunk);
+  }, []);
+
+  const handleChatStreamEnd = useCallback((payload: ChatStreamEndPayload) => {
+    const meta: ChatMessage['metadata'] = {};
+    if (payload.phase) {
+      meta.newPhase = payload.phase;
+      meta.newConfidence = payload.confidence ?? 0;
+    }
+    streamFinishRef.current?.(payload.full_response, meta);
+    // Instant phase sync
+    if (payload.phase) {
+      setCurrentPhase(payload.phase as DiagnosticPhase);
+      setConfidence(payload.confidence ?? 0);
+    }
+  }, []);
+
+  // Instant phase/confidence sync from chat response metadata (eliminates 5s stale window)
+  const handleChatPhaseUpdate = useCallback((phase: string, conf: number) => {
+    setCurrentPhase(phase as DiagnosticPhase);
+    setConfidence(conf);
+  }, []);
+
   const handleWsConnect = useCallback(() => {
     setWsConnected(true);
     setWsMaxReconnectsHit(false);
@@ -120,6 +152,8 @@ function AppInner() {
   useWebSocketV4(activeSessionId, {
     onTaskEvent: handleTaskEvent,
     onChatResponse: handleChatResponse,
+    onChatChunk: handleChatChunk,
+    onChatStreamEnd: handleChatStreamEnd,
     onConnect: handleWsConnect,
     onDisconnect: handleWsDisconnect,
     onMaxReconnectsExhausted: handleWsMaxReconnects,
@@ -293,7 +327,7 @@ function AppInner() {
         )}
 
         {viewState === 'investigation' && activeSession && (
-          <ChatProvider sessionId={activeSessionId} events={currentTaskEvents} onRegisterChatHandler={chatResponseRef}>
+          <ChatProvider sessionId={activeSessionId} events={currentTaskEvents} onRegisterChatHandler={chatResponseRef} onRegisterStreamStart={streamStartRef} onRegisterStreamAppend={streamAppendRef} onRegisterStreamFinish={streamFinishRef} onPhaseUpdate={handleChatPhaseUpdate}>
             {/* Foreman HUD Header */}
             <ForemanHUD
               sessionId={activeSession.session_id}
