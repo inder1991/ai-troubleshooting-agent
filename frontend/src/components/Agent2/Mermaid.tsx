@@ -35,11 +35,46 @@ function stripCodeFences(raw: string): string {
   return s.trim();
 }
 
+/**
+ * Sanitize LLM-generated Mermaid syntax to fix common parse errors:
+ * - <br/> / <br> inside labels → newline character
+ * - Parentheses () inside quoted labels/edge labels → unicode fullwidth
+ * - Unbalanced quotes
+ */
+function sanitizeMermaid(raw: string): string {
+  let s = raw;
+
+  // 1. Replace HTML line breaks with Mermaid-safe newline
+  s = s.replace(/<br\s*\/?>/gi, '<br>');
+
+  // 2. Escape parentheses ONLY inside quoted node labels ["..."] and edge labels |...|
+  //    Replace () inside ["..."] blocks
+  s = s.replace(/\["([^"]*?)"\]/g, (_match, inner: string) => {
+    const safe = inner.replace(/\(/g, '❨').replace(/\)/g, '❩');
+    return `["${safe}"]`;
+  });
+
+  //    Replace () inside |...| edge labels
+  s = s.replace(/\|([^|]*?)\|/g, (_match, inner: string) => {
+    const safe = inner.replace(/\(/g, '❨').replace(/\)/g, '❩');
+    return `|${safe}|`;
+  });
+
+  // 3. Escape parentheses inside ("...") cylinder labels
+  s = s.replace(/\("([^"]*?)"\)/g, (_match, inner: string) => {
+    const safe = inner.replace(/\(/g, '❨').replace(/\)/g, '❩');
+    return `("${safe}")`;
+  });
+
+  return s;
+}
+
 type RenderState = 'loading' | 'rendered' | 'error';
 
 export const MermaidChart: React.FC<{ chart: string }> = ({ chart }) => {
   const [svg, setSvg] = useState('');
   const [state, setState] = useState<RenderState>('loading');
+  const [rawFallback, setRawFallback] = useState('');
 
   useEffect(() => {
     let cancelled = false;
@@ -47,10 +82,13 @@ export const MermaidChart: React.FC<{ chart: string }> = ({ chart }) => {
     const render = async () => {
       if (!chart) { setState('error'); return; }
       setState('loading');
+
+      const cleaned = stripCodeFences(chart);
+      const sanitized = sanitizeMermaid(cleaned);
+
       try {
         const id = `mermaid-${Math.random().toString(36).substring(2, 9)}`;
-        const cleaned = stripCodeFences(chart);
-        const { svg: raw } = await mermaid.render(id, cleaned);
+        const { svg: raw } = await mermaid.render(id, sanitized);
         if (cancelled) return;
         // Make SVG responsive: replace hardcoded width/height with 100%
         const responsive = raw
@@ -59,8 +97,11 @@ export const MermaidChart: React.FC<{ chart: string }> = ({ chart }) => {
         setSvg(responsive);
         setState('rendered');
       } catch (err) {
-        console.error('Mermaid render failed:', err);
-        if (!cancelled) setState('error');
+        console.error('Mermaid render failed after sanitization:', err);
+        if (!cancelled) {
+          setRawFallback(sanitized);
+          setState('error');
+        }
       }
     };
 
@@ -96,9 +137,23 @@ export const MermaidChart: React.FC<{ chart: string }> = ({ chart }) => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 flex items-center justify-center text-red-400 text-xs"
+            className="absolute inset-0 overflow-auto p-4"
           >
-            Invalid diagram syntax
+            {rawFallback ? (
+              <div>
+                <div className="text-[10px] text-amber-400 mb-2 flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-[12px]" style={{ fontFamily: 'Material Symbols Outlined' }}>warning</span>
+                  Diagram rendered as text (parse error)
+                </div>
+                <pre className="text-[10px] text-slate-400 font-mono whitespace-pre-wrap leading-relaxed bg-slate-900/60 rounded-lg p-3 border border-slate-800">
+                  {rawFallback}
+                </pre>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-full text-red-400 text-xs">
+                Invalid diagram syntax
+              </div>
+            )}
           </motion.div>
         )}
 

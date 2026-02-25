@@ -16,6 +16,15 @@ const IntegrationStatusBadge: React.FC<IntegrationStatusBadgeProps> = ({ integra
     );
   }
 
+  if (integration.status === 'mock_available') {
+    return (
+      <span className="inline-flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-full bg-violet-500/10 text-violet-400 border border-violet-500/20">
+        <span className="w-1.5 h-1.5 rounded-full bg-violet-500" />
+        DEMO
+      </span>
+    );
+  }
+
   if (integration.configured && integration.status === 'conn_error') {
     return (
       <span className="inline-flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-full bg-red-500/10 text-red-400 border border-red-500/20">

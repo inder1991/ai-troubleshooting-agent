@@ -784,3 +784,10 @@ export interface ClosureStatusResponse {
     confluence_title: string;
   };
 }
+
+export interface PostmortemDossierData {
+  title: string;
+  body_markdown: string;
+  executive_summary: string;
+  impact_statement: string;
+}

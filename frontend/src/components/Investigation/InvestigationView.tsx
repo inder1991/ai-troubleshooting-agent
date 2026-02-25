@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import type { V4Session, V4Findings, V4SessionStatus, ChatMessage, TaskEvent, DiagnosticPhase, TokenUsage, AttestationGateData } from '../../types';
 import { getFindings, getSessionStatus, sendChatMessage } from '../../services/api';
-import { useChatContext } from '../../contexts/ChatContext';
+import { useChatUI } from '../../contexts/ChatContext';
 import { useCampaignContext } from '../../contexts/CampaignContext';
 import Investigator from './Investigator';
 import EvidenceFindings from './EvidenceFindings';
@@ -23,6 +23,7 @@ interface InvestigationViewProps {
   tokenUsage: TokenUsage[];
   attestationGate?: AttestationGateData | null;
   onAttestationDecision?: (decision: string) => void;
+  onNavigateToDossier?: () => void;
 }
 
 const InvestigationView: React.FC<InvestigationViewProps> = ({
@@ -34,6 +35,7 @@ const InvestigationView: React.FC<InvestigationViewProps> = ({
   tokenUsage,
   attestationGate,
   onAttestationDecision,
+  onNavigateToDossier,
 }) => {
   // ── Single source of truth for findings + status ──────────────────────
   const [findings, setFindings] = useState<V4Findings | null>(null);
@@ -45,7 +47,7 @@ const InvestigationView: React.FC<InvestigationViewProps> = ({
   const agoIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Chat state now managed by ChatContext
-  const { addMessage: onNewMessage } = useChatContext();
+  const { addMessage: onNewMessage } = useChatUI();
   const { setCampaign } = useCampaignContext();
 
   // Sync campaign data from findings into CampaignContext
@@ -150,7 +152,7 @@ const InvestigationView: React.FC<InvestigationViewProps> = ({
 
           {/* Center: Evidence and Findings (NO TABS) */}
           <div className="col-span-5 overflow-hidden">
-            <EvidenceFindings findings={findings} status={sessionStatus} events={events} sessionId={session.session_id} phase={phase} onRefresh={fetchSharedData} />
+            <EvidenceFindings findings={findings} status={sessionStatus} events={events} sessionId={session.session_id} phase={phase} onRefresh={fetchSharedData} onNavigateToDossier={onNavigateToDossier} />
           </div>
 
           {/* Right: The Navigator */}

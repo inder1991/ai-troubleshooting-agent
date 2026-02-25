@@ -87,7 +87,7 @@
     "breadcrumbs": [],
     "negative_findings": [],
     "tokens_used": {"agent_name": "log_agent", "input_tokens": 0, "output_tokens": 0, "total_tokens": 0},
-    "raw_logs_count": 85,
+    "raw_logs_count": 647,
     "patterns_found": 4,
     "evidence_pins": [],
     "service_flow": [],

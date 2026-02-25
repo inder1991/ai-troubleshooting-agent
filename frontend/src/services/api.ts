@@ -423,7 +423,7 @@ export const createRemedyIncident = async (sessionId: string, data: {
   return response.json();
 };
 
-export const previewPostMortem = async (sessionId: string): Promise<{ title: string; body_markdown: string }> => {
+export const previewPostMortem = async (sessionId: string): Promise<{ title: string; body_markdown: string; executive_summary: string; impact_statement: string }> => {
   const response = await fetch(`${API_BASE_URL}/api/v4/session/${sessionId}/closure/confluence/preview`, {
     method: 'POST',
   });

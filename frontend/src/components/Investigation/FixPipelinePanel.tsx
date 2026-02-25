@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import type { V4Findings, DiagnosticPhase, FixStatus, FixVerificationResult } from '../../types';
 import { decideOnFix, submitAttestation } from '../../services/api';
-import { useChatContext } from '../../contexts/ChatContext';
+import { useChatUI } from '../../contexts/ChatContext';
 import { useCampaignContext } from '../../contexts/CampaignContext';
 import AgentFindingCard from './cards/AgentFindingCard';
 import HoldToConfirm from '../ui/HoldToConfirm';
@@ -147,7 +147,7 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
   const [feedbackText, setFeedbackText] = useState('');
   const [showDiff, setShowDiff] = useState(true);
 
-  const { sendMessage, openDrawer } = useChatContext();
+  const { sendMessage, openDrawer } = useChatUI();
   const { campaign } = useCampaignContext();
 
   // Campaign mode: if multi-repo campaign exists, show orchestration hub

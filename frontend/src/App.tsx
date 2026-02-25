@@ -27,9 +27,10 @@ import IntegrationSettings from './components/Settings/IntegrationSettings';
 import ErrorBoundary from './components/ui/ErrorBoundary';
 import ErrorBanner from './components/ui/ErrorBanner';
 import ForemanHUD from './components/Foreman/ForemanHUD';
+import PostMortemDossierView from './components/Investigation/PostMortemDossierView';
 
 
-type ViewState = 'home' | 'form' | 'investigation' | 'sessions' | 'integrations' | 'settings';
+type ViewState = 'home' | 'form' | 'investigation' | 'sessions' | 'integrations' | 'settings' | 'dossier';
 
 function AppInner() {
   const { addToast } = useToast();
@@ -44,7 +45,6 @@ function AppInner() {
   const [tokenUsage, setTokenUsage] = useState<TokenUsage[]>([]);
   const [attestationGate, setAttestationGate] = useState<AttestationGateData | null>(null);
   const [wsMaxReconnectsHit, setWsMaxReconnectsHit] = useState(false);
-
   const activeSessionId = activeSession?.session_id ?? null;
 
   // Refresh session status
@@ -190,6 +190,14 @@ function AppInner() {
     setTaskEvents({});
   }, []);
 
+  const handleNavigateToDossier = useCallback(() => {
+    setViewState('dossier');
+  }, []);
+
+  const handleDossierBack = useCallback(() => {
+    setViewState('investigation');
+  }, []);
+
   const handleSelectSession = useCallback(
     (session: V4Session) => {
       setActiveSession(session);
@@ -278,7 +286,7 @@ function AppInner() {
   const navView: NavView =
     viewState === 'sessions' ? 'sessions' : viewState === 'integrations' ? 'integrations' : viewState === 'settings' ? 'settings' : 'home';
 
-  const showSidebar = viewState !== 'investigation';
+  const showSidebar = viewState !== 'investigation' && viewState !== 'dossier';
 
   return (
     <div className="flex h-screen w-full overflow-hidden text-slate-100 antialiased" style={{ backgroundColor: '#0f2023' }}>
@@ -372,11 +380,19 @@ function AppInner() {
                   tokenUsage={tokenUsage}
                   attestationGate={attestationGate}
                   onAttestationDecision={handleAttestationDecision}
+                  onNavigateToDossier={handleNavigateToDossier}
                 />
               </ErrorBoundary>
             </div>
           </CampaignProvider>
           </ChatProvider>
+        )}
+
+        {viewState === 'dossier' && activeSession && (
+          <PostMortemDossierView
+            sessionId={activeSession.session_id}
+            onBack={handleDossierBack}
+          />
         )}
       </div>
     </div>

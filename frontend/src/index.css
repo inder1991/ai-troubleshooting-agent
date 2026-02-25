@@ -360,3 +360,17 @@ a:focus-visible,
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
+
+/* ── Dossier Print Styles ─────────────────────────────────────────────── */
+@media print {
+  .dossier-nav-sidebar,
+  .dossier-back-button,
+  .dossier-publish-footer,
+  .dossier-edit-toggle { display: none !important; }
+
+  .dossier-mermaid-section,
+  .dossier-evidence-table { break-inside: avoid; page-break-inside: avoid; }
+
+  body { background: white !important; color: black !important; }
+  .dossier-section { border-color: #ccc !important; }
+}

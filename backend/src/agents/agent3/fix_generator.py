@@ -739,7 +739,7 @@ class Agent3FixGenerator:
             else:
                 raise FileNotFoundError(f"File not found: {file_path} (searched repo for {filename})")
 
-        resolved_relative = str(full_path.relative_to(self.repo_path))
+        resolved_relative = str(full_path.resolve().relative_to(self.repo_path.resolve()))
 
         with open(full_path, "r") as f:
             return f.read(), resolved_relative

@@ -8,9 +8,15 @@ interface TopologySelectionValue {
 
 const TopologySelectionContext = createContext<TopologySelectionValue | null>(null);
 
+const NO_OP_DEFAULT: TopologySelectionValue = {
+  selectedService: null,
+  selectService: () => {},
+  clearSelection: () => {},
+};
+
 export function useTopologySelection(): TopologySelectionValue {
   const ctx = useContext(TopologySelectionContext);
-  if (!ctx) throw new Error('useTopologySelection must be used within TopologySelectionProvider');
+  if (!ctx) return NO_OP_DEFAULT;
   return ctx;
 }
 

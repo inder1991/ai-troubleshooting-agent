@@ -530,9 +530,30 @@ class CodeNavigatorAgent(ReActAgent):
             '  "shared_resource_conflicts": ["description of any shared resource issues"],\n'
             '  "suggested_fix_areas": [{"file_path": "...", "description": "...", "suggested_change": "..."}],\n'
             '  "diff_analysis": [{"file": "...", "commit_sha": "...", "verdict": "likely_cause|unrelated|contributing", "reasoning": "..."}],\n'
-            '  "mermaid_diagram": "graph TD; A-->B;",\n'
+            '  "mermaid_diagram": "<Debug Duck Mermaid dialect — see rules below>",\n'
             '  "overall_confidence": 85\n'
             "}\n"
+            "```\n\n"
+            "### Mermaid Diagram Rules (Debug Duck dialect)\n"
+            "Generate a `graph TD` flowchart showing the request/error flow between services.\n"
+            "STRICT SYNTAX RULES — violating these causes parse failures:\n"
+            "- Use `graph TD` (top-down) with `-->` arrows\n"
+            "- Node IDs: short alphanumeric (e.g. `CS`, `IS`, `DB`)\n"
+            '- Node labels: use `["label text"]` for rectangles, `[("label")]` for cylinders\n'
+            "- NEVER use `<br/>` or `<br>` — use `\\n` for line breaks inside labels\n"
+            "- NEVER use parentheses `()` inside label text or edge labels — write `fn_name` not `fn_name()`\n"
+            "- Edge labels: `-->|label text|` — no parentheses, no HTML tags inside\n"
+            "- Use `style` lines to color root-cause nodes red, impacted amber, healthy green\n"
+            "- Keep to 4-10 nodes maximum\n\n"
+            "GOOD example:\n"
+            "```\n"
+            'graph TD\n'
+            '    User["Client"] -->|POST /checkout| CS["checkout-service\\nsrc/main.py"]\n'
+            '    CS -->|POST /reserve\\ncall_inventory| IS["inventory-service:8002"]\n'
+            '    IS -->|stock check| Redis[("Redis")]\n'
+            '    IS -->|503 health fail| K8s["Kubernetes"]\n'
+            '    style Redis fill:#ff4444,stroke:#cc0000,color:#fff\n'
+            '    style IS fill:#ff8800,stroke:#cc6600,color:#fff\n'
             "```"
         )
 
@@ -848,9 +869,26 @@ After analysis, provide your final answer as JSON:
     "diff_analysis": [{"file": "...", "commit_sha": "...", "verdict": "likely_cause|unrelated|contributing", "reasoning": "..."}],
     "cross_repo_findings": [{"repo": "org/service", "role": "upstream_trigger|downstream_failure", "evidence": "..."}],
     "cross_service_trace": {"caller_service": "...", "target_endpoint": "...", "entry_point_file": "...", "entry_point_function": "..."},
-    "mermaid_diagram": "graph TD; A-->B;",
+    "mermaid_diagram": "<Debug Duck Mermaid — see rules below>",
     "overall_confidence": 85
-}"""
+}
+
+### Mermaid Diagram Rules (Debug Duck dialect)
+Generate a `graph TD` flowchart showing request/error flow between services.
+STRICT SYNTAX — violating these causes frontend parse failures:
+- Node IDs: short alphanumeric (CS, IS, DB). Labels: ["text"] for rectangles, [("text")] for cylinders.
+- NEVER use <br/> or <br> in labels — use \\n for line breaks.
+- NEVER use parentheses () inside label text or edge labels — write fn_name not fn_name().
+- Edge labels: -->|label text| — no parens, no HTML inside.
+- Style root-cause nodes red, impacted amber: style NodeId fill:#ff4444,stroke:#cc0000,color:#fff
+- 4-10 nodes max.
+
+GOOD:
+graph TD
+    User["Client"] -->|POST /checkout| CS["checkout-svc\\nsrc/main.py"]
+    CS -->|call_inventory| IS["inventory-svc:8002"]
+    IS -->|stock check| Redis[("Redis")]
+    style Redis fill:#ff4444,stroke:#cc0000,color:#fff"""
 
     async def _build_initial_prompt(self, context: dict) -> str:
         self._repo_url = context.get("repo_url", "")
