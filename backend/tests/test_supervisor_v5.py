@@ -8,11 +8,11 @@ from src.models.schemas import (
 
 class TestSupervisorV5:
     def test_v5_dispatch_order(self):
-        """V5 should use metrics-first order."""
+        """V5 should have all currently registered agents."""
         sup = SupervisorAgent()
-        expected_order = ["metrics_agent", "tracing_agent", "k8s_agent", "log_agent", "code_agent"]
-        # Verify the agent registry has all expected agents
-        for agent in expected_order:
+        # tracing_agent is temporarily disabled; verify the active agents
+        expected_agents = ["metrics_agent", "k8s_agent", "log_agent", "code_agent", "change_agent"]
+        for agent in expected_agents:
             assert agent in sup._agents
 
     def test_confidence_updates_after_agent(self):

@@ -416,8 +416,8 @@ class TestLogToMetricsHandoff:
         }
         await supervisor._update_state_with_result(state, "log_agent", log_result)
 
-        # Now build context for metrics_agent
-        context = supervisor._build_agent_context("metrics_agent", state)
+        # Now build context for metrics_agent (_build_agent_context is async)
+        context = await supervisor._build_agent_context("metrics_agent", state)
 
         assert "error_hints" in context, "error_hints not in metrics context"
         assert "oom" in context["error_hints"], f"Expected 'oom' in {context['error_hints']}"
@@ -451,7 +451,7 @@ class TestLogToMetricsHandoff:
         }
         await supervisor._update_state_with_result(state, "log_agent", log_result)
 
-        context = supervisor._build_agent_context("metrics_agent", state)
+        context = await supervisor._build_agent_context("metrics_agent", state)
         assert context.get("error_patterns") is not None, "error_patterns not passed to metrics_agent"
         assert context["error_patterns"]["exception_type"] == "ConnectionTimeout"
 
@@ -542,7 +542,9 @@ class TestFindingsAPIIntegration:
         await supervisor._update_state_with_result(state, "metrics_agent", metrics_result)
 
         # Store state in session store
-        sessions["test-api-001"] = {
+        # Use a valid UUID4 as session key (routes_v4 validates UUID format)
+        test_session_id = "00000000-0000-4000-8000-000000000001"
+        sessions[test_session_id] = {
             "service_name": "order-service",
             "phase": "metrics_analyzed",
             "confidence": state.overall_confidence,
@@ -551,7 +553,7 @@ class TestFindingsAPIIntegration:
         }
 
         client = TestClient(app)
-        resp = client.get("/api/v4/session/test-api-001/findings")
+        resp = client.get(f"/api/v4/session/{test_session_id}/findings")
         assert resp.status_code == 200
         data = resp.json()
 
@@ -586,4 +588,4 @@ class TestFindingsAPIIntegration:
         assert "event_markers" in data
 
         # Cleanup
-        sessions.pop("test-api-001", None)
+        sessions.pop(test_session_id, None)

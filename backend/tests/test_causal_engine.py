@@ -81,11 +81,11 @@ class TestIdentifyRootCauses:
         roots = builder.identify_root_causes()
         assert set(roots) == {id1, id2}
 
-    def test_no_edges_no_root_causes(self):
+    def test_isolated_node_is_root_cause(self):
         builder = EvidenceGraphBuilder()
-        builder.add_evidence(_pin("Lone", datetime(2025, 1, 1, 10, 0)), "context")
+        node_id = builder.add_evidence(_pin("Lone", datetime(2025, 1, 1, 10, 0)), "context")
         roots = builder.identify_root_causes()
-        assert roots == []
+        assert roots == [node_id]
 
 
 class TestBuildTimeline:

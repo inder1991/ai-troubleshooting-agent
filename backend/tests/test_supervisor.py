@@ -48,7 +48,8 @@ def test_dispatch_parallel_with_k8s():
     assert "k8s_agent" in next_agents
 
 
-def test_dispatch_tracing_after_metrics():
+def test_dispatch_after_metrics_with_trace_id():
+    """When tracing_agent is not registered, k8s or code should be dispatched instead."""
     supervisor = SupervisorAgent()
     state = DiagnosticState(
         session_id="test-123", phase=DiagnosticPhase.METRICS_ANALYZED,
@@ -56,9 +57,11 @@ def test_dispatch_tracing_after_metrics():
         time_window=TimeWindow(start="now-1h", end="now"),
         trace_id="abc-123",
         agents_completed=["log_agent", "metrics_agent"],
+        cluster_url="https://k8s.example.com",
     )
     next_agents = supervisor._decide_next_agents(state)
-    assert "tracing_agent" in next_agents
+    # tracing_agent is not in registry, so k8s_agent should be dispatched
+    assert "k8s_agent" in next_agents
 
 
 def test_dispatch_code_agent():

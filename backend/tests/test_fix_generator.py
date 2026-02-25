@@ -324,7 +324,7 @@ class TestTokenTracking:
 
         pr_data = await fix_generator.run_verification_phase(
             state=state_with_code_analysis,
-            generated_fix="def process_payment():\n    return True\n",
+            generated_fixes="def process_payment():\n    return True\n",
         )
 
         assert "token_usage" in pr_data
@@ -458,7 +458,7 @@ class TestVerificationPhase:
 
         pr_data = await fix_generator.run_verification_phase(
             state=state_with_code_analysis,
-            generated_fix="def process_payment():\n    return True\n",
+            generated_fixes="def process_payment():\n    return True\n",
         )
 
         assert pr_data["status"] == "awaiting_approval"
@@ -514,7 +514,7 @@ class TestVerificationPhase:
 
         await fix_generator.run_verification_phase(
             state=state_with_code_analysis,
-            generated_fix="bad code",
+            generated_fixes="bad code",
         )
 
         # Self-correct should have been called (AnthropicClient.chat)
