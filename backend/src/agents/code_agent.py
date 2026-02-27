@@ -463,8 +463,20 @@ class CodeNavigatorAgent(ReActAgent):
             '  "shared_resource_conflicts": [],\n'
             '  "suggested_fix_areas": [{"file_path": "...", "description": "...", "suggested_change": "..."}],\n'
             '  "diff_analysis": [],\n'
+            '  "mermaid_diagram": "<Debug Duck Mermaid dialect — see rules below>",\n'
             '  "overall_confidence": 85\n'
-            "}"
+            "}\n\n"
+            "### Mermaid Diagram Rules (Debug Duck dialect)\n"
+            "Generate a `graph TD` flowchart showing the request/error flow between services.\n"
+            "STRICT SYNTAX RULES — violating these causes parse failures:\n"
+            "- Use `graph TD` (top-down) with `-->` arrows\n"
+            "- Node IDs: short alphanumeric (e.g. `CS`, `IS`, `DB`)\n"
+            '- Node labels: use `["label text"]` for rectangles, `[("label")]` for cylinders\n'
+            "- NEVER use `<br/>` or `<br>` — use `\\n` for line breaks inside labels\n"
+            "- NEVER use parentheses `()` inside label text or edge labels — write `fn_name` not `fn_name()`\n"
+            "- Edge labels: `-->|label text|` — no parentheses, no HTML tags inside\n"
+            "- Use `style` lines to color root-cause nodes red, impacted amber, healthy green\n"
+            "- Keep to 4-10 nodes maximum"
         )
 
         return "\n".join(parts)
