@@ -4,6 +4,8 @@ import type {
   ClusterCausalChain, TaskEvent,
 } from '../../types';
 import { API_BASE_URL } from '../../services/api';
+import ChatDrawer from '../Chat/ChatDrawer';
+import LedgerTriggerTab from '../Chat/LedgerTriggerTab';
 
 interface ClusterWarRoomProps {
   session: V4Session;
@@ -213,6 +215,8 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
           </div>
         )}
       </div>
+      <ChatDrawer />
+      <LedgerTriggerTab />
     </div>
   );
 };
