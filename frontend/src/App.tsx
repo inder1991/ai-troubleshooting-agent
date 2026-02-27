@@ -8,6 +8,7 @@ import type {
   CapabilityType,
   CapabilityFormData,
   TroubleshootAppForm,
+  ClusterDiagnosticsForm,
   AttestationGateData,
 } from './types';
 import { useWebSocketV4 } from './hooks/useWebSocket';
@@ -28,9 +29,10 @@ import ErrorBoundary from './components/ui/ErrorBoundary';
 import ErrorBanner from './components/ui/ErrorBanner';
 import ForemanHUD from './components/Foreman/ForemanHUD';
 import PostMortemDossierView from './components/Investigation/PostMortemDossierView';
+import ClusterWarRoom from './components/ClusterDiagnostic/ClusterWarRoom';
 
 
-type ViewState = 'home' | 'form' | 'investigation' | 'sessions' | 'integrations' | 'settings' | 'dossier';
+type ViewState = 'home' | 'form' | 'investigation' | 'sessions' | 'integrations' | 'settings' | 'dossier' | 'cluster-diagnostics';
 
 function AppInner() {
   const { addToast } = useToast();
@@ -228,15 +230,29 @@ function AppInner() {
           setConfidence(session.confidence);
           setViewState('investigation');
           refreshStatus(session.session_id);
+        } else if (data.capability === 'cluster_diagnostics') {
+          const clusterData = data as ClusterDiagnosticsForm;
+          const session = await startSessionV4({
+            service_name: 'Cluster Diagnostics',
+            time_window: '1h',
+            namespace: clusterData.namespace || '',
+            cluster_url: clusterData.cluster_url,
+            capability: 'cluster_diagnostics',
+            profile_id: clusterData.profile_id,
+          });
+          setSessions((prev) => [session, ...prev]);
+          setActiveSession(session);
+          setCurrentPhase(session.status);
+          setConfidence(session.confidence);
+          setViewState('cluster-diagnostics');
+          refreshStatus(session.session_id);
         } else {
           const placeholderSession: V4Session = {
             session_id: `${data.capability}-${Date.now()}`,
             service_name:
               data.capability === 'pr_review'
                 ? 'PR Review'
-                : data.capability === 'github_issue_fix'
-                ? 'Issue Fix'
-                : 'Cluster Diag',
+                : 'Issue Fix',
             status: 'initial',
             confidence: 0,
             created_at: new Date().toISOString(),
@@ -286,7 +302,7 @@ function AppInner() {
   const navView: NavView =
     viewState === 'sessions' ? 'sessions' : viewState === 'integrations' ? 'integrations' : viewState === 'settings' ? 'settings' : 'home';
 
-  const showSidebar = viewState !== 'investigation' && viewState !== 'dossier';
+  const showSidebar = viewState !== 'investigation' && viewState !== 'dossier' && viewState !== 'cluster-diagnostics';
 
   return (
     <div className="flex h-screen w-full overflow-hidden text-slate-100 antialiased" style={{ backgroundColor: '#0f2023' }}>
@@ -392,6 +408,17 @@ function AppInner() {
           <PostMortemDossierView
             sessionId={activeSession.session_id}
             onBack={handleDossierBack}
+          />
+        )}
+
+        {viewState === 'cluster-diagnostics' && activeSession && (
+          <ClusterWarRoom
+            session={activeSession}
+            events={currentTaskEvents}
+            wsConnected={wsConnected}
+            phase={currentPhase}
+            confidence={confidence}
+            onGoHome={handleGoHome}
           />
         )}
       </div>
