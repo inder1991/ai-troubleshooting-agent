@@ -1,0 +1,99 @@
+{
+  "nodes": [
+    {
+      "name": "master-01",
+      "status": "Ready",
+      "roles": [
+        "control-plane"
+      ],
+      "cpu_pct": 34,
+      "memory_pct": 52,
+      "disk_pct": 41
+    },
+    {
+      "name": "master-02",
+      "status": "Ready",
+      "roles": [
+        "control-plane"
+      ],
+      "cpu_pct": 28,
+      "memory_pct": 48,
+      "disk_pct": 38
+    },
+    {
+      "name": "master-03",
+      "status": "Ready",
+      "roles": [
+        "control-plane"
+      ],
+      "cpu_pct": 31,
+      "memory_pct": 50,
+      "disk_pct": 40
+    },
+    {
+      "name": "worker-01",
+      "status": "Ready",
+      "roles": [
+        "worker"
+      ],
+      "cpu_pct": 72,
+      "memory_pct": 68,
+      "disk_pct": 55
+    },
+    {
+      "name": "worker-02",
+      "status": "Ready",
+      "roles": [
+        "worker"
+      ],
+      "cpu_pct": 65,
+      "memory_pct": 71,
+      "disk_pct": 48
+    },
+    {
+      "name": "infra-node-03",
+      "status": "Ready,DiskPressure",
+      "roles": [
+        "infra"
+      ],
+      "cpu_pct": 45,
+      "memory_pct": 62,
+      "disk_pct": 97
+    }
+  ],
+  "events": [
+    {
+      "type": "Warning",
+      "reason": "Evicted",
+      "object": "pod/coredns-abc123",
+      "message": "The node had condition: [DiskPressure]",
+      "node": "infra-node-03",
+      "timestamp": "2026-02-27T10:24:30Z"
+    },
+    {
+      "type": "Warning",
+      "reason": "Evicted",
+      "object": "pod/router-xyz789",
+      "message": "The node had condition: [DiskPressure]",
+      "node": "infra-node-03",
+      "timestamp": "2026-02-27T10:24:32Z"
+    },
+    {
+      "type": "Warning",
+      "reason": "FailedScheduling",
+      "object": "pod/coredns-def456",
+      "message": "0/6 nodes available: 1 node had disk pressure, 3 were control-plane",
+      "timestamp": "2026-02-27T10:25:00Z"
+    }
+  ],
+  "resource_quotas": [],
+  "top_pods": [
+    {
+      "namespace": "production",
+      "name": "access-log-collector-0",
+      "cpu_m": 150,
+      "memory_mi": 4200,
+      "node": "infra-node-03"
+    }
+  ]
+}

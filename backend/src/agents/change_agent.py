@@ -94,7 +94,7 @@ class ChangeAgent(ReActAgent):
         triage_response = await self.llm_client.chat(
             prompt=triage_prompt,
             system=self._two_pass_triage_system_prompt(),
-            max_tokens=4096,
+            max_tokens=1536,
         )
 
         triage = self._parse_triage_response(triage_response.text)
@@ -147,7 +147,7 @@ class ChangeAgent(ReActAgent):
         analyze_response = await self.llm_client.chat(
             prompt=analyze_prompt,
             system=self._two_pass_analyze_system_prompt(),
-            max_tokens=4096,
+            max_tokens=2048,
         )
 
         if event_emitter:
@@ -239,19 +239,24 @@ class ChangeAgent(ReActAgent):
             '  "change_correlations": [\n'
             "    {\n"
             '      "sha": "commit short sha",\n'
-            '      "description": "what changed",\n'
+            '      "description": "max 80 chars — one sentence",\n'
             '      "author": "who",\n'
             '      "date": "when",\n'
             '      "risk_score": 0.0-1.0,\n'
             '      "correlation_type": "code_change|config_change|deployment",\n'
             '      "files_changed": ["file1.py"],\n'
-            '      "reasoning": "why this correlates"\n'
+            '      "reasoning": "max 120 chars — why this correlates"\n'
             "    }\n"
             "  ],\n"
-            '  "summary": "Brief summary"\n'
+            '  "summary": "max 200 chars — one paragraph executive summary"\n'
             "}\n"
             "```\n\n"
-            "Include ALL changes (even low-risk). Populate files_changed from the diffs provided."
+            "BREVITY RULES:\n"
+            "- description: 1 sentence, max 80 characters\n"
+            "- reasoning: 1 sentence, max 120 characters\n"
+            "- summary: 1 short paragraph, max 200 characters\n"
+            "- Include only the top 5 most relevant changes. Skip doc/test/config-only commits.\n"
+            "- Populate files_changed from the diffs provided."
         )
 
     def _build_triage_prompt(self, context: dict, prefetched: dict) -> str:
@@ -286,11 +291,11 @@ class ChangeAgent(ReActAgent):
 
         # Deployment history
         if prefetched.get("deployment_history"):
-            parts.append(f"\n## Deployment History\n{prefetched['deployment_history'][:2000]}")
+            parts.append(f"\n## Deployment History\n{prefetched['deployment_history'][:800]}")
 
         # Config
         if prefetched.get("config_diff"):
-            parts.append(f"\n## ConfigMap State\n{prefetched['config_diff'][:2000]}")
+            parts.append(f"\n## ConfigMap State\n{prefetched['config_diff'][:800]}")
 
         parts.append(
             "\n## Your Task\n"
@@ -349,15 +354,15 @@ class ChangeAgent(ReActAgent):
                         parts.append(f"  {f.get('filename', '?')} (+{f.get('additions', 0)}/-{f.get('deletions', 0)})")
                         patch = f.get("patch", "")
                         if patch:
-                            parts.append(f"  ```\n{patch[:1000]}\n  ```")
+                            parts.append(f"  ```\n{patch[:500]}\n  ```")
                 except (json.JSONDecodeError, TypeError):
-                    parts.append(f"\n### Commit {sha[:8]}\n{diff_json[:1000]}")
+                    parts.append(f"\n### Commit {sha[:8]}\n{diff_json[:500]}")
 
         # Deployment + config
         if prefetched.get("deployment_history"):
-            parts.append(f"\n## Deployment History\n{prefetched['deployment_history'][:2000]}")
+            parts.append(f"\n## Deployment History\n{prefetched['deployment_history'][:800]}")
         if prefetched.get("config_diff"):
-            parts.append(f"\n## ConfigMap State\n{prefetched['config_diff'][:2000]}")
+            parts.append(f"\n## ConfigMap State\n{prefetched['config_diff'][:800]}")
 
         # Triage context
         if triage.get("preliminary_risk_assessment"):
@@ -366,7 +371,7 @@ class ChangeAgent(ReActAgent):
         parts.append(
             "\n## Your Task\n"
             "Produce the final change correlation analysis as JSON. "
-            "Include ALL commits (even low-risk). Use files_changed from the diffs."
+            "Focus on the top 5 highest-risk commits. Use files_changed from the diffs."
         )
 
         return "\n".join(parts)
@@ -461,33 +466,36 @@ class ChangeAgent(ReActAgent):
             '  "change_correlations": [\n'
             "    {\n"
             '      "sha": "commit short sha or change id",\n'
-            '      "description": "what changed and why it matters",\n'
-            '      "author": "who made the change",\n'
-            '      "date": "when the change was made",\n'
+            '      "description": "max 80 chars — one sentence",\n'
+            '      "author": "who",\n'
+            '      "date": "when",\n'
             '      "risk_score": 0.0-1.0,\n'
             '      "correlation_type": "code_change|config_change|deployment",\n'
             '      "files_changed": ["file1.py", "file2.yaml"],\n'
-            '      "reasoning": "why this correlates with the incident"\n'
+            '      "reasoning": "max 120 chars — why this correlates"\n'
             "    }\n"
             "  ],\n"
-            '  "summary": "Brief summary of all changes found and their risk"\n'
+            '  "summary": "max 200 chars — one paragraph executive summary"\n'
             "}\n"
             "```\n\n"
-            "Score risk_score from 0.0 (unrelated) to 1.0 (very likely cause). "
-            "Include ALL changes found even if they seem unrelated (score them low). "
-            "If no changes are found at all, return an empty change_correlations array.\n\n"
+            "BREVITY RULES:\n"
+            "- description: 1 sentence, max 80 characters\n"
+            "- reasoning: 1 sentence, max 120 characters\n"
+            "- summary: 1 short paragraph, max 200 characters\n"
+            "- Include only the top 5 most relevant changes. Skip doc/test/config-only commits.\n"
+            "- If no changes found, return empty change_correlations array.\n\n"
+            "Score risk_score from 0.0 (unrelated) to 1.0 (very likely cause).\n\n"
             "Risk scoring rules:\n"
-            "- If a changed file appears in the STACK TRACE FILES list -> risk_score >= 0.9\n"
-            "- If a commit only touches docs/, tests/, README, .lock files, linting config -> risk_score <= 0.1\n"
-            "- If a commit touches the same module/package as the error -> risk_score >= 0.6\n"
-            "- For the 1-2 highest-risk commits, use github_get_commit_diff to verify the actual code changes\n"
-            "- Include the filenames from the diff in 'files_changed' for each correlation\n\n"
-            "Budget strategy (you have limited iterations):\n"
-            "1. First: github_recent_commits to get commit list\n"
-            "2. Identify 1-2 highest-risk commits (touching stack trace files or critical paths)\n"
-            "3. github_get_commit_diff ONLY on those 1-2 commits\n"
-            "4. Final response: JSON with files_changed populated from the diffs\n"
-            "Do NOT diff every commit. Only diff the ones most likely to correlate.\n"
+            "- Changed file in STACK TRACE FILES list -> risk_score >= 0.9\n"
+            "- Same module/package as the error -> risk_score >= 0.6\n"
+            "- For the 1-2 highest-risk commits, use github_get_commit_diff to verify\n"
+            "- Include filenames from the diff in 'files_changed'\n\n"
+            "Budget strategy (limited iterations):\n"
+            "1. github_recent_commits to get commit list\n"
+            "2. Identify 1-2 highest-risk commits\n"
+            "3. github_get_commit_diff ONLY on those 1-2\n"
+            "4. Final response: JSON with files_changed from diffs\n"
+            "Do NOT diff every commit. Only diff the most likely to correlate.\n"
         )
 
     async def _build_initial_prompt(self, context: dict) -> str:
@@ -843,7 +851,7 @@ class ChangeAgent(ReActAgent):
         result = {
             "change_correlations": normalized,
             "high_priority_files": high_priority[:5],
-            "summary": data.get("summary", text[:500] if text else "No changes found"),
+            "summary": data.get("summary", text[:200] if text else "No changes found"),
             "breadcrumbs": [b.model_dump(mode="json") for b in self.breadcrumbs],
             "negative_findings": [n.model_dump(mode="json") for n in self.negative_findings],
             "tokens_used": self.get_token_usage().model_dump(),

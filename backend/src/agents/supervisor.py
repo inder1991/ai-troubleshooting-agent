@@ -198,6 +198,13 @@ class SupervisorAgent:
             next_agents = self._decide_next_agents(state)
 
             if not next_agents:
+                # Add synthesis delay for mocked demo pacing
+                import os as _os_synth
+                _mock_synth = [a.strip() for a in _os_synth.getenv("MOCK_AGENTS", "").split(",") if a.strip()]
+                if _mock_synth:
+                    await event_emitter.emit("supervisor", "progress", "Synthesizing findings across all agents...")
+                    await asyncio.sleep(3.0)
+
                 # Run impact analysis before marking complete
                 await self._run_impact_analysis(state, event_emitter)
 
@@ -223,28 +230,48 @@ class SupervisorAgent:
 
             state.agents_pending = next_agents
 
-            # Dispatch agents in parallel
+            # Check if any of the next agents are mocked — force sequential for demo pacing
+            import os as _os_dispatch
+            _mock_list = [a.strip() for a in _os_dispatch.getenv("MOCK_AGENTS", "").split(",") if a.strip()]
+            _any_mocked = any(a in _mock_list for a in next_agents)
+
+            # Dispatch agents in parallel (or sequentially if mocked for demo pacing)
             for agent_name in next_agents:
                 logger.info("Agent dispatched", extra={"session_id": state.session_id, "agent_name": agent_name, "action": "dispatch", "extra": {"phase": state.phase.value}})
                 await event_emitter.emit("supervisor", "progress", f"Dispatching {agent_name}")
 
-            if len(next_agents) > 1:
+            if len(next_agents) > 1 and not _any_mocked:
                 results = await asyncio.gather(
                     *(self._dispatch_agent(name, state, event_emitter) for name in next_agents),
                     return_exceptions=True,
                 )
                 agent_results = list(zip(next_agents, results))
             else:
-                r = await self._dispatch_agent(next_agents[0], state, event_emitter)
-                agent_results = [(next_agents[0], r)]
+                # Sequential dispatch — one at a time (always for single agent, forced for mocked)
+                agent_results = []
+                for i, name in enumerate(next_agents):
+                    # Inter-agent thinking delay for mocked sequential dispatch
+                    if _any_mocked and i > 0:
+                        thinking_msgs = {
+                            "metrics_agent": "Correlating log error patterns with infrastructure metrics...",
+                            "k8s_agent": "Cross-referencing anomalies with pod health and resource limits...",
+                            "tracing_agent": "Tracing request flow across service boundaries...",
+                            "code_agent": "Mapping findings to codebase for root cause identification...",
+                        }
+                        msg = thinking_msgs.get(name, f"Analyzing {name.replace('_', ' ')} data...")
+                        await event_emitter.emit("supervisor", "progress", msg)
+                        await asyncio.sleep(3.0)
+                    r = await self._dispatch_agent(name, state, event_emitter)
+                    agent_results.append((name, r))
 
             for agent_name, agent_result in agent_results:
                 if isinstance(agent_result, Exception):
                     logger.error("Agent raised exception", extra={"agent_name": agent_name, "extra": str(agent_result)})
                     # C2: Mark failed agent as completed to prevent infinite re-dispatch
                     state.agents_completed.append(agent_name)
+                    state.agents_failed = getattr(state, "agents_failed", 0) + 1
                     if event_emitter:
-                        await event_emitter.emit(agent_name, "error", f"Agent failed: {str(agent_result)}")
+                        await event_emitter.emit(agent_name, "agent_error", f"Agent failed: {str(agent_result)}")
                     continue
                 if agent_result:
                     await self._update_state_with_result(state, agent_name, agent_result, event_emitter)
@@ -293,7 +320,12 @@ class SupervisorAgent:
                                         "extra": {"re_investigation_count": re_investigation_count}
                                     })
 
+            old_phase = state.phase
             self._update_phase(state, event_emitter)
+
+            # Add phase transition delay for mocked demo pacing
+            if _any_mocked and state.phase != old_phase:
+                await asyncio.sleep(2.0)
 
             # Enrich reasoning chain after metrics analysis completes (skip if mocked — no point reasoning over fixture data)
             import os as _os
@@ -503,10 +535,10 @@ class SupervisorAgent:
                     "agent_name": agent_name, "action": "mocked",
                     "extra": str(fixture_path),
                 })
+                fixture_data = json.loads(fixture_path.read_text())
                 if event_emitter:
-                    await event_emitter.emit(agent_name, "started", f"{agent_name} (MOCKED)")
-                    await event_emitter.emit(agent_name, "success", f"{agent_name} completed (mocked fixture)")
-                return json.loads(fixture_path.read_text())
+                    await self._emit_staged_mock_events(agent_name, fixture_data, state, event_emitter)
+                return fixture_data
 
         # Repo mismatch check for code_agent
         if agent_name == "code_agent" and state.patient_zero:
@@ -551,6 +583,137 @@ class SupervisorAgent:
             if event_emitter:
                 await event_emitter.emit(agent_name, "error", f"Agent failed: {str(e)}")
             return None
+
+    async def _emit_staged_mock_events(
+        self, agent_name: str, fixture: dict, state: DiagnosticState, event_emitter: EventEmitter
+    ) -> None:
+        """Emit staged events with delays for mocked agents so demos feel real-time."""
+        if agent_name == "log_agent":
+            raw_count = fixture.get("raw_logs_count", 0)
+            patterns_found = fixture.get("patterns_found", 0)
+            ns = fixture.get("detected_namespace") or state.namespace or "default"
+            primary = fixture.get("primary_pattern", {})
+            secondary = fixture.get("secondary_patterns", [])
+            patient_zero = fixture.get("patient_zero", {})
+            reasoning = fixture.get("reasoning_chain", [])
+
+            await event_emitter.emit(agent_name, "started", f"Analyzing log patterns in {ns} namespace")
+            await asyncio.sleep(2.5)
+
+            await event_emitter.emit(agent_name, "tool_call", f"Querying Elasticsearch index {ns}-logs-* — scanning {raw_count} entries")
+            await asyncio.sleep(3.0)
+
+            # Build pattern summary from actual fixture data
+            pattern_parts = []
+            if primary.get("exception_type"):
+                pattern_parts.append(f"{primary['exception_type']} ({primary.get('frequency', 0)})")
+            for sp in secondary[:3]:
+                pattern_parts.append(f"{sp.get('exception_type', 'Unknown')} ({sp.get('frequency', 0)})")
+            if pattern_parts:
+                await event_emitter.emit(agent_name, "progress", f"{patterns_found} error clusters identified — {', '.join(pattern_parts)}")
+                await asyncio.sleep(2.5)
+
+            # Reasoning chain cascade
+            if len(reasoning) >= 2:
+                cascade_steps = [r.get("observation", "") for r in reasoning[:3]]
+                cascade_msg = " → ".join(s[:60] for s in cascade_steps if s)
+                if cascade_msg:
+                    await event_emitter.emit(agent_name, "progress", f"Tracing cascade: {cascade_msg}")
+                    await asyncio.sleep(2.0)
+
+            # Patient zero
+            if patient_zero.get("service"):
+                pz_svc = patient_zero["service"]
+                pz_evidence = patient_zero.get("evidence", "")[:120]
+                await event_emitter.emit(agent_name, "progress", f"Patient zero identified: {pz_svc} — {pz_evidence}")
+                await asyncio.sleep(2.0)
+
+        elif agent_name == "metrics_agent":
+            anomalies = fixture.get("anomalies", [])
+            correlated = fixture.get("correlated_signals", [])
+            ns = state.namespace or "default"
+
+            await event_emitter.emit(agent_name, "started", f"Querying Prometheus metrics for {ns} namespace")
+            await asyncio.sleep(2.5)
+
+            # Count unique metric families
+            metric_names = [a.get("metric_name", "") for a in anomalies]
+            await event_emitter.emit(agent_name, "tool_call", f"Executing {len(anomalies)} PromQL queries across {', '.join(set(n.split('_')[0] for n in metric_names if n))}")
+            await asyncio.sleep(2.5)
+
+            # Report critical/high anomalies
+            critical_anomalies = [a for a in anomalies if a.get("severity") in ("critical", "high")]
+            for anom in critical_anomalies[:2]:
+                name = anom.get("metric_name", "unknown")
+                peak = anom.get("peak_value", 0)
+                correlation = anom.get("correlation_to_incident", "")[:100]
+                await event_emitter.emit(agent_name, "progress", f"{name} peak {peak} — {correlation}")
+                await asyncio.sleep(2.0)
+
+            # Correlated signals
+            if correlated:
+                cs = correlated[0]
+                await event_emitter.emit(agent_name, "progress", f"Correlated: {cs.get('group_name', '')} — {cs.get('narrative', '')[:100]}")
+                await asyncio.sleep(1.5)
+
+            # Ruled-out metrics
+            low_sev = [a for a in anomalies if a.get("severity") == "low"]
+            if low_sev:
+                ruled_out = ", ".join(set(a.get("metric_name", "").rsplit("_", 1)[0] for a in low_sev[:4]))
+                await event_emitter.emit(agent_name, "progress", f"Nominal: {ruled_out} — ruled out as root cause")
+                await asyncio.sleep(1.5)
+
+        elif agent_name == "k8s_agent":
+            pods = fixture.get("pod_statuses", [])
+            events = fixture.get("events", [])
+            ns = state.namespace or "default"
+
+            await event_emitter.emit(agent_name, "started", f"Inspecting pod health in {ns} namespace")
+            await asyncio.sleep(2.5)
+
+            await event_emitter.emit(agent_name, "tool_call", f"Fetching pod statuses and events for {len(pods)} pods across {ns} namespace")
+            await asyncio.sleep(2.5)
+
+            # Report unhealthy pods
+            unhealthy = [p for p in pods if p.get("status") != "Running" or p.get("restart_count", 0) > 2]
+            for pod in unhealthy[:2]:
+                pod_name = pod.get("pod_name", "unknown")
+                status = pod.get("status", "Unknown")
+                restarts = pod.get("restart_count", 0)
+                ready = pod.get("ready_containers", 0)
+                total = pod.get("container_count", 1)
+                await event_emitter.emit(agent_name, "progress", f"{status}: {pod_name} — {restarts} restarts, {ready}/{total} containers ready")
+                await asyncio.sleep(2.0)
+
+            # K8s events (probe failures)
+            warning_events = [e for e in events if e.get("type") == "Warning"]
+            if warning_events:
+                probe_failures = [e for e in warning_events if "probe failed" in e.get("message", "").lower()]
+                if probe_failures:
+                    total_count = sum(e.get("count", 1) for e in probe_failures)
+                    await event_emitter.emit(agent_name, "progress", f"{total_count} probe failures detected on inventory-service pods")
+                    await asyncio.sleep(1.5)
+
+            # Resource mismatch
+            rm = fixture.get("resource_mismatch")
+            if rm:
+                await event_emitter.emit(agent_name, "progress", f"Resource mismatch: {rm[:120]}")
+                await asyncio.sleep(1.5)
+
+            # Healthy pods
+            healthy = [p for p in pods if p.get("status") == "Running" and p.get("restart_count", 0) == 0]
+            if healthy:
+                names = ", ".join(p.get("pod_name", "").rsplit("-", 2)[0] for p in healthy)
+                await event_emitter.emit(agent_name, "progress", f"{names} healthy — 0 restarts")
+                await asyncio.sleep(1.0)
+
+        else:
+            # Generic fallback for any other mocked agent
+            await event_emitter.emit(agent_name, "started", f"{agent_name} analyzing...")
+            await asyncio.sleep(3.0)
+            confidence = fixture.get("overall_confidence", 0)
+            await event_emitter.emit(agent_name, "progress", f"Analysis complete — confidence {confidence}%")
+            await asyncio.sleep(2.0)
 
     async def _build_agent_context(self, agent_name: str, state: DiagnosticState,
                                     event_emitter: Optional[EventEmitter] = None) -> dict:

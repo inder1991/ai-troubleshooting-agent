@@ -14,6 +14,10 @@ anthropic>=0.40.0
 
 # Kubernetes / OpenShift
 kubernetes>=28.0.0
+kubernetes-asyncio>=30.0.0
+
+# Async HTTP (Prometheus queries)
+aiohttp>=3.9.0
 
 # Data Processing
 pydantic>=2.5.3

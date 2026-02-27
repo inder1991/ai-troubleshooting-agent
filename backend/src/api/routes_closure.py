@@ -4,6 +4,7 @@ Incident Closure API — 6 endpoints for the phased closure workflow.
 Router prefix: /api/v4/session/{session_id}/closure
 """
 
+import hashlib
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, HTTPException
@@ -115,6 +116,12 @@ def _build_jira_summary(state) -> str:
     return f"[{incident_id}] Incident in {state.service_name}"
 
 
+def _mock_id_from_session(session_id: str, prefix: str, modulus: int = 100000) -> str:
+    """Generate a deterministic mock ID from a session ID."""
+    h = int(hashlib.sha256(session_id.encode()).hexdigest()[:8], 16)
+    return f"{prefix}-{h % modulus}"
+
+
 # ── Endpoints ─────────────────────────────────────────────────────────────
 
 
@@ -129,29 +136,24 @@ async def get_closure_status(session_id: str):
     config = _get_connection_config(session)
     closure = _ensure_closure_state(state)
 
-    # Build integration availability
+    # Build integration availability — mock-available when real creds are absent
+    def _avail(url_attr: str, cred_attr: str) -> dict:
+        has_real = bool(config and getattr(config, url_attr, None) and getattr(config, cred_attr, None))
+        if has_real:
+            return IntegrationAvailability(
+                configured=True, status="connected", has_credentials=True,
+            ).model_dump()
+        return IntegrationAvailability(
+            configured=True, status="mock_available", has_credentials=False,
+        ).model_dump()
+
     integrations = {
-        "jira": IntegrationAvailability(
-            configured=bool(config and config.jira_url),
-            status="connected" if (config and config.jira_url and config.jira_credentials) else "not_linked",
-            has_credentials=bool(config and config.jira_credentials),
-        ).model_dump(),
-        "confluence": IntegrationAvailability(
-            configured=bool(config and config.confluence_url),
-            status="connected" if (config and config.confluence_url and config.confluence_credentials) else "not_linked",
-            has_credentials=bool(config and config.confluence_credentials),
-        ).model_dump(),
-        "remedy": IntegrationAvailability(
-            configured=bool(config and config.remedy_url),
-            status="connected" if (config and config.remedy_url and config.remedy_credentials) else "not_linked",
-            has_credentials=bool(config and config.remedy_credentials),
-        ).model_dump(),
+        "jira": _avail("jira_url", "jira_credentials"),
+        "confluence": _avail("confluence_url", "confluence_credentials"),
+        "remedy": _avail("remedy_url", "remedy_credentials"),
     }
 
-    can_start = any(
-        v.get("configured") and v.get("has_credentials")
-        for v in integrations.values()
-    )
+    can_start = True  # always startable — mock mode handles missing creds
 
     pre_filled = {
         "jira_summary": _build_jira_summary(state),
@@ -182,11 +184,25 @@ async def create_jira(session_id: str, request: JiraCreateRequest):
         raise HTTPException(status_code=400, detail="Session not ready")
 
     config = _get_connection_config(session)
-    if not config or not config.jira_url or not config.jira_credentials:
-        raise HTTPException(status_code=412, detail="Jira integration not configured")
-
+    is_mock = not config or not config.jira_url or not config.jira_credentials
     closure = _ensure_closure_state(state)
 
+    if is_mock:
+        issue_key = _mock_id_from_session(session_id, "INC")
+        issue_url = f"https://jira.example.com/browse/{issue_key}"
+        closure.jira_result = JiraActionResult(
+            status="success",
+            issue_key=issue_key,
+            issue_url=issue_url,
+            created_at=datetime.now(timezone.utc),
+        )
+        closure.phase = ClosurePhase.TRACKING
+        emitter = session.get("emitter")
+        if emitter:
+            await emitter.emit("closure", "success", f"Mock Jira issue {issue_key} created")
+        return closure.jira_result.model_dump(mode="json")
+
+    # Real Jira logic
     # Auto-fill empty fields
     summary = request.summary or _build_jira_summary(state)
     description = request.description or _build_jira_description(state)
@@ -277,11 +293,25 @@ async def create_remedy(session_id: str, request: RemedyCreateRequest):
         raise HTTPException(status_code=400, detail="Session not ready")
 
     config = _get_connection_config(session)
-    if not config or not config.remedy_url or not config.remedy_credentials:
-        raise HTTPException(status_code=412, detail="Remedy integration not configured")
-
+    is_mock = not config or not config.remedy_url or not config.remedy_credentials
     closure = _ensure_closure_state(state)
 
+    if is_mock:
+        incident_number = _mock_id_from_session(session_id, "CHG")
+        incident_url = f"https://remedy.example.com/arsys/forms/{incident_number}"
+        closure.remedy_result = RemedyActionResult(
+            status="success",
+            incident_number=incident_number,
+            incident_url=incident_url,
+            created_at=datetime.now(timezone.utc),
+        )
+        closure.phase = ClosurePhase.TRACKING
+        emitter = session.get("emitter")
+        if emitter:
+            await emitter.emit("closure", "success", f"Mock Remedy incident {incident_number} created")
+        return closure.remedy_result.model_dump(mode="json")
+
+    # Real Remedy logic
     summary = request.summary
     if not summary and state.log_analysis and state.log_analysis.primary_pattern:
         summary = f"Auto-detected: {state.log_analysis.primary_pattern.error_message[:100]}"
@@ -338,9 +368,17 @@ async def preview_postmortem(session_id: str):
         raise HTTPException(status_code=400, detail="Session not ready")
 
     from src.integrations.postmortem_renderer import PostMortemRenderer
+    from src.utils.llm_client import AnthropicClient
 
     renderer = PostMortemRenderer()
-    result = renderer.render_markdown(state)
+    try:
+        llm_client = AnthropicClient(agent_name="postmortem_renderer")
+        result = await renderer.render_with_narrative(state, llm_client=llm_client)
+    except Exception as e:
+        logger.warning("LLM narrative failed, falling back to deterministic: %s", e)
+        result = renderer.render_markdown(state)
+        result["executive_summary"] = ""
+        result["impact_statement"] = ""
 
     closure = _ensure_closure_state(state)
     closure.postmortem_preview = result["body_markdown"]
@@ -357,11 +395,26 @@ async def publish_postmortem(session_id: str, request: ConfluencePublishRequest)
         raise HTTPException(status_code=400, detail="Session not ready")
 
     config = _get_connection_config(session)
-    if not config or not config.confluence_url or not config.confluence_credentials:
-        raise HTTPException(status_code=412, detail="Confluence integration not configured")
-
+    is_mock = not config or not config.confluence_url or not config.confluence_credentials
     closure = _ensure_closure_state(state)
 
+    if is_mock:
+        page_id = _mock_id_from_session(session_id, "PAGE")
+        page_url = f"https://confluence.example.com/pages/{page_id}"
+        closure.confluence_result = ConfluenceActionResult(
+            status="success",
+            page_id=page_id,
+            page_url=page_url,
+            space_key=request.space_key or "DEMO",
+            created_at=datetime.now(timezone.utc),
+        )
+        closure.phase = ClosurePhase.KNOWLEDGE_CAPTURE
+        emitter = session.get("emitter")
+        if emitter:
+            await emitter.emit("closure", "success", f"Mock post-mortem published (page {page_id})")
+        return closure.confluence_result.model_dump(mode="json")
+
+    # Real Confluence logic
     # Use provided markdown or fall back to cached preview
     markdown = request.body_markdown or closure.postmortem_preview
     if not markdown:

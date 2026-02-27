@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useChatContext } from '../../contexts/ChatContext';
+import { useChatUI } from '../../contexts/ChatContext';
 
 const TacticalLogIcon: React.FC<{ isWaiting: boolean }> = ({ isWaiting }) => (
   <svg
@@ -27,7 +27,7 @@ const TacticalLogIcon: React.FC<{ isWaiting: boolean }> = ({ isWaiting }) => (
 );
 
 const LedgerTriggerTab: React.FC = () => {
-  const { isOpen, toggleDrawer, unreadCount, isWaiting } = useChatContext();
+  const { isOpen, toggleDrawer, unreadCount, isWaiting } = useChatUI();
 
   return (
     <AnimatePresence>

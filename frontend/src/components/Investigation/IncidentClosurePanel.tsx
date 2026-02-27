@@ -19,6 +19,7 @@ interface IncidentClosurePanelProps {
   sessionId: string;
   findings: V4Findings | null;
   phase: DiagnosticPhase | null;
+  onNavigateToDossier?: () => void;
 }
 
 const emptyIntegration: IntegrationAvailability = {
@@ -31,6 +32,7 @@ const IncidentClosurePanel: React.FC<IncidentClosurePanelProps> = ({
   sessionId,
   findings,
   phase,
+  onNavigateToDossier,
 }) => {
   const [closureStatus, setClosureStatus] = useState<ClosureStatusResponse | null>(null);
   const [loading, setLoading] = useState<string | null>(null);
@@ -113,13 +115,13 @@ const IncidentClosurePanel: React.FC<IncidentClosurePanelProps> = ({
     }
   };
 
-  const handlePreviewPostMortem = () => {
-    if (loading === 'post_mortem') return;
-    setLoading('post_mortem');
-    setError(null);
-    setShowPostMortem(true);
-    setLoading(null);
-  };
+  const handleGenerateDossier = useCallback(() => {
+    if (onNavigateToDossier) {
+      onNavigateToDossier();
+    } else {
+      setShowPostMortem(true);
+    }
+  }, [onNavigateToDossier]);
 
   return (
     <>
@@ -141,6 +143,14 @@ const IncidentClosurePanel: React.FC<IncidentClosurePanelProps> = ({
           {error && (
             <div className="text-[10px] text-red-400 bg-red-500/10 border border-red-500/20 rounded px-3 py-1.5">
               {error}
+            </div>
+          )}
+
+          {/* Phase gate warning — investigation may still be in progress */}
+          {phase && !['diagnosis_complete', 'fix_in_progress', 'fix_complete', 'closed'].includes(phase) && (
+            <div className="text-[10px] text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded px-3 py-1.5 flex items-center gap-2">
+              <span className="material-symbols-outlined text-[12px]" style={{ fontFamily: 'Material Symbols Outlined' }}>warning</span>
+              Investigation still in progress — dossier data may be incomplete.
             </div>
           )}
 
@@ -204,7 +214,7 @@ const IncidentClosurePanel: React.FC<IncidentClosurePanelProps> = ({
                       </a>
                     )}
                   </div>
-                ) : jiraIntegration.configured && jiraIntegration.has_credentials ? (
+                ) : (
                   <div className="space-y-1.5">
                     {!linkMode ? (
                       <div className="flex items-center gap-2">
@@ -254,8 +264,6 @@ const IncidentClosurePanel: React.FC<IncidentClosurePanelProps> = ({
                       </div>
                     )}
                   </div>
-                ) : (
-                  <span className="text-[10px] text-slate-500">Configure Jira in Settings to enable.</span>
                 )}
               </div>
 
@@ -281,7 +289,7 @@ const IncidentClosurePanel: React.FC<IncidentClosurePanelProps> = ({
                       </a>
                     )}
                   </div>
-                ) : remedyIntegration.configured && remedyIntegration.has_credentials ? (
+                ) : (
                   <button
                     onClick={handleCreateRemedy}
                     disabled={loading === 'remedy'}
@@ -289,8 +297,6 @@ const IncidentClosurePanel: React.FC<IncidentClosurePanelProps> = ({
                   >
                     {loading === 'remedy' ? 'Creating...' : 'Create Incident'}
                   </button>
-                ) : (
-                  <span className="text-[10px] text-slate-500">Configure Remedy in Settings to enable.</span>
                 )}
               </div>
             </div>
@@ -323,24 +329,13 @@ const IncidentClosurePanel: React.FC<IncidentClosurePanelProps> = ({
                     </a>
                   )}
                 </div>
-              ) : confluenceIntegration.configured && confluenceIntegration.has_credentials ? (
-                <button
-                  onClick={handlePreviewPostMortem}
-                  disabled={loading === 'post_mortem'}
-                  className={`text-[10px] font-bold px-2.5 py-1 rounded transition-all flex items-center gap-2 ${
-                    loading === 'post_mortem'
-                      ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                      : 'bg-violet-500/20 text-violet-400 border border-violet-500/30 hover:bg-violet-500/30'
-                  }`}
-                >
-                  {loading === 'post_mortem' ? (
-                    <><span className="material-symbols-outlined animate-spin text-[12px]" style={{ fontFamily: 'Material Symbols Outlined' }}>sync</span> Compiling...</>
-                  ) : (
-                    'Generate Preview'
-                  )}
-                </button>
               ) : (
-                <span className="text-[10px] text-slate-500">Configure Confluence in Settings to enable.</span>
+                <button
+                  onClick={handleGenerateDossier}
+                  className="text-[10px] font-bold px-2.5 py-1 rounded transition-all flex items-center gap-2 bg-violet-500/20 text-violet-400 border border-violet-500/30 hover:bg-violet-500/30"
+                >
+                  Generate Dossier
+                </button>
               )}
             </div>
           </ClosureStepCard>

@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect, useMemo, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, HelpCircle, XCircle, GitBranch, MessageCircle, SkipForward } from 'lucide-react';
 import { drawerVariants, backdropVariants } from '../../styles/chat-animations';
-import { useChatContext } from '../../contexts/ChatContext';
+import { useChatUI, useChatStream } from '../../contexts/ChatContext';
 import MarkdownBubble from './MarkdownBubble';
 import RemediationPacketCard from './RemediationPacketCard';
 import ChatInputArea from './ChatInputArea';
@@ -69,13 +69,12 @@ const ChatDrawer: React.FC = () => {
   const {
     messages,
     isOpen,
-    isStreaming,
-    streamingContent,
     isWaiting,
     isSending,
     sendMessage,
     closeDrawer,
-  } = useChatContext();
+  } = useChatUI();
+  const { isStreaming, streamingContent } = useChatStream();
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const [userScrolled, setUserScrolled] = useState(false);

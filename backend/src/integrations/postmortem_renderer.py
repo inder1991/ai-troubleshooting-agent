@@ -1,12 +1,17 @@
 """
-Deterministic post-mortem renderer — transforms DiagnosticState into
-structured Markdown and Confluence Storage Format (XHTML subset).
+Post-mortem renderer — transforms DiagnosticState into structured Markdown
+and Confluence Storage Format (XHTML subset).
 
-No LLM calls; all intelligence was already captured by the diagnostic agents.
+Supports optional LLM-generated executive summary and impact statement.
 """
 
+import json
 import re
 from datetime import datetime
+
+from src.utils.logger import get_logger
+
+logger = get_logger("postmortem_renderer")
 
 
 class PostMortemRenderer:
@@ -146,6 +151,123 @@ class PostMortemRenderer:
 
         body = "\n".join(sections)
         return {"title": title, "body_markdown": body}
+
+    def _build_narrative_context(self, state) -> str:
+        """Extract key data from DiagnosticState into compact text for LLM."""
+        parts: list[str] = []
+        service = state.service_name or "unknown-service"
+        incident_id = state.incident_id or state.session_id[:8]
+        parts.append(f"Service: {service}")
+        parts.append(f"Incident ID: {incident_id}")
+
+        if state.severity_result:
+            parts.append(f"Severity: {state.severity_result.recommended_severity}")
+            parts.append(f"Severity reasoning: {state.severity_result.reasoning}")
+
+        if state.blast_radius_result:
+            br = state.blast_radius_result
+            parts.append(f"Blast radius scope: {br.scope}")
+            if br.upstream_affected:
+                parts.append(f"Upstream affected: {', '.join(br.upstream_affected)}")
+            if br.downstream_affected:
+                parts.append(f"Downstream affected: {', '.join(br.downstream_affected)}")
+            if br.estimated_user_impact:
+                parts.append(f"User impact: {br.estimated_user_impact}")
+
+        if state.log_analysis and state.log_analysis.primary_pattern:
+            pp = state.log_analysis.primary_pattern
+            parts.append(f"Primary error: {pp.exception_type}: {pp.error_message}")
+            parts.append(f"Error frequency: {pp.frequency}")
+            parts.append(f"Affected components: {', '.join(pp.affected_components)}")
+            if pp.causal_role:
+                parts.append(f"Causal role: {pp.causal_role}")
+
+        if state.all_findings:
+            parts.append(f"\nTop {min(5, len(state.all_findings))} findings:")
+            for f in state.all_findings[:5]:
+                parts.append(f"- [{f.severity}] {f.summary}")
+
+        if state.patient_zero:
+            pz = state.patient_zero
+            if isinstance(pz, dict):
+                parts.append(f"Patient zero: {pz.get('service', 'unknown')} — {pz.get('evidence', '')}")
+
+        if state.fix_result:
+            if state.fix_result.fix_explanation:
+                parts.append(f"Fix: {state.fix_result.fix_explanation}")
+            if state.fix_result.pr_url:
+                parts.append(f"PR: {state.fix_result.pr_url}")
+
+        if state.metrics_analysis:
+            parts.append(f"Metrics anomalies: {len(state.metrics_analysis.anomalies)}")
+        if state.k8s_analysis:
+            parts.append(f"K8s events: {len(state.k8s_analysis.events)}")
+
+        if state.reasoning_chain:
+            parts.append(f"\nTop reasoning inferences:")
+            for step in state.reasoning_chain[:5]:
+                if isinstance(step, dict):
+                    parts.append(f"- {step.get('inference', step.get('reasoning', str(step)))}")
+                else:
+                    parts.append(f"- {step}")
+
+        return "\n".join(parts)
+
+    async def render_with_narrative(self, state, llm_client=None) -> dict:
+        """Render markdown with optional LLM-generated narrative sections.
+
+        Returns: {"title", "body_markdown", "executive_summary", "impact_statement"}
+        """
+        base = self.render_markdown(state)
+        executive_summary = ""
+        impact_statement = ""
+
+        if llm_client:
+            context = self._build_narrative_context(state)
+            system_prompt = (
+                "You are an expert SRE writer producing incident post-mortem documents. "
+                "Given the incident data below, write two sections:\n"
+                "1. executive_summary: A 2-3 sentence executive summary suitable for VP/C-level readers.\n"
+                "2. impact_statement: A 2-3 sentence impact statement describing business/user impact.\n\n"
+                "Return ONLY valid JSON: {\"executive_summary\": \"...\", \"impact_statement\": \"...\"}"
+            )
+            try:
+                response = await llm_client.chat(
+                    prompt=context,
+                    system=system_prompt,
+                    max_tokens=1024,
+                    temperature=0.3,
+                )
+                # LLM often wraps JSON in code fences — extract the JSON object
+                import re
+                text = response.text
+                json_match = re.search(r'\{[\s\S]*\}', text)
+                if json_match:
+                    parsed = json.loads(json_match.group())
+                else:
+                    parsed = json.loads(text)
+                executive_summary = parsed.get("executive_summary", "")
+                impact_statement = parsed.get("impact_statement", "")
+                logger.info("LLM narrative generated successfully")
+            except Exception as e:
+                logger.warning("LLM narrative generation failed: %s", e)
+
+        # Insert narrative sections at top of markdown if generated
+        if executive_summary or impact_statement:
+            narrative_parts: list[str] = []
+            if executive_summary:
+                narrative_parts.append("## Executive Summary\n")
+                narrative_parts.append(executive_summary)
+                narrative_parts.append("")
+            if impact_statement:
+                narrative_parts.append("## Impact Statement\n")
+                narrative_parts.append(impact_statement)
+                narrative_parts.append("")
+            base["body_markdown"] = "\n".join(narrative_parts) + "\n" + base["body_markdown"]
+
+        base["executive_summary"] = executive_summary
+        base["impact_statement"] = impact_statement
+        return base
 
     def markdown_to_storage_format(self, markdown: str) -> str:
         """Convert markdown to Confluence Storage Format (XHTML subset).

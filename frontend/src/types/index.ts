@@ -490,6 +490,8 @@ export interface StartSessionRequest {
   elk_index?: string;
   repo_url?: string;
   profile_id?: string;
+  capability?: string;
+  cluster_url?: string;
 }
 
 export interface V4WebSocketMessage {
@@ -549,6 +551,75 @@ export interface ClusterDiagnosticsForm {
   auth_method?: 'token' | 'kubeconfig';
   resource_type?: string;
   profile_id?: string;
+}
+
+// ===== Cluster Diagnostics Types =====
+export interface ClusterDomainAnomaly {
+  domain: string;
+  anomaly_id: string;
+  description: string;
+  evidence_ref: string;
+  severity?: string;
+}
+
+export interface ClusterDomainReport {
+  domain: string;
+  status: 'PENDING' | 'RUNNING' | 'SUCCESS' | 'PARTIAL' | 'FAILED';
+  failure_reason?: string;
+  confidence: number;
+  anomalies: ClusterDomainAnomaly[];
+  ruled_out: string[];
+  evidence_refs: string[];
+  truncation_flags: Record<string, boolean>;
+  data_gathered_before_failure?: string[];
+  duration_ms: number;
+}
+
+export interface ClusterCausalLink {
+  order: number;
+  domain: string;
+  anomaly_id: string;
+  description: string;
+  link_type: string;
+  evidence_ref: string;
+}
+
+export interface ClusterCausalChain {
+  chain_id: string;
+  confidence: number;
+  root_cause: ClusterDomainAnomaly;
+  cascading_effects: ClusterCausalLink[];
+}
+
+export interface ClusterBlastRadius {
+  summary: string;
+  affected_namespaces: number;
+  affected_pods: number;
+  affected_nodes: number;
+}
+
+export interface ClusterRemediationStep {
+  command?: string;
+  description: string;
+  risk_level?: string;
+  effort_estimate?: string;
+}
+
+export interface ClusterHealthReport {
+  diagnostic_id: string;
+  platform: string;
+  platform_version: string;
+  platform_health: 'HEALTHY' | 'DEGRADED' | 'CRITICAL' | 'UNKNOWN' | 'PENDING';
+  data_completeness: number;
+  blast_radius?: ClusterBlastRadius;
+  causal_chains?: ClusterCausalChain[];
+  uncorrelated_findings?: ClusterDomainAnomaly[];
+  domain_reports?: ClusterDomainReport[];
+  remediation?: {
+    immediate?: ClusterRemediationStep[];
+    long_term?: ClusterRemediationStep[];
+  };
+  execution_metadata?: Record<string, number>;
 }
 
 export type CapabilityFormData =
@@ -783,4 +854,11 @@ export interface ClosureStatusResponse {
     remedy_urgency: string;
     confluence_title: string;
   };
+}
+
+export interface PostmortemDossierData {
+  title: string;
+  body_markdown: string;
+  executive_summary: string;
+  impact_statement: string;
 }

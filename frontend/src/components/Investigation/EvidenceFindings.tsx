@@ -40,6 +40,7 @@ interface EvidenceFindingsProps {
   sessionId?: string;
   phase?: DiagnosticPhase | null;
   onRefresh?: () => void;
+  onNavigateToDossier?: () => void;
 }
 
 const severityColor: Record<Severity, string> = {
@@ -69,7 +70,7 @@ interface PinnedCard {
   title: string;
 }
 
-const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _status, events, sessionId, phase, onRefresh }) => {
+const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _status, events, sessionId, phase, onRefresh, onNavigateToDossier }) => {
   const { selectedService, clearSelection } = useTopologySelection();
 
   // Service filter: returns true if no service selected OR if text mentions the service
@@ -817,6 +818,7 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                       sessionId={sessionId}
                       findings={findings}
                       phase={phase}
+                      onNavigateToDossier={onNavigateToDossier}
                     />
                   </VineCard>
                 )}

@@ -11,7 +11,7 @@ interface CampaignOrchestrationHubProps {
 
 const CampaignOrchestrationHub: React.FC<CampaignOrchestrationHubProps> = ({ campaign }) => {
   const {
-    approveRepo, rejectRepo, executeCampaign, openTelescope, setHoveredRepo, isLoading,
+    approveRepo, rejectRepo, executeCampaign, openTelescope, setHoveredRepo, globalLoading,
   } = useCampaignContext();
   const [selectedRepo, setSelectedRepo] = useState<string | null>(null);
 
@@ -108,7 +108,7 @@ const CampaignOrchestrationHub: React.FC<CampaignOrchestrationHubProps> = ({ cam
               animate="visible"
               exit="hidden"
               onClick={executeCampaign}
-              disabled={isLoading}
+              disabled={globalLoading}
               className="w-full py-3 rounded-lg bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-black font-black text-[11px] tracking-[0.2em] uppercase shadow-[0_0_15px_rgba(16,185,129,0.3)] flex items-center justify-center gap-2"
             >
               <span className="material-symbols-outlined text-sm">rocket_launch</span>

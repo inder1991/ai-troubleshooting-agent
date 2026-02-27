@@ -2,70 +2,199 @@ import React, { createContext, useContext, useState, useCallback, useRef, useEff
 import type { ChatMessage, TaskEvent } from '../types';
 import { sendChatMessage } from '../services/api';
 
-interface StreamingState {
-  isStreaming: boolean;
-  content: string;
-  messageId: string | null;
-}
+// ─── ChatUI Context (slow-moving: messages, drawer, sending) ─────────────
 
-interface ChatContextValue {
-  // State
+interface ChatUIContextValue {
   messages: ChatMessage[];
   isOpen: boolean;
-  isStreaming: boolean;
-  streamingContent: string;
   unreadCount: number;
   isWaiting: boolean;
   isSending: boolean;
-
-  // Actions
   sendMessage: (content: string) => Promise<void>;
   toggleDrawer: () => void;
   openDrawer: () => void;
   closeDrawer: () => void;
   markRead: () => void;
   addMessage: (message: ChatMessage) => void;
+}
 
-  // Streaming actions (used by WebSocket handler)
+const ChatUIContext = createContext<ChatUIContextValue | null>(null);
+
+export function useChatUI(): ChatUIContextValue {
+  const ctx = useContext(ChatUIContext);
+  if (!ctx) throw new Error('useChatUI must be used within ChatProvider');
+  return ctx;
+}
+
+// ─── ChatStream Context (fast-moving: streaming tokens ~50ms) ────────────
+
+interface ChatStreamContextValue {
+  isStreaming: boolean;
+  streamingContent: string;
   startStream: () => void;
   appendChunk: (chunk: string) => void;
   finishStream: (fullResponse: string, metadata?: ChatMessage['metadata']) => void;
 }
 
-const ChatContext = createContext<ChatContextValue | null>(null);
+const ChatStreamContext = createContext<ChatStreamContextValue | null>(null);
 
-export function useChatContext(): ChatContextValue {
-  const ctx = useContext(ChatContext);
-  if (!ctx) throw new Error('useChatContext must be used within ChatProvider');
+export function useChatStream(): ChatStreamContextValue {
+  const ctx = useContext(ChatStreamContext);
+  if (!ctx) throw new Error('useChatStream must be used within ChatProvider');
   return ctx;
 }
+
+// ─── Backward-compatible merged hook ─────────────────────────────────────
+
+interface ChatContextValue extends ChatUIContextValue, ChatStreamContextValue {}
+
+export function useChatContext(): ChatContextValue {
+  const ui = useChatUI();
+  const stream = useChatStream();
+  return useMemo(() => ({ ...ui, ...stream }), [ui, stream]);
+}
+
+// ─── Provider Props ──────────────────────────────────────────────────────
 
 interface ChatProviderProps {
   sessionId: string | null;
   events: TaskEvent[];
   onRegisterChatHandler?: React.MutableRefObject<((msg: ChatMessage) => void) | null>;
-  /** Ref callbacks for bridging WebSocket streaming to ChatContext */
   onRegisterStreamStart?: React.MutableRefObject<(() => void) | null>;
   onRegisterStreamAppend?: React.MutableRefObject<((chunk: string) => void) | null>;
   onRegisterStreamFinish?: React.MutableRefObject<((full: string, meta?: ChatMessage['metadata']) => void) | null>;
-  /** Called when a chat response carries a phase/confidence update — allows instant sync */
   onPhaseUpdate?: (phase: string, confidence: number) => void;
   children: React.ReactNode;
 }
 
-export const ChatProvider: React.FC<ChatProviderProps> = ({ sessionId, events, onRegisterChatHandler, onRegisterStreamStart, onRegisterStreamAppend, onRegisterStreamFinish, onPhaseUpdate, children }) => {
-  const [messagesBySession, setMessagesBySession] = useState<Record<string, ChatMessage[]>>({});
-  const [isOpen, setIsOpen] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [isSending, setIsSending] = useState(false);
-  const prevMessageCountRef = useRef(0);
+// ─── ChatStreamProvider (inner — reads addMessage from ChatUIContext) ────
 
-  // Streaming state
+interface ChatStreamProviderProps {
+  sessionId: string | null;
+  onRegisterStreamStart?: React.MutableRefObject<(() => void) | null>;
+  onRegisterStreamAppend?: React.MutableRefObject<((chunk: string) => void) | null>;
+  onRegisterStreamFinish?: React.MutableRefObject<((full: string, meta?: ChatMessage['metadata']) => void) | null>;
+  onPhaseUpdate?: (phase: string, confidence: number) => void;
+  children: React.ReactNode;
+}
+
+interface StreamingState {
+  isStreaming: boolean;
+  content: string;
+  messageId: string | null;
+}
+
+const ChatStreamProvider: React.FC<ChatStreamProviderProps> = ({
+  sessionId,
+  onRegisterStreamStart,
+  onRegisterStreamAppend,
+  onRegisterStreamFinish,
+  onPhaseUpdate,
+  children,
+}) => {
+  const { addMessage } = useChatUI();
+
   const [streaming, setStreaming] = useState<StreamingState>({
     isStreaming: false,
     content: '',
     messageId: null,
   });
+
+  // Reset on session change
+  useEffect(() => {
+    setStreaming({ isStreaming: false, content: '', messageId: null });
+  }, [sessionId]);
+
+  const startStream = useCallback(() => {
+    setStreaming({
+      isStreaming: true,
+      content: '',
+      messageId: crypto.randomUUID(),
+    });
+  }, []);
+
+  const appendChunk = useCallback((chunk: string) => {
+    setStreaming(prev => ({
+      ...prev,
+      isStreaming: true,
+      content: prev.content + chunk,
+    }));
+  }, []);
+
+  const finishStream = useCallback((fullResponse: string, metadata?: ChatMessage['metadata']) => {
+    if (!sessionId) return;
+    const msg: ChatMessage = {
+      role: 'assistant',
+      content: fullResponse,
+      timestamp: new Date().toISOString(),
+      metadata,
+    };
+    addMessage(msg);
+    setStreaming({ isStreaming: false, content: '', messageId: null });
+  }, [sessionId, addMessage]);
+
+  // Register streaming handlers for parent (WebSocket bridge)
+  const streamStartedRef = useRef(false);
+  useEffect(() => {
+    if (onRegisterStreamStart) {
+      onRegisterStreamStart.current = () => {
+        if (!streamStartedRef.current) {
+          streamStartedRef.current = true;
+          startStream();
+        }
+      };
+    }
+    if (onRegisterStreamAppend) {
+      onRegisterStreamAppend.current = appendChunk;
+    }
+    if (onRegisterStreamFinish) {
+      onRegisterStreamFinish.current = (full, meta) => {
+        streamStartedRef.current = false;
+        finishStream(full, meta);
+        if (onPhaseUpdate && meta?.newPhase) {
+          onPhaseUpdate(meta.newPhase, meta.newConfidence ?? 0);
+        }
+      };
+    }
+    return () => {
+      if (onRegisterStreamStart) onRegisterStreamStart.current = null;
+      if (onRegisterStreamAppend) onRegisterStreamAppend.current = null;
+      if (onRegisterStreamFinish) onRegisterStreamFinish.current = null;
+    };
+  }, [startStream, appendChunk, finishStream, onRegisterStreamStart, onRegisterStreamAppend, onRegisterStreamFinish, onPhaseUpdate]);
+
+  const value = useMemo<ChatStreamContextValue>(() => ({
+    isStreaming: streaming.isStreaming,
+    streamingContent: streaming.content,
+    startStream,
+    appendChunk,
+    finishStream,
+  }), [streaming.isStreaming, streaming.content, startStream, appendChunk, finishStream]);
+
+  return (
+    <ChatStreamContext.Provider value={value}>
+      {children}
+    </ChatStreamContext.Provider>
+  );
+};
+
+// ─── ChatUIProvider (outer — slow-moving state) ──────────────────────────
+
+export const ChatProvider: React.FC<ChatProviderProps> = ({
+  sessionId,
+  events,
+  onRegisterChatHandler,
+  onRegisterStreamStart,
+  onRegisterStreamAppend,
+  onRegisterStreamFinish,
+  onPhaseUpdate,
+  children,
+}) => {
+  const [messagesBySession, setMessagesBySession] = useState<Record<string, ChatMessage[]>>({});
+  const [isOpen, setIsOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [isSending, setIsSending] = useState(false);
+  const prevMessageCountRef = useRef(0);
 
   const messages = useMemo(
     () => (sessionId ? messagesBySession[sessionId] || [] : []),
@@ -94,13 +223,17 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ sessionId, events, o
     prevMessageCountRef.current = count;
   }, [messages, isOpen]);
 
-  // Reset on session change
+  // Reset on session change — clear stale messages view state
   useEffect(() => {
     setIsOpen(false);
     setUnreadCount(0);
     prevMessageCountRef.current = 0;
-    setStreaming({ isStreaming: false, content: '', messageId: null });
-  }, [sessionId]);
+    // Reset message count ref to current session's message count
+    // to prevent flash of old session's messages
+    if (sessionId) {
+      prevMessageCountRef.current = (messagesBySession[sessionId] || []).length;
+    }
+  }, [sessionId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const addMessage = useCallback((message: ChatMessage) => {
     if (!sessionId) return;
@@ -136,7 +269,6 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ sessionId, events, o
     try {
       const response = await sendChatMessage(sessionId, content.trim());
       addMessage(response);
-      // Instant phase/confidence sync from chat response metadata
       if (onPhaseUpdate && response.metadata?.newPhase) {
         onPhaseUpdate(response.metadata.newPhase, response.metadata.newConfidence ?? 0);
       }
@@ -153,76 +285,14 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ sessionId, events, o
     }
   }, [sessionId, addMessage, onPhaseUpdate]);
 
-  // Streaming actions
-  const startStream = useCallback(() => {
-    setStreaming({
-      isStreaming: true,
-      content: '',
-      messageId: crypto.randomUUID(),
-    });
-  }, []);
-
-  const appendChunk = useCallback((chunk: string) => {
-    setStreaming(prev => ({
-      ...prev,
-      isStreaming: true,
-      content: prev.content + chunk,
-    }));
-  }, []);
-
-  const finishStream = useCallback((fullResponse: string, metadata?: ChatMessage['metadata']) => {
-    if (!sessionId) return;
-    const msg: ChatMessage = {
-      role: 'assistant',
-      content: fullResponse,
-      timestamp: new Date().toISOString(),
-      metadata,
-    };
-    addMessage(msg);
-    setStreaming({ isStreaming: false, content: '', messageId: null });
-    setIsSending(false);
-  }, [sessionId, addMessage]);
-
-  // Register streaming handlers for parent (WebSocket bridge)
-  const streamStartedRef = useRef(false);
-  useEffect(() => {
-    if (onRegisterStreamStart) {
-      onRegisterStreamStart.current = () => {
-        if (!streamStartedRef.current) {
-          streamStartedRef.current = true;
-          startStream();
-        }
-      };
-    }
-    if (onRegisterStreamAppend) {
-      onRegisterStreamAppend.current = appendChunk;
-    }
-    if (onRegisterStreamFinish) {
-      onRegisterStreamFinish.current = (full, meta) => {
-        streamStartedRef.current = false;
-        finishStream(full, meta);
-        if (onPhaseUpdate && meta?.newPhase) {
-          onPhaseUpdate(meta.newPhase, meta.newConfidence ?? 0);
-        }
-      };
-    }
-    return () => {
-      if (onRegisterStreamStart) onRegisterStreamStart.current = null;
-      if (onRegisterStreamAppend) onRegisterStreamAppend.current = null;
-      if (onRegisterStreamFinish) onRegisterStreamFinish.current = null;
-    };
-  }, [startStream, appendChunk, finishStream, onRegisterStreamStart, onRegisterStreamAppend, onRegisterStreamFinish, onPhaseUpdate]);
-
   const toggleDrawer = useCallback(() => setIsOpen(prev => !prev), []);
   const openDrawer = useCallback(() => setIsOpen(true), []);
   const closeDrawer = useCallback(() => setIsOpen(false), []);
   const markRead = useCallback(() => setUnreadCount(0), []);
 
-  const value = useMemo<ChatContextValue>(() => ({
+  const uiValue = useMemo<ChatUIContextValue>(() => ({
     messages,
     isOpen,
-    isStreaming: streaming.isStreaming,
-    streamingContent: streaming.content,
     unreadCount,
     isWaiting,
     isSending,
@@ -232,19 +302,22 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ sessionId, events, o
     closeDrawer,
     markRead,
     addMessage,
-    startStream,
-    appendChunk,
-    finishStream,
   }), [
-    messages, isOpen, streaming.isStreaming, streaming.content,
-    unreadCount, isWaiting, isSending, sendMessage,
-    toggleDrawer, openDrawer, closeDrawer, markRead, addMessage,
-    startStream, appendChunk, finishStream,
+    messages, isOpen, unreadCount, isWaiting, isSending,
+    sendMessage, toggleDrawer, openDrawer, closeDrawer, markRead, addMessage,
   ]);
 
   return (
-    <ChatContext.Provider value={value}>
-      {children}
-    </ChatContext.Provider>
+    <ChatUIContext.Provider value={uiValue}>
+      <ChatStreamProvider
+        sessionId={sessionId}
+        onRegisterStreamStart={onRegisterStreamStart}
+        onRegisterStreamAppend={onRegisterStreamAppend}
+        onRegisterStreamFinish={onRegisterStreamFinish}
+        onPhaseUpdate={onPhaseUpdate}
+      >
+        {children}
+      </ChatStreamProvider>
+    </ChatUIContext.Provider>
   );
 };

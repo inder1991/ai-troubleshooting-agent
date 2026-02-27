@@ -1,0 +1,53 @@
+{
+  "dns_pods": [
+    {
+      "name": "coredns-abc123",
+      "status": "Evicted",
+      "node": "infra-node-03",
+      "restarts": 0
+    },
+    {
+      "name": "coredns-def456",
+      "status": "Pending",
+      "node": "",
+      "restarts": 0
+    },
+    {
+      "name": "coredns-ghi789",
+      "status": "Running",
+      "node": "worker-01",
+      "restarts": 0
+    }
+  ],
+  "ingress_controllers": [
+    {
+      "name": "default",
+      "replicas": 3,
+      "available": 1,
+      "status": "Degraded"
+    }
+  ],
+  "network_policies": [],
+  "dns_metrics": {
+    "resolution_failures_pct": 40.2,
+    "avg_latency_ms": 2450,
+    "queries_per_sec": 1200
+  },
+  "ingress_metrics": {
+    "5xx_rate_pct": 12.5,
+    "request_rate": 3400,
+    "p99_latency_ms": 8200
+  },
+  "logs": [
+    {
+      "timestamp": "2026-02-27T10:25:10Z",
+      "source": "coredns",
+      "message": "SERVFAIL for api.internal.svc.cluster.local: context deadline exceeded"
+    },
+    {
+      "timestamp": "2026-02-27T10:25:12Z",
+      "source": "coredns",
+      "message": "SERVFAIL for payment.production.svc.cluster.local: i/o timeout"
+    }
+  ]
+}

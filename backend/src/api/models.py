@@ -73,6 +73,7 @@ class StartSessionRequest(BaseModel):
     clusterUrl: Optional[str] = Field(default=None, alias="cluster_url")
     repoUrl: Optional[str] = Field(default=None, alias="repo_url")
     profileId: Optional[str] = Field(default=None, alias="profile_id")
+    capability: str = "troubleshoot_app"
 
 
 class StartSessionResponse(BaseModel):

@@ -10,7 +10,7 @@ import type {
   ClosureStatusResponse,
 } from '../types';
 
-const API_BASE_URL = 'http://localhost:8000';
+export const API_BASE_URL = 'http://localhost:8000';
 
 /** Safely extract error detail from a response (handles non-JSON like 502 nginx HTML). */
 const extractErrorDetail = async (response: Response, fallback: string): Promise<string> => {
@@ -423,7 +423,7 @@ export const createRemedyIncident = async (sessionId: string, data: {
   return response.json();
 };
 
-export const previewPostMortem = async (sessionId: string): Promise<{ title: string; body_markdown: string }> => {
+export const previewPostMortem = async (sessionId: string): Promise<{ title: string; body_markdown: string; executive_summary: string; impact_statement: string }> => {
   const response = await fetch(`${API_BASE_URL}/api/v4/session/${sessionId}/closure/confluence/preview`, {
     method: 'POST',
   });

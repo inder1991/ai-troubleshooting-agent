@@ -1,0 +1,67 @@
+{
+  "api_health": {
+    "status": "ok",
+    "latency_ms": 45
+  },
+  "cluster_operators": [
+    {
+      "name": "dns",
+      "available": false,
+      "degraded": true,
+      "message": "CoreDNS pods unavailable on infra-node-03"
+    },
+    {
+      "name": "ingress",
+      "available": true,
+      "degraded": true,
+      "message": "2 of 3 router pods degraded"
+    },
+    {
+      "name": "monitoring",
+      "available": true,
+      "degraded": false,
+      "message": ""
+    },
+    {
+      "name": "authentication",
+      "available": true,
+      "degraded": false,
+      "message": ""
+    }
+  ],
+  "etcd_members": [
+    {
+      "name": "etcd-master-01",
+      "status": "healthy",
+      "db_size_mb": 245
+    },
+    {
+      "name": "etcd-master-02",
+      "status": "healthy",
+      "db_size_mb": 243
+    },
+    {
+      "name": "etcd-master-03",
+      "status": "healthy",
+      "db_size_mb": 247
+    }
+  ],
+  "api_audit_logs": [
+    {
+      "timestamp": "2026-02-27T10:25:00Z",
+      "verb": "delete",
+      "resource": "pods",
+      "namespace": "production",
+      "user": "system:node:infra-node-03",
+      "reason": "eviction"
+    },
+    {
+      "timestamp": "2026-02-27T10:25:01Z",
+      "verb": "delete",
+      "resource": "pods",
+      "namespace": "production",
+      "user": "system:node:infra-node-03",
+      "reason": "eviction"
+    }
+  ]
+}
