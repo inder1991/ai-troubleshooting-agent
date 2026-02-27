@@ -1,0 +1,58 @@
+{
+  "storage_classes": [
+    {
+      "name": "gp3",
+      "provisioner": "ebs.csi.aws.com",
+      "default": true,
+      "reclaim_policy": "Delete"
+    },
+    {
+      "name": "gp2",
+      "provisioner": "kubernetes.io/aws-ebs",
+      "default": false,
+      "reclaim_policy": "Delete"
+    }
+  ],
+  "pvcs": [
+    {
+      "name": "access-logs-pvc",
+      "namespace": "production",
+      "status": "Bound",
+      "capacity": "10Gi",
+      "used_pct": 98,
+      "storage_class": "gp3"
+    },
+    {
+      "name": "app-data-pvc",
+      "namespace": "production",
+      "status": "Bound",
+      "capacity": "50Gi",
+      "used_pct": 45,
+      "storage_class": "gp3"
+    },
+    {
+      "name": "monitoring-pvc",
+      "namespace": "monitoring",
+      "status": "Bound",
+      "capacity": "100Gi",
+      "used_pct": 32,
+      "storage_class": "gp3"
+    }
+  ],
+  "csi_driver_pods": [
+    {
+      "name": "ebs-csi-controller-0",
+      "status": "Running",
+      "restarts": 0
+    },
+    {
+      "name": "ebs-csi-node-abc",
+      "status": "Running",
+      "restarts": 0
+    }
+  ],
+  "volume_metrics": {
+    "iops_throttled_pct": 0,
+    "attach_latency_ms": 120
+  }
+}
