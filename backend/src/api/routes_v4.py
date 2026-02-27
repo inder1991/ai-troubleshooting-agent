@@ -14,6 +14,7 @@ from src.api.models import (
     CampaignExecuteResponse,
 )
 from src.agents.supervisor import SupervisorAgent
+from src.agents.cluster.graph import build_cluster_diagnostic_graph
 from src.utils.event_emitter import EventEmitter
 from src.api.websocket import manager
 from src.utils.logger import get_logger
@@ -148,11 +149,49 @@ async def start_session(request: StartSessionRequest, background_tasks: Backgrou
     except Exception as e:
         logger.warning("Could not resolve profile config: %s", e)
 
-    supervisor = SupervisorAgent(connection_config=connection_config)
     emitter = EventEmitter(session_id=session_id, websocket_manager=manager)
 
     # C1: Create per-session lock
     session_locks[session_id] = asyncio.Lock()
+
+    capability = request.capability
+
+    # ── Cluster Diagnostics capability ──
+    if capability == "cluster_diagnostics":
+        from src.agents.cluster_client.mock_client import MockClusterClient
+        cluster_client = MockClusterClient(platform="openshift")
+        graph = build_cluster_diagnostic_graph()
+
+        sessions[session_id] = {
+            "service_name": request.serviceName or "Cluster Diagnostics",
+            "incident_id": incident_id,
+            "phase": "initial",
+            "confidence": 0,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "emitter": emitter,
+            "state": None,
+            "profile_id": profile_id,
+            "capability": "cluster_diagnostics",
+            "graph": graph,
+        }
+
+        background_tasks.add_task(
+            run_cluster_diagnosis, session_id, graph, cluster_client, emitter
+        )
+
+        logger.info("Cluster session created", extra={"session_id": session_id, "action": "session_created", "extra": "cluster_diagnostics"})
+
+        return StartSessionResponse(
+            session_id=session_id,
+            incident_id=incident_id,
+            status="started",
+            message="Cluster diagnostics started",
+            service_name=request.serviceName or "Cluster Diagnostics",
+            created_at=sessions[session_id]["created_at"],
+        )
+
+    # ── Default: troubleshoot_app capability ──
+    supervisor = SupervisorAgent(connection_config=connection_config)
 
     sessions[session_id] = {
         "service_name": request.serviceName,
@@ -191,8 +230,6 @@ async def start_session(request: StartSessionRequest, background_tasks: Backgrou
     logger.info("Session created", extra={"session_id": session_id, "action": "session_created", "extra": request.serviceName, "profile_id": profile_id})
 
     background_tasks.add_task(run_diagnosis, session_id, supervisor, initial_input, emitter)
-    # Note: FastAPI BackgroundTasks don't return asyncio.Task handles;
-    # the task ref is stored inside run_diagnosis itself.
 
     return StartSessionResponse(
         session_id=session_id,
@@ -268,6 +305,81 @@ def _push_to_v5(session_id: str, state):
         logger.info("Pushed V5 governance data for session %s: %d evidence pins", session_id, len(evidence_pins))
     except Exception as e:
         logger.error("Failed to push V5 governance data for session %s: %s", session_id, e, exc_info=True)
+
+
+async def run_cluster_diagnosis(session_id, graph, cluster_client, emitter):
+    """Background task: run LangGraph cluster diagnostic."""
+    try:
+        _diagnosis_tasks[session_id] = asyncio.current_task()
+    except RuntimeError:
+        pass
+
+    lock = session_locks.get(session_id, asyncio.Lock())
+    try:
+        initial_state = {
+            "diagnostic_id": session_id,
+            "platform": "",
+            "platform_version": "",
+            "namespaces": [],
+            "exclude_namespaces": [],
+            "domain_reports": [],
+            "causal_chains": [],
+            "uncorrelated_findings": [],
+            "health_report": None,
+            "phase": "pre_flight",
+            "re_dispatch_count": 0,
+            "re_dispatch_domains": [],
+            "data_completeness": 0.0,
+            "error": None,
+        }
+
+        # Pre-flight: detect platform
+        platform_info = await cluster_client.detect_platform()
+        initial_state["platform"] = platform_info.get("platform", "kubernetes")
+        initial_state["platform_version"] = platform_info.get("version", "")
+
+        ns_result = await cluster_client.list_namespaces()
+        initial_state["namespaces"] = ns_result.data
+
+        await emitter.emit("cluster_supervisor", "phase_change", "Starting cluster diagnostics", {"phase": "collecting_context"})
+
+        config = {
+            "configurable": {
+                "cluster_client": cluster_client,
+                "emitter": emitter,
+            }
+        }
+
+        result = await asyncio.wait_for(
+            graph.ainvoke(initial_state, config=config),
+            timeout=180,
+        )
+
+        async with lock:
+            if session_id in sessions:
+                sessions[session_id]["state"] = result
+                sessions[session_id]["phase"] = result.get("phase", "complete")
+                sessions[session_id]["confidence"] = int(result.get("data_completeness", 0) * 100)
+
+        await emitter.emit("cluster_supervisor", "phase_change", "Cluster diagnostics complete", {"phase": "diagnosis_complete"})
+
+    except asyncio.TimeoutError:
+        logger.error("Cluster diagnosis timed out", extra={"session_id": session_id})
+        async with lock:
+            if session_id in sessions:
+                sessions[session_id]["phase"] = "error"
+        await emitter.emit("cluster_supervisor", "error", "Cluster diagnosis timed out after 180s")
+    except asyncio.CancelledError:
+        logger.info("Cluster diagnosis cancelled for session %s", session_id)
+    except Exception as e:
+        logger.error("Cluster diagnosis failed", extra={"session_id": session_id, "action": "cluster_error", "extra": str(e)})
+        async with lock:
+            if session_id in sessions:
+                sessions[session_id]["phase"] = "error"
+        await emitter.emit("cluster_supervisor", "error", f"Cluster diagnosis failed: {str(e)}")
+    finally:
+        _diagnosis_tasks.pop(session_id, None)
+        await cluster_client.close()
 
 
 async def run_diagnosis(session_id: str, supervisor: SupervisorAgent, initial_input: dict, emitter: EventEmitter):
@@ -384,6 +496,25 @@ async def get_findings(session_id: str):
     session = sessions.get(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
+
+    # Cluster diagnostics: return cluster-specific findings
+    if session.get("capability") == "cluster_diagnostics":
+        state = session.get("state", {})
+        if isinstance(state, dict) and state:
+            return {
+                "diagnostic_id": session_id,
+                "platform": state.get("platform", ""),
+                "platform_version": state.get("platform_version", ""),
+                "platform_health": state.get("health_report", {}).get("platform_health", "UNKNOWN") if state.get("health_report") else "PENDING",
+                "data_completeness": state.get("data_completeness", 0.0),
+                "causal_chains": state.get("causal_chains", []),
+                "uncorrelated_findings": state.get("uncorrelated_findings", []),
+                "domain_reports": state.get("domain_reports", []),
+                "blast_radius": state.get("health_report", {}).get("blast_radius", {}) if state.get("health_report") else {},
+                "remediation": state.get("health_report", {}).get("remediation", {}) if state.get("health_report") else {},
+                "execution_metadata": state.get("health_report", {}).get("execution_metadata", {}) if state.get("health_report") else {},
+            }
+        return {"diagnostic_id": session_id, "platform_health": "PENDING", "domain_reports": []}
 
     state = session.get("state")
     logger.info("Findings requested", extra={"session_id": session_id, "action": "findings_requested", "extra": {"findings_count": len(state.all_findings) if state else 0}})
