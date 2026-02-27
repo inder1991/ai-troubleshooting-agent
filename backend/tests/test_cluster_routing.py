@@ -224,6 +224,24 @@ class TestClusterChat:
         assert len(history) <= 20
 
 
+class TestStartSessionAuthFields:
+    @patch("src.api.routes_v4.run_cluster_diagnosis", new_callable=AsyncMock)
+    @patch("src.api.routes_v4.build_cluster_diagnostic_graph")
+    def test_cluster_session_accepts_auth_fields(self, mock_build, mock_run, client):
+        """POST /session/start accepts authToken and authMethod for cluster sessions."""
+        mock_build.return_value = MagicMock()
+        resp = client.post("/api/v4/session/start", json={
+            "service_name": "Cluster Diagnostics",
+            "capability": "cluster_diagnostics",
+            "cluster_url": "https://api.cluster.example.com",
+            "auth_token": "eyJhbGciOi...",
+            "auth_method": "token",
+        })
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["status"] == "started"
+
+
 class TestAppChatFindings:
     """Verify app chat includes actual findings in the LLM prompt."""
 
