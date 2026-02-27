@@ -173,6 +173,7 @@ async def start_session(request: StartSessionRequest, background_tasks: Backgrou
             "profile_id": profile_id,
             "capability": "cluster_diagnostics",
             "graph": graph,
+            "chat_history": [],
         }
 
         background_tasks.add_task(
@@ -202,6 +203,7 @@ async def start_session(request: StartSessionRequest, background_tasks: Backgrou
         "emitter": emitter,
         "state": None,
         "profile_id": profile_id,
+        "chat_history": [],
     }
     supervisors[session_id] = supervisor
 

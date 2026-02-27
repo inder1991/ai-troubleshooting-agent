@@ -105,3 +105,31 @@ class TestClusterRouting:
         data = resp.json()
         assert data["findings"] == []
         assert data["message"] == "Analysis not yet complete"
+
+
+class TestChatHistory:
+    @patch("src.api.routes_v4.run_cluster_diagnosis", new_callable=AsyncMock)
+    @patch("src.api.routes_v4.build_cluster_diagnostic_graph")
+    def test_cluster_session_has_chat_history(self, mock_build, mock_run, client):
+        """Cluster session should be created with empty chat_history."""
+        mock_build.return_value = MagicMock()
+        resp = client.post("/api/v4/session/start", json={
+            "service_name": "Cluster Diagnostics",
+            "capability": "cluster_diagnostics",
+            "cluster_url": "https://api.cluster.example.com",
+        })
+        assert resp.status_code == 200
+        from src.api.routes_v4 import sessions
+        session = sessions[resp.json()["session_id"]]
+        assert session["chat_history"] == []
+
+    @patch("src.api.routes_v4.run_diagnosis", new_callable=AsyncMock)
+    def test_app_session_has_chat_history(self, mock_run, client):
+        """App session should be created with empty chat_history."""
+        resp = client.post("/api/v4/session/start", json={
+            "service_name": "my-app",
+        })
+        assert resp.status_code == 200
+        from src.api.routes_v4 import sessions
+        session = sessions[resp.json()["session_id"]]
+        assert session["chat_history"] == []
