@@ -1,3 +1,4 @@
+import json
 import os
 import re
 import uuid
@@ -16,6 +17,7 @@ from src.api.models import (
 from src.agents.supervisor import SupervisorAgent
 from src.agents.cluster.graph import build_cluster_diagnostic_graph
 from src.utils.event_emitter import EventEmitter
+from src.utils.llm_client import AnthropicClient
 from src.api.websocket import manager
 from src.utils.logger import get_logger
 
@@ -413,16 +415,80 @@ async def run_diagnosis(session_id: str, supervisor: SupervisorAgent, initial_in
         _diagnosis_tasks.pop(session_id, None)
 
 
+CLUSTER_CHAT_HISTORY_CAP = 20
+
+
+async def _handle_cluster_chat(session: dict, message: str) -> str:
+    """Handle chat for cluster diagnostics sessions using full cluster state as context."""
+    state = session.get("state")
+    if not state:
+        return "Diagnostics are still starting. Please wait for initial results before asking questions."
+
+    chat_history = session.setdefault("chat_history", [])
+
+    # Build system prompt with cluster state context
+    state_context = json.dumps(state, indent=2, default=str)
+    if len(state_context) > 8000:
+        state_context = state_context[:8000] + "\n... (truncated)"
+
+    system_prompt = f"""You are a cluster diagnostics assistant for an AI-powered SRE platform.
+You have access to the full diagnostic state below. Use it to answer questions accurately.
+
+Answer questions about diagnostic findings, help interpret causal chains, explain domain-specific
+issues (control plane, node health, networking, storage), guide remediation steps, and suggest
+re-analysis when the user provides new context.
+
+Be concise. Reference specific findings from the state when answering.
+
+## Current Cluster Diagnostic State
+{state_context}"""
+
+    # Build messages list from history + new user message
+    messages = [{"role": m["role"], "content": m["content"]} for m in chat_history]
+    messages.append({"role": "user", "content": message})
+
+    # Call LLM
+    try:
+        llm = AnthropicClient(agent_name="cluster_chat")
+        response = await llm.chat(
+            prompt=message,
+            system=system_prompt,
+            messages=messages,
+            max_tokens=1024,
+        )
+        response_text = response.text
+    except Exception as e:
+        logger.error("Cluster chat LLM call failed", extra={"error": str(e)})
+        return "I couldn't process your question. Please try again."
+
+    # Append to history and cap
+    chat_history.append({"role": "user", "content": message})
+    chat_history.append({"role": "assistant", "content": response_text})
+    if len(chat_history) > CLUSTER_CHAT_HISTORY_CAP:
+        session["chat_history"] = chat_history[-CLUSTER_CHAT_HISTORY_CAP:]
+
+    return response_text
+
+
 @router_v4.post("/session/{session_id}/chat", response_model=ChatResponse)
 async def chat(session_id: str, request: ChatRequest):
     _validate_session_id(session_id)
     logger.info("Chat message received", extra={"session_id": session_id, "action": "chat"})
 
-    # H1: Use .get() to avoid KeyError if session is cleaned up mid-request
     session = sessions.get(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
 
+    # Branch by capability
+    if session.get("capability") == "cluster_diagnostics":
+        response_text = await _handle_cluster_chat(session, request.message)
+        return ChatResponse(
+            response=response_text,
+            phase=session.get("phase", "initial"),
+            confidence=session.get("confidence", 0),
+        )
+
+    # App diagnostics — existing supervisor flow
     supervisor = supervisors.get(session_id)
     if not supervisor:
         raise HTTPException(status_code=404, detail="Session supervisor not found")
