@@ -391,12 +391,7 @@ async def run_diagnosis(session_id: str, supervisor: SupervisorAgent, initial_in
 
     lock = session_locks.get(session_id, asyncio.Lock())
     try:
-        state = await supervisor.run(
-            initial_input, emitter,
-            # Callback to expose state immediately after creation so the
-            # findings endpoint can read partial results mid-investigation.
-            on_state_created=lambda s: sessions[session_id].__setitem__("state", s),
-        )
+        state = await supervisor.run(initial_input, emitter)
         # C1: Acquire lock for state mutation
         async with lock:
             if session_id in sessions:
@@ -469,7 +464,7 @@ async def get_session_status(session_id: str):
 
     result = {
         "session_id": session_id,
-        "incident_id": state.incident_id if state else None,
+        "incident_id": session.get("incident_id"),
         "service_name": session["service_name"],
         "phase": session["phase"],
         "confidence": session["confidence"],
@@ -480,7 +475,16 @@ async def get_session_status(session_id: str):
         "token_usage": [],
     }
 
+    # Cluster sessions: state is a plain dict
+    if session.get("capability") == "cluster_diagnostics":
+        if state and isinstance(state, dict):
+            result["findings_count"] = len(state.get("domain_reports", []))
+            result["data_completeness"] = state.get("data_completeness", 0)
+        return result
+
+    # App sessions: state is a SupervisorAgent state object
     if state:
+        result["incident_id"] = state.incident_id
         result["agents_completed"] = state.agents_completed
         result["findings_count"] = len(state.all_findings)
         result["token_usage"] = [t.model_dump() for t in state.token_usage]

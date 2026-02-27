@@ -611,15 +611,15 @@ export interface ClusterHealthReport {
   platform_version: string;
   platform_health: 'HEALTHY' | 'DEGRADED' | 'CRITICAL' | 'UNKNOWN' | 'PENDING';
   data_completeness: number;
-  blast_radius: ClusterBlastRadius;
-  causal_chains: ClusterCausalChain[];
-  uncorrelated_findings: ClusterDomainAnomaly[];
-  domain_reports: ClusterDomainReport[];
-  remediation: {
-    immediate: ClusterRemediationStep[];
-    long_term: ClusterRemediationStep[];
+  blast_radius?: ClusterBlastRadius;
+  causal_chains?: ClusterCausalChain[];
+  uncorrelated_findings?: ClusterDomainAnomaly[];
+  domain_reports?: ClusterDomainReport[];
+  remediation?: {
+    immediate?: ClusterRemediationStep[];
+    long_term?: ClusterRemediationStep[];
   };
-  execution_metadata: Record<string, number>;
+  execution_metadata?: Record<string, number>;
 }
 
 export type CapabilityFormData =

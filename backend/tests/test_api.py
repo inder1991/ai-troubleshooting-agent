@@ -46,5 +46,5 @@ async def test_health_endpoint():
     app = create_app()
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.get("/api/health")
+        response = await client.get("/api/pr-endpoints/health")
         assert response.status_code == 200

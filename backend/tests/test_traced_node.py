@@ -11,7 +11,8 @@ async def test_traced_node_success():
         return {"domain_reports": [{"domain": "test", "status": "SUCCESS"}]}
     result = await my_node({"diagnostic_id": "D-1"}, {"configurable": {}})
     assert "domain_reports" in result
-    assert result["_trace"]["status"] == "SUCCESS"
+    assert isinstance(result["_trace"], list)
+    assert result["_trace"][0]["status"] == "SUCCESS"
 
 
 @pytest.mark.asyncio
@@ -21,8 +22,12 @@ async def test_traced_node_timeout():
         await asyncio.sleep(10)
         return {}
     result = await slow_node({"diagnostic_id": "D-1"}, {"configurable": {}})
-    assert result["_trace"]["status"] == "FAILED"
-    assert result["_trace"]["failure_reason"] == "TIMEOUT"
+    assert isinstance(result["_trace"], list)
+    assert result["_trace"][0]["status"] == "FAILED"
+    assert result["_trace"][0]["failure_reason"] == "TIMEOUT"
+    # Verify error report is included in domain_reports
+    assert "domain_reports" in result
+    assert result["domain_reports"][0]["status"] == "FAILED"
 
 
 @pytest.mark.asyncio
@@ -31,8 +36,12 @@ async def test_traced_node_exception():
     async def bad_node(state, config):
         raise ValueError("something broke")
     result = await bad_node({"diagnostic_id": "D-1"}, {"configurable": {}})
-    assert result["_trace"]["status"] == "FAILED"
-    assert result["_trace"]["failure_reason"] == "EXCEPTION"
+    assert isinstance(result["_trace"], list)
+    assert result["_trace"][0]["status"] == "FAILED"
+    assert result["_trace"][0]["failure_reason"] == "EXCEPTION"
+    # Verify error report is included in domain_reports
+    assert "domain_reports" in result
+    assert result["domain_reports"][0]["status"] == "FAILED"
 
 
 def test_node_execution_model():

@@ -79,7 +79,8 @@ const CapabilityForm: React.FC<CapabilityFormProps> = ({ capability, onBack, onS
       case 'github_issue_fix':
         return formData.repo_url.trim().length > 0 && formData.issue_number.trim().length > 0;
       case 'cluster_diagnostics':
-        return formData.cluster_url.trim().length > 0;
+        return formData.cluster_url.trim().length > 0
+          && /^https?:\/\/.+/.test(formData.cluster_url.trim());
     }
   };
 

@@ -3,6 +3,7 @@ import type {
   V4Session, ClusterHealthReport, ClusterDomainReport,
   ClusterCausalChain, TaskEvent,
 } from '../../types';
+import { API_BASE_URL } from '../../services/api';
 
 interface ClusterWarRoomProps {
   session: V4Session;
@@ -32,18 +33,22 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
 }) => {
   const [findings, setFindings] = useState<ClusterHealthReport | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchFindings = useCallback(async () => {
     try {
-      const res = await fetch(`/api/v4/session/${session.session_id}/findings`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data.platform_health && data.platform_health !== 'PENDING') {
-          setFindings(data as ClusterHealthReport);
-        }
+      const res = await fetch(`${API_BASE_URL}/api/v4/session/${session.session_id}/findings`);
+      if (!res.ok) {
+        setError(`Failed to fetch findings (HTTP ${res.status})`);
+        return;
       }
-    } catch {
-      // silent
+      const data = await res.json();
+      if (data.platform_health && data.platform_health !== 'PENDING') {
+        setFindings(data as ClusterHealthReport);
+        setError(null);
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to fetch findings');
     } finally {
       setLoading(false);
     }
@@ -90,7 +95,16 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
 
       {/* Main content grid */}
       <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
-        {loading && !findings && (
+        {error && (
+          <div className="mb-4 p-3 rounded-lg border border-red-500/30 bg-red-500/10 flex items-center justify-between">
+            <span className="text-sm text-red-400">{error}</span>
+            <button onClick={fetchFindings} className="text-xs text-red-300 hover:text-white px-3 py-1 rounded border border-red-500/30 hover:bg-red-500/20 transition-colors">
+              Retry
+            </button>
+          </div>
+        )}
+
+        {loading && !findings && !error && (
           <div className="flex items-center justify-center h-64 text-slate-500">
             <span className="material-symbols-outlined animate-spin mr-2" style={{ fontFamily: 'Material Symbols Outlined' }}>progress_activity</span>
             Running cluster diagnostics...
@@ -140,7 +154,7 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
             {findings.causal_chains?.length > 0 && (
               <div className="col-span-12 rounded-lg border p-4" style={{ borderColor: '#224349', backgroundColor: 'rgba(15,32,35,0.6)' }}>
                 <h3 className="text-sm font-bold text-white mb-3">Causal Chains</h3>
-                {findings.causal_chains.map(chain => (
+                {findings.causal_chains?.map(chain => (
                   <div key={chain.chain_id} className="mb-3 p-3 rounded border" style={{ borderColor: '#224349' }}>
                     <div className="flex items-center gap-2 mb-2">
                       <span className="text-xs font-bold text-red-400 uppercase">Root Cause</span>
@@ -163,11 +177,11 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
             {findings.blast_radius?.summary && (
               <div className="col-span-6 rounded-lg border p-4" style={{ borderColor: '#224349', backgroundColor: 'rgba(15,32,35,0.6)' }}>
                 <h3 className="text-sm font-bold text-white mb-2">Blast Radius</h3>
-                <p className="text-sm text-slate-300 mb-2">{findings.blast_radius.summary}</p>
+                <p className="text-sm text-slate-300 mb-2">{findings.blast_radius?.summary}</p>
                 <div className="flex gap-4 text-xs text-slate-500">
-                  <span>{findings.blast_radius.affected_nodes} nodes</span>
-                  <span>{findings.blast_radius.affected_pods} pods</span>
-                  <span>{findings.blast_radius.affected_namespaces} namespaces</span>
+                  <span>{findings.blast_radius?.affected_nodes ?? 0} nodes</span>
+                  <span>{findings.blast_radius?.affected_pods ?? 0} pods</span>
+                  <span>{findings.blast_radius?.affected_namespaces ?? 0} namespaces</span>
                 </div>
               </div>
             )}
@@ -176,7 +190,7 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
             {(findings.remediation?.immediate?.length > 0 || findings.remediation?.long_term?.length > 0) && (
               <div className="col-span-6 rounded-lg border p-4" style={{ borderColor: '#224349', backgroundColor: 'rgba(15,32,35,0.6)' }}>
                 <h3 className="text-sm font-bold text-white mb-2">Remediation</h3>
-                {findings.remediation.immediate?.map((step, i) => (
+                {findings.remediation?.immediate?.map((step, i) => (
                   <div key={i} className="mb-2">
                     <p className="text-xs text-slate-300">{step.description}</p>
                     {step.command && (
@@ -184,10 +198,10 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
                     )}
                   </div>
                 ))}
-                {findings.remediation.long_term?.length > 0 && (
+                {(findings.remediation?.long_term?.length ?? 0) > 0 && (
                   <>
                     <h4 className="text-xs font-bold text-slate-400 mt-3 mb-1">Long Term</h4>
-                    {findings.remediation.long_term.map((step, i) => (
+                    {findings.remediation?.long_term?.map((step, i) => (
                       <div key={i} className="mb-2">
                         <p className="text-xs text-slate-300">{step.description}</p>
                       </div>

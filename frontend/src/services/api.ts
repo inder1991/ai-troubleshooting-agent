@@ -10,7 +10,7 @@ import type {
   ClosureStatusResponse,
 } from '../types';
 
-const API_BASE_URL = 'http://localhost:8000';
+export const API_BASE_URL = 'http://localhost:8000';
 
 /** Safely extract error detail from a response (handles non-JSON like 502 nginx HTML). */
 const extractErrorDetail = async (response: Response, fallback: string): Promise<string> => {

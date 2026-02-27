@@ -25,6 +25,22 @@ class NodeExecution(BaseModel):
     output_summary: str = ""
 
 
+def _build_error_report(domain: str, trace: NodeExecution) -> dict:
+    """Build a minimal DomainReport dict for a failed agent node."""
+    return {
+        "domain": domain,
+        "status": "FAILED",
+        "failure_reason": trace.failure_reason.value if trace.failure_reason else "EXCEPTION",
+        "confidence": 0,
+        "anomalies": [],
+        "ruled_out": [],
+        "evidence_refs": [],
+        "data_gathered_before_failure": [],
+        "token_usage": 0,
+        "duration_ms": trace.duration_ms,
+    }
+
+
 def traced_node(timeout_seconds: float = 60):
     def decorator(func: Callable) -> Callable:
         @functools.wraps(func)
@@ -38,7 +54,7 @@ def traced_node(timeout_seconds: float = 60):
                 trace.status = "SUCCESS"
                 trace.duration_ms = elapsed
                 if isinstance(result, dict):
-                    result["_trace"] = trace.model_dump(mode="json")
+                    result["_trace"] = [trace.model_dump(mode="json")]
                 return result
             except asyncio.TimeoutError:
                 elapsed = int((time.monotonic() - start) * 1000)
@@ -47,7 +63,11 @@ def traced_node(timeout_seconds: float = 60):
                 trace.failure_detail = f"Timed out after {timeout_seconds}s"
                 trace.duration_ms = elapsed
                 logger.warning("Node timed out", extra={"node": node_name, "action": "timeout", "extra": f"{timeout_seconds}s"})
-                return {"_trace": trace.model_dump(mode="json")}
+                domain = node_name.replace("_agent", "")
+                return {
+                    "domain_reports": [_build_error_report(domain, trace)],
+                    "_trace": [trace.model_dump(mode="json")],
+                }
             except Exception as e:
                 elapsed = int((time.monotonic() - start) * 1000)
                 trace.status = "FAILED"
@@ -55,6 +75,10 @@ def traced_node(timeout_seconds: float = 60):
                 trace.failure_detail = str(e)
                 trace.duration_ms = elapsed
                 logger.error("Node failed", extra={"node": node_name, "action": "exception", "extra": str(e)})
-                return {"_trace": trace.model_dump(mode="json")}
+                domain = node_name.replace("_agent", "")
+                return {
+                    "domain_reports": [_build_error_report(domain, trace)],
+                    "_trace": [trace.model_dump(mode="json")],
+                }
         return wrapper
     return decorator

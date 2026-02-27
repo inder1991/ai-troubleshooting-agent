@@ -11,7 +11,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from .pr_endpoints import router as pr_router
 from datetime import datetime
 
-from .routes import router
 from .routes_v4 import router_v4
 from .routes_v5 import router as v5_router
 from .routes_profiles import router as profiles_router
@@ -85,7 +84,6 @@ def create_app() -> FastAPI:
     )
 
     # Include routes
-    app.include_router(router)
     app.include_router(pr_router, prefix="/api")
     app.include_router(router_v4)
     app.include_router(v5_router)
@@ -123,19 +121,14 @@ def create_app() -> FastAPI:
                 try:
                     data = await websocket.receive_json()
                     
-                    # Handle approval messages
+                    # Handle approval messages (V3 legacy — log warning)
                     if data.get("type") == "approval":
-                        from .routes import handle_approval
-                        await handle_approval(
-                            session_id,
-                            data.get("approved", False),
-                            data.get("comments")
-                        )
-                
+                        logger.warning("V3 approval no longer supported", extra={"session_id": session_id})
+
                 except WebSocketDisconnect:
                     break
                 except Exception as e:
-                    print(f"WebSocket error: {e}")
+                    logger.error("WebSocket error", extra={"session_id": session_id, "error": str(e)})
                     break
         
         finally:

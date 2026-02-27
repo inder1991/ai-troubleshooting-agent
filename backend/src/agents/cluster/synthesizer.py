@@ -206,16 +206,38 @@ async def synthesize(state: dict, config: dict) -> dict:
     # Stage 3: Verdict
     verdict = await _llm_verdict(causal_result.get("causal_chains", []), reports, data_completeness)
 
-    # Build health report
+    # Build health report with Pydantic validation safety
+    try:
+        blast_radius = BlastRadius(**verdict.get("blast_radius", {}))
+    except Exception:
+        logger.warning("Failed to parse blast_radius from LLM, using defaults")
+        blast_radius = BlastRadius()
+
+    causal_chains = []
+    for c in causal_result.get("causal_chains", []):
+        if isinstance(c, dict) and "chain_id" in c:
+            try:
+                causal_chains.append(CausalChain(**c))
+            except Exception:
+                logger.warning("Failed to parse causal chain: %s", c.get("chain_id", "?"))
+
+    uncorrelated = []
+    for f in causal_result.get("uncorrelated_findings", []):
+        if isinstance(f, dict) and "domain" in f:
+            try:
+                uncorrelated.append(DomainAnomaly(**f))
+            except Exception:
+                logger.warning("Failed to parse uncorrelated finding in domain: %s", f.get("domain", "?"))
+
     health_report = ClusterHealthReport(
         diagnostic_id=diagnostic_id,
         platform=platform,
         platform_version=platform_version,
         platform_health=verdict.get("platform_health", "UNKNOWN"),
         data_completeness=data_completeness,
-        blast_radius=BlastRadius(**verdict.get("blast_radius", {})),
-        causal_chains=[CausalChain(**c) for c in causal_result.get("causal_chains", []) if isinstance(c, dict) and "chain_id" in c],
-        uncorrelated_findings=[DomainAnomaly(**f) for f in causal_result.get("uncorrelated_findings", []) if isinstance(f, dict) and "domain" in f],
+        blast_radius=blast_radius,
+        causal_chains=causal_chains,
+        uncorrelated_findings=uncorrelated,
         domain_reports=reports,
         remediation=verdict.get("remediation", {}),
         execution_metadata={
@@ -225,11 +247,20 @@ async def synthesize(state: dict, config: dict) -> dict:
         },
     )
 
-    return {
+    re_dispatch_needed = verdict.get("re_dispatch_needed", False)
+    re_dispatch_domains = verdict.get("re_dispatch_domains", []) if re_dispatch_needed else []
+
+    result = {
         "health_report": health_report.model_dump(mode="json"),
         "causal_chains": [c.model_dump(mode="json") for c in health_report.causal_chains],
         "uncorrelated_findings": [f.model_dump(mode="json") for f in health_report.uncorrelated_findings],
         "data_completeness": data_completeness,
         "phase": "complete",
-        "re_dispatch_domains": verdict.get("re_dispatch_domains", []) if verdict.get("re_dispatch_needed") else [],
+        "re_dispatch_domains": re_dispatch_domains,
     }
+
+    # 1.1: Increment re_dispatch_count when re-dispatch is triggered
+    if re_dispatch_domains:
+        result["re_dispatch_count"] = state.get("re_dispatch_count", 0) + 1
+
+    return result

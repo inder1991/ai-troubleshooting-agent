@@ -223,12 +223,17 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({
     prevMessageCountRef.current = count;
   }, [messages, isOpen]);
 
-  // Reset on session change
+  // Reset on session change — clear stale messages view state
   useEffect(() => {
     setIsOpen(false);
     setUnreadCount(0);
     prevMessageCountRef.current = 0;
-  }, [sessionId]);
+    // Reset message count ref to current session's message count
+    // to prevent flash of old session's messages
+    if (sessionId) {
+      prevMessageCountRef.current = (messagesBySession[sessionId] || []).length;
+    }
+  }, [sessionId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const addMessage = useCallback((message: ChatMessage) => {
     if (!sessionId) return;

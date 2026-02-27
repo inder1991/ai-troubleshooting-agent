@@ -35,15 +35,16 @@ class State(TypedDict):
     re_dispatch_domains: list[str]
     data_completeness: float
     error: Optional[str]
+    _trace: Annotated[list[dict], operator.add]
 
 
-def _should_redispatch(state: dict) -> str:
-    """Conditional edge: re-dispatch or end."""
+def _should_redispatch(state: dict) -> list[str]:
+    """Conditional edge: re-dispatch to all 4 agents or end."""
     re_dispatch = state.get("re_dispatch_domains", [])
     count = state.get("re_dispatch_count", 0)
     if re_dispatch and count < 1:
-        return "dispatch"
-    return "end"
+        return ["dispatch_ctrl_plane", "dispatch_node", "dispatch_network", "dispatch_storage"]
+    return ["end"]
 
 
 def build_cluster_diagnostic_graph():
@@ -70,11 +71,17 @@ def build_cluster_diagnostic_graph():
     graph.add_edge("network_agent", "synthesize")
     graph.add_edge("storage_agent", "synthesize")
 
-    # After synthesis: check confidence and optionally re-dispatch
+    # After synthesis: check confidence and optionally re-dispatch to all agents
     graph.add_conditional_edges(
         "synthesize",
         _should_redispatch,
-        {"dispatch": "ctrl_plane_agent", "end": END},
+        {
+            "dispatch_ctrl_plane": "ctrl_plane_agent",
+            "dispatch_node": "node_agent",
+            "dispatch_network": "network_agent",
+            "dispatch_storage": "storage_agent",
+            "end": END,
+        },
     )
 
     compiled = graph.compile()
