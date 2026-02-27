@@ -2260,22 +2260,49 @@ Respond ONLY with a JSON array:
                     return "Starting fix generation using findings from all diagnostic agents. I'll present the proposed fix for your review shortly."
                 return "Fix generation is not available — event emitter not initialized."
 
-        # Stream LLM response — emit chat_chunk messages via WebSocket for live typing
-        prompt_text = f"""Current diagnostic state:
+        # ── Serialize findings context for the LLM ──
+        findings_context = self._serialize_findings_for_chat(state)
+
+        # ── Build conversation history ──
+        session = None
+        try:
+            from src.api.routes_v4 import sessions
+            for sid, s in sessions.items():
+                if s.get("state") is state:
+                    session = s
+                    break
+        except ImportError:
+            pass
+
+        chat_history = session.get("chat_history", []) if session else []
+
+        # Build messages with history
+        history_messages = [{"role": m["role"], "content": m["content"]} for m in chat_history]
+        history_messages.append({"role": "user", "content": message})
+
+        system_text = f"""You are an AI SRE assistant helping diagnose application issues.
+You have access to the full diagnostic findings below. Use them to answer questions accurately.
+
+Explain findings, interpret root causes, clarify metric anomalies, guide remediation, and
+suggest follow-up investigation when appropriate. Be concise and reference specific findings.
+
+## Current Diagnostic State
 - Phase: {state.phase.value}
 - Service: {state.service_name}
-- Agents completed: {state.agents_completed}
+- Agents completed: {', '.join(state.agents_completed) if state.agents_completed else 'none yet'}
 - Overall confidence: {state.overall_confidence}%
-- Findings so far: {len(state.all_findings)}
 
-User message: {message}
+## Diagnostic Findings
+{findings_context}"""
 
-Respond helpfully. If they're asking for status, give a brief update. If they're providing additional context, acknowledge it."""
-        system_text = "You are an AI SRE assistant. Respond concisely to user messages during an active diagnosis."
-
+        # Stream LLM response — emit chat_chunk messages via WebSocket for live typing
         ws_mgr = self._event_emitter._websocket_manager if self._event_emitter else None
         full_response = ""
-        async for chunk in self.llm_client.chat_stream(prompt=prompt_text, system=system_text):
+        async for chunk in self.llm_client.chat_stream(
+            prompt=message,
+            system=system_text,
+            messages=history_messages,
+        ):
             full_response += chunk
             if ws_mgr:
                 await ws_mgr.send_message(
@@ -2299,7 +2326,80 @@ Respond helpfully. If they're asking for status, give a brief update. If they're
                 },
             )
 
+        # Store conversation history
+        if session is not None:
+            chat_history.append({"role": "user", "content": message})
+            chat_history.append({"role": "assistant", "content": full_response})
+            if len(chat_history) > 20:
+                session["chat_history"] = chat_history[-20:]
+
         return full_response
+
+    def _serialize_findings_for_chat(self, state) -> str:
+        """Serialize diagnostic findings into a concise text block for chat LLM context."""
+        sections = []
+
+        # Top findings sorted by severity
+        if state.all_findings:
+            severity_order = {"critical": 0, "high": 1, "medium": 2, "low": 3}
+            sorted_findings = sorted(
+                state.all_findings,
+                key=lambda f: severity_order.get(f.severity, 3),
+            )
+            findings_lines = []
+            for f in sorted_findings[:10]:
+                findings_lines.append(
+                    f"- [{f.severity.upper()}] ({f.agent_name}, {f.confidence_score}% conf) {f.summary}"
+                )
+            if findings_lines:
+                sections.append("### Top Findings\n" + "\n".join(findings_lines))
+
+        # Metrics analysis
+        if state.metrics_analysis:
+            ma = state.metrics_analysis
+            anomalies = getattr(ma, "anomalies", []) or []
+            if anomalies:
+                metrics_lines = []
+                for a in anomalies[:5]:
+                    name = getattr(a, "metric_name", str(a))
+                    severity = getattr(a, "severity", "unknown")
+                    peak = getattr(a, "peak_value", "N/A")
+                    metrics_lines.append(f"- {name}: peak={peak}, severity={severity}")
+                sections.append("### Metrics Anomalies\n" + "\n".join(metrics_lines))
+
+        # K8s analysis
+        if state.k8s_analysis:
+            ka = state.k8s_analysis
+            issues = getattr(ka, "issues", []) or getattr(ka, "pod_issues", []) or []
+            if issues:
+                k8s_lines = [f"- {issue}" for issue in issues[:5]]
+                sections.append("### K8s Issues\n" + "\n".join(k8s_lines))
+
+        # Code analysis
+        if state.code_analysis:
+            ca = state.code_analysis
+            root_cause = getattr(ca, "root_cause_location", None) or getattr(ca, "summary", None)
+            if root_cause:
+                sections.append(f"### Code Analysis\nRoot cause: {root_cause}")
+
+        # Reasoning chain
+        if state.reasoning_chain:
+            chain_lines = []
+            for step in state.reasoning_chain[:5]:
+                if isinstance(step, dict):
+                    chain_lines.append(f"- {step.get('summary', str(step))}")
+                else:
+                    summary = getattr(step, "summary", str(step))
+                    chain_lines.append(f"- {summary}")
+            if chain_lines:
+                sections.append("### Reasoning Chain\n" + "\n".join(chain_lines))
+
+        result = "\n\n".join(sections) if sections else "No findings yet."
+
+        if len(result) > 8000:
+            result = result[:8000] + "\n... (truncated)"
+
+        return result
 
     async def _process_repo_confirmation(self, message: str) -> str:
         """Parse user's repo confirmation response and signal the waiting coroutine."""

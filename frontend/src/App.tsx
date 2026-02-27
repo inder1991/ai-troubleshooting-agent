@@ -412,14 +412,16 @@ function AppInner() {
         )}
 
         {viewState === 'cluster-diagnostics' && activeSession && (
-          <ClusterWarRoom
-            session={activeSession}
-            events={currentTaskEvents}
-            wsConnected={wsConnected}
-            phase={currentPhase}
-            confidence={confidence}
-            onGoHome={handleGoHome}
-          />
+          <ChatProvider sessionId={activeSessionId} events={currentTaskEvents} onRegisterChatHandler={chatResponseRef} onRegisterStreamStart={streamStartRef} onRegisterStreamAppend={streamAppendRef} onRegisterStreamFinish={streamFinishRef} onPhaseUpdate={handleChatPhaseUpdate}>
+            <ClusterWarRoom
+              session={activeSession}
+              events={currentTaskEvents}
+              wsConnected={wsConnected}
+              phase={currentPhase}
+              confidence={confidence}
+              onGoHome={handleGoHome}
+            />
+          </ChatProvider>
         )}
       </div>
     </div>
