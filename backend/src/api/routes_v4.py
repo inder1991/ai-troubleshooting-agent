@@ -135,6 +135,12 @@ def start_cleanup_task():
     asyncio.create_task(_session_cleanup_loop())
 
 
+def create_cluster_client(connection_config=None):
+    """Factory for cluster client. Returns MockClusterClient for now; swappable for real client."""
+    from src.agents.cluster_client.mock_client import MockClusterClient
+    return MockClusterClient(platform="openshift")
+
+
 @router_v4.post("/session/start", response_model=StartSessionResponse)
 async def start_session(request: StartSessionRequest, background_tasks: BackgroundTasks):
     session_id = str(uuid.uuid4())
@@ -160,8 +166,19 @@ async def start_session(request: StartSessionRequest, background_tasks: Backgrou
 
     # ── Cluster Diagnostics capability ──
     if capability == "cluster_diagnostics":
-        from src.agents.cluster_client.mock_client import MockClusterClient
-        cluster_client = MockClusterClient(platform="openshift")
+        # Build connection config: prefer profile, fall back to ad-hoc fields
+        if not connection_config and request.clusterUrl:
+            try:
+                from src.integrations.connection_config import ResolvedConnectionConfig
+                connection_config = ResolvedConnectionConfig(
+                    cluster_url=request.clusterUrl,
+                    cluster_token=request.authToken or "",
+                    cluster_type="kubernetes",
+                )
+            except Exception as e:
+                logger.warning("Could not build ad-hoc connection config: %s", e)
+
+        cluster_client = create_cluster_client(connection_config)
         graph = build_cluster_diagnostic_graph()
 
         sessions[session_id] = {
@@ -176,6 +193,7 @@ async def start_session(request: StartSessionRequest, background_tasks: Backgrou
             "capability": "cluster_diagnostics",
             "graph": graph,
             "chat_history": [],
+            "connection_config": connection_config,
         }
 
         background_tasks.add_task(

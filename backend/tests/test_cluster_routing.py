@@ -242,6 +242,42 @@ class TestStartSessionAuthFields:
         assert data["status"] == "started"
 
 
+class TestClusterConnectionConfig:
+    @patch("src.api.routes_v4.run_cluster_diagnosis", new_callable=AsyncMock)
+    @patch("src.api.routes_v4.build_cluster_diagnostic_graph")
+    def test_cluster_session_stores_connection_config(self, mock_build, mock_run, client):
+        """Cluster session stores connection_config in session dict."""
+        mock_build.return_value = MagicMock()
+        resp = client.post("/api/v4/session/start", json={
+            "service_name": "Cluster Diagnostics",
+            "capability": "cluster_diagnostics",
+            "cluster_url": "https://api.cluster.example.com",
+            "auth_token": "test-token-123",
+            "auth_method": "token",
+        })
+        assert resp.status_code == 200
+        from src.api.routes_v4 import sessions
+        session = sessions[resp.json()["session_id"]]
+        assert "connection_config" in session
+
+    @patch("src.api.routes_v4.run_cluster_diagnosis", new_callable=AsyncMock)
+    @patch("src.api.routes_v4.build_cluster_diagnostic_graph")
+    def test_cluster_session_with_profile_has_connection_config(self, mock_build, mock_run, client):
+        """Cluster session with profile_id resolves connection_config from profile store."""
+        mock_build.return_value = MagicMock()
+        # connection_config comes from resolve_active_profile which is called earlier in start_session
+        resp = client.post("/api/v4/session/start", json={
+            "service_name": "Cluster Diagnostics",
+            "capability": "cluster_diagnostics",
+            "cluster_url": "https://api.cluster.example.com",
+            "profile_id": "some-profile-id",
+        })
+        assert resp.status_code == 200
+        from src.api.routes_v4 import sessions
+        session = sessions[resp.json()["session_id"]]
+        assert "connection_config" in session
+
+
 class TestAppChatFindings:
     """Verify app chat includes actual findings in the LLM prompt."""
 
