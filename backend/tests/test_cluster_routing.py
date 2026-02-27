@@ -222,3 +222,30 @@ class TestClusterChat:
 
         history = sessions[sid]["chat_history"]
         assert len(history) <= 20
+
+
+class TestAppChatFindings:
+    """Verify app chat includes actual findings in the LLM prompt."""
+
+    def test_app_chat_routes_through_supervisor(self, client):
+        """App chat routes through supervisor.handle_user_message()."""
+        from src.api.routes_v4 import sessions, supervisors
+        sid = "00000000-0000-4000-8000-000000000030"
+        mock_supervisor = MagicMock()
+        mock_supervisor.handle_user_message = AsyncMock(return_value="Findings-based answer")
+
+        sessions[sid] = {
+            "service_name": "my-app",
+            "incident_id": "INC-030",
+            "phase": "diagnosis_complete",
+            "confidence": 85,
+            "created_at": "2026-01-01T00:00:00Z",
+            "state": MagicMock(),
+            "chat_history": [],
+        }
+        supervisors[sid] = mock_supervisor
+
+        resp = client.post(f"/api/v4/session/{sid}/chat", json={"message": "Why is memory spiking?"})
+        assert resp.status_code == 200
+        assert resp.json()["response"] == "Findings-based answer"
+        mock_supervisor.handle_user_message.assert_called_once()
