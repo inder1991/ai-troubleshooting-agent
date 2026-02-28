@@ -255,7 +255,8 @@ class TestDescribeResource:
 
     @pytest.mark.asyncio
     async def test_describe_node_cluster_scoped(self):
-        """Describing a node should work without namespace (cluster-scoped)."""
+        """Describing a node should work (cluster-scoped — namespace is
+        provided by context defaults but ignored for cluster-scoped lookups)."""
         mock_api = MagicMock()
         mock_node = MagicMock()
         mock_node.metadata = MagicMock()
@@ -275,6 +276,7 @@ class TestDescribeResource:
             result = await executor.execute("describe_resource", {
                 "kind": "node",
                 "name": "worker-1",
+                "namespace": "default",  # filled by router context defaults
             })
 
         assert result.success is True

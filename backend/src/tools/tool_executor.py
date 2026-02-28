@@ -14,6 +14,7 @@ from kubernetes.client import ApiClient
 from kubernetes.client.exceptions import ApiException
 
 from src.tools.tool_result import ToolResult
+from src.tools.tool_registry import TOOL_REGISTRY
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -171,10 +172,56 @@ class ToolExecutor:
         "search_logs": "_search_logs",
         "check_pod_status": "_check_pod_status",
         "get_events": "_get_events",
+        "re_investigate_service": "_re_investigate_service",
     }
+
+    # ------------------------------------------------------------------
+    # Parameter validation
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _validate_params(intent: str, params: dict[str, Any]) -> str | None:
+        """Check that all required params (per TOOL_REGISTRY schema) are present.
+
+        Returns an error string describing the missing params, or None if valid.
+        """
+        # Find the registry entry for this intent
+        registry_entry = None
+        for tool in TOOL_REGISTRY:
+            if tool["intent"] == intent:
+                registry_entry = tool
+                break
+
+        if registry_entry is None:
+            # No schema to validate against — skip validation
+            return None
+
+        missing: list[str] = []
+        for param_def in registry_entry.get("params_schema", []):
+            if param_def.get("required", False):
+                if param_def["name"] not in params or params[param_def["name"]] is None:
+                    missing.append(param_def["name"])
+
+        if missing:
+            return f"Missing required parameter(s) for '{intent}': {', '.join(missing)}"
+        return None
 
     async def execute(self, intent: str, params: dict[str, Any]) -> ToolResult:
         """Dispatch a tool call by intent name."""
+        # Validate required params before dispatch
+        validation_error = self._validate_params(intent, params)
+        if validation_error:
+            return ToolResult(
+                success=False,
+                intent=intent,
+                raw_output="",
+                summary=validation_error,
+                evidence_snippets=[],
+                evidence_type="unknown",
+                domain="unknown",
+                error=validation_error,
+            )
+
         handler_name = self.HANDLERS[intent]  # KeyError if unknown intent
         handler = getattr(self, handler_name)
         return await handler(params)
@@ -718,6 +765,31 @@ class ToolExecutor:
                 "total_events": total_events,
                 "warning_count": warning_count,
                 "namespace": namespace,
+            },
+        )
+
+    # ------------------------------------------------------------------
+    # re_investigate_service (stub)
+    # ------------------------------------------------------------------
+
+    async def _re_investigate_service(self, params: dict[str, Any]) -> ToolResult:
+        """Stub: re-investigate a service through the full agent pipeline.
+
+        Not yet implemented — returns a failure result so callers know this
+        intent was recognized but cannot be executed yet.
+        """
+        return ToolResult(
+            success=False,
+            intent="re_investigate_service",
+            raw_output="",
+            summary="re_investigate_service is not yet implemented",
+            evidence_snippets=[],
+            evidence_type="unknown",
+            domain="unknown",
+            error="not yet implemented",
+            metadata={
+                "service": params.get("service"),
+                "namespace": params.get("namespace"),
             },
         )
 
