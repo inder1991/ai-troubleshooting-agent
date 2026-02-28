@@ -255,7 +255,8 @@ class TestDescribeResource:
 
     @pytest.mark.asyncio
     async def test_describe_node_cluster_scoped(self):
-        """Describing a node should work without namespace (cluster-scoped)."""
+        """Describing a node should work (cluster-scoped — namespace is
+        provided by context defaults but ignored for cluster-scoped lookups)."""
         mock_api = MagicMock()
         mock_node = MagicMock()
         mock_node.metadata = MagicMock()
@@ -275,6 +276,7 @@ class TestDescribeResource:
             result = await executor.execute("describe_resource", {
                 "kind": "node",
                 "name": "worker-1",
+                "namespace": "default",  # filled by router context defaults
             })
 
         assert result.success is True
@@ -367,6 +369,101 @@ class TestDescribeResource:
 
         assert result.success is True
         assert result.domain == "storage"
+
+    @pytest.mark.asyncio
+    async def test_describe_deployment(self):
+        """Describing a deployment should use AppsV1Api, domain=compute."""
+        mock_apps_api = MagicMock()
+        mock_deployment = MagicMock()
+        mock_deployment.metadata = MagicMock()
+        mock_deployment.metadata.name = "payment-deploy"
+        mock_deployment.status = MagicMock()
+        mock_deployment.status.container_statuses = None
+        mock_apps_api.read_namespaced_deployment = MagicMock(return_value=mock_deployment)
+
+        executor = _make_executor(apps_api=mock_apps_api)
+
+        with patch("src.tools.tool_executor.ApiClient") as MockApiClient:
+            mock_client_instance = MagicMock()
+            mock_client_instance.sanitize_for_serialization.return_value = {
+                "metadata": {"name": "payment-deploy"},
+            }
+            MockApiClient.return_value = mock_client_instance
+
+            result = await executor.execute("describe_resource", {
+                "kind": "deployment",
+                "name": "payment-deploy",
+                "namespace": "prod",
+            })
+
+        assert result.success is True
+        assert result.domain == "compute"
+        assert result.evidence_type == "k8s_resource"
+        # Verify AppsV1Api method was called, not CoreV1Api
+        mock_apps_api.read_namespaced_deployment.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_describe_replicaset(self):
+        """Describing a replicaset should use AppsV1Api, domain=compute."""
+        mock_apps_api = MagicMock()
+        mock_rs = MagicMock()
+        mock_rs.metadata = MagicMock()
+        mock_rs.metadata.name = "payment-rs-abc123"
+        mock_rs.status = MagicMock()
+        mock_rs.status.container_statuses = None
+        mock_apps_api.read_namespaced_replica_set = MagicMock(return_value=mock_rs)
+
+        executor = _make_executor(apps_api=mock_apps_api)
+
+        with patch("src.tools.tool_executor.ApiClient") as MockApiClient:
+            mock_client_instance = MagicMock()
+            mock_client_instance.sanitize_for_serialization.return_value = {
+                "metadata": {"name": "payment-rs-abc123"},
+            }
+            MockApiClient.return_value = mock_client_instance
+
+            result = await executor.execute("describe_resource", {
+                "kind": "replicaset",
+                "name": "payment-rs-abc123",
+                "namespace": "prod",
+            })
+
+        assert result.success is True
+        assert result.domain == "compute"
+        assert result.evidence_type == "k8s_resource"
+        mock_apps_api.read_namespaced_replica_set.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_describe_ingress(self):
+        """Describing an ingress should use NetworkingV1Api, domain=network."""
+        mock_networking_api = MagicMock()
+        mock_ingress = MagicMock()
+        mock_ingress.metadata = MagicMock()
+        mock_ingress.metadata.name = "frontend-ingress"
+        mock_ingress.status = MagicMock()
+        mock_ingress.status.container_statuses = None
+        mock_networking_api.read_namespaced_ingress = MagicMock(return_value=mock_ingress)
+
+        executor = _make_executor()
+        executor._k8s_networking_api = mock_networking_api
+
+        with patch("src.tools.tool_executor.ApiClient") as MockApiClient:
+            mock_client_instance = MagicMock()
+            mock_client_instance.sanitize_for_serialization.return_value = {
+                "metadata": {"name": "frontend-ingress"},
+            }
+            MockApiClient.return_value = mock_client_instance
+
+            result = await executor.execute("describe_resource", {
+                "kind": "ingress",
+                "name": "frontend-ingress",
+                "namespace": "prod",
+            })
+
+        assert result.success is True
+        assert result.domain == "network"
+        assert result.evidence_type == "k8s_resource"
+        mock_networking_api.read_namespaced_ingress.assert_called_once()
 
 
 # ---------------------------------------------------------------------------
@@ -482,4 +579,267 @@ class TestExtractResourceSignals:
         assert "summary" in signals
         assert "key_lines" in signals
         assert "has_issues" in signals
+
+
+# ---------------------------------------------------------------------------
+# TestLazyClientInitialization
+# ---------------------------------------------------------------------------
+
+class TestLazyClientInitialization:
+    """Tests for lazy client initialization: config-based, env var fallback, caching."""
+
+    def test_k8s_core_api_from_config(self):
+        """Config with cluster_url+cluster_token should create CoreV1Api via bearer token."""
+        config = {
+            "cluster_url": "https://api.cluster.example.com:6443",
+            "cluster_token": "sha256~test-token",
+            "verify_ssl": False,
+        }
+        executor = ToolExecutor(connection_config=config)
+
+        with patch("src.tools.tool_executor.ToolExecutor._get_k8s_client") as mock_get_client:
+            mock_api_client = MagicMock()
+            mock_get_client.return_value = mock_api_client
+
+            with patch("kubernetes.client.CoreV1Api") as MockCoreV1Api:
+                mock_core_instance = MagicMock()
+                MockCoreV1Api.return_value = mock_core_instance
+
+                result = executor._get_k8s_core_api()
+
+                MockCoreV1Api.assert_called_once_with(mock_api_client)
+                assert result is mock_core_instance
+
+    def test_k8s_apps_api_from_config(self):
+        """Config with cluster_url+cluster_token should create AppsV1Api."""
+        config = {
+            "cluster_url": "https://api.cluster.example.com:6443",
+            "cluster_token": "sha256~test-token",
+        }
+        executor = ToolExecutor(connection_config=config)
+
+        with patch("src.tools.tool_executor.ToolExecutor._get_k8s_client") as mock_get_client:
+            mock_api_client = MagicMock()
+            mock_get_client.return_value = mock_api_client
+
+            with patch("kubernetes.client.AppsV1Api") as MockAppsV1Api:
+                mock_apps_instance = MagicMock()
+                MockAppsV1Api.return_value = mock_apps_instance
+
+                result = executor._get_k8s_apps_api()
+
+                MockAppsV1Api.assert_called_once_with(mock_api_client)
+                assert result is mock_apps_instance
+
+    def test_k8s_client_from_env_vars(self):
+        """When config has no cluster_url/token, should fall back to env vars."""
+        executor = ToolExecutor(connection_config={})
+
+        env = {
+            "OPENSHIFT_API_URL": "https://env-api.example.com:6443",
+            "OPENSHIFT_TOKEN": "sha256~env-token",
+        }
+        with patch.dict("os.environ", env, clear=False):
+            with patch("kubernetes.client.Configuration") as MockConfig:
+                mock_config_instance = MagicMock()
+                MockConfig.return_value = mock_config_instance
+
+                with patch("kubernetes.client.ApiClient") as MockApiClient:
+                    mock_api_client = MagicMock()
+                    MockApiClient.return_value = mock_api_client
+
+                    result = executor._get_k8s_client()
+
+                    assert mock_config_instance.host == "https://env-api.example.com:6443"
+                    assert mock_config_instance.api_key == {
+                        "authorization": "Bearer sha256~env-token"
+                    }
+                    MockApiClient.assert_called_once_with(mock_config_instance)
+                    assert result is mock_api_client
+
+    def test_k8s_client_from_kubeconfig_fallback(self):
+        """When no config or env vars, should load kubeconfig."""
+        executor = ToolExecutor(connection_config={})
+
+        with patch.dict("os.environ", {}, clear=True):
+            with patch("kubernetes.config.load_kube_config") as mock_load:
+                with patch("kubernetes.client.ApiClient") as MockApiClient:
+                    mock_api_client = MagicMock()
+                    MockApiClient.return_value = mock_api_client
+
+                    result = executor._get_k8s_client()
+
+                    mock_load.assert_called_once()
+                    MockApiClient.assert_called_once_with()
+                    assert result is mock_api_client
+
+    def test_k8s_core_api_caching(self):
+        """Second call to _get_k8s_core_api should return the cached instance."""
+        executor = ToolExecutor(connection_config={})
+
+        with patch("src.tools.tool_executor.ToolExecutor._get_k8s_client") as mock_get_client:
+            mock_api_client = MagicMock()
+            mock_get_client.return_value = mock_api_client
+
+            with patch("kubernetes.client.CoreV1Api") as MockCoreV1Api:
+                mock_core_instance = MagicMock()
+                MockCoreV1Api.return_value = mock_core_instance
+
+                first = executor._get_k8s_core_api()
+                second = executor._get_k8s_core_api()
+
+                # Should only construct once
+                assert MockCoreV1Api.call_count == 1
+                assert first is second
+
+    def test_k8s_apps_api_caching(self):
+        """Second call to _get_k8s_apps_api should return the cached instance."""
+        executor = ToolExecutor(connection_config={})
+
+        with patch("src.tools.tool_executor.ToolExecutor._get_k8s_client") as mock_get_client:
+            mock_api_client = MagicMock()
+            mock_get_client.return_value = mock_api_client
+
+            with patch("kubernetes.client.AppsV1Api") as MockAppsV1Api:
+                mock_apps_instance = MagicMock()
+                MockAppsV1Api.return_value = mock_apps_instance
+
+                first = executor._get_k8s_apps_api()
+                second = executor._get_k8s_apps_api()
+
+                assert MockAppsV1Api.call_count == 1
+                assert first is second
+
+    def test_prom_client_from_config(self):
+        """Config with prometheus_url should create PrometheusConnect."""
+        config = {"prometheus_url": "http://prometheus:9090"}
+        executor = ToolExecutor(connection_config=config)
+
+        with patch("prometheus_api_client.PrometheusConnect") as MockProm:
+            mock_prom_instance = MagicMock()
+            MockProm.return_value = mock_prom_instance
+
+            result = executor._get_prom_client()
+
+            MockProm.assert_called_once_with(
+                url="http://prometheus:9090", disable_ssl=True
+            )
+            assert result is mock_prom_instance
+
+    def test_prom_client_from_env_var(self):
+        """When config has no prometheus_url, should fall back to PROMETHEUS_URL env var."""
+        executor = ToolExecutor(connection_config={})
+
+        with patch.dict("os.environ", {"PROMETHEUS_URL": "http://env-prom:9090"}, clear=False):
+            with patch("prometheus_api_client.PrometheusConnect") as MockProm:
+                mock_prom_instance = MagicMock()
+                MockProm.return_value = mock_prom_instance
+
+                result = executor._get_prom_client()
+
+                MockProm.assert_called_once_with(
+                    url="http://env-prom:9090", disable_ssl=True
+                )
+                assert result is mock_prom_instance
+
+    def test_prom_client_raises_when_no_url(self):
+        """When no config or env var for prometheus, should raise RuntimeError."""
+        executor = ToolExecutor(connection_config={})
+
+        with patch.dict("os.environ", {}, clear=True):
+            with pytest.raises(RuntimeError, match="Prometheus URL not configured"):
+                executor._get_prom_client()
+
+    def test_prom_client_caching(self):
+        """Second call to _get_prom_client should return the cached instance."""
+        config = {"prometheus_url": "http://prometheus:9090"}
+        executor = ToolExecutor(connection_config=config)
+
+        with patch("prometheus_api_client.PrometheusConnect") as MockProm:
+            mock_prom_instance = MagicMock()
+            MockProm.return_value = mock_prom_instance
+
+            first = executor._get_prom_client()
+            second = executor._get_prom_client()
+
+            assert MockProm.call_count == 1
+            assert first is second
+
+    def test_es_client_from_config(self):
+        """Config with elasticsearch_url should create Elasticsearch client."""
+        config = {"elasticsearch_url": "http://elasticsearch:9200"}
+        executor = ToolExecutor(connection_config=config)
+
+        with patch("elasticsearch.Elasticsearch") as MockES:
+            mock_es_instance = MagicMock()
+            MockES.return_value = mock_es_instance
+
+            result = executor._get_es_client()
+
+            MockES.assert_called_once_with(["http://elasticsearch:9200"])
+            assert result is mock_es_instance
+
+    def test_es_client_from_env_var(self):
+        """When config has no elasticsearch_url, should fall back to ELASTICSEARCH_URL."""
+        executor = ToolExecutor(connection_config={})
+
+        with patch.dict("os.environ", {"ELASTICSEARCH_URL": "http://env-es:9200"}, clear=False):
+            with patch("elasticsearch.Elasticsearch") as MockES:
+                mock_es_instance = MagicMock()
+                MockES.return_value = mock_es_instance
+
+                result = executor._get_es_client()
+
+                MockES.assert_called_once_with(["http://env-es:9200"])
+                assert result is mock_es_instance
+
+    def test_es_client_raises_when_no_url(self):
+        """When no config or env var for elasticsearch, should raise RuntimeError."""
+        executor = ToolExecutor(connection_config={})
+
+        with patch.dict("os.environ", {}, clear=True):
+            with pytest.raises(RuntimeError, match="Elasticsearch URL not configured"):
+                executor._get_es_client()
+
+    def test_es_client_caching(self):
+        """Second call to _get_es_client should return the cached instance."""
+        config = {"elasticsearch_url": "http://elasticsearch:9200"}
+        executor = ToolExecutor(connection_config=config)
+
+        with patch("elasticsearch.Elasticsearch") as MockES:
+            mock_es_instance = MagicMock()
+            MockES.return_value = mock_es_instance
+
+            first = executor._get_es_client()
+            second = executor._get_es_client()
+
+            assert MockES.call_count == 1
+            assert first is second
+
+    def test_pre_populated_k8s_core_api_skips_init(self):
+        """Setting _k8s_core_api directly should bypass lazy init (existing test pattern)."""
+        executor = ToolExecutor(connection_config={})
+        mock_api = MagicMock()
+        executor._k8s_core_api = mock_api
+
+        result = executor._get_k8s_core_api()
+        assert result is mock_api
+
+    def test_pre_populated_prom_client_skips_init(self):
+        """Setting _prom_client directly should bypass lazy init."""
+        executor = ToolExecutor(connection_config={})
+        mock_prom = MagicMock()
+        executor._prom_client = mock_prom
+
+        result = executor._get_prom_client()
+        assert result is mock_prom
+
+    def test_pre_populated_es_client_skips_init(self):
+        """Setting _es_client directly should bypass lazy init."""
+        executor = ToolExecutor(connection_config={})
+        mock_es = MagicMock()
+        executor._es_client = mock_es
+
+        result = executor._get_es_client()
+        assert result is mock_es
 

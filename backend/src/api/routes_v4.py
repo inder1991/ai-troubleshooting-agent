@@ -36,6 +36,37 @@ _UUID4_RE = re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}
 # M10: Track background diagnosis tasks for cancellation on cleanup
 _diagnosis_tasks: Dict[str, asyncio.Task] = {}
 
+# B3: Track background critic delta tasks per session for cancellation on cleanup
+_critic_delta_tasks: Dict[str, list] = {}  # session_id -> list[asyncio.Task]
+
+# B5: Dedup window in seconds for evidence pins (same source_tool + claim)
+_PIN_DEDUP_WINDOW_SECONDS = 60
+
+# B6: Valid causal_role values; anything else falls back to "informational"
+_VALID_CAUSAL_ROLES = {"root_cause", "cascading_symptom", "correlated", "informational"}
+
+
+def _is_duplicate_pin(existing_pins: list, new_pin) -> bool:
+    """B5: Check if a pin with the same source_tool + claim exists within the dedup window."""
+    new_ts = new_pin.timestamp
+    for raw in existing_pins:
+        if raw.get("source_tool") == new_pin.source_tool and raw.get("claim") == new_pin.claim:
+            existing_ts_str = raw.get("timestamp")
+            if existing_ts_str:
+                try:
+                    existing_ts = datetime.fromisoformat(existing_ts_str.replace("Z", "+00:00"))
+                    if abs((new_ts - existing_ts).total_seconds()) < _PIN_DEDUP_WINDOW_SECONDS:
+                        return True
+                except (ValueError, TypeError):
+                    continue
+    return False
+
+
+def _validate_causal_role(pin) -> None:
+    """B6: Validate causal_role against allowed values; fallback to 'informational'."""
+    if pin.causal_role is not None and pin.causal_role not in _VALID_CAUSAL_ROLES:
+        pin.causal_role = "informational"
+
 
 def _validate_session_id(session_id: str) -> None:
     """M1: Validate session_id is a proper UUID4 to prevent DoS via random lookups."""
@@ -94,17 +125,24 @@ _investigation_routers: Dict[str, Any] = {}
 
 
 def _get_investigation_router(session_id: str):
-    """Get or create InvestigationRouter for a session."""
-    if session_id not in _investigation_routers:
-        from src.tools.investigation_router import InvestigationRouter
-        from src.tools.tool_executor import ToolExecutor
-        config = sessions[session_id].get("connection_config", {})
-        executor = ToolExecutor(config)
-        llm = AnthropicClient(agent_name="investigation_router")
-        _investigation_routers[session_id] = InvestigationRouter(
-            tool_executor=executor, llm_client=llm,
-        )
-    return _investigation_routers[session_id]
+    """Get or create InvestigationRouter for a session.
+
+    B4: Constructor is fully synchronous with no awaits, so CPython's GIL
+    guarantees dict check and store are effectively atomic. Do not add
+    any awaits in this function.
+    """
+    existing = _investigation_routers.get(session_id)
+    if existing is not None:
+        return existing
+
+    from src.tools.investigation_router import InvestigationRouter
+    from src.tools.tool_executor import ToolExecutor
+    config = sessions[session_id].get("connection_config", {})
+    executor = ToolExecutor(config)
+    llm = AnthropicClient(agent_name="investigation_router")
+    router = InvestigationRouter(tool_executor=executor, llm_client=llm)
+    _investigation_routers[session_id] = router
+    return router
 
 
 SESSION_TTL_HOURS = 24
@@ -132,6 +170,13 @@ async def _session_cleanup_loop():
                 task = _diagnosis_tasks.pop(sid, None)
                 if task and not task.done():
                     task.cancel()
+                # B3: Cancel all critic delta tasks for this session
+                critic_tasks = _critic_delta_tasks.pop(sid, [])
+                for ct in critic_tasks:
+                    if not ct.done():
+                        ct.cancel()
+                # B2: Remove investigation router for this session
+                _investigation_routers.pop(sid, None)
                 # H1: Use lock during cleanup to prevent races with HTTP handlers
                 lock = session_locks.pop(sid, None)
                 if lock:
@@ -669,6 +714,7 @@ async def get_findings(session_id: str):
             "time_series_data": {},
             "fix_data": None,
             "closure_state": None,
+            "evidence_pins": session.get("evidence_pins", []),
             "message": "Analysis not yet complete",
         }
 
@@ -770,6 +816,8 @@ async def get_findings(session_id: str):
         "fix_data": state.fix_result.model_dump(mode="json") if state.fix_result else None,
         "closure_state": state.closure_state.model_dump(mode="json") if state.closure_state else None,
         "campaign": _dump_campaign(state.campaign) if state.campaign else None,
+        # Manual evidence pins from live investigation steering (user_chat / quick_action)
+        "evidence_pins": session.get("evidence_pins", []),
     }
 
 
@@ -1196,6 +1244,11 @@ async def _run_critic_delta(session_id: str, pin_id: str) -> None:
         # Run delta validation (slow LLM call — outside lock)
         result = await critic.validate_delta(new_pin, existing_pins, causal_chains=causal_chains)
 
+        # B6: Validate causal_role from critic before storing
+        causal_role = result["causal_role"]
+        if causal_role not in _VALID_CAUSAL_ROLES:
+            causal_role = "informational"
+
         # Update pin in session state under lock
         async with lock:
             current_state = sessions.get(session_id)
@@ -1203,7 +1256,7 @@ async def _run_critic_delta(session_id: str, pin_id: str) -> None:
                 for pin_data in current_state["evidence_pins"]:
                     if pin_data.get("id") == pin_id:
                         pin_data["validation_status"] = result["validation_status"]
-                        pin_data["causal_role"] = result["causal_role"]
+                        pin_data["causal_role"] = causal_role
                         break
 
         # Emit WebSocket event for the update
@@ -1219,7 +1272,7 @@ async def _run_critic_delta(session_id: str, pin_id: str) -> None:
                     "details": {
                         "pin_id": pin_id,
                         "validation_status": result["validation_status"],
-                        "causal_role": result["causal_role"],
+                        "causal_role": causal_role,
                         "confidence": result["confidence"],
                         "reasoning": result["reasoning"],
                         "contradictions": result["contradictions"],
@@ -1246,6 +1299,9 @@ async def investigate(session_id: str, request: InvestigateRequest):
     response, pin = await investigation_router.route(request)
 
     if pin:
+        # B6: Validate causal_role before storing
+        _validate_causal_role(pin)
+
         # Merge pin into session state under lock
         lock = session_locks.get(session_id)
         if lock:
@@ -1253,6 +1309,12 @@ async def investigate(session_id: str, request: InvestigateRequest):
                 state = sessions[session_id]
                 if "evidence_pins" not in state:
                     state["evidence_pins"] = []
+                # B5: Skip duplicate pins (same source_tool + claim within 60s)
+                if _is_duplicate_pin(state["evidence_pins"], pin):
+                    logger.debug("Skipping duplicate pin", extra={
+                        "source_tool": pin.source_tool, "claim": pin.claim,
+                    })
+                    return response.model_dump()
                 state["evidence_pins"].append(pin.model_dump(mode="json"))
 
         # Emit WebSocket event
@@ -1282,6 +1344,10 @@ async def investigate(session_id: str, request: InvestigateRequest):
         # Dispatch background critic delta revalidation
         task = asyncio.create_task(_run_critic_delta(session_id, pin.id))
         task.add_done_callback(lambda t: t.exception() if not t.cancelled() else None)
+        # B3: Track critic delta task for cancellation on session cleanup
+        task_list = _critic_delta_tasks.setdefault(session_id, [])
+        _critic_delta_tasks[session_id] = [t for t in task_list if not t.done()]
+        _critic_delta_tasks[session_id].append(task)
 
     return response.model_dump()
 

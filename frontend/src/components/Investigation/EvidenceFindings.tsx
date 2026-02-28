@@ -8,7 +8,7 @@ import type {
   SpanInfo, ServiceFlowStep, PatientZero, MetricAnomaly, DiagnosticPhase,
   DiffAnalysisItem, SuggestedFixArea, NegativeFinding, HighPriorityFile,
   CrossRepoFinding, PastIncidentMatch, EventMarker, PodHealthStatus,
-  EvidencePinV2,
+  EvidencePinV2, ValidationStatus, CausalRole,
 } from '../../types';
 import AgentFindingCard from './cards/AgentFindingCard';
 import CausalRoleBadge from './cards/CausalRoleBadge';
@@ -75,6 +75,37 @@ interface PinnedCard {
 
 const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _status, events, sessionId, phase, onRefresh, onNavigateToDossier, manualPins }) => {
   const { selectedService, clearSelection } = useTopologySelection();
+
+  // ── P0-3: Build reactive pin update map from WebSocket events ──────
+  // Backend emits event_type: "evidence_pin_updated" (not in TS union, but present at runtime)
+  const pinUpdateMap = useMemo(() => {
+    const map = new Map<string, { validation_status: ValidationStatus; causal_role: CausalRole | null }>();
+    for (const event of events) {
+      if ((event.event_type as string) !== 'evidence_pin_updated' || !event.details) continue;
+      const d = event.details;
+      if (typeof d.pin_id !== 'string') continue;
+      map.set(d.pin_id, {
+        validation_status: (d.validation_status as ValidationStatus) ?? 'pending_critic',
+        causal_role: (d.causal_role as CausalRole) ?? null,
+      });
+    }
+    return map;
+  }, [events]);
+
+  // Merge WebSocket updates into manual pins for reactive rendering
+  const mergedPins = useMemo<EvidencePinV2[]>(() => {
+    if (!manualPins || manualPins.length === 0) return [];
+    if (pinUpdateMap.size === 0) return manualPins;
+    return manualPins.map((pin) => {
+      const update = pinUpdateMap.get(pin.id);
+      if (!update) return pin;
+      return {
+        ...pin,
+        validation_status: update.validation_status,
+        causal_role: update.causal_role ?? pin.causal_role,
+      };
+    });
+  }, [manualPins, pinUpdateMap]);
 
   // Service filter: returns true if no service selected OR if text mentions the service
   const matchesService = useCallback(
@@ -857,8 +888,8 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
               </LogicVineContainer>
             )}
 
-            {/* Manual Evidence Pins */}
-            {manualPins && manualPins.length > 0 && (
+            {/* Manual Evidence Pins (merged with WebSocket validation updates) */}
+            {mergedPins.length > 0 && (
               <div className="mt-6">
                 <div className="flex items-center gap-2 mb-3">
                   <span
@@ -868,11 +899,11 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                     push_pin
                   </span>
                   <span className="text-[11px] font-bold text-amber-400 uppercase tracking-wider">
-                    Manual Evidence ({manualPins.length})
+                    Manual Evidence ({mergedPins.length})
                   </span>
                 </div>
                 <div className="space-y-3">
-                  {manualPins.map((pin) => (
+                  {mergedPins.map((pin) => (
                     <EvidencePinCard key={pin.id} pin={pin} />
                   ))}
                 </div>

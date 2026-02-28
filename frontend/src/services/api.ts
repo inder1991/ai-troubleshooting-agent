@@ -452,12 +452,14 @@ export const publishPostMortem = async (sessionId: string, data: {
 
 export const postInvestigate = async (
   sessionId: string,
-  request: InvestigateRequest
+  request: InvestigateRequest,
+  signal?: AbortSignal
 ): Promise<InvestigateResponse> => {
   const response = await fetch(`${API_BASE_URL}/api/v4/session/${sessionId}/investigate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(request),
+    signal,
   });
   if (!response.ok) {
     throw new Error(await extractErrorDetail(response, 'Investigation request failed'));
@@ -465,8 +467,11 @@ export const postInvestigate = async (
   return response.json();
 };
 
-export const getTools = async (sessionId: string): Promise<{ tools: ToolDefinition[] }> => {
-  const response = await fetch(`${API_BASE_URL}/api/v4/session/${sessionId}/tools`);
+export const getTools = async (
+  sessionId: string,
+  signal?: AbortSignal
+): Promise<{ tools: ToolDefinition[] }> => {
+  const response = await fetch(`${API_BASE_URL}/api/v4/session/${sessionId}/tools`, { signal });
   if (!response.ok) {
     throw new Error(await extractErrorDetail(response, 'Failed to get tools'));
   }
