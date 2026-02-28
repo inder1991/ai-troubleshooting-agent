@@ -5,6 +5,8 @@ Each handler takes params dict -> returns ToolResult.
 
 import json
 import re
+import statistics
+from datetime import datetime, timezone, timedelta
 from typing import Any
 
 from kubernetes.client import ApiClient
@@ -244,24 +246,386 @@ class ToolExecutor:
         )
 
     # ------------------------------------------------------------------
-    # Placeholder handlers (Task 4)
+    # query_prometheus
     # ------------------------------------------------------------------
 
     async def _query_prometheus(self, params: dict[str, Any]) -> ToolResult:
-        raise NotImplementedError("Task 4")
+        """Execute a PromQL range query and compute stats / anomaly flags."""
+        query = params["query"]
+        range_minutes = params.get("range_minutes", 60)
+        domain = self._infer_domain_from_promql(query)
+
+        try:
+            response = self._prom_client.query_range(query, range_minutes)
+        except Exception as exc:
+            error_msg = f"Prometheus query failed: {exc}"
+            logger.warning("query_prometheus failed", extra={"query": query, "error": str(exc)})
+            return ToolResult(
+                success=False,
+                intent="query_prometheus",
+                raw_output="",
+                summary=error_msg,
+                evidence_snippets=[],
+                evidence_type="metric",
+                domain=domain,
+                error=error_msg,
+                metadata={"query": query, "range_minutes": range_minutes},
+            )
+
+        results = response.get("data", {}).get("result", [])
+        series_count = len(results)
+
+        if series_count == 0:
+            return ToolResult(
+                success=True,
+                intent="query_prometheus",
+                raw_output=json.dumps(response),
+                summary=f"PromQL query returned no data for: {query}",
+                evidence_snippets=[],
+                evidence_type="metric",
+                domain=domain,
+                severity="info",
+                metadata={"series_count": 0, "query": query, "range_minutes": range_minutes},
+            )
+
+        # Aggregate all values across all series
+        all_values: list[float] = []
+        for series in results:
+            for _ts, val in series.get("values", []):
+                try:
+                    all_values.append(float(val))
+                except (ValueError, TypeError):
+                    continue
+
+        if all_values:
+            latest_value = all_values[-1]
+            max_value = max(all_values)
+            avg_value = statistics.mean(all_values)
+        else:
+            latest_value = max_value = avg_value = 0.0
+
+        # Anomaly detection: flag spikes > 2 stddev above mean
+        evidence_snippets: list[str] = []
+        severity = "info"
+        if len(all_values) >= 2:
+            stddev = statistics.stdev(all_values)
+            threshold = avg_value + 2 * stddev
+            spikes = [v for v in all_values if v > threshold]
+            if spikes:
+                severity = "high"
+                evidence_snippets.append(
+                    f"Detected {len(spikes)} spike(s) exceeding 2 stddev "
+                    f"(threshold={threshold:.2f}, max={max_value:.2f})"
+                )
+
+        summary = (
+            f"PromQL returned {series_count} series: "
+            f"latest={latest_value:.2f}, max={max_value:.2f}, avg={avg_value:.2f}"
+        )
+
+        return ToolResult(
+            success=True,
+            intent="query_prometheus",
+            raw_output=json.dumps(response),
+            summary=summary,
+            evidence_snippets=evidence_snippets,
+            evidence_type="metric",
+            domain=domain,
+            severity=severity,
+            metadata={
+                "series_count": series_count,
+                "query": query,
+                "range_minutes": range_minutes,
+                "latest_value": latest_value,
+                "max_value": max_value,
+                "avg_value": avg_value,
+            },
+        )
+
+    # ------------------------------------------------------------------
+    # search_logs
+    # ------------------------------------------------------------------
 
     async def _search_logs(self, params: dict[str, Any]) -> ToolResult:
-        raise NotImplementedError("Task 4")
+        """Search logs in Elasticsearch using query_string."""
+        query = params["query"]
+        index = params.get("index", self._config.get("es_index", "app-logs-*"))
+        since_minutes = params.get("since_minutes", 60)
+
+        try:
+            es_response = self._es_client.search(
+                index=index,
+                body={
+                    "query": {
+                        "bool": {
+                            "must": [{"query_string": {"query": query}}],
+                            "filter": [
+                                {
+                                    "range": {
+                                        "@timestamp": {
+                                            "gte": f"now-{since_minutes}m",
+                                            "lte": "now",
+                                        }
+                                    }
+                                }
+                            ],
+                        }
+                    },
+                    "size": 20,
+                    "sort": [{"@timestamp": {"order": "desc"}}],
+                },
+            )
+        except Exception as exc:
+            error_msg = f"Elasticsearch query failed: {exc}"
+            logger.warning("search_logs failed", extra={"query": query, "error": str(exc)})
+            return ToolResult(
+                success=False,
+                intent="search_logs",
+                raw_output="",
+                summary=error_msg,
+                evidence_snippets=[],
+                evidence_type="log",
+                domain="unknown",
+                error=error_msg,
+                metadata={"query": query, "index": index},
+            )
+
+        total = es_response.get("hits", {}).get("total", {}).get("value", 0)
+        hits = es_response.get("hits", {}).get("hits", [])
+
+        evidence_snippets: list[str] = []
+        for hit in hits[:20]:
+            source = hit.get("_source", {})
+            ts = source.get("@timestamp", "")
+            msg = source.get("message", "")
+            evidence_snippets.append(f"[{ts}] {msg}")
+
+        if total == 0:
+            summary = f"Log search returned 0 results for query: {query}"
+        else:
+            summary = f"Found {total} log entries matching '{query}' (showing up to 20)"
+
+        return ToolResult(
+            success=True,
+            intent="search_logs",
+            raw_output=json.dumps(es_response, default=str),
+            summary=summary,
+            evidence_snippets=evidence_snippets,
+            evidence_type="log",
+            domain="unknown",
+            severity="info",
+            metadata={"total": total, "query": query, "index": index},
+        )
+
+    # ------------------------------------------------------------------
+    # check_pod_status
+    # ------------------------------------------------------------------
 
     async def _check_pod_status(self, params: dict[str, Any]) -> ToolResult:
-        raise NotImplementedError("Task 4")
+        """List pods in a namespace and report health / readiness / restarts."""
+        namespace = params["namespace"]
+        label_selector = params.get("label_selector")
+
+        try:
+            kwargs: dict[str, Any] = {"namespace": namespace}
+            if label_selector:
+                kwargs["label_selector"] = label_selector
+
+            pod_list = self._k8s_core_api.list_namespaced_pod(**kwargs)
+        except Exception as exc:
+            error_msg = f"Failed to list pods in namespace '{namespace}': {exc}"
+            logger.warning("check_pod_status failed", extra={"namespace": namespace, "error": str(exc)})
+            return ToolResult(
+                success=False,
+                intent="check_pod_status",
+                raw_output="",
+                summary=error_msg,
+                evidence_snippets=[],
+                evidence_type="k8s_event",
+                domain="compute",
+                error=error_msg,
+                metadata={"namespace": namespace},
+            )
+
+        pods = pod_list.items
+        total = len(pods)
+        unhealthy = 0
+        has_critical = False
+        has_not_ready = False
+        evidence_snippets: list[str] = []
+        pod_summaries: list[str] = []
+
+        for pod in pods:
+            pod_name = pod.metadata.name
+            phase = pod.status.phase
+            container_statuses = pod.status.container_statuses or []
+
+            pod_healthy = True
+            for cs in container_statuses:
+                restart_count = cs.restart_count or 0
+                ready = cs.ready
+                is_oom = False
+                is_crashloop = False
+
+                # Check for OOMKilled in terminated state
+                terminated = getattr(getattr(cs, "state", None), "terminated", None)
+                if terminated:
+                    reason = getattr(terminated, "reason", "")
+                    if reason and "oom" in reason.lower():
+                        is_oom = True
+
+                # Check for CrashLoopBackOff in waiting state
+                waiting = getattr(getattr(cs, "state", None), "waiting", None)
+                if waiting:
+                    reason = getattr(waiting, "reason", "")
+                    if reason == "CrashLoopBackOff":
+                        is_crashloop = True
+
+                if is_oom or is_crashloop or restart_count >= 5:
+                    has_critical = True
+                    pod_healthy = False
+                    evidence_snippets.append(
+                        f"Pod {pod_name}/{cs.name}: "
+                        f"restarts={restart_count}, ready={ready}"
+                        + (", OOMKilled" if is_oom else "")
+                        + (", CrashLoopBackOff" if is_crashloop else "")
+                    )
+                elif not ready:
+                    has_not_ready = True
+                    pod_healthy = False
+                    evidence_snippets.append(
+                        f"Pod {pod_name}/{cs.name}: not ready, restarts={restart_count}"
+                    )
+
+            if not pod_healthy:
+                unhealthy += 1
+            pod_summaries.append(f"{pod_name}: phase={phase}")
+
+        # Determine severity
+        if has_critical:
+            severity = "critical"
+        elif has_not_ready:
+            severity = "high"
+        else:
+            severity = "info"
+
+        if unhealthy == 0:
+            summary = f"All {total} pod(s) in '{namespace}' are healthy"
+        else:
+            summary = f"{unhealthy}/{total} pod(s) in '{namespace}' are unhealthy (severity: {severity})"
+
+        return ToolResult(
+            success=True,
+            intent="check_pod_status",
+            raw_output="\n".join(pod_summaries),
+            summary=summary,
+            evidence_snippets=evidence_snippets,
+            evidence_type="k8s_event",
+            domain="compute",
+            severity=severity,
+            metadata={"total": total, "unhealthy": unhealthy, "namespace": namespace},
+        )
+
+    # ------------------------------------------------------------------
+    # get_events
+    # ------------------------------------------------------------------
 
     async def _get_events(self, params: dict[str, Any]) -> ToolResult:
-        raise NotImplementedError("Task 4")
+        """List K8s events in a namespace, filtered by time window."""
+        namespace = params["namespace"]
+        since_minutes = params.get("since_minutes", 60)
+        involved_object = params.get("involved_object")
+
+        try:
+            kwargs: dict[str, Any] = {"namespace": namespace}
+            if involved_object:
+                kwargs["field_selector"] = f"involvedObject.name={involved_object}"
+
+            event_list = self._k8s_core_api.list_namespaced_event(**kwargs)
+        except Exception as exc:
+            error_msg = f"Failed to list events in namespace '{namespace}': {exc}"
+            logger.warning("get_events failed", extra={"namespace": namespace, "error": str(exc)})
+            return ToolResult(
+                success=False,
+                intent="get_events",
+                raw_output="",
+                summary=error_msg,
+                evidence_snippets=[],
+                evidence_type="k8s_event",
+                domain="compute",
+                error=error_msg,
+                metadata={"namespace": namespace},
+            )
+
+        # Filter events by time window
+        cutoff = datetime.now(timezone.utc) - timedelta(minutes=since_minutes)
+        filtered_events = []
+        for event in event_list.items:
+            event_ts = event.last_timestamp
+            if event_ts is None:
+                continue
+            # Ensure timezone-aware comparison
+            if event_ts.tzinfo is None:
+                event_ts = event_ts.replace(tzinfo=timezone.utc)
+            if event_ts >= cutoff:
+                filtered_events.append(event)
+
+        # Sort by timestamp descending
+        filtered_events.sort(
+            key=lambda e: e.last_timestamp if e.last_timestamp else datetime.min.replace(tzinfo=timezone.utc),
+            reverse=True,
+        )
+
+        warning_count = sum(1 for e in filtered_events if e.type == "Warning")
+        total_events = len(filtered_events)
+
+        evidence_snippets: list[str] = []
+        for event in filtered_events:
+            prefix = "[WARNING] " if event.type == "Warning" else ""
+            obj_name = getattr(event.involved_object, "name", "unknown")
+            obj_kind = getattr(event.involved_object, "kind", "unknown")
+            evidence_snippets.append(
+                f"{prefix}{event.reason}: {event.message} "
+                f"({obj_kind}/{obj_name}, count={event.count})"
+            )
+
+        if total_events == 0:
+            summary = f"No events in '{namespace}' within the last {since_minutes} minutes"
+        else:
+            summary = (
+                f"{total_events} event(s) in '{namespace}' "
+                f"({warning_count} warning(s)) in the last {since_minutes} minutes"
+            )
+
+        return ToolResult(
+            success=True,
+            intent="get_events",
+            raw_output="\n".join(evidence_snippets),
+            summary=summary,
+            evidence_snippets=evidence_snippets,
+            evidence_type="k8s_event",
+            domain="compute",
+            severity="high" if warning_count > 0 else "info",
+            metadata={
+                "total_events": total_events,
+                "warning_count": warning_count,
+                "namespace": namespace,
+            },
+        )
 
     # ------------------------------------------------------------------
     # Helper methods
     # ------------------------------------------------------------------
+
+    @staticmethod
+    def _infer_domain_from_promql(query: str) -> str:
+        """Infer the infrastructure domain from a PromQL query string."""
+        q_lower = query.lower()
+        if any(kw in q_lower for kw in ("coredns", "ingress")):
+            return "network"
+        if any(kw in q_lower for kw in ("apiserver", "etcd")):
+            return "control_plane"
+        return "compute"
 
     @staticmethod
     def _classify_log_severity(error_lines: list[str]) -> str:

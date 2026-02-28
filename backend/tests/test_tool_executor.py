@@ -483,34 +483,3 @@ class TestExtractResourceSignals:
         assert "key_lines" in signals
         assert "has_issues" in signals
 
-
-# ---------------------------------------------------------------------------
-# TestPlaceholderHandlers
-# ---------------------------------------------------------------------------
-
-class TestPlaceholderHandlers:
-    """Placeholder handlers should raise NotImplementedError."""
-
-    @pytest.mark.asyncio
-    async def test_query_prometheus_not_implemented(self):
-        executor = _make_executor()
-        with pytest.raises(NotImplementedError, match="Task 4"):
-            await executor.execute("query_prometheus", {})
-
-    @pytest.mark.asyncio
-    async def test_search_logs_not_implemented(self):
-        executor = _make_executor()
-        with pytest.raises(NotImplementedError, match="Task 4"):
-            await executor.execute("search_logs", {})
-
-    @pytest.mark.asyncio
-    async def test_check_pod_status_not_implemented(self):
-        executor = _make_executor()
-        with pytest.raises(NotImplementedError, match="Task 4"):
-            await executor.execute("check_pod_status", {})
-
-    @pytest.mark.asyncio
-    async def test_get_events_not_implemented(self):
-        executor = _make_executor()
-        with pytest.raises(NotImplementedError, match="Task 4"):
-            await executor.execute("get_events", {})
