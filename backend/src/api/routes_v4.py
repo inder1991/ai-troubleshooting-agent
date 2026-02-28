@@ -1157,15 +1157,21 @@ async def execute_campaign(session_id: str):
 async def _run_critic_delta(session_id: str, pin_id: str) -> None:
     """Background task: delta-validate a new evidence pin via the CriticAgent."""
     try:
-        critic = CriticAgent()
-
-        # Read evidence_pins from session state
-        state = sessions.get(session_id)
-        if not state or "evidence_pins" not in state:
-            logger.warning("Critic delta: session or pins missing", extra={"session_id": session_id, "pin_id": pin_id})
+        lock = session_locks.get(session_id)
+        if lock is None:
+            logger.warning("Critic delta: session lock missing (session expired?)", extra={"session_id": session_id, "pin_id": pin_id})
             return
 
-        raw_pins = state["evidence_pins"]
+        critic = CriticAgent()
+
+        # Snapshot evidence_pins under lock to avoid reading during concurrent mutation
+        async with lock:
+            state = sessions.get(session_id)
+            if not state or "evidence_pins" not in state:
+                logger.warning("Critic delta: session or pins missing", extra={"session_id": session_id, "pin_id": pin_id})
+                return
+            raw_pins = list(state["evidence_pins"])
+            causal_chains = state.get("causal_chains", [])
 
         # Find the new pin and reconstruct EvidencePin objects
         new_pin_data = None
@@ -1176,8 +1182,10 @@ async def _run_critic_delta(session_id: str, pin_id: str) -> None:
             else:
                 try:
                     existing_pins.append(EvidencePin(**rp))
-                except Exception:
-                    pass  # Skip malformed pins
+                except Exception as exc:
+                    logger.debug("Skipping malformed pin during critic delta", extra={
+                        "pin_id": rp.get("id", "unknown"), "error": str(exc),
+                    })
 
         if not new_pin_data:
             logger.warning("Critic delta: pin not found in session", extra={"session_id": session_id, "pin_id": pin_id})
@@ -1185,11 +1193,11 @@ async def _run_critic_delta(session_id: str, pin_id: str) -> None:
 
         new_pin = EvidencePin(**new_pin_data)
 
-        # Run delta validation
-        result = await critic.validate_delta(new_pin, existing_pins, causal_chains=[])
+        # Run delta validation (slow LLM call — outside lock)
+        result = await critic.validate_delta(new_pin, existing_pins, causal_chains=causal_chains)
 
         # Update pin in session state under lock
-        async with session_locks.setdefault(session_id, asyncio.Lock()):
+        async with lock:
             current_state = sessions.get(session_id)
             if current_state and "evidence_pins" in current_state:
                 for pin_data in current_state["evidence_pins"]:
@@ -1239,11 +1247,13 @@ async def investigate(session_id: str, request: InvestigateRequest):
 
     if pin:
         # Merge pin into session state under lock
-        async with session_locks.setdefault(session_id, asyncio.Lock()):
-            state = sessions[session_id]
-            if "evidence_pins" not in state:
-                state["evidence_pins"] = []
-            state["evidence_pins"].append(pin.model_dump(mode="json"))
+        lock = session_locks.get(session_id)
+        if lock:
+            async with lock:
+                state = sessions[session_id]
+                if "evidence_pins" not in state:
+                    state["evidence_pins"] = []
+                state["evidence_pins"].append(pin.model_dump(mode="json"))
 
         # Emit WebSocket event
         try:
@@ -1270,7 +1280,8 @@ async def investigate(session_id: str, request: InvestigateRequest):
             logger.warning("WebSocket broadcast failed for evidence pin", extra={"error": str(e)})
 
         # Dispatch background critic delta revalidation
-        asyncio.create_task(_run_critic_delta(session_id, pin.id))
+        task = asyncio.create_task(_run_critic_delta(session_id, pin.id))
+        task.add_done_callback(lambda t: t.exception() if not t.cancelled() else None)
 
     return response.model_dump()
 
