@@ -1,3 +1,4 @@
+import asyncio
 import json
 import re as _re
 from typing import Optional
@@ -9,6 +10,8 @@ from src.utils.llm_client import AnthropicClient
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
+
+_CRITIC_LLM_TIMEOUT_S = 30.0
 
 
 class CriticAgent:
@@ -23,9 +26,11 @@ class CriticAgent:
         logger.info("Critic started", extra={"agent_name": "critic", "action": "validate_start", "extra": {"finding": finding.finding_id}})
         context = self._build_context(finding, state)
 
-        response = await self.llm_client.chat(
-            prompt=context,
-            system="""You are a Critic Agent. Your ONLY job is to validate or challenge findings from other agents.
+        try:
+            response = await asyncio.wait_for(
+                self.llm_client.chat(
+                    prompt=context,
+                    system="""You are a Critic Agent. Your ONLY job is to validate or challenge findings from other agents.
 
 Rules:
 1. You have NO write access — you can only read and analyze existing data
@@ -42,7 +47,22 @@ Respond with JSON:
     "recommendation": "What to do next (if challenged)",
     "confidence_in_verdict": 85
 }""",
-        )
+                ),
+                timeout=_CRITIC_LLM_TIMEOUT_S,
+            )
+        except asyncio.TimeoutError:
+            logger.error(f"Critic validate() timed out after {_CRITIC_LLM_TIMEOUT_S}s", extra={
+                "agent_name": "critic", "action": "validate_timeout",
+                "extra": {"finding": finding.finding_id},
+            })
+            return CriticVerdict(
+                finding_id=finding.finding_id,
+                agent_source=finding.agent_name,
+                verdict="insufficient_data",
+                reasoning=f"Critic validation timed out after {_CRITIC_LLM_TIMEOUT_S}s",
+                recommendation="Retry validation or increase timeout",
+                confidence_in_verdict=0,
+            )
 
         try:
             import re
@@ -113,23 +133,34 @@ Respond with JSON:
         prompt = self._build_delta_context(new_pin, existing_pins, causal_chains)
 
         try:
-            response = await self.llm_client.chat(
-                prompt=prompt,
-                system=(
-                    "You are a Critic Agent performing delta revalidation. A new evidence pin "
-                    "has been added to an ongoing investigation. Your job is to evaluate whether "
-                    "this new evidence supports, contradicts, or merely correlates with existing "
-                    "findings.\n\n"
-                    "Respond with ONLY a JSON object (no markdown, no extra text):\n"
-                    "{\n"
-                    '  "validation_status": "validated" or "rejected",\n'
-                    '  "causal_role": "root_cause" | "cascading_symptom" | "correlated" | "informational",\n'
-                    '  "confidence": <float 0-1>,\n'
-                    '  "reasoning": "<explanation>",\n'
-                    '  "contradictions": ["<list of contradictions, empty if none>"]\n'
-                    "}"
+            response = await asyncio.wait_for(
+                self.llm_client.chat(
+                    prompt=prompt,
+                    system=(
+                        "You are a Critic Agent performing delta revalidation. A new evidence pin "
+                        "has been added to an ongoing investigation. Your job is to evaluate whether "
+                        "this new evidence supports, contradicts, or merely correlates with existing "
+                        "findings.\n\n"
+                        "Respond with ONLY a JSON object (no markdown, no extra text):\n"
+                        "{\n"
+                        '  "validation_status": "validated" or "rejected",\n'
+                        '  "causal_role": "root_cause" | "cascading_symptom" | "correlated" | "informational",\n'
+                        '  "confidence": <float 0-1>,\n'
+                        '  "reasoning": "<explanation>",\n'
+                        '  "contradictions": ["<list of contradictions, empty if none>"]\n'
+                        "}"
+                    ),
                 ),
+                timeout=_CRITIC_LLM_TIMEOUT_S,
             )
+        except asyncio.TimeoutError:
+            logger.error(f"Critic validate_delta() timed out after {_CRITIC_LLM_TIMEOUT_S}s", extra={
+                "agent_name": "critic", "action": "delta_timeout",
+                "extra": {"pin_id": new_pin.id},
+            })
+            _default["validation_status"] = "pending_critic"
+            _default["reasoning"] = f"Critic delta validation timed out after {_CRITIC_LLM_TIMEOUT_S}s"
+            return _default
         except Exception as e:
             logger.error("Critic delta validation LLM error", extra={
                 "agent_name": "critic", "action": "delta_llm_error",

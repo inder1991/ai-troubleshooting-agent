@@ -37,6 +37,18 @@ class EvidencePinFactory:
             if triggered_by in ("user_chat", "quick_action")
             else "auto"
         )
+
+        # B10: Truncate raw_output to 50,000 chars to bound memory
+        raw_output = result.raw_output
+        if raw_output and len(raw_output) > 50_000:
+            raw_output = raw_output[:50_000]
+
+        # B11: Cap confidence at 0.5 when no evidence snippets support the claim
+        if result.success:
+            confidence = 0.5 if not result.evidence_snippets else 1.0
+        else:
+            confidence = 0.0
+
         return EvidencePin(
             id=str(uuid4()),
             claim=result.summary,
@@ -46,8 +58,8 @@ class EvidencePinFactory:
             triggered_by=triggered_by,
             evidence_type=result.evidence_type,
             supporting_evidence=result.evidence_snippets,
-            raw_output=result.raw_output,
-            confidence=1.0 if result.success else 0.0,
+            raw_output=raw_output,
+            confidence=confidence,
             severity=result.severity,
             causal_role=None,
             domain=result.domain,

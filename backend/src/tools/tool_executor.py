@@ -4,6 +4,7 @@ Each handler takes params dict -> returns ToolResult.
 """
 
 import json
+import os
 import re
 import statistics
 from datetime import datetime, timezone, timedelta
@@ -13,11 +14,17 @@ from kubernetes.client import ApiClient
 from kubernetes.client.exceptions import ApiException
 
 from src.tools.tool_result import ToolResult
+from src.tools.tool_registry import TOOL_REGISTRY
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
 # Domain mapping for K8s resource kinds
+# TODO(B14): Domain classification is inconsistent across tools. This static
+# mapping is used by describe_resource, but other tools like fetch_pod_logs and
+# get_events hardcode domain="compute", search_logs uses domain="unknown", and
+# query_prometheus infers domain from the PromQL string via _infer_domain_from_promql.
+# Unify into a single classification strategy (e.g., a shared _classify_domain helper).
 _KIND_TO_DOMAIN: dict[str, str] = {
     "pod": "compute",
     "deployment": "compute",
@@ -31,6 +38,13 @@ _KIND_TO_DOMAIN: dict[str, str] = {
 }
 
 # Error keywords for log severity classification
+# TODO(B14): Severity classification is inconsistent across tools. fetch_pod_logs
+# uses _classify_log_severity (keyword-based), check_pod_status derives severity
+# from pod state (critical/high/info), describe_resource uses a binary
+# "high" vs "info" based on has_issues, query_prometheus flags "high" on stddev
+# spikes, and get_events uses "high" if any warnings exist. Align these to a
+# common severity rubric so that the same condition produces the same severity
+# label regardless of which tool surfaces it.
 _CRITICAL_KEYWORDS = ("fatal", "panic")
 _HIGH_KEYWORDS = ("oom", "killed", "segfault")
 _MEDIUM_KEYWORDS = ("error", "exception", "timeout", "refused", "fail")
@@ -41,13 +55,17 @@ _ERROR_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
-# Mapping of resource kind -> (api_method_name, is_cluster_scoped)
-_KIND_TO_API_METHOD: dict[str, tuple[str, bool]] = {
-    "pod": ("read_namespaced_pod", False),
-    "service": ("read_namespaced_service", False),
-    "configmap": ("read_namespaced_config_map", False),
-    "pvc": ("read_namespaced_persistent_volume_claim", False),
-    "node": ("read_node", True),
+# Mapping of resource kind -> (api_method_name, is_cluster_scoped, api_group)
+# api_group: "core" -> CoreV1Api, "apps" -> AppsV1Api, "networking" -> NetworkingV1Api
+_KIND_TO_API_METHOD: dict[str, tuple[str, bool, str]] = {
+    "pod": ("read_namespaced_pod", False, "core"),
+    "service": ("read_namespaced_service", False, "core"),
+    "configmap": ("read_namespaced_config_map", False, "core"),
+    "pvc": ("read_namespaced_persistent_volume_claim", False, "core"),
+    "node": ("read_node", True, "core"),
+    "deployment": ("read_namespaced_deployment", False, "apps"),
+    "replicaset": ("read_namespaced_replica_set", False, "apps"),
+    "ingress": ("read_namespaced_ingress", False, "networking"),
 }
 
 
@@ -56,10 +74,121 @@ class ToolExecutor:
 
     def __init__(self, connection_config: dict):
         self._config = connection_config
+        self._k8s_api_client = None  # Cached ApiClient
         self._k8s_core_api = None    # Injected or lazy-initialized
         self._k8s_apps_api = None
+        self._k8s_networking_api = None
         self._prom_client = None
         self._es_client = None
+
+    # ------------------------------------------------------------------
+    # Lazy client initialization (config -> env var -> kubeconfig fallback)
+    # ------------------------------------------------------------------
+
+    def _get_k8s_client(self):
+        """Build a kubernetes ApiClient from config/env vars/kubeconfig.
+
+        Resolution order:
+        1. self._config dict keys (cluster_url, cluster_token, verify_ssl)
+        2. Environment variables (OPENSHIFT_API_URL, OPENSHIFT_TOKEN)
+        3. Default kubeconfig (~/.kube/config)
+        """
+        if self._k8s_api_client is not None:
+            return self._k8s_api_client
+
+        from kubernetes import client, config
+
+        api_url = None
+        token = None
+        verify_ssl = False
+
+        if self._config:
+            api_url = self._config.get("cluster_url") or None
+            token = self._config.get("cluster_token") or None
+            verify_ssl = self._config.get("verify_ssl", False)
+
+        # Fallback to env vars
+        if not api_url:
+            api_url = os.getenv("OPENSHIFT_API_URL")
+        if not token:
+            token = os.getenv("OPENSHIFT_TOKEN")
+
+        if api_url and token:
+            configuration = client.Configuration()
+            configuration.host = api_url
+            configuration.api_key = {"authorization": f"Bearer {token}"}
+            configuration.verify_ssl = verify_ssl
+            api_client = client.ApiClient(configuration)
+            self._k8s_api_client = api_client
+            return api_client
+        else:
+            try:
+                config.load_kube_config()
+                api_client = client.ApiClient()
+                self._k8s_api_client = api_client
+                return api_client
+            except Exception as e:
+                raise RuntimeError(f"Failed to initialize K8s client: {e}")
+
+    def _get_k8s_core_api(self):
+        """Lazily initialize and cache the CoreV1Api client."""
+        if self._k8s_core_api is None:
+            from kubernetes import client
+            api_client = self._get_k8s_client()
+            self._k8s_core_api = client.CoreV1Api(api_client)
+        return self._k8s_core_api
+
+    def _get_k8s_apps_api(self):
+        """Lazily initialize and cache the AppsV1Api client."""
+        if self._k8s_apps_api is None:
+            from kubernetes import client
+            api_client = self._get_k8s_client()
+            self._k8s_apps_api = client.AppsV1Api(api_client)
+        return self._k8s_apps_api
+
+    def _get_k8s_networking_api(self):
+        """Lazily initialize and cache the NetworkingV1Api client."""
+        if self._k8s_networking_api is None:
+            from kubernetes import client
+            api_client = self._get_k8s_client()
+            self._k8s_networking_api = client.NetworkingV1Api(api_client)
+        return self._k8s_networking_api
+
+    def _get_prom_client(self):
+        """Lazily initialize and cache the Prometheus client."""
+        if self._prom_client is None:
+            from prometheus_api_client import PrometheusConnect
+
+            prom_url = None
+            if self._config:
+                prom_url = self._config.get("prometheus_url")
+            if not prom_url:
+                prom_url = os.getenv("PROMETHEUS_URL")
+            if not prom_url:
+                raise RuntimeError(
+                    "Prometheus URL not configured. Set 'prometheus_url' in "
+                    "connection config or PROMETHEUS_URL env var."
+                )
+            self._prom_client = PrometheusConnect(url=prom_url, disable_ssl=True)
+        return self._prom_client
+
+    def _get_es_client(self):
+        """Lazily initialize and cache the Elasticsearch client."""
+        if self._es_client is None:
+            from elasticsearch import Elasticsearch
+
+            es_url = None
+            if self._config:
+                es_url = self._config.get("elasticsearch_url")
+            if not es_url:
+                es_url = os.getenv("ELASTICSEARCH_URL")
+            if not es_url:
+                raise RuntimeError(
+                    "Elasticsearch URL not configured. Set 'elasticsearch_url' in "
+                    "connection config or ELASTICSEARCH_URL env var."
+                )
+            self._es_client = Elasticsearch([es_url])
+        return self._es_client
 
     HANDLERS: dict[str, str] = {
         "fetch_pod_logs": "_fetch_pod_logs",
@@ -68,10 +197,56 @@ class ToolExecutor:
         "search_logs": "_search_logs",
         "check_pod_status": "_check_pod_status",
         "get_events": "_get_events",
+        "re_investigate_service": "_re_investigate_service",
     }
+
+    # ------------------------------------------------------------------
+    # Parameter validation
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _validate_params(intent: str, params: dict[str, Any]) -> str | None:
+        """Check that all required params (per TOOL_REGISTRY schema) are present.
+
+        Returns an error string describing the missing params, or None if valid.
+        """
+        # Find the registry entry for this intent
+        registry_entry = None
+        for tool in TOOL_REGISTRY:
+            if tool["intent"] == intent:
+                registry_entry = tool
+                break
+
+        if registry_entry is None:
+            # No schema to validate against — skip validation
+            return None
+
+        missing: list[str] = []
+        for param_def in registry_entry.get("params_schema", []):
+            if param_def.get("required", False):
+                if param_def["name"] not in params or params[param_def["name"]] is None:
+                    missing.append(param_def["name"])
+
+        if missing:
+            return f"Missing required parameter(s) for '{intent}': {', '.join(missing)}"
+        return None
 
     async def execute(self, intent: str, params: dict[str, Any]) -> ToolResult:
         """Dispatch a tool call by intent name."""
+        # Validate required params before dispatch
+        validation_error = self._validate_params(intent, params)
+        if validation_error:
+            return ToolResult(
+                success=False,
+                intent=intent,
+                raw_output="",
+                summary=validation_error,
+                evidence_snippets=[],
+                evidence_type="unknown",
+                domain="unknown",
+                error=validation_error,
+            )
+
         handler_name = self.HANDLERS[intent]  # KeyError if unknown intent
         handler = getattr(self, handler_name)
         return await handler(params)
@@ -86,7 +261,7 @@ class ToolExecutor:
         pod = params["pod"]
         container = params.get("container")
         previous = params.get("previous", False)
-        tail_lines = params.get("tail_lines", 200)
+        tail_lines = max(1, min(params.get("tail_lines", 200), 5000))  # B9: clamp
 
         try:
             kwargs: dict[str, Any] = {
@@ -99,7 +274,7 @@ class ToolExecutor:
             if container:
                 kwargs["container"] = container
 
-            log_text: str = self._k8s_core_api.read_namespaced_pod_log(**kwargs)
+            log_text: str = self._get_k8s_core_api().read_namespaced_pod_log(**kwargs)
         except ApiException as exc:
             if exc.status == 404:
                 error_msg = f"Pod '{pod}' not found in namespace '{namespace}'"
@@ -188,8 +363,17 @@ class ToolExecutor:
                 metadata={"kind": kind, "name": name},
             )
 
-        method_name, is_cluster_scoped = _KIND_TO_API_METHOD[kind]
-        api_method = getattr(self._k8s_core_api, method_name)
+        method_name, is_cluster_scoped, api_group = _KIND_TO_API_METHOD[kind]
+
+        # Select the correct API client based on api_group
+        if api_group == "apps":
+            api_client = self._get_k8s_apps_api()
+        elif api_group == "networking":
+            api_client = self._get_k8s_networking_api()
+        else:
+            api_client = self._get_k8s_core_api()
+
+        api_method = getattr(api_client, method_name)
 
         try:
             if is_cluster_scoped:
@@ -252,23 +436,27 @@ class ToolExecutor:
     async def _query_prometheus(self, params: dict[str, Any]) -> ToolResult:
         """Execute a PromQL range query and compute stats / anomaly flags."""
         query = params["query"]
-        range_minutes = params.get("range_minutes", 60)
+        range_minutes = max(1, min(params.get("range_minutes", 60), 1440))  # B9: clamp
         domain = self._infer_domain_from_promql(query)
 
         try:
-            response = self._prom_client.query_range(query, range_minutes)
+            response = self._get_prom_client().query_range(query, range_minutes)
         except Exception as exc:
-            error_msg = f"Prometheus query failed: {exc}"
-            logger.warning("query_prometheus failed", extra={"query": query, "error": str(exc)})
+            # B8: Log full error internally, return generic message to client
+            logger.error(
+                "query_prometheus internal error",
+                extra={"query": query, "error": str(exc), "error_type": type(exc).__name__},
+            )
+            client_msg = "Prometheus query failed"
             return ToolResult(
                 success=False,
                 intent="query_prometheus",
                 raw_output="",
-                summary=error_msg,
+                summary=client_msg,
                 evidence_snippets=[],
                 evidence_type="metric",
                 domain=domain,
-                error=error_msg,
+                error=client_msg,
                 metadata={"query": query, "range_minutes": range_minutes},
             )
 
@@ -349,11 +537,11 @@ class ToolExecutor:
     async def _search_logs(self, params: dict[str, Any]) -> ToolResult:
         """Search logs in Elasticsearch using query_string."""
         query = params["query"]
-        index = params.get("index", self._config.get("es_index", "app-logs-*"))
-        since_minutes = params.get("since_minutes", 60)
+        index = params.get("index", (self._config or {}).get("es_index", "app-logs-*"))
+        since_minutes = max(1, min(params.get("since_minutes", 60), 1440))  # B9: clamp
 
         try:
-            es_response = self._es_client.search(
+            es_response = self._get_es_client().search(
                 index=index,
                 body={
                     "query": {
@@ -376,17 +564,21 @@ class ToolExecutor:
                 },
             )
         except Exception as exc:
-            error_msg = f"Elasticsearch query failed: {exc}"
-            logger.warning("search_logs failed", extra={"query": query, "error": str(exc)})
+            # B8: Log full error internally, return generic message to client
+            logger.error(
+                "search_logs internal error",
+                extra={"query": query, "index": index, "error": str(exc), "error_type": type(exc).__name__},
+            )
+            client_msg = "Log search failed"
             return ToolResult(
                 success=False,
                 intent="search_logs",
                 raw_output="",
-                summary=error_msg,
+                summary=client_msg,
                 evidence_snippets=[],
                 evidence_type="log",
                 domain="unknown",
-                error=error_msg,
+                error=client_msg,
                 metadata={"query": query, "index": index},
             )
 
@@ -431,7 +623,7 @@ class ToolExecutor:
             if label_selector:
                 kwargs["label_selector"] = label_selector
 
-            pod_list = self._k8s_core_api.list_namespaced_pod(**kwargs)
+            pod_list = self._get_k8s_core_api().list_namespaced_pod(**kwargs)
         except ApiException as exc:
             error_msg = f"Failed to list pods in namespace '{namespace}': {exc.reason}"
             logger.warning("check_pod_status failed", extra={"namespace": namespace, "status_code": exc.status})
@@ -533,7 +725,7 @@ class ToolExecutor:
     async def _get_events(self, params: dict[str, Any]) -> ToolResult:
         """List K8s events in a namespace, filtered by time window."""
         namespace = params["namespace"]
-        since_minutes = params.get("since_minutes", 60)
+        since_minutes = max(1, min(params.get("since_minutes", 60), 1440))  # B9: clamp
         involved_object = params.get("involved_object")
 
         try:
@@ -541,7 +733,7 @@ class ToolExecutor:
             if involved_object:
                 kwargs["field_selector"] = f"involvedObject.name={involved_object}"
 
-            event_list = self._k8s_core_api.list_namespaced_event(**kwargs)
+            event_list = self._get_k8s_core_api().list_namespaced_event(**kwargs)
         except ApiException as exc:
             error_msg = f"Failed to list events in namespace '{namespace}': {exc.reason}"
             logger.warning("get_events failed", extra={"namespace": namespace, "status_code": exc.status})
@@ -581,7 +773,11 @@ class ToolExecutor:
 
         filtered_events.sort(key=_tz_aware_ts, reverse=True)
 
-        warning_count = sum(1 for e in filtered_events if e.type == "Warning")
+        # B13: Use event.count with None-safe fallback
+        warning_count = sum(
+            getattr(e, 'count', 1) or 1
+            for e in filtered_events if e.type == "Warning"
+        )
         total_events = len(filtered_events)
 
         evidence_snippets: list[str] = []
@@ -615,6 +811,31 @@ class ToolExecutor:
                 "total_events": total_events,
                 "warning_count": warning_count,
                 "namespace": namespace,
+            },
+        )
+
+    # ------------------------------------------------------------------
+    # re_investigate_service (stub)
+    # ------------------------------------------------------------------
+
+    async def _re_investigate_service(self, params: dict[str, Any]) -> ToolResult:
+        """Stub: re-investigate a service through the full agent pipeline.
+
+        Not yet implemented — returns a failure result so callers know this
+        intent was recognized but cannot be executed yet.
+        """
+        return ToolResult(
+            success=False,
+            intent="re_investigate_service",
+            raw_output="",
+            summary="re_investigate_service is not yet implemented",
+            evidence_snippets=[],
+            evidence_type="unknown",
+            domain="unknown",
+            error="not yet implemented",
+            metadata={
+                "service": params.get("service"),
+                "namespace": params.get("namespace"),
             },
         )
 

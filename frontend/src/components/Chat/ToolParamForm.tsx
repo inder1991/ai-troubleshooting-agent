@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import type { ToolDefinition, ToolParam, RouterContext } from '../../types';
+import { getContextValue } from '../../utils/contextHelpers';
 
 interface ToolParamFormProps {
   tool: ToolDefinition;
@@ -13,7 +14,7 @@ export const ToolParamForm: React.FC<ToolParamFormProps> = ({ tool, context, onE
     const params: Record<string, unknown> = {};
     for (const p of tool.params_schema) {
       if (p.default_from_context) {
-        const ctxValue = (context as unknown as Record<string, unknown>)[p.default_from_context];
+        const ctxValue = getContextValue(context, p.default_from_context);
         if (ctxValue) params[p.name] = ctxValue;
       }
     }
@@ -21,6 +22,17 @@ export const ToolParamForm: React.FC<ToolParamFormProps> = ({ tool, context, onE
   }, [tool, context]);
 
   const [params, setParams] = useState<Record<string, unknown>>(initialParams);
+
+  // Escape key closes/cancels the form
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onCancel();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onCancel]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,7 +48,7 @@ export const ToolParamForm: React.FC<ToolParamFormProps> = ({ tool, context, onE
     .every((p) => params[p.name] !== undefined && params[p.name] !== '');
 
   return (
-    <form onSubmit={handleSubmit} className="bg-slate-800/50 border border-slate-700 rounded-lg p-3 space-y-2">
+    <form onSubmit={handleSubmit} role="form" aria-label="Tool parameters" className="bg-slate-800/50 border border-slate-700 rounded-lg p-3 space-y-2">
       <div className="text-xs font-medium text-cyan-400 mb-2">{tool.label}</div>
       {tool.params_schema.map((p) => (
         <ParamField key={p.name} param={p} value={params[p.name]} onChange={(v) => updateParam(p.name, v)} />

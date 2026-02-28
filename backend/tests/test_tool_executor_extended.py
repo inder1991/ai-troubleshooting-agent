@@ -236,7 +236,8 @@ class TestGetEvents:
         assert result.success is True
         assert result.evidence_type == "k8s_event"
         assert result.domain == "compute"
-        assert result.metadata["warning_count"] == 1
+        # B13: warning_count now sums event.count (not just counts events)
+        assert result.metadata["warning_count"] == 3
 
     @pytest.mark.asyncio
     async def test_no_events(self):

@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect, useMemo, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, HelpCircle, XCircle, GitBranch, MessageCircle, SkipForward } from 'lucide-react';
 import { drawerVariants, backdropVariants } from '../../styles/chat-animations';
-import { useChatUI, useChatStream } from '../../contexts/ChatContext';
+import { useChatUI, useChatStream, useInvestigationContext } from '../../contexts/ChatContext';
 import MarkdownBubble from './MarkdownBubble';
 import RemediationPacketCard from './RemediationPacketCard';
 import ChatInputArea from './ChatInputArea';
@@ -80,30 +80,33 @@ const ChatDrawer: React.FC = () => {
   const { isStreaming, streamingContent } = useChatStream();
 
   // Investigation tools for Quick Action Toolbar
-  const { tools, loading: toolsLoading, executeAction } = useInvestigationTools(sessionId);
+  const { tools, loading: toolsLoading, error: toolsError, retry: toolsRetry, executeAction } = useInvestigationTools(sessionId);
 
-  // Build a minimal RouterContext from available state
+  // Pull real investigation context from ChatContext (set by InvestigationView)
+  const { investigationContext } = useInvestigationContext();
+
+  // Build RouterContext enriched with real investigation context
   const routerContext = useMemo<RouterContext>(() => ({
-    active_namespace: null,
-    active_service: null,
-    active_pod: null,
+    active_namespace: investigationContext.namespace,
+    active_service: investigationContext.service,
+    active_pod: investigationContext.pod,
     time_window: { start: '', end: '' },
     session_id: sessionId || '',
     incident_id: '',
-    discovered_services: [],
-    discovered_namespaces: [],
-    pod_names: [],
+    discovered_services: investigationContext.service ? [investigationContext.service] : [],
+    discovered_namespaces: investigationContext.namespace ? [investigationContext.namespace] : [],
+    pod_names: investigationContext.pod ? [investigationContext.pod] : [],
     active_findings_summary: '',
     last_agent_phase: '',
-  }), [sessionId]);
+  }), [sessionId, investigationContext]);
 
   const handleToolbarExecute = useCallback(async (payload: QuickActionPayload) => {
-    if (!sessionId) return;
+    if (!sessionId || toolsLoading) return;
     await executeAction({
       quick_action: payload,
       context: routerContext,
     });
-  }, [sessionId, executeAction, routerContext]);
+  }, [sessionId, toolsLoading, executeAction, routerContext]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const [userScrolled, setUserScrolled] = useState(false);
@@ -204,12 +207,14 @@ const ChatDrawer: React.FC = () => {
             )}
 
             {/* Quick Action Toolbar */}
-            {tools.length > 0 && (
+            {(tools.length > 0 || toolsError) && (
               <QuickActionToolbar
                 tools={tools}
                 context={routerContext}
                 onExecute={handleToolbarExecute}
                 loading={toolsLoading}
+                error={toolsError}
+                onRetry={toolsRetry}
               />
             )}
 
