@@ -5,6 +5,7 @@ import { sendChatMessage } from '../services/api';
 // ─── ChatUI Context (slow-moving: messages, drawer, sending) ─────────────
 
 interface ChatUIContextValue {
+  sessionId: string | null;
   messages: ChatMessage[];
   isOpen: boolean;
   unreadCount: number;
@@ -291,6 +292,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({
   const markRead = useCallback(() => setUnreadCount(0), []);
 
   const uiValue = useMemo<ChatUIContextValue>(() => ({
+    sessionId,
     messages,
     isOpen,
     unreadCount,
@@ -303,7 +305,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({
     markRead,
     addMessage,
   }), [
-    messages, isOpen, unreadCount, isWaiting, isSending,
+    sessionId, messages, isOpen, unreadCount, isWaiting, isSending,
     sendMessage, toggleDrawer, openDrawer, closeDrawer, markRead, addMessage,
   ]);
 
