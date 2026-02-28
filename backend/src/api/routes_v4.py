@@ -22,6 +22,8 @@ from src.api.websocket import manager
 from src.utils.logger import get_logger
 from src.tools.router_models import InvestigateRequest, InvestigateResponse
 from src.tools.tool_registry import TOOL_REGISTRY
+from src.agents.critic_agent import CriticAgent
+from src.models.schemas import EvidencePin
 
 logger = get_logger(__name__)
 
@@ -1152,6 +1154,79 @@ async def execute_campaign(session_id: str):
 # ── Live Investigation Steering Endpoints ─────────────────────────────
 
 
+async def _run_critic_delta(session_id: str, pin_id: str) -> None:
+    """Background task: delta-validate a new evidence pin via the CriticAgent."""
+    try:
+        critic = CriticAgent()
+
+        # Read evidence_pins from session state
+        state = sessions.get(session_id)
+        if not state or "evidence_pins" not in state:
+            logger.warning("Critic delta: session or pins missing", extra={"session_id": session_id, "pin_id": pin_id})
+            return
+
+        raw_pins = state["evidence_pins"]
+
+        # Find the new pin and reconstruct EvidencePin objects
+        new_pin_data = None
+        existing_pins = []
+        for rp in raw_pins:
+            if rp.get("id") == pin_id:
+                new_pin_data = rp
+            else:
+                try:
+                    existing_pins.append(EvidencePin(**rp))
+                except Exception:
+                    pass  # Skip malformed pins
+
+        if not new_pin_data:
+            logger.warning("Critic delta: pin not found in session", extra={"session_id": session_id, "pin_id": pin_id})
+            return
+
+        new_pin = EvidencePin(**new_pin_data)
+
+        # Run delta validation
+        result = await critic.validate_delta(new_pin, existing_pins, causal_chains=[])
+
+        # Update pin in session state under lock
+        async with session_locks.setdefault(session_id, asyncio.Lock()):
+            current_state = sessions.get(session_id)
+            if current_state and "evidence_pins" in current_state:
+                for pin_data in current_state["evidence_pins"]:
+                    if pin_data.get("id") == pin_id:
+                        pin_data["validation_status"] = result["validation_status"]
+                        pin_data["causal_role"] = result["causal_role"]
+                        break
+
+        # Emit WebSocket event for the update
+        try:
+            await manager.send_message(session_id, {
+                "type": "task_event",
+                "data": {
+                    "session_id": session_id,
+                    "agent_name": "critic",
+                    "event_type": "evidence_pin_updated",
+                    "message": f"Pin {pin_id} delta-validated: {result['validation_status']}",
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "details": {
+                        "pin_id": pin_id,
+                        "validation_status": result["validation_status"],
+                        "causal_role": result["causal_role"],
+                        "confidence": result["confidence"],
+                        "reasoning": result["reasoning"],
+                        "contradictions": result["contradictions"],
+                    },
+                },
+            })
+        except Exception as e:
+            logger.warning("WebSocket broadcast failed for critic delta", extra={"error": str(e)})
+
+    except Exception as e:
+        logger.error("Critic delta revalidation failed", extra={
+            "session_id": session_id, "pin_id": pin_id, "error": str(e),
+        })
+
+
 @router_v4.post("/session/{session_id}/investigate")
 async def investigate(session_id: str, request: InvestigateRequest):
     """Manual investigation: slash command, quick action, or natural language."""
@@ -1193,6 +1268,9 @@ async def investigate(session_id: str, request: InvestigateRequest):
             })
         except Exception as e:
             logger.warning("WebSocket broadcast failed for evidence pin", extra={"error": str(e)})
+
+        # Dispatch background critic delta revalidation
+        asyncio.create_task(_run_critic_delta(session_id, pin.id))
 
     return response.model_dump()
 
