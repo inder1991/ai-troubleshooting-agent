@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import type { ToolDefinition, ToolParam, RouterContext } from '../../types';
+import { getContextValue } from '../../utils/contextHelpers';
 
 interface ToolParamFormProps {
   tool: ToolDefinition;
@@ -13,7 +14,7 @@ export const ToolParamForm: React.FC<ToolParamFormProps> = ({ tool, context, onE
     const params: Record<string, unknown> = {};
     for (const p of tool.params_schema) {
       if (p.default_from_context) {
-        const ctxValue = (context as unknown as Record<string, unknown>)[p.default_from_context];
+        const ctxValue = getContextValue(context, p.default_from_context);
         if (ctxValue) params[p.name] = ctxValue;
       }
     }

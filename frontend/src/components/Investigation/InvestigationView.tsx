@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import type { V4Session, V4Findings, V4SessionStatus, ChatMessage, TaskEvent, DiagnosticPhase, TokenUsage, AttestationGateData } from '../../types';
 import { getFindings, getSessionStatus, sendChatMessage } from '../../services/api';
-import { useChatUI } from '../../contexts/ChatContext';
+import { useChatUI, useInvestigationContext } from '../../contexts/ChatContext';
 import { useCampaignContext } from '../../contexts/CampaignContext';
 import Investigator from './Investigator';
 import EvidenceFindings from './EvidenceFindings';
@@ -56,6 +56,21 @@ const InvestigationView: React.FC<InvestigationViewProps> = ({
       setCampaign(findings.campaign);
     }
   }, [findings?.campaign, setCampaign]);
+
+  // Sync investigation context (namespace/service/pod/cluster) into ChatContext
+  const { setInvestigationContext } = useInvestigationContext();
+  useEffect(() => {
+    const namespace = findings?.pod_statuses?.[0]?.namespace ?? null;
+    const service = findings?.target_service ?? session.service_name ?? null;
+    const pod = findings?.pod_statuses?.[0]?.pod_name ?? null;
+    // cluster is not directly on session/findings — will be null until available
+    setInvestigationContext({ namespace, service, pod, cluster: null });
+  }, [
+    findings?.target_service,
+    findings?.pod_statuses,
+    session.service_name,
+    setInvestigationContext,
+  ]);
 
   // Tick "last updated X s ago" every second
   useEffect(() => {

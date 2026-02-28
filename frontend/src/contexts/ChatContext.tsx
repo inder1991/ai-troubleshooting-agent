@@ -2,6 +2,28 @@ import React, { createContext, useContext, useState, useCallback, useRef, useEff
 import type { ChatMessage, TaskEvent } from '../types';
 import { sendChatMessage } from '../services/api';
 
+// ─── Investigation Context (slow-moving: namespace/service/pod/cluster) ──
+
+export interface InvestigationContextData {
+  namespace: string | null;
+  service: string | null;
+  pod: string | null;
+  cluster: string | null;
+}
+
+interface InvestigationContextValue {
+  investigationContext: InvestigationContextData;
+  setInvestigationContext: (ctx: InvestigationContextData) => void;
+}
+
+const InvestigationContext = createContext<InvestigationContextValue | null>(null);
+
+export function useInvestigationContext(): InvestigationContextValue {
+  const ctx = useContext(InvestigationContext);
+  if (!ctx) throw new Error('useInvestigationContext must be used within ChatProvider');
+  return ctx;
+}
+
 // ─── ChatUI Context (slow-moving: messages, drawer, sending) ─────────────
 
 interface ChatUIContextValue {
@@ -197,6 +219,19 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({
   const [isSending, setIsSending] = useState(false);
   const prevMessageCountRef = useRef(0);
 
+  // Investigation context — set by InvestigationView with real namespace/service/pod
+  const [investigationCtx, setInvestigationCtx] = useState<InvestigationContextData>({
+    namespace: null,
+    service: null,
+    pod: null,
+    cluster: null,
+  });
+
+  const investigationValue = useMemo<InvestigationContextValue>(() => ({
+    investigationContext: investigationCtx,
+    setInvestigationContext: setInvestigationCtx,
+  }), [investigationCtx]);
+
   const messages = useMemo(
     () => (sessionId ? messagesBySession[sessionId] || [] : []),
     [sessionId, messagesBySession]
@@ -311,15 +346,17 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({
 
   return (
     <ChatUIContext.Provider value={uiValue}>
-      <ChatStreamProvider
-        sessionId={sessionId}
-        onRegisterStreamStart={onRegisterStreamStart}
-        onRegisterStreamAppend={onRegisterStreamAppend}
-        onRegisterStreamFinish={onRegisterStreamFinish}
-        onPhaseUpdate={onPhaseUpdate}
-      >
-        {children}
-      </ChatStreamProvider>
+      <InvestigationContext.Provider value={investigationValue}>
+        <ChatStreamProvider
+          sessionId={sessionId}
+          onRegisterStreamStart={onRegisterStreamStart}
+          onRegisterStreamAppend={onRegisterStreamAppend}
+          onRegisterStreamFinish={onRegisterStreamFinish}
+          onPhaseUpdate={onPhaseUpdate}
+        >
+          {children}
+        </ChatStreamProvider>
+      </InvestigationContext.Provider>
     </ChatUIContext.Provider>
   );
 };

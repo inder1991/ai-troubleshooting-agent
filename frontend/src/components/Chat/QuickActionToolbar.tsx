@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { ToolParamForm } from './ToolParamForm';
 import type { ToolDefinition, RouterContext, QuickActionPayload } from '../../types';
+import { getContextValue } from '../../utils/contextHelpers';
 
 interface QuickActionToolbarProps {
   tools: ToolDefinition[];
@@ -25,7 +26,7 @@ export const QuickActionToolbar: React.FC<QuickActionToolbarProps> = ({
       const params: Record<string, unknown> = {};
       for (const p of tool.params_schema) {
         if (p.default_from_context) {
-          const v = (context as unknown as Record<string, unknown>)[p.default_from_context];
+          const v = getContextValue(context, p.default_from_context);
           if (v) params[p.name] = v;
         }
       }
@@ -43,7 +44,7 @@ export const QuickActionToolbar: React.FC<QuickActionToolbarProps> = ({
 
   const isDisabled = useCallback((tool: ToolDefinition) => {
     return tool.requires_context.some((req) => {
-      const val = (context as unknown as Record<string, unknown>)[`active_${req}`];
+      const val = getContextValue(context, `active_${req}`);
       return !val;
     });
   }, [context]);
