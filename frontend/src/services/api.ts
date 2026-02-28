@@ -8,6 +8,9 @@ import type {
   Integration,
   FixStatusResponse,
   ClosureStatusResponse,
+  InvestigateRequest,
+  InvestigateResponse,
+  ToolDefinition,
 } from '../types';
 
 export const API_BASE_URL = 'http://localhost:8000';
@@ -441,6 +444,31 @@ export const publishPostMortem = async (sessionId: string, data: {
   });
   if (!response.ok) {
     throw new Error(await extractErrorDetail(response, 'Failed to publish post-mortem'));
+  }
+  return response.json();
+};
+
+// ── Live Investigation Steering ──────────────────────────────────────
+
+export const postInvestigate = async (
+  sessionId: string,
+  request: InvestigateRequest
+): Promise<InvestigateResponse> => {
+  const response = await fetch(`${API_BASE_URL}/api/v4/session/${sessionId}/investigate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(request),
+  });
+  if (!response.ok) {
+    throw new Error(await extractErrorDetail(response, 'Investigation request failed'));
+  }
+  return response.json();
+};
+
+export const getTools = async (sessionId: string): Promise<{ tools: ToolDefinition[] }> => {
+  const response = await fetch(`${API_BASE_URL}/api/v4/session/${sessionId}/tools`);
+  if (!response.ok) {
+    throw new Error(await extractErrorDetail(response, 'Failed to get tools'));
   }
   return response.json();
 };

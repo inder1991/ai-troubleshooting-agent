@@ -903,3 +903,87 @@ export interface VerdictEvent {
   message: string;
   domain?: ClusterDomainKey;
 }
+
+// ── Live Investigation Steering ──────────────────────────────────────
+
+export interface RouterContext {
+  active_namespace: string | null;
+  active_service: string | null;
+  active_pod: string | null;
+  time_window: { start: string; end: string };
+  session_id: string;
+  incident_id: string;
+  discovered_services: string[];
+  discovered_namespaces: string[];
+  pod_names: string[];
+  active_findings_summary: string;
+  last_agent_phase: string;
+  elk_index?: string;
+}
+
+export interface QuickActionPayload {
+  intent: string;
+  params: Record<string, unknown>;
+}
+
+export interface InvestigateRequest {
+  command?: string;
+  query?: string;
+  quick_action?: QuickActionPayload;
+  context: RouterContext;
+}
+
+export interface InvestigateResponse {
+  pin_id: string;
+  intent: string;
+  params: Record<string, unknown>;
+  path_used: 'fast' | 'smart';
+  status: 'executing' | 'error';
+  error?: string;
+}
+
+export type EvidencePinDomain = 'compute' | 'network' | 'storage' | 'control_plane' | 'security' | 'unknown';
+export type ValidationStatus = 'pending_critic' | 'validated' | 'rejected';
+export type CausalRole = 'root_cause' | 'cascading_symptom' | 'correlated' | 'informational';
+
+export interface EvidencePinV2 {
+  id: string;
+  claim: string;
+  source: 'auto' | 'manual';
+  source_agent: string | null;
+  source_tool: string;
+  triggered_by: 'automated_pipeline' | 'user_chat' | 'quick_action';
+  evidence_type: string;
+  supporting_evidence: string[];
+  raw_output: string | null;
+  confidence: number;
+  severity: 'critical' | 'high' | 'medium' | 'low' | 'info' | null;
+  causal_role: CausalRole | null;
+  domain: EvidencePinDomain;
+  validation_status: ValidationStatus;
+  namespace: string | null;
+  service: string | null;
+  resource_name: string | null;
+  timestamp: string;
+  time_window: { start: string; end: string } | null;
+}
+
+export interface ToolParam {
+  name: string;
+  type: 'string' | 'select' | 'number' | 'boolean';
+  required: boolean;
+  default_from_context?: string;
+  options?: string[];
+  placeholder?: string;
+}
+
+export interface ToolDefinition {
+  intent: string;
+  label: string;
+  icon: string;
+  slash_command: string;
+  category: 'logs' | 'metrics' | 'cluster' | 'network' | 'security' | 'code';
+  description: string;
+  params_schema: ToolParam[];
+  requires_context: string[];
+}
