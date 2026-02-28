@@ -20,6 +20,8 @@ from src.utils.event_emitter import EventEmitter
 from src.utils.llm_client import AnthropicClient
 from src.api.websocket import manager
 from src.utils.logger import get_logger
+from src.tools.router_models import InvestigateRequest, InvestigateResponse
+from src.tools.tool_registry import TOOL_REGISTRY
 
 logger = get_logger(__name__)
 
@@ -84,6 +86,24 @@ router_v4 = APIRouter(prefix="/api/v4", tags=["v4"])
 # In-memory session store
 sessions: Dict[str, Dict[str, Any]] = {}
 supervisors: Dict[str, SupervisorAgent] = {}
+
+# Investigation routers per session
+_investigation_routers: Dict[str, Any] = {}
+
+
+def _get_investigation_router(session_id: str):
+    """Get or create InvestigationRouter for a session."""
+    if session_id not in _investigation_routers:
+        from src.tools.investigation_router import InvestigationRouter
+        from src.tools.tool_executor import ToolExecutor
+        config = sessions[session_id].get("connection_config", {})
+        executor = ToolExecutor(config)
+        llm = AnthropicClient(agent_name="investigation_router")
+        _investigation_routers[session_id] = InvestigationRouter(
+            tool_executor=executor, llm_client=llm,
+        )
+    return _investigation_routers[session_id]
+
 
 SESSION_TTL_HOURS = 24
 SESSION_CLEANUP_INTERVAL_SECONDS = 300  # 5 minutes
@@ -1127,3 +1147,66 @@ async def execute_campaign(session_id: str):
 
     result = await orchestrator.execute_campaign(campaign, state)
     return CampaignExecuteResponse(**result)
+
+
+# ── Live Investigation Steering Endpoints ─────────────────────────────
+
+
+@router_v4.post("/session/{session_id}/investigate")
+async def investigate(session_id: str, request: InvestigateRequest):
+    """Manual investigation: slash command, quick action, or natural language."""
+    _validate_session_id(session_id)
+    if session_id not in sessions:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    investigation_router = _get_investigation_router(session_id)
+    response, pin = await investigation_router.route(request)
+
+    if pin:
+        # Merge pin into session state under lock
+        async with session_locks.setdefault(session_id, asyncio.Lock()):
+            state = sessions[session_id]
+            if "evidence_pins" not in state:
+                state["evidence_pins"] = []
+            state["evidence_pins"].append(pin.model_dump(mode="json"))
+
+        # Emit WebSocket event
+        try:
+            await manager.send_message(session_id, {
+                "type": "task_event",
+                "data": {
+                    "session_id": session_id,
+                    "agent_name": "investigation_router",
+                    "event_type": "evidence_pin_added",
+                    "message": pin.claim,
+                    "timestamp": pin.timestamp.isoformat(),
+                    "details": {
+                        "pin_id": pin.id,
+                        "domain": pin.domain,
+                        "severity": pin.severity,
+                        "validation_status": pin.validation_status,
+                        "evidence_type": pin.evidence_type,
+                        "source_tool": pin.source_tool,
+                        "raw_output": pin.raw_output,
+                    },
+                },
+            })
+        except Exception as e:
+            logger.warning("WebSocket broadcast failed for evidence pin", extra={"error": str(e)})
+
+    return response.model_dump()
+
+
+@router_v4.get("/session/{session_id}/tools")
+async def get_tools(session_id: str):
+    """Return available investigation tools for this session."""
+    _validate_session_id(session_id)
+    if session_id not in sessions:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    enriched = []
+    for tool in TOOL_REGISTRY:
+        tool_copy = {**tool}
+        enriched.append(tool_copy)
+
+    return {"tools": enriched}
