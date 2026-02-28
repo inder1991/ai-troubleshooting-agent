@@ -36,6 +36,9 @@ _UUID4_RE = re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}
 # M10: Track background diagnosis tasks for cancellation on cleanup
 _diagnosis_tasks: Dict[str, asyncio.Task] = {}
 
+# B3: Track background critic delta tasks per session for cancellation on cleanup
+_critic_delta_tasks: Dict[str, list] = {}  # session_id -> list[asyncio.Task]
+
 
 def _validate_session_id(session_id: str) -> None:
     """M1: Validate session_id is a proper UUID4 to prevent DoS via random lookups."""
@@ -94,17 +97,23 @@ _investigation_routers: Dict[str, Any] = {}
 
 
 def _get_investigation_router(session_id: str):
-    """Get or create InvestigationRouter for a session."""
-    if session_id not in _investigation_routers:
-        from src.tools.investigation_router import InvestigationRouter
-        from src.tools.tool_executor import ToolExecutor
-        config = sessions[session_id].get("connection_config", {})
-        executor = ToolExecutor(config)
-        llm = AnthropicClient(agent_name="investigation_router")
-        _investigation_routers[session_id] = InvestigationRouter(
-            tool_executor=executor, llm_client=llm,
-        )
-    return _investigation_routers[session_id]
+    """Get or create InvestigationRouter for a session.
+
+    B4: Check with .get() first and create in a single sync block
+    (no await between check and store) to prevent TOCTOU races.
+    """
+    existing = _investigation_routers.get(session_id)
+    if existing is not None:
+        return existing
+
+    from src.tools.investigation_router import InvestigationRouter
+    from src.tools.tool_executor import ToolExecutor
+    config = sessions[session_id].get("connection_config", {})
+    executor = ToolExecutor(config)
+    llm = AnthropicClient(agent_name="investigation_router")
+    router = InvestigationRouter(tool_executor=executor, llm_client=llm)
+    _investigation_routers[session_id] = router
+    return router
 
 
 SESSION_TTL_HOURS = 24
@@ -132,6 +141,13 @@ async def _session_cleanup_loop():
                 task = _diagnosis_tasks.pop(sid, None)
                 if task and not task.done():
                     task.cancel()
+                # B3: Cancel all critic delta tasks for this session
+                critic_tasks = _critic_delta_tasks.pop(sid, [])
+                for ct in critic_tasks:
+                    if not ct.done():
+                        ct.cancel()
+                # B2: Remove investigation router for this session
+                _investigation_routers.pop(sid, None)
                 # H1: Use lock during cleanup to prevent races with HTTP handlers
                 lock = session_locks.pop(sid, None)
                 if lock:
@@ -1282,6 +1298,8 @@ async def investigate(session_id: str, request: InvestigateRequest):
         # Dispatch background critic delta revalidation
         task = asyncio.create_task(_run_critic_delta(session_id, pin.id))
         task.add_done_callback(lambda t: t.exception() if not t.cancelled() else None)
+        # B3: Track critic delta task for cancellation on session cleanup
+        _critic_delta_tasks.setdefault(session_id, []).append(task)
 
     return response.model_dump()
 
