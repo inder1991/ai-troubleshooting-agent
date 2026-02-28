@@ -1,11 +1,23 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type {
   V4Session, ClusterHealthReport, ClusterDomainReport,
-  ClusterCausalChain, TaskEvent,
+  ClusterDomainKey, TaskEvent, NamespaceWorkload, VerdictEvent,
+  FleetNode,
 } from '../../types';
 import { API_BASE_URL } from '../../services/api';
 import ChatDrawer from '../Chat/ChatDrawer';
 import LedgerTriggerTab from '../Chat/LedgerTriggerTab';
+import ClusterHeader from './ClusterHeader';
+import CommandBar from './CommandBar';
+import ExecutionDAG from './ExecutionDAG';
+import FleetHeatmap from './FleetHeatmap';
+import ResourceVelocity from './ResourceVelocity';
+import DomainPanel from './DomainPanel';
+import VerticalRibbon from './VerticalRibbon';
+import RootCauseCard from './RootCauseCard';
+import VerdictStack from './VerdictStack';
+import RemediationCard from './RemediationCard';
+import NeuralPulseSVG from './NeuralPulseSVG';
 
 interface ClusterWarRoomProps {
   session: V4Session;
@@ -16,19 +28,7 @@ interface ClusterWarRoomProps {
   onGoHome: () => void;
 }
 
-const DOMAIN_COLORS: Record<string, string> = {
-  ctrl_plane: '#ef4444',
-  node: '#07b6d5',
-  network: '#f97316',
-  storage: '#10b981',
-};
-
-const DOMAIN_LABELS: Record<string, string> = {
-  ctrl_plane: 'Control Plane & Etcd',
-  node: 'Node & Capacity',
-  network: 'Network & Ingress',
-  storage: 'Storage & Persistence',
-};
+const ALL_DOMAINS: ClusterDomainKey[] = ['node', 'ctrl_plane', 'network', 'storage'];
 
 const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
   session, events, wsConnected, phase, confidence, onGoHome,
@@ -36,7 +36,10 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
   const [findings, setFindings] = useState<ClusterHealthReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [expandedDomain, setExpandedDomain] = useState<ClusterDomainKey>('node');
+  const [selectedNode, setSelectedNode] = useState<string | undefined>();
 
+  // ── Data Fetching ──
   const fetchFindings = useCallback(async () => {
     try {
       const res = await fetch(`${API_BASE_URL}/api/v4/session/${session.session_id}/findings`);
@@ -62,159 +65,157 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
     return () => clearInterval(interval);
   }, [fetchFindings]);
 
-  const healthColor = findings?.platform_health === 'HEALTHY' ? '#10b981'
-    : findings?.platform_health === 'DEGRADED' ? '#f59e0b'
-    : findings?.platform_health === 'CRITICAL' ? '#ef4444'
-    : '#6b7280';
+  // ── Derived Data ──
+  const domainReports = useMemo(() => findings?.domain_reports || [], [findings]);
+  const expandedReport = useMemo(
+    () => domainReports.find(r => r.domain === expandedDomain),
+    [domainReports, expandedDomain]
+  );
+  const collapsedDomains = useMemo(
+    () => ALL_DOMAINS.filter(d => d !== expandedDomain),
+    [expandedDomain]
+  );
+  const primaryChain = useMemo(
+    () => findings?.causal_chains?.[0],
+    [findings]
+  );
+  const immediateSteps = useMemo(
+    () => findings?.remediation?.immediate || [],
+    [findings]
+  );
+
+  // ── Mock Data (until backend provides namespace-level detail) ──
+  const mockNamespaces = useMemo((): NamespaceWorkload[] => {
+    if (!expandedReport || expandedReport.anomalies.length === 0) {
+      return [{ namespace: 'default', status: 'Healthy', replica_status: 'All healthy', last_deploy: '—' }];
+    }
+    return [
+      {
+        namespace: 'checkout-api',
+        status: 'Critical',
+        workloads: [{
+          name: expandedReport.anomalies[0]?.evidence_ref || 'pod-unknown',
+          kind: 'Deployment',
+          status: 'CrashLoopBackOff',
+          restarts: 14,
+          cpu_usage: '92%',
+          memory_usage: '450Mi',
+          is_trigger: true,
+          age: '23s ago',
+        }],
+      },
+      { namespace: 'payment-gateway', status: 'Healthy', replica_status: 'Replicas: 3/3', last_deploy: '2h ago' },
+      { namespace: 'auth-service', status: 'Healthy', replica_status: 'Replicas: 5/5', last_deploy: '1d ago' },
+    ];
+  }, [expandedReport]);
+
+  const mockFleetNodes = useMemo((): FleetNode[] => {
+    const count = 120;
+    const criticalIndices = [12, 45, 87, 88, 102];
+    return Array.from({ length: count }, (_, i) => ({
+      name: `node-${i}`,
+      status: criticalIndices.includes(i) ? 'critical' as const : 'healthy' as const,
+      cpu_pct: criticalIndices.includes(i) ? 94 : Math.random() * 40 + 10,
+      disk_pressure: i === 87,
+    }));
+  }, []);
+
+  const mockVerdictEvents = useMemo((): VerdictEvent[] => {
+    if (!primaryChain) return [];
+    return [
+      { timestamp: '14:02:11', severity: 'FATAL', message: primaryChain.root_cause.description },
+      ...primaryChain.cascading_effects.map(e => ({
+        timestamp: '—',
+        severity: 'WARN' as const,
+        message: e.description,
+        domain: e.domain as ClusterDomainKey,
+      })),
+    ];
+  }, [primaryChain]);
+
+  // ── Auto-expand most affected domain (only on initial load) ──
+  const hasAutoExpanded = useRef(false);
+
+  useEffect(() => {
+    if (hasAutoExpanded.current) return;
+    if (domainReports.length === 0) return;
+    const worst = domainReports.reduce((prev, curr) =>
+      curr.anomalies.length > prev.anomalies.length ? curr : prev
+    , domainReports[0]);
+    if (worst.anomalies.length > 0) {
+      setExpandedDomain(worst.domain as ClusterDomainKey);
+      hasAutoExpanded.current = true;
+    }
+  }, [domainReports]);
 
   return (
-    <div className="flex flex-col h-full overflow-hidden" style={{ backgroundColor: '#0f2023' }}>
-      {/* Header */}
-      <header className="h-14 border-b border-[#224349] flex items-center justify-between px-6 shrink-0">
-        <div className="flex items-center gap-4">
-          <button onClick={onGoHome} className="text-slate-400 hover:text-white transition-colors">
-            <span className="material-symbols-outlined" style={{ fontFamily: 'Material Symbols Outlined' }}>arrow_back</span>
+    <div className="flex flex-col h-full overflow-hidden bg-[#0f2023] crt-scanlines relative font-sans text-slate-300">
+      <ClusterHeader
+        sessionId={session.session_id}
+        confidence={confidence}
+        platformHealth={findings?.platform_health || ''}
+        wsConnected={wsConnected}
+        onGoHome={onGoHome}
+      />
+
+      {/* Error banner */}
+      {error && (
+        <div className="mx-6 mt-2 p-3 rounded-lg border border-red-500/30 bg-red-500/10 flex items-center justify-between">
+          <span className="text-sm text-red-400">{error}</span>
+          <button onClick={fetchFindings} className="text-xs text-red-300 hover:text-white px-3 py-1 rounded border border-red-500/30 hover:bg-red-500/20 transition-colors">
+            Retry
           </button>
-          <div>
-            <h1 className="text-white font-bold text-lg">Cluster Diagnostics</h1>
-            <p className="text-xs text-slate-500">{session.session_id.slice(0, 8)}</p>
-          </div>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 px-3 py-1 rounded-full" style={{ backgroundColor: `${healthColor}20`, border: `1px solid ${healthColor}40` }}>
-            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: healthColor }} />
-            <span className="text-xs font-bold uppercase tracking-wider" style={{ color: healthColor }}>
-              {findings?.platform_health || 'Analyzing...'}
-            </span>
-          </div>
-          {findings && (
-            <span className="text-xs text-slate-500">
-              Data: {Math.round((findings.data_completeness || 0) * 100)}%
-            </span>
-          )}
-        </div>
-      </header>
+      )}
 
-      {/* Main content grid */}
-      <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
-        {error && (
-          <div className="mb-4 p-3 rounded-lg border border-red-500/30 bg-red-500/10 flex items-center justify-between">
-            <span className="text-sm text-red-400">{error}</span>
-            <button onClick={fetchFindings} className="text-xs text-red-300 hover:text-white px-3 py-1 rounded border border-red-500/30 hover:bg-red-500/20 transition-colors">
-              Retry
-            </button>
-          </div>
-        )}
-
+      {/* Main War Room Grid */}
+      <main className="flex-1 grid grid-cols-12 overflow-hidden relative">
         {loading && !findings && !error && (
-          <div className="flex items-center justify-center h-64 text-slate-500">
-            <span className="material-symbols-outlined animate-spin mr-2" style={{ fontFamily: 'Material Symbols Outlined' }}>progress_activity</span>
-            Running cluster diagnostics...
+          <div className="col-span-12 flex items-center justify-center">
+            <div className="text-center">
+              <span className="material-symbols-outlined animate-spin text-4xl text-[#13b6ec] mb-4 block" style={{ fontFamily: 'Material Symbols Outlined' }}>progress_activity</span>
+              <p className="text-slate-500 text-sm">Initializing cluster diagnostics...</p>
+            </div>
           </div>
         )}
 
-        {findings && (
-          <div className="grid grid-cols-12 gap-4">
-            {/* Domain panels — 4 columns, 3 cols each */}
-            {(['ctrl_plane', 'node', 'network', 'storage'] as const).map(domain => {
-              const report = findings.domain_reports?.find(r => r.domain === domain);
-              return (
-                <div key={domain} className="col-span-3 rounded-lg border p-4" style={{ borderColor: '#224349', backgroundColor: 'rgba(15,32,35,0.6)' }}>
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="w-1 h-6 rounded-full" style={{ backgroundColor: DOMAIN_COLORS[domain] }} />
-                    <h3 className="text-sm font-bold text-white">{DOMAIN_LABELS[domain]}</h3>
-                  </div>
-                  {report ? (
-                    <>
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className={`text-xs font-bold uppercase ${report.status === 'SUCCESS' ? 'text-emerald-400' : report.status === 'FAILED' ? 'text-red-400' : 'text-amber-400'}`}>
-                          {report.status}
-                        </span>
-                        <span className="text-xs text-slate-500">
-                          {report.confidence}% confidence
-                        </span>
-                      </div>
-                      {report.anomalies?.map((a, i) => (
-                        <div key={i} className="text-xs text-slate-300 mb-1 pl-3 border-l-2" style={{ borderColor: DOMAIN_COLORS[domain] + '60' }}>
-                          {a.description}
-                        </div>
-                      ))}
-                      {report.ruled_out?.length > 0 && (
-                        <div className="mt-2 text-[10px] text-slate-600">
-                          Ruled out: {report.ruled_out.join(', ')}
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <div className="text-xs text-slate-600 animate-pulse">Analyzing...</div>
-                  )}
-                </div>
-              );
-            })}
+        {(!loading || findings) && (
+          <>
+            <NeuralPulseSVG hasRootCause={!!primaryChain} />
 
-            {/* Causal chains — full width */}
-            {findings.causal_chains?.length > 0 && (
-              <div className="col-span-12 rounded-lg border p-4" style={{ borderColor: '#224349', backgroundColor: 'rgba(15,32,35,0.6)' }}>
-                <h3 className="text-sm font-bold text-white mb-3">Causal Chains</h3>
-                {findings.causal_chains?.map(chain => (
-                  <div key={chain.chain_id} className="mb-3 p-3 rounded border" style={{ borderColor: '#224349' }}>
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-xs font-bold text-red-400 uppercase">Root Cause</span>
-                      <span className="text-xs text-slate-500">{Math.round(chain.confidence * 100)}% confidence</span>
-                    </div>
-                    <p className="text-sm text-white mb-2">{chain.root_cause.description}</p>
-                    {chain.cascading_effects.map(effect => (
-                      <div key={effect.order} className="flex items-center gap-2 ml-4 mb-1">
-                        <span className="text-slate-600">&rarr;</span>
-                        <span className="text-xs text-slate-300">{effect.description}</span>
-                        <span className="text-[10px] text-slate-600">({effect.link_type})</span>
-                      </div>
-                    ))}
-                  </div>
+            {/* ── LEFT COLUMN (col-3) ── */}
+            <section className="col-span-3 border-r border-[#1f3b42] bg-[#0f2023]/50 p-4 flex flex-col gap-4 overflow-hidden z-10">
+              <ExecutionDAG domainReports={domainReports} phase={phase || 'pre_flight'} />
+              <FleetHeatmap nodes={mockFleetNodes} selectedNode={selectedNode} onSelectNode={setSelectedNode} />
+              <ResourceVelocity />
+            </section>
+
+            {/* ── CENTER COLUMN (col-5) ── */}
+            <section className="col-span-5 flex h-full bg-[#0f2023] overflow-hidden relative border-r border-[#1f3b42]">
+              <DomainPanel domain={expandedDomain} report={expandedReport} namespaces={mockNamespaces} />
+              <div className="w-[40px] flex flex-col bg-[#152a2f] border-l border-[#1f3b42] shrink-0 z-10">
+                {collapsedDomains.map(d => (
+                  <VerticalRibbon
+                    key={d}
+                    domain={d}
+                    report={domainReports.find(r => r.domain === d)}
+                    onClick={() => setExpandedDomain(d)}
+                  />
                 ))}
               </div>
-            )}
+            </section>
 
-            {/* Blast radius */}
-            {findings.blast_radius?.summary && (
-              <div className="col-span-6 rounded-lg border p-4" style={{ borderColor: '#224349', backgroundColor: 'rgba(15,32,35,0.6)' }}>
-                <h3 className="text-sm font-bold text-white mb-2">Blast Radius</h3>
-                <p className="text-sm text-slate-300 mb-2">{findings.blast_radius?.summary}</p>
-                <div className="flex gap-4 text-xs text-slate-500">
-                  <span>{findings.blast_radius?.affected_nodes ?? 0} nodes</span>
-                  <span>{findings.blast_radius?.affected_pods ?? 0} pods</span>
-                  <span>{findings.blast_radius?.affected_namespaces ?? 0} namespaces</span>
-                </div>
-              </div>
-            )}
-
-            {/* Remediation */}
-            {(findings.remediation?.immediate?.length > 0 || findings.remediation?.long_term?.length > 0) && (
-              <div className="col-span-6 rounded-lg border p-4" style={{ borderColor: '#224349', backgroundColor: 'rgba(15,32,35,0.6)' }}>
-                <h3 className="text-sm font-bold text-white mb-2">Remediation</h3>
-                {findings.remediation?.immediate?.map((step, i) => (
-                  <div key={i} className="mb-2">
-                    <p className="text-xs text-slate-300">{step.description}</p>
-                    {step.command && (
-                      <code className="text-[10px] text-cyan-400 block mt-1 font-mono">{step.command}</code>
-                    )}
-                  </div>
-                ))}
-                {(findings.remediation?.long_term?.length ?? 0) > 0 && (
-                  <>
-                    <h4 className="text-xs font-bold text-slate-400 mt-3 mb-1">Long Term</h4>
-                    {findings.remediation?.long_term?.map((step, i) => (
-                      <div key={i} className="mb-2">
-                        <p className="text-xs text-slate-300">{step.description}</p>
-                      </div>
-                    ))}
-                  </>
-                )}
-              </div>
-            )}
-          </div>
+            {/* ── RIGHT COLUMN (col-4) ── */}
+            <section className="col-span-4 bg-[#0f2023]/50 p-4 flex flex-col gap-4 overflow-hidden relative z-10">
+              <RootCauseCard chain={primaryChain} confidence={confidence} />
+              <VerdictStack events={mockVerdictEvents} />
+              <RemediationCard steps={immediateSteps} blastRadius={findings?.blast_radius} />
+            </section>
+          </>
         )}
-      </div>
+      </main>
+
+      <CommandBar />
       <ChatDrawer />
       <LedgerTriggerTab />
     </div>

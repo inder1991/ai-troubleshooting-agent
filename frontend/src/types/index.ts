@@ -864,3 +864,42 @@ export interface PostmortemDossierData {
   executive_summary: string;
   impact_statement: string;
 }
+
+/* ── Cluster War Room UI types ─────────────────── */
+
+export type ClusterDomainKey = 'ctrl_plane' | 'node' | 'network' | 'storage';
+
+export interface FleetNode {
+  name: string;
+  status: 'healthy' | 'warning' | 'critical' | 'unknown';
+  cpu_pct?: number;
+  memory_pct?: number;
+  disk_pressure?: boolean;
+  pod_count?: number;
+}
+
+export interface NamespaceWorkload {
+  namespace: string;
+  status: 'Healthy' | 'Degraded' | 'Critical' | 'Unknown';
+  replica_status?: string;
+  last_deploy?: string;
+  workloads?: WorkloadDetail[];
+}
+
+export interface WorkloadDetail {
+  name: string;
+  kind: 'Deployment' | 'StatefulSet' | 'DaemonSet' | 'CronJob' | 'Job' | 'Pod';
+  status: 'Running' | 'CrashLoopBackOff' | 'Pending' | 'Failed' | 'Completed';
+  restarts?: number;
+  cpu_usage?: string;
+  memory_usage?: string;
+  age?: string;
+  is_trigger?: boolean;
+}
+
+export interface VerdictEvent {
+  timestamp: string;
+  severity: 'FATAL' | 'WARN' | 'INFO';
+  message: string;
+  domain?: ClusterDomainKey;
+}
