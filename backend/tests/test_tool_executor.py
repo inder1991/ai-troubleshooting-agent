@@ -370,6 +370,101 @@ class TestDescribeResource:
         assert result.success is True
         assert result.domain == "storage"
 
+    @pytest.mark.asyncio
+    async def test_describe_deployment(self):
+        """Describing a deployment should use AppsV1Api, domain=compute."""
+        mock_apps_api = MagicMock()
+        mock_deployment = MagicMock()
+        mock_deployment.metadata = MagicMock()
+        mock_deployment.metadata.name = "payment-deploy"
+        mock_deployment.status = MagicMock()
+        mock_deployment.status.container_statuses = None
+        mock_apps_api.read_namespaced_deployment = MagicMock(return_value=mock_deployment)
+
+        executor = _make_executor(apps_api=mock_apps_api)
+
+        with patch("src.tools.tool_executor.ApiClient") as MockApiClient:
+            mock_client_instance = MagicMock()
+            mock_client_instance.sanitize_for_serialization.return_value = {
+                "metadata": {"name": "payment-deploy"},
+            }
+            MockApiClient.return_value = mock_client_instance
+
+            result = await executor.execute("describe_resource", {
+                "kind": "deployment",
+                "name": "payment-deploy",
+                "namespace": "prod",
+            })
+
+        assert result.success is True
+        assert result.domain == "compute"
+        assert result.evidence_type == "k8s_resource"
+        # Verify AppsV1Api method was called, not CoreV1Api
+        mock_apps_api.read_namespaced_deployment.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_describe_replicaset(self):
+        """Describing a replicaset should use AppsV1Api, domain=compute."""
+        mock_apps_api = MagicMock()
+        mock_rs = MagicMock()
+        mock_rs.metadata = MagicMock()
+        mock_rs.metadata.name = "payment-rs-abc123"
+        mock_rs.status = MagicMock()
+        mock_rs.status.container_statuses = None
+        mock_apps_api.read_namespaced_replica_set = MagicMock(return_value=mock_rs)
+
+        executor = _make_executor(apps_api=mock_apps_api)
+
+        with patch("src.tools.tool_executor.ApiClient") as MockApiClient:
+            mock_client_instance = MagicMock()
+            mock_client_instance.sanitize_for_serialization.return_value = {
+                "metadata": {"name": "payment-rs-abc123"},
+            }
+            MockApiClient.return_value = mock_client_instance
+
+            result = await executor.execute("describe_resource", {
+                "kind": "replicaset",
+                "name": "payment-rs-abc123",
+                "namespace": "prod",
+            })
+
+        assert result.success is True
+        assert result.domain == "compute"
+        assert result.evidence_type == "k8s_resource"
+        mock_apps_api.read_namespaced_replica_set.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_describe_ingress(self):
+        """Describing an ingress should use NetworkingV1Api, domain=network."""
+        mock_networking_api = MagicMock()
+        mock_ingress = MagicMock()
+        mock_ingress.metadata = MagicMock()
+        mock_ingress.metadata.name = "frontend-ingress"
+        mock_ingress.status = MagicMock()
+        mock_ingress.status.container_statuses = None
+        mock_networking_api.read_namespaced_ingress = MagicMock(return_value=mock_ingress)
+
+        executor = _make_executor()
+        executor._k8s_networking_api = mock_networking_api
+
+        with patch("src.tools.tool_executor.ApiClient") as MockApiClient:
+            mock_client_instance = MagicMock()
+            mock_client_instance.sanitize_for_serialization.return_value = {
+                "metadata": {"name": "frontend-ingress"},
+            }
+            MockApiClient.return_value = mock_client_instance
+
+            result = await executor.execute("describe_resource", {
+                "kind": "ingress",
+                "name": "frontend-ingress",
+                "namespace": "prod",
+            })
+
+        assert result.success is True
+        assert result.domain == "network"
+        assert result.evidence_type == "k8s_resource"
+        mock_networking_api.read_namespaced_ingress.assert_called_once()
+
 
 # ---------------------------------------------------------------------------
 # TestUnknownIntent

@@ -463,3 +463,92 @@ class TestSlashCommandParsing:
     def test_parse_no_slash_returns_none(self):
         result = InvestigationRouter._parse_slash_command("logs pod=test")
         assert result is None
+
+
+# ── TimeWindow ISO -> since_minutes (B12) ─────────────────────────────
+
+
+class TestTimeWindowInjection:
+    """Tests for B12: computing since_minutes from ISO time_window timestamps."""
+
+    def test_time_window_injection(self):
+        """ISO timestamps in time_window should compute since_minutes for tools that accept it."""
+        context = _make_context(
+            time_window=TimeWindow(
+                start="2026-02-28T09:00:00+00:00",
+                end="2026-02-28T10:00:00+00:00",
+            ),
+        )
+        # get_events has a since_minutes param but we don't set it explicitly
+        params = {"namespace": "payment-api"}
+        result = InvestigationRouter._apply_context_defaults("get_events", params, context)
+        assert result["since_minutes"] == 60
+
+    def test_time_window_30_minutes(self):
+        """A 30-minute window should yield since_minutes=30."""
+        context = _make_context(
+            time_window=TimeWindow(
+                start="2026-02-28T09:30:00+00:00",
+                end="2026-02-28T10:00:00+00:00",
+            ),
+        )
+        params = {"namespace": "payment-api"}
+        result = InvestigationRouter._apply_context_defaults("get_events", params, context)
+        assert result["since_minutes"] == 30
+
+    def test_time_window_clamped_to_1440(self):
+        """A window > 24h should be clamped to 1440 minutes."""
+        context = _make_context(
+            time_window=TimeWindow(
+                start="2026-02-26T10:00:00+00:00",
+                end="2026-02-28T10:00:00+00:00",
+            ),
+        )
+        params = {"namespace": "payment-api"}
+        result = InvestigationRouter._apply_context_defaults("get_events", params, context)
+        assert result["since_minutes"] == 1440
+
+    def test_time_window_non_iso_skipped(self):
+        """Non-ISO values like 'now-1h' should not inject since_minutes."""
+        context = _make_context(
+            time_window=TimeWindow(start="now-1h", end="now"),
+        )
+        params = {"namespace": "payment-api"}
+        result = InvestigationRouter._apply_context_defaults("get_events", params, context)
+        assert "since_minutes" not in result
+
+    def test_time_window_mixed_non_iso_skipped(self):
+        """A mix of ISO and non-ISO should be skipped gracefully."""
+        context = _make_context(
+            time_window=TimeWindow(
+                start="2026-02-28T09:00:00+00:00",
+                end="now",
+            ),
+        )
+        params = {"namespace": "payment-api"}
+        result = InvestigationRouter._apply_context_defaults("get_events", params, context)
+        assert "since_minutes" not in result
+
+    def test_time_window_does_not_overwrite_explicit_since_minutes(self):
+        """If since_minutes is already set, time_window should not override it."""
+        context = _make_context(
+            time_window=TimeWindow(
+                start="2026-02-28T09:00:00+00:00",
+                end="2026-02-28T10:00:00+00:00",
+            ),
+        )
+        params = {"namespace": "payment-api", "since_minutes": 15}
+        result = InvestigationRouter._apply_context_defaults("get_events", params, context)
+        assert result["since_minutes"] == 15  # Not overwritten
+
+    def test_time_window_inverted_range_skipped(self):
+        """If start > end (inverted), since_minutes should not be injected."""
+        context = _make_context(
+            time_window=TimeWindow(
+                start="2026-02-28T11:00:00+00:00",
+                end="2026-02-28T10:00:00+00:00",
+            ),
+        )
+        params = {"namespace": "payment-api"}
+        result = InvestigationRouter._apply_context_defaults("get_events", params, context)
+        assert "since_minutes" not in result

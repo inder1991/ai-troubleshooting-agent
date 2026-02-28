@@ -5,6 +5,7 @@ Both paths converge on ToolExecutor.execute() -> EvidencePinFactory.from_tool_re
 
 import asyncio
 import json
+from datetime import datetime, timezone
 from typing import Optional, Any
 
 from src.tools.tool_executor import ToolExecutor
@@ -190,7 +191,11 @@ class InvestigationRouter:
 
     @staticmethod
     def _apply_context_defaults(intent: str, params: dict, context: RouterContext) -> dict:
-        """Fill missing params from RouterContext using tool registry defaults."""
+        """Fill missing params from RouterContext using tool registry defaults.
+
+        Also computes ``since_minutes`` from the context ``time_window`` when the
+        window contains ISO-8601 timestamps and the param is not already set.
+        """
         tool_def = next((t for t in TOOL_REGISTRY if t["intent"] == intent), None)
         if not tool_def:
             return params
@@ -203,7 +208,36 @@ class InvestigationRouter:
                 if ctx_value is not None:
                     params[name] = ctx_value
 
+        # B12: Inject since_minutes from time_window ISO timestamps
+        if "since_minutes" not in params and context.time_window:
+            computed = InvestigationRouter._since_minutes_from_time_window(context.time_window)
+            if computed is not None:
+                params["since_minutes"] = computed
+
         return params
+
+    @staticmethod
+    def _since_minutes_from_time_window(tw) -> int | None:
+        """Compute since_minutes from a TimeWindow with ISO-8601 start/end.
+
+        Returns the delta in minutes (clamped to 1..1440) or None if the
+        timestamps are not valid ISO-8601 (e.g. ``"now-1h"``).
+        """
+        _MAX_SINCE_MINUTES = 1440
+
+        try:
+            start = datetime.fromisoformat(tw.start)
+            end = datetime.fromisoformat(tw.end)
+        except (ValueError, TypeError, AttributeError):
+            # Non-ISO values like "now-1h" — skip gracefully
+            return None
+
+        delta_seconds = (end - start).total_seconds()
+        if delta_seconds <= 0:
+            return None
+
+        minutes = int(delta_seconds / 60)
+        return max(1, min(minutes, _MAX_SINCE_MINUTES))
 
     @staticmethod
     def _build_smart_prompt(context: RouterContext) -> str:

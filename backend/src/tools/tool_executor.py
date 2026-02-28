@@ -43,13 +43,17 @@ _ERROR_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
-# Mapping of resource kind -> (api_method_name, is_cluster_scoped)
-_KIND_TO_API_METHOD: dict[str, tuple[str, bool]] = {
-    "pod": ("read_namespaced_pod", False),
-    "service": ("read_namespaced_service", False),
-    "configmap": ("read_namespaced_config_map", False),
-    "pvc": ("read_namespaced_persistent_volume_claim", False),
-    "node": ("read_node", True),
+# Mapping of resource kind -> (api_method_name, is_cluster_scoped, api_group)
+# api_group: "core" -> CoreV1Api, "apps" -> AppsV1Api, "networking" -> NetworkingV1Api
+_KIND_TO_API_METHOD: dict[str, tuple[str, bool, str]] = {
+    "pod": ("read_namespaced_pod", False, "core"),
+    "service": ("read_namespaced_service", False, "core"),
+    "configmap": ("read_namespaced_config_map", False, "core"),
+    "pvc": ("read_namespaced_persistent_volume_claim", False, "core"),
+    "node": ("read_node", True, "core"),
+    "deployment": ("read_namespaced_deployment", False, "apps"),
+    "replicaset": ("read_namespaced_replica_set", False, "apps"),
+    "ingress": ("read_namespaced_ingress", False, "networking"),
 }
 
 
@@ -61,6 +65,7 @@ class ToolExecutor:
         self._k8s_api_client = None  # Cached ApiClient
         self._k8s_core_api = None    # Injected or lazy-initialized
         self._k8s_apps_api = None
+        self._k8s_networking_api = None
         self._prom_client = None
         self._es_client = None
 
@@ -128,6 +133,14 @@ class ToolExecutor:
             api_client = self._get_k8s_client()
             self._k8s_apps_api = client.AppsV1Api(api_client)
         return self._k8s_apps_api
+
+    def _get_k8s_networking_api(self):
+        """Lazily initialize and cache the NetworkingV1Api client."""
+        if self._k8s_networking_api is None:
+            from kubernetes import client
+            api_client = self._get_k8s_client()
+            self._k8s_networking_api = client.NetworkingV1Api(api_client)
+        return self._k8s_networking_api
 
     def _get_prom_client(self):
         """Lazily initialize and cache the Prometheus client."""
@@ -338,8 +351,17 @@ class ToolExecutor:
                 metadata={"kind": kind, "name": name},
             )
 
-        method_name, is_cluster_scoped = _KIND_TO_API_METHOD[kind]
-        api_method = getattr(self._get_k8s_core_api(), method_name)
+        method_name, is_cluster_scoped, api_group = _KIND_TO_API_METHOD[kind]
+
+        # Select the correct API client based on api_group
+        if api_group == "apps":
+            api_client = self._get_k8s_apps_api()
+        elif api_group == "networking":
+            api_client = self._get_k8s_networking_api()
+        else:
+            api_client = self._get_k8s_core_api()
+
+        api_method = getattr(api_client, method_name)
 
         try:
             if is_cluster_scoped:
