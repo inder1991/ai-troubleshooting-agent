@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import type { ClusterRemediationStep, ClusterBlastRadius } from '../../types';
 import { useChatUI } from '../../contexts/ChatContext';
 
@@ -37,6 +37,12 @@ const RemediationCard: React.FC<RemediationCardProps> = ({ steps, blastRadius })
     if (timerRef.current) clearInterval(timerRef.current);
     setHoldingIndex(null);
     setHoldProgress(0);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
   }, []);
 
   if (steps.length === 0) return null;

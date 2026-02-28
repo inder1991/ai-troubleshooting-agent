@@ -19,7 +19,7 @@ const WorkloadCard: React.FC<WorkloadCardProps> = ({ workload, domainColor }) =>
   const isCrashing = workload.status === 'CrashLoopBackOff' || workload.status === 'Failed';
 
   return (
-    <div className={`bg-[#0f2023]/60 border rounded p-3 ${isTrigger ? 'border-red-500 shadow-lg' : 'border-[#1f3b42]'}`}>
+    <div className={`bg-[#0f2023]/60 border border-l-2 rounded p-3 ${isTrigger ? 'border-red-500 shadow-lg' : 'border-[#1f3b42]'}`} style={{ borderLeftColor: domainColor }}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className={`w-10 h-10 rounded border flex items-center justify-center ${

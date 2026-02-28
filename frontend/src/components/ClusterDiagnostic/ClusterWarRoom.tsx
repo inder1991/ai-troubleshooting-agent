@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type {
   V4Session, ClusterHealthReport, ClusterDomainReport,
   ClusterDomainKey, TaskEvent, NamespaceWorkload, VerdictEvent,
@@ -133,14 +133,18 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
     ];
   }, [primaryChain]);
 
-  // ── Auto-expand most affected domain ──
+  // ── Auto-expand most affected domain (only on initial load) ──
+  const hasAutoExpanded = useRef(false);
+
   useEffect(() => {
+    if (hasAutoExpanded.current) return;
     if (domainReports.length === 0) return;
     const worst = domainReports.reduce((prev, curr) =>
       curr.anomalies.length > prev.anomalies.length ? curr : prev
     , domainReports[0]);
     if (worst.anomalies.length > 0) {
       setExpandedDomain(worst.domain as ClusterDomainKey);
+      hasAutoExpanded.current = true;
     }
   }, [domainReports]);
 
@@ -166,36 +170,49 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
 
       {/* Main War Room Grid */}
       <main className="flex-1 grid grid-cols-12 overflow-hidden relative">
-        <NeuralPulseSVG hasRootCause={!!primaryChain} />
-
-        {/* ── LEFT COLUMN (col-3) ── */}
-        <section className="col-span-3 border-r border-[#1f3b42] bg-[#0f2023]/50 p-4 flex flex-col gap-4 overflow-hidden z-10">
-          <ExecutionDAG domainReports={domainReports} phase={phase || 'pre_flight'} />
-          <FleetHeatmap nodes={mockFleetNodes} selectedNode={selectedNode} onSelectNode={setSelectedNode} />
-          <ResourceVelocity />
-        </section>
-
-        {/* ── CENTER COLUMN (col-5) ── */}
-        <section className="col-span-5 flex h-full bg-[#0f2023] overflow-hidden relative border-r border-[#1f3b42]">
-          <DomainPanel domain={expandedDomain} report={expandedReport} namespaces={mockNamespaces} />
-          <div className="w-[40px] flex flex-col bg-[#152a2f] border-l border-[#1f3b42] shrink-0 z-10">
-            {collapsedDomains.map(d => (
-              <VerticalRibbon
-                key={d}
-                domain={d}
-                report={domainReports.find(r => r.domain === d)}
-                onClick={() => setExpandedDomain(d)}
-              />
-            ))}
+        {loading && !findings && !error && (
+          <div className="col-span-12 flex items-center justify-center">
+            <div className="text-center">
+              <span className="material-symbols-outlined animate-spin text-4xl text-[#13b6ec] mb-4 block" style={{ fontFamily: 'Material Symbols Outlined' }}>progress_activity</span>
+              <p className="text-slate-500 text-sm">Initializing cluster diagnostics...</p>
+            </div>
           </div>
-        </section>
+        )}
 
-        {/* ── RIGHT COLUMN (col-4) ── */}
-        <section className="col-span-4 bg-[#0f2023]/50 p-4 flex flex-col gap-4 overflow-hidden relative z-10">
-          <RootCauseCard chain={primaryChain} confidence={confidence} />
-          <VerdictStack events={mockVerdictEvents} />
-          <RemediationCard steps={immediateSteps} blastRadius={findings?.blast_radius} />
-        </section>
+        {(!loading || findings) && (
+          <>
+            <NeuralPulseSVG hasRootCause={!!primaryChain} />
+
+            {/* ── LEFT COLUMN (col-3) ── */}
+            <section className="col-span-3 border-r border-[#1f3b42] bg-[#0f2023]/50 p-4 flex flex-col gap-4 overflow-hidden z-10">
+              <ExecutionDAG domainReports={domainReports} phase={phase || 'pre_flight'} />
+              <FleetHeatmap nodes={mockFleetNodes} selectedNode={selectedNode} onSelectNode={setSelectedNode} />
+              <ResourceVelocity />
+            </section>
+
+            {/* ── CENTER COLUMN (col-5) ── */}
+            <section className="col-span-5 flex h-full bg-[#0f2023] overflow-hidden relative border-r border-[#1f3b42]">
+              <DomainPanel domain={expandedDomain} report={expandedReport} namespaces={mockNamespaces} />
+              <div className="w-[40px] flex flex-col bg-[#152a2f] border-l border-[#1f3b42] shrink-0 z-10">
+                {collapsedDomains.map(d => (
+                  <VerticalRibbon
+                    key={d}
+                    domain={d}
+                    report={domainReports.find(r => r.domain === d)}
+                    onClick={() => setExpandedDomain(d)}
+                  />
+                ))}
+              </div>
+            </section>
+
+            {/* ── RIGHT COLUMN (col-4) ── */}
+            <section className="col-span-4 bg-[#0f2023]/50 p-4 flex flex-col gap-4 overflow-hidden relative z-10">
+              <RootCauseCard chain={primaryChain} confidence={confidence} />
+              <VerdictStack events={mockVerdictEvents} />
+              <RemediationCard steps={immediateSteps} blastRadius={findings?.blast_radius} />
+            </section>
+          </>
+        )}
       </main>
 
       <CommandBar />
