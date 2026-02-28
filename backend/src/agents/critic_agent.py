@@ -1,8 +1,9 @@
 import json
+import re as _re
 from typing import Optional
 
 from src.models.schemas import (
-    Finding, CriticVerdict, DiagnosticState, Breadcrumb, TokenUsage
+    Finding, CriticVerdict, DiagnosticState, Breadcrumb, TokenUsage, EvidencePin
 )
 from src.utils.llm_client import AnthropicClient
 from src.utils.logger import get_logger
@@ -13,9 +14,9 @@ logger = get_logger(__name__)
 class CriticAgent:
     """Read-only agent that cross-validates findings against other agent data."""
 
-    def __init__(self):
+    def __init__(self, llm_client=None):
         self.agent_name = "critic"
-        self.llm_client = AnthropicClient(agent_name="critic")
+        self.llm_client = llm_client or AnthropicClient(agent_name="critic")
 
     async def validate(self, finding: Finding, state: DiagnosticState) -> CriticVerdict:
         """Validate a finding against all available evidence in the diagnostic state."""
@@ -85,6 +86,119 @@ Respond with JSON:
                 reasoning=f"Critic validation error: {str(e)[:200]}",
                 confidence_in_verdict=20,
             )
+
+    async def validate_delta(
+        self,
+        new_pin: EvidencePin,
+        existing_pins: list[EvidencePin],
+        causal_chains: list,
+    ) -> dict:
+        """Delta-validate a new evidence pin against existing pins.
+
+        Returns a dict with keys:
+            validation_status: "validated" | "rejected"
+            causal_role: "root_cause" | "cascading_symptom" | "correlated" | "informational"
+            confidence: float
+            reasoning: str
+            contradictions: list[str]
+        """
+        _default = {
+            "validation_status": "validated",
+            "causal_role": "informational",
+            "confidence": new_pin.confidence,
+            "reasoning": "Default: accepted without LLM validation.",
+            "contradictions": [],
+        }
+
+        prompt = self._build_delta_context(new_pin, existing_pins, causal_chains)
+
+        try:
+            response = await self.llm_client.chat(
+                prompt=prompt,
+                system=(
+                    "You are a Critic Agent performing delta revalidation. A new evidence pin "
+                    "has been added to an ongoing investigation. Your job is to evaluate whether "
+                    "this new evidence supports, contradicts, or merely correlates with existing "
+                    "findings.\n\n"
+                    "Respond with ONLY a JSON object (no markdown, no extra text):\n"
+                    "{\n"
+                    '  "validation_status": "validated" or "rejected",\n'
+                    '  "causal_role": "root_cause" | "cascading_symptom" | "correlated" | "informational",\n'
+                    '  "confidence": <float 0-1>,\n'
+                    '  "reasoning": "<explanation>",\n'
+                    '  "contradictions": ["<list of contradictions, empty if none>"]\n'
+                    "}"
+                ),
+            )
+        except Exception as e:
+            logger.error("Critic delta validation LLM error", extra={
+                "agent_name": "critic", "action": "delta_llm_error",
+                "extra": {"pin_id": new_pin.id, "error": str(e)},
+            })
+            return _default
+
+        try:
+            # Try to extract JSON from response (handles markdown fences, etc.)
+            json_match = _re.search(r'\{[\s\S]*\}', response.text)
+            if json_match:
+                data = json.loads(json_match.group())
+            else:
+                data = json.loads(response.text)
+
+            return {
+                "validation_status": data.get("validation_status", "validated"),
+                "causal_role": data.get("causal_role", "informational"),
+                "confidence": float(data.get("confidence", new_pin.confidence)),
+                "reasoning": data.get("reasoning", "No reasoning provided."),
+                "contradictions": data.get("contradictions", []),
+            }
+        except (json.JSONDecodeError, ValueError, TypeError) as e:
+            logger.warning("Failed to parse Critic delta JSON response", extra={
+                "agent_name": "critic", "action": "delta_parse_error",
+                "extra": {"pin_id": new_pin.id, "response_preview": response.text[:200]},
+            })
+            return _default
+
+    def _build_delta_context(
+        self,
+        new_pin: EvidencePin,
+        existing_pins: list[EvidencePin],
+        causal_chains: list,
+    ) -> str:
+        """Build prompt context for delta validation."""
+        parts = [
+            "## New Evidence Pin to Validate",
+            f"ID: {new_pin.id}",
+            f"Claim: {new_pin.claim}",
+            f"Source tool: {new_pin.source_tool}",
+            f"Evidence type: {new_pin.evidence_type}",
+            f"Confidence: {new_pin.confidence}",
+            f"Severity: {new_pin.severity}",
+            f"Domain: {new_pin.domain}",
+            f"Source: {new_pin.source}",
+            f"Triggered by: {new_pin.triggered_by}",
+        ]
+
+        if new_pin.raw_output:
+            parts.append(f"Raw output (truncated): {new_pin.raw_output[:2000]}")
+
+        if existing_pins:
+            parts.append(f"\n## Existing Evidence Pins ({len(existing_pins)} total)")
+            for ep in existing_pins[:10]:  # Limit to 10 for prompt size
+                parts.append(
+                    f"- [{ep.evidence_type}] {ep.claim} "
+                    f"(confidence={ep.confidence}, severity={ep.severity}, "
+                    f"causal_role={ep.causal_role}, validation={ep.validation_status})"
+                )
+        else:
+            parts.append("\n## Existing Evidence Pins: None (this is the first pin)")
+
+        if causal_chains:
+            parts.append(f"\n## Causal Chains ({len(causal_chains)} total)")
+            for chain in causal_chains[:5]:
+                parts.append(f"- {chain}")
+
+        return "\n".join(parts)
 
     def _build_context(self, finding: Finding, state: DiagnosticState) -> str:
         """Build context string from the finding and all available agent data."""

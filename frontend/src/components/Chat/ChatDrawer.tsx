@@ -7,7 +7,9 @@ import MarkdownBubble from './MarkdownBubble';
 import RemediationPacketCard from './RemediationPacketCard';
 import ChatInputArea from './ChatInputArea';
 import ActionChip from './ActionChip';
-import type { ChatMessage } from '../../types';
+import { QuickActionToolbar } from './QuickActionToolbar';
+import { useInvestigationTools } from '../../hooks/useInvestigationTools';
+import type { ChatMessage, RouterContext, QuickActionPayload } from '../../types';
 
 // ─── Action Chip Derivation ─────────────────────────────────────────────
 
@@ -67,6 +69,7 @@ function deriveActionChips(message: ChatMessage | undefined): DerivedChip[] {
 
 const ChatDrawer: React.FC = () => {
   const {
+    sessionId,
     messages,
     isOpen,
     isWaiting,
@@ -75,6 +78,32 @@ const ChatDrawer: React.FC = () => {
     closeDrawer,
   } = useChatUI();
   const { isStreaming, streamingContent } = useChatStream();
+
+  // Investigation tools for Quick Action Toolbar
+  const { tools, loading: toolsLoading, executeAction } = useInvestigationTools(sessionId);
+
+  // Build a minimal RouterContext from available state
+  const routerContext = useMemo<RouterContext>(() => ({
+    active_namespace: null,
+    active_service: null,
+    active_pod: null,
+    time_window: { start: '', end: '' },
+    session_id: sessionId || '',
+    incident_id: '',
+    discovered_services: [],
+    discovered_namespaces: [],
+    pod_names: [],
+    active_findings_summary: '',
+    last_agent_phase: '',
+  }), [sessionId]);
+
+  const handleToolbarExecute = useCallback(async (payload: QuickActionPayload) => {
+    if (!sessionId) return;
+    await executeAction({
+      quick_action: payload,
+      context: routerContext,
+    });
+  }, [sessionId, executeAction, routerContext]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const [userScrolled, setUserScrolled] = useState(false);
@@ -172,6 +201,16 @@ const ChatDrawer: React.FC = () => {
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
                 <span className="text-[11px] text-amber-400 font-mono">Foreman awaiting operator input</span>
               </div>
+            )}
+
+            {/* Quick Action Toolbar */}
+            {tools.length > 0 && (
+              <QuickActionToolbar
+                tools={tools}
+                context={routerContext}
+                onExecute={handleToolbarExecute}
+                loading={toolsLoading}
+              />
             )}
 
             {/* Messages Area */}

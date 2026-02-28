@@ -20,6 +20,10 @@ from src.utils.event_emitter import EventEmitter
 from src.utils.llm_client import AnthropicClient
 from src.api.websocket import manager
 from src.utils.logger import get_logger
+from src.tools.router_models import InvestigateRequest, InvestigateResponse
+from src.tools.tool_registry import TOOL_REGISTRY
+from src.agents.critic_agent import CriticAgent
+from src.models.schemas import EvidencePin
 
 logger = get_logger(__name__)
 
@@ -84,6 +88,24 @@ router_v4 = APIRouter(prefix="/api/v4", tags=["v4"])
 # In-memory session store
 sessions: Dict[str, Dict[str, Any]] = {}
 supervisors: Dict[str, SupervisorAgent] = {}
+
+# Investigation routers per session
+_investigation_routers: Dict[str, Any] = {}
+
+
+def _get_investigation_router(session_id: str):
+    """Get or create InvestigationRouter for a session."""
+    if session_id not in _investigation_routers:
+        from src.tools.investigation_router import InvestigationRouter
+        from src.tools.tool_executor import ToolExecutor
+        config = sessions[session_id].get("connection_config", {})
+        executor = ToolExecutor(config)
+        llm = AnthropicClient(agent_name="investigation_router")
+        _investigation_routers[session_id] = InvestigationRouter(
+            tool_executor=executor, llm_client=llm,
+        )
+    return _investigation_routers[session_id]
+
 
 SESSION_TTL_HOURS = 24
 SESSION_CLEANUP_INTERVAL_SECONDS = 300  # 5 minutes
@@ -1127,3 +1149,153 @@ async def execute_campaign(session_id: str):
 
     result = await orchestrator.execute_campaign(campaign, state)
     return CampaignExecuteResponse(**result)
+
+
+# ── Live Investigation Steering Endpoints ─────────────────────────────
+
+
+async def _run_critic_delta(session_id: str, pin_id: str) -> None:
+    """Background task: delta-validate a new evidence pin via the CriticAgent."""
+    try:
+        lock = session_locks.get(session_id)
+        if lock is None:
+            logger.warning("Critic delta: session lock missing (session expired?)", extra={"session_id": session_id, "pin_id": pin_id})
+            return
+
+        critic = CriticAgent()
+
+        # Snapshot evidence_pins under lock to avoid reading during concurrent mutation
+        async with lock:
+            state = sessions.get(session_id)
+            if not state or "evidence_pins" not in state:
+                logger.warning("Critic delta: session or pins missing", extra={"session_id": session_id, "pin_id": pin_id})
+                return
+            raw_pins = list(state["evidence_pins"])
+            causal_chains = state.get("causal_chains", [])
+
+        # Find the new pin and reconstruct EvidencePin objects
+        new_pin_data = None
+        existing_pins = []
+        for rp in raw_pins:
+            if rp.get("id") == pin_id:
+                new_pin_data = rp
+            else:
+                try:
+                    existing_pins.append(EvidencePin(**rp))
+                except Exception as exc:
+                    logger.debug("Skipping malformed pin during critic delta", extra={
+                        "pin_id": rp.get("id", "unknown"), "error": str(exc),
+                    })
+
+        if not new_pin_data:
+            logger.warning("Critic delta: pin not found in session", extra={"session_id": session_id, "pin_id": pin_id})
+            return
+
+        new_pin = EvidencePin(**new_pin_data)
+
+        # Run delta validation (slow LLM call — outside lock)
+        result = await critic.validate_delta(new_pin, existing_pins, causal_chains=causal_chains)
+
+        # Update pin in session state under lock
+        async with lock:
+            current_state = sessions.get(session_id)
+            if current_state and "evidence_pins" in current_state:
+                for pin_data in current_state["evidence_pins"]:
+                    if pin_data.get("id") == pin_id:
+                        pin_data["validation_status"] = result["validation_status"]
+                        pin_data["causal_role"] = result["causal_role"]
+                        break
+
+        # Emit WebSocket event for the update
+        try:
+            await manager.send_message(session_id, {
+                "type": "task_event",
+                "data": {
+                    "session_id": session_id,
+                    "agent_name": "critic",
+                    "event_type": "evidence_pin_updated",
+                    "message": f"Pin {pin_id} delta-validated: {result['validation_status']}",
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "details": {
+                        "pin_id": pin_id,
+                        "validation_status": result["validation_status"],
+                        "causal_role": result["causal_role"],
+                        "confidence": result["confidence"],
+                        "reasoning": result["reasoning"],
+                        "contradictions": result["contradictions"],
+                    },
+                },
+            })
+        except Exception as e:
+            logger.warning("WebSocket broadcast failed for critic delta", extra={"error": str(e)})
+
+    except Exception as e:
+        logger.error("Critic delta revalidation failed", extra={
+            "session_id": session_id, "pin_id": pin_id, "error": str(e),
+        })
+
+
+@router_v4.post("/session/{session_id}/investigate")
+async def investigate(session_id: str, request: InvestigateRequest):
+    """Manual investigation: slash command, quick action, or natural language."""
+    _validate_session_id(session_id)
+    if session_id not in sessions:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    investigation_router = _get_investigation_router(session_id)
+    response, pin = await investigation_router.route(request)
+
+    if pin:
+        # Merge pin into session state under lock
+        lock = session_locks.get(session_id)
+        if lock:
+            async with lock:
+                state = sessions[session_id]
+                if "evidence_pins" not in state:
+                    state["evidence_pins"] = []
+                state["evidence_pins"].append(pin.model_dump(mode="json"))
+
+        # Emit WebSocket event
+        try:
+            await manager.send_message(session_id, {
+                "type": "task_event",
+                "data": {
+                    "session_id": session_id,
+                    "agent_name": "investigation_router",
+                    "event_type": "evidence_pin_added",
+                    "message": pin.claim,
+                    "timestamp": pin.timestamp.isoformat(),
+                    "details": {
+                        "pin_id": pin.id,
+                        "domain": pin.domain,
+                        "severity": pin.severity,
+                        "validation_status": pin.validation_status,
+                        "evidence_type": pin.evidence_type,
+                        "source_tool": pin.source_tool,
+                        "raw_output": pin.raw_output,
+                    },
+                },
+            })
+        except Exception as e:
+            logger.warning("WebSocket broadcast failed for evidence pin", extra={"error": str(e)})
+
+        # Dispatch background critic delta revalidation
+        task = asyncio.create_task(_run_critic_delta(session_id, pin.id))
+        task.add_done_callback(lambda t: t.exception() if not t.cancelled() else None)
+
+    return response.model_dump()
+
+
+@router_v4.get("/session/{session_id}/tools")
+async def get_tools(session_id: str):
+    """Return available investigation tools for this session."""
+    _validate_session_id(session_id)
+    if session_id not in sessions:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    enriched = []
+    for tool in TOOL_REGISTRY:
+        tool_copy = {**tool}
+        enriched.append(tool_copy)
+
+    return {"tools": enriched}
