@@ -7,10 +7,12 @@ interface QuickActionToolbarProps {
   context: RouterContext;
   onExecute: (payload: QuickActionPayload) => void;
   loading: boolean;
+  error?: string | null;
+  onRetry?: () => void;
 }
 
 export const QuickActionToolbar: React.FC<QuickActionToolbarProps> = ({
-  tools, context, onExecute, loading,
+  tools, context, onExecute, loading, error, onRetry,
 }) => {
   const [activeTool, setActiveTool] = useState<ToolDefinition | null>(null);
   const [collapsed, setCollapsed] = useState(false);
@@ -63,21 +65,45 @@ export const QuickActionToolbar: React.FC<QuickActionToolbarProps> = ({
           <span className="material-symbols-outlined text-sm">expand_less</span>
         </button>
       </div>
-      <div className="flex flex-wrap gap-1.5">
-        {tools.map((tool) => (
-          <button key={tool.intent} onClick={() => handleClick(tool)}
-            disabled={loading || isDisabled(tool)}
-            title={isDisabled(tool) ? `Requires: ${tool.requires_context.join(', ')}` : tool.description}
-            className={`flex items-center gap-1 px-2 py-1 text-xs rounded border transition-colors
-              ${isDisabled(tool)
-                ? 'border-slate-700 text-slate-600 cursor-not-allowed opacity-40'
-                : 'border-slate-700 text-slate-300 hover:border-cyan-600 hover:text-cyan-400'
-              }`}>
-            <span className="material-symbols-outlined text-sm">{tool.icon}</span>
-            {tool.label}
-          </button>
-        ))}
-      </div>
+
+      {/* F5: Error state */}
+      {error ? (
+        <div className="flex items-center gap-2 px-2 py-1.5 rounded bg-red-500/10 border border-red-500/20">
+          <span className="material-symbols-outlined text-sm text-red-400">error</span>
+          <span className="text-xs text-red-400 flex-1">{error}</span>
+          {onRetry && (
+            <button
+              onClick={onRetry}
+              className="text-xs text-red-300 hover:text-red-200 underline transition-colors"
+            >
+              Retry
+            </button>
+          )}
+        </div>
+      ) : tools.length === 0 ? (
+        /* F5: Empty state */
+        <div className="flex items-center gap-2 px-2 py-1.5">
+          <span className="text-xs text-slate-600">No tools available</span>
+        </div>
+      ) : (
+        /* Normal tools list */
+        <div className="flex flex-wrap gap-1.5">
+          {tools.map((tool) => (
+            <button key={tool.intent} onClick={() => handleClick(tool)}
+              disabled={loading || isDisabled(tool)}
+              title={isDisabled(tool) ? `Requires: ${tool.requires_context.join(', ')}` : tool.description}
+              className={`flex items-center gap-1 px-2 py-1 text-xs rounded border transition-colors
+                ${isDisabled(tool)
+                  ? 'border-slate-700 text-slate-600 cursor-not-allowed opacity-40'
+                  : 'border-slate-700 text-slate-300 hover:border-cyan-600 hover:text-cyan-400'
+                }`}>
+              <span className="material-symbols-outlined text-sm">{tool.icon}</span>
+              {tool.label}
+            </button>
+          ))}
+        </div>
+      )}
+
       {activeTool && (
         <ToolParamForm
           tool={activeTool}
