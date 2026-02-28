@@ -57,6 +57,7 @@ class ToolExecutor:
 
     def __init__(self, connection_config: dict):
         self._config = connection_config
+        self._k8s_api_client = None  # Cached ApiClient
         self._k8s_core_api = None    # Injected or lazy-initialized
         self._k8s_apps_api = None
         self._prom_client = None
@@ -74,6 +75,9 @@ class ToolExecutor:
         2. Environment variables (OPENSHIFT_API_URL, OPENSHIFT_TOKEN)
         3. Default kubeconfig (~/.kube/config)
         """
+        if self._k8s_api_client is not None:
+            return self._k8s_api_client
+
         from kubernetes import client, config
 
         api_url = None
@@ -96,10 +100,17 @@ class ToolExecutor:
             configuration.host = api_url
             configuration.api_key = {"authorization": f"Bearer {token}"}
             configuration.verify_ssl = verify_ssl
-            return client.ApiClient(configuration)
+            api_client = client.ApiClient(configuration)
+            self._k8s_api_client = api_client
+            return api_client
         else:
-            config.load_kube_config()
-            return client.ApiClient()
+            try:
+                config.load_kube_config()
+                api_client = client.ApiClient()
+                self._k8s_api_client = api_client
+                return api_client
+            except Exception as e:
+                raise RuntimeError(f"Failed to initialize K8s client: {e}")
 
     def _get_k8s_core_api(self):
         """Lazily initialize and cache the CoreV1Api client."""
@@ -441,7 +452,7 @@ class ToolExecutor:
     async def _search_logs(self, params: dict[str, Any]) -> ToolResult:
         """Search logs in Elasticsearch using query_string."""
         query = params["query"]
-        index = params.get("index", self._config.get("es_index", "app-logs-*"))
+        index = params.get("index", (self._config or {}).get("es_index", "app-logs-*"))
         since_minutes = params.get("since_minutes", 60)
 
         try:
