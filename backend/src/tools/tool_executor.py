@@ -4,6 +4,7 @@ Each handler takes params dict -> returns ToolResult.
 """
 
 import json
+import os
 import re
 import statistics
 from datetime import datetime, timezone, timedelta
@@ -61,6 +62,97 @@ class ToolExecutor:
         self._prom_client = None
         self._es_client = None
 
+    # ------------------------------------------------------------------
+    # Lazy client initialization (config -> env var -> kubeconfig fallback)
+    # ------------------------------------------------------------------
+
+    def _get_k8s_client(self):
+        """Build a kubernetes ApiClient from config/env vars/kubeconfig.
+
+        Resolution order:
+        1. self._config dict keys (cluster_url, cluster_token, verify_ssl)
+        2. Environment variables (OPENSHIFT_API_URL, OPENSHIFT_TOKEN)
+        3. Default kubeconfig (~/.kube/config)
+        """
+        from kubernetes import client, config
+
+        api_url = None
+        token = None
+        verify_ssl = False
+
+        if self._config:
+            api_url = self._config.get("cluster_url") or None
+            token = self._config.get("cluster_token") or None
+            verify_ssl = self._config.get("verify_ssl", False)
+
+        # Fallback to env vars
+        if not api_url:
+            api_url = os.getenv("OPENSHIFT_API_URL")
+        if not token:
+            token = os.getenv("OPENSHIFT_TOKEN")
+
+        if api_url and token:
+            configuration = client.Configuration()
+            configuration.host = api_url
+            configuration.api_key = {"authorization": f"Bearer {token}"}
+            configuration.verify_ssl = verify_ssl
+            return client.ApiClient(configuration)
+        else:
+            config.load_kube_config()
+            return client.ApiClient()
+
+    def _get_k8s_core_api(self):
+        """Lazily initialize and cache the CoreV1Api client."""
+        if self._k8s_core_api is None:
+            from kubernetes import client
+            api_client = self._get_k8s_client()
+            self._k8s_core_api = client.CoreV1Api(api_client)
+        return self._k8s_core_api
+
+    def _get_k8s_apps_api(self):
+        """Lazily initialize and cache the AppsV1Api client."""
+        if self._k8s_apps_api is None:
+            from kubernetes import client
+            api_client = self._get_k8s_client()
+            self._k8s_apps_api = client.AppsV1Api(api_client)
+        return self._k8s_apps_api
+
+    def _get_prom_client(self):
+        """Lazily initialize and cache the Prometheus client."""
+        if self._prom_client is None:
+            from prometheus_api_client import PrometheusConnect
+
+            prom_url = None
+            if self._config:
+                prom_url = self._config.get("prometheus_url")
+            if not prom_url:
+                prom_url = os.getenv("PROMETHEUS_URL")
+            if not prom_url:
+                raise RuntimeError(
+                    "Prometheus URL not configured. Set 'prometheus_url' in "
+                    "connection config or PROMETHEUS_URL env var."
+                )
+            self._prom_client = PrometheusConnect(url=prom_url, disable_ssl=True)
+        return self._prom_client
+
+    def _get_es_client(self):
+        """Lazily initialize and cache the Elasticsearch client."""
+        if self._es_client is None:
+            from elasticsearch import Elasticsearch
+
+            es_url = None
+            if self._config:
+                es_url = self._config.get("elasticsearch_url")
+            if not es_url:
+                es_url = os.getenv("ELASTICSEARCH_URL")
+            if not es_url:
+                raise RuntimeError(
+                    "Elasticsearch URL not configured. Set 'elasticsearch_url' in "
+                    "connection config or ELASTICSEARCH_URL env var."
+                )
+            self._es_client = Elasticsearch([es_url])
+        return self._es_client
+
     HANDLERS: dict[str, str] = {
         "fetch_pod_logs": "_fetch_pod_logs",
         "describe_resource": "_describe_resource",
@@ -99,7 +191,7 @@ class ToolExecutor:
             if container:
                 kwargs["container"] = container
 
-            log_text: str = self._k8s_core_api.read_namespaced_pod_log(**kwargs)
+            log_text: str = self._get_k8s_core_api().read_namespaced_pod_log(**kwargs)
         except ApiException as exc:
             if exc.status == 404:
                 error_msg = f"Pod '{pod}' not found in namespace '{namespace}'"
@@ -189,7 +281,7 @@ class ToolExecutor:
             )
 
         method_name, is_cluster_scoped = _KIND_TO_API_METHOD[kind]
-        api_method = getattr(self._k8s_core_api, method_name)
+        api_method = getattr(self._get_k8s_core_api(), method_name)
 
         try:
             if is_cluster_scoped:
@@ -256,7 +348,7 @@ class ToolExecutor:
         domain = self._infer_domain_from_promql(query)
 
         try:
-            response = self._prom_client.query_range(query, range_minutes)
+            response = self._get_prom_client().query_range(query, range_minutes)
         except Exception as exc:
             error_msg = f"Prometheus query failed: {exc}"
             logger.warning("query_prometheus failed", extra={"query": query, "error": str(exc)})
@@ -353,7 +445,7 @@ class ToolExecutor:
         since_minutes = params.get("since_minutes", 60)
 
         try:
-            es_response = self._es_client.search(
+            es_response = self._get_es_client().search(
                 index=index,
                 body={
                     "query": {
@@ -431,7 +523,7 @@ class ToolExecutor:
             if label_selector:
                 kwargs["label_selector"] = label_selector
 
-            pod_list = self._k8s_core_api.list_namespaced_pod(**kwargs)
+            pod_list = self._get_k8s_core_api().list_namespaced_pod(**kwargs)
         except ApiException as exc:
             error_msg = f"Failed to list pods in namespace '{namespace}': {exc.reason}"
             logger.warning("check_pod_status failed", extra={"namespace": namespace, "status_code": exc.status})
@@ -541,7 +633,7 @@ class ToolExecutor:
             if involved_object:
                 kwargs["field_selector"] = f"involvedObject.name={involved_object}"
 
-            event_list = self._k8s_core_api.list_namespaced_event(**kwargs)
+            event_list = self._get_k8s_core_api().list_namespaced_event(**kwargs)
         except ApiException as exc:
             error_msg = f"Failed to list events in namespace '{namespace}': {exc.reason}"
             logger.warning("get_events failed", extra={"namespace": namespace, "status_code": exc.status})
