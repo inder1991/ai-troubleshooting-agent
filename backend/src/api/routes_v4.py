@@ -39,6 +39,34 @@ _diagnosis_tasks: Dict[str, asyncio.Task] = {}
 # B3: Track background critic delta tasks per session for cancellation on cleanup
 _critic_delta_tasks: Dict[str, list] = {}  # session_id -> list[asyncio.Task]
 
+# B5: Dedup window in seconds for evidence pins (same source_tool + claim)
+_PIN_DEDUP_WINDOW_SECONDS = 60
+
+# B6: Valid causal_role values; anything else falls back to "informational"
+_VALID_CAUSAL_ROLES = {"root_cause", "cascading_symptom", "correlated", "informational"}
+
+
+def _is_duplicate_pin(existing_pins: list, new_pin) -> bool:
+    """B5: Check if a pin with the same source_tool + claim exists within the dedup window."""
+    new_ts = new_pin.timestamp
+    for raw in existing_pins:
+        if raw.get("source_tool") == new_pin.source_tool and raw.get("claim") == new_pin.claim:
+            existing_ts_str = raw.get("timestamp")
+            if existing_ts_str:
+                try:
+                    existing_ts = datetime.fromisoformat(existing_ts_str.replace("Z", "+00:00"))
+                    if abs((new_ts - existing_ts).total_seconds()) < _PIN_DEDUP_WINDOW_SECONDS:
+                        return True
+                except (ValueError, TypeError):
+                    continue
+    return False
+
+
+def _validate_causal_role(pin) -> None:
+    """B6: Validate causal_role against allowed values; fallback to 'informational'."""
+    if pin.causal_role is not None and pin.causal_role not in _VALID_CAUSAL_ROLES:
+        pin.causal_role = "informational"
+
 
 def _validate_session_id(session_id: str) -> None:
     """M1: Validate session_id is a proper UUID4 to prevent DoS via random lookups."""
@@ -1213,6 +1241,11 @@ async def _run_critic_delta(session_id: str, pin_id: str) -> None:
         # Run delta validation (slow LLM call — outside lock)
         result = await critic.validate_delta(new_pin, existing_pins, causal_chains=causal_chains)
 
+        # B6: Validate causal_role from critic before storing
+        causal_role = result["causal_role"]
+        if causal_role not in _VALID_CAUSAL_ROLES:
+            causal_role = "informational"
+
         # Update pin in session state under lock
         async with lock:
             current_state = sessions.get(session_id)
@@ -1220,7 +1253,7 @@ async def _run_critic_delta(session_id: str, pin_id: str) -> None:
                 for pin_data in current_state["evidence_pins"]:
                     if pin_data.get("id") == pin_id:
                         pin_data["validation_status"] = result["validation_status"]
-                        pin_data["causal_role"] = result["causal_role"]
+                        pin_data["causal_role"] = causal_role
                         break
 
         # Emit WebSocket event for the update
@@ -1263,6 +1296,9 @@ async def investigate(session_id: str, request: InvestigateRequest):
     response, pin = await investigation_router.route(request)
 
     if pin:
+        # B6: Validate causal_role before storing
+        _validate_causal_role(pin)
+
         # Merge pin into session state under lock
         lock = session_locks.get(session_id)
         if lock:
@@ -1270,6 +1306,12 @@ async def investigate(session_id: str, request: InvestigateRequest):
                 state = sessions[session_id]
                 if "evidence_pins" not in state:
                     state["evidence_pins"] = []
+                # B5: Skip duplicate pins (same source_tool + claim within 60s)
+                if _is_duplicate_pin(state["evidence_pins"], pin):
+                    logger.debug("Skipping duplicate pin", extra={
+                        "source_tool": pin.source_tool, "claim": pin.claim,
+                    })
+                    return response.model_dump()
                 state["evidence_pins"].append(pin.model_dump(mode="json"))
 
         # Emit WebSocket event
