@@ -637,13 +637,27 @@ class TimeWindow(BaseModel):
 
 
 class EvidencePin(BaseModel):
+    id: str = Field(default_factory=lambda: str(__import__('uuid').uuid4()))
     claim: str = Field(..., min_length=1)
     supporting_evidence: list[str] = []
-    source_agent: str
+    source_agent: Optional[str] = None
     source_tool: str
     confidence: float = Field(..., ge=0.0, le=1.0)
     timestamp: datetime
-    evidence_type: Literal["log", "metric", "trace", "k8s_event", "code", "change"]
+    evidence_type: Literal["log", "metric", "trace", "k8s_event", "k8s_resource", "code", "change"]
+
+    # Live investigation steering fields
+    source: Literal["auto", "manual"] = "auto"
+    triggered_by: Literal["automated_pipeline", "user_chat", "quick_action"] = "automated_pipeline"
+    raw_output: Optional[str] = None
+    severity: Optional[Literal["critical", "high", "medium", "low", "info"]] = None
+    causal_role: Optional[Literal["root_cause", "cascading_symptom", "correlated", "informational"]] = None
+    domain: Literal["compute", "network", "storage", "control_plane", "security", "unknown"] = "unknown"
+    validation_status: Literal["pending_critic", "validated", "rejected"] = "pending_critic"
+    namespace: Optional[str] = None
+    service: Optional[str] = None
+    resource_name: Optional[str] = None
+    time_window: Optional[TimeWindow] = None
 
 
 class ConfidenceLedger(BaseModel):
