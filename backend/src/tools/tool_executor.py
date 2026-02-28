@@ -408,17 +408,21 @@ class ToolExecutor:
         try:
             response = self._get_prom_client().query_range(query, range_minutes)
         except Exception as exc:
-            error_msg = f"Prometheus query failed: {exc}"
-            logger.warning("query_prometheus failed", extra={"query": query, "error": str(exc)})
+            # B8: Log full error internally, return generic message to client
+            logger.error(
+                "query_prometheus internal error",
+                extra={"query": query, "error": str(exc), "error_type": type(exc).__name__},
+            )
+            client_msg = "Prometheus query failed"
             return ToolResult(
                 success=False,
                 intent="query_prometheus",
                 raw_output="",
-                summary=error_msg,
+                summary=client_msg,
                 evidence_snippets=[],
                 evidence_type="metric",
                 domain=domain,
-                error=error_msg,
+                error=client_msg,
                 metadata={"query": query, "range_minutes": range_minutes},
             )
 
@@ -526,17 +530,21 @@ class ToolExecutor:
                 },
             )
         except Exception as exc:
-            error_msg = f"Elasticsearch query failed: {exc}"
-            logger.warning("search_logs failed", extra={"query": query, "error": str(exc)})
+            # B8: Log full error internally, return generic message to client
+            logger.error(
+                "search_logs internal error",
+                extra={"query": query, "index": index, "error": str(exc), "error_type": type(exc).__name__},
+            )
+            client_msg = "Log search failed"
             return ToolResult(
                 success=False,
                 intent="search_logs",
                 raw_output="",
-                summary=error_msg,
+                summary=client_msg,
                 evidence_snippets=[],
                 evidence_type="log",
                 domain="unknown",
-                error=error_msg,
+                error=client_msg,
                 metadata={"query": query, "index": index},
             )
 

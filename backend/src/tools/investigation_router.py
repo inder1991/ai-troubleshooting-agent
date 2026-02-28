@@ -3,6 +3,7 @@ InvestigationRouter: Fast Path (slash commands, buttons) + Smart Path (NL -> Hai
 Both paths converge on ToolExecutor.execute() -> EvidencePinFactory.from_tool_result().
 """
 
+import asyncio
 import json
 from typing import Optional, Any
 
@@ -114,13 +115,25 @@ class InvestigationRouter:
 
         system_prompt = self._build_smart_prompt(request.context)
         try:
-            llm_response = await self._llm.chat(
-                user_message=request.query,
-                system_prompt=system_prompt,
+            llm_response = await asyncio.wait_for(
+                self._llm.chat(
+                    user_message=request.query,
+                    system_prompt=system_prompt,
+                ),
+                timeout=15.0,
             )
             parsed = json.loads(llm_response.text)
             intent = parsed["intent"]
             params = parsed.get("params", {})
+        except asyncio.TimeoutError:
+            logger.error("Smart path LLM call timed out after 15s", extra={
+                "action": "smart_path_timeout",
+                "extra": {"query": request.query},
+            })
+            return InvestigateResponse(
+                pin_id="", intent="", params={}, path_used="smart",
+                status="error", error="Smart path timed out",
+            ), None
         except (json.JSONDecodeError, KeyError) as e:
             return InvestigateResponse(
                 pin_id="", intent="", params={}, path_used="smart",
