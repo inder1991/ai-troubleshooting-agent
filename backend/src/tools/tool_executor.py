@@ -20,6 +20,11 @@ from src.utils.logger import get_logger
 logger = get_logger(__name__)
 
 # Domain mapping for K8s resource kinds
+# TODO(B14): Domain classification is inconsistent across tools. This static
+# mapping is used by describe_resource, but other tools like fetch_pod_logs and
+# get_events hardcode domain="compute", search_logs uses domain="unknown", and
+# query_prometheus infers domain from the PromQL string via _infer_domain_from_promql.
+# Unify into a single classification strategy (e.g., a shared _classify_domain helper).
 _KIND_TO_DOMAIN: dict[str, str] = {
     "pod": "compute",
     "deployment": "compute",
@@ -33,6 +38,13 @@ _KIND_TO_DOMAIN: dict[str, str] = {
 }
 
 # Error keywords for log severity classification
+# TODO(B14): Severity classification is inconsistent across tools. fetch_pod_logs
+# uses _classify_log_severity (keyword-based), check_pod_status derives severity
+# from pod state (critical/high/info), describe_resource uses a binary
+# "high" vs "info" based on has_issues, query_prometheus flags "high" on stddev
+# spikes, and get_events uses "high" if any warnings exist. Align these to a
+# common severity rubric so that the same condition produces the same severity
+# label regardless of which tool surfaces it.
 _CRITICAL_KEYWORDS = ("fatal", "panic")
 _HIGH_KEYWORDS = ("oom", "killed", "segfault")
 _MEDIUM_KEYWORDS = ("error", "exception", "timeout", "refused", "fail")

@@ -59,7 +59,12 @@ const EvidencePinCard: React.FC<EvidencePinCardProps> = ({ pin }) => {
   const borderClass = getValidationBorderClass(pin.validation_status);
 
   return (
-    <div className={`relative rounded-lg border-2 ${borderClass} bg-slate-900/60 p-3 transition-all`}>
+    <div
+      role="article"
+      aria-label={`Evidence pin: ${pin.claim}`}
+      aria-expanded={pin.raw_output ? showRaw : undefined}
+      className={`relative rounded-lg border-2 ${borderClass} bg-slate-900/60 p-3 transition-all`}
+    >
       {/* Top row: severity + source + domain badge */}
       <div className="flex items-start justify-between gap-2 mb-2">
         <div className="flex items-center gap-2 flex-wrap">
