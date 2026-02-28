@@ -167,7 +167,7 @@ const InvestigationView: React.FC<InvestigationViewProps> = ({
 
           {/* Center: Evidence and Findings (NO TABS) */}
           <div className="col-span-5 overflow-hidden">
-            <EvidenceFindings findings={findings} status={sessionStatus} events={events} sessionId={session.session_id} phase={phase} onRefresh={fetchSharedData} onNavigateToDossier={onNavigateToDossier} />
+            <EvidenceFindings findings={findings} status={sessionStatus} events={events} sessionId={session.session_id} phase={phase} onRefresh={fetchSharedData} onNavigateToDossier={onNavigateToDossier} manualPins={findings?.evidence_pins} />
           </div>
 
           {/* Right: The Navigator */}

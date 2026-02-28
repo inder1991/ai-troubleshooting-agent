@@ -714,6 +714,7 @@ async def get_findings(session_id: str):
             "time_series_data": {},
             "fix_data": None,
             "closure_state": None,
+            "evidence_pins": session.get("evidence_pins", []),
             "message": "Analysis not yet complete",
         }
 
@@ -815,6 +816,8 @@ async def get_findings(session_id: str):
         "fix_data": state.fix_result.model_dump(mode="json") if state.fix_result else None,
         "closure_state": state.closure_state.model_dump(mode="json") if state.closure_state else None,
         "campaign": _dump_campaign(state.campaign) if state.campaign else None,
+        # Manual evidence pins from live investigation steering (user_chat / quick_action)
+        "evidence_pins": session.get("evidence_pins", []),
     }
 
 

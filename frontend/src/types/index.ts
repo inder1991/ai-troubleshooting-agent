@@ -384,6 +384,8 @@ export interface V4Findings {
   fix_data?: FixResult | null;
   closure_state?: IncidentClosureState | null;
   campaign?: import('./campaign').RemediationCampaign | null;
+  /** Manual evidence pins collected from live investigation steering (user_chat / quick_action) */
+  evidence_pins?: EvidencePinV2[];
 }
 
 export type FixStatus =
