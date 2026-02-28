@@ -232,13 +232,40 @@ function AppInner() {
           refreshStatus(session.session_id);
         } else if (data.capability === 'cluster_diagnostics') {
           const clusterData = data as ClusterDiagnosticsForm;
+          let profileId = clusterData.profile_id;
+
+          // Inline profile creation if "Save this cluster" is checked and no profile selected
+          if (!profileId && (clusterData.save_cluster ?? true) && clusterData.cluster_url) {
+            try {
+              const { createProfile } = await import('./services/profileApi');
+              const newProfile = await createProfile({
+                name: clusterData.cluster_name || new URL(clusterData.cluster_url).hostname,
+                cluster_url: clusterData.cluster_url,
+                cluster_type: 'kubernetes',
+                environment: 'prod',
+                auth_method: clusterData.auth_method || 'token',
+                auth_credential: clusterData.auth_token || '',
+              });
+              profileId = newProfile.id;
+              addToast('success', 'Cluster saved to profiles');
+            } catch (err) {
+              console.warn('Failed to save cluster profile:', err);
+              addToast('warning', 'Could not save profile — proceeding with one-time credentials');
+            }
+          }
+
           const session = await startSessionV4({
             service_name: 'Cluster Diagnostics',
             time_window: '1h',
             namespace: clusterData.namespace || '',
             cluster_url: clusterData.cluster_url,
             capability: 'cluster_diagnostics',
-            profile_id: clusterData.profile_id,
+            profile_id: profileId,
+            // Ad-hoc auth fields (used when no profile)
+            ...((!profileId && clusterData.auth_token) ? {
+              auth_token: clusterData.auth_token,
+              auth_method: clusterData.auth_method || 'token',
+            } : {}),
           });
           setSessions((prev) => [session, ...prev]);
           setActiveSession(session);

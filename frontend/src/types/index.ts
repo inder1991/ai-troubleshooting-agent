@@ -551,6 +551,8 @@ export interface ClusterDiagnosticsForm {
   auth_method?: 'token' | 'kubeconfig';
   resource_type?: string;
   profile_id?: string;
+  save_cluster?: boolean;
+  cluster_name?: string;
 }
 
 // ===== Cluster Diagnostics Types =====

@@ -74,6 +74,8 @@ class StartSessionRequest(BaseModel):
     repoUrl: Optional[str] = Field(default=None, alias="repo_url")
     profileId: Optional[str] = Field(default=None, alias="profile_id")
     capability: str = "troubleshoot_app"
+    authToken: Optional[str] = Field(default=None, alias="auth_token")
+    authMethod: Optional[str] = Field(default=None, alias="auth_method")
 
 
 class StartSessionResponse(BaseModel):

@@ -271,7 +271,7 @@ class SupervisorAgent:
                     state.agents_completed.append(agent_name)
                     state.agents_failed = getattr(state, "agents_failed", 0) + 1
                     if event_emitter:
-                        await event_emitter.emit(agent_name, "agent_error", f"Agent failed: {str(agent_result)}")
+                        await event_emitter.emit(agent_name, "error", f"Agent failed: {str(agent_result)}")
                     continue
                 if agent_result:
                     await self._update_state_with_result(state, agent_name, agent_result, event_emitter)
