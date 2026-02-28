@@ -3,7 +3,7 @@
 import asyncio
 import pytest
 from datetime import datetime, timezone, timedelta
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 from src.api.routes_v4 import (
     _session_cleanup_loop,

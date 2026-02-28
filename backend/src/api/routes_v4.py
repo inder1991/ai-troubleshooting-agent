@@ -99,8 +99,9 @@ _investigation_routers: Dict[str, Any] = {}
 def _get_investigation_router(session_id: str):
     """Get or create InvestigationRouter for a session.
 
-    B4: Check with .get() first and create in a single sync block
-    (no await between check and store) to prevent TOCTOU races.
+    B4: Constructor is fully synchronous with no awaits, so CPython's GIL
+    guarantees dict check and store are effectively atomic. Do not add
+    any awaits in this function.
     """
     existing = _investigation_routers.get(session_id)
     if existing is not None:
@@ -1299,7 +1300,9 @@ async def investigate(session_id: str, request: InvestigateRequest):
         task = asyncio.create_task(_run_critic_delta(session_id, pin.id))
         task.add_done_callback(lambda t: t.exception() if not t.cancelled() else None)
         # B3: Track critic delta task for cancellation on session cleanup
-        _critic_delta_tasks.setdefault(session_id, []).append(task)
+        task_list = _critic_delta_tasks.setdefault(session_id, [])
+        _critic_delta_tasks[session_id] = [t for t in task_list if not t.done()]
+        _critic_delta_tasks[session_id].append(task)
 
     return response.model_dump()
 
