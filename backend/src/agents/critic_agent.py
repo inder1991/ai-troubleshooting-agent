@@ -11,6 +11,8 @@ from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
+_CRITIC_LLM_TIMEOUT_S = 30.0
+
 
 class CriticAgent:
     """Read-only agent that cross-validates findings against other agent data."""
@@ -46,10 +48,10 @@ Respond with JSON:
     "confidence_in_verdict": 85
 }""",
                 ),
-                timeout=30.0,
+                timeout=_CRITIC_LLM_TIMEOUT_S,
             )
         except asyncio.TimeoutError:
-            logger.error("Critic validate() timed out after 30s", extra={
+            logger.error(f"Critic validate() timed out after {_CRITIC_LLM_TIMEOUT_S}s", extra={
                 "agent_name": "critic", "action": "validate_timeout",
                 "extra": {"finding": finding.finding_id},
             })
@@ -57,7 +59,7 @@ Respond with JSON:
                 finding_id=finding.finding_id,
                 agent_source=finding.agent_name,
                 verdict="insufficient_data",
-                reasoning="Critic validation timed out after 30s",
+                reasoning=f"Critic validation timed out after {_CRITIC_LLM_TIMEOUT_S}s",
                 recommendation="Retry validation or increase timeout",
                 confidence_in_verdict=0,
             )
@@ -149,15 +151,15 @@ Respond with JSON:
                         "}"
                     ),
                 ),
-                timeout=30.0,
+                timeout=_CRITIC_LLM_TIMEOUT_S,
             )
         except asyncio.TimeoutError:
-            logger.error("Critic validate_delta() timed out after 30s", extra={
+            logger.error(f"Critic validate_delta() timed out after {_CRITIC_LLM_TIMEOUT_S}s", extra={
                 "agent_name": "critic", "action": "delta_timeout",
                 "extra": {"pin_id": new_pin.id},
             })
-            _default["validation_status"] = "timeout"
-            _default["reasoning"] = "Critic delta validation timed out"
+            _default["validation_status"] = "pending_critic"
+            _default["reasoning"] = f"Critic delta validation timed out after {_CRITIC_LLM_TIMEOUT_S}s"
             return _default
         except Exception as e:
             logger.error("Critic delta validation LLM error", extra={

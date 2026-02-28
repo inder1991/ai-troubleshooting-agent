@@ -17,6 +17,8 @@ from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
+_SMART_PATH_LLM_TIMEOUT_S = 15.0
+
 
 class InvestigationRouter:
     """Routes investigation requests via Fast Path or Smart Path.
@@ -120,13 +122,13 @@ class InvestigationRouter:
                     user_message=request.query,
                     system_prompt=system_prompt,
                 ),
-                timeout=15.0,
+                timeout=_SMART_PATH_LLM_TIMEOUT_S,
             )
             parsed = json.loads(llm_response.text)
             intent = parsed["intent"]
             params = parsed.get("params", {})
         except asyncio.TimeoutError:
-            logger.error("Smart path LLM call timed out after 15s", extra={
+            logger.error(f"Smart path LLM call timed out after {_SMART_PATH_LLM_TIMEOUT_S}s", extra={
                 "action": "smart_path_timeout",
                 "extra": {"query": request.query},
             })

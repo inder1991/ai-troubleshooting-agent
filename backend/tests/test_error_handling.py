@@ -23,9 +23,6 @@ from src.tools.router_models import (
 from src.models.schemas import (
     EvidencePin, Finding, DiagnosticState, TimeWindow,
 )
-from src.utils.llm_client import LLMResponse
-
-
 # ── Helpers ──────────────────────────────────────────────────────────
 
 
@@ -58,17 +55,6 @@ def _make_pin(**overrides) -> EvidencePin:
     )
     defaults.update(overrides)
     return EvidencePin(**defaults)
-
-
-def _make_tool_result(**overrides):
-    defaults = dict(
-        success=True, intent="fetch_pod_logs", raw_output="log text",
-        summary="Pod auth: 1 error", evidence_snippets=["ERROR"],
-        evidence_type="log", domain="compute", severity="medium",
-        error=None, metadata={"pod": "auth-5b6q"},
-    )
-    defaults.update(overrides)
-    return ToolResult(**defaults)
 
 
 # ── B8: Sanitized Error Messages ─────────────────────────────────────
@@ -219,15 +205,13 @@ class TestCriticTimeoutReturnsDefault:
         state.all_negative_findings = []
 
         # Patch the timeout to be very short for testing
-        with patch("src.agents.critic_agent.asyncio.wait_for", wraps=asyncio.wait_for) as mock_wait:
-            # Override to use a very short timeout for test speed
-            original_wait_for = asyncio.wait_for
+        original_wait_for = asyncio.wait_for
 
-            async def short_timeout_wait_for(coro, timeout):
-                return await original_wait_for(coro, timeout=0.1)
+        async def short_timeout_wait_for(coro, timeout):
+            return await original_wait_for(coro, timeout=0.1)
 
-            with patch("src.agents.critic_agent.asyncio.wait_for", side_effect=short_timeout_wait_for):
-                verdict = await critic.validate(finding, state)
+        with patch("src.agents.critic_agent.asyncio.wait_for", side_effect=short_timeout_wait_for):
+            verdict = await critic.validate(finding, state)
 
         assert verdict.verdict == "insufficient_data"
         assert verdict.confidence_in_verdict == 0
@@ -254,7 +238,7 @@ class TestCriticTimeoutReturnsDefault:
         with patch("src.agents.critic_agent.asyncio.wait_for", side_effect=short_timeout_wait_for):
             result = await critic.validate_delta(new_pin, existing_pins=[], causal_chains=[])
 
-        assert result["validation_status"] == "timeout"
+        assert result["validation_status"] == "pending_critic"
         assert "timed out" in result["reasoning"].lower()
         assert result["causal_role"] == "informational"
         assert isinstance(result["confidence"], float)
