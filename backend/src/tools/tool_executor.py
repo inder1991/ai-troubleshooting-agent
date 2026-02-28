@@ -358,7 +358,7 @@ class ToolExecutor:
                 body={
                     "query": {
                         "bool": {
-                            "must": [{"query_string": {"query": query}}],
+                            "must": [{"simple_query_string": {"query": query}}],
                             "filter": [
                                 {
                                     "range": {
@@ -432,9 +432,9 @@ class ToolExecutor:
                 kwargs["label_selector"] = label_selector
 
             pod_list = self._k8s_core_api.list_namespaced_pod(**kwargs)
-        except Exception as exc:
-            error_msg = f"Failed to list pods in namespace '{namespace}': {exc}"
-            logger.warning("check_pod_status failed", extra={"namespace": namespace, "error": str(exc)})
+        except ApiException as exc:
+            error_msg = f"Failed to list pods in namespace '{namespace}': {exc.reason}"
+            logger.warning("check_pod_status failed", extra={"namespace": namespace, "status_code": exc.status})
             return ToolResult(
                 success=False,
                 intent="check_pod_status",
@@ -542,9 +542,9 @@ class ToolExecutor:
                 kwargs["field_selector"] = f"involvedObject.name={involved_object}"
 
             event_list = self._k8s_core_api.list_namespaced_event(**kwargs)
-        except Exception as exc:
-            error_msg = f"Failed to list events in namespace '{namespace}': {exc}"
-            logger.warning("get_events failed", extra={"namespace": namespace, "error": str(exc)})
+        except ApiException as exc:
+            error_msg = f"Failed to list events in namespace '{namespace}': {exc.reason}"
+            logger.warning("get_events failed", extra={"namespace": namespace, "status_code": exc.status})
             return ToolResult(
                 success=False,
                 intent="get_events",
@@ -570,11 +570,16 @@ class ToolExecutor:
             if event_ts >= cutoff:
                 filtered_events.append(event)
 
-        # Sort by timestamp descending
-        filtered_events.sort(
-            key=lambda e: e.last_timestamp if e.last_timestamp else datetime.min.replace(tzinfo=timezone.utc),
-            reverse=True,
-        )
+        # Sort by timestamp descending (ensure tz-aware for safe comparison)
+        def _tz_aware_ts(e: Any) -> datetime:
+            ts = e.last_timestamp
+            if ts is None:
+                return datetime.min.replace(tzinfo=timezone.utc)
+            if ts.tzinfo is None:
+                return ts.replace(tzinfo=timezone.utc)
+            return ts
+
+        filtered_events.sort(key=_tz_aware_ts, reverse=True)
 
         warning_count = sum(1 for e in filtered_events if e.type == "Warning")
         total_events = len(filtered_events)
