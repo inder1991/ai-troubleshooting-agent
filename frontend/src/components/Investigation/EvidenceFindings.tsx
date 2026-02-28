@@ -8,9 +8,11 @@ import type {
   SpanInfo, ServiceFlowStep, PatientZero, MetricAnomaly, DiagnosticPhase,
   DiffAnalysisItem, SuggestedFixArea, NegativeFinding, HighPriorityFile,
   CrossRepoFinding, PastIncidentMatch, EventMarker, PodHealthStatus,
+  EvidencePinV2,
 } from '../../types';
 import AgentFindingCard from './cards/AgentFindingCard';
 import CausalRoleBadge from './cards/CausalRoleBadge';
+import EvidencePinCard from './cards/EvidencePinCard';
 import StackTraceTelescope from './cards/StackTraceTelescope';
 import SaturationGauge from './cards/SaturationGauge';
 import AnomalySparkline, { findMatchingTimeSeries } from './cards/AnomalySparkline';
@@ -41,6 +43,7 @@ interface EvidenceFindingsProps {
   phase?: DiagnosticPhase | null;
   onRefresh?: () => void;
   onNavigateToDossier?: () => void;
+  manualPins?: EvidencePinV2[];
 }
 
 const severityColor: Record<Severity, string> = {
@@ -70,7 +73,7 @@ interface PinnedCard {
   title: string;
 }
 
-const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _status, events, sessionId, phase, onRefresh, onNavigateToDossier }) => {
+const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _status, events, sessionId, phase, onRefresh, onNavigateToDossier, manualPins }) => {
   const { selectedService, clearSelection } = useTopologySelection();
 
   // Service filter: returns true if no service selected OR if text mentions the service
@@ -852,6 +855,28 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                   </VineCard>
                 )}
               </LogicVineContainer>
+            )}
+
+            {/* Manual Evidence Pins */}
+            {manualPins && manualPins.length > 0 && (
+              <div className="mt-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <span
+                    className="material-symbols-outlined text-amber-400"
+                    style={{ fontFamily: 'Material Symbols Outlined', fontSize: '16px' }}
+                  >
+                    push_pin
+                  </span>
+                  <span className="text-[11px] font-bold text-amber-400 uppercase tracking-wider">
+                    Manual Evidence ({manualPins.length})
+                  </span>
+                </div>
+                <div className="space-y-3">
+                  {manualPins.map((pin) => (
+                    <EvidencePinCard key={pin.id} pin={pin} />
+                  ))}
+                </div>
+              </div>
             )}
           </div>
 
