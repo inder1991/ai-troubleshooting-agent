@@ -1269,7 +1269,7 @@ async def _run_critic_delta(session_id: str, pin_id: str) -> None:
                     "details": {
                         "pin_id": pin_id,
                         "validation_status": result["validation_status"],
-                        "causal_role": result["causal_role"],
+                        "causal_role": causal_role,
                         "confidence": result["confidence"],
                         "reasoning": result["reasoning"],
                         "contradictions": result["contradictions"],

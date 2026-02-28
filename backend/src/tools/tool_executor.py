@@ -236,7 +236,7 @@ class ToolExecutor:
         pod = params["pod"]
         container = params.get("container")
         previous = params.get("previous", False)
-        tail_lines = min(params.get("tail_lines", 200), 5000)  # B9: clamp
+        tail_lines = max(1, min(params.get("tail_lines", 200), 5000))  # B9: clamp
 
         try:
             kwargs: dict[str, Any] = {
@@ -402,7 +402,7 @@ class ToolExecutor:
     async def _query_prometheus(self, params: dict[str, Any]) -> ToolResult:
         """Execute a PromQL range query and compute stats / anomaly flags."""
         query = params["query"]
-        range_minutes = min(params.get("range_minutes", 60), 1440)  # B9: clamp
+        range_minutes = max(1, min(params.get("range_minutes", 60), 1440))  # B9: clamp
         domain = self._infer_domain_from_promql(query)
 
         try:
@@ -500,7 +500,7 @@ class ToolExecutor:
         """Search logs in Elasticsearch using query_string."""
         query = params["query"]
         index = params.get("index", (self._config or {}).get("es_index", "app-logs-*"))
-        since_minutes = min(params.get("since_minutes", 60), 1440)  # B9: clamp
+        since_minutes = max(1, min(params.get("since_minutes", 60), 1440))  # B9: clamp
 
         try:
             es_response = self._get_es_client().search(
@@ -683,7 +683,7 @@ class ToolExecutor:
     async def _get_events(self, params: dict[str, Any]) -> ToolResult:
         """List K8s events in a namespace, filtered by time window."""
         namespace = params["namespace"]
-        since_minutes = min(params.get("since_minutes", 60), 1440)  # B9: clamp
+        since_minutes = max(1, min(params.get("since_minutes", 60), 1440))  # B9: clamp
         involved_object = params.get("involved_object")
 
         try:

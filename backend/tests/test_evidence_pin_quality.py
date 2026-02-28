@@ -9,10 +9,9 @@ Covers:
 - B6:  causal_role validation against allowed set
 """
 
-import asyncio
 import pytest
 from datetime import datetime, timezone, timedelta
-from unittest.mock import MagicMock, AsyncMock
+from unittest.mock import MagicMock
 
 from src.tools.tool_result import ToolResult
 from src.tools.tool_executor import ToolExecutor
