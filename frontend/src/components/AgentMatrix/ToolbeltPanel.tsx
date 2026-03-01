@@ -44,9 +44,10 @@ const ToolbeltPanel: React.FC<ToolbeltPanelProps> = ({ tools, toolHealthChecks, 
         {tools.map((tool) => {
           const isDegraded = degradedTools.includes(tool);
           // Check if tool has a health check entry
-          const hasHealthCheck = Object.values(toolHealthChecks).some(
+          const checks = toolHealthChecks || {};
+          const hasHealthCheck = Object.values(checks).some(
             (v) => v.toLowerCase().includes(tool.toLowerCase())
-          ) || Object.keys(toolHealthChecks).some(
+          ) || Object.keys(checks).some(
             (k) => k.toLowerCase().includes(tool.replace(/_/g, '').toLowerCase())
           );
 
