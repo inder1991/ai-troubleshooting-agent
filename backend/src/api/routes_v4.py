@@ -5,7 +5,7 @@ import uuid
 import asyncio
 from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter, BackgroundTasks, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 from typing import Dict, Any, Literal, Optional
 
 from src.api.models import (
@@ -260,7 +260,10 @@ async def start_session(request: StartSessionRequest, background_tasks: Backgrou
             raise HTTPException(400, "Guard mode requires cluster-level scope")
 
         if request.scope:
-            scope = DiagnosticScope(**request.scope)
+            try:
+                scope = DiagnosticScope(**request.scope)
+            except ValidationError as e:
+                raise HTTPException(422, detail=f"Invalid diagnostic scope: {e}")
         elif request.namespace:
             scope = DiagnosticScope(level="namespace", namespaces=[request.namespace])
         else:
