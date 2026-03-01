@@ -43,11 +43,12 @@ Six Causal Reasoning Rules:
 
 
 def _compute_data_completeness(reports: list[DomainReport]) -> float:
-    """Fraction of domains that returned SUCCESS or PARTIAL."""
-    if not reports:
+    """Fraction of active (non-SKIPPED) domains that returned SUCCESS or PARTIAL."""
+    active_reports = [r for r in reports if r.status != DomainStatus.SKIPPED]
+    if not active_reports:
         return 0.0
-    succeeded = sum(1 for r in reports if r.status in (DomainStatus.SUCCESS, DomainStatus.PARTIAL))
-    return succeeded / len(reports)
+    completed = sum(1 for r in active_reports if r.status in (DomainStatus.SUCCESS, DomainStatus.PARTIAL))
+    return completed / len(active_reports)
 
 
 def _merge_reports(reports: list[DomainReport]) -> dict:

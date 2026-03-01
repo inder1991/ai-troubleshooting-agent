@@ -74,6 +74,11 @@ async def test_graph_runs_with_mocks():
             "scan_mode": "diagnostic",
             "previous_scan": None,
             "guard_scan_result": None,
+            # Scope-governed diagnostics
+            "diagnostic_scope": None,
+            "scoped_topology_graph": None,
+            "dispatch_domains": [],
+            "scope_coverage": 0.0,
         }
 
         config = {
