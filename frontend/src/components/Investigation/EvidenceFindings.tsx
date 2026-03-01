@@ -22,6 +22,8 @@ import { SkeletonStack } from '../ui/SkeletonCard';
 import SkeletonCard from '../ui/SkeletonCard';
 import { safeFixed, formatTime, safeDate } from '../../utils/format';
 import CausalForestView from './CausalForestView';
+import GuardScanView from './cluster/GuardScanView';
+import IssueClusterView from './cluster/IssueClusterView';
 
 // HUD components
 import HUDAtmosphere from './hud/HUDAtmosphere';
@@ -332,6 +334,20 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                 )}
               </div>
             )}
+            {/* Cluster Diagnostics: Guard Mode */}
+            {findings?.guard_scan_result && (
+              <div className="px-4 py-3">
+                <GuardScanView scanResult={findings.guard_scan_result} />
+              </div>
+            )}
+
+            {/* Cluster Diagnostics: Issue Clusters */}
+            {findings?.issue_clusters && findings.issue_clusters.length > 0 && (
+              <div className="px-4 py-3">
+                <IssueClusterView clusters={findings.issue_clusters} />
+              </div>
+            )}
+
             {findings === null ? (
               <SkeletonStack count={3} />
             ) : !hasContent ? (

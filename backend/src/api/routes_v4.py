@@ -177,6 +177,12 @@ async def _session_cleanup_loop():
                         ct.cancel()
                 # B2: Remove investigation router for this session
                 _investigation_routers.pop(sid, None)
+                # Clear topology cache for expired session
+                try:
+                    from src.agents.cluster.topology_resolver import clear_topology_cache
+                    clear_topology_cache(sid)
+                except Exception:
+                    pass
                 # H1: Use lock during cleanup to prevent races with HTTP handlers
                 lock = session_locks.pop(sid, None)
                 if lock:
@@ -261,10 +267,11 @@ async def start_session(request: StartSessionRequest, background_tasks: Backgrou
             "graph": graph,
             "chat_history": [],
             "connection_config": connection_config,
+            "scan_mode": request.scan_mode,
         }
 
         background_tasks.add_task(
-            run_cluster_diagnosis, session_id, graph, cluster_client, emitter
+            run_cluster_diagnosis, session_id, graph, cluster_client, emitter, request.scan_mode
         )
 
         logger.info("Cluster session created", extra={"session_id": session_id, "action": "session_created", "extra": "cluster_diagnostics"})
@@ -396,7 +403,7 @@ def _push_to_v5(session_id: str, state):
         logger.error("Failed to push V5 governance data for session %s: %s", session_id, e, exc_info=True)
 
 
-async def run_cluster_diagnosis(session_id, graph, cluster_client, emitter):
+async def run_cluster_diagnosis(session_id, graph, cluster_client, emitter, scan_mode="diagnostic"):
     """Background task: run LangGraph cluster diagnostic."""
     try:
         _diagnosis_tasks[session_id] = asyncio.current_task()
@@ -420,6 +427,13 @@ async def run_cluster_diagnosis(session_id, graph, cluster_client, emitter):
             "re_dispatch_domains": [],
             "data_completeness": 0.0,
             "error": None,
+            "scan_mode": scan_mode,
+            "topology_graph": {},
+            "topology_freshness": {},
+            "issue_clusters": [],
+            "causal_search_space": {},
+            "guard_scan_result": None,
+            "previous_scan": None,
         }
 
         # Pre-flight: detect platform
@@ -657,9 +671,21 @@ async def get_findings(session_id: str):
     # Cluster diagnostics: return cluster-specific findings
     if session.get("capability") == "cluster_diagnostics":
         state = session.get("state", {})
+        scan_mode = session.get("scan_mode", "diagnostic")
+
+        # Guard mode: return guard scan result
+        if scan_mode == "guard" and isinstance(state, dict) and state.get("guard_scan_result"):
+            return {
+                "diagnostic_id": session_id,
+                "scan_mode": "guard",
+                "guard_scan_result": state["guard_scan_result"],
+            }
+
+        # Diagnostic mode (existing behavior)
         if isinstance(state, dict) and state:
             return {
                 "diagnostic_id": session_id,
+                "scan_mode": scan_mode,
                 "platform": state.get("platform", ""),
                 "platform_version": state.get("platform_version", ""),
                 "platform_health": state.get("health_report", {}).get("platform_health", "UNKNOWN") if state.get("health_report") else "PENDING",
@@ -671,7 +697,7 @@ async def get_findings(session_id: str):
                 "remediation": state.get("health_report", {}).get("remediation", {}) if state.get("health_report") else {},
                 "execution_metadata": state.get("health_report", {}).get("execution_metadata", {}) if state.get("health_report") else {},
             }
-        return {"diagnostic_id": session_id, "platform_health": "PENDING", "domain_reports": []}
+        return {"diagnostic_id": session_id, "scan_mode": scan_mode, "platform_health": "PENDING", "domain_reports": []}
 
     state = session.get("state")
     logger.info("Findings requested", extra={"session_id": session_id, "action": "findings_requested", "extra": {"findings_count": len(state.all_findings) if state else 0}})

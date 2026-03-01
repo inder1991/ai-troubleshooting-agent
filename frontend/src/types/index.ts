@@ -388,6 +388,12 @@ export interface V4Findings {
   /** Manual evidence pins collected from live investigation steering (user_chat / quick_action) */
   evidence_pins?: EvidencePinV2[];
   causal_forest?: CausalTree[];
+  // Cluster diagnostic capability fields
+  guard_scan_result?: GuardScanResult | null;
+  issue_clusters?: IssueCluster[] | null;
+  causal_search_space?: CausalSearchSpace | null;
+  scan_mode?: 'diagnostic' | 'guard';
+  topology_snapshot?: TopologySnapshot | null;
 }
 
 export type FixStatus =
@@ -496,6 +502,7 @@ export interface StartSessionRequest {
   profile_id?: string;
   capability?: string;
   cluster_url?: string;
+  scan_mode?: 'diagnostic' | 'guard';
 }
 
 export interface V4WebSocketMessage {
@@ -626,6 +633,98 @@ export interface ClusterHealthReport {
     long_term?: ClusterRemediationStep[];
   };
   execution_metadata?: Record<string, number>;
+}
+
+// --- Topology ---
+export interface TopologyNode {
+  kind: string;
+  name: string;
+  namespace?: string;
+  status?: string;
+  node_name?: string;
+}
+
+export interface TopologySnapshot {
+  nodes: Record<string, TopologyNode>;
+  edges: Array<{ from_key: string; to_key: string; relation: string }>;
+  built_at: string;
+  stale: boolean;
+}
+
+// --- Alert Correlation ---
+export interface RootCandidate {
+  resource_key: string;
+  hypothesis: string;
+  supporting_signals: string[];
+  confidence: number;
+}
+
+export interface IssueCluster {
+  cluster_id: string;
+  alerts: Array<{ resource_key: string; alert_type: string; severity: string }>;
+  root_candidates: RootCandidate[];
+  confidence: number;
+  correlation_basis: string[];
+  affected_resources: string[];
+}
+
+// --- Causal Firewall ---
+export interface BlockedLink {
+  from_resource: string;
+  to_resource: string;
+  reason_code: string;
+  invariant_id: string;
+  invariant_description: string;
+}
+
+export interface CausalSearchSpace {
+  valid_links: Array<Record<string, unknown>>;
+  annotated_links: Array<Record<string, unknown>>;
+  blocked_links: BlockedLink[];
+  total_evaluated: number;
+  total_blocked: number;
+  total_annotated: number;
+}
+
+// --- Guard Mode ---
+export interface CurrentRisk {
+  category: string;
+  severity: 'critical' | 'warning' | 'info';
+  resource: string;
+  description: string;
+  affected_count: number;
+  issue_cluster_id?: string;
+}
+
+export interface PredictiveRisk {
+  category: string;
+  severity: 'critical' | 'warning' | 'info';
+  resource: string;
+  description: string;
+  predicted_impact: string;
+  time_horizon: string;
+  trend_data: Array<Record<string, unknown>>;
+}
+
+export interface ScanDelta {
+  new_risks: string[];
+  resolved_risks: string[];
+  worsened: string[];
+  improved: string[];
+  previous_scan_id?: string;
+  previous_scanned_at?: string;
+}
+
+export interface GuardScanResult {
+  scan_id: string;
+  scanned_at: string;
+  platform: string;
+  platform_version: string;
+  current_risks: CurrentRisk[];
+  predictive_risks: PredictiveRisk[];
+  delta: ScanDelta;
+  overall_health: 'HEALTHY' | 'DEGRADED' | 'CRITICAL' | 'UNKNOWN';
+  risk_score: number;
 }
 
 export type CapabilityFormData =

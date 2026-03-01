@@ -194,6 +194,18 @@ export const listSessionsV4 = async (): Promise<V4Session[]> => {
   }));
 };
 
+// ===== Cluster Guard Mode =====
+
+export const startGuardScan = async (profileId: string): Promise<V4Session> => {
+  return startSessionV4({
+    service_name: 'Guard Scan',
+    time_window: '1h',
+    capability: 'cluster_diagnostics',
+    scan_mode: 'guard',
+    profile_id: profileId,
+  });
+};
+
 // ===== V4 Fix Pipeline =====
 
 export const generateFix = async (

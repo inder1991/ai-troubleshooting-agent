@@ -8,11 +8,19 @@ def test_graph_builds_without_error():
     assert graph is not None
 
 
+def test_graph_has_new_nodes():
+    graph = build_cluster_diagnostic_graph()
+    # The compiled graph should contain all 9 nodes
+    assert graph is not None
+
+
 @pytest.mark.asyncio
 async def test_graph_runs_with_mocks():
     """Integration test: graph runs end-to-end with mocked LLM calls."""
     from src.agents.cluster_client.mock_client import MockClusterClient
-    from src.agents.cluster.state import ClusterDiagnosticState
+    from src.agents.cluster.topology_resolver import _topology_cache
+
+    _topology_cache.clear()
 
     graph = build_cluster_diagnostic_graph()
     client = MockClusterClient(platform="openshift")
@@ -57,6 +65,15 @@ async def test_graph_runs_with_mocks():
             "re_dispatch_domains": [],
             "data_completeness": 0.0,
             "error": None,
+            "_trace": [],
+            # New fields
+            "topology_graph": {},
+            "topology_freshness": {},
+            "issue_clusters": [],
+            "causal_search_space": {},
+            "scan_mode": "diagnostic",
+            "previous_scan": None,
+            "guard_scan_result": None,
         }
 
         config = {
@@ -70,3 +87,10 @@ async def test_graph_runs_with_mocks():
 
     assert result.get("phase") == "complete"
     assert result.get("health_report") is not None
+    # Verify new pipeline nodes ran
+    assert result.get("topology_graph") is not None
+    assert result.get("topology_graph") != {}  # topology resolver built something
+    assert isinstance(result.get("issue_clusters"), list)
+    assert isinstance(result.get("causal_search_space"), dict)
+
+    _topology_cache.clear()

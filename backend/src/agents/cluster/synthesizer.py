@@ -70,7 +70,12 @@ def _merge_reports(reports: list[DomainReport]) -> dict:
     }
 
 
-async def _llm_causal_reasoning(anomalies: list[DomainAnomaly], reports: list[DomainReport]) -> dict:
+async def _llm_causal_reasoning(
+    anomalies: list[DomainAnomaly],
+    reports: list[DomainReport],
+    search_space: dict | None = None,
+    root_candidates: list[dict] | None = None,
+) -> dict:
     """Stage 2: LLM identifies cross-domain causal chains."""
     client = AnthropicClient(agent_name="cluster_synthesizer")
 
@@ -80,6 +85,30 @@ async def _llm_causal_reasoning(anomalies: list[DomainAnomaly], reports: list[Do
         for r in reports
     ]
 
+    # Build cluster-aware sections
+    issue_clusters_summary = search_space.get("issue_clusters_summary", []) if search_space else []
+    annotated_links = search_space.get("annotated_links", []) if search_space else []
+    blocked_count = search_space.get("total_blocked", 0) if search_space else 0
+    root_cands = root_candidates or []
+
+    cluster_section = ""
+    if root_cands or annotated_links or blocked_count:
+        cluster_section = f"""
+## Pre-Correlated Issue Clusters
+{json.dumps(issue_clusters_summary, indent=2)}
+
+## Root Cause Hypothesis Seeds (from deterministic correlator)
+{json.dumps(root_cands, indent=2)}
+Use these as starting anchors. Refine or adjust confidence, but do NOT invent new root causes unless evidence strongly supports it.
+
+## Annotated Links (low confidence — investigate carefully)
+{json.dumps(annotated_links, indent=2)}
+These links passed structural validation but have low confidence based on observed evidence. Weight them accordingly.
+
+## Blocked Links (excluded — do NOT propose these)
+{blocked_count} causal links were blocked by structural invariants and excluded from your input.
+"""
+
     prompt = f"""Analyze these cross-domain anomalies and identify causal chains.
 
 ## Anomalies Found
@@ -87,7 +116,7 @@ async def _llm_causal_reasoning(anomalies: list[DomainAnomaly], reports: list[Do
 
 ## Domain Report Summaries
 {json.dumps(report_summaries, indent=2)}
-
+{cluster_section}
 ## Allowed Link Types
 {json.dumps(CONSTRAINED_LINK_TYPES)}
 
@@ -198,10 +227,40 @@ async def synthesize(state: dict, config: dict) -> dict:
     merged = _merge_reports(reports)
     data_completeness = _compute_data_completeness(reports)
 
+    # Extract cluster-aware data from state
+    issue_clusters = state.get("issue_clusters", [])
+    causal_search_space = state.get("causal_search_space", {})
+    root_candidates = [
+        candidate
+        for cluster in issue_clusters
+        for candidate in cluster.get("root_candidates", [])
+    ]
+    annotated_links = causal_search_space.get("annotated_links", []) if causal_search_space else []
+    blocked_count = causal_search_space.get("total_blocked", 0) if causal_search_space else 0
+    issue_clusters_summary = [
+        {
+            "cluster_id": c["cluster_id"],
+            "affected_resources": c["affected_resources"],
+            "correlation_basis": c["correlation_basis"],
+            "confidence": c["confidence"],
+        }
+        for c in issue_clusters
+    ]
+
+    # Embed the summary into search_space for the LLM prompt builder
+    search_space_for_llm = dict(causal_search_space) if causal_search_space else {}
+    if issue_clusters_summary:
+        search_space_for_llm["issue_clusters_summary"] = issue_clusters_summary
+
     # Stage 2: Causal Reasoning (skip if no anomalies)
     causal_result: dict = {"causal_chains": [], "uncorrelated_findings": []}
     if merged["all_anomalies"]:
-        causal_result = await _llm_causal_reasoning(merged["all_anomalies"], reports)
+        causal_result = await _llm_causal_reasoning(
+            merged["all_anomalies"],
+            reports,
+            search_space=search_space_for_llm or None,
+            root_candidates=root_candidates or None,
+        )
 
     # Stage 3: Verdict
     verdict = await _llm_verdict(causal_result.get("causal_chains", []), reports, data_completeness)
@@ -244,6 +303,8 @@ async def synthesize(state: dict, config: dict) -> dict:
             "re_dispatch_count": state.get("re_dispatch_count", 0),
             "agents_succeeded": sum(1 for r in reports if r.status == DomainStatus.SUCCESS),
             "agents_failed": sum(1 for r in reports if r.status == DomainStatus.FAILED),
+            "blocked_count": blocked_count,
+            "annotated_count": len(annotated_links),
         },
     )
 
