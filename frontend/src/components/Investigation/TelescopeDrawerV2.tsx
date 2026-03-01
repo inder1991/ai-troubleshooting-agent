@@ -3,6 +3,7 @@ import { useTelescopeContext } from '../../contexts/TelescopeContext';
 import { useChatUI } from '../../contexts/ChatContext';
 import { getResource } from '../../services/api';
 import type { TelescopeResource } from '../../types';
+import LogViewerTab from './telescope/LogViewerTab';
 
 const TelescopeDrawerV2: React.FC = () => {
   const { isOpen, target, defaultTab, breadcrumbs, closeTelescope, popBreadcrumb } = useTelescopeContext();
@@ -81,7 +82,12 @@ const TelescopeDrawerV2: React.FC = () => {
         ) : activeTab === 'yaml' ? (
           <YAMLTab yaml={data?.yaml || ''} />
         ) : activeTab === 'logs' ? (
-          <div className="p-4 text-[10px] text-slate-500">Click LOGS tab to load</div>
+          <LogViewerTab
+            namespace={target!.namespace}
+            kind={target!.kind}
+            name={target!.name}
+            sessionId={sessionId!}
+          />
         ) : (
           <EventsTab events={data?.events || []} />
         )}
