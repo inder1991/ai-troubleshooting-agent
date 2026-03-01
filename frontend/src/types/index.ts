@@ -388,6 +388,12 @@ export interface V4Findings {
   /** Manual evidence pins collected from live investigation steering (user_chat / quick_action) */
   evidence_pins?: EvidencePinV2[];
   causal_forest?: CausalTree[];
+  // Cluster diagnostic capability fields
+  guard_scan_result?: GuardScanResult | null;
+  issue_clusters?: IssueCluster[] | null;
+  causal_search_space?: CausalSearchSpace | null;
+  scan_mode?: 'diagnostic' | 'guard';
+  topology_snapshot?: TopologySnapshot | null;
 }
 
 export type FixStatus =
@@ -496,6 +502,7 @@ export interface StartSessionRequest {
   profile_id?: string;
   capability?: string;
   cluster_url?: string;
+  scan_mode?: 'diagnostic' | 'guard';
 }
 
 export interface V4WebSocketMessage {

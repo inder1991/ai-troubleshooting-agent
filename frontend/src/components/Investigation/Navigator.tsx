@@ -9,6 +9,8 @@ import REDMethodStatusBar from './cards/REDMethodStatusBar';
 import PromQLRunResult from './cards/PromQLRunResult';
 import SkeletonCard from '../ui/SkeletonCard';
 import NeuralChart from './charts/NeuralChart';
+import ClusterInfoBanner from './cluster/ClusterInfoBanner';
+import FirewallAuditBadge from './cluster/FirewallAuditBadge';
 
 interface NavigatorProps {
   findings: V4Findings | null;
@@ -31,6 +33,19 @@ const Navigator: React.FC<NavigatorProps> = ({ findings, status, events }) => {
       </div>
 
       <div className="p-4 space-y-5">
+        {/* Cluster diagnostics info */}
+        {findings?.scan_mode && (
+          <ClusterInfoBanner
+            platform={findings?.topology_snapshot?.nodes ? 'openshift' : 'kubernetes'}
+            platformVersion=""
+            namespaceCount={0}
+            scanMode={findings.scan_mode}
+          />
+        )}
+        {findings?.causal_search_space && (
+          <FirewallAuditBadge searchSpace={findings.causal_search_space} />
+        )}
+
         {/* RED Method Status */}
         {findings ? (
           <REDMethodStatusBar
