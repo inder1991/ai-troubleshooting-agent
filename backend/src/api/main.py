@@ -12,6 +12,7 @@ from .pr_endpoints import router as pr_router
 from datetime import datetime
 
 from .routes_v4 import router_v4
+from .agent_endpoints import agent_router
 from .routes_v5 import router as v5_router
 from .routes_profiles import router as profiles_router
 from .routes_global_integrations import router as global_integrations_router
@@ -86,6 +87,7 @@ def create_app() -> FastAPI:
     # Include routes
     app.include_router(pr_router, prefix="/api")
     app.include_router(router_v4)
+    app.include_router(agent_router)
     app.include_router(v5_router)
     app.include_router(profiles_router)
     app.include_router(global_integrations_router)
