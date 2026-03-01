@@ -840,6 +840,140 @@ class ToolExecutor:
         )
 
     # ------------------------------------------------------------------
+    # Public resource accessors (Surgical Telescope)
+    # ------------------------------------------------------------------
+
+    def _get_api_for_kind(self, kind: str):
+        """Return the correct K8s API client for a resource kind.
+
+        Uses the api_group field from _KIND_TO_API_METHOD to select
+        CoreV1Api, AppsV1Api, or NetworkingV1Api.
+        """
+        if kind not in _KIND_TO_API_METHOD:
+            return None
+        _method_name, _is_cluster, api_group = _KIND_TO_API_METHOD[kind]
+        if api_group == "apps":
+            return self._get_k8s_apps_api()
+        elif api_group == "networking":
+            return self._get_k8s_networking_api()
+        else:
+            return self._get_k8s_core_api()
+
+    def get_resource_yaml(self, kind: str, name: str, namespace: str) -> dict[str, Any]:
+        """Read a K8s resource and return its serialized YAML as a JSON string.
+
+        Returns:
+            {"yaml": str} on success, {"error": str} on failure.
+        """
+        kind = kind.lower()
+        if kind not in _KIND_TO_API_METHOD:
+            return {
+                "error": (
+                    f"Unsupported resource kind '{kind}'. "
+                    f"Supported: {', '.join(sorted(_KIND_TO_API_METHOD.keys()))}"
+                ),
+            }
+
+        method_name, is_cluster_scoped, _api_group = _KIND_TO_API_METHOD[kind]
+        api_client = self._get_api_for_kind(kind)
+        api_method = getattr(api_client, method_name)
+
+        try:
+            if is_cluster_scoped:
+                resource = api_method(name=name)
+            else:
+                resource = api_method(name=name, namespace=namespace)
+
+            serialized = ApiClient().sanitize_for_serialization(resource)
+            yaml_str = json.dumps(serialized, indent=2)
+            return {"yaml": yaml_str}
+        except Exception as exc:
+            logger.error(
+                "get_resource_yaml failed",
+                extra={"kind": kind, "resource_name": name, "namespace": namespace,
+                       "error": str(exc), "error_type": type(exc).__name__},
+            )
+            return {"error": "Failed to fetch resource"}
+
+    def get_resource_events(self, kind: str, name: str, namespace: str) -> list[dict[str, Any]]:
+        """List namespaced events for a specific K8s resource.
+
+        Returns a list of event dicts with type, reason, message, count,
+        first_timestamp, last_timestamp, and source_component.
+        """
+        try:
+            core_api = self._get_k8s_core_api()
+            field_selector = f"involvedObject.name={name},involvedObject.kind={kind.capitalize()}"
+            event_list = core_api.list_namespaced_event(
+                namespace=namespace,
+                field_selector=field_selector,
+            )
+
+            events: list[dict[str, Any]] = []
+            for event in event_list.items:
+                source = getattr(event, "source", None)
+                source_component = getattr(source, "component", "") if source else ""
+                events.append({
+                    "type": event.type or "",
+                    "reason": event.reason or "",
+                    "message": event.message or "",
+                    "count": getattr(event, "count", 1) or 1,
+                    "first_timestamp": (
+                        event.first_timestamp.isoformat()
+                        if event.first_timestamp else None
+                    ),
+                    "last_timestamp": (
+                        event.last_timestamp.isoformat()
+                        if event.last_timestamp else None
+                    ),
+                    "source_component": source_component,
+                })
+            return events
+        except Exception as exc:
+            logger.error(
+                "get_resource_events failed",
+                extra={"kind": kind, "resource_name": name, "namespace": namespace,
+                       "error": str(exc), "error_type": type(exc).__name__},
+            )
+            return []
+
+    def get_pod_logs(
+        self,
+        pod_name: str,
+        namespace: str,
+        tail_lines: int = 500,
+        container: str | None = None,
+    ) -> dict[str, Any]:
+        """Read pod logs via the K8s API.
+
+        Clamps tail_lines to a maximum of 5000.
+
+        Returns:
+            {"logs": str} on success, {"error": str} on failure.
+        """
+        tail_lines = max(1, min(tail_lines, 5000))
+
+        try:
+            kwargs: dict[str, Any] = {
+                "name": pod_name,
+                "namespace": namespace,
+                "tail_lines": tail_lines,
+                "timestamps": True,
+            }
+            if container:
+                kwargs["container"] = container
+
+            log_text: str = self._get_k8s_core_api().read_namespaced_pod_log(**kwargs)
+            return {"logs": log_text}
+        except Exception as exc:
+            logger.error(
+                "get_pod_logs failed",
+                extra={"pod": pod_name, "namespace": namespace,
+                       "error": str(exc), "error_type": type(exc).__name__},
+            )
+            return {"error": "Failed to fetch pod logs"}
+
+    # ------------------------------------------------------------------
     # Helper methods
     # ------------------------------------------------------------------
 

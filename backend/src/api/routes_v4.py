@@ -873,6 +873,71 @@ async def proxy_promql_query(request: PromQLRequest):
         return {"data_points": [], "current_value": 0, "error": str(e)}
 
 
+# ── Resource API (Surgical Telescope) ─────────────────────────────────
+
+
+@router_v4.get("/session/{session_id}/resource/{namespace}/{kind}/{name}")
+async def get_resource_details(session_id: str, namespace: str, kind: str, name: str):
+    """Fetch K8s resource YAML + events for the Surgical Telescope drawer."""
+    _validate_session_id(session_id)
+    session = sessions.get(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    from src.tools.tool_executor import ToolExecutor
+    config = session.get("connection_config", {})
+    executor = ToolExecutor(connection_config=config)
+
+    loop = asyncio.get_event_loop()
+
+    yaml_result, events = await asyncio.gather(
+        loop.run_in_executor(None, executor.get_resource_yaml, kind, name, namespace),
+        loop.run_in_executor(None, executor.get_resource_events, kind, name, namespace),
+    )
+
+    return {
+        "yaml": yaml_result.get("yaml"),
+        "events": events,
+        "error": yaml_result.get("error"),
+    }
+
+
+@router_v4.get("/session/{session_id}/resource/{namespace}/{kind}/{name}/logs")
+async def get_resource_logs(
+    session_id: str,
+    namespace: str,
+    kind: str,
+    name: str,
+    tail_lines: int = 500,
+    container: Optional[str] = None,
+):
+    """Fetch pod logs for the Surgical Telescope LOGS tab."""
+    _validate_session_id(session_id)
+    session = sessions.get(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    if kind.lower() != "pod":
+        raise HTTPException(status_code=400, detail="Logs are only available for pods")
+
+    # Clamp tail_lines on the route level as well
+    tail_lines = max(1, min(tail_lines, 5000))
+
+    from src.tools.tool_executor import ToolExecutor
+    config = session.get("connection_config", {})
+    executor = ToolExecutor(connection_config=config)
+
+    loop = asyncio.get_event_loop()
+    result = await loop.run_in_executor(
+        None, lambda: executor.get_pod_logs(name, namespace, tail_lines=tail_lines, container=container),
+    )
+
+    return {
+        "logs": result.get("logs"),
+        "error": result.get("error"),
+    }
+
+
 # ── Attestation Gate ──────────────────────────────────────────────────
 
 
