@@ -5,6 +5,7 @@ import { parseResourceEntities } from '../../../utils/parseResourceEntities';
 import { useTelescopeContext } from '../../../contexts/TelescopeContext';
 import CausalRoleBadge from './CausalRoleBadge';
 import RecommendationCard from './RecommendationCard';
+import NeuralChart from '../charts/NeuralChart';
 
 interface CausalTreeCardProps {
   tree: CausalTree;
@@ -93,6 +94,18 @@ const CausalTreeCard: React.FC<CausalTreeCardProps> = ({ tree, sessionId, onTria
                   <span className="text-[10px] text-slate-400">
                     {parseResourceEntities(s.summary, handleEntityClick)}
                   </span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Correlated signals */}
+          {tree.correlated_signals.length > 0 && (
+            <div className="space-y-1">
+              <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Correlated Signals</span>
+              {tree.correlated_signals.map((sig, i) => (
+                <div key={i} className="text-[10px] text-slate-400">
+                  <span className="text-cyan-400">{sig.group_name}</span>: {sig.narrative}
                 </div>
               ))}
             </div>

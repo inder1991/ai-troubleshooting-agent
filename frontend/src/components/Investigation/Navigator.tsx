@@ -8,6 +8,7 @@ import { useCampaignContext } from '../../contexts/CampaignContext';
 import REDMethodStatusBar from './cards/REDMethodStatusBar';
 import PromQLRunResult from './cards/PromQLRunResult';
 import SkeletonCard from '../ui/SkeletonCard';
+import NeuralChart from './charts/NeuralChart';
 
 interface NavigatorProps {
   findings: V4Findings | null;
@@ -39,6 +40,26 @@ const Navigator: React.FC<NavigatorProps> = ({ findings, status, events }) => {
         ) : (
           <SkeletonCard variant="metric" />
         )}
+
+        {/* Metric Anomaly Charts */}
+        {findings?.metric_anomalies?.map((anomaly, i) => {
+          const tsData = findings.time_series_data?.[anomaly.metric_name];
+          if (!tsData?.length) return null;
+          return (
+            <div key={i} className="bg-slate-900/40 border border-slate-800 rounded-lg p-2">
+              <div className="text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">{anomaly.metric_name}</div>
+              <NeuralChart
+                height={80}
+                data={tsData.map((p: TimeSeriesDataPoint) => ({
+                  timestamp: new Date(p.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                  value: typeof p.value === 'number' ? p.value : parseFloat(String(p.value)) || 0,
+                }))}
+                lines={[{ dataKey: 'value', color: anomaly.severity === 'critical' ? 'red' : 'amber' }]}
+                showGrid={false}
+              />
+            </div>
+          );
+        })}
 
         {/* Service Topology */}
         <section>
