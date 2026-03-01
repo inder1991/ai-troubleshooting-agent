@@ -76,6 +76,7 @@ class StartSessionRequest(BaseModel):
     capability: str = "troubleshoot_app"
     authToken: Optional[str] = Field(default=None, alias="auth_token")
     authMethod: Optional[str] = Field(default=None, alias="auth_method")
+    scan_mode: str = Field(default="diagnostic", alias="scanMode")
 
 
 class StartSessionResponse(BaseModel):
