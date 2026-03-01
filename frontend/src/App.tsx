@@ -256,13 +256,17 @@ function AppInner() {
           }
 
           // Build diagnostic scope from form selections
+          const includeCtrlPlane = clusterData.include_control_plane ?? true;
           const scope: DiagnosticScope = {
-            level: clusterData.resource_type ? 'workload' : clusterData.namespace ? 'namespace' : 'cluster',
+            level: (clusterData.resource_type && clusterData.workload) ? 'workload'
+              : clusterData.namespace ? 'namespace' : 'cluster',
             namespaces: clusterData.namespace ? [clusterData.namespace] : [],
             workload_key: clusterData.resource_type && clusterData.workload
               ? `${clusterData.resource_type}/${clusterData.workload}` : undefined,
-            domains: ['ctrl_plane', 'node', 'network', 'storage'],
-            include_control_plane: clusterData.include_control_plane ?? true,
+            domains: includeCtrlPlane
+              ? ['ctrl_plane', 'node', 'network', 'storage']
+              : ['node', 'network', 'storage'],
+            include_control_plane: includeCtrlPlane,
           };
 
           const session = await startSessionV4({
