@@ -77,8 +77,24 @@ async def storage_agent(state: dict, config: dict) -> dict:
     platform = state.get("platform", "kubernetes")
     platform_version = state.get("platform_version", "")
 
-    # Gather data
-    pvcs = await client.list_pvcs()
+    # Gather data — namespace-scoped to avoid cluster-wide leakage
+    scope = state.get("diagnostic_scope", {})
+    ns_list = scope.get("namespaces", [])
+    if ns_list:
+        from src.agents.cluster_client.base import QueryResult, OBJECT_CAPS
+        all_pvcs: list = []
+        for namespace in ns_list:
+            result = await client.list_pvcs(namespace=namespace)
+            all_pvcs.extend(result.data if hasattr(result, "data") else [])
+        cap = OBJECT_CAPS["pvcs"]
+        pvcs = QueryResult(
+            data=all_pvcs[:cap],
+            total_available=len(all_pvcs),
+            returned=min(len(all_pvcs), cap),
+            truncated=len(all_pvcs) > cap,
+        )
+    else:
+        pvcs = await client.list_pvcs()
     volume_metrics = await client.query_prometheus("kubelet_volume_stats_used_bytes")
 
     platform_caps = (

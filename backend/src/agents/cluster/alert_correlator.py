@@ -24,7 +24,7 @@ _PROBLEM_STATUSES = frozenset({
 
 def _extract_alerts(state: dict) -> list[ClusterAlert]:
     """Extract problem alerts from topology nodes."""
-    topo = state.get("topology_graph", {})
+    topo = state.get("scoped_topology_graph") or state.get("topology_graph", {})
     nodes = topo.get("nodes", {})
     alerts: list[ClusterAlert] = []
 
@@ -99,7 +99,7 @@ def _pick_root_candidate(cluster_alerts: list[ClusterAlert], adj: dict[str, set[
 @traced_node(timeout_seconds=15)
 async def alert_correlator(state: dict, config: dict) -> dict:
     """LangGraph node: correlate alerts into IssueCluster groups."""
-    topo = state.get("topology_graph", {})
+    topo = state.get("scoped_topology_graph") or state.get("topology_graph", {})
     edges = topo.get("edges", [])
 
     # Extract alerts from topology

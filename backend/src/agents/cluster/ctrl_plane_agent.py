@@ -78,7 +78,28 @@ async def ctrl_plane_agent(state: dict, config: dict) -> dict:
     # Gather data
     api_health = await client.get_api_health()
     operators = await client.get_cluster_operators()
-    events = await client.list_events(field_selector="involvedObject.kind=Node")
+
+    # Namespace-scoped event fetching to avoid cluster-wide leakage
+    scope = state.get("diagnostic_scope", {})
+    ns_list = scope.get("namespaces", [])
+    if ns_list:
+        from src.agents.cluster_client.base import QueryResult, OBJECT_CAPS
+        all_events: list = []
+        for namespace in ns_list:
+            result = await client.list_events(
+                namespace=namespace,
+                field_selector="involvedObject.kind=Node",
+            )
+            all_events.extend(result.data if hasattr(result, "data") else [])
+        cap = OBJECT_CAPS["events"]
+        events = QueryResult(
+            data=all_events[:cap],
+            total_available=len(all_events),
+            returned=min(len(all_events), cap),
+            truncated=len(all_events) > cap,
+        )
+    else:
+        events = await client.list_events(field_selector="involvedObject.kind=Node")
 
     platform_caps = (
         "Full access: ClusterOperators, Routes, SCCs, MachineSets, plus standard K8s."

@@ -45,7 +45,7 @@ def _generate_candidate_links(clusters: list[dict], topo_edges: list[dict]) -> l
 
 def _check_soft_rules(from_key: str, to_key: str, state: dict) -> CausalAnnotation | None:
     """Check Tier 2 soft rules based on context."""
-    topo_nodes = state.get("topology_graph", {}).get("nodes", {})
+    topo_nodes = (state.get("scoped_topology_graph") or state.get("topology_graph", {})).get("nodes", {})
     from_node = topo_nodes.get(from_key, {})
     to_node = topo_nodes.get(to_key, {})
     from_kind = _extract_kind(from_key)
@@ -54,7 +54,7 @@ def _check_soft_rules(from_key: str, to_key: str, state: dict) -> CausalAnnotati
     # SOFT-001: Node transient — no cascading effects
     if from_kind == "node" and from_node.get("status") == "NotReady":
         # Check if any pods on this node were actually affected
-        topo_edges = state.get("topology_graph", {}).get("edges", [])
+        topo_edges = (state.get("scoped_topology_graph") or state.get("topology_graph", {})).get("edges", [])
         hosted_pods = [e["to_key"] for e in topo_edges if e["from_key"] == from_key and e["relation"] == "hosts"]
         problem_pods = [p for p in hosted_pods if topo_nodes.get(p, {}).get("status") in ("Evicted", "CrashLoopBackOff", "OOMKilled")]
         if not problem_pods:
@@ -81,7 +81,7 @@ def _check_soft_rules(from_key: str, to_key: str, state: dict) -> CausalAnnotati
 async def causal_firewall(state: dict, config: dict) -> dict:
     """LangGraph node: two-tier causal link filtering."""
     clusters = state.get("issue_clusters", [])
-    topo_edges = state.get("topology_graph", {}).get("edges", [])
+    topo_edges = (state.get("scoped_topology_graph") or state.get("topology_graph", {})).get("edges", [])
 
     # Generate all candidate links
     candidate_links = _generate_candidate_links(clusters, topo_edges)

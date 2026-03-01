@@ -79,7 +79,26 @@ async def node_agent(state: dict, config: dict) -> dict:
 
     # Gather data
     nodes = await client.list_nodes()
-    events = await client.list_events()
+
+    # Namespace-scoped event fetching to avoid cluster-wide leakage
+    scope = state.get("diagnostic_scope", {})
+    ns_list = scope.get("namespaces", [])
+    if ns_list:
+        from src.agents.cluster_client.base import QueryResult, OBJECT_CAPS
+        all_events: list = []
+        for namespace in ns_list:
+            result = await client.list_events(namespace=namespace)
+            all_events.extend(result.data if hasattr(result, "data") else [])
+        cap = OBJECT_CAPS["events"]
+        events = QueryResult(
+            data=all_events[:cap],
+            total_available=len(all_events),
+            returned=min(len(all_events), cap),
+            truncated=len(all_events) > cap,
+        )
+    else:
+        events = await client.list_events()
+
     pods = await client.list_pods()
 
     platform_caps = (
