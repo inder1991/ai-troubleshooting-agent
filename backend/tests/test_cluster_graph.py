@@ -1,6 +1,7 @@
 import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
 from src.agents.cluster.graph import build_cluster_diagnostic_graph
+from src.agents.cluster.state import DiagnosticScope
 
 
 def test_graph_builds_without_error():
@@ -75,10 +76,10 @@ async def test_graph_runs_with_mocks():
             "previous_scan": None,
             "guard_scan_result": None,
             # Scope-governed diagnostics
-            "diagnostic_scope": None,
+            "diagnostic_scope": DiagnosticScope().model_dump(mode="json"),
             "scoped_topology_graph": None,
-            "dispatch_domains": [],
-            "scope_coverage": 0.0,
+            "dispatch_domains": ["ctrl_plane", "node", "network", "storage"],
+            "scope_coverage": 1.0,
         }
 
         config = {
