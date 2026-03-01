@@ -110,6 +110,7 @@ class Finding(BaseModel):
     breadcrumbs: list[Breadcrumb]
     negative_findings: list[NegativeFinding]
     critic_verdict: Optional[CriticVerdict] = None
+    resource_refs: list["ResourceRef"] = Field(default_factory=list)
 
     @computed_field
     @property
@@ -658,6 +659,65 @@ class EvidencePin(BaseModel):
     service: Optional[str] = None
     resource_name: Optional[str] = None
     time_window: Optional[TimeWindow] = None
+    resource_refs: list["ResourceRef"] = Field(default_factory=list)
+
+
+# ---------------------------------------------------------------------------
+# War Room v2 Models
+# ---------------------------------------------------------------------------
+
+
+class ResourceRef(BaseModel):
+    """A reference to a Kubernetes/OpenShift resource for click-anywhere drill-down."""
+    type: str  # pod, deployment, service, configmap, pvc, node, ingress,
+               # replicaset, deploymentconfig, route, buildconfig, imagestream
+    name: str
+    namespace: Optional[str] = None
+    status: Optional[str] = None    # Running, CrashLoopBackOff — for hover tooltip
+    age: Optional[str] = None       # "2d", "15m" — for hover tooltip
+
+
+class CommandStep(BaseModel):
+    """A single command in an operational recommendation."""
+    order: int
+    description: str
+    command: str
+    command_type: Literal["kubectl", "oc", "helm", "shell"]
+    is_dry_run: bool = False
+    dry_run_command: Optional[str] = None
+    validation_command: Optional[str] = None
+
+
+class OperationalRecommendation(BaseModel):
+    """A copy-paste ready operational command recommendation."""
+    id: str = Field(default_factory=lambda: str(__import__('uuid').uuid4()))
+    title: str
+    urgency: Literal["immediate", "short_term", "preventive"]
+    category: Literal["scale", "rollback", "restart", "config_patch", "network", "storage"]
+    commands: list[CommandStep]
+    rollback_commands: list[CommandStep] = Field(default_factory=list)
+    risk_level: Literal["safe", "caution", "destructive"]
+    prerequisites: list[str] = Field(default_factory=list)
+    expected_outcome: str = ""
+    resource_refs: list[ResourceRef] = Field(default_factory=list)
+
+
+class CausalTree(BaseModel):
+    """An independent root cause with its cascading symptoms and recommendations."""
+    id: str = Field(default_factory=lambda: str(__import__('uuid').uuid4()))
+    root_cause: Finding
+    severity: Literal["critical", "warning", "info"]
+    blast_radius: Optional[dict] = None
+    cascading_symptoms: list[Finding] = Field(default_factory=list)
+    correlated_signals: list[CorrelatedSignalGroup] = Field(default_factory=list)
+    operational_recommendations: list[OperationalRecommendation] = Field(default_factory=list)
+    triage_status: Literal["untriaged", "acknowledged", "mitigated", "resolved"] = "untriaged"
+    resource_refs: list[ResourceRef] = Field(default_factory=list)
+
+
+# Rebuild models that use forward references to ResourceRef
+Finding.model_rebuild()
+EvidencePin.model_rebuild()
 
 
 class ConfidenceLedger(BaseModel):
@@ -854,6 +914,9 @@ class DiagnosticState(BaseModel):
     blast_radius_result: Optional[BlastRadius] = None
     severity_result: Optional[SeverityRecommendation] = None
     past_incidents: list[PastIncidentMatchInfo | dict] = Field(default_factory=list)
+
+    # Causal forest (War Room v2)
+    causal_forest: list[CausalTree] = Field(default_factory=list)
 
     # Cross-cutting
     all_findings: list[Finding] = Field(default_factory=list)

@@ -21,6 +21,7 @@ import FixPipelinePanel from './FixPipelinePanel';
 import { SkeletonStack } from '../ui/SkeletonCard';
 import SkeletonCard from '../ui/SkeletonCard';
 import { safeFixed, formatTime, safeDate } from '../../utils/format';
+import CausalForestView from './CausalForestView';
 
 // HUD components
 import HUDAtmosphere from './hud/HUDAtmosphere';
@@ -285,6 +286,12 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                 </motion.div>
               )}
             </AnimatePresence>
+            {/* Causal Forest — multi-root-cause view */}
+            {findings?.causal_forest && findings.causal_forest.length > 0 && (
+              <div className="mb-4">
+                <CausalForestView forest={findings.causal_forest} sessionId={sessionId || ''} />
+              </div>
+            )}
             {/* Evidence Anchor Bar - prevents infinite scroll doom */}
             {findings && hasContent && (
               <div className="sticky top-0 z-50 bg-slate-950/90 backdrop-blur border-b border-slate-800 flex gap-1.5 p-2 mb-4 rounded-lg overflow-x-auto scrollbar-hide">

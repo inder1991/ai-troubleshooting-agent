@@ -6,7 +6,7 @@ import asyncio
 from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from pydantic import BaseModel
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Literal, Optional
 
 from src.api.models import (
     ChatRequest, ChatResponse, StartSessionRequest, StartSessionResponse, SessionSummary,
@@ -715,6 +715,7 @@ async def get_findings(session_id: str):
             "fix_data": None,
             "closure_state": None,
             "evidence_pins": session.get("evidence_pins", []),
+            "causal_forest": [],
             "message": "Analysis not yet complete",
         }
 
@@ -753,12 +754,20 @@ async def get_findings(session_id: str):
         code_mermaid_diagram = state.code_analysis.mermaid_diagram
         code_overall_confidence = state.code_analysis.overall_confidence
 
-    # Extract time series data capped at 30 points per metric
+    # Extract time series data with LTTB downsampling (max 150 points per metric)
+    from src.utils.lttb import lttb_downsample, MAX_POINTS
     ts_data_raw = {}
     if state.metrics_analysis and state.metrics_analysis.time_series_data:
         for key, points in state.metrics_analysis.time_series_data.items():
-            capped = points[-30:] if len(points) > 30 else points
-            ts_data_raw[key] = [dp.model_dump(mode="json") for dp in capped]
+            if len(points) > MAX_POINTS:
+                ts_tuples = [(dp.timestamp.timestamp(), dp.value) for dp in points]
+                downsampled = lttb_downsample(ts_tuples, MAX_POINTS)
+                ts_data_raw[key] = [
+                    {"timestamp": datetime.fromtimestamp(ts, tz=timezone.utc).isoformat(), "value": val}
+                    for ts, val in downsampled
+                ]
+            else:
+                ts_data_raw[key] = [dp.model_dump(mode="json") for dp in points]
 
     # Extract change analysis fields (handles both typed model and raw dict)
     ca = state.change_analysis
@@ -818,6 +827,7 @@ async def get_findings(session_id: str):
         "campaign": _dump_campaign(state.campaign) if state.campaign else None,
         # Manual evidence pins from live investigation steering (user_chat / quick_action)
         "evidence_pins": session.get("evidence_pins", []),
+        "causal_forest": [ct.model_dump(mode="json") for ct in state.causal_forest] if state.causal_forest else [],
     }
 
 
@@ -855,14 +865,19 @@ async def proxy_promql_query(request: PromQLRequest):
         if not results:
             return {"data_points": [], "current_value": 0, "error": "No data returned"}
 
-        # Take first result series, cap at 30 points
+        # Take first result series, apply LTTB downsampling (max 150 points)
+        from src.utils.lttb import lttb_downsample, MAX_POINTS as LTTB_MAX
         values = results[0].get("values", [])
-        capped = values[-30:] if len(values) > 30 else values
+        if len(values) > LTTB_MAX:
+            ts_tuples = [(float(v[0]), float(v[1])) for v in values]
+            downsampled = lttb_downsample(ts_tuples, LTTB_MAX)
+        else:
+            downsampled = [(float(v[0]), float(v[1])) for v in values]
         data_points = [
-            {"timestamp": datetime.fromtimestamp(float(ts), tz=timezone.utc).isoformat(), "value": float(val)}
-            for ts, val in capped
+            {"timestamp": datetime.fromtimestamp(ts, tz=timezone.utc).isoformat(), "value": val}
+            for ts, val in downsampled
         ]
-        current_value = float(capped[-1][1]) if capped else 0
+        current_value = float(downsampled[-1][1]) if downsampled else 0
 
         return {"data_points": data_points, "current_value": current_value}
     except httpx.HTTPStatusError as e:
@@ -871,6 +886,71 @@ async def proxy_promql_query(request: PromQLRequest):
     except Exception as e:
         logger.warning("PromQL proxy error: %s", e)
         return {"data_points": [], "current_value": 0, "error": str(e)}
+
+
+# ── Resource API (Surgical Telescope) ─────────────────────────────────
+
+
+@router_v4.get("/session/{session_id}/resource/{namespace}/{kind}/{name}")
+async def get_resource_details(session_id: str, namespace: str, kind: str, name: str):
+    """Fetch K8s resource YAML + events for the Surgical Telescope drawer."""
+    _validate_session_id(session_id)
+    session = sessions.get(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    from src.tools.tool_executor import ToolExecutor
+    config = session.get("connection_config", {})
+    executor = ToolExecutor(connection_config=config)
+
+    loop = asyncio.get_event_loop()
+
+    yaml_result, events = await asyncio.gather(
+        loop.run_in_executor(None, executor.get_resource_yaml, kind, name, namespace),
+        loop.run_in_executor(None, executor.get_resource_events, kind, name, namespace),
+    )
+
+    return {
+        "yaml": yaml_result.get("yaml"),
+        "events": events,
+        "error": yaml_result.get("error"),
+    }
+
+
+@router_v4.get("/session/{session_id}/resource/{namespace}/{kind}/{name}/logs")
+async def get_resource_logs(
+    session_id: str,
+    namespace: str,
+    kind: str,
+    name: str,
+    tail_lines: int = 500,
+    container: Optional[str] = None,
+):
+    """Fetch pod logs for the Surgical Telescope LOGS tab."""
+    _validate_session_id(session_id)
+    session = sessions.get(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    if kind.lower() != "pod":
+        raise HTTPException(status_code=400, detail="Logs are only available for pods")
+
+    # Clamp tail_lines on the route level as well
+    tail_lines = max(1, min(tail_lines, 5000))
+
+    from src.tools.tool_executor import ToolExecutor
+    config = session.get("connection_config", {})
+    executor = ToolExecutor(connection_config=config)
+
+    loop = asyncio.get_event_loop()
+    result = await loop.run_in_executor(
+        None, lambda: executor.get_pod_logs(name, namespace, tail_lines=tail_lines, container=container),
+    )
+
+    return {
+        "logs": result.get("logs"),
+        "error": result.get("error"),
+    }
 
 
 # ── Attestation Gate ──────────────────────────────────────────────────
@@ -1365,3 +1445,30 @@ async def get_tools(session_id: str):
         enriched.append(tool_copy)
 
     return {"tools": enriched}
+
+
+# ── Causal Forest Triage ──────────────────────────────────────────────
+
+
+class TriageStatusUpdate(BaseModel):
+    status: Literal["untriaged", "acknowledged", "mitigated", "resolved"]
+
+
+@router_v4.patch("/session/{session_id}/causal-tree/{tree_id}/triage")
+async def update_triage_status(session_id: str, tree_id: str, update: TriageStatusUpdate):
+    """Update triage status of a CausalTree."""
+    _validate_session_id(session_id)
+    session = sessions.get(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    state = session.get("state")
+    if not state or not state.causal_forest:
+        raise HTTPException(status_code=404, detail="No causal forest data")
+
+    for tree in state.causal_forest:
+        if tree.id == tree_id:
+            tree.triage_status = update.status
+            return {"status": "updated", "tree_id": tree_id, "triage_status": update.status}
+
+    raise HTTPException(status_code=404, detail=f"CausalTree {tree_id} not found")
