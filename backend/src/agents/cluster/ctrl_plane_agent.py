@@ -8,6 +8,7 @@ from typing import Any
 
 from src.agents.cluster.state import DomainReport, DomainStatus, DomainAnomaly, TruncationFlags, FailureReason
 from src.agents.cluster.traced_node import traced_node
+from src.agents.cluster_client.base import QueryResult, OBJECT_CAPS
 from src.utils.llm_client import AnthropicClient
 from src.utils.logger import get_logger
 
@@ -83,7 +84,7 @@ async def ctrl_plane_agent(state: dict, config: dict) -> dict:
     scope = state.get("diagnostic_scope", {})
     ns_list = scope.get("namespaces", [])
     if ns_list:
-        from src.agents.cluster_client.base import QueryResult, OBJECT_CAPS
+
         all_events: list = []
         for namespace in ns_list:
             result = await client.list_events(
