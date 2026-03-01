@@ -1,8 +1,6 @@
 """Tests for scope-aware topology pruning in topology_resolver.py."""
 
 import pytest
-import time
-from unittest.mock import AsyncMock
 
 from src.agents.cluster.topology_resolver import (
     _prune_topology,
@@ -12,7 +10,7 @@ from src.agents.cluster.topology_resolver import (
     topology_snapshot_resolver,
     TOPOLOGY_TTL_SECONDS,
 )
-from src.agents.cluster.state import DiagnosticScope, TopologySnapshot, TopologyNode, TopologyEdge
+from src.agents.cluster.state import DiagnosticScope, TopologySnapshot
 
 
 # ---------------------------------------------------------------------------
