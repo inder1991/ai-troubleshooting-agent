@@ -1,14 +1,8 @@
 import React from 'react';
-
-interface DomainHealth {
-  domain: string;
-  status: string;
-  confidence: number;
-  anomaly_count: number;
-}
+import type { ClusterDomainReport } from '../../../types';
 
 interface DomainHealthGridProps {
-  domains: DomainHealth[];
+  domains: ClusterDomainReport[];
 }
 
 const DOMAIN_LABELS: Record<string, string> = {
@@ -26,9 +20,9 @@ const STATUS_DOT: Record<string, string> = {
 };
 
 export default function DomainHealthGrid({ domains }: DomainHealthGridProps) {
-  const defaultDomains: DomainHealth[] = ['ctrl_plane', 'node', 'network', 'storage'].map(d => {
+  const defaultDomains = ['ctrl_plane', 'node', 'network', 'storage'].map(d => {
     const found = domains.find(dd => dd.domain === d);
-    return found || { domain: d, status: 'PENDING', confidence: 0, anomaly_count: 0 };
+    return found || { domain: d, status: 'PENDING' as const, confidence: 0, anomalies: [], ruled_out: [], evidence_refs: [], truncation_flags: {}, duration_ms: 0 };
   });
 
   return (
@@ -46,8 +40,8 @@ export default function DomainHealthGrid({ domains }: DomainHealthGridProps) {
               <span className={`w-1.5 h-1.5 rounded-full ${dotClass}`} />
               <span className="text-[10px] font-mono text-slate-400">{label}</span>
               <div className="ml-auto flex items-center gap-1.5">
-                {d.anomaly_count > 0 && (
-                  <span className="text-[9px] font-mono text-red-400">{d.anomaly_count}</span>
+                {d.anomalies.length > 0 && (
+                  <span className="text-[9px] font-mono text-red-400">{d.anomalies.length}</span>
                 )}
                 <div className="w-8 h-1 bg-slate-800 rounded-full overflow-hidden">
                   <div

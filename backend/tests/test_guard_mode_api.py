@@ -110,6 +110,7 @@ async def test_guard_findings_without_result_returns_pending(guard_session_id):
         "created_at": "2026-03-01T00:00:00+00:00",
     }
     result = await get_findings(sid)
-    # Falls through to empty-state branch since no guard_scan_result and state is empty dict
-    assert result["diagnostic_id"] == sid
+    # Falls through to pending branch since no guard_scan_result and state is empty dict
+    assert result["session_id"] == sid
     assert result.get("platform_health") == "PENDING"
+    assert result["findings"] == []

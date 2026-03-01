@@ -11,6 +11,8 @@ import SkeletonCard from '../ui/SkeletonCard';
 import NeuralChart from './charts/NeuralChart';
 import ClusterInfoBanner from './cluster/ClusterInfoBanner';
 import FirewallAuditBadge from './cluster/FirewallAuditBadge';
+import DomainAgentStatus from './cluster/DomainAgentStatus';
+import DomainHealthGrid from './cluster/DomainHealthGrid';
 
 interface NavigatorProps {
   findings: V4Findings | null;
@@ -35,12 +37,20 @@ const Navigator: React.FC<NavigatorProps> = ({ findings, status, events }) => {
       <div className="p-4 space-y-5">
         {/* Cluster diagnostics info */}
         {findings?.scan_mode && (
-          <ClusterInfoBanner
-            platform={findings?.topology_snapshot?.nodes ? 'openshift' : 'kubernetes'}
-            platformVersion=""
-            namespaceCount={0}
-            scanMode={findings.scan_mode}
-          />
+          <>
+            <ClusterInfoBanner
+              platform={findings.platform || 'kubernetes'}
+              platformVersion={findings.platform_version || ''}
+              namespaceCount={findings.topology_snapshot ? Object.keys(findings.topology_snapshot.nodes).length : 0}
+              scanMode={findings.scan_mode}
+            />
+            {findings.domain_reports && findings.domain_reports.length > 0 && (
+              <>
+                <DomainAgentStatus reports={findings.domain_reports} />
+                <DomainHealthGrid domains={findings.domain_reports} />
+              </>
+            )}
+          </>
         )}
         {findings?.causal_search_space && (
           <FirewallAuditBadge searchSpace={findings.causal_search_space} />

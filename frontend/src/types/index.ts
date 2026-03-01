@@ -394,6 +394,15 @@ export interface V4Findings {
   causal_search_space?: CausalSearchSpace | null;
   scan_mode?: 'diagnostic' | 'guard';
   topology_snapshot?: TopologySnapshot | null;
+  platform?: string;
+  platform_version?: string;
+  platform_health?: string;
+  data_completeness?: number;
+  causal_chains?: Array<Record<string, unknown>>;
+  uncorrelated_findings?: Array<Record<string, unknown>>;
+  domain_reports?: ClusterDomainReport[];
+  remediation?: Record<string, unknown>;
+  execution_metadata?: Record<string, unknown>;
 }
 
 export type FixStatus =
@@ -642,6 +651,7 @@ export interface TopologyNode {
   namespace?: string;
   status?: string;
   node_name?: string;
+  labels?: Record<string, string>;
 }
 
 export interface TopologySnapshot {
@@ -649,6 +659,7 @@ export interface TopologySnapshot {
   edges: Array<{ from_key: string; to_key: string; relation: string }>;
   built_at: string;
   stale: boolean;
+  resource_version?: string;
 }
 
 // --- Alert Correlation ---
@@ -675,6 +686,7 @@ export interface BlockedLink {
   reason_code: string;
   invariant_id: string;
   invariant_description: string;
+  timestamp?: string;
 }
 
 export interface CausalSearchSpace {
@@ -689,7 +701,7 @@ export interface CausalSearchSpace {
 // --- Guard Mode ---
 export interface CurrentRisk {
   category: string;
-  severity: 'critical' | 'warning' | 'info';
+  severity: string;
   resource: string;
   description: string;
   affected_count: number;
@@ -698,7 +710,7 @@ export interface CurrentRisk {
 
 export interface PredictiveRisk {
   category: string;
-  severity: 'critical' | 'warning' | 'info';
+  severity: string;
   resource: string;
   description: string;
   predicted_impact: string;

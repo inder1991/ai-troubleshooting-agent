@@ -673,31 +673,40 @@ async def get_findings(session_id: str):
         state = session.get("state", {})
         scan_mode = session.get("scan_mode", "diagnostic")
 
+        # Common fields required by V4Findings
+        common = {
+            "session_id": session_id,
+            "findings": [],
+            "scan_mode": scan_mode,
+            "issue_clusters": state.get("issue_clusters", []) if isinstance(state, dict) else [],
+            "causal_search_space": state.get("causal_search_space") if isinstance(state, dict) else None,
+            "topology_snapshot": state.get("topology_graph") if isinstance(state, dict) else None,
+        }
+
         # Guard mode: return guard scan result
         if scan_mode == "guard" and isinstance(state, dict) and state.get("guard_scan_result"):
             return {
-                "diagnostic_id": session_id,
-                "scan_mode": "guard",
+                **common,
                 "guard_scan_result": state["guard_scan_result"],
             }
 
         # Diagnostic mode (existing behavior)
         if isinstance(state, dict) and state:
+            health_report = state.get("health_report")
             return {
-                "diagnostic_id": session_id,
-                "scan_mode": scan_mode,
+                **common,
                 "platform": state.get("platform", ""),
                 "platform_version": state.get("platform_version", ""),
-                "platform_health": state.get("health_report", {}).get("platform_health", "UNKNOWN") if state.get("health_report") else "PENDING",
+                "platform_health": health_report.get("platform_health", "UNKNOWN") if health_report else "PENDING",
                 "data_completeness": state.get("data_completeness", 0.0),
                 "causal_chains": state.get("causal_chains", []),
                 "uncorrelated_findings": state.get("uncorrelated_findings", []),
                 "domain_reports": state.get("domain_reports", []),
-                "blast_radius": state.get("health_report", {}).get("blast_radius", {}) if state.get("health_report") else {},
-                "remediation": state.get("health_report", {}).get("remediation", {}) if state.get("health_report") else {},
-                "execution_metadata": state.get("health_report", {}).get("execution_metadata", {}) if state.get("health_report") else {},
+                "blast_radius": health_report.get("blast_radius") if health_report else None,
+                "remediation": health_report.get("remediation", {}) if health_report else {},
+                "execution_metadata": health_report.get("execution_metadata", {}) if health_report else {},
             }
-        return {"diagnostic_id": session_id, "scan_mode": scan_mode, "platform_health": "PENDING", "domain_reports": []}
+        return {**common, "platform": "", "platform_version": "", "platform_health": "PENDING", "data_completeness": 0.0, "domain_reports": []}
 
     state = session.get("state")
     logger.info("Findings requested", extra={"session_id": session_id, "action": "findings_requested", "extra": {"findings_count": len(state.all_findings) if state else 0}})
