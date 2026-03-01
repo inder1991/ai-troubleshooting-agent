@@ -43,6 +43,7 @@ const Navigator: React.FC<NavigatorProps> = ({ findings, status, events }) => {
               platformVersion={findings.platform_version || ''}
               namespaceCount={findings.topology_snapshot ? Object.keys(findings.topology_snapshot.nodes).length : 0}
               scanMode={findings.scan_mode}
+              scope={findings.diagnostic_scope}
             />
             {findings.domain_reports && findings.domain_reports.length > 0 && (
               <>

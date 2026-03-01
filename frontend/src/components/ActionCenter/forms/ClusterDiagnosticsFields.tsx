@@ -252,7 +252,7 @@ const ClusterDiagnosticsFields: React.FC<ClusterDiagnosticsFieldsProps> = ({ dat
         <label className="block text-xs text-gray-400 mb-1.5 font-medium">Resource Type</label>
         <select
           value={data.resource_type || ''}
-          onChange={(e) => update({ resource_type: e.target.value || undefined })}
+          onChange={(e) => update({ resource_type: e.target.value || undefined, workload: undefined })}
           className="w-full px-3 py-2.5 bg-[#0f2023] border border-[#224349] rounded-lg text-sm text-white focus:border-[#07b6d5] focus:outline-none focus:ring-1 focus:ring-[#07b6d5]/30 transition-colors"
         >
           <option value="">All Resources</option>
@@ -262,6 +262,31 @@ const ClusterDiagnosticsFields: React.FC<ClusterDiagnosticsFieldsProps> = ({ dat
             </option>
           ))}
         </select>
+      </div>
+
+      {/* Workload Name — visible when a specific resource type is selected */}
+      {data.resource_type && (
+        <div>
+          <label className="block text-xs text-gray-400 mb-1.5 font-medium">Workload Name</label>
+          <input
+            type="text"
+            value={data.workload || ''}
+            onChange={(e) => update({ workload: e.target.value || undefined })}
+            className="w-full px-3 py-2.5 bg-[#0f2023] border border-[#224349] rounded-lg text-sm text-white placeholder-gray-600 focus:border-[#07b6d5] focus:outline-none focus:ring-1 focus:ring-[#07b6d5]/30 transition-colors"
+            placeholder={`e.g. my-${data.resource_type === 'pods' ? 'pod' : 'app'}-name`}
+          />
+        </div>
+      )}
+
+      {/* Include Control Plane */}
+      <div className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          checked={data.include_control_plane ?? true}
+          onChange={(e) => update({ include_control_plane: e.target.checked })}
+          className="w-3.5 h-3.5 rounded border-[#224349] bg-[#0f2023] text-[#07b6d5] focus:ring-[#07b6d5]/30"
+        />
+        <label className="text-xs text-gray-300">Include control plane diagnostics</label>
       </div>
 
       {/* Symptoms */}

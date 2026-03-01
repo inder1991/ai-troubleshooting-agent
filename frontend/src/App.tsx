@@ -10,6 +10,7 @@ import type {
   TroubleshootAppForm,
   ClusterDiagnosticsForm,
   AttestationGateData,
+  DiagnosticScope,
 } from './types';
 import { useWebSocketV4 } from './hooks/useWebSocket';
 import type { ChatStreamEndPayload } from './hooks/useWebSocket';
@@ -254,6 +255,16 @@ function AppInner() {
             }
           }
 
+          // Build diagnostic scope from form selections
+          const scope: DiagnosticScope = {
+            level: clusterData.resource_type ? 'workload' : clusterData.namespace ? 'namespace' : 'cluster',
+            namespaces: clusterData.namespace ? [clusterData.namespace] : [],
+            workload_key: clusterData.resource_type && clusterData.workload
+              ? `${clusterData.resource_type}/${clusterData.workload}` : undefined,
+            domains: ['ctrl_plane', 'node', 'network', 'storage'],
+            include_control_plane: clusterData.include_control_plane ?? true,
+          };
+
           const session = await startSessionV4({
             service_name: 'Cluster Diagnostics',
             time_window: '1h',
@@ -261,6 +272,7 @@ function AppInner() {
             cluster_url: clusterData.cluster_url,
             capability: 'cluster_diagnostics',
             profile_id: profileId,
+            scope,
             // Ad-hoc auth fields (used when no profile)
             ...((!profileId && clusterData.auth_token) ? {
               auth_token: clusterData.auth_token,

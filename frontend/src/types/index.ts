@@ -61,6 +61,16 @@ export interface Agent3Result {
   confidence: number;
 }
 
+// ===== Diagnostic Scope =====
+
+export interface DiagnosticScope {
+  level: 'cluster' | 'namespace' | 'workload' | 'component';
+  namespaces: string[];
+  workload_key?: string;
+  domains: string[];
+  include_control_plane: boolean;
+}
+
 // ===== V4 Types =====
 
 export type DiagnosticPhase =
@@ -388,6 +398,9 @@ export interface V4Findings {
   /** Manual evidence pins collected from live investigation steering (user_chat / quick_action) */
   evidence_pins?: EvidencePinV2[];
   causal_forest?: CausalTree[];
+  // Diagnostic scope (returned by backend)
+  diagnostic_scope?: DiagnosticScope;
+  scope_coverage?: number;
   // Cluster diagnostic capability fields
   guard_scan_result?: GuardScanResult | null;
   issue_clusters?: IssueCluster[] | null;
@@ -512,6 +525,7 @@ export interface StartSessionRequest {
   capability?: string;
   cluster_url?: string;
   scan_mode?: 'diagnostic' | 'guard';
+  scope?: DiagnosticScope;
 }
 
 export interface V4WebSocketMessage {
@@ -570,6 +584,8 @@ export interface ClusterDiagnosticsForm {
   auth_token?: string;
   auth_method?: 'token' | 'kubeconfig';
   resource_type?: string;
+  workload?: string;
+  include_control_plane?: boolean;
   profile_id?: string;
   save_cluster?: boolean;
   cluster_name?: string;
