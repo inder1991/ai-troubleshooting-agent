@@ -13,6 +13,8 @@ import ChatDrawer from '../Chat/ChatDrawer';
 import LedgerTriggerTab from '../Chat/LedgerTriggerTab';
 import SurgicalTelescope from './SurgicalTelescope';
 import { TopologySelectionProvider } from '../../contexts/TopologySelectionContext';
+import { TelescopeProvider } from '../../contexts/TelescopeContext';
+import TelescopeDrawerV2 from './TelescopeDrawerV2';
 
 interface InvestigationViewProps {
   session: V4Session;
@@ -150,57 +152,62 @@ const InvestigationView: React.FC<InvestigationViewProps> = ({
         </div>
       )}
 
-      {/* War Room: 3-column CSS Grid layout */}
-      <TopologySelectionProvider>
-        <div className="grid grid-cols-12 flex-1 overflow-hidden">
-          {/* Left: The Investigator (AI reasoning only — no chat) */}
-          <div className="col-span-3 border-r border-slate-800 overflow-hidden">
-            <Investigator
-              sessionId={session.session_id}
-              events={events}
-              wsConnected={wsConnected}
-              findings={findings}
-              status={sessionStatus}
-              onAttachRepo={handleAttachRepo}
-            />
+      {/* War Room: 3-column CSS Grid layout — wrapped in TelescopeProvider */}
+      <TelescopeProvider>
+        <TopologySelectionProvider>
+          <div className="grid grid-cols-12 flex-1 overflow-hidden">
+            {/* Left: The Investigator (AI reasoning only — no chat) */}
+            <div className="col-span-3 border-r border-slate-800 overflow-hidden">
+              <Investigator
+                sessionId={session.session_id}
+                events={events}
+                wsConnected={wsConnected}
+                findings={findings}
+                status={sessionStatus}
+                onAttachRepo={handleAttachRepo}
+              />
+            </div>
+
+            {/* Center: Evidence and Findings (NO TABS) */}
+            <div className="col-span-5 overflow-hidden">
+              <EvidenceFindings findings={findings} status={sessionStatus} events={events} sessionId={session.session_id} phase={phase} onRefresh={fetchSharedData} onNavigateToDossier={onNavigateToDossier} manualPins={findings?.evidence_pins} />
+            </div>
+
+            {/* Right: The Navigator */}
+            <div className="col-span-4 border-l border-slate-800 overflow-hidden">
+              <Navigator findings={findings} status={sessionStatus} events={events} />
+            </div>
           </div>
+        </TopologySelectionProvider>
 
-          {/* Center: Evidence and Findings (NO TABS) */}
-          <div className="col-span-5 overflow-hidden">
-            <EvidenceFindings findings={findings} status={sessionStatus} events={events} sessionId={session.session_id} phase={phase} onRefresh={fetchSharedData} onNavigateToDossier={onNavigateToDossier} manualPins={findings?.evidence_pins} />
-          </div>
+        {/* TelescopeDrawer v2 (slide-out resource inspector) */}
+        <TelescopeDrawerV2 />
 
-          {/* Right: The Navigator */}
-          <div className="col-span-4 border-l border-slate-800 overflow-hidden">
-            <Navigator findings={findings} status={sessionStatus} events={events} />
-          </div>
-        </div>
-      </TopologySelectionProvider>
+        {/* Surgical Telescope overlay (kept for backward compat) */}
+        <SurgicalTelescope />
 
-      {/* Surgical Telescope overlay (rendered outside grid) */}
-      <SurgicalTelescope />
-
-      {/* Bottom: Remediation Progress Bar */}
-      <RemediationProgressBar
-        phase={phase}
-        confidence={confidence}
-        tokenUsage={tokenUsage}
-        wsConnected={wsConnected}
-      />
-
-      {/* Attestation Gate Modal */}
-      {attestationGate && onAttestationDecision && (
-        <AttestationGateUI
-          gate={attestationGate}
-          evidencePins={[]}
-          onDecision={(decision, _notes) => onAttestationDecision(decision)}
-          onClose={() => onAttestationDecision('dismiss')}
+        {/* Bottom: Remediation Progress Bar */}
+        <RemediationProgressBar
+          phase={phase}
+          confidence={confidence}
+          tokenUsage={tokenUsage}
+          wsConnected={wsConnected}
         />
-      )}
 
-      {/* Chat Drawer + Trigger Tab (self-contained via ChatContext) */}
-      <ChatDrawer />
-      <LedgerTriggerTab />
+        {/* Attestation Gate Modal */}
+        {attestationGate && onAttestationDecision && (
+          <AttestationGateUI
+            gate={attestationGate}
+            evidencePins={[]}
+            onDecision={(decision, _notes) => onAttestationDecision(decision)}
+            onClose={() => onAttestationDecision('dismiss')}
+          />
+        )}
+
+        {/* Chat Drawer + Trigger Tab (self-contained via ChatContext) */}
+        <ChatDrawer />
+        <LedgerTriggerTab />
+      </TelescopeProvider>
     </div>
   );
 };
