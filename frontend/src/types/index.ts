@@ -1176,3 +1176,63 @@ export interface ToolDefinition {
   params_schema: ToolParam[];
   requires_context: string[];
 }
+
+// ===== Agent Matrix Types =====
+
+export interface AgentLLMConfig {
+  model: string;
+  temperature: number;
+  context_window: number;
+  mode: string;
+}
+
+export interface AgentExecution {
+  session_id: string;
+  timestamp: string;
+  status: string;
+  duration_ms: number;
+  confidence: number;
+  summary: string;
+  trace?: AgentTraceEntry[];
+}
+
+export interface AgentTraceEntry {
+  timestamp: string;
+  level: 'info' | 'warn' | 'error';
+  message: string;
+}
+
+export interface AgentInfo {
+  id: string;
+  name: string;
+  workflow: 'app_diagnostics' | 'cluster_diagnostics';
+  role: 'orchestrator' | 'analysis' | 'validation' | 'fix_generation' | 'domain_expert';
+  description: string;
+  icon: string;
+  level: number;
+  llm_config: AgentLLMConfig;
+  timeout_s: number;
+  tools: string[];
+  tool_health_checks: Record<string, string>;
+  architecture_stages: string[];
+  status: 'active' | 'degraded' | 'offline';
+  degraded_tools: string[];
+  recent_executions: AgentExecution[];
+}
+
+export interface AgentMatrixSummary {
+  total: number;
+  active: number;
+  degraded: number;
+  offline: number;
+}
+
+export interface AgentMatrixResponse {
+  agents: AgentInfo[];
+  summary: AgentMatrixSummary;
+}
+
+export interface AgentExecutionsResponse {
+  agent_id: string;
+  executions: AgentExecution[];
+}

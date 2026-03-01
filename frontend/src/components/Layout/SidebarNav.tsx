@@ -1,6 +1,6 @@
 import React from 'react';
 
-export type NavView = 'home' | 'sessions' | 'integrations' | 'settings';
+export type NavView = 'home' | 'sessions' | 'integrations' | 'settings' | 'agents';
 
 interface SidebarNavProps {
   activeView: NavView;
@@ -13,6 +13,7 @@ const navItems: { id: NavView; label: string; icon: string }[] = [
   { id: 'sessions', label: 'Sessions', icon: 'history' },
   { id: 'integrations', label: 'Integrations', icon: 'hub' },
   { id: 'settings', label: 'Settings', icon: 'settings' },
+  { id: 'agents' as NavView, label: 'Agent Matrix', icon: 'smart_toy' },
 ];
 
 const SidebarNav: React.FC<SidebarNavProps> = ({ activeView, onNavigate, onNewMission }) => {

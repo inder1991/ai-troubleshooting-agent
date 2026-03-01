@@ -14,6 +14,8 @@ import type {
   TelescopeResource,
   TelescopeResourceLogs,
   TriageStatus,
+  AgentMatrixResponse,
+  AgentExecutionsResponse,
 } from '../types';
 
 export const API_BASE_URL = 'http://localhost:8000';
@@ -545,4 +547,22 @@ export const updateTriageStatus = async (
   if (!response.ok) {
     throw new Error(await extractErrorDetail(response, 'Failed to update triage'));
   }
+};
+
+// ===== Agent Matrix API =====
+
+export const getAgents = async (): Promise<AgentMatrixResponse> => {
+  const response = await fetch(`${API_BASE_URL}/api/v4/agents`);
+  if (!response.ok) {
+    throw new Error(await extractErrorDetail(response, 'Failed to fetch agents'));
+  }
+  return response.json();
+};
+
+export const getAgentExecutions = async (agentId: string): Promise<AgentExecutionsResponse> => {
+  const response = await fetch(`${API_BASE_URL}/api/v4/agents/${agentId}/executions`);
+  if (!response.ok) {
+    throw new Error(await extractErrorDetail(response, 'Failed to fetch agent executions'));
+  }
+  return response.json();
 };

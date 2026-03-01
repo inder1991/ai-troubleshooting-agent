@@ -31,9 +31,10 @@ import ErrorBanner from './components/ui/ErrorBanner';
 import ForemanHUD from './components/Foreman/ForemanHUD';
 import PostMortemDossierView from './components/Investigation/PostMortemDossierView';
 import ClusterWarRoom from './components/ClusterDiagnostic/ClusterWarRoom';
+import AgentMatrixView from './components/AgentMatrix/AgentMatrixView';
 
 
-type ViewState = 'home' | 'form' | 'investigation' | 'sessions' | 'integrations' | 'settings' | 'dossier' | 'cluster-diagnostics';
+type ViewState = 'home' | 'form' | 'investigation' | 'sessions' | 'integrations' | 'settings' | 'dossier' | 'cluster-diagnostics' | 'agent-matrix';
 
 function AppInner() {
   const { addToast } = useToast();
@@ -170,7 +171,11 @@ function AppInner() {
 
   // Navigation
   const handleNavigate = useCallback((view: NavView) => {
-    setViewState(view);
+    if (view === 'agents') {
+      setViewState('agent-matrix');
+    } else {
+      setViewState(view);
+    }
     if (view === 'home') {
       setSelectedCapability(null);
       setActiveSession(null);
@@ -343,9 +348,9 @@ function AppInner() {
 
   // Derive nav view from viewState
   const navView: NavView =
-    viewState === 'sessions' ? 'sessions' : viewState === 'integrations' ? 'integrations' : viewState === 'settings' ? 'settings' : 'home';
+    viewState === 'sessions' ? 'sessions' : viewState === 'integrations' ? 'integrations' : viewState === 'settings' ? 'settings' : viewState === 'agent-matrix' ? 'agents' : 'home';
 
-  const showSidebar = viewState !== 'investigation' && viewState !== 'dossier' && viewState !== 'cluster-diagnostics';
+  const showSidebar = viewState !== 'investigation' && viewState !== 'dossier' && viewState !== 'cluster-diagnostics' && viewState !== 'agent-matrix';
 
   return (
     <div className="flex h-screen w-full overflow-hidden text-slate-100 antialiased" style={{ backgroundColor: '#0f2023' }}>
@@ -465,6 +470,10 @@ function AppInner() {
               onGoHome={handleGoHome}
             />
           </ChatProvider>
+        )}
+
+        {viewState === 'agent-matrix' && (
+          <AgentMatrixView onGoHome={handleGoHome} />
         )}
       </div>
     </div>
