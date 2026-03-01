@@ -49,6 +49,11 @@ class State(TypedDict):
     scan_mode: str
     previous_scan: Optional[dict]
     guard_scan_result: Optional[dict]
+    # Scope-governed diagnostics
+    diagnostic_scope: Optional[dict]
+    scoped_topology_graph: Optional[dict]
+    dispatch_domains: list[str]
+    scope_coverage: float
 
 
 def _should_redispatch(state: dict) -> list[str]:

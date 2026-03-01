@@ -77,6 +77,9 @@ class StartSessionRequest(BaseModel):
     authToken: Optional[str] = Field(default=None, alias="auth_token")
     authMethod: Optional[str] = Field(default=None, alias="auth_method")
     scan_mode: str = Field(default="diagnostic", alias="scanMode")
+    scope: Optional[dict] = None       # DiagnosticScope dict from frontend
+    resource_type: Optional[str] = None
+    symptoms: Optional[str] = None
 
 
 class StartSessionResponse(BaseModel):

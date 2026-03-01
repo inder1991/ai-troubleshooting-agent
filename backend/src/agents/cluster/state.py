@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any, Optional
+from typing import Any, Literal, Optional
 from pydantic import BaseModel, Field
 
 
@@ -21,6 +21,7 @@ class DomainStatus(str, Enum):
     SUCCESS = "SUCCESS"
     PARTIAL = "PARTIAL"
     FAILED = "FAILED"
+    SKIPPED = "SKIPPED"
 
 
 class TruncationFlags(BaseModel):
@@ -98,6 +99,17 @@ class ClusterHealthReport(BaseModel):
     execution_metadata: dict[str, Any] = Field(default_factory=dict)
 
 
+class DiagnosticScope(BaseModel):
+    """Immutable scope that governs what a diagnostic run examines."""
+    model_config = {"frozen": True}
+
+    level: Literal["cluster", "namespace", "workload", "component"] = "cluster"
+    namespaces: list[str] = Field(default_factory=list)
+    workload_key: Optional[str] = None          # "Deployment/my-app"
+    domains: list[str] = Field(default_factory=lambda: ["ctrl_plane", "node", "network", "storage"])
+    include_control_plane: bool = True           # Default ON, user must explicitly uncheck
+
+
 class ClusterDiagnosticState(BaseModel):
     """LangGraph shared state. Only compact summaries — no raw data, no credentials."""
     diagnostic_id: str
@@ -114,6 +126,10 @@ class ClusterDiagnosticState(BaseModel):
     re_dispatch_domains: list[str] = Field(default_factory=list)
     data_completeness: float = 0.0
     error: Optional[str] = None
+    diagnostic_scope: Optional[dict] = None           # DiagnosticScope.model_dump()
+    scoped_topology_graph: Optional[dict] = None       # Pruned topology for downstream
+    dispatch_domains: list[str] = Field(default_factory=lambda: ["ctrl_plane", "node", "network", "storage"])
+    scope_coverage: float = 1.0                        # dispatched / total domains
 
 
 # ---------------------------------------------------------------------------

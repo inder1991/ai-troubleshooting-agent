@@ -16,6 +16,7 @@ from src.api.models import (
 )
 from src.agents.supervisor import SupervisorAgent
 from src.agents.cluster.graph import build_cluster_diagnostic_graph
+from src.agents.cluster.state import DiagnosticScope
 from src.utils.event_emitter import EventEmitter
 from src.utils.llm_client import AnthropicClient
 from src.api.websocket import manager
@@ -254,6 +255,17 @@ async def start_session(request: StartSessionRequest, background_tasks: Backgrou
         cluster_client = create_cluster_client(connection_config)
         graph = build_cluster_diagnostic_graph()
 
+        # Build diagnostic scope from request
+        if request.scan_mode == "guard" and request.scope and request.scope.get("level") != "cluster":
+            raise HTTPException(400, "Guard mode requires cluster-level scope")
+
+        if request.scope:
+            scope = DiagnosticScope(**request.scope)
+        elif request.namespace:
+            scope = DiagnosticScope(level="namespace", namespaces=[request.namespace])
+        else:
+            scope = DiagnosticScope()
+
         sessions[session_id] = {
             "service_name": request.serviceName or "Cluster Diagnostics",
             "incident_id": incident_id,
@@ -268,6 +280,7 @@ async def start_session(request: StartSessionRequest, background_tasks: Backgrou
             "chat_history": [],
             "connection_config": connection_config,
             "scan_mode": request.scan_mode,
+            "diagnostic_scope": scope.model_dump(mode="json"),
         }
 
         background_tasks.add_task(
@@ -412,6 +425,8 @@ async def run_cluster_diagnosis(session_id, graph, cluster_client, emitter, scan
 
     lock = session_locks.get(session_id, asyncio.Lock())
     try:
+        scope_data = sessions[session_id].get("diagnostic_scope", {})
+
         initial_state = {
             "diagnostic_id": session_id,
             "platform": "",
@@ -434,6 +449,10 @@ async def run_cluster_diagnosis(session_id, graph, cluster_client, emitter, scan
             "causal_search_space": {},
             "guard_scan_result": None,
             "previous_scan": None,
+            "diagnostic_scope": scope_data,
+            "scoped_topology_graph": None,
+            "dispatch_domains": scope_data.get("domains", ["ctrl_plane", "node", "network", "storage"]),
+            "scope_coverage": 1.0,
         }
 
         # Pre-flight: detect platform
@@ -681,6 +700,8 @@ async def get_findings(session_id: str):
             "issue_clusters": state.get("issue_clusters", []) if isinstance(state, dict) else [],
             "causal_search_space": state.get("causal_search_space") if isinstance(state, dict) else None,
             "topology_snapshot": state.get("topology_graph") if isinstance(state, dict) else None,
+            "diagnostic_scope": state.get("diagnostic_scope") if isinstance(state, dict) else None,
+            "scope_coverage": state.get("scope_coverage", 1.0) if isinstance(state, dict) else 1.0,
         }
 
         # Guard mode: return guard scan result
