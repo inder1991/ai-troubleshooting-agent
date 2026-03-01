@@ -238,6 +238,7 @@ export interface Finding {
   critic_verdict?: CriticVerdict;
   breadcrumbs?: Breadcrumb[];
   negative_findings?: NegativeFinding[];
+  resource_refs?: ResourceRef[];
 }
 
 export interface NegativeFinding {
@@ -386,6 +387,7 @@ export interface V4Findings {
   campaign?: import('./campaign').RemediationCampaign | null;
   /** Manual evidence pins collected from live investigation steering (user_chat / quick_action) */
   evidence_pins?: EvidencePinV2[];
+  causal_forest?: CausalTree[];
 }
 
 export type FixStatus =
@@ -968,6 +970,64 @@ export interface EvidencePinV2 {
   resource_name: string | null;
   timestamp: string;
   time_window: { start: string; end: string } | null;
+}
+
+// ── War Room v2 Types ──────────────────────────────────────────────────
+
+export interface ResourceRef {
+  type: string;
+  name: string;
+  namespace: string | null;
+  status: string | null;
+  age: string | null;
+}
+
+export interface CommandStep {
+  order: number;
+  description: string;
+  command: string;
+  command_type: 'kubectl' | 'oc' | 'helm' | 'shell';
+  is_dry_run: boolean;
+  dry_run_command: string | null;
+  validation_command: string | null;
+}
+
+export interface OperationalRecommendation {
+  id: string;
+  title: string;
+  urgency: 'immediate' | 'short_term' | 'preventive';
+  category: 'scale' | 'rollback' | 'restart' | 'config_patch' | 'network' | 'storage';
+  commands: CommandStep[];
+  rollback_commands: CommandStep[];
+  risk_level: 'safe' | 'caution' | 'destructive';
+  prerequisites: string[];
+  expected_outcome: string;
+  resource_refs: ResourceRef[];
+}
+
+export type TriageStatus = 'untriaged' | 'acknowledged' | 'mitigated' | 'resolved';
+
+export interface CausalTree {
+  id: string;
+  root_cause: Finding;
+  severity: 'critical' | 'warning' | 'info';
+  blast_radius: BlastRadiusData | null;
+  cascading_symptoms: Finding[];
+  correlated_signals: CorrelatedSignalGroup[];
+  operational_recommendations: OperationalRecommendation[];
+  triage_status: TriageStatus;
+  resource_refs: ResourceRef[];
+}
+
+export interface TelescopeResource {
+  yaml: string;
+  events: K8sEvent[];
+  error?: string;
+}
+
+export interface TelescopeResourceLogs {
+  logs: string;
+  error?: string;
 }
 
 export interface ToolParam {

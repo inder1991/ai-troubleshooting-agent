@@ -11,6 +11,9 @@ import type {
   InvestigateRequest,
   InvestigateResponse,
   ToolDefinition,
+  TelescopeResource,
+  TelescopeResourceLogs,
+  TriageStatus,
 } from '../types';
 
 export const API_BASE_URL = 'http://localhost:8000';
@@ -476,4 +479,58 @@ export const getTools = async (
     throw new Error(await extractErrorDetail(response, 'Failed to get tools'));
   }
   return response.json();
+};
+
+// ── War Room v2 API ──────────────────────────────────────────────────
+
+export const getResource = async (
+  sessionId: string,
+  namespace: string,
+  kind: string,
+  name: string,
+): Promise<TelescopeResource> => {
+  const response = await fetch(
+    `${API_BASE_URL}/api/v4/session/${sessionId}/resource/${namespace}/${kind}/${name}`,
+  );
+  if (!response.ok) {
+    throw new Error(await extractErrorDetail(response, 'Failed to fetch resource'));
+  }
+  return response.json();
+};
+
+export const getResourceLogs = async (
+  sessionId: string,
+  namespace: string,
+  kind: string,
+  name: string,
+  tailLines: number = 500,
+  container?: string,
+): Promise<TelescopeResourceLogs> => {
+  const params = new URLSearchParams({ tail_lines: String(tailLines) });
+  if (container) params.set('container', container);
+  const response = await fetch(
+    `${API_BASE_URL}/api/v4/session/${sessionId}/resource/${namespace}/${kind}/${name}/logs?${params}`,
+  );
+  if (!response.ok) {
+    throw new Error(await extractErrorDetail(response, 'Failed to fetch logs'));
+  }
+  return response.json();
+};
+
+export const updateTriageStatus = async (
+  sessionId: string,
+  treeId: string,
+  status: TriageStatus,
+): Promise<void> => {
+  const response = await fetch(
+    `${API_BASE_URL}/api/v4/session/${sessionId}/causal-tree/${treeId}/triage`,
+    {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    },
+  );
+  if (!response.ok) {
+    throw new Error(await extractErrorDetail(response, 'Failed to update triage'));
+  }
 };
