@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any, Optional
+
+if TYPE_CHECKING:
+    from src.agents.cluster.state import TopologySnapshot
 
 from pydantic import BaseModel, Field
 
@@ -77,6 +80,11 @@ class ClusterClient(ABC):
 
     async def get_routes(self, namespace: str = "") -> QueryResult:
         return QueryResult()
+
+    async def build_topology_snapshot(self) -> "TopologySnapshot":
+        """Build resource dependency graph from cluster state."""
+        from src.agents.cluster.state import TopologySnapshot
+        return TopologySnapshot()
 
     async def close(self) -> None:
         pass

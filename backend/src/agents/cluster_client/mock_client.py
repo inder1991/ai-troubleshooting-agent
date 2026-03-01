@@ -83,3 +83,38 @@ class MockClusterClient(ClusterClient):
         if self._platform != "openshift":
             return QueryResult()
         return QueryResult(data=[{"name": "app-route", "host": "app.example.com", "status": "Admitted"}], total_available=1, returned=1)
+
+    async def build_topology_snapshot(self) -> "TopologySnapshot":
+        from src.agents.cluster.state import TopologySnapshot, TopologyNode, TopologyEdge
+        nodes_result = await self.list_nodes()
+        pods_result = await self.list_pods()
+
+        topo_nodes: dict[str, TopologyNode] = {}
+        edges: list[TopologyEdge] = []
+
+        for n in nodes_result.data:
+            key = f"node/{n['name']}"
+            topo_nodes[key] = TopologyNode(kind="node", name=n["name"], status=n.get("status", "Unknown"))
+
+        for p in pods_result.data:
+            ns = p.get("namespace", "default")
+            key = f"pod/{ns}/{p['name']}"
+            node_name = p.get("node", "")
+            topo_nodes[key] = TopologyNode(kind="pod", name=p["name"], namespace=ns, status=p.get("status", "Unknown"), node_name=node_name)
+            if node_name:
+                edges.append(TopologyEdge(from_key=f"node/{node_name}", to_key=key, relation="hosts"))
+
+        # OpenShift operators
+        if self._platform == "openshift":
+            ops = await self.get_cluster_operators()
+            for op in ops.data:
+                key = f"operator/{op['name']}"
+                status = "Degraded" if op.get("degraded") else ("Available" if op.get("available") else "Unavailable")
+                topo_nodes[key] = TopologyNode(kind="operator", name=op["name"], status=status)
+
+        from datetime import datetime, timezone
+        return TopologySnapshot(
+            nodes=topo_nodes,
+            edges=edges,
+            built_at=datetime.now(timezone.utc).isoformat(),
+        )
