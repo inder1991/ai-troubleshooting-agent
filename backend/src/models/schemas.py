@@ -915,6 +915,9 @@ class DiagnosticState(BaseModel):
     severity_result: Optional[SeverityRecommendation] = None
     past_incidents: list[PastIncidentMatchInfo | dict] = Field(default_factory=list)
 
+    # Causal forest (War Room v2)
+    causal_forest: list[CausalTree] = Field(default_factory=list)
+
     # Cross-cutting
     all_findings: list[Finding] = Field(default_factory=list)
     all_negative_findings: list[NegativeFinding] = Field(default_factory=list)

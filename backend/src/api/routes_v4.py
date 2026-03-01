@@ -6,7 +6,7 @@ import asyncio
 from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from pydantic import BaseModel
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Literal, Optional
 
 from src.api.models import (
     ChatRequest, ChatResponse, StartSessionRequest, StartSessionResponse, SessionSummary,
@@ -715,6 +715,7 @@ async def get_findings(session_id: str):
             "fix_data": None,
             "closure_state": None,
             "evidence_pins": session.get("evidence_pins", []),
+            "causal_forest": [],
             "message": "Analysis not yet complete",
         }
 
@@ -826,6 +827,7 @@ async def get_findings(session_id: str):
         "campaign": _dump_campaign(state.campaign) if state.campaign else None,
         # Manual evidence pins from live investigation steering (user_chat / quick_action)
         "evidence_pins": session.get("evidence_pins", []),
+        "causal_forest": [ct.model_dump(mode="json") for ct in state.causal_forest] if state.causal_forest else [],
     }
 
 
@@ -1443,3 +1445,30 @@ async def get_tools(session_id: str):
         enriched.append(tool_copy)
 
     return {"tools": enriched}
+
+
+# ── Causal Forest Triage ──────────────────────────────────────────────
+
+
+class TriageStatusUpdate(BaseModel):
+    status: Literal["untriaged", "acknowledged", "mitigated", "resolved"]
+
+
+@router_v4.patch("/session/{session_id}/causal-tree/{tree_id}/triage")
+async def update_triage_status(session_id: str, tree_id: str, update: TriageStatusUpdate):
+    """Update triage status of a CausalTree."""
+    _validate_session_id(session_id)
+    session = sessions.get(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    state = session.get("state")
+    if not state or not state.causal_forest:
+        raise HTTPException(status_code=404, detail="No causal forest data")
+
+    for tree in state.causal_forest:
+        if tree.id == tree_id:
+            tree.triage_status = update.status
+            return {"status": "updated", "tree_id": tree_id, "triage_status": update.status}
+
+    raise HTTPException(status_code=404, detail=f"CausalTree {tree_id} not found")
