@@ -16,6 +16,7 @@ from kubernetes.client.exceptions import ApiException
 from src.tools.tool_result import ToolResult
 from src.tools.tool_registry import TOOL_REGISTRY
 from src.utils.logger import get_logger
+from src.utils.lttb import lttb_downsample, MAX_POINTS
 
 logger = get_logger(__name__)
 
@@ -462,6 +463,14 @@ class ToolExecutor:
 
         results = response.get("data", {}).get("result", [])
         series_count = len(results)
+
+        # LTTB downsample each series to cap at MAX_POINTS (150)
+        for series in results:
+            values = series.get("values", [])
+            if len(values) > MAX_POINTS:
+                ts_tuples = [(float(v[0]), float(v[1])) for v in values]
+                downsampled = lttb_downsample(ts_tuples, MAX_POINTS)
+                series["values"] = [[ts, str(val)] for ts, val in downsampled]
 
         if series_count == 0:
             return ToolResult(

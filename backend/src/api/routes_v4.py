@@ -753,12 +753,20 @@ async def get_findings(session_id: str):
         code_mermaid_diagram = state.code_analysis.mermaid_diagram
         code_overall_confidence = state.code_analysis.overall_confidence
 
-    # Extract time series data capped at 30 points per metric
+    # Extract time series data with LTTB downsampling (max 150 points per metric)
+    from src.utils.lttb import lttb_downsample, MAX_POINTS
     ts_data_raw = {}
     if state.metrics_analysis and state.metrics_analysis.time_series_data:
         for key, points in state.metrics_analysis.time_series_data.items():
-            capped = points[-30:] if len(points) > 30 else points
-            ts_data_raw[key] = [dp.model_dump(mode="json") for dp in capped]
+            if len(points) > MAX_POINTS:
+                ts_tuples = [(dp.timestamp.timestamp(), dp.value) for dp in points]
+                downsampled = lttb_downsample(ts_tuples, MAX_POINTS)
+                ts_data_raw[key] = [
+                    {"timestamp": datetime.fromtimestamp(ts, tz=timezone.utc).isoformat(), "value": val}
+                    for ts, val in downsampled
+                ]
+            else:
+                ts_data_raw[key] = [dp.model_dump(mode="json") for dp in points]
 
     # Extract change analysis fields (handles both typed model and raw dict)
     ca = state.change_analysis
@@ -855,14 +863,19 @@ async def proxy_promql_query(request: PromQLRequest):
         if not results:
             return {"data_points": [], "current_value": 0, "error": "No data returned"}
 
-        # Take first result series, cap at 30 points
+        # Take first result series, apply LTTB downsampling (max 150 points)
+        from src.utils.lttb import lttb_downsample, MAX_POINTS as LTTB_MAX
         values = results[0].get("values", [])
-        capped = values[-30:] if len(values) > 30 else values
+        if len(values) > LTTB_MAX:
+            ts_tuples = [(float(v[0]), float(v[1])) for v in values]
+            downsampled = lttb_downsample(ts_tuples, LTTB_MAX)
+        else:
+            downsampled = [(float(v[0]), float(v[1])) for v in values]
         data_points = [
-            {"timestamp": datetime.fromtimestamp(float(ts), tz=timezone.utc).isoformat(), "value": float(val)}
-            for ts, val in capped
+            {"timestamp": datetime.fromtimestamp(ts, tz=timezone.utc).isoformat(), "value": val}
+            for ts, val in downsampled
         ]
-        current_value = float(capped[-1][1]) if capped else 0
+        current_value = float(downsampled[-1][1]) if downsampled else 0
 
         return {"data_points": data_points, "current_value": current_value}
     except httpx.HTTPStatusError as e:
