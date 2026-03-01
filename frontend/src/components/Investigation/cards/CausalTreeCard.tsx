@@ -4,6 +4,7 @@ import { updateTriageStatus } from '../../../services/api';
 import { parseResourceEntities } from '../../../utils/parseResourceEntities';
 import { useTelescopeContext } from '../../../contexts/TelescopeContext';
 import CausalRoleBadge from './CausalRoleBadge';
+import RecommendationCard from './RecommendationCard';
 
 interface CausalTreeCardProps {
   tree: CausalTree;
@@ -97,10 +98,13 @@ const CausalTreeCard: React.FC<CausalTreeCardProps> = ({ tree, sessionId, onTria
             </div>
           )}
 
-          {/* Operational recommendations placeholder -- Task 12 will add RecommendationCard */}
+          {/* Operational recommendations */}
           {tree.operational_recommendations.length > 0 && (
-            <div className="text-[9px] text-slate-500">
-              {tree.operational_recommendations.length} recommendation(s) available
+            <div className="space-y-2">
+              <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Recommendations</span>
+              {tree.operational_recommendations.map(rec => (
+                <RecommendationCard key={rec.id} recommendation={rec} />
+              ))}
             </div>
           )}
         </div>
