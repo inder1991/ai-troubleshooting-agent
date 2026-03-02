@@ -211,8 +211,10 @@ class TestTopologyStore:
         assert updated.confidence == 0.95
 
     def test_find_recent_flow(self, store):
+        from datetime import datetime, timezone
+        now = datetime.now(timezone.utc).isoformat()
         f = Flow(id="f1", src_ip="10.0.0.1", dst_ip="10.0.1.1", port=443,
-                 timestamp="2026-03-02T12:00:00")
+                 timestamp=now)
         store.add_flow(f)
         found = store.find_recent_flow("10.0.0.1", "10.0.1.1", 443)
         assert found is not None
@@ -220,6 +222,13 @@ class TestTopologyStore:
 
         not_found = store.find_recent_flow("10.0.0.1", "10.0.1.1", 8080)
         assert not_found is None
+
+        # Old flow should not be found within 60s window
+        old = Flow(id="f2", src_ip="10.0.0.1", dst_ip="10.0.1.1", port=8080,
+                   timestamp="2020-01-01T00:00:00+00:00")
+        store.add_flow(old)
+        not_recent = store.find_recent_flow("10.0.0.1", "10.0.1.1", 8080)
+        assert not_recent is None
 
     def test_trace_and_hops(self, store):
         store.add_flow(Flow(id="f1", src_ip="10.0.0.1", dst_ip="10.0.1.1", port=443))

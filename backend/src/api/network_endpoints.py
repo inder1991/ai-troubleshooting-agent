@@ -8,6 +8,7 @@ from typing import Any, Dict
 from fastapi import APIRouter, BackgroundTasks, HTTPException, UploadFile, File
 
 from src.api.network_models import (
+    AdapterConfigureRequest,
     DiagnoseRequest,
     DiagnoseResponse,
     TopologySaveRequest,
@@ -221,6 +222,29 @@ async def adapters_status():
             "last_refresh": health.last_refresh,
         })
     return {"adapters": results}
+
+
+@network_router.post("/adapters/{vendor}/configure")
+async def adapter_configure(vendor: str, req: AdapterConfigureRequest):
+    """Configure a firewall adapter for a given vendor."""
+    from src.network.models import FirewallVendor
+    from src.network.adapters.mock_adapter import MockFirewallAdapter
+
+    try:
+        fw_vendor = FirewallVendor(vendor)
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"Unknown vendor: {vendor}")
+
+    # Create adapter based on vendor (placeholder — real implementations use vendor-specific adapters)
+    adapter = MockFirewallAdapter(
+        vendor=fw_vendor,
+        api_endpoint=req.api_endpoint,
+        api_key=req.api_key,
+        extra_config=req.extra_config,
+    )
+    # Register adapter for all devices of this vendor type
+    _firewall_adapters[f"adapter-{vendor}"] = adapter
+    return {"status": "configured", "vendor": vendor}
 
 
 @network_router.post("/adapters/{vendor}/refresh")

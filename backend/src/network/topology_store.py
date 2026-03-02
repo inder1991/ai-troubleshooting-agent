@@ -2,6 +2,7 @@
 import sqlite3
 import json
 import os
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from .models import (
     Device, Interface, Subnet, Zone, Workload,
@@ -324,12 +325,13 @@ class TopologyStore:
         return Flow(**dict(row)) if row else None
 
     def find_recent_flow(self, src_ip: str, dst_ip: str, port: int, within_seconds: int = 60) -> Optional[Flow]:
-        """Idempotent flow lookup for dedup."""
+        """Idempotent flow lookup for dedup within time window."""
         conn = self._conn()
+        cutoff = (datetime.now(timezone.utc) - timedelta(seconds=within_seconds)).isoformat()
         row = conn.execute(
             "SELECT * FROM flows WHERE src_ip=? AND dst_ip=? AND port=? "
-            "ORDER BY timestamp DESC LIMIT 1",
-            (src_ip, dst_ip, port),
+            "AND timestamp >= ? ORDER BY timestamp DESC LIMIT 1",
+            (src_ip, dst_ip, port, cutoff),
         ).fetchone()
         conn.close()
         return Flow(**dict(row)) if row else None
@@ -400,10 +402,9 @@ class TopologyStore:
     # ── Diagram Snapshots ──
     def save_diagram_snapshot(self, snapshot_json: str, description: str = "") -> int:
         conn = self._conn()
-        from datetime import datetime
         cursor = conn.execute(
             "INSERT INTO diagram_snapshots (snapshot_json, timestamp, description) VALUES (?,?,?)",
-            (snapshot_json, datetime.utcnow().isoformat(), description),
+            (snapshot_json, datetime.now(timezone.utc).isoformat(), description),
         )
         conn.commit()
         snap_id = cursor.lastrowid
