@@ -34,6 +34,7 @@ import PostMortemDossierView from './components/Investigation/PostMortemDossierV
 import ClusterWarRoom from './components/ClusterDiagnostic/ClusterWarRoom';
 import AgentMatrixView from './components/AgentMatrix/AgentMatrixView';
 import TopologyEditorView from './components/TopologyEditor/TopologyEditorView';
+import NetworkWarRoom from './components/NetworkTroubleshooting/NetworkWarRoom';
 
 
 type ViewState = 'home' | 'form' | 'investigation' | 'sessions' | 'integrations' | 'settings' | 'dossier' | 'cluster-diagnostics' | 'agent-matrix' | 'network-troubleshooting' | 'topology';
@@ -512,23 +513,10 @@ function AppInner() {
         )}
 
         {viewState === 'network-troubleshooting' && activeSession && (
-          <div className="flex-1 p-6" style={{ backgroundColor: '#0a0f13' }}>
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-mono" style={{ color: '#e2e8f0' }}>
-                Network Path Analysis
-              </h2>
-              <button
-                onClick={() => setViewState('home')}
-                className="text-xs font-mono px-3 py-1.5 rounded"
-                style={{ color: '#64748b', backgroundColor: '#162a2e' }}
-              >
-                Back to Home
-              </button>
-            </div>
-            <p className="text-sm font-mono" style={{ color: '#64748b' }}>
-              Network War Room loading... (Session: {activeSession.session_id})
-            </p>
-          </div>
+          <NetworkWarRoom
+            session={activeSession}
+            onGoHome={handleGoHome}
+          />
         )}
       </div>
     </div>
