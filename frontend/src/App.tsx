@@ -33,6 +33,7 @@ import ForemanHUD from './components/Foreman/ForemanHUD';
 import PostMortemDossierView from './components/Investigation/PostMortemDossierView';
 import ClusterWarRoom from './components/ClusterDiagnostic/ClusterWarRoom';
 import AgentMatrixView from './components/AgentMatrix/AgentMatrixView';
+import TopologyEditorView from './components/TopologyEditor/TopologyEditorView';
 
 
 type ViewState = 'home' | 'form' | 'investigation' | 'sessions' | 'integrations' | 'settings' | 'dossier' | 'cluster-diagnostics' | 'agent-matrix' | 'network-troubleshooting' | 'topology';
@@ -427,9 +428,7 @@ function AppInner() {
         )}
 
         {viewState === 'topology' && (
-          <div className="flex-1 flex items-center justify-center text-gray-500 text-sm">
-            Topology Editor — Coming Soon
-          </div>
+          <TopologyEditorView />
         )}
 
         {viewState === 'form' && selectedCapability && (
