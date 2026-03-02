@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, FileText, Bug, Container, Activity } from 'lucide-react';
+import { Search, FileText, Bug, Container, Activity, Route } from 'lucide-react';
 import type { CapabilityType, V4Session } from '../../types';
 import CapabilityCard from './CapabilityCard';
 
@@ -43,6 +43,13 @@ const capabilities: {
     description: 'Full-stack health check of OpenShift/K8s cluster and node status',
     icon: Container,
     color: '#14b8a6',
+  },
+  {
+    type: 'network_troubleshooting' as CapabilityType,
+    title: 'Network Path',
+    description: 'Trace and diagnose network connectivity across firewalls, NAT, and routing',
+    icon: Route,
+    color: '#f59e0b',
   },
 ];
 

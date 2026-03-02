@@ -547,7 +547,8 @@ export type CapabilityType =
   | 'troubleshoot_app'
   | 'pr_review'
   | 'github_issue_fix'
-  | 'cluster_diagnostics';
+  | 'cluster_diagnostics'
+  | 'network_troubleshooting';
 
 export interface TroubleshootAppForm {
   capability: 'troubleshoot_app';
@@ -589,6 +590,14 @@ export interface ClusterDiagnosticsForm {
   profile_id?: string;
   save_cluster?: boolean;
   cluster_name?: string;
+}
+
+export interface NetworkTroubleshootingForm {
+  capability: 'network_troubleshooting';
+  src_ip: string;
+  dst_ip: string;
+  port: string;
+  protocol: 'tcp' | 'udp';
 }
 
 // ===== Cluster Diagnostics Types =====
@@ -759,7 +768,8 @@ export type CapabilityFormData =
   | TroubleshootAppForm
   | PRReviewForm
   | GithubIssueFixForm
-  | ClusterDiagnosticsForm;
+  | ClusterDiagnosticsForm
+  | NetworkTroubleshootingForm;
 
 // ===== V5 Integration Types =====
 export interface Integration {
@@ -1235,4 +1245,67 @@ export interface AgentMatrixResponse {
 export interface AgentExecutionsResponse {
   agent_id: string;
   executions: AgentExecution[];
+}
+
+// ===== Network Troubleshooting Types =====
+
+export interface NetworkFindings {
+  session_id: string;
+  flow_id: string;
+  phase: string;
+  error?: string;
+  state: {
+    diagnosis_status?: string;
+    confidence?: number;
+    executive_summary?: string;
+    final_path?: {
+      hops: string[];
+      source: string;
+      hop_count: number;
+      has_nat: boolean;
+      blocked: boolean;
+    };
+    firewall_verdicts?: Array<{
+      device_id: string;
+      device_name: string;
+      action: string;
+      rule_id?: string;
+      rule_name?: string;
+      confidence: number;
+      match_type: string;
+      details?: string;
+    }>;
+    nat_translations?: Array<{
+      device_id: string;
+      direction: string;
+      original_src?: string;
+      translated_src?: string;
+      original_dst?: string;
+      translated_dst?: string;
+    }>;
+    identity_chain?: Array<{
+      stage: string;
+      ip: string;
+      port: number;
+      device_id?: string;
+    }>;
+    trace_hops?: Array<{
+      hop_number: number;
+      ip: string;
+      rtt_ms: number;
+      status: string;
+      device_id?: string;
+      device_name?: string;
+      attribution_confidence?: number;
+    }>;
+    contradictions?: Array<{
+      type: string;
+      detail: string;
+    }>;
+    next_steps?: string[];
+    evidence?: Array<{
+      type: string;
+      detail: string;
+    }>;
+  };
 }

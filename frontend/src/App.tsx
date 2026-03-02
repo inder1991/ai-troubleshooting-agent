@@ -9,13 +9,14 @@ import type {
   CapabilityFormData,
   TroubleshootAppForm,
   ClusterDiagnosticsForm,
+  NetworkTroubleshootingForm,
   AttestationGateData,
   DiagnosticScope,
 } from './types';
 import { useWebSocketV4 } from './hooks/useWebSocket';
 import type { ChatStreamEndPayload } from './hooks/useWebSocket';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
-import { getSessionStatus, startSessionV4, submitAttestation } from './services/api';
+import { API_BASE_URL, getSessionStatus, startSessionV4, submitAttestation } from './services/api';
 import { ToastProvider, useToast } from './components/Toast/ToastContext';
 import { ChatProvider } from './contexts/ChatContext';
 import { CampaignProvider } from './contexts/CampaignContext';
@@ -34,7 +35,7 @@ import ClusterWarRoom from './components/ClusterDiagnostic/ClusterWarRoom';
 import AgentMatrixView from './components/AgentMatrix/AgentMatrixView';
 
 
-type ViewState = 'home' | 'form' | 'investigation' | 'sessions' | 'integrations' | 'settings' | 'dossier' | 'cluster-diagnostics' | 'agent-matrix';
+type ViewState = 'home' | 'form' | 'investigation' | 'sessions' | 'integrations' | 'settings' | 'dossier' | 'cluster-diagnostics' | 'agent-matrix' | 'network-troubleshooting' | 'topology';
 
 function AppInner() {
   const { addToast } = useToast();
@@ -294,6 +295,35 @@ function AppInner() {
           setConfidence(session.confidence);
           setViewState('cluster-diagnostics');
           refreshStatus(session.session_id);
+        } else if (data.capability === 'network_troubleshooting') {
+          const nd = data as NetworkTroubleshootingForm;
+          const response = await fetch(`${API_BASE_URL}/api/v4/network/diagnose`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              src_ip: nd.src_ip,
+              dst_ip: nd.dst_ip,
+              port: parseInt(nd.port),
+              protocol: nd.protocol,
+            }),
+          });
+          const result = await response.json();
+
+          const session: V4Session = {
+            session_id: result.session_id,
+            service_name: `Network: ${nd.src_ip} \u2192 ${nd.dst_ip}`,
+            status: (result.status || 'initial') as DiagnosticPhase,
+            confidence: 0,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            incident_id: result.flow_id || '',
+          };
+
+          setSessions((prev) => [session, ...prev]);
+          setActiveSession(session);
+          setCurrentPhase(session.status);
+          setConfidence(session.confidence);
+          setViewState('network-troubleshooting');
         } else {
           const placeholderSession: V4Session = {
             session_id: `${data.capability}-${Date.now()}`,
@@ -348,9 +378,9 @@ function AppInner() {
 
   // Derive nav view from viewState
   const navView: NavView =
-    viewState === 'sessions' ? 'sessions' : viewState === 'integrations' ? 'integrations' : viewState === 'settings' ? 'settings' : viewState === 'agent-matrix' ? 'agents' : 'home';
+    viewState === 'sessions' ? 'sessions' : viewState === 'integrations' ? 'integrations' : viewState === 'settings' ? 'settings' : viewState === 'agent-matrix' ? 'agents' : viewState === 'topology' ? 'topology' : 'home';
 
-  const showSidebar = viewState !== 'investigation' && viewState !== 'dossier' && viewState !== 'cluster-diagnostics' && viewState !== 'agent-matrix';
+  const showSidebar = viewState !== 'investigation' && viewState !== 'dossier' && viewState !== 'cluster-diagnostics' && viewState !== 'agent-matrix' && viewState !== 'network-troubleshooting';
 
   return (
     <div className="flex h-screen w-full overflow-hidden text-slate-100 antialiased" style={{ backgroundColor: '#0f2023' }}>
@@ -393,6 +423,12 @@ function AppInner() {
         {viewState === 'settings' && (
           <div className="flex-1 flex items-center justify-center text-gray-500 text-sm">
             Settings — Coming Soon
+          </div>
+        )}
+
+        {viewState === 'topology' && (
+          <div className="flex-1 flex items-center justify-center text-gray-500 text-sm">
+            Topology Editor — Coming Soon
           </div>
         )}
 
@@ -474,6 +510,26 @@ function AppInner() {
 
         {viewState === 'agent-matrix' && (
           <AgentMatrixView onGoHome={handleGoHome} />
+        )}
+
+        {viewState === 'network-troubleshooting' && activeSession && (
+          <div className="flex-1 p-6" style={{ backgroundColor: '#0a0f13' }}>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-lg font-mono" style={{ color: '#e2e8f0' }}>
+                Network Path Analysis
+              </h2>
+              <button
+                onClick={() => setViewState('home')}
+                className="text-xs font-mono px-3 py-1.5 rounded"
+                style={{ color: '#64748b', backgroundColor: '#162a2e' }}
+              >
+                Back to Home
+              </button>
+            </div>
+            <p className="text-sm font-mono" style={{ color: '#64748b' }}>
+              Network War Room loading... (Session: {activeSession.session_id})
+            </p>
+          </div>
         )}
       </div>
     </div>

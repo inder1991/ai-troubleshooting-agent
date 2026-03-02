@@ -566,3 +566,59 @@ export const getAgentExecutions = async (agentId: string): Promise<AgentExecutio
   }
   return response.json();
 };
+
+// ===== Network Troubleshooting API =====
+
+export const diagnoseNetwork = async (params: {
+  src_ip: string;
+  dst_ip: string;
+  port: number;
+  protocol: string;
+}): Promise<{ session_id: string; flow_id: string; status: string; message: string }> => {
+  const response = await fetch(`${API_BASE_URL}/api/v4/network/diagnose`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params),
+  });
+  if (!response.ok) throw new Error(`Network diagnosis failed: ${response.statusText}`);
+  return response.json();
+};
+
+export const getNetworkFindings = async (sessionId: string): Promise<any> => {
+  const response = await fetch(`${API_BASE_URL}/api/v4/network/session/${sessionId}/findings`);
+  if (!response.ok) throw new Error(`Failed to get network findings: ${response.statusText}`);
+  return response.json();
+};
+
+export const saveTopology = async (diagramJson: string, description?: string): Promise<any> => {
+  const response = await fetch(`${API_BASE_URL}/api/v4/network/topology/save`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ diagram_json: diagramJson, description: description || '' }),
+  });
+  if (!response.ok) throw new Error(`Failed to save topology: ${response.statusText}`);
+  return response.json();
+};
+
+export const loadTopology = async (): Promise<any> => {
+  const response = await fetch(`${API_BASE_URL}/api/v4/network/topology/load`);
+  if (!response.ok) throw new Error(`Failed to load topology: ${response.statusText}`);
+  return response.json();
+};
+
+export const uploadIPAM = async (file: File): Promise<any> => {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await fetch(`${API_BASE_URL}/api/v4/network/ipam/upload`, {
+    method: 'POST',
+    body: formData,
+  });
+  if (!response.ok) throw new Error(`Failed to upload IPAM: ${response.statusText}`);
+  return response.json();
+};
+
+export const getAdapterStatus = async (): Promise<any> => {
+  const response = await fetch(`${API_BASE_URL}/api/v4/network/adapters/status`);
+  if (!response.ok) throw new Error(`Failed to get adapter status: ${response.statusText}`);
+  return response.json();
+};

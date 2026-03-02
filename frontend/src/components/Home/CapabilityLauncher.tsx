@@ -62,11 +62,22 @@ const capabilities: {
     ctaText: 'Run Diagnostics',
     ctaColor: '#34d399',
   },
+  {
+    type: 'network_troubleshooting' as CapabilityType,
+    title: 'Network Path',
+    description: 'Trace network paths across firewalls, NAT chains, and routing hops to diagnose connectivity issues',
+    icon: 'route',
+    iconColor: '#f59e0b',
+    iconBg: 'rgba(245, 158, 11, 0.08)',
+    iconBorder: 'rgba(245, 158, 11, 0.2)',
+    ctaText: 'Trace Path',
+    ctaColor: '#f59e0b',
+  },
 ];
 
 const CapabilityLauncher: React.FC<CapabilityLauncherProps> = ({ onSelectCapability }) => {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
       {capabilities.map((cap) => (
         <button
           key={cap.type}
