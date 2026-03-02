@@ -80,6 +80,9 @@ class StartSessionRequest(BaseModel):
     scope: Optional[dict] = None       # DiagnosticScope dict from frontend
     resource_type: Optional[str] = None
     symptoms: Optional[str] = None
+    target_host: Optional[str] = Field(default=None, alias="targetHost")
+    port_num: Optional[int] = Field(default=None, alias="portNum")
+    net_protocol: Optional[str] = Field(default=None, alias="netProtocol")
 
 
 class StartSessionResponse(BaseModel):

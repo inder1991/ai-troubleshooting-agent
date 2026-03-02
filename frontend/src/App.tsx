@@ -9,13 +9,14 @@ import type {
   CapabilityFormData,
   TroubleshootAppForm,
   ClusterDiagnosticsForm,
+  NetworkTroubleshootingForm,
   AttestationGateData,
   DiagnosticScope,
 } from './types';
 import { useWebSocketV4 } from './hooks/useWebSocket';
 import type { ChatStreamEndPayload } from './hooks/useWebSocket';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
-import { getSessionStatus, startSessionV4, submitAttestation } from './services/api';
+import { API_BASE_URL, getSessionStatus, startSessionV4, submitAttestation } from './services/api';
 import { ToastProvider, useToast } from './components/Toast/ToastContext';
 import { ChatProvider } from './contexts/ChatContext';
 import { CampaignProvider } from './contexts/CampaignContext';
@@ -32,9 +33,11 @@ import ForemanHUD from './components/Foreman/ForemanHUD';
 import PostMortemDossierView from './components/Investigation/PostMortemDossierView';
 import ClusterWarRoom from './components/ClusterDiagnostic/ClusterWarRoom';
 import AgentMatrixView from './components/AgentMatrix/AgentMatrixView';
+import TopologyEditorView from './components/TopologyEditor/TopologyEditorView';
+import NetworkWarRoom from './components/NetworkTroubleshooting/NetworkWarRoom';
 
 
-type ViewState = 'home' | 'form' | 'investigation' | 'sessions' | 'integrations' | 'settings' | 'dossier' | 'cluster-diagnostics' | 'agent-matrix';
+type ViewState = 'home' | 'form' | 'investigation' | 'sessions' | 'integrations' | 'settings' | 'dossier' | 'cluster-diagnostics' | 'agent-matrix' | 'network-troubleshooting' | 'topology';
 
 function AppInner() {
   const { addToast } = useToast();
@@ -294,6 +297,35 @@ function AppInner() {
           setConfidence(session.confidence);
           setViewState('cluster-diagnostics');
           refreshStatus(session.session_id);
+        } else if (data.capability === 'network_troubleshooting') {
+          const nd = data as NetworkTroubleshootingForm;
+          const response = await fetch(`${API_BASE_URL}/api/v4/network/diagnose`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              src_ip: nd.src_ip,
+              dst_ip: nd.dst_ip,
+              port: parseInt(nd.port),
+              protocol: nd.protocol,
+            }),
+          });
+          const result = await response.json();
+
+          const session: V4Session = {
+            session_id: result.session_id,
+            service_name: `Network: ${nd.src_ip} \u2192 ${nd.dst_ip}`,
+            status: (result.status || 'initial') as DiagnosticPhase,
+            confidence: 0,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            incident_id: result.flow_id || '',
+          };
+
+          setSessions((prev) => [session, ...prev]);
+          setActiveSession(session);
+          setCurrentPhase(session.status);
+          setConfidence(session.confidence);
+          setViewState('network-troubleshooting');
         } else {
           const placeholderSession: V4Session = {
             session_id: `${data.capability}-${Date.now()}`,
@@ -348,9 +380,9 @@ function AppInner() {
 
   // Derive nav view from viewState
   const navView: NavView =
-    viewState === 'sessions' ? 'sessions' : viewState === 'integrations' ? 'integrations' : viewState === 'settings' ? 'settings' : viewState === 'agent-matrix' ? 'agents' : 'home';
+    viewState === 'sessions' ? 'sessions' : viewState === 'integrations' ? 'integrations' : viewState === 'settings' ? 'settings' : viewState === 'agent-matrix' ? 'agents' : viewState === 'topology' ? 'topology' : 'home';
 
-  const showSidebar = viewState !== 'investigation' && viewState !== 'dossier' && viewState !== 'cluster-diagnostics' && viewState !== 'agent-matrix';
+  const showSidebar = viewState !== 'investigation' && viewState !== 'dossier' && viewState !== 'cluster-diagnostics' && viewState !== 'agent-matrix' && viewState !== 'network-troubleshooting';
 
   return (
     <div className="flex h-screen w-full overflow-hidden text-slate-100 antialiased" style={{ backgroundColor: '#0f2023' }}>
@@ -394,6 +426,10 @@ function AppInner() {
           <div className="flex-1 flex items-center justify-center text-gray-500 text-sm">
             Settings — Coming Soon
           </div>
+        )}
+
+        {viewState === 'topology' && (
+          <TopologyEditorView />
         )}
 
         {viewState === 'form' && selectedCapability && (
@@ -474,6 +510,13 @@ function AppInner() {
 
         {viewState === 'agent-matrix' && (
           <AgentMatrixView onGoHome={handleGoHome} />
+        )}
+
+        {viewState === 'network-troubleshooting' && activeSession && (
+          <NetworkWarRoom
+            session={activeSession}
+            onGoHome={handleGoHome}
+          />
         )}
       </div>
     </div>

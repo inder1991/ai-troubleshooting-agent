@@ -6,11 +6,13 @@ import type {
   PRReviewForm,
   GithubIssueFixForm,
   ClusterDiagnosticsForm,
+  NetworkTroubleshootingForm,
 } from '../../types';
 import TroubleshootAppFields from './forms/TroubleshootAppFields';
 import PRReviewFields from './forms/PRReviewFields';
 import GithubIssueFixFields from './forms/GithubIssueFixFields';
 import ClusterDiagnosticsFields from './forms/ClusterDiagnosticsFields';
+import NetworkTroubleshootingFields from './forms/NetworkTroubleshootingFields';
 
 interface CapabilityFormProps {
   capability: CapabilityType;
@@ -46,6 +48,12 @@ const capabilityMeta: Record<
     icon: 'hub',
     color: '#14b8a6',
   },
+  network_troubleshooting: {
+    title: 'Network Path Troubleshooting',
+    subtitle: 'Trace and diagnose network path issues across firewalls and NAT',
+    icon: 'route',
+    color: '#f59e0b',
+  },
 };
 
 const getInitialData = (capability: CapabilityType): CapabilityFormData => {
@@ -58,6 +66,8 @@ const getInitialData = (capability: CapabilityType): CapabilityFormData => {
       return { capability: 'github_issue_fix', repo_url: '', issue_number: '', priority: 'medium' };
     case 'cluster_diagnostics':
       return { capability: 'cluster_diagnostics', cluster_url: '', auth_method: 'token' };
+    case 'network_troubleshooting':
+      return { capability: 'network_troubleshooting', src_ip: '', dst_ip: '', port: '443', protocol: 'tcp' as const };
   }
 };
 
@@ -85,6 +95,10 @@ const CapabilityForm: React.FC<CapabilityFormProps> = ({ capability, onBack, onS
         const hasAuth = hasProfile || !!cd.auth_token;
         const hasName = !(cd.save_cluster ?? true) || !!cd.cluster_name?.trim();
         return hasUrl && hasAuth && hasName;
+      }
+      case 'network_troubleshooting': {
+        const nd = formData as NetworkTroubleshootingForm;
+        return nd.src_ip.trim() !== '' && nd.dst_ip.trim() !== '' && parseInt(nd.port) > 0;
       }
     }
   };
@@ -139,6 +153,12 @@ const CapabilityForm: React.FC<CapabilityFormProps> = ({ capability, onBack, onS
             {formData.capability === 'cluster_diagnostics' && (
               <ClusterDiagnosticsFields
                 data={formData as ClusterDiagnosticsForm}
+                onChange={(d) => setFormData(d)}
+              />
+            )}
+            {formData.capability === 'network_troubleshooting' && (
+              <NetworkTroubleshootingFields
+                data={formData as NetworkTroubleshootingForm}
                 onChange={(d) => setFormData(d)}
               />
             )}

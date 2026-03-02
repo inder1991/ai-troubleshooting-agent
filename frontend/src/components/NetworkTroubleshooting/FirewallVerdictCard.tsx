@@ -1,0 +1,97 @@
+import React from 'react';
+
+interface FirewallVerdict {
+  device_id: string;
+  device_name: string;
+  action: string;
+  rule_id?: string;
+  rule_name?: string;
+  confidence: number;
+  match_type: string;
+  details?: string;
+}
+
+interface FirewallVerdictCardProps {
+  verdict: FirewallVerdict;
+}
+
+const ACTION_STYLES: Record<string, { color: string; bg: string; label: string }> = {
+  ALLOW: { color: '#22c55e', bg: 'rgba(34,197,94,0.12)', label: 'ALLOW' },
+  DENY: { color: '#ef4444', bg: 'rgba(239,68,68,0.12)', label: 'DENY' },
+  DROP: { color: '#ef4444', bg: 'rgba(239,68,68,0.12)', label: 'DROP' },
+};
+
+const FirewallVerdictCard: React.FC<FirewallVerdictCardProps> = ({ verdict }) => {
+  const actionKey = verdict.action?.toUpperCase() || 'UNKNOWN';
+  const style = ACTION_STYLES[actionKey] || {
+    color: '#f59e0b',
+    bg: 'rgba(245,158,11,0.12)',
+    label: actionKey,
+  };
+
+  return (
+    <div
+      className="rounded-lg p-3 font-mono text-xs"
+      style={{ backgroundColor: '#0f2023', border: '1px solid #224349' }}
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <span className="material-symbols-outlined text-sm" style={{ color: '#f59e0b' }}>
+            security
+          </span>
+          <span style={{ color: '#e2e8f0' }}>{verdict.device_name || verdict.device_id}</span>
+        </div>
+        <span
+          className="px-2 py-0.5 rounded font-bold tracking-wider"
+          style={{ color: style.color, backgroundColor: style.bg }}
+        >
+          {style.label}
+        </span>
+      </div>
+
+      {/* Rule citation */}
+      {(verdict.rule_id || verdict.rule_name) && (
+        <div className="mb-1.5" style={{ color: '#64748b' }}>
+          Rule: {verdict.rule_name || verdict.rule_id}
+          {verdict.rule_id && verdict.rule_name && (
+            <span className="ml-1 opacity-60">({verdict.rule_id})</span>
+          )}
+        </div>
+      )}
+
+      {/* Match type */}
+      <div className="mb-1.5" style={{ color: '#64748b' }}>
+        Match: <span style={{ color: '#94a3b8' }}>{verdict.match_type}</span>
+      </div>
+
+      {/* Details */}
+      {verdict.details && (
+        <div className="mb-1.5" style={{ color: '#64748b' }}>
+          {verdict.details}
+        </div>
+      )}
+
+      {/* Confidence */}
+      <div className="flex items-center gap-2 mt-2">
+        <div
+          className="flex-1 h-1 rounded-full overflow-hidden"
+          style={{ backgroundColor: '#1a3a3f' }}
+        >
+          <div
+            className="h-full rounded-full transition-all"
+            style={{
+              width: `${Math.round(verdict.confidence * 100)}%`,
+              backgroundColor: style.color,
+            }}
+          />
+        </div>
+        <span style={{ color: '#94a3b8' }}>
+          {Math.round(verdict.confidence * 100)}%
+        </span>
+      </div>
+    </div>
+  );
+};
+
+export default FirewallVerdictCard;
