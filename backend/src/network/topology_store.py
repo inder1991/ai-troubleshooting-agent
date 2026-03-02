@@ -409,3 +409,29 @@ class TopologyStore:
         snap_id = cursor.lastrowid
         conn.close()
         return snap_id
+
+    def load_diagram_snapshot(self) -> Optional[dict]:
+        """Load the most recent diagram snapshot."""
+        conn = self._conn()
+        row = conn.execute(
+            "SELECT * FROM diagram_snapshots ORDER BY id DESC LIMIT 1"
+        ).fetchone()
+        conn.close()
+        if not row:
+            return None
+        d = dict(row)
+        return {
+            "id": d["id"],
+            "snapshot_json": d["snapshot_json"],
+            "timestamp": d["timestamp"],
+            "description": d["description"],
+        }
+
+    def list_flows(self, limit: int = 50) -> list[Flow]:
+        """List recent flows, ordered by timestamp descending."""
+        conn = self._conn()
+        rows = conn.execute(
+            "SELECT * FROM flows ORDER BY timestamp DESC LIMIT ?", (limit,)
+        ).fetchall()
+        conn.close()
+        return [Flow(**dict(r)) for r in rows]
