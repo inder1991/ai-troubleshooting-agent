@@ -1,4 +1,43 @@
 """Report generator node — produces structured JSON diagnosis report."""
+import ipaddress
+
+
+def _compute_security_grade(verdict: dict) -> str | None:
+    """Compute a security risk grade for an ALLOW verdict.
+
+    Returns None for deny/drop verdicts (no security concern on blocking).
+    """
+    action = verdict.get("action", "").lower()
+    if action in ("deny", "drop"):
+        return None
+
+    src = verdict.get("matched_source", "")
+    dst = verdict.get("matched_destination", "")
+    ports = verdict.get("matched_ports", "")
+
+    src_is_any = src in ("0.0.0.0/0", "any", "*", "")
+    dst_is_any = dst in ("0.0.0.0/0", "any", "*", "")
+    port_is_any = ports in ("any", "*", "", "0-65535")
+
+    # Broad source CIDR detection
+    src_is_broad = src_is_any
+    if not src_is_any and src:
+        try:
+            for cidr in src.split(","):
+                net = ipaddress.ip_network(cidr.strip(), strict=False)
+                if net.prefixlen <= 16:
+                    src_is_broad = True
+                    break
+        except ValueError:
+            pass
+
+    if src_is_any and port_is_any:
+        return "CRITICAL"
+    if src_is_any and not port_is_any:
+        return "HIGH"
+    if src_is_broad and port_is_any:
+        return "MEDIUM"
+    return "LOW"
 
 
 def report_generator(state: dict) -> dict:
@@ -63,6 +102,22 @@ def report_generator(state: dict) -> dict:
     if lbs_in_path:
         lb_names = ", ".join(lb.get("device_name", "unknown") for lb in lbs_in_path)
         summary += f" Load balancer(s) in path: {lb_names}."
+
+    # Security grading
+    security_warnings = []
+    for v in firewall_verdicts:
+        grade = _compute_security_grade(v)
+        if grade and grade in ("CRITICAL", "HIGH"):
+            security_warnings.append(
+                f"SEC-WARN ({grade}): {v.get('device_name', 'unknown')} allows traffic via "
+                f"overly permissive rule '{v.get('rule_name', 'unknown')}'"
+            )
+    if security_warnings:
+        summary += " " + " | ".join(security_warnings)
+        next_steps.extend([
+            "Review overly permissive firewall rules flagged with SEC-WARN",
+            "Consider tightening source/destination CIDR scope",
+        ])
 
     return {
         "executive_summary": summary,

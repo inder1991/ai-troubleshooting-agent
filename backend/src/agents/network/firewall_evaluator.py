@@ -55,6 +55,9 @@ async def firewall_evaluator(state: dict, *, adapters: dict[str, FirewallAdapter
                     "confidence": verdict.confidence,
                     "match_type": verdict.match_type.value,
                     "details": verdict.details,
+                    "matched_source": verdict.matched_source,
+                    "matched_destination": verdict.matched_destination,
+                    "matched_ports": verdict.matched_ports,
                 }
             except Exception as e:
                 return {

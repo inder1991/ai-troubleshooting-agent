@@ -399,6 +399,9 @@ class PolicyVerdict(BaseModel):
     match_type: VerdictMatchType = VerdictMatchType.EXACT
     confidence: float = 0.0
     details: str = ""
+    matched_source: str = ""
+    matched_destination: str = ""
+    matched_ports: str = ""
 
 class AdapterConfig(BaseModel):
     vendor: FirewallVendor

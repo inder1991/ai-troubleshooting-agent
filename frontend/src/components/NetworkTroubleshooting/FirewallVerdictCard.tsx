@@ -9,6 +9,10 @@ interface FirewallVerdict {
   confidence: number;
   match_type: string;
   details?: string;
+  matched_source?: string;
+  matched_destination?: string;
+  matched_ports?: string;
+  security_grade?: string;
 }
 
 interface FirewallVerdictCardProps {
@@ -42,12 +46,35 @@ const FirewallVerdictCard: React.FC<FirewallVerdictCardProps> = ({ verdict }) =>
           </span>
           <span style={{ color: '#e2e8f0' }}>{verdict.device_name || verdict.device_id}</span>
         </div>
-        <span
-          className="px-2 py-0.5 rounded font-bold tracking-wider"
-          style={{ color: style.color, backgroundColor: style.bg }}
-        >
-          {style.label}
-        </span>
+        <div className="flex items-center gap-2">
+          <span
+            className="px-2 py-0.5 rounded font-bold tracking-wider"
+            style={{ color: style.color, backgroundColor: style.bg }}
+          >
+            {style.label}
+          </span>
+          {/* Security Grade */}
+          {verdict.action?.toUpperCase() === 'ALLOW' && verdict.matched_source && (
+            (() => {
+              const srcAny = ['0.0.0.0/0', 'any', '*', ''].includes(verdict.matched_source || '');
+              const portAny = ['any', '*', '', '0-65535'].includes(verdict.matched_ports || '');
+              const grade = srcAny && portAny ? 'CRITICAL' : srcAny ? 'HIGH' : 'LOW';
+              if (grade === 'LOW') return null;
+              const gradeColors = { CRITICAL: '#ef4444', HIGH: '#f59e0b' };
+              return (
+                <span
+                  className="px-2 py-0.5 rounded text-[10px] font-bold tracking-wider animate-pulse"
+                  style={{
+                    color: gradeColors[grade as keyof typeof gradeColors],
+                    backgroundColor: `${gradeColors[grade as keyof typeof gradeColors]}20`,
+                  }}
+                >
+                  SEC-WARN
+                </span>
+              );
+            })()
+          )}
+        </div>
       </div>
 
       {/* Rule citation */}

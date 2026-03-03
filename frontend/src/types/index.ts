@@ -1282,6 +1282,10 @@ export interface NetworkFindings {
       confidence: number;
       match_type: string;
       details?: string;
+      matched_source?: string;
+      matched_destination?: string;
+      matched_ports?: string;
+      security_grade?: string;
     }>;
     nat_translations?: Array<{
       device_id: string;

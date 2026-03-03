@@ -42,6 +42,9 @@ class MockFirewallAdapter(FirewallAdapter):
                     match_type=VerdictMatchType.EXACT,
                     confidence=0.95,
                     details=f"Matched rule {rule.rule_name} (order {rule.order})",
+                    matched_source=",".join(rule.src_ips) if rule.src_ips else "",
+                    matched_destination=",".join(rule.dst_ips) if rule.dst_ips else "",
+                    matched_ports=",".join(str(p) for p in rule.ports) if rule.ports else "",
                 )
         # No explicit match -> implicit deny
         return PolicyVerdict(
