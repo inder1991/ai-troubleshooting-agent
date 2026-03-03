@@ -266,6 +266,30 @@ async def adapters_status():
     return {"adapters": results}
 
 
+@network_router.post("/adapters/test")
+async def adapter_test(req: AdapterConfigureRequest):
+    """Test adapter connection without saving."""
+    from src.network.models import FirewallVendor
+    from src.network.adapters.mock_adapter import MockFirewallAdapter
+
+    try:
+        fw_vendor = FirewallVendor(req.vendor)
+    except ValueError:
+        return {"success": False, "message": f"Unknown vendor: {req.vendor}"}
+
+    adapter = MockFirewallAdapter(
+        vendor=fw_vendor,
+        api_endpoint=req.api_endpoint,
+        api_key=req.api_key,
+        extra_config=req.extra_config,
+    )
+    try:
+        health = await adapter.health_check()
+        return {"success": health.status.value == "connected", "message": health.message}
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+
 @network_router.post("/adapters/{vendor}/configure")
 async def adapter_configure(vendor: str, req: AdapterConfigureRequest):
     """Configure a firewall adapter for a given vendor."""
@@ -277,23 +301,29 @@ async def adapter_configure(vendor: str, req: AdapterConfigureRequest):
     except ValueError:
         raise HTTPException(status_code=400, detail=f"Unknown vendor: {vendor}")
 
-    # Create adapter based on vendor (placeholder — real implementations use vendor-specific adapters)
     adapter = MockFirewallAdapter(
         vendor=fw_vendor,
         api_endpoint=req.api_endpoint,
         api_key=req.api_key,
         extra_config=req.extra_config,
     )
-    # Register adapter for all devices of this vendor type
-    _firewall_adapters[f"adapter-{vendor}"] = adapter
-    return {"status": "configured", "vendor": vendor}
+    # Register by node_id if provided, else by vendor
+    key = req.node_id or f"adapter-{vendor}"
+    _firewall_adapters[key] = adapter
+    # Persist config
+    store = _get_topology_store()
+    from src.network.models import AdapterConfig
+    store.save_adapter_config(AdapterConfig(
+        vendor=fw_vendor, api_endpoint=req.api_endpoint,
+        api_key=req.api_key, extra_config=req.extra_config,
+    ))
+    return {"status": "configured", "vendor": vendor, "adapter_key": key}
 
 
 @network_router.post("/adapters/{vendor}/refresh")
 async def adapter_refresh(vendor: str):
     """Force refresh adapter snapshot for a vendor."""
     adapters = _get_adapters()
-    # Find adapter by vendor
     target = None
     target_id = None
     for device_id, adapter in adapters.items():
@@ -304,6 +334,9 @@ async def adapter_refresh(vendor: str):
     if not target:
         raise HTTPException(status_code=404, detail=f"No adapter configured for vendor: {vendor}")
     await target.refresh_snapshot()
+    # Reload KG to pick up new rules/routes from adapter
+    kg = _get_knowledge_graph()
+    kg.load_from_store()
     return {"status": "refreshed", "device_id": target_id, "vendor": vendor}
 
 
