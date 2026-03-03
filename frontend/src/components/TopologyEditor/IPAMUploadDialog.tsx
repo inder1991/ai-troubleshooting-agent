@@ -1,6 +1,14 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { uploadIPAM } from '../../services/api';
 
+const SAMPLE_CSV = `ip,subnet,device,zone,vlan,description,device_type
+10.0.1.1,10.0.1.0/24,fw-core-01,dmz,100,Core perimeter firewall,firewall
+10.0.1.2,10.0.1.0/24,rtr-edge-01,dmz,100,Edge router to ISP,router
+10.0.2.10,10.0.2.0/24,sw-dist-01,internal,200,Distribution layer switch,switch
+10.0.2.50,10.0.2.0/24,app-server-01,internal,200,Primary application server,host
+10.0.3.5,10.0.3.0/24,sw-access-01,office,300,Office floor access switch,switch
+10.0.3.100,10.0.3.0/24,workstation-42,office,300,Engineering workstation,host`;
+
 interface IPAMUploadDialogProps {
   open: boolean;
   onClose: () => void;
@@ -13,6 +21,7 @@ const IPAMUploadDialog: React.FC<IPAMUploadDialogProps> = ({ open, onClose, onIm
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ devices: number; subnets: number } | null>(null);
+  const [warnings, setWarnings] = useState<string[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
 
@@ -41,11 +50,24 @@ const IPAMUploadDialog: React.FC<IPAMUploadDialogProps> = ({ open, onClose, onIm
     }
   }, []);
 
+  const handleDownloadSample = useCallback(() => {
+    const blob = new Blob([SAMPLE_CSV], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'ipam_sample.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, []);
+
   const handleUpload = useCallback(async () => {
     if (!file) return;
     setUploading(true);
     setProgress(10);
     setError(null);
+    setWarnings([]);
 
     try {
       setProgress(40);
@@ -55,6 +77,10 @@ const IPAMUploadDialog: React.FC<IPAMUploadDialogProps> = ({ open, onClose, onIm
         devices: data.devices_imported ?? 0,
         subnets: data.subnets_imported ?? 0,
       });
+
+      if (Array.isArray(data.warnings) && data.warnings.length > 0) {
+        setWarnings(data.warnings);
+      }
 
       if (data.nodes && data.edges) {
         onImported({ nodes: data.nodes, edges: data.edges });
@@ -71,6 +97,7 @@ const IPAMUploadDialog: React.FC<IPAMUploadDialogProps> = ({ open, onClose, onIm
     setProgress(0);
     setError(null);
     setResult(null);
+    setWarnings([]);
     onClose();
   };
 
@@ -106,6 +133,26 @@ const IPAMUploadDialog: React.FC<IPAMUploadDialogProps> = ({ open, onClose, onIm
               close
             </span>
           </button>
+        </div>
+
+        {/* Sample CSV Download */}
+        <div className="flex items-center gap-1 mb-2">
+          <span
+            className="material-symbols-outlined text-sm"
+            style={{ fontFamily: 'Material Symbols Outlined', color: '#07b6d5' }}
+          >
+            download
+          </span>
+          <button
+            onClick={handleDownloadSample}
+            className="text-[10px] font-mono underline underline-offset-2 transition-colors hover:brightness-125"
+            style={{ color: '#07b6d5', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+          >
+            Download Sample CSV
+          </button>
+          <span className="text-[10px] font-mono" style={{ color: '#64748b' }}>
+            — see expected format
+          </span>
         </div>
 
         {/* Drop Zone */}
@@ -160,6 +207,34 @@ const IPAMUploadDialog: React.FC<IPAMUploadDialogProps> = ({ open, onClose, onIm
             style={{ backgroundColor: '#162a2e', borderColor: '#224349', color: '#22c55e' }}
           >
             Imported {result.devices} devices and {result.subnets} subnets
+          </div>
+        )}
+
+        {/* Warnings */}
+        {warnings.length > 0 && (
+          <div
+            className="mt-4 p-3 rounded border text-xs font-mono overflow-y-auto"
+            style={{
+              backgroundColor: '#1a1a0f',
+              borderColor: '#4a3f00',
+              color: '#f59e0b',
+              maxHeight: '8rem',
+            }}
+          >
+            <div className="flex items-center gap-1 mb-1 font-semibold">
+              <span
+                className="material-symbols-outlined text-sm"
+                style={{ fontFamily: 'Material Symbols Outlined', color: '#f59e0b' }}
+              >
+                warning
+              </span>
+              {warnings.length} warning{warnings.length !== 1 ? 's' : ''}
+            </div>
+            {warnings.map((w, i) => (
+              <div key={i} className="ml-5 leading-relaxed">
+                {w}
+              </div>
+            ))}
           </div>
         )}
 
