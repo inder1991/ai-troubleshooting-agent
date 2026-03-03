@@ -80,6 +80,23 @@ async def nat_resolver(state: dict, *, adapters: dict[str, FirewallAdapter]) -> 
                         "device_id": device_id,
                     })
 
+    # Handle Load Balancer DNAT (VIP -> backend)
+    for lb in state.get("load_balancers_in_path", []):
+        lb_id = lb.get("device_id", "")
+        translations.append({
+            "device_id": lb_id,
+            "direction": "dnat",
+            "original_dst": current_dst,
+            "translated_dst": "(backend target)",
+            "type": "load_balancer",
+        })
+        identity_chain.append({
+            "stage": f"post-lb-{lb_id}",
+            "ip": current_dst,
+            "port": current_port,
+            "device_id": lb_id,
+        })
+
     return {
         "nat_translations": translations,
         "identity_chain": identity_chain,
