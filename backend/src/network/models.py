@@ -35,6 +35,7 @@ class EdgeSource(str, Enum):
     TRACEROUTE = "traceroute"
     API = "api"
     INFERRED = "inferred"
+    DIAGNOSIS = "diagnosis"
 
 class PolicyAction(str, Enum):
     ALLOW = "allow"
