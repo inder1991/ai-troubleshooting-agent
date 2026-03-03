@@ -18,6 +18,10 @@ const NetworkEvidenceStack: React.FC<NetworkEvidenceStackProps> = ({
   const traceHops = state.trace_hops || [];
   const contradictions = state.contradictions || [];
   const evidence = state.evidence || [];
+  const naclVerdicts = state.nacl_verdicts || [];
+  const vpcCrossings = state.vpc_boundary_crossings || [];
+  const vpnSegments = state.vpn_segments || [];
+  const lbsInPath = state.load_balancers_in_path || [];
 
   return (
     <div className="flex flex-col gap-4 h-full overflow-y-auto pr-1 custom-scrollbar">
@@ -36,6 +40,150 @@ const NetworkEvidenceStack: React.FC<NetworkEvidenceStackProps> = ({
           <div className="space-y-2">
             {firewallVerdicts.map((v, i) => (
               <FirewallVerdictCard key={`${v.device_id}-${i}`} verdict={v} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* NACL Verdicts */}
+      {naclVerdicts.length > 0 && (
+        <div
+          className="rounded-lg p-3"
+          style={{ backgroundColor: '#0f2023', border: '1px solid #224349' }}
+        >
+          <div
+            className="text-xs font-mono uppercase tracking-wider mb-2 flex items-center gap-1.5"
+            style={{ color: '#64748b' }}
+          >
+            <span className="material-symbols-outlined text-sm" style={{ color: '#ef4444' }}>
+              checklist
+            </span>
+            NACL Evaluation ({naclVerdicts.length})
+          </div>
+          <div className="space-y-2">
+            {naclVerdicts.map((v, i) => (
+              <div
+                key={`${v.nacl_id}-${i}`}
+                className="flex items-center justify-between rounded px-3 py-2"
+                style={{ backgroundColor: '#0a0f13' }}
+              >
+                <span className="text-xs font-mono" style={{ color: '#e2e8f0' }}>{v.nacl_name}</span>
+                <span
+                  className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded uppercase"
+                  style={{
+                    backgroundColor: v.action === 'allow' ? '#052e16' : '#450a0a',
+                    color: v.action === 'allow' ? '#22c55e' : '#ef4444',
+                  }}
+                >
+                  {v.action}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* VPC Boundary Crossings */}
+      {vpcCrossings.length > 0 && (
+        <div
+          className="rounded-lg p-3"
+          style={{ backgroundColor: '#0f2023', border: '1px solid #224349' }}
+        >
+          <div
+            className="text-xs font-mono uppercase tracking-wider mb-2 flex items-center gap-1.5"
+            style={{ color: '#64748b' }}
+          >
+            <span className="material-symbols-outlined text-sm" style={{ color: '#3b82f6' }}>
+              cloud_circle
+            </span>
+            VPC Boundary Crossings ({vpcCrossings.length})
+          </div>
+          <div className="space-y-2">
+            {vpcCrossings.map((c, i) => (
+              <div
+                key={i}
+                className="flex items-center gap-2 rounded px-3 py-2 font-mono text-xs"
+                style={{ backgroundColor: '#0a0f13' }}
+              >
+                <span style={{ color: '#3b82f6' }}>{c.from_vpc}</span>
+                <span className="material-symbols-outlined text-sm" style={{ color: '#64748b' }}>arrow_forward</span>
+                <span style={{ color: '#3b82f6' }}>{c.to_vpc}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* VPN Tunnel Segments */}
+      {vpnSegments.length > 0 && (
+        <div
+          className="rounded-lg p-3"
+          style={{ backgroundColor: '#0f2023', border: '1px solid #224349' }}
+        >
+          <div
+            className="text-xs font-mono uppercase tracking-wider mb-2 flex items-center gap-1.5"
+            style={{ color: '#64748b' }}
+          >
+            <span className="material-symbols-outlined text-sm" style={{ color: '#f97316' }}>
+              vpn_lock
+            </span>
+            VPN Tunnel Segments ({vpnSegments.length})
+          </div>
+          <div className="space-y-2">
+            {vpnSegments.map((seg, i) => (
+              <div
+                key={`${seg.device_id}-${i}`}
+                className="rounded px-3 py-2 font-mono text-xs"
+                style={{ backgroundColor: '#0a0f13' }}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <span style={{ color: '#e2e8f0' }}>{seg.name}</span>
+                  <span
+                    className="text-[10px] px-1.5 py-0.5 rounded uppercase"
+                    style={{ color: '#f97316', backgroundColor: 'rgba(249,115,22,0.12)' }}
+                  >
+                    {seg.tunnel_type}
+                  </span>
+                </div>
+                {seg.encryption && (
+                  <div style={{ color: '#64748b' }}>Encryption: {seg.encryption}</div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Load Balancers in Path */}
+      {lbsInPath.length > 0 && (
+        <div
+          className="rounded-lg p-3"
+          style={{ backgroundColor: '#0f2023', border: '1px solid #224349' }}
+        >
+          <div
+            className="text-xs font-mono uppercase tracking-wider mb-2 flex items-center gap-1.5"
+            style={{ color: '#64748b' }}
+          >
+            <span className="material-symbols-outlined text-sm" style={{ color: '#22c55e' }}>
+              dns
+            </span>
+            Load Balancers ({lbsInPath.length})
+          </div>
+          <div className="space-y-2">
+            {lbsInPath.map((lb, i) => (
+              <div
+                key={`${lb.device_id}-${i}`}
+                className="flex items-center justify-between rounded px-3 py-2 font-mono text-xs"
+                style={{ backgroundColor: '#0a0f13' }}
+              >
+                <span style={{ color: '#e2e8f0' }}>{lb.device_name}</span>
+                <span
+                  className="text-[10px] px-1.5 py-0.5 rounded uppercase"
+                  style={{ color: '#22c55e', backgroundColor: 'rgba(34,197,94,0.12)' }}
+                >
+                  {lb.device_type}
+                </span>
+              </div>
             ))}
           </div>
         </div>
