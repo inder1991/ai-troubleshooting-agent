@@ -11,6 +11,7 @@ from src.api.network_models import (
     AdapterConfigureRequest,
     DiagnoseRequest,
     DiagnoseResponse,
+    MatrixRequest,
     TopologyPromoteRequest,
     TopologySaveRequest,
 )
@@ -425,3 +426,12 @@ async def get_flow(flow_id: str):
     if not flow:
         raise HTTPException(status_code=404, detail="Flow not found")
     return {"flow": flow.model_dump()}
+
+
+@network_router.post("/matrix")
+async def reachability_matrix(req: MatrixRequest):
+    """Compute zone-to-zone reachability matrix."""
+    from src.agents.network.reachability_matrix import compute_reachability_matrix
+    kg = _get_knowledge_graph()
+    result = compute_reachability_matrix(kg, req.zone_ids)
+    return result

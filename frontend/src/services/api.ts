@@ -643,3 +643,13 @@ export const fetchIPAMSubnets = async (): Promise<any> => {
   if (!response.ok) throw new Error(`Failed to fetch IPAM subnets: ${response.statusText}`);
   return response.json();
 };
+
+export const runReachabilityMatrix = async (zoneIds: string[]): Promise<any> => {
+  const response = await fetch(`${API_BASE_URL}/api/v4/network/matrix`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ zone_ids: zoneIds }),
+  });
+  if (!response.ok) throw new Error(`Failed to run matrix: ${response.statusText}`);
+  return response.json();
+};

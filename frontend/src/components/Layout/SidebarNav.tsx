@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-export type NavView = 'home' | 'sessions' | 'integrations' | 'settings' | 'agents' | 'network-topology' | 'ipam';
+export type NavView = 'home' | 'sessions' | 'integrations' | 'settings' | 'agents' | 'network-topology' | 'ipam' | 'matrix';
 
 type NavLink = { kind: 'link'; id: NavView; label: string; icon: string };
 type NavGroup = { kind: 'group'; group: string; icon: string; children: { id: NavView; label: string; icon: string }[] };
@@ -22,6 +22,7 @@ const navItems: NavItem[] = [
     children: [
       { id: 'network-topology', label: 'Topology', icon: 'device_hub' },
       { id: 'ipam', label: 'IPAM', icon: 'dns' },
+      { id: 'matrix', label: 'Matrix', icon: 'grid_view' },
     ],
   },
   { kind: 'link', id: 'integrations', label: 'Integrations', icon: 'hub' },

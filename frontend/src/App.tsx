@@ -36,9 +36,10 @@ import AgentMatrixView from './components/AgentMatrix/AgentMatrixView';
 import TopologyEditorView from './components/TopologyEditor/TopologyEditorView';
 import IPAMInventoryView from './components/IPAM/IPAMInventoryView';
 import NetworkWarRoom from './components/NetworkTroubleshooting/NetworkWarRoom';
+import ReachabilityMatrix from './components/NetworkTroubleshooting/ReachabilityMatrix';
 
 
-type ViewState = 'home' | 'form' | 'investigation' | 'sessions' | 'integrations' | 'settings' | 'dossier' | 'cluster-diagnostics' | 'agent-matrix' | 'network-troubleshooting' | 'network-topology' | 'ipam';
+type ViewState = 'home' | 'form' | 'investigation' | 'sessions' | 'integrations' | 'settings' | 'dossier' | 'cluster-diagnostics' | 'agent-matrix' | 'network-troubleshooting' | 'network-topology' | 'ipam' | 'matrix';
 
 function AppInner() {
   const { addToast } = useToast();
@@ -393,7 +394,7 @@ function AppInner() {
 
   // Derive nav view from viewState
   const navView: NavView =
-    viewState === 'sessions' ? 'sessions' : viewState === 'integrations' ? 'integrations' : viewState === 'settings' ? 'settings' : viewState === 'agent-matrix' ? 'agents' : viewState === 'network-topology' ? 'network-topology' : viewState === 'ipam' ? 'ipam' : 'home';
+    viewState === 'sessions' ? 'sessions' : viewState === 'integrations' ? 'integrations' : viewState === 'settings' ? 'settings' : viewState === 'agent-matrix' ? 'agents' : viewState === 'network-topology' ? 'network-topology' : viewState === 'ipam' ? 'ipam' : viewState === 'matrix' ? 'matrix' : 'home';
 
   const showSidebar = viewState !== 'investigation' && viewState !== 'dossier' && viewState !== 'cluster-diagnostics' && viewState !== 'agent-matrix' && viewState !== 'network-troubleshooting';
 
@@ -447,6 +448,10 @@ function AppInner() {
 
         {viewState === 'ipam' && (
           <IPAMInventoryView />
+        )}
+
+        {viewState === 'matrix' && (
+          <ReachabilityMatrix />
         )}
 
         {viewState === 'form' && selectedCapability && (

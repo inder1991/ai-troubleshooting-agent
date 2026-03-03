@@ -35,3 +35,7 @@ class AdapterConfigureRequest(BaseModel):
 class TopologyPromoteRequest(BaseModel):
     nodes: list[dict] = []
     edges: list[dict] = []
+
+
+class MatrixRequest(BaseModel):
+    zone_ids: list[str]
