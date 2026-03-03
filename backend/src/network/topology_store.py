@@ -327,10 +327,12 @@ class TopologyStore:
     def find_recent_flow(self, src_ip: str, dst_ip: str, port: int, within_seconds: int = 60) -> Optional[Flow]:
         """Idempotent flow lookup for dedup within time window."""
         conn = self._conn()
+        # Normalize cutoff to +00:00 format (matches datetime.now(timezone.utc).isoformat())
         cutoff = (datetime.now(timezone.utc) - timedelta(seconds=within_seconds)).isoformat()
+        # Use REPLACE to normalize Z suffix to +00:00 for consistent comparison
         row = conn.execute(
             "SELECT * FROM flows WHERE src_ip=? AND dst_ip=? AND port=? "
-            "AND timestamp >= ? ORDER BY timestamp DESC LIMIT 1",
+            "AND REPLACE(timestamp, 'Z', '+00:00') >= ? ORDER BY timestamp DESC LIMIT 1",
             (src_ip, dst_ip, port, cutoff),
         ).fetchone()
         conn.close()

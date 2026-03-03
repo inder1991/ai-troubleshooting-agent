@@ -301,6 +301,29 @@ async def start_session(request: StartSessionRequest, background_tasks: Backgrou
             created_at=sessions[session_id]["created_at"],
         )
 
+    # ── Network Troubleshooting capability ──
+    if capability == "network_troubleshooting":
+        sessions[session_id] = {
+            "service_name": request.serviceName or "Network Troubleshooting",
+            "incident_id": incident_id,
+            "phase": "initial",
+            "confidence": 0,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "emitter": emitter,
+            "state": None,
+            "profile_id": profile_id,
+            "capability": "network_troubleshooting",
+            "chat_history": [],
+        }
+        return StartSessionResponse(
+            session_id=session_id,
+            incident_id=incident_id,
+            status="started",
+            message="Network troubleshooting session created — use /api/v4/network/diagnose for diagnosis",
+            service_name=request.serviceName or "Network Troubleshooting",
+            created_at=sessions[session_id]["created_at"],
+        )
+
     # ── Default: troubleshoot_app capability ──
     supervisor = SupervisorAgent(connection_config=connection_config)
 

@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { NodeProps, NodeResizeControl } from 'reactflow';
+import { Handle, Position, NodeProps, NodeResizeControl } from 'reactflow';
 
 interface SubnetGroupData {
   label: string;
@@ -10,7 +10,7 @@ interface SubnetGroupData {
 const SubnetGroupNode: React.FC<NodeProps<SubnetGroupData>> = ({ data, selected }) => {
   return (
     <div
-      className="relative w-full h-full rounded-lg border-2 border-dashed"
+      className="relative w-full h-full rounded-lg border-2 border-dashed group"
       style={{
         backgroundColor: 'rgba(7,182,213,0.05)',
         borderColor: selected ? '#07b6d5' : '#224349',
@@ -18,6 +18,16 @@ const SubnetGroupNode: React.FC<NodeProps<SubnetGroupData>> = ({ data, selected 
         minHeight: 150,
       }}
     >
+      {/* 4 handles — visible on hover */}
+      <Handle type="source" position={Position.Top} id="top"
+        className="!w-3 !h-3 !bg-[#07b6d5] !border-2 !border-[#0a0f13] opacity-0 group-hover:opacity-100 transition-opacity" />
+      <Handle type="source" position={Position.Bottom} id="bottom"
+        className="!w-3 !h-3 !bg-[#07b6d5] !border-2 !border-[#0a0f13] opacity-0 group-hover:opacity-100 transition-opacity" />
+      <Handle type="source" position={Position.Left} id="left"
+        className="!w-3 !h-3 !bg-[#07b6d5] !border-2 !border-[#0a0f13] opacity-0 group-hover:opacity-100 transition-opacity" />
+      <Handle type="source" position={Position.Right} id="right"
+        className="!w-3 !h-3 !bg-[#07b6d5] !border-2 !border-[#0a0f13] opacity-0 group-hover:opacity-100 transition-opacity" />
+
       <NodeResizeControl
         minWidth={200}
         minHeight={150}

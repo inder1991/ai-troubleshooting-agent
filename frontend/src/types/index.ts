@@ -329,6 +329,7 @@ export interface V4Session {
   confidence: number;
   created_at: string;
   updated_at: string;
+  capability?: CapabilityType;
 }
 
 export interface V4SessionStatus {
@@ -611,7 +612,7 @@ export interface ClusterDomainAnomaly {
 
 export interface ClusterDomainReport {
   domain: string;
-  status: 'PENDING' | 'RUNNING' | 'SUCCESS' | 'PARTIAL' | 'FAILED';
+  status: 'PENDING' | 'RUNNING' | 'SUCCESS' | 'PARTIAL' | 'FAILED' | 'SKIPPED';
   failure_reason?: string;
   confidence: number;
   anomalies: ClusterDomainAnomaly[];
@@ -653,7 +654,8 @@ export interface ClusterRemediationStep {
 }
 
 export interface ClusterHealthReport {
-  diagnostic_id: string;
+  session_id?: string;
+  diagnostic_id?: string;
   platform: string;
   platform_version: string;
   platform_health: 'HEALTHY' | 'DEGRADED' | 'CRITICAL' | 'UNKNOWN' | 'PENDING';
@@ -667,6 +669,12 @@ export interface ClusterHealthReport {
     long_term?: ClusterRemediationStep[];
   };
   execution_metadata?: Record<string, number>;
+  scan_mode?: string;
+  diagnostic_scope?: DiagnosticScope;
+  scope_coverage?: number;
+  issue_clusters?: IssueCluster[];
+  causal_search_space?: CausalSearchSpace;
+  topology_snapshot?: TopologySnapshot;
 }
 
 // --- Topology ---

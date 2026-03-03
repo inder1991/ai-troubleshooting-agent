@@ -185,8 +185,7 @@ export const getEvents = async (sessionId: string): Promise<TaskEvent[]> => {
 export const listSessionsV4 = async (): Promise<V4Session[]> => {
   const response = await fetch(`${API_BASE_URL}/api/v4/sessions`);
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || 'Failed to list sessions');
+    throw new Error(await extractErrorDetail(response, 'Failed to list sessions'));
   }
   const data = await response.json();
   return data.map((s: Record<string, unknown>) => ({

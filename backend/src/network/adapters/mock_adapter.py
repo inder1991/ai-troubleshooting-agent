@@ -13,12 +13,18 @@ class MockFirewallAdapter(FirewallAdapter):
                  rules: list[FirewallRule] = None,
                  nat_rules: list[NATRule] = None,
                  zones: list[Zone] = None,
-                 default_action: PolicyAction = PolicyAction.DENY):
+                 default_action: PolicyAction = PolicyAction.DENY,
+                 api_endpoint: str = "",
+                 api_key: str = "",
+                 extra_config: dict = None):
         super().__init__(vendor=vendor)
         self._mock_rules = rules or []
         self._mock_nat_rules = nat_rules or []
         self._mock_zones = zones or []
         self._default_action = default_action
+        self._api_endpoint = api_endpoint
+        self._api_key = api_key
+        self._extra_config = extra_config or {}
 
     async def simulate_flow(self, src_ip: str, dst_ip: str, port: int,
                            protocol: str = "tcp") -> PolicyVerdict:

@@ -9,6 +9,7 @@ Follows the cluster diagnostic pattern from src.agents.cluster.graph.
 """
 from __future__ import annotations
 
+import asyncio
 import functools
 from typing import Any
 
@@ -73,9 +74,12 @@ def _route_after_graph_pathfinder(state: dict) -> str:
 
 
 def _make_async_wrapper(fn):
-    """Wrap a sync node function as an async def for LangGraph compatibility."""
+    """Wrap a sync node function as an async def for LangGraph compatibility.
+
+    Offloads to a thread to avoid blocking the event loop.
+    """
     async def wrapper(state: dict) -> dict:
-        return fn(state)
+        return await asyncio.to_thread(fn, state)
     # functools.partial objects don't have __name__, use .func.__name__ fallback
     name = getattr(fn, "__name__", None) or getattr(getattr(fn, "func", None), "__name__", "unknown")
     wrapper.__name__ = name

@@ -1,6 +1,7 @@
 import React, { useCallback, useRef, useState, useEffect, DragEvent } from 'react';
 import ReactFlow, {
   ReactFlowProvider,
+  ConnectionMode,
   addEdge,
   useNodesState,
   useEdgesState,
@@ -49,10 +50,11 @@ function TopologyEditorInner() {
       try {
         setLoading(true);
         const data = await loadTopology();
-        if (data.diagram_json) {
-          const parsed = typeof data.diagram_json === 'string'
-            ? JSON.parse(data.diagram_json)
-            : data.diagram_json;
+        const snapshotJson = data?.snapshot?.snapshot_json;
+        if (snapshotJson) {
+          const parsed = typeof snapshotJson === 'string'
+            ? JSON.parse(snapshotJson)
+            : snapshotJson;
           if (parsed.nodes) setNodes(parsed.nodes);
           if (parsed.edges) setEdges(parsed.edges);
         }
@@ -143,8 +145,8 @@ function TopologyEditorInner() {
     try {
       const flow = reactFlowInstance.toObject();
       await saveTopology(JSON.stringify(flow), 'User-saved topology');
-    } catch {
-      // handle error silently
+    } catch (err) {
+      console.error('Failed to save topology:', err);
     } finally {
       setSaving(false);
     }
@@ -155,15 +157,16 @@ function TopologyEditorInner() {
     setLoading(true);
     try {
       const data = await loadTopology();
-      if (data.diagram_json) {
-        const parsed = typeof data.diagram_json === 'string'
-          ? JSON.parse(data.diagram_json)
-          : data.diagram_json;
+      const snapshotJson = data?.snapshot?.snapshot_json;
+      if (snapshotJson) {
+        const parsed = typeof snapshotJson === 'string'
+          ? JSON.parse(snapshotJson)
+          : snapshotJson;
         if (parsed.nodes) setNodes(parsed.nodes);
         if (parsed.edges) setEdges(parsed.edges);
       }
-    } catch {
-      // handle error
+    } catch (err) {
+      console.error('Failed to load topology:', err);
     } finally {
       setLoading(false);
     }
@@ -238,6 +241,7 @@ function TopologyEditorInner() {
             onDragOver={onDragOver}
             onDrop={onDrop}
             nodeTypes={nodeTypes}
+            connectionMode={ConnectionMode.Loose}
             fitView
             proOptions={{ hideAttribution: true }}
             defaultEdgeOptions={{

@@ -32,12 +32,15 @@ const DeviceNode: React.FC<NodeProps<DeviceNodeData>> = ({ data, selected }) => 
 
   return (
     <div className="relative group">
-      <Handle
-        type="target"
-        position={Position.Top}
-        className="!w-2 !h-2 !border-2"
-        style={{ backgroundColor: '#07b6d5', borderColor: '#0a0f13' }}
-      />
+      {/* 4 handles — visible on hover, act as both source + target */}
+      <Handle type="source" position={Position.Top} id="top"
+        className="!w-3 !h-3 !bg-[#07b6d5] !border-2 !border-[#0a0f13] opacity-0 group-hover:opacity-100 transition-opacity" />
+      <Handle type="source" position={Position.Bottom} id="bottom"
+        className="!w-3 !h-3 !bg-[#07b6d5] !border-2 !border-[#0a0f13] opacity-0 group-hover:opacity-100 transition-opacity" />
+      <Handle type="source" position={Position.Left} id="left"
+        className="!w-3 !h-3 !bg-[#07b6d5] !border-2 !border-[#0a0f13] opacity-0 group-hover:opacity-100 transition-opacity" />
+      <Handle type="source" position={Position.Right} id="right"
+        className="!w-3 !h-3 !bg-[#07b6d5] !border-2 !border-[#0a0f13] opacity-0 group-hover:opacity-100 transition-opacity" />
 
       <div
         className="flex flex-col items-center gap-1.5 p-3 rounded-lg border-2 transition-all min-w-[80px]"
@@ -86,13 +89,6 @@ const DeviceNode: React.FC<NodeProps<DeviceNodeData>> = ({ data, selected }) => 
           </span>
         )}
       </div>
-
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        className="!w-2 !h-2 !border-2"
-        style={{ backgroundColor: '#07b6d5', borderColor: '#0a0f13' }}
-      />
     </div>
   );
 };
