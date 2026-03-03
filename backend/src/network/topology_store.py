@@ -14,6 +14,7 @@ from .models import (
     NACL, NACLRule,
     LoadBalancer, LBTargetGroup,
     VLAN, MPLSCircuit, ComplianceZone,
+    HAGroup, HAMode,
 )
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "data", "network.db")
@@ -181,6 +182,17 @@ class TopologyStore:
             CREATE INDEX IF NOT EXISTS idx_lb_targets_lb ON lb_target_groups(lb_id);
             CREATE INDEX IF NOT EXISTS idx_route_tables_vpc ON route_tables(vpc_id);
 
+            CREATE TABLE IF NOT EXISTS ha_groups (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                ha_mode TEXT NOT NULL,
+                member_ids TEXT NOT NULL,
+                virtual_ips TEXT DEFAULT '[]',
+                active_member_id TEXT DEFAULT '',
+                priority_map TEXT DEFAULT '{}',
+                sync_interface TEXT DEFAULT ''
+            );
+
             CREATE TABLE IF NOT EXISTS edge_confidence (
                 src_id TEXT, dst_id TEXT, confidence REAL,
                 source TEXT, last_verified_at TEXT,
@@ -197,6 +209,8 @@ class TopologyStore:
             "ALTER TABLE devices ADD COLUMN zone_id TEXT DEFAULT ''",
             "ALTER TABLE devices ADD COLUMN vlan_id INTEGER DEFAULT 0",
             "ALTER TABLE devices ADD COLUMN description TEXT DEFAULT ''",
+            "ALTER TABLE devices ADD COLUMN ha_group_id TEXT DEFAULT ''",
+            "ALTER TABLE devices ADD COLUMN ha_role TEXT DEFAULT ''",
         ]
         for sql in migrations:
             try:
@@ -210,10 +224,11 @@ class TopologyStore:
     def add_device(self, device: Device) -> None:
         conn = self._conn()
         conn.execute(
-            "INSERT OR REPLACE INTO devices VALUES (?,?,?,?,?,?,?,?,?,?)",
+            "INSERT OR REPLACE INTO devices (id, name, vendor, device_type, management_ip, model, location, zone_id, vlan_id, description, ha_group_id, ha_role) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
             (device.id, device.name, device.vendor, device.device_type.value,
              device.management_ip, device.model, device.location,
-             device.zone_id, device.vlan_id, device.description),
+             device.zone_id, device.vlan_id, device.description,
+             device.ha_group_id, device.ha_role),
         )
         conn.commit()
         conn.close()
@@ -224,30 +239,38 @@ class TopologyStore:
         conn.close()
         if not row:
             return None
+        d = dict(row)
         return Device(
-            id=row[0], name=row[1], vendor=row[2] or "",
-            device_type=DeviceType(row[3]) if row[3] else DeviceType.HOST,
-            management_ip=row[4] or "", model=row[5] or "", location=row[6] or "",
-            zone_id=row[7] or "" if len(row) > 7 else "",
-            vlan_id=row[8] or 0 if len(row) > 8 else 0,
-            description=row[9] or "" if len(row) > 9 else "",
+            id=d["id"], name=d["name"], vendor=d.get("vendor") or "",
+            device_type=DeviceType(d["device_type"]) if d.get("device_type") else DeviceType.HOST,
+            management_ip=d.get("management_ip") or "", model=d.get("model") or "",
+            location=d.get("location") or "",
+            zone_id=d.get("zone_id") or "",
+            vlan_id=d.get("vlan_id") or 0,
+            description=d.get("description") or "",
+            ha_group_id=d.get("ha_group_id") or "",
+            ha_role=d.get("ha_role") or "",
         )
 
     def list_devices(self) -> list[Device]:
         conn = self._conn()
         rows = conn.execute("SELECT * FROM devices").fetchall()
         conn.close()
-        return [
-            Device(
-                id=r[0], name=r[1], vendor=r[2] or "",
-                device_type=DeviceType(r[3]) if r[3] else DeviceType.HOST,
-                management_ip=r[4] or "", model=r[5] or "", location=r[6] or "",
-                zone_id=r[7] or "" if len(r) > 7 else "",
-                vlan_id=r[8] or 0 if len(r) > 8 else 0,
-                description=r[9] or "" if len(r) > 9 else "",
-            )
-            for r in rows
-        ]
+        results = []
+        for r in rows:
+            d = dict(r)
+            results.append(Device(
+                id=d["id"], name=d["name"], vendor=d.get("vendor") or "",
+                device_type=DeviceType(d["device_type"]) if d.get("device_type") else DeviceType.HOST,
+                management_ip=d.get("management_ip") or "", model=d.get("model") or "",
+                location=d.get("location") or "",
+                zone_id=d.get("zone_id") or "",
+                vlan_id=d.get("vlan_id") or 0,
+                description=d.get("description") or "",
+                ha_group_id=d.get("ha_group_id") or "",
+                ha_role=d.get("ha_role") or "",
+            ))
+        return results
 
     def delete_device(self, device_id: str) -> None:
         conn = self._conn()
@@ -810,6 +833,48 @@ class TopologyStore:
         rows = conn.execute("SELECT * FROM compliance_zones").fetchall()
         conn.close()
         return [ComplianceZone(**{**dict(r), "subnet_ids": json.loads(r["subnet_ids"]) if r["subnet_ids"] else [], "vpc_ids": json.loads(r["vpc_ids"]) if r["vpc_ids"] else []}) for r in rows]
+
+    # ── HA Group CRUD ──
+    def add_ha_group(self, group: HAGroup) -> None:
+        conn = self._conn()
+        conn.execute(
+            "INSERT OR REPLACE INTO ha_groups (id, name, ha_mode, member_ids, virtual_ips, active_member_id, priority_map, sync_interface) VALUES (?,?,?,?,?,?,?,?)",
+            (group.id, group.name, group.ha_mode.value, json.dumps(group.member_ids),
+             json.dumps(group.virtual_ips), group.active_member_id,
+             json.dumps(group.priority_map), group.sync_interface),
+        )
+        conn.commit()
+        conn.close()
+
+    def get_ha_group(self, group_id: str) -> Optional[HAGroup]:
+        conn = self._conn()
+        row = conn.execute("SELECT * FROM ha_groups WHERE id = ?", (group_id,)).fetchone()
+        conn.close()
+        if not row:
+            return None
+        return HAGroup(
+            id=row["id"], name=row["name"],
+            ha_mode=HAMode(row["ha_mode"]),
+            member_ids=json.loads(row["member_ids"]),
+            virtual_ips=json.loads(row["virtual_ips"] or "[]"),
+            active_member_id=row["active_member_id"] or "",
+            priority_map=json.loads(row["priority_map"] or "{}"),
+            sync_interface=row["sync_interface"] or "",
+        )
+
+    def list_ha_groups(self) -> list[HAGroup]:
+        conn = self._conn()
+        rows = conn.execute("SELECT * FROM ha_groups").fetchall()
+        conn.close()
+        return [HAGroup(
+            id=r["id"], name=r["name"],
+            ha_mode=HAMode(r["ha_mode"]),
+            member_ids=json.loads(r["member_ids"]),
+            virtual_ips=json.loads(r["virtual_ips"] or "[]"),
+            active_member_id=r["active_member_id"] or "",
+            priority_map=json.loads(r["priority_map"] or "{}"),
+            sync_interface=r["sync_interface"] or "",
+        ) for r in rows]
 
     # ── Edge Confidence Persistence ──
     def save_edge_confidence(self, src_id: str, dst_id: str, confidence: float, source: str) -> None:
