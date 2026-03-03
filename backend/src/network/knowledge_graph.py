@@ -353,6 +353,78 @@ class NetworkKnowledgeGraph:
     def edge_count(self) -> int:
         return self.graph.number_of_edges()
 
+    def promote_from_canvas(self, nodes: list[dict], edges: list[dict]) -> dict:
+        """Promote canvas nodes/edges into the authoritative KG.
+
+        Validates against Pydantic models, upserts into SQLite + NetworkX.
+        Returns summary: {devices_promoted, edges_promoted, errors}.
+        """
+        stats = {"devices_promoted": 0, "edges_promoted": 0, "errors": []}
+
+        for node in nodes:
+            try:
+                node_type = node.get("type", "device")
+                data = node.get("data", {})
+                node_id = node.get("id", "")
+
+                if node_type == "device":
+                    dt_str = (data.get("deviceType") or "HOST").upper()
+                    try:
+                        dt = DeviceType[dt_str]
+                    except KeyError:
+                        dt = DeviceType.HOST
+
+                    device = Device(
+                        id=node_id,
+                        name=data.get("label", node_id),
+                        device_type=dt,
+                        management_ip=data.get("ip", ""),
+                        vendor=data.get("vendor", ""),
+                        location=data.get("location", ""),
+                        zone_id=data.get("zone", ""),
+                        vlan_id=int(data.get("vlan") or 0),
+                        description=data.get("description", ""),
+                    )
+                    self.store.add_device(device)
+                    self.add_device(device)
+                    stats["devices_promoted"] += 1
+
+                elif node_type == "subnet":
+                    cidr = data.get("cidr") or data.get("ip", "")
+                    if cidr:
+                        subnet = Subnet(
+                            id=node_id,
+                            cidr=cidr,
+                            zone_id=data.get("zone", ""),
+                            vlan_id=int(data.get("vlan") or 0),
+                            description=data.get("description", ""),
+                        )
+                        self.store.add_subnet(subnet)
+                        self.add_subnet(subnet)
+                        stats["devices_promoted"] += 1
+
+            except Exception as e:
+                stats["errors"].append(f"Node {node.get('id', '?')}: {str(e)}")
+
+        for edge in edges:
+            try:
+                src = edge.get("source", "")
+                tgt = edge.get("target", "")
+                if src and tgt:
+                    self.add_edge(
+                        src, tgt,
+                        EdgeMetadata(
+                            confidence=0.8,
+                            source=EdgeSource.MANUAL,
+                            edge_type=edge.get("label", "connected_to"),
+                        ),
+                    )
+                    stats["edges_promoted"] += 1
+            except Exception as e:
+                stats["errors"].append(f"Edge {src}->{tgt}: {str(e)}")
+
+        return stats
+
     def export_react_flow_graph(self) -> dict:
         """Convert KG nodes/edges to React Flow format for canvas rendering."""
         rf_nodes = []

@@ -6,9 +6,11 @@ interface TopologyToolbarProps {
   onImportIPAM: () => void;
   onAdapterStatus: () => void;
   onRefreshFromKG: () => void;
+  onPromote?: () => void;
   saving?: boolean;
   loading?: boolean;
   refreshing?: boolean;
+  promoting?: boolean;
 }
 
 const TopologyToolbar: React.FC<TopologyToolbarProps> = ({
@@ -17,9 +19,11 @@ const TopologyToolbar: React.FC<TopologyToolbarProps> = ({
   onImportIPAM,
   onAdapterStatus,
   onRefreshFromKG,
+  onPromote,
   saving,
   loading,
   refreshing,
+  promoting,
 }) => {
   const buttons: { label: string; icon: string; onClick: () => void; disabled?: boolean }[] = [
     { label: saving ? 'Saving...' : 'Save', icon: 'save', onClick: onSave, disabled: saving },
@@ -67,6 +71,30 @@ const TopologyToolbar: React.FC<TopologyToolbarProps> = ({
           {btn.label}
         </button>
       ))}
+
+      {onPromote && (
+        <>
+          <div className="w-px h-5 mx-1" style={{ backgroundColor: '#224349' }} />
+          <button
+            onClick={onPromote}
+            disabled={promoting}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{
+              backgroundColor: 'rgba(34,197,94,0.15)',
+              color: '#22c55e',
+              border: '1px solid rgba(34,197,94,0.3)',
+            }}
+          >
+            <span
+              className="material-symbols-outlined text-sm"
+              style={{ fontFamily: 'Material Symbols Outlined' }}
+            >
+              {promoting ? 'sync' : 'published_with_changes'}
+            </span>
+            {promoting ? 'Promoting...' : 'Promote to Infrastructure'}
+          </button>
+        </>
+      )}
     </div>
   );
 };

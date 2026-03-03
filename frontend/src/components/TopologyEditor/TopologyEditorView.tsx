@@ -23,7 +23,7 @@ import DevicePropertyPanel from './DevicePropertyPanel';
 import TopologyToolbar from './TopologyToolbar';
 import IPAMUploadDialog from './IPAMUploadDialog';
 import AdapterConfigDialog from './AdapterConfigDialog';
-import { loadTopology, saveTopology, API_BASE_URL } from '../../services/api';
+import { loadTopology, saveTopology, promoteTopology, API_BASE_URL } from '../../services/api';
 
 const nodeTypes = {
   device: DeviceNode,
@@ -47,6 +47,7 @@ function TopologyEditorInner() {
   const [adapterOpen, setAdapterOpen] = useState(false);
   const [adapterNodeId, setAdapterNodeId] = useState<string | null>(null);
   const [adapterNodeName, setAdapterNodeName] = useState<string | undefined>(undefined);
+  const [promoting, setPromoting] = useState(false);
 
   // Load topology on mount
   useEffect(() => {
@@ -193,6 +194,20 @@ function TopologyEditorInner() {
     }
   }, [setNodes, setEdges]);
 
+  // Promote to Infrastructure (canvas -> KG)
+  const handlePromote = useCallback(async () => {
+    if (!reactFlowInstance) return;
+    setPromoting(true);
+    try {
+      const flow = reactFlowInstance.toObject();
+      await promoteTopology(flow.nodes, flow.edges);
+    } catch (err) {
+      console.error('Promote failed:', err);
+    } finally {
+      setPromoting(false);
+    }
+  }, [reactFlowInstance]);
+
   // Node property update
   const handleNodeUpdate = useCallback(
     (nodeId: string, data: Record<string, unknown>) => {
@@ -240,8 +255,10 @@ function TopologyEditorInner() {
         onImportIPAM={() => setIpamOpen(true)}
         onAdapterStatus={() => setAdapterOpen(true)}
         onRefreshFromKG={handleRefreshFromKG}
+        onPromote={handlePromote}
         saving={saving}
         loading={loading}
+        promoting={promoting}
       />
 
       {/* Main area: palette + canvas + property panel */}

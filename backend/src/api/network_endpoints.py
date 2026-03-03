@@ -11,6 +11,7 @@ from src.api.network_models import (
     AdapterConfigureRequest,
     DiagnoseRequest,
     DiagnoseResponse,
+    TopologyPromoteRequest,
     TopologySaveRequest,
 )
 from src.network.topology_store import TopologyStore
@@ -376,6 +377,14 @@ async def topology_current():
     """Return current KG state as React Flow nodes/edges."""
     kg = _get_knowledge_graph()
     return kg.export_react_flow_graph()
+
+
+@network_router.post("/topology/promote")
+async def topology_promote(req: TopologyPromoteRequest):
+    """Promote canvas nodes/edges to the authoritative Knowledge Graph."""
+    kg = _get_knowledge_graph()
+    result = kg.promote_from_canvas(req.nodes, req.edges)
+    return {"status": "promoted", **result}
 
 
 @network_router.get("/flows")

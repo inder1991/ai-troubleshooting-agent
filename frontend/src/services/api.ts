@@ -605,6 +605,16 @@ export const loadTopology = async (): Promise<any> => {
   return response.json();
 };
 
+export const promoteTopology = async (nodes: unknown[], edges: unknown[]): Promise<any> => {
+  const response = await fetch(`${API_BASE_URL}/api/v4/network/topology/promote`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ nodes, edges }),
+  });
+  if (!response.ok) throw new Error(`Failed to promote topology: ${response.statusText}`);
+  return response.json();
+};
+
 export const uploadIPAM = async (file: File): Promise<any> => {
   const formData = new FormData();
   formData.append('file', file);

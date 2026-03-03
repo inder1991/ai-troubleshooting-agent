@@ -29,3 +29,8 @@ class AdapterConfigureRequest(BaseModel):
     api_endpoint: str
     api_key: str = ""
     extra_config: dict = Field(default_factory=dict)
+
+
+class TopologyPromoteRequest(BaseModel):
+    nodes: list[dict] = []
+    edges: list[dict] = []
