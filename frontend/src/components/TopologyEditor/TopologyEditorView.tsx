@@ -100,6 +100,42 @@ function TopologyEditorInner() {
     setSelectedNode(null);
   }, []);
 
+  // Containment tracking: when a device is dragged, check if it lands inside a container
+  const onNodeDragStop = useCallback(
+    (_: React.MouseEvent, draggedNode: Node) => {
+      if (draggedNode.type !== 'device') return;
+
+      const containers = nodes.filter(
+        (n) => (n.type === 'vpc' || n.type === 'subnet' || n.type === 'compliance_zone') && n.id !== draggedNode.id
+      );
+
+      let newParentId: string | undefined = undefined;
+
+      for (const container of containers) {
+        const cw = (container.style?.width as number) || 300;
+        const ch = (container.style?.height as number) || 200;
+        const cx = container.position.x;
+        const cy = container.position.y;
+        const dx = draggedNode.position.x;
+        const dy = draggedNode.position.y;
+
+        if (dx >= cx && dx <= cx + cw && dy >= cy && dy <= cy + ch) {
+          newParentId = container.id;
+          break;
+        }
+      }
+
+      setNodes((nds) =>
+        nds.map((n) =>
+          n.id === draggedNode.id
+            ? { ...n, data: { ...n.data, parentContainerId: newParentId || '' } }
+            : n
+        )
+      );
+    },
+    [nodes, setNodes]
+  );
+
   // Drag-and-drop from palette
   const onDragOver = useCallback((event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
@@ -277,6 +313,7 @@ function TopologyEditorInner() {
             onInit={setReactFlowInstance}
             onNodeClick={onNodeClick}
             onPaneClick={onPaneClick}
+            onNodeDragStop={onNodeDragStop}
             onDragOver={onDragOver}
             onDrop={onDrop}
             nodeTypes={nodeTypes}
