@@ -361,6 +361,12 @@ class NetworkKnowledgeGraph:
         """
         stats = {"devices_promoted": 0, "edges_promoted": 0, "errors": []}
 
+        # Load VIPs from HA groups to suppress false duplicate warnings
+        ha_groups = self.store.list_ha_groups()
+        known_vips: set[str] = set()
+        for hg in ha_groups:
+            known_vips.update(hg.virtual_ips)
+
         # Pre-validation: collect IPs for duplicate detection
         seen_ips: dict[str, str] = {}  # ip -> first node label
 
@@ -373,8 +379,8 @@ class NetworkKnowledgeGraph:
                 if node_type == "device":
                     ip = data.get("ip", "")
 
-                    # Duplicate IP detection
-                    if ip and ip in seen_ips:
+                    # Duplicate IP detection (skip known HA VIPs)
+                    if ip and ip in seen_ips and ip not in known_vips:
                         stats["errors"].append(
                             f"Duplicate IP '{ip}' on '{data.get('label', node_id)}' "
                             f"(already used by '{seen_ips[ip]}')"
