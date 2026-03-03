@@ -67,3 +67,11 @@ class TopologyPromoteRequest(BaseModel):
 
 class MatrixRequest(BaseModel):
     zone_ids: list[str]
+
+
+class HAGroupRequest(BaseModel):
+    name: str
+    ha_mode: str  # "active_passive", "active_active", "vrrp", "cluster"
+    member_ids: list[str]
+    virtual_ips: list[str] = []
+    active_member_id: str = ""

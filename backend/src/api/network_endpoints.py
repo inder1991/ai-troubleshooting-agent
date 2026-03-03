@@ -11,6 +11,7 @@ from src.api.network_models import (
     AdapterConfigureRequest,
     DiagnoseRequest,
     DiagnoseResponse,
+    HAGroupRequest,
     MatrixRequest,
     TopologyPromoteRequest,
     TopologySaveRequest,
@@ -435,3 +436,48 @@ async def reachability_matrix(req: MatrixRequest):
     kg = _get_knowledge_graph()
     result = compute_reachability_matrix(kg, req.zone_ids)
     return result
+
+
+@network_router.post("/ha-groups")
+async def create_ha_group(req: HAGroupRequest):
+    """Create an HA group."""
+    from src.network.models import HAGroup, HAMode
+    store = _get_topology_store()
+    group = HAGroup(
+        id=str(uuid.uuid4()),
+        name=req.name,
+        ha_mode=HAMode(req.ha_mode),
+        member_ids=req.member_ids,
+        virtual_ips=req.virtual_ips,
+        active_member_id=req.active_member_id,
+    )
+    store.add_ha_group(group)
+    # Update member devices with ha_group_id
+    for mid in req.member_ids:
+        device = store.get_device(mid)
+        if device:
+            role = "active" if mid == req.active_member_id else "standby"
+            if req.ha_mode == "active_active":
+                role = "member"
+            device.ha_group_id = group.id
+            device.ha_role = role
+            store.add_device(device)
+    return {"status": "created", "ha_group_id": group.id}
+
+
+@network_router.get("/ha-groups")
+async def list_ha_groups():
+    """List all HA groups."""
+    store = _get_topology_store()
+    groups = store.list_ha_groups()
+    return {"ha_groups": [g.model_dump() for g in groups]}
+
+
+@network_router.get("/ha-groups/{group_id}")
+async def get_ha_group(group_id: str):
+    """Get HA group details."""
+    store = _get_topology_store()
+    group = store.get_ha_group(group_id)
+    if not group:
+        raise HTTPException(status_code=404, detail="HA group not found")
+    return {"ha_group": group.model_dump()}
