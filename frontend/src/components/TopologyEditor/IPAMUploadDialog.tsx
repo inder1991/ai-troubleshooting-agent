@@ -22,6 +22,7 @@ const IPAMUploadDialog: React.FC<IPAMUploadDialogProps> = ({ open, onClose, onIm
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ devices: number; subnets: number } | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
+  const [importedData, setImportedData] = useState<{ nodes: unknown[]; edges: unknown[] } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
 
@@ -83,14 +84,21 @@ const IPAMUploadDialog: React.FC<IPAMUploadDialogProps> = ({ open, onClose, onIm
       }
 
       if (data.nodes && data.edges) {
-        onImported({ nodes: data.nodes, edges: data.edges });
+        setImportedData({ nodes: data.nodes, edges: data.edges });
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Upload failed');
     } finally {
       setUploading(false);
     }
-  }, [file, onImported]);
+  }, [file]);
+
+  const handleCloseAndView = () => {
+    if (importedData) {
+      onImported(importedData);
+    }
+    handleClose();
+  };
 
   const handleClose = () => {
     setFile(null);
@@ -98,6 +106,7 @@ const IPAMUploadDialog: React.FC<IPAMUploadDialogProps> = ({ open, onClose, onIm
     setError(null);
     setResult(null);
     setWarnings([]);
+    setImportedData(null);
     onClose();
   };
 
@@ -203,10 +212,23 @@ const IPAMUploadDialog: React.FC<IPAMUploadDialogProps> = ({ open, onClose, onIm
         {/* Result */}
         {result && (
           <div
-            className="mt-4 p-3 rounded border text-xs font-mono"
+            className="mt-4 p-3 rounded border text-xs font-mono flex items-start gap-2"
             style={{ backgroundColor: '#162a2e', borderColor: '#224349', color: '#22c55e' }}
           >
-            Imported {result.devices} devices and {result.subnets} subnets
+            <span
+              className="material-symbols-outlined text-base flex-shrink-0"
+              style={{ fontFamily: 'Material Symbols Outlined', color: '#22c55e' }}
+            >
+              check_circle
+            </span>
+            <div>
+              <div>{result.devices} devices imported, {result.subnets} subnets imported</div>
+              {warnings.length > 0 && (
+                <div className="mt-1" style={{ color: '#f59e0b' }}>
+                  {warnings.length} warning{warnings.length !== 1 ? 's' : ''}
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -250,21 +272,33 @@ const IPAMUploadDialog: React.FC<IPAMUploadDialogProps> = ({ open, onClose, onIm
 
         {/* Actions */}
         <div className="flex justify-end gap-2 mt-5">
-          <button
-            onClick={handleClose}
-            className="px-4 py-2 rounded text-xs font-mono border transition-colors"
-            style={{ borderColor: '#224349', color: '#64748b', backgroundColor: 'transparent' }}
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleUpload}
-            disabled={!file || uploading}
-            className="px-4 py-2 rounded text-xs font-mono font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{ backgroundColor: '#07b6d5', color: '#0a0f13' }}
-          >
-            {uploading ? 'Uploading...' : 'Upload & Parse'}
-          </button>
+          {result ? (
+            <button
+              onClick={handleCloseAndView}
+              className="px-4 py-2 rounded text-xs font-mono font-semibold transition-colors"
+              style={{ backgroundColor: '#22c55e', color: '#0a0f13' }}
+            >
+              Close &amp; View
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={handleClose}
+                className="px-4 py-2 rounded text-xs font-mono border transition-colors"
+                style={{ borderColor: '#224349', color: '#64748b', backgroundColor: 'transparent' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleUpload}
+                disabled={!file || uploading}
+                className="px-4 py-2 rounded text-xs font-mono font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ backgroundColor: '#07b6d5', color: '#0a0f13' }}
+              >
+                {uploading ? 'Uploading...' : 'Upload & Parse'}
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>
