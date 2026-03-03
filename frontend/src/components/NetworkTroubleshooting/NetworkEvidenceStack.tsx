@@ -358,6 +358,18 @@ const NetworkEvidenceStack: React.FC<NetworkEvidenceStackProps> = ({
         </div>
       )}
 
+      {/* No Adapters Warning */}
+      {(!adapters || adapters.length === 0) && (
+        <div className="rounded-lg p-3 font-mono text-xs"
+          style={{ backgroundColor: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
+          <p className="font-semibold mb-1" style={{ color: '#f59e0b' }}>No Firewall Adapters</p>
+          <p style={{ color: '#94a3b8' }}>
+            Firewall rules cannot be verified. Configure adapters in the Topology Editor
+            to get accurate firewall verdicts.
+          </p>
+        </div>
+      )}
+
       {/* Adapter Health */}
       {adapters && adapters.length > 0 && (
         <div

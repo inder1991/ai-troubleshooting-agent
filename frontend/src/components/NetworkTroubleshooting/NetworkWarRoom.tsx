@@ -174,6 +174,21 @@ const NetworkWarRoom: React.FC<NetworkWarRoomProps> = ({ session, onGoHome }) =>
         </div>
       )}
 
+      {/* No Topology Data warning */}
+      {findings && findings.state?.diagnosis_status === 'no_path_known' && (
+        <div className="mx-4 mt-2 rounded-lg p-3 flex items-center gap-3 font-mono text-xs"
+          style={{ backgroundColor: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)' }}>
+          <span className="material-symbols-outlined text-lg" style={{ fontFamily: 'Material Symbols Outlined', color: '#f59e0b' }}>warning</span>
+          <div>
+            <p className="font-semibold" style={{ color: '#f59e0b' }}>No Topology Data</p>
+            <p style={{ color: '#94a3b8' }}>
+              Import IPAM data or build a topology canvas to enable path analysis.
+              Without topology data, the diagnosis engine cannot find network paths.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Main War Room Grid */}
       {findings && (
         <div className="flex-1 grid grid-cols-12 gap-4 p-4 overflow-hidden min-h-0">
