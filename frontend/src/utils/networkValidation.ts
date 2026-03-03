@@ -110,3 +110,131 @@ export function detectOverlappingCIDRs(cidrs: string[]): Array<[string, string]>
 export function doCIDRsOverlap(a: string, b: string): boolean {
   return isCIDRSubsetOf(a, b) || isCIDRSubsetOf(b, a);
 }
+
+interface CanvasNode {
+  id: string;
+  type?: string;
+  position: { x: number; y: number };
+  style?: { width?: number; height?: number };
+  data: Record<string, unknown>;
+}
+
+/** Check if nodeA's position is inside containerB's bounds. */
+function isNodeInsideContainer(nodeA: CanvasNode, containerB: CanvasNode): boolean {
+  const cw = (containerB.style?.width as number) || 300;
+  const ch = (containerB.style?.height as number) || 200;
+  return (
+    nodeA.position.x >= containerB.position.x &&
+    nodeA.position.x <= containerB.position.x + cw &&
+    nodeA.position.y >= containerB.position.y &&
+    nodeA.position.y <= containerB.position.y + ch
+  );
+}
+
+/** Validate all topology relationships before save/promote. */
+export function validateTopology(nodes: CanvasNode[]): ValidationError[] {
+  const errors: ValidationError[] = [];
+  const containers = nodes.filter(
+    (n) => n.type === 'vpc' || n.type === 'subnet' || n.type === 'compliance_zone'
+  );
+  const devices = nodes.filter((n) => n.type === 'device');
+
+  // Collect all device IPs for duplicate detection
+  const ipToNodes: Map<string, string[]> = new Map();
+  for (const dev of devices) {
+    const ip = (dev.data.ip as string) || '';
+    if (ip) {
+      const existing = ipToNodes.get(ip) || [];
+      existing.push(dev.id);
+      ipToNodes.set(ip, existing);
+    }
+  }
+
+  // Rule 10: Duplicate IPs
+  for (const [ip, nodeIds] of ipToNodes) {
+    if (nodeIds.length > 1) {
+      const names = nodeIds.map((id) => {
+        const n = nodes.find((nd) => nd.id === id);
+        return (n?.data.label as string) || id;
+      });
+      for (const nodeId of nodeIds) {
+        errors.push({
+          field: 'ip',
+          message: `Duplicate IP '${ip}' shared by: ${names.join(', ')}`,
+          severity: 'error',
+          nodeId,
+        });
+      }
+    }
+  }
+
+  // Rule 6: Device IP must be within parent container CIDR
+  for (const dev of devices) {
+    const devIp = (dev.data.ip as string) || '';
+    const parentId = (dev.data.parentContainerId as string) || '';
+    if (!devIp || !parentId) continue;
+
+    const parent = containers.find((c) => c.id === parentId);
+    if (!parent) continue;
+
+    const parentCidr = (parent.data.cidr as string) || '';
+    if (!parentCidr) continue;
+
+    if (validateIPv4(devIp) || validateCIDR(parentCidr)) continue; // skip if formats are bad
+
+    if (!isIPInCIDR(devIp, parentCidr)) {
+      errors.push({
+        field: 'ip',
+        message: `'${dev.data.label || dev.id}' IP ${devIp} is outside ${parent.data.label || parent.id} CIDR ${parentCidr}`,
+        severity: 'error',
+        nodeId: dev.id,
+      });
+    }
+  }
+
+  // Rule 9: Overlapping subnet CIDRs
+  const subnetNodes = containers.filter((c) => c.type === 'subnet');
+  const subnetCidrs = subnetNodes.map((s) => ({
+    id: s.id,
+    label: (s.data.label as string) || s.id,
+    cidr: (s.data.cidr as string) || '',
+  })).filter((s) => s.cidr && !validateCIDR(s.cidr));
+
+  for (let i = 0; i < subnetCidrs.length; i++) {
+    for (let j = i + 1; j < subnetCidrs.length; j++) {
+      if (doCIDRsOverlap(subnetCidrs[i].cidr, subnetCidrs[j].cidr)) {
+        errors.push({
+          field: 'cidr',
+          message: `Overlapping subnets: '${subnetCidrs[i].label}' (${subnetCidrs[i].cidr}) and '${subnetCidrs[j].label}' (${subnetCidrs[j].cidr})`,
+          severity: 'warning',
+          nodeId: subnetCidrs[i].id,
+        });
+      }
+    }
+  }
+
+  // Rule 7: Subnet CIDR must be inside parent VPC CIDR
+  for (const subnet of subnetNodes) {
+    const subCidr = (subnet.data.cidr as string) || '';
+    if (!subCidr || validateCIDR(subCidr)) continue;
+
+    const parentVpc = containers.find(
+      (c) => c.type === 'vpc' && isNodeInsideContainer(subnet, c)
+    );
+    if (!parentVpc) continue;
+
+    const vpcCidr = (parentVpc.data.cidr as string) || '';
+    if (!vpcCidr || validateCIDR(vpcCidr)) continue;
+
+    if (!isCIDRSubsetOf(subCidr, vpcCidr)) {
+      errors.push({
+        field: 'cidr',
+        message: `Subnet '${subnet.data.label || subnet.id}' CIDR ${subCidr} is not within VPC '${parentVpc.data.label || parentVpc.id}' CIDR ${vpcCidr}`,
+        severity: 'error',
+        nodeId: subnet.id,
+      });
+    }
+  }
+
+  return errors;
+}

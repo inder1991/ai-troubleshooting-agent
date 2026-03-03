@@ -19,10 +19,13 @@ import DeviceNode from './DeviceNode';
 import SubnetGroupNode from './SubnetGroupNode';
 import VPCNode from './VPCNode';
 import ComplianceZoneNode from './ComplianceZoneNode';
+import HAGroupNode from './HAGroupNode';
 import DevicePropertyPanel from './DevicePropertyPanel';
 import TopologyToolbar from './TopologyToolbar';
 import IPAMUploadDialog from './IPAMUploadDialog';
 import AdapterConfigDialog from './AdapterConfigDialog';
+import ValidationPanel from './ValidationPanel';
+import { validateTopology, type ValidationError } from '../../utils/networkValidation';
 import { loadTopology, saveTopology, promoteTopology, API_BASE_URL } from '../../services/api';
 
 const nodeTypes = {
@@ -30,6 +33,7 @@ const nodeTypes = {
   subnet: SubnetGroupNode,
   vpc: VPCNode,
   compliance_zone: ComplianceZoneNode,
+  ha_group: HAGroupNode,
 };
 
 let idCounter = 0;
@@ -48,6 +52,7 @@ function TopologyEditorInner() {
   const [adapterNodeId, setAdapterNodeId] = useState<string | null>(null);
   const [adapterNodeName, setAdapterNodeName] = useState<string | undefined>(undefined);
   const [promoting, setPromoting] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
 
   // Load topology on mount
   useEffect(() => {
@@ -106,7 +111,7 @@ function TopologyEditorInner() {
       if (draggedNode.type !== 'device') return;
 
       const containers = nodes.filter(
-        (n) => (n.type === 'vpc' || n.type === 'subnet' || n.type === 'compliance_zone') && n.id !== draggedNode.id
+        (n) => (n.type === 'vpc' || n.type === 'subnet' || n.type === 'compliance_zone' || n.type === 'ha_group') && n.id !== draggedNode.id
       );
 
       let newParentId: string | undefined = undefined;
@@ -154,11 +159,11 @@ function TopologyEditorInner() {
         y: event.clientY - bounds.top,
       });
 
-      const isContainer = type === 'subnet' || type === 'zone' || type === 'vpc' || type === 'compliance_zone';
+      const isContainer = type === 'subnet' || type === 'zone' || type === 'vpc' || type === 'compliance_zone' || type === 'ha_group';
 
       const newNode: Node = {
         id: getNextId(),
-        type: isContainer ? (type === 'vpc' ? 'vpc' : type === 'compliance_zone' ? 'compliance_zone' : 'subnet') : 'device',
+        type: isContainer ? (type === 'vpc' ? 'vpc' : type === 'compliance_zone' ? 'compliance_zone' : type === 'ha_group' ? 'ha_group' : 'subnet') : 'device',
         position,
         data: {
           label: type.charAt(0).toUpperCase() + type.slice(1).replace('_', ' '),
@@ -182,9 +187,13 @@ function TopologyEditorInner() {
   // Save topology
   const handleSave = useCallback(async () => {
     if (!reactFlowInstance) return;
+    const flow = reactFlowInstance.toObject();
+    const errs = validateTopology(flow.nodes as any);
+    const blocking = errs.filter((e) => e.severity === 'error');
+    setValidationErrors(errs);
+    if (blocking.length > 0) return; // block save
     setSaving(true);
     try {
-      const flow = reactFlowInstance.toObject();
       await saveTopology(JSON.stringify(flow), 'User-saved topology');
     } catch (err) {
       console.error('Failed to save topology:', err);
@@ -233,9 +242,13 @@ function TopologyEditorInner() {
   // Promote to Infrastructure (canvas -> KG)
   const handlePromote = useCallback(async () => {
     if (!reactFlowInstance) return;
+    const flow = reactFlowInstance.toObject();
+    const errs = validateTopology(flow.nodes as any);
+    const blocking = errs.filter((e) => e.severity === 'error');
+    setValidationErrors(errs);
+    if (blocking.length > 0) return; // block promote
     setPromoting(true);
     try {
-      const flow = reactFlowInstance.toObject();
       await promoteTopology(flow.nodes, flow.edges);
     } catch (err) {
       console.error('Promote failed:', err);
@@ -271,6 +284,15 @@ function TopologyEditorInner() {
     },
     [nodes],
   );
+
+  // Validation click: zoom to error node
+  const handleValidationClick = useCallback((nodeId: string) => {
+    const node = nodes.find((n) => n.id === nodeId);
+    if (node && reactFlowInstance) {
+      reactFlowInstance.fitView({ nodes: [node], duration: 300, padding: 0.5 });
+      setSelectedNode(node);
+    }
+  }, [nodes, reactFlowInstance]);
 
   // IPAM import results
   const handleIPAMImported = useCallback(
@@ -346,6 +368,13 @@ function TopologyEditorInner() {
           onConfigureAdapter={handleConfigureAdapter}
         />
       </div>
+
+      {/* Validation Panel */}
+      <ValidationPanel
+        errors={validationErrors}
+        onClickError={handleValidationClick}
+        onDismiss={() => setValidationErrors([])}
+      />
 
       {/* Dialogs */}
       <IPAMUploadDialog
