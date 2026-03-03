@@ -21,6 +21,7 @@ from src.agents.network.graph_pathfinder import graph_pathfinder
 from src.agents.network.traceroute_probe import traceroute_probe
 from src.agents.network.hop_attributor import hop_attributor
 from src.agents.network.firewall_evaluator import firewall_evaluator
+from src.agents.network.nacl_evaluator import nacl_evaluator
 from src.agents.network.nat_resolver import nat_resolver
 from src.agents.network.path_synthesizer import path_synthesizer
 from src.agents.network.report_generator import report_generator
@@ -111,6 +112,10 @@ def build_network_diagnostic_graph(
     bound_firewall_evaluator = functools.partial(firewall_evaluator, adapters=adapters)
     bound_nat_resolver = functools.partial(nat_resolver, adapters=adapters)
 
+    # NACL evaluator uses the topology store
+    bound_nacl_evaluator = functools.partial(nacl_evaluator, store=kg.store)
+    async_nacl_evaluator = _make_async_wrapper(bound_nacl_evaluator)
+
     # Wrap sync nodes as async
     async_input_resolver = _make_async_wrapper(bound_input_resolver)
     async_graph_pathfinder = _make_async_wrapper(bound_graph_pathfinder)
@@ -125,6 +130,7 @@ def build_network_diagnostic_graph(
     graph.add_node("traceroute_probe", async_traceroute_probe)
     graph.add_node("hop_attributor", async_hop_attributor)
     graph.add_node("firewall_evaluator", bound_firewall_evaluator)
+    graph.add_node("nacl_evaluator", async_nacl_evaluator)
     graph.add_node("nat_resolver", bound_nat_resolver)
     graph.add_node("path_synthesizer", async_path_synthesizer)
     graph.add_node("report_generator", async_report_generator)
@@ -152,10 +158,12 @@ def build_network_diagnostic_graph(
         },
     )
 
-    # Sequential: traceroute -> hop_attributor -> firewall_evaluator -> nat_resolver -> path_synthesizer
+    # traceroute -> hop_attributor -> [firewall_evaluator, nacl_evaluator] -> nat_resolver -> path_synthesizer
     graph.add_edge("traceroute_probe", "hop_attributor")
     graph.add_edge("hop_attributor", "firewall_evaluator")
+    graph.add_edge("hop_attributor", "nacl_evaluator")
     graph.add_edge("firewall_evaluator", "nat_resolver")
+    graph.add_edge("nacl_evaluator", "nat_resolver")
     graph.add_edge("nat_resolver", "path_synthesizer")
 
     # path_synthesizer -> report_generator -> END
