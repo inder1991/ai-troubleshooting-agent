@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import type { Node } from 'reactflow';
+import { validateIPv4, validateCIDR } from '../../utils/networkValidation';
 
 interface DevicePropertyPanelProps {
   selectedNode: Node | null;
@@ -44,6 +45,12 @@ const DevicePropertyPanel: React.FC<DevicePropertyPanelProps> = ({
       setLbScheme(d.lbScheme || 'internal');
     }
   }, [selectedNode]);
+
+  const errors = useMemo(() => ({
+    ip: ip ? validateIPv4(ip) : null,
+    cidr: cidr ? validateCIDR(cidr) : null,
+    remoteGateway: remoteGateway ? validateIPv4(remoteGateway) : null,
+  }), [ip, cidr, remoteGateway]);
 
   if (!selectedNode) {
     return (
@@ -122,8 +129,9 @@ const DevicePropertyPanel: React.FC<DevicePropertyPanelProps> = ({
             onChange={(e) => setIp(e.target.value)}
             placeholder="192.168.1.1"
             className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#07b6d5]"
-            style={inputStyle}
+            style={{ ...inputStyle, borderColor: errors.ip ? '#ef4444' : '#224349' }}
           />
+          {errors.ip && <p style={{ color: '#ef4444', fontSize: '10px', fontFamily: 'monospace', marginTop: '2px' }}>{errors.ip}</p>}
         </div>
 
         {/* Vendor */}
@@ -206,7 +214,8 @@ const DevicePropertyPanel: React.FC<DevicePropertyPanelProps> = ({
             <div className="flex flex-col gap-1">
               <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#64748b' }}>CIDR Blocks</label>
               <input type="text" value={cidr} onChange={(e) => setCidr(e.target.value)} placeholder="10.0.0.0/16, 10.1.0.0/16"
-                     className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#07b6d5]" style={inputStyle} />
+                     className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#07b6d5]" style={{ ...inputStyle, borderColor: errors.cidr ? '#ef4444' : '#224349' }} />
+              {errors.cidr && <p style={{ color: '#ef4444', fontSize: '10px', fontFamily: 'monospace', marginTop: '2px' }}>{errors.cidr}</p>}
             </div>
           </>
         )}
@@ -231,7 +240,8 @@ const DevicePropertyPanel: React.FC<DevicePropertyPanelProps> = ({
             <div className="flex flex-col gap-1">
               <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#64748b' }}>Remote Gateway</label>
               <input type="text" value={remoteGateway} onChange={(e) => setRemoteGateway(e.target.value)} placeholder="203.0.113.1"
-                     className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#07b6d5]" style={inputStyle} />
+                     className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#07b6d5]" style={{ ...inputStyle, borderColor: errors.remoteGateway ? '#ef4444' : '#224349' }} />
+              {errors.remoteGateway && <p style={{ color: '#ef4444', fontSize: '10px', fontFamily: 'monospace', marginTop: '2px' }}>{errors.remoteGateway}</p>}
             </div>
           </>
         )}
@@ -263,7 +273,8 @@ const DevicePropertyPanel: React.FC<DevicePropertyPanelProps> = ({
         {/* Apply Button */}
         <button
           onClick={handleApply}
-          className="mt-2 text-sm font-mono font-semibold px-4 py-2 rounded transition-colors"
+          disabled={!!errors.ip || !!errors.cidr || !!errors.remoteGateway}
+          className="mt-2 text-sm font-mono font-semibold px-4 py-2 rounded transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           style={{ backgroundColor: '#07b6d5', color: '#0a0f13' }}
         >
           Apply Changes

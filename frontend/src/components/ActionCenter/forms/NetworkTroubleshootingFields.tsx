@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { NetworkTroubleshootingForm } from '../../../types';
+import { validateIPv4, validatePort } from '../../../utils/networkValidation';
 
 interface NetworkTroubleshootingFieldsProps {
   data: NetworkTroubleshootingForm;
@@ -11,15 +12,21 @@ const NetworkTroubleshootingFields: React.FC<NetworkTroubleshootingFieldsProps> 
     onChange({ ...data, ...field });
   };
 
-  // Shared input styling (match existing forms)
+  const errors = useMemo(() => ({
+    src_ip: data.src_ip ? validateIPv4(data.src_ip) : null,
+    dst_ip: data.dst_ip ? validateIPv4(data.dst_ip) : null,
+    port: data.port ? validatePort(data.port) : null,
+  }), [data.src_ip, data.dst_ip, data.port]);
+
   const inputClasses = "w-full rounded-lg border px-3 py-2 text-sm font-mono focus:outline-none focus:ring-1";
-  const inputStyle = {
+  const inputStyle = (hasError: boolean) => ({
     backgroundColor: '#0f2023',
-    borderColor: '#224349',
+    borderColor: hasError ? '#ef4444' : '#224349',
     color: '#e2e8f0',
-  };
+  });
   const labelClasses = "text-xs font-mono uppercase tracking-widest mb-1.5 block";
   const labelStyle = { color: '#64748b' };
+  const errorStyle = { color: '#ef4444', fontSize: '10px', fontFamily: 'monospace', marginTop: '4px' };
 
   return (
     <div className="space-y-4">
@@ -32,8 +39,9 @@ const NetworkTroubleshootingFields: React.FC<NetworkTroubleshootingFieldsProps> 
           value={data.src_ip}
           onChange={(e) => update({ src_ip: e.target.value })}
           className={inputClasses}
-          style={inputStyle}
+          style={inputStyle(!!errors.src_ip)}
         />
+        {errors.src_ip && <p style={errorStyle}>{errors.src_ip}</p>}
       </div>
 
       {/* Destination IP */}
@@ -45,8 +53,9 @@ const NetworkTroubleshootingFields: React.FC<NetworkTroubleshootingFieldsProps> 
           value={data.dst_ip}
           onChange={(e) => update({ dst_ip: e.target.value })}
           className={inputClasses}
-          style={inputStyle}
+          style={inputStyle(!!errors.dst_ip)}
         />
+        {errors.dst_ip && <p style={errorStyle}>{errors.dst_ip}</p>}
       </div>
 
       {/* Port */}
@@ -58,8 +67,9 @@ const NetworkTroubleshootingFields: React.FC<NetworkTroubleshootingFieldsProps> 
           value={data.port}
           onChange={(e) => update({ port: e.target.value })}
           className={inputClasses}
-          style={inputStyle}
+          style={inputStyle(!!errors.port)}
         />
+        {errors.port && <p style={errorStyle}>{errors.port}</p>}
       </div>
 
       {/* Protocol Toggle */}
