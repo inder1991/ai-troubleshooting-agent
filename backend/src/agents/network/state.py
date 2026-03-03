@@ -51,6 +51,7 @@ class NetworkPipelineState(TypedDict, total=False):
     # Diagnosis
     diagnosis_status: str  # "running" | "complete" | "no_path_known" | "ambiguous" | "error"
     confidence: float
+    confidence_breakdown: Optional[dict]  # { path_confidence, path_source, firewall_confidence, contradiction_bonus, penalties, overall }
     evidence: Annotated[list[dict], operator.add]
     contradictions: list[dict]
     next_steps: list[str]

@@ -92,6 +92,18 @@ const DiagnosisPanel: React.FC<DiagnosisPanelProps> = ({ findings }) => {
             }}
           />
         </div>
+        {state.confidence_breakdown && (
+          <div className="space-y-1.5 mt-3 pt-3" style={{ borderTop: '1px solid #1a3a3f' }}>
+            {Object.entries(state.confidence_breakdown)
+              .filter(([k]) => !['overall', 'penalties', 'path_source'].includes(k))
+              .map(([key, val]) => (
+                <div key={key} className="flex justify-between text-[11px] font-mono">
+                  <span style={{ color: '#64748b' }}>{key.replace(/_/g, ' ')}</span>
+                  <span style={{ color: '#94a3b8' }}>{(Number(val) * 100).toFixed(0)}%</span>
+                </div>
+              ))}
+          </div>
+        )}
       </div>
 
       {/* Path Hop List */}

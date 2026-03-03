@@ -1260,6 +1260,14 @@ export interface AgentExecutionsResponse {
 export interface NetworkFindingsState {
   diagnosis_status?: string;
   confidence?: number;
+  confidence_breakdown?: {
+    path_confidence: number;
+    path_source: string;
+    firewall_confidence: number;
+    contradiction_bonus: number;
+    penalties: Array<{ type: string; impact: number }>;
+    overall: number;
+  };
   executive_summary?: string;
   final_path?: {
     hops: string[];
@@ -1329,6 +1337,14 @@ export interface NetworkFindings {
   state: {
     diagnosis_status?: string;
     confidence?: number;
+    confidence_breakdown?: {
+      path_confidence: number;
+      path_source: string;
+      firewall_confidence: number;
+      contradiction_bonus: number;
+      penalties: Array<{ type: string; impact: number }>;
+      overall: number;
+    };
     executive_summary?: string;
     final_path?: {
       hops: string[];

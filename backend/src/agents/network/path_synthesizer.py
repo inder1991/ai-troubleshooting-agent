@@ -83,6 +83,22 @@ def path_synthesizer(state: dict) -> dict:
     if any_deny:
         overall = min(overall, 0.5)  # Can't be highly confident if blocked
 
+    # Build confidence breakdown
+    penalties = []
+    if routing_loop:
+        penalties.append({"type": "routing_loop", "impact": -0.7})
+    if any_deny:
+        penalties.append({"type": "firewall_deny_cap", "impact": -(overall - 0.5) if overall > 0.5 else 0})
+
+    confidence_breakdown = {
+        "path_confidence": round(path_confidence / 3.0 * 0.6, 3),
+        "path_source": path_source,
+        "firewall_confidence": round(fw_confidence * 0.3, 3),
+        "contradiction_bonus": 0.1 if not contradictions else 0.0,
+        "penalties": penalties,
+        "overall": round(overall, 3),
+    }
+
     # Determine diagnosis status
     if not final_hops and not candidate_paths:
         diagnosis_status = "no_path_known"
@@ -107,6 +123,7 @@ def path_synthesizer(state: dict) -> dict:
     return {
         "final_path": final_path,
         "confidence": round(overall, 3),
+        "confidence_breakdown": confidence_breakdown,
         "diagnosis_status": diagnosis_status,
         "contradictions": contradictions,
         "evidence": [{
