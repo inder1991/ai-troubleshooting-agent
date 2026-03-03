@@ -178,6 +178,12 @@ class TopologyStore:
             CREATE INDEX IF NOT EXISTS idx_nacl_rules_nacl ON nacl_rules(nacl_id);
             CREATE INDEX IF NOT EXISTS idx_lb_targets_lb ON lb_target_groups(lb_id);
             CREATE INDEX IF NOT EXISTS idx_route_tables_vpc ON route_tables(vpc_id);
+
+            CREATE TABLE IF NOT EXISTS edge_confidence (
+                src_id TEXT, dst_id TEXT, confidence REAL,
+                source TEXT, last_verified_at TEXT,
+                PRIMARY KEY (src_id, dst_id)
+            );
         """)
         conn.commit()
         conn.close()
@@ -497,6 +503,29 @@ class TopologyStore:
             "description": d["description"],
         }
 
+    def list_diagram_snapshots(self, limit: int = 20) -> list[dict]:
+        conn = self._conn()
+        rows = conn.execute(
+            "SELECT id, timestamp, description FROM diagram_snapshots ORDER BY id DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+        conn.close()
+        return [dict(r) for r in rows]
+
+    def load_diagram_snapshot_by_id(self, snap_id: int) -> Optional[dict]:
+        conn = self._conn()
+        row = conn.execute("SELECT * FROM diagram_snapshots WHERE id=?", (snap_id,)).fetchone()
+        conn.close()
+        if not row:
+            return None
+        d = dict(row)
+        return {
+            "id": d["id"],
+            "snapshot_json": d["snapshot_json"],
+            "timestamp": d["timestamp"],
+            "description": d["description"],
+        }
+
     def list_flows(self, limit: int = 50) -> list[Flow]:
         """List recent flows, ordered by timestamp descending."""
         conn = self._conn()
@@ -745,3 +774,19 @@ class TopologyStore:
         rows = conn.execute("SELECT * FROM compliance_zones").fetchall()
         conn.close()
         return [ComplianceZone(**{**dict(r), "subnet_ids": json.loads(r["subnet_ids"]) if r["subnet_ids"] else [], "vpc_ids": json.loads(r["vpc_ids"]) if r["vpc_ids"] else []}) for r in rows]
+
+    # ── Edge Confidence Persistence ──
+    def save_edge_confidence(self, src_id: str, dst_id: str, confidence: float, source: str) -> None:
+        conn = self._conn()
+        conn.execute(
+            "INSERT OR REPLACE INTO edge_confidence VALUES (?,?,?,?,?)",
+            (src_id, dst_id, confidence, source, datetime.now(timezone.utc).isoformat()),
+        )
+        conn.commit()
+        conn.close()
+
+    def list_edge_confidences(self) -> list[dict]:
+        conn = self._conn()
+        rows = conn.execute("SELECT * FROM edge_confidence").fetchall()
+        conn.close()
+        return [dict(r) for r in rows]

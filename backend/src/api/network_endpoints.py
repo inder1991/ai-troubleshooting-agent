@@ -16,7 +16,7 @@ from src.api.network_models import (
 from src.network.topology_store import TopologyStore
 from src.network.knowledge_graph import NetworkKnowledgeGraph
 from src.network.models import Flow, DiagnosisStatus
-from src.network.ipam_ingestion import parse_ipam_csv
+from src.network.ipam_ingestion import parse_ipam_csv, parse_ipam_excel
 from src.network.adapters.base import FirewallAdapter
 from src.agents.network.graph import build_network_diagnostic_graph
 from src.utils.logger import get_logger
@@ -196,23 +196,40 @@ async def topology_load():
 
 @network_router.post("/ipam/upload")
 async def ipam_upload(file: UploadFile = File(...)):
-    """Accept CSV file upload, parse IPAM data."""
+    """Accept CSV or Excel file upload, parse IPAM data."""
     store = _get_topology_store()
     raw = await file.read()
-    try:
-        content = raw.decode("utf-8")
-    except UnicodeDecodeError:
+    filename = (file.filename or "").lower()
+
+    if filename.endswith(".xlsx"):
+        stats = parse_ipam_excel(raw, store)
+    else:
         try:
-            content = raw.decode("latin-1")
+            content = raw.decode("utf-8")
         except UnicodeDecodeError:
-            raise HTTPException(400, "File is not valid UTF-8 or Latin-1 text")
-    stats = parse_ipam_csv(content, store)
+            try:
+                content = raw.decode("latin-1")
+            except UnicodeDecodeError:
+                raise HTTPException(400, "File is not valid UTF-8 or Latin-1 text")
+        stats = parse_ipam_csv(content, store)
 
     # Reload knowledge graph after IPAM import
     kg = _get_knowledge_graph()
     kg.load_from_store()
+    rf_graph = kg.export_react_flow_graph()
 
-    return {"status": "imported", "stats": stats}
+    return {
+        "status": "imported",
+        "stats": stats,
+        # Frontend-expected field names (IPAMUploadDialog.tsx:54-56)
+        "devices_imported": stats["devices_added"],
+        "subnets_imported": stats["subnets_added"],
+        # React Flow nodes/edges for canvas update (IPAMUploadDialog.tsx:59-61)
+        "nodes": rf_graph["nodes"],
+        "edges": rf_graph["edges"],
+        # Validation warnings
+        "warnings": stats.get("errors", []),
+    }
 
 
 @network_router.get("/ipam/subnets")
@@ -249,6 +266,30 @@ async def adapters_status():
     return {"adapters": results}
 
 
+@network_router.post("/adapters/test")
+async def adapter_test(req: AdapterConfigureRequest):
+    """Test adapter connection without saving."""
+    from src.network.models import FirewallVendor
+    from src.network.adapters.mock_adapter import MockFirewallAdapter
+
+    try:
+        fw_vendor = FirewallVendor(req.vendor)
+    except ValueError:
+        return {"success": False, "message": f"Unknown vendor: {req.vendor}"}
+
+    adapter = MockFirewallAdapter(
+        vendor=fw_vendor,
+        api_endpoint=req.api_endpoint,
+        api_key=req.api_key,
+        extra_config=req.extra_config,
+    )
+    try:
+        health = await adapter.health_check()
+        return {"success": health.status.value == "connected", "message": health.message}
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+
 @network_router.post("/adapters/{vendor}/configure")
 async def adapter_configure(vendor: str, req: AdapterConfigureRequest):
     """Configure a firewall adapter for a given vendor."""
@@ -260,23 +301,29 @@ async def adapter_configure(vendor: str, req: AdapterConfigureRequest):
     except ValueError:
         raise HTTPException(status_code=400, detail=f"Unknown vendor: {vendor}")
 
-    # Create adapter based on vendor (placeholder — real implementations use vendor-specific adapters)
     adapter = MockFirewallAdapter(
         vendor=fw_vendor,
         api_endpoint=req.api_endpoint,
         api_key=req.api_key,
         extra_config=req.extra_config,
     )
-    # Register adapter for all devices of this vendor type
-    _firewall_adapters[f"adapter-{vendor}"] = adapter
-    return {"status": "configured", "vendor": vendor}
+    # Register by node_id if provided, else by vendor
+    key = req.node_id or f"adapter-{vendor}"
+    _firewall_adapters[key] = adapter
+    # Persist config
+    store = _get_topology_store()
+    from src.network.models import AdapterConfig
+    store.save_adapter_config(AdapterConfig(
+        vendor=fw_vendor, api_endpoint=req.api_endpoint,
+        api_key=req.api_key, extra_config=req.extra_config,
+    ))
+    return {"status": "configured", "vendor": vendor, "adapter_key": key}
 
 
 @network_router.post("/adapters/{vendor}/refresh")
 async def adapter_refresh(vendor: str):
     """Force refresh adapter snapshot for a vendor."""
     adapters = _get_adapters()
-    # Find adapter by vendor
     target = None
     target_id = None
     for device_id, adapter in adapters.items():
@@ -287,7 +334,35 @@ async def adapter_refresh(vendor: str):
     if not target:
         raise HTTPException(status_code=404, detail=f"No adapter configured for vendor: {vendor}")
     await target.refresh_snapshot()
+    # Reload KG to pick up new rules/routes from adapter
+    kg = _get_knowledge_graph()
+    kg.load_from_store()
     return {"status": "refreshed", "device_id": target_id, "vendor": vendor}
+
+
+@network_router.get("/topology/versions")
+async def topology_versions():
+    """List recent diagram snapshots."""
+    store = _get_topology_store()
+    versions = store.list_diagram_snapshots()
+    return {"versions": versions}
+
+
+@network_router.get("/topology/load/{snap_id}")
+async def topology_load_version(snap_id: int):
+    """Load a specific diagram snapshot by ID."""
+    store = _get_topology_store()
+    snapshot = store.load_diagram_snapshot_by_id(snap_id)
+    if not snapshot:
+        raise HTTPException(404, "Snapshot not found")
+    return {"snapshot": snapshot}
+
+
+@network_router.get("/topology/current")
+async def topology_current():
+    """Return current KG state as React Flow nodes/edges."""
+    kg = _get_knowledge_graph()
+    return kg.export_react_flow_graph()
 
 
 @network_router.get("/flows")

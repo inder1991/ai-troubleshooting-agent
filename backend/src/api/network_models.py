@@ -24,6 +24,8 @@ class TopologySaveRequest(BaseModel):
 
 
 class AdapterConfigureRequest(BaseModel):
+    vendor: str = "palo_alto"
+    node_id: Optional[str] = None
     api_endpoint: str
     api_key: str = ""
     extra_config: dict = Field(default_factory=dict)

@@ -3,7 +3,7 @@ import networkx as nx
 from typing import Optional
 from datetime import datetime, timezone
 from .models import (
-    Device, Subnet, Zone, Interface, EdgeMetadata, EdgeSource, Route,
+    Device, DeviceType, Subnet, Zone, Interface, EdgeMetadata, EdgeSource, Route,
     VPC, TransitGateway, VPNTunnel, DirectConnect, NACL, LoadBalancer,
     LBTargetGroup, VLAN, MPLSCircuit, ComplianceZone, VPCPeering,
 )
@@ -159,6 +159,14 @@ class NetworkKnowledgeGraph:
         for cz in self.store.list_compliance_zones():
             self.graph.add_node(cz.id, **cz.model_dump(), node_type="compliance_zone")
 
+        # Restore persisted edge confidences
+        for ec in self.store.list_edge_confidences():
+            src, dst = ec["src_id"], ec["dst_id"]
+            if self.graph.has_edge(src, dst):
+                for key in self.graph[src][dst]:
+                    self.graph[src][dst][key]["confidence"] = ec["confidence"]
+                    self.graph[src][dst][key]["last_verified_at"] = ec["last_verified_at"]
+
     def add_device(self, device: Device) -> None:
         self.store.add_device(device)
         self.graph.add_node(device.id, **device.model_dump(), node_type="device")
@@ -289,14 +297,53 @@ class NetworkKnowledgeGraph:
             return []
 
     def boost_edge_confidence(self, src_id: str, dst_id: str, boost: float = 0.05) -> None:
-        """Boost confidence on a verified edge."""
+        """Boost confidence on a verified edge and persist to SQLite."""
         if self.graph.has_edge(src_id, dst_id):
+            new_conf = 0.5  # default
             for key in self.graph[src_id][dst_id]:
                 current = self.graph[src_id][dst_id][key].get("confidence", 0.5)
                 new_conf = min(1.0, current + boost)
                 self.graph[src_id][dst_id][key]["confidence"] = new_conf
                 self.graph[src_id][dst_id][key]["last_verified_at"] = \
                     datetime.now(timezone.utc).isoformat()
+            # Persist to SQLite
+            self.store.save_edge_confidence(src_id, dst_id, new_conf, "diagnosis")
+
+    def writeback_discovered_hops(self, hops: list[dict]) -> int:
+        """Write diagnosis-discovered hops back to topology as devices/edges.
+        Each hop dict: {ip, device_id?, device_name?, rtt_ms, status}
+        Returns count of new devices added.
+        """
+        added = 0
+        prev_device_id = None
+        for hop in hops:
+            ip = hop.get("ip", "")
+            if not ip or ip == "*":
+                continue
+            device_id = hop.get("device_id") or self.find_device_by_ip(ip)
+            if not device_id:
+                # New device discovered by diagnosis
+                device_id = f"device-discovered-{ip.replace('.', '-')}"
+                device = Device(
+                    id=device_id,
+                    name=hop.get("device_name", f"discovered-{ip}"),
+                    device_type=DeviceType.HOST,
+                    management_ip=ip,
+                )
+                self.add_device(device)
+                added += 1
+            # Create edge from previous hop
+            if prev_device_id and prev_device_id != device_id:
+                self.add_edge(
+                    prev_device_id, device_id,
+                    EdgeMetadata(
+                        confidence=0.7,
+                        source=EdgeSource.DIAGNOSIS,
+                        edge_type="routes_to",
+                    ),
+                )
+            prev_device_id = device_id
+        return added
 
     @property
     def node_count(self) -> int:
@@ -305,3 +352,43 @@ class NetworkKnowledgeGraph:
     @property
     def edge_count(self) -> int:
         return self.graph.number_of_edges()
+
+    def export_react_flow_graph(self) -> dict:
+        """Convert KG nodes/edges to React Flow format for canvas rendering."""
+        rf_nodes = []
+        rf_edges = []
+        ROW_WIDTH = 250
+        COL_HEIGHT = 150
+
+        node_type_map = {
+            "device": "device",
+            "subnet": "subnet",
+            "vpc": "vpc",
+            "compliance_zone": "compliance_zone",
+        }
+
+        for i, (node_id, data) in enumerate(self.graph.nodes(data=True)):
+            ntype = data.get("node_type", "device")
+            rf_type = node_type_map.get(ntype, "device")
+            rf_nodes.append({
+                "id": node_id,
+                "type": rf_type,
+                "position": {"x": (i % 6) * ROW_WIDTH, "y": (i // 6) * COL_HEIGHT},
+                "data": {
+                    "label": data.get("name", node_id),
+                    "entityId": node_id,
+                    "deviceType": data.get("device_type", "HOST"),
+                    "ip": data.get("management_ip") or data.get("cidr", ""),
+                },
+            })
+
+        for u, v, edata in self.graph.edges(data=True):
+            rf_edges.append({
+                "id": f"e-{u}-{v}-{edata.get('edge_type', 'default')}",
+                "source": u,
+                "target": v,
+                "label": edata.get("edge_type", ""),
+                "animated": edata.get("confidence", 0) < 0.8,
+            })
+
+        return {"nodes": rf_nodes, "edges": rf_edges}

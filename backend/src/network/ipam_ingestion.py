@@ -1,10 +1,28 @@
 """IPAM data ingestion — CSV/Excel upload and parsing."""
 import csv
 import io
+import ipaddress
 import uuid
 from typing import Optional
 from .models import Device, Subnet, Interface, DeviceType
 from .topology_store import TopologyStore
+
+
+def _infer_device_type(name: str, row: dict) -> DeviceType:
+    """Infer device type from name patterns or explicit column."""
+    explicit = row.get("device_type", "").strip().upper()
+    if explicit and hasattr(DeviceType, explicit):
+        return DeviceType[explicit]
+    name_lower = name.lower()
+    if any(k in name_lower for k in ("fw", "firewall", "palo", "asa")):
+        return DeviceType.FIREWALL
+    if any(k in name_lower for k in ("router", "rtr", "gw", "gateway")):
+        return DeviceType.ROUTER
+    if any(k in name_lower for k in ("switch", "sw")):
+        return DeviceType.SWITCH
+    if any(k in name_lower for k in ("lb", "loadbalancer", "load-balancer", "nlb", "alb")):
+        return DeviceType.LOAD_BALANCER
+    return DeviceType.HOST
 
 
 def parse_ipam_csv(content: str, store: TopologyStore) -> dict:
@@ -16,6 +34,7 @@ def parse_ipam_csv(content: str, store: TopologyStore) -> dict:
     stats = {"devices_added": 0, "subnets_added": 0, "interfaces_added": 0, "errors": []}
     seen_devices = set()
     seen_subnets = set()
+    seen_ips = set()
 
     for row_num, row in enumerate(reader, start=2):
         try:
@@ -28,6 +47,29 @@ def parse_ipam_csv(content: str, store: TopologyStore) -> dict:
 
             if not ip and not subnet_cidr:
                 continue
+
+            # Validate IP address
+            if ip:
+                try:
+                    ipaddress.ip_address(ip)
+                except ValueError:
+                    stats["errors"].append(f"Row {row_num}: Invalid IP address '{ip}'")
+                    continue
+
+            # Validate subnet CIDR
+            if subnet_cidr:
+                try:
+                    ipaddress.ip_network(subnet_cidr, strict=False)
+                except ValueError:
+                    stats["errors"].append(f"Row {row_num}: Invalid CIDR '{subnet_cidr}'")
+                    continue
+
+            # Duplicate IP detection
+            if ip:
+                if ip in seen_ips:
+                    stats["errors"].append(f"Row {row_num}: Duplicate IP '{ip}'")
+                    continue
+                seen_ips.add(ip)
 
             # Create/update subnet
             if subnet_cidr and subnet_cidr not in seen_subnets:
@@ -44,7 +86,7 @@ def parse_ipam_csv(content: str, store: TopologyStore) -> dict:
                 device_id = f"device-{device_name.lower().replace(' ', '-')}"
                 store.add_device(Device(
                     id=device_id, name=device_name,
-                    device_type=DeviceType.HOST,
+                    device_type=_infer_device_type(device_name, row),
                 ))
                 seen_devices.add(device_name)
                 stats["devices_added"] += 1
