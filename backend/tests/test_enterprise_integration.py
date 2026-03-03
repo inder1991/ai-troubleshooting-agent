@@ -1,5 +1,4 @@
 """Integration test for enterprise hybrid network constructs in the diagnosis pipeline."""
-import os
 import asyncio
 import pytest
 
@@ -102,10 +101,11 @@ class TestEnterpriseIntegration:
         assert result["diagnosis_status"] == "complete"
         assert result["confidence"] > 0
 
-        # Enterprise fields should be present (may be empty if path doesn't cross them)
+        # Enterprise fields should be present in state
         assert "nacl_verdicts" in result
-        assert "vpc_boundary_crossings" in result or True  # may not have crossings
-        assert "vpn_segments" in result or True
+        assert isinstance(result.get("nacl_verdicts"), list)
+        assert isinstance(result.get("vpc_boundary_crossings", []), list)
+        assert isinstance(result.get("vpn_segments", []), list)
 
     def test_nacl_verdicts_populated(self, enterprise_topology):
         """NACL verdicts should appear when NACLs are in the path."""
@@ -127,9 +127,11 @@ class TestEnterpriseIntegration:
             "protocol": "tcp",
         }))
 
-        # nacl_verdicts should be a list (possibly empty if NACL wasn't in path)
+        # nacl_verdicts should be a list; if NACLs were in path, verdicts should exist
         nacl_verdicts = result.get("nacl_verdicts", [])
         assert isinstance(nacl_verdicts, list)
+        if result.get("nacls_in_path"):
+            assert len(nacl_verdicts) > 0, "NACLs in path but no verdicts generated"
 
     def test_report_includes_enterprise_info(self, enterprise_topology):
         """Executive summary should mention enterprise constructs if present."""
