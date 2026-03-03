@@ -1315,5 +1315,44 @@ export interface NetworkFindings {
       type: string;
       detail: string;
     }>;
+    nacl_verdicts?: NACLVerdict[];
+    vpc_boundary_crossings?: VPCCrossing[];
+    vpn_segments?: VPNSegment[];
+    load_balancers_in_path?: LBHop[];
   };
+}
+
+// ===== Enterprise Network Types =====
+
+export interface VPCInfo {
+  id: string; name: string; cloud_provider: 'aws'|'azure'|'gcp'|'oci';
+  region: string; cidr_blocks: string[]; account_id: string; compliance_zone: string;
+}
+
+export interface VPNTunnelInfo {
+  id: string; name: string; tunnel_type: 'ipsec'|'gre'|'ssl';
+  encryption: string; status: 'up'|'down'|'degraded';
+}
+
+export interface DirectConnectInfo {
+  id: string; name: string; provider: 'aws_dx'|'azure_er'|'oci_fc';
+  bandwidth_mbps: number; status: 'up'|'down'|'degraded';
+}
+
+export interface NACLVerdict {
+  nacl_id: string; nacl_name: string; action: 'allow'|'deny';
+  inbound: { action: string; rule_number: number; matched_rule_id: string };
+  outbound: { action: string; rule_number: number; matched_rule_id: string };
+}
+
+export interface VPCCrossing {
+  from_vpc: string; to_vpc: string;
+}
+
+export interface VPNSegment {
+  device_id: string; name: string; tunnel_type: string; encryption: string;
+}
+
+export interface LBHop {
+  device_id: string; device_name: string; device_type: string;
 }

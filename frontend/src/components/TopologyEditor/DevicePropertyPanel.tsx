@@ -17,6 +17,14 @@ const DevicePropertyPanel: React.FC<DevicePropertyPanelProps> = ({
   const [vendor, setVendor] = useState('');
   const [deviceType, setDeviceType] = useState('');
   const [zone, setZone] = useState('');
+  const [cloudProvider, setCloudProvider] = useState('aws');
+  const [region, setRegion] = useState('');
+  const [cidr, setCidr] = useState('');
+  const [tunnelType, setTunnelType] = useState('ipsec');
+  const [encryption, setEncryption] = useState('');
+  const [remoteGateway, setRemoteGateway] = useState('');
+  const [lbType, setLbType] = useState('alb');
+  const [lbScheme, setLbScheme] = useState('internal');
 
   useEffect(() => {
     if (selectedNode) {
@@ -26,6 +34,14 @@ const DevicePropertyPanel: React.FC<DevicePropertyPanelProps> = ({
       setVendor(d.vendor || '');
       setDeviceType(d.deviceType || '');
       setZone(d.zone || '');
+      setCloudProvider(d.cloudProvider || 'aws');
+      setRegion(d.region || '');
+      setCidr(d.cidr || '');
+      setTunnelType(d.tunnelType || 'ipsec');
+      setEncryption(d.encryption || '');
+      setRemoteGateway(d.remoteGateway || '');
+      setLbType(d.lbType || 'alb');
+      setLbScheme(d.lbScheme || 'internal');
     }
   }, [selectedNode]);
 
@@ -51,6 +67,14 @@ const DevicePropertyPanel: React.FC<DevicePropertyPanelProps> = ({
       vendor,
       deviceType,
       zone,
+      cloudProvider,
+      region,
+      cidr,
+      tunnelType,
+      encryption,
+      remoteGateway,
+      lbType,
+      lbScheme,
     });
   };
 
@@ -134,6 +158,15 @@ const DevicePropertyPanel: React.FC<DevicePropertyPanelProps> = ({
             <option value="workload">Workload</option>
             <option value="cloud_gateway">Cloud Gateway</option>
             <option value="zone">Zone</option>
+            <option value="vpc">VPC / VNet</option>
+            <option value="transit_gateway">Transit Gateway</option>
+            <option value="load_balancer">Load Balancer</option>
+            <option value="vpn_tunnel">VPN Tunnel</option>
+            <option value="direct_connect">Direct Connect</option>
+            <option value="nacl">NACL</option>
+            <option value="vlan">VLAN</option>
+            <option value="mpls">MPLS Circuit</option>
+            <option value="compliance_zone">Compliance Zone</option>
           </select>
         </div>
 
@@ -151,6 +184,81 @@ const DevicePropertyPanel: React.FC<DevicePropertyPanelProps> = ({
             style={inputStyle}
           />
         </div>
+
+        {/* VPC-specific fields */}
+        {deviceType === 'vpc' && (
+          <>
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#64748b' }}>Cloud Provider</label>
+              <select value={cloudProvider} onChange={(e) => setCloudProvider(e.target.value)}
+                      className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#07b6d5]" style={inputStyle}>
+                <option value="aws">AWS</option>
+                <option value="azure">Azure</option>
+                <option value="gcp">GCP</option>
+                <option value="oci">Oracle Cloud</option>
+              </select>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#64748b' }}>Region</label>
+              <input type="text" value={region} onChange={(e) => setRegion(e.target.value)} placeholder="us-east-1"
+                     className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#07b6d5]" style={inputStyle} />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#64748b' }}>CIDR Blocks</label>
+              <input type="text" value={cidr} onChange={(e) => setCidr(e.target.value)} placeholder="10.0.0.0/16, 10.1.0.0/16"
+                     className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#07b6d5]" style={inputStyle} />
+            </div>
+          </>
+        )}
+
+        {/* VPN-specific fields */}
+        {deviceType === 'vpn_tunnel' && (
+          <>
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#64748b' }}>Tunnel Type</label>
+              <select value={tunnelType} onChange={(e) => setTunnelType(e.target.value)}
+                      className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#07b6d5]" style={inputStyle}>
+                <option value="ipsec">IPSec</option>
+                <option value="gre">GRE</option>
+                <option value="ssl">SSL VPN</option>
+              </select>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#64748b' }}>Encryption</label>
+              <input type="text" value={encryption} onChange={(e) => setEncryption(e.target.value)} placeholder="AES-256-GCM"
+                     className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#07b6d5]" style={inputStyle} />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#64748b' }}>Remote Gateway</label>
+              <input type="text" value={remoteGateway} onChange={(e) => setRemoteGateway(e.target.value)} placeholder="203.0.113.1"
+                     className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#07b6d5]" style={inputStyle} />
+            </div>
+          </>
+        )}
+
+        {/* Load Balancer fields */}
+        {deviceType === 'load_balancer' && (
+          <>
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#64748b' }}>LB Type</label>
+              <select value={lbType} onChange={(e) => setLbType(e.target.value)}
+                      className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#07b6d5]" style={inputStyle}>
+                <option value="alb">Application LB (ALB)</option>
+                <option value="nlb">Network LB (NLB)</option>
+                <option value="azure_lb">Azure LB</option>
+                <option value="haproxy">HAProxy</option>
+              </select>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#64748b' }}>Scheme</label>
+              <select value={lbScheme} onChange={(e) => setLbScheme(e.target.value)}
+                      className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#07b6d5]" style={inputStyle}>
+                <option value="internal">Internal</option>
+                <option value="internet_facing">Internet Facing</option>
+              </select>
+            </div>
+          </>
+        )}
 
         {/* Apply Button */}
         <button

@@ -113,7 +113,7 @@ function TopologyEditorInner() {
         y: event.clientY - bounds.top,
       });
 
-      const isSubnet = type === 'subnet' || type === 'zone';
+      const isSubnet = type === 'subnet' || type === 'zone' || type === 'vpc' || type === 'compliance_zone';
 
       const newNode: Node = {
         id: getNextId(),

@@ -17,12 +17,34 @@ const deviceIcons: Record<string, string> = {
   workload: 'memory',
   cloud_gateway: 'cloud',
   zone: 'shield',
+  vpc: 'cloud_circle',
+  transit_gateway: 'hub',
+  load_balancer: 'dns',
+  vpn_tunnel: 'vpn_lock',
+  direct_connect: 'cable',
+  nacl: 'checklist',
+  vlan: 'label',
+  mpls: 'conversion_path',
+  compliance_zone: 'verified_user',
 };
 
 const statusColors: Record<string, string> = {
   healthy: '#22c55e',
   degraded: '#f59e0b',
   down: '#ef4444',
+};
+
+const deviceColors: Record<string, string> = {
+  firewall: '#ef4444',
+  vpc: '#3b82f6',
+  transit_gateway: '#a855f7',
+  load_balancer: '#22c55e',
+  vpn_tunnel: '#f97316',
+  direct_connect: '#eab308',
+  nacl: '#ef4444',
+  vlan: '#14b8a6',
+  mpls: '#a855f7',
+  compliance_zone: '#f59e0b',
 };
 
 const DeviceNode: React.FC<NodeProps<DeviceNodeData>> = ({ data, selected }) => {
@@ -65,7 +87,7 @@ const DeviceNode: React.FC<NodeProps<DeviceNodeData>> = ({ data, selected }) => 
           className="material-symbols-outlined text-2xl"
           style={{
             fontFamily: 'Material Symbols Outlined',
-            color: isFirewall ? '#ef4444' : '#f59e0b',
+            color: deviceColors[data.deviceType] || (isFirewall ? '#ef4444' : '#f59e0b'),
           }}
         >
           {icon}
