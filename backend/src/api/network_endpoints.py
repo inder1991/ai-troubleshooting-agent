@@ -71,6 +71,16 @@ async def _run_network_diagnosis(
         _network_sessions[session_id]["phase"] = "running"
         result = await graph.ainvoke(initial_state)
         _network_sessions[session_id]["state"] = result
+        # Writeback discovered hops to KG
+        kg = _get_knowledge_graph()
+        trace_hops = result.get("trace_hops", []) if isinstance(result, dict) else []
+        if trace_hops:
+            kg.writeback_discovered_hops(trace_hops)
+        # Boost confidence on verified edges
+        final_path = result.get("final_path", {}) if isinstance(result, dict) else {}
+        hops = final_path.get("hops", [])
+        for i in range(len(hops) - 1):
+            kg.boost_edge_confidence(hops[i], hops[i + 1])
         _network_sessions[session_id]["phase"] = "complete"
         # Update flow status in SQLite
         confidence = result.get("confidence", 0.0) if isinstance(result, dict) else 0.0
