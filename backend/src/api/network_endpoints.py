@@ -80,7 +80,10 @@ async def _run_network_diagnosis(
         final_path = result.get("final_path", {}) if isinstance(result, dict) else {}
         hops = final_path.get("hops", [])
         for i in range(len(hops) - 1):
-            kg.boost_edge_confidence(hops[i], hops[i + 1])
+            src = hops[i] if isinstance(hops[i], str) else hops[i].get("device_id", "") if isinstance(hops[i], dict) else ""
+            dst = hops[i + 1] if isinstance(hops[i + 1], str) else hops[i + 1].get("device_id", "") if isinstance(hops[i + 1], dict) else ""
+            if src and dst:
+                kg.boost_edge_confidence(src, dst)
         _network_sessions[session_id]["phase"] = "complete"
         # Update flow status in SQLite
         confidence = result.get("confidence", 0.0) if isinstance(result, dict) else 0.0
