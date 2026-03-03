@@ -23,7 +23,7 @@ import DevicePropertyPanel from './DevicePropertyPanel';
 import TopologyToolbar from './TopologyToolbar';
 import IPAMUploadDialog from './IPAMUploadDialog';
 import AdapterConfigDialog from './AdapterConfigDialog';
-import { loadTopology, saveTopology } from '../../services/api';
+import { loadTopology, saveTopology, API_BASE_URL } from '../../services/api';
 
 const nodeTypes = {
   device: DeviceNode,
@@ -176,6 +176,23 @@ function TopologyEditorInner() {
     }
   }, [setNodes, setEdges]);
 
+  // Refresh from Knowledge Graph
+  const handleRefreshFromKG = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/v4/network/topology/current`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.nodes) setNodes(data.nodes as Node[]);
+        if (data.edges) setEdges(data.edges as Edge[]);
+      }
+    } catch (err) {
+      console.error('Failed to refresh from KG:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [setNodes, setEdges]);
+
   // Node property update
   const handleNodeUpdate = useCallback(
     (nodeId: string, data: Record<string, unknown>) => {
@@ -222,6 +239,7 @@ function TopologyEditorInner() {
         onLoad={handleLoad}
         onImportIPAM={() => setIpamOpen(true)}
         onAdapterStatus={() => setAdapterOpen(true)}
+        onRefreshFromKG={handleRefreshFromKG}
         saving={saving}
         loading={loading}
       />

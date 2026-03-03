@@ -340,6 +340,31 @@ async def adapter_refresh(vendor: str):
     return {"status": "refreshed", "device_id": target_id, "vendor": vendor}
 
 
+@network_router.get("/topology/versions")
+async def topology_versions():
+    """List recent diagram snapshots."""
+    store = _get_topology_store()
+    versions = store.list_diagram_snapshots()
+    return {"versions": versions}
+
+
+@network_router.get("/topology/load/{snap_id}")
+async def topology_load_version(snap_id: int):
+    """Load a specific diagram snapshot by ID."""
+    store = _get_topology_store()
+    snapshot = store.load_diagram_snapshot_by_id(snap_id)
+    if not snapshot:
+        raise HTTPException(404, "Snapshot not found")
+    return {"snapshot": snapshot}
+
+
+@network_router.get("/topology/current")
+async def topology_current():
+    """Return current KG state as React Flow nodes/edges."""
+    kg = _get_knowledge_graph()
+    return kg.export_react_flow_graph()
+
+
 @network_router.get("/flows")
 async def list_flows():
     """List past diagnosis flows."""

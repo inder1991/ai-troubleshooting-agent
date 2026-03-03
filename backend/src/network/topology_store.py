@@ -503,6 +503,29 @@ class TopologyStore:
             "description": d["description"],
         }
 
+    def list_diagram_snapshots(self, limit: int = 20) -> list[dict]:
+        conn = self._conn()
+        rows = conn.execute(
+            "SELECT id, timestamp, description FROM diagram_snapshots ORDER BY id DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+        conn.close()
+        return [dict(r) for r in rows]
+
+    def load_diagram_snapshot_by_id(self, snap_id: int) -> Optional[dict]:
+        conn = self._conn()
+        row = conn.execute("SELECT * FROM diagram_snapshots WHERE id=?", (snap_id,)).fetchone()
+        conn.close()
+        if not row:
+            return None
+        d = dict(row)
+        return {
+            "id": d["id"],
+            "snapshot_json": d["snapshot_json"],
+            "timestamp": d["timestamp"],
+            "description": d["description"],
+        }
+
     def list_flows(self, limit: int = 50) -> list[Flow]:
         """List recent flows, ordered by timestamp descending."""
         conn = self._conn()

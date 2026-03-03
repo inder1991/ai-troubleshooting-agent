@@ -5,8 +5,10 @@ interface TopologyToolbarProps {
   onLoad: () => void;
   onImportIPAM: () => void;
   onAdapterStatus: () => void;
+  onRefreshFromKG: () => void;
   saving?: boolean;
   loading?: boolean;
+  refreshing?: boolean;
 }
 
 const TopologyToolbar: React.FC<TopologyToolbarProps> = ({
@@ -14,12 +16,15 @@ const TopologyToolbar: React.FC<TopologyToolbarProps> = ({
   onLoad,
   onImportIPAM,
   onAdapterStatus,
+  onRefreshFromKG,
   saving,
   loading,
+  refreshing,
 }) => {
   const buttons: { label: string; icon: string; onClick: () => void; disabled?: boolean }[] = [
     { label: saving ? 'Saving...' : 'Save', icon: 'save', onClick: onSave, disabled: saving },
     { label: loading ? 'Loading...' : 'Load', icon: 'folder_open', onClick: onLoad, disabled: loading },
+    { label: refreshing ? 'Refreshing...' : 'Refresh from KG', icon: 'sync', onClick: onRefreshFromKG, disabled: refreshing },
     { label: 'Import IPAM', icon: 'upload_file', onClick: onImportIPAM },
     { label: 'Adapter Status', icon: 'hub', onClick: onAdapterStatus },
   ];
