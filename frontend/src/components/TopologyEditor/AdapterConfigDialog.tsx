@@ -30,6 +30,7 @@ const AdapterConfigDialog: React.FC<AdapterConfigDialogProps> = ({
   const [extraConfig, setExtraConfig] = useState('{}');
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const handleTestConnection = useCallback(async () => {
     setTesting(true);
@@ -62,8 +63,9 @@ const AdapterConfigDialog: React.FC<AdapterConfigDialogProps> = ({
   }, [nodeId, vendor, apiEndpoint, apiKey, extraConfig]);
 
   const handleSave = useCallback(async () => {
+    setSaveError(null);
     try {
-      await fetch(`${API_BASE_URL}/api/v4/network/adapters/configure`, {
+      await fetch(`${API_BASE_URL}/api/v4/network/adapters/${vendor}/configure`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -75,8 +77,8 @@ const AdapterConfigDialog: React.FC<AdapterConfigDialogProps> = ({
         }),
       });
       onClose();
-    } catch {
-      // handle error silently
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Failed to save adapter config');
     }
   }, [nodeId, vendor, apiEndpoint, apiKey, extraConfig, onClose]);
 
@@ -202,6 +204,20 @@ const AdapterConfigDialog: React.FC<AdapterConfigDialogProps> = ({
               }}
             >
               {testResult.message}
+            </div>
+          )}
+
+          {/* Save Error */}
+          {saveError && (
+            <div
+              className="p-3 rounded border text-xs font-mono"
+              style={{
+                backgroundColor: '#1a0f0f',
+                borderColor: '#7f1d1d',
+                color: '#ef4444',
+              }}
+            >
+              {saveError}
             </div>
           )}
 
