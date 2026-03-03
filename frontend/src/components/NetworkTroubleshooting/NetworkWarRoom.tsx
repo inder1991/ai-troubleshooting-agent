@@ -21,16 +21,15 @@ const NetworkWarRoom: React.FC<NetworkWarRoomProps> = ({ session, onGoHome }) =>
   useEffect(() => {
     getAdapterStatus()
       .then((data) => {
-        if (data && typeof data === 'object') {
-          const list: Array<{ vendor: string; status: string }> = [];
-          for (const [vendor, info] of Object.entries(data)) {
-            const status =
-              info && typeof info === 'object' && 'status' in (info as Record<string, unknown>)
-                ? String((info as Record<string, string>).status)
-                : 'not_configured';
-            list.push({ vendor, status });
-          }
-          setAdapters(list);
+        // Backend returns { adapters: [{ device_id, vendor, status, ... }] }
+        const adapterList = data?.adapters;
+        if (Array.isArray(adapterList)) {
+          setAdapters(
+            adapterList.map((a: Record<string, unknown>) => ({
+              vendor: String(a.vendor || a.device_id || 'unknown'),
+              status: String(a.status || 'not_configured'),
+            }))
+          );
         }
       })
       .catch(() => {

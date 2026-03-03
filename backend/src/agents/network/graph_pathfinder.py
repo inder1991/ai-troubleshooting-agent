@@ -40,10 +40,16 @@ def graph_pathfinder(state: dict, *, kg: NetworkKnowledgeGraph) -> dict:
             "evidence": [{"type": "path_discovery", "detail": f"No path found from {src_device_id} to {dst_device_id}"}],
         }
 
-    # Convert paths to dicts and identify firewalls
+    # Convert paths to dicts and identify firewalls + enterprise constructs
     candidate_paths = []
     firewalls = []
     seen_firewalls = set()
+    nacls = []
+    lbs = []
+    vpn_segs = []
+    vpc_crossings = []
+    seen_nacls = set()
+    seen_lbs = set()
 
     for i, path in enumerate(paths):
         path_dict = {
@@ -53,7 +59,8 @@ def graph_pathfinder(state: dict, *, kg: NetworkKnowledgeGraph) -> dict:
         }
         candidate_paths.append(path_dict)
 
-        # Check each node in path for firewalls
+        # Check each node in path for firewalls and enterprise constructs
+        prev_vpc = None
         for node_id in path:
             node_data = kg.graph.nodes.get(node_id, {})
             if node_data.get("device_type") == DeviceType.FIREWALL.value and node_id not in seen_firewalls:
@@ -64,8 +71,32 @@ def graph_pathfinder(state: dict, *, kg: NetworkKnowledgeGraph) -> dict:
                 })
                 seen_firewalls.add(node_id)
 
+            nt = node_data.get("node_type", "")
+            dt = node_data.get("device_type", "")
+
+            if nt == "nacl" and node_id not in seen_nacls:
+                nacls.append({"device_id": node_id, "device_name": node_data.get("name", ""), "device_type": "nacl"})
+                seen_nacls.add(node_id)
+
+            if (nt == "load_balancer" or dt == "load_balancer") and node_id not in seen_lbs:
+                lbs.append({"device_id": node_id, "device_name": node_data.get("name", ""), "device_type": "load_balancer"})
+                seen_lbs.add(node_id)
+
+            if nt == "vpn_tunnel":
+                vpn_segs.append({"device_id": node_id, "name": node_data.get("name", ""),
+                                 "tunnel_type": node_data.get("tunnel_type", ""), "encryption": node_data.get("encryption", "")})
+
+            if nt == "vpc":
+                if prev_vpc and prev_vpc != node_id:
+                    vpc_crossings.append({"from_vpc": prev_vpc, "to_vpc": node_id})
+                prev_vpc = node_id
+
     return {
         "candidate_paths": candidate_paths,
         "firewalls_in_path": firewalls,
+        "nacls_in_path": nacls,
+        "load_balancers_in_path": lbs,
+        "vpn_segments": vpn_segs,
+        "vpc_boundary_crossings": vpc_crossings,
         "evidence": [{"type": "path_discovery", "detail": f"Found {len(paths)} candidate paths"}],
     }

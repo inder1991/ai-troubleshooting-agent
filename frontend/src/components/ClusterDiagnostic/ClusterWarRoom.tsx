@@ -48,7 +48,8 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
         return;
       }
       const data = await res.json();
-      if (data.platform_health && data.platform_health !== 'PENDING') {
+      // Show data as soon as it's available (including partial/PENDING)
+      if (data.platform_health) {
         setFindings(data as ClusterHealthReport);
         setError(null);
       }

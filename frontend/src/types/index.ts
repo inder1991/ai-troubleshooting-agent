@@ -329,6 +329,7 @@ export interface V4Session {
   confidence: number;
   created_at: string;
   updated_at: string;
+  capability?: CapabilityType;
 }
 
 export interface V4SessionStatus {
@@ -611,7 +612,7 @@ export interface ClusterDomainAnomaly {
 
 export interface ClusterDomainReport {
   domain: string;
-  status: 'PENDING' | 'RUNNING' | 'SUCCESS' | 'PARTIAL' | 'FAILED';
+  status: 'PENDING' | 'RUNNING' | 'SUCCESS' | 'PARTIAL' | 'FAILED' | 'SKIPPED';
   failure_reason?: string;
   confidence: number;
   anomalies: ClusterDomainAnomaly[];
@@ -653,7 +654,8 @@ export interface ClusterRemediationStep {
 }
 
 export interface ClusterHealthReport {
-  diagnostic_id: string;
+  session_id?: string;
+  diagnostic_id?: string;
   platform: string;
   platform_version: string;
   platform_health: 'HEALTHY' | 'DEGRADED' | 'CRITICAL' | 'UNKNOWN' | 'PENDING';
@@ -667,6 +669,12 @@ export interface ClusterHealthReport {
     long_term?: ClusterRemediationStep[];
   };
   execution_metadata?: Record<string, number>;
+  scan_mode?: string;
+  diagnostic_scope?: DiagnosticScope;
+  scope_coverage?: number;
+  issue_clusters?: IssueCluster[];
+  causal_search_space?: CausalSearchSpace;
+  topology_snapshot?: TopologySnapshot;
 }
 
 // --- Topology ---
@@ -1307,5 +1315,44 @@ export interface NetworkFindings {
       type: string;
       detail: string;
     }>;
+    nacl_verdicts?: NACLVerdict[];
+    vpc_boundary_crossings?: VPCCrossing[];
+    vpn_segments?: VPNSegment[];
+    load_balancers_in_path?: LBHop[];
   };
+}
+
+// ===== Enterprise Network Types =====
+
+export interface VPCInfo {
+  id: string; name: string; cloud_provider: 'aws'|'azure'|'gcp'|'oci';
+  region: string; cidr_blocks: string[]; account_id: string; compliance_zone: string;
+}
+
+export interface VPNTunnelInfo {
+  id: string; name: string; tunnel_type: 'ipsec'|'gre'|'ssl';
+  encryption: string; status: 'up'|'down'|'degraded';
+}
+
+export interface DirectConnectInfo {
+  id: string; name: string; provider: 'aws_dx'|'azure_er'|'oci_fc';
+  bandwidth_mbps: number; status: 'up'|'down'|'degraded';
+}
+
+export interface NACLVerdict {
+  nacl_id: string; nacl_name: string; action: 'allow'|'deny';
+  inbound: { action: string; rule_number: number; matched_rule_id: string };
+  outbound: { action: string; rule_number: number; matched_rule_id: string };
+}
+
+export interface VPCCrossing {
+  from_vpc: string; to_vpc: string;
+}
+
+export interface VPNSegment {
+  device_id: string; name: string; tunnel_type: string; encryption: string;
+}
+
+export interface LBHop {
+  device_id: string; device_name: string; device_type: string;
 }

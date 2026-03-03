@@ -34,6 +34,9 @@ _knowledge_graph: NetworkKnowledgeGraph | None = None
 _firewall_adapters: Dict[str, FirewallAdapter] = {}
 _network_sessions: Dict[str, Dict[str, Any]] = {}
 
+# Cap on stored sessions to prevent unbounded memory growth
+_MAX_SESSIONS = 200
+
 
 def _get_topology_store() -> TopologyStore:
     global _topology_store
@@ -63,15 +66,30 @@ def _get_adapters() -> Dict[str, FirewallAdapter]:
 async def _run_network_diagnosis(
     session_id: str, flow_id: str, graph, initial_state: dict
 ):
+    store = _get_topology_store()
     try:
         _network_sessions[session_id]["phase"] = "running"
         result = await graph.ainvoke(initial_state)
         _network_sessions[session_id]["state"] = result
         _network_sessions[session_id]["phase"] = "complete"
+        # Update flow status in SQLite
+        confidence = result.get("confidence", 0.0) if isinstance(result, dict) else 0.0
+        store.update_flow_status(flow_id, "complete", confidence)
     except Exception as e:
         logger.error("Network diagnosis failed", extra={"session_id": session_id, "error": str(e)})
         _network_sessions[session_id]["error"] = str(e)
         _network_sessions[session_id]["phase"] = "error"
+        store.update_flow_status(flow_id, "error", 0.0)
+    finally:
+        # Evict oldest sessions if we exceed the cap
+        if len(_network_sessions) > _MAX_SESSIONS:
+            # Remove oldest completed/error sessions first
+            to_remove = []
+            for sid, sess in _network_sessions.items():
+                if sess.get("phase") in ("complete", "error") and sid != session_id:
+                    to_remove.append(sid)
+            for sid in to_remove[:len(_network_sessions) - _MAX_SESSIONS]:
+                _network_sessions.pop(sid, None)
 
 
 # ---------------------------------------------------------------------------
@@ -180,7 +198,14 @@ async def topology_load():
 async def ipam_upload(file: UploadFile = File(...)):
     """Accept CSV file upload, parse IPAM data."""
     store = _get_topology_store()
-    content = (await file.read()).decode("utf-8")
+    raw = await file.read()
+    try:
+        content = raw.decode("utf-8")
+    except UnicodeDecodeError:
+        try:
+            content = raw.decode("latin-1")
+        except UnicodeDecodeError:
+            raise HTTPException(400, "File is not valid UTF-8 or Latin-1 text")
     stats = parse_ipam_csv(content, store)
 
     # Reload knowledge graph after IPAM import

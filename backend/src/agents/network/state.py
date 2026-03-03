@@ -32,6 +32,13 @@ class NetworkPipelineState(TypedDict, total=False):
     firewalls_in_path: list[dict]
     firewall_verdicts: Annotated[list[dict], operator.add]
 
+    # Enterprise constructs in path
+    nacls_in_path: list[dict]
+    load_balancers_in_path: list[dict]
+    vpn_segments: list[dict]
+    nacl_verdicts: Annotated[list[dict], operator.add]
+    vpc_boundary_crossings: list[dict]
+
     # NAT
     nat_translations: Annotated[list[dict], operator.add]
     identity_chain: list[dict]

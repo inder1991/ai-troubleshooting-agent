@@ -41,11 +41,15 @@ def _build_error_report(domain: str, trace: NodeExecution) -> dict:
     }
 
 
+_AGENT_NODE_NAMES = frozenset({"node_agent", "ctrl_plane_agent", "network_agent", "storage_agent"})
+
+
 def traced_node(timeout_seconds: float = 60):
     def decorator(func: Callable) -> Callable:
         @functools.wraps(func)
         async def wrapper(state: dict, config: dict | None = None) -> dict:
             node_name = func.__name__
+            is_agent_node = node_name in _AGENT_NODE_NAMES
             start = time.monotonic()
             trace = NodeExecution(node_name=node_name, status="RUNNING")
             try:
@@ -63,11 +67,11 @@ def traced_node(timeout_seconds: float = 60):
                 trace.failure_detail = f"Timed out after {timeout_seconds}s"
                 trace.duration_ms = elapsed
                 logger.warning("Node timed out", extra={"node": node_name, "action": "timeout", "extra": f"{timeout_seconds}s"})
-                domain = node_name.replace("_agent", "")
-                return {
-                    "domain_reports": [_build_error_report(domain, trace)],
-                    "_trace": [trace.model_dump(mode="json")],
-                }
+                error_result: dict[str, Any] = {"_trace": [trace.model_dump(mode="json")]}
+                if is_agent_node:
+                    domain = node_name.replace("_agent", "")
+                    error_result["domain_reports"] = [_build_error_report(domain, trace)]
+                return error_result
             except Exception as e:
                 elapsed = int((time.monotonic() - start) * 1000)
                 trace.status = "FAILED"
@@ -75,10 +79,10 @@ def traced_node(timeout_seconds: float = 60):
                 trace.failure_detail = str(e)
                 trace.duration_ms = elapsed
                 logger.error("Node failed", extra={"node": node_name, "action": "exception", "extra": str(e)})
-                domain = node_name.replace("_agent", "")
-                return {
-                    "domain_reports": [_build_error_report(domain, trace)],
-                    "_trace": [trace.model_dump(mode="json")],
-                }
+                error_result: dict[str, Any] = {"_trace": [trace.model_dump(mode="json")]}
+                if is_agent_node:
+                    domain = node_name.replace("_agent", "")
+                    error_result["domain_reports"] = [_build_error_report(domain, trace)]
+                return error_result
         return wrapper
     return decorator

@@ -90,9 +90,11 @@ const CapabilityForm: React.FC<CapabilityFormProps> = ({ capability, onBack, onS
         return formData.repo_url.trim().length > 0 && formData.issue_number.trim().length > 0;
       case 'cluster_diagnostics': {
         const cd = formData as ClusterDiagnosticsForm;
-        const hasUrl = cd.cluster_url.trim().length > 0 && /^https?:\/\/.+/.test(cd.cluster_url.trim());
         const hasProfile = !!cd.profile_id;
-        const hasAuth = hasProfile || !!cd.auth_token;
+        // When a saved profile is selected, cluster_url and auth come from the profile
+        if (hasProfile) return true;
+        const hasUrl = cd.cluster_url.trim().length > 0 && /^https?:\/\/.+/.test(cd.cluster_url.trim());
+        const hasAuth = !!cd.auth_token;
         const hasName = !(cd.save_cluster ?? true) || !!cd.cluster_name?.trim();
         return hasUrl && hasAuth && hasName;
       }

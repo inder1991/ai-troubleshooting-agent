@@ -9,6 +9,11 @@ from .models import (
     Route, NATRule, FirewallRule,
     Flow, Trace, TraceHop, FlowVerdict,
     AdapterConfig,
+    VPC, RouteTable, VPCPeering, TransitGateway,
+    VPNTunnel, DirectConnect,
+    NACL, NACLRule,
+    LoadBalancer, LBTargetGroup,
+    VLAN, MPLSCircuit, ComplianceZone,
 )
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "data", "network.db")
@@ -111,6 +116,68 @@ class TopologyStore:
             CREATE INDEX IF NOT EXISTS idx_trace_hops_trace ON trace_hops(trace_id);
             CREATE INDEX IF NOT EXISTS idx_interfaces_ip ON interfaces(ip);
             CREATE INDEX IF NOT EXISTS idx_subnets_cidr ON subnets(cidr);
+
+            CREATE TABLE IF NOT EXISTS vpcs (
+                id TEXT PRIMARY KEY, name TEXT, cloud_provider TEXT,
+                region TEXT, cidr_blocks TEXT, account_id TEXT, compliance_zone TEXT
+            );
+            CREATE TABLE IF NOT EXISTS route_tables (
+                id TEXT PRIMARY KEY, vpc_id TEXT, name TEXT, is_main INTEGER,
+                FOREIGN KEY (vpc_id) REFERENCES vpcs(id)
+            );
+            CREATE TABLE IF NOT EXISTS vpc_peerings (
+                id TEXT PRIMARY KEY, requester_vpc_id TEXT, accepter_vpc_id TEXT,
+                status TEXT, cidr_routes TEXT
+            );
+            CREATE TABLE IF NOT EXISTS transit_gateways (
+                id TEXT PRIMARY KEY, name TEXT, cloud_provider TEXT,
+                region TEXT, attached_vpc_ids TEXT, route_table_id TEXT
+            );
+            CREATE TABLE IF NOT EXISTS vpn_tunnels (
+                id TEXT PRIMARY KEY, name TEXT, tunnel_type TEXT,
+                local_gateway_id TEXT, remote_gateway_ip TEXT,
+                local_cidrs TEXT, remote_cidrs TEXT,
+                encryption TEXT, ike_version TEXT, status TEXT
+            );
+            CREATE TABLE IF NOT EXISTS direct_connects (
+                id TEXT PRIMARY KEY, name TEXT, provider TEXT,
+                bandwidth_mbps INTEGER, location TEXT, vlan_id INTEGER,
+                bgp_asn INTEGER, status TEXT
+            );
+            CREATE TABLE IF NOT EXISTS nacls (
+                id TEXT PRIMARY KEY, name TEXT, vpc_id TEXT,
+                subnet_ids TEXT, is_default INTEGER
+            );
+            CREATE TABLE IF NOT EXISTS nacl_rules (
+                id TEXT PRIMARY KEY, nacl_id TEXT, direction TEXT,
+                rule_number INTEGER, protocol TEXT, cidr TEXT,
+                port_range_from INTEGER, port_range_to INTEGER, action TEXT,
+                FOREIGN KEY (nacl_id) REFERENCES nacls(id)
+            );
+            CREATE TABLE IF NOT EXISTS load_balancers (
+                id TEXT PRIMARY KEY, name TEXT, lb_type TEXT,
+                scheme TEXT, vpc_id TEXT, listeners TEXT, health_check_path TEXT
+            );
+            CREATE TABLE IF NOT EXISTS lb_target_groups (
+                id TEXT PRIMARY KEY, lb_id TEXT, name TEXT,
+                protocol TEXT, port INTEGER, target_ids TEXT, health_status TEXT,
+                FOREIGN KEY (lb_id) REFERENCES load_balancers(id)
+            );
+            CREATE TABLE IF NOT EXISTS vlans (
+                id TEXT PRIMARY KEY, vlan_number INTEGER, name TEXT,
+                trunk_ports TEXT, access_ports TEXT, site TEXT
+            );
+            CREATE TABLE IF NOT EXISTS mpls_circuits (
+                id TEXT PRIMARY KEY, name TEXT, label INTEGER,
+                provider TEXT, bandwidth_mbps INTEGER, endpoints TEXT, qos_class TEXT
+            );
+            CREATE TABLE IF NOT EXISTS compliance_zones (
+                id TEXT PRIMARY KEY, name TEXT, standard TEXT,
+                description TEXT, subnet_ids TEXT, vpc_ids TEXT
+            );
+            CREATE INDEX IF NOT EXISTS idx_nacl_rules_nacl ON nacl_rules(nacl_id);
+            CREATE INDEX IF NOT EXISTS idx_lb_targets_lb ON lb_target_groups(lb_id);
+            CREATE INDEX IF NOT EXISTS idx_route_tables_vpc ON route_tables(vpc_id);
         """)
         conn.commit()
         conn.close()
@@ -327,10 +394,12 @@ class TopologyStore:
     def find_recent_flow(self, src_ip: str, dst_ip: str, port: int, within_seconds: int = 60) -> Optional[Flow]:
         """Idempotent flow lookup for dedup within time window."""
         conn = self._conn()
+        # Normalize cutoff to +00:00 format (matches datetime.now(timezone.utc).isoformat())
         cutoff = (datetime.now(timezone.utc) - timedelta(seconds=within_seconds)).isoformat()
+        # Use REPLACE to normalize Z suffix to +00:00 for consistent comparison
         row = conn.execute(
             "SELECT * FROM flows WHERE src_ip=? AND dst_ip=? AND port=? "
-            "AND timestamp >= ? ORDER BY timestamp DESC LIMIT 1",
+            "AND REPLACE(timestamp, 'Z', '+00:00') >= ? ORDER BY timestamp DESC LIMIT 1",
             (src_ip, dst_ip, port, cutoff),
         ).fetchone()
         conn.close()
@@ -436,3 +505,243 @@ class TopologyStore:
         ).fetchall()
         conn.close()
         return [Flow(**dict(r)) for r in rows]
+
+    # ── VPC CRUD ──
+    def add_vpc(self, vpc: VPC) -> None:
+        conn = self._conn()
+        conn.execute(
+            "INSERT OR REPLACE INTO vpcs VALUES (?,?,?,?,?,?,?)",
+            (vpc.id, vpc.name, vpc.cloud_provider.value, vpc.region,
+             json.dumps(vpc.cidr_blocks), vpc.account_id, vpc.compliance_zone),
+        )
+        conn.commit(); conn.close()
+
+    def list_vpcs(self) -> list[VPC]:
+        conn = self._conn()
+        rows = conn.execute("SELECT * FROM vpcs").fetchall()
+        conn.close()
+        results = []
+        for r in rows:
+            d = dict(r)
+            d["cidr_blocks"] = json.loads(d["cidr_blocks"]) if d["cidr_blocks"] else []
+            results.append(VPC(**d))
+        return results
+
+    def get_vpc(self, vpc_id: str) -> Optional[VPC]:
+        conn = self._conn()
+        row = conn.execute("SELECT * FROM vpcs WHERE id=?", (vpc_id,)).fetchone()
+        conn.close()
+        if not row: return None
+        d = dict(row)
+        d["cidr_blocks"] = json.loads(d["cidr_blocks"]) if d["cidr_blocks"] else []
+        return VPC(**d)
+
+    # ── Route Table CRUD ──
+    def add_route_table(self, rt: RouteTable) -> None:
+        conn = self._conn()
+        conn.execute(
+            "INSERT OR REPLACE INTO route_tables VALUES (?,?,?,?)",
+            (rt.id, rt.vpc_id, rt.name, int(rt.is_main)),
+        )
+        conn.commit(); conn.close()
+
+    def list_route_tables(self, vpc_id: Optional[str] = None) -> list[RouteTable]:
+        conn = self._conn()
+        if vpc_id:
+            rows = conn.execute("SELECT * FROM route_tables WHERE vpc_id=?", (vpc_id,)).fetchall()
+        else:
+            rows = conn.execute("SELECT * FROM route_tables").fetchall()
+        conn.close()
+        return [RouteTable(**{**dict(r), "is_main": bool(r["is_main"])}) for r in rows]
+
+    # ── VPC Peering CRUD ──
+    def add_vpc_peering(self, p: VPCPeering) -> None:
+        conn = self._conn()
+        conn.execute(
+            "INSERT OR REPLACE INTO vpc_peerings VALUES (?,?,?,?,?)",
+            (p.id, p.requester_vpc_id, p.accepter_vpc_id, p.status,
+             json.dumps(p.cidr_routes)),
+        )
+        conn.commit(); conn.close()
+
+    def list_vpc_peerings(self) -> list[VPCPeering]:
+        conn = self._conn()
+        rows = conn.execute("SELECT * FROM vpc_peerings").fetchall()
+        conn.close()
+        return [VPCPeering(**{**dict(r), "cidr_routes": json.loads(r["cidr_routes"]) if r["cidr_routes"] else []}) for r in rows]
+
+    # ── Transit Gateway CRUD ──
+    def add_transit_gateway(self, tgw: TransitGateway) -> None:
+        conn = self._conn()
+        conn.execute(
+            "INSERT OR REPLACE INTO transit_gateways VALUES (?,?,?,?,?,?)",
+            (tgw.id, tgw.name, tgw.cloud_provider.value, tgw.region,
+             json.dumps(tgw.attached_vpc_ids), tgw.route_table_id),
+        )
+        conn.commit(); conn.close()
+
+    def list_transit_gateways(self) -> list[TransitGateway]:
+        conn = self._conn()
+        rows = conn.execute("SELECT * FROM transit_gateways").fetchall()
+        conn.close()
+        return [TransitGateway(**{**dict(r), "attached_vpc_ids": json.loads(r["attached_vpc_ids"]) if r["attached_vpc_ids"] else []}) for r in rows]
+
+    # ── VPN Tunnel CRUD ──
+    def add_vpn_tunnel(self, vpn: VPNTunnel) -> None:
+        conn = self._conn()
+        conn.execute(
+            "INSERT OR REPLACE INTO vpn_tunnels VALUES (?,?,?,?,?,?,?,?,?,?)",
+            (vpn.id, vpn.name, vpn.tunnel_type.value, vpn.local_gateway_id,
+             vpn.remote_gateway_ip, json.dumps(vpn.local_cidrs), json.dumps(vpn.remote_cidrs),
+             vpn.encryption, vpn.ike_version, vpn.status.value),
+        )
+        conn.commit(); conn.close()
+
+    def list_vpn_tunnels(self) -> list[VPNTunnel]:
+        conn = self._conn()
+        rows = conn.execute("SELECT * FROM vpn_tunnels").fetchall()
+        conn.close()
+        results = []
+        for r in rows:
+            d = dict(r)
+            d["local_cidrs"] = json.loads(d["local_cidrs"]) if d["local_cidrs"] else []
+            d["remote_cidrs"] = json.loads(d["remote_cidrs"]) if d["remote_cidrs"] else []
+            results.append(VPNTunnel(**d))
+        return results
+
+    # ── Direct Connect CRUD ──
+    def add_direct_connect(self, dx: DirectConnect) -> None:
+        conn = self._conn()
+        conn.execute(
+            "INSERT OR REPLACE INTO direct_connects VALUES (?,?,?,?,?,?,?,?)",
+            (dx.id, dx.name, dx.provider.value, dx.bandwidth_mbps,
+             dx.location, dx.vlan_id, dx.bgp_asn, dx.status.value),
+        )
+        conn.commit(); conn.close()
+
+    def list_direct_connects(self) -> list[DirectConnect]:
+        conn = self._conn()
+        rows = conn.execute("SELECT * FROM direct_connects").fetchall()
+        conn.close()
+        return [DirectConnect(**dict(r)) for r in rows]
+
+    # ── NACL CRUD ──
+    def add_nacl(self, nacl: NACL) -> None:
+        conn = self._conn()
+        conn.execute(
+            "INSERT OR REPLACE INTO nacls VALUES (?,?,?,?,?)",
+            (nacl.id, nacl.name, nacl.vpc_id, json.dumps(nacl.subnet_ids), int(nacl.is_default)),
+        )
+        conn.commit(); conn.close()
+
+    def list_nacls(self, vpc_id: Optional[str] = None) -> list[NACL]:
+        conn = self._conn()
+        if vpc_id:
+            rows = conn.execute("SELECT * FROM nacls WHERE vpc_id=?", (vpc_id,)).fetchall()
+        else:
+            rows = conn.execute("SELECT * FROM nacls").fetchall()
+        conn.close()
+        return [NACL(**{**dict(r), "subnet_ids": json.loads(r["subnet_ids"]) if r["subnet_ids"] else [], "is_default": bool(r["is_default"])}) for r in rows]
+
+    # ── NACL Rule CRUD ──
+    def add_nacl_rule(self, rule: NACLRule) -> None:
+        conn = self._conn()
+        conn.execute(
+            "INSERT OR REPLACE INTO nacl_rules VALUES (?,?,?,?,?,?,?,?,?)",
+            (rule.id, rule.nacl_id, rule.direction.value, rule.rule_number,
+             rule.protocol, rule.cidr, rule.port_range_from, rule.port_range_to,
+             rule.action.value),
+        )
+        conn.commit(); conn.close()
+
+    def list_nacl_rules(self, nacl_id: str) -> list[NACLRule]:
+        conn = self._conn()
+        rows = conn.execute(
+            "SELECT * FROM nacl_rules WHERE nacl_id=? ORDER BY rule_number",
+            (nacl_id,),
+        ).fetchall()
+        conn.close()
+        return [NACLRule(**dict(r)) for r in rows]
+
+    # ── Load Balancer CRUD ──
+    def add_load_balancer(self, lb: LoadBalancer) -> None:
+        conn = self._conn()
+        conn.execute(
+            "INSERT OR REPLACE INTO load_balancers VALUES (?,?,?,?,?,?,?)",
+            (lb.id, lb.name, lb.lb_type.value, lb.scheme.value, lb.vpc_id,
+             json.dumps(lb.listeners), lb.health_check_path),
+        )
+        conn.commit(); conn.close()
+
+    def list_load_balancers(self) -> list[LoadBalancer]:
+        conn = self._conn()
+        rows = conn.execute("SELECT * FROM load_balancers").fetchall()
+        conn.close()
+        return [LoadBalancer(**{**dict(r), "listeners": json.loads(r["listeners"]) if r["listeners"] else []}) for r in rows]
+
+    # ── LB Target Group CRUD ──
+    def add_lb_target_group(self, tg: LBTargetGroup) -> None:
+        conn = self._conn()
+        conn.execute(
+            "INSERT OR REPLACE INTO lb_target_groups VALUES (?,?,?,?,?,?,?)",
+            (tg.id, tg.lb_id, tg.name, tg.protocol, tg.port,
+             json.dumps(tg.target_ids), tg.health_status),
+        )
+        conn.commit(); conn.close()
+
+    def list_lb_target_groups(self, lb_id: Optional[str] = None) -> list[LBTargetGroup]:
+        conn = self._conn()
+        if lb_id:
+            rows = conn.execute("SELECT * FROM lb_target_groups WHERE lb_id=?", (lb_id,)).fetchall()
+        else:
+            rows = conn.execute("SELECT * FROM lb_target_groups").fetchall()
+        conn.close()
+        return [LBTargetGroup(**{**dict(r), "target_ids": json.loads(r["target_ids"]) if r["target_ids"] else []}) for r in rows]
+
+    # ── VLAN CRUD ──
+    def add_vlan(self, vlan: VLAN) -> None:
+        conn = self._conn()
+        conn.execute(
+            "INSERT OR REPLACE INTO vlans VALUES (?,?,?,?,?,?)",
+            (vlan.id, vlan.vlan_number, vlan.name,
+             json.dumps(vlan.trunk_ports), json.dumps(vlan.access_ports), vlan.site),
+        )
+        conn.commit(); conn.close()
+
+    def list_vlans(self) -> list[VLAN]:
+        conn = self._conn()
+        rows = conn.execute("SELECT * FROM vlans").fetchall()
+        conn.close()
+        return [VLAN(**{**dict(r), "trunk_ports": json.loads(r["trunk_ports"]) if r["trunk_ports"] else [], "access_ports": json.loads(r["access_ports"]) if r["access_ports"] else []}) for r in rows]
+
+    # ── MPLS Circuit CRUD ──
+    def add_mpls_circuit(self, mpls: MPLSCircuit) -> None:
+        conn = self._conn()
+        conn.execute(
+            "INSERT OR REPLACE INTO mpls_circuits VALUES (?,?,?,?,?,?,?)",
+            (mpls.id, mpls.name, mpls.label, mpls.provider,
+             mpls.bandwidth_mbps, json.dumps(mpls.endpoints), mpls.qos_class),
+        )
+        conn.commit(); conn.close()
+
+    def list_mpls_circuits(self) -> list[MPLSCircuit]:
+        conn = self._conn()
+        rows = conn.execute("SELECT * FROM mpls_circuits").fetchall()
+        conn.close()
+        return [MPLSCircuit(**{**dict(r), "endpoints": json.loads(r["endpoints"]) if r["endpoints"] else []}) for r in rows]
+
+    # ── Compliance Zone CRUD ──
+    def add_compliance_zone(self, cz: ComplianceZone) -> None:
+        conn = self._conn()
+        conn.execute(
+            "INSERT OR REPLACE INTO compliance_zones VALUES (?,?,?,?,?,?)",
+            (cz.id, cz.name, cz.standard.value, cz.description,
+             json.dumps(cz.subnet_ids), json.dumps(cz.vpc_ids)),
+        )
+        conn.commit(); conn.close()
+
+    def list_compliance_zones(self) -> list[ComplianceZone]:
+        conn = self._conn()
+        rows = conn.execute("SELECT * FROM compliance_zones").fetchall()
+        conn.close()
+        return [ComplianceZone(**{**dict(r), "subnet_ids": json.loads(r["subnet_ids"]) if r["subnet_ids"] else [], "vpc_ids": json.loads(r["vpc_ids"]) if r["vpc_ids"] else []}) for r in rows]

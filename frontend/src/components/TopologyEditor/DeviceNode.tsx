@@ -17,12 +17,34 @@ const deviceIcons: Record<string, string> = {
   workload: 'memory',
   cloud_gateway: 'cloud',
   zone: 'shield',
+  vpc: 'cloud_circle',
+  transit_gateway: 'hub',
+  load_balancer: 'dns',
+  vpn_tunnel: 'vpn_lock',
+  direct_connect: 'cable',
+  nacl: 'checklist',
+  vlan: 'label',
+  mpls: 'conversion_path',
+  compliance_zone: 'verified_user',
 };
 
 const statusColors: Record<string, string> = {
   healthy: '#22c55e',
   degraded: '#f59e0b',
   down: '#ef4444',
+};
+
+const deviceColors: Record<string, string> = {
+  firewall: '#ef4444',
+  vpc: '#3b82f6',
+  transit_gateway: '#a855f7',
+  load_balancer: '#22c55e',
+  vpn_tunnel: '#f97316',
+  direct_connect: '#eab308',
+  nacl: '#ef4444',
+  vlan: '#14b8a6',
+  mpls: '#a855f7',
+  compliance_zone: '#f59e0b',
 };
 
 const DeviceNode: React.FC<NodeProps<DeviceNodeData>> = ({ data, selected }) => {
@@ -32,12 +54,15 @@ const DeviceNode: React.FC<NodeProps<DeviceNodeData>> = ({ data, selected }) => 
 
   return (
     <div className="relative group">
-      <Handle
-        type="target"
-        position={Position.Top}
-        className="!w-2 !h-2 !border-2"
-        style={{ backgroundColor: '#07b6d5', borderColor: '#0a0f13' }}
-      />
+      {/* 4 handles — visible on hover, act as both source + target */}
+      <Handle type="source" position={Position.Top} id="top"
+        className="!w-3 !h-3 !bg-[#07b6d5] !border-2 !border-[#0a0f13] opacity-0 group-hover:opacity-100 transition-opacity" />
+      <Handle type="source" position={Position.Bottom} id="bottom"
+        className="!w-3 !h-3 !bg-[#07b6d5] !border-2 !border-[#0a0f13] opacity-0 group-hover:opacity-100 transition-opacity" />
+      <Handle type="source" position={Position.Left} id="left"
+        className="!w-3 !h-3 !bg-[#07b6d5] !border-2 !border-[#0a0f13] opacity-0 group-hover:opacity-100 transition-opacity" />
+      <Handle type="source" position={Position.Right} id="right"
+        className="!w-3 !h-3 !bg-[#07b6d5] !border-2 !border-[#0a0f13] opacity-0 group-hover:opacity-100 transition-opacity" />
 
       <div
         className="flex flex-col items-center gap-1.5 p-3 rounded-lg border-2 transition-all min-w-[80px]"
@@ -62,7 +87,7 @@ const DeviceNode: React.FC<NodeProps<DeviceNodeData>> = ({ data, selected }) => 
           className="material-symbols-outlined text-2xl"
           style={{
             fontFamily: 'Material Symbols Outlined',
-            color: isFirewall ? '#ef4444' : '#f59e0b',
+            color: deviceColors[data.deviceType] || (isFirewall ? '#ef4444' : '#f59e0b'),
           }}
         >
           {icon}
@@ -86,13 +111,6 @@ const DeviceNode: React.FC<NodeProps<DeviceNodeData>> = ({ data, selected }) => 
           </span>
         )}
       </div>
-
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        className="!w-2 !h-2 !border-2"
-        style={{ backgroundColor: '#07b6d5', borderColor: '#0a0f13' }}
-      />
     </div>
   );
 };

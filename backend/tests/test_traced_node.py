@@ -17,11 +17,12 @@ async def test_traced_node_success():
 
 @pytest.mark.asyncio
 async def test_traced_node_timeout():
+    # Use an agent node name so domain_reports are injected on failure
     @traced_node(timeout_seconds=0.1)
-    async def slow_node(state, config):
+    async def node_agent(state, config):
         await asyncio.sleep(10)
         return {}
-    result = await slow_node({"diagnostic_id": "D-1"}, {"configurable": {}})
+    result = await node_agent({"diagnostic_id": "D-1"}, {"configurable": {}})
     assert isinstance(result["_trace"], list)
     assert result["_trace"][0]["status"] == "FAILED"
     assert result["_trace"][0]["failure_reason"] == "TIMEOUT"
@@ -32,16 +33,30 @@ async def test_traced_node_timeout():
 
 @pytest.mark.asyncio
 async def test_traced_node_exception():
+    # Use an agent node name so domain_reports are injected on failure
     @traced_node(timeout_seconds=5)
-    async def bad_node(state, config):
+    async def storage_agent(state, config):
         raise ValueError("something broke")
-    result = await bad_node({"diagnostic_id": "D-1"}, {"configurable": {}})
+    result = await storage_agent({"diagnostic_id": "D-1"}, {"configurable": {}})
     assert isinstance(result["_trace"], list)
     assert result["_trace"][0]["status"] == "FAILED"
     assert result["_trace"][0]["failure_reason"] == "EXCEPTION"
     # Verify error report is included in domain_reports
     assert "domain_reports" in result
     assert result["domain_reports"][0]["status"] == "FAILED"
+
+
+@pytest.mark.asyncio
+async def test_traced_node_non_agent_no_domain_reports():
+    """Non-agent nodes should NOT inject domain_reports on failure."""
+    @traced_node(timeout_seconds=5)
+    async def synthesizer(state, config):
+        raise ValueError("infra failure")
+    result = await synthesizer({"diagnostic_id": "D-1"}, {"configurable": {}})
+    assert isinstance(result["_trace"], list)
+    assert result["_trace"][0]["status"] == "FAILED"
+    # Non-agent nodes should not have domain_reports
+    assert "domain_reports" not in result
 
 
 def test_node_execution_model():

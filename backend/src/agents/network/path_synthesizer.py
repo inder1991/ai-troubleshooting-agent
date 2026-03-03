@@ -56,12 +56,16 @@ def path_synthesizer(state: dict) -> dict:
                 })
 
     # Factor in firewall verdicts
+    nacl_verdicts = state.get("nacl_verdicts", [])
+    nacl_deny = any(v.get("action") == "deny" for v in nacl_verdicts)
+
     fw_confidence = 0.0
     any_deny = False
     for v in firewall_verdicts:
         fw_confidence += v.get("confidence", 0)
         if v.get("action") in ("deny", "drop"):
             any_deny = True
+    any_deny = any_deny or nacl_deny
     if firewall_verdicts:
         fw_confidence /= len(firewall_verdicts)
 
@@ -95,6 +99,9 @@ def path_synthesizer(state: dict) -> dict:
         "hop_count": len(final_hops),
         "has_nat": len(nat_translations) > 0,
         "blocked": any_deny,
+        "vpn_segments": state.get("vpn_segments", []),
+        "vpc_crossings": state.get("vpc_boundary_crossings", []),
+        "load_balancers": state.get("load_balancers_in_path", []),
     }
 
     return {

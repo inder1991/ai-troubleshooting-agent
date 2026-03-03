@@ -1,6 +1,7 @@
 import React, { useCallback, useRef, useState, useEffect, DragEvent } from 'react';
 import ReactFlow, {
   ReactFlowProvider,
+  ConnectionMode,
   addEdge,
   useNodesState,
   useEdgesState,
@@ -16,6 +17,8 @@ import 'reactflow/dist/style.css';
 import NodePalette from './NodePalette';
 import DeviceNode from './DeviceNode';
 import SubnetGroupNode from './SubnetGroupNode';
+import VPCNode from './VPCNode';
+import ComplianceZoneNode from './ComplianceZoneNode';
 import DevicePropertyPanel from './DevicePropertyPanel';
 import TopologyToolbar from './TopologyToolbar';
 import IPAMUploadDialog from './IPAMUploadDialog';
@@ -25,6 +28,8 @@ import { loadTopology, saveTopology } from '../../services/api';
 const nodeTypes = {
   device: DeviceNode,
   subnet: SubnetGroupNode,
+  vpc: VPCNode,
+  compliance_zone: ComplianceZoneNode,
 };
 
 let idCounter = 0;
@@ -49,10 +54,11 @@ function TopologyEditorInner() {
       try {
         setLoading(true);
         const data = await loadTopology();
-        if (data.diagram_json) {
-          const parsed = typeof data.diagram_json === 'string'
-            ? JSON.parse(data.diagram_json)
-            : data.diagram_json;
+        const snapshotJson = data?.snapshot?.snapshot_json;
+        if (snapshotJson) {
+          const parsed = typeof snapshotJson === 'string'
+            ? JSON.parse(snapshotJson)
+            : snapshotJson;
           if (parsed.nodes) setNodes(parsed.nodes);
           if (parsed.edges) setEdges(parsed.edges);
         }
@@ -111,11 +117,11 @@ function TopologyEditorInner() {
         y: event.clientY - bounds.top,
       });
 
-      const isSubnet = type === 'subnet' || type === 'zone';
+      const isContainer = type === 'subnet' || type === 'zone' || type === 'vpc' || type === 'compliance_zone';
 
       const newNode: Node = {
         id: getNextId(),
-        type: isSubnet ? 'subnet' : 'device',
+        type: isContainer ? (type === 'vpc' ? 'vpc' : type === 'compliance_zone' ? 'compliance_zone' : 'subnet') : 'device',
         position,
         data: {
           label: type.charAt(0).toUpperCase() + type.slice(1).replace('_', ' '),
@@ -124,10 +130,10 @@ function TopologyEditorInner() {
           vendor: '',
           zone: '',
           status: 'healthy',
-          ...(isSubnet ? { cidr: '10.0.0.0/24' } : {}),
+          ...(isContainer ? { cidr: '10.0.0.0/24' } : {}),
         },
-        ...(isSubnet
-          ? { style: { width: 300, height: 200 } }
+        ...(isContainer
+          ? { style: { width: type === 'vpc' ? 400 : 300, height: type === 'vpc' ? 300 : 200 } }
           : {}),
       };
 
@@ -143,8 +149,8 @@ function TopologyEditorInner() {
     try {
       const flow = reactFlowInstance.toObject();
       await saveTopology(JSON.stringify(flow), 'User-saved topology');
-    } catch {
-      // handle error silently
+    } catch (err) {
+      console.error('Failed to save topology:', err);
     } finally {
       setSaving(false);
     }
@@ -155,15 +161,16 @@ function TopologyEditorInner() {
     setLoading(true);
     try {
       const data = await loadTopology();
-      if (data.diagram_json) {
-        const parsed = typeof data.diagram_json === 'string'
-          ? JSON.parse(data.diagram_json)
-          : data.diagram_json;
+      const snapshotJson = data?.snapshot?.snapshot_json;
+      if (snapshotJson) {
+        const parsed = typeof snapshotJson === 'string'
+          ? JSON.parse(snapshotJson)
+          : snapshotJson;
         if (parsed.nodes) setNodes(parsed.nodes);
         if (parsed.edges) setEdges(parsed.edges);
       }
-    } catch {
-      // handle error
+    } catch (err) {
+      console.error('Failed to load topology:', err);
     } finally {
       setLoading(false);
     }
@@ -238,6 +245,7 @@ function TopologyEditorInner() {
             onDragOver={onDragOver}
             onDrop={onDrop}
             nodeTypes={nodeTypes}
+            connectionMode={ConnectionMode.Loose}
             fitView
             proOptions={{ hideAttribution: true }}
             defaultEdgeOptions={{

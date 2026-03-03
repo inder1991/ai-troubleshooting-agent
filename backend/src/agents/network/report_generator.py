@@ -15,6 +15,10 @@ def report_generator(state: dict) -> dict:
     confidence = state.get("confidence", 0.0)
     diagnosis_status = state.get("diagnosis_status", "running")
     evidence = state.get("evidence", [])
+    nacl_verdicts = state.get("nacl_verdicts", [])
+    vpn_segments = state.get("vpn_segments", [])
+    vpc_crossings = state.get("vpc_boundary_crossings", [])
+    lbs_in_path = state.get("load_balancers_in_path", [])
 
     # Build next steps
     next_steps = []
@@ -32,6 +36,9 @@ def report_generator(state: dict) -> dict:
     elif confidence < 0.5:
         next_steps.append("Run additional diagnostics to improve confidence")
         next_steps.append("Add more topology data for better path resolution")
+    nacl_deny = [v["nacl_name"] for v in nacl_verdicts if v.get("action") == "deny"]
+    for nacl_name in nacl_deny:
+        next_steps.append(f"Review NACL rules on {nacl_name}")
 
     # Build executive summary
     if diagnosis_status == "no_path_known":
@@ -47,6 +54,15 @@ def report_generator(state: dict) -> dict:
         summary = f"Path identified with moderate confidence ({confidence:.0%}). Traffic appears ALLOWED."
     else:
         summary = f"Path analysis inconclusive (confidence: {confidence:.0%}). More data needed."
+
+    if vpn_segments:
+        vpn_names = ", ".join(s.get("name", "unknown") for s in vpn_segments)
+        summary += f" Path traverses VPN tunnel(s): {vpn_names}."
+    if vpc_crossings:
+        summary += f" Path crosses {len(vpc_crossings)} VPC boundary(ies)."
+    if lbs_in_path:
+        lb_names = ", ".join(lb.get("device_name", "unknown") for lb in lbs_in_path)
+        summary += f" Load balancer(s) in path: {lb_names}."
 
     return {
         "executive_summary": summary,

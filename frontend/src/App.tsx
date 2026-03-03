@@ -214,7 +214,14 @@ function AppInner() {
       setActiveSession(session);
       setCurrentPhase(session.status);
       setConfidence(session.confidence);
-      setViewState('investigation');
+      // Route to the correct view based on capability
+      if (session.capability === 'cluster_diagnostics') {
+        setViewState('cluster-diagnostics');
+      } else if (session.capability === 'network_troubleshooting') {
+        setViewState('network-troubleshooting');
+      } else {
+        setViewState('investigation');
+      }
       refreshStatus(session.session_id);
     },
     [refreshStatus]
@@ -233,8 +240,9 @@ function AppInner() {
             repo_url: data.repo_url,
             profileId: (data as TroubleshootAppForm).profile_id,
           });
-          setSessions((prev) => [session, ...prev]);
-          setActiveSession(session);
+          const sessionWithCap = { ...session, capability: 'troubleshoot_app' as const };
+          setSessions((prev) => [sessionWithCap, ...prev]);
+          setActiveSession(sessionWithCap);
           setCurrentPhase(session.status);
           setConfidence(session.confidence);
           setViewState('investigation');
@@ -291,8 +299,9 @@ function AppInner() {
               auth_method: clusterData.auth_method || 'token',
             } : {}),
           });
-          setSessions((prev) => [session, ...prev]);
-          setActiveSession(session);
+          const clusterSession = { ...session, capability: 'cluster_diagnostics' as const };
+          setSessions((prev) => [clusterSession, ...prev]);
+          setActiveSession(clusterSession);
           setCurrentPhase(session.status);
           setConfidence(session.confidence);
           setViewState('cluster-diagnostics');
@@ -309,6 +318,10 @@ function AppInner() {
               protocol: nd.protocol,
             }),
           });
+          if (!response.ok) {
+            const errText = await response.text().catch(() => response.statusText);
+            throw new Error(`Network diagnosis failed: ${errText}`);
+          }
           const result = await response.json();
 
           const session: V4Session = {
@@ -319,6 +332,7 @@ function AppInner() {
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
             incident_id: result.flow_id || '',
+            capability: 'network_troubleshooting',
           };
 
           setSessions((prev) => [session, ...prev]);
@@ -326,23 +340,21 @@ function AppInner() {
           setCurrentPhase(session.status);
           setConfidence(session.confidence);
           setViewState('network-troubleshooting');
-        } else {
-          const placeholderSession: V4Session = {
-            session_id: `${data.capability}-${Date.now()}`,
-            service_name:
-              data.capability === 'pr_review'
-                ? 'PR Review'
-                : 'Issue Fix',
-            status: 'initial',
-            confidence: 0,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          };
-          setSessions((prev) => [placeholderSession, ...prev]);
-          setActiveSession(placeholderSession);
-          setCurrentPhase('initial');
-          setConfidence(0);
+        } else if (data.capability === 'pr_review' || data.capability === 'github_issue_fix') {
+          // PR Review and Issue Fixer use the standard session API
+          const session = await startSessionV4({
+            service_name: data.capability === 'pr_review' ? 'PR Review' : 'Issue Fix',
+            time_window: '1h',
+            capability: data.capability,
+            ...(data.capability === 'pr_review' ? { repo_url: (data as import('./types').PRReviewForm).repo_url } : {}),
+            ...(data.capability === 'github_issue_fix' ? { repo_url: (data as import('./types').GithubIssueFixForm).repo_url } : {}),
+          });
+          setSessions((prev) => [{ ...session, capability: data.capability }, ...prev]);
+          setActiveSession({ ...session, capability: data.capability });
+          setCurrentPhase(session.status);
+          setConfidence(session.confidence);
           setViewState('investigation');
+          refreshStatus(session.session_id);
         }
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Failed to start session';
