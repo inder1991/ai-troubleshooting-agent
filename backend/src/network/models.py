@@ -15,6 +15,12 @@ class DeviceType(str, Enum):
     PROXY = "proxy"
     GATEWAY = "gateway"
     HOST = "host"
+    VPC = "vpc"
+    TRANSIT_GATEWAY = "transit_gateway"
+    LOAD_BALANCER = "load_balancer"
+    VPN_GATEWAY = "vpn_gateway"
+    DIRECT_CONNECT = "direct_connect"
+    NACL = "nacl"
 
 class FirewallVendor(str, Enum):
     PALO_ALTO = "palo_alto"
@@ -73,6 +79,47 @@ class VerdictMatchType(str, Enum):
     ADAPTER_UNAVAILABLE = "adapter_unavailable"
     INSUFFICIENT_DATA = "insufficient_data"
 
+class CloudProvider(str, Enum):
+    AWS = "aws"
+    AZURE = "azure"
+    GCP = "gcp"
+    OCI = "oci"
+
+class TunnelType(str, Enum):
+    IPSEC = "ipsec"
+    GRE = "gre"
+    SSL = "ssl"
+
+class DirectConnectProvider(str, Enum):
+    AWS_DX = "aws_dx"
+    AZURE_ER = "azure_er"
+    OCI_FC = "oci_fc"
+
+class LBType(str, Enum):
+    ALB = "alb"
+    NLB = "nlb"
+    AZURE_LB = "azure_lb"
+    HAPROXY = "haproxy"
+
+class LBScheme(str, Enum):
+    INTERNET_FACING = "internet_facing"
+    INTERNAL = "internal"
+
+class ComplianceStandard(str, Enum):
+    PCI_DSS = "pci_dss"
+    SOC2 = "soc2"
+    HIPAA = "hipaa"
+    CUSTOM = "custom"
+
+class NACLDirection(str, Enum):
+    INBOUND = "inbound"
+    OUTBOUND = "outbound"
+
+class ConnectivityStatus(str, Enum):
+    UP = "up"
+    DOWN = "down"
+    DEGRADED = "degraded"
+
 
 # ── Infrastructure Entities (persist in graph + SQLite) ──
 
@@ -119,6 +166,122 @@ class Workload(BaseModel):
     cluster: str = ""
     ips: list[str] = Field(default_factory=list)
     description: str = ""
+
+
+# ── Enterprise Hybrid Entities ──
+
+class VPC(BaseModel):
+    id: str
+    name: str
+    cloud_provider: CloudProvider = CloudProvider.AWS
+    region: str = ""
+    cidr_blocks: list[str] = Field(default_factory=list)
+    account_id: str = ""
+    compliance_zone: str = ""
+
+class RouteTable(BaseModel):
+    id: str
+    vpc_id: str
+    name: str = ""
+    is_main: bool = False
+
+class VPCPeering(BaseModel):
+    id: str
+    requester_vpc_id: str
+    accepter_vpc_id: str
+    status: str = "active"
+    cidr_routes: list[str] = Field(default_factory=list)
+
+class TransitGateway(BaseModel):
+    id: str
+    name: str
+    cloud_provider: CloudProvider = CloudProvider.AWS
+    region: str = ""
+    attached_vpc_ids: list[str] = Field(default_factory=list)
+    route_table_id: str = ""
+
+class VPNTunnel(BaseModel):
+    id: str
+    name: str
+    tunnel_type: TunnelType = TunnelType.IPSEC
+    local_gateway_id: str = ""
+    remote_gateway_ip: str = ""
+    local_cidrs: list[str] = Field(default_factory=list)
+    remote_cidrs: list[str] = Field(default_factory=list)
+    encryption: str = "AES-256-GCM"
+    ike_version: str = "IKEv2"
+    status: ConnectivityStatus = ConnectivityStatus.UP
+
+class DirectConnect(BaseModel):
+    id: str
+    name: str
+    provider: DirectConnectProvider = DirectConnectProvider.AWS_DX
+    bandwidth_mbps: int = 1000
+    location: str = ""
+    vlan_id: int = 0
+    bgp_asn: int = 0
+    status: ConnectivityStatus = ConnectivityStatus.UP
+
+class NACL(BaseModel):
+    id: str
+    name: str
+    vpc_id: str = ""
+    subnet_ids: list[str] = Field(default_factory=list)
+    is_default: bool = False
+
+class NACLRule(BaseModel):
+    id: str
+    nacl_id: str
+    direction: NACLDirection = NACLDirection.INBOUND
+    rule_number: int = 100
+    protocol: str = "tcp"
+    cidr: str = "0.0.0.0/0"
+    port_range_from: int = 0
+    port_range_to: int = 65535
+    action: PolicyAction = PolicyAction.ALLOW
+
+class LoadBalancer(BaseModel):
+    id: str
+    name: str
+    lb_type: LBType = LBType.ALB
+    scheme: LBScheme = LBScheme.INTERNAL
+    vpc_id: str = ""
+    listeners: list[dict] = Field(default_factory=list)
+    health_check_path: str = "/health"
+
+class LBTargetGroup(BaseModel):
+    id: str
+    lb_id: str
+    name: str = ""
+    protocol: str = "tcp"
+    port: int = 80
+    target_ids: list[str] = Field(default_factory=list)
+    health_status: str = "healthy"
+
+class VLAN(BaseModel):
+    id: str
+    vlan_number: int
+    name: str = ""
+    trunk_ports: list[str] = Field(default_factory=list)
+    access_ports: list[str] = Field(default_factory=list)
+    site: str = ""
+
+class MPLSCircuit(BaseModel):
+    id: str
+    name: str
+    label: int = 0
+    provider: str = ""
+    bandwidth_mbps: int = 100
+    endpoints: list[str] = Field(default_factory=list)
+    qos_class: str = ""
+
+class ComplianceZone(BaseModel):
+    id: str
+    name: str
+    standard: ComplianceStandard = ComplianceStandard.PCI_DSS
+    description: str = ""
+    subnet_ids: list[str] = Field(default_factory=list)
+    vpc_ids: list[str] = Field(default_factory=list)
 
 
 # ── Relationship Tables (SQLite, loaded dynamically) ──
