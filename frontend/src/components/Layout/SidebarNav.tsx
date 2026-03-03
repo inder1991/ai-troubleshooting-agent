@@ -1,6 +1,10 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
-export type NavView = 'home' | 'sessions' | 'integrations' | 'settings' | 'agents' | 'topology';
+export type NavView = 'home' | 'sessions' | 'integrations' | 'settings' | 'agents' | 'network-topology' | 'ipam';
+
+type NavLink = { kind: 'link'; id: NavView; label: string; icon: string };
+type NavGroup = { kind: 'group'; group: string; icon: string; children: { id: NavView; label: string; icon: string }[] };
+type NavItem = NavLink | NavGroup;
 
 interface SidebarNavProps {
   activeView: NavView;
@@ -8,16 +12,74 @@ interface SidebarNavProps {
   onNewMission?: () => void;
 }
 
-const navItems: { id: NavView; label: string; icon: string }[] = [
-  { id: 'home', label: 'Dashboard', icon: 'dashboard' },
-  { id: 'sessions', label: 'Sessions', icon: 'history' },
-  { id: 'integrations', label: 'Integrations', icon: 'hub' },
-  { id: 'settings', label: 'Settings', icon: 'settings' },
-  { id: 'agents' as NavView, label: 'Agent Matrix', icon: 'smart_toy' },
-  { id: 'topology', label: 'Topology', icon: 'device_hub' },
+const navItems: NavItem[] = [
+  { kind: 'link', id: 'home', label: 'Dashboard', icon: 'dashboard' },
+  { kind: 'link', id: 'sessions', label: 'Sessions', icon: 'history' },
+  {
+    kind: 'group',
+    group: 'Network',
+    icon: 'lan',
+    children: [
+      { id: 'network-topology', label: 'Topology', icon: 'device_hub' },
+      { id: 'ipam', label: 'IPAM', icon: 'dns' },
+    ],
+  },
+  { kind: 'link', id: 'integrations', label: 'Integrations', icon: 'hub' },
+  { kind: 'link', id: 'settings', label: 'Settings', icon: 'settings' },
+  { kind: 'link', id: 'agents' as NavView, label: 'Agent Matrix', icon: 'smart_toy' },
 ];
 
 const SidebarNav: React.FC<SidebarNavProps> = ({ activeView, onNavigate, onNewMission }) => {
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+
+  // Auto-expand group if active view is one of its children
+  useEffect(() => {
+    for (const item of navItems) {
+      if (item.kind === 'group' && item.children.some((c) => c.id === activeView)) {
+        setExpandedGroups((prev) => {
+          if (prev.has(item.group)) return prev;
+          const next = new Set(prev);
+          next.add(item.group);
+          return next;
+        });
+      }
+    }
+  }, [activeView]);
+
+  const toggleGroup = (group: string) => {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(group)) next.delete(group);
+      else next.add(group);
+      return next;
+    });
+  };
+
+  const renderLink = (id: NavView, label: string, icon: string, indented = false) => {
+    const isActive = activeView === id;
+    return (
+      <button
+        key={id}
+        onClick={() => onNavigate(id)}
+        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors border ${
+          isActive
+            ? 'text-[#07b6d5]'
+            : 'text-slate-400 hover:text-white border-transparent'
+        }`}
+        style={{
+          ...(isActive ? {
+            backgroundColor: 'rgba(7,182,213,0.1)',
+            borderColor: 'rgba(7,182,213,0.2)',
+          } : {}),
+          ...(indented ? { paddingLeft: '2.25rem' } : {}),
+        }}
+      >
+        <span className="material-symbols-outlined text-[20px]" style={{ fontFamily: 'Material Symbols Outlined' }}>{icon}</span>
+        <span className={`text-sm ${isActive ? 'font-semibold tracking-wide' : 'font-medium'}`}>{label}</span>
+      </button>
+    );
+  };
+
   return (
     <aside className="w-64 flex-shrink-0 border-r border-[#224349] flex flex-col justify-between py-6" style={{ backgroundColor: '#0f2023' }}>
       <div className="flex flex-col gap-8">
@@ -35,24 +97,43 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ activeView, onNavigate, onNewMi
         {/* Navigation Links */}
         <nav className="flex flex-col gap-1 px-3">
           {navItems.map((item) => {
-            const isActive = activeView === item.id;
+            if (item.kind === 'link') {
+              return renderLink(item.id, item.label, item.icon);
+            }
+
+            // Group
+            const isExpanded = expandedGroups.has(item.group);
+            const hasActiveChild = item.children.some((c) => c.id === activeView);
+
             return (
-              <button
-                key={item.id}
-                onClick={() => onNavigate(item.id)}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors border ${
-                  isActive
-                    ? 'text-[#07b6d5]'
-                    : 'text-slate-400 hover:text-white border-transparent'
-                }`}
-                style={isActive ? {
-                  backgroundColor: 'rgba(7,182,213,0.1)',
-                  borderColor: 'rgba(7,182,213,0.2)',
-                } : {}}
-              >
-                <span className="material-symbols-outlined" style={{ fontFamily: 'Material Symbols Outlined' }}>{item.icon}</span>
-                <span className={`text-sm ${isActive ? 'font-semibold tracking-wide' : 'font-medium'}`}>{item.label}</span>
-              </button>
+              <div key={item.group}>
+                <button
+                  onClick={() => toggleGroup(item.group)}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors border ${
+                    hasActiveChild
+                      ? 'text-[#07b6d5]'
+                      : 'text-slate-400 hover:text-white border-transparent'
+                  }`}
+                  style={hasActiveChild ? {
+                    backgroundColor: 'rgba(7,182,213,0.05)',
+                    borderColor: 'rgba(7,182,213,0.15)',
+                  } : {}}
+                >
+                  <span className="material-symbols-outlined text-[20px]" style={{ fontFamily: 'Material Symbols Outlined' }}>{item.icon}</span>
+                  <span className={`text-sm flex-1 text-left ${hasActiveChild ? 'font-semibold tracking-wide' : 'font-medium'}`}>{item.group}</span>
+                  <span
+                    className="material-symbols-outlined text-[16px] transition-transform duration-200"
+                    style={{ fontFamily: 'Material Symbols Outlined', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
+                  >
+                    expand_more
+                  </span>
+                </button>
+                {isExpanded && (
+                  <div className="flex flex-col gap-0.5 mt-0.5">
+                    {item.children.map((child) => renderLink(child.id, child.label, child.icon, true))}
+                  </div>
+                )}
+              </div>
             );
           })}
         </nav>

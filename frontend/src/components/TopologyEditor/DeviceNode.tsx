@@ -7,6 +7,9 @@ interface DeviceNodeData {
   ip?: string;
   vendor?: string;
   zone?: string;
+  vlan?: number;
+  description?: string;
+  location?: string;
   status?: 'healthy' | 'degraded' | 'down';
 }
 
@@ -47,10 +50,29 @@ const deviceColors: Record<string, string> = {
   compliance_zone: '#f59e0b',
 };
 
+const typeAbbreviations: Record<string, string> = {
+  firewall: 'FW',
+  router: 'RTR',
+  switch: 'SW',
+  load_balancer: 'LB',
+  transit_gateway: 'TGW',
+  vpn_tunnel: 'VPN',
+  direct_connect: 'DX',
+  nacl: 'ACL',
+  vlan: 'VLAN',
+  mpls: 'MPLS',
+  cloud_gateway: 'CGW',
+  workload: 'WL',
+  vpc: 'VPC',
+  compliance_zone: 'CZ',
+  zone: 'ZONE',
+};
+
 const DeviceNode: React.FC<NodeProps<DeviceNodeData>> = ({ data, selected }) => {
   const isFirewall = data.deviceType === 'firewall';
   const icon = deviceIcons[data.deviceType] || 'devices';
   const statusColor = statusColors[data.status || 'healthy'] || '#22c55e';
+  const typeAbbr = typeAbbreviations[data.deviceType] || data.deviceType?.toUpperCase().slice(0, 3);
 
   return (
     <div className="relative group">
@@ -93,6 +115,20 @@ const DeviceNode: React.FC<NodeProps<DeviceNodeData>> = ({ data, selected }) => 
           {icon}
         </span>
 
+        {/* Device type badge */}
+        {typeAbbr && (
+          <span
+            className="text-[8px] font-mono font-bold px-1.5 py-0.5 rounded-full leading-none"
+            style={{
+              backgroundColor: 'rgba(7,182,213,0.15)',
+              color: '#07b6d5',
+              border: '1px solid rgba(7,182,213,0.3)',
+            }}
+          >
+            {typeAbbr}
+          </span>
+        )}
+
         {/* Label */}
         <span
           className="text-[10px] font-mono font-medium text-center leading-tight max-w-[70px] truncate"
@@ -108,6 +144,16 @@ const DeviceNode: React.FC<NodeProps<DeviceNodeData>> = ({ data, selected }) => 
             style={{ color: '#64748b' }}
           >
             {data.ip}
+          </span>
+        )}
+
+        {/* Zone label */}
+        {data.zone && (
+          <span
+            className="text-[8px] font-mono truncate max-w-[70px]"
+            style={{ color: '#4a7a80' }}
+          >
+            {data.zone}
           </span>
         )}
       </div>

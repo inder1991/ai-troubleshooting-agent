@@ -621,3 +621,15 @@ export const getAdapterStatus = async (): Promise<any> => {
   if (!response.ok) throw new Error(`Failed to get adapter status: ${response.statusText}`);
   return response.json();
 };
+
+export const fetchIPAMDevices = async (): Promise<any> => {
+  const response = await fetch(`${API_BASE_URL}/api/v4/network/ipam/devices`);
+  if (!response.ok) throw new Error(`Failed to fetch IPAM devices: ${response.statusText}`);
+  return response.json();
+};
+
+export const fetchIPAMSubnets = async (): Promise<any> => {
+  const response = await fetch(`${API_BASE_URL}/api/v4/network/ipam/subnets`);
+  if (!response.ok) throw new Error(`Failed to fetch IPAM subnets: ${response.statusText}`);
+  return response.json();
+};

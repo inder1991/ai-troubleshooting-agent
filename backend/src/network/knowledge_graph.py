@@ -379,6 +379,12 @@ class NetworkKnowledgeGraph:
                     "entityId": node_id,
                     "deviceType": data.get("device_type", "HOST"),
                     "ip": data.get("management_ip") or data.get("cidr", ""),
+                    "vendor": data.get("vendor", ""),
+                    "zone": data.get("zone_id", ""),
+                    "vlan": data.get("vlan_id", 0),
+                    "description": data.get("description", ""),
+                    "location": data.get("location", "") or data.get("site", ""),
+                    "status": "healthy",
                 },
             })
 

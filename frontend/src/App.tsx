@@ -34,10 +34,11 @@ import PostMortemDossierView from './components/Investigation/PostMortemDossierV
 import ClusterWarRoom from './components/ClusterDiagnostic/ClusterWarRoom';
 import AgentMatrixView from './components/AgentMatrix/AgentMatrixView';
 import TopologyEditorView from './components/TopologyEditor/TopologyEditorView';
+import IPAMInventoryView from './components/IPAM/IPAMInventoryView';
 import NetworkWarRoom from './components/NetworkTroubleshooting/NetworkWarRoom';
 
 
-type ViewState = 'home' | 'form' | 'investigation' | 'sessions' | 'integrations' | 'settings' | 'dossier' | 'cluster-diagnostics' | 'agent-matrix' | 'network-troubleshooting' | 'topology';
+type ViewState = 'home' | 'form' | 'investigation' | 'sessions' | 'integrations' | 'settings' | 'dossier' | 'cluster-diagnostics' | 'agent-matrix' | 'network-troubleshooting' | 'network-topology' | 'ipam';
 
 function AppInner() {
   const { addToast } = useToast();
@@ -177,7 +178,7 @@ function AppInner() {
     if (view === 'agents') {
       setViewState('agent-matrix');
     } else {
-      setViewState(view);
+      setViewState(view as ViewState);
     }
     if (view === 'home') {
       setSelectedCapability(null);
@@ -392,7 +393,7 @@ function AppInner() {
 
   // Derive nav view from viewState
   const navView: NavView =
-    viewState === 'sessions' ? 'sessions' : viewState === 'integrations' ? 'integrations' : viewState === 'settings' ? 'settings' : viewState === 'agent-matrix' ? 'agents' : viewState === 'topology' ? 'topology' : 'home';
+    viewState === 'sessions' ? 'sessions' : viewState === 'integrations' ? 'integrations' : viewState === 'settings' ? 'settings' : viewState === 'agent-matrix' ? 'agents' : viewState === 'network-topology' ? 'network-topology' : viewState === 'ipam' ? 'ipam' : 'home';
 
   const showSidebar = viewState !== 'investigation' && viewState !== 'dossier' && viewState !== 'cluster-diagnostics' && viewState !== 'agent-matrix' && viewState !== 'network-troubleshooting';
 
@@ -440,8 +441,12 @@ function AppInner() {
           </div>
         )}
 
-        {viewState === 'topology' && (
+        {viewState === 'network-topology' && (
           <TopologyEditorView />
+        )}
+
+        {viewState === 'ipam' && (
+          <IPAMInventoryView />
         )}
 
         {viewState === 'form' && selectedCapability && (
