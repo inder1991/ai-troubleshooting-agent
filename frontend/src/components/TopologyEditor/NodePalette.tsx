@@ -51,6 +51,7 @@ const paletteCategories: PaletteCategory[] = [
     label: 'Data Center',
     items: [
       { type: 'vlan', label: 'VLAN', icon: 'label' },
+      { type: 'ha_group', label: 'HA Group', icon: 'sync' },
     ],
   },
 ];

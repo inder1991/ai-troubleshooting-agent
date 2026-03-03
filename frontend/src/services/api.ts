@@ -653,3 +653,22 @@ export const runReachabilityMatrix = async (zoneIds: string[]): Promise<any> => 
   if (!response.ok) throw new Error(`Failed to run matrix: ${response.statusText}`);
   return response.json();
 };
+
+export const createHAGroup = async (data: {
+  name: string; ha_mode: string; member_ids: string[];
+  virtual_ips?: string[]; active_member_id?: string;
+}): Promise<any> => {
+  const response = await fetch(`${API_BASE_URL}/api/v4/network/ha-groups`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error(`Failed to create HA group: ${response.statusText}`);
+  return response.json();
+};
+
+export const listHAGroups = async (): Promise<any> => {
+  const response = await fetch(`${API_BASE_URL}/api/v4/network/ha-groups`);
+  if (!response.ok) throw new Error(`Failed to list HA groups: ${response.statusText}`);
+  return response.json();
+};
