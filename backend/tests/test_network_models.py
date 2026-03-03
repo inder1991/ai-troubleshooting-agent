@@ -292,3 +292,10 @@ def test_device_store_roundtrip(tmp_path):
     assert loaded.zone_id == "pci"
     assert loaded.vlan_id == 100
     assert loaded.description == "PCI firewall"
+
+    # Also verify list_devices returns the enriched fields
+    all_devices = store.list_devices()
+    assert len(all_devices) == 1
+    assert all_devices[0].zone_id == "pci"
+    assert all_devices[0].vlan_id == 100
+    assert all_devices[0].description == "PCI firewall"

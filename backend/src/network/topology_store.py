@@ -39,7 +39,8 @@ class TopologyStore:
         conn.executescript("""
             CREATE TABLE IF NOT EXISTS devices (
                 id TEXT PRIMARY KEY, name TEXT, vendor TEXT, device_type TEXT,
-                management_ip TEXT, model TEXT, location TEXT
+                management_ip TEXT, model TEXT, location TEXT,
+                zone_id TEXT DEFAULT '', vlan_id INTEGER DEFAULT 0, description TEXT DEFAULT ''
             );
             CREATE TABLE IF NOT EXISTS interfaces (
                 id TEXT PRIMARY KEY, device_id TEXT, name TEXT, ip TEXT,
@@ -200,7 +201,7 @@ class TopologyStore:
         for sql in migrations:
             try:
                 conn.execute(sql)
-            except Exception:
+            except sqlite3.OperationalError:
                 pass  # Column already exists
         conn.commit()
         conn.close()
