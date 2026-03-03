@@ -26,7 +26,8 @@ def _infer_device_type(name: str, row: dict) -> DeviceType:
 
 
 def parse_ipam_csv(content: str, store: TopologyStore) -> dict:
-    """Parse CSV with columns: ip, subnet, device, zone, vlan, description.
+    """Parse CSV with columns: ip, subnet, device, zone, vlan, description,
+    vendor, location (or site), device_type (optional).
     Creates/updates devices, subnets, and interfaces in the store.
     Returns summary: {devices_added, subnets_added, interfaces_added, errors}.
     """

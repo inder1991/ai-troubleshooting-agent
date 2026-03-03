@@ -290,3 +290,11 @@ def test_csv_populates_device_metadata(store):
     assert d.description == "PCI firewall"
     assert d.vendor == "Palo Alto"
     assert d.location == "NYC-DC1"
+
+
+def test_csv_site_column_populates_location(store):
+    csv_content = """ip,subnet,device,zone,vlan,description,vendor,site
+10.0.0.1,10.0.0.0/24,fw-01,pci,100,desc,Cisco,LAX-DC2"""
+    parse_ipam_csv(csv_content, store)
+    d = store.list_devices()[0]
+    assert d.location == "LAX-DC2"
