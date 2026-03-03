@@ -132,6 +132,9 @@ class Device(BaseModel):
     management_ip: str = ""
     model: str = ""
     location: str = ""
+    zone_id: str = ""
+    vlan_id: int = 0
+    description: str = ""
 
 class Interface(BaseModel):
     id: str

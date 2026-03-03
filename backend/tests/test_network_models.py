@@ -262,3 +262,33 @@ class TestTopologyStore:
         snap_id = store.save_diagram_snapshot('{"nodes": []}', "initial")
         assert snap_id is not None
         assert snap_id > 0
+
+
+def test_device_has_zone_vlan_description():
+    from src.network.models import Device, DeviceType
+    d = Device(
+        id="d1", name="fw-01", device_type=DeviceType.FIREWALL,
+        management_ip="10.0.0.1", zone_id="pci", vlan_id=100,
+        description="PCI firewall",
+    )
+    assert d.zone_id == "pci"
+    assert d.vlan_id == 100
+    assert d.description == "PCI firewall"
+
+
+def test_device_store_roundtrip(tmp_path):
+    import os
+    from src.network.topology_store import TopologyStore
+    from src.network.models import Device, DeviceType
+    store = TopologyStore(db_path=os.path.join(str(tmp_path), "test.db"))
+    d = Device(
+        id="d1", name="fw-01", device_type=DeviceType.FIREWALL,
+        management_ip="10.0.0.1", zone_id="pci", vlan_id=100,
+        description="PCI firewall",
+    )
+    store.add_device(d)
+    loaded = store.get_device("d1")
+    assert loaded is not None
+    assert loaded.zone_id == "pci"
+    assert loaded.vlan_id == 100
+    assert loaded.description == "PCI firewall"

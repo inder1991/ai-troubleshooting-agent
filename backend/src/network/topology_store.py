@@ -5,7 +5,7 @@ import os
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 from .models import (
-    Device, Interface, Subnet, Zone, Workload,
+    Device, DeviceType, Interface, Subnet, Zone, Workload,
     Route, NATRule, FirewallRule,
     Flow, Trace, TraceHop, FlowVerdict,
     AdapterConfig,
@@ -26,6 +26,7 @@ class TopologyStore:
         self.db_path = db_path
         os.makedirs(os.path.dirname(db_path), exist_ok=True)
         self._init_tables()
+        self._migrate_tables()
 
     def _conn(self) -> sqlite3.Connection:
         conn = sqlite3.connect(self.db_path)
@@ -188,13 +189,30 @@ class TopologyStore:
         conn.commit()
         conn.close()
 
+    def _migrate_tables(self):
+        """Add columns that may be missing from older schemas."""
+        conn = self._conn()
+        migrations = [
+            "ALTER TABLE devices ADD COLUMN zone_id TEXT DEFAULT ''",
+            "ALTER TABLE devices ADD COLUMN vlan_id INTEGER DEFAULT 0",
+            "ALTER TABLE devices ADD COLUMN description TEXT DEFAULT ''",
+        ]
+        for sql in migrations:
+            try:
+                conn.execute(sql)
+            except Exception:
+                pass  # Column already exists
+        conn.commit()
+        conn.close()
+
     # ── Device CRUD ──
     def add_device(self, device: Device) -> None:
         conn = self._conn()
         conn.execute(
-            "INSERT OR REPLACE INTO devices VALUES (?,?,?,?,?,?,?)",
+            "INSERT OR REPLACE INTO devices VALUES (?,?,?,?,?,?,?,?,?,?)",
             (device.id, device.name, device.vendor, device.device_type.value,
-             device.management_ip, device.model, device.location),
+             device.management_ip, device.model, device.location,
+             device.zone_id, device.vlan_id, device.description),
         )
         conn.commit()
         conn.close()
@@ -205,13 +223,30 @@ class TopologyStore:
         conn.close()
         if not row:
             return None
-        return Device(**dict(row))
+        return Device(
+            id=row[0], name=row[1], vendor=row[2] or "",
+            device_type=DeviceType(row[3]) if row[3] else DeviceType.HOST,
+            management_ip=row[4] or "", model=row[5] or "", location=row[6] or "",
+            zone_id=row[7] if len(row) > 7 else "",
+            vlan_id=row[8] if len(row) > 8 else 0,
+            description=row[9] if len(row) > 9 else "",
+        )
 
     def list_devices(self) -> list[Device]:
         conn = self._conn()
         rows = conn.execute("SELECT * FROM devices").fetchall()
         conn.close()
-        return [Device(**dict(r)) for r in rows]
+        return [
+            Device(
+                id=r[0], name=r[1], vendor=r[2] or "",
+                device_type=DeviceType(r[3]) if r[3] else DeviceType.HOST,
+                management_ip=r[4] or "", model=r[5] or "", location=r[6] or "",
+                zone_id=r[7] if len(r) > 7 else "",
+                vlan_id=r[8] if len(r) > 8 else 0,
+                description=r[9] if len(r) > 9 else "",
+            )
+            for r in rows
+        ]
 
     def delete_device(self, device_id: str) -> None:
         conn = self._conn()
