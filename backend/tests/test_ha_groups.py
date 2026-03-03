@@ -2,7 +2,8 @@
 import os
 import pytest
 from pydantic import ValidationError
-from src.network.models import HAGroup, HAMode, HARole, Device, DeviceType
+from src.network.models import HAGroup, HAMode, HARole, Device, DeviceType, Subnet
+from src.network.ha_validation import validate_ha_group
 from src.network.topology_store import TopologyStore
 
 
@@ -64,3 +65,48 @@ class TestHAGroupStore:
         loaded = store.get_device("d1")
         assert loaded.ha_group_id == "ha1"
         assert loaded.ha_role == "active"
+
+
+class TestHAValidation:
+    def test_members_must_be_same_device_type(self, store):
+        store.add_device(Device(id="d1", name="fw-01", device_type=DeviceType.FIREWALL, management_ip="10.0.0.1"))
+        store.add_device(Device(id="d2", name="rtr-01", device_type=DeviceType.ROUTER, management_ip="10.0.0.2"))
+        errors = validate_ha_group(store, HAGroup(
+            id="ha1", name="bad", ha_mode=HAMode.ACTIVE_PASSIVE,
+            member_ids=["d1", "d2"]))
+        assert any("same device type" in e for e in errors)
+
+    def test_members_must_be_in_same_subnet(self, store):
+        store.add_device(Device(id="d1", name="fw-01", device_type=DeviceType.FIREWALL, management_ip="10.0.0.1"))
+        store.add_device(Device(id="d2", name="fw-02", device_type=DeviceType.FIREWALL, management_ip="192.168.1.1"))
+        errors = validate_ha_group(store, HAGroup(
+            id="ha1", name="bad", ha_mode=HAMode.ACTIVE_PASSIVE,
+            member_ids=["d1", "d2"]))
+        assert any("same subnet" in e.lower() for e in errors)
+
+    def test_vip_must_be_in_member_subnet(self, store):
+        store.add_device(Device(id="d1", name="fw-01", device_type=DeviceType.FIREWALL, management_ip="10.0.0.1"))
+        store.add_device(Device(id="d2", name="fw-02", device_type=DeviceType.FIREWALL, management_ip="10.0.0.2"))
+        store.add_subnet(Subnet(id="s1", cidr="10.0.0.0/24"))
+        errors = validate_ha_group(store, HAGroup(
+            id="ha1", name="bad", ha_mode=HAMode.ACTIVE_PASSIVE,
+            member_ids=["d1", "d2"], virtual_ips=["192.168.1.100"]))
+        assert any("VIP" in e and "not within" in e for e in errors)
+
+    def test_active_passive_needs_one_active(self, store):
+        store.add_device(Device(id="d1", name="fw-01", device_type=DeviceType.FIREWALL, management_ip="10.0.0.1"))
+        store.add_device(Device(id="d2", name="fw-02", device_type=DeviceType.FIREWALL, management_ip="10.0.0.2"))
+        errors = validate_ha_group(store, HAGroup(
+            id="ha1", name="bad", ha_mode=HAMode.ACTIVE_PASSIVE,
+            member_ids=["d1", "d2"], active_member_id=""))
+        assert any("active member" in e.lower() for e in errors)
+
+    def test_valid_ha_group_no_errors(self, store):
+        store.add_device(Device(id="d1", name="fw-01", device_type=DeviceType.FIREWALL, management_ip="10.0.0.1"))
+        store.add_device(Device(id="d2", name="fw-02", device_type=DeviceType.FIREWALL, management_ip="10.0.0.2"))
+        store.add_subnet(Subnet(id="s1", cidr="10.0.0.0/24"))
+        errors = validate_ha_group(store, HAGroup(
+            id="ha1", name="FW-HA", ha_mode=HAMode.ACTIVE_PASSIVE,
+            member_ids=["d1", "d2"], virtual_ips=["10.0.0.100"],
+            active_member_id="d1"))
+        assert len(errors) == 0
