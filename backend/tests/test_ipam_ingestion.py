@@ -322,3 +322,81 @@ def test_device_type_aliases(store):
     assert device_map["dev-02"] == DeviceType.ROUTER
     assert device_map["dev-03"] == DeviceType.SWITCH
     assert device_map["dev-04"] == DeviceType.LOAD_BALANCER
+
+
+# ── Task 3: IP-in-subnet, gateway, VLAN range, overlapping CIDR validation ──
+
+
+class TestIPInSubnetValidation:
+    """IP must fall within its declared subnet CIDR."""
+
+    def test_ip_outside_subnet_rejected(self, tmp_store):
+        csv_content = """ip,subnet,device,zone,vlan,description
+192.168.100.50,10.0.0.0/24,Device1,trust,100,IP not in subnet"""
+        stats = parse_ipam_csv(csv_content, tmp_store)
+        assert len(stats["errors"]) == 1
+        assert "not within subnet" in stats["errors"][0]
+        assert stats["devices_added"] == 0
+        assert stats["interfaces_added"] == 0
+
+    def test_ip_inside_subnet_accepted(self, tmp_store):
+        csv_content = """ip,subnet,device,zone,vlan,description
+10.0.0.50,10.0.0.0/24,Device1,trust,100,Valid"""
+        stats = parse_ipam_csv(csv_content, tmp_store)
+        assert len(stats["errors"]) == 0
+        assert stats["devices_added"] == 1
+
+    def test_ip_at_network_boundary_accepted(self, tmp_store):
+        csv_content = """ip,subnet,device,zone,vlan,description
+10.0.0.1,10.0.0.0/24,Device1,trust,100,Valid"""
+        stats = parse_ipam_csv(csv_content, tmp_store)
+        assert len(stats["errors"]) == 0
+
+    def test_ip_at_broadcast_accepted(self, tmp_store):
+        csv_content = """ip,subnet,device,zone,vlan,description
+10.0.0.255,10.0.0.0/24,Device1,trust,100,Broadcast"""
+        stats = parse_ipam_csv(csv_content, tmp_store)
+        assert len(stats["errors"]) == 0
+
+
+class TestGatewayValidation:
+    """Gateway IP must be within its subnet CIDR if a gateway column is provided."""
+
+    def test_gateway_outside_subnet_warned(self, tmp_store):
+        csv_content = """ip,subnet,device,zone,vlan,description,gateway
+10.0.0.1,10.0.0.0/24,Device1,trust,100,test,192.168.1.1"""
+        stats = parse_ipam_csv(csv_content, tmp_store)
+        assert any("gateway" in e.lower() for e in stats["errors"])
+
+    def test_valid_gateway_no_warning(self, tmp_store):
+        csv_content = """ip,subnet,device,zone,vlan,description,gateway
+10.0.0.1,10.0.0.0/24,Device1,trust,100,test,10.0.0.254"""
+        stats = parse_ipam_csv(csv_content, tmp_store)
+        assert not any("gateway" in e.lower() for e in stats["errors"])
+
+
+class TestVLANRangeValidation:
+    """VLAN IDs must be 0 (unset) or 1-4094."""
+
+    def test_vlan_out_of_range_warned(self, tmp_store):
+        csv_content = """ip,subnet,device,zone,vlan,description
+10.0.0.1,10.0.0.0/24,Device1,trust,5000,Bad VLAN"""
+        stats = parse_ipam_csv(csv_content, tmp_store)
+        assert any("VLAN" in e for e in stats["errors"])
+
+    def test_vlan_zero_allowed(self, tmp_store):
+        csv_content = """ip,subnet,device,zone,vlan,description
+10.0.0.1,10.0.0.0/24,Device1,trust,0,No VLAN"""
+        stats = parse_ipam_csv(csv_content, tmp_store)
+        assert not any("VLAN" in e for e in stats["errors"])
+
+
+class TestOverlappingSubnets:
+    """Detect overlapping CIDRs in the same import."""
+
+    def test_overlapping_cidrs_warned(self, tmp_store):
+        csv_content = """ip,subnet,device,zone,vlan,description
+10.0.0.1,10.0.0.0/24,Device1,trust,100,Parent
+10.0.0.129,10.0.0.128/25,Device2,trust,100,Overlapping child"""
+        stats = parse_ipam_csv(csv_content, tmp_store)
+        assert any("overlap" in e.lower() for e in stats["errors"])

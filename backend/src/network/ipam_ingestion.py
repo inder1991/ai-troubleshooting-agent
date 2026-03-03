@@ -77,15 +77,45 @@ def parse_ipam_csv(content: str, store: TopologyStore) -> dict:
                     continue
                 seen_ips.add(ip)
 
+            # Validate IP is within declared subnet
+            if ip and subnet_cidr:
+                try:
+                    net = ipaddress.ip_network(subnet_cidr, strict=False)
+                    if ipaddress.ip_address(ip) not in net:
+                        stats["errors"].append(
+                            f"Row {row_num}: IP '{ip}' is not within subnet '{subnet_cidr}'"
+                        )
+                        continue
+                except ValueError:
+                    pass  # Already caught above
+
+            # Validate VLAN range
+            vlan_int = int(vlan or 0)
+            if vlan_int != 0 and (vlan_int < 1 or vlan_int > 4094):
+                stats["errors"].append(f"Row {row_num}: VLAN {vlan_int} out of range (1-4094)")
+                vlan_int = 0  # Reset to unset but don't skip row
+
             # Create/update subnet
             if subnet_cidr and subnet_cidr not in seen_subnets:
                 subnet_id = f"subnet-{subnet_cidr.replace('/', '-')}"
                 store.add_subnet(Subnet(
-                    id=subnet_id, cidr=subnet_cidr, vlan_id=int(vlan or 0),
+                    id=subnet_id, cidr=subnet_cidr, vlan_id=vlan_int,
                     zone_id=zone, description=description,
                 ))
                 seen_subnets.add(subnet_cidr)
                 stats["subnets_added"] += 1
+
+            # Validate gateway IP if provided
+            gateway = row.get("gateway", "").strip()
+            if gateway and subnet_cidr:
+                try:
+                    net = ipaddress.ip_network(subnet_cidr, strict=False)
+                    if ipaddress.ip_address(gateway) not in net:
+                        stats["errors"].append(
+                            f"Row {row_num}: Gateway '{gateway}' is not within subnet '{subnet_cidr}'"
+                        )
+                except ValueError:
+                    pass
 
             # Create/update device
             if device_name and device_name not in seen_devices:
@@ -99,7 +129,7 @@ def parse_ipam_csv(content: str, store: TopologyStore) -> dict:
                     vendor=vendor,
                     location=location,
                     zone_id=zone,
-                    vlan_id=int(vlan or 0),
+                    vlan_id=vlan_int,
                     description=description,
                 ))
                 seen_devices.add(device_name)
@@ -117,6 +147,20 @@ def parse_ipam_csv(content: str, store: TopologyStore) -> dict:
 
         except Exception as e:
             stats["errors"].append(f"Row {row_num}: {str(e)}")
+
+    # Detect overlapping subnets
+    subnet_list = list(seen_subnets)
+    for i in range(len(subnet_list)):
+        for j in range(i + 1, len(subnet_list)):
+            try:
+                a = ipaddress.ip_network(subnet_list[i], strict=False)
+                b = ipaddress.ip_network(subnet_list[j], strict=False)
+                if a.overlaps(b):
+                    stats["errors"].append(
+                        f"Overlapping subnets detected: '{subnet_list[i]}' and '{subnet_list[j]}'"
+                    )
+            except ValueError:
+                pass
 
     return stats
 
