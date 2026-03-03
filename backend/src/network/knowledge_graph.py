@@ -361,6 +361,9 @@ class NetworkKnowledgeGraph:
         """
         stats = {"devices_promoted": 0, "edges_promoted": 0, "errors": []}
 
+        # Pre-validation: collect IPs for duplicate detection
+        seen_ips: dict[str, str] = {}  # ip -> first node label
+
         for node in nodes:
             try:
                 node_type = node.get("type", "device")
@@ -368,6 +371,18 @@ class NetworkKnowledgeGraph:
                 node_id = node.get("id", "")
 
                 if node_type == "device":
+                    ip = data.get("ip", "")
+
+                    # Duplicate IP detection
+                    if ip and ip in seen_ips:
+                        stats["errors"].append(
+                            f"Duplicate IP '{ip}' on '{data.get('label', node_id)}' "
+                            f"(already used by '{seen_ips[ip]}')"
+                        )
+                        continue
+                    if ip:
+                        seen_ips[ip] = data.get("label", node_id)
+
                     dt_str = (data.get("deviceType") or "HOST").upper()
                     try:
                         dt = DeviceType[dt_str]
