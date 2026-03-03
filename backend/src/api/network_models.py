@@ -9,6 +9,7 @@ class DiagnoseRequest(BaseModel):
     port: int = 80
     protocol: str = "tcp"
     session_id: Optional[str] = None  # reuse existing session
+    bidirectional: bool = False
 
 
 class DiagnoseResponse(BaseModel):

@@ -65,7 +65,8 @@ def _get_adapters() -> Dict[str, FirewallAdapter]:
 
 
 async def _run_network_diagnosis(
-    session_id: str, flow_id: str, graph, initial_state: dict
+    session_id: str, flow_id: str, graph, initial_state: dict,
+    bidirectional: bool = False, return_graph=None, return_state: dict | None = None,
 ):
     store = _get_topology_store()
     try:
@@ -85,6 +86,11 @@ async def _run_network_diagnosis(
             dst = hops[i + 1] if isinstance(hops[i + 1], str) else hops[i + 1].get("device_id", "") if isinstance(hops[i + 1], dict) else ""
             if src and dst:
                 kg.boost_edge_confidence(src, dst)
+        # Return path (bidirectional)
+        if bidirectional and return_graph and return_state:
+            _network_sessions[session_id]["phase"] = "running_return"
+            return_result = await return_graph.ainvoke(return_state)
+            _network_sessions[session_id]["return_state"] = return_result
         _network_sessions[session_id]["phase"] = "complete"
         # Update flow status in SQLite
         confidence = result.get("confidence", 0.0) if isinstance(result, dict) else 0.0
@@ -165,7 +171,22 @@ async def diagnose(req: DiagnoseRequest, background_tasks: BackgroundTasks):
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
 
-    background_tasks.add_task(_run_network_diagnosis, session_id, flow_id, compiled_graph, initial_state)
+    if req.bidirectional:
+        return_state = {
+            "flow_id": flow_id,
+            "src_ip": req.dst_ip,  # swapped
+            "dst_ip": req.src_ip,  # swapped
+            "port": req.port,
+            "protocol": req.protocol,
+            "session_id": session_id,
+        }
+        return_graph = build_network_diagnostic_graph(kg, adapters)
+        background_tasks.add_task(
+            _run_network_diagnosis, session_id, flow_id, compiled_graph, initial_state,
+            bidirectional=True, return_graph=return_graph, return_state=return_state,
+        )
+    else:
+        background_tasks.add_task(_run_network_diagnosis, session_id, flow_id, compiled_graph, initial_state)
 
     return DiagnoseResponse(
         session_id=session_id,
@@ -187,6 +208,7 @@ async def get_findings(session_id: str):
         "phase": session.get("phase"),
         "error": session.get("error"),
         "state": session.get("state", {}),
+        "return_state": session.get("return_state"),
     }
 
 

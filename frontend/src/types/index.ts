@@ -1257,11 +1257,75 @@ export interface AgentExecutionsResponse {
 
 // ===== Network Troubleshooting Types =====
 
+export interface NetworkFindingsState {
+  diagnosis_status?: string;
+  confidence?: number;
+  executive_summary?: string;
+  final_path?: {
+    hops: string[];
+    source: string;
+    hop_count: number;
+    has_nat: boolean;
+    blocked: boolean;
+  };
+  firewall_verdicts?: Array<{
+    device_id: string;
+    device_name: string;
+    action: string;
+    rule_id?: string;
+    rule_name?: string;
+    confidence: number;
+    match_type: string;
+    details?: string;
+    matched_source?: string;
+    matched_destination?: string;
+    matched_ports?: string;
+    security_grade?: string;
+  }>;
+  nat_translations?: Array<{
+    device_id: string;
+    direction: string;
+    original_src?: string;
+    translated_src?: string;
+    original_dst?: string;
+    translated_dst?: string;
+  }>;
+  identity_chain?: Array<{
+    stage: string;
+    ip: string;
+    port: number;
+    device_id?: string;
+  }>;
+  trace_hops?: Array<{
+    hop_number: number;
+    ip: string;
+    rtt_ms: number;
+    status: string;
+    device_id?: string;
+    device_name?: string;
+    attribution_confidence?: number;
+  }>;
+  contradictions?: Array<{
+    type: string;
+    detail: string;
+  }>;
+  next_steps?: string[];
+  evidence?: Array<{
+    type: string;
+    detail: string;
+  }>;
+  nacl_verdicts?: NACLVerdict[];
+  vpc_boundary_crossings?: VPCCrossing[];
+  vpn_segments?: VPNSegment[];
+  load_balancers_in_path?: LBHop[];
+}
+
 export interface NetworkFindings {
   session_id: string;
   flow_id: string;
   phase: string;
   error?: string;
+  return_state?: NetworkFindingsState;
   state: {
     diagnosis_status?: string;
     confidence?: number;
