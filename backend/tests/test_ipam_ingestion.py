@@ -298,3 +298,27 @@ def test_csv_site_column_populates_location(store):
     parse_ipam_csv(csv_content, store)
     d = store.list_devices()[0]
     assert d.location == "LAX-DC2"
+
+
+def test_device_type_case_insensitive(store):
+    csv_content = """ip,subnet,device,zone,vlan,description,device_type
+10.0.0.1,10.0.0.0/24,fw-01,trust,100,test,Firewall"""
+    stats = parse_ipam_csv(csv_content, store)
+    devices = store.list_devices()
+    assert devices[0].device_type == DeviceType.FIREWALL
+
+
+def test_device_type_aliases(store):
+    csv_content = """ip,subnet,device,zone,vlan,description,device_type
+10.0.0.1,10.0.0.0/24,dev-01,trust,100,test,FW
+10.0.0.2,10.0.0.0/24,dev-02,trust,100,test,RTR
+10.0.0.3,10.0.0.0/24,dev-03,trust,100,test,SW
+10.0.0.4,10.0.0.0/24,dev-04,trust,100,test,LB"""
+    stats = parse_ipam_csv(csv_content, store)
+    assert stats["devices_added"] == 4
+    devices = store.list_devices()
+    device_map = {d.name: d.device_type for d in devices}
+    assert device_map["dev-01"] == DeviceType.FIREWALL
+    assert device_map["dev-02"] == DeviceType.ROUTER
+    assert device_map["dev-03"] == DeviceType.SWITCH
+    assert device_map["dev-04"] == DeviceType.LOAD_BALANCER

@@ -11,8 +11,13 @@ from .topology_store import TopologyStore
 def _infer_device_type(name: str, row: dict) -> DeviceType:
     """Infer device type from name patterns or explicit column."""
     explicit = row.get("device_type", "").strip().upper()
-    if explicit and hasattr(DeviceType, explicit):
-        return DeviceType[explicit]
+    if explicit:
+        # Try exact match first, then common aliases
+        if hasattr(DeviceType, explicit):
+            return DeviceType[explicit]
+        aliases = {"FW": "FIREWALL", "RTR": "ROUTER", "SW": "SWITCH", "LB": "LOAD_BALANCER"}
+        if explicit in aliases and hasattr(DeviceType, aliases[explicit]):
+            return DeviceType[aliases[explicit]]
     name_lower = name.lower()
     if any(k in name_lower for k in ("fw", "firewall", "palo", "asa")):
         return DeviceType.FIREWALL
