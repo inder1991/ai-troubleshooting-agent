@@ -270,15 +270,15 @@ async def adapters_status():
 async def adapter_test(req: AdapterConfigureRequest):
     """Test adapter connection without saving."""
     from src.network.models import FirewallVendor
-    from src.network.adapters.mock_adapter import MockFirewallAdapter
+    from src.network.adapters.factory import create_adapter
 
     try:
         fw_vendor = FirewallVendor(req.vendor)
     except ValueError:
         return {"success": False, "message": f"Unknown vendor: {req.vendor}"}
 
-    adapter = MockFirewallAdapter(
-        vendor=fw_vendor,
+    adapter = create_adapter(
+        fw_vendor,
         api_endpoint=req.api_endpoint,
         api_key=req.api_key,
         extra_config=req.extra_config,
@@ -294,15 +294,15 @@ async def adapter_test(req: AdapterConfigureRequest):
 async def adapter_configure(vendor: str, req: AdapterConfigureRequest):
     """Configure a firewall adapter for a given vendor."""
     from src.network.models import FirewallVendor
-    from src.network.adapters.mock_adapter import MockFirewallAdapter
+    from src.network.adapters.factory import create_adapter
 
     try:
         fw_vendor = FirewallVendor(vendor)
     except ValueError:
         raise HTTPException(status_code=400, detail=f"Unknown vendor: {vendor}")
 
-    adapter = MockFirewallAdapter(
-        vendor=fw_vendor,
+    adapter = create_adapter(
+        fw_vendor,
         api_endpoint=req.api_endpoint,
         api_key=req.api_key,
         extra_config=req.extra_config,
