@@ -228,9 +228,9 @@ class TopologyStore:
             id=row[0], name=row[1], vendor=row[2] or "",
             device_type=DeviceType(row[3]) if row[3] else DeviceType.HOST,
             management_ip=row[4] or "", model=row[5] or "", location=row[6] or "",
-            zone_id=row[7] if len(row) > 7 else "",
-            vlan_id=row[8] if len(row) > 8 else 0,
-            description=row[9] if len(row) > 9 else "",
+            zone_id=row[7] or "" if len(row) > 7 else "",
+            vlan_id=row[8] or 0 if len(row) > 8 else 0,
+            description=row[9] or "" if len(row) > 9 else "",
         )
 
     def list_devices(self) -> list[Device]:
@@ -242,9 +242,9 @@ class TopologyStore:
                 id=r[0], name=r[1], vendor=r[2] or "",
                 device_type=DeviceType(r[3]) if r[3] else DeviceType.HOST,
                 management_ip=r[4] or "", model=r[5] or "", location=r[6] or "",
-                zone_id=r[7] if len(r) > 7 else "",
-                vlan_id=r[8] if len(r) > 8 else 0,
-                description=r[9] if len(r) > 9 else "",
+                zone_id=r[7] or "" if len(r) > 7 else "",
+                vlan_id=r[8] or 0 if len(r) > 8 else 0,
+                description=r[9] or "" if len(r) > 9 else "",
             )
             for r in rows
         ]
