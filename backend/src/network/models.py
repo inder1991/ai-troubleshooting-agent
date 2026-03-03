@@ -2,8 +2,34 @@
 from __future__ import annotations
 from enum import Enum
 from typing import Optional, Literal
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_validator
 from datetime import datetime
+import ipaddress as _ipaddress
+
+
+def _validate_ip(v: str, field_name: str) -> str:
+    """Validate IP address format. Empty string is allowed (optional)."""
+    if not v:
+        return v
+    try:
+        _ipaddress.ip_address(v)
+    except ValueError:
+        raise ValueError(f"Invalid IP address for {field_name}: '{v}'")
+    return v
+
+
+def _validate_cidr(v: str, field_name: str) -> str:
+    """Validate CIDR notation. Empty string is allowed."""
+    if not v:
+        return v
+    try:
+        _ipaddress.ip_network(v, strict=False)
+    except ValueError:
+        raise ValueError(f"Invalid CIDR for {field_name}: '{v}'")
+    return v
+
+
+VALID_PROTOCOLS = {"tcp", "udp", "icmp", "any"}
 
 
 # ── Enums ──
@@ -121,6 +147,17 @@ class ConnectivityStatus(str, Enum):
     DOWN = "down"
     DEGRADED = "degraded"
 
+class HAMode(str, Enum):
+    ACTIVE_PASSIVE = "active_passive"
+    ACTIVE_ACTIVE = "active_active"
+    VRRP = "vrrp"
+    CLUSTER = "cluster"
+
+class HARole(str, Enum):
+    ACTIVE = "active"
+    STANDBY = "standby"
+    MEMBER = "member"
+
 
 # ── Infrastructure Entities (persist in graph + SQLite) ──
 
@@ -135,6 +172,20 @@ class Device(BaseModel):
     zone_id: str = ""
     vlan_id: int = 0
     description: str = ""
+    ha_group_id: str = ""
+    ha_role: str = ""  # "active", "standby", "member", or ""
+
+    @field_validator("management_ip")
+    @classmethod
+    def validate_management_ip(cls, v: str) -> str:
+        return _validate_ip(v, "management_ip")
+
+    @field_validator("vlan_id")
+    @classmethod
+    def validate_vlan_id(cls, v: int) -> int:
+        if v != 0 and (v < 1 or v > 4094):
+            raise ValueError(f"VLAN ID must be 0 (unset) or 1-4094, got {v}")
+        return v
 
 class Interface(BaseModel):
     id: str
@@ -155,6 +206,23 @@ class Subnet(BaseModel):
     gateway_ip: str = ""
     description: str = ""
     site: str = ""
+
+    @field_validator("cidr")
+    @classmethod
+    def validate_cidr(cls, v: str) -> str:
+        return _validate_cidr(v, "cidr")
+
+    @field_validator("gateway_ip")
+    @classmethod
+    def validate_gateway_ip(cls, v: str) -> str:
+        return _validate_ip(v, "gateway_ip")
+
+    @field_validator("vlan_id")
+    @classmethod
+    def validate_vlan_id(cls, v: int) -> int:
+        if v != 0 and (v < 1 or v > 4094):
+            raise ValueError(f"VLAN ID must be 0 (unset) or 1-4094, got {v}")
+        return v
 
 class Zone(BaseModel):
     id: str
@@ -287,6 +355,30 @@ class ComplianceZone(BaseModel):
     subnet_ids: list[str] = Field(default_factory=list)
     vpc_ids: list[str] = Field(default_factory=list)
 
+class HAGroup(BaseModel):
+    id: str
+    name: str
+    ha_mode: HAMode
+    member_ids: list[str]
+    virtual_ips: list[str] = Field(default_factory=list)
+    active_member_id: str = ""
+    priority_map: dict[str, int] = Field(default_factory=dict)
+    sync_interface: str = ""
+
+    @field_validator("member_ids")
+    @classmethod
+    def validate_member_ids(cls, v: list[str]) -> list[str]:
+        if len(v) < 2:
+            raise ValueError("HA group must have at least 2 members")
+        return v
+
+    @field_validator("virtual_ips")
+    @classmethod
+    def validate_virtual_ips(cls, v: list[str]) -> list[str]:
+        for vip in v:
+            _validate_ip(vip, "virtual_ip")
+        return v
+
 
 # ── Relationship Tables (SQLite, loaded dynamically) ──
 
@@ -342,6 +434,25 @@ class Flow(BaseModel):
     diagnosis_status: DiagnosisStatus = DiagnosisStatus.RUNNING
     confidence: float = 0.0
     session_id: str = ""
+
+    @field_validator("src_ip", "dst_ip")
+    @classmethod
+    def validate_flow_ips(cls, v: str) -> str:
+        return _validate_ip(v, "ip")
+
+    @field_validator("port")
+    @classmethod
+    def validate_port(cls, v: int) -> int:
+        if v < 0 or v > 65535:
+            raise ValueError(f"port must be 0-65535, got {v}")
+        return v
+
+    @field_validator("protocol")
+    @classmethod
+    def validate_protocol(cls, v: str) -> str:
+        if v not in VALID_PROTOCOLS:
+            raise ValueError(f"protocol must be one of {VALID_PROTOCOLS}, got '{v}'")
+        return v
 
 class Trace(BaseModel):
     id: str

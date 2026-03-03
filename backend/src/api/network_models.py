@@ -1,6 +1,9 @@
 """Request/response Pydantic models for the network troubleshooting API."""
-from pydantic import BaseModel, Field
+import ipaddress
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional
+
+VALID_PROTOCOLS = {"tcp", "udp", "icmp", "any"}
 
 
 class DiagnoseRequest(BaseModel):
@@ -10,6 +13,31 @@ class DiagnoseRequest(BaseModel):
     protocol: str = "tcp"
     session_id: Optional[str] = None  # reuse existing session
     bidirectional: bool = False
+
+    @field_validator("src_ip", "dst_ip")
+    @classmethod
+    def validate_ips(cls, v: str) -> str:
+        if not v:
+            raise ValueError("IP address is required")
+        try:
+            ipaddress.ip_address(v)
+        except ValueError:
+            raise ValueError(f"Invalid IP address: '{v}'")
+        return v
+
+    @field_validator("port")
+    @classmethod
+    def validate_port(cls, v: int) -> int:
+        if v < 0 or v > 65535:
+            raise ValueError(f"port must be 0-65535, got {v}")
+        return v
+
+    @field_validator("protocol")
+    @classmethod
+    def validate_protocol(cls, v: str) -> str:
+        if v not in VALID_PROTOCOLS:
+            raise ValueError(f"protocol must be one of {VALID_PROTOCOLS}, got '{v}'")
+        return v
 
 
 class DiagnoseResponse(BaseModel):
