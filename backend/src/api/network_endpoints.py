@@ -16,7 +16,7 @@ from src.api.network_models import (
 from src.network.topology_store import TopologyStore
 from src.network.knowledge_graph import NetworkKnowledgeGraph
 from src.network.models import Flow, DiagnosisStatus
-from src.network.ipam_ingestion import parse_ipam_csv
+from src.network.ipam_ingestion import parse_ipam_csv, parse_ipam_excel
 from src.network.adapters.base import FirewallAdapter
 from src.agents.network.graph import build_network_diagnostic_graph
 from src.utils.logger import get_logger
@@ -196,17 +196,22 @@ async def topology_load():
 
 @network_router.post("/ipam/upload")
 async def ipam_upload(file: UploadFile = File(...)):
-    """Accept CSV file upload, parse IPAM data."""
+    """Accept CSV or Excel file upload, parse IPAM data."""
     store = _get_topology_store()
     raw = await file.read()
-    try:
-        content = raw.decode("utf-8")
-    except UnicodeDecodeError:
+    filename = (file.filename or "").lower()
+
+    if filename.endswith(".xlsx"):
+        stats = parse_ipam_excel(raw, store)
+    else:
         try:
-            content = raw.decode("latin-1")
+            content = raw.decode("utf-8")
         except UnicodeDecodeError:
-            raise HTTPException(400, "File is not valid UTF-8 or Latin-1 text")
-    stats = parse_ipam_csv(content, store)
+            try:
+                content = raw.decode("latin-1")
+            except UnicodeDecodeError:
+                raise HTTPException(400, "File is not valid UTF-8 or Latin-1 text")
+        stats = parse_ipam_csv(content, store)
 
     # Reload knowledge graph after IPAM import
     kg = _get_knowledge_graph()
