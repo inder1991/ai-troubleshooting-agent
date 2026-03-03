@@ -8,7 +8,7 @@ def _compute_security_grade(verdict: dict) -> str | None:
     Returns None for deny/drop verdicts (no security concern on blocking).
     """
     action = verdict.get("action", "").lower()
-    if action in ("deny", "drop"):
+    if action != "allow":
         return None
 
     src = verdict.get("matched_source", "")

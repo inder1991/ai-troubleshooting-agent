@@ -32,6 +32,26 @@ def test_tight_rule_is_low():
     assert _compute_security_grade(verdict) == "LOW"
 
 
+def test_broad_cidr_any_port_is_medium():
+    verdict = {
+        "action": "allow",
+        "matched_source": "10.0.0.0/8",
+        "matched_destination": "10.0.2.50/32",
+        "matched_ports": "any",
+    }
+    assert _compute_security_grade(verdict) == "MEDIUM"
+
+
 def test_deny_has_no_grade():
     verdict = {"action": "deny"}
+    assert _compute_security_grade(verdict) is None
+
+
+def test_unknown_action_has_no_grade():
+    verdict = {"action": "unknown", "matched_source": "", "matched_ports": ""}
+    assert _compute_security_grade(verdict) is None
+
+
+def test_error_action_has_no_grade():
+    verdict = {"action": "error"}
     assert _compute_security_grade(verdict) is None
