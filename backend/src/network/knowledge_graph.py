@@ -305,3 +305,43 @@ class NetworkKnowledgeGraph:
     @property
     def edge_count(self) -> int:
         return self.graph.number_of_edges()
+
+    def export_react_flow_graph(self) -> dict:
+        """Convert KG nodes/edges to React Flow format for canvas rendering."""
+        rf_nodes = []
+        rf_edges = []
+        ROW_WIDTH = 250
+        COL_HEIGHT = 150
+
+        node_type_map = {
+            "device": "device",
+            "subnet": "subnet",
+            "vpc": "vpc",
+            "compliance_zone": "compliance_zone",
+        }
+
+        for i, (node_id, data) in enumerate(self.graph.nodes(data=True)):
+            ntype = data.get("node_type", "device")
+            rf_type = node_type_map.get(ntype, "device")
+            rf_nodes.append({
+                "id": node_id,
+                "type": rf_type,
+                "position": {"x": (i % 6) * ROW_WIDTH, "y": (i // 6) * COL_HEIGHT},
+                "data": {
+                    "label": data.get("name", node_id),
+                    "entityId": node_id,
+                    "deviceType": data.get("device_type", "HOST"),
+                    "ip": data.get("management_ip") or data.get("cidr", ""),
+                },
+            })
+
+        for u, v, edata in self.graph.edges(data=True):
+            rf_edges.append({
+                "id": f"e-{u}-{v}-{edata.get('edge_type', 'default')}",
+                "source": u,
+                "target": v,
+                "label": edata.get("edge_type", ""),
+                "animated": edata.get("confidence", 0) < 0.8,
+            })
+
+        return {"nodes": rf_nodes, "edges": rf_edges}

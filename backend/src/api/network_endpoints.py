@@ -216,8 +216,20 @@ async def ipam_upload(file: UploadFile = File(...)):
     # Reload knowledge graph after IPAM import
     kg = _get_knowledge_graph()
     kg.load_from_store()
+    rf_graph = kg.export_react_flow_graph()
 
-    return {"status": "imported", "stats": stats}
+    return {
+        "status": "imported",
+        "stats": stats,
+        # Frontend-expected field names (IPAMUploadDialog.tsx:54-56)
+        "devices_imported": stats["devices_added"],
+        "subnets_imported": stats["subnets_added"],
+        # React Flow nodes/edges for canvas update (IPAMUploadDialog.tsx:59-61)
+        "nodes": rf_graph["nodes"],
+        "edges": rf_graph["edges"],
+        # Validation warnings
+        "warnings": stats.get("errors", []),
+    }
 
 
 @network_router.get("/ipam/subnets")
