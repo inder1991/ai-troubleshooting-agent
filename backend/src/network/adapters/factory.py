@@ -96,10 +96,13 @@ def create_adapter(
         except Exception as e:
             logger.warning("Failed to create ZscalerAdapter: %s, falling back to mock", e)
 
+    else:
+        logger.warning("Unrecognised vendor '%s' — falling back to mock adapter", vendor)
+
     # Fallback: mock adapter
-    logger.info(
-        "Using MockFirewallAdapter for vendor=%s (SDK not available or not configured)",
-        vendor.value,
+    logger.warning(
+        "Adapter for '%s' not created (SDK missing or incomplete config) — using mock",
+        vendor,
     )
     return MockFirewallAdapter(
         vendor=vendor,

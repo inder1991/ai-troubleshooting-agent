@@ -3,7 +3,9 @@
 Maps OCI NSG security rules to the common FirewallRule model.
 Rules are evaluated in priority order (lower number = higher priority).
 """
+import logging
 from typing import Optional
+
 from .base import FirewallAdapter, DeviceInterface
 from ..models import (
     PolicyVerdict, FirewallVendor, FirewallRule, NATRule, Zone, Route,
@@ -16,6 +18,8 @@ try:
     OCI_AVAILABLE = True
 except ImportError:
     OCI_AVAILABLE = False
+
+logger = logging.getLogger(__name__)
 
 
 class OracleNSGAdapter(FirewallAdapter):
@@ -96,7 +100,8 @@ class OracleNSGAdapter(FirewallAdapter):
             for idx, sr in enumerate(resp.data or []):
                 direction = getattr(sr, "direction", "INGRESS")
                 is_stateless = getattr(sr, "is_stateless", False)
-                action = PolicyAction.ALLOW if not getattr(sr, "is_valid", True) is False else PolicyAction.ALLOW
+                # OCI NSGs are allow-only; DENY rules only exist in OCI Security Lists.
+                action = PolicyAction.ALLOW
 
                 src_ips = self._extract_source(sr, direction)
                 dst_ips = self._extract_destination(sr, direction)
@@ -116,6 +121,7 @@ class OracleNSGAdapter(FirewallAdapter):
                 ))
             return rules
         except Exception:
+            logger.exception("Oracle NSG: failed to fetch rules for %s", self.nsg_id)
             return []
 
     async def _fetch_routes(self) -> list[Route]:
@@ -135,31 +141,48 @@ class OracleNSGAdapter(FirewallAdapter):
 
     @staticmethod
     def _extract_source(rule: object, direction: str) -> list[str]:
-        src = getattr(rule, "source", None)
-        if src:
-            return [src]
+        """Extract source addresses respecting OCI rule direction.
+
+        INGRESS rules carry an explicit ``source`` field.
+        EGRESS rules originate from the local network so source is "any".
+        """
+        if direction == "INGRESS":
+            src = getattr(rule, "source", None)
+            if src:
+                return [src]
         return ["any"]
 
     @staticmethod
     def _extract_destination(rule: object, direction: str) -> list[str]:
-        dst = getattr(rule, "destination", None)
-        if dst:
-            return [dst]
+        """Extract destination addresses respecting OCI rule direction.
+
+        EGRESS rules carry an explicit ``destination`` field.
+        INGRESS rules target the local network so destination is "any".
+        """
+        if direction == "EGRESS":
+            dst = getattr(rule, "destination", None)
+            if dst:
+                return [dst]
         return ["any"]
 
     @staticmethod
-    def _extract_ports(rule: object) -> list[int]:
+    def _extract_ports(rule: object) -> list:
         """Extract port range from TCP/UDP options."""
+        ports: list = []
         for attr in ("tcp_options", "udp_options"):
             opts = getattr(rule, attr, None)
             if opts:
                 dst_range = getattr(opts, "destination_port_range", None)
                 if dst_range:
-                    lo = getattr(dst_range, "min", 0)
-                    hi = getattr(dst_range, "max", 0)
-                    if lo and hi:
-                        return list(range(lo, hi + 1))
-        return []
+                    mn = getattr(dst_range, "min", 0)
+                    mx = getattr(dst_range, "max", 0)
+                    if mn and mx:
+                        if mn == mx:
+                            ports.append(mn)
+                        else:
+                            ports.append((mn, mx))
+                        return ports
+        return ports
 
     @staticmethod
     def _protocol_number_to_name(proto: str) -> str:

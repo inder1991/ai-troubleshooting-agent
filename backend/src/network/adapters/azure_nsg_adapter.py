@@ -3,7 +3,9 @@
 Maps Azure NSG security rules to the common FirewallRule model.
 Priority numbers in Azure: lower number = higher priority (100-4096).
 """
+import logging
 from typing import Optional
+
 from .base import FirewallAdapter, DeviceInterface
 from ..models import (
     PolicyVerdict, FirewallVendor, FirewallRule, NATRule, Zone, Route,
@@ -17,6 +19,8 @@ try:
     AZURE_AVAILABLE = True
 except ImportError:
     AZURE_AVAILABLE = False
+
+logger = logging.getLogger(__name__)
 
 
 class AzureNSGAdapter(FirewallAdapter):
@@ -118,6 +122,7 @@ class AzureNSGAdapter(FirewallAdapter):
                 ))
             return rules
         except Exception:
+            logger.exception("Azure NSG: failed to fetch rules for %s", self.nsg_name)
             return []
 
     async def _fetch_routes(self) -> list[Route]:
@@ -138,6 +143,7 @@ class AzureNSGAdapter(FirewallAdapter):
                     ))
             return routes
         except Exception:
+            logger.exception("Azure NSG: failed to fetch routes for resource group %s", self.resource_group)
             return []
 
     async def _fetch_nat_rules(self) -> list[NATRule]:
@@ -167,15 +173,19 @@ class AzureNSGAdapter(FirewallAdapter):
         return result or ["any"]
 
     @staticmethod
-    def _normalise_ports(port_range: Optional[str], port_ranges: Optional[list]) -> list[int]:
-        """Convert Azure port range strings to integer list (empty = any)."""
-        result: list[int] = []
+    def _normalise_ports(port_range: Optional[str], port_ranges: Optional[list]) -> list:
+        """Convert Azure port range strings to int / (min,max) tuple list (empty = any)."""
+        out: list = []
         for pr in filter(None, [port_range] + (port_ranges or [])):
             if pr == "*":
                 return []  # any port
             if "-" in pr:
-                lo, hi = pr.split("-", 1)
-                result.extend(range(int(lo), int(hi) + 1))
+                parts = pr.split("-", 1)
+                lo, hi = int(parts[0]), int(parts[1])
+                if lo == hi:
+                    out.append(lo)
+                else:
+                    out.append((lo, hi))
             else:
-                result.append(int(pr))
-        return result
+                out.append(int(pr))
+        return out

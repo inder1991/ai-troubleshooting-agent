@@ -191,8 +191,18 @@ class FirewallAdapter(ABC):
             pass
         return False
 
-    def _match_port(self, port: int, ports: list[int]) -> bool:
-        """Check if port matches rule port list (empty = any)."""
+    @staticmethod
+    def _match_port(port: int, ports: list) -> bool:
+        """Check if port matches rule port list (empty = any).
+
+        Entries may be plain ints or (min, max) tuple ranges.
+        """
         if not ports:
-            return True
-        return port in ports
+            return True  # empty = any port
+        for p in ports:
+            if isinstance(p, tuple):
+                if p[0] <= port <= p[1]:
+                    return True
+            elif port == p:
+                return True
+        return False

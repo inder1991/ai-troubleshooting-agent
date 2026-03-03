@@ -40,6 +40,14 @@ except ImportError:
 # ---------------------------------------------------------------------------
 # Well-known Palo Alto application-to-port mappings (subset for simulation)
 # ---------------------------------------------------------------------------
+def _get_loop() -> asyncio.AbstractEventLoop:
+    """Get the running event loop, or create a new one if none exists."""
+    try:
+        return asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.new_event_loop()
+
+
 _APP_PORT_MAP: dict[str, list[int]] = {
     "web-browsing": [80],
     "ssl": [443],
@@ -114,6 +122,35 @@ def _ports_from_services(services: list[str]) -> list[int]:
             except (ValueError, IndexError):
                 pass
     return ports
+
+
+def _protocol_from_services(services: list[str]) -> str:
+    """Derive the protocol from PAN-OS service entries.
+
+    Scans service strings for ``tcp/`` and ``udp/`` prefixes.
+    Returns ``"tcp"`` or ``"udp"`` when only one protocol is present,
+    ``"any"`` when both are found, and ``"any"`` when the list is empty
+    or only contains ``"application-default"``.
+    """
+    if not services:
+        return "any"
+    has_tcp = False
+    has_udp = False
+    for svc in services:
+        lower = svc.lower()
+        if lower in ("application-default", "any"):
+            continue
+        if lower.startswith("tcp/"):
+            has_tcp = True
+        elif lower.startswith("udp/"):
+            has_udp = True
+    if has_tcp and has_udp:
+        return "any"
+    if has_tcp:
+        return "tcp"
+    if has_udp:
+        return "udp"
+    return "any"
 
 
 class PanoramaAdapter(FirewallAdapter):
@@ -217,7 +254,7 @@ class PanoramaAdapter(FirewallAdapter):
             rule_base = panos.policies.SecurityRule.refreshall(parent)
             return rule_base
 
-        raw_rules = await asyncio.get_event_loop().run_in_executor(None, _do_fetch)
+        raw_rules = await _get_loop().run_in_executor(None, _do_fetch)
 
         rules: list[FirewallRule] = []
         for idx, rule in enumerate(raw_rules):
@@ -252,7 +289,7 @@ class PanoramaAdapter(FirewallAdapter):
                 src_ips=list(src_ips) if src_ips else ["any"],
                 dst_ips=list(dst_ips) if dst_ips else ["any"],
                 ports=ports,
-                protocol="tcp",
+                protocol=_protocol_from_services(services),
                 action=action,
                 logged=logged,
                 order=idx,
@@ -272,7 +309,7 @@ class PanoramaAdapter(FirewallAdapter):
         def _do_fetch():
             return panos.policies.NatRule.refreshall(parent)
 
-        raw_rules = await asyncio.get_event_loop().run_in_executor(None, _do_fetch)
+        raw_rules = await _get_loop().run_in_executor(None, _do_fetch)
 
         nat_rules: list[NATRule] = []
         for idx, rule in enumerate(raw_rules):
@@ -320,7 +357,7 @@ class PanoramaAdapter(FirewallAdapter):
             # for standalone firewall, they're direct children.
             return panos.network.Zone.refreshall(device)
 
-        raw_zones = await asyncio.get_event_loop().run_in_executor(None, _do_fetch)
+        raw_zones = await _get_loop().run_in_executor(None, _do_fetch)
 
         zones: list[Zone] = []
         for z in raw_zones:
@@ -346,7 +383,7 @@ class PanoramaAdapter(FirewallAdapter):
         def _do_fetch():
             return panos.network.EthernetInterface.refreshall(device)
 
-        raw_ifaces = await asyncio.get_event_loop().run_in_executor(None, _do_fetch)
+        raw_ifaces = await _get_loop().run_in_executor(None, _do_fetch)
 
         interfaces: list[DeviceInterface] = []
         for iface in raw_ifaces:
@@ -388,7 +425,7 @@ class PanoramaAdapter(FirewallAdapter):
                     results.append((vr.name, sr))
             return results
 
-        vr_routes = await asyncio.get_event_loop().run_in_executor(None, _do_fetch)
+        vr_routes = await _get_loop().run_in_executor(None, _do_fetch)
 
         routes: list[Route] = []
         for vr_name, sr in vr_routes:
@@ -426,7 +463,7 @@ class PanoramaAdapter(FirewallAdapter):
         def _do_fetch():
             return panos.network.VirtualRouter.refreshall(device)
 
-        raw_vrs = await asyncio.get_event_loop().run_in_executor(None, _do_fetch)
+        raw_vrs = await _get_loop().run_in_executor(None, _do_fetch)
 
         vrs: list[VirtualRouter] = []
         for vr in raw_vrs:
@@ -437,7 +474,7 @@ class PanoramaAdapter(FirewallAdapter):
             def _fetch_routes_for_vr(v=vr):
                 return panos.network.StaticRoute.refreshall(v)
 
-            static = await asyncio.get_event_loop().run_in_executor(
+            static = await _get_loop().run_in_executor(
                 None, _fetch_routes_for_vr,
             )
             route_dicts = []
@@ -478,8 +515,9 @@ class PanoramaAdapter(FirewallAdapter):
             src_match = self._match_ip(src_ip, rule.src_ips)
             dst_match = self._match_ip(dst_ip, rule.dst_ips)
             port_match = self._match_port(port, rule.ports)
+            proto_match = rule.protocol.lower() in (protocol.lower(), "any") or protocol.lower() == "any"
 
-            if src_match and dst_match and port_match:
+            if src_match and dst_match and port_match and proto_match:
                 return PolicyVerdict(
                     action=rule.action,
                     rule_id=rule.id,

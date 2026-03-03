@@ -4,7 +4,9 @@ Maps EC2 Security Group ingress/egress rules to the common FirewallRule model.
 AWS SGs are stateful: if an inbound rule allows traffic, the return traffic is
 automatically allowed regardless of outbound rules.
 """
+import logging
 from typing import Optional
+
 from .base import FirewallAdapter, DeviceInterface
 from ..models import (
     PolicyVerdict, FirewallVendor, FirewallRule, NATRule, Zone, Route,
@@ -17,6 +19,8 @@ try:
     BOTO3_AVAILABLE = True
 except ImportError:
     BOTO3_AVAILABLE = False
+
+logger = logging.getLogger(__name__)
 
 
 class AWSSGAdapter(FirewallAdapter):
@@ -113,6 +117,7 @@ class AWSSGAdapter(FirewallAdapter):
                 rules.extend(self._parse_permissions(sg, "IpPermissionsEgress", direction="egress"))
             return rules
         except Exception:
+            logger.exception("AWS SG: failed to fetch rules for %s", self.security_group_id)
             return []
 
     async def _fetch_routes(self) -> list[Route]:
@@ -141,9 +146,12 @@ class AWSSGAdapter(FirewallAdapter):
             proto = perm.get("IpProtocol", "-1")
             from_port = perm.get("FromPort", 0)
             to_port = perm.get("ToPort", 0)
-            ports: list[int] = []
+            ports: list = []
             if proto != "-1" and from_port and to_port:
-                ports = list(range(from_port, to_port + 1))
+                if from_port == to_port:
+                    ports = [from_port]
+                else:
+                    ports = [(from_port, to_port)]
 
             cidrs = [r["CidrIp"] for r in perm.get("IpRanges", [])]
             cidrs += [r["CidrIpv6"] for r in perm.get("Ipv6Ranges", [])]

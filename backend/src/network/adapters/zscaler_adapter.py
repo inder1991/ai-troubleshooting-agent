@@ -10,6 +10,7 @@ a locally-cached snapshot -- never live API calls in the hot path.
 from __future__ import annotations
 
 import hashlib
+import logging
 import time
 from typing import Optional
 
@@ -35,6 +36,8 @@ try:
 except ImportError:
     _HTTPX_AVAILABLE = False
 
+logger = logging.getLogger(__name__)
+
 
 def _obfuscate_api_key(api_key: str, timestamp: str) -> str:
     """Zscaler API key obfuscation algorithm.
@@ -47,6 +50,8 @@ def _obfuscate_api_key(api_key: str, timestamp: str) -> str:
 
     Reference: https://help.zscaler.com/zia/getting-started-zia-api
     """
+    if len(api_key) < 10:
+        raise ValueError(f"API key too short (need >= 10 chars, got {len(api_key)})")
     now = timestamp
     n = now[-6:]
     r = str(int(n) >> 1).zfill(6)
@@ -161,8 +166,9 @@ class ZscalerAdapter(FirewallAdapter):
             src_match = self._match_ip(src_ip, rule.src_ips)
             dst_match = self._match_ip(dst_ip, rule.dst_ips)
             port_match = self._match_port(port, rule.ports)
+            proto_match = rule.protocol.lower() in (protocol.lower(), "any") or protocol.lower() == "any"
 
-            if src_match and dst_match and port_match:
+            if src_match and dst_match and port_match and proto_match:
                 return PolicyVerdict(
                     action=rule.action,
                     rule_id=rule.id,
