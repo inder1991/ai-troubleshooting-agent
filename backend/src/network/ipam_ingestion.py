@@ -84,9 +84,17 @@ def parse_ipam_csv(content: str, store: TopologyStore) -> dict:
             # Create/update device
             if device_name and device_name not in seen_devices:
                 device_id = f"device-{device_name.lower().replace(' ', '-')}"
+                vendor = row.get("vendor", "").strip()
+                location = row.get("location", "").strip() or row.get("site", "").strip()
                 store.add_device(Device(
                     id=device_id, name=device_name,
                     device_type=_infer_device_type(device_name, row),
+                    management_ip=ip,
+                    vendor=vendor,
+                    location=location,
+                    zone_id=zone,
+                    vlan_id=int(vlan or 0),
+                    description=description,
                 ))
                 seen_devices.add(device_name)
                 stats["devices_added"] += 1

@@ -272,3 +272,21 @@ class TestInferDeviceTypeFunction:
     def test_explicit_overrides_inference(self):
         assert _infer_device_type("core-fw-01", {"device_type": "ROUTER"}) == DeviceType.ROUTER
         assert _infer_device_type("web-server", {"device_type": "FIREWALL"}) == DeviceType.FIREWALL
+
+
+# ── Task 2: Device metadata population ──
+
+
+def test_csv_populates_device_metadata(store):
+    csv_content = """ip,subnet,device,zone,vlan,description,vendor,location,device_type
+10.0.0.1,10.0.0.0/24,fw-core-01,pci,100,PCI firewall,Palo Alto,NYC-DC1,FIREWALL"""
+    stats = parse_ipam_csv(csv_content, store)
+    assert stats["devices_added"] == 1
+    devices = store.list_devices()
+    d = devices[0]
+    assert d.management_ip == "10.0.0.1"
+    assert d.zone_id == "pci"
+    assert d.vlan_id == 100
+    assert d.description == "PCI firewall"
+    assert d.vendor == "Palo Alto"
+    assert d.location == "NYC-DC1"
