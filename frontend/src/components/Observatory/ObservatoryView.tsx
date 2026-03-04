@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useMonitorSnapshot } from './hooks/useMonitorSnapshot';
 import NOCWallTab from './NOCWallTab';
 import LiveTopologyTab from './LiveTopologyTab';
+import TrafficFlowsTab from './TrafficFlowsTab';
 
 type Tab = 'topology' | 'noc' | 'flows';
 
@@ -87,7 +88,7 @@ const ObservatoryView: React.FC = () => {
             onSelectDevice={() => { setActiveTab('topology'); }}
           />
         ) : (
-          <div className="p-6 text-slate-500 text-sm">Traffic Flows — coming soon</div>
+          <TrafficFlowsTab links={snapshot.links} />
         )}
       </div>
     </div>
