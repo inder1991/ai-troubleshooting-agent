@@ -39,9 +39,10 @@ import IPAMInventoryView from './components/IPAM/IPAMInventoryView';
 import NetworkWarRoom from './components/NetworkTroubleshooting/NetworkWarRoom';
 import ReachabilityMatrix from './components/NetworkTroubleshooting/ReachabilityMatrix';
 import NetworkAdaptersView from './components/Network/NetworkAdaptersView';
+import ObservatoryView from './components/Observatory/ObservatoryView';
 
 
-type ViewState = 'home' | 'form' | 'investigation' | 'sessions' | 'integrations' | 'settings' | 'dossier' | 'cluster-diagnostics' | 'agent-matrix' | 'network-troubleshooting' | 'network-topology' | 'network-adapters' | 'ipam' | 'matrix';
+type ViewState = 'home' | 'form' | 'investigation' | 'sessions' | 'integrations' | 'settings' | 'dossier' | 'cluster-diagnostics' | 'agent-matrix' | 'network-troubleshooting' | 'network-topology' | 'network-adapters' | 'ipam' | 'matrix' | 'observatory';
 
 function AppInner() {
   const { addToast } = useToast();
@@ -396,7 +397,7 @@ function AppInner() {
 
   // Derive nav view from viewState
   const navView: NavView =
-    viewState === 'sessions' ? 'sessions' : viewState === 'integrations' ? 'integrations' : viewState === 'settings' ? 'settings' : viewState === 'agent-matrix' ? 'agents' : viewState === 'network-topology' ? 'network-topology' : viewState === 'network-adapters' ? 'network-adapters' : viewState === 'ipam' ? 'ipam' : viewState === 'matrix' ? 'matrix' : 'home';
+    viewState === 'sessions' ? 'sessions' : viewState === 'integrations' ? 'integrations' : viewState === 'settings' ? 'settings' : viewState === 'agent-matrix' ? 'agents' : viewState === 'network-topology' ? 'network-topology' : viewState === 'network-adapters' ? 'network-adapters' : viewState === 'ipam' ? 'ipam' : viewState === 'matrix' ? 'matrix' : viewState === 'observatory' ? 'observatory' : 'home';
 
   const showSidebar = viewState !== 'investigation' && viewState !== 'dossier' && viewState !== 'cluster-diagnostics' && viewState !== 'agent-matrix' && viewState !== 'network-troubleshooting';
 
@@ -456,6 +457,10 @@ function AppInner() {
 
         {viewState === 'matrix' && (
           <ReachabilityMatrix />
+        )}
+
+        {viewState === 'observatory' && (
+          <ObservatoryView />
         )}
 
         {viewState === 'form' && selectedCapability && (

@@ -750,3 +750,41 @@ export const bindDeviceToAdapter = async (instanceId: string, deviceIds: string[
   if (!response.ok) throw new Error(await extractErrorDetail(response, 'Failed to bind devices'));
   return response.json();
 };
+
+// ── Observatory API ──
+
+export const fetchMonitorSnapshot = async () => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/monitor/snapshot`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch monitor snapshot'));
+  return resp.json();
+};
+
+export const fetchDeviceHistory = async (deviceId: string, period: string = '24h') => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/monitor/device/${deviceId}/history?period=${period}`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch device history'));
+  return resp.json();
+};
+
+export const fetchDriftEvents = async () => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/monitor/drift`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch drift events'));
+  return resp.json();
+};
+
+export const promoteDiscovery = async (ip: string, name: string, deviceType: string = 'HOST') => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/monitor/discover/${ip}/promote`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, device_type: deviceType }),
+  });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to promote discovery'));
+  return resp.json();
+};
+
+export const dismissDiscovery = async (ip: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/monitor/discover/${ip}/dismiss`, {
+    method: 'POST',
+  });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to dismiss discovery'));
+  return resp.json();
+};
