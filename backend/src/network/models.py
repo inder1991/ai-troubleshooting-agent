@@ -158,6 +158,19 @@ class HARole(str, Enum):
     STANDBY = "standby"
     MEMBER = "member"
 
+class InterfaceRole(str, Enum):
+    MANAGEMENT = "management"
+    INSIDE = "inside"
+    OUTSIDE = "outside"
+    DMZ = "dmz"
+    SYNC = "sync"
+    LOOPBACK = "loopback"
+
+class ZoneType(str, Enum):
+    MANAGEMENT = "management"
+    DATA = "data"
+    DMZ = "dmz"
+
 
 # ── Infrastructure Entities (persist in graph + SQLite) ──
 
@@ -197,6 +210,13 @@ class Interface(BaseModel):
     vrf: str = ""
     speed: str = ""
     status: str = "up"
+    role: str = ""       # InterfaceRole value or empty
+    subnet_id: str = ""  # FK to subnet
+
+    @field_validator("ip")
+    @classmethod
+    def validate_ip(cls, v: str) -> str:
+        return _validate_ip(v, "interface ip")
 
 class Subnet(BaseModel):
     id: str
@@ -230,6 +250,7 @@ class Zone(BaseModel):
     security_level: int = 0
     description: str = ""
     firewall_id: str = ""
+    zone_type: str = ""  # ZoneType value or empty
 
 class Workload(BaseModel):
     id: str
