@@ -111,6 +111,15 @@ export function doCIDRsOverlap(a: string, b: string): boolean {
   return isCIDRSubsetOf(a, b) || isCIDRSubsetOf(b, a);
 }
 
+export interface InterfaceData {
+  id: string;
+  name: string;
+  ip: string;
+  role: string;
+  zone: string;
+  subnetId?: string;
+}
+
 interface CanvasNode {
   id: string;
   type?: string;
@@ -233,6 +242,70 @@ export function validateTopology(nodes: CanvasNode[]): ValidationError[] {
         severity: 'error',
         nodeId: subnet.id,
       });
+    }
+  }
+
+  // Rule 29: Interface IP must be within assigned subnet CIDR
+  for (const dev of devices) {
+    const ifaces = (dev.data.interfaces as InterfaceData[]) || [];
+    for (const iface of ifaces) {
+      if (!iface.ip || !iface.subnetId) continue;
+      const ipErr = validateIPv4(iface.ip);
+      if (ipErr) continue;
+      const subnetNode = containers.find((c) => c.id === iface.subnetId);
+      if (!subnetNode) continue;
+      const subCidr = (subnetNode.data.cidr as string) || '';
+      if (!subCidr || validateCIDR(subCidr)) continue;
+      if (!isIPInCIDR(iface.ip, subCidr)) {
+        errors.push({
+          field: 'interface.ip',
+          message: `Interface '${iface.name}' IP ${iface.ip} is outside subnet CIDR ${subCidr}`,
+          severity: 'error',
+          nodeId: dev.id,
+        });
+      }
+    }
+  }
+
+  // Rule 30: No two non-sync interfaces on same device may share a zone
+  for (const dev of devices) {
+    const ifaces = (dev.data.interfaces as InterfaceData[]) || [];
+    const zoneMap = new Map<string, string[]>();
+    for (const iface of ifaces) {
+      if (!iface.zone || iface.role === 'sync') continue;
+      const existing = zoneMap.get(iface.zone) || [];
+      existing.push(iface.name || iface.id);
+      zoneMap.set(iface.zone, existing);
+    }
+    for (const [zone, names] of zoneMap) {
+      if (names.length > 1) {
+        errors.push({
+          field: 'interface.zone',
+          message: `Interfaces ${names.join(', ')} on '${dev.data.label || dev.id}' share zone '${zone}'`,
+          severity: 'error',
+          nodeId: dev.id,
+        });
+      }
+    }
+  }
+
+  // Rule 31: Management interface should not be in data/dmz zone
+  for (const dev of devices) {
+    const ifaces = (dev.data.interfaces as InterfaceData[]) || [];
+    for (const iface of ifaces) {
+      if (iface.role !== 'management' || !iface.zone) continue;
+      const zoneNode = nodes.find(
+        (n) => (n.data.entityId === iface.zone || n.id === iface.zone)
+              && (n.data.zoneType === 'data' || n.data.zoneType === 'dmz')
+      );
+      if (zoneNode) {
+        errors.push({
+          field: 'interface.role',
+          message: `Management interface '${iface.name}' is in ${zoneNode.data.zoneType} zone '${zoneNode.data.label || iface.zone}'`,
+          severity: 'warning',
+          nodeId: dev.id,
+        });
+      }
     }
   }
 

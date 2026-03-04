@@ -26,6 +26,9 @@ const DevicePropertyPanel: React.FC<DevicePropertyPanelProps> = ({
   const [remoteGateway, setRemoteGateway] = useState('');
   const [lbType, setLbType] = useState('alb');
   const [lbScheme, setLbScheme] = useState('internal');
+  const [interfaces, setInterfaces] = useState<Array<{
+    id: string; name: string; ip: string; role: string; zone: string;
+  }>>([]);
 
   useEffect(() => {
     if (selectedNode) {
@@ -43,14 +46,23 @@ const DevicePropertyPanel: React.FC<DevicePropertyPanelProps> = ({
       setRemoteGateway(d.remoteGateway || '');
       setLbType(d.lbType || 'alb');
       setLbScheme(d.lbScheme || 'internal');
+      const ifaces = (d.interfaces as unknown as typeof interfaces) || [];
+      setInterfaces(ifaces);
     }
   }, [selectedNode]);
 
-  const errors = useMemo(() => ({
-    ip: ip ? validateIPv4(ip) : null,
-    cidr: cidr ? validateCIDR(cidr) : null,
-    remoteGateway: remoteGateway ? validateIPv4(remoteGateway) : null,
-  }), [ip, cidr, remoteGateway]);
+  const errors = useMemo(() => {
+    const ifaceErrors: Record<number, string | null> = {};
+    interfaces.forEach((iface, idx) => {
+      ifaceErrors[idx] = iface.ip ? validateIPv4(iface.ip) : null;
+    });
+    return {
+      ip: ip ? validateIPv4(ip) : null,
+      cidr: cidr ? validateCIDR(cidr) : null,
+      remoteGateway: remoteGateway ? validateIPv4(remoteGateway) : null,
+      interfaces: ifaceErrors,
+    };
+  }, [ip, cidr, remoteGateway, interfaces]);
 
   if (!selectedNode) {
     return (
@@ -69,19 +81,10 @@ const DevicePropertyPanel: React.FC<DevicePropertyPanelProps> = ({
 
   const handleApply = () => {
     onNodeUpdate(selectedNode.id, {
-      label: name,
-      ip,
-      vendor,
-      deviceType,
-      zone,
-      cloudProvider,
-      region,
-      cidr,
-      tunnelType,
-      encryption,
-      remoteGateway,
-      lbType,
-      lbScheme,
+      label: name, ip, vendor, deviceType, zone,
+      cloudProvider, region, cidr, tunnelType, encryption,
+      remoteGateway, lbType, lbScheme,
+      interfaces,
     });
   };
 
@@ -270,10 +273,92 @@ const DevicePropertyPanel: React.FC<DevicePropertyPanelProps> = ({
           </>
         )}
 
+        {/* Interfaces */}
+        {['firewall', 'router', 'switch', 'load_balancer'].includes(deviceType) && (
+          <div className="flex flex-col gap-2 mt-2 pt-2 border-t" style={{ borderColor: '#224349' }}>
+            <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#64748b' }}>
+              Interfaces
+            </label>
+            {interfaces.map((iface, idx) => (
+              <div key={idx} className="flex flex-col gap-1 p-2 rounded" style={{ backgroundColor: '#0a0f13' }}>
+                <div className="flex gap-1">
+                  <input
+                    type="text" value={iface.name} placeholder="eth0"
+                    onChange={(e) => {
+                      const next = [...interfaces];
+                      next[idx] = { ...next[idx], name: e.target.value };
+                      setInterfaces(next);
+                    }}
+                    className="text-xs font-mono px-2 py-1 rounded border w-16 focus:outline-none focus:border-[#07b6d5]"
+                    style={inputStyle}
+                  />
+                  <input
+                    type="text" value={iface.ip} placeholder="10.0.1.1"
+                    onChange={(e) => {
+                      const next = [...interfaces];
+                      next[idx] = { ...next[idx], ip: e.target.value };
+                      setInterfaces(next);
+                    }}
+                    className="text-xs font-mono px-2 py-1 rounded border flex-1 focus:outline-none focus:border-[#07b6d5]"
+                    style={{ ...inputStyle, borderColor: errors.interfaces[idx] ? '#ef4444' : '#224349' }}
+                  />
+                </div>
+                {errors.interfaces[idx] && (
+                  <p style={{ color: '#ef4444', fontSize: '9px', fontFamily: 'monospace' }}>{errors.interfaces[idx]}</p>
+                )}
+                <div className="flex gap-1">
+                  <select
+                    value={iface.role}
+                    onChange={(e) => {
+                      const next = [...interfaces];
+                      next[idx] = { ...next[idx], role: e.target.value };
+                      setInterfaces(next);
+                    }}
+                    className="text-xs font-mono px-1 py-1 rounded border flex-1 focus:outline-none focus:border-[#07b6d5]"
+                    style={inputStyle}
+                  >
+                    <option value="">Role...</option>
+                    <option value="management">Management</option>
+                    <option value="inside">Inside</option>
+                    <option value="outside">Outside</option>
+                    <option value="dmz">DMZ</option>
+                    <option value="sync">Sync</option>
+                    <option value="loopback">Loopback</option>
+                  </select>
+                  <input
+                    type="text" value={iface.zone} placeholder="Zone"
+                    onChange={(e) => {
+                      const next = [...interfaces];
+                      next[idx] = { ...next[idx], zone: e.target.value };
+                      setInterfaces(next);
+                    }}
+                    className="text-xs font-mono px-2 py-1 rounded border w-16 focus:outline-none focus:border-[#07b6d5]"
+                    style={inputStyle}
+                  />
+                  <button
+                    onClick={() => setInterfaces(interfaces.filter((_, i) => i !== idx))}
+                    className="text-xs px-1 rounded hover:bg-red-900/30"
+                    style={{ color: '#ef4444' }}
+                  >
+                    ×
+                  </button>
+                </div>
+              </div>
+            ))}
+            <button
+              onClick={() => setInterfaces([...interfaces, { id: `iface-${Date.now()}`, name: '', ip: '', role: '', zone: '' }])}
+              className="text-xs font-mono px-3 py-1 rounded border transition-colors hover:border-[#07b6d5]"
+              style={{ borderColor: '#224349', color: '#07b6d5', backgroundColor: 'transparent' }}
+            >
+              + Add Interface
+            </button>
+          </div>
+        )}
+
         {/* Apply Button */}
         <button
           onClick={handleApply}
-          disabled={!!errors.ip || !!errors.cidr || !!errors.remoteGateway}
+          disabled={!!errors.ip || !!errors.cidr || !!errors.remoteGateway || Object.values(errors.interfaces).some(Boolean)}
           className="mt-2 text-sm font-mono font-semibold px-4 py-2 rounded transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           style={{ backgroundColor: '#07b6d5', color: '#0a0f13' }}
         >

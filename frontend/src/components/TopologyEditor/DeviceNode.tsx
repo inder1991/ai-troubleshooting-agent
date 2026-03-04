@@ -11,6 +11,13 @@ interface DeviceNodeData {
   description?: string;
   location?: string;
   status?: 'healthy' | 'degraded' | 'down';
+  interfaces?: Array<{
+    id: string;
+    name: string;
+    ip: string;
+    role: string;
+    zone: string;
+  }>;
 }
 
 const deviceIcons: Record<string, string> = {
@@ -66,6 +73,15 @@ const typeAbbreviations: Record<string, string> = {
   vpc: 'VPC',
   compliance_zone: 'CZ',
   zone: 'ZONE',
+};
+
+const roleColors: Record<string, string> = {
+  inside: '#22c55e',
+  outside: '#ef4444',
+  dmz: '#f59e0b',
+  management: '#3b82f6',
+  sync: '#64748b',
+  loopback: '#a855f7',
 };
 
 const DeviceNode: React.FC<NodeProps<DeviceNodeData>> = ({ data, selected }) => {
@@ -155,6 +171,34 @@ const DeviceNode: React.FC<NodeProps<DeviceNodeData>> = ({ data, selected }) => 
           >
             {data.zone}
           </span>
+        )}
+
+        {/* Interfaces */}
+        {data.interfaces && data.interfaces.length > 0 && (
+          <>
+            <div className="w-full border-t mt-1 pt-1" style={{ borderColor: '#224349' }} />
+            {data.interfaces.map((iface, idx) => (
+              <div key={iface.id || idx} className="flex items-center gap-1.5 w-full px-1">
+                <div
+                  className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: roleColors[iface.role] || '#64748b' }}
+                />
+                <span className="text-[8px] font-mono truncate" style={{ color: '#94a3b8' }}>
+                  {iface.name}
+                </span>
+                <span className="text-[7px] font-mono ml-auto" style={{ color: '#475569' }}>
+                  {iface.role ? iface.role.slice(0, 3).toUpperCase() : ''}
+                </span>
+                <Handle
+                  type="source"
+                  position={Position.Right}
+                  id={`iface-${iface.id || idx}`}
+                  className="!w-2 !h-2 !bg-[#07b6d5] !border !border-[#0a0f13] !right-[-8px]"
+                  style={{ top: 'auto', position: 'relative' }}
+                />
+              </div>
+            ))}
+          </>
         )}
       </div>
     </div>
