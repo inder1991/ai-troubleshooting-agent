@@ -46,6 +46,7 @@ class TopologyStore:
             CREATE TABLE IF NOT EXISTS interfaces (
                 id TEXT PRIMARY KEY, device_id TEXT, name TEXT, ip TEXT,
                 mac TEXT, zone_id TEXT, vrf TEXT, speed TEXT, status TEXT,
+                role TEXT DEFAULT '', subnet_id TEXT DEFAULT '',
                 FOREIGN KEY (device_id) REFERENCES devices(id)
             );
             CREATE TABLE IF NOT EXISTS subnets (
@@ -54,7 +55,7 @@ class TopologyStore:
             );
             CREATE TABLE IF NOT EXISTS zones (
                 id TEXT PRIMARY KEY, name TEXT, security_level INTEGER,
-                description TEXT, firewall_id TEXT
+                description TEXT, firewall_id TEXT, zone_type TEXT DEFAULT ''
             );
             CREATE TABLE IF NOT EXISTS workloads (
                 id TEXT PRIMARY KEY, name TEXT, namespace TEXT, cluster TEXT,
@@ -211,6 +212,9 @@ class TopologyStore:
             "ALTER TABLE devices ADD COLUMN description TEXT DEFAULT ''",
             "ALTER TABLE devices ADD COLUMN ha_group_id TEXT DEFAULT ''",
             "ALTER TABLE devices ADD COLUMN ha_role TEXT DEFAULT ''",
+            "ALTER TABLE interfaces ADD COLUMN role TEXT DEFAULT ''",
+            "ALTER TABLE interfaces ADD COLUMN subnet_id TEXT DEFAULT ''",
+            "ALTER TABLE zones ADD COLUMN zone_type TEXT DEFAULT ''",
         ]
         for sql in migrations:
             try:
@@ -299,9 +303,10 @@ class TopologyStore:
     def add_interface(self, iface: Interface) -> None:
         conn = self._conn()
         conn.execute(
-            "INSERT OR REPLACE INTO interfaces VALUES (?,?,?,?,?,?,?,?,?)",
+            "INSERT OR REPLACE INTO interfaces VALUES (?,?,?,?,?,?,?,?,?,?,?)",
             (iface.id, iface.device_id, iface.name, iface.ip,
-             iface.mac, iface.zone_id, iface.vrf, iface.speed, iface.status),
+             iface.mac, iface.zone_id, iface.vrf, iface.speed, iface.status,
+             iface.role, iface.subnet_id),
         )
         conn.commit()
         conn.close()
@@ -325,8 +330,9 @@ class TopologyStore:
     def add_zone(self, zone: Zone) -> None:
         conn = self._conn()
         conn.execute(
-            "INSERT OR REPLACE INTO zones VALUES (?,?,?,?,?)",
-            (zone.id, zone.name, zone.security_level, zone.description, zone.firewall_id),
+            "INSERT OR REPLACE INTO zones VALUES (?,?,?,?,?,?)",
+            (zone.id, zone.name, zone.security_level, zone.description,
+             zone.firewall_id, zone.zone_type),
         )
         conn.commit()
         conn.close()
