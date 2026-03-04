@@ -65,7 +65,7 @@ def report_generator(state: dict) -> dict:
         next_steps.append("Add network topology data (devices, subnets, routes) to enable path analysis")
         next_steps.append("Check if source and destination IPs are correct")
     elif final_path.get("blocked"):
-        deny_fws = [v["device_name"] for v in firewall_verdicts if v.get("action") in ("deny", "drop")]
+        deny_fws = [v.get("device_name", "unknown") for v in firewall_verdicts if v.get("action") in ("deny", "drop")]
         for fw in deny_fws:
             next_steps.append(f"Review firewall rules on {fw}")
         next_steps.append("Check if a firewall rule change request is needed")
@@ -75,7 +75,7 @@ def report_generator(state: dict) -> dict:
     elif confidence < 0.5:
         next_steps.append("Run additional diagnostics to improve confidence")
         next_steps.append("Add more topology data for better path resolution")
-    nacl_deny = [v["nacl_name"] for v in nacl_verdicts if v.get("action") == "deny"]
+    nacl_deny = [v.get("nacl_name", "unknown") for v in nacl_verdicts if v.get("action") == "deny"]
     for nacl_name in nacl_deny:
         next_steps.append(f"Review NACL rules on {nacl_name}")
 
@@ -83,7 +83,7 @@ def report_generator(state: dict) -> dict:
     if diagnosis_status == "no_path_known":
         summary = "Unable to determine network path. Topology data may be incomplete."
     elif final_path.get("blocked"):
-        blockers = ", ".join(v["device_name"] for v in firewall_verdicts if v.get("action") in ("deny", "drop"))
+        blockers = ", ".join(v.get("device_name", "unknown") for v in firewall_verdicts if v.get("action") in ("deny", "drop"))
         summary = f"Traffic is BLOCKED by firewall(s): {blockers}"
     elif state.get("routing_loop_detected"):
         summary = "Routing loop detected. Traffic is not reaching destination."
@@ -118,6 +118,18 @@ def report_generator(state: dict) -> dict:
             "Review overly permissive firewall rules flagged with SEC-WARN",
             "Consider tightening source/destination CIDR scope",
         ])
+
+    # Drift event warnings
+    drift_events = state.get("active_drift_events", [])
+    if drift_events:
+        critical_drifts = [d for d in drift_events if d.get("severity") == "critical"]
+        if critical_drifts:
+            drift_summary = ", ".join(
+                f"{d['entity_type']} '{d['entity_id']}' {d['drift_type']} ({d['field']})"
+                for d in critical_drifts[:3]
+            )
+            summary += f" DRIFT WARNING: {drift_summary}."
+            next_steps.append("Review active drift events on devices in the path")
 
     return {
         "executive_summary": summary,
