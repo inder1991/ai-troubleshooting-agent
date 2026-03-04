@@ -70,19 +70,37 @@ def _extract_predictive_risks(state: dict) -> list[PredictiveRisk]:
     return risks
 
 
+_SEVERITY_ORDER = {"info": 0, "warning": 1, "critical": 2}
+
+
 def _compute_delta(current: GuardScanResult, previous: dict | None) -> ScanDelta:
     """Layer 3: What changed since last scan."""
     if not previous:
         return ScanDelta()
 
-    prev_descriptions = {r.get("description", "") for r in previous.get("current_risks", [])}
-    curr_descriptions = {r.description for r in current.current_risks}
+    prev_risks = {r.get("description", ""): r.get("severity", "info")
+                  for r in previous.get("current_risks", [])}
+    curr_risks = {r.description: r.severity for r in current.current_risks}
+
+    prev_descriptions = set(prev_risks.keys())
+    curr_descriptions = set(curr_risks.keys())
+
+    # Severity changes for risks present in both scans
+    worsened = []
+    improved = []
+    for desc in prev_descriptions & curr_descriptions:
+        prev_sev = prev_risks[desc]
+        curr_sev = curr_risks[desc]
+        if _SEVERITY_ORDER.get(curr_sev, 0) > _SEVERITY_ORDER.get(prev_sev, 0):
+            worsened.append(f"{desc} (was {prev_sev}, now {curr_sev})")
+        elif _SEVERITY_ORDER.get(curr_sev, 0) < _SEVERITY_ORDER.get(prev_sev, 0):
+            improved.append(f"{desc} (was {prev_sev}, now {curr_sev})")
 
     return ScanDelta(
         new_risks=sorted(curr_descriptions - prev_descriptions),
         resolved_risks=sorted(prev_descriptions - curr_descriptions),
-        worsened=[],  # TODO: compare severity levels
-        improved=[],
+        worsened=sorted(worsened),
+        improved=sorted(improved),
         previous_scan_id=previous.get("scan_id"),
         previous_scanned_at=previous.get("scanned_at"),
     )

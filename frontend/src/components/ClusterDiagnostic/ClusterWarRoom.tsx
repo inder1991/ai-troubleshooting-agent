@@ -85,41 +85,85 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
     [findings]
   );
 
-  // ── Mock Data (until backend provides namespace-level detail) ──
-  const mockNamespaces = useMemo((): NamespaceWorkload[] => {
+  // ── Namespace workloads derived from expanded domain report anomalies ──
+  const namespaceWorkloads = useMemo((): NamespaceWorkload[] => {
     if (!expandedReport || expandedReport.anomalies.length === 0) {
       return [{ namespace: 'default', status: 'Healthy', replica_status: 'All healthy', last_deploy: '—' }];
     }
-    return [
-      {
-        namespace: 'checkout-api',
-        status: 'Critical',
-        workloads: [{
-          name: expandedReport.anomalies[0]?.evidence_ref || 'pod-unknown',
-          kind: 'Deployment',
-          status: 'CrashLoopBackOff',
-          restarts: 14,
-          cpu_usage: '92%',
-          memory_usage: '450Mi',
-          is_trigger: true,
-          age: '23s ago',
-        }],
-      },
-      { namespace: 'payment-gateway', status: 'Healthy', replica_status: 'Replicas: 3/3', last_deploy: '2h ago' },
-      { namespace: 'auth-service', status: 'Healthy', replica_status: 'Replicas: 5/5', last_deploy: '1d ago' },
-    ];
+
+    // Group anomalies by namespace (parse from evidence_ref like "namespace/pod-name")
+    const nsMap = new Map<string, NamespaceWorkload>();
+    for (const anomaly of expandedReport.anomalies) {
+      const ref = anomaly.evidence_ref || '';
+      const parts = ref.split('/');
+      const ns = parts.length > 1 ? parts[0] : 'default';
+      const resourceName = parts.length > 1 ? parts[1] : ref;
+
+      if (!nsMap.has(ns)) {
+        nsMap.set(ns, {
+          namespace: ns,
+          status: anomaly.severity === 'critical' ? 'Critical' : anomaly.severity === 'warning' ? 'Degraded' : 'Healthy',
+          replica_status: '',
+          last_deploy: '—',
+          workloads: [],
+        });
+      }
+
+      const nsEntry = nsMap.get(ns)!;
+      if (nsEntry.workloads) {
+        nsEntry.workloads.push({
+          name: resourceName,
+          kind: 'Pod',
+          status: anomaly.description.includes('CrashLoop') ? 'CrashLoopBackOff' : anomaly.severity === 'critical' ? 'Failed' : 'Pending',
+          restarts: 0,
+          cpu_usage: '',
+          memory_usage: '',
+          is_trigger: anomaly.severity === 'critical',
+          age: '',
+        });
+      }
+
+      // Escalate namespace status if this anomaly is worse
+      if (anomaly.severity === 'critical') nsEntry.status = 'Critical';
+      else if (anomaly.severity === 'warning' && nsEntry.status !== 'Critical') nsEntry.status = 'Degraded';
+    }
+
+    return Array.from(nsMap.values());
   }, [expandedReport]);
 
-  const mockFleetNodes = useMemo((): FleetNode[] => {
-    const count = 120;
-    const criticalIndices = [12, 45, 87, 88, 102];
-    return Array.from({ length: count }, (_, i) => ({
-      name: `node-${i}`,
-      status: criticalIndices.includes(i) ? 'critical' as const : 'healthy' as const,
-      cpu_pct: criticalIndices.includes(i) ? 94 : Math.random() * 40 + 10,
-      disk_pressure: i === 87,
-    }));
-  }, []);
+  // ── Fleet nodes derived from node domain report anomalies ──
+  const fleetNodes = useMemo((): FleetNode[] => {
+    const nodeReport = domainReports.find(r => r.domain === 'node');
+    if (!nodeReport || nodeReport.anomalies.length === 0) {
+      // Fallback: show a few placeholder nodes
+      return Array.from({ length: 3 }, (_, i) => ({
+        name: `node-${i}`,
+        status: 'healthy' as const,
+        cpu_pct: 20 + Math.random() * 30,
+        disk_pressure: false,
+      }));
+    }
+
+    // Build nodes from anomalies
+    const nodeMap = new Map<string, FleetNode>();
+    for (const anomaly of nodeReport.anomalies) {
+      const nodeName = anomaly.evidence_ref || `node-${nodeMap.size}`;
+      if (!nodeMap.has(nodeName)) {
+        nodeMap.set(nodeName, {
+          name: nodeName,
+          status: anomaly.severity === 'critical' ? 'critical' : 'healthy',
+          cpu_pct: 50,
+          disk_pressure: anomaly.description.toLowerCase().includes('disk'),
+        });
+      } else {
+        const node = nodeMap.get(nodeName)!;
+        if (anomaly.severity === 'critical') node.status = 'critical';
+        if (anomaly.description.toLowerCase().includes('disk')) node.disk_pressure = true;
+      }
+    }
+
+    return Array.from(nodeMap.values());
+  }, [domainReports]);
 
   const mockVerdictEvents = useMemo((): VerdictEvent[] => {
     if (!primaryChain) return [];
@@ -187,13 +231,13 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
             {/* ── LEFT COLUMN (col-3) ── */}
             <section className="col-span-3 border-r border-[#1f3b42] bg-[#0f2023]/50 p-4 flex flex-col gap-4 overflow-hidden z-10">
               <ExecutionDAG domainReports={domainReports} phase={phase || 'pre_flight'} />
-              <FleetHeatmap nodes={mockFleetNodes} selectedNode={selectedNode} onSelectNode={setSelectedNode} />
+              <FleetHeatmap nodes={fleetNodes} selectedNode={selectedNode} onSelectNode={setSelectedNode} />
               <ResourceVelocity />
             </section>
 
             {/* ── CENTER COLUMN (col-5) ── */}
             <section className="col-span-5 flex h-full bg-[#0f2023] overflow-hidden relative border-r border-[#1f3b42]">
-              <DomainPanel domain={expandedDomain} report={expandedReport} namespaces={mockNamespaces} />
+              <DomainPanel domain={expandedDomain} report={expandedReport} namespaces={namespaceWorkloads} />
               <div className="w-[40px] flex flex-col bg-[#152a2f] border-l border-[#1f3b42] shrink-0 z-10">
                 {collapsedDomains.map(d => (
                   <VerticalRibbon

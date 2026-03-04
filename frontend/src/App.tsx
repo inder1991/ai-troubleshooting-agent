@@ -27,6 +27,7 @@ import CapabilityForm from './components/ActionCenter/CapabilityForm';
 import InvestigationView from './components/Investigation/InvestigationView';
 import SessionManagerView from './components/Sessions/SessionManagerView';
 import IntegrationSettings from './components/Settings/IntegrationSettings';
+import SettingsView from './components/Settings/SettingsView';
 import ErrorBoundary from './components/ui/ErrorBoundary';
 import ErrorBanner from './components/ui/ErrorBanner';
 import ForemanHUD from './components/Foreman/ForemanHUD';
@@ -437,9 +438,7 @@ function AppInner() {
         )}
 
         {viewState === 'settings' && (
-          <div className="flex-1 flex items-center justify-center text-gray-500 text-sm">
-            Settings — Coming Soon
-          </div>
+          <SettingsView />
         )}
 
         {viewState === 'network-topology' && (
