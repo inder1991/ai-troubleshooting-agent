@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useMonitorSnapshot } from './hooks/useMonitorSnapshot';
 import NOCWallTab from './NOCWallTab';
+import LiveTopologyTab from './LiveTopologyTab';
 
 type Tab = 'topology' | 'noc' | 'flows';
 
@@ -73,7 +74,12 @@ const ObservatoryView: React.FC = () => {
         {loading ? (
           <div className="flex items-center justify-center h-40 text-slate-500 text-sm">Loading observatory data...</div>
         ) : activeTab === 'topology' ? (
-          <div className="p-6 text-slate-500 text-sm">Live Topology — coming soon</div>
+          <LiveTopologyTab
+            devices={snapshot.devices}
+            links={snapshot.links}
+            drifts={snapshot.drifts}
+            candidates={snapshot.candidates}
+          />
         ) : activeTab === 'noc' ? (
           <NOCWallTab
             devices={snapshot.devices}
