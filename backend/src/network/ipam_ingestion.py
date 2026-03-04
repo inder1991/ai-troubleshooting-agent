@@ -138,10 +138,19 @@ def parse_ipam_csv(content: str, store: TopologyStore) -> dict:
             # Create interface
             if ip and device_name:
                 device_id = f"device-{device_name.lower().replace(' ', '-')}"
+                iface_name = row.get("interface_name", "").strip() or f"eth-{ip}"
+                iface_role = row.get("interface_role", "").strip()
                 iface_id = f"iface-{device_id}-{ip.replace('.', '-')}"
+
+                # Resolve subnet_id from IP
+                iface_subnet_id = ""
+                if subnet_cidr:
+                    iface_subnet_id = f"subnet-{subnet_cidr.replace('/', '-')}"
+
                 store.add_interface(Interface(
-                    id=iface_id, device_id=device_id, name=f"eth-{ip}",
-                    ip=ip, zone_id=zone,
+                    id=iface_id, device_id=device_id, name=iface_name,
+                    ip=ip, zone_id=zone, role=iface_role,
+                    subnet_id=iface_subnet_id,
                 ))
                 stats["interfaces_added"] += 1
 

@@ -9,6 +9,7 @@ from .models import (
 )
 from .topology_store import TopologyStore
 from .ip_resolver import IPResolver
+from .interface_validation import validate_device_interfaces
 
 
 # Topology penalties for dual cost model
@@ -410,6 +411,20 @@ class NetworkKnowledgeGraph:
                     self.add_device(device)
                     stats["devices_promoted"] += 1
 
+                    # Process interfaces from canvas data
+                    iface_list = data.get("interfaces", [])
+                    for iface_data in iface_list:
+                        iface = Interface(
+                            id=iface_data.get("id", f"iface-{node_id}-{iface_data.get('name', '')}"),
+                            device_id=node_id,
+                            name=iface_data.get("name", ""),
+                            ip=iface_data.get("ip", ""),
+                            role=iface_data.get("role", ""),
+                            zone_id=iface_data.get("zone", ""),
+                            subnet_id=iface_data.get("subnetId", ""),
+                        )
+                        self.store.add_interface(iface)
+
                 elif node_type == "subnet":
                     cidr = data.get("cidr") or data.get("ip", "")
                     if cidr:
@@ -444,6 +459,20 @@ class NetworkKnowledgeGraph:
             except Exception as e:
                 stats["errors"].append(f"Edge {src}->{tgt}: {str(e)}")
 
+        # Validate interfaces for all promoted devices
+        all_subnets = self.store.list_subnets()
+        all_zones = self.store.list_zones()
+        for node in nodes:
+            if node.get("type", "device") == "device":
+                device_id = node.get("id", "")
+                device_ifaces = self.store.list_interfaces(device_id=device_id)
+                if device_ifaces:
+                    iface_errors = validate_device_interfaces(
+                        device_id, device_ifaces, all_subnets, all_zones,
+                    )
+                    for ie in iface_errors:
+                        stats["errors"].append(ie["message"])
+
         return stats
 
     def export_react_flow_graph(self) -> dict:
@@ -463,22 +492,39 @@ class NetworkKnowledgeGraph:
         for i, (node_id, data) in enumerate(self.graph.nodes(data=True)):
             ntype = data.get("node_type", "device")
             rf_type = node_type_map.get(ntype, "device")
+            data_dict = {
+                "label": data.get("name", node_id),
+                "entityId": node_id,
+                "deviceType": data.get("device_type", "HOST"),
+                "ip": data.get("management_ip") or data.get("cidr", ""),
+                "vendor": data.get("vendor", ""),
+                "zone": data.get("zone_id", ""),
+                "vlan": data.get("vlan_id", 0),
+                "description": data.get("description", ""),
+                "location": data.get("location", "") or data.get("site", ""),
+                "status": "healthy",
+            }
+
+            # Include interfaces for device nodes
+            if ntype == "device":
+                device_ifaces = self.store.list_interfaces(device_id=node_id)
+                data_dict["interfaces"] = [
+                    {
+                        "id": iface.id,
+                        "name": iface.name,
+                        "ip": iface.ip,
+                        "role": iface.role,
+                        "zone": iface.zone_id,
+                        "subnetId": iface.subnet_id,
+                    }
+                    for iface in device_ifaces
+                ]
+
             rf_nodes.append({
                 "id": node_id,
                 "type": rf_type,
                 "position": {"x": (i % 6) * ROW_WIDTH, "y": (i // 6) * COL_HEIGHT},
-                "data": {
-                    "label": data.get("name", node_id),
-                    "entityId": node_id,
-                    "deviceType": data.get("device_type", "HOST"),
-                    "ip": data.get("management_ip") or data.get("cidr", ""),
-                    "vendor": data.get("vendor", ""),
-                    "zone": data.get("zone_id", ""),
-                    "vlan": data.get("vlan_id", 0),
-                    "description": data.get("description", ""),
-                    "location": data.get("location", "") or data.get("site", ""),
-                    "status": "healthy",
-                },
+                "data": data_dict,
             })
 
         for u, v, edata in self.graph.edges(data=True):
