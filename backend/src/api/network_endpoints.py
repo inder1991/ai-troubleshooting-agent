@@ -9,6 +9,9 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException, UploadFile, File
 
 from src.api.network_models import (
     AdapterConfigureRequest,
+    AdapterInstanceCreateRequest,
+    AdapterInstanceUpdateRequest,
+    AdapterBindRequest,
     DiagnoseRequest,
     DiagnoseResponse,
     HAGroupRequest,
@@ -21,6 +24,7 @@ from src.network.knowledge_graph import NetworkKnowledgeGraph
 from src.network.models import Flow, DiagnosisStatus
 from src.network.ipam_ingestion import parse_ipam_csv, parse_ipam_excel
 from src.network.adapters.base import FirewallAdapter
+from src.network.adapters.registry import AdapterRegistry
 from src.agents.network.graph import build_network_diagnostic_graph
 from src.utils.logger import get_logger
 
@@ -34,7 +38,7 @@ network_router = APIRouter(prefix="/api/v4/network", tags=["network"])
 
 _topology_store: TopologyStore | None = None
 _knowledge_graph: NetworkKnowledgeGraph | None = None
-_firewall_adapters: Dict[str, FirewallAdapter] = {}
+_adapter_registry = AdapterRegistry()
 _network_sessions: Dict[str, Dict[str, Any]] = {}
 
 # Cap on stored sessions to prevent unbounded memory growth
@@ -57,8 +61,8 @@ def _get_knowledge_graph() -> NetworkKnowledgeGraph:
     return _knowledge_graph
 
 
-def _get_adapters() -> Dict[str, FirewallAdapter]:
-    return _firewall_adapters
+def _get_adapters() -> AdapterRegistry:
+    return _adapter_registry
 
 
 # ---------------------------------------------------------------------------
@@ -286,6 +290,248 @@ async def ipam_devices():
     return {"devices": [d.model_dump() for d in devices]}
 
 
+# ---------------------------------------------------------------------------
+# Instance-scoped adapter endpoints (multi-instance support)
+# ---------------------------------------------------------------------------
+
+
+def _strip_api_key(d: dict) -> dict:
+    """Remove api_key from response dict for security."""
+    return {k: v for k, v in d.items() if k != "api_key"}
+
+
+def _safe_snapshot_age(seconds: float) -> float:
+    """Clamp infinite snapshot age to 0 for JSON serialization."""
+    import math
+    return 0.0 if math.isinf(seconds) or math.isnan(seconds) else seconds
+
+
+@network_router.get("/adapters")
+async def list_adapter_instances():
+    """List all adapter instances with live health status."""
+    store = _get_topology_store()
+    instances = store.list_adapter_instances()
+    results = []
+    for inst in instances:
+        adapter = _adapter_registry.get_by_instance(inst.instance_id)
+        health_info = {"status": "not_configured", "message": "Not loaded", "snapshot_age_seconds": 0, "last_refresh": ""}
+        if adapter:
+            try:
+                health = await adapter.health_check()
+                health_info = {
+                    "status": health.status.value,
+                    "message": health.message,
+                    "snapshot_age_seconds": _safe_snapshot_age(health.snapshot_age_seconds),
+                    "last_refresh": health.last_refresh,
+                }
+            except Exception as e:
+                health_info = {"status": "unreachable", "message": str(e), "snapshot_age_seconds": 0, "last_refresh": ""}
+        result = _strip_api_key(inst.model_dump())
+        result["vendor"] = inst.vendor.value
+        result.update(health_info)
+        results.append(result)
+    return {"adapters": results}
+
+
+@network_router.post("/adapters")
+async def create_adapter_instance(req: AdapterInstanceCreateRequest):
+    """Create a new adapter instance."""
+    from src.network.models import FirewallVendor, AdapterInstance
+    from src.network.adapters.factory import create_adapter
+
+    try:
+        fw_vendor = FirewallVendor(req.vendor)
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"Unknown vendor: {req.vendor}")
+
+    instance = AdapterInstance(
+        label=req.label,
+        vendor=fw_vendor,
+        api_endpoint=req.api_endpoint,
+        api_key=req.api_key,
+        extra_config=req.extra_config,
+    )
+
+    store = _get_topology_store()
+    store.save_adapter_instance(instance)
+
+    adapter = create_adapter(
+        fw_vendor,
+        api_endpoint=req.api_endpoint,
+        api_key=req.api_key,
+        extra_config=req.extra_config,
+    )
+    _adapter_registry.register(instance.instance_id, adapter)
+
+    return {"status": "created", "instance_id": instance.instance_id, "label": instance.label}
+
+
+@network_router.post("/adapters/test-new")
+async def adapter_test_new(req: AdapterInstanceCreateRequest):
+    """Test an unsaved adapter configuration."""
+    from src.network.models import FirewallVendor
+    from src.network.adapters.factory import create_adapter
+
+    try:
+        fw_vendor = FirewallVendor(req.vendor)
+    except ValueError:
+        return {"success": False, "message": f"Unknown vendor: {req.vendor}"}
+
+    adapter = create_adapter(
+        fw_vendor,
+        api_endpoint=req.api_endpoint,
+        api_key=req.api_key,
+        extra_config=req.extra_config,
+    )
+    try:
+        health = await adapter.health_check()
+        return {"success": health.status.value == "connected", "message": health.message}
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+
+@network_router.get("/adapters/{instance_id}")
+async def get_adapter_instance(instance_id: str):
+    """Get adapter instance detail with health."""
+    store = _get_topology_store()
+    inst = store.get_adapter_instance(instance_id)
+    if not inst:
+        raise HTTPException(status_code=404, detail="Adapter instance not found")
+
+    adapter = _adapter_registry.get_by_instance(instance_id)
+    health_info = {"status": "not_configured", "message": "Not loaded", "snapshot_age_seconds": 0, "last_refresh": ""}
+    if adapter:
+        try:
+            health = await adapter.health_check()
+            health_info = {
+                "status": health.status.value,
+                "message": health.message,
+                "snapshot_age_seconds": _safe_snapshot_age(health.snapshot_age_seconds),
+                "last_refresh": health.last_refresh,
+            }
+        except Exception as e:
+            health_info = {"status": "unreachable", "message": str(e), "snapshot_age_seconds": 0, "last_refresh": ""}
+
+    result = _strip_api_key(inst.model_dump())
+    result["vendor"] = inst.vendor.value
+    result.update(health_info)
+    bindings = store.list_device_bindings_for_instance(instance_id)
+    result["bound_devices"] = bindings
+    return result
+
+
+@network_router.put("/adapters/{instance_id}")
+async def update_adapter_instance(instance_id: str, req: AdapterInstanceUpdateRequest):
+    """Update an existing adapter instance."""
+    from src.network.models import AdapterInstance
+    from src.network.adapters.factory import create_adapter
+
+    store = _get_topology_store()
+    existing = store.get_adapter_instance(instance_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Adapter instance not found")
+
+    if req.label is not None:
+        existing.label = req.label
+    if req.api_endpoint is not None:
+        existing.api_endpoint = req.api_endpoint
+    if req.api_key is not None:
+        existing.api_key = req.api_key
+    if req.extra_config is not None:
+        existing.extra_config = req.extra_config
+    if req.device_groups is not None:
+        existing.device_groups = req.device_groups
+
+    store.save_adapter_instance(existing)
+
+    # Re-create and re-register the adapter
+    adapter = create_adapter(
+        existing.vendor,
+        api_endpoint=existing.api_endpoint,
+        api_key=existing.api_key,
+        extra_config=existing.extra_config,
+    )
+    _adapter_registry.register(instance_id, adapter)
+
+    return {"status": "updated", "instance_id": instance_id}
+
+
+@network_router.delete("/adapters/{instance_id}")
+async def delete_adapter_instance(instance_id: str):
+    """Delete an adapter instance and its device bindings."""
+    store = _get_topology_store()
+    existing = store.get_adapter_instance(instance_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Adapter instance not found")
+
+    store.delete_adapter_instance(instance_id)
+    _adapter_registry.remove(instance_id)
+
+    return {"status": "deleted", "instance_id": instance_id}
+
+
+@network_router.post("/adapters/{instance_id}/test")
+async def adapter_instance_test(instance_id: str):
+    """Test connection for an existing adapter instance."""
+    adapter = _adapter_registry.get_by_instance(instance_id)
+    if not adapter:
+        raise HTTPException(status_code=404, detail="Adapter instance not found or not loaded")
+    try:
+        health = await adapter.health_check()
+        return {"success": health.status.value == "connected", "message": health.message}
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+
+@network_router.post("/adapters/{instance_id}/refresh")
+async def adapter_instance_refresh(instance_id: str):
+    """Force refresh snapshot for a specific adapter instance."""
+    adapter = _adapter_registry.get_by_instance(instance_id)
+    if not adapter:
+        raise HTTPException(status_code=404, detail="Adapter instance not found or not loaded")
+    await adapter.refresh_snapshot()
+    kg = _get_knowledge_graph()
+    kg.load_from_store()
+    return {"status": "refreshed", "instance_id": instance_id}
+
+
+@network_router.get("/adapters/{instance_id}/discover")
+async def adapter_discover_device_groups(instance_id: str):
+    """Discover Panorama device groups for a Palo Alto adapter instance."""
+    adapter = _adapter_registry.get_by_instance(instance_id)
+    if not adapter:
+        raise HTTPException(status_code=404, detail="Adapter instance not found or not loaded")
+
+    if not hasattr(adapter, "discover_device_groups"):
+        return {"device_groups": [], "message": "Device group discovery not supported for this vendor"}
+
+    try:
+        groups = await adapter.discover_device_groups()
+        return {"device_groups": groups}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Discovery failed: {e}")
+
+
+@network_router.post("/adapters/{instance_id}/bind")
+async def adapter_bind_devices(instance_id: str, req: AdapterBindRequest):
+    """Bind device_ids to an adapter instance."""
+    store = _get_topology_store()
+    existing = store.get_adapter_instance(instance_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Adapter instance not found")
+
+    for device_id in req.device_ids:
+        store.save_device_binding(device_id, instance_id)
+        _adapter_registry.bind_device(device_id, instance_id)
+
+    return {"status": "bound", "instance_id": instance_id, "device_ids": req.device_ids}
+
+
+# ---------------------------------------------------------------------------
+# Legacy adapter endpoints (backward compatibility)
+# ---------------------------------------------------------------------------
+
+
 @network_router.get("/adapters/status")
 async def adapters_status():
     """Return health status for all configured adapters."""
@@ -298,7 +544,7 @@ async def adapters_status():
             "vendor": health.vendor.value,
             "status": health.status.value,
             "message": health.message,
-            "snapshot_age_seconds": health.snapshot_age_seconds,
+            "snapshot_age_seconds": _safe_snapshot_age(health.snapshot_age_seconds),
             "last_refresh": health.last_refresh,
         })
     return {"adapters": results}
@@ -345,17 +591,31 @@ async def adapter_configure(vendor: str, req: AdapterConfigureRequest):
         api_key=req.api_key,
         extra_config=req.extra_config,
     )
-    # Register by node_id if provided, else by vendor
-    key = req.node_id or f"adapter-{vendor}"
-    _firewall_adapters[key] = adapter
-    # Persist config
+    # Register as an adapter instance for multi-instance support
+    from src.network.models import AdapterConfig, AdapterInstance
+    import uuid as _uuid
     store = _get_topology_store()
-    from src.network.models import AdapterConfig
+
+    instance_id = str(_uuid.uuid4())
+    instance = AdapterInstance(
+        instance_id=instance_id,
+        label=req.node_id or f"{vendor}",
+        vendor=fw_vendor,
+        api_endpoint=req.api_endpoint,
+        api_key=req.api_key,
+        extra_config=req.extra_config,
+    )
+    store.save_adapter_instance(instance)
+
+    key = req.node_id or instance_id
+    _adapter_registry.register(instance_id, adapter, [key] if req.node_id else [])
+
+    # Also persist to legacy table for backward compat
     store.save_adapter_config(AdapterConfig(
         vendor=fw_vendor, api_endpoint=req.api_endpoint,
         api_key=req.api_key, extra_config=req.extra_config,
     ))
-    return {"status": "configured", "vendor": vendor, "adapter_key": key}
+    return {"status": "configured", "vendor": vendor, "adapter_key": key, "instance_id": instance_id}
 
 
 @network_router.post("/adapters/{vendor}/refresh")

@@ -75,3 +75,23 @@ class HAGroupRequest(BaseModel):
     member_ids: list[str]
     virtual_ips: list[str] = []
     active_member_id: str = ""
+
+
+class AdapterInstanceCreateRequest(BaseModel):
+    label: str
+    vendor: str
+    api_endpoint: str = ""
+    api_key: str = ""
+    extra_config: dict = Field(default_factory=dict)
+
+
+class AdapterInstanceUpdateRequest(BaseModel):
+    label: str | None = None
+    api_endpoint: str | None = None
+    api_key: str | None = None
+    extra_config: dict | None = None
+    device_groups: list[str] | None = None
+
+
+class AdapterBindRequest(BaseModel):
+    device_ids: list[str]

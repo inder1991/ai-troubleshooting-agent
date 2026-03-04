@@ -497,6 +497,61 @@ class PanoramaAdapter(FirewallAdapter):
         return vrs
 
     # ------------------------------------------------------------------
+    # Device group discovery (Panorama only)
+    # ------------------------------------------------------------------
+
+    async def discover_device_groups(self) -> list[dict]:
+        """Query Panorama for all device groups.
+
+        Returns: [{name: str, serial_numbers: list, connected_devices: int}]
+        Only works in Panorama mode (not standalone).
+        """
+        if not HAS_PANOS:
+            raise NotImplementedError("pan-os-python SDK is not installed")
+
+        if not self._device_group and not self._panos_device:
+            # Standalone firewall — no device groups
+            return []
+
+        device = self._connect()
+
+        # Only Panorama instances support DeviceGroup discovery
+        if not isinstance(device, panos.panorama.Panorama):
+            return []
+
+        def _do_fetch():
+            return panos.panorama.DeviceGroup.refreshall(device)
+
+        try:
+            raw_dgs = await _get_loop().run_in_executor(None, _do_fetch)
+        except Exception as e:
+            logger.warning("Device group discovery failed: %s", e)
+            return []
+
+        results: list[dict] = []
+        for dg in raw_dgs:
+            name = getattr(dg, "name", "")
+            # Try to get serial numbers from device entries
+            serial_numbers: list[str] = []
+            try:
+                devices = getattr(dg, "children", [])
+                for d in devices:
+                    serial = getattr(d, "serial", "")
+                    if serial:
+                        serial_numbers.append(serial)
+            except Exception:
+                pass
+
+            results.append({
+                "name": name,
+                "serial_numbers": serial_numbers,
+                "connected_devices": len(serial_numbers),
+            })
+
+        logger.info("Discovered %d device groups from %s", len(results), self.api_endpoint)
+        return results
+
+    # ------------------------------------------------------------------
     # Flow simulation
     # ------------------------------------------------------------------
 

@@ -61,6 +61,36 @@ def _init_stores():
     logger.info("Database tables initialized and defaults seeded")
 
 
+def _reload_adapter_instances():
+    """Reload adapter instances from DB into the in-memory registry on startup."""
+    try:
+        from .network_endpoints import _get_topology_store, _adapter_registry
+        from src.network.adapters.factory import create_adapter
+
+        store = _get_topology_store()
+        instances = store.list_adapter_instances()
+        bindings = store.list_device_bindings()
+
+        for inst in instances:
+            try:
+                adapter = create_adapter(
+                    inst.vendor,
+                    api_endpoint=inst.api_endpoint,
+                    api_key=inst.api_key,
+                    extra_config=inst.extra_config,
+                )
+                _adapter_registry.register(inst.instance_id, adapter)
+            except Exception as e:
+                logger.warning("Failed to reload adapter %s: %s", inst.instance_id, e)
+
+        for device_id, instance_id in bindings:
+            _adapter_registry.bind_device(device_id, instance_id)
+
+        logger.info("Reloaded %d adapter instances and %d device bindings from DB", len(instances), len(bindings))
+    except Exception as e:
+        logger.warning("Adapter reload skipped: %s", e)
+
+
 def create_app() -> FastAPI:
     """Create and configure FastAPI application"""
 
@@ -100,6 +130,7 @@ def create_app() -> FastAPI:
     @app.on_event("startup")
     async def startup():
         _init_stores()
+        _reload_adapter_instances()
         # Start session TTL cleanup loop
         from .routes_v4 import start_cleanup_task
         start_cleanup_task()

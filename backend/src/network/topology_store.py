@@ -8,7 +8,7 @@ from .models import (
     Device, DeviceType, Interface, Subnet, Zone, Workload,
     Route, NATRule, FirewallRule,
     Flow, Trace, TraceHop, FlowVerdict,
-    AdapterConfig,
+    AdapterConfig, AdapterInstance, FirewallVendor,
     VPC, RouteTable, VPCPeering, TransitGateway,
     VPNTunnel, DirectConnect,
     NACL, NACLRule,
@@ -199,6 +199,24 @@ class TopologyStore:
                 source TEXT, last_verified_at TEXT,
                 PRIMARY KEY (src_id, dst_id)
             );
+
+            CREATE TABLE IF NOT EXISTS adapter_instances (
+                instance_id TEXT PRIMARY KEY,
+                label TEXT NOT NULL,
+                vendor TEXT NOT NULL,
+                api_endpoint TEXT DEFAULT '',
+                api_key TEXT DEFAULT '',
+                extra_config TEXT DEFAULT '{}',
+                device_groups TEXT DEFAULT '[]',
+                created_at TEXT DEFAULT '',
+                updated_at TEXT DEFAULT ''
+            );
+            CREATE INDEX IF NOT EXISTS idx_adapter_instances_vendor ON adapter_instances(vendor);
+
+            CREATE TABLE IF NOT EXISTS adapter_device_bindings (
+                device_id TEXT PRIMARY KEY,
+                instance_id TEXT NOT NULL
+            );
         """)
         conn.commit()
         conn.close()
@@ -223,6 +241,40 @@ class TopologyStore:
                 pass  # Column already exists
         conn.commit()
         conn.close()
+
+        # Migrate old adapter_configs rows into adapter_instances
+        self._migrate_adapter_configs()
+
+    def _migrate_adapter_configs(self):
+        """Migrate rows from legacy adapter_configs table into adapter_instances."""
+        try:
+            conn = self._conn()
+            rows = conn.execute("SELECT * FROM adapter_configs").fetchall()
+            if not rows:
+                conn.close()
+                return
+            from uuid import uuid4
+            for r in rows:
+                d = dict(r)
+                vendor = d.get("vendor", "")
+                api_endpoint = d.get("api_endpoint", "")
+                # Check if already migrated (same vendor + endpoint exists)
+                existing = conn.execute(
+                    "SELECT 1 FROM adapter_instances WHERE vendor=? AND api_endpoint=?",
+                    (vendor, api_endpoint),
+                ).fetchone()
+                if existing:
+                    continue
+                now = datetime.now(timezone.utc).isoformat()
+                conn.execute(
+                    "INSERT INTO adapter_instances (instance_id, label, vendor, api_endpoint, api_key, extra_config, device_groups, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?)",
+                    (str(uuid4()), vendor, vendor, api_endpoint,
+                     d.get("api_key", ""), d.get("extra_config", "{}"), "[]", now, now),
+                )
+            conn.commit()
+            conn.close()
+        except sqlite3.OperationalError:
+            pass  # adapter_configs table may not exist yet
 
     # ── Device CRUD ──
     def add_device(self, device: Device) -> None:
@@ -538,6 +590,99 @@ class TopologyStore:
         d = dict(row)
         d["extra_config"] = json.loads(d["extra_config"]) if d["extra_config"] else {}
         return AdapterConfig(**d)
+
+    # ── Adapter Instance CRUD ──
+
+    def save_adapter_instance(self, instance: AdapterInstance) -> None:
+        conn = self._conn()
+        now = datetime.now(timezone.utc).isoformat()
+        # Preserve created_at on update
+        existing = conn.execute(
+            "SELECT created_at FROM adapter_instances WHERE instance_id=?",
+            (instance.instance_id,),
+        ).fetchone()
+        created_at = existing["created_at"] if existing else (instance.created_at or now)
+        conn.execute(
+            "INSERT OR REPLACE INTO adapter_instances (instance_id, label, vendor, api_endpoint, api_key, extra_config, device_groups, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?)",
+            (instance.instance_id, instance.label, instance.vendor.value,
+             instance.api_endpoint, instance.api_key,
+             json.dumps(instance.extra_config), json.dumps(instance.device_groups),
+             created_at, now),
+        )
+        conn.commit()
+        conn.close()
+
+    def get_adapter_instance(self, instance_id: str) -> Optional[AdapterInstance]:
+        conn = self._conn()
+        row = conn.execute("SELECT * FROM adapter_instances WHERE instance_id=?", (instance_id,)).fetchone()
+        conn.close()
+        if not row:
+            return None
+        d = dict(row)
+        d["extra_config"] = json.loads(d["extra_config"]) if d["extra_config"] else {}
+        d["device_groups"] = json.loads(d["device_groups"]) if d["device_groups"] else []
+        return AdapterInstance(**d)
+
+    def list_adapter_instances(self) -> list[AdapterInstance]:
+        conn = self._conn()
+        rows = conn.execute("SELECT * FROM adapter_instances ORDER BY created_at").fetchall()
+        conn.close()
+        results = []
+        for r in rows:
+            d = dict(r)
+            d["extra_config"] = json.loads(d["extra_config"]) if d["extra_config"] else {}
+            d["device_groups"] = json.loads(d["device_groups"]) if d["device_groups"] else []
+            results.append(AdapterInstance(**d))
+        return results
+
+    def list_adapter_instances_by_vendor(self, vendor: str) -> list[AdapterInstance]:
+        conn = self._conn()
+        rows = conn.execute("SELECT * FROM adapter_instances WHERE vendor=? ORDER BY created_at", (vendor,)).fetchall()
+        conn.close()
+        results = []
+        for r in rows:
+            d = dict(r)
+            d["extra_config"] = json.loads(d["extra_config"]) if d["extra_config"] else {}
+            d["device_groups"] = json.loads(d["device_groups"]) if d["device_groups"] else []
+            results.append(AdapterInstance(**d))
+        return results
+
+    def delete_adapter_instance(self, instance_id: str) -> None:
+        conn = self._conn()
+        conn.execute("DELETE FROM adapter_device_bindings WHERE instance_id=?", (instance_id,))
+        conn.execute("DELETE FROM adapter_instances WHERE instance_id=?", (instance_id,))
+        conn.commit()
+        conn.close()
+
+    def save_device_binding(self, device_id: str, instance_id: str) -> None:
+        conn = self._conn()
+        conn.execute(
+            "INSERT OR REPLACE INTO adapter_device_bindings (device_id, instance_id) VALUES (?,?)",
+            (device_id, instance_id),
+        )
+        conn.commit()
+        conn.close()
+
+    def delete_device_binding(self, device_id: str) -> None:
+        conn = self._conn()
+        conn.execute("DELETE FROM adapter_device_bindings WHERE device_id=?", (device_id,))
+        conn.commit()
+        conn.close()
+
+    def list_device_bindings(self) -> list[tuple[str, str]]:
+        conn = self._conn()
+        rows = conn.execute("SELECT device_id, instance_id FROM adapter_device_bindings").fetchall()
+        conn.close()
+        return [(r["device_id"], r["instance_id"]) for r in rows]
+
+    def list_device_bindings_for_instance(self, instance_id: str) -> list[str]:
+        conn = self._conn()
+        rows = conn.execute(
+            "SELECT device_id FROM adapter_device_bindings WHERE instance_id=?",
+            (instance_id,),
+        ).fetchall()
+        conn.close()
+        return [r["device_id"] for r in rows]
 
     # ── Diagram Snapshots ──
     def save_diagram_snapshot(self, snapshot_json: str, description: str = "") -> int:

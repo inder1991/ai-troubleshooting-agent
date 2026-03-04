@@ -365,7 +365,7 @@ const DevicePropertyPanel: React.FC<DevicePropertyPanelProps> = ({
           Apply Changes
         </button>
 
-        {/* Firewall Adapter Config */}
+        {/* Firewall Adapter Config — links to Adapters page */}
         {isFirewall && onConfigureAdapter && (
           <button
             onClick={() => onConfigureAdapter(selectedNode.id)}
@@ -381,9 +381,9 @@ const DevicePropertyPanel: React.FC<DevicePropertyPanelProps> = ({
                 className="material-symbols-outlined text-base"
                 style={{ fontFamily: 'Material Symbols Outlined' }}
               >
-                settings
+                settings_input_component
               </span>
-              Configure Adapter
+              Manage Adapters
             </span>
           </button>
         )}

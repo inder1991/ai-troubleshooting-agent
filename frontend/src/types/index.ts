@@ -1255,6 +1255,32 @@ export interface AgentExecutionsResponse {
   executions: AgentExecution[];
 }
 
+// ===== Adapter Instance Types =====
+
+export interface AdapterInstance {
+  instance_id: string;
+  label: string;
+  vendor: string;
+  api_endpoint: string;
+  extra_config: Record<string, unknown>;
+  device_groups: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AdapterInstanceStatus extends AdapterInstance {
+  status: 'connected' | 'stale' | 'auth_failed' | 'unreachable' | 'not_configured';
+  message: string;
+  snapshot_age_seconds: number;
+  last_refresh: string;
+}
+
+export interface DeviceGroupInfo {
+  name: string;
+  serial_numbers: string[];
+  connected_devices: number;
+}
+
 // ===== Network Troubleshooting Types =====
 
 export interface NetworkFindingsState {

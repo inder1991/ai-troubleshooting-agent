@@ -672,3 +672,81 @@ export const listHAGroups = async (): Promise<any> => {
   if (!response.ok) throw new Error(`Failed to list HA groups: ${response.statusText}`);
   return response.json();
 };
+
+// ===== Adapter Instance API (Multi-Instance) =====
+
+export const listAdapterInstances = async (): Promise<{ adapters: any[] }> => {
+  const response = await fetch(`${API_BASE_URL}/api/v4/network/adapters`);
+  if (!response.ok) throw new Error(`Failed to list adapter instances: ${response.statusText}`);
+  return response.json();
+};
+
+export const createAdapterInstance = async (data: {
+  label: string; vendor: string; api_endpoint?: string; api_key?: string; extra_config?: Record<string, unknown>;
+}): Promise<{ status: string; instance_id: string; label: string }> => {
+  const response = await fetch(`${API_BASE_URL}/api/v4/network/adapters`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error(await extractErrorDetail(response, 'Failed to create adapter instance'));
+  return response.json();
+};
+
+export const updateAdapterInstance = async (instanceId: string, data: {
+  label?: string; api_endpoint?: string; api_key?: string; extra_config?: Record<string, unknown>; device_groups?: string[];
+}): Promise<{ status: string; instance_id: string }> => {
+  const response = await fetch(`${API_BASE_URL}/api/v4/network/adapters/${instanceId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error(await extractErrorDetail(response, 'Failed to update adapter instance'));
+  return response.json();
+};
+
+export const deleteAdapterInstance = async (instanceId: string): Promise<{ status: string }> => {
+  const response = await fetch(`${API_BASE_URL}/api/v4/network/adapters/${instanceId}`, { method: 'DELETE' });
+  if (!response.ok) throw new Error(await extractErrorDetail(response, 'Failed to delete adapter instance'));
+  return response.json();
+};
+
+export const testAdapterInstance = async (instanceId: string): Promise<{ success: boolean; message: string }> => {
+  const response = await fetch(`${API_BASE_URL}/api/v4/network/adapters/${instanceId}/test`, { method: 'POST' });
+  if (!response.ok) throw new Error(`Failed to test adapter: ${response.statusText}`);
+  return response.json();
+};
+
+export const testNewAdapter = async (data: {
+  label: string; vendor: string; api_endpoint?: string; api_key?: string; extra_config?: Record<string, unknown>;
+}): Promise<{ success: boolean; message: string }> => {
+  const response = await fetch(`${API_BASE_URL}/api/v4/network/adapters/test-new`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error(`Failed to test adapter: ${response.statusText}`);
+  return response.json();
+};
+
+export const refreshAdapterInstance = async (instanceId: string): Promise<{ status: string }> => {
+  const response = await fetch(`${API_BASE_URL}/api/v4/network/adapters/${instanceId}/refresh`, { method: 'POST' });
+  if (!response.ok) throw new Error(`Failed to refresh adapter: ${response.statusText}`);
+  return response.json();
+};
+
+export const discoverDeviceGroups = async (instanceId: string): Promise<{ device_groups: any[] }> => {
+  const response = await fetch(`${API_BASE_URL}/api/v4/network/adapters/${instanceId}/discover`);
+  if (!response.ok) throw new Error(`Failed to discover device groups: ${response.statusText}`);
+  return response.json();
+};
+
+export const bindDeviceToAdapter = async (instanceId: string, deviceIds: string[]): Promise<{ status: string }> => {
+  const response = await fetch(`${API_BASE_URL}/api/v4/network/adapters/${instanceId}/bind`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ device_ids: deviceIds }),
+  });
+  if (!response.ok) throw new Error(await extractErrorDetail(response, 'Failed to bind devices'));
+  return response.json();
+};

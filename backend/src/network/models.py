@@ -2,6 +2,7 @@
 from __future__ import annotations
 from enum import Enum
 from typing import Optional, Literal
+from uuid import uuid4
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 from datetime import datetime
 import ipaddress as _ipaddress
@@ -540,6 +541,18 @@ class AdapterConfig(BaseModel):
     api_endpoint: str = ""
     api_key: str = ""
     extra_config: dict = Field(default_factory=dict)
+
+
+class AdapterInstance(BaseModel):
+    instance_id: str = Field(default_factory=lambda: str(uuid4()))
+    label: str
+    vendor: FirewallVendor
+    api_endpoint: str = ""
+    api_key: str = ""
+    extra_config: dict = Field(default_factory=dict)
+    device_groups: list[str] = Field(default_factory=list)
+    created_at: str = ""
+    updated_at: str = ""
 
 
 # ── Identity Chain (NAT tracking) ──
