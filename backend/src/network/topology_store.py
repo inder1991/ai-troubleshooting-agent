@@ -217,6 +217,61 @@ class TopologyStore:
                 device_id TEXT PRIMARY KEY,
                 instance_id TEXT NOT NULL
             );
+
+            CREATE TABLE IF NOT EXISTS device_status (
+                device_id TEXT PRIMARY KEY,
+                status TEXT NOT NULL,
+                latency_ms REAL DEFAULT 0,
+                packet_loss REAL DEFAULT 0,
+                last_seen TEXT,
+                last_status_change TEXT,
+                probe_method TEXT DEFAULT 'icmp',
+                updated_at TEXT
+            );
+            CREATE TABLE IF NOT EXISTS link_metrics (
+                src_device_id TEXT,
+                dst_device_id TEXT,
+                latency_ms REAL DEFAULT 0,
+                bandwidth_bps INTEGER DEFAULT 0,
+                error_rate REAL DEFAULT 0,
+                utilization REAL DEFAULT 0,
+                updated_at TEXT,
+                PRIMARY KEY (src_device_id, dst_device_id)
+            );
+            CREATE TABLE IF NOT EXISTS metric_history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                entity_type TEXT NOT NULL,
+                entity_id TEXT NOT NULL,
+                metric TEXT NOT NULL,
+                value REAL NOT NULL,
+                recorded_at TEXT NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS idx_metric_history_entity
+                ON metric_history(entity_type, entity_id, recorded_at);
+            CREATE TABLE IF NOT EXISTS drift_events (
+                id TEXT PRIMARY KEY,
+                entity_type TEXT NOT NULL,
+                entity_id TEXT NOT NULL,
+                drift_type TEXT NOT NULL,
+                field TEXT DEFAULT '',
+                expected TEXT DEFAULT '',
+                actual TEXT DEFAULT '',
+                severity TEXT DEFAULT 'warning',
+                detected_at TEXT,
+                resolved_at TEXT,
+                UNIQUE(entity_type, entity_id, drift_type, field)
+            );
+            CREATE TABLE IF NOT EXISTS discovery_candidates (
+                ip TEXT PRIMARY KEY,
+                mac TEXT DEFAULT '',
+                hostname TEXT DEFAULT '',
+                discovered_via TEXT DEFAULT '',
+                source_device_id TEXT DEFAULT '',
+                first_seen TEXT,
+                last_seen TEXT,
+                promoted_device_id TEXT DEFAULT '',
+                dismissed INTEGER DEFAULT 0
+            );
         """)
         conn.commit()
         conn.close()
@@ -1042,3 +1097,197 @@ class TopologyStore:
         rows = conn.execute("SELECT * FROM edge_confidence").fetchall()
         conn.close()
         return [dict(r) for r in rows]
+
+    # ── Device Status ──
+
+    def upsert_device_status(self, device_id: str, status: str, latency_ms: float,
+                              packet_loss: float, probe_method: str) -> None:
+        conn = self._conn()
+        try:
+            now = datetime.now(timezone.utc).isoformat()
+            existing = conn.execute(
+                "SELECT status, last_status_change FROM device_status WHERE device_id=?",
+                (device_id,),
+            ).fetchone()
+            if existing:
+                last_change = existing["last_status_change"]
+                if existing["status"] != status:
+                    last_change = now
+                conn.execute(
+                    "UPDATE device_status SET status=?, latency_ms=?, packet_loss=?, "
+                    "last_seen=?, last_status_change=?, probe_method=?, updated_at=? "
+                    "WHERE device_id=?",
+                    (status, latency_ms, packet_loss, now, last_change, probe_method, now, device_id),
+                )
+            else:
+                conn.execute(
+                    "INSERT INTO device_status VALUES (?,?,?,?,?,?,?,?)",
+                    (device_id, status, latency_ms, packet_loss, now, now, probe_method, now),
+                )
+            conn.commit()
+        finally:
+            conn.close()
+
+    def get_device_status(self, device_id: str):
+        conn = self._conn()
+        try:
+            row = conn.execute("SELECT * FROM device_status WHERE device_id=?", (device_id,)).fetchone()
+            return dict(row) if row else None
+        finally:
+            conn.close()
+
+    def list_device_statuses(self) -> list:
+        conn = self._conn()
+        try:
+            rows = conn.execute("SELECT * FROM device_status").fetchall()
+            return [dict(r) for r in rows]
+        finally:
+            conn.close()
+
+    # ── Link Metrics ──
+
+    def upsert_link_metric(self, src_id: str, dst_id: str, latency_ms: float,
+                            bandwidth_bps: int, error_rate: float, utilization: float) -> None:
+        conn = self._conn()
+        try:
+            now = datetime.now(timezone.utc).isoformat()
+            conn.execute(
+                "INSERT OR REPLACE INTO link_metrics VALUES (?,?,?,?,?,?,?)",
+                (src_id, dst_id, latency_ms, bandwidth_bps, error_rate, utilization, now),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+    def list_link_metrics(self) -> list:
+        conn = self._conn()
+        try:
+            rows = conn.execute("SELECT * FROM link_metrics").fetchall()
+            return [dict(r) for r in rows]
+        finally:
+            conn.close()
+
+    # ── Metric History ──
+
+    def append_metric(self, entity_type: str, entity_id: str, metric: str, value: float) -> None:
+        conn = self._conn()
+        try:
+            now = datetime.now(timezone.utc).isoformat()
+            conn.execute(
+                "INSERT INTO metric_history (entity_type, entity_id, metric, value, recorded_at) VALUES (?,?,?,?,?)",
+                (entity_type, entity_id, metric, value, now),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+    def query_metric_history(self, entity_type: str, entity_id: str, metric: str,
+                              since: str) -> list:
+        conn = self._conn()
+        try:
+            rows = conn.execute(
+                "SELECT * FROM metric_history WHERE entity_type=? AND entity_id=? AND metric=? "
+                "AND recorded_at>=? ORDER BY recorded_at",
+                (entity_type, entity_id, metric, since),
+            ).fetchall()
+            return [dict(r) for r in rows]
+        finally:
+            conn.close()
+
+    def prune_metric_history(self, older_than_days: int = 7) -> int:
+        conn = self._conn()
+        try:
+            cutoff = (datetime.now(timezone.utc) - timedelta(days=older_than_days)).isoformat()
+            cursor = conn.execute("DELETE FROM metric_history WHERE recorded_at < ?", (cutoff,))
+            conn.commit()
+            return cursor.rowcount
+        finally:
+            conn.close()
+
+    # ── Drift Events ──
+
+    def upsert_drift_event(self, entity_type: str, entity_id: str, drift_type: str,
+                            field: str, expected: str, actual: str, severity: str) -> None:
+        conn = self._conn()
+        try:
+            import uuid
+            now = datetime.now(timezone.utc).isoformat()
+            conn.execute(
+                "INSERT INTO drift_events (id, entity_type, entity_id, drift_type, field, "
+                "expected, actual, severity, detected_at) VALUES (?,?,?,?,?,?,?,?,?) "
+                "ON CONFLICT(entity_type, entity_id, drift_type, field) DO UPDATE SET "
+                "expected=excluded.expected, actual=excluded.actual, severity=excluded.severity, "
+                "resolved_at=NULL",
+                (str(uuid.uuid4()), entity_type, entity_id, drift_type, field,
+                 expected, actual, severity, now),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+    def resolve_drift_event(self, event_id: str) -> None:
+        conn = self._conn()
+        try:
+            now = datetime.now(timezone.utc).isoformat()
+            conn.execute("UPDATE drift_events SET resolved_at=? WHERE id=?", (now, event_id))
+            conn.commit()
+        finally:
+            conn.close()
+
+    def list_active_drift_events(self) -> list:
+        conn = self._conn()
+        try:
+            rows = conn.execute(
+                "SELECT * FROM drift_events WHERE resolved_at IS NULL ORDER BY severity, detected_at"
+            ).fetchall()
+            return [dict(r) for r in rows]
+        finally:
+            conn.close()
+
+    # ── Discovery Candidates ──
+
+    def upsert_discovery_candidate(self, ip: str, mac: str, hostname: str,
+                                    discovered_via: str, source_device_id: str) -> None:
+        conn = self._conn()
+        try:
+            now = datetime.now(timezone.utc).isoformat()
+            conn.execute(
+                "INSERT INTO discovery_candidates (ip, mac, hostname, discovered_via, "
+                "source_device_id, first_seen, last_seen) VALUES (?,?,?,?,?,?,?) "
+                "ON CONFLICT(ip) DO UPDATE SET mac=excluded.mac, "
+                "hostname=CASE WHEN excluded.hostname!='' THEN excluded.hostname ELSE discovery_candidates.hostname END, "
+                "last_seen=excluded.last_seen",
+                (ip, mac, hostname, discovered_via, source_device_id, now, now),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+    def list_discovery_candidates(self) -> list:
+        conn = self._conn()
+        try:
+            rows = conn.execute(
+                "SELECT * FROM discovery_candidates WHERE dismissed=0 AND promoted_device_id=''"
+            ).fetchall()
+            return [dict(r) for r in rows]
+        finally:
+            conn.close()
+
+    def promote_candidate(self, ip: str, device_id: str) -> None:
+        conn = self._conn()
+        try:
+            conn.execute(
+                "UPDATE discovery_candidates SET promoted_device_id=? WHERE ip=?",
+                (device_id, ip),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+    def dismiss_candidate(self, ip: str) -> None:
+        conn = self._conn()
+        try:
+            conn.execute("UPDATE discovery_candidates SET dismissed=1 WHERE ip=?", (ip,))
+            conn.commit()
+        finally:
+            conn.close()
