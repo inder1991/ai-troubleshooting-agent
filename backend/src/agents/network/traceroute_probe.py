@@ -1,4 +1,5 @@
 """Traceroute probe node — runs traceroute and detects routing loops."""
+import threading
 import uuid
 from datetime import datetime, timezone
 from typing import Optional
@@ -13,7 +14,7 @@ except ImportError:
 
 # Rate limiting: max concurrent traceroutes
 _MAX_CONCURRENT = 3
-_active_count = 0
+_semaphore = threading.Semaphore(_MAX_CONCURRENT)
 
 
 def traceroute_probe(state: dict) -> dict:
@@ -24,7 +25,6 @@ def traceroute_probe(state: dict) -> dict:
     - Loop detection (repeated IPs)
     - Graceful fallback when icmplib unavailable
     """
-    global _active_count
     dst_ip = state.get("dst_ip", "")
 
     if not dst_ip:
@@ -34,24 +34,24 @@ def traceroute_probe(state: dict) -> dict:
             "evidence": [{"type": "traceroute", "detail": "No destination IP"}],
         }
 
-    if _active_count >= _MAX_CONCURRENT:
+    if not _semaphore.acquire(blocking=False):
         return {
             "trace_method": "unavailable",
             "trace_hops": [],
             "evidence": [{"type": "traceroute", "detail": "Rate limit: too many concurrent traceroutes"}],
         }
 
-    if not HAS_ICMPLIB:
-        return {
-            "trace_method": "unavailable",
-            "trace_hops": [],
-            "evidence": [{"type": "traceroute", "detail": "icmplib not available"}],
-        }
-
-    trace_id = str(uuid.uuid4())[:8]
-
+    # Everything from here is inside try/finally to guarantee release
     try:
-        _active_count += 1
+        if not HAS_ICMPLIB:
+            return {
+                "trace_method": "unavailable",
+                "trace_hops": [],
+                "evidence": [{"type": "traceroute", "detail": "icmplib not available"}],
+            }
+
+        trace_id = str(uuid.uuid4())[:8]
+
         result = icmp_traceroute(dst_ip, max_hops=30, timeout=2)
 
         hops = []
@@ -92,14 +92,13 @@ def traceroute_probe(state: dict) -> dict:
         }
     except Exception as e:
         return {
-            "trace_id": trace_id,
             "trace_method": "unavailable",
             "trace_hops": [],
             "error": str(e),
             "evidence": [{"type": "traceroute", "detail": f"Traceroute failed: {e}"}],
         }
     finally:
-        _active_count -= 1
+        _semaphore.release()
 
 
 def make_manual_trace(hops: list[dict]) -> dict:
