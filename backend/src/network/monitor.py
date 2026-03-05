@@ -11,6 +11,8 @@ except ImportError:  # pragma: no cover — optional at import time, patched in 
 from .topology_store import TopologyStore
 from .drift_engine import DriftEngine
 from .discovery_engine import DiscoveryEngine
+from .snmp_collector import SNMPCollector, SNMPDeviceConfig
+from .alert_engine import AlertEngine
 
 logger = logging.getLogger(__name__)
 
@@ -24,13 +26,17 @@ class NetworkMonitor:
     """Background collector that runs a probe/adapter/drift/discovery cycle."""
 
     def __init__(self, store: TopologyStore, kg, adapters,
-                 prometheus_url: str | None = None):
+                 prometheus_url: str | None = None, metrics_store=None):
         self.store = store
         self.kg = kg
         self.adapters = adapters
         self.prometheus_url = prometheus_url
+        self.metrics_store = metrics_store
         self.drift_engine = DriftEngine(store)
         self.discovery_engine = DiscoveryEngine(store, kg)
+        self.snmp_collector = SNMPCollector(metrics_store) if metrics_store else None
+        self.alert_engine = AlertEngine(metrics_store, load_defaults=True) if metrics_store else None
+        self._latest_alerts: list[dict] = []
         self.cycle_interval = 30
         self._task: asyncio.Task | None = None
 
@@ -64,6 +70,8 @@ class NetworkMonitor:
         await self._adapter_pass()
         await self._drift_pass()
         await self._discovery_pass()
+        await self._snmp_pass()
+        await self._alert_pass()
         self.store.prune_metric_history(older_than_days=7)
 
     async def _probe_pass(self):
@@ -149,6 +157,33 @@ class NetworkMonitor:
         except Exception as e:
             logger.debug("Probe discovery failed: %s", e)
 
+    async def _snmp_pass(self):
+        if not self.snmp_collector:
+            return
+        configs = []
+        for d in self.store.list_devices():
+            if not d.management_ip:
+                continue
+            # Check if SNMP is enabled via device attributes or KG node
+            node_data = {}
+            if hasattr(self.kg, 'graph') and d.id in self.kg.graph:
+                node_data = dict(self.kg.graph.nodes[d.id])
+            if node_data.get("snmp_enabled"):
+                configs.append(SNMPDeviceConfig(
+                    device_id=d.id, ip=d.management_ip,
+                    version=node_data.get("snmp_version", "v2c"),
+                    community=node_data.get("snmp_community", "public"),
+                    port=int(node_data.get("snmp_port", 161)),
+                ))
+        if configs:
+            await self.snmp_collector.poll_all(configs)
+
+    async def _alert_pass(self):
+        if not self.alert_engine:
+            return
+        device_ids = [d["device_id"] for d in self.store.list_device_statuses()]
+        self._latest_alerts = await self.alert_engine.evaluate_all(device_ids)
+
     # ── Snapshot API ──
 
     def get_snapshot(self) -> dict:
@@ -157,4 +192,5 @@ class NetworkMonitor:
             "links": self.store.list_link_metrics(),
             "drifts": self.store.list_active_drift_events(),
             "candidates": self.store.list_discovery_candidates(),
+            "alerts": self.alert_engine.get_active_alerts() if self.alert_engine else [],
         }

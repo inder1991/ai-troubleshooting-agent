@@ -43,7 +43,7 @@ async def get_snapshot():
     """Current state for the observatory dashboard."""
     mon = _get_monitor()
     if not mon:
-        return {"devices": [], "links": [], "drifts": [], "candidates": []}
+        return {"devices": [], "links": [], "drifts": [], "candidates": [], "alerts": []}
     return mon.get_snapshot()
 
 
@@ -117,3 +117,94 @@ async def dismiss_discovery(ip: str):
     store = _get_topology_store()
     store.dismiss_candidate(ip)
     return {"status": "dismissed", "ip": ip}
+
+
+# ── Alerts ──
+
+
+@monitor_router.get("/alerts")
+async def get_alerts():
+    """Active alerts from the alert engine."""
+    mon = _get_monitor()
+    if not mon or not mon.alert_engine:
+        return {"alerts": []}
+    return {"alerts": mon.alert_engine.get_active_alerts()}
+
+
+@monitor_router.get("/alerts/rules")
+async def get_alert_rules():
+    """List configured alert rules."""
+    mon = _get_monitor()
+    if not mon or not mon.alert_engine:
+        return {"rules": []}
+    return {"rules": mon.alert_engine.get_rules()}
+
+
+@monitor_router.post("/alerts/{alert_key}/acknowledge")
+async def acknowledge_alert(alert_key: str):
+    """Acknowledge (mute) an active alert."""
+    mon = _get_monitor()
+    if not mon or not mon.alert_engine:
+        raise HTTPException(404, "Monitor not running")
+    ok = mon.alert_engine.acknowledge(alert_key)
+    return {"acknowledged": ok}
+
+
+# ── Metrics ──
+
+
+@monitor_router.get("/metrics/{entity_type}/{entity_id}/{metric}")
+async def query_metrics(entity_type: str, entity_id: str, metric: str,
+                        range: str = "1h", resolution: str = "30s"):
+    """Query time-series metrics from InfluxDB."""
+    mon = _get_monitor()
+    if not mon or not mon.metrics_store:
+        return {"data": []}
+    data = await mon.metrics_store.query_device_metrics(entity_id, metric, range, resolution)
+    return {"data": data}
+
+
+# ── Flows ──
+
+
+@monitor_router.get("/flows/top-talkers")
+async def get_top_talkers(window: str = "5m", limit: int = 20):
+    """Top N traffic flows by bytes."""
+    mon = _get_monitor()
+    if not mon or not mon.metrics_store:
+        return {"flows": []}
+    flows = await mon.metrics_store.query_top_talkers(window, limit)
+    return {"flows": flows}
+
+
+@monitor_router.get("/flows/traffic-matrix")
+async def get_traffic_matrix(window: str = "15m"):
+    """Device-to-device bandwidth matrix."""
+    mon = _get_monitor()
+    if not mon or not mon.metrics_store:
+        return {"matrix": []}
+    matrix = await mon.metrics_store.query_traffic_matrix(window)
+    return {"matrix": matrix}
+
+
+@monitor_router.get("/flows/protocols")
+async def get_protocol_breakdown(window: str = "1h"):
+    """Traffic breakdown by protocol."""
+    mon = _get_monitor()
+    if not mon or not mon.metrics_store:
+        return {"protocols": []}
+    protocols = await mon.metrics_store.query_protocol_breakdown(window)
+    return {"protocols": protocols}
+
+
+# ── Config ──
+
+
+@monitor_router.get("/config/influxdb/status")
+async def influxdb_status():
+    """Check InfluxDB connection health."""
+    mon = _get_monitor()
+    if not mon or not mon.metrics_store:
+        return {"connected": False, "reason": "not configured"}
+    ok = await mon.metrics_store.health_check()
+    return {"connected": ok}

@@ -131,11 +131,47 @@ def create_app() -> FastAPI:
 
     @app.on_event("startup")
     async def startup():
+        import os
         _init_stores()
         _reload_adapter_instances()
         # Start session TTL cleanup loop
         from .routes_v4 import start_cleanup_task
         start_cleanup_task()
+
+        # ── Initialize InfluxDB + NetworkMonitor ──
+        from .network_endpoints import _get_topology_store as _net_topo_store, _adapter_registry
+        from .network_endpoints import _knowledge_graph as _net_kg
+        from .monitor_endpoints import _get_topology_store as _mon_topo_store
+        import src.api.monitor_endpoints as mon_ep
+
+        influx_token = os.getenv("INFLUXDB_TOKEN", "")
+        metrics_store = None
+        if influx_token:
+            from src.network.metrics_store import MetricsStore
+            influx_url = os.getenv("INFLUXDB_URL", "http://localhost:8086")
+            influx_org = os.getenv("INFLUXDB_ORG", "debugduck")
+            influx_bucket = os.getenv("INFLUXDB_BUCKET", "network_metrics")
+            metrics_store = MetricsStore(influx_url, influx_token, influx_org, influx_bucket)
+            logger.info("InfluxDB MetricsStore initialized at %s", influx_url)
+        else:
+            logger.info("INFLUXDB_TOKEN not set — InfluxDB metrics disabled")
+
+        try:
+            from src.network.monitor import NetworkMonitor
+            topo_store = _net_topo_store()
+            kg = _net_kg
+            monitor = NetworkMonitor(
+                topo_store, kg, _adapter_registry,
+                metrics_store=metrics_store,
+            )
+            mon_ep._monitor = monitor
+            mon_ep._topology_store = topo_store
+            mon_ep._knowledge_graph = kg
+            import asyncio
+            asyncio.create_task(monitor.start())
+            logger.info("NetworkMonitor started")
+        except Exception as e:
+            logger.warning("NetworkMonitor startup failed: %s", e)
 
     # WebSocket endpoint
     @app.websocket("/ws/troubleshoot/{session_id}")
