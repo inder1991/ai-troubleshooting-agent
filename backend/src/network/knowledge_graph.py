@@ -51,6 +51,7 @@ class NetworkKnowledgeGraph:
     def load_from_store(self) -> None:
         """Load all topology entities from SQLite into the graph."""
         self.graph.clear()
+        self._device_index.clear()
 
         # Rebuild pytricia first (needed for interface->subnet mapping)
         subnets = self.store.list_subnets()
@@ -440,6 +441,8 @@ class NetworkKnowledgeGraph:
                             subnet_id=iface_data.get("subnetId", ""),
                         )
                         self.store.add_interface(iface)
+                        if iface.ip:
+                            self._device_index[iface.ip] = node_id
 
                 elif node_type == "subnet":
                     cidr = data.get("cidr") or data.get("ip", "")
