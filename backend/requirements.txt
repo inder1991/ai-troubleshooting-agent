@@ -27,6 +27,10 @@ python-dotenv==1.0.0
 elasticsearch>=8.0.0
 httpx==0.26.0
 
+# Network Monitoring
+influxdb-client[async]>=1.40.0
+pysnmp-lextudio>=6.1.0
+
 # Encryption
 cryptography>=41.0.0
 
