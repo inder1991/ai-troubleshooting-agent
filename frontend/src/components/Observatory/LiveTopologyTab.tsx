@@ -11,6 +11,26 @@ interface Props {
 
 const statusColor: Record<string, string> = { up: '#22c55e', degraded: '#f59e0b', down: '#ef4444' };
 
+function linkColor(utilization: number): string {
+  if (utilization > 0.8) return '#ef4444';
+  if (utilization > 0.5) return '#f59e0b';
+  return '#22c55e';
+}
+
+function linkWidth(bandwidthBps: number): number {
+  if (bandwidthBps > 1_000_000_000) return 4;
+  if (bandwidthBps > 100_000_000) return 3;
+  if (bandwidthBps > 1_000_000) return 2;
+  return 1;
+}
+
+function formatBw(bps: number): string {
+  if (bps >= 1_000_000_000) return `${(bps / 1_000_000_000).toFixed(1)}G`;
+  if (bps >= 1_000_000) return `${(bps / 1_000_000).toFixed(0)}M`;
+  if (bps >= 1_000) return `${(bps / 1_000).toFixed(0)}K`;
+  return `${bps}`;
+}
+
 const LiveTopologyTab: React.FC<Props> = ({ devices, links, drifts, candidates }) => {
   const [selectedDevice, setSelectedDevice] = useState<DeviceStatus | null>(null);
 
@@ -53,21 +73,36 @@ const LiveTopologyTab: React.FC<Props> = ({ devices, links, drifts, candidates }
               const src = posMap[link.src_device_id];
               const dst = posMap[link.dst_device_id];
               if (!src || !dst) return null;
+              const color = linkColor(link.utilization);
+              const width = linkWidth(link.bandwidth_bps);
               return (
                 <g key={`link-${i}`}>
+                  {/* Invisible fat hit area for hover */}
                   <line
                     x1={src.x} y1={src.y} x2={dst.x} y2={dst.y}
-                    stroke="#224349" strokeWidth="2"
+                    stroke="transparent" strokeWidth="12"
+                  >
+                    <title>
+                      {`${link.src_device_id} → ${link.dst_device_id}\n` +
+                       `Bandwidth: ${formatBw(link.bandwidth_bps)}bps\n` +
+                       `Latency: ${link.latency_ms.toFixed(1)}ms\n` +
+                       `Utilization: ${(link.utilization * 100).toFixed(0)}%\n` +
+                       `Error Rate: ${(link.error_rate * 100).toFixed(2)}%`}
+                    </title>
+                  </line>
+                  <line
+                    x1={src.x} y1={src.y} x2={dst.x} y2={dst.y}
+                    stroke={color} strokeWidth={width} opacity={0.7}
                   />
                   <text
                     x={(src.x + dst.x) / 2}
                     y={(src.y + dst.y) / 2 - 6}
-                    fill="#64748b"
+                    fill={color}
                     fontSize="10"
                     textAnchor="middle"
                     fontFamily="monospace"
                   >
-                    {link.latency_ms.toFixed(1)}ms
+                    {link.latency_ms.toFixed(1)}ms · {(link.utilization * 100).toFixed(0)}%
                   </text>
                 </g>
               );

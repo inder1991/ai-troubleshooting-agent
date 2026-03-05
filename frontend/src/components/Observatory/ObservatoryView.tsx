@@ -1,19 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useMonitorSnapshot } from './hooks/useMonitorSnapshot';
 import NOCWallTab from './NOCWallTab';
 import LiveTopologyTab from './LiveTopologyTab';
 import TrafficFlowsTab from './TrafficFlowsTab';
+import AlertsTab from './AlertsTab';
 
-type Tab = 'topology' | 'noc' | 'flows';
+type Tab = 'topology' | 'noc' | 'flows' | 'alerts';
 
 const ObservatoryView: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>('noc');
-  const { snapshot, loading, lastUpdated } = useMonitorSnapshot(30_000);
+  const [bellOpen, setBellOpen] = useState(false);
+  const bellRef = useRef<HTMLDivElement>(null);
+  const { snapshot, loading, lastUpdated, refresh } = useMonitorSnapshot(30_000);
 
   const upCount = snapshot.devices.filter((d) => d.status === 'up').length;
   const totalCount = snapshot.devices.length;
   const driftCount = snapshot.drifts.length;
   const discoveryCount = snapshot.candidates.length;
+  const alertCount = (snapshot.alerts || []).filter((a) => !a.acknowledged).length;
 
   const secondsAgo = lastUpdated
     ? Math.round((Date.now() - lastUpdated.getTime()) / 1000)
@@ -21,9 +25,21 @@ const ObservatoryView: React.FC = () => {
 
   const tabs: { id: Tab; label: string }[] = [
     { id: 'topology', label: 'Live Topology' },
-    { id: 'noc', label: 'NOC Wall' },
+    { id: 'noc', label: 'Device Health' },
     { id: 'flows', label: 'Traffic Flows' },
+    { id: 'alerts', label: 'Alerts' },
   ];
+
+  // Close bell dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (bellRef.current && !bellRef.current.contains(e.target as Node)) {
+        setBellOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden" style={{ backgroundColor: '#0f2023' }}>
@@ -42,16 +58,77 @@ const ObservatoryView: React.FC = () => {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className="px-4 py-1.5 rounded-md text-sm font-medium transition-colors"
+                className="px-4 py-1.5 rounded-md text-sm font-medium transition-colors relative"
                 style={activeTab === tab.id
                   ? { backgroundColor: 'rgba(7,182,213,0.15)', color: '#07b6d5' }
                   : { color: '#64748b' }
                 }
               >
                 {tab.label}
+                {tab.id === 'alerts' && alertCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center"
+                    style={{ backgroundColor: '#ef4444', color: 'white' }}>
+                    {alertCount > 9 ? '9+' : alertCount}
+                  </span>
+                )}
               </button>
             ))}
           </div>
+
+          {/* Alert Bell */}
+          <div className="relative" ref={bellRef}>
+            <button
+              onClick={() => setBellOpen(!bellOpen)}
+              className="relative p-1.5 rounded transition-colors"
+              style={{ color: alertCount > 0 ? '#f59e0b' : '#64748b' }}
+            >
+              <span className="material-symbols-outlined text-xl">notifications</span>
+              {alertCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center"
+                  style={{ backgroundColor: '#ef4444', color: 'white' }}>
+                  {alertCount > 9 ? '9+' : alertCount}
+                </span>
+              )}
+            </button>
+            {bellOpen && (
+              <div className="absolute right-0 top-full mt-2 w-80 rounded-lg border shadow-xl z-50 overflow-hidden"
+                style={{ backgroundColor: '#0a1a1e', borderColor: '#224349' }}>
+                <div className="px-3 py-2 border-b text-xs font-mono font-bold" style={{ borderColor: '#224349', color: '#07b6d5' }}>
+                  Recent Alerts
+                </div>
+                {(snapshot.alerts || []).length === 0 ? (
+                  <div className="px-3 py-4 text-xs font-mono text-center" style={{ color: '#64748b' }}>
+                    No alerts
+                  </div>
+                ) : (
+                  (snapshot.alerts || []).slice(0, 5).map((alert) => (
+                    <div key={alert.key} className="px-3 py-2 border-b text-xs font-mono"
+                      style={{
+                        borderColor: '#224349',
+                        opacity: alert.acknowledged ? 0.5 : 1,
+                      }}>
+                      <div className="flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full inline-block"
+                          style={{ backgroundColor: alert.severity === 'critical' ? '#ef4444' : alert.severity === 'warning' ? '#f59e0b' : '#07b6d5' }} />
+                        <span style={{ color: '#e2e8f0' }}>{alert.rule_name}</span>
+                      </div>
+                      <div className="mt-0.5 pl-3.5" style={{ color: '#64748b' }}>
+                        {alert.entity_id}: {alert.metric}={alert.value.toFixed(1)}
+                      </div>
+                    </div>
+                  ))
+                )}
+                <button
+                  onClick={() => { setActiveTab('alerts'); setBellOpen(false); }}
+                  className="w-full px-3 py-2 text-xs font-mono text-center transition-colors"
+                  style={{ color: '#07b6d5' }}
+                >
+                  View all alerts
+                </button>
+              </div>
+            )}
+          </div>
+
           {/* Status badges */}
           <div className="flex items-center gap-3 text-xs font-mono">
             {secondsAgo !== null && (
@@ -87,6 +164,8 @@ const ObservatoryView: React.FC = () => {
             drifts={snapshot.drifts}
             onSelectDevice={() => { setActiveTab('topology'); }}
           />
+        ) : activeTab === 'alerts' ? (
+          <AlertsTab alerts={snapshot.alerts || []} onRefresh={refresh} />
         ) : (
           <TrafficFlowsTab links={snapshot.links} />
         )}

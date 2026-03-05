@@ -1,5 +1,7 @@
-import React, { useState, useMemo } from 'react';
-import type { DeviceStatus, DriftEvent } from './hooks/useMonitorSnapshot';
+import React, { useState, useMemo, useEffect } from 'react';
+import { LineChart, Line, ResponsiveContainer } from 'recharts';
+import type { DeviceStatus, DriftEvent, MetricDataPoint } from './hooks/useMonitorSnapshot';
+import { fetchDeviceMetrics } from '../../services/api';
 
 interface Props {
   devices: DeviceStatus[];
@@ -7,12 +9,71 @@ interface Props {
   onSelectDevice: (deviceId: string) => void;
 }
 
-const statusOrder: Record<string, number> = { down: 0, degraded: 1, up: 2 };
 const statusColor: Record<string, string> = { up: '#22c55e', degraded: '#f59e0b', down: '#ef4444' };
+const statusOrder: Record<string, number> = { down: 0, degraded: 1, up: 2 };
+
+interface DeviceMetrics {
+  cpu_pct: number;
+  mem_pct: number;
+  latencyHistory: MetricDataPoint[];
+}
+
+const CircularGauge: React.FC<{ value: number; label: string; color: string; size?: number }> = ({
+  value, label, color, size = 48,
+}) => {
+  const r = (size - 6) / 2;
+  const c = 2 * Math.PI * r;
+  const pct = Math.min(Math.max(value, 0), 100);
+  const offset = c - (pct / 100) * c;
+  return (
+    <div className="flex flex-col items-center gap-0.5">
+      <svg width={size} height={size} className="-rotate-90">
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none"
+          stroke="#224349" strokeWidth={3} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none"
+          stroke={color} strokeWidth={3}
+          strokeDasharray={c} strokeDashoffset={offset}
+          strokeLinecap="round" />
+      </svg>
+      <div className="text-center -mt-8">
+        <div className="text-xs font-mono font-bold" style={{ color }}>{pct.toFixed(0)}%</div>
+      </div>
+      <div className="text-[9px] font-mono mt-3" style={{ color: '#64748b' }}>{label}</div>
+    </div>
+  );
+};
 
 const NOCWallTab: React.FC<Props> = ({ devices, drifts, onSelectDevice }) => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [deviceMetrics, setDeviceMetrics] = useState<Record<string, DeviceMetrics>>({});
+
+  // Fetch metrics for visible devices
+  useEffect(() => {
+    const loadMetrics = async () => {
+      const metrics: Record<string, DeviceMetrics> = {};
+      for (const d of devices.slice(0, 20)) {
+        try {
+          const [cpuRes, memRes, latRes] = await Promise.all([
+            fetchDeviceMetrics(d.device_id, 'cpu_pct', '5m', '30s').catch(() => ({ data: [] })),
+            fetchDeviceMetrics(d.device_id, 'mem_pct', '5m', '30s').catch(() => ({ data: [] })),
+            fetchDeviceMetrics(d.device_id, 'latency_ms', '1h', '1m').catch(() => ({ data: [] })),
+          ]);
+          const cpuData = cpuRes.data || [];
+          const memData = memRes.data || [];
+          metrics[d.device_id] = {
+            cpu_pct: cpuData.length > 0 ? cpuData[cpuData.length - 1].value : 0,
+            mem_pct: memData.length > 0 ? memData[memData.length - 1].value : 0,
+            latencyHistory: latRes.data || [],
+          };
+        } catch {
+          metrics[d.device_id] = { cpu_pct: 0, mem_pct: 0, latencyHistory: [] };
+        }
+      }
+      setDeviceMetrics(metrics);
+    };
+    if (devices.length > 0) loadMetrics();
+  }, [devices]);
 
   const driftCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -25,17 +86,14 @@ const NOCWallTab: React.FC<Props> = ({ devices, drifts, onSelectDevice }) => {
 
   const filtered = useMemo(() => {
     let list = [...devices];
-    if (statusFilter !== 'all') {
-      list = list.filter((d) => d.status === statusFilter);
-    }
+    if (statusFilter !== 'all') list = list.filter((d) => d.status === statusFilter);
     if (search) {
       const q = search.toLowerCase();
       list = list.filter((d) => d.device_id.toLowerCase().includes(q));
     }
     list.sort((a, b) => {
       const so = (statusOrder[a.status] ?? 2) - (statusOrder[b.status] ?? 2);
-      if (so !== 0) return so;
-      return b.latency_ms - a.latency_ms;
+      return so !== 0 ? so : b.latency_ms - a.latency_ms;
     });
     return list;
   }, [devices, search, statusFilter]);
@@ -43,9 +101,6 @@ const NOCWallTab: React.FC<Props> = ({ devices, drifts, onSelectDevice }) => {
   const downCount = devices.filter((d) => d.status === 'down').length;
   const degradedCount = devices.filter((d) => d.status === 'degraded').length;
   const upCount = devices.filter((d) => d.status === 'up').length;
-
-  const thClass = 'text-left text-[11px] font-semibold uppercase tracking-wider py-2.5 px-3 border-b';
-  const tdClass = 'py-2 px-3 text-[13px] font-mono border-b';
 
   return (
     <div className="flex flex-col h-full">
@@ -59,64 +114,103 @@ const NOCWallTab: React.FC<Props> = ({ devices, drifts, onSelectDevice }) => {
           className="pl-3 pr-3 py-2 rounded-lg border text-sm font-mono outline-none focus:border-[#07b6d5] max-w-xs"
           style={{ backgroundColor: '#0a1a1e', borderColor: '#224349', color: '#e2e8f0' }}
         />
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-3 py-2 rounded-lg border text-sm font-mono outline-none"
-          style={{ backgroundColor: '#0a1a1e', borderColor: '#224349', color: '#e2e8f0' }}
-        >
-          <option value="all">All Status</option>
-          <option value="down">Down</option>
-          <option value="degraded">Degraded</option>
-          <option value="up">Up</option>
-        </select>
+        <div className="flex gap-1">
+          {['all', 'down', 'degraded', 'up'].map((s) => (
+            <button
+              key={s}
+              onClick={() => setStatusFilter(s)}
+              className="px-2.5 py-1 rounded text-xs font-mono transition-colors"
+              style={{
+                backgroundColor: statusFilter === s ? 'rgba(7,182,213,0.15)' : 'transparent',
+                color: s === 'all' ? (statusFilter === s ? '#07b6d5' : '#64748b') : statusColor[s] || '#64748b',
+                border: `1px solid ${statusFilter === s ? '#07b6d5' : '#224349'}`,
+              }}
+            >
+              {s.toUpperCase()}
+              {s !== 'all' && ` (${s === 'down' ? downCount : s === 'degraded' ? degradedCount : upCount})`}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Table */}
+      {/* Device Cards Grid */}
       <div className="flex-1 overflow-auto px-6 pb-4">
-        <table className="w-full border-collapse">
-          <thead>
-            <tr style={{ color: '#64748b', borderColor: '#224349' }}>
-              <th className={thClass} style={{ width: 60, borderColor: '#224349' }}>Status</th>
-              <th className={thClass} style={{ borderColor: '#224349' }}>Device</th>
-              <th className={thClass} style={{ borderColor: '#224349' }}>Latency</th>
-              <th className={thClass} style={{ borderColor: '#224349' }}>Packet Loss</th>
-              <th className={thClass} style={{ borderColor: '#224349' }}>Drift</th>
-              <th className={thClass} style={{ borderColor: '#224349' }}>Since</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((d) => (
-              <tr
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+          {filtered.map((d) => {
+            const m = deviceMetrics[d.device_id];
+            const dc = driftCounts[d.device_id] || 0;
+            return (
+              <div
                 key={d.device_id}
-                className="hover:bg-[#162a2e] transition-colors cursor-pointer"
                 onClick={() => onSelectDevice(d.device_id)}
+                className="rounded-lg border p-3 cursor-pointer transition-all hover:border-[#07b6d5]"
+                style={{
+                  backgroundColor: '#0a1a1e',
+                  borderColor: d.status === 'down' ? '#ef444440' : d.status === 'degraded' ? '#f59e0b40' : '#224349',
+                }}
               >
-                <td className={tdClass} style={{ borderColor: '#224349' }}>
-                  <span
-                    className="inline-block w-2.5 h-2.5 rounded-full"
-                    style={{ backgroundColor: statusColor[d.status] }}
-                  />
-                </td>
-                <td className={tdClass} style={{ color: '#e2e8f0', borderColor: '#224349' }}>{d.device_id}</td>
-                <td className={tdClass} style={{ color: d.status === 'down' ? '#64748b' : '#07b6d5', borderColor: '#224349' }}>
-                  {d.status === 'down' ? '\u2014' : `${d.latency_ms.toFixed(1)}ms`}
-                </td>
-                <td className={tdClass} style={{ color: d.packet_loss > 0 ? '#f59e0b' : '#94a3b8', borderColor: '#224349' }}>
-                  {(d.packet_loss * 100).toFixed(0)}%
-                </td>
-                <td className={tdClass} style={{ color: '#94a3b8', borderColor: '#224349' }}>
-                  {driftCounts[d.device_id] || 0}
-                </td>
-                <td className={tdClass} style={{ color: '#64748b', borderColor: '#224349' }}>
-                  {d.status !== 'up' && d.last_status_change
-                    ? new Date(d.last_status_change).toLocaleTimeString()
-                    : '\u2014'}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                {/* Header: status + name */}
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: statusColor[d.status] }} />
+                    <span className="text-sm font-mono font-medium truncate" style={{ color: '#e2e8f0' }}>
+                      {d.device_id}
+                    </span>
+                  </div>
+                  {dc > 0 && (
+                    <span className="text-[9px] font-mono px-1.5 py-0.5 rounded"
+                      style={{ backgroundColor: '#f59e0b20', color: '#f59e0b' }}>
+                      {dc} drift
+                    </span>
+                  )}
+                </div>
+
+                {/* Gauges + Sparkline */}
+                <div className="flex items-center justify-between">
+                  <div className="flex gap-3">
+                    <CircularGauge
+                      value={m?.cpu_pct || 0}
+                      label="CPU"
+                      color={!m || m.cpu_pct < 70 ? '#22c55e' : m.cpu_pct < 90 ? '#f59e0b' : '#ef4444'}
+                    />
+                    <CircularGauge
+                      value={m?.mem_pct || 0}
+                      label="MEM"
+                      color={!m || m.mem_pct < 80 ? '#07b6d5' : m.mem_pct < 95 ? '#f59e0b' : '#ef4444'}
+                    />
+                  </div>
+                  {/* Latency sparkline */}
+                  <div className="w-24 h-10">
+                    {m?.latencyHistory && m.latencyHistory.length > 1 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={m.latencyHistory}>
+                          <Line type="monotone" dataKey="value" stroke="#07b6d5" strokeWidth={1.5}
+                            dot={false} isAnimationActive={false} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-[9px] font-mono" style={{ color: '#224349' }}>
+                        —
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Footer: latency + packet loss */}
+                <div className="flex justify-between mt-2 text-[10px] font-mono" style={{ color: '#64748b' }}>
+                  <span>
+                    {d.status === 'down' ? '—' : `${d.latency_ms.toFixed(1)}ms`}
+                  </span>
+                  <span style={{ color: d.packet_loss > 0 ? '#f59e0b' : '#64748b' }}>
+                    {(d.packet_loss * 100).toFixed(0)}% loss
+                  </span>
+                  <span>{d.probe_method}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* Footer summary */}

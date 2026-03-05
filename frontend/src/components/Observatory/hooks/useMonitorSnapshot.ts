@@ -42,16 +42,69 @@ export interface DiscoveryCandidate {
   last_seen: string;
 }
 
+export interface AlertEvent {
+  key: string;
+  rule_id: string;
+  rule_name: string;
+  entity_id: string;
+  severity: 'critical' | 'warning' | 'info';
+  metric: string;
+  value: number;
+  threshold: number;
+  condition: string;
+  fired_at: number;
+  acknowledged: boolean;
+  message: string;
+}
+
+export interface AlertRule {
+  id: string;
+  name: string;
+  severity: string;
+  entity_type: string;
+  entity_filter: string;
+  metric: string;
+  condition: string;
+  threshold: number;
+  duration_seconds: number;
+  cooldown_seconds: number;
+  enabled: boolean;
+}
+
+export interface MetricDataPoint {
+  time: string;
+  value: number;
+}
+
+export interface TopTalker {
+  src_ip: string;
+  dst_ip: string;
+  protocol: string;
+  bytes: number;
+}
+
+export interface TrafficMatrixEntry {
+  src: string;
+  dst: string;
+  bytes: number;
+}
+
+export interface ProtocolBreakdown {
+  protocol: string;
+  bytes: number;
+}
+
 export interface MonitorSnapshot {
   devices: DeviceStatus[];
   links: LinkMetric[];
   drifts: DriftEvent[];
   candidates: DiscoveryCandidate[];
+  alerts: AlertEvent[];
 }
 
 export function useMonitorSnapshot(intervalMs: number = 30_000) {
   const [snapshot, setSnapshot] = useState<MonitorSnapshot>({
-    devices: [], links: [], drifts: [], candidates: [],
+    devices: [], links: [], drifts: [], candidates: [], alerts: [],
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

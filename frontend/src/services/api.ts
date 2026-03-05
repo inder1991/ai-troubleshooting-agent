@@ -788,3 +788,59 @@ export const dismissDiscovery = async (ip: string) => {
   if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to dismiss discovery'));
   return resp.json();
 };
+
+// ── Alerts API ──
+
+export const fetchAlerts = async () => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/monitor/alerts`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch alerts'));
+  return resp.json();
+};
+
+export const fetchAlertRules = async () => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/monitor/alerts/rules`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch alert rules'));
+  return resp.json();
+};
+
+export const acknowledgeAlert = async (alertKey: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/monitor/alerts/${encodeURIComponent(alertKey)}/acknowledge`, {
+    method: 'POST',
+  });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to acknowledge alert'));
+  return resp.json();
+};
+
+// ── Metrics API ──
+
+export const fetchDeviceMetrics = async (entityId: string, metric: string, range = '1h', resolution = '30s') => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/monitor/metrics/device/${entityId}/${metric}?range=${range}&resolution=${resolution}`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch metrics'));
+  return resp.json();
+};
+
+// ── Flow API ──
+
+export const fetchTopTalkers = async (window = '5m', limit = 20) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/monitor/flows/top-talkers?window=${window}&limit=${limit}`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch top talkers'));
+  return resp.json();
+};
+
+export const fetchTrafficMatrix = async (window = '15m') => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/monitor/flows/traffic-matrix?window=${window}`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch traffic matrix'));
+  return resp.json();
+};
+
+export const fetchProtocolBreakdown = async (window = '1h') => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/monitor/flows/protocols?window=${window}`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch protocol breakdown'));
+  return resp.json();
+};
+
+export const fetchInfluxDBStatus = async () => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/monitor/config/influxdb/status`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch InfluxDB status'));
+  return resp.json();
+};
