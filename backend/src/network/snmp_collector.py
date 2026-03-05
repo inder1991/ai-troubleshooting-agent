@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import time
 from dataclasses import dataclass, field
@@ -156,14 +157,18 @@ class SNMPCollector:
 
         return {"device_id": device_id, "cpu_pct": cpu, "mem_pct": mem_pct}
 
+    _MAX_CONCURRENT = 10
+
     async def poll_all(self, configs: list[SNMPDeviceConfig]) -> list[dict]:
-        """Poll all configured devices."""
-        results = []
-        for cfg in configs:
-            try:
-                r = await self.poll_device(cfg)
-                results.append(r)
-            except Exception as e:
-                logger.warning("SNMP poll failed for %s: %s", cfg.device_id, e)
-                results.append({"device_id": cfg.device_id, "error": str(e)})
-        return results
+        """Poll all configured devices concurrently (max 10 at a time)."""
+        sem = asyncio.Semaphore(self._MAX_CONCURRENT)
+
+        async def _poll(cfg: SNMPDeviceConfig) -> dict:
+            async with sem:
+                try:
+                    return await self.poll_device(cfg)
+                except Exception as e:
+                    logger.warning("SNMP poll failed for %s: %s", cfg.device_id, e)
+                    return {"device_id": cfg.device_id, "error": str(e)}
+
+        return list(await asyncio.gather(*[_poll(c) for c in configs]))

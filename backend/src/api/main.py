@@ -173,6 +173,15 @@ def create_app() -> FastAPI:
         except Exception as e:
             logger.warning("NetworkMonitor startup failed: %s", e)
 
+    @app.on_event("shutdown")
+    async def shutdown():
+        import src.api.monitor_endpoints as mon_ep
+        if mon_ep._monitor:
+            await mon_ep._monitor.stop()
+        if mon_ep._monitor and mon_ep._monitor.metrics_store:
+            await mon_ep._monitor.metrics_store.close()
+            logger.info("InfluxDB MetricsStore closed")
+
     # WebSocket endpoint
     @app.websocket("/ws/troubleshoot/{session_id}")
     async def websocket_endpoint(websocket: WebSocket, session_id: str):

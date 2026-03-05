@@ -155,12 +155,12 @@ async def acknowledge_alert(alert_key: str):
 
 @monitor_router.get("/metrics/{entity_type}/{entity_id}/{metric}")
 async def query_metrics(entity_type: str, entity_id: str, metric: str,
-                        range: str = "1h", resolution: str = "30s"):
+                        time_range: str = "1h", resolution: str = "30s"):
     """Query time-series metrics from InfluxDB."""
     mon = _get_monitor()
     if not mon or not mon.metrics_store:
         return {"data": []}
-    data = await mon.metrics_store.query_device_metrics(entity_id, metric, range, resolution)
+    data = await mon.metrics_store.query_device_metrics(entity_id, metric, time_range, resolution)
     return {"data": data}
 
 

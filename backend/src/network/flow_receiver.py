@@ -119,7 +119,15 @@ class FlowAggregator:
         self._buffer: list[FlowRecord] = []
         self._device_ip_map = device_ip_map or {}
 
+    MAX_BUFFER_SIZE = 100_000
+
+    def set_device_map(self, device_ip_map: dict[str, str]) -> None:
+        self._device_ip_map = device_ip_map
+
     def ingest(self, flow: FlowRecord) -> None:
+        if len(self._buffer) >= self.MAX_BUFFER_SIZE:
+            logger.warning("Flow buffer full (%d records), dropping oldest", self.MAX_BUFFER_SIZE)
+            self._buffer = self._buffer[self.MAX_BUFFER_SIZE // 2:]
         self._buffer.append(flow)
 
     async def flush(self) -> int:
@@ -186,7 +194,7 @@ class FlowReceiver:
 
     async def start(self, ports: dict[str, int] | None = None) -> None:
         ports = ports or {"netflow": 2055}
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
 
         for name, port in ports.items():
             try:
@@ -204,9 +212,12 @@ class FlowReceiver:
     async def _flush_loop(self) -> None:
         while True:
             await asyncio.sleep(30)
-            count = await self.aggregator.flush()
-            if count > 0:
-                logger.info("Flushed %d flow records", count)
+            try:
+                count = await self.aggregator.flush()
+                if count > 0:
+                    logger.info("Flushed %d flow records", count)
+            except Exception as e:
+                logger.error("Flow aggregation flush failed: %s", e)
 
     async def stop(self) -> None:
         if self._flush_task:
@@ -216,4 +227,4 @@ class FlowReceiver:
         await self.aggregator.flush()
 
     def update_device_map(self, device_ip_map: dict[str, str]) -> None:
-        self.aggregator._device_ip_map = device_ip_map
+        self.aggregator.set_device_map(device_ip_map)

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from datetime import datetime, timezone
 from dataclasses import dataclass
 from typing import Any
@@ -118,12 +119,37 @@ class MetricsStore:
         )
         await self._safe_write(point)
 
+    # -- Input Validation ------------------------------------------------
+
+    _DURATION_RE = re.compile(r"^\d+[smhd]$")
+    _SAFE_ID_RE = re.compile(r"^[a-zA-Z0-9_:.\-/]+$")
+
+    @classmethod
+    def _validate_duration(cls, s: str) -> str:
+        if not cls._DURATION_RE.match(s):
+            raise ValueError(f"Invalid duration: {s}")
+        return s
+
+    @classmethod
+    def _validate_id(cls, s: str) -> str:
+        if not cls._SAFE_ID_RE.match(s):
+            raise ValueError(f"Invalid identifier: {s}")
+        return s
+
+    @classmethod
+    def _validate_limit(cls, n: int) -> int:
+        return max(1, min(n, 1000))
+
     # -- Queries ---------------------------------------------------------
 
     async def query_device_metrics(
         self, device_id: str, metric: str,
         range_str: str = "1h", resolution: str = "30s",
     ) -> list[dict]:
+        range_str = self._validate_duration(range_str)
+        resolution = self._validate_duration(resolution)
+        device_id = self._validate_id(device_id)
+        metric = self._validate_id(metric)
         query = f'''
         from(bucket: "{self.bucket}")
           |> range(start: -{range_str})
@@ -146,6 +172,8 @@ class MetricsStore:
     async def query_top_talkers(
         self, window: str = "5m", limit: int = 20
     ) -> list[dict]:
+        window = self._validate_duration(window)
+        limit = self._validate_limit(limit)
         query = f'''
         from(bucket: "{self.bucket}")
           |> range(start: -{window})
@@ -173,6 +201,7 @@ class MetricsStore:
             return []
 
     async def query_traffic_matrix(self, window: str = "15m") -> list[dict]:
+        window = self._validate_duration(window)
         query = f'''
         from(bucket: "{self.bucket}")
           |> range(start: -{window})
@@ -196,6 +225,7 @@ class MetricsStore:
             return []
 
     async def query_protocol_breakdown(self, window: str = "1h") -> list[dict]:
+        window = self._validate_duration(window)
         query = f'''
         from(bucket: "{self.bucket}")
           |> range(start: -{window})

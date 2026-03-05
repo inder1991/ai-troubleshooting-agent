@@ -813,8 +813,8 @@ export const acknowledgeAlert = async (alertKey: string) => {
 
 // ── Metrics API ──
 
-export const fetchDeviceMetrics = async (entityId: string, metric: string, range = '1h', resolution = '30s') => {
-  const resp = await fetch(`${API_BASE_URL}/api/v4/network/monitor/metrics/device/${entityId}/${metric}?range=${range}&resolution=${resolution}`);
+export const fetchDeviceMetrics = async (entityId: string, metric: string, timeRange = '1h', resolution = '30s') => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/monitor/metrics/device/${entityId}/${metric}?time_range=${timeRange}&resolution=${resolution}`);
   if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch metrics'));
   return resp.json();
 };
