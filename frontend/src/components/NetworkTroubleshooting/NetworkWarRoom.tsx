@@ -15,6 +15,7 @@ const NetworkWarRoom: React.FC<NetworkWarRoomProps> = ({ session, onGoHome }) =>
   const [adapters, setAdapters] = useState<Array<{ vendor: string; status: string }>>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [direction, setDirection] = useState<'forward' | 'return'>('forward');
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Fetch adapter status once on mount
@@ -104,6 +105,29 @@ const NetworkWarRoom: React.FC<NetworkWarRoomProps> = ({ session, onGoHome }) =>
           </div>
         </div>
         <div className="flex items-center gap-3">
+          {/* Forward / Return direction toggle */}
+          {findings?.return_state && (
+            <div className="flex gap-0.5 rounded-lg p-0.5" style={{ backgroundColor: '#0a1a1e' }}>
+              <button
+                onClick={() => setDirection('forward')}
+                className="px-3 py-1 rounded-md text-xs font-mono font-medium transition-colors"
+                style={direction === 'forward'
+                  ? { backgroundColor: 'rgba(7,182,213,0.15)', color: '#07b6d5' }
+                  : { color: '#64748b' }}
+              >
+                A&#8594;B
+              </button>
+              <button
+                onClick={() => setDirection('return')}
+                className="px-3 py-1 rounded-md text-xs font-mono font-medium transition-colors"
+                style={direction === 'return'
+                  ? { backgroundColor: 'rgba(7,182,213,0.15)', color: '#07b6d5' }
+                  : { color: '#64748b' }}
+              >
+                B&#8594;A
+              </button>
+            </div>
+          )}
           {/* Phase badge */}
           {findings && (
             <span
@@ -194,17 +218,17 @@ const NetworkWarRoom: React.FC<NetworkWarRoomProps> = ({ session, onGoHome }) =>
         <div className="flex-1 grid grid-cols-12 gap-4 p-4 overflow-hidden min-h-0">
           {/* Left: Diagnosis Panel (col-span-3) */}
           <div className="col-span-3 min-h-0 overflow-hidden">
-            <DiagnosisPanel findings={findings} />
+            <DiagnosisPanel findings={findings} direction={direction} />
           </div>
 
           {/* Center: Network Canvas (col-span-5) */}
           <div className="col-span-5 min-h-0 overflow-hidden flex flex-col">
-            <NetworkCanvas findings={findings} />
+            <NetworkCanvas findings={findings} direction={direction} />
           </div>
 
           {/* Right: Evidence Stack (col-span-4) */}
           <div className="col-span-4 min-h-0 overflow-hidden">
-            <NetworkEvidenceStack findings={findings} adapters={adapters} />
+            <NetworkEvidenceStack findings={findings} adapters={adapters} direction={direction} />
           </div>
         </div>
       )}

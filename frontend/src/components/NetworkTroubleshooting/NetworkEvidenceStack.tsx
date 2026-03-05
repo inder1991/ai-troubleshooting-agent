@@ -6,13 +6,15 @@ import AdapterHealthBadge from './AdapterHealthBadge';
 interface NetworkEvidenceStackProps {
   findings: NetworkFindings;
   adapters?: Array<{ vendor: string; status: string }>;
+  direction: 'forward' | 'return';
 }
 
 const NetworkEvidenceStack: React.FC<NetworkEvidenceStackProps> = ({
   findings,
   adapters,
+  direction,
 }) => {
-  const state = findings.state;
+  const state = direction === 'return' && findings.return_state ? findings.return_state : findings.state;
   const firewallVerdicts = state.firewall_verdicts || [];
   const natTranslations = state.nat_translations || [];
   const traceHops = state.trace_hops || [];

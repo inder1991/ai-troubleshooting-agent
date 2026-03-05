@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React from 'react';
 import type { NetworkFindings } from '../../types';
 import PathHopList from './PathHopList';
 import NATChainDisplay from './NATChainDisplay';
 
 interface DiagnosisPanelProps {
   findings: NetworkFindings;
+  direction: 'forward' | 'return';
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -14,8 +15,7 @@ const STATUS_COLORS: Record<string, string> = {
   unknown: '#64748b',
 };
 
-const DiagnosisPanel: React.FC<DiagnosisPanelProps> = ({ findings }) => {
-  const [direction, setDirection] = useState<'forward' | 'return'>('forward');
+const DiagnosisPanel: React.FC<DiagnosisPanelProps> = ({ findings, direction }) => {
   const state = direction === 'return' && findings.return_state ? findings.return_state : findings.state;
   const status = state.diagnosis_status || 'unknown';
   const confidence = state.confidence ?? 0;
@@ -23,20 +23,6 @@ const DiagnosisPanel: React.FC<DiagnosisPanelProps> = ({ findings }) => {
 
   return (
     <div className="flex flex-col gap-4 h-full overflow-y-auto pr-1 custom-scrollbar">
-      {/* Forward / Return direction toggle */}
-      {findings.return_state && (
-        <div className="flex gap-1 mb-3 rounded-lg p-0.5" style={{ backgroundColor: '#0a1a1e' }}>
-          <button onClick={() => setDirection('forward')}
-            className="flex-1 px-3 py-1 rounded-md text-xs font-mono font-medium"
-            style={direction === 'forward' ? { backgroundColor: 'rgba(7,182,213,0.15)', color: '#07b6d5' } : { color: '#64748b' }}
-          >Forward (A&#8594;B)</button>
-          <button onClick={() => setDirection('return')}
-            className="flex-1 px-3 py-1 rounded-md text-xs font-mono font-medium"
-            style={direction === 'return' ? { backgroundColor: 'rgba(7,182,213,0.15)', color: '#07b6d5' } : { color: '#64748b' }}
-          >Return (B&#8594;A)</button>
-        </div>
-      )}
-
       {/* Executive Summary */}
       <div
         className="rounded-lg p-4"

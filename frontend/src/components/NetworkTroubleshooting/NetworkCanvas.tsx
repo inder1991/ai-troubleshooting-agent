@@ -3,6 +3,7 @@ import type { NetworkFindings } from '../../types';
 
 interface NetworkCanvasProps {
   findings: NetworkFindings;
+  direction: 'forward' | 'return';
 }
 
 interface HopNode {
@@ -36,8 +37,8 @@ const ICON_MAP: Record<string, string> = {
   destination: 'cloud',
 };
 
-const NetworkCanvas: React.FC<NetworkCanvasProps> = ({ findings }) => {
-  const state = findings.state;
+const NetworkCanvas: React.FC<NetworkCanvasProps> = ({ findings, direction }) => {
+  const state = direction === 'return' && findings.return_state ? findings.return_state : findings.state;
   const traceHops = state.trace_hops || [];
   const firewallVerdicts = state.firewall_verdicts || [];
   const finalPath = state.final_path;
