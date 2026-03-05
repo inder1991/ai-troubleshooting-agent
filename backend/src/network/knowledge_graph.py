@@ -12,6 +12,14 @@ from .ip_resolver import IPResolver
 from .interface_validation import validate_device_interfaces
 
 
+def _safe_int(val, default: int = 0) -> int:
+    """Safely convert to int, returning default on failure."""
+    try:
+        return int(val)
+    except (ValueError, TypeError):
+        return default
+
+
 # Topology penalties for dual cost model
 _TOPOLOGY_PENALTIES = {
     "vrf_boundary": 0.3,
@@ -46,26 +54,27 @@ class NetworkKnowledgeGraph:
 
         # Rebuild pytricia first (needed for interface->subnet mapping)
         subnets = self.store.list_subnets()
-        self.ip_resolver.load_subnets([s.model_dump() for s in subnets])
+        self.ip_resolver.load_subnets([s.model_dump(mode="json") for s in subnets])
 
         # Load devices
         for d in self.store.list_devices():
-            self.graph.add_node(d.id, **d.model_dump(), node_type="device")
+            self.graph.add_node(d.id, **d.model_dump(mode="json"), node_type="device")
             if d.management_ip:
                 self._device_index[d.management_ip] = d.id
 
         # Load subnets
         for s in subnets:
-            self.graph.add_node(s.id, **s.model_dump(), node_type="subnet")
+            self.graph.add_node(s.id, **s.model_dump(mode="json"), node_type="subnet")
 
         # Load zones
         for z in self.store.list_zones():
-            self.graph.add_node(z.id, **z.model_dump(), node_type="zone")
+            self.graph.add_node(z.id, **z.model_dump(mode="json"), node_type="zone")
 
         # Load interfaces and create edges (device -> subnet via interface)
         for d in self.store.list_devices():
             for iface in self.store.list_interfaces(device_id=d.id):
-                self._device_index[iface.ip] = d.id
+                if iface.ip:
+                    self._device_index[iface.ip] = d.id
                 # Find which subnet this interface IP belongs to
                 subnet_meta = self.ip_resolver.resolve(iface.ip)
                 if subnet_meta:
@@ -81,7 +90,7 @@ class NetworkKnowledgeGraph:
 
         # Load VPCs
         for vpc in self.store.list_vpcs():
-            self.graph.add_node(vpc.id, **vpc.model_dump(), node_type="vpc")
+            self.graph.add_node(vpc.id, **vpc.model_dump(mode="json"), node_type="vpc")
             # VPC contains subnets — find subnets whose CIDR falls within VPC CIDRs
             for s in subnets:
                 for vpc_cidr in vpc.cidr_blocks:
@@ -106,7 +115,7 @@ class NetworkKnowledgeGraph:
 
         # Load Transit Gateways
         for tgw in self.store.list_transit_gateways():
-            self.graph.add_node(tgw.id, **tgw.model_dump(), node_type="transit_gateway")
+            self.graph.add_node(tgw.id, **tgw.model_dump(mode="json"), node_type="transit_gateway")
             for vpc_id in tgw.attached_vpc_ids:
                 self.graph.add_edge(vpc_id, tgw.id, edge_type="attached_to",
                                     confidence=0.95, source=EdgeSource.API.value)
@@ -115,7 +124,7 @@ class NetworkKnowledgeGraph:
 
         # Load VPN Tunnels
         for vpn in self.store.list_vpn_tunnels():
-            self.graph.add_node(vpn.id, **vpn.model_dump(), node_type="vpn_tunnel")
+            self.graph.add_node(vpn.id, **vpn.model_dump(mode="json"), node_type="vpn_tunnel")
             if vpn.local_gateway_id:
                 self.graph.add_edge(vpn.local_gateway_id, vpn.id, edge_type="tunnel_to",
                                     confidence=0.9, source=EdgeSource.API.value)
@@ -124,18 +133,18 @@ class NetworkKnowledgeGraph:
 
         # Load Direct Connects
         for dx in self.store.list_direct_connects():
-            self.graph.add_node(dx.id, **dx.model_dump(), node_type="direct_connect")
+            self.graph.add_node(dx.id, **dx.model_dump(mode="json"), node_type="direct_connect")
 
         # Load NACLs
         for nacl in self.store.list_nacls():
-            self.graph.add_node(nacl.id, **nacl.model_dump(), node_type="nacl")
+            self.graph.add_node(nacl.id, **nacl.model_dump(mode="json"), node_type="nacl")
             for sid in nacl.subnet_ids:
                 self.graph.add_edge(nacl.id, sid, edge_type="nacl_guards",
                                     confidence=1.0, source=EdgeSource.API.value)
 
         # Load Load Balancers
         for lb in self.store.list_load_balancers():
-            self.graph.add_node(lb.id, **lb.model_dump(), node_type="load_balancer")
+            self.graph.add_node(lb.id, **lb.model_dump(mode="json"), node_type="load_balancer")
             for tg in self.store.list_lb_target_groups(lb_id=lb.id):
                 for target_id in tg.target_ids:
                     self.graph.add_edge(lb.id, target_id, edge_type="load_balances",
@@ -144,11 +153,11 @@ class NetworkKnowledgeGraph:
 
         # Load VLANs
         for vlan in self.store.list_vlans():
-            self.graph.add_node(vlan.id, **vlan.model_dump(), node_type="vlan")
+            self.graph.add_node(vlan.id, **vlan.model_dump(mode="json"), node_type="vlan")
 
         # Load MPLS Circuits
         for mpls in self.store.list_mpls_circuits():
-            self.graph.add_node(mpls.id, **mpls.model_dump(), node_type="mpls")
+            self.graph.add_node(mpls.id, **mpls.model_dump(mode="json"), node_type="mpls")
             # Connect endpoints
             endpoints = mpls.endpoints
             for i in range(len(endpoints) - 1):
@@ -158,7 +167,7 @@ class NetworkKnowledgeGraph:
 
         # Load Compliance Zones
         for cz in self.store.list_compliance_zones():
-            self.graph.add_node(cz.id, **cz.model_dump(), node_type="compliance_zone")
+            self.graph.add_node(cz.id, **cz.model_dump(mode="json"), node_type="compliance_zone")
 
         # Restore persisted edge confidences
         for ec in self.store.list_edge_confidences():
@@ -170,16 +179,16 @@ class NetworkKnowledgeGraph:
 
     def add_device(self, device: Device) -> None:
         self.store.add_device(device)
-        self.graph.add_node(device.id, **device.model_dump(), node_type="device")
+        self.graph.add_node(device.id, **device.model_dump(mode="json"), node_type="device")
         if device.management_ip:
             self._device_index[device.management_ip] = device.id
 
     def add_subnet(self, subnet: Subnet) -> None:
         self.store.add_subnet(subnet)
-        self.graph.add_node(subnet.id, **subnet.model_dump(), node_type="subnet")
+        self.graph.add_node(subnet.id, **subnet.model_dump(mode="json"), node_type="subnet")
         # Rebuild resolver
         subnets = self.store.list_subnets()
-        self.ip_resolver.load_subnets([s.model_dump() for s in subnets])
+        self.ip_resolver.load_subnets([s.model_dump(mode="json") for s in subnets])
 
     def add_edge(self, src_id: str, dst_id: str, metadata: EdgeMetadata, **attrs) -> None:
         self.graph.add_edge(
@@ -201,7 +210,7 @@ class NetworkKnowledgeGraph:
         return {
             "ip": ip,
             "subnet": subnet,
-            "device": device.model_dump() if device else None,
+            "device": device.model_dump(mode="json") if device else None,
             "device_id": device_id,
         }
 
@@ -371,11 +380,18 @@ class NetworkKnowledgeGraph:
         # Pre-validation: collect IPs for duplicate detection
         seen_ips: dict[str, str] = {}  # ip -> first node label
 
+        # Canvas-only container types that don't persist to KG
+        CANVAS_ONLY_TYPES = {"availability_zone", "auto_scaling_group"}
+
         for node in nodes:
             try:
                 node_type = node.get("type", "device")
                 data = node.get("data", {})
                 node_id = node.get("id", "")
+
+                # Skip canvas-only container types
+                if node_type in CANVAS_ONLY_TYPES:
+                    continue
 
                 if node_type == "device":
                     ip = data.get("ip", "")
@@ -404,7 +420,7 @@ class NetworkKnowledgeGraph:
                         vendor=data.get("vendor", ""),
                         location=data.get("location", ""),
                         zone_id=data.get("zone", ""),
-                        vlan_id=int(data.get("vlan") or 0),
+                        vlan_id=_safe_int(data.get("vlan"), 0),
                         description=data.get("description", ""),
                     )
                     self.store.add_device(device)
@@ -428,16 +444,29 @@ class NetworkKnowledgeGraph:
                 elif node_type == "subnet":
                     cidr = data.get("cidr") or data.get("ip", "")
                     if cidr:
+                        # Check if a subnet with this CIDR already exists to avoid
+                        # INSERT OR REPLACE deleting the old row and breaking FK refs
+                        existing_subnets = self.store.list_subnets()
+                        existing_cidrs = {s.cidr: s.id for s in existing_subnets}
+                        if cidr in existing_cidrs:
+                            subnet_id = existing_cidrs[cidr]  # reuse existing
+                            stats["subnets_reused"] = stats.get("subnets_reused", 0) + 1
+                        else:
+                            subnet_id = node_id
+
                         subnet = Subnet(
-                            id=node_id,
+                            id=subnet_id,
                             cidr=cidr,
                             zone_id=data.get("zone", ""),
-                            vlan_id=int(data.get("vlan") or 0),
+                            vlan_id=_safe_int(data.get("vlan"), 0),
                             description=data.get("description", ""),
                         )
-                        self.store.add_subnet(subnet)
+                        try:
+                            self.store.add_subnet(subnet)
+                            stats["devices_promoted"] += 1
+                        except Exception as e:
+                            stats.setdefault("errors", []).append(f"Subnet {subnet.id}: {e}")
                         self.add_subnet(subnet)
-                        stats["devices_promoted"] += 1
 
             except Exception as e:
                 stats["errors"].append(f"Node {node.get('id', '?')}: {str(e)}")
@@ -447,13 +476,28 @@ class NetworkKnowledgeGraph:
                 src = edge.get("source", "")
                 tgt = edge.get("target", "")
                 if src and tgt:
+                    edge_data = edge.get("data", {})
+                    edge_label = edge_data.get("label") if edge_data else None
+                    if not edge_label:
+                        edge_label = edge.get("label", "connected_to")
+                    extra_attrs = {}
+                    if edge_data:
+                        src_handle = edge_data.get("sourceHandle", "")
+                        tgt_handle = edge_data.get("targetHandle", "")
+                        if src_handle:
+                            extra_attrs["source_handle"] = src_handle
+                        if tgt_handle:
+                            extra_attrs["target_handle"] = tgt_handle
+                        if edge_data.get("interface"):
+                            extra_attrs["interface"] = edge_data["interface"]
                     self.add_edge(
                         src, tgt,
                         EdgeMetadata(
                             confidence=0.8,
                             source=EdgeSource.MANUAL,
-                            edge_type=edge.get("label", "connected_to"),
+                            edge_type=edge_label,
                         ),
+                        **extra_attrs,
                     )
                     stats["edges_promoted"] += 1
             except Exception as e:
@@ -467,8 +511,11 @@ class NetworkKnowledgeGraph:
                 device_id = node.get("id", "")
                 device_ifaces = self.store.list_interfaces(device_id=device_id)
                 if device_ifaces:
+                    device_obj = self.store.get_device(device_id)
+                    device_vlan = device_obj.vlan_id if device_obj else 0
                     iface_errors = validate_device_interfaces(
                         device_id, device_ifaces, all_subnets, all_zones,
+                        device_vlan_id=device_vlan,
                     )
                     for ie in iface_errors:
                         stats["errors"].append(ie["message"])
@@ -487,9 +534,16 @@ class NetworkKnowledgeGraph:
             "subnet": "subnet",
             "vpc": "vpc",
             "compliance_zone": "compliance_zone",
+            "availability_zone": "availability_zone",
+            "auto_scaling_group": "auto_scaling_group",
         }
 
-        for i, (node_id, data) in enumerate(self.graph.nodes(data=True)):
+        # Separate nodes by type for hierarchical positioning
+        vpc_nodes = []
+        container_nodes = []  # AZ, subnet
+        device_nodes = []
+
+        for node_id, data in self.graph.nodes(data=True):
             ntype = data.get("node_type", "device")
             rf_type = node_type_map.get(ntype, "device")
             data_dict = {
@@ -520,19 +574,48 @@ class NetworkKnowledgeGraph:
                     for iface in device_ifaces
                 ]
 
-            rf_nodes.append({
+            node_entry = {
                 "id": node_id,
                 "type": rf_type,
-                "position": {"x": (i % 6) * ROW_WIDTH, "y": (i // 6) * COL_HEIGHT},
                 "data": data_dict,
-            })
+            }
+
+            if ntype == "vpc":
+                vpc_nodes.append(node_entry)
+            elif ntype in ("subnet", "availability_zone", "auto_scaling_group", "compliance_zone"):
+                container_nodes.append(node_entry)
+            else:
+                device_nodes.append(node_entry)
+
+        # Hierarchical positioning
+        vpc_x = 0
+        for vi, vpc_node in enumerate(vpc_nodes):
+            vpc_node["position"] = {"x": vpc_x, "y": 0}
+            vpc_node["style"] = {"width": 800, "height": 500}
+            vpc_x += 900
+
+        # Place containers in grid inside their VPC region
+        for ci, cn in enumerate(container_nodes):
+            cn["position"] = {"x": 50 + (ci % 3) * ROW_WIDTH, "y": 50 + (ci // 3) * COL_HEIGHT}
+            cn["style"] = {"width": 220, "height": 180}
+
+        # Place devices
+        for di, dn in enumerate(device_nodes):
+            dn["position"] = {"x": (di % 6) * ROW_WIDTH, "y": 600 + (di // 6) * COL_HEIGHT}
+
+        rf_nodes = vpc_nodes + container_nodes + device_nodes
 
         for u, v, edata in self.graph.edges(data=True):
+            edge_type = edata.get("edge_type", "connected_to")
             rf_edges.append({
-                "id": f"e-{u}-{v}-{edata.get('edge_type', 'default')}",
+                "id": f"e-{u}-{v}-{edge_type}",
                 "source": u,
                 "target": v,
-                "label": edata.get("edge_type", ""),
+                "type": "labeled",
+                "data": {
+                    "label": edge_type,
+                    "interface": edata.get("interface", ""),
+                },
                 "animated": edata.get("confidence", 0) < 0.8,
             })
 
