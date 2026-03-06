@@ -23,6 +23,8 @@ STANDARD_OIDS = {
     "ifInErrors": "1.3.6.1.2.1.2.2.1.14",
     "ifOutErrors": "1.3.6.1.2.1.2.2.1.20",
     "ifSpeed": "1.3.6.1.2.1.2.2.1.5",
+    "ifHCInOctets": "1.3.6.1.2.1.31.1.1.1.6",
+    "ifHCOutOctets": "1.3.6.1.2.1.31.1.1.1.10",
 }
 
 
@@ -64,19 +66,29 @@ class SNMPCollector:
             return None
 
         speed = counters.get("ifSpeed", 1_000_000_000) or 1_000_000_000
-        d_in = counters.get("ifInOctets", 0) - prev_counters.get("ifInOctets", 0)
-        d_out = counters.get("ifOutOctets", 0) - prev_counters.get("ifOutOctets", 0)
+
+        # Prefer 64-bit HC counters over 32-bit when available
+        if "ifHCInOctets" in counters and "ifHCInOctets" in prev_counters:
+            delta_in = counters["ifHCInOctets"] - prev_counters["ifHCInOctets"]
+            delta_out = counters["ifHCOutOctets"] - prev_counters["ifHCOutOctets"]
+            wrap_threshold = 2 ** 64
+        else:
+            delta_in = counters.get("ifInOctets", 0) - prev_counters.get("ifInOctets", 0)
+            delta_out = counters.get("ifOutOctets", 0) - prev_counters.get("ifOutOctets", 0)
+            wrap_threshold = 2 ** 32
+
+        if delta_in < 0:
+            delta_in += wrap_threshold
+        if delta_out < 0:
+            delta_out += wrap_threshold
+
+        d_in = delta_in
+        d_out = delta_out
         d_errs = (
             (counters.get("ifInErrors", 0) - prev_counters.get("ifInErrors", 0))
             + (counters.get("ifOutErrors", 0) - prev_counters.get("ifOutErrors", 0))
         )
         d_total = d_in + d_out
-
-        # Handle 32-bit counter wraps
-        if d_in < 0:
-            d_in += 2**32
-        if d_out < 0:
-            d_out += 2**32
 
         bps_in = (d_in * 8) / dt
         bps_out = (d_out * 8) / dt
@@ -89,6 +101,70 @@ class SNMPCollector:
             "utilization": utilization,
             "error_rate": error_rate,
         }
+
+    async def _walk_interfaces(self, cfg: SNMPDeviceConfig) -> dict[int, dict]:
+        """SNMP BULKWALK of interface table — returns {if_index: {counters}}."""
+        try:
+            from pysnmp.hlapi.v3arch.asyncio import (
+                bulk_cmd, SnmpEngine, CommunityData, UdpTransportTarget,
+                ContextData, ObjectType, ObjectIdentity, UsmUserData,
+            )
+        except ImportError:
+            logger.error("pysnmp-lextudio not installed")
+            return {}
+
+        engine = SnmpEngine()
+        target = UdpTransportTarget((cfg.ip, cfg.port), timeout=5, retries=1)
+        if cfg.version == "v3":
+            auth = UsmUserData(cfg.v3_user, cfg.v3_auth_key, cfg.v3_priv_key)
+        else:
+            auth = CommunityData(cfg.community, mpModel=1)
+
+        walk_oids = {
+            "ifDescr": "1.3.6.1.2.1.2.2.1.2",
+            "ifOperStatus": "1.3.6.1.2.1.2.2.1.8",
+            "ifSpeed": "1.3.6.1.2.1.2.2.1.5",
+            "ifInOctets": "1.3.6.1.2.1.2.2.1.10",
+            "ifOutOctets": "1.3.6.1.2.1.2.2.1.16",
+            "ifInErrors": "1.3.6.1.2.1.2.2.1.14",
+            "ifOutErrors": "1.3.6.1.2.1.2.2.1.20",
+            "ifHCInOctets": "1.3.6.1.2.1.31.1.1.1.6",
+            "ifHCOutOctets": "1.3.6.1.2.1.31.1.1.1.10",
+        }
+
+        interfaces: dict[int, dict] = {}
+
+        for name, base_oid in walk_oids.items():
+            marker = base_oid
+            while True:
+                try:
+                    err_indication, err_status, err_index, var_binds = await bulk_cmd(
+                        engine, auth, target, ContextData(),
+                        0, 25,
+                        ObjectType(ObjectIdentity(marker)),
+                    )
+                except Exception:
+                    break
+                if err_indication or err_status:
+                    break
+                out_of_subtree = False
+                for var_bind_row in var_binds:
+                    for oid, val in var_bind_row:
+                        oid_str = str(oid)
+                        if not oid_str.startswith(base_oid):
+                            out_of_subtree = True
+                            break
+                        if_index = int(oid_str.split(".")[-1])
+                        if if_index not in interfaces:
+                            interfaces[if_index] = {}
+                        interfaces[if_index][name] = int(val) if name != "ifDescr" else str(val)
+                        marker = oid_str
+                    if out_of_subtree:
+                        break
+                if out_of_subtree:
+                    break
+
+        return interfaces
 
     async def _snmp_get(self, cfg: SNMPDeviceConfig) -> dict:
         """Execute SNMP GET/WALK against a device. Returns parsed metrics dict."""
@@ -127,6 +203,7 @@ class SNMPCollector:
                 result[name] = float(val) if hasattr(val, "__float__") else 0.0
 
         engine.close_dispatcher()
+        result["interfaces"] = await self._walk_interfaces(cfg)
         return result
 
     async def poll_device(self, cfg: SNMPDeviceConfig) -> dict:

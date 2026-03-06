@@ -1,4 +1,5 @@
 # backend/tests/test_snmp_collector.py
+import time
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from src.network.snmp_collector import SNMPCollector, SNMPDeviceConfig
@@ -60,3 +61,118 @@ async def test_poll_device_writes_metrics(mock_metrics):
         assert result["device_id"] == "dev-1"
         assert result["cpu_pct"] == 45.0
         assert mock_metrics.write_device_metric.call_count >= 2  # cpu + mem at minimum
+
+
+def test_64bit_counter_oids_exist():
+    from src.network.snmp_collector import STANDARD_OIDS
+    assert "ifHCInOctets" in STANDARD_OIDS
+    assert "ifHCOutOctets" in STANDARD_OIDS
+
+
+def test_compute_rates_64bit_no_wrap():
+    from src.network.snmp_collector import SNMPCollector
+    collector = SNMPCollector(metrics_store=None)
+    device_id = "dev-hc"
+    if_index = 1
+    counters_1 = {
+        "ifHCInOctets": 10_000_000_000,
+        "ifHCOutOctets": 5_000_000_000,
+        "ifInErrors": 0,
+        "ifOutErrors": 0,
+        "ifSpeed": 10_000_000_000,
+    }
+    result1 = collector._compute_rates(device_id, if_index, counters_1)
+    assert result1 is None
+
+    collector._prev_counters[(device_id, if_index)] = (counters_1, time.time() - 30)
+    counters_2 = {
+        "ifHCInOctets": 10_375_000_000,
+        "ifHCOutOctets": 5_187_500_000,
+        "ifInErrors": 0,
+        "ifOutErrors": 0,
+        "ifSpeed": 10_000_000_000,
+    }
+    result2 = collector._compute_rates(device_id, if_index, counters_2)
+    assert result2 is not None
+    assert abs(result2["bps_in"] - 100_000_000) < 1_000_000
+    assert result2["utilization"] < 0.02
+
+
+def test_compute_rates_prefers_hc_counters():
+    from src.network.snmp_collector import SNMPCollector
+    collector = SNMPCollector(metrics_store=None)
+    device_id = "dev-hc-pref"
+    if_index = 1
+    counters_1 = {
+        "ifInOctets": 1_000_000,
+        "ifOutOctets": 500_000,
+        "ifHCInOctets": 50_000_000_000,
+        "ifHCOutOctets": 25_000_000_000,
+        "ifInErrors": 0,
+        "ifOutErrors": 0,
+        "ifSpeed": 10_000_000_000,
+    }
+    collector._prev_counters[(device_id, if_index)] = (counters_1, time.time() - 30)
+    counters_2 = {
+        "ifInOctets": 2_000_000,
+        "ifOutOctets": 1_000_000,
+        "ifHCInOctets": 50_100_000_000,
+        "ifHCOutOctets": 25_050_000_000,
+        "ifInErrors": 0,
+        "ifOutErrors": 0,
+        "ifSpeed": 10_000_000_000,
+    }
+    result = collector._compute_rates(device_id, if_index, counters_2)
+    assert result is not None
+    assert result["bps_in"] > 20_000_000
+
+
+@pytest.mark.asyncio
+async def test_snmp_get_populates_interfaces(monkeypatch):
+    from src.network.snmp_collector import SNMPCollector, SNMPDeviceConfig
+
+    async def mock_walk(cfg):
+        return {
+            1: {"ifDescr": "GigabitEthernet0/0", "ifOperStatus": 1, "ifSpeed": 1_000_000_000,
+                "ifInOctets": 1000, "ifOutOctets": 2000, "ifHCInOctets": 100000,
+                "ifHCOutOctets": 200000, "ifInErrors": 0, "ifOutErrors": 0},
+            2: {"ifDescr": "GigabitEthernet0/1", "ifOperStatus": 1, "ifSpeed": 10_000_000_000,
+                "ifInOctets": 5000, "ifOutOctets": 6000, "ifHCInOctets": 500000,
+                "ifHCOutOctets": 600000, "ifInErrors": 1, "ifOutErrors": 0},
+        }
+
+    collector = SNMPCollector(metrics_store=None)
+    monkeypatch.setattr(collector, "_walk_interfaces", mock_walk)
+
+    # Mock the pysnmp imports and get_cmd so _snmp_get doesn't fail
+    mock_val = MagicMock()
+    mock_val.__float__ = MagicMock(return_value=42.0)
+    mock_var_bind = [(MagicMock(), mock_val)]
+
+    async def mock_get_cmd(*args, **kwargs):
+        return (None, None, None, mock_var_bind)
+
+    mock_engine = MagicMock()
+    mock_target = MagicMock()
+
+    async def mock_create(*args, **kwargs):
+        return mock_target
+
+    mock_target.create = mock_create
+
+    mock_module = MagicMock()
+    mock_module.get_cmd = mock_get_cmd
+    mock_module.SnmpEngine = MagicMock(return_value=mock_engine)
+    mock_module.CommunityData = MagicMock()
+    mock_module.UdpTransportTarget = mock_target
+    mock_module.ContextData = MagicMock()
+    mock_module.ObjectType = MagicMock()
+    mock_module.ObjectIdentity = MagicMock()
+
+    import sys
+    monkeypatch.setitem(sys.modules, "pysnmp.hlapi.v3arch.asyncio", mock_module)
+
+    cfg = SNMPDeviceConfig(device_id="dev-walk", ip="10.0.0.1")
+    result = await collector._snmp_get(cfg)
+    assert len(result["interfaces"]) == 2
+    assert result["interfaces"][1]["ifDescr"] == "GigabitEthernet0/0"
