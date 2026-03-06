@@ -1,5 +1,6 @@
 import React from 'react';
 import { SparklineWidget } from './SparklineWidget';
+import { TrendIndicator } from './TrendIndicator';
 
 interface MetricCardProps {
   title: string;
@@ -18,14 +19,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   trendType,
   sparklineData,
 }) => {
-  const trendStyles = trendType === 'good'
-    ? 'text-green-500 bg-green-500/10'
-    : trendType === 'bad'
-      ? 'text-[#ef4444] bg-[#ef4444]/10'
-      : 'text-slate-400 bg-slate-400/10';
-
   const sparkColor = trendType === 'good' ? 'green' : trendType === 'bad' ? 'red' : 'cyan';
-  const arrowIcon = trendDirection === 'up' ? 'arrow_upward' : trendDirection === 'down' ? 'arrow_downward' : 'remove';
 
   return (
     <div className="bg-[#0f2023] border border-[#224349] rounded-lg p-4 flex flex-col justify-between h-32 hover:border-[#07b6d5]/50 transition-colors relative overflow-hidden group">
@@ -33,10 +27,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
 
       <div className="flex justify-between items-start z-10">
         <h3 className="text-[#94a3b8] text-xs font-semibold uppercase tracking-wider">{title}</h3>
-        <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold ${trendStyles}`}>
-          <span className="material-symbols-outlined text-[12px]" style={{ fontFamily: 'Material Symbols Outlined' }}>{arrowIcon}</span>
-          {trendValue}
-        </div>
+        <TrendIndicator value={trendValue} direction={trendDirection} type={trendType} />
       </div>
 
       <div className="flex items-end justify-between mt-2 z-10">

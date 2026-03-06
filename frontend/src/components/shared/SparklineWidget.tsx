@@ -9,7 +9,7 @@ interface SparklineWidgetProps {
 }
 
 const colorMap: Record<string, string> = {
-  cyan: '#13b6ec',
+  cyan: '#07b6d5',
   green: '#22c55e',
   amber: '#f59e0b',
   red: '#ef4444',
