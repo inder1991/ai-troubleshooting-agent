@@ -135,7 +135,7 @@ class TestDeviceTypeExtensions:
         assert DeviceType.HOST == "host"
 
     def test_total_member_count(self):
-        assert len(DeviceType) == 12
+        assert len(DeviceType) == 18
 
 
 # ── Model Tests ──
