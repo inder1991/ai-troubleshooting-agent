@@ -137,3 +137,31 @@ class TestDNSAlertRules:
         assert rule.severity == "warning"
         assert rule.metric == "dns_latency_ms"
         assert rule.condition == "gt"
+
+
+class TestDNSSnapshot:
+    @pytest.mark.asyncio
+    async def test_snapshot_includes_dns(self, store, kg, adapters, dns_config):
+        monitor = NetworkMonitor(store, kg, adapters, dns_config=dns_config)
+        monitor.dns_monitor = MagicMock()
+        monitor.dns_monitor.get_nxdomain_counts.return_value = {"bad.com": 5}
+        mock_server = MagicMock()
+        mock_server.model_dump.return_value = {"id": "dns-1", "name": "Primary", "ip": "8.8.8.8", "port": 53, "enabled": True}
+        monitor.dns_monitor.config = MagicMock()
+        monitor.dns_monitor.config.servers = [mock_server]
+        monitor.dns_monitor.config.enabled = True
+
+        snapshot = monitor.get_snapshot()
+        assert "dns" in snapshot
+        assert "nxdomain_counts" in snapshot["dns"]
+        assert snapshot["dns"]["nxdomain_counts"]["bad.com"] == 5
+        assert "servers" in snapshot["dns"]
+        assert snapshot["dns"]["enabled"] is True
+
+    @pytest.mark.asyncio
+    async def test_snapshot_without_dns(self, store, kg, adapters):
+        monitor = NetworkMonitor(store, kg, adapters)
+        snapshot = monitor.get_snapshot()
+        assert "dns" in snapshot
+        assert snapshot["dns"]["servers"] == []
+        assert snapshot["dns"]["enabled"] is False

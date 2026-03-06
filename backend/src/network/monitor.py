@@ -230,10 +230,22 @@ class NetworkMonitor:
     # ── Snapshot API ──
 
     def get_snapshot(self) -> dict:
+        dns_data = {
+            "servers": [],
+            "nxdomain_counts": {},
+            "enabled": False,
+        }
+        if self.dns_monitor:
+            dns_data = {
+                "servers": [s.model_dump() for s in self.dns_monitor.config.servers],
+                "nxdomain_counts": self.dns_monitor.get_nxdomain_counts(),
+                "enabled": self.dns_monitor.config.enabled,
+            }
         return {
             "devices": self.store.list_device_statuses(),
             "links": self.store.list_link_metrics(),
             "drifts": self.store.list_active_drift_events(),
             "candidates": self.store.list_discovery_candidates(),
             "alerts": self.alert_engine.get_active_alerts() if self.alert_engine else [],
+            "dns": dns_data,
         }
