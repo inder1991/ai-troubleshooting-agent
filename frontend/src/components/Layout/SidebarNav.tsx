@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 
-export type NavView = 'home' | 'sessions' | 'integrations' | 'settings' | 'agents' | 'network-topology' | 'network-adapters' | 'ipam' | 'matrix' | 'observatory';
+export type NavView = 'home' | 'sessions' | 'integrations' | 'settings' | 'agents'
+  | 'network-topology' | 'network-adapters' | 'ipam' | 'matrix' | 'observatory'
+  | 'cluster-diagnostics';
 
-type NavLink = { kind: 'link'; id: NavView; label: string; icon: string };
 type NavGroup = { kind: 'group'; group: string; icon: string; children: { id: NavView; label: string; icon: string }[] };
-type NavItem = NavLink | NavGroup;
+type NavItem = NavGroup;
 
 interface SidebarNavProps {
   activeView: NavView;
@@ -13,12 +14,15 @@ interface SidebarNavProps {
 }
 
 const navItems: NavItem[] = [
-  { kind: 'link', id: 'home', label: 'Dashboard', icon: 'dashboard' },
-  { kind: 'link', id: 'sessions', label: 'Sessions', icon: 'history' },
   {
-    kind: 'group',
-    group: 'Network',
-    icon: 'lan',
+    kind: 'group', group: 'Investigate', icon: 'search',
+    children: [
+      { id: 'home', label: 'Dashboard', icon: 'dashboard' },
+      { id: 'sessions', label: 'Sessions', icon: 'history' },
+    ],
+  },
+  {
+    kind: 'group', group: 'Infrastructure', icon: 'lan',
     children: [
       { id: 'network-topology', label: 'Topology', icon: 'device_hub' },
       { id: 'network-adapters', label: 'Adapters', icon: 'settings_input_component' },
@@ -27,18 +31,30 @@ const navItems: NavItem[] = [
       { id: 'observatory', label: 'Observatory', icon: 'monitoring' },
     ],
   },
-  { kind: 'link', id: 'integrations', label: 'Integrations', icon: 'hub' },
-  { kind: 'link', id: 'settings', label: 'Settings', icon: 'settings' },
-  { kind: 'link', id: 'agents' as NavView, label: 'Agent Matrix', icon: 'smart_toy' },
+  {
+    kind: 'group', group: 'Kubernetes', icon: 'deployed_code',
+    children: [
+      { id: 'cluster-diagnostics' as NavView, label: 'Cluster Diag', icon: 'health_and_safety' },
+    ],
+  },
+  {
+    kind: 'group', group: 'Tools', icon: 'build',
+    children: [
+      { id: 'integrations', label: 'Integrations', icon: 'hub' },
+      { id: 'settings', label: 'Settings', icon: 'settings' },
+      { id: 'agents' as NavView, label: 'Agent Matrix', icon: 'smart_toy' },
+    ],
+  },
 ];
 
 const SidebarNav: React.FC<SidebarNavProps> = ({ activeView, onNavigate, onNewMission }) => {
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [collapsed, setCollapsed] = useState(false);
 
   // Auto-expand group if active view is one of its children
   useEffect(() => {
     for (const item of navItems) {
-      if (item.kind === 'group' && item.children.some((c) => c.id === activeView)) {
+      if (item.children.some((c) => c.id === activeView)) {
         setExpandedGroups((prev) => {
           if (prev.has(item.group)) return prev;
           const next = new Set(prev);
@@ -64,7 +80,8 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ activeView, onNavigate, onNewMi
       <button
         key={id}
         onClick={() => onNavigate(id)}
-        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors border ${
+        title={collapsed ? label : undefined}
+        className={`flex items-center ${collapsed ? 'justify-center' : ''} gap-3 ${collapsed ? 'px-0 py-2.5' : 'px-3 py-2.5'} rounded-lg transition-colors border ${
           isActive
             ? 'text-[#07b6d5]'
             : 'text-slate-400 hover:text-white border-transparent'
@@ -74,42 +91,82 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ activeView, onNavigate, onNewMi
             backgroundColor: 'rgba(7,182,213,0.1)',
             borderColor: 'rgba(7,182,213,0.2)',
           } : {}),
-          ...(indented ? { paddingLeft: '2.25rem' } : {}),
+          ...(!collapsed && indented ? { paddingLeft: '2.25rem' } : {}),
         }}
       >
         <span className="material-symbols-outlined text-[20px]" style={{ fontFamily: 'Material Symbols Outlined' }}>{icon}</span>
-        <span className={`text-sm ${isActive ? 'font-semibold tracking-wide' : 'font-medium'}`}>{label}</span>
+        {!collapsed && (
+          <span className={`text-sm ${isActive ? 'font-semibold tracking-wide' : 'font-medium'}`}>{label}</span>
+        )}
       </button>
     );
   };
 
   return (
-    <aside className="w-64 flex-shrink-0 border-r border-[#224349] flex flex-col justify-between py-6" style={{ backgroundColor: '#0f2023' }}>
+    <aside
+      className={`${collapsed ? 'w-16' : 'w-64'} flex-shrink-0 border-r border-[#224349] flex flex-col justify-between py-6 transition-all duration-200`}
+      style={{ backgroundColor: '#0f2023' }}
+    >
       <div className="flex flex-col gap-8">
-        {/* Brand Logo */}
-        <div className="px-6 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg flex items-center justify-center border" style={{ backgroundColor: 'rgba(7,182,213,0.2)', borderColor: 'rgba(7,182,213,0.3)' }}>
-            <span className="material-symbols-outlined text-2xl" style={{ fontFamily: 'Material Symbols Outlined', color: '#07b6d5' }}>pest_control</span>
+        {/* Brand Logo + Collapse Toggle */}
+        <div className={`${collapsed ? 'px-2' : 'px-6'} flex items-center ${collapsed ? 'justify-center' : 'justify-between'}`}>
+          <div className={`flex items-center ${collapsed ? '' : 'gap-3'}`}>
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center border flex-shrink-0" style={{ backgroundColor: 'rgba(7,182,213,0.2)', borderColor: 'rgba(7,182,213,0.3)' }}>
+              <span className="material-symbols-outlined text-2xl" style={{ fontFamily: 'Material Symbols Outlined', color: '#07b6d5' }}>pest_control</span>
+            </div>
+            {!collapsed && (
+              <div className="flex flex-col">
+                <h1 className="text-white text-lg font-bold leading-none tracking-tight">DebugDuck</h1>
+                <p className="text-[10px] font-bold uppercase tracking-widest mt-1" style={{ color: '#07b6d5' }}>Command Center</p>
+              </div>
+            )}
           </div>
-          <div className="flex flex-col">
-            <h1 className="text-white text-lg font-bold leading-none tracking-tight">DebugDuck</h1>
-            <p className="text-[10px] font-bold uppercase tracking-widest mt-1" style={{ color: '#07b6d5' }}>Command Center</p>
-          </div>
+          {!collapsed && (
+            <button
+              onClick={() => setCollapsed(true)}
+              className="text-slate-500 hover:text-white transition-colors p-1 rounded"
+              title="Collapse sidebar"
+            >
+              <span className="material-symbols-outlined text-[18px]" style={{ fontFamily: 'Material Symbols Outlined' }}>chevron_left</span>
+            </button>
+          )}
         </div>
 
+        {/* Expand toggle when collapsed */}
+        {collapsed && (
+          <div className="px-2 flex justify-center">
+            <button
+              onClick={() => setCollapsed(false)}
+              className="text-slate-500 hover:text-white transition-colors p-1 rounded"
+              title="Expand sidebar"
+            >
+              <span className="material-symbols-outlined text-[18px]" style={{ fontFamily: 'Material Symbols Outlined' }}>chevron_right</span>
+            </button>
+          </div>
+        )}
+
         {/* Navigation Links */}
-        <nav className="flex flex-col gap-1 px-3">
-          {navItems.map((item) => {
-            if (item.kind === 'link') {
-              return renderLink(item.id, item.label, item.icon);
+        <nav className={`flex flex-col gap-1 ${collapsed ? 'px-2' : 'px-3'}`}>
+          {navItems.map((item, groupIdx) => {
+            if (collapsed) {
+              // Collapsed: thin divider between groups, flat icon list
+              return (
+                <div key={item.group}>
+                  {groupIdx > 0 && (
+                    <div className="my-2 mx-1 border-t border-[#224349]" />
+                  )}
+                  {item.children.map((child) => renderLink(child.id, child.label, child.icon))}
+                </div>
+              );
             }
 
-            // Group
+            // Expanded: group headers with expand/collapse
             const isExpanded = expandedGroups.has(item.group);
             const hasActiveChild = item.children.some((c) => c.id === activeView);
 
             return (
               <div key={item.group}>
+                {groupIdx > 0 && <div className="my-1" />}
                 <button
                   onClick={() => toggleGroup(item.group)}
                   className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors border ${
@@ -143,14 +200,15 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ activeView, onNavigate, onNewMi
       </div>
 
       {/* Sidebar Bottom Action */}
-      <div className="px-4">
+      <div className={collapsed ? 'px-2' : 'px-4'}>
         <button
           onClick={onNewMission}
-          className="w-full flex items-center justify-center gap-2 font-bold py-2.5 rounded-lg transition-all group"
+          title={collapsed ? 'New Mission' : undefined}
+          className={`w-full flex items-center justify-center gap-2 font-bold py-2.5 rounded-lg transition-all group`}
           style={{ backgroundColor: '#07b6d5', color: '#0f2023', boxShadow: '0 4px 14px rgba(7,182,213,0.1)' }}
         >
           <span className="material-symbols-outlined text-[20px] group-hover:rotate-180 transition-transform duration-500" style={{ fontFamily: 'Material Symbols Outlined' }}>add_circle</span>
-          <span className="text-sm">New Mission</span>
+          {!collapsed && <span className="text-sm">New Mission</span>}
         </button>
       </div>
     </aside>

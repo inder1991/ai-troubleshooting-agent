@@ -181,6 +181,10 @@ function AppInner() {
   const handleNavigate = useCallback((view: NavView) => {
     if (view === 'agents') {
       setViewState('agent-matrix');
+    } else if (view === 'cluster-diagnostics') {
+      // Route to capability form so user can configure a cluster session
+      setSelectedCapability('cluster_diagnostics');
+      setViewState('form');
     } else {
       setViewState(view as ViewState);
     }
@@ -397,7 +401,7 @@ function AppInner() {
 
   // Derive nav view from viewState
   const navView: NavView =
-    viewState === 'sessions' ? 'sessions' : viewState === 'integrations' ? 'integrations' : viewState === 'settings' ? 'settings' : viewState === 'agent-matrix' ? 'agents' : viewState === 'network-topology' ? 'network-topology' : viewState === 'network-adapters' ? 'network-adapters' : viewState === 'ipam' ? 'ipam' : viewState === 'matrix' ? 'matrix' : viewState === 'observatory' ? 'observatory' : 'home';
+    viewState === 'sessions' ? 'sessions' : viewState === 'integrations' ? 'integrations' : viewState === 'settings' ? 'settings' : viewState === 'agent-matrix' ? 'agents' : viewState === 'network-topology' ? 'network-topology' : viewState === 'network-adapters' ? 'network-adapters' : viewState === 'ipam' ? 'ipam' : viewState === 'matrix' ? 'matrix' : viewState === 'observatory' ? 'observatory' : (viewState === 'form' && selectedCapability === 'cluster_diagnostics') ? 'cluster-diagnostics' : 'home';
 
   const showSidebar = viewState !== 'investigation' && viewState !== 'dossier' && viewState !== 'cluster-diagnostics' && viewState !== 'agent-matrix' && viewState !== 'network-troubleshooting';
 
