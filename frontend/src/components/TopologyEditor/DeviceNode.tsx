@@ -115,11 +115,9 @@ const DeviceNode: React.FC<NodeProps<DeviceNodeData>> = ({ data, selected }) => 
         style={{
           backgroundColor: selected ? '#162a2e' : '#0f2023',
           borderColor: selected ? '#07b6d5' : '#224349',
-          borderRadius: isFirewall ? '10px' : '6px',
-          clipPath: isFirewall
-            ? 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)'
-            : undefined,
-          padding: isFirewall ? '20px 16px' : undefined,
+          borderRadius: isFirewall ? '12px' : '6px',
+          borderWidth: isFirewall ? '2px' : '1px',
+          borderStyle: isFirewall ? 'double' : 'solid',
         }}
       >
         {/* Status dot */}
