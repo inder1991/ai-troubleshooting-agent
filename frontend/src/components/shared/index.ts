@@ -5,3 +5,5 @@ export { TrendIndicator } from './TrendIndicator';
 export { SkeletonLoader } from './SkeletonLoader';
 export { SectionHeader } from './SectionHeader';
 export { TimeRangeSelector } from './TimeRangeSelector';
+export { MetricCard } from './MetricCard';
+export { ActivityFeedRow } from './ActivityFeedRow';
