@@ -5,6 +5,7 @@ import type {
   FleetNode,
 } from '../../types';
 import { API_BASE_URL } from '../../services/api';
+import { SkeletonLoader } from '../shared/SkeletonLoader';
 import ChatDrawer from '../Chat/ChatDrawer';
 import LedgerTriggerTab from '../Chat/LedgerTriggerTab';
 import ClusterHeader from './ClusterHeader';
@@ -216,12 +217,27 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
       {/* Main War Room Grid */}
       <main className="flex-1 grid grid-cols-12 overflow-hidden relative">
         {loading && !findings && !error && (
-          <div className="col-span-12 flex items-center justify-center">
-            <div className="text-center">
-              <span className="material-symbols-outlined animate-spin text-4xl text-[#07b6d5] mb-4 block" style={{ fontFamily: 'Material Symbols Outlined' }}>progress_activity</span>
-              <p className="text-slate-500 text-sm">Initializing cluster diagnostics...</p>
-            </div>
-          </div>
+          <>
+            {/* Left column skeleton */}
+            <section className="col-span-3 border-r border-[#1f3b42] p-4 flex flex-col gap-4">
+              <SkeletonLoader type="card" height="h-48" />
+              <SkeletonLoader type="card" height="h-28" />
+              <SkeletonLoader type="card" height="h-24" />
+            </section>
+            {/* Center column skeleton */}
+            <section className="col-span-5 border-r border-[#1f3b42] p-4 flex flex-col gap-3">
+              <SkeletonLoader type="row" />
+              <SkeletonLoader type="card" height="h-64" />
+              <SkeletonLoader type="row" />
+              <SkeletonLoader type="row" />
+            </section>
+            {/* Right column skeleton */}
+            <section className="col-span-4 p-4 flex flex-col gap-4">
+              <SkeletonLoader type="card" height="h-36" />
+              <SkeletonLoader type="card" height="h-48" />
+              <SkeletonLoader type="card" height="h-32" />
+            </section>
+          </>
         )}
 
         {(!loading || findings) && (
