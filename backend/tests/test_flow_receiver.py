@@ -1,7 +1,22 @@
 # backend/tests/test_flow_receiver.py
+import sys
+import types
 import pytest
 import struct
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
+
+# Mock influxdb_client before importing modules that depend on it
+if "influxdb_client" not in sys.modules:
+    _mock_influx = types.ModuleType("influxdb_client")
+    _mock_influx.Point = MagicMock()
+    _mock_influx.WritePrecision = MagicMock()
+    _mock_async = types.ModuleType("influxdb_client.client")
+    _mock_async_mod = types.ModuleType("influxdb_client.client.influxdb_client_async")
+    _mock_async_mod.InfluxDBClientAsync = MagicMock()
+    sys.modules["influxdb_client"] = _mock_influx
+    sys.modules["influxdb_client.client"] = _mock_async
+    sys.modules["influxdb_client.client.influxdb_client_async"] = _mock_async_mod
+
 from src.network.flow_receiver import FlowParser, NetFlowV5Header, NetFlowV5Record
 from src.network.metrics_store import FlowRecord
 
