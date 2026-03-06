@@ -62,6 +62,51 @@ class TestTracerouteProbe:
         assert result["trace_method"] == "unavailable"
 
 
+class TestTracerouteProtocolFallback:
+
+    def test_tcp_traceroute_called_on_icmp_failure(self, monkeypatch):
+        from src.agents.network import traceroute_probe
+
+        class FakeHop:
+            address = None
+            avg_rtt = 0
+            is_alive = False
+
+        def mock_icmp_traceroute(dst, max_hops=30, timeout=2):
+            return [FakeHop() for _ in range(5)]
+
+        monkeypatch.setattr(traceroute_probe, "icmp_traceroute", mock_icmp_traceroute)
+        monkeypatch.setattr(traceroute_probe, "HAS_ICMPLIB", True)
+
+        def mock_tcp_trace(dst_ip, port=443, max_hops=30, timeout=2.0):
+            return [{"hop": 1, "ip": "10.0.0.1", "rtt_ms": 5.0, "status": "responded"}]
+
+        monkeypatch.setattr(traceroute_probe, "_tcp_traceroute", mock_tcp_trace)
+
+        state = {"dst_ip": "8.8.8.8"}
+        result = traceroute_probe.traceroute_probe(state)
+        assert result["trace_method"] == "TCP"
+        assert len(result["trace_hops"]) >= 1
+
+    def test_trace_method_reflects_icmp_protocol(self, monkeypatch):
+        from src.agents.network import traceroute_probe
+
+        class FakeHop:
+            address = "10.0.0.1"
+            avg_rtt = 5.0
+            is_alive = True
+
+        def mock_icmp(dst, max_hops=30, timeout=2):
+            return [FakeHop()]
+
+        monkeypatch.setattr(traceroute_probe, "icmp_traceroute", mock_icmp)
+        monkeypatch.setattr(traceroute_probe, "HAS_ICMPLIB", True)
+
+        state = {"dst_ip": "8.8.8.8"}
+        result = traceroute_probe.traceroute_probe(state)
+        assert result["trace_method"] == "ICMP"
+
+
 class TestHopAttributor:
     def _seed(self, store):
         store.add_device(Device(id="r1", name="Router1", device_type=DeviceType.ROUTER, management_ip="10.0.0.1"))
