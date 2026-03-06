@@ -36,6 +36,9 @@ class NetworkMonitor:
         self.discovery_engine = DiscoveryEngine(store, kg)
         self.snmp_collector = SNMPCollector(metrics_store) if metrics_store else None
         self.alert_engine = AlertEngine(metrics_store, load_defaults=True) if metrics_store else None
+        if self.alert_engine:
+            from .notification_dispatcher import NotificationDispatcher
+            self.alert_engine.set_dispatcher(NotificationDispatcher())
         self._latest_alerts: list[dict] = []
         self.cycle_interval = 30
         self._task: asyncio.Task | None = None

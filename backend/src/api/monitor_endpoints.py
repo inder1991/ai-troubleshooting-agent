@@ -150,6 +150,69 @@ async def acknowledge_alert(alert_key: str):
     return {"acknowledged": ok}
 
 
+# ── Notification Channels ──────────────────────────────────────────
+
+
+@monitor_router.get("/notifications/channels")
+async def list_notification_channels():
+    mon = _get_monitor()
+    if not mon or not mon.alert_engine or not getattr(mon.alert_engine, '_dispatcher', None):
+        return []
+    return mon.alert_engine._dispatcher.list_channels()
+
+
+@monitor_router.post("/notifications/channels")
+async def create_notification_channel(body: dict):
+    from src.network.models import NotificationChannel
+    mon = _get_monitor()
+    if not mon or not mon.alert_engine:
+        raise HTTPException(503, "Alert engine not initialized")
+    if not getattr(mon.alert_engine, '_dispatcher', None):
+        from src.network.notification_dispatcher import NotificationDispatcher
+        mon.alert_engine.set_dispatcher(NotificationDispatcher())
+    channel = NotificationChannel(**body)
+    mon.alert_engine._dispatcher.add_channel(channel)
+    return {"status": "created", "id": channel.id}
+
+
+@monitor_router.delete("/notifications/channels/{channel_id}")
+async def delete_notification_channel(channel_id: str):
+    mon = _get_monitor()
+    if mon and mon.alert_engine and getattr(mon.alert_engine, '_dispatcher', None):
+        mon.alert_engine._dispatcher.remove_channel(channel_id)
+    return {"status": "deleted"}
+
+
+@monitor_router.get("/notifications/routings")
+async def list_notification_routings():
+    mon = _get_monitor()
+    if not mon or not mon.alert_engine or not getattr(mon.alert_engine, '_dispatcher', None):
+        return []
+    return mon.alert_engine._dispatcher.list_routings()
+
+
+@monitor_router.post("/notifications/routings")
+async def create_notification_routing(body: dict):
+    from src.network.models import NotificationRouting
+    mon = _get_monitor()
+    if not mon or not mon.alert_engine:
+        raise HTTPException(503, "Alert engine not initialized")
+    if not getattr(mon.alert_engine, '_dispatcher', None):
+        from src.network.notification_dispatcher import NotificationDispatcher
+        mon.alert_engine.set_dispatcher(NotificationDispatcher())
+    routing = NotificationRouting(**body)
+    mon.alert_engine._dispatcher.add_routing(routing)
+    return {"status": "created", "id": routing.id}
+
+
+@monitor_router.delete("/notifications/routings/{routing_id}")
+async def delete_notification_routing(routing_id: str):
+    mon = _get_monitor()
+    if mon and mon.alert_engine and getattr(mon.alert_engine, '_dispatcher', None):
+        mon.alert_engine._dispatcher.remove_routing(routing_id)
+    return {"status": "deleted"}
+
+
 # ── Metrics ──
 
 

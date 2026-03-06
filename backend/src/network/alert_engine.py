@@ -82,10 +82,15 @@ class AlertEngine:
         self._states: dict[str, AlertState] = {}  # (rule_id, entity_id) -> state
         self._last_fired: dict[str, float] = {}  # (rule_id, entity_id) -> timestamp
         self._active_alerts: dict[str, dict] = {}
+        self._dispatcher = None
 
         if load_defaults:
             for r in DEFAULT_RULES:
                 self.add_rule(r)
+
+    def set_dispatcher(self, dispatcher) -> None:
+        """Attach a NotificationDispatcher to receive fired alerts."""
+        self._dispatcher = dispatcher
 
     def add_rule(self, rule: AlertRule) -> None:
         self.rules.append(rule)
@@ -206,4 +211,10 @@ class AlertEngine:
                     severity=alert["severity"], value=alert["value"],
                     threshold=alert["threshold"], message=alert["message"],
                 )
+        # Dispatch notifications for newly fired alerts
+        if self._dispatcher and all_fired:
+            try:
+                await self._dispatcher.dispatch_batch(all_fired)
+            except Exception:
+                logger.exception("Notification dispatch failed")
         return all_fired
