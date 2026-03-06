@@ -145,6 +145,7 @@ export function validateTopology(nodes: CanvasNode[]): ValidationError[] {
   const errors: ValidationError[] = [];
   const containers = nodes.filter(
     (n) => n.type === 'vpc' || n.type === 'subnet' || n.type === 'compliance_zone'
+      || n.type === 'availability_zone' || n.type === 'auto_scaling_group' || n.type === 'ha_group'
   );
   const devices = nodes.filter((n) => n.type === 'device');
 
@@ -285,6 +286,65 @@ export function validateTopology(nodes: CanvasNode[]): ValidationError[] {
           severity: 'error',
           nodeId: dev.id,
         });
+      }
+    }
+  }
+
+  // Rule: AZ should be inside a VPC
+  const azNodes = nodes.filter((n) => n.type === 'availability_zone');
+  for (const az of azNodes) {
+    const parentVpc = containers.find(
+      (c) => c.type === 'vpc' && isNodeInsideContainer(az, c)
+    );
+    if (!parentVpc) {
+      errors.push({
+        field: 'placement',
+        message: `Availability Zone '${az.data.label || az.id}' should be placed inside a VPC`,
+        severity: 'warning',
+        nodeId: az.id,
+      });
+    }
+  }
+
+  // Rule: ASG capacity: min <= desired <= max
+  const asgNodes = nodes.filter((n) => n.type === 'auto_scaling_group');
+  for (const asg of asgNodes) {
+    const min = Number(asg.data.minCapacity) || 0;
+    const desired = Number(asg.data.desiredCapacity) || 0;
+    const max = Number(asg.data.maxCapacity) || 0;
+    if (min > desired || desired > max) {
+      errors.push({
+        field: 'capacity',
+        message: `ASG '${asg.data.label || asg.id}' capacity invalid: min(${min}) <= desired(${desired}) <= max(${max}) must hold`,
+        severity: 'error',
+        nodeId: asg.id,
+      });
+    }
+  }
+
+  // Rule 7 extended: Subnet CIDR must be inside parent VPC (allow AZ intermediary)
+  for (const subnet of subnetNodes) {
+    const subCidr = (subnet.data.cidr as string) || '';
+    if (!subCidr || validateCIDR(subCidr)) continue;
+
+    // Check if subnet is inside an AZ which is inside a VPC
+    const parentAz = containers.find(
+      (c) => c.type === 'availability_zone' && isNodeInsideContainer(subnet, c)
+    );
+    if (parentAz) {
+      const grandparentVpc = containers.find(
+        (c) => c.type === 'vpc' && isNodeInsideContainer(parentAz, c)
+      );
+      if (grandparentVpc) {
+        const vpcCidr = (grandparentVpc.data.cidr as string) || '';
+        if (vpcCidr && !validateCIDR(vpcCidr) && !isCIDRSubsetOf(subCidr, vpcCidr)) {
+          errors.push({
+            field: 'cidr',
+            message: `Subnet '${subnet.data.label || subnet.id}' CIDR ${subCidr} is not within VPC '${grandparentVpc.data.label || grandparentVpc.id}' CIDR ${vpcCidr}`,
+            severity: 'error',
+            nodeId: subnet.id,
+          });
+        }
       }
     }
   }

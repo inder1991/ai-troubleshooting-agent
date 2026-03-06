@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { Handle, Position, NodeProps } from 'reactflow';
+import { Handle, Position, NodeProps, NodeResizeControl } from 'reactflow';
 
 interface DeviceNodeData {
   label: string;
@@ -11,13 +11,6 @@ interface DeviceNodeData {
   description?: string;
   location?: string;
   status?: 'healthy' | 'degraded' | 'down';
-  interfaces?: Array<{
-    id: string;
-    name: string;
-    ip: string;
-    role: string;
-    zone: string;
-  }>;
 }
 
 const deviceIcons: Record<string, string> = {
@@ -36,6 +29,12 @@ const deviceIcons: Record<string, string> = {
   vlan: 'label',
   mpls: 'conversion_path',
   compliance_zone: 'verified_user',
+  nat_gateway: 'nat',
+  internet_gateway: 'language',
+  lambda: 'functions',
+  route_table: 'route',
+  security_group: 'shield_lock',
+  elastic_ip: 'pin_drop',
 };
 
 const statusColors: Record<string, string> = {
@@ -55,6 +54,12 @@ const deviceColors: Record<string, string> = {
   vlan: '#14b8a6',
   mpls: '#a855f7',
   compliance_zone: '#f59e0b',
+  nat_gateway: '#10b981',
+  internet_gateway: '#3b82f6',
+  lambda: '#f97316',
+  route_table: '#a855f7',
+  security_group: '#ef4444',
+  elastic_ip: '#eab308',
 };
 
 const typeAbbreviations: Record<string, string> = {
@@ -73,15 +78,12 @@ const typeAbbreviations: Record<string, string> = {
   vpc: 'VPC',
   compliance_zone: 'CZ',
   zone: 'ZONE',
-};
-
-const roleColors: Record<string, string> = {
-  inside: '#22c55e',
-  outside: '#ef4444',
-  dmz: '#f59e0b',
-  management: '#3b82f6',
-  sync: '#64748b',
-  loopback: '#a855f7',
+  nat_gateway: 'NAT',
+  internet_gateway: 'IGW',
+  lambda: 'FN',
+  route_table: 'RT',
+  security_group: 'SG',
+  elastic_ip: 'EIP',
 };
 
 const DeviceNode: React.FC<NodeProps<DeviceNodeData>> = ({ data, selected }) => {
@@ -89,25 +91,31 @@ const DeviceNode: React.FC<NodeProps<DeviceNodeData>> = ({ data, selected }) => 
   const icon = deviceIcons[data.deviceType] || 'devices';
   const statusColor = statusColors[data.status || 'healthy'] || '#22c55e';
   const typeAbbr = typeAbbreviations[data.deviceType] || data.deviceType?.toUpperCase().slice(0, 3);
+  const accentColor = deviceColors[data.deviceType] || '#07b6d5';
 
   return (
     <div className="relative group">
-      {/* 4 handles — visible on hover, act as both source + target */}
-      <Handle type="source" position={Position.Top} id="top"
-        className="!w-3 !h-3 !bg-[#07b6d5] !border-2 !border-[#0a0f13] opacity-0 group-hover:opacity-100 transition-opacity" />
+      {/* Resize control */}
+      <NodeResizeControl minWidth={56} minHeight={40}
+        style={{ background: accentColor, width: '8px', height: '8px', borderRadius: '2px' }}
+      />
+
+      {/* 4 directional handles — top+left=target, bottom+right=source */}
+      <Handle type="target" position={Position.Top} id="top"
+        className="!w-2.5 !h-2.5 !bg-[#07b6d5] !border !border-[#3a5a60] opacity-0 group-hover:opacity-100 transition-opacity" />
       <Handle type="source" position={Position.Bottom} id="bottom"
-        className="!w-3 !h-3 !bg-[#07b6d5] !border-2 !border-[#0a0f13] opacity-0 group-hover:opacity-100 transition-opacity" />
-      <Handle type="source" position={Position.Left} id="left"
-        className="!w-3 !h-3 !bg-[#07b6d5] !border-2 !border-[#0a0f13] opacity-0 group-hover:opacity-100 transition-opacity" />
+        className="!w-2.5 !h-2.5 !bg-[#07b6d5] !border !border-[#3a5a60] opacity-0 group-hover:opacity-100 transition-opacity" />
+      <Handle type="target" position={Position.Left} id="left"
+        className="!w-2.5 !h-2.5 !bg-[#07b6d5] !border !border-[#3a5a60] opacity-0 group-hover:opacity-100 transition-opacity" />
       <Handle type="source" position={Position.Right} id="right"
-        className="!w-3 !h-3 !bg-[#07b6d5] !border-2 !border-[#0a0f13] opacity-0 group-hover:opacity-100 transition-opacity" />
+        className="!w-2.5 !h-2.5 !bg-[#07b6d5] !border !border-[#3a5a60] opacity-0 group-hover:opacity-100 transition-opacity" />
 
       <div
-        className="flex flex-col items-center gap-1.5 p-3 rounded-lg border-2 transition-all min-w-[80px]"
+        className="w-full h-full flex flex-col items-center gap-0.5 p-1.5 rounded border transition-all"
         style={{
           backgroundColor: selected ? '#162a2e' : '#0f2023',
           borderColor: selected ? '#07b6d5' : '#224349',
-          borderRadius: isFirewall ? '12px' : '8px',
+          borderRadius: isFirewall ? '10px' : '6px',
           clipPath: isFirewall
             ? 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)'
             : undefined,
@@ -116,38 +124,39 @@ const DeviceNode: React.FC<NodeProps<DeviceNodeData>> = ({ data, selected }) => 
       >
         {/* Status dot */}
         <div
-          className="absolute top-1 right-1 w-2 h-2 rounded-full"
+          className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full"
           style={{ backgroundColor: statusColor }}
         />
 
-        {/* Icon */}
-        <span
-          className="material-symbols-outlined text-2xl"
-          style={{
-            fontFamily: 'Material Symbols Outlined',
-            color: deviceColors[data.deviceType] || (isFirewall ? '#ef4444' : '#f59e0b'),
-          }}
-        >
-          {icon}
-        </span>
-
-        {/* Device type badge */}
-        {typeAbbr && (
+        {/* Icon + type badge inline */}
+        <div className="flex items-center gap-1">
           <span
-            className="text-[8px] font-mono font-bold px-1.5 py-0.5 rounded-full leading-none"
+            className="material-symbols-outlined text-base"
             style={{
-              backgroundColor: 'rgba(7,182,213,0.15)',
-              color: '#07b6d5',
-              border: '1px solid rgba(7,182,213,0.3)',
+              fontFamily: 'Material Symbols Outlined',
+              fontSize: '16px',
+              color: accentColor,
             }}
           >
-            {typeAbbr}
+            {icon}
           </span>
-        )}
+          {typeAbbr && (
+            <span
+              className="text-[7px] font-mono font-bold px-1 py-px rounded-full leading-none"
+              style={{
+                backgroundColor: 'rgba(7,182,213,0.15)',
+                color: '#07b6d5',
+                border: '1px solid rgba(7,182,213,0.3)',
+              }}
+            >
+              {typeAbbr}
+            </span>
+          )}
+        </div>
 
         {/* Label */}
         <span
-          className="text-[10px] font-mono font-medium text-center leading-tight max-w-[70px] truncate"
+          className="text-[9px] font-mono font-medium text-center leading-tight max-w-[100px] truncate"
           style={{ color: '#e2e8f0' }}
         >
           {data.label}
@@ -155,50 +164,16 @@ const DeviceNode: React.FC<NodeProps<DeviceNodeData>> = ({ data, selected }) => 
 
         {/* IP */}
         {data.ip && (
-          <span
-            className="text-[9px] font-mono"
-            style={{ color: '#64748b' }}
-          >
+          <span className="text-[8px] font-mono leading-none" style={{ color: '#64748b' }}>
             {data.ip}
           </span>
         )}
 
-        {/* Zone label */}
+        {/* Zone */}
         {data.zone && (
-          <span
-            className="text-[8px] font-mono truncate max-w-[70px]"
-            style={{ color: '#4a7a80' }}
-          >
+          <span className="text-[7px] font-mono truncate max-w-[80px] leading-none" style={{ color: '#4a7a80' }}>
             {data.zone}
           </span>
-        )}
-
-        {/* Interfaces */}
-        {data.interfaces && data.interfaces.length > 0 && (
-          <>
-            <div className="w-full border-t mt-1 pt-1" style={{ borderColor: '#224349' }} />
-            {data.interfaces.map((iface, idx) => (
-              <div key={iface.id || idx} className="flex items-center gap-1.5 w-full px-1">
-                <div
-                  className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: roleColors[iface.role] || '#64748b' }}
-                />
-                <span className="text-[8px] font-mono truncate" style={{ color: '#94a3b8' }}>
-                  {iface.name}
-                </span>
-                <span className="text-[7px] font-mono ml-auto" style={{ color: '#475569' }}>
-                  {iface.role ? iface.role.slice(0, 3).toUpperCase() : ''}
-                </span>
-                <Handle
-                  type="source"
-                  position={Position.Right}
-                  id={`iface-${iface.id || idx}`}
-                  className="!w-2 !h-2 !bg-[#07b6d5] !border !border-[#0a0f13] !right-[-8px]"
-                  style={{ top: 'auto', position: 'relative' }}
-                />
-              </div>
-            ))}
-          </>
         )}
       </div>
     </div>

@@ -7,6 +7,12 @@ interface TopologyToolbarProps {
   onAdapterStatus: () => void;
   onRefreshFromKG: () => void;
   onPromote?: () => void;
+  onUndo?: () => void;
+  onRedo?: () => void;
+  onDeleteSelected?: () => void;
+  canUndo?: boolean;
+  canRedo?: boolean;
+  hasSelection?: boolean;
   saving?: boolean;
   loading?: boolean;
   refreshing?: boolean;
@@ -20,6 +26,12 @@ const TopologyToolbar: React.FC<TopologyToolbarProps> = ({
   onAdapterStatus,
   onRefreshFromKG,
   onPromote,
+  onUndo,
+  onRedo,
+  onDeleteSelected,
+  canUndo,
+  canRedo,
+  hasSelection,
   saving,
   loading,
   refreshing,
@@ -47,6 +59,51 @@ const TopologyToolbar: React.FC<TopologyToolbarProps> = ({
       <span className="text-sm font-mono font-semibold mr-4" style={{ color: '#e2e8f0' }}>
         Topology Editor
       </span>
+
+      {/* Undo / Redo / Delete */}
+      <div className="w-px h-5 mx-1" style={{ backgroundColor: '#224349' }} />
+
+      {onUndo && (
+        <button
+          onClick={onUndo}
+          disabled={!canUndo}
+          title="Undo (Ctrl+Z)"
+          className="flex items-center gap-1 px-2 py-1.5 rounded text-xs font-mono border transition-colors hover:border-[#07b6d5]/40 disabled:opacity-30 disabled:cursor-not-allowed"
+          style={{ backgroundColor: '#162a2e', borderColor: '#224349', color: '#e2e8f0' }}
+        >
+          <span className="material-symbols-outlined text-sm" style={{ fontFamily: 'Material Symbols Outlined', color: '#07b6d5' }}>
+            undo
+          </span>
+        </button>
+      )}
+
+      {onRedo && (
+        <button
+          onClick={onRedo}
+          disabled={!canRedo}
+          title="Redo (Ctrl+Shift+Z)"
+          className="flex items-center gap-1 px-2 py-1.5 rounded text-xs font-mono border transition-colors hover:border-[#07b6d5]/40 disabled:opacity-30 disabled:cursor-not-allowed"
+          style={{ backgroundColor: '#162a2e', borderColor: '#224349', color: '#e2e8f0' }}
+        >
+          <span className="material-symbols-outlined text-sm" style={{ fontFamily: 'Material Symbols Outlined', color: '#07b6d5' }}>
+            redo
+          </span>
+        </button>
+      )}
+
+      {onDeleteSelected && (
+        <button
+          onClick={onDeleteSelected}
+          disabled={!hasSelection}
+          title="Delete selected (Del)"
+          className="flex items-center gap-1 px-2 py-1.5 rounded text-xs font-mono border transition-colors hover:border-red-500/40 disabled:opacity-30 disabled:cursor-not-allowed"
+          style={{ backgroundColor: '#162a2e', borderColor: '#224349', color: hasSelection ? '#ef4444' : '#e2e8f0' }}
+        >
+          <span className="material-symbols-outlined text-sm" style={{ fontFamily: 'Material Symbols Outlined', color: hasSelection ? '#ef4444' : '#07b6d5' }}>
+            delete
+          </span>
+        </button>
+      )}
 
       <div className="w-px h-5 mx-1" style={{ backgroundColor: '#224349' }} />
 

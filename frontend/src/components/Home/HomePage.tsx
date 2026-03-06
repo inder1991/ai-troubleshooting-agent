@@ -2,6 +2,7 @@ import React from 'react';
 import type { CapabilityType, V4Session } from '../../types';
 import CapabilityLauncher from './CapabilityLauncher';
 import LiveIntelligenceFeed from './LiveIntelligenceFeed';
+import HowItWorksSection from './HowItWorks/HowItWorksSection';
 
 interface HomePageProps {
   onSelectCapability: (capability: CapabilityType) => void;
@@ -81,12 +82,26 @@ const HomePage: React.FC<HomePageProps> = ({
           <CapabilityLauncher onSelectCapability={onSelectCapability} />
         </section>
 
+        {/* Anchor link to How It Works */}
+        <button
+          onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
+          className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-[#07b6d5] transition-colors mb-6"
+        >
+          <span className="material-symbols-outlined text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>
+            arrow_downward
+          </span>
+          See how it works
+        </button>
+
         {/* Live Intelligence Feed */}
         <LiveIntelligenceFeed
           sessions={sessions}
           onSessionsChange={onSessionsChange}
           onSelectSession={onSelectSession}
         />
+
+        {/* How It Works Documentation Section */}
+        <HowItWorksSection />
       </div>
     </div>
   );

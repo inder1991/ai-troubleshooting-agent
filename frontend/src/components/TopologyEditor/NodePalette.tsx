@@ -28,6 +28,13 @@ const paletteCategories: PaletteCategory[] = [
       { type: 'transit_gateway', label: 'Transit Gateway', icon: 'hub' },
       { type: 'load_balancer', label: 'Load Balancer', icon: 'dns' },
       { type: 'cloud_gateway', label: 'Cloud Gateway', icon: 'cloud' },
+      { type: 'nat_gateway', label: 'NAT Gateway', icon: 'nat' },
+      { type: 'internet_gateway', label: 'Internet Gateway', icon: 'language' },
+      { type: 'lambda', label: 'Lambda', icon: 'functions' },
+      { type: 'route_table', label: 'Route Table', icon: 'route' },
+      { type: 'elastic_ip', label: 'Elastic IP', icon: 'pin_drop' },
+      { type: 'availability_zone', label: 'Availability Zone', icon: 'dns' },
+      { type: 'auto_scaling_group', label: 'Auto Scaling Group', icon: 'auto_awesome' },
     ],
   },
   {
@@ -45,6 +52,7 @@ const paletteCategories: PaletteCategory[] = [
       { type: 'zone', label: 'Zone', icon: 'shield' },
       { type: 'subnet', label: 'Subnet', icon: 'lan' },
       { type: 'compliance_zone', label: 'Compliance Zone', icon: 'verified_user' },
+      { type: 'security_group', label: 'Security Group', icon: 'shield_lock' },
     ],
   },
   {
@@ -52,6 +60,12 @@ const paletteCategories: PaletteCategory[] = [
     items: [
       { type: 'vlan', label: 'VLAN', icon: 'label' },
       { type: 'ha_group', label: 'HA Group', icon: 'sync' },
+    ],
+  },
+  {
+    label: 'Annotations',
+    items: [
+      { type: 'text_annotation', label: 'Text Note', icon: 'sticky_note_2' },
     ],
   },
 ];
