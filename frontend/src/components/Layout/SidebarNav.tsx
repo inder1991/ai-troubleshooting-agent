@@ -16,14 +16,9 @@ interface SidebarNavProps {
 
 const navItems: NavItem[] = [
   {
-    kind: 'group', group: 'Overview', icon: 'space_dashboard',
-    children: [
-      { id: 'home', label: 'Dashboard', icon: 'dashboard' },
-    ],
-  },
-  {
     kind: 'group', group: 'Diagnostics', icon: 'troubleshoot',
     children: [
+      { id: 'home', label: 'Dashboard', icon: 'dashboard' },
       { id: 'app-diagnostics', label: 'App Diagnostics', icon: 'bug_report' },
       { id: 'cluster-diagnostics', label: 'Cluster Diagnostics', icon: 'health_and_safety' },
       { id: 'network-troubleshooting', label: 'Network Path', icon: 'route' },
