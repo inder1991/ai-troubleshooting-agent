@@ -56,7 +56,11 @@ class NetFlowV5Record:
 
 
 class FlowParser:
-    """Parses NetFlow v5 binary packets into FlowRecord objects."""
+    """Parses NetFlow v5/v9 and IPFIX binary packets into FlowRecord objects."""
+
+    def __init__(self):
+        # Template cache: {(exporter_ip, source_id): {template_id: [(field_type, field_len), ...]}}
+        self._v9_templates: dict[tuple[str, int], dict[int, list[tuple[int, int]]]] = {}
 
     def parse_v5(self, data: bytes, exporter_ip: str) -> list[FlowRecord]:
         header = NetFlowV5Header.from_bytes(data)
@@ -97,14 +101,168 @@ class FlowParser:
 
         return records
 
+    def parse_v9(self, data: bytes, exporter_ip: str) -> list[FlowRecord]:
+        """Parse NetFlow v9 packet — handles both template and data flowsets."""
+        if len(data) < 20:
+            return []
+        version, count, sys_uptime, unix_secs, sequence, source_id = struct.unpack_from("!HHIIII", data)
+        if version != 9:
+            return []
+
+        base_time = datetime.fromtimestamp(unix_secs, tz=timezone.utc)
+        cache_key = (exporter_ip, source_id)
+        offset = 20
+        records: list[FlowRecord] = []
+
+        while offset < len(data) - 3:
+            if offset + 4 > len(data):
+                break
+            flowset_id, flowset_length = struct.unpack_from("!HH", data, offset)
+            if flowset_length < 4:
+                break
+            flowset_end = offset + flowset_length
+
+            if flowset_id == 0:
+                self._parse_v9_templates(data, offset + 4, flowset_end, cache_key)
+            elif flowset_id == 1:
+                pass  # Options Template — skip
+            elif flowset_id >= 256:
+                new_records = self._parse_v9_data(data, offset + 4, flowset_end,
+                                                   flowset_id, cache_key, base_time, exporter_ip)
+                records.extend(new_records)
+
+            offset = flowset_end
+
+        return records
+
+    def _parse_v9_templates(self, data: bytes, start: int, end: int,
+                            cache_key: tuple[str, int]) -> None:
+        if cache_key not in self._v9_templates:
+            self._v9_templates[cache_key] = {}
+        offset = start
+        while offset < end - 3:
+            if offset + 4 > end:
+                break
+            template_id, field_count = struct.unpack_from("!HH", data, offset)
+            offset += 4
+            fields: list[tuple[int, int]] = []
+            for _ in range(field_count):
+                if offset + 4 > end:
+                    break
+                ftype, flen = struct.unpack_from("!HH", data, offset)
+                fields.append((ftype, flen))
+                offset += 4
+            self._v9_templates[cache_key][template_id] = fields
+
+    def _parse_v9_data(self, data: bytes, start: int, end: int,
+                       template_id: int, cache_key: tuple[str, int],
+                       base_time: datetime, exporter_ip: str) -> list[FlowRecord]:
+        templates = self._v9_templates.get(cache_key, {})
+        template = templates.get(template_id)
+        if not template:
+            logger.debug("No template %d for exporter %s", template_id, cache_key[0])
+            return []
+
+        record_size = sum(flen for _, flen in template)
+        if record_size == 0:
+            return []
+
+        records: list[FlowRecord] = []
+        offset = start
+
+        while offset + record_size <= end:
+            field_values: dict[int, Any] = {}
+            pos = offset
+            for ftype, flen in template:
+                if pos + flen > end:
+                    break
+                raw = data[pos:pos + flen]
+                if flen == 1:
+                    field_values[ftype] = raw[0]
+                elif flen == 2:
+                    field_values[ftype] = struct.unpack_from("!H", raw)[0]
+                elif flen == 4:
+                    field_values[ftype] = struct.unpack_from("!I", raw)[0]
+                elif flen == 8:
+                    field_values[ftype] = struct.unpack_from("!Q", raw)[0]
+                else:
+                    field_values[ftype] = raw
+                pos += flen
+
+            src_ip_int = field_values.get(8, 0)
+            dst_ip_int = field_values.get(12, 0)
+            src_ip = socket.inet_ntoa(struct.pack("!I", src_ip_int)) if isinstance(src_ip_int, int) else "0.0.0.0"
+            dst_ip = socket.inet_ntoa(struct.pack("!I", dst_ip_int)) if isinstance(dst_ip_int, int) else "0.0.0.0"
+
+            records.append(FlowRecord(
+                src_ip=src_ip,
+                dst_ip=dst_ip,
+                src_port=field_values.get(7, 0),
+                dst_port=field_values.get(11, 0),
+                protocol=field_values.get(4, 0),
+                bytes=field_values.get(1, 0),
+                packets=field_values.get(2, 0),
+                start_time=base_time,
+                end_time=base_time,
+                tcp_flags=field_values.get(6, 0),
+                tos=field_values.get(5, 0),
+                input_snmp=field_values.get(10, 0),
+                output_snmp=field_values.get(14, 0),
+                src_as=field_values.get(16, 0),
+                dst_as=field_values.get(17, 0),
+                exporter_ip=exporter_ip,
+            ))
+            offset += record_size
+
+        return records
+
+    def parse_ipfix(self, data: bytes, exporter_ip: str) -> list[FlowRecord]:
+        """Parse IPFIX (NetFlow v10) packet."""
+        if len(data) < 16:
+            return []
+        version, length, export_time, sequence, domain_id = struct.unpack_from("!HHIII", data)
+        if version != 10:
+            return []
+
+        base_time = datetime.fromtimestamp(export_time, tz=timezone.utc)
+        cache_key = (exporter_ip, domain_id)
+        offset = 16
+        records: list[FlowRecord] = []
+
+        while offset < len(data) - 3:
+            if offset + 4 > len(data):
+                break
+            set_id, set_length = struct.unpack_from("!HH", data, offset)
+            if set_length < 4:
+                break
+            set_end = offset + set_length
+
+            if set_id == 2:
+                self._parse_v9_templates(data, offset + 4, set_end, cache_key)
+            elif set_id == 3:
+                pass  # Options Template — skip
+            elif set_id >= 256:
+                new_records = self._parse_v9_data(data, offset + 4, set_end,
+                                                   set_id, cache_key, base_time, exporter_ip)
+                records.extend(new_records)
+
+            offset = set_end
+
+        return records
+
     def detect_and_parse(self, data: bytes, exporter_ip: str) -> list[FlowRecord]:
         if len(data) < 4:
             return []
         version = struct.unpack_from("!H", data)[0]
         if version == 5:
             return self.parse_v5(data, exporter_ip)
-        logger.debug("Unsupported flow version: %d from %s", version, exporter_ip)
-        return []
+        elif version == 9:
+            return self.parse_v9(data, exporter_ip)
+        elif version == 10:
+            return self.parse_ipfix(data, exporter_ip)
+        else:
+            logger.debug("Unsupported flow version: %d", version)
+            return []
 
 
 class FlowAggregator:
