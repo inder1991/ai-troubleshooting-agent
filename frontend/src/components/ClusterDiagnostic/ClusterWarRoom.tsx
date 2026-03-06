@@ -218,7 +218,7 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
         {loading && !findings && !error && (
           <div className="col-span-12 flex items-center justify-center">
             <div className="text-center">
-              <span className="material-symbols-outlined animate-spin text-4xl text-[#13b6ec] mb-4 block" style={{ fontFamily: 'Material Symbols Outlined' }}>progress_activity</span>
+              <span className="material-symbols-outlined animate-spin text-4xl text-[#07b6d5] mb-4 block" style={{ fontFamily: 'Material Symbols Outlined' }}>progress_activity</span>
               <p className="text-slate-500 text-sm">Initializing cluster diagnostics...</p>
             </div>
           </div>

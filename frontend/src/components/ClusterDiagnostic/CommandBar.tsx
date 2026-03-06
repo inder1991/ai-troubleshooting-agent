@@ -23,7 +23,7 @@ const CommandBar: React.FC = () => {
   return (
     <footer className="h-12 bg-[#152a2f] border-t border-[#1f3b42] sticky bottom-0 z-50 flex items-center px-4 shrink-0">
       <div className="flex items-center gap-3 w-full max-w-4xl mx-auto">
-        <span className="text-[#13b6ec] font-mono text-sm font-bold">$</span>
+        <span className="text-[#07b6d5] font-mono text-sm font-bold">$</span>
         <input
           className="bg-transparent border-none text-sm font-mono text-white w-full placeholder-slate-600 focus:outline-none focus:ring-0"
           placeholder="Type tactical command (e.g., /cordon --node=3) or press 'K' for quick search..."

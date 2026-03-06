@@ -14,7 +14,7 @@ interface DAGNode {
 const nodeStyle = (status: DAGNode['status']) => {
   switch (status) {
     case 'running': return 'border-amber-500 text-amber-500 animate-pulse-amber shadow-[0_0_10px_rgba(245,158,11,0.2)]';
-    case 'complete': return 'border-[#13b6ec] text-[#13b6ec]';
+    case 'complete': return 'border-[#07b6d5] text-[#07b6d5]';
     case 'failed': return 'border-red-500 text-red-500';
     default: return 'border-[#1f3b42] text-slate-600 italic';
   }
@@ -42,7 +42,7 @@ const ExecutionDAG: React.FC<ExecutionDAGProps> = ({ domainReports, phase }) => 
       <div className="relative flex flex-col items-center gap-6 h-full py-2">
         {dagNodes.map((node, i) => (
           <React.Fragment key={node.label}>
-            {i > 0 && <div className="w-px h-6 bg-[#13b6ec]/30" />}
+            {i > 0 && <div className="w-px h-6 bg-[#07b6d5]/30" />}
             <div className={`px-4 py-2 border rounded bg-[#0f2023] flex items-center justify-center text-[10px] font-mono ${nodeStyle(node.status)}`}>
               {node.label}
             </div>

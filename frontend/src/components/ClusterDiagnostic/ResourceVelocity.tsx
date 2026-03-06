@@ -13,12 +13,12 @@ const ResourceVelocity: React.FC<ResourceVelocityProps> = ({ label = 'Resource V
         <text x="5" y="35" fill="#1f3b42" fontFamily="monospace" fontSize="6">REQUEST_LIMIT</text>
         <path
           d="M0 70 Q 20 65, 40 68 T 80 50 T 120 20 T 160 30 T 200 15 L 200 80 L 0 80 Z"
-          fill="rgba(19, 182, 236, 0.1)"
+          fill="rgba(7, 182, 213, 0.1)"
         />
         <path
           d="M0 70 Q 20 65, 40 68 T 80 50 T 120 20 T 160 30 T 200 15"
           fill="none"
-          stroke="#13b6ec"
+          stroke="#07b6d5"
           strokeWidth="1.5"
         />
         <path

@@ -9,7 +9,7 @@ const severityColor = (severity: VerdictEvent['severity']) => {
   switch (severity) {
     case 'FATAL': return '#ef4444';
     case 'WARN': return '#f59e0b';
-    case 'INFO': return '#13b6ec';
+    case 'INFO': return '#07b6d5';
   }
 };
 

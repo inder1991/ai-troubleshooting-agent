@@ -70,7 +70,7 @@ const RemediationCard: React.FC<RemediationCardProps> = ({ steps, blastRadius })
 
       {primaryStep.command && (
         <button
-          className="w-full bg-[#13b6ec]/10 border border-[#13b6ec] rounded h-12 flex items-center justify-between px-4 relative overflow-hidden cursor-pointer select-none transition-colors"
+          className="w-full bg-[#07b6d5]/10 border border-[#07b6d5] rounded h-12 flex items-center justify-between px-4 relative overflow-hidden cursor-pointer select-none transition-colors"
           onMouseDown={() => startHold(0, primaryStep.command!)}
           onMouseUp={cancelHold}
           onMouseLeave={cancelHold}
@@ -82,7 +82,7 @@ const RemediationCard: React.FC<RemediationCardProps> = ({ steps, blastRadius })
             style={{ width: holdingIndex === 0 ? `${holdProgress * 100}%` : '0%' }}
           />
           <span className={`font-bold tracking-widest text-xs uppercase z-10 transition-colors ${
-            holdingIndex === 0 ? 'text-white' : 'text-[#13b6ec]'
+            holdingIndex === 0 ? 'text-white' : 'text-[#07b6d5]'
           }`}>
             Confirm {primaryStep.description || 'Action'}
           </span>
@@ -91,20 +91,20 @@ const RemediationCard: React.FC<RemediationCardProps> = ({ steps, blastRadius })
               <path
                 d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                 fill="none"
-                stroke={holdingIndex === 0 ? '#ffffff30' : '#13b6ec30'}
+                stroke={holdingIndex === 0 ? '#ffffff30' : '#07b6d530'}
                 strokeWidth="3"
               />
               <path
                 d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                 fill="none"
-                stroke={holdingIndex === 0 ? '#fff' : '#13b6ec'}
+                stroke={holdingIndex === 0 ? '#fff' : '#07b6d5'}
                 strokeWidth="3"
                 strokeDasharray={`${(holdingIndex === 0 ? holdProgress : 0) * 100}, 100`}
-                style={{ filter: 'drop-shadow(0 0 2px rgba(19,182,236,0.8))' }}
+                style={{ filter: 'drop-shadow(0 0 2px rgba(7,182,213,0.8))' }}
               />
             </svg>
             <div className={`absolute inset-0 flex items-center justify-center text-[8px] font-mono font-bold transition-colors ${
-              holdingIndex === 0 ? 'text-white' : 'text-[#13b6ec]'
+              holdingIndex === 0 ? 'text-white' : 'text-[#07b6d5]'
             }`}>
               HOLD
             </div>
@@ -118,7 +118,7 @@ const RemediationCard: React.FC<RemediationCardProps> = ({ steps, blastRadius })
             <div key={i} className="text-xs text-slate-400">
               <p>{step.description}</p>
               {step.command && (
-                <code className="text-[10px] text-[#13b6ec] block mt-1 font-mono">$ {step.command}</code>
+                <code className="text-[10px] text-[#07b6d5] block mt-1 font-mono">$ {step.command}</code>
               )}
             </div>
           ))}

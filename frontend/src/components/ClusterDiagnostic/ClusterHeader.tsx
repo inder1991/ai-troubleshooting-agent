@@ -28,12 +28,12 @@ const ClusterHeader: React.FC<ClusterHeaderProps> = ({
         <div className="flex items-center gap-2">
           <span className={`w-3 h-3 rounded-full ${wsConnected ? 'bg-emerald-500 animate-pulse' : 'bg-slate-600'}`} />
           <h1 className="text-xl font-bold tracking-tight text-white">
-            DebugDuck <span className="text-[#13b6ec]">Cluster War Room</span>
+            DebugDuck <span className="text-[#07b6d5]">Cluster War Room</span>
           </h1>
         </div>
         <div className="px-3 py-1 bg-[#0f2023] border border-[#1f3b42] rounded text-xs font-mono flex items-center gap-2">
           <span className="text-slate-500 uppercase tracking-widest text-[10px]">Session:</span>
-          <span className="text-[#13b6ec]">#{sessionId.slice(0, 8).toUpperCase()}</span>
+          <span className="text-[#07b6d5]">#{sessionId.slice(0, 8).toUpperCase()}</span>
         </div>
       </div>
 
@@ -42,8 +42,8 @@ const ClusterHeader: React.FC<ClusterHeaderProps> = ({
           <span className="text-[10px] uppercase tracking-tighter text-slate-500">Global Confidence</span>
           <div className="w-48 h-2 bg-[#0f2023] border border-[#1f3b42] rounded-full mt-1 overflow-hidden">
             <div
-              className="h-full bg-[#13b6ec] transition-all duration-700"
-              style={{ width: `${confidence}%`, boxShadow: '0 0 8px #13b6ec' }}
+              className="h-full bg-[#07b6d5] transition-all duration-700"
+              style={{ width: `${confidence}%`, boxShadow: '0 0 8px #07b6d5' }}
             />
           </div>
         </div>

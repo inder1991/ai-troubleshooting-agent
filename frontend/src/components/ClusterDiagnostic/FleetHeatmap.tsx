@@ -43,7 +43,7 @@ const FleetHeatmap: React.FC<FleetHeatmapProps> = ({ nodes, selectedNode, onSele
                 aspect-square rounded-[1px] transition-all duration-500 cursor-pointer
                 ${statusColor(node.status)}
                 ${isCritical ? 'animate-pulse opacity-100 z-10 shadow-[0_0_12px_#ef4444]' : 'opacity-20 hover:opacity-60'}
-                ${isSelected ? 'ring-2 ring-[#13b6ec] ring-offset-1 ring-offset-[#0f2023] z-20' : ''}
+                ${isSelected ? 'ring-2 ring-[#07b6d5] ring-offset-1 ring-offset-[#0f2023] z-20' : ''}
               `}
               onClick={() => onSelectNode?.(node.name)}
               title={`${node.name} | ${node.cpu_pct ?? '—'}% CPU${node.disk_pressure ? ' | DISK PRESSURE' : ''}`}

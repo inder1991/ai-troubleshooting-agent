@@ -12,7 +12,7 @@ interface DomainPanelProps {
 const statusBadge = (status?: string) => {
   switch (status) {
     case 'SUCCESS': return { text: 'HEALTHY', cls: 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20' };
-    case 'RUNNING': return { text: 'ACTIVE_TRACING', cls: 'text-[#13b6ec] bg-[#13b6ec]/10 border-[#13b6ec]/20' };
+    case 'RUNNING': return { text: 'ACTIVE_TRACING', cls: 'text-[#07b6d5] bg-[#07b6d5]/10 border-[#07b6d5]/20' };
     case 'PARTIAL': return { text: 'PARTIAL', cls: 'text-amber-400 bg-amber-400/10 border-amber-400/20' };
     case 'FAILED': return { text: 'FAILED', cls: 'text-red-400 bg-red-400/10 border-red-400/20' };
     default: return { text: 'PENDING', cls: 'text-slate-400 bg-slate-400/10 border-slate-400/20' };
@@ -51,11 +51,11 @@ const DomainPanel: React.FC<DomainPanelProps> = ({ domain, report, namespaces })
               key={ns.namespace}
               className={`border-l-2 pl-4 py-2 ${
                 hasTrigger
-                  ? `border-[#13b6ec] bg-[#152a2f]/40 rounded-r border-y border-r border-[#1f3b42]/50`
+                  ? `border-[#07b6d5] bg-[#152a2f]/40 rounded-r border-y border-r border-[#1f3b42]/50`
                   : `border-[#1f3b42] ${isHealthy ? 'opacity-40 hover:opacity-80 transition-opacity' : ''}`
               }`}
             >
-              <h4 className={`text-xs font-mono flex items-center gap-2 ${hasTrigger ? 'text-[#13b6ec]' : 'text-slate-500'}`}>
+              <h4 className={`text-xs font-mono flex items-center gap-2 ${hasTrigger ? 'text-[#07b6d5]' : 'text-slate-500'}`}>
                 <span className="material-symbols-outlined text-[14px]" style={{ fontFamily: 'Material Symbols Outlined' }}>grid_view</span>
                 namespace: {ns.namespace}
               </h4>
