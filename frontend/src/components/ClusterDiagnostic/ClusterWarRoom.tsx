@@ -6,6 +6,7 @@ import type {
 } from '../../types';
 import { API_BASE_URL } from '../../services/api';
 import { SkeletonLoader } from '../shared/SkeletonLoader';
+import { MetricCard } from '../shared/MetricCard';
 import ChatDrawer from '../Chat/ChatDrawer';
 import LedgerTriggerTab from '../Chat/LedgerTriggerTab';
 import ClusterHeader from './ClusterHeader';
@@ -30,6 +31,13 @@ interface ClusterWarRoomProps {
 }
 
 const ALL_DOMAINS: ClusterDomainKey[] = ['node', 'ctrl_plane', 'network', 'storage'];
+
+const DOMAIN_LABELS: Record<ClusterDomainKey, string> = {
+  ctrl_plane: 'Control Plane',
+  node: 'Compute',
+  network: 'Network',
+  storage: 'Storage',
+};
 
 const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
   session, events, wsConnected, phase, confidence, onGoHome,
@@ -203,6 +211,29 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
         wsConnected={wsConnected}
         onGoHome={onGoHome}
       />
+
+      {/* Domain Health Ribbon */}
+      {findings && (
+        <div className="grid grid-cols-4 gap-3 px-6 py-3 border-b border-[#1f3b42] shrink-0">
+          {ALL_DOMAINS.map(domain => {
+            const report = domainReports.find(r => r.domain === domain);
+            const anomalyCount = report?.anomalies.length || 0;
+            const status = report?.status || 'PENDING';
+            const isHealthy = status === 'SUCCESS' && anomalyCount === 0;
+            return (
+              <MetricCard
+                key={domain}
+                title={DOMAIN_LABELS[domain]}
+                value={isHealthy ? 'Healthy' : `${anomalyCount} issues`}
+                trendValue={status === 'RUNNING' ? 'Scanning...' : status}
+                trendDirection={isHealthy ? 'down' : anomalyCount > 0 ? 'up' : 'neutral'}
+                trendType={isHealthy ? 'good' : anomalyCount > 0 ? 'bad' : 'neutral'}
+                sparklineData={[anomalyCount, anomalyCount]}
+              />
+            );
+          })}
+        </div>
+      )}
 
       {/* Error banner */}
       {error && (
