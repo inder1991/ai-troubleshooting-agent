@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import type { V4Session, DiagnosticPhase } from '../../types';
 import { listSessionsV4 } from '../../services/api';
+import { ActivityFeedRow, SectionHeader, TimeRangeSelector, SkeletonLoader } from '../shared';
+import type { SystemStatus } from '../shared';
 
 interface LiveIntelligenceFeedProps {
   sessions: V4Session[];
@@ -8,82 +10,31 @@ interface LiveIntelligenceFeedProps {
   onSelectSession: (session: V4Session) => void;
 }
 
-const statusConfig = (phase: DiagnosticPhase): {
-  label: string;
-  dotColor: string;
-  textColor: string;
-  bgColor: string;
-  borderColor: string;
-  animate: boolean;
-} => {
-  switch (phase) {
-    case 'initial':
-    case 'collecting_context':
-      return {
-        label: 'Analyzing',
-        dotColor: 'bg-[#07b6d5]',
-        textColor: 'text-[#07b6d5]',
-        bgColor: 'bg-[#07b6d5]/10',
-        borderColor: 'border-[#07b6d5]/20',
-        animate: true,
-      };
-    case 'logs_analyzed':
-    case 'metrics_analyzed':
-    case 'k8s_analyzed':
-    case 'tracing_analyzed':
-    case 'code_analyzed':
-      return {
-        label: 'Analyzing',
-        dotColor: 'bg-indigo-400',
-        textColor: 'text-indigo-400',
-        bgColor: 'bg-indigo-500/10',
-        borderColor: 'border-indigo-500/20',
-        animate: true,
-      };
-    case 'validating':
-    case 're_investigating':
-      return {
-        label: 'Remediating',
-        dotColor: 'bg-[#07b6d5]',
-        textColor: 'text-[#07b6d5]',
-        bgColor: 'bg-[#07b6d5]/10',
-        borderColor: 'border-[#07b6d5]/20',
-        animate: true,
-      };
-    case 'fix_in_progress':
-      return {
-        label: 'Remediating',
-        dotColor: 'bg-amber-400',
-        textColor: 'text-amber-400',
-        bgColor: 'bg-amber-500/10',
-        borderColor: 'border-amber-500/20',
-        animate: true,
-      };
-    case 'diagnosis_complete':
-    case 'complete':
-      return {
-        label: 'Resolved',
-        dotColor: 'bg-emerald-400',
-        textColor: 'text-emerald-400',
-        bgColor: 'bg-emerald-500/10',
-        borderColor: 'border-emerald-500/20',
-        animate: false,
-      };
-    default:
-      return {
-        label: String(phase).replace(/_/g, ' '),
-        dotColor: 'bg-slate-400',
-        textColor: 'text-slate-400',
-        bgColor: 'bg-slate-500/10',
-        borderColor: 'border-slate-500/20',
-        animate: false,
-      };
+const phaseToStatus = (phase: DiagnosticPhase): { status: SystemStatus; label: string } => {
+  if (['initial', 'collecting_context'].includes(phase)) return { status: 'in_progress', label: 'Collecting' };
+  if (['logs_analyzed', 'metrics_analyzed', 'k8s_analyzed', 'tracing_analyzed', 'code_analyzed'].includes(phase)) return { status: 'in_progress', label: 'Analyzing' };
+  if (['validating', 're_investigating'].includes(phase)) return { status: 'in_progress', label: 'Validating' };
+  if (phase === 'fix_in_progress') return { status: 'degraded', label: 'Remediating' };
+  if (['diagnosis_complete', 'complete'].includes(phase)) return { status: 'healthy', label: 'Resolved' };
+  if (phase === 'error') return { status: 'critical', label: 'Error' };
+  return { status: 'unknown', label: String(phase) };
+};
+
+const capabilityAgents = (cap?: string): string[] => {
+  switch (cap) {
+    case 'troubleshoot_app': return ['Log', 'Metric', 'Trace', 'Code'];
+    case 'pr_review': return ['Code', 'Security'];
+    case 'github_issue_fix': return ['Code', 'Patch'];
+    case 'cluster_diagnostics': return ['Node', 'Network', 'Storage', 'CtrlPlane'];
+    case 'network_troubleshooting': return ['Path', 'Firewall', 'NAT'];
+    default: return ['Agent'];
   }
 };
 
-const agentColor = (index: number): string => {
-  const colors = ['bg-[#07b6d5]', 'bg-indigo-400', 'bg-emerald-400', 'bg-amber-400', 'bg-violet-400'];
-  return colors[index % colors.length];
+const computeDuration = (created: string, updated: string): string => {
+  const ms = new Date(updated).getTime() - new Date(created).getTime();
+  if (ms < 60000) return `${Math.round(ms / 1000)}s`;
+  return `${Math.round(ms / 60000)}m`;
 };
 
 const LiveIntelligenceFeed: React.FC<LiveIntelligenceFeedProps> = ({
@@ -92,6 +43,7 @@ const LiveIntelligenceFeed: React.FC<LiveIntelligenceFeedProps> = ({
   onSelectSession,
 }) => {
   const [loading, setLoading] = useState(false);
+  const [timeRange, setTimeRange] = useState<string>('1h');
 
   useEffect(() => {
     const load = async () => {
@@ -112,88 +64,68 @@ const LiveIntelligenceFeed: React.FC<LiveIntelligenceFeedProps> = ({
 
   return (
     <section>
-      {/* Section Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <h2 className="text-xl font-bold text-white tracking-tight">Live Intelligence Feed</h2>
-          <span className="px-2 py-0.5 bg-[#07b6d5]/10 text-[#07b6d5] text-[10px] font-black uppercase rounded tracking-widest border border-[#07b6d5]/20">
-            Real-time
-          </span>
-          {loading && (
-            <div className="w-3 h-3 border border-[#07b6d5] border-t-transparent rounded-full animate-spin" />
-          )}
-        </div>
-        <button className="text-xs text-slate-400 hover:text-white flex items-center gap-1 transition-colors">
-          <span className="material-symbols-outlined text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>filter_list</span>
-          Filter Stream
-        </button>
-      </div>
+      <SectionHeader
+        title="Live Intelligence Feed"
+        count={sessions.length}
+        action={
+          <TimeRangeSelector
+            selected={timeRange}
+            onChange={setTimeRange}
+          />
+        }
+      >
+        {loading && (
+          <div className="w-3 h-3 border border-[#07b6d5] border-t-transparent rounded-full animate-spin" />
+        )}
+      </SectionHeader>
 
-      {/* Feed Container - bounded height with internal scroll */}
-      <div className="bg-[#1e2f33]/10 border border-[#224349] rounded-xl overflow-hidden">
-        {/* Feed Header - 12-col grid */}
-        <div className="grid grid-cols-12 gap-4 px-6 py-3 bg-[#1e2f33]/20 border-b border-[#224349]">
-          <div className="col-span-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Timestamp</div>
-          <div className="col-span-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Agent ID</div>
-          <div className="col-span-6 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Action Description</div>
-          <div className="col-span-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-right">Status</div>
-        </div>
-
-        {/* Feed Content - max-height with scroll */}
-        <div className="max-h-[400px] overflow-y-auto custom-scrollbar">
-          {sessions.length === 0 ? (
-            <div className="flex items-center justify-center py-16 text-slate-500">
-              <div className="text-center">
-                <span className="material-symbols-outlined text-3xl text-slate-600 mb-2 block" style={{ fontFamily: 'Material Symbols Outlined' }}>satellite_alt</span>
-                <p className="text-sm">No active sessions. Launch a capability to begin monitoring.</p>
+      <div className="bg-[#0a1517] border border-[#224349] rounded-xl overflow-hidden">
+        <div className="max-h-[480px] overflow-y-auto custom-scrollbar">
+          {loading && sessions.length === 0 ? (
+            <div className="flex flex-col gap-1 p-2">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <SkeletonLoader key={i} type="row" height="h-16" />
+              ))}
+            </div>
+          ) : sessions.length === 0 ? (
+            <div className="flex items-center justify-center py-20 text-slate-500">
+              <div className="text-center max-w-xs">
+                <span
+                  className="material-symbols-outlined text-4xl text-slate-600 mb-3 block"
+                  style={{ fontFamily: 'Material Symbols Outlined' }}
+                >
+                  satellite_alt
+                </span>
+                <p className="text-sm font-semibold text-slate-400 mb-1">No Active Sessions</p>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  Launch an investigation, PR review, or cluster scan from Quick Actions to begin monitoring.
+                </p>
               </div>
             </div>
           ) : (
-            sessions.slice(0, 15).map((session, idx) => {
-              const status = statusConfig(session.status);
-              const agentId = `Duck-${String(idx + 1).padStart(2, '0')}`;
+            sessions.slice(0, 15).map((session) => {
+              const { status, label } = phaseToStatus(session.status);
+              const agents = capabilityAgents(session.capability);
+              const duration = computeDuration(session.created_at, session.updated_at);
+              const timestamp = new Date(session.created_at).toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+              });
 
               return (
-                <div
+                <ActivityFeedRow
                   key={session.session_id}
+                  targetService={session.service_name}
+                  targetNamespace={session.capability || ''}
+                  timestamp={timestamp}
+                  status={status}
+                  phase={label}
+                  confidenceScore={Math.round(session.confidence)}
+                  durationStr={duration}
+                  activeAgents={agents}
                   onClick={() => onSelectSession(session)}
-                  className="grid grid-cols-12 gap-4 px-6 py-4 border-b border-[#224349]/50 hover:bg-[#1e2f33]/10 transition-colors group cursor-pointer"
-                >
-                  {/* Timestamp */}
-                  <div className="col-span-2 font-mono text-xs text-slate-500">
-                    {new Date(session.created_at).toLocaleTimeString([], {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      second: '2-digit',
-                    })}
-                  </div>
-
-                  {/* Agent ID */}
-                  <div className="col-span-2 flex items-center gap-2">
-                    <span className={`w-1.5 h-1.5 ${agentColor(idx)} rounded-full`} />
-                    <span className="text-xs font-semibold text-slate-300">{agentId}</span>
-                  </div>
-
-                  {/* Action Description */}
-                  <div className="col-span-6 text-sm text-slate-300">
-                    Investigating <span className="text-[#07b6d5]/80 font-mono">{session.service_name}</span>
-                    {session.confidence > 0 && (
-                      <span className="text-slate-500 ml-2">
-                        — Confidence: {Math.round(session.confidence)}%
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Status Badge */}
-                  <div className="col-span-2 flex justify-end items-center">
-                    <span className={`px-2.5 py-1 ${status.bgColor} ${status.textColor} text-[10px] font-bold uppercase rounded-full border ${status.borderColor} flex items-center gap-1.5`}>
-                      {status.animate && (
-                        <span className={`w-1 h-1 ${status.dotColor} rounded-full animate-pulse`} />
-                      )}
-                      {status.label}
-                    </span>
-                  </div>
-                </div>
+                />
               );
             })
           )}
