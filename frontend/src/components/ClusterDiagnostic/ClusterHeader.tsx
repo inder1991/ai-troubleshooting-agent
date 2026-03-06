@@ -11,7 +11,8 @@ interface ClusterHeaderProps {
 }
 
 const healthToStatus = (health: string): SystemStatus =>
-  health === 'HEALTHY' ? 'healthy'
+  !health ? 'in_progress'
+    : health === 'HEALTHY' ? 'healthy'
     : health === 'DEGRADED' ? 'degraded'
     : health === 'CRITICAL' ? 'critical'
     : 'unknown';

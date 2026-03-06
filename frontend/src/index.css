@@ -442,7 +442,7 @@ a:focus-visible,
 .neural-pulse-path {
   stroke-dasharray: 10 200;
   animation: neural-dash-pulse 2s linear infinite;
-  filter: drop-shadow(0 0 4px #13b6ec);
+  filter: drop-shadow(0 0 4px #07b6d5);
 }
 
 /* Tether path (dashed connecting lines) */
@@ -455,7 +455,7 @@ a:focus-visible,
 }
 .tether-path-flow {
   stroke-dasharray: 8 4;
-  filter: drop-shadow(0 0 3px #13b6ec);
+  filter: drop-shadow(0 0 3px #07b6d5);
 }
 
 /* Vertical ribbon writing mode */

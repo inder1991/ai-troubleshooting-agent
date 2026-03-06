@@ -34,8 +34,14 @@ const ObservatoryView: React.FC = () => {
     ? snapshot.links.reduce((sum, l) => sum + l.utilization, 0) / snapshot.links.length
     : 0;
 
+  // Live-ticking "Updated Xs ago" counter
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
   const secondsAgo = lastUpdated
-    ? Math.round((Date.now() - lastUpdated.getTime()) / 1000)
+    ? Math.round((now - lastUpdated.getTime()) / 1000)
     : null;
 
   const tabs: { id: Tab; label: string }[] = [
@@ -165,6 +171,13 @@ const ObservatoryView: React.FC = () => {
       </div>
 
       {/* Golden Signals Ribbon */}
+      {loading && (
+        <div className="grid grid-cols-4 gap-4 px-6 py-4">
+          {[1, 2, 3, 4].map(i => (
+            <SkeletonLoader key={i} type="card" />
+          ))}
+        </div>
+      )}
       {!loading && (
         <div className="grid grid-cols-4 gap-4 px-6 py-4">
           <MetricCard
@@ -205,12 +218,7 @@ const ObservatoryView: React.FC = () => {
       {/* Tab content */}
       <div className="flex-1 overflow-auto">
         {loading ? (
-          <div className="p-6 space-y-4">
-            <div className="grid grid-cols-4 gap-4">
-              {[1, 2, 3, 4].map(i => (
-                <SkeletonLoader key={i} type="card" />
-              ))}
-            </div>
+          <div className="p-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
               {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
                 <SkeletonLoader key={i} type="card" />
