@@ -5,8 +5,9 @@ export type NavView = 'home' | 'sessions' | 'app-diagnostics' | 'cluster-diagnos
   | 'network-topology' | 'network-adapters' | 'ipam' | 'matrix' | 'observatory'
   | 'integrations' | 'settings' | 'agents';
 
+type NavLink = { kind: 'link'; id: NavView; label: string; icon: string };
 type NavGroup = { kind: 'group'; group: string; icon: string; children: { id: NavView; label: string; icon: string }[] };
-type NavItem = NavGroup;
+type NavItem = NavLink | NavGroup;
 
 interface SidebarNavProps {
   activeView: NavView;
@@ -15,10 +16,10 @@ interface SidebarNavProps {
 }
 
 const navItems: NavItem[] = [
+  { kind: 'link', id: 'home', label: 'Dashboard', icon: 'space_dashboard' },
   {
     kind: 'group', group: 'Diagnostics', icon: 'troubleshoot',
     children: [
-      { id: 'home', label: 'Dashboard', icon: 'dashboard' },
       { id: 'app-diagnostics', label: 'App Diagnostics', icon: 'bug_report' },
       { id: 'cluster-diagnostics', label: 'Cluster Diagnostics', icon: 'health_and_safety' },
       { id: 'network-troubleshooting', label: 'Network Path', icon: 'route' },
@@ -59,7 +60,7 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ activeView, onNavigate, onNewMi
   // Auto-expand group if active view is one of its children
   useEffect(() => {
     for (const item of navItems) {
-      if (item.children.some((c) => c.id === activeView)) {
+      if (item.kind === 'group' && item.children.some((c) => c.id === activeView)) {
         setExpandedGroups((prev) => {
           if (prev.has(item.group)) return prev;
           const next = new Set(prev);
@@ -152,12 +153,30 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ activeView, onNavigate, onNewMi
 
         {/* Navigation Links */}
         <nav className={`flex flex-col gap-1 ${collapsed ? 'px-2' : 'px-3'}`}>
-          {navItems.map((item, groupIdx) => {
+          {navItems.map((item, idx) => {
+            if (item.kind === 'link') {
+              // Standalone link (e.g., Dashboard)
+              if (collapsed) {
+                return (
+                  <div key={item.id}>
+                    {idx > 0 && <div className="my-2 mx-1 border-t border-[#224349]" />}
+                    {renderLink(item.id, item.label, item.icon)}
+                  </div>
+                );
+              }
+              return (
+                <div key={item.id}>
+                  {idx > 0 && <div className="my-1" />}
+                  {renderLink(item.id, item.label, item.icon)}
+                </div>
+              );
+            }
+
             if (collapsed) {
               // Collapsed: thin divider between groups, flat icon list
               return (
                 <div key={item.group}>
-                  {groupIdx > 0 && (
+                  {idx > 0 && (
                     <div className="my-2 mx-1 border-t border-[#224349]" />
                   )}
                   {item.children.map((child) => renderLink(child.id, child.label, child.icon))}
@@ -171,7 +190,7 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ activeView, onNavigate, onNewMi
 
             return (
               <div key={item.group}>
-                {groupIdx > 0 && <div className="my-1" />}
+                {idx > 0 && <div className="my-1" />}
                 <button
                   onClick={() => toggleGroup(item.group)}
                   className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors border ${
