@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 
-export type NavView = 'home' | 'sessions' | 'integrations' | 'settings' | 'agents'
+export type NavView = 'home' | 'sessions' | 'app-diagnostics' | 'cluster-diagnostics'
+  | 'network-troubleshooting' | 'pr-review' | 'github-issue-fix'
   | 'network-topology' | 'network-adapters' | 'ipam' | 'matrix' | 'observatory'
-  | 'cluster-diagnostics';
+  | 'integrations' | 'settings' | 'agents';
 
 type NavGroup = { kind: 'group'; group: string; icon: string; children: { id: NavView; label: string; icon: string }[] };
 type NavItem = NavGroup;
@@ -15,10 +16,25 @@ interface SidebarNavProps {
 
 const navItems: NavItem[] = [
   {
-    kind: 'group', group: 'Investigate', icon: 'search',
+    kind: 'group', group: 'Overview', icon: 'space_dashboard',
     children: [
       { id: 'home', label: 'Dashboard', icon: 'dashboard' },
+    ],
+  },
+  {
+    kind: 'group', group: 'Diagnostics', icon: 'troubleshoot',
+    children: [
+      { id: 'app-diagnostics', label: 'App Diagnostics', icon: 'bug_report' },
+      { id: 'cluster-diagnostics', label: 'Cluster Diagnostics', icon: 'health_and_safety' },
+      { id: 'network-troubleshooting', label: 'Network Path', icon: 'route' },
       { id: 'sessions', label: 'Sessions', icon: 'history' },
+    ],
+  },
+  {
+    kind: 'group', group: 'Code', icon: 'code',
+    children: [
+      { id: 'pr-review', label: 'PR Review', icon: 'rate_review' },
+      { id: 'github-issue-fix', label: 'Issue Fixer', icon: 'auto_fix_high' },
     ],
   },
   {
@@ -27,22 +43,16 @@ const navItems: NavItem[] = [
       { id: 'network-topology', label: 'Topology', icon: 'device_hub' },
       { id: 'network-adapters', label: 'Adapters', icon: 'settings_input_component' },
       { id: 'ipam', label: 'IPAM', icon: 'dns' },
-      { id: 'matrix', label: 'Matrix', icon: 'grid_view' },
       { id: 'observatory', label: 'Observatory', icon: 'monitoring' },
+      { id: 'matrix', label: 'Matrix', icon: 'grid_view' },
     ],
   },
   {
-    kind: 'group', group: 'Kubernetes', icon: 'deployed_code',
-    children: [
-      { id: 'cluster-diagnostics' as NavView, label: 'Cluster Diag', icon: 'health_and_safety' },
-    ],
-  },
-  {
-    kind: 'group', group: 'Tools', icon: 'build',
+    kind: 'group', group: 'Configuration', icon: 'build',
     children: [
       { id: 'integrations', label: 'Integrations', icon: 'hub' },
       { id: 'settings', label: 'Settings', icon: 'settings' },
-      { id: 'agents' as NavView, label: 'Agent Matrix', icon: 'smart_toy' },
+      { id: 'agents', label: 'Agent Matrix', icon: 'smart_toy' },
     ],
   },
 ];

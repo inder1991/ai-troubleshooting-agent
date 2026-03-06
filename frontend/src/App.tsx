@@ -182,9 +182,20 @@ function AppInner() {
   const handleNavigate = useCallback((view: NavView) => {
     if (view === 'agents') {
       setViewState('agent-matrix');
+    } else if (view === 'app-diagnostics') {
+      setSelectedCapability('troubleshoot_app');
+      setViewState('form');
     } else if (view === 'cluster-diagnostics') {
-      // Route to capability form so user can configure a cluster session
       setSelectedCapability('cluster_diagnostics');
+      setViewState('form');
+    } else if (view === 'network-troubleshooting') {
+      setSelectedCapability('network_troubleshooting');
+      setViewState('form');
+    } else if (view === 'pr-review') {
+      setSelectedCapability('pr_review');
+      setViewState('form');
+    } else if (view === 'github-issue-fix') {
+      setSelectedCapability('github_issue_fix');
       setViewState('form');
     } else {
       setViewState(view as ViewState);
@@ -401,33 +412,60 @@ function AppInner() {
   useKeyboardShortcuts(shortcutHandlers);
 
   // Derive nav view from viewState
+  const capabilityToNav: Record<string, NavView> = {
+    troubleshoot_app: 'app-diagnostics',
+    cluster_diagnostics: 'cluster-diagnostics',
+    network_troubleshooting: 'network-troubleshooting',
+    pr_review: 'pr-review',
+    github_issue_fix: 'github-issue-fix',
+  };
+
+  const viewToNav: Record<string, NavView> = {
+    sessions: 'sessions', integrations: 'integrations', settings: 'settings',
+    'agent-matrix': 'agents', 'network-topology': 'network-topology',
+    'network-adapters': 'network-adapters', ipam: 'ipam', matrix: 'matrix',
+    observatory: 'observatory',
+  };
+
   const navView: NavView =
-    viewState === 'sessions' ? 'sessions' : viewState === 'integrations' ? 'integrations' : viewState === 'settings' ? 'settings' : viewState === 'agent-matrix' ? 'agents' : viewState === 'network-topology' ? 'network-topology' : viewState === 'network-adapters' ? 'network-adapters' : viewState === 'ipam' ? 'ipam' : viewState === 'matrix' ? 'matrix' : viewState === 'observatory' ? 'observatory' : (viewState === 'form' && selectedCapability === 'cluster_diagnostics') ? 'cluster-diagnostics' : 'home';
+    viewState === 'form' && selectedCapability ? (capabilityToNav[selectedCapability] || 'home')
+    : viewToNav[viewState] || 'home';
 
   const showSidebar = viewState !== 'investigation' && viewState !== 'dossier' && viewState !== 'cluster-diagnostics' && viewState !== 'agent-matrix' && viewState !== 'network-troubleshooting';
 
+  // Group parents are non-clickable text labels (no route)
   const breadcrumbMap: Record<string, { label: string; parent?: string }> = {
     home: { label: 'Dashboard' },
+    // Diagnostics group
     sessions: { label: 'Sessions', parent: 'home' },
+    'app-diagnostics': { label: 'App Diagnostics', parent: 'home' },
+    'cluster-diagnostics': { label: 'Cluster Diagnostics', parent: 'home' },
+    'network-troubleshooting': { label: 'Network Path', parent: 'home' },
+    // Code group
+    'pr-review': { label: 'PR Review', parent: 'home' },
+    'github-issue-fix': { label: 'Issue Fixer', parent: 'home' },
+    // Infrastructure group
     'network-topology': { label: 'Topology', parent: 'home' },
     'network-adapters': { label: 'Adapters', parent: 'home' },
     ipam: { label: 'IPAM', parent: 'home' },
     matrix: { label: 'Matrix', parent: 'home' },
     observatory: { label: 'Observatory', parent: 'home' },
+    // Configuration group
     integrations: { label: 'Integrations', parent: 'home' },
     settings: { label: 'Settings', parent: 'home' },
     agents: { label: 'Agent Matrix', parent: 'home' },
-    'cluster-diagnostics': { label: 'Cluster Diagnostics', parent: 'home' },
   };
 
   const getBreadcrumbs = () => {
-    const entry = breadcrumbMap[viewState];
+    // Use navView for breadcrumbs — it resolves form+capability to the correct nav item
+    const key = viewState === 'form' ? navView : viewState;
+    const entry = breadcrumbMap[key];
     if (!entry) return [];
     const items: { label: string; onClick?: () => void }[] = [];
     if (entry.parent) {
       const parentEntry = breadcrumbMap[entry.parent];
       if (parentEntry) {
-        items.push({ label: parentEntry.label, onClick: () => setViewState(entry.parent as ViewState) });
+        items.push({ label: parentEntry.label, onClick: () => handleNavigate('home') });
       }
     }
     items.push({ label: entry.label });
