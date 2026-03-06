@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { LineChart, Line, ResponsiveContainer } from 'recharts';
+import { SparklineWidget } from '../shared/SparklineWidget';
 import type { DeviceStatus, DriftEvent, MetricDataPoint } from './hooks/useMonitorSnapshot';
 import { fetchDeviceMetrics } from '../../services/api';
 
@@ -183,12 +183,12 @@ const NOCWallTab: React.FC<Props> = ({ devices, drifts, onSelectDevice }) => {
                   {/* Latency sparkline */}
                   <div className="w-24 h-10">
                     {m?.latencyHistory && m.latencyHistory.length > 1 ? (
-                      <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={m.latencyHistory}>
-                          <Line type="monotone" dataKey="value" stroke="#07b6d5" strokeWidth={1.5}
-                            dot={false} isAnimationActive={false} />
-                        </LineChart>
-                      </ResponsiveContainer>
+                      <SparklineWidget
+                        data={m.latencyHistory.map(p => p.value)}
+                        color={d.status === 'down' ? 'red' : d.status === 'degraded' ? 'amber' : 'cyan'}
+                        height={40}
+                        strokeWidth={1.5}
+                      />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-[9px] font-mono" style={{ color: '#224349' }}>
                         —
