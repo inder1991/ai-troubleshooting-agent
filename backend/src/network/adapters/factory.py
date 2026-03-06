@@ -96,6 +96,54 @@ def create_adapter(
         except Exception as e:
             logger.warning("Failed to create ZscalerAdapter: %s, falling back to mock", e)
 
+    elif vendor == FirewallVendor.CISCO:
+        try:
+            from .cisco_adapter import CiscoAdapter
+            username = extra.get("username", "")
+            password = extra.get("password", "")
+            if api_endpoint and username:
+                return CiscoAdapter(
+                    hostname=api_endpoint,
+                    username=username,
+                    password=password,
+                    verify_ssl=extra.get("verify_ssl", False),
+                )
+        except Exception as e:
+            logger.warning("Failed to create CiscoAdapter: %s, falling back to mock", e)
+
+    elif vendor == FirewallVendor.F5:
+        try:
+            from .f5_adapter import F5Adapter
+            username = extra.get("username", "")
+            password = extra.get("password", "")
+            if api_endpoint and username:
+                return F5Adapter(
+                    hostname=api_endpoint,
+                    username=username,
+                    password=password,
+                    partition=extra.get("partition", "Common"),
+                    verify_ssl=extra.get("verify_ssl", False),
+                )
+        except Exception as e:
+            logger.warning("Failed to create F5Adapter: %s, falling back to mock", e)
+
+    elif vendor == FirewallVendor.CHECKPOINT:
+        try:
+            from .checkpoint_adapter import CheckpointAdapter
+            username = extra.get("username", "")
+            password = extra.get("password", "")
+            if api_endpoint and username:
+                return CheckpointAdapter(
+                    hostname=api_endpoint,
+                    username=username,
+                    password=password,
+                    domain=extra.get("domain", ""),
+                    port=extra.get("port", 443),
+                    verify_ssl=extra.get("verify_ssl", False),
+                )
+        except Exception as e:
+            logger.warning("Failed to create CheckpointAdapter: %s, falling back to mock", e)
+
     else:
         logger.warning("Unrecognised vendor '%s' — falling back to mock adapter", vendor)
 
