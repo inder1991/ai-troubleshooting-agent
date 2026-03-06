@@ -61,6 +61,9 @@ class FirewallVendor(str, Enum):
     AWS_SG = "aws_sg"
     ORACLE_NSG = "oracle_nsg"
     ZSCALER = "zscaler"
+    CISCO = "cisco"
+    F5 = "f5"
+    CHECKPOINT = "checkpoint"
 
 class EdgeSource(str, Enum):
     MANUAL = "manual"
