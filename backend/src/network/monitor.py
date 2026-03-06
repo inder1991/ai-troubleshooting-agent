@@ -13,6 +13,8 @@ from .drift_engine import DriftEngine
 from .discovery_engine import DiscoveryEngine
 from .snmp_collector import SNMPCollector, SNMPDeviceConfig
 from .alert_engine import AlertEngine
+from .dns_monitor import DNSMonitor
+from .models import DNSMonitorConfig
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +28,8 @@ class NetworkMonitor:
     """Background collector that runs a probe/adapter/drift/discovery cycle."""
 
     def __init__(self, store: TopologyStore, kg, adapters,
-                 prometheus_url: str | None = None, metrics_store=None):
+                 prometheus_url: str | None = None, metrics_store=None,
+                 dns_config: DNSMonitorConfig | None = None):
         self.store = store
         self.kg = kg
         self.adapters = adapters
@@ -40,6 +43,9 @@ class NetworkMonitor:
             from .notification_dispatcher import NotificationDispatcher
             self.alert_engine.set_dispatcher(NotificationDispatcher())
         self._latest_alerts: list[dict] = []
+        self.dns_monitor: DNSMonitor | None = None
+        if dns_config and dns_config.enabled:
+            self.dns_monitor = DNSMonitor(dns_config)
         self.cycle_interval = 30
         self._task: asyncio.Task | None = None
 
@@ -74,6 +80,7 @@ class NetworkMonitor:
         await self._drift_pass()
         await self._discovery_pass()
         await self._snmp_pass()
+        await self._dns_pass()
         await self._alert_pass()
         self.store.prune_metric_history(older_than_days=7)
 
@@ -180,6 +187,39 @@ class NetworkMonitor:
                 ))
         if configs:
             await self.snmp_collector.poll_all(configs)
+
+    async def _dns_pass(self):
+        if not self.dns_monitor:
+            return
+        try:
+            metrics = await self.dns_monitor.run_pass()
+            # Write metrics to InfluxDB if metrics_store available
+            if self.metrics_store:
+                for m in metrics:
+                    await self.metrics_store.write_dns_metric(
+                        server_id=m["server_id"],
+                        server_ip=m["server_ip"],
+                        hostname=m["hostname"],
+                        record_type=m["record_type"],
+                        latency_ms=m["latency_ms"],
+                        success=m["success"],
+                        metric_type="query",
+                    )
+            # Store drift events
+            for m in metrics:
+                drift = m.get("drift")
+                if drift:
+                    self.store.upsert_drift_event(
+                        "dns",
+                        f"{m['server_id']}:{m['hostname']}",
+                        "dns_record_mismatch",
+                        f"{m['hostname']}/{m['record_type']}",
+                        ", ".join(drift.get("expected", [])),
+                        ", ".join(drift.get("actual", [])),
+                        "critical" if m.get("critical") else "warning",
+                    )
+        except Exception as e:
+            logger.debug("DNS pass failed: %s", e)
 
     async def _alert_pass(self):
         if not self.alert_engine:

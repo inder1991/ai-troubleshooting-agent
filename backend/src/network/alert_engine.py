@@ -70,6 +70,20 @@ DEFAULT_RULES = [
         metric="latency_ms", condition="gt", threshold=200.0,
         duration_seconds=120, cooldown_seconds=300,
     ),
+    AlertRule(
+        id="default-dns-failure", name="DNS Resolution Failure",
+        severity="critical", entity_type="device", entity_filter="*",
+        metric="dns_success", condition="lt", threshold=1.0,
+        duration_seconds=60, cooldown_seconds=300,
+        description="DNS resolution failing for a watched hostname",
+    ),
+    AlertRule(
+        id="default-dns-latency", name="DNS High Latency",
+        severity="warning", entity_type="device", entity_filter="*",
+        metric="dns_latency_ms", condition="gt", threshold=500.0,
+        duration_seconds=120, cooldown_seconds=600,
+        description="DNS query latency exceeds 500ms",
+    ),
 ]
 
 
