@@ -2,7 +2,8 @@ import React from 'react';
 import type { CapabilityType, V4Session } from '../../types';
 import CapabilityLauncher from './CapabilityLauncher';
 import LiveIntelligenceFeed from './LiveIntelligenceFeed';
-import HowItWorksSection from './HowItWorks/HowItWorksSection';
+import { MetricRibbon } from './MetricRibbon';
+import { QuickActionsPanel } from './QuickActionsPanel';
 
 interface HomePageProps {
   onSelectCapability: (capability: CapabilityType) => void;
@@ -71,37 +72,36 @@ const HomePage: React.FC<HomePageProps> = ({
 
       {/* Main Scrolling Content */}
       <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
-        {/* Capability Launcher section */}
-        <section className="mb-10">
+        {/* Metric Ribbon */}
+        <MetricRibbon sessions={sessions} />
+
+        {/* 2-Column Layout: Activity Feed + Quick Actions */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-10">
+          <div className="lg:col-span-8">
+            <LiveIntelligenceFeed
+              sessions={sessions}
+              onSessionsChange={onSessionsChange}
+              onSelectSession={onSelectSession}
+            />
+          </div>
+          <div className="lg:col-span-4">
+            <QuickActionsPanel
+              onSelectCapability={onSelectCapability}
+              wsConnected={wsConnected}
+            />
+          </div>
+        </div>
+
+        {/* Capability Launcher (below operational content) */}
+        <section>
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-xl font-bold text-white tracking-tight">Capability Launcher</h2>
+              <h2 className="text-xl font-bold text-white tracking-tight">Capabilities</h2>
               <p className="text-sm text-slate-400 mt-1">Deploy automated diagnostics and remediations</p>
             </div>
           </div>
           <CapabilityLauncher onSelectCapability={onSelectCapability} />
         </section>
-
-        {/* Anchor link to How It Works */}
-        <button
-          onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
-          className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-[#07b6d5] transition-colors mb-6"
-        >
-          <span className="material-symbols-outlined text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>
-            arrow_downward
-          </span>
-          See how it works
-        </button>
-
-        {/* Live Intelligence Feed */}
-        <LiveIntelligenceFeed
-          sessions={sessions}
-          onSessionsChange={onSessionsChange}
-          onSelectSession={onSelectSession}
-        />
-
-        {/* How It Works Documentation Section */}
-        <HowItWorksSection />
       </div>
     </div>
   );
