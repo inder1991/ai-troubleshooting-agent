@@ -40,6 +40,7 @@ import NetworkWarRoom from './components/NetworkTroubleshooting/NetworkWarRoom';
 import ReachabilityMatrix from './components/NetworkTroubleshooting/ReachabilityMatrix';
 import NetworkAdaptersView from './components/Network/NetworkAdaptersView';
 import ObservatoryView from './components/Observatory/ObservatoryView';
+import { Breadcrumbs } from './components/shared';
 
 
 type ViewState = 'home' | 'form' | 'investigation' | 'sessions' | 'integrations' | 'settings' | 'dossier' | 'cluster-diagnostics' | 'agent-matrix' | 'network-troubleshooting' | 'network-topology' | 'network-adapters' | 'ipam' | 'matrix' | 'observatory';
@@ -405,6 +406,34 @@ function AppInner() {
 
   const showSidebar = viewState !== 'investigation' && viewState !== 'dossier' && viewState !== 'cluster-diagnostics' && viewState !== 'agent-matrix' && viewState !== 'network-troubleshooting';
 
+  const breadcrumbMap: Record<string, { label: string; parent?: string }> = {
+    home: { label: 'Dashboard' },
+    sessions: { label: 'Sessions', parent: 'home' },
+    'network-topology': { label: 'Topology', parent: 'home' },
+    'network-adapters': { label: 'Adapters', parent: 'home' },
+    ipam: { label: 'IPAM', parent: 'home' },
+    matrix: { label: 'Matrix', parent: 'home' },
+    observatory: { label: 'Observatory', parent: 'home' },
+    integrations: { label: 'Integrations', parent: 'home' },
+    settings: { label: 'Settings', parent: 'home' },
+    agents: { label: 'Agent Matrix', parent: 'home' },
+    'cluster-diagnostics': { label: 'Cluster Diagnostics', parent: 'home' },
+  };
+
+  const getBreadcrumbs = () => {
+    const entry = breadcrumbMap[viewState];
+    if (!entry) return [];
+    const items: { label: string; onClick?: () => void }[] = [];
+    if (entry.parent) {
+      const parentEntry = breadcrumbMap[entry.parent];
+      if (parentEntry) {
+        items.push({ label: parentEntry.label, onClick: () => setViewState(entry.parent as ViewState) });
+      }
+    }
+    items.push({ label: entry.label });
+    return items;
+  };
+
   return (
     <div className="flex h-screen w-full overflow-hidden text-slate-100 antialiased" style={{ backgroundColor: '#0f2023' }}>
       {/* Sidebar Nav - hidden during investigation (war room is full width) */}
@@ -421,6 +450,8 @@ function AppInner() {
 
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        {showSidebar && <Breadcrumbs items={getBreadcrumbs()} />}
+
         {viewState === 'home' && (
           <HomePage
             onSelectCapability={handleSelectCapability}
