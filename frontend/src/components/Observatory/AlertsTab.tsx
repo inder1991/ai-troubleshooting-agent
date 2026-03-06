@@ -50,6 +50,41 @@ const AlertsTab: React.FC<Props> = ({ alerts, onRefresh }) => {
         ))}
       </div>
 
+      {/* Severity Summary */}
+      <div className="grid grid-cols-3 gap-3">
+        {(['critical', 'warning', 'info'] as const).map(severity => {
+          const count = alerts.filter(a => a.severity === severity && !a.acknowledged).length;
+          const total = alerts.filter(a => a.severity === severity).length;
+          const colors: Record<string, string> = { critical: '#ef4444', warning: '#f59e0b', info: '#07b6d5' };
+          const color = colors[severity];
+          return (
+            <div
+              key={severity}
+              onClick={() => setFilter(severity)}
+              className="rounded-lg border p-3 cursor-pointer transition-all hover:border-[#07b6d5]/50"
+              style={{
+                backgroundColor: '#0a1a1e',
+                borderColor: count > 0 ? `${color}40` : '#224349',
+                borderLeftWidth: '3px',
+                borderLeftColor: color,
+              }}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-mono font-bold uppercase tracking-wider" style={{ color }}>
+                  {severity}
+                </span>
+                <span className="text-lg font-mono font-bold" style={{ color: count > 0 ? color : '#64748b' }}>
+                  {count}
+                </span>
+              </div>
+              <div className="text-[10px] font-mono mt-1" style={{ color: '#64748b' }}>
+                {total - count} acknowledged
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
       {/* Alert list */}
       {filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16">
