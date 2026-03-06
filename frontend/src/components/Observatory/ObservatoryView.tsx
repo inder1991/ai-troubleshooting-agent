@@ -4,6 +4,7 @@ import NOCWallTab from './NOCWallTab';
 import LiveTopologyTab from './LiveTopologyTab';
 import TrafficFlowsTab from './TrafficFlowsTab';
 import AlertsTab from './AlertsTab';
+import { MetricCard } from '../shared/MetricCard';
 
 type Tab = 'topology' | 'noc' | 'flows' | 'alerts';
 
@@ -18,6 +19,18 @@ const ObservatoryView: React.FC = () => {
   const driftCount = snapshot.drifts.length;
   const discoveryCount = snapshot.candidates.length;
   const alertCount = (snapshot.alerts || []).filter((a) => !a.acknowledged).length;
+
+  // Golden Signals computation
+  const activeDevices = snapshot.devices.filter(d => d.status !== 'down');
+  const avgLatency = activeDevices.length > 0
+    ? activeDevices.reduce((sum, d) => sum + d.latency_ms, 0) / activeDevices.length
+    : 0;
+  const avgPacketLoss = snapshot.devices.length > 0
+    ? snapshot.devices.reduce((sum, d) => sum + d.packet_loss, 0) / snapshot.devices.length
+    : 0;
+  const avgUtilization = snapshot.links.length > 0
+    ? snapshot.links.reduce((sum, l) => sum + l.utilization, 0) / snapshot.links.length
+    : 0;
 
   const secondsAgo = lastUpdated
     ? Math.round((Date.now() - lastUpdated.getTime()) / 1000)
@@ -146,6 +159,44 @@ const ObservatoryView: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Golden Signals Ribbon */}
+      {!loading && (
+        <div className="grid grid-cols-4 gap-4 px-6 py-4">
+          <MetricCard
+            title="AVG LATENCY"
+            value={`${avgLatency.toFixed(1)}ms`}
+            trendValue={avgLatency < 50 ? 'Normal' : avgLatency < 100 ? 'Elevated' : 'High'}
+            trendDirection={avgLatency < 50 ? 'down' : 'up'}
+            trendType={avgLatency < 50 ? 'good' : avgLatency < 100 ? 'neutral' : 'bad'}
+            sparklineData={activeDevices.map(d => d.latency_ms)}
+          />
+          <MetricCard
+            title="PACKET LOSS"
+            value={`${(avgPacketLoss * 100).toFixed(1)}%`}
+            trendValue={avgPacketLoss === 0 ? '0% loss' : `${(avgPacketLoss * 100).toFixed(1)}%`}
+            trendDirection={avgPacketLoss === 0 ? 'down' : 'up'}
+            trendType={avgPacketLoss < 0.01 ? 'good' : avgPacketLoss < 0.05 ? 'neutral' : 'bad'}
+            sparklineData={snapshot.devices.map(d => d.packet_loss * 100)}
+          />
+          <MetricCard
+            title="LINK UTILIZATION"
+            value={`${(avgUtilization * 100).toFixed(0)}%`}
+            trendValue={avgUtilization < 0.5 ? 'Healthy' : avgUtilization < 0.8 ? 'Moderate' : 'Saturated'}
+            trendDirection={avgUtilization < 0.5 ? 'down' : 'up'}
+            trendType={avgUtilization < 0.5 ? 'good' : avgUtilization < 0.8 ? 'neutral' : 'bad'}
+            sparklineData={snapshot.links.map(l => l.utilization * 100)}
+          />
+          <MetricCard
+            title="ACTIVE ALERTS"
+            value={alertCount}
+            trendValue={alertCount === 0 ? 'Clear' : `${alertCount} active`}
+            trendDirection={alertCount === 0 ? 'down' : 'up'}
+            trendType={alertCount === 0 ? 'good' : alertCount > 5 ? 'bad' : 'neutral'}
+            sparklineData={[alertCount, alertCount]}
+          />
+        </div>
+      )}
 
       {/* Tab content */}
       <div className="flex-1 overflow-auto">
