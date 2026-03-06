@@ -5,6 +5,8 @@ import LiveTopologyTab from './LiveTopologyTab';
 import TrafficFlowsTab from './TrafficFlowsTab';
 import AlertsTab from './AlertsTab';
 import { MetricCard } from '../shared/MetricCard';
+import { StatusBadge } from '../shared/StatusBadge';
+import { SkeletonLoader } from '../shared/SkeletonLoader';
 
 type Tab = 'topology' | 'noc' | 'flows' | 'alerts';
 
@@ -147,14 +149,16 @@ const ObservatoryView: React.FC = () => {
             {secondsAgo !== null && (
               <span style={{ color: '#64748b' }}>Updated {secondsAgo}s ago</span>
             )}
-            <span style={{ color: upCount === totalCount && totalCount > 0 ? '#22c55e' : '#f59e0b' }}>
-              {upCount}/{totalCount} UP
-            </span>
+            <StatusBadge
+              status={upCount === totalCount && totalCount > 0 ? 'healthy' : 'degraded'}
+              label={`${upCount}/${totalCount} UP`}
+              pulse={upCount < totalCount}
+            />
             {driftCount > 0 && (
-              <span style={{ color: '#f59e0b' }}>{driftCount} drift</span>
+              <StatusBadge status="degraded" label="Drift" count={driftCount} />
             )}
             {discoveryCount > 0 && (
-              <span style={{ color: '#07b6d5' }}>{discoveryCount} discovered</span>
+              <StatusBadge status="in_progress" label="Discovered" count={discoveryCount} />
             )}
           </div>
         </div>
@@ -201,7 +205,18 @@ const ObservatoryView: React.FC = () => {
       {/* Tab content */}
       <div className="flex-1 overflow-auto">
         {loading ? (
-          <div className="flex items-center justify-center h-40 text-slate-500 text-sm">Loading observatory data...</div>
+          <div className="p-6 space-y-4">
+            <div className="grid grid-cols-4 gap-4">
+              {[1, 2, 3, 4].map(i => (
+                <SkeletonLoader key={i} type="card" />
+              ))}
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+              {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+                <SkeletonLoader key={i} type="card" />
+              ))}
+            </div>
+          </div>
         ) : activeTab === 'topology' ? (
           <LiveTopologyTab
             devices={snapshot.devices}
