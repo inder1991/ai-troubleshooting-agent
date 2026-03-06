@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import type { LinkMetric, TopTalker, ProtocolBreakdown } from './hooks/useMonitorSnapshot';
 import { fetchTopTalkers, fetchProtocolBreakdown } from '../../services/api';
+import { SectionHeader } from '../shared/SectionHeader';
 
 interface Props {
   links: LinkMetric[];
@@ -94,9 +95,7 @@ const TrafficFlowsTab: React.FC<Props> = ({ links }) => {
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
           {/* Top Talkers */}
           <div>
-            <h3 className="text-sm font-mono font-bold mb-3" style={{ color: '#07b6d5' }}>
-              Top Talkers
-            </h3>
+            <SectionHeader title="Top Talkers" />
             {topTalkers.length > 0 ? (
               <div className="space-y-1">
                 <div className="grid grid-cols-4 text-[10px] font-mono font-bold pb-1 border-b" style={{ color: '#64748b', borderColor: '#224349' }}>
@@ -120,9 +119,7 @@ const TrafficFlowsTab: React.FC<Props> = ({ links }) => {
 
           {/* Protocol Breakdown */}
           <div>
-            <h3 className="text-sm font-mono font-bold mb-3" style={{ color: '#07b6d5' }}>
-              Protocol Breakdown
-            </h3>
+            <SectionHeader title="Protocol Breakdown" />
             {protocolChartData.length > 0 ? (
               <ResponsiveContainer width="100%" height={200}>
                 <BarChart data={protocolChartData} layout="vertical">
@@ -150,9 +147,7 @@ const TrafficFlowsTab: React.FC<Props> = ({ links }) => {
 
         {/* Link bandwidth bars (existing) */}
         <div className="mt-6">
-          <h3 className="text-sm font-mono font-bold mb-3" style={{ color: '#07b6d5' }}>
-            Link Bandwidth
-          </h3>
+          <SectionHeader title="Link Bandwidth" />
           {sorted.length === 0 ? (
             <div className="text-xs font-mono py-4 text-center" style={{ color: '#64748b' }}>
               No link metrics available.
