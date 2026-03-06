@@ -1,4 +1,6 @@
 import React from 'react';
+import { StatusBadge } from '../shared/StatusBadge';
+import type { SystemStatus } from '../shared/StatusBadge';
 
 interface ClusterHeaderProps {
   sessionId: string;
@@ -8,17 +10,15 @@ interface ClusterHeaderProps {
   onGoHome: () => void;
 }
 
-const healthColor = (health: string) =>
-  health === 'HEALTHY' ? '#10b981'
-    : health === 'DEGRADED' ? '#f59e0b'
-    : health === 'CRITICAL' ? '#ef4444'
-    : '#6b7280';
+const healthToStatus = (health: string): SystemStatus =>
+  health === 'HEALTHY' ? 'healthy'
+    : health === 'DEGRADED' ? 'degraded'
+    : health === 'CRITICAL' ? 'critical'
+    : 'unknown';
 
 const ClusterHeader: React.FC<ClusterHeaderProps> = ({
   sessionId, confidence, platformHealth, wsConnected, onGoHome,
 }) => {
-  const color = healthColor(platformHealth);
-
   return (
     <header className="h-14 border-b border-[#1f3b42] bg-[#152a2f] flex items-center justify-between px-6 z-50 shadow-md shrink-0">
       <div className="flex items-center gap-4">
@@ -26,7 +26,11 @@ const ClusterHeader: React.FC<ClusterHeaderProps> = ({
           <span className="material-symbols-outlined" style={{ fontFamily: 'Material Symbols Outlined' }}>arrow_back</span>
         </button>
         <div className="flex items-center gap-2">
-          <span className={`w-3 h-3 rounded-full ${wsConnected ? 'bg-emerald-500 animate-pulse' : 'bg-slate-600'}`} />
+          <StatusBadge
+            status={wsConnected ? 'healthy' : 'critical'}
+            label={wsConnected ? 'LIVE' : 'OFFLINE'}
+            pulse={wsConnected}
+          />
           <h1 className="text-xl font-bold tracking-tight text-white">
             DebugDuck <span className="text-[#07b6d5]">Cluster War Room</span>
           </h1>
@@ -48,10 +52,11 @@ const ClusterHeader: React.FC<ClusterHeaderProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-2 font-mono font-bold text-sm" style={{ color }}>
-          <span className={`w-2 h-2 rounded-full animate-pulse`} style={{ backgroundColor: color }} />
-          {platformHealth || 'ANALYZING'}
-        </div>
+        <StatusBadge
+          status={healthToStatus(platformHealth)}
+          label={platformHealth || 'ANALYZING'}
+          pulse={platformHealth === 'CRITICAL' || platformHealth === 'DEGRADED'}
+        />
       </div>
     </header>
   );
