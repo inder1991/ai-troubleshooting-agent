@@ -632,3 +632,38 @@ class NotificationRouting(BaseModel):
     severity_filter: list[str] = Field(default_factory=lambda: ["critical", "warning"])
     channel_ids: list[str] = Field(..., min_length=1)
     enabled: bool = True
+
+
+# ── DNS Monitoring ───────────────────────────────────────────────────
+
+class DNSRecordType(str, Enum):
+    A = "A"
+    AAAA = "AAAA"
+    MX = "MX"
+    NS = "NS"
+    CNAME = "CNAME"
+    TXT = "TXT"
+    SOA = "SOA"
+    PTR = "PTR"
+
+
+class DNSServerConfig(BaseModel):
+    id: str
+    name: str
+    ip: str
+    port: int = 53
+    enabled: bool = True
+
+
+class DNSWatchedHostname(BaseModel):
+    hostname: str
+    record_type: DNSRecordType = DNSRecordType.A
+    expected_values: list[str] = []
+    critical: bool = False
+
+
+class DNSMonitorConfig(BaseModel):
+    servers: list[DNSServerConfig] = []
+    watched_hostnames: list[DNSWatchedHostname] = []
+    query_timeout: float = 5.0
+    enabled: bool = True
