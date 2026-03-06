@@ -119,6 +119,24 @@ class MetricsStore:
         )
         await self._safe_write(point)
 
+    async def write_dns_metric(
+        self, server_id: str, server_ip: str, hostname: str,
+        record_type: str, latency_ms: float, success: bool,
+        metric_type: str = "query",
+    ) -> None:
+        point = (
+            Point("dns_health")
+            .tag("server_id", server_id)
+            .tag("server_ip", server_ip)
+            .tag("hostname", hostname)
+            .tag("record_type", record_type)
+            .tag("metric_type", metric_type)
+            .field("latency_ms", float(latency_ms))
+            .field("success", 1 if success else 0)
+            .time(datetime.now(timezone.utc), WritePrecision.S)
+        )
+        await self._safe_write(point)
+
     # -- Input Validation ------------------------------------------------
 
     _DURATION_RE = re.compile(r"^\d+[smhd]$")
@@ -244,4 +262,40 @@ class MetricsStore:
             ]
         except Exception as e:
             logger.warning("InfluxDB query failed: %s", e)
+            return []
+
+    async def query_dns_metrics(
+        self, server_id: str = "", hostname: str = "",
+        range_str: str = "1h", resolution: str = "30s",
+    ) -> list[dict]:
+        range_str = self._validate_duration(range_str)
+        resolution = self._validate_duration(resolution)
+        filters = ['r._measurement == "dns_health"']
+        if server_id:
+            server_id = self._validate_id(server_id)
+            filters.append(f'r.server_id == "{server_id}"')
+        if hostname:
+            filters.append(f'r.hostname == "{hostname}"')
+        filter_expr = " and ".join(filters)
+        query = f'''
+        from(bucket: "{self.bucket}")
+          |> range(start: -{range_str})
+          |> filter(fn: (r) => {filter_expr})
+          |> filter(fn: (r) => r._field == "latency_ms")
+          |> aggregateWindow(every: {resolution}, fn: mean, createEmpty: false)
+          |> yield(name: "mean")
+        '''
+        try:
+            tables = await self._query_api.query(query)
+            return [
+                {
+                    "time": r.get_time().isoformat(),
+                    "value": r.get_value(),
+                    "hostname": r.values.get("hostname", ""),
+                    "server_id": r.values.get("server_id", ""),
+                }
+                for table in tables for r in table.records
+            ]
+        except Exception as e:
+            logger.warning("InfluxDB DNS query failed: %s", e)
             return []
