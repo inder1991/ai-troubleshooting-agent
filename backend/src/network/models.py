@@ -48,6 +48,12 @@ class DeviceType(str, Enum):
     VPN_GATEWAY = "vpn_gateway"
     DIRECT_CONNECT = "direct_connect"
     NACL = "nacl"
+    NAT_GATEWAY = "nat_gateway"
+    INTERNET_GATEWAY = "internet_gateway"
+    LAMBDA = "lambda"
+    ROUTE_TABLE = "route_table"
+    SECURITY_GROUP = "security_group"
+    ELASTIC_IP = "elastic_ip"
 
 class FirewallVendor(str, Enum):
     PALO_ALTO = "palo_alto"
@@ -597,3 +603,29 @@ class NetworkDiagnosticState(BaseModel):
     next_steps: list[str] = Field(default_factory=list)
     executive_summary: str = ""
     error: Optional[str] = None
+
+
+# ── Notification Channels ─────────────────────────────────────────────
+
+class ChannelType(str, Enum):
+    WEBHOOK = "webhook"
+    SLACK = "slack"
+    EMAIL = "email"
+    PAGERDUTY = "pagerduty"
+
+
+class NotificationChannel(BaseModel):
+    """A configured notification destination."""
+    id: str
+    name: str
+    channel_type: ChannelType
+    config: dict = Field(default_factory=dict)
+    enabled: bool = True
+
+
+class NotificationRouting(BaseModel):
+    """Routes alerts of given severities to specific channels."""
+    id: str
+    severity_filter: list[str] = Field(default_factory=lambda: ["critical", "warning"])
+    channel_ids: list[str] = Field(..., min_length=1)
+    enabled: bool = True
