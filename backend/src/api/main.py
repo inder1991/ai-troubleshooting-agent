@@ -25,6 +25,7 @@ from .routes_closure import router as closure_router
 from .network_endpoints import network_router
 from .monitor_endpoints import monitor_router
 from .dns_endpoints import router as dns_router
+from .flow_endpoints import flow_router, init_flow_endpoints
 from .websocket import manager
 from src.network.prometheus_exporter import MetricsCollector
 from src.utils.logger import get_logger
@@ -142,6 +143,7 @@ def create_app() -> FastAPI:
     app.include_router(global_integrations_router)
     app.include_router(audit_router)
     app.include_router(closure_router)
+    app.include_router(flow_router)
     app.include_router(network_router)
     app.include_router(monitor_router)
     app.include_router(dns_router)
@@ -190,8 +192,30 @@ def create_app() -> FastAPI:
         except Exception as e:
             logger.warning("NetworkMonitor startup failed: %s", e)
 
+        # ── Initialize Flow endpoints ──
+        flow_receiver_instance = None
+        if os.getenv("FLOW_RECEIVER_ENABLED") == "1" and metrics_store:
+            try:
+                from src.network.flow_receiver import FlowReceiver
+                topo_store = _net_topo_store()
+                flow_receiver_instance = FlowReceiver(metrics_store, topo_store)
+                device_map = {d.management_ip: d.id for d in topo_store.list_devices() if d.management_ip}
+                flow_receiver_instance.update_device_map(device_map)
+                flow_port = int(os.getenv("FLOW_RECEIVER_PORT", "2055"))
+                await flow_receiver_instance.start(ports={"netflow": flow_port})
+                logger.info("FlowReceiver started on port %d", flow_port)
+            except Exception as e:
+                logger.warning("FlowReceiver startup failed: %s", e)
+                flow_receiver_instance = None
+        init_flow_endpoints(metrics_store, flow_receiver_instance)
+
     @app.on_event("shutdown")
     async def shutdown():
+        from src.api import flow_endpoints
+        if flow_endpoints._flow_receiver:
+            await flow_endpoints._flow_receiver.stop()
+            logger.info("FlowReceiver stopped")
+
         import src.api.monitor_endpoints as mon_ep
         if mon_ep._monitor:
             await mon_ep._monitor.stop()
