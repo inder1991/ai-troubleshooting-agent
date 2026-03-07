@@ -318,16 +318,7 @@ const DevicePropertyPanel: React.FC<DevicePropertyPanelProps> = ({
   }
 
   if (!selectedNode) {
-    return (
-      <div
-        className="w-72 flex-shrink-0 border-l flex items-center justify-center p-4"
-        style={{ backgroundColor: '#0f2023', borderColor: '#224349' }}
-      >
-        <p className="text-xs font-mono text-center" style={{ color: '#64748b' }}>
-          Select a device or edge to edit properties
-        </p>
-      </div>
-    );
+    return null;
   }
 
   const isFirewall = deviceType === 'firewall';

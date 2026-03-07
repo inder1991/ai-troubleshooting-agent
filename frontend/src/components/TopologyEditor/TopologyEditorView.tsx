@@ -133,11 +133,20 @@ function TopologyEditorInner() {
     historyIndexRef.current = historyRef.current.length - 1;
   }, [nodes, edges]);
 
-  // Snapshot after meaningful changes (debounced)
+  // Snapshot after meaningful changes + auto-save to localStorage (debounced)
   const pushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const initialLoadDone = useRef(false);
   useEffect(() => {
     if (pushTimerRef.current) clearTimeout(pushTimerRef.current);
-    pushTimerRef.current = setTimeout(pushHistory, 500);
+    pushTimerRef.current = setTimeout(() => {
+      pushHistory();
+      // Auto-save to localStorage so work survives sleep/refresh
+      if (initialLoadDone.current && (nodes.length > 0 || edges.length > 0)) {
+        try {
+          localStorage.setItem('topology_autosave', JSON.stringify({ nodes, edges, savedAt: Date.now() }));
+        } catch { /* quota exceeded — ignore */ }
+      }
+    }, 500);
     return () => { if (pushTimerRef.current) clearTimeout(pushTimerRef.current); };
   }, [nodes, edges, pushHistory]);
 
@@ -179,9 +188,10 @@ function TopologyEditorInner() {
     setSelectedNodeId(null);
   }, [setNodes, setEdges]);
 
-  // Load topology on mount
+  // Load topology on mount — try backend first, fall back to localStorage autosave
   useEffect(() => {
     (async () => {
+      let loaded = false;
       try {
         setLoading(true);
         const data = await loadTopology();
@@ -190,14 +200,31 @@ function TopologyEditorInner() {
           const parsed = typeof snapshotJson === 'string'
             ? JSON.parse(snapshotJson)
             : snapshotJson;
-          if (parsed.nodes) setNodes(applyZIndex(parsed.nodes));
-          if (parsed.edges) setEdges(parsed.edges);
+          if (parsed.nodes?.length) {
+            setNodes(applyZIndex(parsed.nodes));
+            if (parsed.edges) setEdges(parsed.edges);
+            loaded = true;
+          }
         }
       } catch {
-        // No saved topology -- start fresh
-      } finally {
-        setLoading(false);
+        // Backend unavailable
       }
+      // Fall back to localStorage autosave
+      if (!loaded) {
+        try {
+          const saved = localStorage.getItem('topology_autosave');
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            if (parsed.nodes?.length) {
+              setNodes(applyZIndex(parsed.nodes));
+              if (parsed.edges) setEdges(parsed.edges);
+              loaded = true;
+            }
+          }
+        } catch { /* corrupt data — ignore */ }
+      }
+      initialLoadDone.current = true;
+      setLoading(false);
     })();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -265,18 +292,20 @@ function TopologyEditorInner() {
 
       const ifaceId = getNextId();
       const pw = (deviceNode.style?.width as number) || 56;
+      const ph = (deviceNode.style?.height as number) || 40;
+      // Place at cardinal index 0 (top) — matches handleAddInterface's first position
       const newIface: Node = {
         id: ifaceId,
         type: 'interface',
         position: {
-          x: deviceNode.position.x + pw + 40,
-          y: deviceNode.position.y,
+          x: deviceNode.position.x + pw / 2 - 35,
+          y: deviceNode.position.y - 60,
         },
         zIndex: 15,
         data: {
           name: 'eth0',
           ip,
-          role: 'inside',
+          role: 'outside',
           zone: '',
           parentDeviceId: deviceNode.id,
           parentDeviceName: (deviceNode.data as Record<string, unknown>).label || deviceNode.id,
@@ -284,13 +313,13 @@ function TopologyEditorInner() {
         },
       };
 
-      // device.right(source) → interface.left(target)
+      // iface ABOVE device: iface.bottom(source) → device.top(target) — matches handleAddInterface index 0
       const autoEdge: Edge = {
         id: `edge-${ifaceId}-${deviceNode.id}`,
-        source: deviceNode.id,
-        target: ifaceId,
-        sourceHandle: 'right',
-        targetHandle: 'left',
+        source: ifaceId,
+        target: deviceNode.id,
+        sourceHandle: 'bottom',
+        targetHandle: 'top',
         type: 'labeled',
         data: { label: 'attached_to' },
         animated: true,

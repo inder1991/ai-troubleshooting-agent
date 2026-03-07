@@ -342,12 +342,29 @@ a:focus-visible,
 
 .react-flow__connection-path { stroke: #07b6d5; stroke-width: 2; }
 .react-flow__edge-path { transition: stroke-width 0.2s ease, stroke-opacity 0.2s ease; }
-.react-flow__edge:hover .react-flow__edge-path { stroke-width: 3; filter: drop-shadow(0 0 3px rgba(7, 182, 213, 0.3)); }
-.react-flow__edge.selected .react-flow__edge-path { stroke: #07b6d5; stroke-width: 2.5; filter: drop-shadow(0 0 4px rgba(7, 182, 213, 0.4)); }
+.react-flow__edge:hover .react-flow__edge-path { stroke-width: 3 !important; filter: drop-shadow(0 0 3px rgba(7, 182, 213, 0.3)) !important; }
+.react-flow__edge.selected .react-flow__edge-path { stroke-width: 2.5 !important; filter: drop-shadow(0 0 6px rgba(7, 182, 213, 0.5)) !important; }
 .react-flow__controls button { background: #0f2023 !important; color: #e2e8f0 !important; border-color: #224349 !important; }
 .react-flow__controls button:hover { background: #1a3a40 !important; border-color: #07b6d5 !important; }
 .react-flow__controls button svg { fill: #e2e8f0 !important; }
 .react-flow__node.selected { filter: drop-shadow(0 0 4px rgba(7,182,213,0.4)); }
+
+/* Container nodes: click-through so edges beneath are selectable.
+   Interactive children (handles, labels, resize) override back to auto. */
+.react-flow__node-vpc,
+.react-flow__node-subnet,
+.react-flow__node-availability_zone,
+.react-flow__node-auto_scaling_group,
+.react-flow__node-compliance_zone,
+.react-flow__node-ha_group {
+  pointer-events: none !important;
+}
+/* Re-enable pointer events on interactive children (labels/badges) inside containers */
+:is(.react-flow__node-vpc, .react-flow__node-subnet, .react-flow__node-availability_zone,
+    .react-flow__node-auto_scaling_group, .react-flow__node-compliance_zone, .react-flow__node-ha_group)
+  .container-interactive {
+  pointer-events: auto !important;
+}
 
 /* Toast slide-in animation */
 @keyframes slideIn {
