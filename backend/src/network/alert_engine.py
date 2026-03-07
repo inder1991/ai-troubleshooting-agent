@@ -49,6 +49,19 @@ class MaintenanceWindow:
         return self.entity_filter == "*" or self.entity_filter == entity_id
 
 
+@dataclass
+class CompositeRule:
+    id: str
+    name: str
+    severity: str
+    entity_filter: str = "*"
+    operator: str = "AND"  # "AND" or "OR"
+    conditions: list[dict] = field(default_factory=list)
+    cooldown_seconds: int = 600
+    enabled: bool = True
+    description: str = ""
+
+
 DEFAULT_RULES = [
     AlertRule(
         id="default-unreachable", name="Device Unreachable",
@@ -113,6 +126,7 @@ class AlertEngine:
         self._last_fired: dict[str, float] = {}  # (rule_id, entity_id) -> timestamp
         self._active_alerts: dict[str, dict] = {}
         self._maintenance_windows: list[MaintenanceWindow] = []
+        self._composite_rules: list[CompositeRule] = []
         self._dispatcher = None
         self._store = None
 
@@ -205,6 +219,77 @@ class AlertEngine:
         if entity_filter == "*":
             return True
         return entity_id == entity_filter
+
+    def add_composite_rule(self, rule: CompositeRule) -> None:
+        self._composite_rules.append(rule)
+
+    def remove_composite_rule(self, rule_id: str) -> None:
+        self._composite_rules = [r for r in self._composite_rules if r.id != rule_id]
+
+    def get_composite_rules(self) -> list[dict]:
+        return [
+            {"id": r.id, "name": r.name, "severity": r.severity,
+             "entity_filter": r.entity_filter, "operator": r.operator,
+             "conditions": r.conditions, "cooldown_seconds": r.cooldown_seconds,
+             "enabled": r.enabled, "description": r.description}
+            for r in self._composite_rules
+        ]
+
+    async def evaluate_composites(self, entity_id: str) -> list[dict]:
+        """Evaluate composite rules for a given entity."""
+        fired: list[dict] = []
+        now = time.time()
+
+        if self._in_maintenance(entity_id):
+            return fired
+
+        for rule in self._composite_rules:
+            if not rule.enabled:
+                continue
+            if not self._matches_filter(entity_id, rule.entity_filter):
+                continue
+
+            key = f"{rule.id}:{entity_id}"
+            last = self._last_fired.get(key, 0)
+            if now - last < rule.cooldown_seconds and key in self._active_alerts:
+                continue
+
+            results = []
+            for cond in rule.conditions:
+                data = await self.metrics.query_device_metrics(
+                    entity_id, cond["metric"],
+                    range_str="30s", resolution="30s",
+                )
+                if data:
+                    val = data[-1].get("value", 0)
+                    met = self._check_condition(val, cond["condition"], cond["threshold"])
+                    results.append((met, val, cond))
+                else:
+                    results.append((False, 0, cond))
+
+            if rule.operator == "AND":
+                all_met = all(r[0] for r in results)
+            else:  # OR
+                all_met = any(r[0] for r in results)
+
+            if all_met:
+                met_conditions = [r for r in results if r[0]]
+                first = met_conditions[0] if met_conditions else results[0]
+                alert = self._fire_alert(
+                    AlertRule(
+                        id=rule.id, name=rule.name, severity=rule.severity,
+                        entity_type="device", entity_filter=rule.entity_filter,
+                        metric=first[2]["metric"], condition=first[2]["condition"],
+                        threshold=first[2]["threshold"],
+                        cooldown_seconds=rule.cooldown_seconds,
+                    ),
+                    entity_id, first[1], now,
+                )
+                alert["composite"] = True
+                alert["operator"] = rule.operator
+                fired.append(alert)
+
+        return fired
 
     def _check_condition(self, value: float, condition: str, threshold: float) -> bool:
         if condition == "gt":
@@ -313,6 +398,11 @@ class AlertEngine:
                     severity=alert["severity"], value=alert["value"],
                     threshold=alert["threshold"], message=alert["message"],
                 )
+        # Evaluate composite rules
+        for eid in entity_ids:
+            comp_fired = await self.evaluate_composites(eid)
+            all_fired.extend(comp_fired)
+
         # Dispatch notifications for newly fired alerts
         if self._dispatcher and all_fired:
             try:

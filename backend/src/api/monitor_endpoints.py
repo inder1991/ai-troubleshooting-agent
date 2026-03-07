@@ -208,6 +208,37 @@ async def acknowledge_alert(alert_key: str):
     return {"acknowledged": ok}
 
 
+# ── Composite Rules ──
+
+
+@monitor_router.get("/alerts/composite-rules")
+async def get_composite_rules():
+    mon = _get_monitor()
+    if not mon or not mon.alert_engine:
+        return {"rules": []}
+    return {"rules": mon.alert_engine.get_composite_rules()}
+
+
+@monitor_router.post("/alerts/composite-rules")
+async def create_composite_rule(body: dict):
+    from src.network.alert_engine import CompositeRule
+    mon = _get_monitor()
+    if not mon or not mon.alert_engine:
+        raise HTTPException(503, "Alert engine not initialized")
+    rule = CompositeRule(**body)
+    mon.alert_engine.add_composite_rule(rule)
+    return {"status": "created", "id": rule.id}
+
+
+@monitor_router.delete("/alerts/composite-rules/{rule_id}")
+async def delete_composite_rule(rule_id: str):
+    mon = _get_monitor()
+    if not mon or not mon.alert_engine:
+        raise HTTPException(503, "Alert engine not initialized")
+    mon.alert_engine.remove_composite_rule(rule_id)
+    return {"status": "deleted", "id": rule_id}
+
+
 # ── Notification Channels ──────────────────────────────────────────
 
 
