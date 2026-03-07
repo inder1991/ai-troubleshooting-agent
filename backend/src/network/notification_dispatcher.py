@@ -153,6 +153,8 @@ class NotificationDispatcher:
                 await self._send_email(channel, alert)
             elif channel.channel_type == ChannelType.PAGERDUTY:
                 await self._send_pagerduty(channel, alert)
+            elif channel.channel_type == ChannelType.TEAMS:
+                await self._send_teams(channel, alert)
         except Exception:
             logger.exception("Failed to send alert to channel %s", channel.id)
 
@@ -257,3 +259,50 @@ class NotificationDispatcher:
             )
             resp.raise_for_status()
         logger.info("PagerDuty event sent (dedup_key=%s)", alert.get("key"))
+
+    async def _send_teams(self, channel: NotificationChannel, alert: dict) -> None:
+        if not HAS_HTTPX:
+            logger.warning("httpx not installed — cannot send Teams message")
+            return
+        webhook_url = channel.config.get("webhook_url", "")
+        severity = alert.get("severity", "info")
+        rule_name = alert.get("rule_name", "Alert")
+        entity_id = alert.get("entity_id", "")
+        metric = alert.get("metric", "")
+        value = alert.get("value", "")
+        message = alert.get("message", "")
+
+        color = {"critical": "attention", "warning": "warning"}.get(severity, "accent")
+
+        payload = {
+            "type": "message",
+            "attachments": [{
+                "contentType": "application/vnd.microsoft.card.adaptive",
+                "content": {
+                    "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                    "type": "AdaptiveCard",
+                    "version": "1.4",
+                    "body": [
+                        {
+                            "type": "TextBlock",
+                            "size": "medium",
+                            "weight": "bolder",
+                            "text": f"[{severity.upper()}] {rule_name}",
+                            "color": color,
+                        },
+                        {
+                            "type": "FactSet",
+                            "facts": [
+                                {"title": "Entity", "value": entity_id},
+                                {"title": "Metric", "value": f"{metric} = {value}"},
+                                {"title": "Message", "value": message},
+                            ],
+                        },
+                    ],
+                },
+            }],
+        }
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.post(webhook_url, json=payload)
+            resp.raise_for_status()
+        logger.info("Teams message sent (status %d)", resp.status_code)

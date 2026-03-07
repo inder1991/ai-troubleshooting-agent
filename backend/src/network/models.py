@@ -615,6 +615,7 @@ class ChannelType(str, Enum):
     SLACK = "slack"
     EMAIL = "email"
     PAGERDUTY = "pagerduty"
+    TEAMS = "teams"
 
 
 class NotificationChannel(BaseModel):
