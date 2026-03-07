@@ -768,6 +768,33 @@ async def topology_versions():
     return {"versions": versions}
 
 
+@network_router.get("/topology/diff")
+async def topology_diff(v1: int, v2: int):
+    """Compare two topology snapshots and show added, removed, and changed devices."""
+    import json as _json
+
+    store = _get_topology_store()
+    snap1 = store.load_diagram_snapshot_by_id(v1)
+    snap2 = store.load_diagram_snapshot_by_id(v2)
+    if not snap1 or not snap2:
+        raise HTTPException(404, "One or both snapshots not found")
+
+    data1 = _json.loads(snap1.get("snapshot_json", "{}"))
+    data2 = _json.loads(snap2.get("snapshot_json", "{}"))
+
+    nodes1 = {n["id"]: n for n in data1.get("nodes", [])}
+    nodes2 = {n["id"]: n for n in data2.get("nodes", [])}
+
+    added = [nodes2[nid] for nid in nodes2 if nid not in nodes1]
+    removed = [nodes1[nid] for nid in nodes1 if nid not in nodes2]
+    changed = []
+    for nid in nodes1:
+        if nid in nodes2 and nodes1[nid] != nodes2[nid]:
+            changed.append({"id": nid, "before": nodes1[nid], "after": nodes2[nid]})
+
+    return {"v1": v1, "v2": v2, "added": added, "removed": removed, "changed": changed}
+
+
 @network_router.get("/topology/load/{snap_id}")
 async def topology_load_version(snap_id: int):
     """Load a specific diagram snapshot by ID."""
