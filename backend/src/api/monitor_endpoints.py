@@ -88,6 +88,28 @@ async def list_drift_events():
     return {"drifts": store.list_active_drift_events()}
 
 
+@monitor_router.post("/drift/resolve-all")
+async def resolve_all_drifts():
+    """Resolve all active drift events."""
+    store = _get_topology_store()
+    if not store:
+        raise HTTPException(503, "Store not initialized")
+    drifts = store.list_active_drift_events()
+    for d in drifts:
+        store.resolve_drift_event(d["id"])
+    return {"resolved": len(drifts)}
+
+
+@monitor_router.post("/drift/{event_id}/resolve")
+async def resolve_drift(event_id: str):
+    """Resolve a single drift event by ID."""
+    store = _get_topology_store()
+    if not store:
+        raise HTTPException(503, "Store not initialized")
+    store.resolve_drift_event(event_id)
+    return {"resolved": True, "event_id": event_id}
+
+
 @monitor_router.get("/device-statuses")
 def list_device_statuses(offset: int = 0, limit: int = 100):
     """Paginated list of all device statuses."""
