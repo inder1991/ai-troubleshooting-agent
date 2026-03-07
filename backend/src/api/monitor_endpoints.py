@@ -114,6 +114,20 @@ def get_metric_history(
     return store.query_metric_history(entity_type, entity_id, metric_name, since)
 
 
+@monitor_router.get("/link-metrics")
+def list_link_metrics(src_id: str | None = None, dst_id: str | None = None):
+    """List link metrics, optionally filtered by source or destination device."""
+    store = _topology_store
+    if not store:
+        return []
+    metrics = store.list_link_metrics()
+    if src_id:
+        metrics = [m for m in metrics if m.get("src_device_id") == src_id]
+    if dst_id:
+        metrics = [m for m in metrics if m.get("dst_device_id") == dst_id]
+    return metrics
+
+
 @monitor_router.get("/device/{device_id}/history")
 async def device_history(device_id: str, period: str = "24h"):
     """Latency/status history for a specific device."""
