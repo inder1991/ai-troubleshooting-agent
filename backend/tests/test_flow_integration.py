@@ -136,7 +136,7 @@ class TestFlowEndpoints:
         finally:
             flow_endpoints._metrics_store = original
 
-    def test_flow_status_endpoint(self):
+    def test_flow_status_endpoint_disabled(self):
         from src.api.main import app
         from src.api import flow_endpoints
         original = flow_endpoints._flow_receiver
@@ -147,5 +147,23 @@ class TestFlowEndpoints:
             assert resp.status_code == 200
             data = resp.json()
             assert data["enabled"] is False
+            assert data["buffer_size"] == 0
+        finally:
+            flow_endpoints._flow_receiver = original
+
+    def test_flow_status_endpoint_enabled(self):
+        from src.api.main import app
+        from src.api import flow_endpoints
+        mock_receiver = MagicMock()
+        mock_receiver.aggregator._buffer = [1, 2, 3]
+        original = flow_endpoints._flow_receiver
+        flow_endpoints._flow_receiver = mock_receiver
+        try:
+            client = TestClient(app)
+            resp = client.get("/api/v4/network/flows/status")
+            assert resp.status_code == 200
+            data = resp.json()
+            assert data["enabled"] is True
+            assert data["buffer_size"] == 3
         finally:
             flow_endpoints._flow_receiver = original
