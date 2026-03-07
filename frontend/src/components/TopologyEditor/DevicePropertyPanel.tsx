@@ -118,7 +118,7 @@ const DevicePropertyPanel: React.FC<DevicePropertyPanelProps> = ({
     }
   }, [selectedNode]);
 
-  // Find parent subnet CIDR for interface IP validation
+  // Find parent subnet CIDR for IP validation (both device and interface nodes)
   const parentSubnetCidr = useMemo(() => {
     if (!selectedNode || !allNodes) return null;
     const nodeData = selectedNode.data as Record<string, unknown>;
@@ -141,6 +141,18 @@ const DevicePropertyPanel: React.FC<DevicePropertyPanelProps> = ({
         }
       }
     }
+
+    // Device node: check parentContainerId for subnet CIDR
+    if (selectedNode.type === 'device' || (!selectedNode.type && !CONTAINER_NODE_TYPES.has(selectedNode.type || ''))) {
+      const containerId = nodeData.parentContainerId as string;
+      if (containerId) {
+        const container = allNodes.find((n) => n.id === containerId && n.type === 'subnet');
+        if (container) {
+          return (container.data as Record<string, unknown>).cidr as string || null;
+        }
+      }
+    }
+
     return null;
   }, [selectedNode, allNodes]);
 
@@ -501,9 +513,10 @@ const DevicePropertyPanel: React.FC<DevicePropertyPanelProps> = ({
                 onChange={(e) => setIp(e.target.value)}
                 placeholder="192.168.1.1"
                 className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#07b6d5]"
-                style={{ ...inputStyle, borderColor: errors.ip ? '#ef4444' : '#224349' }}
+                style={{ ...inputStyle, borderColor: errors.ip ? '#ef4444' : errors.ipSubnet ? '#f59e0b' : '#224349' }}
               />
               {errors.ip && <p style={{ color: '#ef4444', fontSize: '10px', fontFamily: 'monospace', marginTop: '2px' }}>{errors.ip}</p>}
+              {!errors.ip && errors.ipSubnet && <p style={{ color: '#f59e0b', fontSize: '10px', fontFamily: 'monospace', marginTop: '2px' }}>{errors.ipSubnet}</p>}
             </div>
 
             {/* Vendor */}
