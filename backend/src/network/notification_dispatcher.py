@@ -39,11 +39,13 @@ class EscalationPolicy:
 class NotificationDispatcher:
     """Routes fired alerts to notification channels based on routing rules."""
 
-    def __init__(self) -> None:
+    def __init__(self, dedup_window_seconds: int = 300) -> None:
         self._channels: dict[str, NotificationChannel] = {}
         self._routings: list[NotificationRouting] = []
         self._escalations: list[EscalationPolicy] = []
         self._escalated_keys: set[str] = set()
+        self._dedup_window = dedup_window_seconds
+        self._dedup_sent: dict[str, float] = {}  # "alert_key:channel_id" -> timestamp
 
     def add_channel(self, channel: NotificationChannel) -> None:
         self._channels[channel.id] = channel
@@ -65,6 +67,10 @@ class NotificationDispatcher:
 
     async def dispatch(self, alert: dict) -> None:
         severity = alert.get("severity", "")
+        alert_key = alert.get("key", "")
+        is_resolved = alert.get("resolved", False)
+        is_escalated = alert.get("escalated", False)
+
         target_channel_ids: set[str] = set()
 
         for routing in self._routings:
@@ -73,11 +79,29 @@ class NotificationDispatcher:
             if severity in routing.severity_filter:
                 target_channel_ids.update(routing.channel_ids)
 
+        # Prune expired dedup entries
+        if self._dedup_window > 0:
+            now = time.time()
+            expired = [
+                k for k, ts in self._dedup_sent.items()
+                if now - ts >= self._dedup_window
+            ]
+            for k in expired:
+                del self._dedup_sent[k]
+
         tasks = []
         for ch_id in target_channel_ids:
             channel = self._channels.get(ch_id)
             if not channel or not channel.enabled:
                 continue
+
+            # Dedup check: skip if already sent within the window
+            if self._dedup_window > 0 and not is_resolved and not is_escalated:
+                dedup_key = f"{alert_key}:{ch_id}"
+                if dedup_key in self._dedup_sent:
+                    continue
+                self._dedup_sent[dedup_key] = time.time()
+
             tasks.append(self._send(channel, alert))
 
         if tasks:
