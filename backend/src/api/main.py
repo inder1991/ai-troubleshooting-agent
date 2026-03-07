@@ -27,6 +27,7 @@ from .monitor_endpoints import monitor_router
 from .dns_endpoints import router as dns_router
 from .flow_endpoints import flow_router, init_flow_endpoints
 from .export_endpoints import export_router, init_export_endpoints
+from .snmp_endpoints import snmp_router, init_snmp_endpoints
 from .websocket import manager
 from src.network.prometheus_exporter import MetricsCollector
 from src.utils.logger import get_logger
@@ -149,6 +150,7 @@ def create_app() -> FastAPI:
     app.include_router(monitor_router)
     app.include_router(dns_router)
     app.include_router(export_router)
+    app.include_router(snmp_router)
 
     @app.on_event("startup")
     async def startup():
@@ -194,6 +196,9 @@ def create_app() -> FastAPI:
             logger.info("NetworkMonitor started")
         except Exception as e:
             logger.warning("NetworkMonitor startup failed: %s", e)
+
+        # ── Initialize SNMP endpoints ──
+        init_snmp_endpoints(kg)
 
         # ── Initialize Flow endpoints ──
         flow_receiver_instance = None
