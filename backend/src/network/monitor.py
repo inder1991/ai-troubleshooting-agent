@@ -300,6 +300,17 @@ class NetworkMonitor:
             return
         device_ids = [d["device_id"] for d in self.store.list_device_statuses()]
         self._latest_alerts = await self.alert_engine.evaluate_all(device_ids)
+        # Check escalation policies for unacknowledged alerts
+        dispatcher = getattr(self.alert_engine, '_dispatcher', None)
+        if dispatcher:
+            try:
+                escalated = await dispatcher.check_escalations(
+                    self.alert_engine.get_active_alerts()
+                )
+                if escalated:
+                    logger.info("Escalated %d alerts", len(escalated))
+            except Exception as e:
+                logger.warning("Escalation check failed: %s", e)
 
     # ── Snapshot API ──
 
