@@ -276,6 +276,23 @@ class TopologyStore:
                     promoted_device_id TEXT DEFAULT '',
                     dismissed INTEGER DEFAULT 0
                 );
+                CREATE TABLE IF NOT EXISTS alert_history (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    alert_key TEXT NOT NULL,
+                    rule_id TEXT NOT NULL,
+                    rule_name TEXT NOT NULL,
+                    entity_id TEXT NOT NULL,
+                    severity TEXT NOT NULL,
+                    metric TEXT NOT NULL,
+                    value REAL NOT NULL,
+                    threshold REAL NOT NULL,
+                    condition TEXT NOT NULL,
+                    state TEXT NOT NULL,
+                    message TEXT DEFAULT '',
+                    timestamp TEXT DEFAULT (datetime('now'))
+                );
+                CREATE INDEX IF NOT EXISTS idx_alert_history_key ON alert_history(alert_key);
+                CREATE INDEX IF NOT EXISTS idx_alert_history_severity ON alert_history(severity);
             """)
             conn.commit()
         finally:
@@ -1616,5 +1633,67 @@ class TopologyStore:
         try:
             conn.execute("UPDATE discovery_candidates SET dismissed=1 WHERE ip=?", (ip,))
             conn.commit()
+        finally:
+            conn.close()
+
+    # ── Alert History ──
+
+    def upsert_alert_history(
+        self, alert_key: str, rule_id: str, rule_name: str,
+        entity_id: str, severity: str, metric: str,
+        value: float, threshold: float, condition: str,
+        state: str, message: str = "",
+    ) -> None:
+        conn = self._conn()
+        try:
+            conn.execute(
+                """INSERT INTO alert_history
+                   (alert_key, rule_id, rule_name, entity_id, severity,
+                    metric, value, threshold, condition, state, message)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (alert_key, rule_id, rule_name, entity_id, severity,
+                 metric, value, threshold, condition, state, message),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+    def list_alert_history(
+        self, severity: str = "", entity_id: str = "",
+        state: str = "", limit: int = 100,
+    ) -> list[dict]:
+        clauses = []
+        params: list = []
+        if severity:
+            clauses.append("severity = ?")
+            params.append(severity)
+        if entity_id:
+            clauses.append("entity_id = ?")
+            params.append(entity_id)
+        if state:
+            clauses.append("state = ?")
+            params.append(state)
+        where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+        params.append(limit)
+        conn = self._conn()
+        try:
+            rows = conn.execute(
+                f"SELECT * FROM alert_history {where} ORDER BY timestamp DESC LIMIT ?",
+                params,
+            ).fetchall()
+            return [dict(r) for r in rows]
+        finally:
+            conn.close()
+
+    def count_alert_history(self, severity: str = "") -> int:
+        conn = self._conn()
+        try:
+            if severity:
+                row = conn.execute(
+                    "SELECT COUNT(*) FROM alert_history WHERE severity = ?", (severity,)
+                ).fetchone()
+            else:
+                row = conn.execute("SELECT COUNT(*) FROM alert_history").fetchone()
+            return row[0]
         finally:
             conn.close()

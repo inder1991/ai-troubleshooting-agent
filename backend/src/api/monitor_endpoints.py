@@ -186,6 +186,18 @@ async def delete_alert_rule(rule_id: str):
     return {"status": "deleted", "id": rule_id}
 
 
+@monitor_router.get("/alerts/history")
+async def get_alert_history(severity: str = "", entity_id: str = "",
+                            state: str = "", limit: int = 100):
+    """Query alert history."""
+    store = _get_topology_store()
+    if not store:
+        return {"history": []}
+    return {"history": store.list_alert_history(
+        severity=severity, entity_id=entity_id, state=state, limit=min(limit, 500),
+    )}
+
+
 @monitor_router.post("/alerts/{alert_key}/acknowledge")
 async def acknowledge_alert(alert_key: str):
     """Acknowledge (mute) an active alert."""

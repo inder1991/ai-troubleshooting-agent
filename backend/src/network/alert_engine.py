@@ -97,6 +97,7 @@ class AlertEngine:
         self._last_fired: dict[str, float] = {}  # (rule_id, entity_id) -> timestamp
         self._active_alerts: dict[str, dict] = {}
         self._dispatcher = None
+        self._store = None
 
         if load_defaults:
             for r in DEFAULT_RULES:
@@ -105,6 +106,10 @@ class AlertEngine:
     def set_dispatcher(self, dispatcher) -> None:
         """Attach a NotificationDispatcher to receive fired alerts."""
         self._dispatcher = dispatcher
+
+    def set_store(self, store) -> None:
+        """Attach a TopologyStore for persisting alert history."""
+        self._store = store
 
     def add_rule(self, rule: AlertRule) -> None:
         self.rules.append(rule)
@@ -211,6 +216,16 @@ class AlertEngine:
             else:
                 # Resolve if was firing
                 if key in self._active_alerts:
+                    if self._store:
+                        old = self._active_alerts[key]
+                        self._store.upsert_alert_history(
+                            alert_key=key, rule_id=rule.id, rule_name=rule.name,
+                            entity_id=entity_id, severity=rule.severity,
+                            metric=rule.metric, value=latest_value,
+                            threshold=rule.threshold, condition=rule.condition,
+                            state="resolved",
+                            message=f"Resolved: {rule.metric}={latest_value:.1f}",
+                        )
                     del self._active_alerts[key]
 
         return fired
@@ -235,6 +250,14 @@ class AlertEngine:
             "message": f"{rule.name}: {rule.metric}={value:.1f} (threshold: {rule.condition} {rule.threshold})",
         }
         self._active_alerts[key] = alert
+        if self._store:
+            self._store.upsert_alert_history(
+                alert_key=key, rule_id=rule.id, rule_name=rule.name,
+                entity_id=entity_id, severity=rule.severity,
+                metric=rule.metric, value=value, threshold=rule.threshold,
+                condition=rule.condition, state="firing",
+                message=alert["message"],
+            )
         return alert
 
     async def evaluate_all(self, entity_ids: list[str]) -> list[dict]:
