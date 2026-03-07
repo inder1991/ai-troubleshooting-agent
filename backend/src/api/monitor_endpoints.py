@@ -88,6 +88,32 @@ async def list_drift_events():
     return {"drifts": store.list_active_drift_events()}
 
 
+@monitor_router.get("/device-statuses")
+def list_device_statuses(offset: int = 0, limit: int = 100):
+    """Paginated list of all device statuses."""
+    store = _get_topology_store()
+    if not store:
+        return {"items": [], "total": 0}
+    capped_limit = min(limit, 500)
+    items = store.list_device_statuses(offset=offset, limit=capped_limit)
+    total = store.count_device_statuses()
+    return {"items": items, "total": total, "offset": offset, "limit": capped_limit}
+
+
+@monitor_router.get("/metric-history")
+def get_metric_history(
+    entity_type: str,
+    entity_id: str,
+    metric_name: str,
+    since: str = "1970-01-01T00:00:00",
+):
+    """Query time-series metric history from the topology store."""
+    store = _get_topology_store()
+    if not store:
+        return []
+    return store.query_metric_history(entity_type, entity_id, metric_name, since)
+
+
 @monitor_router.get("/device/{device_id}/history")
 async def device_history(device_id: str, period: str = "24h"):
     """Latency/status history for a specific device."""
