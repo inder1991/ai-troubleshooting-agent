@@ -33,6 +33,22 @@ class AlertRule:
     description: str = ""
 
 
+@dataclass
+class MaintenanceWindow:
+    id: str
+    name: str
+    start_time: float  # epoch seconds
+    end_time: float
+    entity_filter: str = "*"  # "*" = all, or specific entity_id
+
+    def is_active(self, now: float | None = None) -> bool:
+        now = now or time.time()
+        return self.start_time <= now <= self.end_time
+
+    def matches_entity(self, entity_id: str) -> bool:
+        return self.entity_filter == "*" or self.entity_filter == entity_id
+
+
 DEFAULT_RULES = [
     AlertRule(
         id="default-unreachable", name="Device Unreachable",
@@ -96,6 +112,7 @@ class AlertEngine:
         self._states: dict[str, AlertState] = {}  # (rule_id, entity_id) -> state
         self._last_fired: dict[str, float] = {}  # (rule_id, entity_id) -> timestamp
         self._active_alerts: dict[str, dict] = {}
+        self._maintenance_windows: list[MaintenanceWindow] = []
         self._dispatcher = None
         self._store = None
 
@@ -163,6 +180,27 @@ class AlertEngine:
             return True
         return False
 
+    def add_maintenance_window(self, window: MaintenanceWindow) -> None:
+        self._maintenance_windows.append(window)
+
+    def remove_maintenance_window(self, window_id: str) -> None:
+        self._maintenance_windows = [w for w in self._maintenance_windows if w.id != window_id]
+
+    def list_maintenance_windows(self) -> list[dict]:
+        return [
+            {"id": w.id, "name": w.name, "start_time": w.start_time,
+             "end_time": w.end_time, "entity_filter": w.entity_filter,
+             "active": w.is_active()}
+            for w in self._maintenance_windows
+        ]
+
+    def _in_maintenance(self, entity_id: str) -> bool:
+        now = time.time()
+        return any(
+            w.is_active(now) and w.matches_entity(entity_id)
+            for w in self._maintenance_windows
+        )
+
     def _matches_filter(self, entity_id: str, entity_filter: str) -> bool:
         if entity_filter == "*":
             return True
@@ -181,6 +219,9 @@ class AlertEngine:
         """Evaluate all rules for a given entity. Returns list of newly fired alerts."""
         fired: list[dict] = []
         now = time.time()
+
+        if self._in_maintenance(entity_id):
+            return fired
 
         for rule in self.rules:
             if not rule.enabled:

@@ -271,6 +271,37 @@ async def delete_notification_routing(routing_id: str):
     return {"status": "deleted"}
 
 
+# ── Maintenance Windows ──
+
+
+@monitor_router.get("/maintenance")
+async def list_maintenance_windows():
+    mon = _get_monitor()
+    if not mon or not mon.alert_engine:
+        return {"windows": []}
+    return {"windows": mon.alert_engine.list_maintenance_windows()}
+
+
+@monitor_router.post("/maintenance")
+async def create_maintenance_window(body: dict):
+    from src.network.alert_engine import MaintenanceWindow
+    mon = _get_monitor()
+    if not mon or not mon.alert_engine:
+        raise HTTPException(503, "Alert engine not initialized")
+    window = MaintenanceWindow(**body)
+    mon.alert_engine.add_maintenance_window(window)
+    return {"status": "created", "id": window.id}
+
+
+@monitor_router.delete("/maintenance/{window_id}")
+async def delete_maintenance_window(window_id: str):
+    mon = _get_monitor()
+    if not mon or not mon.alert_engine:
+        raise HTTPException(503, "Alert engine not initialized")
+    mon.alert_engine.remove_maintenance_window(window_id)
+    return {"status": "deleted", "id": window_id}
+
+
 # ── Metrics ──
 
 
