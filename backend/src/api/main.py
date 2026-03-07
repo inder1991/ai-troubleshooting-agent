@@ -28,6 +28,7 @@ from .dns_endpoints import router as dns_router
 from .flow_endpoints import flow_router, init_flow_endpoints
 from .export_endpoints import export_router, init_export_endpoints
 from .snmp_endpoints import snmp_router, init_snmp_endpoints
+from .topology_query_endpoints import topology_query_router, init_topology_query_endpoints
 from .websocket import manager
 from src.network.prometheus_exporter import MetricsCollector
 from src.utils.logger import get_logger
@@ -151,6 +152,7 @@ def create_app() -> FastAPI:
     app.include_router(dns_router)
     app.include_router(export_router)
     app.include_router(snmp_router)
+    app.include_router(topology_query_router)
 
     @app.on_event("startup")
     async def startup():
@@ -199,6 +201,9 @@ def create_app() -> FastAPI:
 
         # ── Initialize SNMP endpoints ──
         init_snmp_endpoints(kg)
+
+        # ── Initialize Topology Query endpoints ──
+        init_topology_query_endpoints(kg)
 
         # ── Initialize Flow endpoints ──
         flow_receiver_instance = None
