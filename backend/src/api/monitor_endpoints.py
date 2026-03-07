@@ -6,6 +6,7 @@ from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
+from src.network.alert_engine import AlertRule
 from src.network.topology_store import TopologyStore
 from src.network.knowledge_graph import NetworkKnowledgeGraph
 from src.network.models import Device, DeviceType, Interface
@@ -138,6 +139,51 @@ async def get_alert_rules():
     if not mon or not mon.alert_engine:
         return {"rules": []}
     return {"rules": mon.alert_engine.get_rules()}
+
+
+@monitor_router.get("/alerts/rules/{rule_id}")
+async def get_alert_rule(rule_id: str):
+    """Get a single alert rule by ID."""
+    mon = _get_monitor()
+    if not mon or not mon.alert_engine:
+        raise HTTPException(404, "Monitor not running")
+    rule = mon.alert_engine.get_rule(rule_id)
+    if not rule:
+        raise HTTPException(404, f"Rule '{rule_id}' not found")
+    return rule
+
+
+@monitor_router.post("/alerts/rules")
+async def create_alert_rule(body: dict):
+    """Create a new custom alert rule."""
+    mon = _get_monitor()
+    if not mon or not mon.alert_engine:
+        raise HTTPException(503, "Alert engine not initialized")
+    rule = AlertRule(**body)
+    mon.alert_engine.add_rule(rule)
+    return {"status": "created", "id": rule.id}
+
+
+@monitor_router.put("/alerts/rules/{rule_id}")
+async def update_alert_rule(rule_id: str, body: dict):
+    """Update fields on an existing alert rule."""
+    mon = _get_monitor()
+    if not mon or not mon.alert_engine:
+        raise HTTPException(503, "Alert engine not initialized")
+    ok = mon.alert_engine.update_rule(rule_id, **body)
+    if not ok:
+        raise HTTPException(404, f"Rule '{rule_id}' not found")
+    return {"status": "updated", "id": rule_id}
+
+
+@monitor_router.delete("/alerts/rules/{rule_id}")
+async def delete_alert_rule(rule_id: str):
+    """Delete an alert rule."""
+    mon = _get_monitor()
+    if not mon or not mon.alert_engine:
+        raise HTTPException(503, "Alert engine not initialized")
+    mon.alert_engine.remove_rule(rule_id)
+    return {"status": "deleted", "id": rule_id}
 
 
 @monitor_router.post("/alerts/{alert_key}/acknowledge")

@@ -112,6 +112,30 @@ class AlertEngine:
     def remove_rule(self, rule_id: str) -> None:
         self.rules = [r for r in self.rules if r.id != rule_id]
 
+    def get_rule(self, rule_id: str) -> dict | None:
+        """Return a single rule as dict, or None if not found."""
+        for r in self.rules:
+            if r.id == rule_id:
+                return {
+                    "id": r.id, "name": r.name, "severity": r.severity,
+                    "entity_type": r.entity_type, "entity_filter": r.entity_filter,
+                    "metric": r.metric, "condition": r.condition,
+                    "threshold": r.threshold, "duration_seconds": r.duration_seconds,
+                    "cooldown_seconds": r.cooldown_seconds, "enabled": r.enabled,
+                    "description": r.description,
+                }
+        return None
+
+    def update_rule(self, rule_id: str, **kwargs) -> bool:
+        """Update fields on an existing rule. Returns True if found."""
+        for r in self.rules:
+            if r.id == rule_id:
+                for key, value in kwargs.items():
+                    if hasattr(r, key):
+                        setattr(r, key, value)
+                return True
+        return False
+
     def get_rules(self) -> list[dict]:
         return [
             {
