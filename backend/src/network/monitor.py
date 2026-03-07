@@ -51,6 +51,7 @@ class NetworkMonitor:
         self._task: asyncio.Task | None = None
         self._last_cycle_at: float | None = None
         self._last_cycle_duration: float | None = None
+        self.metrics_collector = None
 
     # ── Heartbeat ──
 
@@ -116,6 +117,13 @@ class NetworkMonitor:
         self.store.prune_metric_history(older_than_days=7)
         self._last_cycle_at = time.monotonic()
         self._last_cycle_duration = self._last_cycle_at - t0
+
+        if self.metrics_collector:
+            self.metrics_collector.record_cycle_duration(self._last_cycle_duration)
+            self.metrics_collector.increment_cycle_total()
+            self.metrics_collector.set_device_count(len(self.store.list_devices()))
+            if self.alert_engine:
+                self.metrics_collector.set_active_alerts(len(self.alert_engine.get_active_alerts()))
 
     async def _probe_pass(self):
         devices = self.store.list_devices()

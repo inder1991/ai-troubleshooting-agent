@@ -8,6 +8,7 @@ load_dotenv()
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import PlainTextResponse
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
@@ -25,9 +26,13 @@ from .network_endpoints import network_router
 from .monitor_endpoints import monitor_router
 from .dns_endpoints import router as dns_router
 from .websocket import manager
+from src.network.prometheus_exporter import MetricsCollector
 from src.utils.logger import get_logger
 
 logger = get_logger("main")
+
+# Module-level Prometheus metrics collector
+metrics_collector = MetricsCollector()
 
 # Rate limiter — 60 requests/minute per client IP by default
 limiter = Limiter(key_func=get_remote_address, default_limits=["60/minute"])
@@ -193,6 +198,11 @@ def create_app() -> FastAPI:
         if mon_ep._monitor and mon_ep._monitor.metrics_store:
             await mon_ep._monitor.metrics_store.close()
             logger.info("InfluxDB MetricsStore closed")
+
+    # Prometheus metrics endpoint
+    @app.get("/metrics", response_class=PlainTextResponse)
+    def prometheus_metrics():
+        return metrics_collector.generate_metrics()
 
     # WebSocket endpoint
     @app.websocket("/ws/troubleshoot/{session_id}")
