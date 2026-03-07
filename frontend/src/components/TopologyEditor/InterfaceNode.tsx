@@ -34,7 +34,7 @@ const InterfaceNode: React.FC<NodeProps<InterfaceNodeData>> = ({ data, selected 
   const roleLabel = roleLabels[data.role] || data.role?.toUpperCase().slice(0, 3) || 'IF';
 
   return (
-    <div className="relative group">
+    <div className="relative group w-full h-full">
       <NodeResizeControl minWidth={60} minHeight={28}
         style={{ background: color, width: '8px', height: '8px', borderRadius: '2px' }}
       />
@@ -53,7 +53,7 @@ const InterfaceNode: React.FC<NodeProps<InterfaceNodeData>> = ({ data, selected 
         style={{ background: color }} />
 
       <div
-        className="w-full h-full flex items-center gap-1.5 px-2 py-1 rounded border transition-all"
+        className="w-full h-full flex items-center justify-center gap-1.5 px-2 py-1 rounded border transition-all"
         style={{
           backgroundColor: selected ? '#162a2e' : '#0f2023',
           borderColor: selected ? color : '#224349',

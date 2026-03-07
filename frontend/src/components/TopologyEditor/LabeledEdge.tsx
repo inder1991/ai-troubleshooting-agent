@@ -39,33 +39,24 @@ const LabeledEdge: React.FC<EdgeProps> = ({
     targetPosition,
   });
 
-  const markerId = `arrow-${id}`;
-
   return (
     <>
-      <defs>
-        <marker
-          id={markerId}
-          markerWidth="12"
-          markerHeight="12"
-          refX="10"
-          refY="6"
-          orient="auto"
-        >
-          <path d="M2,2 L10,6 L2,10" fill="none" stroke={color} strokeWidth="1.5" />
-        </marker>
-      </defs>
       {/* Invisible fat interaction path for easier click targeting */}
       <path
+        className="react-flow__edge-interaction"
         d={edgePath}
-        style={{ stroke: 'transparent', strokeWidth: 15, fill: 'none', cursor: 'pointer' }}
+        style={{ stroke: 'transparent', strokeWidth: 20, fill: 'none', cursor: 'pointer', pointerEvents: 'stroke' }}
       />
       <path
         id={id}
         className="react-flow__edge-path"
         d={edgePath}
-        style={{ ...style, stroke: color, strokeWidth: selected ? 3 : 2 }}
-        markerEnd={`url(#${markerId})`}
+        style={{
+          ...style,
+          stroke: color,
+          strokeWidth: selected ? 2.5 : 2,
+          filter: selected ? `drop-shadow(0 0 4px ${color}66)` : undefined,
+        }}
       />
       {selected && (
         <path
@@ -77,7 +68,7 @@ const LabeledEdge: React.FC<EdgeProps> = ({
         <div
           style={{
             position: 'absolute',
-            transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
+            transform: `translate(-50%, -130%) translate(${labelX}px,${labelY}px)`,
             pointerEvents: 'all',
           }}
           className="nodrag nopan"
@@ -85,9 +76,10 @@ const LabeledEdge: React.FC<EdgeProps> = ({
           <span
             className="text-[9px] font-mono px-2 py-1 rounded-full"
             style={{
-              backgroundColor: selected ? color + '20' : '#0a0f13e6',
+              backgroundColor: selected ? color + '20' : 'rgba(15, 32, 35, 0.95)',
               color,
               border: `1px solid ${selected ? color : color + '40'}`,
+              padding: '2px 6px',
             }}
           >
             {interfaceName || edgeType.replace(/_/g, ' ')}

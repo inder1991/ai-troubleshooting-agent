@@ -56,12 +56,17 @@ export function validateVLAN(vlan: string | number): string | null {
 }
 
 /** Parse an IPv4 address to a 32-bit integer for comparison. */
-function ipToInt(ip: string): number {
+export function ipToInt(ip: string): number {
   return ip.split('.').reduce((acc, octet) => (acc << 8) + Number(octet), 0) >>> 0;
 }
 
+/** Convert a 32-bit integer to an IPv4 address string. */
+export function intToIp(num: number): string {
+  return [(num >>> 24) & 255, (num >>> 16) & 255, (num >>> 8) & 255, num & 255].join('.');
+}
+
 /** Parse CIDR to { network: number, mask: number }. */
-function parseCIDR(cidr: string): { network: number; mask: number; prefix: number } | null {
+export function parseCIDR(cidr: string): { network: number; mask: number; prefix: number } | null {
   const parts = cidr.split('/');
   if (parts.length !== 2) return null;
   const prefix = Number(parts[1]);
@@ -69,6 +74,16 @@ function parseCIDR(cidr: string): { network: number; mask: number; prefix: numbe
   const mask = prefix === 0 ? 0 : (~0 << (32 - prefix)) >>> 0;
   const network = ipToInt(parts[0]) & mask;
   return { network, mask, prefix };
+}
+
+/** Get the Nth usable host IP from a CIDR block (1-indexed, skips network address). */
+export function getNthHostFromCIDR(cidr: string, offset: number): string | null {
+  const parsed = parseCIDR(cidr);
+  if (!parsed) return null;
+  const hostIp = (parsed.network + offset + 1) >>> 0; // skip network address
+  const broadcast = (parsed.network + (~parsed.mask >>> 0)) >>> 0;
+  if (hostIp >= broadcast) return null;
+  return intToIp(hostIp);
 }
 
 /** Check if an IP address falls within a CIDR block. */
@@ -264,6 +279,29 @@ export function validateTopology(nodes: CanvasNode[]): ValidationError[] {
           severity: 'error',
           nodeId: dev.id,
         });
+      }
+    }
+  }
+
+  // Rule: Standalone interface node IP must be within parent subnet CIDR
+  const interfaceNodes = nodes.filter((n) => n.type === 'interface');
+  for (const ifaceNode of interfaceNodes) {
+    const ifaceIp = (ifaceNode.data.ip as string) || '';
+    if (!ifaceIp || validateIPv4(ifaceIp)) continue;
+
+    const subnetId = ifaceNode.data.subnetId as string;
+    if (subnetId) {
+      const subnetNode = containers.find((c) => c.id === subnetId);
+      if (subnetNode) {
+        const subCidr = (subnetNode.data.cidr as string) || '';
+        if (subCidr && !validateCIDR(subCidr) && !isIPInCIDR(ifaceIp, subCidr)) {
+          errors.push({
+            field: 'interface.ip',
+            message: `Interface '${ifaceNode.data.name || ifaceNode.id}' IP ${ifaceIp} is outside subnet CIDR ${subCidr}`,
+            severity: 'error',
+            nodeId: ifaceNode.id,
+          });
+        }
       }
     }
   }

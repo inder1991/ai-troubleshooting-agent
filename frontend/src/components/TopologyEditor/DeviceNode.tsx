@@ -94,7 +94,7 @@ const DeviceNode: React.FC<NodeProps<DeviceNodeData>> = ({ data, selected }) => 
   const accentColor = deviceColors[data.deviceType] || '#07b6d5';
 
   return (
-    <div className="relative group">
+    <div className="relative group w-full h-full">
       {/* Resize control */}
       <NodeResizeControl minWidth={56} minHeight={40}
         style={{ background: accentColor, width: '8px', height: '8px', borderRadius: '2px' }}
@@ -111,7 +111,7 @@ const DeviceNode: React.FC<NodeProps<DeviceNodeData>> = ({ data, selected }) => 
         className="!w-2.5 !h-2.5 !bg-[#07b6d5] !border !border-[#3a5a60] opacity-0 group-hover:opacity-100 transition-opacity" />
 
       <div
-        className="w-full h-full flex flex-col items-center gap-0.5 p-1.5 rounded border transition-all"
+        className="w-full h-full flex flex-col items-center justify-center gap-0.5 p-1.5 rounded border transition-all"
         style={{
           backgroundColor: selected ? '#162a2e' : '#0f2023',
           borderColor: selected ? '#07b6d5' : '#224349',

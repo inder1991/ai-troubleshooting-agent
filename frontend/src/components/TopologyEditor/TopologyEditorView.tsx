@@ -31,7 +31,7 @@ import TopologyToolbar from './TopologyToolbar';
 import IPAMUploadDialog from './IPAMUploadDialog';
 import AdapterConfigDialog from './AdapterConfigDialog';
 import ValidationPanel from './ValidationPanel';
-import { validateTopology, type ValidationError } from '../../utils/networkValidation';
+import { validateTopology, type ValidationError, getNthHostFromCIDR, isCIDRSubsetOf, isIPInCIDR } from '../../utils/networkValidation';
 import { loadTopology, saveTopology, promoteTopology, API_BASE_URL } from '../../services/api';
 import { useToast } from '../Toast/ToastContext';
 
@@ -81,6 +81,17 @@ const NESTABLE_IN_CONTAINER: Record<string, Set<string>> = {
   compliance_zone: new Set(['device', 'subnet', 'interface']),
   ha_group: new Set(['device', 'interface']),
 };
+
+/** Placement guardrails: warn when on-prem devices are placed in cloud containers. */
+const CLOUD_ONLY_CONTAINERS = new Set(['vpc', 'availability_zone', 'auto_scaling_group']);
+const ON_PREM_ONLY_DEVICES = new Set(['switch', 'vlan', 'mpls']);
+
+function checkPlacementWarning(deviceType: string, containerType: string): string | null {
+  if (CLOUD_ONLY_CONTAINERS.has(containerType) && ON_PREM_ONLY_DEVICES.has(deviceType)) {
+    return `${deviceType.replace(/_/g, ' ')} is an on-prem device — consider using cloud-native equivalents in ${containerType.replace(/_/g, ' ')}`;
+  }
+  return null;
+}
 
 function TopologyEditorInner() {
   const { addToast } = useToast();
@@ -234,10 +245,71 @@ function TopologyEditorInner() {
     setSelectedEdgeId(null);
   }, []);
 
+  // Auto-provision an interface when a device is placed into a subnet
+  const autoProvisionInterface = useCallback(
+    (deviceNode: Node, subnetNode: Node) => {
+      const subnetCidr = (subnetNode.data as Record<string, unknown>).cidr as string;
+      if (!subnetCidr) return;
+
+      // Check if this device already has interfaces — skip if so
+      const existingIfaces = nodes.filter(
+        (n) => n.type === 'interface' && (n.data as Record<string, unknown>).parentDeviceId === deviceNode.id
+      );
+      if (existingIfaces.length > 0) return;
+
+      // Count existing interfaces in this subnet to offset IP
+      const subnetIfaces = nodes.filter(
+        (n) => n.type === 'interface' && (n.data as Record<string, unknown>).subnetId === subnetNode.id
+      );
+      const ip = getNthHostFromCIDR(subnetCidr, subnetIfaces.length + 10) || '';
+
+      const ifaceId = getNextId();
+      const pw = (deviceNode.style?.width as number) || 56;
+      const newIface: Node = {
+        id: ifaceId,
+        type: 'interface',
+        position: {
+          x: deviceNode.position.x + pw + 40,
+          y: deviceNode.position.y,
+        },
+        zIndex: 15,
+        data: {
+          name: 'eth0',
+          ip,
+          role: 'inside',
+          zone: '',
+          parentDeviceId: deviceNode.id,
+          parentDeviceName: (deviceNode.data as Record<string, unknown>).label || deviceNode.id,
+          subnetId: subnetNode.id,
+        },
+      };
+
+      // device.right(source) → interface.left(target)
+      const autoEdge: Edge = {
+        id: `edge-${ifaceId}-${deviceNode.id}`,
+        source: deviceNode.id,
+        target: ifaceId,
+        sourceHandle: 'right',
+        targetHandle: 'left',
+        type: 'labeled',
+        data: { label: 'attached_to' },
+        animated: true,
+        style: { strokeDasharray: '4 2' },
+      };
+
+      setNodes((nds) => nds.concat(newIface));
+      setEdges((eds) => addEdge(autoEdge, eds));
+      addToast('info', `Auto-created eth0 (${ip || 'no IP'}) for ${(deviceNode.data as Record<string, unknown>).label}`);
+    },
+    [nodes, setNodes, setEdges, addToast],
+  );
+
   // Containment tracking: when any node is dragged, check if it lands inside a valid container
   const onNodeDragStop = useCallback(
     (_: React.MouseEvent, draggedNode: Node) => {
       const draggedType = draggedNode.type || 'device';
+
+      let foundSubnet: Node | undefined;
 
       setNodes((currentNodes) => {
         const containers = currentNodes.filter(
@@ -268,14 +340,51 @@ function TopologyEditorInner() {
           }
         }
 
+        // Track if device was dropped into a subnet for auto-provisioning
+        if (draggedType === 'device' && newParentId) {
+          const parent = containers.find((c) => c.id === newParentId);
+          if (parent && parent.type === 'subnet') {
+            foundSubnet = parent;
+          }
+        }
+
+        // CIDR containment warning: subnet dragged into VPC
+        if (draggedNode.type === 'subnet' && newParentId) {
+          const parentVpc = containers.find((c) => c.id === newParentId && c.type === 'vpc');
+          if (parentVpc) {
+            const subCidr = (draggedNode.data as Record<string, unknown>).cidr as string;
+            const vpcCidr = (parentVpc.data as Record<string, unknown>).cidr as string;
+            if (subCidr && vpcCidr && !isCIDRSubsetOf(subCidr, vpcCidr)) {
+              addToast('warning', `Subnet CIDR ${subCidr} is not within VPC CIDR ${vpcCidr}`);
+            }
+          }
+        }
+
+        // Placement guardrail: on-prem device in cloud container
+        if (draggedType === 'device' && newParentId) {
+          const parent = containers.find((c) => c.id === newParentId);
+          if (parent) {
+            const warning = checkPlacementWarning(
+              (draggedNode.data as Record<string, unknown>).deviceType as string || '',
+              parent.type || ''
+            );
+            if (warning) addToast('warning', warning);
+          }
+        }
+
         return currentNodes.map((n) =>
           n.id === draggedNode.id
             ? { ...n, data: { ...n.data, parentContainerId: newParentId || '' } }
             : n
         );
       });
+
+      // Auto-provision interface after state update
+      if (foundSubnet && draggedType === 'device') {
+        autoProvisionInterface(draggedNode, foundSubnet);
+      }
     },
-    [setNodes]
+    [setNodes, addToast, autoProvisionInterface]
   );
 
   // Drag-and-drop from palette
@@ -352,9 +461,48 @@ function TopologyEditorInner() {
           : {}),
       };
 
-      setNodes((nds) => nds.concat(newNode));
+      setNodes((nds) => {
+        const updatedNodes = nds.concat(newNode);
+
+        // If dropping a device, check if it lands in a container
+        if (!isContainer) {
+          const containers = updatedNodes.filter(
+            (n) => CONTAINER_TYPES.has(n.type || '') && n.id !== newNode.id
+          );
+          let parentContainer: Node | undefined;
+          let smallestArea = Infinity;
+          for (const container of containers) {
+            const allowed = NESTABLE_IN_CONTAINER[container.type || ''];
+            if (!allowed || !allowed.has('device')) continue;
+            const cw = (container.style?.width as number) || 300;
+            const ch = (container.style?.height as number) || 200;
+            if (position.x >= container.position.x && position.x <= container.position.x + cw &&
+                position.y >= container.position.y && position.y <= container.position.y + ch) {
+              const area = cw * ch;
+              if (area < smallestArea) { smallestArea = area; parentContainer = container; }
+            }
+          }
+
+          if (parentContainer) {
+            // Placement guardrail
+            const warning = checkPlacementWarning(type, parentContainer.type || '');
+            if (warning) addToast('warning', warning);
+
+            // Auto-provision interface if dropped into subnet
+            if (parentContainer.type === 'subnet') {
+              setTimeout(() => autoProvisionInterface(newNode, parentContainer!), 50);
+            }
+
+            return updatedNodes.map((n) =>
+              n.id === newNode.id ? { ...n, data: { ...n.data, parentContainerId: parentContainer!.id } } : n
+            );
+          }
+        }
+
+        return updatedNodes;
+      });
     },
-    [reactFlowInstance, setNodes],
+    [reactFlowInstance, setNodes, addToast, autoProvisionInterface],
   );
 
   // Save topology
@@ -512,12 +660,18 @@ function TopologyEditorInner() {
         { x: px + pw / 2 - 35 + offset, y: py + ph + 30 + offset },      // bottom
         { x: px - 110 - offset, y: py + ph / 2 - 14 + offset },          // left
       ];
-      // Edge handle pairs: interface→device attachment
+      // Edge handle pairs: must match source-type handles to target-type handles.
+      // Both DeviceNode & InterfaceNode: top=target, left=target, bottom=source, right=source.
+      // 'edgeSource' indicates which node is the edge source (the other is edge target).
       const handlePairs = [
-        { sourceHandle: 'bottom', targetHandle: 'top' },     // top: iface bottom → device top
-        { sourceHandle: 'left', targetHandle: 'right' },     // right: iface left → device right (swapped for target)
-        { sourceHandle: 'top', targetHandle: 'bottom' },     // bottom: iface top → device bottom
-        { sourceHandle: 'right', targetHandle: 'left' },     // left: iface right → device left
+        // iface ABOVE device: iface.bottom(src) → device.top(tgt)
+        { edgeSource: 'interface' as const, sourceHandle: 'bottom', targetHandle: 'top' },
+        // iface RIGHT of device: device.right(src) → iface.left(tgt)
+        { edgeSource: 'device' as const,    sourceHandle: 'right',  targetHandle: 'left' },
+        // iface BELOW device: device.bottom(src) → iface.top(tgt)
+        { edgeSource: 'device' as const,    sourceHandle: 'bottom', targetHandle: 'top' },
+        // iface LEFT of device: iface.right(src) → device.left(tgt)
+        { edgeSource: 'interface' as const, sourceHandle: 'right',  targetHandle: 'left' },
       ];
       const defaultRoles = ['outside', 'inside', 'management', 'sync'];
 
@@ -539,10 +693,14 @@ function TopologyEditorInner() {
         },
       };
 
+      // Determine edge source/target based on which node has a valid source-type handle
+      const edgeSrcId = handles.edgeSource === 'interface' ? ifaceId : parentNodeId;
+      const edgeTgtId = handles.edgeSource === 'interface' ? parentNodeId : ifaceId;
+
       const autoEdge: Edge = {
         id: `edge-${ifaceId}-${parentNodeId}`,
-        source: ifaceId,
-        target: parentNodeId,
+        source: edgeSrcId,
+        target: edgeTgtId,
         sourceHandle: handles.sourceHandle,
         targetHandle: handles.targetHandle,
         type: 'labeled',
@@ -621,6 +779,8 @@ function TopologyEditorInner() {
             nodeTypes={nodeTypes}
             edgeTypes={edgeTypes}
             connectionMode={ConnectionMode.Loose}
+            elementsSelectable={true}
+            edgesFocusable={true}
             deleteKeyCode="Delete"
             fitView
             proOptions={{ hideAttribution: true }}
@@ -648,6 +808,7 @@ function TopologyEditorInner() {
         <DevicePropertyPanel
           selectedNode={selectedNode}
           selectedEdge={selectedEdge}
+          allNodes={nodes}
           onNodeUpdate={handleNodeUpdate}
           onEdgeUpdate={handleEdgeUpdate}
           onDeleteEdge={handleDeleteEdge}

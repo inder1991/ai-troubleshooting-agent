@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import type { Node, Edge } from 'reactflow';
-import { validateIPv4, validateCIDR } from '../../utils/networkValidation';
+import { validateIPv4, validateCIDR, isIPInCIDR, isCIDRSubsetOf } from '../../utils/networkValidation';
 
 interface DevicePropertyPanelProps {
   selectedNode: Node | null;
   selectedEdge?: Edge | null;
+  allNodes?: Node[];
   onNodeUpdate: (nodeId: string, data: Record<string, unknown>) => void;
   onEdgeUpdate?: (edgeId: string, data: Record<string, unknown>) => void;
   onDeleteEdge?: (edgeId: string) => void;
@@ -29,6 +30,7 @@ const DevicePropertyPanel: React.FC<DevicePropertyPanelProps> = ({
   onNodeUpdate,
   onEdgeUpdate,
   onDeleteEdge,
+  allNodes,
   onConfigureAdapter,
   onAddInterface,
 }) => {
@@ -116,20 +118,81 @@ const DevicePropertyPanel: React.FC<DevicePropertyPanelProps> = ({
     }
   }, [selectedNode]);
 
+  // Find parent subnet CIDR for interface IP validation
+  const parentSubnetCidr = useMemo(() => {
+    if (!selectedNode || !allNodes) return null;
+    const nodeData = selectedNode.data as Record<string, unknown>;
+
+    if (selectedNode.type === 'interface') {
+      // Check subnetId first, then look for parentContainerId on the parent device
+      const subnetId = nodeData.subnetId as string;
+      if (subnetId) {
+        const subnet = allNodes.find((n) => n.id === subnetId);
+        return (subnet?.data as Record<string, unknown>)?.cidr as string || null;
+      }
+      // Check the parent device's container
+      const parentDeviceId = nodeData.parentDeviceId as string;
+      if (parentDeviceId) {
+        const parentDevice = allNodes.find((n) => n.id === parentDeviceId);
+        const containerId = (parentDevice?.data as Record<string, unknown>)?.parentContainerId as string;
+        if (containerId) {
+          const container = allNodes.find((n) => n.id === containerId && n.type === 'subnet');
+          return (container?.data as Record<string, unknown>)?.cidr as string || null;
+        }
+      }
+    }
+    return null;
+  }, [selectedNode, allNodes]);
+
+  // Find parent VPC CIDR for subnet containment validation
+  const parentVpcCidr = useMemo(() => {
+    if (!selectedNode || !allNodes || selectedNode.type !== 'subnet') return null;
+    // Find VPC that contains this subnet spatially
+    const vpcs = allNodes.filter((n) => n.type === 'vpc');
+    for (const vpc of vpcs) {
+      const cw = (vpc.style?.width as number) || 300;
+      const ch = (vpc.style?.height as number) || 200;
+      if (selectedNode.position.x >= vpc.position.x && selectedNode.position.x <= vpc.position.x + cw &&
+          selectedNode.position.y >= vpc.position.y && selectedNode.position.y <= vpc.position.y + ch) {
+        return (vpc.data as Record<string, unknown>).cidr as string || null;
+      }
+    }
+    return null;
+  }, [selectedNode, allNodes]);
+
   const errors = useMemo(() => {
     const ifaceErrors: Record<number, string | null> = {};
     interfaces.forEach((iface, idx) => {
       ifaceErrors[idx] = iface.ip ? validateIPv4(iface.ip) : null;
     });
+
+    // IP-in-subnet validation for interface nodes
+    let ipSubnetError: string | null = null;
+    if (ip && !validateIPv4(ip) && parentSubnetCidr && !validateCIDR(parentSubnetCidr)) {
+      if (!isIPInCIDR(ip, parentSubnetCidr)) {
+        ipSubnetError = `IP not in subnet CIDR ${parentSubnetCidr}`;
+      }
+    }
+
+    // CIDR containment validation for subnet nodes
+    let cidrContainmentError: string | null = null;
+    if (cidr && !validateCIDR(cidr) && parentVpcCidr && !validateCIDR(parentVpcCidr)) {
+      if (!isCIDRSubsetOf(cidr, parentVpcCidr)) {
+        cidrContainmentError = `Subnet CIDR not within VPC CIDR ${parentVpcCidr}`;
+      }
+    }
+
     return {
       ip: ip ? validateIPv4(ip) : null,
+      ipSubnet: ipSubnetError,
       cidr: cidr ? validateCIDR(cidr) : null,
+      cidrContainment: cidrContainmentError,
       remoteGateway: remoteGateway ? validateIPv4(remoteGateway) : null,
       interfaces: ifaceErrors,
     };
-  }, [ip, cidr, remoteGateway, interfaces]);
+  }, [ip, cidr, remoteGateway, interfaces, parentSubnetCidr, parentVpcCidr]);
 
-  const hasErrors = !!errors.ip || !!errors.cidr || !!errors.remoteGateway || Object.values(errors.interfaces).some(Boolean);
+  const hasErrors = !!errors.ip || !!errors.cidr || !!errors.remoteGateway || !!errors.ipSubnet || !!errors.cidrContainment || Object.values(errors.interfaces).some(Boolean);
 
   // Debounced auto-save for node properties
   const doAutoSave = useCallback(() => {
@@ -392,6 +455,7 @@ const DevicePropertyPanel: React.FC<DevicePropertyPanelProps> = ({
                 style={{ ...inputStyle, borderColor: errors.ip ? '#ef4444' : '#224349' }}
               />
               {errors.ip && <p style={{ color: '#ef4444', fontSize: '10px', fontFamily: 'monospace', marginTop: '2px' }}>{errors.ip}</p>}
+              {!errors.ip && errors.ipSubnet && <p style={{ color: '#f59e0b', fontSize: '10px', fontFamily: 'monospace', marginTop: '2px' }}>{errors.ipSubnet}</p>}
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#64748b' }}>
@@ -516,6 +580,7 @@ const DevicePropertyPanel: React.FC<DevicePropertyPanelProps> = ({
                    className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#07b6d5]"
                    style={{ ...inputStyle, borderColor: errors.cidr ? '#ef4444' : '#224349' }} />
             {errors.cidr && <p style={{ color: '#ef4444', fontSize: '10px', fontFamily: 'monospace', marginTop: '2px' }}>{errors.cidr}</p>}
+            {!errors.cidr && errors.cidrContainment && <p style={{ color: '#f59e0b', fontSize: '10px', fontFamily: 'monospace', marginTop: '2px' }}>{errors.cidrContainment}</p>}
           </div>
         )}
 

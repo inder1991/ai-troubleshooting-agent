@@ -342,7 +342,8 @@ a:focus-visible,
 
 .react-flow__connection-path { stroke: #07b6d5; stroke-width: 2; }
 .react-flow__edge-path { transition: stroke-width 0.2s ease, stroke-opacity 0.2s ease; }
-.react-flow__edge:hover .react-flow__edge-path { stroke-width: 3; }
+.react-flow__edge:hover .react-flow__edge-path { stroke-width: 3; filter: drop-shadow(0 0 3px rgba(7, 182, 213, 0.3)); }
+.react-flow__edge.selected .react-flow__edge-path { stroke: #07b6d5; stroke-width: 2.5; filter: drop-shadow(0 0 4px rgba(7, 182, 213, 0.4)); }
 .react-flow__controls button { background: #0f2023 !important; color: #e2e8f0 !important; border-color: #224349 !important; }
 .react-flow__controls button:hover { background: #1a3a40 !important; border-color: #07b6d5 !important; }
 .react-flow__controls button svg { fill: #e2e8f0 !important; }
