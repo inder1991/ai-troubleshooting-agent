@@ -2,7 +2,9 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
 from src.network.models import Subnet, Interface, Route, Zone
+from src.network.interface_validation import validate_device_interfaces
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -73,3 +75,31 @@ def create_zone(zone: Zone):
 @resource_router.get("/zones")
 def list_zones():
     return _store().list_zones()
+
+
+# ── Interface Validation ────────────────────────────────────────────
+
+class _BulkValidateRequest(BaseModel):
+    device_ids: list[str]
+
+
+def _validate_device(device_id: str) -> dict:
+    """Run interface validation rules for a single device and return results."""
+    store = _store()
+    interfaces = store.list_interfaces(device_id=device_id)
+    subnets = store.list_subnets()
+    zones = store.list_zones()
+    errors = validate_device_interfaces(device_id, interfaces, subnets, zones)
+    return {"device_id": device_id, "errors": errors}
+
+
+@resource_router.post("/validate/bulk")
+def validate_bulk(body: _BulkValidateRequest):
+    """Validate interfaces for multiple devices at once."""
+    return [_validate_device(did) for did in body.device_ids]
+
+
+@resource_router.get("/validate/{device_id}")
+def validate_device(device_id: str):
+    """Validate all interfaces for a single device."""
+    return _validate_device(device_id)
