@@ -411,14 +411,22 @@ class TopologyStore:
         finally:
             conn.close()
 
-    def list_devices(self) -> list[Device]:
-        cache_key = "list_devices"
-        cached = self._cache.get(cache_key)
-        if cached is not None:
-            return cached
+    def list_devices(self, offset: int = 0, limit: int | None = None) -> list[Device]:
+        # Only use cache for the full unfiltered list (no offset/limit)
+        use_cache = offset == 0 and limit is None
+        if use_cache:
+            cache_key = "list_devices"
+            cached = self._cache.get(cache_key)
+            if cached is not None:
+                return cached
         conn = self._conn()
         try:
-            rows = conn.execute("SELECT * FROM devices").fetchall()
+            if limit is not None:
+                rows = conn.execute(
+                    "SELECT * FROM devices LIMIT ? OFFSET ?", (limit, offset)
+                ).fetchall()
+            else:
+                rows = conn.execute("SELECT * FROM devices").fetchall()
             results = []
             for r in rows:
                 d = dict(r)
@@ -433,8 +441,18 @@ class TopologyStore:
                     ha_group_id=d.get("ha_group_id") or "",
                     ha_role=d.get("ha_role") or "",
                 ))
-            self._cache[cache_key] = results
+            if use_cache:
+                self._cache[cache_key] = results
             return results
+        finally:
+            conn.close()
+
+    def count_devices(self) -> int:
+        """Return total number of devices."""
+        conn = self._conn()
+        try:
+            row = conn.execute("SELECT COUNT(*) AS cnt FROM devices").fetchone()
+            return row["cnt"]
         finally:
             conn.close()
 
@@ -1507,17 +1525,35 @@ class TopologyStore:
         finally:
             conn.close()
 
-    def list_device_statuses(self) -> list:
-        cache_key = "list_device_statuses"
-        cached = self._cache.get(cache_key)
-        if cached is not None:
-            return cached
+    def list_device_statuses(self, offset: int = 0, limit: int | None = None) -> list:
+        # Only use cache for the full unfiltered list (no offset/limit)
+        use_cache = offset == 0 and limit is None
+        if use_cache:
+            cache_key = "list_device_statuses"
+            cached = self._cache.get(cache_key)
+            if cached is not None:
+                return cached
         conn = self._conn()
         try:
-            rows = conn.execute("SELECT * FROM device_status").fetchall()
+            if limit is not None:
+                rows = conn.execute(
+                    "SELECT * FROM device_status LIMIT ? OFFSET ?", (limit, offset)
+                ).fetchall()
+            else:
+                rows = conn.execute("SELECT * FROM device_status").fetchall()
             results = [dict(r) for r in rows]
-            self._cache[cache_key] = results
+            if use_cache:
+                self._cache[cache_key] = results
             return results
+        finally:
+            conn.close()
+
+    def count_device_statuses(self) -> int:
+        """Return total number of device statuses."""
+        conn = self._conn()
+        try:
+            row = conn.execute("SELECT COUNT(*) AS cnt FROM device_status").fetchone()
+            return row["cnt"]
         finally:
             conn.close()
 

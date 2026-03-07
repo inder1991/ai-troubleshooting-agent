@@ -39,6 +39,21 @@ class PromoteRequest(BaseModel):
     device_type: str = "HOST"
 
 
+@monitor_router.get("/devices")
+async def list_devices(offset: int = 0, limit: int = 100):
+    """Paginated list of devices."""
+    store = _get_topology_store()
+    capped_limit = min(limit, 500)
+    items = store.list_devices(offset=offset, limit=capped_limit)
+    total = store.count_devices()
+    return {
+        "items": [d.model_dump() for d in items],
+        "total": total,
+        "offset": offset,
+        "limit": capped_limit,
+    }
+
+
 @monitor_router.get("/snapshot")
 async def get_snapshot():
     """Current state for the observatory dashboard."""
