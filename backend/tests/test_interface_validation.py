@@ -1,136 +1,203 @@
-"""Tests for multi-interface validation rules 29, 30, 31."""
-import pytest
-from src.network.interface_validation import validate_device_interfaces
+"""Unit tests for interface validation rules in interface_validation.py.
+
+Rules tested:
+  29 - IP must be within assigned subnet CIDR
+  30 - No two non-sync interfaces may share a zone
+  31 - Management interface should not be in a data/dmz zone
+  32 - Device VLAN should match subnet VLAN
+"""
 from src.network.models import Interface, Subnet, Zone
+from src.network.interface_validation import validate_device_interfaces
 
 
-@pytest.fixture
-def subnet_10():
-    return Subnet(id="s1", cidr="10.0.1.0/24")
+# ── helpers ──
+
+def _iface(iface_id: str, *, ip: str = "", subnet_id: str = "",
+           zone_id: str = "", role: str = "", name: str = "") -> Interface:
+    return Interface(
+        id=iface_id, device_id="dev1",
+        name=name or f"eth-{iface_id}",
+        ip=ip, subnet_id=subnet_id, zone_id=zone_id, role=role,
+    )
 
 
-@pytest.fixture
-def subnet_192():
-    return Subnet(id="s2", cidr="192.168.1.0/24")
+def _subnet(subnet_id: str, cidr: str, vlan_id: int = 0) -> Subnet:
+    return Subnet(id=subnet_id, cidr=cidr, vlan_id=vlan_id)
 
 
-@pytest.fixture
-def mgmt_zone():
-    return Zone(id="z-mgmt", name="management", zone_type="management")
+def _zone(zone_id: str, name: str, zone_type: str = "") -> Zone:
+    return Zone(id=zone_id, name=name, zone_type=zone_type)
 
 
-@pytest.fixture
-def data_zone():
-    return Zone(id="z-data", name="production", zone_type="data")
+class TestRule29IPInSubnet:
+    """Rule 29: Interface IP must be within its assigned subnet CIDR."""
 
+    def test_ip_outside_subnet_produces_error(self):
+        ifaces = [_iface("i1", ip="192.168.1.50", subnet_id="s1")]
+        subnets = [_subnet("s1", "10.0.0.0/24")]
 
-@pytest.fixture
-def dmz_zone():
-    return Zone(id="z-dmz", name="dmz", zone_type="dmz")
-
-
-class TestRule29_IPInSubnet:
-    def test_ip_within_subnet_passes(self, subnet_10):
-        ifaces = [Interface(id="i1", device_id="d1", name="eth0",
-                            ip="10.0.1.5", subnet_id="s1", role="inside")]
-        errors = validate_device_interfaces("d1", ifaces, [subnet_10], [])
-        assert not any(e["rule"] == 29 for e in errors)
-
-    def test_ip_outside_subnet_fails(self, subnet_10):
-        ifaces = [Interface(id="i1", device_id="d1", name="eth0",
-                            ip="10.0.2.5", subnet_id="s1", role="inside")]
-        errors = validate_device_interfaces("d1", ifaces, [subnet_10], [])
+        errors = validate_device_interfaces("dev1", ifaces, subnets, [])
         rule29 = [e for e in errors if e["rule"] == 29]
         assert len(rule29) == 1
-        assert "10.0.2.5" in rule29[0]["message"]
+        assert rule29[0]["severity"] == "error"
+        assert rule29[0]["interface_id"] == "i1"
 
-    def test_no_subnet_id_skips_check(self):
-        ifaces = [Interface(id="i1", device_id="d1", name="eth0",
-                            ip="10.0.1.5", role="inside")]
-        errors = validate_device_interfaces("d1", ifaces, [], [])
-        assert not any(e["rule"] == 29 for e in errors)
+    def test_ip_inside_subnet_no_error(self):
+        ifaces = [_iface("i1", ip="10.0.0.5", subnet_id="s1")]
+        subnets = [_subnet("s1", "10.0.0.0/24")]
 
-    def test_empty_ip_skips_check(self, subnet_10):
-        ifaces = [Interface(id="i1", device_id="d1", name="eth0",
-                            subnet_id="s1", role="inside")]
-        errors = validate_device_interfaces("d1", ifaces, [subnet_10], [])
-        assert not any(e["rule"] == 29 for e in errors)
+        errors = validate_device_interfaces("dev1", ifaces, subnets, [])
+        rule29 = [e for e in errors if e["rule"] == 29]
+        assert len(rule29) == 0
+
+    def test_interface_without_ip_skipped(self):
+        """An interface with no IP should not trigger rule 29."""
+        ifaces = [_iface("i1", ip="", subnet_id="s1")]
+        subnets = [_subnet("s1", "10.0.0.0/24")]
+
+        errors = validate_device_interfaces("dev1", ifaces, subnets, [])
+        rule29 = [e for e in errors if e["rule"] == 29]
+        assert len(rule29) == 0
+
+    def test_interface_without_subnet_skipped(self):
+        """An interface with no subnet_id should not trigger rule 29."""
+        ifaces = [_iface("i1", ip="10.0.0.5", subnet_id="")]
+        subnets = [_subnet("s1", "10.0.0.0/24")]
+
+        errors = validate_device_interfaces("dev1", ifaces, subnets, [])
+        rule29 = [e for e in errors if e["rule"] == 29]
+        assert len(rule29) == 0
+
+    def test_missing_subnet_reference_no_crash(self):
+        """If subnet_id points to a subnet not in the list, no crash occurs."""
+        ifaces = [_iface("i1", ip="10.0.0.5", subnet_id="s_missing")]
+        subnets = [_subnet("s1", "10.0.0.0/24")]
+
+        errors = validate_device_interfaces("dev1", ifaces, subnets, [])
+        rule29 = [e for e in errors if e["rule"] == 29]
+        assert len(rule29) == 0  # silently skipped, no crash
 
 
-class TestRule30_NoZoneOverlap:
-    def test_different_zones_passes(self):
+class TestRule30DuplicateZone:
+    """Rule 30: No two non-sync interfaces may share a zone on same device."""
+
+    def test_duplicate_zone_non_sync_produces_error(self):
         ifaces = [
-            Interface(id="i1", device_id="d1", name="eth0",
-                      ip="10.0.1.1", zone_id="z-inside", role="inside"),
-            Interface(id="i2", device_id="d1", name="eth1",
-                      ip="10.0.2.1", zone_id="z-outside", role="outside"),
+            _iface("i1", zone_id="z1", role="inside"),
+            _iface("i2", zone_id="z1", role="outside"),
         ]
-        errors = validate_device_interfaces("d1", ifaces, [], [])
-        assert not any(e["rule"] == 30 for e in errors)
-
-    def test_same_zone_fails(self):
-        ifaces = [
-            Interface(id="i1", device_id="d1", name="eth0",
-                      ip="10.0.1.1", zone_id="z-inside", role="inside"),
-            Interface(id="i2", device_id="d1", name="eth1",
-                      ip="10.0.1.2", zone_id="z-inside", role="outside"),
-        ]
-        errors = validate_device_interfaces("d1", ifaces, [], [])
+        errors = validate_device_interfaces("dev1", ifaces, [], [])
         rule30 = [e for e in errors if e["rule"] == 30]
         assert len(rule30) == 1
+        assert rule30[0]["severity"] == "error"
 
-    def test_sync_role_exempt_from_zone_overlap(self):
+    def test_sync_interfaces_exempt_from_zone_check(self):
         ifaces = [
-            Interface(id="i1", device_id="d1", name="eth0",
-                      ip="10.0.1.1", zone_id="z-inside", role="inside"),
-            Interface(id="i2", device_id="d1", name="sync0",
-                      ip="10.0.1.2", zone_id="z-inside", role="sync"),
+            _iface("i1", zone_id="z1", role="inside"),
+            _iface("i2", zone_id="z1", role="sync"),
         ]
-        errors = validate_device_interfaces("d1", ifaces, [], [])
-        assert not any(e["rule"] == 30 for e in errors)
+        errors = validate_device_interfaces("dev1", ifaces, [], [])
+        rule30 = [e for e in errors if e["rule"] == 30]
+        assert len(rule30) == 0
 
-    def test_empty_zone_skipped(self):
+    def test_different_zones_no_error(self):
         ifaces = [
-            Interface(id="i1", device_id="d1", name="eth0",
-                      ip="10.0.1.1", zone_id="", role="inside"),
-            Interface(id="i2", device_id="d1", name="eth1",
-                      ip="10.0.2.1", zone_id="", role="outside"),
+            _iface("i1", zone_id="z1", role="inside"),
+            _iface("i2", zone_id="z2", role="outside"),
         ]
-        errors = validate_device_interfaces("d1", ifaces, [], [])
-        assert not any(e["rule"] == 30 for e in errors)
+        errors = validate_device_interfaces("dev1", ifaces, [], [])
+        rule30 = [e for e in errors if e["rule"] == 30]
+        assert len(rule30) == 0
 
 
-class TestRule31_MgmtNotInDataPlane:
-    def test_mgmt_in_mgmt_zone_passes(self, mgmt_zone):
-        ifaces = [Interface(id="i1", device_id="d1", name="mgmt0",
-                            ip="10.0.1.1", zone_id="z-mgmt", role="management")]
-        errors = validate_device_interfaces("d1", ifaces, [], [mgmt_zone])
-        assert not any(e["rule"] == 31 for e in errors)
+class TestRule31ManagementZone:
+    """Rule 31: Management interface should not be in a data or dmz zone."""
 
-    def test_mgmt_in_data_zone_warns(self, data_zone):
-        ifaces = [Interface(id="i1", device_id="d1", name="mgmt0",
-                            ip="10.0.1.1", zone_id="z-data", role="management")]
-        errors = validate_device_interfaces("d1", ifaces, [], [data_zone])
+    def test_management_in_data_zone_warning(self):
+        ifaces = [_iface("i1", zone_id="z1", role="management")]
+        zones = [_zone("z1", "DataNet", zone_type="data")]
+
+        errors = validate_device_interfaces("dev1", ifaces, [], zones)
         rule31 = [e for e in errors if e["rule"] == 31]
         assert len(rule31) == 1
         assert rule31[0]["severity"] == "warning"
 
-    def test_mgmt_in_dmz_zone_warns(self, dmz_zone):
-        ifaces = [Interface(id="i1", device_id="d1", name="mgmt0",
-                            ip="10.0.1.1", zone_id="z-dmz", role="management")]
-        errors = validate_device_interfaces("d1", ifaces, [], [dmz_zone])
+    def test_management_in_dmz_zone_warning(self):
+        ifaces = [_iface("i1", zone_id="z1", role="management")]
+        zones = [_zone("z1", "DMZ", zone_type="dmz")]
+
+        errors = validate_device_interfaces("dev1", ifaces, [], zones)
         rule31 = [e for e in errors if e["rule"] == 31]
         assert len(rule31) == 1
+        assert rule31[0]["severity"] == "warning"
 
-    def test_non_mgmt_role_in_data_zone_ok(self, data_zone):
-        ifaces = [Interface(id="i1", device_id="d1", name="eth0",
-                            ip="10.0.1.1", zone_id="z-data", role="inside")]
-        errors = validate_device_interfaces("d1", ifaces, [], [data_zone])
-        assert not any(e["rule"] == 31 for e in errors)
+    def test_management_in_management_zone_ok(self):
+        ifaces = [_iface("i1", zone_id="z1", role="management")]
+        zones = [_zone("z1", "Mgmt", zone_type="management")]
 
-    def test_mgmt_in_unclassified_zone_ok(self):
-        unclassified = Zone(id="z-x", name="legacy", zone_type="")
-        ifaces = [Interface(id="i1", device_id="d1", name="mgmt0",
-                            ip="10.0.1.1", zone_id="z-x", role="management")]
-        errors = validate_device_interfaces("d1", ifaces, [], [unclassified])
-        assert not any(e["rule"] == 31 for e in errors)
+        errors = validate_device_interfaces("dev1", ifaces, [], zones)
+        rule31 = [e for e in errors if e["rule"] == 31]
+        assert len(rule31) == 0
+
+    def test_non_management_role_in_data_zone_ok(self):
+        """Rule 31 only applies to management interfaces."""
+        ifaces = [_iface("i1", zone_id="z1", role="inside")]
+        zones = [_zone("z1", "DataNet", zone_type="data")]
+
+        errors = validate_device_interfaces("dev1", ifaces, [], zones)
+        rule31 = [e for e in errors if e["rule"] == 31]
+        assert len(rule31) == 0
+
+
+class TestRule32VLANMismatch:
+    """Rule 32: Device VLAN should match subnet VLAN."""
+
+    def test_vlan_mismatch_produces_warning(self):
+        ifaces = [_iface("i1", ip="10.0.0.5", subnet_id="s1")]
+        subnets = [_subnet("s1", "10.0.0.0/24", vlan_id=100)]
+
+        errors = validate_device_interfaces("dev1", ifaces, subnets, [],
+                                            device_vlan_id=200)
+        rule32 = [e for e in errors if e["rule"] == 32]
+        assert len(rule32) == 1
+        assert rule32[0]["severity"] == "warning"
+
+    def test_vlan_match_no_warning(self):
+        ifaces = [_iface("i1", ip="10.0.0.5", subnet_id="s1")]
+        subnets = [_subnet("s1", "10.0.0.0/24", vlan_id=100)]
+
+        errors = validate_device_interfaces("dev1", ifaces, subnets, [],
+                                            device_vlan_id=100)
+        rule32 = [e for e in errors if e["rule"] == 32]
+        assert len(rule32) == 0
+
+    def test_no_device_vlan_skips_rule(self):
+        """When device_vlan_id is 0 (default), rule 32 is skipped entirely."""
+        ifaces = [_iface("i1", ip="10.0.0.5", subnet_id="s1")]
+        subnets = [_subnet("s1", "10.0.0.0/24", vlan_id=100)]
+
+        errors = validate_device_interfaces("dev1", ifaces, subnets, [],
+                                            device_vlan_id=0)
+        rule32 = [e for e in errors if e["rule"] == 32]
+        assert len(rule32) == 0
+
+
+class TestFullyValidConfig:
+    """A well-formed device config should produce no errors at all."""
+
+    def test_valid_config_no_errors(self):
+        subnets = [_subnet("s1", "10.0.0.0/24", vlan_id=100)]
+        zones = [
+            _zone("z1", "Inside", zone_type="data"),
+            _zone("z2", "Outside", zone_type="data"),
+            _zone("z3", "Mgmt", zone_type="management"),
+        ]
+        ifaces = [
+            _iface("i1", ip="10.0.0.10", subnet_id="s1", zone_id="z1", role="inside"),
+            _iface("i2", ip="10.0.0.11", subnet_id="s1", zone_id="z2", role="outside"),
+            _iface("i3", ip="10.0.0.12", subnet_id="s1", zone_id="z3", role="management"),
+        ]
+
+        errors = validate_device_interfaces("dev1", ifaces, subnets, zones,
+                                            device_vlan_id=100)
+        assert errors == []
