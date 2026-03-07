@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import time
+from dataclasses import dataclass, field
 from typing import Any
 
 from .models import ChannelType, NotificationChannel, NotificationRouting
@@ -23,12 +25,25 @@ except ImportError:
     HAS_SMTP = False
 
 
+@dataclass
+class EscalationPolicy:
+    id: str
+    name: str
+    escalate_after_seconds: int = 300
+    source_channel_ids: list[str] = field(default_factory=list)
+    target_channel_ids: list[str] = field(default_factory=list)
+    severity_filter: list[str] = field(default_factory=lambda: ["critical"])
+    enabled: bool = True
+
+
 class NotificationDispatcher:
     """Routes fired alerts to notification channels based on routing rules."""
 
     def __init__(self) -> None:
         self._channels: dict[str, NotificationChannel] = {}
         self._routings: list[NotificationRouting] = []
+        self._escalations: list[EscalationPolicy] = []
+        self._escalated_keys: set[str] = set()
 
     def add_channel(self, channel: NotificationChannel) -> None:
         self._channels[channel.id] = channel
@@ -71,6 +86,62 @@ class NotificationDispatcher:
     async def dispatch_batch(self, alerts: list[dict]) -> None:
         for alert in alerts:
             await self.dispatch(alert)
+
+    def add_escalation(self, policy: EscalationPolicy) -> None:
+        self._escalations.append(policy)
+
+    def remove_escalation(self, policy_id: str) -> None:
+        self._escalations = [p for p in self._escalations if p.id != policy_id]
+
+    def list_escalations(self) -> list[dict]:
+        return [
+            {"id": p.id, "name": p.name,
+             "escalate_after_seconds": p.escalate_after_seconds,
+             "source_channel_ids": p.source_channel_ids,
+             "target_channel_ids": p.target_channel_ids,
+             "severity_filter": p.severity_filter, "enabled": p.enabled}
+            for p in self._escalations
+        ]
+
+    async def check_escalations(self, active_alerts: list[dict]) -> list[dict]:
+        """Check if any unacknowledged alerts need escalation."""
+        escalated = []
+        now = time.time()
+        for alert in active_alerts:
+            if alert.get("acknowledged"):
+                continue
+            key = alert.get("key", "")
+            if key in self._escalated_keys:
+                continue
+            severity = alert.get("severity", "")
+            fired_at = alert.get("fired_at", now)
+
+            for policy in self._escalations:
+                if not policy.enabled:
+                    continue
+                if severity not in policy.severity_filter:
+                    continue
+                if now - fired_at < policy.escalate_after_seconds:
+                    continue
+
+                # Escalate: send to target channels
+                for ch_id in policy.target_channel_ids:
+                    channel = self._channels.get(ch_id)
+                    if channel and channel.enabled:
+                        escalation_alert = {
+                            **alert,
+                            "escalated": True,
+                            "escalation_policy": policy.name,
+                        }
+                        try:
+                            await self._send(channel, escalation_alert)
+                        except Exception:
+                            logger.exception("Escalation send failed for %s", ch_id)
+
+                self._escalated_keys.add(key)
+                escalated.append({"key": key, "policy": policy.id})
+
+        return escalated
 
     async def _send(self, channel: NotificationChannel, alert: dict) -> None:
         try:

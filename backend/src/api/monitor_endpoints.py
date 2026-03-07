@@ -271,6 +271,39 @@ async def delete_notification_routing(routing_id: str):
     return {"status": "deleted"}
 
 
+# ── Escalation Policies ──
+
+
+@monitor_router.get("/escalations")
+async def list_escalations():
+    mon = _get_monitor()
+    if not mon or not mon.alert_engine or not getattr(mon.alert_engine, '_dispatcher', None):
+        return {"escalations": []}
+    return {"escalations": mon.alert_engine._dispatcher.list_escalations()}
+
+
+@monitor_router.post("/escalations")
+async def create_escalation(body: dict):
+    from src.network.notification_dispatcher import EscalationPolicy
+    mon = _get_monitor()
+    if not mon or not mon.alert_engine:
+        raise HTTPException(503, "Alert engine not initialized")
+    if not getattr(mon.alert_engine, '_dispatcher', None):
+        from src.network.notification_dispatcher import NotificationDispatcher
+        mon.alert_engine.set_dispatcher(NotificationDispatcher())
+    policy = EscalationPolicy(**body)
+    mon.alert_engine._dispatcher.add_escalation(policy)
+    return {"status": "created", "id": policy.id}
+
+
+@monitor_router.delete("/escalations/{policy_id}")
+async def delete_escalation(policy_id: str):
+    mon = _get_monitor()
+    if mon and mon.alert_engine and getattr(mon.alert_engine, '_dispatcher', None):
+        mon.alert_engine._dispatcher.remove_escalation(policy_id)
+    return {"status": "deleted"}
+
+
 # ── Maintenance Windows ──
 
 

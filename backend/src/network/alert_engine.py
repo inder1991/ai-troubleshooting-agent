@@ -319,4 +319,10 @@ class AlertEngine:
                 await self._dispatcher.dispatch_batch(all_fired)
             except Exception:
                 logger.exception("Notification dispatch failed")
+        # Check escalations for unacknowledged alerts
+        if self._dispatcher:
+            try:
+                await self._dispatcher.check_escalations(list(self._active_alerts.values()))
+            except Exception:
+                logger.exception("Escalation check failed")
         return all_fired
