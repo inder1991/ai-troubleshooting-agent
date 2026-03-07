@@ -184,6 +184,7 @@ def create_app() -> FastAPI:
             monitor = NetworkMonitor(
                 topo_store, kg, _adapter_registry,
                 metrics_store=metrics_store,
+                broadcast_callback=manager.broadcast,
             )
             mon_ep._monitor = monitor
             mon_ep._topology_store = topo_store

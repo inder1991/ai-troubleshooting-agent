@@ -30,7 +30,8 @@ class NetworkMonitor:
 
     def __init__(self, store: TopologyStore, kg, adapters,
                  prometheus_url: str | None = None, metrics_store=None,
-                 dns_config: DNSMonitorConfig | None = None):
+                 dns_config: DNSMonitorConfig | None = None,
+                 broadcast_callback=None):
         self.store = store
         self.kg = kg
         self.adapters = adapters
@@ -51,6 +52,7 @@ class NetworkMonitor:
         self._task: asyncio.Task | None = None
         self._last_cycle_at: float | None = None
         self._last_cycle_duration: float | None = None
+        self._broadcast_callback = broadcast_callback
         self.metrics_collector = None
 
     # ── Heartbeat ──
@@ -124,6 +126,23 @@ class NetworkMonitor:
             self.metrics_collector.set_device_count(len(self.store.list_devices()))
             if self.alert_engine:
                 self.metrics_collector.set_active_alerts(len(self.alert_engine.get_active_alerts()))
+
+        # Broadcast monitor update to WebSocket clients
+        if self._broadcast_callback:
+            try:
+                await self._broadcast_callback({
+                    "type": "monitor_update",
+                    "data": {
+                        "active_alerts": len(self._latest_alerts),
+                        "drift_count": len(self.store.list_active_drift_events()),
+                        "candidate_count": len(self.store.list_discovery_candidates()),
+                        "device_count": len(self.store.list_device_statuses()),
+                        "cycle_duration": self._last_cycle_duration,
+                        "status": self.health_status(),
+                    },
+                })
+            except Exception as e:
+                logger.debug("Broadcast failed: %s", e)
 
     async def _probe_pass(self):
         devices = self.store.list_devices()
