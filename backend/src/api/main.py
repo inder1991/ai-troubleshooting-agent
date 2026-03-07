@@ -33,6 +33,7 @@ from .resource_endpoints import resource_router, init_resource_endpoints
 from .cloud_endpoints import cloud_router, init_cloud_endpoints
 from .security_endpoints import security_router, init_security_endpoints
 from .discovery_endpoints import discovery_router, init_discovery_endpoints
+from .search_endpoints import search_router, init_search_endpoints
 from .websocket import manager
 from src.network.prometheus_exporter import MetricsCollector
 from src.utils.logger import get_logger
@@ -161,6 +162,7 @@ def create_app() -> FastAPI:
     app.include_router(cloud_router)
     app.include_router(security_router)
     app.include_router(discovery_router)
+    app.include_router(search_router)
 
     @app.on_event("startup")
     async def startup():
@@ -276,6 +278,14 @@ def create_app() -> FastAPI:
             logger.info("Discovery endpoints initialized")
         except Exception as e:
             logger.warning("Discovery endpoints init failed: %s", e)
+
+        # ── Initialize Search endpoints ──
+        try:
+            topo_store = _net_topo_store()
+            init_search_endpoints(topo_store)
+            logger.info("Search endpoints initialized")
+        except Exception as e:
+            logger.warning("Search endpoints init failed: %s", e)
 
     @app.on_event("shutdown")
     async def shutdown():
