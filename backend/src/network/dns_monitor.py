@@ -179,19 +179,21 @@ class DNSMonitor:
         """Execute a full monitoring pass across all servers and watched hostnames.
 
         Returns a list of metric dicts suitable for writing to InfluxDB.
+        Multiple servers are queried concurrently; hostnames within a single
+        server are processed sequentially (avoids flooding one resolver).
         """
         if not self.config.enabled:
             return []
 
-        metrics: list[dict[str, Any]] = []
         enabled_servers = [s for s in self.config.servers if s.enabled]
 
-        for server in enabled_servers:
+        async def _query_server(server: DNSServerConfig) -> list[dict[str, Any]]:
+            server_metrics: list[dict[str, Any]] = []
             for watched in self.config.watched_hostnames:
                 result = await self.query_hostname(server, watched)
                 drift = self.detect_drift(result, watched)
 
-                metrics.append({
+                server_metrics.append({
                     "measurement": "dns_query",
                     "server_id": server.id,
                     "server_ip": server.ip,
@@ -214,7 +216,13 @@ class DNSMonitor:
                         drift["expected"],
                         drift["actual"],
                     )
+            return server_metrics
 
+        results = await asyncio.gather(*[_query_server(s) for s in enabled_servers])
+        # Flatten list-of-lists into a single metrics list
+        metrics: list[dict[str, Any]] = []
+        for server_metrics in results:
+            metrics.extend(server_metrics)
         return metrics
 
     def get_nxdomain_counts(self) -> dict[str, int]:

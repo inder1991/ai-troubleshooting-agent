@@ -75,12 +75,19 @@ class NetworkMonitor:
     # ── Collection Cycle ──
 
     async def _collect_cycle(self):
-        await self._probe_pass()
-        await self._adapter_pass()
-        await self._drift_pass()
-        await self._discovery_pass()
-        await self._snmp_pass()
-        await self._dns_pass()
+        passes = [
+            self._probe_pass(),
+            self._adapter_pass(),
+            self._drift_pass(),
+            self._discovery_pass(),
+            self._snmp_pass(),
+            self._dns_pass(),
+        ]
+        results = await asyncio.gather(*passes, return_exceptions=True)
+        for i, result in enumerate(results):
+            if isinstance(result, Exception):
+                logger.error("Monitor pass %d failed: %s", i, result)
+        # Alert pass reads data written by the others — must run after gather
         await self._alert_pass()
         self.store.prune_metric_history(older_than_days=7)
 
@@ -119,11 +126,18 @@ class NetworkMonitor:
             self.store.upsert_device_status(device_id, "down", 0.0, 1.0, "icmp")
 
     async def _adapter_pass(self):
-        for instance_id, adapter in self.adapters.all_instances().items():
+        async def _query_adapter(instance_id, adapter):
             try:
                 await adapter.get_interfaces()
             except Exception as e:
                 logger.debug("Adapter pass failed for %s: %s", instance_id, e)
+
+        tasks = [
+            _query_adapter(iid, adp)
+            for iid, adp in self.adapters.all_instances().items()
+        ]
+        if tasks:
+            await asyncio.gather(*tasks)
 
     async def _drift_pass(self):
         # device_bindings() returns {device_id: instance_id}
@@ -133,18 +147,25 @@ class NetworkMonitor:
         for device_id, instance_id in bindings.items():
             instance_devices[instance_id].append(device_id)
 
-        for instance_id, adapter in self.adapters.all_instances().items():
-            for device_id in instance_devices.get(instance_id, []):
-                try:
-                    events = await self.drift_engine.check_device(device_id, adapter)
-                    for event in events:
-                        self.store.upsert_drift_event(
-                            event["entity_type"], event["entity_id"],
-                            event["drift_type"], event["field"],
-                            event["expected"], event["actual"], event["severity"],
-                        )
-                except Exception as e:
-                    logger.debug("Drift check failed for %s: %s", device_id, e)
+        async def _check_one(device_id, adapter):
+            try:
+                events = await self.drift_engine.check_device(device_id, adapter)
+                for event in events:
+                    self.store.upsert_drift_event(
+                        event["entity_type"], event["entity_id"],
+                        event["drift_type"], event["field"],
+                        event["expected"], event["actual"], event["severity"],
+                    )
+            except Exception as e:
+                logger.debug("Drift check failed for %s: %s", device_id, e)
+
+        tasks = [
+            _check_one(device_id, adapter)
+            for instance_id, adapter in self.adapters.all_instances().items()
+            for device_id in instance_devices.get(instance_id, [])
+        ]
+        if tasks:
+            await asyncio.gather(*tasks)
 
     async def _discovery_pass(self):
         try:
