@@ -290,6 +290,123 @@ async def ipam_devices():
     return {"devices": [d.model_dump() for d in devices]}
 
 
+@network_router.get("/ipam/interfaces")
+async def ipam_interfaces():
+    """List all interfaces from topology store."""
+    store = _get_topology_store()
+    interfaces = store.list_interfaces()
+    return {"interfaces": [i.model_dump() for i in interfaces]}
+
+
+# ---------------------------------------------------------------------------
+# Entity CRUD endpoints (devices, subnets, interfaces, routes, VPCs, zones)
+# ---------------------------------------------------------------------------
+
+
+@network_router.get("/devices/{device_id}")
+async def get_device(device_id: str):
+    """Get a single device by ID."""
+    store = _get_topology_store()
+    device = store.get_device(device_id)
+    if not device:
+        raise HTTPException(status_code=404, detail="Device not found")
+    return {"device": device.model_dump()}
+
+
+@network_router.patch("/devices/{device_id}")
+async def update_device(device_id: str, body: Dict[str, Any]):
+    """Update device configuration fields."""
+    store = _get_topology_store()
+    device = store.update_device(device_id, **body)
+    if not device:
+        raise HTTPException(status_code=404, detail="Device not found")
+    # Reload KG to pick up changes
+    kg = _get_knowledge_graph()
+    kg.load_from_store()
+    return {"device": device.model_dump()}
+
+
+@network_router.delete("/devices/{device_id}")
+async def delete_device_endpoint(device_id: str):
+    """Delete a device and all its dependent entities (interfaces, routes, etc.)."""
+    store = _get_topology_store()
+    device = store.get_device(device_id)
+    if not device:
+        raise HTTPException(status_code=404, detail="Device not found")
+    store.delete_device(device_id)
+    # Reload KG
+    kg = _get_knowledge_graph()
+    kg.load_from_store()
+    return {"status": "deleted", "device_id": device_id}
+
+
+@network_router.get("/devices/{device_id}/interfaces")
+async def device_interfaces(device_id: str):
+    """List interfaces for a specific device."""
+    store = _get_topology_store()
+    interfaces = store.list_interfaces(device_id=device_id)
+    return {"interfaces": [i.model_dump() for i in interfaces]}
+
+
+@network_router.get("/devices/{device_id}/routes")
+async def device_routes(device_id: str):
+    """List routes for a specific device."""
+    store = _get_topology_store()
+    routes = store.list_routes(device_id=device_id)
+    return {"routes": [r.model_dump() for r in routes]}
+
+
+@network_router.delete("/subnets/{subnet_id}")
+async def delete_subnet(subnet_id: str):
+    """Delete a subnet."""
+    store = _get_topology_store()
+    store.delete_subnet(subnet_id)
+    kg = _get_knowledge_graph()
+    kg.load_from_store()
+    return {"status": "deleted", "subnet_id": subnet_id}
+
+
+@network_router.delete("/interfaces/{interface_id}")
+async def delete_interface(interface_id: str):
+    """Delete an interface."""
+    store = _get_topology_store()
+    store.delete_interface(interface_id)
+    kg = _get_knowledge_graph()
+    kg.load_from_store()
+    return {"status": "deleted", "interface_id": interface_id}
+
+
+@network_router.delete("/routes/{route_id}")
+async def delete_route(route_id: str):
+    """Delete a route."""
+    store = _get_topology_store()
+    store.delete_route(route_id)
+    return {"status": "deleted", "route_id": route_id}
+
+
+@network_router.delete("/vpcs/{vpc_id}")
+async def delete_vpc(vpc_id: str):
+    """Delete a VPC and its route tables."""
+    store = _get_topology_store()
+    vpc = store.get_vpc(vpc_id)
+    if not vpc:
+        raise HTTPException(status_code=404, detail="VPC not found")
+    store.delete_vpc(vpc_id)
+    kg = _get_knowledge_graph()
+    kg.load_from_store()
+    return {"status": "deleted", "vpc_id": vpc_id}
+
+
+@network_router.delete("/zones/{zone_id}")
+async def delete_zone(zone_id: str):
+    """Delete a zone."""
+    store = _get_topology_store()
+    store.delete_zone(zone_id)
+    kg = _get_knowledge_graph()
+    kg.load_from_store()
+    return {"status": "deleted", "zone_id": zone_id}
+
+
 # ---------------------------------------------------------------------------
 # Instance-scoped adapter endpoints (multi-instance support)
 # ---------------------------------------------------------------------------
@@ -388,6 +505,122 @@ async def adapter_test_new(req: AdapterInstanceCreateRequest):
         return {"success": health.status.value == "connected", "message": health.message}
     except Exception as e:
         return {"success": False, "message": str(e)}
+
+
+# ---------------------------------------------------------------------------
+# Legacy adapter endpoints (must be before {instance_id} to avoid capture)
+# ---------------------------------------------------------------------------
+
+
+@network_router.get("/adapters/status")
+async def adapters_status():
+    """Return health status for all configured adapters."""
+    adapters = _get_adapters()
+    results = []
+    for device_id, adapter in adapters.items():
+        health = await adapter.health_check()
+        results.append({
+            "device_id": device_id,
+            "vendor": health.vendor.value,
+            "status": health.status.value,
+            "message": health.message,
+            "snapshot_age_seconds": _safe_snapshot_age(health.snapshot_age_seconds),
+            "last_refresh": health.last_refresh,
+        })
+    return {"adapters": results}
+
+
+@network_router.post("/adapters/test")
+async def adapter_test(req: AdapterConfigureRequest):
+    """Test adapter connection without saving."""
+    from src.network.models import FirewallVendor
+    from src.network.adapters.factory import create_adapter
+
+    try:
+        fw_vendor = FirewallVendor(req.vendor)
+    except ValueError:
+        return {"success": False, "message": f"Unknown vendor: {req.vendor}"}
+
+    adapter = create_adapter(
+        fw_vendor,
+        api_endpoint=req.api_endpoint,
+        api_key=req.api_key,
+        extra_config=req.extra_config,
+    )
+    try:
+        health = await adapter.health_check()
+        return {"success": health.status.value == "connected", "message": health.message}
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+
+@network_router.post("/adapters/{vendor}/configure")
+async def adapter_configure(vendor: str, req: AdapterConfigureRequest):
+    """Configure a firewall adapter for a given vendor."""
+    from src.network.models import FirewallVendor
+    from src.network.adapters.factory import create_adapter
+
+    try:
+        fw_vendor = FirewallVendor(vendor)
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"Unknown vendor: {vendor}")
+
+    adapter = create_adapter(
+        fw_vendor,
+        api_endpoint=req.api_endpoint,
+        api_key=req.api_key,
+        extra_config=req.extra_config,
+    )
+    # Register as an adapter instance for multi-instance support
+    from src.network.models import AdapterConfig, AdapterInstance
+    import uuid as _uuid
+    store = _get_topology_store()
+
+    instance_id = str(_uuid.uuid4())
+    instance = AdapterInstance(
+        instance_id=instance_id,
+        label=req.node_id or f"{vendor}",
+        vendor=fw_vendor,
+        api_endpoint=req.api_endpoint,
+        api_key=req.api_key,
+        extra_config=req.extra_config,
+    )
+    store.save_adapter_instance(instance)
+
+    key = req.node_id or instance_id
+    _adapter_registry.register(instance_id, adapter, [key] if req.node_id else [])
+
+    # Also persist to legacy table for backward compat
+    store.save_adapter_config(AdapterConfig(
+        vendor=fw_vendor, api_endpoint=req.api_endpoint,
+        api_key=req.api_key, extra_config=req.extra_config,
+    ))
+    return {"status": "configured", "vendor": vendor, "adapter_key": key, "instance_id": instance_id}
+
+
+@network_router.post("/adapters/{vendor}/refresh")
+async def adapter_refresh(vendor: str):
+    """Force refresh adapter snapshot for a vendor."""
+    adapters = _get_adapters()
+    target = None
+    target_id = None
+    for device_id, adapter in adapters.items():
+        if adapter.vendor.value == vendor:
+            target = adapter
+            target_id = device_id
+            break
+    if not target:
+        raise HTTPException(status_code=404, detail=f"No adapter configured for vendor: {vendor}")
+    await target.refresh_snapshot()
+    # Reload KG to pick up new rules/routes from adapter
+    kg = _get_knowledge_graph()
+    kg.load_from_store()
+    return {"status": "refreshed", "device_id": target_id, "vendor": vendor}
+
+
+# ---------------------------------------------------------------------------
+# Instance-scoped adapter endpoints
+# ---------------------------------------------------------------------------
 
 
 @network_router.get("/adapters/{instance_id}")
@@ -527,117 +760,6 @@ async def adapter_bind_devices(instance_id: str, req: AdapterBindRequest):
     return {"status": "bound", "instance_id": instance_id, "device_ids": req.device_ids}
 
 
-# ---------------------------------------------------------------------------
-# Legacy adapter endpoints (backward compatibility)
-# ---------------------------------------------------------------------------
-
-
-@network_router.get("/adapters/status")
-async def adapters_status():
-    """Return health status for all configured adapters."""
-    adapters = _get_adapters()
-    results = []
-    for device_id, adapter in adapters.items():
-        health = await adapter.health_check()
-        results.append({
-            "device_id": device_id,
-            "vendor": health.vendor.value,
-            "status": health.status.value,
-            "message": health.message,
-            "snapshot_age_seconds": _safe_snapshot_age(health.snapshot_age_seconds),
-            "last_refresh": health.last_refresh,
-        })
-    return {"adapters": results}
-
-
-@network_router.post("/adapters/test")
-async def adapter_test(req: AdapterConfigureRequest):
-    """Test adapter connection without saving."""
-    from src.network.models import FirewallVendor
-    from src.network.adapters.factory import create_adapter
-
-    try:
-        fw_vendor = FirewallVendor(req.vendor)
-    except ValueError:
-        return {"success": False, "message": f"Unknown vendor: {req.vendor}"}
-
-    adapter = create_adapter(
-        fw_vendor,
-        api_endpoint=req.api_endpoint,
-        api_key=req.api_key,
-        extra_config=req.extra_config,
-    )
-    try:
-        health = await adapter.health_check()
-        return {"success": health.status.value == "connected", "message": health.message}
-    except Exception as e:
-        return {"success": False, "message": str(e)}
-
-
-@network_router.post("/adapters/{vendor}/configure")
-async def adapter_configure(vendor: str, req: AdapterConfigureRequest):
-    """Configure a firewall adapter for a given vendor."""
-    from src.network.models import FirewallVendor
-    from src.network.adapters.factory import create_adapter
-
-    try:
-        fw_vendor = FirewallVendor(vendor)
-    except ValueError:
-        raise HTTPException(status_code=400, detail=f"Unknown vendor: {vendor}")
-
-    adapter = create_adapter(
-        fw_vendor,
-        api_endpoint=req.api_endpoint,
-        api_key=req.api_key,
-        extra_config=req.extra_config,
-    )
-    # Register as an adapter instance for multi-instance support
-    from src.network.models import AdapterConfig, AdapterInstance
-    import uuid as _uuid
-    store = _get_topology_store()
-
-    instance_id = str(_uuid.uuid4())
-    instance = AdapterInstance(
-        instance_id=instance_id,
-        label=req.node_id or f"{vendor}",
-        vendor=fw_vendor,
-        api_endpoint=req.api_endpoint,
-        api_key=req.api_key,
-        extra_config=req.extra_config,
-    )
-    store.save_adapter_instance(instance)
-
-    key = req.node_id or instance_id
-    _adapter_registry.register(instance_id, adapter, [key] if req.node_id else [])
-
-    # Also persist to legacy table for backward compat
-    store.save_adapter_config(AdapterConfig(
-        vendor=fw_vendor, api_endpoint=req.api_endpoint,
-        api_key=req.api_key, extra_config=req.extra_config,
-    ))
-    return {"status": "configured", "vendor": vendor, "adapter_key": key, "instance_id": instance_id}
-
-
-@network_router.post("/adapters/{vendor}/refresh")
-async def adapter_refresh(vendor: str):
-    """Force refresh adapter snapshot for a vendor."""
-    adapters = _get_adapters()
-    target = None
-    target_id = None
-    for device_id, adapter in adapters.items():
-        if adapter.vendor.value == vendor:
-            target = adapter
-            target_id = device_id
-            break
-    if not target:
-        raise HTTPException(status_code=404, detail=f"No adapter configured for vendor: {vendor}")
-    await target.refresh_snapshot()
-    # Reload KG to pick up new rules/routes from adapter
-    kg = _get_knowledge_graph()
-    kg.load_from_store()
-    return {"status": "refreshed", "device_id": target_id, "vendor": vendor}
-
-
 @network_router.get("/topology/versions")
 async def topology_versions():
     """List recent diagram snapshots."""
@@ -733,6 +855,19 @@ async def list_ha_groups():
     return {"ha_groups": [g.model_dump() for g in groups]}
 
 
+@network_router.get("/ha-groups/{group_id}/validate")
+async def validate_ha(group_id: str):
+    """Validate an HA group against topology rules."""
+    from src.network.ha_validation import validate_ha_group
+
+    store = _get_topology_store()
+    group = store.get_ha_group(group_id)
+    if not group:
+        raise HTTPException(status_code=404, detail="HA group not found")
+    errors = validate_ha_group(store, group)
+    return {"group_id": group_id, "valid": len(errors) == 0, "errors": errors}
+
+
 @network_router.get("/ha-groups/{group_id}")
 async def get_ha_group(group_id: str):
     """Get HA group details."""
@@ -741,3 +876,16 @@ async def get_ha_group(group_id: str):
     if not group:
         raise HTTPException(status_code=404, detail="HA group not found")
     return {"ha_group": group.model_dump()}
+
+
+@network_router.delete("/ha-groups/{group_id}")
+async def delete_ha_group(group_id: str):
+    """Delete an HA group and clear member references."""
+    store = _get_topology_store()
+    group = store.get_ha_group(group_id)
+    if not group:
+        raise HTTPException(status_code=404, detail="HA group not found")
+    store.delete_ha_group(group_id)
+    kg = _get_knowledge_graph()
+    kg.load_from_store()
+    return {"status": "deleted", "ha_group_id": group_id}
