@@ -4,6 +4,7 @@ import json
 import os
 from datetime import datetime, timedelta, timezone
 from typing import Optional
+from cachetools import TTLCache
 from .models import (
     Device, DeviceType, Interface, Subnet, Zone, Workload,
     Route, NATRule, FirewallRule,
@@ -27,8 +28,14 @@ class TopologyStore:
     def __init__(self, db_path: str = DB_PATH):
         self.db_path = db_path
         os.makedirs(os.path.dirname(db_path), exist_ok=True)
+        self._cache = TTLCache(maxsize=64, ttl=10)
         self._init_tables()
         self._migrate_tables()
+
+    def _invalidate_cache(self, *keys):
+        """Remove one or more keys from the in-memory cache."""
+        for key in keys:
+            self._cache.pop(key, None)
 
     def _conn(self) -> sqlite3.Connection:
         conn = sqlite3.connect(self.db_path)
@@ -381,6 +388,7 @@ class TopologyStore:
             conn.commit()
         finally:
             conn.close()
+        self._invalidate_cache("list_devices")
 
     def get_device(self, device_id: str) -> Optional[Device]:
         conn = self._conn()
@@ -404,6 +412,10 @@ class TopologyStore:
             conn.close()
 
     def list_devices(self) -> list[Device]:
+        cache_key = "list_devices"
+        cached = self._cache.get(cache_key)
+        if cached is not None:
+            return cached
         conn = self._conn()
         try:
             rows = conn.execute("SELECT * FROM devices").fetchall()
@@ -421,6 +433,7 @@ class TopologyStore:
                     ha_group_id=d.get("ha_group_id") or "",
                     ha_role=d.get("ha_role") or "",
                 ))
+            self._cache[cache_key] = results
             return results
         finally:
             conn.close()
@@ -438,6 +451,7 @@ class TopologyStore:
             conn.commit()
         finally:
             conn.close()
+        self._invalidate_cache("list_devices", f"list_interfaces:{device_id}", "list_device_statuses")
 
     def update_device(self, device_id: str, **kwargs) -> Optional[Device]:
         """Update specific fields on a device. Returns updated device or None."""
@@ -458,6 +472,7 @@ class TopologyStore:
             conn.commit()
         finally:
             conn.close()
+        self._invalidate_cache("list_devices")
         return self.get_device(device_id)
 
     # ── Subnet CRUD ──
@@ -502,15 +517,22 @@ class TopologyStore:
             conn.commit()
         finally:
             conn.close()
+        self._invalidate_cache(f"list_interfaces:{iface.device_id}")
 
     def list_interfaces(self, device_id: Optional[str] = None) -> list[Interface]:
+        cache_key = f"list_interfaces:{device_id}"
+        cached = self._cache.get(cache_key)
+        if cached is not None:
+            return cached
         conn = self._conn()
         try:
             if device_id:
                 rows = conn.execute("SELECT * FROM interfaces WHERE device_id=?", (device_id,)).fetchall()
             else:
                 rows = conn.execute("SELECT * FROM interfaces").fetchall()
-            return [Interface(**dict(r)) for r in rows]
+            results = [Interface(**dict(r)) for r in rows]
+            self._cache[cache_key] = results
+            return results
         finally:
             conn.close()
 
@@ -525,10 +547,14 @@ class TopologyStore:
     def delete_interface(self, interface_id: str) -> None:
         conn = self._conn()
         try:
+            row = conn.execute("SELECT device_id FROM interfaces WHERE id=?", (interface_id,)).fetchone()
+            device_id = row["device_id"] if row else None
             conn.execute("DELETE FROM interfaces WHERE id=?", (interface_id,))
             conn.commit()
         finally:
             conn.close()
+        if device_id:
+            self._invalidate_cache(f"list_interfaces:{device_id}")
 
     # ── Zone CRUD ──
     def add_zone(self, zone: Zone) -> None:
@@ -1471,6 +1497,7 @@ class TopologyStore:
             conn.commit()
         finally:
             conn.close()
+        self._invalidate_cache("list_device_statuses")
 
     def get_device_status(self, device_id: str):
         conn = self._conn()
@@ -1481,10 +1508,16 @@ class TopologyStore:
             conn.close()
 
     def list_device_statuses(self) -> list:
+        cache_key = "list_device_statuses"
+        cached = self._cache.get(cache_key)
+        if cached is not None:
+            return cached
         conn = self._conn()
         try:
             rows = conn.execute("SELECT * FROM device_status").fetchall()
-            return [dict(r) for r in rows]
+            results = [dict(r) for r in rows]
+            self._cache[cache_key] = results
+            return results
         finally:
             conn.close()
 
