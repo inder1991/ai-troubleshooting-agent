@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from src.network.models import Subnet, Interface, Route, Zone
+from src.network.models import Device, Subnet, Interface, Route, Zone
 from src.network.interface_validation import validate_device_interfaces
 from src.utils.logger import get_logger
 
@@ -25,7 +25,37 @@ def _store():
     return _topology_store
 
 
+# ── Bulk Device Operations ────────────────────────────────────────────
+
+@resource_router.post("/devices/bulk", status_code=201)
+def bulk_create_devices(devices: list[Device]):
+    store = _store()
+    for device in devices:
+        store.add_device(device)
+    return {"created": len(devices)}
+
+
+class _BulkDeleteRequest(BaseModel):
+    ids: list[str]
+
+
+@resource_router.delete("/devices/bulk")
+def bulk_delete_devices(body: _BulkDeleteRequest):
+    store = _store()
+    for device_id in body.ids:
+        store.delete_device(device_id)
+    return {"deleted": len(body.ids)}
+
+
 # ── Subnet CRUD ──────────────────────────────────────────────────────
+
+@resource_router.post("/subnets/bulk", status_code=201)
+def bulk_create_subnets(subnets: list[Subnet]):
+    store = _store()
+    for subnet in subnets:
+        store.add_subnet(subnet)
+    return {"created": len(subnets)}
+
 
 @resource_router.post("/subnets", status_code=201)
 def create_subnet(subnet: Subnet):
@@ -40,6 +70,14 @@ def list_subnets():
 
 # ── Interface CRUD ───────────────────────────────────────────────────
 
+@resource_router.post("/interfaces/bulk", status_code=201)
+def bulk_create_interfaces(interfaces: list[Interface]):
+    store = _store()
+    for iface in interfaces:
+        store.add_interface(iface)
+    return {"created": len(interfaces)}
+
+
 @resource_router.post("/interfaces", status_code=201)
 def create_interface(iface: Interface):
     _store().add_interface(iface)
@@ -52,6 +90,12 @@ def list_interfaces(device_id: str = None):
 
 
 # ── Route CRUD ───────────────────────────────────────────────────────
+
+@resource_router.post("/routes/bulk", status_code=201)
+def bulk_create_routes(routes: list[Route]):
+    _store().bulk_add_routes(routes)
+    return {"created": len(routes)}
+
 
 @resource_router.post("/routes", status_code=201)
 def create_route(route: Route):
