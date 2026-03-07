@@ -1,6 +1,7 @@
 """Network Monitor -- 30s collection engine for device status, metrics, drift, and discovery."""
 import asyncio
 import logging
+import time
 from collections import defaultdict
 
 try:
@@ -48,6 +49,28 @@ class NetworkMonitor:
             self.dns_monitor = DNSMonitor(dns_config)
         self.cycle_interval = 30
         self._task: asyncio.Task | None = None
+        self._last_cycle_at: float | None = None
+        self._last_cycle_duration: float | None = None
+
+    # ── Heartbeat ──
+
+    @property
+    def last_cycle_at(self) -> float | None:
+        return self._last_cycle_at
+
+    @property
+    def last_cycle_duration(self) -> float | None:
+        return self._last_cycle_duration
+
+    def health_status(self) -> str:
+        if self._last_cycle_at is None:
+            return "unhealthy"
+        age = time.monotonic() - self._last_cycle_at
+        if age < 120:
+            return "healthy"
+        elif age < 300:
+            return "degraded"
+        return "unhealthy"
 
     # ── Lifecycle ──
 
@@ -75,6 +98,7 @@ class NetworkMonitor:
     # ── Collection Cycle ──
 
     async def _collect_cycle(self):
+        t0 = time.monotonic()
         passes = [
             self._probe_pass(),
             self._adapter_pass(),
@@ -90,6 +114,8 @@ class NetworkMonitor:
         # Alert pass reads data written by the others — must run after gather
         await self._alert_pass()
         self.store.prune_metric_history(older_than_days=7)
+        self._last_cycle_at = time.monotonic()
+        self._last_cycle_duration = self._last_cycle_at - t0
 
     async def _probe_pass(self):
         devices = self.store.list_devices()

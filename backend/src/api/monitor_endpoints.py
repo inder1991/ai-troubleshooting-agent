@@ -63,6 +63,24 @@ async def get_snapshot():
     return mon.get_snapshot()
 
 
+@monitor_router.get("/health")
+def get_health():
+    """Monitor heartbeat health check."""
+    monitor = _get_monitor()
+    if not monitor:
+        return {"status": "unavailable", "message": "Monitor not started"}
+    return {
+        "status": monitor.health_status(),
+        "last_cycle_duration_s": monitor.last_cycle_duration,
+        "cycle_interval_s": monitor.cycle_interval,
+        "components": {
+            "dns_monitor": monitor.dns_monitor is not None,
+            "alert_engine": monitor.alert_engine is not None,
+            "snmp_collector": monitor.snmp_collector is not None,
+        },
+    }
+
+
 @monitor_router.get("/drift")
 async def list_drift_events():
     """List all active drift events."""
