@@ -349,22 +349,6 @@ a:focus-visible,
 .react-flow__controls button svg { fill: #e2e8f0 !important; }
 .react-flow__node.selected { filter: drop-shadow(0 0 4px rgba(7,182,213,0.4)); }
 
-/* Container nodes: click-through so edges beneath are selectable.
-   Interactive children (handles, labels, resize) override back to auto. */
-.react-flow__node-vpc,
-.react-flow__node-subnet,
-.react-flow__node-availability_zone,
-.react-flow__node-auto_scaling_group,
-.react-flow__node-compliance_zone,
-.react-flow__node-ha_group {
-  pointer-events: none !important;
-}
-/* Re-enable pointer events on interactive children (labels/badges) inside containers */
-:is(.react-flow__node-vpc, .react-flow__node-subnet, .react-flow__node-availability_zone,
-    .react-flow__node-auto_scaling_group, .react-flow__node-compliance_zone, .react-flow__node-ha_group)
-  .container-interactive {
-  pointer-events: auto !important;
-}
 
 /* Toast slide-in animation */
 @keyframes slideIn {

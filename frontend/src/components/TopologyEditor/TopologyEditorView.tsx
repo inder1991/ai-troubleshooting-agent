@@ -250,9 +250,62 @@ function TopologyEditorInner() {
     [setEdges],
   );
 
-  // Selection handlers
+  // Selection handlers — sync ReactFlow's visual selection with our state
+  useEffect(() => {
+    setNodes((nds) => nds.map((n) => ({ ...n, selected: n.id === selectedNodeId })));
+  }, [selectedNodeId, setNodes]);
+
+  useEffect(() => {
+    setEdges((eds) => eds.map((e) => ({ ...e, selected: e.id === selectedEdgeId })));
+  }, [selectedEdgeId, setEdges]);
+
   const onNodeClick = useCallback(
-    (_: React.MouseEvent, node: Node) => {
+    (event: React.MouseEvent, node: Node) => {
+      // For container nodes, check if user clicked on an edge or a child node underneath
+      if (CONTAINER_TYPES.has(node.type || '')) {
+        const target = event.currentTarget as HTMLElement;
+        const nodeWrapper = target.closest('.react-flow__node') as HTMLElement | null;
+        if (nodeWrapper) {
+          // Temporarily hide this container to see what's beneath it
+          const origVisibility = nodeWrapper.style.visibility;
+          nodeWrapper.style.visibility = 'hidden';
+          const elements = document.elementsFromPoint(event.clientX, event.clientY);
+          nodeWrapper.style.visibility = origVisibility;
+
+          const thisRect = nodeWrapper.getBoundingClientRect();
+
+          // Priority 1: check for an edge underneath
+          for (const el of elements) {
+            const edgeGroup = el.closest('.react-flow__edge');
+            if (edgeGroup) {
+              const testId = edgeGroup.getAttribute('data-testid') || '';
+              const edgeId = testId.replace('rf__edge-', '');
+              if (edgeId) {
+                setSelectedEdgeId(edgeId);
+                setSelectedNodeId(null);
+                return;
+              }
+            }
+          }
+
+          // Priority 2: check for a CHILD node underneath (smaller than this container)
+          for (const el of elements) {
+            const childWrapper = el.closest('.react-flow__node') as HTMLElement | null;
+            if (childWrapper && childWrapper !== nodeWrapper) {
+              const childRect = childWrapper.getBoundingClientRect();
+              // Only select if it's smaller (a child), not larger (a parent)
+              if (childRect.width * childRect.height < thisRect.width * thisRect.height) {
+                const childId = childWrapper.getAttribute('data-id');
+                if (childId && childId !== node.id) {
+                  setSelectedNodeId(childId);
+                  setSelectedEdgeId(null);
+                  return;
+                }
+              }
+            }
+          }
+        }
+      }
       setSelectedNodeId(node.id);
       setSelectedEdgeId(null);
     },
