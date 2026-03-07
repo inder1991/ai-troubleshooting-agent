@@ -4,6 +4,7 @@ import csv
 import io
 from fastapi import APIRouter, Query
 from fastapi.responses import StreamingResponse, JSONResponse
+from src.network.models import Device, DeviceType
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -83,6 +84,39 @@ def export_alert_rules(format: str = Query("json", pattern="^(json|csv)$")):
     if format == "csv":
         return _to_csv_response(rules, "alert-rules.csv")
     return JSONResponse(content=rules)
+
+
+@export_router.post("/devices/import")
+def import_devices(devices: list[dict]):
+    """Bulk import (upsert) devices from a JSON list."""
+    store = _topology_store
+    if not store:
+        return {"imported": 0, "error": "Store not initialized"}
+    count = 0
+    for d in devices:
+        device_id = d.get("id", "")
+        name = d.get("name", "")
+        if not device_id or not name:
+            continue
+        dt_str = d.get("device_type", "host")
+        # DeviceType is a str enum; try by value first, then by uppercase name
+        try:
+            device_type = DeviceType(dt_str)
+        except ValueError:
+            try:
+                device_type = DeviceType[dt_str.upper()]
+            except (KeyError, AttributeError):
+                device_type = DeviceType.HOST
+        device = Device(
+            id=device_id,
+            name=name,
+            vendor=d.get("vendor", ""),
+            device_type=device_type,
+            management_ip=d.get("management_ip", ""),
+        )
+        store.add_device(device)
+        count += 1
+    return {"imported": count}
 
 
 def _serialize(obj) -> dict:
