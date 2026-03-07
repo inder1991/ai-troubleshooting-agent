@@ -26,6 +26,7 @@ from .network_endpoints import network_router
 from .monitor_endpoints import monitor_router
 from .dns_endpoints import router as dns_router
 from .flow_endpoints import flow_router, init_flow_endpoints
+from .export_endpoints import export_router, init_export_endpoints
 from .websocket import manager
 from src.network.prometheus_exporter import MetricsCollector
 from src.utils.logger import get_logger
@@ -147,6 +148,7 @@ def create_app() -> FastAPI:
     app.include_router(network_router)
     app.include_router(monitor_router)
     app.include_router(dns_router)
+    app.include_router(export_router)
 
     @app.on_event("startup")
     async def startup():
@@ -208,6 +210,14 @@ def create_app() -> FastAPI:
                 logger.warning("FlowReceiver startup failed: %s", e)
                 flow_receiver_instance = None
         init_flow_endpoints(metrics_store, flow_receiver_instance)
+
+        # ── Initialize Export endpoints ──
+        try:
+            topo_store = _net_topo_store()
+            init_export_endpoints(topo_store)
+            logger.info("Export endpoints initialized")
+        except Exception as e:
+            logger.warning("Export endpoints init failed: %s", e)
 
     @app.on_event("shutdown")
     async def shutdown():
