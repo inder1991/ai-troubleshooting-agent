@@ -34,6 +34,7 @@ from .cloud_endpoints import cloud_router, init_cloud_endpoints
 from .security_endpoints import security_router, init_security_endpoints
 from .discovery_endpoints import discovery_router, init_discovery_endpoints
 from .search_endpoints import search_router, init_search_endpoints
+from .db_endpoints import db_router
 from .websocket import manager
 from src.network.prometheus_exporter import MetricsCollector
 from src.utils.logger import get_logger
@@ -163,6 +164,7 @@ def create_app() -> FastAPI:
     app.include_router(security_router)
     app.include_router(discovery_router)
     app.include_router(search_router)
+    app.include_router(db_router)
 
     @app.on_event("startup")
     async def startup():
