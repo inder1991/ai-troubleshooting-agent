@@ -1,0 +1,87 @@
+"""Tests for database diagnostics Pydantic models."""
+import pytest
+from datetime import datetime
+
+
+def test_db_profile_creation():
+    from src.database.models import DBProfile
+    p = DBProfile(
+        id="test-1", name="prod-pg", engine="postgresql",
+        host="localhost", port=5432, database="mydb",
+        username="admin", password="secret",
+    )
+    assert p.engine == "postgresql"
+    assert p.port == 5432
+
+
+def test_db_profile_invalid_engine():
+    from src.database.models import DBProfile
+    with pytest.raises(Exception):
+        DBProfile(
+            id="x", name="x", engine="redis",
+            host="x", port=1, database="x",
+            username="x", password="x",
+        )
+
+
+def test_diagnostic_run_defaults():
+    from src.database.models import DiagnosticRun
+    r = DiagnosticRun(run_id="r1", profile_id="p1")
+    assert r.status == "running"
+    assert r.findings == []
+    assert r.summary == ""
+
+
+def test_db_finding_fields():
+    from src.database.models import DBFinding
+    f = DBFinding(
+        finding_id="f1", category="query_performance",
+        severity="high", confidence=0.85,
+        title="Slow query", detail="SELECT took 12s",
+    )
+    assert f.confidence == 0.85
+    assert f.remediation_available is False
+
+
+def test_perf_snapshot():
+    from src.database.models import PerfSnapshot
+    s = PerfSnapshot(
+        connections_active=12, connections_idle=5, connections_max=100,
+        cache_hit_ratio=0.94, transactions_per_sec=150.0,
+        deadlocks=0, uptime_seconds=86400,
+    )
+    assert s.cache_hit_ratio == 0.94
+
+
+def test_active_query():
+    from src.database.models import ActiveQuery
+    q = ActiveQuery(
+        pid=1234, query="SELECT 1", duration_ms=500,
+        state="active", user="admin", database="mydb",
+    )
+    assert q.pid == 1234
+
+
+def test_replication_snapshot():
+    from src.database.models import ReplicationSnapshot
+    r = ReplicationSnapshot(
+        is_replica=False, replicas=[], replication_lag_bytes=0,
+    )
+    assert r.is_replica is False
+
+
+def test_query_plan_node_recursive():
+    from src.database.models import QueryPlanNode
+    node = QueryPlanNode(
+        node_type="Seq Scan", relation="orders",
+        children=[QueryPlanNode(node_type="Index Scan", relation="users")],
+    )
+    assert len(node.children) == 1
+    assert node.children[0].node_type == "Index Scan"
+
+
+def test_query_result_with_error():
+    from src.database.models import QueryResult
+    r = QueryResult(query="SELECT bad", error="syntax error")
+    assert r.error == "syntax error"
+    assert r.rows_returned == 0
