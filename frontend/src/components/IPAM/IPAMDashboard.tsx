@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import type {
   IPAMStats, IPAMTreeNode, IPAMSubnet, IPAuditEvent, IPConflict,
   DNSMismatch, CapacityForecast,
@@ -26,6 +26,12 @@ import IPAMStatCards from './IPAMStatCards';
 import IPAMHierarchyTree from './IPAMHierarchyTree';
 import IPAMSubnetDetail from './IPAMSubnetDetail';
 import IPAMSubnetsTable from './IPAMSubnetsTable';
+import IPAMDHCPTab from './IPAMDHCPTab';
+import IPAMReportBuilder from './IPAMReportBuilder';
+import SubnetCalculatorPage from './SubnetCalculatorPage';
+import IPAMAllocationWizard from './IPAMAllocationWizard';
+import IPAMVLANTab from './IPAMVLANTab';
+import IPAMAddressSpaceMap from './IPAMAddressSpaceMap';
 
 const emptyStats: IPAMStats = {
   total_subnets: 0, total_ips: 0, assigned_ips: 0,
@@ -82,6 +88,27 @@ export default function IPAMDashboard() {
   // Edit subnet dialog
   const [editSubnet, setEditSubnet] = useState<IPAMSubnet | null>(null);
 
+  // Active tab
+  const [activeTab, setActiveTab] = useState<'overview' | 'dhcp' | 'vlans' | 'reports' | 'calculator'>('overview');
+  const [selectedBlockId, setSelectedBlockId] = useState<string>('');
+
+  // Allocation wizard
+  const [allocTarget, setAllocTarget] = useState<{ id: string; cidr: string } | null>(null);
+
+  // Detail refresh key to avoid double fetch on utilization change (B5)
+  const [detailRefreshKey, setDetailRefreshKey] = useState(0);
+
+  // Blur timer ref to prevent leak (B6)
+  const blurTimerRef = useRef<ReturnType<typeof setTimeout>>();
+
+  // Confirm dialog state (B10)
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  }>({ open: false, title: '', message: '', onConfirm: () => {} });
+
   const addToast = useCallback((message: string, type: Toast['type'] = 'success') => {
     const id = ++toastCounter;
     setToasts((prev) => [...prev, { id, message, type }]);
@@ -115,26 +142,41 @@ export default function IPAMDashboard() {
 
   useEffect(() => { loadAll(); }, [loadAll]);
 
+  // Cleanup blur timer on unmount (B6)
+  useEffect(() => {
+    return () => {
+      if (blurTimerRef.current) clearTimeout(blurTimerRef.current);
+    };
+  }, []);
+
   useEffect(() => {
     if (!selectedSubnetId) { setSelectedSubnet(null); return; }
     fetchSubnetDetail(selectedSubnetId)
       .then((s) => setSelectedSubnet(s))
       .catch(() => setSelectedSubnet(null));
-  }, [selectedSubnetId]);
+  }, [selectedSubnetId, detailRefreshKey]);
 
-  // Global search with debounce
+  // Global search with debounce + AbortController (B2)
   useEffect(() => {
     if (!globalSearch || globalSearch.length < 2) {
-      setSearchResults([]); setSearchOpen(false); return;
+      setSearchResults([]);
+      setSearchOpen(false);
+      return;
     }
+    const controller = new AbortController();
     const timer = setTimeout(async () => {
       try {
-        const res = await globalIPSearch(globalSearch);
+        const res = await globalIPSearch(globalSearch, controller.signal);
         setSearchResults(res.results || []);
         setSearchOpen(true);
-      } catch { setSearchResults([]); }
+      } catch (e) {
+        if ((e as Error).name !== 'AbortError') {
+          console.error('Search error:', e);
+          setSearchResults([]);
+        }
+      }
     }, 300);
-    return () => clearTimeout(timer);
+    return () => { clearTimeout(timer); controller.abort(); };
   }, [globalSearch]);
 
   // Close context menu on click anywhere
@@ -145,7 +187,7 @@ export default function IPAMDashboard() {
     return () => window.removeEventListener('click', handler);
   }, [ctxMenu]);
 
-  const handleSelectSubnet = (id: string) => setSelectedSubnetId(id);
+  const handleSelectSubnet = (id: string) => { setSelectedSubnetId(id); setSelectedBlockId(''); };
 
   const handleImport = async (file: File) => {
     setImportStatus('Importing...');
@@ -255,7 +297,9 @@ export default function IPAMDashboard() {
 
   const handleSubnetContext = (e: React.MouseEvent, subnetId: string, cidr: string) => {
     e.preventDefault();
-    setCtxMenu({ x: e.clientX, y: e.clientY, subnetId, cidr });
+    const x = Math.min(e.clientX, window.innerWidth - 180);
+    const y = Math.min(e.clientY, window.innerHeight - 180);
+    setCtxMenu({ x, y, subnetId, cidr });
   };
 
   // Top 10 subnets by utilization
@@ -295,7 +339,7 @@ export default function IPAMDashboard() {
                 value={globalSearch}
                 onChange={(e) => setGlobalSearch(e.target.value)}
                 onFocus={() => searchResults.length > 0 && setSearchOpen(true)}
-                onBlur={() => setTimeout(() => setSearchOpen(false), 200)}
+                onBlur={() => { blurTimerRef.current = setTimeout(() => setSearchOpen(false), 200); }}
                 className="w-56 px-2 py-1.5 bg-transparent text-sm text-slate-200 placeholder-slate-500 focus:outline-none"
               />
             </div>
@@ -357,6 +401,37 @@ export default function IPAMDashboard() {
         </div>
       </div>
 
+      {/* Tab Bar */}
+      <div className="flex items-center gap-1 border-b border-[#1e3a40]">
+        {([
+          { key: 'overview', label: 'Overview', icon: 'dashboard' },
+          { key: 'dhcp', label: 'DHCP Scopes', icon: 'router' },
+          { key: 'vlans', label: 'VLANs', icon: 'lan' },
+          { key: 'reports', label: 'Reports', icon: 'assessment' },
+          { key: 'calculator', label: 'Calculator', icon: 'calculate' },
+        ] as const).map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            className={`flex items-center gap-1.5 px-3 py-2 text-sm border-b-2 transition-colors ${
+              activeTab === tab.key
+                ? 'border-cyan-400 text-cyan-300'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <span className="material-symbols-outlined text-sm">{tab.icon}</span>
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Tab Content */}
+      {activeTab === 'dhcp' && <div className="flex-1 overflow-y-auto"><IPAMDHCPTab /></div>}
+      {activeTab === 'vlans' && <div className="flex-1 overflow-y-auto p-4"><IPAMVLANTab /></div>}
+      {activeTab === 'reports' && <div className="flex-1 overflow-y-auto"><IPAMReportBuilder /></div>}
+      {activeTab === 'calculator' && <div className="flex-1 overflow-y-auto"><SubnetCalculatorPage /></div>}
+
+      {activeTab === 'overview' && <>
       {/* Stat Cards */}
       <IPAMStatCards stats={stats} />
 
@@ -377,6 +452,12 @@ export default function IPAMDashboard() {
                 tree={tree}
                 selectedSubnetId={selectedSubnetId}
                 onSelectSubnet={handleSelectSubnet}
+                onSelectNode={(nodeId, nodeType) => {
+                  if (nodeType === 'address_block') {
+                    setSelectedBlockId(nodeId);
+                    setSelectedSubnetId('');
+                  }
+                }}
                 onContextMenu={handleSubnetContext}
               />
             )}
@@ -386,7 +467,7 @@ export default function IPAMDashboard() {
         {/* Detail Panel */}
         <div className="flex-1 bg-[#132a2f] border border-[#1e3a40] rounded-lg overflow-hidden flex flex-col">
           <div className="px-4 py-2 border-b border-[#1e3a40] text-xs font-semibold text-slate-400 uppercase tracking-wider">
-            {selectedSubnet ? `Subnet: ${selectedSubnet.cidr}` : 'Select a subnet'}
+            {selectedSubnet ? `Subnet: ${selectedSubnet.cidr}` : selectedBlockId ? 'Address Block' : 'Select a subnet'}
           </div>
           <div className="flex-1 overflow-y-auto p-4">
             {selectedSubnet ? (
@@ -394,12 +475,12 @@ export default function IPAMDashboard() {
                 subnet={selectedSubnet}
                 onUtilizationChange={() => {
                   loadAll();
-                  fetchSubnetDetail(selectedSubnetId)
-                    .then((s) => setSelectedSubnet(s))
-                    .catch(() => {});
+                  setDetailRefreshKey(prev => prev + 1);
                 }}
                 addToast={addToast}
               />
+            ) : selectedBlockId ? (
+              <IPAMAddressSpaceMap blockId={selectedBlockId} />
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-slate-500">
                 <span className="material-symbols-outlined text-4xl mb-2">hub</span>
@@ -579,6 +660,8 @@ export default function IPAMDashboard() {
         />
       </div>
 
+      </>}
+
       {/* Context Menu */}
       {ctxMenu && (
         <div
@@ -616,13 +699,31 @@ export default function IPAMDashboard() {
             <span className="material-symbols-outlined text-sm">call_split</span>
             Split Subnet
           </button>
+          <button
+            onClick={() => {
+              setAllocTarget({ id: ctxMenu.subnetId, cidr: ctxMenu.cidr });
+              setCtxMenu(null);
+            }}
+            className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-slate-300 hover:bg-[#1e3a40]"
+          >
+            <span className="material-symbols-outlined text-sm">space_dashboard</span>
+            Find Available Space
+          </button>
           <div className="border-t border-[#1e3a40] my-1" />
           <button
             onClick={() => {
-              if (confirm(`Delete subnet ${ctxMenu.cidr}? All IPs will be removed.`)) {
-                handleDeleteSubnet(ctxMenu.subnetId);
-              }
+              const subnetId = ctxMenu.subnetId;
+              const cidr = ctxMenu.cidr;
               setCtxMenu(null);
+              setConfirmDialog({
+                open: true,
+                title: 'Delete Subnet',
+                message: `Are you sure you want to delete subnet ${cidr}? All IP addresses will be removed.`,
+                onConfirm: () => {
+                  handleDeleteSubnet(subnetId);
+                  setConfirmDialog(prev => ({ ...prev, open: false }));
+                },
+              });
             }}
             className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-red-400 hover:bg-red-900/20"
           >
@@ -666,6 +767,38 @@ export default function IPAMDashboard() {
           onClose={() => setEditSubnet(null)}
           onSave={(data) => handleEditSubnet(editSubnet.id, data)}
         />
+      )}
+      {allocTarget && (
+        <IPAMAllocationWizard
+          parentSubnetId={allocTarget.id}
+          parentCidr={allocTarget.cidr}
+          onClose={() => setAllocTarget(null)}
+          onCreated={() => { setAllocTarget(null); loadAll(); addToast('Subnet allocated'); }}
+        />
+      )}
+
+      {/* Confirm Dialog (B10) */}
+      {confirmDialog.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div className="bg-[#1a2e35] border border-cyan-900/50 rounded-xl p-6 max-w-md shadow-xl">
+            <h3 className="text-lg font-semibold text-white mb-2">{confirmDialog.title}</h3>
+            <p className="text-gray-300 mb-6">{confirmDialog.message}</p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setConfirmDialog(prev => ({ ...prev, open: false }))}
+                className="px-4 py-2 rounded-lg bg-gray-700 text-gray-200 hover:bg-gray-600 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDialog.onConfirm}
+                className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-500 transition"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Toasts */}
@@ -737,14 +870,14 @@ function parseCIDRInfo(cidr: string): { valid: boolean; network?: string; broadc
   if (parts.some((p) => p < 0 || p > 255)) return null;
   const prefix = parseInt(m[2], 10);
   if (prefix < 0 || prefix > 32) return null;
-  const ipNum = (parts[0] << 24) | (parts[1] << 16) | (parts[2] << 8) | parts[3];
-  const mask = prefix === 0 ? 0 : ~((1 << (32 - prefix)) - 1);
-  const network = ipNum & mask;
-  const broadcast = network | ~mask;
+  const ipNum = ((parts[0] << 24) | (parts[1] << 16) | (parts[2] << 8) | parts[3]) >>> 0;
+  const mask = prefix === 0 ? 0 : (~((1 << (32 - prefix)) - 1)) >>> 0;
+  const network = (ipNum & mask) >>> 0;
+  const broadcast = (network | ~mask) >>> 0;
   const numToStr = (n: number) =>
     `${(n >>> 24) & 0xff}.${(n >>> 16) & 0xff}.${(n >>> 8) & 0xff}.${n & 0xff}`;
   const hosts = prefix >= 31 ? (prefix === 32 ? 1 : 2) : (1 << (32 - prefix)) - 2;
-  return { valid: true, network: numToStr(network), broadcast: numToStr(broadcast >>> 0), hosts, prefix };
+  return { valid: true, network: numToStr(network), broadcast: numToStr(broadcast), hosts, prefix };
 }
 
 function CreateSubnetDialog({

@@ -3,7 +3,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import Optional, Literal
 from uuid import uuid4
-from pydantic import BaseModel, Field, ConfigDict, field_validator
+from pydantic import BaseModel, Field, ConfigDict, field_validator, model_validator
 from datetime import datetime
 import ipaddress as _ipaddress
 
@@ -181,6 +181,19 @@ class ZoneType(str, Enum):
     DATA = "data"
     DMZ = "dmz"
 
+class IPStatus(str, Enum):
+    AVAILABLE = "available"
+    RESERVED = "reserved"
+    ASSIGNED = "assigned"
+    DEPRECATED = "deprecated"
+
+class IPType(str, Enum):
+    STATIC = "static"
+    DYNAMIC = "dynamic"
+    GATEWAY = "gateway"
+    NETWORK = "network"
+    BROADCAST = "broadcast"
+
 
 # ── Infrastructure Entities (persist in graph + SQLite) ──
 
@@ -236,6 +249,16 @@ class Subnet(BaseModel):
     gateway_ip: str = ""
     description: str = ""
     site: str = ""
+    parent_subnet_id: str = ""
+    region: str = ""
+    environment: str = ""
+    ip_version: int = 4
+    vpc_id: str = ""           # FK to vpcs table
+    cloud_provider: str = ""   # aws, azure, gcp, oci
+    vrf_id: str = "default"
+    subnet_role: str = ""      # "server", "storage", "voice", "dmz", "management", "user", "iot"
+    address_block_id: str = ""
+    site_id: str = ""
 
     @field_validator("cidr")
     @classmethod
@@ -252,6 +275,64 @@ class Subnet(BaseModel):
     def validate_vlan_id(cls, v: int) -> int:
         if v != 0 and (v < 1 or v > 4094):
             raise ValueError(f"VLAN ID must be 0 (unset) or 1-4094, got {v}")
+        return v
+
+    @model_validator(mode='after')
+    def validate_gateway_in_subnet(self) -> 'Subnet':
+        if self.gateway_ip and self.cidr:
+            try:
+                net = _ipaddress.ip_network(self.cidr, strict=False)
+                gw = _ipaddress.ip_address(self.gateway_ip)
+                if gw not in net:
+                    raise ValueError(f"Gateway IP {self.gateway_ip} is not within subnet {self.cidr}")
+            except ValueError as e:
+                if "not within subnet" in str(e):
+                    raise
+                pass  # IP/CIDR format errors handled by field validators
+        return self
+
+class IPAddress(BaseModel):
+    id: str
+    address: str
+    subnet_id: str
+    status: str = "available"  # IPStatus value
+    ip_type: str = "static"    # IPType value
+    assigned_device_id: str = ""
+    assigned_interface_id: str = ""
+    hostname: str = ""
+    mac_address: str = ""      # e.g. "00-15-5D-C1-01-2C"
+    vendor: str = ""           # e.g. "Microsoft Corporation", "VMware, Inc."
+    description: str = ""
+    last_seen: str = ""
+    created_at: str = ""
+    owner_team: str = ""       # e.g. "Payments", "Infrastructure"
+    application: str = ""      # e.g. "PaymentGateway", "Redis"
+    environment: str = ""      # e.g. "production", "staging"
+    discovery_source: str = "" # e.g. "manual", "arp", "snmp"
+    confidence_score: float = 1.0
+
+    @field_validator("address")
+    @classmethod
+    def validate_address(cls, v: str) -> str:
+        return _validate_ip(v, "address")
+
+    @field_validator("mac_address")
+    @classmethod
+    def validate_mac_address(cls, v: str) -> str:
+        """Validate MAC address format (colon, hyphen, or Cisco dot notation)."""
+        if not v:
+            return v
+        import re
+        # Colon format: 00:1A:2B:3C:4D:5E
+        # Hyphen format: 00-1A-2B-3C-4D-5E
+        # Cisco dot format: 001A.2B3C.4D5E
+        mac_patterns = [
+            r'^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$',
+            r'^([0-9A-Fa-f]{2}-){5}[0-9A-Fa-f]{2}$',
+            r'^([0-9A-Fa-f]{4}\.){2}[0-9A-Fa-f]{4}$',
+        ]
+        if not any(re.match(p, v) for p in mac_patterns):
+            raise ValueError(f"Invalid MAC address format: '{v}'. Use XX:XX:XX:XX:XX:XX, XX-XX-XX-XX-XX-XX, or XXXX.XXXX.XXXX")
         return v
 
 class Zone(BaseModel):
@@ -361,6 +442,84 @@ class LBTargetGroup(BaseModel):
     target_ids: list[str] = Field(default_factory=list)
     health_status: str = "healthy"
 
+class VRF(BaseModel):
+    id: str
+    name: str
+    rd: str = ""                  # Route Distinguisher "65000:1"
+    rt_import: list[str] = Field(default_factory=list)
+    rt_export: list[str] = Field(default_factory=list)
+    description: str = ""
+    device_ids: list[str] = Field(default_factory=list)
+    is_default: bool = False
+
+    @field_validator("rd")
+    @classmethod
+    def validate_rd(cls, v: str) -> str:
+        if not v:
+            return v
+        import re
+        # ASN:nn or IP:nn
+        if not re.match(r'^(\d+:\d+|\d+\.\d+\.\d+\.\d+:\d+)$', v):
+            raise ValueError(f"Invalid Route Distinguisher format: '{v}'. Use ASN:nn or IP:nn")
+        return v
+
+
+class Region(BaseModel):
+    id: str
+    name: str                    # "US-East", "EU-West"
+    description: str = ""
+
+
+class Site(BaseModel):
+    id: str
+    name: str                    # "DC-East-1"
+    region_id: str = ""          # FK to Region
+    site_type: str = ""          # "datacenter" | "branch" | "cloud" | "colo"
+    address: str = ""
+    description: str = ""
+
+
+class AddressBlock(BaseModel):
+    id: str
+    cidr: str                    # "10.0.0.0/8"
+    name: str = ""               # "RFC1918 Block A"
+    vrf_id: str = "default"
+    site_id: str = ""
+    description: str = ""
+    rir: str = "private"         # "ARIN", "RIPE", "APNIC", "private"
+
+    @field_validator("cidr")
+    @classmethod
+    def validate_cidr(cls, v: str) -> str:
+        return _validate_cidr(v, "address_block cidr")
+
+
+class CloudAccount(BaseModel):
+    id: str
+    name: str                          # "prod-aws-east"
+    provider: CloudProvider            # aws, azure, gcp, oci
+    account_id: str = ""               # AWS account ID, Azure subscription
+    region: str = ""
+    credentials_ref: str = ""          # Reference to secrets store
+    sync_enabled: bool = False
+    last_sync: str = ""
+
+
+class CloudInterface(BaseModel):
+    """Maps to AWS ENI, Azure NIC, GCP Network Interface."""
+    id: str
+    cloud_account_id: str
+    instance_id: str = ""
+    instance_name: str = ""
+    vpc_id: str = ""
+    subnet_id: str = ""
+    security_group_ids: list[str] = Field(default_factory=list)
+    private_ips: list[str] = Field(default_factory=list)
+    public_ip: str = ""
+    mac_address: str = ""
+    status: str = "in-use"
+
+
 class VLAN(BaseModel):
     id: str
     vlan_number: int
@@ -368,6 +527,17 @@ class VLAN(BaseModel):
     trunk_ports: list[str] = Field(default_factory=list)
     access_ports: list[str] = Field(default_factory=list)
     site: str = ""
+    description: str = ""
+    vrf_id: str = "default"
+    site_id: str = ""
+    subnet_ids: list[str] = Field(default_factory=list)
+
+    @field_validator("vlan_number")
+    @classmethod
+    def validate_vlan_number(cls, v: int) -> int:
+        if v < 1 or v > 4094:
+            raise ValueError(f"VLAN number must be 1-4094, got {v}")
+        return v
 
 class MPLSCircuit(BaseModel):
     id: str

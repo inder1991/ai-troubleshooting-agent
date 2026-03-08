@@ -21,8 +21,10 @@ from src.api.network_models import (
 )
 from src.network.topology_store import TopologyStore
 from src.network.knowledge_graph import NetworkKnowledgeGraph
-from src.network.models import Flow, DiagnosisStatus
+from src.network.discovery_engine import DiscoveryEngine
+from src.network.models import Flow, DiagnosisStatus, IPAddress, IPStatus, Subnet
 from src.network.ipam_ingestion import parse_ipam_csv, parse_ipam_excel
+from src.network.ipam_ingestion import populate_subnet_ips
 from src.network.adapters.base import FirewallAdapter
 from src.network.adapters.registry import AdapterRegistry
 from src.agents.network.graph import build_network_diagnostic_graph
@@ -296,6 +298,477 @@ async def ipam_interfaces():
     store = _get_topology_store()
     interfaces = store.list_interfaces()
     return {"interfaces": [i.model_dump() for i in interfaces]}
+
+
+# ---------------------------------------------------------------------------
+# IPAM — Subnet Management
+# ---------------------------------------------------------------------------
+
+@network_router.get("/ipam/subnets/{subnet_id}")
+async def ipam_subnet_detail(subnet_id: str):
+    """Get subnet detail with utilization stats."""
+    store = _get_topology_store()
+    subnet = store.get_subnet(subnet_id)
+    if not subnet:
+        raise HTTPException(status_code=404, detail="Subnet not found")
+    util = store.get_subnet_utilization(subnet_id)
+    data = subnet.model_dump()
+    data.update(util)
+    return data
+
+
+@network_router.put("/ipam/subnets/{subnet_id}")
+async def ipam_update_subnet(subnet_id: str, body: dict):
+    """Update subnet fields."""
+    store = _get_topology_store()
+    updated = store.update_subnet(subnet_id, **body)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Subnet not found")
+    return updated.model_dump()
+
+
+@network_router.post("/ipam/subnets")
+async def ipam_create_subnet(body: dict):
+    """Create a new subnet manually."""
+    store = _get_topology_store()
+    subnet_id = body.get("id", f"subnet-{uuid.uuid4().hex[:8]}")
+    cidr = body.get("cidr", "")
+    if not cidr:
+        raise HTTPException(status_code=400, detail="cidr is required")
+    subnet = Subnet(
+        id=subnet_id,
+        cidr=cidr,
+        vlan_id=int(body.get("vlan_id", 0)),
+        zone_id=body.get("zone_id", ""),
+        gateway_ip=body.get("gateway_ip", ""),
+        description=body.get("description", ""),
+        site=body.get("site", ""),
+        parent_subnet_id=body.get("parent_subnet_id", ""),
+        region=body.get("region", ""),
+        environment=body.get("environment", ""),
+        ip_version=int(body.get("ip_version", 4)),
+        vrf_id=body.get("vrf_id", "default"),
+        subnet_role=body.get("subnet_role", ""),
+        address_block_id=body.get("address_block_id", ""),
+        site_id=body.get("site_id", ""),
+    )
+    store.add_subnet(subnet)
+    # Initialize free ranges for lazy allocation
+    store.init_free_ranges(subnet.id, subnet.cidr, subnet.gateway_ip)
+    # Create gateway IP record if set
+    if subnet.gateway_ip:
+        from src.network.ipam_ingestion import _sanitize_id
+        gw_ip_id = f"ip-{_sanitize_id(subnet.id)}-{_sanitize_id(subnet.gateway_ip)}"
+        gw_ip = IPAddress(
+            id=gw_ip_id, address=subnet.gateway_ip, subnet_id=subnet.id,
+            status="assigned", ip_type="gateway",
+            created_at=datetime.now(timezone.utc).isoformat(),
+        )
+        store.add_ip_address(gw_ip)
+    kg = _get_knowledge_graph()
+    kg.load_from_store()
+    return {"status": "created", "subnet": subnet.model_dump()}
+
+
+@network_router.post("/ipam/subnets/{subnet_id}/populate")
+async def ipam_populate_subnet(subnet_id: str):
+    """Auto-create all host IPs for a subnet."""
+    store = _get_topology_store()
+    subnet = store.get_subnet(subnet_id)
+    if not subnet:
+        raise HTTPException(status_code=404, detail="Subnet not found")
+    created = populate_subnet_ips(store, subnet)
+    return {"status": "populated", "created": created, "subnet_id": subnet_id}
+
+
+# ---------------------------------------------------------------------------
+# IPAM — IP Address Management
+# ---------------------------------------------------------------------------
+
+@network_router.get("/ipam/ips")
+async def ipam_list_ips(subnet_id: str = "", status: str = "", search: str = "",
+                        offset: int = 0, limit: int = 100):
+    """List IP addresses with optional filters and pagination."""
+    store = _get_topology_store()
+    result = store.list_ip_addresses(
+        subnet_id=subnet_id or None,
+        status=status or None,
+        search=search or None,
+        offset=offset,
+        limit=limit,
+    )
+    return {"ips": [ip.model_dump() for ip in result["ips"]], "total": result["total"]}
+
+
+@network_router.get("/ipam/ips/{ip_id}")
+async def ipam_get_ip(ip_id: str):
+    """Get a single IP address."""
+    store = _get_topology_store()
+    ip = store.get_ip_address(ip_id)
+    if not ip:
+        raise HTTPException(status_code=404, detail="IP not found")
+    return ip.model_dump()
+
+
+@network_router.put("/ipam/ips/{ip_id}")
+async def ipam_update_ip(ip_id: str, body: dict):
+    """Update IP address fields (status, hostname, description)."""
+    store = _get_topology_store()
+    updated = store.update_ip_address(ip_id, **body)
+    if not updated:
+        raise HTTPException(status_code=404, detail="IP not found")
+    return updated.model_dump()
+
+
+@network_router.post("/ipam/ips/{ip_id}/reserve")
+async def ipam_reserve_ip(ip_id: str):
+    """Set IP status to reserved."""
+    store = _get_topology_store()
+    updated = store.update_ip_status(ip_id, "reserved")
+    if not updated:
+        raise HTTPException(status_code=404, detail="IP not found")
+    return updated.model_dump()
+
+
+@network_router.post("/ipam/ips/{ip_id}/assign")
+async def ipam_assign_ip(ip_id: str, body: dict):
+    """Assign IP to a device."""
+    store = _get_topology_store()
+    device_id = body.get("device_id", "")
+    interface_id = body.get("interface_id", "")
+    updated = store.update_ip_status(ip_id, "assigned", device_id=device_id, interface_id=interface_id)
+    if not updated:
+        raise HTTPException(status_code=404, detail="IP not found")
+    return updated.model_dump()
+
+
+@network_router.post("/ipam/ips/{ip_id}/release")
+async def ipam_release_ip(ip_id: str):
+    """Release IP back to available."""
+    store = _get_topology_store()
+    updated = store.update_ip_status(ip_id, "available")
+    if not updated:
+        raise HTTPException(status_code=404, detail="IP not found")
+    return updated.model_dump()
+
+
+# ---------------------------------------------------------------------------
+# IPAM — Hierarchy & Utilization
+# ---------------------------------------------------------------------------
+
+@network_router.get("/ipam/tree")
+async def ipam_tree():
+    """Full hierarchy tree (regions → zones → subnets)."""
+    store = _get_topology_store()
+    return {"tree": store.get_subnet_tree()}
+
+
+@network_router.get("/ipam/utilization")
+async def ipam_utilization():
+    """All subnets with utilization stats."""
+    store = _get_topology_store()
+    subnets = store.list_subnets()
+    result = []
+    for s in subnets:
+        data = s.model_dump()
+        data.update(store.get_subnet_utilization(s.id))
+        result.append(data)
+    return {"subnets": result}
+
+
+@network_router.get("/ipam/utilization/{subnet_id}")
+async def ipam_subnet_utilization(subnet_id: str):
+    """Single subnet utilization detail."""
+    store = _get_topology_store()
+    subnet = store.get_subnet(subnet_id)
+    if not subnet:
+        raise HTTPException(status_code=404, detail="Subnet not found")
+    data = subnet.model_dump()
+    data.update(store.get_subnet_utilization(subnet_id))
+    return data
+
+
+@network_router.get("/ipam/stats")
+async def ipam_stats():
+    """Global IPAM stats."""
+    store = _get_topology_store()
+    return store.get_ipam_stats()
+
+
+@network_router.post("/ipam/ips/bulk-status")
+async def ipam_bulk_status(body: dict):
+    """Bulk update IP status for multiple IPs at once."""
+    store = _get_topology_store()
+    ip_ids = body.get("ip_ids", [])
+    status = body.get("status", "")
+    device_id = body.get("device_id", "")
+    if not ip_ids or not status:
+        raise HTTPException(status_code=400, detail="ip_ids and status required")
+    valid_statuses = {s.value for s in IPStatus}
+    if status not in valid_statuses:
+        raise HTTPException(status_code=400, detail=f"Invalid status '{status}'. Must be one of: {', '.join(sorted(valid_statuses))}")
+    count = store.bulk_update_ip_status(ip_ids, status, device_id=device_id)
+    return {"updated": count}
+
+
+@network_router.get("/ipam/search")
+async def ipam_global_search(q: str = ""):
+    """Global search across all IPs by address, hostname, MAC, or description."""
+    store = _get_topology_store()
+    if not q or len(q) < 2:
+        return {"results": []}
+    results = store.search_ips_global(q)
+    return {"results": results}
+
+
+@network_router.get("/ipam/conflicts")
+async def ipam_conflicts():
+    """Detect IP address conflicts (same address in multiple subnets)."""
+    store = _get_topology_store()
+    conflicts = store.detect_ip_conflicts()
+    return {"conflicts": conflicts, "count": len(conflicts)}
+
+
+@network_router.get("/ipam/subnets/{subnet_id}/next-available")
+async def ipam_next_available(subnet_id: str):
+    """Find the next available IP in a subnet."""
+    store = _get_topology_store()
+    ip_addr = store.get_next_available_ip(subnet_id)
+    if not ip_addr:
+        raise HTTPException(status_code=404, detail="No available IPs in this subnet")
+    return {"address": ip_addr, "subnet_id": subnet_id}
+
+
+@network_router.get("/ipam/audit-log")
+async def ipam_audit_log(ip_id: str = "", limit: int = 50):
+    """Get IP audit log entries."""
+    store = _get_topology_store()
+    events = store.get_ip_audit_log(ip_id=ip_id, limit=limit)
+    return {"events": events}
+
+
+@network_router.delete("/ipam/subnets/{subnet_id}")
+async def ipam_delete_subnet(subnet_id: str):
+    """Delete a subnet and all its IPs (cascade)."""
+    store = _get_topology_store()
+    subnet = store.get_subnet(subnet_id)
+    if not subnet:
+        raise HTTPException(status_code=404, detail="Subnet not found")
+    store.delete_subnet(subnet_id)
+    kg = _get_knowledge_graph()
+    kg.load_from_store()
+    return {"status": "deleted", "subnet_id": subnet_id}
+
+
+@network_router.delete("/ipam/ips/{ip_id}")
+async def ipam_delete_ip(ip_id: str):
+    """Delete a single IP address."""
+    store = _get_topology_store()
+    ip = store.get_ip_address(ip_id)
+    if not ip:
+        raise HTTPException(status_code=404, detail="IP not found")
+    store.delete_ip_address(ip_id)
+    return {"status": "deleted", "ip_id": ip_id}
+
+
+@network_router.get("/ipam/ips/by-address")
+async def ipam_get_ip_by_address(address: str = ""):
+    """Lookup an IP by its address string."""
+    if not address:
+        raise HTTPException(status_code=400, detail="address parameter required")
+    store = _get_topology_store()
+    ip = store.get_ip_by_address(address)
+    if not ip:
+        raise HTTPException(status_code=404, detail="IP not found")
+    return ip.model_dump()
+
+
+@network_router.post("/ipam/subnets/{subnet_id}/split")
+async def ipam_split_subnet(subnet_id: str, body: dict):
+    """Split a subnet into smaller subnets."""
+    store = _get_topology_store()
+    new_prefix = body.get("new_prefix")
+    if new_prefix is None:
+        raise HTTPException(status_code=400, detail="new_prefix is required")
+    try:
+        new_prefix = int(new_prefix)
+    except (ValueError, TypeError):
+        raise HTTPException(status_code=400, detail=f"new_prefix must be an integer, got: {body.get('new_prefix')}")
+    if new_prefix < 1 or new_prefix > 128:
+        raise HTTPException(status_code=400, detail=f"new_prefix must be between 1 and 128, got: {new_prefix}")
+    created = store.split_subnet(subnet_id, new_prefix)
+    if not created:
+        raise HTTPException(status_code=400, detail="Cannot split: invalid prefix or subnet not found")
+    # Populate IPs for each new subnet
+    for s in created:
+        populate_subnet_ips(store, s)
+    kg = _get_knowledge_graph()
+    kg.load_from_store()
+    return {
+        "status": "split",
+        "parent_id": subnet_id,
+        "children": [s.model_dump() for s in created],
+        "count": len(created),
+    }
+
+
+@network_router.post("/ipam/subnets/merge")
+async def ipam_merge_subnets(body: dict):
+    """Merge subnets into their supernet."""
+    store = _get_topology_store()
+    subnet_ids = body.get("subnet_ids", [])
+    if len(subnet_ids) < 2:
+        raise HTTPException(status_code=400, detail="At least 2 subnet_ids required")
+    # Pre-validate all subnet IDs exist
+    missing = []
+    for sid in subnet_ids:
+        if not store.get_subnet(sid):
+            missing.append(sid)
+    if missing:
+        raise HTTPException(status_code=404, detail=f"Subnet(s) not found: {', '.join(missing)}")
+    merged = store.merge_subnets(subnet_ids)
+    if not merged:
+        raise HTTPException(status_code=400, detail="Cannot merge: subnets don't form a valid supernet")
+    kg = _get_knowledge_graph()
+    kg.load_from_store()
+    return {"status": "merged", "subnet": merged.model_dump()}
+
+
+@network_router.get("/ipam/export")
+async def ipam_export_csv():
+    """Export all IPAM data as CSV."""
+    from starlette.responses import Response
+    store = _get_topology_store()
+    csv_data = store.export_ipam_csv()
+    return Response(
+        content=csv_data,
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=ipam_export.csv"},
+    )
+
+
+@network_router.get("/ipam/dns-mismatches")
+async def ipam_dns_mismatches():
+    """Detect DNS/hostname mismatches in IPAM data."""
+    store = _get_topology_store()
+    mismatches = store.detect_dns_mismatches()
+    return {"mismatches": mismatches, "count": len(mismatches)}
+
+
+@network_router.get("/ipam/capacity-forecast")
+async def ipam_capacity_forecast():
+    """Get subnet capacity forecast data."""
+    store = _get_topology_store()
+    forecast = store.get_capacity_forecast()
+    return {"subnets": forecast}
+
+
+# ---------------------------------------------------------------------------
+# IPAM ↔ Monitoring Integration (Phase C)
+# ---------------------------------------------------------------------------
+
+
+@network_router.post("/ipam/subnets/{subnet_id}/scan")
+async def ipam_scan_subnet(subnet_id: str, background_tasks: BackgroundTasks):
+    """Trigger an active ping scan of a subnet, updating IPAM with results."""
+    store = _get_topology_store()
+    subnet = store.get_subnet(subnet_id)
+    if not subnet:
+        raise HTTPException(status_code=404, detail="Subnet not found")
+
+    kg = _get_knowledge_graph()
+    engine = DiscoveryEngine(store, kg)
+
+    results = await engine.scan_subnet_for_ipam(subnet.cidr)
+    updated = 0
+    now = datetime.now(timezone.utc).isoformat()
+    for r in results:
+        if r["alive"]:
+            ip_rec = store.get_ip_by_address(r["ip"])
+            if ip_rec:
+                updates = {"last_seen": now}
+                if r["hostname"] and not ip_rec.hostname:
+                    updates["hostname"] = r["hostname"]
+                store.update_ip_address(ip_rec.id, **updates)
+                updated += 1
+
+    return {
+        "status": "completed",
+        "subnet_id": subnet_id,
+        "cidr": subnet.cidr,
+        "total_scanned": len(results),
+        "alive_count": sum(1 for r in results if r["alive"]),
+        "updated_ips": updated,
+        "results": results[:100],  # Limit response size
+    }
+
+
+@network_router.get("/ipam/ips/{ip_id}/dns")
+async def ipam_ip_dns_lookup(ip_id: str):
+    """Forward and reverse DNS lookup for an IP address."""
+    import socket
+    store = _get_topology_store()
+    ip = store.get_ip_address(ip_id)
+    if not ip:
+        raise HTTPException(status_code=404, detail="IP not found")
+
+    result = {"address": ip.address, "hostname": ip.hostname, "forward": None, "reverse": None, "mismatch": False}
+
+    # Reverse DNS (IP -> hostname)
+    try:
+        hostname, _, _ = socket.gethostbyaddr(ip.address)
+        result["reverse"] = hostname
+    except (socket.herror, socket.gaierror, OSError):
+        result["reverse"] = None
+
+    # Forward DNS (hostname -> IP) if we have a hostname
+    lookup_hostname = result["reverse"] or ip.hostname
+    if lookup_hostname:
+        try:
+            _, _, addrs = socket.gethostbyname_ex(lookup_hostname)
+            result["forward"] = addrs
+            # Check mismatch: forward resolution doesn't include the original IP
+            if ip.address not in addrs:
+                result["mismatch"] = True
+        except (socket.herror, socket.gaierror, OSError):
+            result["forward"] = None
+
+    return result
+
+
+@network_router.get("/ipam/subnets/{subnet_id}/utilization-history")
+async def ipam_utilization_history(subnet_id: str, range: str = "7d"):
+    """Get historical utilization data for a subnet from InfluxDB."""
+    store = _get_topology_store()
+    subnet = store.get_subnet(subnet_id)
+    if not subnet:
+        raise HTTPException(status_code=404, detail="Subnet not found")
+
+    # Try InfluxDB metrics store
+    try:
+        from src.network.metrics_store import MetricsStore
+        import os
+        url = os.environ.get("INFLUXDB_URL", "")
+        token = os.environ.get("INFLUXDB_TOKEN", "")
+        org = os.environ.get("INFLUXDB_ORG", "")
+        bucket = os.environ.get("INFLUXDB_BUCKET", "network")
+        if url and token:
+            ms = MetricsStore(url=url, token=token, org=org, bucket=bucket)
+            try:
+                data = await ms.query_ipam_utilization(subnet_id, range_str=range)
+                return {"subnet_id": subnet_id, "range": range, "data": data}
+            finally:
+                await ms.close()
+    except Exception:
+        pass
+
+    # Fallback: return current snapshot only
+    util = store.get_subnet_utilization(subnet_id)
+    return {
+        "subnet_id": subnet_id,
+        "range": range,
+        "data": [{"time": datetime.now(timezone.utc).isoformat(), "value": util.get("utilization_pct", 0)}],
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -880,6 +1353,488 @@ async def list_ha_groups():
     store = _get_topology_store()
     groups = store.list_ha_groups()
     return {"ha_groups": [g.model_dump() for g in groups]}
+
+
+@network_router.get("/ipam/subnets/{subnet_id}/available-ranges")
+async def ipam_available_ranges(subnet_id: str):
+    """Get available (unallocated) ranges within a parent subnet."""
+    store = _get_topology_store()
+    subnet = store.get_subnet(subnet_id)
+    if not subnet:
+        raise HTTPException(status_code=404, detail="Subnet not found")
+    ranges = store.get_available_ranges(subnet_id)
+    return {"subnet_id": subnet_id, "cidr": subnet.cidr, "available_ranges": ranges}
+
+
+@network_router.get("/ipam/dhcp-scopes")
+async def ipam_list_dhcp_scopes(subnet_id: str = ""):
+    """List DHCP scopes, optionally filtered by subnet."""
+    store = _get_topology_store()
+    scopes = store.list_dhcp_scopes(subnet_id=subnet_id)
+    return {"scopes": scopes}
+
+
+@network_router.post("/ipam/dhcp-scopes")
+async def ipam_create_dhcp_scope(body: dict):
+    """Create or update a DHCP scope."""
+    store = _get_topology_store()
+    scope_id = body.get("id", f"dhcp-{uuid.uuid4().hex[:8]}")
+    name = body.get("name", "")
+    scope_cidr = body.get("scope_cidr", "")
+    if not name or not scope_cidr:
+        raise HTTPException(status_code=400, detail="name and scope_cidr are required")
+    scope = {
+        "id": scope_id,
+        "name": name,
+        "scope_cidr": scope_cidr,
+        "server_ip": body.get("server_ip", ""),
+        "subnet_id": body.get("subnet_id", ""),
+        "total_leases": body.get("total_leases", 0),
+        "active_leases": body.get("active_leases", 0),
+        "free_count": body.get("free_count", 0),
+        "source": body.get("source", "manual"),
+        "last_updated": datetime.now(timezone.utc).isoformat(),
+    }
+    store.add_dhcp_scope(scope)
+    return {"status": "created", "scope": scope}
+
+
+@network_router.delete("/ipam/dhcp-scopes/{scope_id}")
+async def ipam_delete_dhcp_scope(scope_id: str):
+    """Delete a DHCP scope."""
+    store = _get_topology_store()
+    store.delete_dhcp_scope(scope_id)
+    return {"status": "deleted", "scope_id": scope_id}
+
+
+# ---------------------------------------------------------------------------
+# IPAM — Reserved Ranges
+# ---------------------------------------------------------------------------
+
+@network_router.get("/ipam/subnets/{subnet_id}/reserved-ranges")
+async def ipam_list_reserved_ranges(subnet_id: str):
+    store = _get_topology_store()
+    return {"ranges": store.list_reserved_ranges(subnet_id)}
+
+
+@network_router.post("/ipam/subnets/{subnet_id}/reserved-ranges")
+async def ipam_create_reserved_range(subnet_id: str, body: dict):
+    store = _get_topology_store()
+    subnet = store.get_subnet(subnet_id)
+    if not subnet:
+        raise HTTPException(status_code=404, detail="Subnet not found")
+    start_ip = body.get("start_ip", "")
+    end_ip = body.get("end_ip", "")
+    if not start_ip or not end_ip:
+        raise HTTPException(status_code=400, detail="start_ip and end_ip are required")
+    result = store.add_reserved_range(
+        subnet_id, start_ip, end_ip,
+        reason=body.get("reason", ""),
+        owner_team=body.get("owner_team", ""),
+    )
+    return {"status": "created", "range": result}
+
+
+@network_router.delete("/ipam/reserved-ranges/{range_id}")
+async def ipam_delete_reserved_range(range_id: str):
+    store = _get_topology_store()
+    store.delete_reserved_range(range_id)
+    return {"status": "deleted", "range_id": range_id}
+
+
+# ---------------------------------------------------------------------------
+# IPAM — VRF Management
+# ---------------------------------------------------------------------------
+
+@network_router.get("/ipam/vrfs")
+async def ipam_list_vrfs():
+    store = _get_topology_store()
+    vrfs = store.list_vrfs()
+    return {"vrfs": [v.model_dump() for v in vrfs]}
+
+
+@network_router.post("/ipam/vrfs")
+async def ipam_create_vrf(body: dict):
+    from src.network.models import VRF
+    store = _get_topology_store()
+    vrf_id = body.get("id", f"vrf-{uuid.uuid4().hex[:8]}")
+    vrf = VRF(
+        id=vrf_id,
+        name=body.get("name", vrf_id),
+        rd=body.get("rd", ""),
+        rt_import=body.get("rt_import", []),
+        rt_export=body.get("rt_export", []),
+        description=body.get("description", ""),
+        device_ids=body.get("device_ids", []),
+    )
+    store.add_vrf(vrf)
+    return {"status": "created", "vrf": vrf.model_dump()}
+
+
+@network_router.get("/ipam/vrfs/{vrf_id}")
+async def ipam_get_vrf(vrf_id: str):
+    store = _get_topology_store()
+    vrf = store.get_vrf(vrf_id)
+    if not vrf:
+        raise HTTPException(status_code=404, detail="VRF not found")
+    return vrf.model_dump()
+
+
+@network_router.put("/ipam/vrfs/{vrf_id}")
+async def ipam_update_vrf(vrf_id: str, body: dict):
+    store = _get_topology_store()
+    updated = store.update_vrf(vrf_id, **body)
+    if not updated:
+        raise HTTPException(status_code=404, detail="VRF not found")
+    return updated.model_dump()
+
+
+@network_router.delete("/ipam/vrfs/{vrf_id}")
+async def ipam_delete_vrf(vrf_id: str):
+    store = _get_topology_store()
+    vrf = store.get_vrf(vrf_id)
+    if not vrf:
+        raise HTTPException(status_code=404, detail="VRF not found")
+    if vrf.is_default:
+        raise HTTPException(status_code=400, detail="Cannot delete default VRF")
+    store.delete_vrf(vrf_id)
+    return {"status": "deleted", "vrf_id": vrf_id}
+
+
+# ---------------------------------------------------------------------------
+# IPAM — Region, Site, AddressBlock Management
+# ---------------------------------------------------------------------------
+
+@network_router.get("/ipam/regions")
+async def ipam_list_regions():
+    store = _get_topology_store()
+    regions = store.list_regions()
+    return {"regions": [r.model_dump() for r in regions]}
+
+
+@network_router.post("/ipam/regions")
+async def ipam_create_region(body: dict):
+    from src.network.models import Region
+    store = _get_topology_store()
+    region = Region(
+        id=body.get("id", f"region-{uuid.uuid4().hex[:8]}"),
+        name=body.get("name", ""),
+        description=body.get("description", ""),
+    )
+    store.add_region(region)
+    return {"status": "created", "region": region.model_dump()}
+
+
+@network_router.get("/ipam/regions/{region_id}")
+async def ipam_get_region(region_id: str):
+    store = _get_topology_store()
+    region = store.get_region(region_id)
+    if not region:
+        raise HTTPException(status_code=404, detail="Region not found")
+    return region.model_dump()
+
+
+@network_router.put("/ipam/regions/{region_id}")
+async def ipam_update_region(region_id: str, body: dict):
+    store = _get_topology_store()
+    updated = store.update_region(region_id, **body)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Region not found")
+    return updated.model_dump()
+
+
+@network_router.delete("/ipam/regions/{region_id}")
+async def ipam_delete_region(region_id: str):
+    store = _get_topology_store()
+    store.delete_region(region_id)
+    return {"status": "deleted", "region_id": region_id}
+
+
+@network_router.get("/ipam/sites")
+async def ipam_list_sites():
+    store = _get_topology_store()
+    sites = store.list_sites()
+    return {"sites": [s.model_dump() for s in sites]}
+
+
+@network_router.post("/ipam/sites")
+async def ipam_create_site(body: dict):
+    from src.network.models import Site
+    store = _get_topology_store()
+    site = Site(
+        id=body.get("id", f"site-{uuid.uuid4().hex[:8]}"),
+        name=body.get("name", ""),
+        region_id=body.get("region_id", ""),
+        site_type=body.get("site_type", ""),
+        address=body.get("address", ""),
+        description=body.get("description", ""),
+    )
+    store.add_site(site)
+    return {"status": "created", "site": site.model_dump()}
+
+
+@network_router.get("/ipam/sites/{site_id}")
+async def ipam_get_site(site_id: str):
+    store = _get_topology_store()
+    site = store.get_site(site_id)
+    if not site:
+        raise HTTPException(status_code=404, detail="Site not found")
+    return site.model_dump()
+
+
+@network_router.put("/ipam/sites/{site_id}")
+async def ipam_update_site(site_id: str, body: dict):
+    store = _get_topology_store()
+    updated = store.update_site(site_id, **body)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Site not found")
+    return updated.model_dump()
+
+
+@network_router.delete("/ipam/sites/{site_id}")
+async def ipam_delete_site(site_id: str):
+    store = _get_topology_store()
+    store.delete_site(site_id)
+    return {"status": "deleted", "site_id": site_id}
+
+
+@network_router.get("/ipam/address-blocks")
+async def ipam_list_address_blocks():
+    store = _get_topology_store()
+    blocks = store.list_address_blocks()
+    return {"blocks": [b.model_dump() for b in blocks]}
+
+
+@network_router.post("/ipam/address-blocks")
+async def ipam_create_address_block(body: dict):
+    from src.network.models import AddressBlock
+    store = _get_topology_store()
+    block = AddressBlock(
+        id=body.get("id", f"block-{uuid.uuid4().hex[:8]}"),
+        cidr=body.get("cidr", ""),
+        name=body.get("name", ""),
+        vrf_id=body.get("vrf_id", "default"),
+        site_id=body.get("site_id", ""),
+        description=body.get("description", ""),
+        rir=body.get("rir", "private"),
+    )
+    store.add_address_block(block)
+    return {"status": "created", "block": block.model_dump()}
+
+
+@network_router.get("/ipam/address-blocks/{block_id}")
+async def ipam_get_address_block(block_id: str):
+    store = _get_topology_store()
+    block = store.get_address_block(block_id)
+    if not block:
+        raise HTTPException(status_code=404, detail="Address block not found")
+    return block.model_dump()
+
+
+@network_router.delete("/ipam/address-blocks/{block_id}")
+async def ipam_delete_address_block(block_id: str):
+    store = _get_topology_store()
+    store.delete_address_block(block_id)
+    return {"status": "deleted", "block_id": block_id}
+
+
+@network_router.get("/ipam/address-blocks/{block_id}/utilization")
+async def ipam_address_block_utilization(block_id: str):
+    store = _get_topology_store()
+    util = store.get_address_block_utilization(block_id)
+    if util["total"] == 0:
+        raise HTTPException(status_code=404, detail="Address block not found")
+    return util
+
+
+@network_router.post("/ipam/address-blocks/{block_id}/allocate")
+async def ipam_allocate_subnet_from_block(block_id: str, body: dict):
+    store = _get_topology_store()
+    prefix = body.get("prefix")
+    if prefix is None:
+        raise HTTPException(status_code=400, detail="prefix is required")
+    subnet = store.allocate_subnet_from_block(block_id, int(prefix))
+    if not subnet:
+        raise HTTPException(status_code=400, detail="No space available in block")
+    return {"status": "allocated", "subnet": subnet.model_dump()}
+
+
+# ---------------------------------------------------------------------------
+# IPAM — VLAN Management
+# ---------------------------------------------------------------------------
+
+@network_router.get("/ipam/vlans")
+async def ipam_list_vlans():
+    store = _get_topology_store()
+    vlans = store.list_vlans()
+    return {"vlans": [v.model_dump() for v in vlans]}
+
+
+@network_router.post("/ipam/vlans")
+async def ipam_create_vlan(body: dict):
+    from src.network.models import VLAN
+    store = _get_topology_store()
+    vlan = VLAN(
+        id=body.get("id", f"vlan-{uuid.uuid4().hex[:8]}"),
+        vlan_number=int(body.get("vlan_number", 1)),
+        name=body.get("name", ""),
+        site=body.get("site", ""),
+        description=body.get("description", ""),
+        vrf_id=body.get("vrf_id", "default"),
+        site_id=body.get("site_id", ""),
+        subnet_ids=body.get("subnet_ids", []),
+    )
+    store.add_vlan(vlan)
+    return {"status": "created", "vlan": vlan.model_dump()}
+
+
+@network_router.get("/ipam/vlans/{vlan_id}")
+async def ipam_get_vlan(vlan_id: str):
+    store = _get_topology_store()
+    vlan = store.get_vlan(vlan_id)
+    if not vlan:
+        raise HTTPException(status_code=404, detail="VLAN not found")
+    return vlan.model_dump()
+
+
+@network_router.put("/ipam/vlans/{vlan_id}")
+async def ipam_update_vlan(vlan_id: str, body: dict):
+    store = _get_topology_store()
+    updated = store.update_vlan(vlan_id, **body)
+    if not updated:
+        raise HTTPException(status_code=404, detail="VLAN not found")
+    return updated.model_dump()
+
+
+@network_router.delete("/ipam/vlans/{vlan_id}")
+async def ipam_delete_vlan(vlan_id: str):
+    store = _get_topology_store()
+    store.delete_vlan(vlan_id)
+    return {"status": "deleted", "vlan_id": vlan_id}
+
+
+@network_router.get("/ipam/vlans/{vlan_id}/interfaces")
+async def ipam_vlan_interfaces(vlan_id: str):
+    store = _get_topology_store()
+    ifaces = store.get_vlan_interfaces(vlan_id)
+    return {"interfaces": [i.model_dump() for i in ifaces]}
+
+
+# ---------------------------------------------------------------------------
+# IPAM — IP Correlation
+# ---------------------------------------------------------------------------
+
+@network_router.get("/ipam/ips/{ip_id}/correlation")
+async def ipam_ip_correlation(ip_id: str):
+    store = _get_topology_store()
+    chain = store.get_ip_correlation_chain(ip_id)
+    if not chain:
+        raise HTTPException(status_code=404, detail="IP not found")
+    return chain
+
+
+# ---------------------------------------------------------------------------
+# IPAM — Cloud Accounts
+# ---------------------------------------------------------------------------
+
+@network_router.get("/ipam/cloud-accounts")
+async def ipam_list_cloud_accounts():
+    store = _get_topology_store()
+    accounts = store.list_cloud_accounts()
+    return {"accounts": [a.model_dump() for a in accounts]}
+
+
+@network_router.post("/ipam/cloud-accounts")
+async def ipam_create_cloud_account(body: dict):
+    from src.network.models import CloudAccount, CloudProvider
+    store = _get_topology_store()
+    account = CloudAccount(
+        id=body.get("id", f"cloud-{uuid.uuid4().hex[:8]}"),
+        name=body.get("name", ""),
+        provider=CloudProvider(body.get("provider", "aws")),
+        account_id=body.get("account_id", ""),
+        region=body.get("region", ""),
+        credentials_ref=body.get("credentials_ref", ""),
+        sync_enabled=body.get("sync_enabled", False),
+    )
+    store.add_cloud_account(account)
+    return {"status": "created", "account": account.model_dump()}
+
+
+@network_router.get("/ipam/cloud-accounts/{account_id}")
+async def ipam_get_cloud_account(account_id: str):
+    store = _get_topology_store()
+    account = store.get_cloud_account(account_id)
+    if not account:
+        raise HTTPException(status_code=404, detail="Cloud account not found")
+    return account.model_dump()
+
+
+@network_router.put("/ipam/cloud-accounts/{account_id}")
+async def ipam_update_cloud_account(account_id: str, body: dict):
+    store = _get_topology_store()
+    updated = store.update_cloud_account(account_id, **body)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Cloud account not found")
+    return updated.model_dump()
+
+
+@network_router.delete("/ipam/cloud-accounts/{account_id}")
+async def ipam_delete_cloud_account(account_id: str):
+    store = _get_topology_store()
+    store.delete_cloud_account(account_id)
+    return {"status": "deleted", "account_id": account_id}
+
+
+@network_router.post("/ipam/cloud-accounts/{account_id}/sync")
+async def ipam_sync_cloud_account(account_id: str):
+    """Trigger VPC/subnet sync for a cloud account (stub — requires cloud SDK)."""
+    store = _get_topology_store()
+    account = store.get_cloud_account(account_id)
+    if not account:
+        raise HTTPException(status_code=404, detail="Cloud account not found")
+    now = datetime.now(timezone.utc).isoformat()
+    store.update_cloud_account(account_id, last_sync=now)
+    return {"status": "sync_triggered", "account_id": account_id, "last_sync": now}
+
+
+# ---------------------------------------------------------------------------
+# IPAM — Reports
+# ---------------------------------------------------------------------------
+
+@network_router.get("/ipam/reports/{report_type}")
+async def ipam_report(report_type: str, format: str = "json", subnet_id: str = "", status: str = ""):
+    """Generate IPAM report. Types: subnet_inventory, ip_allocation, conflict_report, capacity_forecast."""
+    from src.network.ipam_reports import (
+        generate_subnet_report, generate_ip_allocation_report,
+        generate_conflict_report, generate_capacity_report, report_to_csv,
+    )
+    store = _get_topology_store()
+
+    if report_type == "subnet_inventory":
+        data = generate_subnet_report(store)
+    elif report_type == "ip_allocation":
+        data = generate_ip_allocation_report(store, subnet_id=subnet_id, status=status)
+    elif report_type == "conflict_report":
+        result = generate_conflict_report(store)
+        if format == "json":
+            return result
+        data = result.get("duplicate_ips", []) + result.get("dns_mismatches", [])
+    elif report_type == "capacity_forecast":
+        data = generate_capacity_report(store)
+    else:
+        raise HTTPException(status_code=400, detail=f"Unknown report type: {report_type}. Use: subnet_inventory, ip_allocation, conflict_report, capacity_forecast")
+
+    if format == "csv":
+        from starlette.responses import Response
+        csv_data = report_to_csv(data)
+        return Response(
+            content=csv_data,
+            media_type="text/csv",
+            headers={"Content-Disposition": f"attachment; filename=ipam_{report_type}.csv"},
+        )
+
+    return {"report_type": report_type, "generated_at": datetime.now(timezone.utc).isoformat(), "data": data, "count": len(data)}
 
 
 @network_router.get("/ha-groups/{group_id}/validate")

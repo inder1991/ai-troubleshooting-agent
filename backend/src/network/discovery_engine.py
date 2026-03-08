@@ -97,6 +97,115 @@ class DiscoveryEngine:
         except Exception:
             return (ip, False)
 
+    async def scan_subnet_for_ipam(self, subnet_cidr: str, max_hosts: int = 4096) -> list[dict]:
+        """Ping sweep a specific subnet for IPAM, returning alive hosts with reverse DNS.
+
+        Safety: Limited to max_hosts (default 4096 = /20).
+        Returns: [{"ip": str, "alive": bool, "hostname": str}]
+        """
+        try:
+            network = ipaddress.ip_network(subnet_cidr, strict=False)
+        except ValueError:
+            return []
+        hosts = list(network.hosts())
+        if len(hosts) > max_hosts:
+            return []  # Subnet too large for on-demand scan
+
+        results = []
+        # Batch ping in chunks of 50 for performance
+        for i in range(0, len(hosts), 50):
+            batch = hosts[i:i + 50]
+            tasks = [self._ping_check(str(h)) for h in batch]
+            batch_results = await asyncio.gather(*tasks, return_exceptions=True)
+            for result in batch_results:
+                if isinstance(result, Exception):
+                    continue
+                ip_str, alive = result
+                hostname = ""
+                if alive:
+                    hostname = await self.reverse_dns(ip_str)
+                results.append({
+                    "ip": ip_str,
+                    "alive": alive,
+                    "hostname": hostname,
+                })
+        return results
+
+    # Confidence scoring by discovery source
+    SOURCE_CONFIDENCE = {
+        "manual": 1.0,
+        "arp": 0.95,
+        "snmp": 0.90,
+        "adapter_neighbor": 0.85,
+        "dhcp": 0.80,
+        "netflow": 0.60,
+        "probe": 0.50,
+    }
+
+    async def discover_from_arp(self, snmp_collector) -> list[dict]:
+        """Source 3: Walk ARP tables on SNMP-enabled devices for IP→MAC mappings."""
+        from .snmp_collector import SNMPDeviceConfig
+        known = self._known_ips()
+        candidates = []
+        for device in self.store.list_devices():
+            if not device.management_ip:
+                continue
+            # Check SNMP capability via KG
+            node_data = {}
+            if hasattr(self.kg, 'graph') and device.id in self.kg.graph:
+                node_data = dict(self.kg.graph.nodes[device.id])
+            if not node_data.get("snmp_enabled"):
+                continue
+            cfg = SNMPDeviceConfig(
+                device_id=device.id, ip=device.management_ip,
+                version=node_data.get("snmp_version", "v2c"),
+                community=node_data.get("snmp_community", "public"),
+                port=int(node_data.get("snmp_port", 161)),
+            )
+            try:
+                arp_entries = await snmp_collector.walk_arp_table(cfg)
+                for entry in arp_entries:
+                    ip = entry.get("ip", "")
+                    if ip and ip not in known:
+                        hostname = await self.reverse_dns(ip)
+                        candidates.append({
+                            "ip": ip,
+                            "mac": entry.get("mac", ""),
+                            "hostname": hostname,
+                            "discovered_via": "arp",
+                            "source_device_id": device.id,
+                            "confidence_score": self.SOURCE_CONFIDENCE["arp"],
+                        })
+                        known.add(ip)
+            except Exception as e:
+                logger.debug("ARP walk failed for %s: %s", device.id, e)
+        return candidates
+
+    async def discover_from_flows(self, metrics_store) -> list[dict]:
+        """Source 4: Extract unknown IPs from recent NetFlow/metrics data."""
+        known = self._known_ips()
+        candidates = []
+        if not metrics_store:
+            return candidates
+        try:
+            # Query recent flow records (last 5 minutes)
+            flow_ips = await metrics_store.get_recent_flow_ips(minutes=5)
+            for ip in flow_ips:
+                if ip not in known:
+                    hostname = await self.reverse_dns(ip)
+                    candidates.append({
+                        "ip": ip,
+                        "mac": "",
+                        "hostname": hostname,
+                        "discovered_via": "netflow",
+                        "source_device_id": "",
+                        "confidence_score": self.SOURCE_CONFIDENCE["netflow"],
+                    })
+                    known.add(ip)
+        except Exception as e:
+            logger.debug("Flow discovery failed: %s", e)
+        return candidates
+
     async def reverse_dns(self, ip: str) -> str:
         """Best-effort reverse DNS lookup."""
         try:

@@ -1,4 +1,5 @@
 """Base firewall adapter interface. All vendor adapters implement this."""
+import asyncio
 from abc import ABC, abstractmethod
 from typing import Optional
 import time
@@ -9,6 +10,7 @@ from ..models import (
 
 
 class VRF:
+    """Lightweight VRF for adapter use (not the Pydantic model from models.py)."""
     def __init__(self, name: str, rd: str = "", interfaces: list[str] = None):
         self.name = name
         self.rd = rd
@@ -43,11 +45,12 @@ class FirewallAdapter(ABC):
     DEFAULT_TTL = 300  # 5 minutes
 
     def __init__(self, vendor: FirewallVendor, api_endpoint: str = "", api_key: str = "",
-                 extra_config: dict = None):
+                 extra_config: dict = None, ttl: int = DEFAULT_TTL):
         self.vendor = vendor
         self.api_endpoint = api_endpoint
         self.api_key = api_key
         self.extra_config = extra_config or {}
+        self._ttl = ttl
         self._snapshot_time: float = 0
         self._rules_cache: list[FirewallRule] = []
         self._nat_cache: list[NATRule] = []
@@ -128,12 +131,18 @@ class FirewallAdapter(ABC):
                 message="No API endpoint configured",
             )
         try:
-            await self._fetch_zones()
+            await asyncio.wait_for(self._fetch_zones(), timeout=10.0)
             return AdapterHealth(
                 vendor=self.vendor,
                 status=AdapterHealthStatus.CONNECTED,
                 snapshot_age_seconds=self.snapshot_age_seconds(),
                 last_refresh=self._format_snapshot_time(),
+            )
+        except asyncio.TimeoutError:
+            return AdapterHealth(
+                vendor=self.vendor,
+                status=AdapterHealthStatus.UNREACHABLE,
+                message="Health check timed out after 10s",
             )
         except Exception as e:
             if "auth" in str(e).lower() or "401" in str(e) or "403" in str(e):
@@ -165,7 +174,7 @@ class FirewallAdapter(ABC):
     # -- Internal --
 
     async def _ensure_snapshot(self) -> None:
-        if self.snapshot_age_seconds() > self.DEFAULT_TTL:
+        if self.snapshot_age_seconds() > self._ttl:
             await self.refresh_snapshot()
 
     def _format_snapshot_time(self) -> str:

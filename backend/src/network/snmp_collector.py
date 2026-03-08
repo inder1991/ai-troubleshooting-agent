@@ -25,6 +25,10 @@ STANDARD_OIDS = {
     "ifSpeed": "1.3.6.1.2.1.2.2.1.5",
     "ifHCInOctets": "1.3.6.1.2.1.31.1.1.1.6",
     "ifHCOutOctets": "1.3.6.1.2.1.31.1.1.1.10",
+    # ARP table OIDs (Phase 6: Multi-Source Discovery)
+    "ipNetToMediaPhysAddress": "1.3.6.1.2.1.4.22.1.2",
+    "ipNetToMediaNetAddress": "1.3.6.1.2.1.4.22.1.3",
+    "ipNetToMediaType": "1.3.6.1.2.1.4.22.1.4",
 }
 
 
@@ -233,6 +237,65 @@ class SNMPCollector:
                 )
 
         return {"device_id": device_id, "cpu_pct": cpu, "mem_pct": mem_pct}
+
+    async def walk_arp_table(self, cfg: SNMPDeviceConfig) -> list[dict]:
+        """BULKWALK ipNetToMediaTable. Returns [{ip, mac, type, device_id}]."""
+        try:
+            from pysnmp.hlapi.v3arch.asyncio import (
+                bulk_cmd, SnmpEngine, CommunityData, UdpTransportTarget,
+                ContextData, ObjectType, ObjectIdentity, UsmUserData,
+            )
+        except ImportError:
+            logger.error("pysnmp-lextudio not installed")
+            return []
+
+        engine = SnmpEngine()
+        target = UdpTransportTarget((cfg.ip, cfg.port), timeout=5, retries=1)
+        if cfg.version == "v3":
+            auth = UsmUserData(cfg.v3_user, cfg.v3_auth_key, cfg.v3_priv_key)
+        else:
+            auth = CommunityData(cfg.community, mpModel=1)
+
+        base_oid = STANDARD_OIDS["ipNetToMediaPhysAddress"]
+        entries: list[dict] = []
+        marker = base_oid
+
+        while True:
+            try:
+                err_indication, err_status, err_index, var_binds = await bulk_cmd(
+                    engine, auth, target, ContextData(),
+                    0, 25,
+                    ObjectType(ObjectIdentity(marker)),
+                )
+            except Exception:
+                break
+            if err_indication or err_status:
+                break
+            out_of_subtree = False
+            for var_bind_row in var_binds:
+                for oid, val in var_bind_row:
+                    oid_str = str(oid)
+                    if not oid_str.startswith(base_oid):
+                        out_of_subtree = True
+                        break
+                    # OID format: base_oid.ifIndex.ip1.ip2.ip3.ip4
+                    parts = oid_str[len(base_oid) + 1:].split(".")
+                    if len(parts) >= 5:
+                        ip_addr = ".".join(parts[1:5])
+                        mac_hex = val.prettyPrint() if hasattr(val, "prettyPrint") else str(val)
+                        entries.append({
+                            "ip": ip_addr,
+                            "mac": mac_hex,
+                            "type": "dynamic",
+                            "device_id": cfg.device_id,
+                        })
+                    marker = oid_str
+                if out_of_subtree:
+                    break
+            if out_of_subtree:
+                break
+
+        return entries
 
     _MAX_CONCURRENT = 10
 

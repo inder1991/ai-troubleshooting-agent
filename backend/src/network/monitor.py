@@ -109,6 +109,7 @@ class NetworkMonitor:
             self._discovery_pass(),
             self._snmp_pass(),
             self._dns_pass(),
+            self._ipam_utilization_pass(),
         ]
         results = await asyncio.gather(*passes, return_exceptions=True)
         for i, result in enumerate(results):
@@ -116,6 +117,7 @@ class NetworkMonitor:
                 logger.error("Monitor pass %d failed: %s", i, result)
         # Alert pass reads data written by the others — must run after gather
         await self._alert_pass()
+        await self._ipam_alert_pass()
         self.store.prune_metric_history(older_than_days=7)
         self._last_cycle_at = time.monotonic()
         self._last_cycle_duration = self._last_cycle_at - t0
@@ -241,6 +243,30 @@ class NetworkMonitor:
         except Exception as e:
             logger.debug("Probe discovery failed: %s", e)
 
+        # ARP table discovery via SNMP
+        if self.snmp_collector:
+            try:
+                arp_candidates = await self.discovery_engine.discover_from_arp(self.snmp_collector)
+                for c in arp_candidates:
+                    self.store.upsert_discovery_candidate(
+                        c["ip"], c.get("mac", ""), c.get("hostname", ""),
+                        c["discovered_via"], c.get("source_device_id", ""),
+                    )
+            except Exception as e:
+                logger.debug("ARP discovery failed: %s", e)
+
+        # NetFlow discovery
+        if self.metrics_store:
+            try:
+                flow_candidates = await self.discovery_engine.discover_from_flows(self.metrics_store)
+                for c in flow_candidates:
+                    self.store.upsert_discovery_candidate(
+                        c["ip"], c.get("mac", ""), c.get("hostname", ""),
+                        c["discovered_via"], c.get("source_device_id", ""),
+                    )
+            except Exception as e:
+                logger.debug("Flow discovery failed: %s", e)
+
     async def _snmp_pass(self):
         if not self.snmp_collector:
             return
@@ -311,6 +337,81 @@ class NetworkMonitor:
                     logger.info("Escalated %d alerts", len(escalated))
             except Exception as e:
                 logger.warning("Escalation check failed: %s", e)
+
+    async def _ipam_utilization_pass(self):
+        """Snapshot subnet utilization to InfluxDB."""
+        if not self.metrics_store:
+            return
+        try:
+            subnets = self.store.list_subnets()
+            for subnet in subnets:
+                util = self.store.get_subnet_utilization(subnet.id)
+                await self.metrics_store.write_ipam_utilization(
+                    subnet_id=subnet.id,
+                    utilization_pct=util.get("utilization_pct", 0),
+                    total=util.get("total", 0),
+                    assigned=util.get("assigned", 0),
+                    available=util.get("available", 0),
+                )
+        except Exception as e:
+            logger.debug("IPAM utilization pass failed: %s", e)
+
+    async def _ipam_alert_pass(self):
+        """Evaluate IPAM-specific alert rules using direct SQLite utilization data."""
+        if not self.alert_engine:
+            return
+        try:
+            subnets = self.store.list_subnets()
+            for subnet in subnets:
+                util = self.store.get_subnet_utilization(subnet.id)
+                pct = util.get("utilization_pct", 0)
+                # Evaluate against IPAM rules
+                for rule in self.alert_engine.rules:
+                    if rule.entity_type != "subnet" or not rule.enabled:
+                        continue
+                    if rule.entity_filter != "*" and rule.entity_filter != subnet.id:
+                        continue
+                    if rule.metric != "utilization_pct":
+                        continue
+                    triggered = self.alert_engine._check_condition(pct, rule.condition, rule.threshold)
+                    if triggered:
+                        alert_key = f"{rule.id}:{subnet.id}"
+                        now = time.time()
+                        # Check cooldown
+                        last = self.alert_engine._last_fired.get(alert_key, 0)
+                        if now - last < rule.cooldown_seconds:
+                            continue
+                        alert = {
+                            "key": alert_key,
+                            "rule_id": rule.id,
+                            "rule_name": rule.name,
+                            "entity_id": subnet.id,
+                            "severity": rule.severity,
+                            "metric": rule.metric,
+                            "value": pct,
+                            "threshold": rule.threshold,
+                            "condition": rule.condition,
+                            "fired_at": now,
+                            "acknowledged": False,
+                            "message": f"{rule.name}: {subnet.cidr} at {pct}% utilization",
+                        }
+                        self.alert_engine._active_alerts[alert_key] = alert
+                        self.alert_engine._last_fired[alert_key] = now
+                        self._latest_alerts.append(alert)
+                        # Dispatch notification
+                        if self.alert_engine._dispatcher:
+                            try:
+                                await self.alert_engine._dispatcher.dispatch(alert)
+                            except Exception:
+                                pass
+                        # Persist to store
+                        if self.alert_engine._store:
+                            try:
+                                self.alert_engine._store.add_alert_history(alert)
+                            except Exception:
+                                pass
+        except Exception as e:
+            logger.debug("IPAM alert pass failed: %s", e)
 
     # ── Snapshot API ──
 

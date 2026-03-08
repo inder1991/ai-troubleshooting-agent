@@ -1487,6 +1487,11 @@ export interface IPAddress {
   description: string;
   last_seen: string;
   created_at: string;
+  owner_team: string;
+  application: string;
+  environment: string;
+  discovery_source: string;
+  confidence_score: number;
 }
 
 export interface IPAuditEvent {
@@ -1522,6 +1527,10 @@ export interface IPAMSubnet {
   ip_version: number;
   vpc_id: string;
   cloud_provider: string;
+  vrf_id: string;
+  subnet_role: string;
+  address_block_id: string;
+  site_id: string;
   total?: number;
   available?: number;
   assigned?: number;
@@ -1570,7 +1579,7 @@ export interface IPAMDevice {
 export interface IPAMTreeNode {
   id: string;
   label: string;
-  type: 'region' | 'vpc' | 'zone' | 'subnet';
+  type: 'region' | 'vpc' | 'zone' | 'subnet' | 'site' | 'vrf' | 'address_block';
   cidr?: string;
   utilization_pct?: number;
   children: IPAMTreeNode[];
@@ -1584,4 +1593,101 @@ export interface IPAMStats {
   reserved_ips: number;
   deprecated_ips: number;
   overall_utilization_pct: number;
+}
+
+export interface DHCPScope {
+  id: string;
+  name: string;
+  scope_cidr: string;
+  server_ip: string;
+  subnet_id: string;
+  total_leases: number;
+  active_leases: number;
+  free_count: number;
+  source: string;
+  last_updated: string;
+}
+
+export interface ReportTemplate {
+  id: string;
+  name: string;
+  type: 'subnet_inventory' | 'ip_allocation' | 'conflict_report' | 'capacity_forecast';
+  description: string;
+}
+
+// ── Enterprise IPAM Types ──
+
+export interface VRFInfo {
+  id: string;
+  name: string;
+  rd: string;
+  rt_import: string[];
+  rt_export: string[];
+  description: string;
+  device_ids: string[];
+  is_default: boolean;
+}
+
+export interface RegionInfo {
+  id: string;
+  name: string;
+  description: string;
+}
+
+export interface SiteInfo {
+  id: string;
+  name: string;
+  region_id: string;
+  site_type: string;
+  address: string;
+  description: string;
+}
+
+export interface AddressBlockInfo {
+  id: string;
+  cidr: string;
+  name: string;
+  vrf_id: string;
+  site_id: string;
+  description: string;
+  rir: string;
+}
+
+export interface CloudAccountInfo {
+  id: string;
+  name: string;
+  provider: string;
+  account_id: string;
+  region: string;
+  credentials_ref: string;
+  sync_enabled: boolean;
+  last_sync: string;
+}
+
+export interface ReservedRange {
+  id: string;
+  subnet_id: string;
+  start_ip: string;
+  end_ip: string;
+  reason: string;
+  owner_team: string;
+  created_at: string;
+}
+
+export interface IPCorrelationChain {
+  ip: { address: string; status: string; owner_team: string };
+  interface?: { name: string; status: string; vlan_id: number };
+  device?: { name: string; status: string; latency_ms: number };
+  vlan?: { vlan_number: number; name: string };
+  subnet?: { cidr: string; utilization_pct: number; subnet_role: string };
+}
+
+export interface VLANInfo {
+  id: string;
+  vlan_number: number;
+  name: string;
+  description: string;
+  vrf_id: string;
+  site_id: string;
+  subnet_ids: string[];
 }

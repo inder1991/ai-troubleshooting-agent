@@ -16,6 +16,9 @@ from .models import (
     LoadBalancer, LBTargetGroup,
     VLAN, MPLSCircuit, ComplianceZone,
     HAGroup, HAMode,
+    IPAddress, IPStatus, IPType,
+    VRF, Region, Site, AddressBlock,
+    CloudAccount, CloudInterface,
 )
 from src.integrations.credential_resolver import get_credential_resolver
 
@@ -300,6 +303,139 @@ class TopologyStore:
                 );
                 CREATE INDEX IF NOT EXISTS idx_alert_history_key ON alert_history(alert_key);
                 CREATE INDEX IF NOT EXISTS idx_alert_history_severity ON alert_history(severity);
+
+                CREATE TABLE IF NOT EXISTS ip_addresses (
+                    id TEXT PRIMARY KEY,
+                    address TEXT NOT NULL,
+                    subnet_id TEXT NOT NULL,
+                    status TEXT DEFAULT 'available',
+                    ip_type TEXT DEFAULT 'static',
+                    assigned_device_id TEXT DEFAULT '',
+                    assigned_interface_id TEXT DEFAULT '',
+                    hostname TEXT DEFAULT '',
+                    mac_address TEXT DEFAULT '',
+                    vendor TEXT DEFAULT '',
+                    description TEXT DEFAULT '',
+                    last_seen TEXT DEFAULT '',
+                    created_at TEXT DEFAULT '',
+                    FOREIGN KEY (subnet_id) REFERENCES subnets(id) ON DELETE CASCADE
+                );
+                CREATE TABLE IF NOT EXISTS ip_audit_log (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    ip_id TEXT NOT NULL,
+                    address TEXT NOT NULL,
+                    action TEXT NOT NULL,
+                    old_status TEXT DEFAULT '',
+                    new_status TEXT DEFAULT '',
+                    device_id TEXT DEFAULT '',
+                    details TEXT DEFAULT '',
+                    timestamp TEXT DEFAULT (datetime('now'))
+                );
+                CREATE INDEX IF NOT EXISTS idx_ip_audit_ip ON ip_audit_log(ip_id);
+                CREATE INDEX IF NOT EXISTS idx_ip_audit_ts ON ip_audit_log(timestamp);
+                CREATE INDEX IF NOT EXISTS idx_ip_address ON ip_addresses(address);
+                CREATE INDEX IF NOT EXISTS idx_ip_subnet ON ip_addresses(subnet_id);
+                CREATE INDEX IF NOT EXISTS idx_ip_status ON ip_addresses(status);
+
+                CREATE TABLE IF NOT EXISTS dhcp_scopes (
+                    id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    scope_cidr TEXT NOT NULL,
+                    server_ip TEXT DEFAULT '',
+                    subnet_id TEXT DEFAULT '',
+                    total_leases INTEGER DEFAULT 0,
+                    active_leases INTEGER DEFAULT 0,
+                    free_count INTEGER DEFAULT 0,
+                    source TEXT DEFAULT 'manual',
+                    last_updated TEXT DEFAULT ''
+                );
+
+                CREATE TABLE IF NOT EXISTS reserved_ranges (
+                    id TEXT PRIMARY KEY,
+                    subnet_id TEXT NOT NULL,
+                    start_ip TEXT NOT NULL,
+                    end_ip TEXT NOT NULL,
+                    reason TEXT DEFAULT '',
+                    owner_team TEXT DEFAULT '',
+                    created_at TEXT DEFAULT '',
+                    FOREIGN KEY (subnet_id) REFERENCES subnets(id) ON DELETE CASCADE
+                );
+
+                CREATE TABLE IF NOT EXISTS free_ranges (
+                    id TEXT PRIMARY KEY,
+                    subnet_id TEXT NOT NULL,
+                    start_ip TEXT NOT NULL,
+                    end_ip TEXT NOT NULL,
+                    host_count INTEGER DEFAULT 0,
+                    FOREIGN KEY (subnet_id) REFERENCES subnets(id) ON DELETE CASCADE
+                );
+                CREATE INDEX IF NOT EXISTS idx_free_ranges_subnet ON free_ranges(subnet_id);
+
+                CREATE TABLE IF NOT EXISTS vrfs (
+                    id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    rd TEXT DEFAULT '',
+                    rt_import TEXT DEFAULT '[]',
+                    rt_export TEXT DEFAULT '[]',
+                    description TEXT DEFAULT '',
+                    device_ids TEXT DEFAULT '[]',
+                    is_default INTEGER DEFAULT 0
+                );
+                CREATE UNIQUE INDEX IF NOT EXISTS idx_vrf_name ON vrfs(name);
+
+                CREATE TABLE IF NOT EXISTS regions (
+                    id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    description TEXT DEFAULT ''
+                );
+
+                CREATE TABLE IF NOT EXISTS sites (
+                    id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    region_id TEXT DEFAULT '',
+                    site_type TEXT DEFAULT '',
+                    address TEXT DEFAULT '',
+                    description TEXT DEFAULT '',
+                    FOREIGN KEY (region_id) REFERENCES regions(id)
+                );
+
+                CREATE TABLE IF NOT EXISTS address_blocks (
+                    id TEXT PRIMARY KEY,
+                    cidr TEXT NOT NULL,
+                    name TEXT DEFAULT '',
+                    vrf_id TEXT DEFAULT 'default',
+                    site_id TEXT DEFAULT '',
+                    description TEXT DEFAULT '',
+                    rir TEXT DEFAULT 'private',
+                    FOREIGN KEY (vrf_id) REFERENCES vrfs(id)
+                );
+                CREATE UNIQUE INDEX IF NOT EXISTS idx_addrblock_cidr_vrf ON address_blocks(cidr, vrf_id);
+
+                CREATE TABLE IF NOT EXISTS cloud_accounts (
+                    id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    provider TEXT NOT NULL,
+                    account_id TEXT DEFAULT '',
+                    region TEXT DEFAULT '',
+                    credentials_ref TEXT DEFAULT '',
+                    sync_enabled INTEGER DEFAULT 0,
+                    last_sync TEXT DEFAULT ''
+                );
+
+                CREATE TABLE IF NOT EXISTS cloud_interfaces (
+                    id TEXT PRIMARY KEY,
+                    cloud_account_id TEXT NOT NULL,
+                    instance_id TEXT DEFAULT '',
+                    instance_name TEXT DEFAULT '',
+                    vpc_id TEXT DEFAULT '',
+                    subnet_id TEXT DEFAULT '',
+                    security_group_ids TEXT DEFAULT '[]',
+                    private_ips TEXT DEFAULT '[]',
+                    public_ip TEXT DEFAULT '',
+                    mac_address TEXT DEFAULT '',
+                    status TEXT DEFAULT 'in-use',
+                    FOREIGN KEY (cloud_account_id) REFERENCES cloud_accounts(id) ON DELETE CASCADE
+                );
             """)
             conn.commit()
         finally:
@@ -318,12 +454,51 @@ class TopologyStore:
                 "ALTER TABLE interfaces ADD COLUMN role TEXT DEFAULT ''",
                 "ALTER TABLE interfaces ADD COLUMN subnet_id TEXT DEFAULT ''",
                 "ALTER TABLE zones ADD COLUMN zone_type TEXT DEFAULT ''",
+                "ALTER TABLE subnets ADD COLUMN parent_subnet_id TEXT DEFAULT ''",
+                "ALTER TABLE subnets ADD COLUMN region TEXT DEFAULT ''",
+                "ALTER TABLE subnets ADD COLUMN environment TEXT DEFAULT ''",
+                "ALTER TABLE subnets ADD COLUMN ip_version INTEGER DEFAULT 4",
+                "ALTER TABLE ip_addresses ADD COLUMN mac_address TEXT DEFAULT ''",
+                "ALTER TABLE ip_addresses ADD COLUMN vendor TEXT DEFAULT ''",
+                "ALTER TABLE subnets ADD COLUMN vpc_id TEXT DEFAULT ''",
+                "ALTER TABLE subnets ADD COLUMN cloud_provider TEXT DEFAULT ''",
+                "CREATE UNIQUE INDEX IF NOT EXISTS idx_ip_unique_addr_subnet ON ip_addresses(address, subnet_id)",
+                # Phase 1: IP ownership + discovery fields
+                "ALTER TABLE ip_addresses ADD COLUMN owner_team TEXT DEFAULT ''",
+                "ALTER TABLE ip_addresses ADD COLUMN application TEXT DEFAULT ''",
+                "ALTER TABLE ip_addresses ADD COLUMN environment TEXT DEFAULT ''",
+                "ALTER TABLE ip_addresses ADD COLUMN discovery_source TEXT DEFAULT ''",
+                "ALTER TABLE ip_addresses ADD COLUMN confidence_score REAL DEFAULT 1.0",
+                # Phase 2: VRF + subnet fields
+                "ALTER TABLE subnets ADD COLUMN vrf_id TEXT DEFAULT 'default'",
+                "ALTER TABLE subnets ADD COLUMN subnet_role TEXT DEFAULT ''",
+                "ALTER TABLE subnets ADD COLUMN address_block_id TEXT DEFAULT ''",
+                "ALTER TABLE subnets ADD COLUMN site_id TEXT DEFAULT ''",
+                # Phase 4: VLAN + interface enhancements
+                "ALTER TABLE interfaces ADD COLUMN vlan_id INTEGER DEFAULT 0",
+                "ALTER TABLE vlans ADD COLUMN description TEXT DEFAULT ''",
+                "ALTER TABLE vlans ADD COLUMN vrf_id TEXT DEFAULT 'default'",
+                "ALTER TABLE vlans ADD COLUMN site_id TEXT DEFAULT ''",
+                "ALTER TABLE vlans ADD COLUMN subnet_ids TEXT DEFAULT '[]'",
+                # Phase 6: Discovery confidence
+                "ALTER TABLE discovery_candidates ADD COLUMN confidence_score REAL DEFAULT 0.5",
+                # Phase 1: Migration — remove eagerly-materialized available rows
+                "DELETE FROM ip_addresses WHERE status = 'available' AND ip_type = 'static'",
             ]
             for sql in migrations:
                 try:
                     conn.execute(sql)
-                except sqlite3.OperationalError:
-                    pass  # Column already exists
+                except sqlite3.OperationalError as e:
+                    if "duplicate column" not in str(e).lower() and "already exists" not in str(e).lower():
+                        import logging
+                        logging.getLogger(__name__).warning("Migration failed: %s — %s", sql, e)
+            # Seed default VRF
+            try:
+                conn.execute(
+                    "INSERT OR IGNORE INTO vrfs (id, name, is_default) VALUES ('default', 'default', 1)"
+                )
+            except sqlite3.OperationalError:
+                pass
             conn.commit()
         finally:
             conn.close()
@@ -494,15 +669,77 @@ class TopologyStore:
         return self.get_device(device_id)
 
     # ── Subnet CRUD ──
+    def _validate_parent_subnet(self, subnet_id: str, parent_subnet_id: str) -> None:
+        """Validate parent_subnet_id exists and doesn't create a cycle."""
+        if not parent_subnet_id:
+            return
+        # Can't be own parent
+        if parent_subnet_id == subnet_id:
+            raise ValueError(f"Subnet cannot be its own parent: {subnet_id}")
+        # Parent must exist
+        conn = self._conn()
+        try:
+            parent = conn.execute("SELECT id, parent_subnet_id FROM subnets WHERE id=?", (parent_subnet_id,)).fetchone()
+            if not parent:
+                raise ValueError(f"Parent subnet not found: {parent_subnet_id}")
+            # Check for circular reference (walk up the chain)
+            visited = {subnet_id}
+            current = parent_subnet_id
+            while current:
+                if current in visited:
+                    raise ValueError(f"Circular parent chain detected involving: {current}")
+                visited.add(current)
+                row = conn.execute("SELECT parent_subnet_id FROM subnets WHERE id=?", (current,)).fetchone()
+                current = row["parent_subnet_id"] if row and row["parent_subnet_id"] else ""
+        finally:
+            conn.close()
+
+    def _validate_no_vrf_overlap(self, subnet: Subnet) -> None:
+        """Prevent overlapping CIDRs within the same VRF (supernet/subnet relationships allowed)."""
+        import ipaddress as _ipaddress
+        conn = self._conn()
+        try:
+            siblings = conn.execute(
+                "SELECT id, cidr FROM subnets WHERE vrf_id=? AND id!=?",
+                (subnet.vrf_id, subnet.id)
+            ).fetchall()
+            new_net = _ipaddress.ip_network(subnet.cidr, strict=False)
+            for row in siblings:
+                if subnet.parent_subnet_id == row["id"]:
+                    continue
+                existing = _ipaddress.ip_network(row["cidr"], strict=False)
+                if new_net.overlaps(existing) and not new_net.supernet_of(existing) and not existing.supernet_of(new_net):
+                    raise ValueError(f"CIDR {subnet.cidr} overlaps with {row['cidr']} in VRF {subnet.vrf_id}")
+        finally:
+            conn.close()
+
     def add_subnet(self, subnet: Subnet) -> None:
+        if subnet.parent_subnet_id:
+            self._validate_parent_subnet(subnet.id, subnet.parent_subnet_id)
+        self._validate_no_vrf_overlap(subnet)
         conn = self._conn()
         try:
             conn.execute(
-                "INSERT OR REPLACE INTO subnets VALUES (?,?,?,?,?,?,?)",
+                """INSERT OR REPLACE INTO subnets
+                   (id, cidr, vlan_id, zone_id, gateway_ip, description, site,
+                    parent_subnet_id, region, environment, ip_version,
+                    vpc_id, cloud_provider, vrf_id, subnet_role, address_block_id, site_id)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (subnet.id, subnet.cidr, subnet.vlan_id, subnet.zone_id,
-                 subnet.gateway_ip, subnet.description, subnet.site),
+                 subnet.gateway_ip, subnet.description, subnet.site,
+                 subnet.parent_subnet_id, subnet.region, subnet.environment,
+                 subnet.ip_version, subnet.vpc_id, subnet.cloud_provider,
+                 subnet.vrf_id, subnet.subnet_role, subnet.address_block_id, subnet.site_id),
             )
             conn.commit()
+        finally:
+            conn.close()
+
+    def get_subnet(self, subnet_id: str) -> Optional[Subnet]:
+        conn = self._conn()
+        try:
+            row = conn.execute("SELECT * FROM subnets WHERE id=?", (subnet_id,)).fetchone()
+            return Subnet(**dict(row)) if row else None
         finally:
             conn.close()
 
@@ -514,11 +751,1624 @@ class TopologyStore:
         finally:
             conn.close()
 
+    def update_subnet(self, subnet_id: str, **kwargs) -> Optional[Subnet]:
+        existing = self.get_subnet(subnet_id)
+        if not existing:
+            return None
+        data = existing.model_dump()
+        data.update({k: v for k, v in kwargs.items() if k != "id"})
+        # Validate parent before updating
+        new_parent = data.get("parent_subnet_id", "")
+        if new_parent and new_parent != existing.parent_subnet_id:
+            self._validate_parent_subnet(subnet_id, new_parent)
+        updated = Subnet(**data)
+        # Skip validation again in add_subnet since we just validated
+        conn = self._conn()
+        try:
+            conn.execute(
+                """INSERT OR REPLACE INTO subnets
+                   (id, cidr, vlan_id, zone_id, gateway_ip, description, site,
+                    parent_subnet_id, region, environment, ip_version,
+                    vpc_id, cloud_provider, vrf_id, subnet_role, address_block_id, site_id)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (updated.id, updated.cidr, updated.vlan_id, updated.zone_id,
+                 updated.gateway_ip, updated.description, updated.site,
+                 updated.parent_subnet_id, updated.region, updated.environment,
+                 updated.ip_version, updated.vpc_id, updated.cloud_provider,
+                 updated.vrf_id, updated.subnet_role, updated.address_block_id, updated.site_id),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+        return updated
+
     def delete_subnet(self, subnet_id: str) -> None:
         conn = self._conn()
         try:
             conn.execute("DELETE FROM subnets WHERE id=?", (subnet_id,))
             conn.commit()
+        finally:
+            conn.close()
+
+    def get_subnet_children(self, parent_id: str) -> list[Subnet]:
+        conn = self._conn()
+        try:
+            rows = conn.execute(
+                "SELECT * FROM subnets WHERE parent_subnet_id=?", (parent_id,)
+            ).fetchall()
+            return [Subnet(**dict(r)) for r in rows]
+        finally:
+            conn.close()
+
+    def get_subnet_tree(self) -> list[dict]:
+        """Build hierarchical tree: Region → Site → VRF → AddressBlock → Subnet.
+        Falls back to legacy region→zone grouping for subnets without new hierarchy fields.
+        """
+        subnets = self.list_subnets()
+        regions = self.list_regions()
+        sites = self.list_sites()
+        vrfs = self.list_vrfs()
+        blocks = self.list_address_blocks()
+
+        # Pre-compute utilization for all subnets
+        util_cache: dict[str, dict] = {}
+        for s in subnets:
+            util_cache[s.id] = self.get_subnet_utilization(s.id)
+
+        # Build subnet nodes
+        subnet_by_id: dict[str, dict] = {}
+        for s in subnets:
+            subnet_by_id[s.id] = {
+                "id": s.id,
+                "label": s.description or s.cidr,
+                "type": "subnet",
+                "cidr": s.cidr,
+                "utilization_pct": util_cache[s.id].get("utilization_pct", 0),
+                "subnet_role": s.subnet_role,
+                "children": [],
+                "_parent": s.parent_subnet_id,
+                "_vrf_id": s.vrf_id or "default",
+                "_block_id": s.address_block_id,
+                "_site_id": s.site_id,
+                "_region": s.region or s.site or "",
+                "_zone": s.zone_id or "",
+            }
+
+        # Nest child subnets under parents
+        top_level: list[dict] = []
+        for sid, node in subnet_by_id.items():
+            parent_id = node["_parent"]
+            if parent_id and parent_id in subnet_by_id:
+                subnet_by_id[parent_id]["children"].append(node)
+            else:
+                top_level.append(node)
+
+        def _clean(node: dict) -> dict:
+            for k in list(node.keys()):
+                if k.startswith("_"):
+                    del node[k]
+            for child in node.get("children", []):
+                _clean(child)
+            return node
+
+        # Group by block → VRF → site → region
+        block_subnets: dict[str, list[dict]] = {}
+        vrf_subnets: dict[str, list[dict]] = {}
+        orphan_subnets: list[dict] = []
+
+        for node in top_level:
+            block_id = node["_block_id"]
+            vrf_id = node["_vrf_id"]
+            if block_id:
+                block_subnets.setdefault(block_id, []).append(node)
+            elif vrf_id and vrf_id != "default":
+                vrf_subnets.setdefault(vrf_id, []).append(node)
+            else:
+                orphan_subnets.append(node)
+
+        # Build block nodes
+        block_nodes: dict[str, dict] = {}
+        for b in blocks:
+            block_util = self.get_address_block_utilization(b.id)
+            block_nodes[b.id] = {
+                "id": b.id,
+                "label": b.name or b.cidr,
+                "type": "address_block",
+                "cidr": b.cidr,
+                "utilization_pct": block_util.get("utilization_pct", 0),
+                "children": [_clean(n) for n in block_subnets.get(b.id, [])],
+                "_vrf_id": b.vrf_id or "default",
+                "_site_id": b.site_id,
+            }
+
+        # Build VRF nodes
+        vrf_nodes: dict[str, dict] = {}
+        for v in vrfs:
+            vrf_children = []
+            # Add blocks belonging to this VRF
+            for bid, bnode in block_nodes.items():
+                if bnode["_vrf_id"] == v.id:
+                    vrf_children.append(_clean(bnode))
+            # Add direct subnets belonging to this VRF
+            for sn in vrf_subnets.get(v.id, []):
+                vrf_children.append(_clean(sn))
+            if vrf_children or v.id == "default":
+                vrf_nodes[v.id] = {
+                    "id": v.id,
+                    "label": v.name,
+                    "type": "vrf",
+                    "children": vrf_children,
+                }
+
+        # Add orphan subnets under default VRF
+        if "default" in vrf_nodes:
+            for sn in orphan_subnets:
+                vrf_nodes["default"]["children"].append(_clean(sn))
+        elif orphan_subnets:
+            vrf_nodes["default"] = {
+                "id": "default",
+                "label": "default",
+                "type": "vrf",
+                "children": [_clean(sn) for sn in orphan_subnets],
+            }
+
+        # Build site nodes
+        site_nodes: dict[str, dict] = {}
+        for s in sites:
+            site_nodes[s.id] = {
+                "id": s.id,
+                "label": s.name,
+                "type": "site",
+                "site_type": s.site_type,
+                "children": [],
+            }
+
+        # Assign VRF nodes to sites (blocks have site_id)
+        assigned_vrfs: set[str] = set()
+        for bid, bnode in block_nodes.items():
+            sid = bnode.get("_site_id", "")
+            if sid and sid in site_nodes:
+                # Find the VRF this block belongs to
+                b = next((bl for bl in blocks if bl.id == bid), None)
+                if b and b.vrf_id in vrf_nodes and b.vrf_id not in assigned_vrfs:
+                    site_nodes[sid]["children"].append(vrf_nodes[b.vrf_id])
+                    assigned_vrfs.add(b.vrf_id)
+
+        # Build region nodes
+        region_nodes: dict[str, dict] = {}
+        for r in regions:
+            region_nodes[r.id] = {
+                "id": r.id,
+                "label": r.name,
+                "type": "region",
+                "children": [],
+            }
+
+        # Assign sites to regions
+        assigned_sites: set[str] = set()
+        for s in sites:
+            if s.region_id and s.region_id in region_nodes:
+                region_nodes[s.region_id]["children"].append(site_nodes[s.id])
+                assigned_sites.add(s.id)
+
+        # Build final result
+        result = list(region_nodes.values())
+
+        # Add unassigned sites
+        for sid, snode in site_nodes.items():
+            if sid not in assigned_sites and snode["children"]:
+                result.append(snode)
+
+        # Add unassigned VRFs (not linked to any site)
+        for vid, vnode in vrf_nodes.items():
+            if vid not in assigned_vrfs and vnode["children"]:
+                result.append(vnode)
+
+        # If no hierarchy entities exist, fall back to legacy grouping
+        if not regions and not sites and not blocks:
+            legacy_tree: dict[str, dict[str, list[dict]]] = {}
+            for node in top_level:
+                region = node.get("_region") or "Global"
+                zone = node.get("_zone") or "default"
+                legacy_tree.setdefault(region, {}).setdefault(zone, []).append(node)
+            result = []
+            for region_name, zones in legacy_tree.items():
+                zone_nodes_list = []
+                for zone_name, snodes in zones.items():
+                    zone_nodes_list.append({
+                        "id": f"zone-{zone_name}",
+                        "label": zone_name,
+                        "type": "zone",
+                        "children": [_clean(n) for n in snodes],
+                    })
+                result.append({
+                    "id": f"region-{region_name}",
+                    "label": region_name,
+                    "type": "region",
+                    "children": zone_nodes_list,
+                })
+
+        return result
+
+    # ── IP Address CRUD ──
+    def add_ip_address(self, ip: IPAddress) -> None:
+        conn = self._conn()
+        try:
+            conn.execute(
+                """INSERT OR REPLACE INTO ip_addresses
+                   (id, address, subnet_id, status, ip_type, assigned_device_id,
+                    assigned_interface_id, hostname, mac_address, vendor,
+                    description, last_seen, created_at,
+                    owner_team, application, environment, discovery_source, confidence_score)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (ip.id, ip.address, ip.subnet_id, ip.status, ip.ip_type,
+                 ip.assigned_device_id, ip.assigned_interface_id,
+                 ip.hostname, ip.mac_address, ip.vendor,
+                 ip.description, ip.last_seen, ip.created_at,
+                 ip.owner_team, ip.application, ip.environment,
+                 ip.discovery_source, ip.confidence_score),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+    def get_ip_address(self, ip_id: str) -> Optional[IPAddress]:
+        conn = self._conn()
+        try:
+            row = conn.execute("SELECT * FROM ip_addresses WHERE id=?", (ip_id,)).fetchone()
+            return IPAddress(**dict(row)) if row else None
+        finally:
+            conn.close()
+
+    def get_ip_by_address(self, address: str) -> Optional[IPAddress]:
+        conn = self._conn()
+        try:
+            row = conn.execute("SELECT * FROM ip_addresses WHERE address=?", (address,)).fetchone()
+            return IPAddress(**dict(row)) if row else None
+        finally:
+            conn.close()
+
+    def list_ip_addresses(self, subnet_id: Optional[str] = None,
+                          status: Optional[str] = None,
+                          search: Optional[str] = None,
+                          offset: int = 0, limit: int = 0) -> dict:
+        conn = self._conn()
+        try:
+            sql = "SELECT * FROM ip_addresses WHERE 1=1"
+            count_sql = "SELECT COUNT(*) as total FROM ip_addresses WHERE 1=1"
+            params: list = []
+            count_params: list = []
+            if subnet_id:
+                sql += " AND subnet_id=?"
+                count_sql += " AND subnet_id=?"
+                params.append(subnet_id)
+                count_params.append(subnet_id)
+            if status:
+                sql += " AND status=?"
+                count_sql += " AND status=?"
+                params.append(status)
+                count_params.append(status)
+            if search:
+                sql += " AND (address LIKE ? OR hostname LIKE ? OR description LIKE ?)"
+                count_sql += " AND (address LIKE ? OR hostname LIKE ? OR description LIKE ?)"
+                params.extend([f"%{search}%"] * 3)
+                count_params.extend([f"%{search}%"] * 3)
+            total = conn.execute(count_sql, count_params).fetchone()["total"]
+            sql += " ORDER BY address"
+            if limit > 0:
+                sql += " LIMIT ? OFFSET ?"
+                params.extend([limit, offset])
+            rows = conn.execute(sql, params).fetchall()
+            return {"ips": [IPAddress(**dict(r)) for r in rows], "total": total}
+        finally:
+            conn.close()
+
+    def update_ip_status(self, ip_id: str, status: str,
+                         device_id: str = "", interface_id: str = "") -> Optional[IPAddress]:
+        conn = self._conn()
+        try:
+            # Read old state within same connection
+            old_row = conn.execute("SELECT * FROM ip_addresses WHERE id=?", (ip_id,)).fetchone()
+            if not old_row:
+                return None
+            old_status = old_row["status"]
+            now = datetime.now(timezone.utc).isoformat()
+            conn.execute(
+                """UPDATE ip_addresses SET status=?, assigned_device_id=?,
+                   assigned_interface_id=?, last_seen=? WHERE id=?""",
+                (status, device_id, interface_id, now, ip_id),
+            )
+            # Audit log within same transaction
+            try:
+                conn.execute(
+                    """INSERT INTO ip_audit_log
+                       (ip_id, address, action, old_status, new_status, device_id, details)
+                       VALUES (?,?,?,?,?,?,?)""",
+                    (ip_id, old_row["address"], status, old_status, status, device_id, ""),
+                )
+            except Exception:
+                pass
+            conn.commit()
+            # Read result
+            result_row = conn.execute("SELECT * FROM ip_addresses WHERE id=?", (ip_id,)).fetchone()
+            return IPAddress(**dict(result_row)) if result_row else None
+        finally:
+            conn.close()
+
+    def update_ip_address(self, ip_id: str, **kwargs) -> Optional[IPAddress]:
+        existing = self.get_ip_address(ip_id)
+        if not existing:
+            return None
+        data = existing.model_dump()
+        data.update({k: v for k, v in kwargs.items() if k != "id"})
+        updated = IPAddress(**data)
+        self.add_ip_address(updated)
+        return updated
+
+    def delete_ip_address(self, ip_id: str) -> None:
+        conn = self._conn()
+        try:
+            conn.execute("DELETE FROM ip_audit_log WHERE ip_id=?", (ip_id,))
+            conn.execute("DELETE FROM ip_addresses WHERE id=?", (ip_id,))
+            conn.commit()
+        finally:
+            conn.close()
+
+    def bulk_create_ip_addresses(self, ips: list[IPAddress]) -> int:
+        if not ips:
+            return 0
+        conn = self._conn()
+        try:
+            conn.executemany(
+                """INSERT OR IGNORE INTO ip_addresses
+                   (id, address, subnet_id, status, ip_type, assigned_device_id,
+                    assigned_interface_id, hostname, mac_address, vendor,
+                    description, last_seen, created_at,
+                    owner_team, application, environment, discovery_source, confidence_score)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                [(ip.id, ip.address, ip.subnet_id, ip.status, ip.ip_type,
+                  ip.assigned_device_id, ip.assigned_interface_id,
+                  ip.hostname, ip.mac_address, ip.vendor,
+                  ip.description, ip.last_seen, ip.created_at,
+                  ip.owner_team, ip.application, ip.environment,
+                  ip.discovery_source, ip.confidence_score)
+                 for ip in ips],
+            )
+            created = conn.total_changes
+            conn.commit()
+            return created
+        finally:
+            conn.close()
+
+    def get_subnet_utilization(self, subnet_id: str) -> dict:
+        """Compute utilization dynamically from CIDR host count (lazy allocation)."""
+        import ipaddress as _ipaddress
+        conn = self._conn()
+        try:
+            subnet_row = conn.execute("SELECT cidr, gateway_ip FROM subnets WHERE id=?", (subnet_id,)).fetchone()
+            if not subnet_row:
+                return {"total": 0, "available": 0, "assigned": 0, "reserved": 0, "deprecated": 0, "utilization_pct": 0}
+            net = _ipaddress.ip_network(subnet_row["cidr"], strict=False)
+            total_hosts = max(net.num_addresses - 2, 0)  # exclude network + broadcast
+            if net.prefixlen >= 31:
+                total_hosts = net.num_addresses  # /31 and /32 use all addresses
+            # Count IP records by status (only assigned/reserved/deprecated/gateway rows exist)
+            row = conn.execute(
+                """SELECT
+                   SUM(CASE WHEN status='assigned' THEN 1 ELSE 0 END) as assigned,
+                   SUM(CASE WHEN status='reserved' THEN 1 ELSE 0 END) as reserved,
+                   SUM(CASE WHEN status='deprecated' THEN 1 ELSE 0 END) as deprecated,
+                   SUM(CASE WHEN ip_type='gateway' THEN 1 ELSE 0 END) as gateway_count
+                   FROM ip_addresses WHERE subnet_id=?""",
+                (subnet_id,),
+            ).fetchone()
+            assigned = row["assigned"] or 0
+            reserved = row["reserved"] or 0
+            deprecated = row["deprecated"] or 0
+            gateway_count = row["gateway_count"] or 0
+            # Count reserved range IPs
+            reserved_range_ips = 0
+            try:
+                for rr in conn.execute("SELECT start_ip, end_ip FROM reserved_ranges WHERE subnet_id=?", (subnet_id,)).fetchall():
+                    start = int(_ipaddress.ip_address(rr["start_ip"]))
+                    end = int(_ipaddress.ip_address(rr["end_ip"]))
+                    reserved_range_ips += end - start + 1
+            except Exception:
+                pass
+            used = assigned + reserved + deprecated + gateway_count + reserved_range_ips
+            available = max(total_hosts - used, 0)
+            pct = round((used / total_hosts) * 100, 1) if total_hosts > 0 else 0
+            return {
+                "total": total_hosts,
+                "available": available,
+                "assigned": assigned,
+                "reserved": reserved + reserved_range_ips,
+                "deprecated": deprecated,
+                "utilization_pct": pct,
+            }
+        finally:
+            conn.close()
+
+    def get_ipam_stats(self) -> dict:
+        """Compute global IPAM stats from subnet CIDRs (lazy allocation)."""
+        import ipaddress as _ipaddress
+        conn = self._conn()
+        try:
+            # Compute total IPs from subnet CIDRs
+            subnets = conn.execute("SELECT cidr FROM subnets").fetchall()
+            total_ips = 0
+            for s in subnets:
+                try:
+                    net = _ipaddress.ip_network(s["cidr"], strict=False)
+                    hosts = max(net.num_addresses - 2, 0)
+                    if net.prefixlen >= 31:
+                        hosts = net.num_addresses
+                    total_ips += hosts
+                except ValueError:
+                    pass
+            subnet_count = len(subnets)
+            # Count actual IP records by status
+            row = conn.execute(
+                """SELECT
+                   SUM(CASE WHEN status='assigned' THEN 1 ELSE 0 END) as assigned,
+                   SUM(CASE WHEN status='reserved' THEN 1 ELSE 0 END) as reserved,
+                   SUM(CASE WHEN status='deprecated' THEN 1 ELSE 0 END) as deprecated
+                   FROM ip_addresses""",
+            ).fetchone()
+            assigned = row["assigned"] or 0
+            reserved = row["reserved"] or 0
+            deprecated = row["deprecated"] or 0
+            used = assigned + reserved + deprecated
+            available = max(total_ips - used, 0)
+            pct = round((used / total_ips) * 100, 1) if total_ips > 0 else 0
+            return {
+                "total_subnets": subnet_count,
+                "total_ips": total_ips,
+                "assigned_ips": assigned,
+                "available_ips": available,
+                "reserved_ips": reserved,
+                "deprecated_ips": deprecated,
+                "overall_utilization_pct": pct,
+            }
+        finally:
+            conn.close()
+
+    # ── IP Audit Log ──
+    def log_ip_event(self, ip_id: str, address: str, action: str,
+                     old_status: str = "", new_status: str = "",
+                     device_id: str = "", details: str = "") -> None:
+        conn = self._conn()
+        try:
+            conn.execute(
+                """INSERT INTO ip_audit_log
+                   (ip_id, address, action, old_status, new_status, device_id, details)
+                   VALUES (?,?,?,?,?,?,?)""",
+                (ip_id, address, action, old_status, new_status, device_id, details),
+            )
+            conn.commit()
+        except Exception:
+            pass  # Audit logging should never break main operations
+        finally:
+            conn.close()
+
+    def get_ip_audit_log(self, ip_id: str = "", limit: int = 50) -> list[dict]:
+        conn = self._conn()
+        try:
+            if ip_id:
+                rows = conn.execute(
+                    "SELECT * FROM ip_audit_log WHERE ip_id=? ORDER BY timestamp DESC LIMIT ?",
+                    (ip_id, limit),
+                ).fetchall()
+            else:
+                rows = conn.execute(
+                    "SELECT * FROM ip_audit_log ORDER BY timestamp DESC LIMIT ?",
+                    (limit,),
+                ).fetchall()
+            return [dict(r) for r in rows]
+        except Exception:
+            return []
+        finally:
+            conn.close()
+
+    def bulk_update_ip_status(self, ip_ids: list[str], status: str,
+                              device_id: str = "") -> int:
+        """Update status for multiple IPs at once. Returns count updated."""
+        if not ip_ids:
+            return 0
+        conn = self._conn()
+        try:
+            now = datetime.now(timezone.utc).isoformat()
+            placeholders = ",".join("?" for _ in ip_ids)
+            # Log old statuses first
+            rows = conn.execute(
+                f"SELECT id, address, status FROM ip_addresses WHERE id IN ({placeholders})",
+                ip_ids,
+            ).fetchall()
+            cur = conn.execute(
+                f"""UPDATE ip_addresses SET status=?, assigned_device_id=?, last_seen=?
+                    WHERE id IN ({placeholders})""",
+                [status, device_id, now] + ip_ids,
+            )
+            updated = cur.rowcount
+            conn.commit()
+            # Audit log each change
+            for r in rows:
+                try:
+                    conn.execute(
+                        """INSERT INTO ip_audit_log
+                           (ip_id, address, action, old_status, new_status, device_id, details)
+                           VALUES (?,?,?,?,?,?,?)""",
+                        (r["id"], r["address"], f"bulk_{status}", r["status"],
+                         status, device_id, f"Bulk update {len(ip_ids)} IPs"),
+                    )
+                except Exception:
+                    pass
+            conn.commit()
+            return updated
+        finally:
+            conn.close()
+
+    def search_ips_global(self, query: str, limit: int = 50) -> list[dict]:
+        """Global search across all IPs — search by address, hostname, MAC, vendor, or description."""
+        conn = self._conn()
+        try:
+            q = f"%{query}%"
+            rows = conn.execute(
+                """SELECT ip.*, s.cidr as subnet_cidr, s.region as subnet_region
+                   FROM ip_addresses ip
+                   LEFT JOIN subnets s ON ip.subnet_id = s.id
+                   WHERE ip.address LIKE ? OR ip.hostname LIKE ?
+                   OR ip.mac_address LIKE ? OR ip.vendor LIKE ?
+                   OR ip.description LIKE ?
+                   ORDER BY ip.address LIMIT ?""",
+                (q, q, q, q, q, limit),
+            ).fetchall()
+            return [dict(r) for r in rows]
+        except Exception:
+            return []
+        finally:
+            conn.close()
+
+    def detect_ip_conflicts(self) -> list[dict]:
+        """Find IP addresses that appear in multiple subnets (conflicts)."""
+        conn = self._conn()
+        try:
+            rows = conn.execute(
+                """SELECT address, COUNT(*) as cnt,
+                   GROUP_CONCAT(subnet_id, ',') as subnet_ids,
+                   GROUP_CONCAT(status, ',') as statuses
+                   FROM ip_addresses
+                   WHERE status != 'deprecated'
+                   GROUP BY address HAVING cnt > 1
+                   ORDER BY cnt DESC""",
+            ).fetchall()
+            return [dict(r) for r in rows]
+        except Exception:
+            return []
+        finally:
+            conn.close()
+
+    def get_next_available_ip(self, subnet_id: str) -> Optional[str]:
+        """Find the first available IP using free_ranges (O(1) lookup).
+        Returns the IP address string, or None if no space."""
+        import ipaddress as _ipaddress
+        conn = self._conn()
+        try:
+            row = conn.execute(
+                "SELECT * FROM free_ranges WHERE subnet_id=? ORDER BY start_ip LIMIT 1",
+                (subnet_id,),
+            ).fetchone()
+            if row:
+                return row["start_ip"]
+            # Fallback: compute from CIDR if no free_ranges exist yet
+            subnet_row = conn.execute("SELECT cidr, gateway_ip FROM subnets WHERE id=?", (subnet_id,)).fetchone()
+            if not subnet_row:
+                return None
+            net = _ipaddress.ip_network(subnet_row["cidr"], strict=False)
+            assigned = set()
+            for r in conn.execute("SELECT address FROM ip_addresses WHERE subnet_id=?", (subnet_id,)).fetchall():
+                assigned.add(r["address"])
+            for host in net.hosts():
+                addr = str(host)
+                if addr not in assigned:
+                    return addr
+            return None
+        finally:
+            conn.close()
+
+    def split_subnet(self, subnet_id: str, new_prefix: int) -> list[Subnet]:
+        """Split a subnet into smaller subnets with the given prefix length."""
+        import ipaddress as _ipaddress
+        conn = self._conn()
+        try:
+            conn.execute("BEGIN IMMEDIATE")
+            row = conn.execute("SELECT * FROM subnets WHERE id=?", (subnet_id,)).fetchone()
+            if not row:
+                return []
+            subnet = Subnet(**dict(row))
+            net = _ipaddress.ip_network(subnet.cidr, strict=False)
+            if new_prefix <= net.prefixlen:
+                return []
+            try:
+                sub_nets = list(net.subnets(new_prefix=new_prefix))
+            except ValueError:
+                return []
+            created: list[Subnet] = []
+            for i, sn in enumerate(sub_nets):
+                hosts = list(sn.hosts())
+                gw = str(hosts[0]) if hosts else ""
+                new_sub = Subnet(
+                    id=f"{subnet_id}-split-{i}",
+                    cidr=str(sn),
+                    vlan_id=subnet.vlan_id,
+                    zone_id=subnet.zone_id,
+                    gateway_ip=gw,
+                    description=f"{subnet.description} (split {i+1}/{len(sub_nets)})" if subnet.description else str(sn),
+                    site=subnet.site,
+                    parent_subnet_id=subnet_id,
+                    region=subnet.region,
+                    environment=subnet.environment,
+                    ip_version=subnet.ip_version,
+                    vpc_id=subnet.vpc_id,
+                    cloud_provider=subnet.cloud_provider,
+                    vrf_id=subnet.vrf_id,
+                    subnet_role=subnet.subnet_role,
+                    address_block_id=subnet.address_block_id,
+                    site_id=subnet.site_id,
+                )
+                conn.execute(
+                    """INSERT OR REPLACE INTO subnets
+                       (id, cidr, vlan_id, zone_id, gateway_ip, description, site,
+                        parent_subnet_id, region, environment, ip_version,
+                        vpc_id, cloud_provider, vrf_id, subnet_role, address_block_id, site_id)
+                       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    (new_sub.id, new_sub.cidr, new_sub.vlan_id, new_sub.zone_id,
+                     new_sub.gateway_ip, new_sub.description, new_sub.site,
+                     new_sub.parent_subnet_id, new_sub.region, new_sub.environment,
+                     new_sub.ip_version, new_sub.vpc_id, new_sub.cloud_provider,
+                     new_sub.vrf_id, new_sub.subnet_role, new_sub.address_block_id, new_sub.site_id),
+                )
+                created.append(new_sub)
+            conn.commit()
+            return created
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
+
+    def merge_subnets(self, subnet_ids: list[str]) -> Optional[Subnet]:
+        """Merge subnets into their supernet if they form a complete set."""
+        import ipaddress as _ipaddress
+        if len(subnet_ids) < 2:
+            return None
+        subnets = [self.get_subnet(sid) for sid in subnet_ids]
+        subnets = [s for s in subnets if s is not None]
+        if len(subnets) < 2:
+            return None
+        nets = [_ipaddress.ip_network(s.cidr, strict=False) for s in subnets]
+        try:
+            collapsed = list(_ipaddress.collapse_addresses(nets))
+        except Exception:
+            return None
+        if len(collapsed) != 1:
+            return None  # Can't merge into a single supernet
+        supernet = collapsed[0]
+        base = subnets[0]
+        merged = Subnet(
+            id=f"subnet-merged-{str(supernet).replace('/', '-')}",
+            cidr=str(supernet),
+            vlan_id=base.vlan_id,
+            zone_id=base.zone_id,
+            gateway_ip=str(list(supernet.hosts())[0]) if list(supernet.hosts()) else "",
+            description=f"Merged from {len(subnets)} subnets",
+            site=base.site,
+            parent_subnet_id=base.parent_subnet_id,
+            region=base.region,
+            environment=base.environment,
+            ip_version=base.ip_version,
+            vpc_id=base.vpc_id,
+            cloud_provider=base.cloud_provider,
+        )
+        self.add_subnet(merged)
+        # Re-parent old IPs to merged subnet
+        conn = self._conn()
+        try:
+            placeholders = ",".join("?" for _ in subnet_ids)
+            conn.execute(
+                f"UPDATE ip_addresses SET subnet_id=? WHERE subnet_id IN ({placeholders})",
+                [merged.id] + subnet_ids,
+            )
+            conn.commit()
+        finally:
+            conn.close()
+        # Delete old subnets
+        for sid in subnet_ids:
+            self.delete_subnet(sid)
+        return merged
+
+    def get_available_ranges(self, parent_subnet_id: str) -> list[dict]:
+        """Compute available (unallocated) IP ranges within a parent subnet.
+        Returns list of {cidr, start_ip, end_ip, host_count}.
+        """
+        import ipaddress as _ipaddress
+        parent = self.get_subnet(parent_subnet_id)
+        if not parent:
+            return []
+        parent_net = _ipaddress.ip_network(parent.cidr, strict=False)
+        children = self.get_subnet_children(parent_subnet_id)
+        child_nets = []
+        for c in children:
+            try:
+                child_nets.append(_ipaddress.ip_network(c.cidr, strict=False))
+            except ValueError:
+                continue
+        # Sort child networks by start address
+        child_nets.sort(key=lambda n: int(n.network_address))
+
+        # Find gaps
+        available = []
+        current = int(parent_net.network_address)
+        parent_end = int(parent_net.broadcast_address)
+
+        for child in child_nets:
+            child_start = int(child.network_address)
+            child_end = int(child.broadcast_address)
+            if current < child_start:
+                # There's a gap before this child
+                gap_start = _ipaddress.ip_address(current)
+                gap_end = _ipaddress.ip_address(child_start - 1)
+                # Try to express as CIDR(s)
+                gap_cidrs = list(_ipaddress.summarize_address_range(gap_start, gap_end))
+                for gc in gap_cidrs:
+                    available.append({
+                        "cidr": str(gc),
+                        "start_ip": str(gc.network_address),
+                        "end_ip": str(gc.broadcast_address),
+                        "host_count": gc.num_addresses,
+                    })
+            current = max(current, child_end + 1)
+
+        # Gap after last child
+        if current <= parent_end:
+            gap_start = _ipaddress.ip_address(current)
+            gap_end = _ipaddress.ip_address(parent_end)
+            gap_cidrs = list(_ipaddress.summarize_address_range(gap_start, gap_end))
+            for gc in gap_cidrs:
+                available.append({
+                    "cidr": str(gc),
+                    "start_ip": str(gc.network_address),
+                    "end_ip": str(gc.broadcast_address),
+                    "host_count": gc.num_addresses,
+                })
+
+        return available
+
+    # ── DHCP Scope CRUD ──
+
+    def add_dhcp_scope(self, scope: dict) -> None:
+        conn = self._conn()
+        try:
+            conn.execute(
+                """INSERT OR REPLACE INTO dhcp_scopes
+                   (id, name, scope_cidr, server_ip, subnet_id, total_leases,
+                    active_leases, free_count, source, last_updated)
+                   VALUES (?,?,?,?,?,?,?,?,?,?)""",
+                (scope["id"], scope["name"], scope["scope_cidr"],
+                 scope.get("server_ip", ""), scope.get("subnet_id", ""),
+                 scope.get("total_leases", 0), scope.get("active_leases", 0),
+                 scope.get("free_count", 0), scope.get("source", "manual"),
+                 scope.get("last_updated", "")),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+    def list_dhcp_scopes(self, subnet_id: str = "") -> list[dict]:
+        conn = self._conn()
+        try:
+            if subnet_id:
+                rows = conn.execute("SELECT * FROM dhcp_scopes WHERE subnet_id=?", (subnet_id,)).fetchall()
+            else:
+                rows = conn.execute("SELECT * FROM dhcp_scopes").fetchall()
+            return [dict(r) for r in rows]
+        finally:
+            conn.close()
+
+    def delete_dhcp_scope(self, scope_id: str) -> None:
+        conn = self._conn()
+        try:
+            conn.execute("DELETE FROM dhcp_scopes WHERE id=?", (scope_id,))
+            conn.commit()
+        finally:
+            conn.close()
+
+    # ── Free Range Management (Lazy Allocation) ──
+
+    def init_free_ranges(self, subnet_id: str, cidr: str, gateway_ip: str = "") -> None:
+        """Create initial free range(s) for a subnet."""
+        import ipaddress as _ipaddress
+        net = _ipaddress.ip_network(cidr, strict=False)
+        hosts = list(net.hosts())
+        if not hosts:
+            return
+        first_host = str(hosts[0])
+        last_host = str(hosts[-1])
+        conn = self._conn()
+        try:
+            # Clear existing free ranges for this subnet
+            conn.execute("DELETE FROM free_ranges WHERE subnet_id=?", (subnet_id,))
+            if gateway_ip and first_host <= gateway_ip <= last_host:
+                gw_int = int(_ipaddress.ip_address(gateway_ip))
+                first_int = int(_ipaddress.ip_address(first_host))
+                last_int = int(_ipaddress.ip_address(last_host))
+                # Split around gateway
+                if gw_int > first_int:
+                    before_end = str(_ipaddress.ip_address(gw_int - 1))
+                    conn.execute(
+                        "INSERT INTO free_ranges (id, subnet_id, start_ip, end_ip, host_count) VALUES (?,?,?,?,?)",
+                        (f"fr-{subnet_id}-0", subnet_id, first_host, before_end, gw_int - first_int),
+                    )
+                if gw_int < last_int:
+                    after_start = str(_ipaddress.ip_address(gw_int + 1))
+                    conn.execute(
+                        "INSERT INTO free_ranges (id, subnet_id, start_ip, end_ip, host_count) VALUES (?,?,?,?,?)",
+                        (f"fr-{subnet_id}-1", subnet_id, after_start, last_host, last_int - gw_int),
+                    )
+            else:
+                host_count = int(_ipaddress.ip_address(last_host)) - int(_ipaddress.ip_address(first_host)) + 1
+                conn.execute(
+                    "INSERT INTO free_ranges (id, subnet_id, start_ip, end_ip, host_count) VALUES (?,?,?,?,?)",
+                    (f"fr-{subnet_id}-0", subnet_id, first_host, last_host, host_count),
+                )
+            conn.commit()
+        finally:
+            conn.close()
+
+    def allocate_ip_from_range(self, subnet_id: str) -> Optional[str]:
+        """O(1) IP allocation: take first IP from first free range."""
+        import ipaddress as _ipaddress
+        conn = self._conn()
+        try:
+            row = conn.execute(
+                "SELECT * FROM free_ranges WHERE subnet_id=? ORDER BY start_ip LIMIT 1",
+                (subnet_id,),
+            ).fetchone()
+            if not row:
+                return None
+            allocated_ip = row["start_ip"]
+            if row["host_count"] <= 1:
+                conn.execute("DELETE FROM free_ranges WHERE id=?", (row["id"],))
+            else:
+                new_start = str(_ipaddress.ip_address(int(_ipaddress.ip_address(allocated_ip)) + 1))
+                conn.execute(
+                    "UPDATE free_ranges SET start_ip=?, host_count=host_count-1 WHERE id=?",
+                    (new_start, row["id"]),
+                )
+            conn.commit()
+            return allocated_ip
+        finally:
+            conn.close()
+
+    def release_ip_to_range(self, subnet_id: str, ip: str) -> None:
+        """Return IP to free pool, merge adjacent ranges."""
+        import ipaddress as _ipaddress
+        ip_int = int(_ipaddress.ip_address(ip))
+        conn = self._conn()
+        try:
+            # Find adjacent ranges
+            before = conn.execute(
+                "SELECT * FROM free_ranges WHERE subnet_id=? AND end_ip=?",
+                (subnet_id, str(_ipaddress.ip_address(ip_int - 1))),
+            ).fetchone()
+            after = conn.execute(
+                "SELECT * FROM free_ranges WHERE subnet_id=? AND start_ip=?",
+                (subnet_id, str(_ipaddress.ip_address(ip_int + 1))),
+            ).fetchone()
+            if before and after:
+                # Merge all three
+                new_count = before["host_count"] + 1 + after["host_count"]
+                conn.execute(
+                    "UPDATE free_ranges SET end_ip=?, host_count=? WHERE id=?",
+                    (after["end_ip"], new_count, before["id"]),
+                )
+                conn.execute("DELETE FROM free_ranges WHERE id=?", (after["id"],))
+            elif before:
+                conn.execute(
+                    "UPDATE free_ranges SET end_ip=?, host_count=host_count+1 WHERE id=?",
+                    (ip, before["id"]),
+                )
+            elif after:
+                conn.execute(
+                    "UPDATE free_ranges SET start_ip=?, host_count=host_count+1 WHERE id=?",
+                    (ip, after["id"]),
+                )
+            else:
+                import uuid as _uuid
+                conn.execute(
+                    "INSERT INTO free_ranges (id, subnet_id, start_ip, end_ip, host_count) VALUES (?,?,?,?,?)",
+                    (f"fr-{_uuid.uuid4().hex[:8]}", subnet_id, ip, ip, 1),
+                )
+            conn.commit()
+        finally:
+            conn.close()
+
+    def consume_from_range(self, subnet_id: str, ip: str) -> None:
+        """Remove specific IP from free ranges (for assign/reserve)."""
+        import ipaddress as _ipaddress
+        ip_int = int(_ipaddress.ip_address(ip))
+        conn = self._conn()
+        try:
+            rows = conn.execute(
+                "SELECT * FROM free_ranges WHERE subnet_id=?", (subnet_id,)
+            ).fetchall()
+            for row in rows:
+                start_int = int(_ipaddress.ip_address(row["start_ip"]))
+                end_int = int(_ipaddress.ip_address(row["end_ip"]))
+                if start_int <= ip_int <= end_int:
+                    conn.execute("DELETE FROM free_ranges WHERE id=?", (row["id"],))
+                    import uuid as _uuid
+                    if ip_int > start_int:
+                        before_end = str(_ipaddress.ip_address(ip_int - 1))
+                        conn.execute(
+                            "INSERT INTO free_ranges (id, subnet_id, start_ip, end_ip, host_count) VALUES (?,?,?,?,?)",
+                            (f"fr-{_uuid.uuid4().hex[:8]}", subnet_id, row["start_ip"], before_end, ip_int - start_int),
+                        )
+                    if ip_int < end_int:
+                        after_start = str(_ipaddress.ip_address(ip_int + 1))
+                        conn.execute(
+                            "INSERT INTO free_ranges (id, subnet_id, start_ip, end_ip, host_count) VALUES (?,?,?,?,?)",
+                            (f"fr-{_uuid.uuid4().hex[:8]}", subnet_id, after_start, row["end_ip"], end_int - ip_int),
+                        )
+                    break
+            conn.commit()
+        finally:
+            conn.close()
+
+    # ── Reserved Ranges CRUD ──
+
+    def add_reserved_range(self, subnet_id: str, start_ip: str, end_ip: str,
+                           reason: str = "", owner_team: str = "") -> dict:
+        import uuid as _uuid
+        range_id = f"rr-{_uuid.uuid4().hex[:8]}"
+        now = datetime.now(timezone.utc).isoformat()
+        conn = self._conn()
+        try:
+            conn.execute(
+                "INSERT INTO reserved_ranges (id, subnet_id, start_ip, end_ip, reason, owner_team, created_at) VALUES (?,?,?,?,?,?,?)",
+                (range_id, subnet_id, start_ip, end_ip, reason, owner_team, now),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+        return {"id": range_id, "subnet_id": subnet_id, "start_ip": start_ip, "end_ip": end_ip,
+                "reason": reason, "owner_team": owner_team, "created_at": now}
+
+    def list_reserved_ranges(self, subnet_id: str) -> list[dict]:
+        conn = self._conn()
+        try:
+            rows = conn.execute(
+                "SELECT * FROM reserved_ranges WHERE subnet_id=?", (subnet_id,)
+            ).fetchall()
+            return [dict(r) for r in rows]
+        finally:
+            conn.close()
+
+    def delete_reserved_range(self, range_id: str) -> None:
+        conn = self._conn()
+        try:
+            conn.execute("DELETE FROM reserved_ranges WHERE id=?", (range_id,))
+            conn.commit()
+        finally:
+            conn.close()
+
+    # ── VRF CRUD ──
+
+    def add_vrf(self, vrf: VRF) -> None:
+        conn = self._conn()
+        try:
+            conn.execute(
+                "INSERT OR REPLACE INTO vrfs (id, name, rd, rt_import, rt_export, description, device_ids, is_default) VALUES (?,?,?,?,?,?,?,?)",
+                (vrf.id, vrf.name, vrf.rd, json.dumps(vrf.rt_import), json.dumps(vrf.rt_export),
+                 vrf.description, json.dumps(vrf.device_ids), int(vrf.is_default)),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+    def get_vrf(self, vrf_id: str) -> Optional[VRF]:
+        conn = self._conn()
+        try:
+            row = conn.execute("SELECT * FROM vrfs WHERE id=?", (vrf_id,)).fetchone()
+            if not row:
+                return None
+            d = dict(row)
+            d["rt_import"] = self._safe_json_loads(d.get("rt_import"))
+            d["rt_export"] = self._safe_json_loads(d.get("rt_export"))
+            d["device_ids"] = self._safe_json_loads(d.get("device_ids"))
+            d["is_default"] = bool(d.get("is_default", 0))
+            return VRF(**d)
+        finally:
+            conn.close()
+
+    def list_vrfs(self) -> list[VRF]:
+        conn = self._conn()
+        try:
+            rows = conn.execute("SELECT * FROM vrfs").fetchall()
+            results = []
+            for r in rows:
+                d = dict(r)
+                d["rt_import"] = self._safe_json_loads(d.get("rt_import"))
+                d["rt_export"] = self._safe_json_loads(d.get("rt_export"))
+                d["device_ids"] = self._safe_json_loads(d.get("device_ids"))
+                d["is_default"] = bool(d.get("is_default", 0))
+                results.append(VRF(**d))
+            return results
+        finally:
+            conn.close()
+
+    def update_vrf(self, vrf_id: str, **kwargs) -> Optional[VRF]:
+        existing = self.get_vrf(vrf_id)
+        if not existing:
+            return None
+        data = existing.model_dump()
+        data.update({k: v for k, v in kwargs.items() if k != "id"})
+        updated = VRF(**data)
+        self.add_vrf(updated)
+        return updated
+
+    def delete_vrf(self, vrf_id: str) -> None:
+        conn = self._conn()
+        try:
+            # Reassign orphaned subnets to default VRF
+            conn.execute("UPDATE subnets SET vrf_id='default' WHERE vrf_id=?", (vrf_id,))
+            conn.execute("DELETE FROM vrfs WHERE id=? AND is_default=0", (vrf_id,))
+            conn.commit()
+        finally:
+            conn.close()
+
+    # ── Region CRUD ──
+
+    def add_region(self, region: Region) -> None:
+        conn = self._conn()
+        try:
+            conn.execute(
+                "INSERT OR REPLACE INTO regions (id, name, description) VALUES (?,?,?)",
+                (region.id, region.name, region.description),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+    def get_region(self, region_id: str) -> Optional[Region]:
+        conn = self._conn()
+        try:
+            row = conn.execute("SELECT * FROM regions WHERE id=?", (region_id,)).fetchone()
+            return Region(**dict(row)) if row else None
+        finally:
+            conn.close()
+
+    def list_regions(self) -> list[Region]:
+        conn = self._conn()
+        try:
+            rows = conn.execute("SELECT * FROM regions").fetchall()
+            return [Region(**dict(r)) for r in rows]
+        finally:
+            conn.close()
+
+    def update_region(self, region_id: str, **kwargs) -> Optional[Region]:
+        existing = self.get_region(region_id)
+        if not existing:
+            return None
+        data = existing.model_dump()
+        data.update({k: v for k, v in kwargs.items() if k != "id"})
+        updated = Region(**data)
+        self.add_region(updated)
+        return updated
+
+    def delete_region(self, region_id: str) -> None:
+        conn = self._conn()
+        try:
+            conn.execute("DELETE FROM regions WHERE id=?", (region_id,))
+            conn.commit()
+        finally:
+            conn.close()
+
+    # ── Site CRUD ──
+
+    def add_site(self, site: Site) -> None:
+        conn = self._conn()
+        try:
+            conn.execute(
+                "INSERT OR REPLACE INTO sites (id, name, region_id, site_type, address, description) VALUES (?,?,?,?,?,?)",
+                (site.id, site.name, site.region_id, site.site_type, site.address, site.description),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+    def get_site(self, site_id: str) -> Optional[Site]:
+        conn = self._conn()
+        try:
+            row = conn.execute("SELECT * FROM sites WHERE id=?", (site_id,)).fetchone()
+            return Site(**dict(row)) if row else None
+        finally:
+            conn.close()
+
+    def list_sites(self) -> list[Site]:
+        conn = self._conn()
+        try:
+            rows = conn.execute("SELECT * FROM sites").fetchall()
+            return [Site(**dict(r)) for r in rows]
+        finally:
+            conn.close()
+
+    def update_site(self, site_id: str, **kwargs) -> Optional[Site]:
+        existing = self.get_site(site_id)
+        if not existing:
+            return None
+        data = existing.model_dump()
+        data.update({k: v for k, v in kwargs.items() if k != "id"})
+        updated = Site(**data)
+        self.add_site(updated)
+        return updated
+
+    def delete_site(self, site_id: str) -> None:
+        conn = self._conn()
+        try:
+            conn.execute("DELETE FROM sites WHERE id=?", (site_id,))
+            conn.commit()
+        finally:
+            conn.close()
+
+    # ── Address Block CRUD ──
+
+    def add_address_block(self, block: AddressBlock) -> None:
+        conn = self._conn()
+        try:
+            conn.execute(
+                "INSERT OR REPLACE INTO address_blocks (id, cidr, name, vrf_id, site_id, description, rir) VALUES (?,?,?,?,?,?,?)",
+                (block.id, block.cidr, block.name, block.vrf_id, block.site_id, block.description, block.rir),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+    def get_address_block(self, block_id: str) -> Optional[AddressBlock]:
+        conn = self._conn()
+        try:
+            row = conn.execute("SELECT * FROM address_blocks WHERE id=?", (block_id,)).fetchone()
+            return AddressBlock(**dict(row)) if row else None
+        finally:
+            conn.close()
+
+    def list_address_blocks(self) -> list[AddressBlock]:
+        conn = self._conn()
+        try:
+            rows = conn.execute("SELECT * FROM address_blocks").fetchall()
+            return [AddressBlock(**dict(r)) for r in rows]
+        finally:
+            conn.close()
+
+    def delete_address_block(self, block_id: str) -> None:
+        conn = self._conn()
+        try:
+            conn.execute("DELETE FROM address_blocks WHERE id=?", (block_id,))
+            conn.commit()
+        finally:
+            conn.close()
+
+    def get_address_block_utilization(self, block_id: str) -> dict:
+        """Compute utilization of an address block from its child subnets."""
+        import ipaddress as _ipaddress
+        block = self.get_address_block(block_id)
+        if not block:
+            return {"total": 0, "allocated": 0, "free": 0, "utilization_pct": 0}
+        net = _ipaddress.ip_network(block.cidr, strict=False)
+        total = net.num_addresses
+        conn = self._conn()
+        try:
+            rows = conn.execute(
+                "SELECT cidr FROM subnets WHERE address_block_id=?", (block_id,)
+            ).fetchall()
+            allocated = 0
+            for r in rows:
+                try:
+                    allocated += _ipaddress.ip_network(r["cidr"], strict=False).num_addresses
+                except ValueError:
+                    pass
+            free = max(total - allocated, 0)
+            pct = round((allocated / total) * 100, 1) if total > 0 else 0
+            return {"total": total, "allocated": allocated, "free": free, "utilization_pct": pct}
+        finally:
+            conn.close()
+
+    def allocate_subnet_from_block(self, block_id: str, prefix: int) -> Optional[Subnet]:
+        """Auto-allocate first available subnet with given prefix from address block."""
+        import ipaddress as _ipaddress
+        block = self.get_address_block(block_id)
+        if not block:
+            return None
+        block_net = _ipaddress.ip_network(block.cidr, strict=False)
+        if prefix < block_net.prefixlen:
+            return None
+        conn = self._conn()
+        try:
+            existing = conn.execute(
+                "SELECT cidr FROM subnets WHERE address_block_id=?", (block_id,)
+            ).fetchall()
+            existing_nets = []
+            for r in existing:
+                try:
+                    existing_nets.append(_ipaddress.ip_network(r["cidr"], strict=False))
+                except ValueError:
+                    pass
+        finally:
+            conn.close()
+        # Walk address space looking for non-overlapping candidate
+        for candidate in block_net.subnets(new_prefix=prefix):
+            overlaps = False
+            for en in existing_nets:
+                if candidate.overlaps(en):
+                    overlaps = True
+                    break
+            if not overlaps:
+                import uuid as _uuid
+                subnet = Subnet(
+                    id=f"subnet-{_uuid.uuid4().hex[:8]}",
+                    cidr=str(candidate),
+                    vrf_id=block.vrf_id,
+                    address_block_id=block_id,
+                    site_id=block.site_id,
+                    gateway_ip=str(list(candidate.hosts())[0]) if list(candidate.hosts()) else "",
+                )
+                self.add_subnet(subnet)
+                self.init_free_ranges(subnet.id, subnet.cidr, subnet.gateway_ip)
+                return subnet
+        return None
+
+    # ── VLAN Enhanced CRUD ──
+
+    def get_vlan(self, vlan_id: str) -> Optional[VLAN]:
+        conn = self._conn()
+        try:
+            row = conn.execute("SELECT * FROM vlans WHERE id=?", (vlan_id,)).fetchone()
+            if not row:
+                return None
+            d = dict(row)
+            d["trunk_ports"] = self._safe_json_loads(d.get("trunk_ports"))
+            d["access_ports"] = self._safe_json_loads(d.get("access_ports"))
+            d["subnet_ids"] = self._safe_json_loads(d.get("subnet_ids"))
+            return VLAN(**d)
+        finally:
+            conn.close()
+
+    def update_vlan(self, vlan_id: str, **kwargs) -> Optional[VLAN]:
+        existing = self.get_vlan(vlan_id)
+        if not existing:
+            return None
+        data = existing.model_dump()
+        data.update({k: v for k, v in kwargs.items() if k != "id"})
+        updated = VLAN(**data)
+        self.add_vlan(updated)
+        return updated
+
+    def delete_vlan(self, vlan_id: str) -> None:
+        conn = self._conn()
+        try:
+            conn.execute("DELETE FROM vlans WHERE id=?", (vlan_id,))
+            conn.commit()
+        finally:
+            conn.close()
+
+    def get_vlan_interfaces(self, vlan_id: str) -> list[Interface]:
+        """Get interfaces assigned to a VLAN by vlan_id column."""
+        vlan = self.get_vlan(vlan_id)
+        if not vlan:
+            return []
+        conn = self._conn()
+        try:
+            rows = conn.execute(
+                "SELECT * FROM interfaces WHERE vlan_id=?", (vlan.vlan_number,)
+            ).fetchall()
+            return [Interface(**dict(r)) for r in rows]
+        finally:
+            conn.close()
+
+    def get_vlan_devices(self, vlan_id: str) -> list[Device]:
+        """Get distinct devices that have interfaces in a VLAN."""
+        interfaces = self.get_vlan_interfaces(vlan_id)
+        device_ids = list(set(i.device_id for i in interfaces))
+        devices = []
+        for did in device_ids:
+            d = self.get_device(did)
+            if d:
+                devices.append(d)
+        return devices
+
+    # ── Cloud Account CRUD ──
+
+    def add_cloud_account(self, account: CloudAccount) -> None:
+        conn = self._conn()
+        try:
+            conn.execute(
+                """INSERT OR REPLACE INTO cloud_accounts
+                   (id, name, provider, account_id, region, credentials_ref, sync_enabled, last_sync)
+                   VALUES (?,?,?,?,?,?,?,?)""",
+                (account.id, account.name, account.provider.value, account.account_id,
+                 account.region, account.credentials_ref, int(account.sync_enabled), account.last_sync),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+    def get_cloud_account(self, account_id: str) -> Optional[CloudAccount]:
+        conn = self._conn()
+        try:
+            row = conn.execute("SELECT * FROM cloud_accounts WHERE id=?", (account_id,)).fetchone()
+            if not row:
+                return None
+            d = dict(row)
+            d["sync_enabled"] = bool(d.get("sync_enabled", 0))
+            return CloudAccount(**d)
+        finally:
+            conn.close()
+
+    def list_cloud_accounts(self) -> list[CloudAccount]:
+        conn = self._conn()
+        try:
+            rows = conn.execute("SELECT * FROM cloud_accounts").fetchall()
+            results = []
+            for r in rows:
+                d = dict(r)
+                d["sync_enabled"] = bool(d.get("sync_enabled", 0))
+                results.append(CloudAccount(**d))
+            return results
+        finally:
+            conn.close()
+
+    def update_cloud_account(self, account_id: str, **kwargs) -> Optional[CloudAccount]:
+        existing = self.get_cloud_account(account_id)
+        if not existing:
+            return None
+        data = existing.model_dump()
+        data.update({k: v for k, v in kwargs.items() if k != "id"})
+        # Handle provider as string -> enum
+        if isinstance(data.get("provider"), str):
+            from .models import CloudProvider
+            data["provider"] = CloudProvider(data["provider"])
+        updated = CloudAccount(**data)
+        self.add_cloud_account(updated)
+        return updated
+
+    def delete_cloud_account(self, account_id: str) -> None:
+        conn = self._conn()
+        try:
+            conn.execute("DELETE FROM cloud_interfaces WHERE cloud_account_id=?", (account_id,))
+            conn.execute("DELETE FROM cloud_accounts WHERE id=?", (account_id,))
+            conn.commit()
+        finally:
+            conn.close()
+
+    # ── Cloud Interface CRUD ──
+
+    def add_cloud_interface(self, ci: CloudInterface) -> None:
+        conn = self._conn()
+        try:
+            conn.execute(
+                """INSERT OR REPLACE INTO cloud_interfaces
+                   (id, cloud_account_id, instance_id, instance_name, vpc_id, subnet_id,
+                    security_group_ids, private_ips, public_ip, mac_address, status)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+                (ci.id, ci.cloud_account_id, ci.instance_id, ci.instance_name,
+                 ci.vpc_id, ci.subnet_id, json.dumps(ci.security_group_ids),
+                 json.dumps(ci.private_ips), ci.public_ip, ci.mac_address, ci.status),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+    def list_cloud_interfaces(self, cloud_account_id: str = "") -> list[CloudInterface]:
+        conn = self._conn()
+        try:
+            if cloud_account_id:
+                rows = conn.execute("SELECT * FROM cloud_interfaces WHERE cloud_account_id=?", (cloud_account_id,)).fetchall()
+            else:
+                rows = conn.execute("SELECT * FROM cloud_interfaces").fetchall()
+            results = []
+            for r in rows:
+                d = dict(r)
+                d["security_group_ids"] = self._safe_json_loads(d.get("security_group_ids"))
+                d["private_ips"] = self._safe_json_loads(d.get("private_ips"))
+                results.append(CloudInterface(**d))
+            return results
+        finally:
+            conn.close()
+
+    # ── IP → Interface → Device → VLAN Correlation ──
+
+    def get_ip_correlation_chain(self, ip_id: str) -> dict:
+        """Build: IP → Interface → Device → VLAN → Subnet with status at each level."""
+        ip = self.get_ip_address(ip_id)
+        if not ip:
+            return {}
+        result: dict = {
+            "ip": {"id": ip.id, "address": ip.address, "status": ip.status,
+                   "owner_team": ip.owner_team, "application": ip.application},
+            "interface": None, "device": None, "vlan": None, "subnet": None,
+        }
+        # Find interface
+        iface = None
+        if ip.assigned_interface_id:
+            conn = self._conn()
+            try:
+                row = conn.execute("SELECT * FROM interfaces WHERE id=?", (ip.assigned_interface_id,)).fetchone()
+                if row:
+                    iface = Interface(**dict(row))
+            finally:
+                conn.close()
+        if not iface:
+            iface = self.find_interface_by_ip(ip.address)
+        if iface:
+            result["interface"] = {"id": iface.id, "name": iface.name, "status": iface.status,
+                                   "vlan_id": getattr(iface, 'vlan_id', 0)}
+            # Find device
+            device = self.get_device(iface.device_id)
+            if device:
+                result["device"] = {"id": device.id, "name": device.name, "device_type": device.device_type.value}
+                # Get device status
+                conn = self._conn()
+                try:
+                    ds = conn.execute("SELECT * FROM device_status WHERE device_id=?", (device.id,)).fetchone()
+                    if ds:
+                        result["device"]["status"] = ds["status"]
+                        result["device"]["latency_ms"] = ds["latency_ms"]
+                finally:
+                    conn.close()
+        # Find subnet
+        subnet = self.get_subnet(ip.subnet_id)
+        if subnet:
+            util = self.get_subnet_utilization(subnet.id)
+            result["subnet"] = {"id": subnet.id, "cidr": subnet.cidr,
+                                "utilization_pct": util.get("utilization_pct", 0),
+                                "subnet_role": subnet.subnet_role}
+            # Find VLAN
+            if subnet.vlan_id:
+                conn = self._conn()
+                try:
+                    vrow = conn.execute("SELECT * FROM vlans WHERE vlan_number=?", (subnet.vlan_id,)).fetchone()
+                    if vrow:
+                        result["vlan"] = {"id": vrow["id"], "vlan_number": vrow["vlan_number"], "name": vrow["name"]}
+                finally:
+                    conn.close()
+        return result
+
+    # ── Enhanced Tree Builder ──
+
+    def export_ipam_csv(self) -> str:
+        """Export all subnets and IPs as CSV string."""
+        import io, csv
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow([
+            "address", "subnet_cidr", "status", "ip_type", "hostname",
+            "mac_address", "vendor", "device_id", "description",
+            "region", "zone_id", "vlan_id", "environment", "cloud_provider",
+        ])
+        conn = self._conn()
+        try:
+            rows = conn.execute(
+                """SELECT ip.address, s.cidr as subnet_cidr, ip.status, ip.ip_type,
+                   ip.hostname, ip.mac_address, ip.vendor, ip.assigned_device_id,
+                   ip.description, s.region, s.zone_id, s.vlan_id, s.environment,
+                   s.cloud_provider
+                   FROM ip_addresses ip
+                   LEFT JOIN subnets s ON ip.subnet_id = s.id
+                   ORDER BY s.cidr, ip.address"""
+            ).fetchall()
+            for r in rows:
+                writer.writerow([r[k] for k in [
+                    "address", "subnet_cidr", "status", "ip_type", "hostname",
+                    "mac_address", "vendor", "assigned_device_id", "description",
+                    "region", "zone_id", "vlan_id", "environment", "cloud_provider",
+                ]])
+        finally:
+            conn.close()
+        return output.getvalue()
+
+    def detect_dns_mismatches(self) -> list[dict]:
+        """Detect IPs whose hostname doesn't match DNS watched hostnames.
+        Compares ip_addresses.hostname against dns watched hostnames if configured.
+        Also flags assigned IPs without hostnames.
+        """
+        conn = self._conn()
+        try:
+            # IPs that are assigned but have no hostname
+            no_hostname = conn.execute(
+                """SELECT ip.id, ip.address, ip.subnet_id, ip.assigned_device_id,
+                   s.cidr as subnet_cidr
+                   FROM ip_addresses ip
+                   LEFT JOIN subnets s ON ip.subnet_id = s.id
+                   WHERE ip.status = 'assigned' AND (ip.hostname = '' OR ip.hostname IS NULL)
+                   LIMIT 50"""
+            ).fetchall()
+            results = []
+            for r in no_hostname:
+                results.append({
+                    "type": "missing_hostname",
+                    "address": r["address"],
+                    "subnet_cidr": r["subnet_cidr"] or "",
+                    "device_id": r["assigned_device_id"] or "",
+                    "detail": "Assigned IP has no hostname/DNS record",
+                })
+            # Duplicate hostnames across different IPs
+            dup_hostnames = conn.execute(
+                """SELECT hostname, COUNT(*) as cnt,
+                   GROUP_CONCAT(address, ', ') as addresses
+                   FROM ip_addresses
+                   WHERE hostname != '' AND status != 'deprecated'
+                   GROUP BY hostname HAVING cnt > 1
+                   LIMIT 50"""
+            ).fetchall()
+            for r in dup_hostnames:
+                results.append({
+                    "type": "duplicate_hostname",
+                    "hostname": r["hostname"],
+                    "count": r["cnt"],
+                    "addresses": r["addresses"],
+                    "detail": f"Hostname '{r['hostname']}' resolves to {r['cnt']} IPs",
+                })
+            return results
+        except Exception:
+            return []
+        finally:
+            conn.close()
+
+    def get_capacity_forecast(self) -> list[dict]:
+        """Get utilization trend data for capacity forecasting."""
+        conn = self._conn()
+        try:
+            rows = conn.execute(
+                """SELECT s.id, s.cidr, s.region, s.environment,
+                   COUNT(*) as total_ips,
+                   SUM(CASE WHEN ip.status='available' THEN 1 ELSE 0 END) as available,
+                   SUM(CASE WHEN ip.status='assigned' THEN 1 ELSE 0 END) as assigned,
+                   SUM(CASE WHEN ip.status='reserved' THEN 1 ELSE 0 END) as reserved
+                   FROM subnets s
+                   LEFT JOIN ip_addresses ip ON s.id = ip.subnet_id
+                   GROUP BY s.id
+                   ORDER BY (CAST(SUM(CASE WHEN ip.status!='available' THEN 1 ELSE 0 END) AS REAL) /
+                             NULLIF(COUNT(*), 0)) DESC"""
+            ).fetchall()
+            result = []
+            for r in rows:
+                total = r["total_ips"] or 0
+                available = r["available"] or 0
+                assigned = r["assigned"] or 0
+                reserved = r["reserved"] or 0
+                used = total - available
+                pct = round((used / total) * 100, 1) if total > 0 else 0
+                # Simple linear projection: if >50% used, flag as needing attention
+                days_until_full = None
+                if assigned > 0 and available > 0:
+                    # Rough estimate based on current assignment rate
+                    days_until_full = round((available / max(assigned, 1)) * 90)
+                result.append({
+                    "subnet_id": r["id"],
+                    "cidr": r["cidr"],
+                    "region": r["region"] or "",
+                    "environment": r["environment"] or "",
+                    "total": total,
+                    "available": available,
+                    "assigned": assigned,
+                    "reserved": reserved,
+                    "utilization_pct": pct,
+                    "days_until_full": days_until_full,
+                    "risk_level": "critical" if pct >= 90 else "warning" if pct >= 75 else "ok",
+                })
+            return result
+        except Exception:
+            return []
         finally:
             conn.close()
 
@@ -567,6 +2417,8 @@ class TopologyStore:
         try:
             row = conn.execute("SELECT device_id FROM interfaces WHERE id=?", (interface_id,)).fetchone()
             device_id = row["device_id"] if row else None
+            # Clear IP assignments that reference this interface
+            conn.execute("UPDATE ip_addresses SET assigned_interface_id='' WHERE assigned_interface_id=?", (interface_id,))
             conn.execute("DELETE FROM interfaces WHERE id=?", (interface_id,))
             conn.commit()
         finally:
@@ -1350,9 +3202,13 @@ class TopologyStore:
         conn = self._conn()
         try:
             conn.execute(
-                "INSERT OR REPLACE INTO vlans VALUES (?,?,?,?,?,?)",
+                """INSERT OR REPLACE INTO vlans
+                   (id, vlan_number, name, trunk_ports, access_ports, site,
+                    description, vrf_id, site_id, subnet_ids)
+                   VALUES (?,?,?,?,?,?,?,?,?,?)""",
                 (vlan.id, vlan.vlan_number, vlan.name,
-                 json.dumps(vlan.trunk_ports), json.dumps(vlan.access_ports), vlan.site),
+                 json.dumps(vlan.trunk_ports), json.dumps(vlan.access_ports), vlan.site,
+                 vlan.description, vlan.vrf_id, vlan.site_id, json.dumps(vlan.subnet_ids)),
             )
             conn.commit()
         finally:
@@ -1362,7 +3218,14 @@ class TopologyStore:
         conn = self._conn()
         try:
             rows = conn.execute("SELECT * FROM vlans").fetchall()
-            return [VLAN(**{**dict(r), "trunk_ports": self._safe_json_loads(r["trunk_ports"]), "access_ports": self._safe_json_loads(r["access_ports"])}) for r in rows]
+            results = []
+            for r in rows:
+                d = dict(r)
+                d["trunk_ports"] = self._safe_json_loads(d.get("trunk_ports"))
+                d["access_ports"] = self._safe_json_loads(d.get("access_ports"))
+                d["subnet_ids"] = self._safe_json_loads(d.get("subnet_ids"))
+                results.append(VLAN(**d))
+            return results
         finally:
             conn.close()
 

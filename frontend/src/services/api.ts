@@ -879,11 +879,13 @@ export const populateSubnetIPs = async (subnetId: string) => {
   return resp.json();
 };
 
-export const fetchIPs = async (params: { subnet_id?: string; status?: string; search?: string } = {}) => {
+export const fetchIPs = async (params: { subnet_id?: string; status?: string; search?: string; offset?: number; limit?: number } = {}) => {
   const qs = new URLSearchParams();
   if (params.subnet_id) qs.set('subnet_id', params.subnet_id);
   if (params.status) qs.set('status', params.status);
   if (params.search) qs.set('search', params.search);
+  if (params.offset !== undefined) qs.set('offset', String(params.offset));
+  if (params.limit !== undefined) qs.set('limit', String(params.limit));
   const resp = await fetch(`${API_BASE_URL}/api/v4/network/ipam/ips?${qs}`);
   if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch IPs'));
   return resp.json();
@@ -950,8 +952,8 @@ export const bulkUpdateIPStatus = async (ipIds: string[], status: string, device
   return resp.json();
 };
 
-export const globalIPSearch = async (query: string) => {
-  const resp = await fetch(`${API_BASE_URL}/api/v4/network/ipam/search?q=${encodeURIComponent(query)}`);
+export const globalIPSearch = async (query: string, signal?: AbortSignal) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/ipam/search?q=${encodeURIComponent(query)}`, { signal });
   if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Search failed'));
   return resp.json();
 };
@@ -1036,5 +1038,282 @@ export const fetchDNSMismatches = async () => {
 export const fetchCapacityForecast = async () => {
   const resp = await fetch(`${API_BASE_URL}/api/v4/network/ipam/capacity-forecast`);
   if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch forecast'));
+  return resp.json();
+};
+
+export const scanSubnet = async (subnetId: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/ipam/subnets/${subnetId}/scan`, { method: 'POST' });
+  return resp.json();
+};
+
+export const dnsLookupIP = async (ipId: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/ipam/ips/${ipId}/dns`);
+  return resp.json();
+};
+
+export const fetchUtilizationHistory = async (subnetId: string, range: string = '7d') => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/ipam/subnets/${subnetId}/utilization-history?range=${range}`);
+  return resp.json();
+};
+
+export const fetchAvailableRanges = async (subnetId: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/ipam/subnets/${subnetId}/available-ranges`);
+  return resp.json();
+};
+
+export const fetchDHCPScopes = async (subnetId?: string) => {
+  const qs = subnetId ? `?subnet_id=${subnetId}` : '';
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/ipam/dhcp-scopes${qs}`);
+  return resp.json();
+};
+
+export const createDHCPScope = async (scope: Record<string, unknown>) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/ipam/dhcp-scopes`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(scope),
+  });
+  return resp.json();
+};
+
+export const deleteDHCPScope = async (scopeId: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/ipam/dhcp-scopes/${scopeId}`, { method: 'DELETE' });
+  return resp.json();
+};
+
+export const fetchIPAMReport = async (type: string, format: string = 'json', filters: Record<string, string> = {}) => {
+  const params = new URLSearchParams({ format, ...filters });
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/ipam/reports/${type}?${params}`);
+  if (format === 'csv') {
+    return resp.text();
+  }
+  return resp.json();
+};
+
+// ── Enterprise IPAM API: VRFs ──
+
+export const fetchVRFs = async () => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/ipam/vrfs`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch VRFs'));
+  return resp.json();
+};
+
+export const createVRF = async (data: Record<string, unknown>) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/ipam/vrfs`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
+  });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to create VRF'));
+  return resp.json();
+};
+
+export const updateVRF = async (vrfId: string, data: Record<string, unknown>) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/ipam/vrfs/${vrfId}`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
+  });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to update VRF'));
+  return resp.json();
+};
+
+export const deleteVRF = async (vrfId: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/ipam/vrfs/${vrfId}`, { method: 'DELETE' });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to delete VRF'));
+  return resp.json();
+};
+
+// ── Enterprise IPAM API: Regions ──
+
+export const fetchRegions = async () => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/ipam/regions`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch regions'));
+  return resp.json();
+};
+
+export const createRegion = async (data: Record<string, unknown>) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/ipam/regions`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
+  });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to create region'));
+  return resp.json();
+};
+
+export const updateRegion = async (regionId: string, data: Record<string, unknown>) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/ipam/regions/${regionId}`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
+  });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to update region'));
+  return resp.json();
+};
+
+export const deleteRegion = async (regionId: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/ipam/regions/${regionId}`, { method: 'DELETE' });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to delete region'));
+  return resp.json();
+};
+
+// ── Enterprise IPAM API: Sites ──
+
+export const fetchSites = async () => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/ipam/sites`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch sites'));
+  return resp.json();
+};
+
+export const createSite = async (data: Record<string, unknown>) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/ipam/sites`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
+  });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to create site'));
+  return resp.json();
+};
+
+export const updateSite = async (siteId: string, data: Record<string, unknown>) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/ipam/sites/${siteId}`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
+  });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to update site'));
+  return resp.json();
+};
+
+export const deleteSite = async (siteId: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/ipam/sites/${siteId}`, { method: 'DELETE' });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to delete site'));
+  return resp.json();
+};
+
+// ── Enterprise IPAM API: Address Blocks ──
+
+export const fetchAddressBlocks = async () => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/ipam/address-blocks`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch address blocks'));
+  return resp.json();
+};
+
+export const createAddressBlock = async (data: Record<string, unknown>) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/ipam/address-blocks`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
+  });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to create address block'));
+  return resp.json();
+};
+
+export const deleteAddressBlock = async (blockId: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/ipam/address-blocks/${blockId}`, { method: 'DELETE' });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to delete address block'));
+  return resp.json();
+};
+
+export const fetchAddressBlockUtilization = async (blockId: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/ipam/address-blocks/${blockId}/utilization`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch block utilization'));
+  return resp.json();
+};
+
+export const allocateSubnetFromBlock = async (blockId: string, prefix: number) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/ipam/address-blocks/${blockId}/allocate`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prefix }),
+  });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to allocate subnet'));
+  return resp.json();
+};
+
+// ── Enterprise IPAM API: Reserved Ranges ──
+
+export const fetchReservedRanges = async (subnetId: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/ipam/subnets/${subnetId}/reserved-ranges`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch reserved ranges'));
+  return resp.json();
+};
+
+export const createReservedRange = async (subnetId: string, data: Record<string, unknown>) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/ipam/subnets/${subnetId}/reserved-ranges`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
+  });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to create reserved range'));
+  return resp.json();
+};
+
+export const deleteReservedRange = async (rangeId: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/ipam/reserved-ranges/${rangeId}`, { method: 'DELETE' });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to delete reserved range'));
+  return resp.json();
+};
+
+// ── Enterprise IPAM API: VLANs ──
+
+export const fetchVLANs = async () => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/ipam/vlans`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch VLANs'));
+  return resp.json();
+};
+
+export const createVLAN = async (data: Record<string, unknown>) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/ipam/vlans`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
+  });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to create VLAN'));
+  return resp.json();
+};
+
+export const updateVLAN = async (vlanId: string, data: Record<string, unknown>) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/ipam/vlans/${vlanId}`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
+  });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to update VLAN'));
+  return resp.json();
+};
+
+export const deleteVLAN = async (vlanId: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/ipam/vlans/${vlanId}`, { method: 'DELETE' });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to delete VLAN'));
+  return resp.json();
+};
+
+export const fetchVLANInterfaces = async (vlanId: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/ipam/vlans/${vlanId}/interfaces`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch VLAN interfaces'));
+  return resp.json();
+};
+
+// ── Enterprise IPAM API: IP Correlation ──
+
+export const fetchIPCorrelation = async (ipId: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/ipam/ips/${ipId}/correlation`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch IP correlation'));
+  return resp.json();
+};
+
+// ── Enterprise IPAM API: Cloud Accounts ──
+
+export const fetchCloudAccounts = async () => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/ipam/cloud-accounts`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch cloud accounts'));
+  return resp.json();
+};
+
+export const createCloudAccount = async (data: Record<string, unknown>) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/ipam/cloud-accounts`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
+  });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to create cloud account'));
+  return resp.json();
+};
+
+export const updateCloudAccount = async (accountId: string, data: Record<string, unknown>) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/ipam/cloud-accounts/${accountId}`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
+  });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to update cloud account'));
+  return resp.json();
+};
+
+export const deleteCloudAccount = async (accountId: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/ipam/cloud-accounts/${accountId}`, { method: 'DELETE' });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to delete cloud account'));
+  return resp.json();
+};
+
+export const syncCloudAccount = async (accountId: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/ipam/cloud-accounts/${accountId}/sync`, { method: 'POST' });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to sync cloud account'));
   return resp.json();
 };

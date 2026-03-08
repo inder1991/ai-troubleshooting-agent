@@ -1,10 +1,11 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import type { IPAddress, IPAMSubnet, IPAMDevice, IPAuditEvent } from '../../types';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import type { IPAddress, IPAMSubnet, IPAMDevice, IPAuditEvent, IPCorrelationChain } from '../../types';
 import {
   fetchIPs, reserveIP, assignIP, releaseIP, updateIP,
   fetchIPAMDevices, bulkUpdateIPStatus, fetchNextAvailableIP,
-  fetchIPAuditLog,
+  fetchIPAuditLog, scanSubnet, fetchIPCorrelation,
 } from '../../services/api';
+import IPAMSubnetHeatmap from './IPAMSubnetHeatmap';
 
 interface Props {
   subnet: IPAMSubnet;
@@ -19,7 +20,7 @@ const statusConfig: Record<string, { color: string; bg: string; label: string; d
   deprecated: { color: 'text-slate-500', bg: 'bg-slate-500/10', label: 'Deprecated', dot: 'bg-slate-500' },
 };
 
-type ViewTab = 'table' | 'chart';
+type ViewTab = 'table' | 'chart' | 'heatmap';
 
 export default function IPAMSubnetDetail({ subnet, onUtilizationChange, addToast }: Props) {
   const [ips, setIps] = useState<IPAddress[]>([]);
@@ -36,6 +37,19 @@ export default function IPAMSubnetDetail({ subnet, onUtilizationChange, addToast
   const [historyIp, setHistoryIp] = useState<IPAddress | null>(null);
   const [historyEvents, setHistoryEvents] = useState<IPAuditEvent[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [scanResult, setScanResult] = useState<any>(null);
+  const [correlationChain, setCorrelationChain] = useState<IPCorrelationChain | null>(null);
+  const [correlationLoading, setCorrelationLoading] = useState(false);
+
+  // Pagination state (B1)
+  const [page, setPage] = useState(0);
+  const pageSize = 100;
+  const [totalCount, setTotalCount] = useState(0);
+
+  // Ref to track current ips for stale closure prevention (B3)
+  const ipsRef = useRef(ips);
+  useEffect(() => { ipsRef.current = ips; }, [ips]);
 
   const loadIPs = useCallback(async () => {
     setLoading(true);
@@ -44,12 +58,20 @@ export default function IPAMSubnetDetail({ subnet, onUtilizationChange, addToast
         subnet_id: subnet.id,
         status: statusFilter || undefined,
         search: search || undefined,
+        offset: page * pageSize,
+        limit: pageSize,
       });
       setIps(res.ips || []);
+      setTotalCount(res.total_count ?? res.ips?.length ?? 0);
     } catch {
       /* ignore */
     }
     setLoading(false);
+  }, [subnet.id, statusFilter, search, page]);
+
+  // Reset page when filter/search/subnet changes
+  useEffect(() => {
+    setPage(0);
   }, [subnet.id, statusFilter, search]);
 
   useEffect(() => {
@@ -58,8 +80,11 @@ export default function IPAMSubnetDetail({ subnet, onUtilizationChange, addToast
   }, [loadIPs]);
 
   useEffect(() => {
-    fetchIPAMDevices().then((r) => setDevices(r.devices || [])).catch(() => {});
-  }, []);
+    fetchIPAMDevices().then((r) => setDevices(r.devices || [])).catch((err) => {
+      console.error('Failed to load devices:', err);
+      addToast?.('Failed to load devices', 'error');
+    });
+  }, [addToast]);
 
   const handleAction = async (ipId: string, action: string) => {
     setActionMenuId('');
@@ -77,8 +102,12 @@ export default function IPAMSubnetDetail({ subnet, onUtilizationChange, addToast
         setAssignDialogId(ipId);
         return;
       } else if (action === 'history') {
-        const ip = ips.find((i) => i.id === ipId);
+        const ip = ipsRef.current.find((i) => i.id === ipId);
         if (ip) openHistory(ip);
+        return;
+      } else if (action === 'trace') {
+        const ip = ipsRef.current.find((i) => i.id === ipId);
+        if (ip) openCorrelation(ip);
         return;
       }
       await loadIPs();
@@ -98,6 +127,18 @@ export default function IPAMSubnetDetail({ subnet, onUtilizationChange, addToast
       setHistoryEvents([]);
     }
     setHistoryLoading(false);
+  };
+
+  const openCorrelation = async (ip: IPAddress) => {
+    setCorrelationLoading(true);
+    try {
+      const chain = await fetchIPCorrelation(ip.id);
+      setCorrelationChain(chain);
+    } catch {
+      setCorrelationChain(null);
+      addToast?.('Failed to load correlation', 'error');
+    }
+    setCorrelationLoading(false);
   };
 
   const handleAssignConfirm = async () => {
@@ -140,6 +181,21 @@ export default function IPAMSubnetDetail({ subnet, onUtilizationChange, addToast
     }
   };
 
+  const handleScanSubnet = async () => {
+    setScanning(true);
+    setScanResult(null);
+    try {
+      const result = await scanSubnet(subnet.id);
+      setScanResult(result);
+      addToast?.(`Scan complete: ${result.alive_count} alive hosts found, ${result.updated_ips} IPs updated`);
+      await loadIPs();
+      onUtilizationChange();
+    } catch {
+      addToast?.('Subnet scan failed', 'error');
+    }
+    setScanning(false);
+  };
+
   const toggleSelect = (id: string) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -179,6 +235,7 @@ export default function IPAMSubnetDetail({ subnet, onUtilizationChange, addToast
         ];
       case 'assigned':
         return [
+          { label: 'Trace', action: 'trace' },
           { label: 'Release', action: 'release' },
           { label: 'Deprecate', action: 'deprecate' },
           history,
@@ -212,6 +269,16 @@ export default function IPAMSubnetDetail({ subnet, onUtilizationChange, addToast
             {subnet.region && <span>Region: {subnet.region}</span>}
             {subnet.zone_id && <span>Zone: {subnet.zone_id}</span>}
             {subnet.vlan_id > 0 && <span>VLAN: {subnet.vlan_id}</span>}
+            {subnet.vrf_id && subnet.vrf_id !== 'default' && (
+              <span className="px-1.5 py-0.5 rounded bg-purple-900/30 text-purple-300 border border-purple-700/30">
+                VRF: {subnet.vrf_id}
+              </span>
+            )}
+            {subnet.subnet_role && (
+              <span className="px-1.5 py-0.5 rounded bg-[#1e3a40] text-slate-300">
+                {subnet.subnet_role}
+              </span>
+            )}
             {subnet.environment && (
               <span className="px-1.5 py-0.5 rounded bg-[#1e3a40] text-cyan-300">
                 {subnet.environment}
@@ -219,10 +286,22 @@ export default function IPAMSubnetDetail({ subnet, onUtilizationChange, addToast
             )}
           </div>
         </div>
-        <div className="text-right text-sm">
-          <span className="text-slate-400">
-            {subnet.assigned ?? 0}/{subnet.total ?? 0} used
-          </span>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleScanSubnet}
+            disabled={scanning}
+            className="flex items-center gap-1 px-2.5 py-1.5 text-xs bg-[#0f2023] border border-[#1e3a40] rounded text-slate-300 hover:bg-[#1e3a40] hover:text-cyan-300 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <span className={`material-symbols-outlined text-sm ${scanning ? 'animate-spin' : ''}`}>
+              {scanning ? 'progress_activity' : 'radar'}
+            </span>
+            {scanning ? 'Scanning...' : 'Scan Subnet'}
+          </button>
+          <div className="text-right text-sm">
+            <span className="text-slate-400">
+              {subnet.assigned ?? 0}/{subnet.total ?? 0} used
+            </span>
+          </div>
         </div>
       </div>
 
@@ -237,6 +316,24 @@ export default function IPAMSubnetDetail({ subnet, onUtilizationChange, addToast
         <span>{utilPct}% utilized</span>
         <span>{subnet.available ?? 0} available</span>
       </div>
+
+      {/* Scan Results Banner */}
+      {scanResult && (
+        <div className="flex items-center justify-between px-3 py-2 bg-cyan-900/20 border border-cyan-700/30 rounded text-xs">
+          <div className="flex items-center gap-2 text-cyan-300">
+            <span className="material-symbols-outlined text-sm">check_circle</span>
+            <span>
+              Scan complete: {scanResult.total_scanned} scanned, {scanResult.alive_count} alive, {scanResult.updated_ips} updated
+            </span>
+          </div>
+          <button
+            onClick={() => setScanResult(null)}
+            className="text-slate-500 hover:text-slate-300"
+          >
+            <span className="material-symbols-outlined text-sm">close</span>
+          </button>
+        </div>
+      )}
 
       {/* Tabs: IP ADDRESS VIEW | CHART VIEW */}
       <div className="flex items-center border-b border-[#1e3a40]">
@@ -260,9 +357,21 @@ export default function IPAMSubnetDetail({ subnet, onUtilizationChange, addToast
         >
           Chart View
         </button>
+        <button
+          onClick={() => setActiveTab('heatmap')}
+          className={`px-4 py-2 text-xs font-semibold uppercase tracking-wider border-b-2 transition-colors ${
+            activeTab === 'heatmap'
+              ? 'border-cyan-400 text-cyan-300'
+              : 'border-transparent text-slate-500 hover:text-slate-300'
+          }`}
+        >
+          Heatmap
+        </button>
       </div>
 
-      {activeTab === 'chart' ? (
+      {activeTab === 'heatmap' ? (
+        <IPAMSubnetHeatmap subnetId={subnet.id} subnetCidr={subnet.cidr} ips={ips} />
+      ) : activeTab === 'chart' ? (
         /* Chart View — utilization breakdown */
         <div className="py-6">
           <div className="grid grid-cols-2 gap-4 max-w-md mx-auto">
@@ -375,6 +484,7 @@ export default function IPAMSubnetDetail({ subnet, onUtilizationChange, addToast
               No IPs found. Populate this subnet first.
             </div>
           ) : (
+            <>
             <div className="max-h-[400px] overflow-y-auto">
               <table className="w-full text-sm">
                 <thead className="sticky top-0 bg-[#132a2f] z-10">
@@ -475,6 +585,34 @@ export default function IPAMSubnetDetail({ subnet, onUtilizationChange, addToast
                 </tbody>
               </table>
             </div>
+            {/* Pagination Controls (B1) */}
+            {totalCount > pageSize && (
+              <div className="flex items-center justify-between mt-3 text-xs text-slate-400">
+                <span>
+                  Showing {page * pageSize + 1}–{Math.min((page + 1) * pageSize, totalCount)} of {totalCount}
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setPage((p) => Math.max(0, p - 1))}
+                    disabled={page === 0}
+                    className="px-2.5 py-1 bg-[#0f2023] border border-[#1e3a40] rounded text-slate-300 hover:bg-[#1e3a40] disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    Previous
+                  </button>
+                  <span className="text-slate-300">
+                    Page {page + 1} of {Math.ceil(totalCount / pageSize)}
+                  </span>
+                  <button
+                    onClick={() => setPage((p) => p + 1)}
+                    disabled={(page + 1) * pageSize >= totalCount}
+                    className="px-2.5 py-1 bg-[#0f2023] border border-[#1e3a40] rounded text-slate-300 hover:bg-[#1e3a40] disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
+            </>
           )}
         </>
       )}
@@ -509,6 +647,67 @@ export default function IPAMSubnetDetail({ subnet, onUtilizationChange, addToast
                 Assign
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Correlation Trace Modal */}
+      {(correlationChain || correlationLoading) && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div className="bg-[#132a2f] border border-[#1e3a40] rounded-lg p-6 w-[420px]">
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="text-sm font-semibold text-slate-200">IP Correlation Trace</h4>
+              <button onClick={() => setCorrelationChain(null)} className="text-slate-500 hover:text-slate-300">
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            {correlationLoading ? (
+              <div className="text-center text-slate-500 py-8 text-sm">Loading...</div>
+            ) : correlationChain ? (
+              <div className="space-y-1 text-sm font-mono">
+                <div className="flex items-center gap-2 p-2 bg-[#0f2023] rounded">
+                  <span className="text-cyan-400">IP</span>
+                  <span className="text-slate-300">{correlationChain.ip.address}</span>
+                  <span className={`ml-auto text-xs px-1.5 py-0.5 rounded ${
+                    correlationChain.ip.status === 'assigned' ? 'bg-cyan-400/10 text-cyan-400' : 'bg-slate-600/30 text-slate-400'
+                  }`}>{correlationChain.ip.status}</span>
+                  {correlationChain.ip.owner_team && (
+                    <span className="text-xs text-slate-500">{correlationChain.ip.owner_team}</span>
+                  )}
+                </div>
+                {correlationChain.interface && (
+                  <div className="flex items-center gap-2 p-2 bg-[#0f2023] rounded ml-4">
+                    <span className="text-blue-400">Interface</span>
+                    <span className="text-slate-300">{correlationChain.interface.name}</span>
+                    <span className={`ml-auto text-xs ${correlationChain.interface.status === 'up' ? 'text-emerald-400' : 'text-red-400'}`}>
+                      {correlationChain.interface.status}
+                    </span>
+                  </div>
+                )}
+                {correlationChain.device && (
+                  <div className="flex items-center gap-2 p-2 bg-[#0f2023] rounded ml-8">
+                    <span className="text-amber-400">Device</span>
+                    <span className="text-slate-300">{correlationChain.device.name}</span>
+                    <span className={`ml-auto text-xs ${correlationChain.device.status === 'up' ? 'text-emerald-400' : 'text-red-400'}`}>
+                      {correlationChain.device.status} {correlationChain.device.latency_ms > 0 && `(${correlationChain.device.latency_ms.toFixed(1)}ms)`}
+                    </span>
+                  </div>
+                )}
+                {correlationChain.vlan && (
+                  <div className="flex items-center gap-2 p-2 bg-[#0f2023] rounded ml-12">
+                    <span className="text-purple-400">VLAN</span>
+                    <span className="text-slate-300">{correlationChain.vlan.vlan_number} - {correlationChain.vlan.name}</span>
+                  </div>
+                )}
+                {correlationChain.subnet && (
+                  <div className="flex items-center gap-2 p-2 bg-[#0f2023] rounded ml-16">
+                    <span className="text-emerald-400">Subnet</span>
+                    <span className="text-slate-300">{correlationChain.subnet.cidr}</span>
+                    <span className="ml-auto text-xs text-slate-500">{correlationChain.subnet.utilization_pct}%</span>
+                  </div>
+                )}
+              </div>
+            ) : null}
           </div>
         </div>
       )}
