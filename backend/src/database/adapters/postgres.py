@@ -13,12 +13,15 @@ except ImportError:
 from .base import AdapterHealth, DatabaseAdapter
 from ..models import (
     ActiveQuery,
+    ColumnInfo,
     ConnectionPoolSnapshot,
+    IndexInfo,
     PerfSnapshot,
     QueryResult,
     ReplicaInfo,
     ReplicationSnapshot,
     SchemaSnapshot,
+    TableDetail,
 )
 
 logger = logging.getLogger(__name__)
@@ -181,6 +184,64 @@ class PostgresAdapter(DatabaseAdapter):
             tables=[dict(r) for r in tables],
             indexes=[dict(r) for r in indexes],
             total_size_bytes=total_row["total"] if total_row else 0,
+        )
+
+    async def get_table_detail(self, table_name: str) -> TableDetail:
+        if not self._conn:
+            raise RuntimeError("Not connected")
+
+        col_rows = await self._conn.fetch("""
+            SELECT c.column_name, c.data_type, c.is_nullable, c.column_default,
+                   CASE WHEN pk.column_name IS NOT NULL THEN true ELSE false END AS is_pk
+            FROM information_schema.columns c
+            LEFT JOIN (
+                SELECT ku.column_name
+                FROM information_schema.table_constraints tc
+                JOIN information_schema.key_column_usage ku
+                  ON tc.constraint_name = ku.constraint_name
+                WHERE tc.table_name = $1 AND tc.constraint_type = 'PRIMARY KEY'
+            ) pk ON pk.column_name = c.column_name
+            WHERE c.table_name = $1 AND c.table_schema = 'public'
+            ORDER BY c.ordinal_position
+        """, table_name)
+
+        columns = [
+            ColumnInfo(
+                name=r["column_name"], data_type=r["data_type"],
+                nullable=r["is_nullable"] == "YES",
+                default=r["column_default"], is_pk=r["is_pk"],
+            ) for r in col_rows
+        ]
+
+        idx_rows = await self._conn.fetch("""
+            SELECT indexname, indexdef,
+                   pg_relation_size(quote_ident(indexname)::regclass) AS size_bytes
+            FROM pg_indexes
+            WHERE tablename = $1 AND schemaname = 'public'
+        """, table_name)
+
+        indexes = [
+            IndexInfo(
+                name=r["indexname"], columns=[],
+                unique="UNIQUE" in (r["indexdef"] or ""),
+                size_bytes=r["size_bytes"] or 0,
+            ) for r in idx_rows
+        ]
+
+        stat_row = await self._conn.fetchrow("""
+            SELECT n_live_tup AS row_estimate,
+                   pg_total_relation_size(quote_ident($1)::regclass) AS total_size,
+                   CASE WHEN n_live_tup > 0
+                     THEN n_dead_tup::float / n_live_tup
+                     ELSE 0 END AS bloat_ratio
+            FROM pg_stat_user_tables WHERE relname = $1
+        """, table_name)
+
+        return TableDetail(
+            name=table_name, schema_name="public", columns=columns, indexes=indexes,
+            row_estimate=stat_row["row_estimate"] if stat_row else 0,
+            total_size_bytes=stat_row["total_size"] if stat_row else 0,
+            bloat_ratio=round(stat_row["bloat_ratio"], 4) if stat_row else 0.0,
         )
 
     async def _fetch_connection_pool(self) -> ConnectionPoolSnapshot:

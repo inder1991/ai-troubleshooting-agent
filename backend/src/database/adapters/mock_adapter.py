@@ -4,11 +4,14 @@ from __future__ import annotations
 from .base import AdapterHealth, DatabaseAdapter
 from ..models import (
     ActiveQuery,
+    ColumnInfo,
     ConnectionPoolSnapshot,
+    IndexInfo,
     PerfSnapshot,
     QueryResult,
     ReplicationSnapshot,
     SchemaSnapshot,
+    TableDetail,
 )
 
 
@@ -77,6 +80,21 @@ class MockDatabaseAdapter(DatabaseAdapter):
     async def _fetch_connection_pool(self) -> ConnectionPoolSnapshot:
         return ConnectionPoolSnapshot(
             active=12, idle=5, waiting=0, max_connections=100
+        )
+
+    async def get_table_detail(self, table_name: str) -> TableDetail:
+        return TableDetail(
+            name=table_name, schema_name="public",
+            columns=[
+                ColumnInfo(name="id", data_type="integer", nullable=False, is_pk=True),
+                ColumnInfo(name="name", data_type="varchar(255)", nullable=True),
+                ColumnInfo(name="created_at", data_type="timestamp", nullable=False),
+            ],
+            indexes=[
+                IndexInfo(name=f"pk_{table_name}", columns=["id"], unique=True, size_bytes=8192),
+                IndexInfo(name=f"idx_{table_name}_created", columns=["created_at"], unique=False, size_bytes=16384),
+            ],
+            row_estimate=120000, total_size_bytes=256000000, bloat_ratio=0.05,
         )
 
     async def execute_diagnostic_query(self, sql: str) -> QueryResult:

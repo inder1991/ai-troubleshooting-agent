@@ -85,3 +85,29 @@ def test_query_result_with_error():
     r = QueryResult(query="SELECT bad", error="syntax error")
     assert r.error == "syntax error"
     assert r.rows_returned == 0
+
+
+def test_column_info():
+    from src.database.models import ColumnInfo
+    c = ColumnInfo(name="id", data_type="integer", nullable=False, is_pk=True)
+    assert c.is_pk is True
+    assert c.nullable is False
+
+
+def test_index_info():
+    from src.database.models import IndexInfo
+    i = IndexInfo(name="pk_orders", columns=["id"], unique=True, size_bytes=8192)
+    assert i.unique is True
+
+
+def test_table_detail():
+    from src.database.models import TableDetail, ColumnInfo, IndexInfo
+    td = TableDetail(
+        name="orders", schema_name="public",
+        columns=[ColumnInfo(name="id", data_type="integer", nullable=False, is_pk=True)],
+        indexes=[IndexInfo(name="pk_orders", columns=["id"], unique=True, size_bytes=8192)],
+        row_estimate=120000, total_size_bytes=256000000, bloat_ratio=0.05,
+    )
+    assert td.row_estimate == 120000
+    assert len(td.columns) == 1
+    assert td.bloat_ratio == 0.05

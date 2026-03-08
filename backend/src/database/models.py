@@ -66,6 +66,31 @@ class SchemaSnapshot(BaseModel):
     total_size_bytes: int = 0
 
 
+class ColumnInfo(BaseModel):
+    name: str
+    data_type: str
+    nullable: bool = True
+    default: Optional[str] = None
+    is_pk: bool = False
+
+
+class IndexInfo(BaseModel):
+    name: str
+    columns: list[str] = []
+    unique: bool = False
+    size_bytes: int = 0
+
+
+class TableDetail(BaseModel):
+    name: str
+    schema_name: str = "public"
+    columns: list[ColumnInfo] = []
+    indexes: list[IndexInfo] = []
+    row_estimate: int = 0
+    total_size_bytes: int = 0
+    bloat_ratio: float = 0.0
+
+
 class ConnectionPoolSnapshot(BaseModel):
     active: int = 0
     idle: int = 0

@@ -74,3 +74,15 @@ class TestMockDatabaseAdapter:
         stats2 = await mock_adapter.get_performance_stats()
         # After refresh, new object is fetched
         assert stats1 is not stats2
+
+
+@pytest.mark.asyncio
+async def test_mock_get_table_detail():
+    from src.database.adapters.mock_adapter import MockDatabaseAdapter
+    adapter = MockDatabaseAdapter(engine="postgresql", host="h", port=5432, database="d")
+    await adapter.connect()
+    detail = await adapter.get_table_detail("orders")
+    assert detail.name == "orders"
+    assert len(detail.columns) > 0
+    assert len(detail.indexes) > 0
+    await adapter.disconnect()

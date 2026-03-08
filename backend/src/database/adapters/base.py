@@ -15,6 +15,7 @@ from ..models import (
     QueryResult,
     ReplicationSnapshot,
     SchemaSnapshot,
+    TableDetail,
 )
 
 
@@ -97,6 +98,9 @@ class DatabaseAdapter(ABC):
 
     @abstractmethod
     async def _fetch_connection_pool(self) -> ConnectionPoolSnapshot: ...
+
+    @abstractmethod
+    async def get_table_detail(self, table_name: str) -> TableDetail: ...
 
     # ── Cached accessors ──
 
