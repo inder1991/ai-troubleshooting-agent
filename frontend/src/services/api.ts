@@ -1421,6 +1421,14 @@ export const deleteDBAlertRule = async (ruleId: string) => {
   return resp.json();
 };
 
+export const updateDBAlertRule = async (ruleId: string, rule: Record<string, unknown>) => {
+  const resp = await fetch(`${API_BASE_URL}/api/db/alerts/rules/${ruleId}`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(rule),
+  });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to update alert rule'));
+  return resp.json();
+};
+
 export const fetchDBActiveAlerts = async () => {
   const resp = await fetch(`${API_BASE_URL}/api/db/alerts/active`);
   if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch active alerts'));

@@ -11,6 +11,7 @@ import {
   fetchDBAlertRules,
   createDBAlertRule,
   deleteDBAlertRule,
+  updateDBAlertRule,
   fetchDBActiveAlerts,
 } from '../../services/api';
 
@@ -127,7 +128,8 @@ const DBMonitoring: React.FC = () => {
   const [rules, setRules] = useState<AlertRule[]>([]);
   const [loadingCharts, setLoadingCharts] = useState(false);
   const [showRuleForm, setShowRuleForm] = useState(false);
-  const [newRule, setNewRule] = useState({ name: '', metric: 'db_conn_utilization', condition: 'gt', threshold: 80, severity: 'warning' });
+  const [newRule, setNewRule] = useState({ name: '', metric: 'db_conn_utilization', condition: 'gt', threshold: 80, severity: 'warning', cooldown: 300 });
+  const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
 
   // Load profiles
   useEffect(() => {
@@ -189,9 +191,14 @@ const DBMonitoring: React.FC = () => {
 
   const handleCreateRule = async () => {
     try {
-      await createDBAlertRule(newRule);
+      if (editingRuleId) {
+        await updateDBAlertRule(editingRuleId, newRule);
+      } else {
+        await createDBAlertRule(newRule);
+      }
       setShowRuleForm(false);
-      setNewRule({ name: '', metric: 'db_conn_utilization', condition: 'gt', threshold: 80, severity: 'warning' });
+      setEditingRuleId(null);
+      setNewRule({ name: '', metric: 'db_conn_utilization', condition: 'gt', threshold: 80, severity: 'warning', cooldown: 300 });
       await loadAlerts();
     } catch { /* ignore */ }
   };
@@ -202,6 +209,12 @@ const DBMonitoring: React.FC = () => {
       await deleteDBAlertRule(ruleId);
       await loadAlerts();
     } catch { /* ignore */ }
+  };
+
+  const handleEditRule = (rule: AlertRule) => {
+    setEditingRuleId(rule.id);
+    setNewRule({ name: rule.name, metric: rule.metric, condition: rule.condition, threshold: rule.threshold, severity: rule.severity, cooldown: 300 });
+    setShowRuleForm(true);
   };
 
   return (
@@ -292,7 +305,12 @@ const DBMonitoring: React.FC = () => {
                   </span>
                   <span className="text-sm">{a.message}</span>
                 </div>
-                <span className="text-xs opacity-60">{new Date(a.fired_at).toLocaleTimeString()}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs opacity-60">{new Date(a.fired_at).toLocaleTimeString()}</span>
+                  <button className="text-slate-500 hover:text-emerald-400 transition-colors" title="Acknowledge">
+                    <span className="material-symbols-outlined text-[16px]">check_circle</span>
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -319,6 +337,7 @@ const DBMonitoring: React.FC = () => {
                 <th className="text-left px-4 py-2 font-medium">Metric</th>
                 <th className="text-left px-4 py-2 font-medium">Condition</th>
                 <th className="text-left px-4 py-2 font-medium">Severity</th>
+                <th className="text-center px-4 py-2 font-medium">Enabled</th>
                 <th className="text-right px-4 py-2 font-medium">Actions</th>
               </tr>
             </thead>
@@ -333,7 +352,16 @@ const DBMonitoring: React.FC = () => {
                       {r.severity}
                     </span>
                   </td>
-                  <td className="px-4 py-2 text-right">
+                  <td className="px-4 py-2 text-center">
+                    <span className={`inline-block w-2.5 h-2.5 rounded-full ${r.enabled ? 'bg-emerald-400' : 'bg-slate-600'}`} title={r.enabled ? 'Enabled' : 'Disabled'} />
+                  </td>
+                  <td className="px-4 py-2 text-right flex items-center justify-end gap-1">
+                    <button
+                      onClick={() => handleEditRule(r)}
+                      className="text-slate-500 hover:text-cyan-400 transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">edit</span>
+                    </button>
                     <button
                       onClick={() => handleDeleteRule(r.id)}
                       className="text-slate-500 hover:text-red-400 transition-colors"
@@ -344,7 +372,7 @@ const DBMonitoring: React.FC = () => {
                 </tr>
               ))}
               {rules.length === 0 && (
-                <tr><td colSpan={5} className="text-center py-4 text-xs text-slate-600">No alert rules configured</td></tr>
+                <tr><td colSpan={6} className="text-center py-4 text-xs text-slate-600">No alert rules configured</td></tr>
               )}
             </tbody>
           </table>
@@ -353,9 +381,9 @@ const DBMonitoring: React.FC = () => {
 
       {/* Create rule modal */}
       {showRuleForm && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => setShowRuleForm(false)}>
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => { setShowRuleForm(false); setEditingRuleId(null); }}>
           <div className="bg-[#0d2328] border border-slate-700/50 rounded-xl w-full max-w-md p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-base font-semibold text-slate-100">New Alert Rule</h3>
+            <h3 className="text-base font-semibold text-slate-100">{editingRuleId ? 'Edit Alert Rule' : 'New Alert Rule'}</h3>
             <div className="space-y-3">
               <div>
                 <label className="block text-xs text-slate-400 mb-1">Name</label>
@@ -406,27 +434,36 @@ const DBMonitoring: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-slate-400 mb-1">Severity</label>
-                  <select
-                    value={newRule.severity}
-                    onChange={(e) => setNewRule({ ...newRule, severity: e.target.value })}
+                  <label className="block text-xs text-slate-400 mb-1">Cooldown (s)</label>
+                  <input
+                    type="number"
+                    value={newRule.cooldown}
+                    onChange={(e) => setNewRule({ ...newRule, cooldown: parseInt(e.target.value) || 0 })}
                     className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-cyan-500 outline-none"
-                  >
-                    <option value="warning">Warning</option>
-                    <option value="critical">Critical</option>
-                    <option value="info">Info</option>
-                  </select>
+                  />
                 </div>
+              </div>
+              <div>
+                <label className="block text-xs text-slate-400 mb-1">Severity</label>
+                <select
+                  value={newRule.severity}
+                  onChange={(e) => setNewRule({ ...newRule, severity: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-cyan-500 outline-none"
+                >
+                  <option value="warning">Warning</option>
+                  <option value="critical">Critical</option>
+                  <option value="info">Info</option>
+                </select>
               </div>
             </div>
             <div className="flex justify-end gap-2 pt-2">
-              <button onClick={() => setShowRuleForm(false)} className="px-4 py-2 text-sm text-slate-400 hover:text-slate-200 transition-colors">Cancel</button>
+              <button onClick={() => { setShowRuleForm(false); setEditingRuleId(null); }} className="px-4 py-2 text-sm text-slate-400 hover:text-slate-200 transition-colors">Cancel</button>
               <button
                 onClick={handleCreateRule}
                 disabled={!newRule.name}
                 className="px-4 py-2 text-sm bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white rounded-lg transition-colors"
               >
-                Create
+                {editingRuleId ? 'Update' : 'Create'}
               </button>
             </div>
           </div>
