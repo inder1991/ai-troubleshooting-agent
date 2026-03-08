@@ -7,6 +7,7 @@ interface Props {
   onSelectSubnet: (subnetId: string) => void;
   onSelectNode?: (nodeId: string, nodeType: string) => void;
   onContextMenu?: (e: React.MouseEvent, subnetId: string, cidr: string) => void;
+  onNodeContextMenu?: (e: React.MouseEvent, nodeId: string, nodeType: string, label: string) => void;
 }
 
 function utilizationColor(pct: number | undefined): string {
@@ -38,6 +39,7 @@ function TreeNode({
   onSelectSubnet,
   onSelectNode,
   onContextMenu,
+  onNodeContextMenu,
   filter,
 }: {
   node: IPAMTreeNode;
@@ -46,6 +48,7 @@ function TreeNode({
   onSelectSubnet: (id: string) => void;
   onSelectNode?: (id: string, type: string) => void;
   onContextMenu?: (e: React.MouseEvent, subnetId: string, cidr: string) => void;
+  onNodeContextMenu?: (e: React.MouseEvent, nodeId: string, nodeType: string, label: string) => void;
   filter: string;
 }) {
   const [expanded, setExpanded] = useState(depth < 2);
@@ -83,7 +86,14 @@ function TreeNode({
             setExpanded(!expanded);
           }
         }}
-        onContextMenu={isSubnet && onContextMenu ? (e) => onContextMenu(e, node.id, node.cidr || '') : undefined}
+        onContextMenu={(e) => {
+          if (isSubnet && onContextMenu) {
+            onContextMenu(e, node.id, node.cidr || '');
+          } else if (!isSubnet && node.type !== 'global' && onNodeContextMenu) {
+            e.preventDefault();
+            onNodeContextMenu(e, node.id, node.type, node.label);
+          }
+        }}
         className={`w-full flex items-center gap-1.5 px-2 py-1.5 text-sm rounded hover:bg-[#1e3a40] transition-colors ${
           isSelected ? 'bg-[#1e3a40] border-l-2 border-cyan-400' : ''
         }`}
@@ -144,6 +154,7 @@ function TreeNode({
               onSelectSubnet={onSelectSubnet}
               onSelectNode={onSelectNode}
               onContextMenu={onContextMenu}
+              onNodeContextMenu={onNodeContextMenu}
               filter={filter}
             />
           ))}
@@ -153,7 +164,7 @@ function TreeNode({
   );
 }
 
-export default function IPAMHierarchyTree({ tree, selectedSubnetId, onSelectSubnet, onSelectNode, onContextMenu }: Props) {
+export default function IPAMHierarchyTree({ tree, selectedSubnetId, onSelectSubnet, onSelectNode, onContextMenu, onNodeContextMenu }: Props) {
   const [filter, setFilter] = useState('');
 
   const filteredTree = useMemo(() => {
@@ -196,6 +207,7 @@ export default function IPAMHierarchyTree({ tree, selectedSubnetId, onSelectSubn
           onSelectSubnet={onSelectSubnet}
           onSelectNode={onSelectNode}
           onContextMenu={onContextMenu}
+          onNodeContextMenu={onNodeContextMenu}
           filter={filter}
         />
       ))}

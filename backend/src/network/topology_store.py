@@ -923,6 +923,16 @@ class TopologyStore:
                 "children": [],
             }
 
+        # Ensure a "default" site exists when no sites are created
+        if not sites:
+            site_nodes["default-site"] = {
+                "id": "default-site",
+                "label": "default",
+                "type": "site",
+                "site_type": "datacenter",
+                "children": [],
+            }
+
         # Assign VRF nodes to sites (blocks have site_id)
         assigned_vrfs: set[str] = set()
         for bid, bnode in block_nodes.items():
@@ -933,6 +943,14 @@ class TopologyStore:
                 if b and b.vrf_id in vrf_nodes and b.vrf_id not in assigned_vrfs:
                     site_nodes[sid]["children"].append(vrf_nodes[b.vrf_id])
                     assigned_vrfs.add(b.vrf_id)
+
+        # Place unassigned VRFs under default site
+        default_site_id = "default-site" if not sites else None
+        for vid, vnode in vrf_nodes.items():
+            if vid not in assigned_vrfs and vnode["children"]:
+                if default_site_id and default_site_id in site_nodes:
+                    site_nodes[default_site_id]["children"].append(vnode)
+                    assigned_vrfs.add(vid)
 
         # Build region nodes
         region_nodes: dict[str, dict] = {}
@@ -951,27 +969,34 @@ class TopologyStore:
                 region_nodes[s.region_id]["children"].append(site_nodes[s.id])
                 assigned_sites.add(s.id)
 
-        # Build final result
-        result = list(region_nodes.values())
+        # If default site exists and there are regions, assign it to the first region
+        if default_site_id and default_site_id in site_nodes and site_nodes[default_site_id]["children"]:
+            if regions:
+                first_region_id = regions[0].id
+                region_nodes[first_region_id]["children"].append(site_nodes[default_site_id])
+                assigned_sites.add(default_site_id)
 
-        # Add unassigned sites
+        # Build children for Global root
+        global_children: list[dict] = list(region_nodes.values())
+
+        # Add unassigned sites (including default if no regions exist)
         for sid, snode in site_nodes.items():
             if sid not in assigned_sites and snode["children"]:
-                result.append(snode)
+                global_children.append(snode)
 
         # Add unassigned VRFs (not linked to any site)
         for vid, vnode in vrf_nodes.items():
             if vid not in assigned_vrfs and vnode["children"]:
-                result.append(vnode)
+                global_children.append(vnode)
 
         # If no hierarchy entities exist, fall back to legacy grouping
         if not regions and not sites and not blocks:
             legacy_tree: dict[str, dict[str, list[dict]]] = {}
             for node in top_level:
-                region = node.get("_region") or "Global"
+                region = node.get("_region") or "default"
                 zone = node.get("_zone") or "default"
                 legacy_tree.setdefault(region, {}).setdefault(zone, []).append(node)
-            result = []
+            global_children = []
             for region_name, zones in legacy_tree.items():
                 zone_nodes_list = []
                 for zone_name, snodes in zones.items():
@@ -981,14 +1006,22 @@ class TopologyStore:
                         "type": "zone",
                         "children": [_clean(n) for n in snodes],
                     })
-                result.append({
+                global_children.append({
                     "id": f"region-{region_name}",
                     "label": region_name,
                     "type": "region",
                     "children": zone_nodes_list,
                 })
 
-        return result
+        # Wrap everything under a Global root node
+        global_root = {
+            "id": "global",
+            "label": "Global",
+            "type": "global",
+            "children": global_children,
+        }
+
+        return [global_root]
 
     # ── IP Address CRUD ──
     def add_ip_address(self, ip: IPAddress) -> None:

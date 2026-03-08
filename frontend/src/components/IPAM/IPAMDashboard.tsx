@@ -21,6 +21,20 @@ import {
   updateSubnet,
   fetchDNSMismatches,
   fetchCapacityForecast,
+  createRegion,
+  createSite,
+  createVRF,
+  createAddressBlock,
+  fetchRegions,
+  fetchSites,
+  fetchVRFs,
+  updateRegion,
+  deleteRegion,
+  updateSite,
+  deleteSite,
+  updateVRF,
+  deleteVRF,
+  deleteAddressBlock,
 } from '../../services/api';
 import IPAMStatCards from './IPAMStatCards';
 import IPAMHierarchyTree from './IPAMHierarchyTree';
@@ -87,6 +101,17 @@ export default function IPAMDashboard() {
 
   // Edit subnet dialog
   const [editSubnet, setEditSubnet] = useState<IPAMSubnet | null>(null);
+
+  // Hierarchy management dialogs
+  const [showCreateRegion, setShowCreateRegion] = useState(false);
+  const [showCreateSite, setShowCreateSite] = useState(false);
+  const [showCreateVRF, setShowCreateVRF] = useState(false);
+  const [showCreateBlock, setShowCreateBlock] = useState(false);
+  const [showManageMenu, setShowManageMenu] = useState(false);
+
+  // Hierarchy node context menu & edit dialogs
+  const [nodeCtxMenu, setNodeCtxMenu] = useState<{ x: number; y: number; id: string; type: string; label: string } | null>(null);
+  const [editNode, setEditNode] = useState<{ id: string; type: string; label: string } | null>(null);
 
   // Active tab
   const [activeTab, setActiveTab] = useState<'overview' | 'dhcp' | 'vlans' | 'reports' | 'calculator'>('overview');
@@ -179,13 +204,13 @@ export default function IPAMDashboard() {
     return () => { clearTimeout(timer); controller.abort(); };
   }, [globalSearch]);
 
-  // Close context menu on click anywhere
+  // Close context menus on click anywhere
   useEffect(() => {
-    if (!ctxMenu) return;
-    const handler = () => setCtxMenu(null);
+    if (!ctxMenu && !nodeCtxMenu) return;
+    const handler = () => { setCtxMenu(null); setNodeCtxMenu(null); };
     window.addEventListener('click', handler);
     return () => window.removeEventListener('click', handler);
-  }, [ctxMenu]);
+  }, [ctxMenu, nodeCtxMenu]);
 
   const handleSelectSubnet = (id: string) => { setSelectedSubnetId(id); setSelectedBlockId(''); };
 
@@ -295,6 +320,83 @@ export default function IPAMDashboard() {
     }
   };
 
+  const handleCreateRegion = async (data: Record<string, unknown>) => {
+    try {
+      await createRegion(data);
+      setShowCreateRegion(false);
+      await loadAll();
+      addToast('Region created');
+    } catch (e: unknown) {
+      addToast(e instanceof Error ? e.message : 'Failed to create region', 'error');
+    }
+  };
+
+  const handleCreateSite = async (data: Record<string, unknown>) => {
+    try {
+      await createSite(data);
+      setShowCreateSite(false);
+      await loadAll();
+      addToast('Site created');
+    } catch (e: unknown) {
+      addToast(e instanceof Error ? e.message : 'Failed to create site', 'error');
+    }
+  };
+
+  const handleCreateVRF = async (data: Record<string, unknown>) => {
+    try {
+      await createVRF(data);
+      setShowCreateVRF(false);
+      await loadAll();
+      addToast('VRF created');
+    } catch (e: unknown) {
+      addToast(e instanceof Error ? e.message : 'Failed to create VRF', 'error');
+    }
+  };
+
+  const handleCreateBlock = async (data: Record<string, unknown>) => {
+    try {
+      await createAddressBlock(data);
+      setShowCreateBlock(false);
+      await loadAll();
+      addToast('Address block created');
+    } catch (e: unknown) {
+      addToast(e instanceof Error ? e.message : 'Failed to create address block', 'error');
+    }
+  };
+
+  const handleNodeContextMenu = (e: React.MouseEvent, nodeId: string, nodeType: string, label: string) => {
+    e.preventDefault();
+    const x = Math.min(e.clientX, window.innerWidth - 180);
+    const y = Math.min(e.clientY, window.innerHeight - 180);
+    setNodeCtxMenu({ x, y, id: nodeId, type: nodeType, label });
+  };
+
+  const handleEditNode = async (nodeId: string, nodeType: string, data: Record<string, unknown>) => {
+    try {
+      if (nodeType === 'region') await updateRegion(nodeId, data);
+      else if (nodeType === 'site') await updateSite(nodeId, data);
+      else if (nodeType === 'vrf') await updateVRF(nodeId, data);
+      setEditNode(null);
+      await loadAll();
+      addToast(`${nodeType.charAt(0).toUpperCase() + nodeType.slice(1)} updated`);
+    } catch (e: unknown) {
+      addToast(e instanceof Error ? e.message : `Failed to update ${nodeType}`, 'error');
+    }
+  };
+
+  const handleDeleteNode = async (nodeId: string, nodeType: string) => {
+    try {
+      if (nodeType === 'region') await deleteRegion(nodeId);
+      else if (nodeType === 'site') await deleteSite(nodeId);
+      else if (nodeType === 'vrf') await deleteVRF(nodeId);
+      else if (nodeType === 'address_block') await deleteAddressBlock(nodeId);
+      await loadAll();
+      addToast(`${nodeType.replace('_', ' ')} deleted`);
+    } catch (e: unknown) {
+      addToast(e instanceof Error ? e.message : `Failed to delete ${nodeType}`, 'error');
+    }
+  };
+
   const handleSubnetContext = (e: React.MouseEvent, subnetId: string, cidr: string) => {
     e.preventDefault();
     const x = Math.min(e.clientX, window.innerWidth - 180);
@@ -398,6 +500,37 @@ export default function IPAMDashboard() {
             <span className="material-symbols-outlined text-sm">add</span>
             Subnet
           </button>
+          {/* Manage dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setShowManageMenu((p) => !p)}
+              onBlur={() => setTimeout(() => setShowManageMenu(false), 150)}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#132a2f] border border-[#1e3a40] rounded text-sm text-slate-300 hover:bg-[#1e3a40]"
+            >
+              <span className="material-symbols-outlined text-sm">add</span>
+              Manage
+              <span className="material-symbols-outlined text-xs">arrow_drop_down</span>
+            </button>
+            {showManageMenu && (
+              <div className="absolute right-0 top-full mt-1 z-50 bg-[#132a2f] border border-[#1e3a40] rounded-lg shadow-xl w-48 py-1">
+                {([
+                  { label: 'Add Region', icon: 'public', action: () => { setShowCreateRegion(true); setShowManageMenu(false); } },
+                  { label: 'Add Site', icon: 'domain', action: () => { setShowCreateSite(true); setShowManageMenu(false); } },
+                  { label: 'Add VRF', icon: 'route', action: () => { setShowCreateVRF(true); setShowManageMenu(false); } },
+                  { label: 'Add Address Block', icon: 'grid_view', action: () => { setShowCreateBlock(true); setShowManageMenu(false); } },
+                ] as const).map((item) => (
+                  <button
+                    key={item.label}
+                    onMouseDown={item.action}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-slate-300 hover:bg-[#1e3a40]"
+                  >
+                    <span className="material-symbols-outlined text-sm text-slate-400">{item.icon}</span>
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -459,6 +592,7 @@ export default function IPAMDashboard() {
                   }
                 }}
                 onContextMenu={handleSubnetContext}
+                onNodeContextMenu={handleNodeContextMenu}
               />
             )}
           </div>
@@ -733,6 +867,46 @@ export default function IPAMDashboard() {
         </div>
       )}
 
+      {/* Hierarchy Node Context Menu */}
+      {nodeCtxMenu && (
+        <div
+          className="fixed z-[100] bg-[#132a2f] border border-[#1e3a40] rounded-lg shadow-xl py-1 min-w-[160px]"
+          style={{ left: nodeCtxMenu.x, top: nodeCtxMenu.y }}
+        >
+          {nodeCtxMenu.type !== 'address_block' && (
+            <button
+              onClick={() => {
+                setEditNode({ id: nodeCtxMenu.id, type: nodeCtxMenu.type, label: nodeCtxMenu.label });
+                setNodeCtxMenu(null);
+              }}
+              className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-slate-300 hover:bg-[#1e3a40]"
+            >
+              <span className="material-symbols-outlined text-sm">edit</span>
+              Edit {nodeCtxMenu.type}
+            </button>
+          )}
+          <button
+            onClick={() => {
+              const { id, type, label } = nodeCtxMenu;
+              setNodeCtxMenu(null);
+              setConfirmDialog({
+                open: true,
+                title: `Delete ${type.replace('_', ' ')}`,
+                message: `Are you sure you want to delete "${label}"? This cannot be undone.`,
+                onConfirm: () => {
+                  handleDeleteNode(id, type);
+                  setConfirmDialog(prev => ({ ...prev, open: false }));
+                },
+              });
+            }}
+            className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-red-400 hover:bg-red-900/20"
+          >
+            <span className="material-symbols-outlined text-sm">delete</span>
+            Delete {nodeCtxMenu.type.replace('_', ' ')}
+          </button>
+        </div>
+      )}
+
       {/* Dialogs */}
       {showImport && (
         <ImportDialog
@@ -774,6 +948,27 @@ export default function IPAMDashboard() {
           parentCidr={allocTarget.cidr}
           onClose={() => setAllocTarget(null)}
           onCreated={() => { setAllocTarget(null); loadAll(); addToast('Subnet allocated'); }}
+        />
+      )}
+      {showCreateRegion && (
+        <CreateRegionDialog onClose={() => setShowCreateRegion(false)} onCreate={handleCreateRegion} />
+      )}
+      {showCreateSite && (
+        <CreateSiteDialog onClose={() => setShowCreateSite(false)} onCreate={handleCreateSite} />
+      )}
+      {showCreateVRF && (
+        <CreateVRFDialog onClose={() => setShowCreateVRF(false)} onCreate={handleCreateVRF} />
+      )}
+      {showCreateBlock && (
+        <CreateAddressBlockDialog onClose={() => setShowCreateBlock(false)} onCreate={handleCreateBlock} />
+      )}
+      {editNode && (
+        <EditNodeDialog
+          nodeId={editNode.id}
+          nodeType={editNode.type}
+          currentName={editNode.label}
+          onClose={() => setEditNode(null)}
+          onSave={(data) => handleEditNode(editNode.id, editNode.type, data)}
         />
       )}
 
@@ -885,10 +1080,21 @@ function CreateSubnetDialog({
 }: { onClose: () => void; onCreate: (data: Record<string, string>) => void }) {
   const [form, setForm] = useState({
     cidr: '', region: '', zone_id: '', gateway_ip: '',
-    vlan_id: '', environment: '', description: '', site: '',
+    vlan_id: '', environment: '', description: '', site: 'default',
+    cloud_provider: '', vpc_id: '', vrf_id: 'default', subnet_role: '',
   });
   const set = (k: string, v: string) => setForm((p) => ({ ...p, [k]: v }));
   const cidrInfo = form.cidr ? parseCIDRInfo(form.cidr) : null;
+
+  const [regionOptions, setRegionOptions] = useState<{ id: string; name: string }[]>([]);
+  const [siteOptions, setSiteOptions] = useState<{ id: string; name: string }[]>([]);
+  const [vrfOptions, setVrfOptions] = useState<{ id: string; name: string }[]>([]);
+
+  useEffect(() => {
+    fetchRegions().then((res) => setRegionOptions(res.regions || res || [])).catch(() => {});
+    fetchSites().then((res) => setSiteOptions(res.sites || res || [])).catch(() => {});
+    fetchVRFs().then((res) => setVrfOptions(res.vrfs || res || [])).catch(() => {});
+  }, []);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
@@ -898,11 +1104,10 @@ function CreateSubnetDialog({
           {[
             { key: 'cidr', label: 'CIDR *', placeholder: '10.10.1.0/24' },
             { key: 'gateway_ip', label: 'Gateway IP', placeholder: '10.10.1.1' },
-            { key: 'region', label: 'Region', placeholder: 'US-East' },
             { key: 'zone_id', label: 'Zone', placeholder: 'VPC-1' },
             { key: 'vlan_id', label: 'VLAN', placeholder: '100' },
             { key: 'environment', label: 'Environment', placeholder: 'prod' },
-            { key: 'site', label: 'Site', placeholder: 'DC-East-1' },
+            { key: 'vpc_id', label: 'VPC ID', placeholder: 'vpc-0abc123' },
             { key: 'description', label: 'Description', placeholder: 'Web tier subnet' },
           ].map((f) => (
             <div key={f.key} className="flex items-center gap-3">
@@ -915,6 +1120,81 @@ function CreateSubnetDialog({
               />
             </div>
           ))}
+          {/* Region dropdown */}
+          <div className="flex items-center gap-3">
+            <label className="text-xs text-slate-400 w-24 text-right">Region</label>
+            <select
+              value={form.region}
+              onChange={(e) => set('region', e.target.value)}
+              className="flex-1 px-3 py-1.5 bg-[#0f2023] border border-[#1e3a40] rounded text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
+            >
+              <option value="">— Select region —</option>
+              {regionOptions.map((r) => (
+                <option key={r.id} value={r.name}>{r.name}</option>
+              ))}
+            </select>
+          </div>
+          {/* Site dropdown */}
+          <div className="flex items-center gap-3">
+            <label className="text-xs text-slate-400 w-24 text-right">Site</label>
+            <select
+              value={form.site}
+              onChange={(e) => set('site', e.target.value)}
+              className="flex-1 px-3 py-1.5 bg-[#0f2023] border border-[#1e3a40] rounded text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
+            >
+              <option value="default">default</option>
+              {siteOptions.filter((s) => s.name !== 'default').map((s) => (
+                <option key={s.id} value={s.name}>{s.name}</option>
+              ))}
+            </select>
+          </div>
+          {/* VRF dropdown */}
+          <div className="flex items-center gap-3">
+            <label className="text-xs text-slate-400 w-24 text-right">VRF</label>
+            <select
+              value={form.vrf_id}
+              onChange={(e) => set('vrf_id', e.target.value)}
+              className="flex-1 px-3 py-1.5 bg-[#0f2023] border border-[#1e3a40] rounded text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
+            >
+              <option value="default">default</option>
+              {vrfOptions.filter((v) => v.id !== 'default').map((v) => (
+                <option key={v.id} value={v.id}>{v.name}</option>
+              ))}
+            </select>
+          </div>
+          {/* Cloud Provider dropdown */}
+          <div className="flex items-center gap-3">
+            <label className="text-xs text-slate-400 w-24 text-right">Provider</label>
+            <select
+              value={form.cloud_provider}
+              onChange={(e) => set('cloud_provider', e.target.value)}
+              className="flex-1 px-3 py-1.5 bg-[#0f2023] border border-[#1e3a40] rounded text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
+            >
+              <option value="">On-Premises</option>
+              <option value="aws">AWS</option>
+              <option value="azure">Azure</option>
+              <option value="gcp">GCP</option>
+              <option value="oci">OCI</option>
+            </select>
+          </div>
+          {/* Subnet Role dropdown */}
+          <div className="flex items-center gap-3">
+            <label className="text-xs text-slate-400 w-24 text-right">Role</label>
+            <select
+              value={form.subnet_role}
+              onChange={(e) => set('subnet_role', e.target.value)}
+              className="flex-1 px-3 py-1.5 bg-[#0f2023] border border-[#1e3a40] rounded text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
+            >
+              <option value="">None</option>
+              <option value="server">Server</option>
+              <option value="storage">Storage</option>
+              <option value="voice">Voice</option>
+              <option value="dmz">DMZ</option>
+              <option value="management">Management</option>
+              <option value="user">User</option>
+              <option value="iot">IoT</option>
+            </select>
+          </div>
           {/* CIDR Calculator */}
           {form.cidr && cidrInfo && (
             <div className="ml-[108px] p-2.5 bg-[#0f2023] border border-[#1e3a40] rounded text-xs space-y-1">
@@ -1088,6 +1368,10 @@ function EditSubnetDialog({
     environment: subnet.environment || '',
     description: subnet.description || '',
     site: subnet.site || '',
+    cloud_provider: subnet.cloud_provider || '',
+    vpc_id: subnet.vpc_id || '',
+    vrf_id: subnet.vrf_id || 'default',
+    subnet_role: subnet.subnet_role || '',
   });
   const set = (k: string, v: string) => setForm((p) => ({ ...p, [k]: v }));
 
@@ -1096,7 +1380,7 @@ function EditSubnetDialog({
       <div className="bg-[#132a2f] border border-[#1e3a40] rounded-lg p-6 w-[440px]">
         <h3 className="text-sm font-semibold text-slate-200 mb-1">Edit Subnet</h3>
         <div className="font-mono text-cyan-300 text-sm mb-4">{subnet.cidr}</div>
-        <div className="space-y-3">
+        <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
           {[
             { key: 'gateway_ip', label: 'Gateway IP' },
             { key: 'region', label: 'Region' },
@@ -1104,6 +1388,8 @@ function EditSubnetDialog({
             { key: 'vlan_id', label: 'VLAN' },
             { key: 'environment', label: 'Environment' },
             { key: 'site', label: 'Site' },
+            { key: 'vpc_id', label: 'VPC ID' },
+            { key: 'vrf_id', label: 'VRF' },
             { key: 'description', label: 'Description' },
           ].map((f) => (
             <div key={f.key} className="flex items-center gap-3">
@@ -1115,6 +1401,39 @@ function EditSubnetDialog({
               />
             </div>
           ))}
+          {/* Cloud Provider dropdown */}
+          <div className="flex items-center gap-3">
+            <label className="text-xs text-slate-400 w-24 text-right">Provider</label>
+            <select
+              value={form.cloud_provider}
+              onChange={(e) => set('cloud_provider', e.target.value)}
+              className="flex-1 px-3 py-1.5 bg-[#0f2023] border border-[#1e3a40] rounded text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
+            >
+              <option value="">On-Premises</option>
+              <option value="aws">AWS</option>
+              <option value="azure">Azure</option>
+              <option value="gcp">GCP</option>
+              <option value="oci">OCI</option>
+            </select>
+          </div>
+          {/* Subnet Role dropdown */}
+          <div className="flex items-center gap-3">
+            <label className="text-xs text-slate-400 w-24 text-right">Role</label>
+            <select
+              value={form.subnet_role}
+              onChange={(e) => set('subnet_role', e.target.value)}
+              className="flex-1 px-3 py-1.5 bg-[#0f2023] border border-[#1e3a40] rounded text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
+            >
+              <option value="">None</option>
+              <option value="server">Server</option>
+              <option value="storage">Storage</option>
+              <option value="voice">Voice</option>
+              <option value="dmz">DMZ</option>
+              <option value="management">Management</option>
+              <option value="user">User</option>
+              <option value="iot">IoT</option>
+            </select>
+          </div>
         </div>
         <div className="flex justify-end gap-2 mt-5">
           <button onClick={onClose} className="px-3 py-1.5 text-sm text-slate-400 hover:text-slate-200">Cancel</button>
@@ -1122,8 +1441,323 @@ function EditSubnetDialog({
             onClick={() => onSave({
               ...form,
               vlan_id: parseInt(form.vlan_id || '0', 10),
+              cloud_provider: form.cloud_provider,
+              vpc_id: form.vpc_id,
+              vrf_id: form.vrf_id,
+              subnet_role: form.subnet_role,
             })}
             className="px-3 py-1.5 text-sm bg-cyan-600 text-white rounded hover:bg-cyan-500"
+          >Save</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Create Region Dialog ──
+
+function CreateRegionDialog({
+  onClose, onCreate,
+}: { onClose: () => void; onCreate: (data: Record<string, unknown>) => void }) {
+  const [name, setName] = useState('');
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+      <div className="bg-[#132a2f] border border-[#1e3a40] rounded-lg p-6 w-[400px]">
+        <h3 className="text-sm font-semibold text-slate-200 mb-4 flex items-center gap-2">
+          <span className="material-symbols-outlined text-lg text-cyan-400">public</span>
+          Create Region
+        </h3>
+        <div className="space-y-3">
+          <div className="flex items-center gap-3">
+            <label className="text-xs text-slate-400 w-20 text-right">Name *</label>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="US-East"
+              className="flex-1 px-3 py-1.5 bg-[#0f2023] border border-[#1e3a40] rounded text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-cyan-500"
+            />
+          </div>
+        </div>
+        <div className="flex justify-end gap-2 mt-5">
+          <button onClick={onClose} className="px-3 py-1.5 text-sm text-slate-400 hover:text-slate-200">Cancel</button>
+          <button
+            onClick={() => name.trim() && onCreate({ name: name.trim() })}
+            disabled={!name.trim()}
+            className="px-3 py-1.5 text-sm bg-cyan-600 text-white rounded hover:bg-cyan-500 disabled:opacity-40"
+          >Create</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Create Site Dialog ──
+
+function CreateSiteDialog({
+  onClose, onCreate,
+}: { onClose: () => void; onCreate: (data: Record<string, unknown>) => void }) {
+  const [name, setName] = useState('');
+  const [regionId, setRegionId] = useState('');
+  const [siteType, setSiteType] = useState('datacenter');
+  const [regions, setRegions] = useState<{ id: string; name: string }[]>([]);
+
+  useEffect(() => {
+    fetchRegions().then((res) => setRegions(res.regions || res || [])).catch(() => {});
+  }, []);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+      <div className="bg-[#132a2f] border border-[#1e3a40] rounded-lg p-6 w-[420px]">
+        <h3 className="text-sm font-semibold text-slate-200 mb-4 flex items-center gap-2">
+          <span className="material-symbols-outlined text-lg text-cyan-400">domain</span>
+          Create Site
+        </h3>
+        <div className="space-y-3">
+          <div className="flex items-center gap-3">
+            <label className="text-xs text-slate-400 w-20 text-right">Name *</label>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="DC-East-1"
+              className="flex-1 px-3 py-1.5 bg-[#0f2023] border border-[#1e3a40] rounded text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-cyan-500"
+            />
+          </div>
+          <div className="flex items-center gap-3">
+            <label className="text-xs text-slate-400 w-20 text-right">Region</label>
+            <select
+              value={regionId}
+              onChange={(e) => setRegionId(e.target.value)}
+              className="flex-1 px-3 py-1.5 bg-[#0f2023] border border-[#1e3a40] rounded text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
+            >
+              <option value="">— Select region —</option>
+              {regions.map((r) => (
+                <option key={r.id} value={r.id}>{r.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-center gap-3">
+            <label className="text-xs text-slate-400 w-20 text-right">Type</label>
+            <select
+              value={siteType}
+              onChange={(e) => setSiteType(e.target.value)}
+              className="flex-1 px-3 py-1.5 bg-[#0f2023] border border-[#1e3a40] rounded text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
+            >
+              <option value="datacenter">Datacenter</option>
+              <option value="branch">Branch</option>
+              <option value="cloud">Cloud</option>
+              <option value="colo">Colo</option>
+            </select>
+          </div>
+        </div>
+        <div className="flex justify-end gap-2 mt-5">
+          <button onClick={onClose} className="px-3 py-1.5 text-sm text-slate-400 hover:text-slate-200">Cancel</button>
+          <button
+            onClick={() => name.trim() && onCreate({ name: name.trim(), region_id: regionId || undefined, site_type: siteType })}
+            disabled={!name.trim()}
+            className="px-3 py-1.5 text-sm bg-cyan-600 text-white rounded hover:bg-cyan-500 disabled:opacity-40"
+          >Create</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Create VRF Dialog ──
+
+function CreateVRFDialog({
+  onClose, onCreate,
+}: { onClose: () => void; onCreate: (data: Record<string, unknown>) => void }) {
+  const [name, setName] = useState('');
+  const [rd, setRd] = useState('');
+  const [description, setDescription] = useState('');
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+      <div className="bg-[#132a2f] border border-[#1e3a40] rounded-lg p-6 w-[420px]">
+        <h3 className="text-sm font-semibold text-slate-200 mb-4 flex items-center gap-2">
+          <span className="material-symbols-outlined text-lg text-cyan-400">route</span>
+          Create VRF
+        </h3>
+        <div className="space-y-3">
+          <div className="flex items-center gap-3">
+            <label className="text-xs text-slate-400 w-24 text-right">Name *</label>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="production"
+              className="flex-1 px-3 py-1.5 bg-[#0f2023] border border-[#1e3a40] rounded text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-cyan-500"
+            />
+          </div>
+          <div className="flex items-center gap-3">
+            <label className="text-xs text-slate-400 w-24 text-right">RD</label>
+            <input
+              value={rd}
+              onChange={(e) => setRd(e.target.value)}
+              placeholder="65000:100"
+              className="flex-1 px-3 py-1.5 bg-[#0f2023] border border-[#1e3a40] rounded text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-cyan-500"
+            />
+          </div>
+          <div className="flex items-center gap-3">
+            <label className="text-xs text-slate-400 w-24 text-right">Description</label>
+            <input
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Production routing domain"
+              className="flex-1 px-3 py-1.5 bg-[#0f2023] border border-[#1e3a40] rounded text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-cyan-500"
+            />
+          </div>
+        </div>
+        <div className="flex justify-end gap-2 mt-5">
+          <button onClick={onClose} className="px-3 py-1.5 text-sm text-slate-400 hover:text-slate-200">Cancel</button>
+          <button
+            onClick={() => name.trim() && onCreate({ name: name.trim(), rd: rd || undefined, description: description || undefined })}
+            disabled={!name.trim()}
+            className="px-3 py-1.5 text-sm bg-cyan-600 text-white rounded hover:bg-cyan-500 disabled:opacity-40"
+          >Create</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Create Address Block Dialog ──
+
+function CreateAddressBlockDialog({
+  onClose, onCreate,
+}: { onClose: () => void; onCreate: (data: Record<string, unknown>) => void }) {
+  const [cidr, setCidr] = useState('');
+  const [vrfId, setVrfId] = useState('');
+  const [siteId, setSiteId] = useState('');
+  const [rir, setRir] = useState('private');
+  const [vrfs, setVrfs] = useState<{ id: string; name: string }[]>([]);
+  const [sites, setSites] = useState<{ id: string; name: string }[]>([]);
+
+  useEffect(() => {
+    fetchVRFs().then((res) => setVrfs(res.vrfs || res || [])).catch(() => {});
+    fetchSites().then((res) => setSites(res.sites || res || [])).catch(() => {});
+  }, []);
+
+  const cidrInfo = cidr ? parseCIDRInfo(cidr) : null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+      <div className="bg-[#132a2f] border border-[#1e3a40] rounded-lg p-6 w-[440px]">
+        <h3 className="text-sm font-semibold text-slate-200 mb-4 flex items-center gap-2">
+          <span className="material-symbols-outlined text-lg text-cyan-400">grid_view</span>
+          Create Address Block
+        </h3>
+        <div className="space-y-3">
+          <div className="flex items-center gap-3">
+            <label className="text-xs text-slate-400 w-20 text-right">CIDR *</label>
+            <input
+              value={cidr}
+              onChange={(e) => setCidr(e.target.value)}
+              placeholder="10.0.0.0/8"
+              className="flex-1 px-3 py-1.5 bg-[#0f2023] border border-[#1e3a40] rounded text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-cyan-500"
+            />
+          </div>
+          {cidr && cidrInfo && (
+            <div className="ml-[92px] p-2 bg-[#0f2023] border border-[#1e3a40] rounded text-xs space-y-1">
+              <div className="flex justify-between"><span className="text-slate-500">Network:</span><span className="font-mono text-slate-300">{cidrInfo.network}</span></div>
+              <div className="flex justify-between"><span className="text-slate-500">Hosts:</span><span className="font-mono text-cyan-300">{cidrInfo.hosts?.toLocaleString()}</span></div>
+            </div>
+          )}
+          {cidr && !cidrInfo && (
+            <div className="ml-[92px] text-xs text-red-400">Invalid CIDR notation</div>
+          )}
+          <div className="flex items-center gap-3">
+            <label className="text-xs text-slate-400 w-20 text-right">VRF</label>
+            <select
+              value={vrfId}
+              onChange={(e) => setVrfId(e.target.value)}
+              className="flex-1 px-3 py-1.5 bg-[#0f2023] border border-[#1e3a40] rounded text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
+            >
+              <option value="">— Select VRF —</option>
+              {vrfs.map((v) => (
+                <option key={v.id} value={v.id}>{v.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-center gap-3">
+            <label className="text-xs text-slate-400 w-20 text-right">Site</label>
+            <select
+              value={siteId}
+              onChange={(e) => setSiteId(e.target.value)}
+              className="flex-1 px-3 py-1.5 bg-[#0f2023] border border-[#1e3a40] rounded text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
+            >
+              <option value="">— Select site —</option>
+              {sites.map((s) => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-center gap-3">
+            <label className="text-xs text-slate-400 w-20 text-right">RIR</label>
+            <select
+              value={rir}
+              onChange={(e) => setRir(e.target.value)}
+              className="flex-1 px-3 py-1.5 bg-[#0f2023] border border-[#1e3a40] rounded text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
+            >
+              <option value="private">Private (RFC1918)</option>
+              <option value="ARIN">ARIN</option>
+              <option value="RIPE">RIPE</option>
+              <option value="APNIC">APNIC</option>
+            </select>
+          </div>
+        </div>
+        <div className="flex justify-end gap-2 mt-5">
+          <button onClick={onClose} className="px-3 py-1.5 text-sm text-slate-400 hover:text-slate-200">Cancel</button>
+          <button
+            onClick={() => cidr && cidrInfo && onCreate({ cidr, vrf_id: vrfId || undefined, site_id: siteId || undefined, rir })}
+            disabled={!cidr || !cidrInfo}
+            className="px-3 py-1.5 text-sm bg-cyan-600 text-white rounded hover:bg-cyan-500 disabled:opacity-40"
+          >Create</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Edit Node Dialog (Region / Site / VRF) ──
+
+function EditNodeDialog({
+  nodeId: _nodeId, nodeType, currentName, onClose, onSave,
+}: {
+  nodeId: string;
+  nodeType: string;
+  currentName: string;
+  onClose: () => void;
+  onSave: (data: Record<string, unknown>) => void;
+}) {
+  const [name, setName] = useState(currentName);
+
+  const iconMap: Record<string, string> = { region: 'public', site: 'domain', vrf: 'route' };
+  const label = nodeType.charAt(0).toUpperCase() + nodeType.slice(1);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+      <div className="bg-[#132a2f] border border-[#1e3a40] rounded-lg p-6 w-[400px]">
+        <h3 className="text-sm font-semibold text-slate-200 mb-4 flex items-center gap-2">
+          <span className="material-symbols-outlined text-lg text-cyan-400">{iconMap[nodeType] || 'edit'}</span>
+          Edit {label}
+        </h3>
+        <div className="space-y-3">
+          <div className="flex items-center gap-3">
+            <label className="text-xs text-slate-400 w-20 text-right">Name *</label>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="flex-1 px-3 py-1.5 bg-[#0f2023] border border-[#1e3a40] rounded text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-cyan-500"
+            />
+          </div>
+        </div>
+        <div className="flex justify-end gap-2 mt-5">
+          <button onClick={onClose} className="px-3 py-1.5 text-sm text-slate-400 hover:text-slate-200">Cancel</button>
+          <button
+            onClick={() => name.trim() && onSave({ name: name.trim() })}
+            disabled={!name.trim()}
+            className="px-3 py-1.5 text-sm bg-cyan-600 text-white rounded hover:bg-cyan-500 disabled:opacity-40"
           >Save</button>
         </div>
       </div>

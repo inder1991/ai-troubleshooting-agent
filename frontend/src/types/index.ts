@@ -1579,7 +1579,7 @@ export interface IPAMDevice {
 export interface IPAMTreeNode {
   id: string;
   label: string;
-  type: 'region' | 'vpc' | 'zone' | 'subnet' | 'site' | 'vrf' | 'address_block';
+  type: 'global' | 'region' | 'vpc' | 'zone' | 'subnet' | 'site' | 'vrf' | 'address_block';
   cidr?: string;
   utilization_pct?: number;
   children: IPAMTreeNode[];
