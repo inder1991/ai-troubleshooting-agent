@@ -119,6 +119,21 @@ class MetricsStore:
         )
         await self._safe_write(point)
 
+    async def write_ipam_utilization(
+        self, subnet_id: str, utilization_pct: float,
+        total: int, assigned: int, available: int,
+    ) -> None:
+        point = (
+            Point("ipam_utilization")
+            .tag("subnet_id", subnet_id)
+            .field("utilization_pct", float(utilization_pct))
+            .field("total", total)
+            .field("assigned", assigned)
+            .field("available", available)
+            .time(datetime.now(timezone.utc), WritePrecision.S)
+        )
+        await self._safe_write(point)
+
     async def write_dns_metric(
         self, server_id: str, server_ip: str, hostname: str,
         record_type: str, latency_ms: float, success: bool,
@@ -136,6 +151,40 @@ class MetricsStore:
             .time(datetime.now(timezone.utc), WritePrecision.S)
         )
         await self._safe_write(point)
+
+    async def write_db_metric(
+        self, profile_id: str, engine: str, metric: str, value: float,
+    ) -> None:
+        """Write a single DB metric point."""
+        try:
+            point = (
+                Point("db_metrics")
+                .tag("profile_id", profile_id)
+                .tag("engine", engine)
+                .tag("metric_type", metric)
+                .field("value", float(value))
+            )
+            await self._write_api.write(bucket=self.bucket, record=point)
+        except Exception as e:
+            logger.warning("Failed to write DB metric: %s", e)
+
+    async def write_db_metrics_batch(
+        self, profile_id: str, engine: str, metrics: dict[str, float],
+    ) -> None:
+        """Write multiple DB metrics at once."""
+        try:
+            points = []
+            for metric, value in metrics.items():
+                points.append(
+                    Point("db_metrics")
+                    .tag("profile_id", profile_id)
+                    .tag("engine", engine)
+                    .tag("metric_type", metric)
+                    .field("value", float(value))
+                )
+            await self._write_api.write(bucket=self.bucket, record=points)
+        except Exception as e:
+            logger.warning("Failed to write DB metrics batch: %s", e)
 
     # -- Input Validation ------------------------------------------------
 
@@ -298,4 +347,57 @@ class MetricsStore:
             ]
         except Exception as e:
             logger.warning("InfluxDB DNS query failed: %s", e)
+            return []
+
+    async def query_ipam_utilization(
+        self, subnet_id: str, range_str: str = "7d", resolution: str = "1h",
+    ) -> list[dict]:
+        range_str = self._validate_duration(range_str)
+        resolution = self._validate_duration(resolution)
+        subnet_id = self._validate_id(subnet_id)
+        query = f'''
+        from(bucket: "{self.bucket}")
+          |> range(start: -{range_str})
+          |> filter(fn: (r) => r._measurement == "ipam_utilization")
+          |> filter(fn: (r) => r.subnet_id == "{subnet_id}")
+          |> filter(fn: (r) => r._field == "utilization_pct")
+          |> aggregateWindow(every: {resolution}, fn: mean, createEmpty: false)
+          |> yield(name: "mean")
+        '''
+        try:
+            tables = await self._query_api.query(query)
+            return [
+                {"time": r.get_time().isoformat(), "value": r.get_value()}
+                for table in tables for r in table.records
+            ]
+        except Exception as e:
+            logger.warning("InfluxDB IPAM query failed: %s", e)
+            return []
+
+    async def query_db_metrics(
+        self, profile_id: str, metric: str, duration: str = "1h",
+        resolution: str = "1m",
+    ) -> list[dict]:
+        """Query time-series DB metrics."""
+        duration = self._validate_duration(duration)
+        resolution = self._validate_duration(resolution)
+        profile_id = self._validate_id(profile_id)
+        metric = self._validate_id(metric)
+        flux = f'''
+        from(bucket: "{self.bucket}")
+          |> range(start: -{duration})
+          |> filter(fn: (r) => r._measurement == "db_metrics")
+          |> filter(fn: (r) => r.profile_id == "{profile_id}")
+          |> filter(fn: (r) => r.metric_type == "{metric}")
+          |> aggregateWindow(every: {resolution}, fn: mean, createEmpty: false)
+          |> yield(name: "mean")
+        '''
+        try:
+            tables = await self._query_api.query(flux, org=self.org)
+            return [
+                {"time": r.get_time().isoformat(), "value": r.get_value()}
+                for table in tables for r in table.records
+            ]
+        except Exception as e:
+            logger.warning("Failed to query DB metrics: %s", e)
             return []
