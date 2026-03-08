@@ -15,6 +15,10 @@ def client():
     import src.api.db_endpoints as mod
     mod._profile_store = None
     mod._run_store = None
+    mod._db_monitor = None
+    mod._metrics_store = None
+    mod._alert_engine = None
+    mod._db_adapter_registry = None
 
     from src.api.db_endpoints import db_router
     from fastapi import FastAPI

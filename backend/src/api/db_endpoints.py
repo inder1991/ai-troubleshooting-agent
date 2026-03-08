@@ -18,6 +18,10 @@ db_router = APIRouter(prefix="/api/db", tags=["database"])
 
 _profile_store = None
 _run_store = None
+_db_monitor = None
+_metrics_store = None
+_alert_engine = None
+_db_adapter_registry = None
 
 
 def _get_profile_store():
@@ -38,6 +42,26 @@ def _get_run_store():
         db_path = os.environ.get("DB_DIAGNOSTICS_DB_PATH", "data/debugduck.db")
         _run_store = DiagnosticRunStore(db_path=db_path)
     return _run_store
+
+
+def _get_db_monitor():
+    return _db_monitor
+
+
+def _get_metrics_store():
+    return _metrics_store
+
+
+def _get_alert_engine():
+    return _alert_engine
+
+
+def _get_db_adapter_registry():
+    global _db_adapter_registry
+    if _db_adapter_registry is None:
+        from src.database.adapters.registry import DatabaseAdapterRegistry
+        _db_adapter_registry = DatabaseAdapterRegistry()
+    return _db_adapter_registry
 
 
 # ── Request models ──
@@ -272,3 +296,173 @@ def get_diagnostic_run(run_id: str):
     if not run:
         raise HTTPException(status_code=404, detail="Run not found")
     return run
+
+
+# ── Monitor endpoints ──
+
+
+@db_router.get("/monitor/status")
+def monitor_status():
+    monitor = _get_db_monitor()
+    if monitor:
+        return monitor.get_snapshot()
+    return {"running": False, "interval": 30, "profiles": []}
+
+
+@db_router.get("/monitor/metrics/{profile_id}/{metric}")
+async def monitor_metrics(profile_id: str, metric: str, duration: str = "1h", resolution: str = "1m"):
+    ms = _get_metrics_store()
+    if not ms:
+        return []
+    return await ms.query_db_metrics(profile_id, metric, duration, resolution)
+
+
+@db_router.post("/monitor/start")
+async def monitor_start():
+    monitor = _get_db_monitor()
+    if not monitor:
+        raise HTTPException(status_code=503, detail="DBMonitor not initialized")
+    await monitor.start()
+    return {"status": "started"}
+
+
+@db_router.post("/monitor/stop")
+async def monitor_stop():
+    monitor = _get_db_monitor()
+    if not monitor:
+        raise HTTPException(status_code=503, detail="DBMonitor not initialized")
+    await monitor.stop()
+    return {"status": "stopped"}
+
+
+# ── Alert endpoints ──
+
+
+@db_router.get("/alerts/rules")
+def list_alert_rules():
+    engine = _get_alert_engine()
+    if not engine:
+        from src.database.db_alert_rules import DEFAULT_DB_ALERT_RULES
+        return [
+            {"id": r.id, "name": r.name, "severity": r.severity,
+             "metric": r.metric, "condition": r.condition,
+             "threshold": r.threshold, "enabled": r.enabled}
+            for r in DEFAULT_DB_ALERT_RULES
+        ]
+    rules = engine.list_rules()
+    return [
+        r for r in rules
+        if getattr(r, 'entity_type', '') == 'database'
+           or (isinstance(r, dict) and r.get('entity_type') == 'database')
+    ]
+
+
+@db_router.post("/alerts/rules")
+def create_alert_rule(rule: dict):
+    engine = _get_alert_engine()
+    if not engine:
+        raise HTTPException(status_code=503, detail="AlertEngine not initialized")
+    rule["entity_type"] = "database"
+    from src.network.alert_engine import AlertRule
+    new_rule = AlertRule(**rule)
+    engine.add_rule(new_rule)
+    return {"id": new_rule.id, "status": "created"}
+
+
+@db_router.delete("/alerts/rules/{rule_id}")
+def delete_alert_rule(rule_id: str):
+    engine = _get_alert_engine()
+    if not engine:
+        raise HTTPException(status_code=503, detail="AlertEngine not initialized")
+    engine.remove_rule(rule_id)
+    return {"status": "deleted"}
+
+
+@db_router.get("/alerts/active")
+def active_alerts():
+    engine = _get_alert_engine()
+    if not engine:
+        return []
+    all_alerts = engine.get_active_alerts()
+    return [a for a in all_alerts if a.get("entity_id", "").startswith("db:")]
+
+
+@db_router.get("/alerts/history")
+def alert_history_endpoint(profile_id: Optional[str] = None, severity: Optional[str] = None, limit: int = 50):
+    engine = _get_alert_engine()
+    if not engine:
+        return []
+    history = engine.get_alert_history(
+        entity_id=f"db:{profile_id}" if profile_id else None,
+        severity=severity, limit=limit,
+    )
+    return history
+
+
+# ── Schema endpoints ──
+
+
+@db_router.get("/schema/{profile_id}")
+async def get_schema(profile_id: str):
+    profile = _get_profile_store().get(profile_id)
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    registry = _get_db_adapter_registry()
+    adapter = registry.get_by_profile(profile_id)
+
+    if not adapter:
+        try:
+            if profile["engine"] == "postgresql":
+                from src.database.adapters.postgres import PostgresAdapter
+                adapter = PostgresAdapter(
+                    host=profile["host"], port=profile["port"],
+                    database=profile["database"],
+                    username=profile["username"], password=profile["password"],
+                )
+                await adapter.connect()
+            else:
+                raise HTTPException(status_code=400, detail=f"Unsupported engine: {profile['engine']}")
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(status_code=502, detail=str(e))
+
+    try:
+        schema = await adapter.get_schema_snapshot()
+        return schema.model_dump()
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+
+@db_router.get("/schema/{profile_id}/table/{table_name}")
+async def get_table_detail_endpoint(profile_id: str, table_name: str):
+    profile = _get_profile_store().get(profile_id)
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    registry = _get_db_adapter_registry()
+    adapter = registry.get_by_profile(profile_id)
+
+    if not adapter:
+        try:
+            if profile["engine"] == "postgresql":
+                from src.database.adapters.postgres import PostgresAdapter
+                adapter = PostgresAdapter(
+                    host=profile["host"], port=profile["port"],
+                    database=profile["database"],
+                    username=profile["username"], password=profile["password"],
+                )
+                await adapter.connect()
+            else:
+                raise HTTPException(status_code=400, detail=f"Unsupported engine: {profile['engine']}")
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(status_code=502, detail=str(e))
+
+    try:
+        detail = await adapter.get_table_detail(table_name)
+        return detail.model_dump()
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))

@@ -289,8 +289,52 @@ def create_app() -> FastAPI:
         except Exception as e:
             logger.warning("Search endpoints init failed: %s", e)
 
+        # ── Initialize DB Monitor ──
+        try:
+            import asyncio
+            from src.database.db_monitor import DBMonitor
+            from src.database.db_alert_rules import DEFAULT_DB_ALERT_RULES
+            import src.api.db_endpoints as db_ep
+
+            db_profile_store = db_ep._get_profile_store()
+            db_registry = db_ep._get_db_adapter_registry()
+
+            db_alert_engine = None
+            try:
+                if monitor and hasattr(monitor, 'alert_engine') and monitor.alert_engine:
+                    db_alert_engine = monitor.alert_engine
+                    for rule in DEFAULT_DB_ALERT_RULES:
+                        try:
+                            db_alert_engine.add_rule(rule)
+                        except Exception:
+                            pass
+            except Exception:
+                pass
+
+            db_monitor = DBMonitor(
+                profile_store=db_profile_store,
+                adapter_registry=db_registry,
+                metrics_store=metrics_store,
+                alert_engine=db_alert_engine,
+                broadcast_callback=manager.broadcast,
+            )
+            db_ep._db_monitor = db_monitor
+            db_ep._metrics_store = metrics_store
+            db_ep._alert_engine = db_alert_engine
+            db_ep._db_adapter_registry = db_registry
+
+            asyncio.create_task(db_monitor.start())
+            logger.info("DBMonitor started")
+        except Exception as e:
+            logger.warning("DBMonitor startup failed: %s", e)
+
     @app.on_event("shutdown")
     async def shutdown():
+        import src.api.db_endpoints as db_ep
+        if db_ep._db_monitor:
+            await db_ep._db_monitor.stop()
+            logger.info("DBMonitor stopped")
+
         from src.api import flow_endpoints
         if flow_endpoints._flow_receiver:
             await flow_endpoints._flow_receiver.stop()
