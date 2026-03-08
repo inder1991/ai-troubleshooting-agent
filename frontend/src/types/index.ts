@@ -1466,3 +1466,122 @@ export interface VPNSegment {
 export interface LBHop {
   device_id: string; device_name: string; device_type: string;
 }
+
+
+// ── IPAM Types ──
+
+export type IPStatus = 'available' | 'reserved' | 'assigned' | 'deprecated';
+export type IPType = 'static' | 'dynamic' | 'gateway' | 'network' | 'broadcast';
+
+export interface IPAddress {
+  id: string;
+  address: string;
+  subnet_id: string;
+  status: IPStatus;
+  ip_type: IPType;
+  assigned_device_id: string;
+  assigned_interface_id: string;
+  hostname: string;
+  mac_address: string;
+  vendor: string;
+  description: string;
+  last_seen: string;
+  created_at: string;
+}
+
+export interface IPAuditEvent {
+  id: number;
+  ip_id: string;
+  address: string;
+  action: string;
+  old_status: string;
+  new_status: string;
+  device_id: string;
+  details: string;
+  timestamp: string;
+}
+
+export interface IPConflict {
+  address: string;
+  cnt: number;
+  subnet_ids: string;
+  statuses: string;
+}
+
+export interface IPAMSubnet {
+  id: string;
+  cidr: string;
+  vlan_id: number;
+  zone_id: string;
+  gateway_ip: string;
+  description: string;
+  site: string;
+  parent_subnet_id: string;
+  region: string;
+  environment: string;
+  ip_version: number;
+  vpc_id: string;
+  cloud_provider: string;
+  total?: number;
+  available?: number;
+  assigned?: number;
+  reserved?: number;
+  deprecated?: number;
+  utilization_pct?: number;
+}
+
+export interface DNSMismatch {
+  type: 'missing_hostname' | 'duplicate_hostname';
+  address?: string;
+  hostname?: string;
+  subnet_cidr?: string;
+  device_id?: string;
+  count?: number;
+  addresses?: string;
+  detail: string;
+}
+
+export interface CapacityForecast {
+  subnet_id: string;
+  cidr: string;
+  region: string;
+  environment: string;
+  total: number;
+  available: number;
+  assigned: number;
+  reserved: number;
+  utilization_pct: number;
+  days_until_full: number | null;
+  risk_level: 'critical' | 'warning' | 'ok';
+}
+
+export interface IPAMDevice {
+  id: string;
+  name: string;
+  management_ip: string;
+  device_type: string;
+  zone_id: string;
+  vlan_id: number;
+  description: string;
+  vendor: string;
+  location: string;
+}
+
+export interface IPAMTreeNode {
+  id: string;
+  label: string;
+  type: 'region' | 'vpc' | 'zone' | 'subnet';
+  cidr?: string;
+  utilization_pct?: number;
+  children: IPAMTreeNode[];
+}
+
+export interface IPAMStats {
+  total_subnets: number;
+  total_ips: number;
+  assigned_ips: number;
+  available_ips: number;
+  reserved_ips: number;
+  deprecated_ips: number;
+  overall_utilization_pct: number;
+}
