@@ -53,7 +53,7 @@ A fully standalone database management module for DebugDuck supporting PostgreSQ
 
 ```
 ┌─────────────── Experience Plane (Frontend) ──────────────────┐
-│  DB Dashboard: Profiles sidebar + 4 tabs (Health/Diag/Mon/Ops) │
+│  DB Dashboard: Capability sidebar + content area (Overview/Connections/Diag/Mon/Ops/Schema) │
 ├─────────────── Control Plane (API) ──────────────────────────┤
 │  db_endpoints.py: FastAPI router at /api/db/*                  │
 │  WebSocket channel for live diagnostic progress                │
@@ -166,54 +166,81 @@ No batch remediation. One fix at a time. Serial, not parallel.
 
 Fully standalone. **Not integrated with app/cluster War Room.**
 
-- App diagnostic = **Investigation** (one incident, ephemeral)
-- DB diagnostic = **Management** (persistent profiles, ongoing relationship)
+- App diagnostic = **Investigation** (one incident, ephemeral) → War Room UI
+- DB diagnostic = **Management** (persistent profiles, ongoing relationship) → Dashboard with capability sidebar
 
-Different mental models require different UI patterns.
+Different mental models require different UI patterns. The DB dashboard uses **capability-first navigation** (sidebar = what you want to do, content area = which database), not profile-first tabs.
 
-### 4.2 Layout
+### 4.2 Navigation Model
+
+**Capability-first sidebar** — like AWS Console, Datadog, or Grafana:
 
 ```
-┌─ Profiles ─┬─────────────────────────────────────────────────────────┐
-│            │  prod-pg > Health                    [Diagnose] [⚙]     │
-│  + Add     ├─────────────────────────────────────────────────────────┤
-│            │  [Health] [Diagnostics] [Monitoring] [Operations]       │
-│  prod-pg   ├─────────────────────────────────────────────────────────┤
-│    🟢      │                                                         │
-│  stg-mongo │  (Tab content area)                                     │
-│    🟡      │                                                         │
-│  dev-mysql │                                                         │
-│    🔴      │                                                         │
-└────────────┴─────────────────────────────────────────────────────────┘
+┌──────────────────┬──────────────────────────────────────────────┐
+│  Databases       │                                              │
+│                  │  Content area changes based on               │
+│  ┌────────────┐  │  sidebar selection                           │
+│  │ Overview   │◄─│                                              │
+│  ├────────────┤  │  Each section has its own layout,            │
+│  │ Connections│  │  with DB selector dropdown where needed      │
+│  ├────────────┤  │                                              │
+│  │ Diagnostics│  │                                              │
+│  ├────────────┤  │                                              │
+│  │ Monitoring │  │  (P1)                                        │
+│  ├────────────┤  │                                              │
+│  │ Operations │  │  (P2)                                        │
+│  ├────────────┤  │                                              │
+│  │ Schema     │  │  (P1)                                        │
+│  └────────────┘  │                                              │
+│                  │                                              │
+│  ── Settings ──  │                                              │
+│  Alert Rules (P1)│                                              │
+│  Audit Log   (P2)│                                              │
+└──────────────────┴──────────────────────────────────────────────┘
 ```
 
-### 4.3 Tabs
+**Why capability-first, not profile-first:**
+- Fleet overview across all DBs without clicking each profile
+- Sidebar scales (new features = new sidebar items, not crowded tabs)
+- Cross-DB views possible (monitoring alerts across all DBs)
+- Clean deep-linkable URLs: `/db/diagnostics/prod-pg`
+- Mental model: "What do I want to do?" then "Which DB?"
 
-**Health (P0):** Point-in-time snapshot. Gauges (connections, cache hit, repl lag, disk), slow queries table, active connections table, replication topology.
+### 4.3 Sidebar Sections
 
-**Diagnostics (P0):** Launch diagnostic runs. History of past runs with findings count. Expanded view with finding cards, query plan viewer, recommendations.
+**Overview (P0):** Fleet health cards for all connected DBs. Status indicator (green/yellow/red), engine badge, key metric per card. Recent alerts (P1) and recent diagnostic runs.
 
-**Monitoring (P1):** Time-series charts (latency p50/95/99, connections, repl lag, storage). Alert rules CRUD. Alert history with fired/resolved states. Time range selector.
+**Connections (P0):** Profile CRUD table. Create/edit/delete/test connection profiles. Engine type, host, port, database, credentials.
 
-**Operations (P2):** Pending actions with approve/reject. Quick actions (kill query, vacuum, tune param, reindex). Execution log with full audit trail and rollback records.
+**Diagnostics (P0):** DB selector dropdown at top. Run history table. Launch new diagnostic. Expanded findings view with query plan viewer and recommendations.
 
-P1/P2 tabs show "Coming Soon" placeholder until their phase ships.
+**Monitoring (P1):** DB selector + time range. Time-series charts (latency p50/95/99, connections, repl lag). Alert rules CRUD. Alert fire/resolve history.
+
+**Operations (P2):** DB selector. Pending remediation approvals. Quick actions (kill query, vacuum, reindex, tune). Execution audit log with before/after state.
+
+**Schema (P1):** DB selector. Schema browser (tables/views/functions tree). Table detail with columns, indexes, size, bloat. Schema diff between snapshots.
+
+P1/P2 sidebar items show "Coming Soon" placeholder until their phase ships.
 
 ### 4.4 Components
 
 | Component | Purpose | Phase |
 |-----------|---------|-------|
-| `DBDashboard.tsx` | Page shell, sidebar, tab router | P0 |
-| `DBProfileManager.tsx` | CRUD modal for connection profiles | P0 |
-| `DBHealthTab.tsx` | Gauges + tables snapshot view | P0 |
-| `DBDiagnosticsTab.tsx` | Run history + findings view | P0 |
+| `DBLayout.tsx` | Page shell: sidebar + content area | P0 |
+| `DBSidebar.tsx` | Capability navigation sidebar | P0 |
+| `DBOverview.tsx` | Fleet health cards grid | P0 |
+| `DBConnections.tsx` | Profile CRUD table | P0 |
+| `DBProfileForm.tsx` | Create/edit profile modal | P0 |
+| `DBDiagnostics.tsx` | Run history + findings view | P0 |
+| `DBDiagnosticRun.tsx` | Single run detail (findings list) | P0 |
 | `DBHealthGauge.tsx` | Circular gauge (reusable) | P0 |
 | `QueryPlanViewer.tsx` | EXPLAIN tree renderer | P0 |
 | `SlowQueryTable.tsx` | Sortable slow query list | P0 |
-| `DBMonitoringTab.tsx` | Time-series charts + alert rules | P1 |
+| `DBMonitoring.tsx` | Time-series charts + alerts | P1 |
 | `DBAlertRuleEditor.tsx` | Alert rule CRUD form | P1 |
+| `DBSchema.tsx` | Schema browser + table detail | P1 |
 | `SchemaCompareView.tsx` | Side-by-side schema diff | P1 |
-| `DBOperationsTab.tsx` | Remediation console | P2 |
+| `DBOperations.tsx` | Remediation console | P2 |
 | `RemediationApprovalCard.tsx` | Plan + approve/reject | P2 |
 
 ---
@@ -330,18 +357,22 @@ backend/src/
 
 frontend/src/components/
 ├── Database/
-│   ├── DBDashboard.tsx
-│   ├── DBProfileManager.tsx
-│   ├── DBHealthTab.tsx
-│   ├── DBDiagnosticsTab.tsx
-│   ├── DBHealthGauge.tsx
-│   ├── QueryPlanViewer.tsx
-│   ├── SlowQueryTable.tsx
-│   ├── DBMonitoringTab.tsx     # P1
-│   ├── DBAlertRuleEditor.tsx   # P1
-│   ├── SchemaCompareView.tsx   # P1
-│   ├── DBOperationsTab.tsx     # P2
-│   └── RemediationApprovalCard.tsx  # P2
+│   ├── DBLayout.tsx              # Page shell: sidebar + content area
+│   ├── DBSidebar.tsx             # Capability navigation sidebar
+│   ├── DBOverview.tsx            # Fleet health cards grid
+│   ├── DBConnections.tsx         # Profile CRUD table
+│   ├── DBProfileForm.tsx         # Create/edit profile modal
+│   ├── DBDiagnostics.tsx         # Run history + findings
+│   ├── DBDiagnosticRun.tsx       # Single run detail view
+│   ├── DBHealthGauge.tsx         # Circular gauge (reusable)
+│   ├── QueryPlanViewer.tsx       # EXPLAIN tree renderer
+│   ├── SlowQueryTable.tsx        # Sortable slow query list
+│   ├── DBMonitoring.tsx          # Time-series charts + alerts (P1)
+│   ├── DBAlertRuleEditor.tsx     # Alert rule CRUD form (P1)
+│   ├── DBSchema.tsx              # Schema browser + detail (P1)
+│   ├── SchemaCompareView.tsx     # Side-by-side schema diff (P1)
+│   ├── DBOperations.tsx          # Remediation console (P2)
+│   └── RemediationApprovalCard.tsx  # Plan + approve/reject (P2)
 ```
 
 ---
