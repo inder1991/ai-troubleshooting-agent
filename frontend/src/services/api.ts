@@ -1317,3 +1317,60 @@ export const syncCloudAccount = async (accountId: string) => {
   if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to sync cloud account'));
   return resp.json();
 };
+
+// ── Database Diagnostics API ──
+
+export const fetchDBProfiles = async () => {
+  const resp = await fetch(`${API_BASE_URL}/api/db/profiles`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch DB profiles'));
+  return resp.json();
+};
+
+export const createDBProfile = async (data: Record<string, unknown>) => {
+  const resp = await fetch(`${API_BASE_URL}/api/db/profiles`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
+  });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to create DB profile'));
+  return resp.json();
+};
+
+export const updateDBProfile = async (id: string, data: Record<string, unknown>) => {
+  const resp = await fetch(`${API_BASE_URL}/api/db/profiles/${id}`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
+  });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to update DB profile'));
+  return resp.json();
+};
+
+export const deleteDBProfile = async (id: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/db/profiles/${id}`, { method: 'DELETE' });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to delete DB profile'));
+  return resp.json();
+};
+
+export const fetchDBProfileHealth = async (profileId: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/db/profiles/${profileId}/health`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch DB health'));
+  return resp.json();
+};
+
+export const startDBDiagnostic = async (profileId: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/db/diagnostics/start`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ profile_id: profileId }),
+  });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to start diagnostic'));
+  return resp.json();
+};
+
+export const fetchDBDiagnosticRun = async (runId: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/db/diagnostics/${runId}`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch diagnostic run'));
+  return resp.json();
+};
+
+export const fetchDBDiagnosticHistory = async (profileId: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/db/diagnostics/history?profile_id=${profileId}`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch diagnostic history'));
+  return resp.json();
+};

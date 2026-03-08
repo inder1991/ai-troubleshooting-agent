@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 export type NavView = 'home' | 'sessions' | 'app-diagnostics' | 'cluster-diagnostics'
   | 'network-troubleshooting' | 'pr-review' | 'github-issue-fix'
   | 'network-topology' | 'network-adapters' | 'ipam' | 'matrix' | 'observatory'
-  | 'integrations' | 'settings' | 'agents';
+  | 'database' | 'integrations' | 'settings' | 'agents';
 
 type NavLink = { kind: 'link'; id: NavView; label: string; icon: string };
 type NavGroup = { kind: 'group'; group: string; icon: string; children: { id: NavView; label: string; icon: string }[] };
@@ -41,6 +41,7 @@ const navItems: NavItem[] = [
       { id: 'ipam', label: 'IPAM', icon: 'dns' },
       { id: 'observatory', label: 'Observatory', icon: 'monitoring' },
       { id: 'matrix', label: 'Matrix', icon: 'grid_view' },
+      { id: 'database', label: 'Databases', icon: 'storage' },
     ],
   },
   {

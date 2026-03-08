@@ -35,15 +35,16 @@ import PostMortemDossierView from './components/Investigation/PostMortemDossierV
 import ClusterWarRoom from './components/ClusterDiagnostic/ClusterWarRoom';
 import AgentMatrixView from './components/AgentMatrix/AgentMatrixView';
 import TopologyEditorView from './components/TopologyEditor/TopologyEditorView';
-import IPAMInventoryView from './components/IPAM/IPAMInventoryView';
+import IPAMDashboard from './components/IPAM/IPAMDashboard';
 import NetworkWarRoom from './components/NetworkTroubleshooting/NetworkWarRoom';
 import ReachabilityMatrix from './components/NetworkTroubleshooting/ReachabilityMatrix';
 import NetworkAdaptersView from './components/Network/NetworkAdaptersView';
 import ObservatoryView from './components/Observatory/ObservatoryView';
+import DatabaseLayout from './components/Database/DatabaseLayout';
 import { Breadcrumbs } from './components/shared';
 
 
-type ViewState = 'home' | 'form' | 'investigation' | 'sessions' | 'integrations' | 'settings' | 'dossier' | 'cluster-diagnostics' | 'agent-matrix' | 'network-troubleshooting' | 'network-topology' | 'network-adapters' | 'ipam' | 'matrix' | 'observatory';
+type ViewState = 'home' | 'form' | 'investigation' | 'sessions' | 'integrations' | 'settings' | 'dossier' | 'cluster-diagnostics' | 'agent-matrix' | 'network-troubleshooting' | 'network-topology' | 'network-adapters' | 'ipam' | 'matrix' | 'observatory' | 'database';
 
 function AppInner() {
   const { addToast } = useToast();
@@ -424,7 +425,7 @@ function AppInner() {
     sessions: 'sessions', integrations: 'integrations', settings: 'settings',
     'agent-matrix': 'agents', 'network-topology': 'network-topology',
     'network-adapters': 'network-adapters', ipam: 'ipam', matrix: 'matrix',
-    observatory: 'observatory',
+    observatory: 'observatory', database: 'database',
   };
 
   const navView: NavView =
@@ -450,6 +451,7 @@ function AppInner() {
     ipam: { label: 'IPAM', parent: 'home' },
     matrix: { label: 'Matrix', parent: 'home' },
     observatory: { label: 'Observatory', parent: 'home' },
+    database: { label: 'Databases', parent: 'home' },
     // Configuration group
     integrations: { label: 'Integrations', parent: 'home' },
     settings: { label: 'Settings', parent: 'home' },
@@ -525,7 +527,7 @@ function AppInner() {
         )}
 
         {viewState === 'ipam' && (
-          <IPAMInventoryView />
+          <IPAMDashboard />
         )}
 
         {viewState === 'matrix' && (
@@ -534,6 +536,10 @@ function AppInner() {
 
         {viewState === 'observatory' && (
           <ObservatoryView />
+        )}
+
+        {viewState === 'database' && (
+          <DatabaseLayout />
         )}
 
         {viewState === 'form' && selectedCapability && (
