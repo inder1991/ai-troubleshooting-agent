@@ -16,7 +16,7 @@ const cards = [
 
 export default function IPAMStatCards({ stats }: Props) {
   return (
-    <div className="grid grid-cols-6 gap-3">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
       {cards.map((c) => {
         const value = stats[c.key];
         const isTotal = c.key === 'total_ips';

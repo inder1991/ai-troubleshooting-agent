@@ -347,11 +347,41 @@ async def ipam_create_subnet(body: dict):
         region=body.get("region", ""),
         environment=body.get("environment", ""),
         ip_version=int(body.get("ip_version", 4)),
+        vpc_id=body.get("vpc_id", ""),
+        cloud_provider=body.get("cloud_provider", ""),
         vrf_id=body.get("vrf_id", "default"),
         subnet_role=body.get("subnet_role", ""),
         address_block_id=body.get("address_block_id", ""),
         site_id=body.get("site_id", ""),
     )
+    # Auto-detect address_block_id and validate subnet fits within a block
+    import ipaddress as _ipaddr
+    try:
+        subnet_net = _ipaddr.ip_network(subnet.cidr, strict=False)
+        vrf_blocks = [b for b in store.list_address_blocks() if b.vrf_id == subnet.vrf_id]
+
+        if not subnet.address_block_id and vrf_blocks:
+            matched = False
+            for blk in vrf_blocks:
+                blk_net = _ipaddr.ip_network(blk.cidr, strict=False)
+                if subnet_net.subnet_of(blk_net):
+                    subnet.address_block_id = blk.id
+                    if blk.site_id and not subnet.site_id:
+                        subnet.site_id = blk.site_id
+                    matched = True
+                    break
+            if not matched:
+                block_cidrs = ", ".join(b.cidr for b in vrf_blocks)
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Subnet {subnet.cidr} does not fit within any address block "
+                           f"in VRF '{subnet.vrf_id}'. Available blocks: {block_cidrs}",
+                )
+    except HTTPException:
+        raise
+    except ValueError:
+        pass
+
     store.add_subnet(subnet)
     # Initialize free ranges for lazy allocation
     store.init_free_ranges(subnet.id, subnet.cidr, subnet.gateway_ip)

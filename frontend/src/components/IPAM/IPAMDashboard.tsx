@@ -28,6 +28,7 @@ import {
   fetchRegions,
   fetchSites,
   fetchVRFs,
+  fetchAddressBlocks,
   updateRegion,
   deleteRegion,
   updateSite,
@@ -243,6 +244,11 @@ export default function IPAMDashboard() {
         environment: data.environment,
         description: data.description,
         site: data.site,
+        vrf_id: data.vrf_id || 'default',
+        site_id: data.site_id || '',
+        cloud_provider: data.cloud_provider || '',
+        vpc_id: data.vpc_id || '',
+        subnet_role: data.subnet_role || '',
       });
       if (result.subnet?.id) {
         await populateSubnetIPs(result.subnet.id);
@@ -1082,6 +1088,7 @@ function CreateSubnetDialog({
     cidr: '', region: '', zone_id: '', gateway_ip: '',
     vlan_id: '', environment: '', description: '', site: 'default',
     cloud_provider: '', vpc_id: '', vrf_id: 'default', subnet_role: '',
+    site_id: '',
   });
   const set = (k: string, v: string) => setForm((p) => ({ ...p, [k]: v }));
   const cidrInfo = form.cidr ? parseCIDRInfo(form.cidr) : null;
@@ -1089,12 +1096,36 @@ function CreateSubnetDialog({
   const [regionOptions, setRegionOptions] = useState<{ id: string; name: string }[]>([]);
   const [siteOptions, setSiteOptions] = useState<{ id: string; name: string }[]>([]);
   const [vrfOptions, setVrfOptions] = useState<{ id: string; name: string }[]>([]);
+  const [blockOptions, setBlockOptions] = useState<{ id: string; cidr: string; vrf_id: string }[]>([]);
 
   useEffect(() => {
     fetchRegions().then((res) => setRegionOptions(res.regions || res || [])).catch(() => {});
     fetchSites().then((res) => setSiteOptions(res.sites || res || [])).catch(() => {});
     fetchVRFs().then((res) => setVrfOptions(res.vrfs || res || [])).catch(() => {});
+    fetchAddressBlocks().then((res) => setBlockOptions(res.blocks || res || [])).catch(() => {});
   }, []);
+
+  // Validate subnet CIDR fits within an address block for the selected VRF
+  const vrfBlocks = blockOptions.filter((b) => b.vrf_id === form.vrf_id);
+  const cidrFitsBlock = (() => {
+    if (!cidrInfo || !form.cidr || vrfBlocks.length === 0) return true; // no blocks = no constraint
+    const subnetInfo = parseCIDRInfo(form.cidr);
+    if (!subnetInfo) return true;
+    for (const blk of vrfBlocks) {
+      const blkInfo = parseCIDRInfo(blk.cidr);
+      if (!blkInfo || !blkInfo.prefix || !subnetInfo.prefix) continue;
+      // Check if subnet is within block: block prefix must be shorter and network must match
+      if (subnetInfo.prefix >= blkInfo.prefix) {
+        const blkParts = blk.cidr.split('/')[0].split('.').map(Number);
+        const subParts = form.cidr.split('/')[0].split('.').map(Number);
+        const blkNum = ((blkParts[0] << 24) | (blkParts[1] << 16) | (blkParts[2] << 8) | blkParts[3]) >>> 0;
+        const subNum = ((subParts[0] << 24) | (subParts[1] << 16) | (subParts[2] << 8) | subParts[3]) >>> 0;
+        const mask = blkInfo.prefix === 0 ? 0 : (~((1 << (32 - blkInfo.prefix)) - 1)) >>> 0;
+        if ((blkNum & mask) === (subNum & mask)) return true;
+      }
+    }
+    return false;
+  })();
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
@@ -1138,13 +1169,16 @@ function CreateSubnetDialog({
           <div className="flex items-center gap-3">
             <label className="text-xs text-slate-400 w-24 text-right">Site</label>
             <select
-              value={form.site}
-              onChange={(e) => set('site', e.target.value)}
+              value={form.site_id}
+              onChange={(e) => {
+                const selected = siteOptions.find((s) => s.id === e.target.value);
+                setForm((p) => ({ ...p, site_id: e.target.value, site: selected?.name || 'default' }));
+              }}
               className="flex-1 px-3 py-1.5 bg-[#0f2023] border border-[#1e3a40] rounded text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
             >
-              <option value="default">default</option>
-              {siteOptions.filter((s) => s.name !== 'default').map((s) => (
-                <option key={s.id} value={s.name}>{s.name}</option>
+              <option value="">default</option>
+              {siteOptions.map((s) => (
+                <option key={s.id} value={s.id}>{s.name}</option>
               ))}
             </select>
           </div>
@@ -1220,12 +1254,17 @@ function CreateSubnetDialog({
           {form.cidr && !cidrInfo && (
             <div className="ml-[108px] text-xs text-red-400">Invalid CIDR notation</div>
           )}
+          {form.cidr && cidrInfo && !cidrFitsBlock && (
+            <div className="ml-[108px] text-xs text-red-400">
+              Subnet does not fit within any address block in this VRF ({vrfBlocks.map((b) => b.cidr).join(', ')})
+            </div>
+          )}
         </div>
         <div className="flex justify-end gap-2 mt-5">
           <button onClick={onClose} className="px-3 py-1.5 text-sm text-slate-400 hover:text-slate-200">Cancel</button>
           <button
-            onClick={() => form.cidr && cidrInfo && onCreate(form)}
-            disabled={!form.cidr || !cidrInfo}
+            onClick={() => form.cidr && cidrInfo && cidrFitsBlock && onCreate(form)}
+            disabled={!form.cidr || !cidrInfo || !cidrFitsBlock}
             className="px-3 py-1.5 text-sm bg-cyan-600 text-white rounded hover:bg-cyan-500 disabled:opacity-40"
           >Create & Populate</button>
         </div>

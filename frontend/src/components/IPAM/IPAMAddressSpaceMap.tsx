@@ -39,7 +39,8 @@ export default function IPAMAddressSpaceMap({ blockId }: Props) {
   }
 
   const totalSize = data.total_hosts || 1;
-  const allocatedSize = data.subnets.reduce((sum, s) => sum + s.size, 0);
+  const subnets = data.subnets || [];
+  const allocatedSize = subnets.reduce((sum, s) => sum + s.size, 0);
   const freeSize = totalSize - allocatedSize;
   const freePct = (freeSize / totalSize) * 100;
 
@@ -56,7 +57,7 @@ export default function IPAMAddressSpaceMap({ blockId }: Props) {
 
       {/* Stacked bar */}
       <div className="flex h-10 rounded-lg overflow-hidden border border-[#1e3a40]">
-        {data.subnets.map((seg, i) => {
+        {subnets.map((seg, i) => {
           const widthPct = (seg.size / totalSize) * 100;
           if (widthPct < 0.5) return null;
           return (
@@ -94,7 +95,7 @@ export default function IPAMAddressSpaceMap({ blockId }: Props) {
 
       {/* Subnet list */}
       <div className="space-y-1">
-        {data.subnets.map((seg, i) => (
+        {subnets.map((seg, i) => (
           <div key={i} className="flex items-center gap-3 text-xs">
             <div className={`w-3 h-3 rounded-sm ${utilizationGradient(seg.utilization_pct)}`} />
             <span className="font-mono text-slate-300 w-32">{seg.cidr}</span>

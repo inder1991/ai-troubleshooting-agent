@@ -933,16 +933,13 @@ class TopologyStore:
                 "children": [],
             }
 
-        # Assign VRF nodes to sites (blocks have site_id)
+        # Assign VRF nodes to sites (use block model data, not cleaned nodes)
         assigned_vrfs: set[str] = set()
-        for bid, bnode in block_nodes.items():
-            sid = bnode.get("_site_id", "")
-            if sid and sid in site_nodes:
-                # Find the VRF this block belongs to
-                b = next((bl for bl in blocks if bl.id == bid), None)
-                if b and b.vrf_id in vrf_nodes and b.vrf_id not in assigned_vrfs:
-                    site_nodes[sid]["children"].append(vrf_nodes[b.vrf_id])
-                    assigned_vrfs.add(b.vrf_id)
+        for b in blocks:
+            sid = b.site_id
+            if sid and sid in site_nodes and b.vrf_id in vrf_nodes and b.vrf_id not in assigned_vrfs:
+                site_nodes[sid]["children"].append(vrf_nodes[b.vrf_id])
+                assigned_vrfs.add(b.vrf_id)
 
         # Place unassigned VRFs under default site
         default_site_id = "default-site" if not sites else None
