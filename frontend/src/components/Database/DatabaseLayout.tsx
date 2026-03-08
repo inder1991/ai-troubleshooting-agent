@@ -1,18 +1,22 @@
 /**
  * DatabaseLayout — Main wrapper with capability-first sidebar.
- * Internal sub-views: overview, connections, diagnostics.
+ * Internal sub-views: overview, connections, diagnostics, monitoring, schema.
  */
 import React, { useState } from 'react';
 import DBOverview from './DBOverview';
 import DBConnections from './DBConnections';
 import DBDiagnostics from './DBDiagnostics';
+import DBMonitoring from './DBMonitoring';
+import DBSchema from './DBSchema';
 
-type DBView = 'overview' | 'connections' | 'diagnostics';
+type DBView = 'overview' | 'connections' | 'diagnostics' | 'monitoring' | 'schema';
 
 const sidebarItems: { id: DBView; label: string; icon: string }[] = [
   { id: 'overview', label: 'Overview', icon: 'dashboard' },
   { id: 'connections', label: 'Connections', icon: 'cable' },
   { id: 'diagnostics', label: 'Diagnostics', icon: 'troubleshoot' },
+  { id: 'monitoring', label: 'Monitoring', icon: 'monitoring' },
+  { id: 'schema', label: 'Schema', icon: 'account_tree' },
 ];
 
 const DatabaseLayout: React.FC = () => {
@@ -50,6 +54,8 @@ const DatabaseLayout: React.FC = () => {
         {activeView === 'overview' && <DBOverview />}
         {activeView === 'connections' && <DBConnections />}
         {activeView === 'diagnostics' && <DBDiagnostics />}
+        {activeView === 'monitoring' && <DBMonitoring />}
+        {activeView === 'schema' && <DBSchema />}
       </div>
     </div>
   );

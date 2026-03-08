@@ -1374,3 +1374,77 @@ export const fetchDBDiagnosticHistory = async (profileId: string) => {
   if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch diagnostic history'));
   return resp.json();
 };
+
+// ── Database Monitoring API ──
+
+export const fetchDBMonitorStatus = async () => {
+  const resp = await fetch(`${API_BASE_URL}/api/db/monitor/status`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch monitor status'));
+  return resp.json();
+};
+
+export const fetchDBMonitorMetrics = async (profileId: string, metric: string, duration = '1h', resolution = '1m') => {
+  const resp = await fetch(`${API_BASE_URL}/api/db/monitor/metrics/${profileId}/${metric}?duration=${duration}&resolution=${resolution}`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch metrics'));
+  return resp.json();
+};
+
+export const startDBMonitor = async () => {
+  const resp = await fetch(`${API_BASE_URL}/api/db/monitor/start`, { method: 'POST' });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to start monitor'));
+  return resp.json();
+};
+
+export const stopDBMonitor = async () => {
+  const resp = await fetch(`${API_BASE_URL}/api/db/monitor/stop`, { method: 'POST' });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to stop monitor'));
+  return resp.json();
+};
+
+export const fetchDBAlertRules = async () => {
+  const resp = await fetch(`${API_BASE_URL}/api/db/alerts/rules`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch alert rules'));
+  return resp.json();
+};
+
+export const createDBAlertRule = async (rule: Record<string, unknown>) => {
+  const resp = await fetch(`${API_BASE_URL}/api/db/alerts/rules`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(rule),
+  });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to create alert rule'));
+  return resp.json();
+};
+
+export const deleteDBAlertRule = async (ruleId: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/db/alerts/rules/${ruleId}`, { method: 'DELETE' });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to delete alert rule'));
+  return resp.json();
+};
+
+export const fetchDBActiveAlerts = async () => {
+  const resp = await fetch(`${API_BASE_URL}/api/db/alerts/active`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch active alerts'));
+  return resp.json();
+};
+
+export const fetchDBAlertHistory = async (profileId?: string, severity?: string, limit = 50) => {
+  const params = new URLSearchParams();
+  if (profileId) params.set('profile_id', profileId);
+  if (severity) params.set('severity', severity);
+  params.set('limit', String(limit));
+  const resp = await fetch(`${API_BASE_URL}/api/db/alerts/history?${params}`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch alert history'));
+  return resp.json();
+};
+
+export const fetchDBSchema = async (profileId: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/db/schema/${profileId}`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch schema'));
+  return resp.json();
+};
+
+export const fetchDBTableDetail = async (profileId: string, tableName: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/db/schema/${profileId}/table/${tableName}`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch table detail'));
+  return resp.json();
+};
