@@ -213,3 +213,58 @@ async def test_data_resets_on_each_flush(aggregator):
     apps = aggregator.get_applications()
     assert len(apps) == 1
     assert apps[0]["application"] == "DNS"
+
+
+# ── Bounding / OOM Prevention ──
+
+@pytest.mark.asyncio
+async def test_conversations_bounded(aggregator):
+    """Conversations dict should not exceed MAX_CONVERSATIONS."""
+    for i in range(15000):
+        aggregator.ingest(_make_flow(f"10.{i//256}.{i%256}.1", f"10.{i//256}.{i%256}.2", bytes_=100))
+    await aggregator.flush()
+    convos = aggregator.get_conversations(limit=20000)
+    assert len(convos) <= 10001  # MAX_CONVERSATIONS default
+
+
+@pytest.mark.asyncio
+async def test_applications_bounded(aggregator, monkeypatch):
+    """Applications dict should not exceed MAX_APPLICATIONS."""
+    # Patch APP_PORTS to have 700 distinct application names so we exceed MAX_APPLICATIONS
+    import src.network.flow_receiver as fr
+    big_app_ports = {10000 + i: f"App-{i}" for i in range(700)}
+    monkeypatch.setattr(fr, "APP_PORTS", big_app_ports)
+
+    for i in range(700):
+        aggregator.ingest(_make_flow(dst_port=10000 + i, bytes_=100))
+    await aggregator.flush()
+    apps = aggregator.get_applications(limit=1000)
+    assert len(apps) <= 501  # MAX_APPLICATIONS default
+
+
+@pytest.mark.asyncio
+async def test_asn_stats_bounded(aggregator):
+    """ASN stats dict should not exceed MAX_ASN_ENTRIES."""
+    for i in range(1, 1500):
+        aggregator.ingest(_make_flow(src_as=i, bytes_=100))
+    await aggregator.flush()
+    asns = aggregator.get_asn_breakdown(limit=2000)
+    assert len(asns) <= 1001  # MAX_ASN_ENTRIES default
+
+
+@pytest.mark.asyncio
+async def test_bounding_keeps_highest_byte_entries(aggregator):
+    """Eviction should remove lowest-byte-count entries, keeping highest."""
+    # Ingest more conversations than MAX_CONVERSATIONS
+    # Give one conversation a very high byte count
+    for i in range(12000):
+        aggregator.ingest(_make_flow(f"10.{i//256}.{i%256}.1", f"10.{i//256}.{i%256}.2", bytes_=1))
+    # Add a high-value conversation
+    aggregator.ingest(_make_flow("192.168.0.1", "192.168.0.2", bytes_=999999))
+    await aggregator.flush()
+    convos = aggregator.get_conversations(limit=20000)
+    assert len(convos) <= 10001
+    # The high-value conversation must survive eviction
+    high_value = [c for c in convos if c["src_ip"] == "192.168.0.1" and c["dst_ip"] == "192.168.0.2"]
+    assert len(high_value) == 1
+    assert high_value[0]["bytes"] == 999999

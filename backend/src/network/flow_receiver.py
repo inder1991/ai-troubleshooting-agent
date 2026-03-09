@@ -293,6 +293,9 @@ class FlowAggregator:
         self._event_bus = event_bus
 
     MAX_BUFFER_SIZE = 100_000
+    MAX_CONVERSATIONS = 10_000
+    MAX_APPLICATIONS = 500
+    MAX_ASN_ENTRIES = 1_000
 
     def set_device_map(self, device_ip_map: dict[str, str]) -> None:
         self._device_ip_map = device_ip_map
@@ -382,6 +385,9 @@ class FlowAggregator:
             conversations[key]["packets"] += flow.packets
             conversations[key]["flows"] += 1
             conversations[key]["latency_sum"] += (flow.end_time - flow.start_time).total_seconds()
+        if len(conversations) > self.MAX_CONVERSATIONS:
+            sorted_convos = sorted(conversations.items(), key=lambda x: x[1]["bytes"])
+            conversations = dict(sorted_convos[len(sorted_convos) - self.MAX_CONVERSATIONS:])
         self._conversations = conversations
 
         # -- Application breakdown -------------------------------------------
@@ -393,6 +399,9 @@ class FlowAggregator:
             applications[app_name]["bytes"] += flow.bytes
             applications[app_name]["packets"] += flow.packets
             applications[app_name]["flows"] += 1
+        if len(applications) > self.MAX_APPLICATIONS:
+            sorted_apps = sorted(applications.items(), key=lambda x: x[1]["bytes"])
+            applications = dict(sorted_apps[len(sorted_apps) - self.MAX_APPLICATIONS:])
         self._applications = applications
 
         # -- ASN stats -------------------------------------------------------
@@ -406,6 +415,9 @@ class FlowAggregator:
                 asn_stats[asn]["bytes"] += flow.bytes
                 asn_stats[asn]["packets"] += flow.packets
                 asn_stats[asn]["flows"] += 1
+        if len(asn_stats) > self.MAX_ASN_ENTRIES:
+            sorted_asns = sorted(asn_stats.items(), key=lambda x: x[1]["bytes"])
+            asn_stats = dict(sorted_asns[len(sorted_asns) - self.MAX_ASN_ENTRIES:])
         self._asn_stats = asn_stats
 
         # -- Publish to event bus --------------------------------------------
