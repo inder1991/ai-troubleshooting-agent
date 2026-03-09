@@ -2,6 +2,8 @@
 import sqlite3
 import json
 import os
+import queue
+import threading
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 from cachetools import TTLCache
@@ -31,22 +33,36 @@ class TopologyStore:
     def __init__(self, db_path: str = DB_PATH):
         self.db_path = db_path
         os.makedirs(os.path.dirname(db_path), exist_ok=True)
+        self._pool: queue.Queue[sqlite3.Connection] = queue.Queue(maxsize=5)
+        self._cache_lock = threading.Lock()
         self._cache = TTLCache(maxsize=64, ttl=10)
         self._init_tables()
         self._migrate_tables()
 
     def _invalidate_cache(self, *keys):
         """Remove one or more keys from the in-memory cache."""
-        for key in keys:
-            self._cache.pop(key, None)
+        with self._cache_lock:
+            for key in keys:
+                self._cache.pop(key, None)
 
     def _conn(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(self.db_path)
-        conn.row_factory = sqlite3.Row
-        conn.execute("PRAGMA journal_mode=WAL")
-        conn.execute("PRAGMA busy_timeout=5000")
-        conn.execute("PRAGMA foreign_keys=ON")
+        """Get a connection from the pool or create a new one."""
+        try:
+            conn = self._pool.get_nowait()
+        except queue.Empty:
+            conn = sqlite3.connect(self.db_path)
+            conn.row_factory = sqlite3.Row
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.execute("PRAGMA busy_timeout=5000")
+            conn.execute("PRAGMA foreign_keys=ON")
         return conn
+
+    def _return_conn(self, conn: sqlite3.Connection) -> None:
+        """Return a connection to the pool, or close it if the pool is full."""
+        try:
+            self._pool.put_nowait(conn)
+        except queue.Full:
+            conn.close()
 
     def _init_tables(self):
         conn = self._conn()
@@ -592,7 +608,8 @@ class TopologyStore:
         use_cache = offset == 0 and limit is None
         if use_cache:
             cache_key = "list_devices"
-            cached = self._cache.get(cache_key)
+            with self._cache_lock:
+                cached = self._cache.get(cache_key)
             if cached is not None:
                 return cached
         conn = self._conn()
@@ -618,10 +635,11 @@ class TopologyStore:
                     ha_role=d.get("ha_role") or "",
                 ))
             if use_cache:
-                self._cache[cache_key] = results
+                with self._cache_lock:
+                    self._cache[cache_key] = results
             return results
         finally:
-            conn.close()
+            self._return_conn(conn)
 
     def count_devices(self) -> int:
         """Return total number of devices."""
@@ -2420,7 +2438,8 @@ class TopologyStore:
 
     def list_interfaces(self, device_id: Optional[str] = None) -> list[Interface]:
         cache_key = f"list_interfaces:{device_id}"
-        cached = self._cache.get(cache_key)
+        with self._cache_lock:
+            cached = self._cache.get(cache_key)
         if cached is not None:
             return cached
         conn = self._conn()
@@ -2430,10 +2449,11 @@ class TopologyStore:
             else:
                 rows = conn.execute("SELECT * FROM interfaces").fetchall()
             results = [Interface(**dict(r)) for r in rows]
-            self._cache[cache_key] = results
+            with self._cache_lock:
+                self._cache[cache_key] = results
             return results
         finally:
-            conn.close()
+            self._return_conn(conn)
 
     def find_interface_by_ip(self, ip: str) -> Optional[Interface]:
         conn = self._conn()
@@ -3424,7 +3444,8 @@ class TopologyStore:
         use_cache = offset == 0 and limit is None
         if use_cache:
             cache_key = "list_device_statuses"
-            cached = self._cache.get(cache_key)
+            with self._cache_lock:
+                cached = self._cache.get(cache_key)
             if cached is not None:
                 return cached
         conn = self._conn()
@@ -3437,10 +3458,11 @@ class TopologyStore:
                 rows = conn.execute("SELECT * FROM device_status").fetchall()
             results = [dict(r) for r in rows]
             if use_cache:
-                self._cache[cache_key] = results
+                with self._cache_lock:
+                    self._cache[cache_key] = results
             return results
         finally:
-            conn.close()
+            self._return_conn(conn)
 
     def count_device_statuses(self) -> int:
         """Return total number of device statuses."""
