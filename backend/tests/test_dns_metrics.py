@@ -1,4 +1,5 @@
 """Tests for DNS metric write/query methods in MetricsStore."""
+import collections
 import sys
 import types
 import pytest
@@ -31,6 +32,7 @@ def store():
         s._query_api = AsyncMock()
         s._client = AsyncMock()
         s._query_timeout = 30.0
+        s._retry_queue = collections.deque(maxlen=1000)
         return s
 
 
