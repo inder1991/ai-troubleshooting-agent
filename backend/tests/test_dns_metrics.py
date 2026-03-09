@@ -25,6 +25,8 @@ def store():
         s = MetricsStore.__new__(MetricsStore)
         s.org = "test-org"
         s.bucket = "test-bucket"
+        # Use spec=MetricsStore for the overall object is not needed since we
+        # construct via __new__; but we add explicit AsyncMock for sub-APIs
         s._write_api = AsyncMock()
         s._query_api = AsyncMock()
         s._client = AsyncMock()
@@ -87,6 +89,8 @@ class TestQueryDNSMetrics:
         )
         assert len(data) == 1
         assert data[0]["value"] == 12.5
+        # Verify the query was called
+        store._query_api.query.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_query_dns_metrics_empty(self, store):
@@ -98,4 +102,35 @@ class TestQueryDNSMetrics:
     async def test_query_dns_metrics_handles_error(self, store):
         store._query_api.query = AsyncMock(side_effect=Exception("timeout"))
         data = await store.query_dns_metrics(server_id="dns-1", range_str="1h")
+        assert data == []
+
+
+class TestNegativeCases:
+    """Negative tests for DNS metrics edge cases."""
+
+    @pytest.mark.asyncio
+    async def test_write_dns_metric_empty_server_id(self, store):
+        """Writing with empty server_id should still call write (no crash)."""
+        await store.write_dns_metric(
+            server_id="", server_ip="8.8.8.8",
+            hostname="test.com", record_type="A",
+            latency_ms=1.0, success=True, metric_type="query",
+        )
+        store._write_api.write.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_write_dns_metric_zero_latency(self, store):
+        """Zero latency should be accepted without error."""
+        await store.write_dns_metric(
+            server_id="dns-1", server_ip="8.8.8.8",
+            hostname="test.com", record_type="A",
+            latency_ms=0.0, success=True, metric_type="query",
+        )
+        store._write_api.write.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_query_dns_metrics_empty_server_id(self, store):
+        """Querying with empty server_id should return empty list without error."""
+        store._query_api.query = AsyncMock(return_value=[])
+        data = await store.query_dns_metrics(server_id="", range_str="1h")
         assert data == []

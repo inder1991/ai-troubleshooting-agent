@@ -7,7 +7,10 @@ from src.network.snmp_collector import SNMPCollector, SNMPDeviceConfig
 
 @pytest.fixture
 def mock_metrics():
-    return AsyncMock()
+    """Create a mock metrics store with spec for MetricsStore-like interface."""
+    m = AsyncMock()
+    m.write_device_metric = AsyncMock()
+    return m
 
 
 def test_snmp_config_defaults():
@@ -61,6 +64,9 @@ async def test_poll_device_writes_metrics(mock_metrics):
         assert result["device_id"] == "dev-1"
         assert result["cpu_pct"] == 45.0
         assert mock_metrics.write_device_metric.call_count >= 2  # cpu + mem at minimum
+        # Verify the correct metric names and values were written
+        mock_metrics.write_device_metric.assert_any_call("dev-1", "cpu_pct", 45.0)
+        mock_metrics.write_device_metric.assert_any_call("dev-1", "mem_pct", 50.0)
 
 
 def test_64bit_counter_oids_exist():
@@ -181,3 +187,38 @@ async def test_snmp_get_populates_interfaces(monkeypatch):
     result = await collector._snmp_get(cfg)
     assert len(result["interfaces"]) == 2
     assert result["interfaces"][1]["ifDescr"] == "GigabitEthernet0/0"
+
+
+# ── Negative tests ──
+
+
+def test_compute_rates_empty_counters():
+    """Empty counter dict should store baseline and return None."""
+    collector = SNMPCollector(metrics_store=None)
+    result = collector._compute_rates("dev-empty", 1, {})
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_poll_device_empty_snmp_response():
+    """poll_device with empty SNMP response should handle gracefully."""
+    mock_m = AsyncMock()
+    mock_m.write_device_metric = AsyncMock()
+    collector = SNMPCollector(mock_m)
+    cfg = SNMPDeviceConfig(device_id="dev-empty", ip="10.0.0.1")
+    with patch.object(collector, "_snmp_get", new_callable=AsyncMock) as mock_get:
+        mock_get.return_value = {}
+        result = await collector.poll_device(cfg)
+        assert result["device_id"] == "dev-empty"
+        assert result["cpu_pct"] == 0
+
+
+@pytest.mark.asyncio
+async def test_poll_device_none_metrics_store():
+    """poll_device with None metrics_store should raise AttributeError."""
+    collector = SNMPCollector(metrics_store=None)
+    cfg = SNMPDeviceConfig(device_id="dev-none", ip="10.0.0.1")
+    with patch.object(collector, "_snmp_get", new_callable=AsyncMock) as mock_get:
+        mock_get.return_value = {"cpu_pct": 10, "mem_total": 100, "mem_avail": 50, "interfaces": {}}
+        with pytest.raises(AttributeError):
+            await collector.poll_device(cfg)

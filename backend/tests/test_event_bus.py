@@ -9,7 +9,21 @@ from src.network.event_bus.errors import BackpressureError
 
 @pytest.fixture
 def bus():
+    """Create a MemoryEventBus with spec-compatible interface."""
     return MemoryEventBus(maxsize=100)
+
+
+@pytest.fixture
+def spec_bus():
+    """Create a MemoryEventBus verified against the EventBus spec."""
+    b = MemoryEventBus(maxsize=100)
+    # Verify it implements the EventBus protocol
+    assert hasattr(b, "publish")
+    assert hasattr(b, "subscribe")
+    assert hasattr(b, "unsubscribe")
+    assert hasattr(b, "start")
+    assert hasattr(b, "stop")
+    return b
 
 
 @pytest.mark.asyncio
@@ -248,4 +262,43 @@ async def test_backpressure_threshold_boundary():
     # The 82nd publish checks qsize=81 which IS > 80.0 → backpressure
     with pytest.raises(BackpressureError):
         await bus.publish(TRAPS, {"i": 82})
+    await bus.stop()
+
+
+# ── Negative tests ──
+
+
+@pytest.mark.asyncio
+async def test_publish_empty_event(bus):
+    """Publishing an empty dict should succeed without errors."""
+    await bus.start()
+    msg_id = await bus.publish(TRAPS, {})
+    assert msg_id.startswith("mem-")
+    await bus.stop()
+
+
+@pytest.mark.asyncio
+async def test_unsubscribe_invalid_id(bus):
+    """Unsubscribing with a non-existent ID should not raise."""
+    await bus.start()
+    await bus.unsubscribe("nonexistent-sub-id")  # Should be a no-op
+    await bus.stop()
+
+
+@pytest.mark.asyncio
+async def test_publish_none_value_in_event(bus):
+    """Publishing event with None values should serialize cleanly via JSON."""
+    received = []
+
+    async def handler(channel, event):
+        received.append(event)
+
+    await bus.start()
+    await bus.subscribe(TRAPS, handler)
+    await bus.publish(TRAPS, {"key": None, "list": [None]})
+    await asyncio.sleep(0.1)
+
+    assert len(received) == 1
+    assert received[0]["key"] is None
+    assert received[0]["list"] == [None]
     await bus.stop()
