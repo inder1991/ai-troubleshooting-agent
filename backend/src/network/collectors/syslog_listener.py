@@ -15,6 +15,7 @@ import logging
 import os
 import re
 import time
+from datetime import datetime, timezone
 from typing import Any
 from uuid import uuid4
 
@@ -206,6 +207,60 @@ class _SyslogDatagramProtocol(asyncio.DatagramProtocol):
             logger.warning("Syslog listener connection lost: %s", exc)
 
 
+# ── Timestamp parsing ─────────────────────────────────────────────────
+
+# RFC 3164 timestamp: "Mar  9 12:34:56"
+_RFC3164_TS_RE = re.compile(
+    r"^(\w{3})\s+(\d{1,2})\s+(\d{2}):(\d{2}):(\d{2})$"
+)
+
+_MONTH_MAP = {
+    "Jan": 1, "Feb": 2, "Mar": 3, "Apr": 4, "May": 5, "Jun": 6,
+    "Jul": 7, "Aug": 8, "Sep": 9, "Oct": 10, "Nov": 11, "Dec": 12,
+}
+
+
+def _parse_timestamp(raw: str | None) -> float:
+    """Parse a syslog timestamp string into a Unix epoch float.
+
+    Handles:
+    - RFC 3164: ``Mar  9 12:34:56`` — uses the current year.
+    - RFC 5424: ``2026-03-09T12:34:56.000Z`` — ISO 8601 format.
+    - Fallback: returns ``time.time()`` if parsing fails.
+    """
+    if not raw:
+        return time.time()
+
+    # Try RFC 5424 (ISO 8601)
+    try:
+        # Handle both 'Z' suffix and '+00:00' timezone offsets
+        cleaned = raw.replace("Z", "+00:00")
+        dt = datetime.fromisoformat(cleaned)
+        return dt.timestamp()
+    except (ValueError, TypeError):
+        pass
+
+    # Try RFC 3164 (BSD)
+    m = _RFC3164_TS_RE.match(raw)
+    if m:
+        try:
+            month_name, day, hour, minute, second = m.groups()
+            month = _MONTH_MAP.get(month_name)
+            if month:
+                now = datetime.now(tz=timezone.utc)
+                dt = datetime(
+                    year=now.year, month=month, day=int(day),
+                    hour=int(hour), minute=int(minute), second=int(second),
+                    tzinfo=timezone.utc,
+                )
+                return dt.timestamp()
+        except (ValueError, TypeError):
+            pass
+
+    # Fallback
+    return time.time()
+
+
 # ── Public API ────────────────────────────────────────────────────────
 
 class SyslogListener:
@@ -319,7 +374,7 @@ class SyslogListener:
             "hostname": parsed.get("hostname"),
             "app_name": parsed.get("app_name"),
             "message": parsed.get("message", ""),
-            "timestamp": time.time(),
+            "timestamp": _parse_timestamp(parsed.get("timestamp_raw")),
         }
 
         # Fire-and-forget publish
