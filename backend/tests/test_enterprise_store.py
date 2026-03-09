@@ -111,6 +111,7 @@ def test_vpc_peering_crud(store):
 
 
 def test_route_table_crud(store):
+    store.add_vpc(VPC(id="vpc-1", name="test", cloud_provider=CloudProvider.AWS))
     rt = RouteTable(id="rt-1", vpc_id="vpc-1", name="main", is_main=True)
     store.add_route_table(rt)
     result = store.list_route_tables(vpc_id="vpc-1")

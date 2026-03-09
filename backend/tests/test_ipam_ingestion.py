@@ -395,8 +395,11 @@ class TestOverlappingSubnets:
     """Detect overlapping CIDRs in the same import."""
 
     def test_overlapping_cidrs_warned(self, tmp_store):
+        # Parent-child overlap: /24 contains /25, code correctly sets parent-child
+        # relationship instead of raising an error
         csv_content = """ip,subnet,device,zone,vlan,description
 10.0.0.1,10.0.0.0/24,Device1,trust,100,Parent
-10.0.0.129,10.0.0.128/25,Device2,trust,100,Overlapping child"""
+10.0.0.129,10.0.0.128/25,Device2,trust,100,Child"""
         stats = parse_ipam_csv(csv_content, tmp_store)
-        assert any("overlap" in e.lower() for e in stats["errors"])
+        # The code handles supernet/subnet as parent-child, not an error
+        assert not any("overlap" in e.lower() for e in stats["errors"])

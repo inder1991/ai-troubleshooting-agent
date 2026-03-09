@@ -235,6 +235,7 @@ class Interface(BaseModel):
     status: str = "up"
     role: str = ""       # InterfaceRole value or empty
     subnet_id: str = ""  # FK to subnet
+    vlan_id: int = 0
 
     @field_validator("ip")
     @classmethod

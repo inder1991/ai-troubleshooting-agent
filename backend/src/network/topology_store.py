@@ -61,6 +61,7 @@ class TopologyStore:
                     id TEXT PRIMARY KEY, device_id TEXT, name TEXT, ip TEXT,
                     mac TEXT, zone_id TEXT, vrf TEXT, speed TEXT, status TEXT,
                     role TEXT DEFAULT '', subnet_id TEXT DEFAULT '',
+                    vlan_id INTEGER DEFAULT 0,
                     FOREIGN KEY (device_id) REFERENCES devices(id) ON DELETE CASCADE
                 );
                 CREATE TABLE IF NOT EXISTS subnets (
@@ -2407,10 +2408,10 @@ class TopologyStore:
         conn = self._conn()
         try:
             conn.execute(
-                "INSERT OR REPLACE INTO interfaces VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+                "INSERT OR REPLACE INTO interfaces VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
                 (iface.id, iface.device_id, iface.name, iface.ip,
                  iface.mac, iface.zone_id, iface.vrf, iface.speed, iface.status,
-                 iface.role, iface.subnet_id),
+                 iface.role, iface.subnet_id, iface.vlan_id),
             )
             conn.commit()
         finally:
