@@ -15,6 +15,7 @@ import {
 interface DeviceDetailPanelProps {
   device: MonitoredDevice;
   onClose: () => void;
+  onSelectDevice?: (deviceId: string) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -204,7 +205,7 @@ const ChartTooltipContent = ({ active, payload, label }: any) => {
 // ---------------------------------------------------------------------------
 // Main component
 // ---------------------------------------------------------------------------
-const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({ device: deviceProp, onClose }) => {
+const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({ device: deviceProp, onClose, onSelectDevice }) => {
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
 
   // Data state — use the passed-in device directly
@@ -473,6 +474,97 @@ const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({ device: devicePro
                 </div>
                 <div style={{ fontSize: 10, color: '#64748b' }}>Packet loss</div>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Relationships */}
+        {device.neighbors && device.neighbors.length > 0 && (
+          <div style={cardStyle}>
+            <div
+              style={{
+                fontSize: 12,
+                fontWeight: 700,
+                color: '#07b6d5',
+                textTransform: 'uppercase',
+                letterSpacing: 1,
+                marginBottom: 10,
+              }}
+            >
+              Relationships
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {device.neighbors.map((neighbor) => {
+                const relationshipColors: Record<string, { bg: string; text: string }> = {
+                  parent: { bg: 'rgba(168,85,247,0.12)', text: '#a855f7' },
+                  child: { bg: 'rgba(34,197,94,0.12)', text: '#22c55e' },
+                  peer: { bg: 'rgba(7,182,213,0.12)', text: '#07b6d5' },
+                };
+                const relStyle = relationshipColors[neighbor.relationship] || relationshipColors.peer;
+
+                return (
+                  <div
+                    key={neighbor.device_id}
+                    onClick={() => onSelectDevice?.(neighbor.device_id)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '8px 12px',
+                      borderRadius: 6,
+                      background: 'rgba(148,163,184,0.04)',
+                      border: '1px solid rgba(148,163,184,0.08)',
+                      cursor: onSelectDevice ? 'pointer' : 'default',
+                      transition: 'background 0.15s',
+                    }}
+                    onMouseEnter={(e) => {
+                      if (onSelectDevice) {
+                        e.currentTarget.style.background = 'rgba(7,182,213,0.06)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'rgba(148,163,184,0.04)';
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span
+                        className="material-symbols-outlined"
+                        style={{ fontSize: 16, color: '#07b6d5' }}
+                      >
+                        {neighbor.relationship === 'parent' ? 'arrow_upward'
+                          : neighbor.relationship === 'child' ? 'arrow_downward'
+                          : 'swap_horiz'}
+                      </span>
+                      <span style={{ fontSize: 13, color: '#e2e8f0', fontWeight: 500 }}>
+                        {neighbor.hostname}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span
+                        style={{
+                          fontSize: 10,
+                          fontWeight: 700,
+                          textTransform: 'uppercase',
+                          padding: '2px 8px',
+                          borderRadius: 999,
+                          background: relStyle.bg,
+                          color: relStyle.text,
+                        }}
+                      >
+                        {neighbor.relationship}
+                      </span>
+                      {onSelectDevice && (
+                        <span
+                          className="material-symbols-outlined"
+                          style={{ fontSize: 14, color: '#64748b' }}
+                        >
+                          chevron_right
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}

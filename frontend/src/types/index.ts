@@ -1745,6 +1745,13 @@ export interface MonitoredDevice {
   last_collected: number | null;
   last_ping: PingResult | null;
   status: 'up' | 'down' | 'unreachable' | 'new';
+  neighbors?: DeviceNeighbor[];
+}
+
+export interface DeviceNeighbor {
+  device_id: string;
+  hostname: string;
+  relationship: 'parent' | 'child' | 'peer';
 }
 
 export interface DiscoveryConfig {

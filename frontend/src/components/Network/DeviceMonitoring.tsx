@@ -418,6 +418,7 @@ const DeviceMonitoring: React.FC = () => {
         <DeviceDetailPanel
           device={selectedDevice}
           onClose={() => setSelectedDeviceId(null)}
+          onSelectDevice={setSelectedDeviceId}
         />
       )}
 
