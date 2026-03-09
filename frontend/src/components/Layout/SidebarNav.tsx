@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 export type NavView = 'home' | 'sessions' | 'app-diagnostics' | 'cluster-diagnostics'
   | 'network-troubleshooting' | 'pr-review' | 'github-issue-fix'
   | 'network-topology' | 'network-adapters' | 'ipam' | 'matrix' | 'observatory'
+  | 'k8s-clusters' | 'k8s-diagnostics'
   | 'db-overview' | 'db-connections' | 'db-diagnostics' | 'db-monitoring' | 'db-schema' | 'db-operations'
   | 'integrations' | 'settings' | 'agents';
 
@@ -22,7 +23,7 @@ const navItems: NavItem[] = [
     kind: 'group', group: 'Diagnostics', icon: 'troubleshoot',
     children: [
       { id: 'app-diagnostics', label: 'Application', icon: 'bug_report' },
-      { id: 'cluster-diagnostics', label: 'Cluster', icon: 'health_and_safety' },
+      { id: 'k8s-diagnostics', label: 'Cluster', icon: 'health_and_safety' },
       { id: 'db-diagnostics', label: 'Database', icon: 'storage' },
       { id: 'network-troubleshooting', label: 'Network', icon: 'route' },
       { id: 'sessions', label: 'Sessions', icon: 'history' },
@@ -33,6 +34,13 @@ const navItems: NavItem[] = [
     children: [
       { id: 'pr-review', label: 'PR Review', icon: 'rate_review' },
       { id: 'github-issue-fix', label: 'Issue Fixer', icon: 'auto_fix_high' },
+    ],
+  },
+  {
+    kind: 'group', group: 'Kubernetes', icon: 'cloud',
+    children: [
+      { id: 'k8s-clusters', label: 'Clusters', icon: 'dns' },
+      { id: 'k8s-diagnostics', label: 'Diagnostics', icon: 'troubleshoot' },
     ],
   },
   {

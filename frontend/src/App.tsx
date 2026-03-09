@@ -46,10 +46,11 @@ import DBDiagnostics from './components/Database/DBDiagnostics';
 import DBMonitoring from './components/Database/DBMonitoring';
 import DBSchema from './components/Database/DBSchema';
 import DBOperations from './components/Database/DBOperations';
+import KubernetesClusters from './components/Kubernetes/KubernetesClusters';
 import { Breadcrumbs } from './components/shared';
 
 
-type ViewState = 'home' | 'form' | 'investigation' | 'sessions' | 'integrations' | 'settings' | 'dossier' | 'cluster-diagnostics' | 'agent-matrix' | 'network-troubleshooting' | 'network-topology' | 'network-adapters' | 'ipam' | 'matrix' | 'observatory' | 'db-overview' | 'db-connections' | 'db-diagnostics' | 'db-monitoring' | 'db-schema' | 'db-operations';
+type ViewState = 'home' | 'form' | 'investigation' | 'sessions' | 'integrations' | 'settings' | 'dossier' | 'cluster-diagnostics' | 'agent-matrix' | 'network-troubleshooting' | 'network-topology' | 'network-adapters' | 'ipam' | 'matrix' | 'observatory' | 'db-overview' | 'db-connections' | 'db-diagnostics' | 'db-monitoring' | 'db-schema' | 'db-operations' | 'k8s-clusters';
 
 function AppInner() {
   const { addToast } = useToast();
@@ -191,7 +192,7 @@ function AppInner() {
     } else if (view === 'app-diagnostics') {
       setSelectedCapability('troubleshoot_app');
       setViewState('form');
-    } else if (view === 'cluster-diagnostics') {
+    } else if (view === 'k8s-diagnostics') {
       setSelectedCapability('cluster_diagnostics');
       setViewState('form');
     } else if (view === 'network-troubleshooting') {
@@ -420,7 +421,7 @@ function AppInner() {
   // Derive nav view from viewState
   const capabilityToNav: Record<string, NavView> = {
     troubleshoot_app: 'app-diagnostics',
-    cluster_diagnostics: 'cluster-diagnostics',
+    cluster_diagnostics: 'k8s-diagnostics',
     network_troubleshooting: 'network-troubleshooting',
     pr_review: 'pr-review',
     github_issue_fix: 'github-issue-fix',
@@ -428,7 +429,8 @@ function AppInner() {
 
   const viewToNav: Record<string, NavView> = {
     sessions: 'sessions', integrations: 'integrations', settings: 'settings',
-    'agent-matrix': 'agents', 'network-topology': 'network-topology',
+    'agent-matrix': 'agents', 'cluster-diagnostics': 'k8s-diagnostics',
+    'k8s-clusters': 'k8s-clusters', 'network-topology': 'network-topology',
     'network-adapters': 'network-adapters', ipam: 'ipam', matrix: 'matrix',
     observatory: 'observatory',
     'db-overview': 'db-overview', 'db-connections': 'db-connections',
@@ -448,7 +450,8 @@ function AppInner() {
     // Diagnostics group
     sessions: { label: 'Sessions', parent: 'home' },
     'app-diagnostics': { label: 'App Diagnostics', parent: 'home' },
-    'cluster-diagnostics': { label: 'Cluster Diagnostics', parent: 'home' },
+    'k8s-diagnostics': { label: 'Cluster Diagnostics', parent: 'home' },
+    'k8s-clusters': { label: 'Clusters', parent: 'home' },
     'network-troubleshooting': { label: 'Network Path', parent: 'home' },
     // Code group
     'pr-review': { label: 'PR Review', parent: 'home' },
@@ -558,6 +561,8 @@ function AppInner() {
         {viewState === 'db-monitoring' && <DBMonitoring />}
         {viewState === 'db-schema' && <DBSchema />}
         {viewState === 'db-operations' && <DBOperations />}
+
+        {viewState === 'k8s-clusters' && <KubernetesClusters />}
 
         {viewState === 'form' && selectedCapability && (
           <CapabilityForm
