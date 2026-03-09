@@ -415,6 +415,12 @@ class FlowAggregator:
         batch = self._buffer[:]
         self._buffer.clear()
 
+        # Apply sampling rate compensation
+        for flow in batch:
+            if flow.sampling_interval > 1:
+                flow.bytes *= flow.sampling_interval
+                flow.packets *= flow.sampling_interval
+
         # Write individual flows
         for flow in batch:
             await self.metrics.write_flow(flow)

@@ -44,6 +44,7 @@ class FlowRecord:
     src_as: int = 0
     dst_as: int = 0
     exporter_ip: str = ""
+    sampling_interval: int = 1
 
 
 class MetricsStore:
