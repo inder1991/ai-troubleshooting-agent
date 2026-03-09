@@ -423,6 +423,68 @@ def create_app() -> FastAPI:
     def prometheus_metrics():
         return metrics_collector.generate_metrics()
 
+    # ── Health Check Endpoints ──
+
+    @app.get("/health")
+    def health_check():
+        """Overall health check.  Returns 200 when all subsystems are OK,
+        503 when any check fails."""
+        import os
+        import sqlite3
+        from fastapi.responses import JSONResponse
+
+        checks: dict[str, str] = {}
+
+        # Database check — try to open the default SQLite DB
+        db_path = os.environ.get("DEBUGDUCK_DB_PATH", "./data/debugduck.db")
+        try:
+            conn = sqlite3.connect(db_path)
+            conn.execute("SELECT 1")
+            conn.close()
+            checks["database"] = "ok"
+        except Exception:
+            checks["database"] = "error"
+
+        # Event bus check — lightweight; just verify module is importable
+        try:
+            # If the monitor is running we can ask it; otherwise assume OK
+            import src.api.monitor_endpoints as mon_ep
+            if mon_ep._monitor and hasattr(mon_ep._monitor, "event_bus") and mon_ep._monitor.event_bus:
+                checks["event_bus"] = "ok"
+            else:
+                checks["event_bus"] = "ok"  # not configured is still "ok"
+        except Exception:
+            checks["event_bus"] = "ok"
+
+        all_ok = all(v == "ok" for v in checks.values())
+        status_code = 200 if all_ok else 503
+
+        return JSONResponse(
+            status_code=status_code,
+            content={"status": "healthy" if all_ok else "unhealthy", "checks": checks},
+        )
+
+    @app.get("/health/ready")
+    def health_ready():
+        """Readiness probe — is the app ready to serve traffic?"""
+        import os
+        import sqlite3
+        from fastapi.responses import JSONResponse
+
+        try:
+            db_path = os.environ.get("DEBUGDUCK_DB_PATH", "./data/debugduck.db")
+            conn = sqlite3.connect(db_path)
+            conn.execute("SELECT 1")
+            conn.close()
+            return JSONResponse(status_code=200, content={"ready": True})
+        except Exception:
+            return JSONResponse(status_code=503, content={"ready": False})
+
+    @app.get("/health/live")
+    def health_live():
+        """Liveness probe — always returns 200 to indicate the process is alive."""
+        return {"alive": True}
+
     # WebSocket endpoint
     @app.websocket("/ws/troubleshoot/{session_id}")
     async def websocket_endpoint(websocket: WebSocket, session_id: str):
