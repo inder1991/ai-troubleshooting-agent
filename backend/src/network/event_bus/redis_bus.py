@@ -10,6 +10,7 @@ import uuid
 from typing import Any
 
 from .base import EventBus, EventHandler, ALL_CHANNELS
+from .errors import BackpressureError
 
 logger = logging.getLogger(__name__)
 
@@ -102,6 +103,15 @@ class RedisEventBus(EventBus):
         if self._redis is None:
             raise RuntimeError("RedisEventBus not started — call start() first")
 
+        # ── Backpressure check ────────────────────────────────────────
+        stream_len = await self._redis.xlen(channel)
+        threshold = int(_STREAM_MAXLEN * 0.8)
+        if stream_len > threshold:
+            raise BackpressureError(
+                f"Channel '{channel}' stream at {stream_len}/{_STREAM_MAXLEN} "
+                f"(>{threshold} threshold) — apply backpressure"
+            )
+
         payload = {"data": json.dumps(event, default=str)}
         msg_id: str = await self._redis.xadd(
             name=channel,
@@ -145,6 +155,16 @@ class RedisEventBus(EventBus):
             del self._tasks[channel]
 
         logger.info("Unsubscribed %s from channel %s", subscription_id, channel)
+
+    # ── Dead-letter queue ──────────────────────────────────────────────
+
+    def get_dlq(self, channel: str) -> list[dict]:
+        """Return an empty list — DLQ entries live in Redis ``{channel}:dlq``.
+
+        A full implementation would XRANGE the DLQ stream; for now callers
+        should query Redis directly if they need historical failures.
+        """
+        return []
 
     # ── Consumer loop (XREADGROUP) ─────────────────────────────────────
 
@@ -215,10 +235,24 @@ class RedisEventBus(EventBus):
         for handler in handlers:
             try:
                 await handler(channel, event)
-            except Exception:
+            except Exception as e:
                 logger.exception(
                     "Handler error processing %s on %s", msg_id, channel,
                 )
+                # Route failed event to Redis dead-letter stream
+                try:
+                    dlq_payload = {
+                        "data": json.dumps(event, default=str),
+                        "error": str(e),
+                    }
+                    await self._redis.xadd(
+                        name=f"{channel}:dlq",
+                        fields=dlq_payload,
+                        maxlen=10_000,
+                        approximate=True,
+                    )
+                except Exception:
+                    logger.exception("Failed to write to DLQ for %s", channel)
 
         # ACK after all handlers have run (at-least-once semantics)
         await self._redis.xack(channel, self._group, msg_id)

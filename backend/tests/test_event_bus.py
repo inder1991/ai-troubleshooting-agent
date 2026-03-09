@@ -1,9 +1,10 @@
-"""Tests for MemoryEventBus — pub/sub, multiple subscribers, channel isolation."""
+"""Tests for MemoryEventBus — pub/sub, multiple subscribers, channel isolation, DLQ, backpressure."""
 import asyncio
 import pytest
 
 from src.network.event_bus.memory_bus import MemoryEventBus
 from src.network.event_bus.base import TRAPS, SYSLOG, FLOWS
+from src.network.event_bus.errors import BackpressureError
 
 
 @pytest.fixture
@@ -113,16 +114,19 @@ async def test_unsubscribe(bus):
 
 
 @pytest.mark.asyncio
-async def test_queue_overflow_drops_oldest(bus):
-    """When queue is full, oldest event should be dropped."""
+async def test_queue_overflow_triggers_backpressure(bus):
+    """With a tiny queue (maxsize=2), backpressure fires on the 3rd publish.
+
+    80% of 2 = 1.6.  After two publishes qsize=2, and ``2 > 1.6`` is True,
+    so the third ``publish`` raises ``BackpressureError``.
+    """
     small_bus = MemoryEventBus(maxsize=2)
     await small_bus.start()
 
-    # Publish 3 events to a queue of size 2 — should not raise
-    await small_bus.publish(FLOWS, {"n": 1})
-    await small_bus.publish(FLOWS, {"n": 2})
-    await small_bus.publish(FLOWS, {"n": 3})
-    # No error = pass
+    await small_bus.publish(FLOWS, {"n": 1})  # qsize → 1; 1 > 1.6? No
+    await small_bus.publish(FLOWS, {"n": 2})  # qsize → 2; checked before enqueue: 1 > 1.6? No → enqueued
+    with pytest.raises(BackpressureError):
+        await small_bus.publish(FLOWS, {"n": 3})  # qsize=2; 2 > 1.6? Yes → raises
     await small_bus.stop()
 
 
@@ -137,3 +141,111 @@ async def test_stop_cleans_up(bus):
 
     assert len(bus._tasks) == 0
     assert len(bus._queues) == 0
+
+
+# ── Task 8: Dead Letter Queue ────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_failed_handler_routes_to_dlq():
+    bus = MemoryEventBus(maxsize=100)
+    await bus.start()
+
+    async def failing_handler(channel, event):
+        raise ValueError("handler crashed")
+
+    await bus.subscribe("traps", failing_handler)
+    await bus.publish("traps", {"oid": "1.2.3", "severity": "critical"})
+    await asyncio.sleep(0.2)
+
+    dlq = bus.get_dlq("traps")
+    assert len(dlq) == 1
+    assert dlq[0]["event"]["oid"] == "1.2.3"
+    assert "handler crashed" in dlq[0]["error"]
+    assert "timestamp" in dlq[0]
+    await bus.stop()
+
+
+@pytest.mark.asyncio
+async def test_dlq_empty_for_clean_channel():
+    bus = MemoryEventBus(maxsize=100)
+    await bus.start()
+
+    async def good_handler(channel, event):
+        pass
+
+    await bus.subscribe(TRAPS, good_handler)
+    await bus.publish(TRAPS, {"oid": "1.2.3"})
+    await asyncio.sleep(0.1)
+
+    dlq = bus.get_dlq(TRAPS)
+    assert len(dlq) == 0
+    await bus.stop()
+
+
+@pytest.mark.asyncio
+async def test_dlq_isolates_channels():
+    bus = MemoryEventBus(maxsize=100)
+    await bus.start()
+
+    async def failing_handler(channel, event):
+        raise RuntimeError("boom")
+
+    async def good_handler(channel, event):
+        pass
+
+    await bus.subscribe(TRAPS, failing_handler)
+    await bus.subscribe(SYSLOG, good_handler)
+
+    await bus.publish(TRAPS, {"oid": "1.2.3"})
+    await bus.publish(SYSLOG, {"msg": "ok"})
+    await asyncio.sleep(0.2)
+
+    assert len(bus.get_dlq(TRAPS)) == 1
+    assert len(bus.get_dlq(SYSLOG)) == 0
+    await bus.stop()
+
+
+# ── Task 9: Backpressure ─────────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_backpressure_raises_on_full_queue():
+    bus = MemoryEventBus(maxsize=10)
+    await bus.start()
+    # Don't subscribe any consumer so messages pile up
+    with pytest.raises(BackpressureError):
+        for i in range(20):
+            await bus.publish("traps", {"i": i})
+    await bus.stop()
+
+
+@pytest.mark.asyncio
+async def test_publish_under_threshold_succeeds():
+    """Publishing below 80% capacity should not raise."""
+    bus = MemoryEventBus(maxsize=100)
+    await bus.start()
+    # 80% of 100 = 80; publishing up to 80 should be fine
+    for i in range(80):
+        await bus.publish(TRAPS, {"i": i})
+    # Should not have raised
+    await bus.stop()
+
+
+@pytest.mark.asyncio
+async def test_backpressure_threshold_boundary():
+    """Verify the exact boundary: qsize=80 passes, qsize=81 raises.
+
+    maxsize=100 → threshold = 80.0 (strictly greater).
+    After 81 publishes, qsize=81; the 82nd publish sees ``81 > 80.0`` → raises.
+    """
+    bus = MemoryEventBus(maxsize=100)
+    await bus.start()
+    # Fill to 81 — the 81st publish checks qsize=80 which is NOT > 80.0
+    for i in range(81):
+        await bus.publish(TRAPS, {"i": i})
+
+    # The 82nd publish checks qsize=81 which IS > 80.0 → backpressure
+    with pytest.raises(BackpressureError):
+        await bus.publish(TRAPS, {"i": 82})
+    await bus.stop()

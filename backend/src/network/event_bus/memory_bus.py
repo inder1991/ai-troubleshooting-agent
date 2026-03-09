@@ -11,10 +11,13 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import time
 import uuid
+from collections import deque
 from typing import Any
 
 from .base import EventBus, EventHandler
+from .errors import BackpressureError
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +40,7 @@ class MemoryEventBus(EventBus):
         self._queues: dict[str, asyncio.Queue[tuple[str, str]]] = {}  # channel -> Queue of (msg_id, json_str)
         self._handlers: dict[str, tuple[str, EventHandler]] = {}  # sub_id -> (channel, handler)
         self._tasks: dict[str, asyncio.Task] = {}  # channel -> consumer task
+        self._dlq: dict[str, deque] = {}  # channel -> deque of dead-letter entries
         self._running = False
         self._msg_counter = 0
 
@@ -64,6 +68,14 @@ class MemoryEventBus(EventBus):
         Returns a locally-unique message ID.
         """
         queue = self._ensure_queue(channel)
+
+        # ── Backpressure check ────────────────────────────────────────
+        if queue.qsize() > self._maxsize * 0.8:
+            raise BackpressureError(
+                f"Channel '{channel}' queue at {queue.qsize()}/{self._maxsize} "
+                f"(>{int(self._maxsize * 0.8)} threshold) — apply backpressure"
+            )
+
         self._msg_counter += 1
         msg_id = f"mem-{self._msg_counter}"
 
@@ -119,6 +131,12 @@ class MemoryEventBus(EventBus):
 
         logger.info("Unsubscribed %s from channel %s", subscription_id, channel)
 
+    # ── Dead-letter queue ──────────────────────────────────────────────
+
+    def get_dlq(self, channel: str) -> list[dict]:
+        """Return dead-letter entries for *channel* as a list of dicts."""
+        return list(self._dlq.get(channel, []))
+
     # ── Internal ───────────────────────────────────────────────────────
 
     def _ensure_queue(self, channel: str) -> asyncio.Queue:
@@ -153,7 +171,15 @@ class MemoryEventBus(EventBus):
             for handler in handlers:
                 try:
                     await handler(channel, event)
-                except Exception:
+                except Exception as e:
                     logger.exception(
                         "Handler error processing %s on %s", msg_id, channel,
                     )
+                    # Route failed event to dead-letter queue
+                    if channel not in self._dlq:
+                        self._dlq[channel] = deque(maxlen=10_000)
+                    self._dlq[channel].append({
+                        "event": event,
+                        "error": str(e),
+                        "timestamp": time.time(),
+                    })

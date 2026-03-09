@@ -58,3 +58,10 @@ class EventBus(ABC):
     @abstractmethod
     async def stop(self) -> None:
         """Gracefully tear down consumers and close connections."""
+
+    @abstractmethod
+    def get_dlq(self, channel: str) -> list[dict]:
+        """Return dead-letter entries for *channel*.
+
+        Each entry is a dict with keys ``event``, ``error``, and ``timestamp``.
+        """
