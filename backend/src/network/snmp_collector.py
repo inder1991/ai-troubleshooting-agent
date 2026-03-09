@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import time
 from dataclasses import dataclass, field
 from typing import Any
@@ -116,6 +117,8 @@ class SNMPCollector:
             "error_rate": error_rate,
         }
 
+    _walk_timeout = float(os.getenv("SNMP_WALK_TIMEOUT", "60"))
+
     async def _walk_interfaces(self, cfg: SNMPDeviceConfig) -> dict[int, dict]:
         """SNMP BULKWALK of interface table — returns {if_index: {counters}}."""
         if not _PYSNMP_AVAILABLE:
@@ -178,6 +181,16 @@ class SNMPCollector:
         finally:
             engine.close_dispatcher()
 
+    async def _safe_walk_interfaces(self, cfg: SNMPDeviceConfig) -> dict[int, dict]:
+        """Walk interfaces with timeout protection."""
+        try:
+            return await asyncio.wait_for(
+                self._walk_interfaces(cfg), timeout=self._walk_timeout
+            )
+        except asyncio.TimeoutError:
+            logger.warning("SNMP walk timed out for %s after %.0fs", cfg.device_id, self._walk_timeout)
+            return {}
+
     async def _snmp_get(self, cfg: SNMPDeviceConfig) -> dict:
         """Execute SNMP GET/WALK against a device. Returns parsed metrics dict."""
         if not _PYSNMP_AVAILABLE:
@@ -209,7 +222,7 @@ class SNMPCollector:
                 result[name] = float(val) if hasattr(val, "__float__") else 0.0
 
         engine.close_dispatcher()
-        result["interfaces"] = await self._walk_interfaces(cfg)
+        result["interfaces"] = await self._safe_walk_interfaces(cfg)
         return result
 
     async def poll_device(self, cfg: SNMPDeviceConfig) -> dict:

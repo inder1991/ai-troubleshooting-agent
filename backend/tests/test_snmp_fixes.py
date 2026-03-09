@@ -66,3 +66,24 @@ async def test_walk_interfaces_closes_engine_on_error():
          patch.object(snmp_mod, "bulk_cmd", side_effect=Exception("timeout")):
         await collector._walk_interfaces(cfg)
         mock_engine.close_dispatcher.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_safe_walk_timeout():
+    from src.network.snmp_collector import SNMPCollector, SNMPDeviceConfig
+
+    collector = SNMPCollector.__new__(SNMPCollector)
+    collector._walk_timeout = 0.1  # 100ms
+
+    cfg = SNMPDeviceConfig(
+        device_id="d1", ip="10.0.0.1", community="public",
+        version="2c", port=161,
+    )
+
+    async def slow_walk(c):
+        await asyncio.sleep(5)
+        return {}
+
+    collector._walk_interfaces = slow_walk
+    result = await collector._safe_walk_interfaces(cfg)
+    assert result == {}  # Returns empty on timeout, no hang
