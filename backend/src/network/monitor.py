@@ -88,6 +88,8 @@ class NetworkMonitor:
         self._task: asyncio.Task | None = None
         self._last_cycle_at: float | None = None
         self._last_cycle_duration: float | None = None
+        self._last_pass_duration: float = 0.0
+        self._pass_count: int = 0
         self._broadcast_callback = broadcast_callback
         self.metrics_collector = None
 
@@ -110,6 +112,13 @@ class NetworkMonitor:
         elif age < 300:
             return "degraded"
         return "unhealthy"
+
+    def get_stats(self) -> dict:
+        """Return monitor pass statistics."""
+        return {
+            "pass_count": self._pass_count,
+            "last_pass_duration_s": self._last_pass_duration,
+        }
 
     # ── Lifecycle ──
 
@@ -165,10 +174,15 @@ class NetworkMonitor:
 
     async def _run_loop(self):
         while True:
+            pass_start = time.monotonic()
             try:
                 await self._collect_cycle()
             except Exception as e:
                 logger.error("Monitor cycle failed: %s", e)
+            pass_duration = time.monotonic() - pass_start
+            self._last_pass_duration = pass_duration
+            self._pass_count += 1
+            logger.info("Monitor pass %d completed in %.2fs", self._pass_count, pass_duration)
             await asyncio.sleep(self.cycle_interval)
 
     # ── Collection Cycle ──
