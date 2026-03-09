@@ -1,0 +1,76 @@
+# Palo Alto Networks firewalls.
+
+sysobjectid:
+  - 1.3.6.1.4.1.25461.*           # All Palo Alto devices
+
+extends:
+  - _base.yaml
+  - _generic-if.yaml
+
+vendor: paloalto
+device_type: firewall
+
+metrics:
+  # Session utilization
+  - MIB: PAN-COMMON-MIB
+    symbol:
+      OID: 1.3.6.1.4.1.25461.2.1.2.3.1.0
+      name: panSessionActive
+      metric_type: gauge
+
+  - MIB: PAN-COMMON-MIB
+    symbol:
+      OID: 1.3.6.1.4.1.25461.2.1.2.3.2.0
+      name: panSessionMax
+      metric_type: gauge
+
+  - MIB: PAN-COMMON-MIB
+    symbol:
+      OID: 1.3.6.1.4.1.25461.2.1.2.3.3.0
+      name: panSessionUtilization
+      metric_type: gauge
+
+  # Throughput
+  - MIB: PAN-COMMON-MIB
+    symbol:
+      OID: 1.3.6.1.4.1.25461.2.1.2.3.4.0
+      name: panSessionThroughput
+      metric_type: gauge
+
+  # GP active tunnels
+  - MIB: PAN-COMMON-MIB
+    symbol:
+      OID: 1.3.6.1.4.1.25461.2.1.2.5.1.3.0
+      name: panGPGWUtilizationActiveTunnels
+      metric_type: gauge
+
+  # CPU / System
+  - MIB: HOST-RESOURCES-MIB
+    table:
+      OID: 1.3.6.1.2.1.25.3.3
+      name: hrProcessorTable
+    symbols:
+      - OID: 1.3.6.1.2.1.25.3.3.1.2
+        name: hrProcessorLoad
+        metric_type: gauge
+    metric_tags:
+      - tag: cpu_index
+        index: 1
+
+metadata:
+  device:
+    fields:
+      vendor:
+        value: "paloalto"
+      serial_number:
+        symbol:
+          OID: 1.3.6.1.4.1.25461.2.1.2.1.3.0
+          name: panSysSerialNumber
+      os_version:
+        symbol:
+          OID: 1.3.6.1.4.1.25461.2.1.2.1.1.0
+          name: panSysSwVersion
+      model:
+        symbol:
+          OID: 1.3.6.1.2.1.1.1.0
+          name: sysDescr

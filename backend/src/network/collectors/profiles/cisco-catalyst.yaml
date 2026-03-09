@@ -1,0 +1,68 @@
+# Cisco Catalyst switch family profile.
+
+sysobjectid:
+  - 1.3.6.1.4.1.9.1.*            # Cisco Catalyst family
+  - 1.3.6.1.4.1.9.12.3.1.3.*     # Cisco C9000 series
+
+extends:
+  - _base.yaml
+  - _generic-if.yaml
+  - _generic-ip.yaml
+
+vendor: cisco
+device_type: switch
+
+metrics:
+  # CPU utilization
+  - MIB: CISCO-PROCESS-MIB
+    table:
+      OID: 1.3.6.1.4.1.9.9.109.1.1.1
+      name: cpmCPUTotalTable
+    symbols:
+      - OID: 1.3.6.1.4.1.9.9.109.1.1.1.1.10
+        name: cpmCPUTotalMonIntervalValue
+        metric_type: gauge
+      - OID: 1.3.6.1.4.1.9.9.109.1.1.1.1.12
+        name: cpmCPUMemoryUsed
+        metric_type: gauge
+      - OID: 1.3.6.1.4.1.9.9.109.1.1.1.1.13
+        name: cpmCPUMemoryFree
+        metric_type: gauge
+    metric_tags:
+      - tag: cpu_index
+        index: 1
+
+  # Environment monitoring
+  - MIB: CISCO-ENVMON-MIB
+    symbol:
+      OID: 1.3.6.1.4.1.9.9.13.1.3.1.3
+      name: ciscoEnvMonTemperatureValue
+      metric_type: gauge
+
+  # Stack info
+  - MIB: CISCO-STACKWISE-MIB
+    symbol:
+      OID: 1.3.6.1.4.1.9.9.500.1.2.1.1.1
+      name: cswSwitchNumCurrent
+      metric_type: gauge
+
+  # PoE
+  - MIB: CISCO-POWER-ETHERNET-EXT-MIB
+    symbol:
+      OID: 1.3.6.1.4.1.9.9.402.1.2.1.7
+      name: cpeExtPsePortPwrAllocated
+      metric_type: gauge
+
+metadata:
+  device:
+    fields:
+      vendor:
+        value: "cisco"
+      serial_number:
+        symbol:
+          OID: 1.3.6.1.4.1.9.9.92.1.1.1.2.0
+          name: entPhysicalSerialNum
+      os_version:
+        symbol:
+          OID: 1.3.6.1.2.1.1.1.0
+          name: sysDescr

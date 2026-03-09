@@ -1534,3 +1534,241 @@ export const fetchDBActiveQueries = async (profileId: string) => {
   if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch active queries'));
   return resp.json();
 };
+
+// ===== Protocol-First Device Monitoring =====
+
+export const listMonitoredDevices = async () => {
+  const resp = await fetch(`${API_BASE_URL}/api/collector/devices`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to list devices'));
+  return resp.json();
+};
+
+export const addMonitoredDevice = async (config: {
+  ip_address: string;
+  snmp_version?: string;
+  community_string?: string;
+  port?: number;
+  v3_user?: string;
+  v3_auth_protocol?: string;
+  v3_auth_key?: string;
+  v3_priv_protocol?: string;
+  v3_priv_key?: string;
+  tags?: string[];
+  profile?: string | null;
+  ping?: { enabled: boolean };
+  hostname?: string;
+}) => {
+  const resp = await fetch(`${API_BASE_URL}/api/collector/devices`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(config),
+  });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to add device'));
+  return resp.json();
+};
+
+export const getMonitoredDevice = async (deviceId: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/collector/devices/${deviceId}`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to get device'));
+  return resp.json();
+};
+
+export const updateMonitoredDevice = async (deviceId: string, updates: {
+  hostname?: string;
+  tags?: string[];
+  ping?: { enabled: boolean };
+  profile?: string;
+}) => {
+  const resp = await fetch(`${API_BASE_URL}/api/collector/devices/${deviceId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(updates),
+  });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to update device'));
+  return resp.json();
+};
+
+export const deleteMonitoredDevice = async (deviceId: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/collector/devices/${deviceId}`, { method: 'DELETE' });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to delete device'));
+  return resp.json();
+};
+
+export const testMonitoredDevice = async (deviceId: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/collector/devices/${deviceId}/test`, { method: 'POST' });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to test device'));
+  return resp.json();
+};
+
+export const collectMonitoredDevice = async (deviceId: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/collector/devices/${deviceId}/collect`, { method: 'POST' });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to collect device'));
+  return resp.json();
+};
+
+export const pingMonitoredDevice = async (deviceId: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/collector/devices/${deviceId}/ping`, { method: 'POST' });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to ping device'));
+  return resp.json();
+};
+
+export const listDiscoveryConfigs = async () => {
+  const resp = await fetch(`${API_BASE_URL}/api/collector/discovery`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to list discovery configs'));
+  return resp.json();
+};
+
+export const addDiscoveryConfig = async (config: {
+  cidr: string;
+  snmp_version?: string;
+  community?: string;
+  v3_user?: string;
+  v3_auth_protocol?: string;
+  v3_auth_key?: string;
+  v3_priv_protocol?: string;
+  v3_priv_key?: string;
+  port?: number;
+  interval_seconds?: number;
+  excluded_ips?: string[];
+  tags?: string[];
+  ping?: { enabled: boolean };
+}) => {
+  const resp = await fetch(`${API_BASE_URL}/api/collector/discovery`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(config),
+  });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to add discovery config'));
+  return resp.json();
+};
+
+export const deleteDiscoveryConfig = async (configId: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/collector/discovery/${configId}`, { method: 'DELETE' });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to delete discovery config'));
+  return resp.json();
+};
+
+export const triggerDiscoveryScan = async (configId: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/collector/discovery/${configId}/scan`, { method: 'POST' });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to trigger scan'));
+  return resp.json();
+};
+
+export const listDeviceProfiles = async () => {
+  const resp = await fetch(`${API_BASE_URL}/api/collector/profiles`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to list profiles'));
+  return resp.json();
+};
+
+export const getCollectorHealth = async () => {
+  const resp = await fetch(`${API_BASE_URL}/api/collector/health`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to get collector health'));
+  return resp.json();
+};
+
+// ===== NDM Enhanced API Functions =====
+
+export const fetchTrapEvents = async (filters?: {
+  device_id?: string; severity?: string; oid?: string;
+  time_from?: number; time_to?: number; limit?: number;
+}) => {
+  const params = new URLSearchParams();
+  if (filters?.device_id) params.set('device_id', filters.device_id);
+  if (filters?.severity) params.set('severity', filters.severity);
+  if (filters?.oid) params.set('oid', filters.oid);
+  if (filters?.time_from) params.set('time_from', String(filters.time_from));
+  if (filters?.time_to) params.set('time_to', String(filters.time_to));
+  if (filters?.limit) params.set('limit', String(filters.limit));
+  const resp = await fetch(`${API_BASE_URL}/api/collector/traps?${params}`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch traps'));
+  return resp.json();
+};
+
+export const fetchTrapSummary = async (timeFrom?: number, timeTo?: number) => {
+  const params = new URLSearchParams();
+  if (timeFrom) params.set('time_from', String(timeFrom));
+  if (timeTo) params.set('time_to', String(timeTo));
+  const resp = await fetch(`${API_BASE_URL}/api/collector/traps/summary?${params}`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch trap summary'));
+  return resp.json();
+};
+
+export const fetchSyslogEntries = async (filters?: {
+  device_id?: string; severity?: string; facility?: string;
+  search?: string; time_from?: number; time_to?: number; limit?: number;
+}) => {
+  const params = new URLSearchParams();
+  if (filters?.device_id) params.set('device_id', filters.device_id);
+  if (filters?.severity) params.set('severity', filters.severity);
+  if (filters?.facility) params.set('facility', filters.facility);
+  if (filters?.search) params.set('search', filters.search);
+  if (filters?.time_from) params.set('time_from', String(filters.time_from));
+  if (filters?.time_to) params.set('time_to', String(filters.time_to));
+  if (filters?.limit) params.set('limit', String(filters.limit));
+  const resp = await fetch(`${API_BASE_URL}/api/collector/syslog?${params}`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch syslog'));
+  return resp.json();
+};
+
+export const fetchSyslogSummary = async (timeFrom?: number, timeTo?: number) => {
+  const params = new URLSearchParams();
+  if (timeFrom) params.set('time_from', String(timeFrom));
+  if (timeTo) params.set('time_to', String(timeTo));
+  const resp = await fetch(`${API_BASE_URL}/api/collector/syslog/summary?${params}`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch syslog summary'));
+  return resp.json();
+};
+
+export const fetchDeviceMetricsSnapshot = async (deviceId: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/collector/devices/${deviceId}/metrics`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch device metrics'));
+  return resp.json();
+};
+
+export const fetchDeviceMetricsHistory = async (deviceId: string, window: string = '1h') => {
+  const resp = await fetch(`${API_BASE_URL}/api/collector/devices/${deviceId}/metrics/history?window=${window}`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch metrics history'));
+  return resp.json();
+};
+
+export const fetchDeviceInterfaces = async (deviceId: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/collector/devices/${deviceId}/interfaces`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch interfaces'));
+  return resp.json();
+};
+
+export const fetchDeviceSyslog = async (deviceId: string, limit: number = 100) => {
+  const resp = await fetch(`${API_BASE_URL}/api/collector/devices/${deviceId}/syslog?limit=${limit}`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch device syslog'));
+  return resp.json();
+};
+
+export const fetchDeviceTraps = async (deviceId: string, limit: number = 100) => {
+  const resp = await fetch(`${API_BASE_URL}/api/collector/devices/${deviceId}/traps?limit=${limit}`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch device traps'));
+  return resp.json();
+};
+
+export const fetchFlowConversations = async (window: string = '5m', limit: number = 50) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/flows/conversations?window=${window}&limit=${limit}`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch conversations'));
+  return resp.json();
+};
+
+export const fetchFlowApplications = async (window: string = '1h', limit: number = 30) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/flows/applications?window=${window}&limit=${limit}`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch applications'));
+  return resp.json();
+};
+
+export const fetchFlowASN = async (window: string = '1h', limit: number = 30) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/flows/asn?window=${window}&limit=${limit}`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch ASN data'));
+  return resp.json();
+};
+
+export const fetchFlowVolumeTimeline = async (window: string = '1h', interval: string = '1m') => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/flows/volume-timeline?window=${window}&interval=${interval}`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch volume timeline'));
+  return resp.json();
+};

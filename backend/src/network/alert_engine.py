@@ -113,6 +113,20 @@ DEFAULT_RULES = [
         duration_seconds=120, cooldown_seconds=600,
         description="DNS query latency exceeds 500ms",
     ),
+    AlertRule(
+        id="ipam-high-utilization", name="Subnet High Utilization",
+        severity="warning", entity_type="subnet", entity_filter="*",
+        metric="utilization_pct", condition="gt", threshold=80.0,
+        duration_seconds=0, cooldown_seconds=3600,
+        description="Subnet IP utilization exceeds 80%",
+    ),
+    AlertRule(
+        id="ipam-near-capacity", name="Subnet Near Capacity",
+        severity="critical", entity_type="subnet", entity_filter="*",
+        metric="utilization_pct", condition="gt", threshold=95.0,
+        duration_seconds=0, cooldown_seconds=3600,
+        description="Subnet IP utilization exceeds 95% - near capacity",
+    ),
 ]
 
 

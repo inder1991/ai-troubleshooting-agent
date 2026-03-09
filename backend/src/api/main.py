@@ -35,6 +35,7 @@ from .security_endpoints import security_router, init_security_endpoints
 from .discovery_endpoints import discovery_router, init_discovery_endpoints
 from .search_endpoints import search_router, init_search_endpoints
 from .db_endpoints import db_router
+from .collector_endpoints import collector_router, init_collector_endpoints
 from .websocket import manager
 from src.network.prometheus_exporter import MetricsCollector
 from src.utils.logger import get_logger
@@ -165,6 +166,7 @@ def create_app() -> FastAPI:
     app.include_router(discovery_router)
     app.include_router(search_router)
     app.include_router(db_router)
+    app.include_router(collector_router)
 
     @app.on_event("startup")
     async def startup():
@@ -193,6 +195,27 @@ def create_app() -> FastAPI:
         else:
             logger.info("INFLUXDB_TOKEN not set — InfluxDB metrics disabled")
 
+        # ── Initialize Event Bus ──
+        event_bus = None
+        event_store = None
+        try:
+            import os as _os
+            from src.network.event_bus import RedisEventBus, MemoryEventBus
+            from src.network.collectors.event_store import EventStore
+
+            redis_url = _os.getenv("REDIS_URL")
+            if redis_url:
+                event_bus = RedisEventBus(redis_url)
+                logger.info("Event bus: Redis Streams at %s", redis_url)
+            else:
+                event_bus = MemoryEventBus()
+                logger.info("Event bus: in-process MemoryEventBus (set REDIS_URL for Redis)")
+
+            event_store = EventStore()
+            logger.info("EventStore initialized")
+        except Exception as e:
+            logger.warning("Event bus init failed: %s", e)
+
         try:
             from src.network.monitor import NetworkMonitor
             topo_store = _net_topo_store()
@@ -201,6 +224,8 @@ def create_app() -> FastAPI:
                 topo_store, kg, _adapter_registry,
                 metrics_store=metrics_store,
                 broadcast_callback=manager.broadcast,
+                event_bus=event_bus,
+                event_store=event_store,
             )
             mon_ep._monitor = monitor
             mon_ep._topology_store = topo_store
@@ -210,6 +235,24 @@ def create_app() -> FastAPI:
             logger.info("NetworkMonitor started")
         except Exception as e:
             logger.warning("NetworkMonitor startup failed: %s", e)
+
+        # ── Initialize Protocol Collector endpoints ──
+        try:
+            if mon_ep._monitor:
+                m = mon_ep._monitor
+                init_collector_endpoints(
+                    instance_store=m.instance_store,
+                    profile_loader=m.profile_loader,
+                    snmp_collector=m.protocol_snmp,
+                    autodiscovery=m.autodiscovery_engine,
+                    ping_prober=m.ping_prober,
+                    event_store=event_store,
+                    metrics_store=metrics_store,
+                )
+                logger.info("Collector endpoints initialized (%d profiles loaded)",
+                          len(m.profile_loader.list_profiles()))
+        except Exception as e:
+            logger.warning("Collector endpoints init failed: %s", e)
 
         # ── Initialize SNMP endpoints ──
         init_snmp_endpoints(kg)
@@ -223,7 +266,7 @@ def create_app() -> FastAPI:
             try:
                 from src.network.flow_receiver import FlowReceiver
                 topo_store = _net_topo_store()
-                flow_receiver_instance = FlowReceiver(metrics_store, topo_store)
+                flow_receiver_instance = FlowReceiver(metrics_store, topo_store, event_bus=event_bus)
                 device_map = {d.management_ip: d.id for d in topo_store.list_devices() if d.management_ip}
                 flow_receiver_instance.update_device_map(device_map)
                 flow_port = int(os.getenv("FLOW_RECEIVER_PORT", "2055"))
@@ -347,6 +390,11 @@ def create_app() -> FastAPI:
 
     @app.on_event("shutdown")
     async def shutdown():
+        import src.api.monitor_endpoints as mon_ep
+        if mon_ep._monitor:
+            # Event bus cleanup is handled by monitor.stop()
+            pass
+
         import src.api.db_endpoints as db_ep
         if db_ep._db_monitor:
             await db_ep._db_monitor.stop()
@@ -357,7 +405,6 @@ def create_app() -> FastAPI:
             await flow_endpoints._flow_receiver.stop()
             logger.info("FlowReceiver stopped")
 
-        import src.api.monitor_endpoints as mon_ep
         if mon_ep._monitor:
             await mon_ep._monitor.stop()
         if mon_ep._monitor and mon_ep._monitor.metrics_store:

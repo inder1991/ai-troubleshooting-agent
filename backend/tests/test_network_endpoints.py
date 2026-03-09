@@ -15,6 +15,7 @@ from src.network.models import (
     FirewallVendor, PolicyAction, VerdictMatchType,
 )
 from src.network.adapters.mock_adapter import MockFirewallAdapter
+from src.network.adapters.registry import AdapterRegistry
 from src.agents.network.graph import build_network_diagnostic_graph
 
 
@@ -57,10 +58,12 @@ def _seed_topology(store):
 @pytest.fixture
 def client(store, kg, mock_adapter):
     """Create a TestClient with patched singletons pointing to test fixtures."""
+    registry = AdapterRegistry()
+    registry.register("fw1", mock_adapter, device_ids=["fw1"])
     # Patch the module-level singletons in network_endpoints
     with patch("src.api.network_endpoints._topology_store", store), \
          patch("src.api.network_endpoints._knowledge_graph", kg), \
-         patch("src.api.network_endpoints._firewall_adapters", {"fw1": mock_adapter}), \
+         patch("src.api.network_endpoints._adapter_registry", registry), \
          patch("src.api.network_endpoints._network_sessions", {}):
 
         from src.api.main import create_app

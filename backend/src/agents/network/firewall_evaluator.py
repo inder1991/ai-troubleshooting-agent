@@ -46,19 +46,29 @@ async def firewall_evaluator(state: dict, *, adapters: dict[str, FirewallAdapter
         async with semaphore:
             try:
                 verdict = await adapter.simulate_flow(src_ip, dst_ip, port, protocol)
-                return {
-                    "device_id": device_id,
-                    "device_name": fw.get("device_name", ""),
-                    "action": verdict.action.value,
-                    "rule_id": verdict.rule_id,
-                    "rule_name": verdict.rule_name,
-                    "confidence": verdict.confidence,
-                    "match_type": verdict.match_type.value,
-                    "details": verdict.details,
-                    "matched_source": verdict.matched_source,
-                    "matched_destination": verdict.matched_destination,
-                    "matched_ports": verdict.matched_ports,
-                }
+                try:
+                    return {
+                        "device_id": device_id,
+                        "device_name": fw.get("device_name", ""),
+                        "action": verdict.action.value,
+                        "rule_id": getattr(verdict, "rule_id", ""),
+                        "rule_name": getattr(verdict, "rule_name", ""),
+                        "confidence": getattr(verdict, "confidence", 0.0),
+                        "match_type": verdict.match_type.value,
+                        "details": getattr(verdict, "details", ""),
+                        "matched_source": getattr(verdict, "matched_source", ""),
+                        "matched_destination": getattr(verdict, "matched_destination", ""),
+                        "matched_ports": getattr(verdict, "matched_ports", ""),
+                    }
+                except AttributeError as ae:
+                    return {
+                        "device_id": device_id,
+                        "device_name": fw.get("device_name", ""),
+                        "action": "error",
+                        "confidence": 0.0,
+                        "match_type": VerdictMatchType.ADAPTER_UNAVAILABLE.value,
+                        "details": f"Malformed verdict: {ae}",
+                    }
             except Exception as e:
                 return {
                     "device_id": device_id,

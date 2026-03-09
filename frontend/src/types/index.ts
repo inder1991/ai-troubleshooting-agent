@@ -1691,3 +1691,204 @@ export interface VLANInfo {
   site_id: string;
   subnet_ids: string[];
 }
+
+// ===== Protocol-First Device Monitoring Types =====
+
+export interface SNMPCredentials {
+  version: '1' | '2c' | '3';
+  community: string;
+  port: number;
+  v3_user?: string;
+  v3_auth_protocol?: string;
+  v3_auth_key?: string;
+  v3_priv_protocol?: string;
+  v3_priv_key?: string;
+}
+
+export interface ProtocolConfig {
+  protocol: 'snmp' | 'gnmi' | 'restconf' | 'ssh_cli' | 'cloud_api';
+  priority: number;
+  enabled: boolean;
+  snmp?: SNMPCredentials;
+}
+
+export interface PingConfig {
+  enabled: boolean;
+  count: number;
+  interval: number;
+  timeout: number;
+}
+
+export interface PingResult {
+  rtt_avg: number;
+  rtt_min: number;
+  rtt_max: number;
+  packet_loss_pct: number;
+  reachable: boolean;
+  timestamp: number;
+}
+
+export interface MonitoredDevice {
+  device_id: string;
+  hostname: string;
+  management_ip: string;
+  sys_object_id: string | null;
+  matched_profile: string | null;
+  vendor: string;
+  model: string;
+  os_family: string;
+  protocols: ProtocolConfig[];
+  vendor_adapter_id: string | null;
+  discovered: boolean;
+  tags: string[];
+  ping_config: PingConfig | null;
+  last_collected: number | null;
+  last_ping: PingResult | null;
+  status: 'up' | 'down' | 'unreachable' | 'new';
+}
+
+export interface DiscoveryConfig {
+  config_id: string;
+  cidr: string;
+  snmp_version: '1' | '2c' | '3';
+  community: string;
+  v3_user?: string;
+  v3_auth_protocol?: string;
+  v3_auth_key?: string;
+  v3_priv_protocol?: string;
+  v3_priv_key?: string;
+  port: number;
+  interval_seconds: number;
+  excluded_ips: string[];
+  tags: string[];
+  ping: PingConfig;
+  enabled: boolean;
+  last_scan: number | null;
+  devices_found: number;
+}
+
+export interface DeviceProfileSummary {
+  name: string;
+  vendor: string;
+  device_type: string;
+  sysobjectid_patterns: string[];
+  metric_count: number;
+}
+
+export interface CollectedDataResult {
+  device_id: string;
+  protocol: string;
+  timestamp: number;
+  cpu_pct: number | null;
+  mem_pct: number | null;
+  uptime_seconds: number | null;
+  temperature: number | null;
+  interface_metrics: Record<string, Record<string, number>>;
+  metadata: Record<string, string>;
+  custom_metrics: Record<string, number>;
+}
+
+export interface CollectorHealthStatus {
+  status: string;
+  device_count: number;
+  discovery_config_count: number;
+  profile_count: number;
+  snmp_available: boolean;
+  pysnmp_available: boolean;
+}
+
+// ===== NDM Enhanced Types =====
+
+export interface TrapEvent {
+  event_id: string;
+  device_ip: string;
+  device_id: string | null;
+  oid: string;
+  value: string;
+  severity: 'critical' | 'major' | 'minor' | 'warning' | 'info';
+  timestamp: number;
+}
+
+export interface SyslogEntry {
+  event_id: string;
+  device_ip: string;
+  device_id: string | null;
+  facility: string;
+  severity: string;
+  severity_code: number;
+  hostname: string;
+  app_name: string;
+  message: string;
+  timestamp: number;
+}
+
+export interface FlowConversation {
+  src_ip: string;
+  dst_ip: string;
+  bytes: number;
+  packets: number;
+  flows: number;
+  avg_latency: number;
+}
+
+export interface FlowApplication {
+  app_name: string;
+  bytes: number;
+  packets: number;
+  flows: number;
+  percentage: number;
+}
+
+export interface FlowASN {
+  asn: number;
+  bytes: number;
+  packets: number;
+  flows: number;
+}
+
+export interface FlowVolumePoint {
+  time: string;
+  bytes: number;
+  packets: number;
+}
+
+export interface InterfaceMetrics {
+  name: string;
+  status: 'up' | 'down' | 'unknown';
+  speed: number;
+  in_octets: number;
+  out_octets: number;
+  in_errors: number;
+  out_errors: number;
+  in_discards: number;
+  out_discards: number;
+  utilization_pct: number;
+}
+
+export interface DeviceMetricsSnapshot {
+  device_id: string;
+  cpu_pct: number | null;
+  mem_pct: number | null;
+  uptime_seconds: number | null;
+  temperature: number | null;
+  interface_metrics: Record<string, Record<string, number>>;
+}
+
+export interface DeviceMetricsHistory {
+  timestamps: string[];
+  cpu_pct: (number | null)[];
+  mem_pct: (number | null)[];
+  temperature: (number | null)[];
+}
+
+export interface TrapSummary {
+  counts_by_severity: Record<string, number>;
+  top_oids: Array<{ oid: string; count: number }>;
+}
+
+export interface SyslogSummary {
+  counts_by_severity: Record<string, number>;
+  counts_by_facility: Record<string, number>;
+}
+
+export type NDMTabType = 'overview' | 'devices' | 'interfaces' | 'netflow' | 'syslog' | 'traps' | 'topology';

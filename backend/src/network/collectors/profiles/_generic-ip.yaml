@@ -1,0 +1,32 @@
+# Generic IP address table.
+
+metrics:
+  - MIB: IP-MIB
+    table:
+      OID: 1.3.6.1.2.1.4.20
+      name: ipAddrTable
+    symbols:
+      - OID: 1.3.6.1.2.1.4.20.1.1
+        name: ipAdEntAddr
+        metric_type: gauge
+      - OID: 1.3.6.1.2.1.4.20.1.3
+        name: ipAdEntNetMask
+        metric_type: gauge
+    metric_tags:
+      - tag: interface_index
+        column:
+          OID: 1.3.6.1.2.1.4.20.1.2
+          name: ipAdEntIfIndex
+
+  # IP forwarding stats
+  - MIB: IP-MIB
+    symbol:
+      OID: 1.3.6.1.2.1.4.3.0
+      name: ipInReceives
+      metric_type: counter
+
+  - MIB: IP-MIB
+    symbol:
+      OID: 1.3.6.1.2.1.4.10.0
+      name: ipForwDatagrams
+      metric_type: counter

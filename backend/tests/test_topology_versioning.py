@@ -9,6 +9,7 @@ from starlette.testclient import TestClient
 from src.network.topology_store import TopologyStore
 from src.network.knowledge_graph import NetworkKnowledgeGraph
 from src.network.models import Device, DeviceType, Subnet, Interface
+from src.network.adapters.registry import AdapterRegistry
 
 
 # ---------------------------------------------------------------------------
@@ -32,7 +33,7 @@ def client(store, kg):
     """TestClient with patched singletons."""
     with patch("src.api.network_endpoints._topology_store", store), \
          patch("src.api.network_endpoints._knowledge_graph", kg), \
-         patch("src.api.network_endpoints._firewall_adapters", {}), \
+         patch("src.api.network_endpoints._adapter_registry", AdapterRegistry()), \
          patch("src.api.network_endpoints._network_sessions", {}):
         from src.api.main import create_app
         app = create_app()

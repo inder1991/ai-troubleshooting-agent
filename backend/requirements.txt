@@ -36,7 +36,7 @@ pysnmp-lextudio>=6.1.0
 cryptography>=41.0.0
 
 # Optional: Database & Caching
-# redis==5.0.1
+redis[hiredis]>=5.0
 # sqlalchemy==2.0.25
 
 # Testing

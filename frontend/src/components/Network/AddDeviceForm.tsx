@@ -1,0 +1,156 @@
+import React, { useState } from 'react';
+import { addMonitoredDevice } from '../../services/api';
+
+interface AddDeviceFormProps {
+  onSuccess: () => void;
+  onCancel: () => void;
+}
+
+const AddDeviceForm: React.FC<AddDeviceFormProps> = ({ onSuccess, onCancel }) => {
+  const [ip, setIp] = useState('');
+  const [hostname, setHostname] = useState('');
+  const [snmpVersion, setSnmpVersion] = useState<'2c' | '3'>('2c');
+  const [community, setCommunity] = useState('public');
+  const [port, setPort] = useState(161);
+  const [v3User, setV3User] = useState('');
+  const [v3AuthProto, setV3AuthProto] = useState('SHA');
+  const [v3AuthKey, setV3AuthKey] = useState('');
+  const [v3PrivProto, setV3PrivProto] = useState('AES');
+  const [v3PrivKey, setV3PrivKey] = useState('');
+  const [tags, setTags] = useState('');
+  const [pingEnabled, setPingEnabled] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!ip.trim()) { setError('IP address is required'); return; }
+    setSubmitting(true);
+    setError('');
+    try {
+      await addMonitoredDevice({
+        ip_address: ip.trim(),
+        hostname: hostname.trim() || undefined,
+        snmp_version: snmpVersion,
+        community_string: snmpVersion === '2c' ? community : undefined,
+        port,
+        v3_user: snmpVersion === '3' ? v3User : undefined,
+        v3_auth_protocol: snmpVersion === '3' ? v3AuthProto : undefined,
+        v3_auth_key: snmpVersion === '3' ? v3AuthKey : undefined,
+        v3_priv_protocol: snmpVersion === '3' ? v3PrivProto : undefined,
+        v3_priv_key: snmpVersion === '3' ? v3PrivKey : undefined,
+        tags: tags.split(',').map(t => t.trim()).filter(Boolean),
+        ping: { enabled: pingEnabled },
+      });
+      onSuccess();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to add device');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const inputStyle: React.CSSProperties = {
+    width: '100%', padding: '8px 12px', background: 'rgba(7,182,213,0.06)',
+    border: '1px solid rgba(7,182,213,0.2)', borderRadius: 6, color: '#e2e8f0',
+    fontSize: 13, outline: 'none',
+  };
+  const labelStyle: React.CSSProperties = {
+    display: 'block', fontSize: 12, color: '#94a3b8', marginBottom: 4, fontWeight: 500,
+  };
+
+  return (
+    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <div>
+          <label style={labelStyle}>Management IP *</label>
+          <input style={inputStyle} value={ip} onChange={e => setIp(e.target.value)} placeholder="10.0.0.1" />
+        </div>
+        <div>
+          <label style={labelStyle}>Hostname (optional)</label>
+          <input style={inputStyle} value={hostname} onChange={e => setHostname(e.target.value)} placeholder="core-switch-1" />
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+        <div>
+          <label style={labelStyle}>SNMP Version</label>
+          <select style={{ ...inputStyle, cursor: 'pointer' }} value={snmpVersion} onChange={e => setSnmpVersion(e.target.value as '2c' | '3')}>
+            <option value="2c">v2c</option>
+            <option value="3">v3</option>
+          </select>
+        </div>
+        <div>
+          <label style={labelStyle}>Port</label>
+          <input style={inputStyle} type="number" value={port} onChange={e => setPort(Number(e.target.value))} />
+        </div>
+        {snmpVersion === '2c' && (
+          <div>
+            <label style={labelStyle}>Community String</label>
+            <input style={inputStyle} value={community} onChange={e => setCommunity(e.target.value)} placeholder="public" />
+          </div>
+        )}
+      </div>
+
+      {snmpVersion === '3' && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div>
+            <label style={labelStyle}>v3 Username</label>
+            <input style={inputStyle} value={v3User} onChange={e => setV3User(e.target.value)} />
+          </div>
+          <div>
+            <label style={labelStyle}>Auth Protocol</label>
+            <select style={{ ...inputStyle, cursor: 'pointer' }} value={v3AuthProto} onChange={e => setV3AuthProto(e.target.value)}>
+              <option value="MD5">MD5</option>
+              <option value="SHA">SHA</option>
+              <option value="SHA256">SHA256</option>
+            </select>
+          </div>
+          <div>
+            <label style={labelStyle}>Auth Key</label>
+            <input style={inputStyle} type="password" value={v3AuthKey} onChange={e => setV3AuthKey(e.target.value)} />
+          </div>
+          <div>
+            <label style={labelStyle}>Privacy Protocol</label>
+            <select style={{ ...inputStyle, cursor: 'pointer' }} value={v3PrivProto} onChange={e => setV3PrivProto(e.target.value)}>
+              <option value="DES">DES</option>
+              <option value="AES">AES</option>
+              <option value="AES256">AES256</option>
+            </select>
+          </div>
+          <div>
+            <label style={labelStyle}>Privacy Key</label>
+            <input style={inputStyle} type="password" value={v3PrivKey} onChange={e => setV3PrivKey(e.target.value)} />
+          </div>
+        </div>
+      )}
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 12, alignItems: 'end' }}>
+        <div>
+          <label style={labelStyle}>Tags (comma-separated)</label>
+          <input style={inputStyle} value={tags} onChange={e => setTags(e.target.value)} placeholder="env:prod, site:dc1" />
+        </div>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#94a3b8', cursor: 'pointer', paddingBottom: 8 }}>
+          <input type="checkbox" checked={pingEnabled} onChange={e => setPingEnabled(e.target.checked)} />
+          Ping enabled
+        </label>
+      </div>
+
+      {error && <div style={{ color: '#ef4444', fontSize: 13 }}>{error}</div>}
+
+      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+        <button type="button" onClick={onCancel} style={{
+          padding: '8px 16px', background: 'transparent', border: '1px solid rgba(148,163,184,0.3)',
+          borderRadius: 6, color: '#94a3b8', cursor: 'pointer', fontSize: 13,
+        }}>Cancel</button>
+        <button type="submit" disabled={submitting} style={{
+          padding: '8px 16px', background: '#07b6d5', border: 'none',
+          borderRadius: 6, color: '#0f2023', cursor: 'pointer', fontSize: 13, fontWeight: 600,
+          opacity: submitting ? 0.6 : 1,
+        }}>{submitting ? 'Adding...' : 'Add & Test'}</button>
+      </div>
+    </form>
+  );
+};
+
+export default AddDeviceForm;

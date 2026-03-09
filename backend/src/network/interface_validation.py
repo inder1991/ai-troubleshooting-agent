@@ -8,6 +8,7 @@ def validate_device_interfaces(
     interfaces: list[Interface],
     subnets: list[Subnet],
     zones: list[Zone],
+    device_vlan_id: int = 0,
 ) -> list[dict]:
     """Validate interfaces for a single device.
 
@@ -80,5 +81,25 @@ def validate_device_interfaces(
                 "severity": "warning",
                 "interface_id": iface.id,
             })
+
+    # Rule 32: Device VLAN should match subnet VLAN
+    if device_vlan_id:
+        for iface in interfaces:
+            if not iface.subnet_id:
+                continue
+            subnet = subnet_map.get(iface.subnet_id)
+            if not subnet or not subnet.vlan_id:
+                continue
+            if subnet.vlan_id != device_vlan_id:
+                errors.append({
+                    "rule": 32,
+                    "field": "vlan_id",
+                    "message": (
+                        f"Device '{device_id}' VLAN {device_vlan_id} does not match "
+                        f"subnet '{subnet.id}' VLAN {subnet.vlan_id}"
+                    ),
+                    "severity": "warning",
+                    "interface_id": iface.id,
+                })
 
     return errors

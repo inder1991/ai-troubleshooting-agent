@@ -39,6 +39,7 @@ import IPAMDashboard from './components/IPAM/IPAMDashboard';
 import NetworkWarRoom from './components/NetworkTroubleshooting/NetworkWarRoom';
 import ReachabilityMatrix from './components/NetworkTroubleshooting/ReachabilityMatrix';
 import NetworkAdaptersView from './components/Network/NetworkAdaptersView';
+import DeviceMonitoring from './components/Network/DeviceMonitoring';
 import ObservatoryView from './components/Observatory/ObservatoryView';
 import DBOverview from './components/Database/DBOverview';
 import DBConnections from './components/Database/DBConnections';
@@ -50,7 +51,7 @@ import KubernetesClusters from './components/Kubernetes/KubernetesClusters';
 import { Breadcrumbs } from './components/shared';
 
 
-type ViewState = 'home' | 'form' | 'investigation' | 'sessions' | 'integrations' | 'settings' | 'dossier' | 'cluster-diagnostics' | 'agent-matrix' | 'network-troubleshooting' | 'network-topology' | 'network-adapters' | 'ipam' | 'matrix' | 'observatory' | 'db-overview' | 'db-connections' | 'db-diagnostics' | 'db-monitoring' | 'db-schema' | 'db-operations' | 'k8s-clusters';
+type ViewState = 'home' | 'form' | 'investigation' | 'sessions' | 'integrations' | 'settings' | 'dossier' | 'cluster-diagnostics' | 'agent-matrix' | 'network-troubleshooting' | 'network-topology' | 'network-adapters' | 'device-monitoring' | 'ipam' | 'matrix' | 'observatory' | 'db-overview' | 'db-connections' | 'db-diagnostics' | 'db-monitoring' | 'db-schema' | 'db-operations' | 'k8s-clusters';
 
 function AppInner() {
   const { addToast } = useToast();
@@ -431,7 +432,8 @@ function AppInner() {
     sessions: 'sessions', integrations: 'integrations', settings: 'settings',
     'agent-matrix': 'agents', 'cluster-diagnostics': 'k8s-diagnostics',
     'k8s-clusters': 'k8s-clusters', 'network-topology': 'network-topology',
-    'network-adapters': 'network-adapters', ipam: 'ipam', matrix: 'matrix',
+    'network-adapters': 'network-adapters', 'device-monitoring': 'device-monitoring',
+    ipam: 'ipam', matrix: 'matrix',
     observatory: 'observatory',
     'db-overview': 'db-overview', 'db-connections': 'db-connections',
     'db-diagnostics': 'db-diagnostics', 'db-monitoring': 'db-monitoring',
@@ -466,6 +468,7 @@ function AppInner() {
     // Networking group
     'network-topology': { label: 'Topology', parent: 'home' },
     'network-adapters': { label: 'Adapters', parent: 'home' },
+    'device-monitoring': { label: 'Device Monitoring', parent: 'home' },
     ipam: { label: 'IPAM', parent: 'home' },
     matrix: { label: 'Matrix', parent: 'home' },
     observatory: { label: 'Observatory', parent: 'home' },
@@ -541,6 +544,10 @@ function AppInner() {
 
         {viewState === 'network-adapters' && (
           <NetworkAdaptersView />
+        )}
+
+        {viewState === 'device-monitoring' && (
+          <DeviceMonitoring />
         )}
 
         {viewState === 'ipam' && (

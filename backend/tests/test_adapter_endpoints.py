@@ -15,6 +15,7 @@ from src.network.topology_store import TopologyStore
 from src.network.knowledge_graph import NetworkKnowledgeGraph
 from src.network.models import FirewallVendor
 from src.network.adapters.mock_adapter import MockFirewallAdapter
+from src.network.adapters.registry import AdapterRegistry
 
 
 # ---------------------------------------------------------------------------
@@ -44,9 +45,11 @@ def mock_adapter():
 @pytest.fixture
 def client(store, kg, mock_adapter):
     """TestClient with patched singletons."""
+    registry = AdapterRegistry()
+    registry.register("fw1", mock_adapter, device_ids=["fw1"])
     with patch("src.api.network_endpoints._topology_store", store), \
          patch("src.api.network_endpoints._knowledge_graph", kg), \
-         patch("src.api.network_endpoints._firewall_adapters", {"fw1": mock_adapter}), \
+         patch("src.api.network_endpoints._adapter_registry", registry), \
          patch("src.api.network_endpoints._network_sessions", {}):
 
         from src.api.main import create_app
@@ -123,11 +126,11 @@ class TestAdapterConfigureStoresByNodeId:
     """When node_id is provided, it becomes the adapter key."""
 
     def test_adapter_configure_stores_by_node_id(self, store, kg):
-        """node_id used as adapter key in _firewall_adapters."""
-        adapters_dict = {}
+        """node_id used as device binding in the adapter registry."""
+        registry = AdapterRegistry()
         with patch("src.api.network_endpoints._topology_store", store), \
              patch("src.api.network_endpoints._knowledge_graph", kg), \
-             patch("src.api.network_endpoints._firewall_adapters", adapters_dict), \
+             patch("src.api.network_endpoints._adapter_registry", registry), \
              patch("src.api.network_endpoints._network_sessions", {}):
 
             from src.api.main import create_app
@@ -141,15 +144,15 @@ class TestAdapterConfigureStoresByNodeId:
                 assert resp.status_code == 200
                 data = resp.json()
                 assert data["adapter_key"] == "fw-node-42"
-                # The adapter should be stored under the node_id key
-                assert "fw-node-42" in adapters_dict
+                # The adapter should be accessible via device binding
+                assert "fw-node-42" in registry
 
     def test_adapter_configure_default_key(self, store, kg):
-        """Without node_id, key defaults to adapter-{vendor}."""
-        adapters_dict = {}
+        """Without node_id, key defaults to the instance_id (UUID)."""
+        registry = AdapterRegistry()
         with patch("src.api.network_endpoints._topology_store", store), \
              patch("src.api.network_endpoints._knowledge_graph", kg), \
-             patch("src.api.network_endpoints._firewall_adapters", adapters_dict), \
+             patch("src.api.network_endpoints._adapter_registry", registry), \
              patch("src.api.network_endpoints._network_sessions", {}):
 
             from src.api.main import create_app
@@ -160,8 +163,9 @@ class TestAdapterConfigureStoresByNodeId:
                 })
                 assert resp.status_code == 200
                 data = resp.json()
-                assert data["adapter_key"] == "adapter-palo_alto"
-                assert "adapter-palo_alto" in adapters_dict
+                adapter_key = data["adapter_key"]
+                assert adapter_key  # non-empty
+                assert adapter_key in registry  # registered as instance_id
 
 
 # ---------------------------------------------------------------------------
@@ -173,9 +177,10 @@ class TestAdapterConfigurePersistsConfig:
     """After configure, adapter config is in the topology store (SQLite)."""
 
     def test_adapter_configure_persists_config(self, store, kg):
+        registry = AdapterRegistry()
         with patch("src.api.network_endpoints._topology_store", store), \
              patch("src.api.network_endpoints._knowledge_graph", kg), \
-             patch("src.api.network_endpoints._firewall_adapters", {}), \
+             patch("src.api.network_endpoints._adapter_registry", registry), \
              patch("src.api.network_endpoints._network_sessions", {}):
 
             from src.api.main import create_app
@@ -210,11 +215,12 @@ class TestAdapterRefreshReloadsKG:
             vendor=FirewallVendor.PALO_ALTO,
             api_endpoint="https://pan.example.com",
         )
-        adapters_dict = {"fw1": mock_adapter}
+        registry = AdapterRegistry()
+        registry.register("fw1", mock_adapter, device_ids=["fw1"])
 
         with patch("src.api.network_endpoints._topology_store", store), \
              patch("src.api.network_endpoints._knowledge_graph", mock_kg), \
-             patch("src.api.network_endpoints._firewall_adapters", adapters_dict), \
+             patch("src.api.network_endpoints._adapter_registry", registry), \
              patch("src.api.network_endpoints._network_sessions", {}):
 
             from src.api.main import create_app

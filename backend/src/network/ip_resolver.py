@@ -1,6 +1,9 @@
 """Radix tree wrapper for fast IP -> subnet/device resolution."""
+import logging
 import pytricia
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 
 class IPResolver:
@@ -15,7 +18,10 @@ class IPResolver:
         """
         self._tree = pytricia.PyTricia()
         for s in subnets:
-            self._tree[s["cidr"]] = s
+            try:
+                self._tree[s["cidr"]] = s
+            except (KeyError, ValueError) as e:
+                logger.warning("Skipping invalid CIDR entry: %s", e)
 
     def resolve(self, ip: str) -> Optional[dict]:
         """Resolve IP to its longest-prefix-match subnet metadata."""

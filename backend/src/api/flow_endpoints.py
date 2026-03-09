@@ -35,6 +35,63 @@ async def protocol_breakdown(window: str = "1h"):
     return await _metrics_store.query_protocol_breakdown(window=window)
 
 
+@flow_router.get("/conversations")
+async def flow_conversations(window: str = "5m", limit: int = 50):
+    if _metrics_store:
+        try:
+            result = await _metrics_store.query_conversations(window=window, limit=limit)
+            if result:
+                return result
+        except Exception:
+            pass
+    # Fallback to in-memory aggregator data
+    if _flow_receiver:
+        return _flow_receiver.aggregator.get_conversations(limit=limit)
+    return []
+
+
+@flow_router.get("/applications")
+async def flow_applications(window: str = "1h", limit: int = 30):
+    if _metrics_store:
+        try:
+            result = await _metrics_store.query_applications(window=window, limit=limit)
+            if result:
+                return result
+        except Exception:
+            pass
+    # Fallback to in-memory aggregator data
+    if _flow_receiver:
+        return _flow_receiver.aggregator.get_applications(limit=limit)
+    return []
+
+
+@flow_router.get("/asn")
+async def flow_asn(window: str = "1h", limit: int = 30):
+    if _metrics_store:
+        try:
+            result = await _metrics_store.query_asn_breakdown(window=window, limit=limit)
+            if result:
+                return result
+        except Exception:
+            pass
+    # Fallback to in-memory aggregator data
+    if _flow_receiver:
+        return _flow_receiver.aggregator.get_asn_breakdown(limit=limit)
+    return []
+
+
+@flow_router.get("/volume-timeline")
+async def flow_volume_timeline(window: str = "1h", interval: str = "1m"):
+    if _metrics_store:
+        try:
+            return await _metrics_store.query_flow_volume_timeline(
+                window=window, interval=interval,
+            )
+        except Exception:
+            pass
+    return []
+
+
 @flow_router.get("/status")
 def flow_status():
     return {

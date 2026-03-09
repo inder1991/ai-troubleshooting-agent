@@ -6,6 +6,7 @@ N instances per vendor and backward-compatible device_id lookups.
 from __future__ import annotations
 
 import logging
+import threading
 from typing import Optional
 
 from .base import FirewallAdapter
@@ -27,6 +28,7 @@ class AdapterRegistry:
     def __init__(self) -> None:
         self._instances: dict[str, FirewallAdapter] = {}
         self._device_map: dict[str, str] = {}  # device_id → instance_id
+        self._lock = threading.Lock()
 
     # ── Core API ──
 
@@ -36,10 +38,11 @@ class AdapterRegistry:
         adapter: FirewallAdapter,
         device_ids: list[str] | None = None,
     ) -> None:
-        self._instances[instance_id] = adapter
-        for did in device_ids or []:
-            self._device_map[did] = instance_id
-        logger.info("Registered adapter instance %s (%s)", instance_id, adapter.vendor.value)
+        with self._lock:
+            self._instances[instance_id] = adapter
+            for did in device_ids or []:
+                self._device_map[did] = instance_id
+            logger.info("Registered adapter instance %s (%s)", instance_id, adapter.vendor.value)
 
     def get_by_instance(self, instance_id: str) -> FirewallAdapter | None:
         return self._instances.get(instance_id)
@@ -51,22 +54,27 @@ class AdapterRegistry:
         return None
 
     def remove(self, instance_id: str) -> None:
-        self._instances.pop(instance_id, None)
-        to_remove = [did for did, iid in self._device_map.items() if iid == instance_id]
-        for did in to_remove:
-            del self._device_map[did]
+        with self._lock:
+            self._instances.pop(instance_id, None)
+            to_remove = [did for did, iid in self._device_map.items() if iid == instance_id]
+            for did in to_remove:
+                del self._device_map[did]
 
     def bind_device(self, device_id: str, instance_id: str) -> None:
-        self._device_map[device_id] = instance_id
+        with self._lock:
+            self._device_map[device_id] = instance_id
 
     def unbind_device(self, device_id: str) -> None:
-        self._device_map.pop(device_id, None)
+        with self._lock:
+            self._device_map.pop(device_id, None)
 
     def all_instances(self) -> dict[str, FirewallAdapter]:
-        return dict(self._instances)
+        with self._lock:
+            return dict(self._instances)
 
     def device_bindings(self) -> dict[str, str]:
-        return dict(self._device_map)
+        with self._lock:
+            return dict(self._device_map)
 
     # ── Backward-compatible dict-like interface ──
 

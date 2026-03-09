@@ -15,6 +15,16 @@ from .metrics_store import FlowRecord
 
 logger = logging.getLogger(__name__)
 
+APP_PORTS = {
+    443: "HTTPS", 53: "DNS", 80: "HTTP", 22: "SSH", 8443: "Zoom",
+    3389: "RDP", 5060: "SIP", 3306: "MySQL", 5432: "PostgreSQL",
+    6379: "Redis", 27017: "MongoDB", 8080: "HTTP-Alt", 25: "SMTP",
+    143: "IMAP", 110: "POP3", 993: "IMAPS", 995: "POP3S",
+    8883: "MQTT", 5672: "AMQP", 9092: "Kafka", 2049: "NFS",
+    445: "SMB", 1433: "MSSQL", 389: "LDAP", 636: "LDAPS",
+    123: "NTP", 161: "SNMP", 514: "Syslog", 69: "TFTP",
+}
+
 
 @dataclass
 class NetFlowV5Header:
@@ -271,16 +281,58 @@ class FlowAggregator:
     def __init__(
         self, metrics_store: Any, topology_store: Any,
         device_ip_map: dict[str, str] | None = None,
+        event_bus: Any | None = None,
     ) -> None:
         self.metrics = metrics_store
         self.topo_store = topology_store
         self._buffer: list[FlowRecord] = []
         self._device_ip_map = device_ip_map or {}
+        self._conversations: dict[tuple[str, str], dict] = {}
+        self._applications: dict[str, dict] = {}
+        self._asn_stats: dict[int, dict] = {}
+        self._event_bus = event_bus
 
     MAX_BUFFER_SIZE = 100_000
 
     def set_device_map(self, device_ip_map: dict[str, str]) -> None:
         self._device_ip_map = device_ip_map
+
+    def set_event_bus(self, bus: Any) -> None:
+        self._event_bus = bus
+
+    def get_conversations(self, limit: int = 50) -> list[dict]:
+        """Return top conversations sorted by bytes descending."""
+        items = [
+            {"src_ip": k[0], "dst_ip": k[1], **v}
+            for k, v in self._conversations.items()
+        ]
+        items.sort(key=lambda x: x["bytes"], reverse=True)
+        return items[:limit]
+
+    def get_applications(self, limit: int = 30) -> list[dict]:
+        """Return application breakdown sorted by bytes descending, with percentage."""
+        total_bytes = sum(v["bytes"] for v in self._applications.values()) or 1
+        items = [
+            {
+                "application": k,
+                "bytes": v["bytes"],
+                "packets": v["packets"],
+                "flows": v["flows"],
+                "percentage": round(v["bytes"] / total_bytes * 100, 2),
+            }
+            for k, v in self._applications.items()
+        ]
+        items.sort(key=lambda x: x["bytes"], reverse=True)
+        return items[:limit]
+
+    def get_asn_breakdown(self, limit: int = 30) -> list[dict]:
+        """Return ASN breakdown sorted by bytes descending."""
+        items = [
+            {"asn": k, **v}
+            for k, v in self._asn_stats.items()
+        ]
+        items.sort(key=lambda x: x["bytes"], reverse=True)
+        return items[:limit]
 
     def ingest(self, flow: FlowRecord) -> None:
         if len(self._buffer) >= self.MAX_BUFFER_SIZE:
@@ -320,6 +372,57 @@ class FlowAggregator:
             except Exception:
                 pass
 
+        # -- Conversation aggregation ----------------------------------------
+        conversations: dict[tuple[str, str], dict] = {}
+        for flow in batch:
+            key = (flow.src_ip, flow.dst_ip)
+            if key not in conversations:
+                conversations[key] = {"bytes": 0, "packets": 0, "flows": 0, "latency_sum": 0.0}
+            conversations[key]["bytes"] += flow.bytes
+            conversations[key]["packets"] += flow.packets
+            conversations[key]["flows"] += 1
+            conversations[key]["latency_sum"] += (flow.end_time - flow.start_time).total_seconds()
+        self._conversations = conversations
+
+        # -- Application breakdown -------------------------------------------
+        applications: dict[str, dict] = {}
+        for flow in batch:
+            app_name = APP_PORTS.get(flow.dst_port, "Other")
+            if app_name not in applications:
+                applications[app_name] = {"bytes": 0, "packets": 0, "flows": 0}
+            applications[app_name]["bytes"] += flow.bytes
+            applications[app_name]["packets"] += flow.packets
+            applications[app_name]["flows"] += 1
+        self._applications = applications
+
+        # -- ASN stats -------------------------------------------------------
+        asn_stats: dict[int, dict] = {}
+        for flow in batch:
+            for asn in (flow.src_as, flow.dst_as):
+                if asn == 0:
+                    continue
+                if asn not in asn_stats:
+                    asn_stats[asn] = {"bytes": 0, "packets": 0, "flows": 0}
+                asn_stats[asn]["bytes"] += flow.bytes
+                asn_stats[asn]["packets"] += flow.packets
+                asn_stats[asn]["flows"] += 1
+        self._asn_stats = asn_stats
+
+        # -- Publish to event bus --------------------------------------------
+        if self._event_bus:
+            try:
+                aggregate = {
+                    "flow_count": len(batch),
+                    "total_bytes": sum(f.bytes for f in batch),
+                    "total_packets": sum(f.packets for f in batch),
+                    "top_conversations": self.get_conversations(limit=10),
+                    "top_applications": self.get_applications(limit=10),
+                    "top_asns": self.get_asn_breakdown(limit=10),
+                }
+                self._event_bus.publish("flows", aggregate)
+            except Exception as e:
+                logger.warning("Failed to publish flow aggregate to event bus: %s", e)
+
         return len(batch)
 
 
@@ -342,11 +445,12 @@ class FlowReceiverProtocol(asyncio.DatagramProtocol):
 class FlowReceiver:
     """Manages UDP listeners for NetFlow/sFlow."""
 
-    def __init__(self, metrics_store: Any, topology_store: Any) -> None:
+    def __init__(self, metrics_store: Any, topology_store: Any,
+                 event_bus: Any | None = None) -> None:
         self.metrics = metrics_store
         self.topo_store = topology_store
         self.parser = FlowParser()
-        self.aggregator = FlowAggregator(metrics_store, topology_store)
+        self.aggregator = FlowAggregator(metrics_store, topology_store, event_bus=event_bus)
         self._transports: list[asyncio.BaseTransport] = []
         self._flush_task: asyncio.Task | None = None
 

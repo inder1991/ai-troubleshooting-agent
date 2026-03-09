@@ -17,6 +17,20 @@ from .alert_engine import AlertEngine
 from .dns_monitor import DNSMonitor
 from .models import DNSMonitorConfig
 
+# Protocol-first collector imports
+from .collectors.profile_loader import ProfileLoader
+from .collectors.snmp_collector import SNMPProtocolCollector
+from .collectors.autodiscovery import AutodiscoveryEngine
+from .collectors.collector_registry import CollectorRegistry
+from .collectors.instance_store import InstanceStore
+from .collectors.ping_prober import PingProber
+from .collectors.data_merger import merge_collected_data
+
+from .event_bus import EventBus, RedisEventBus, MemoryEventBus, EventProcessor
+from .collectors.trap_listener import SNMPTrapListener
+from .collectors.syslog_listener import SyslogListener
+from .collectors.event_store import EventStore
+
 logger = logging.getLogger(__name__)
 
 # Thresholds for status derivation
@@ -31,12 +45,19 @@ class NetworkMonitor:
     def __init__(self, store: TopologyStore, kg, adapters,
                  prometheus_url: str | None = None, metrics_store=None,
                  dns_config: DNSMonitorConfig | None = None,
-                 broadcast_callback=None):
+                 broadcast_callback=None,
+                 event_bus: EventBus | None = None,
+                 event_store: EventStore | None = None):
         self.store = store
         self.kg = kg
         self.adapters = adapters
         self.prometheus_url = prometheus_url
         self.metrics_store = metrics_store
+        self.event_bus = event_bus
+        self.event_store = event_store
+        self.event_processor: EventProcessor | None = None
+        self.trap_listener: SNMPTrapListener | None = None
+        self.syslog_listener: SyslogListener | None = None
         self.drift_engine = DriftEngine(store)
         self.discovery_engine = DiscoveryEngine(store, kg)
         self.snmp_collector = SNMPCollector(metrics_store) if metrics_store else None
@@ -45,6 +66,21 @@ class NetworkMonitor:
             from .notification_dispatcher import NotificationDispatcher
             self.alert_engine.set_dispatcher(NotificationDispatcher())
         self._latest_alerts: list[dict] = []
+
+        # Protocol-first collector infrastructure
+        self.profile_loader = ProfileLoader()
+        self.profile_loader.load_all()
+        self.protocol_snmp = SNMPProtocolCollector()
+        self.collector_registry = CollectorRegistry()
+        self.collector_registry.register(self.protocol_snmp)
+        self.instance_store = InstanceStore()
+        self.autodiscovery_engine = AutodiscoveryEngine(
+            self.profile_loader, self.protocol_snmp
+        )
+        self.ping_prober = PingProber()
+        self._autodiscovery_interval = 300  # 5 min
+        self._last_autodiscovery: float = 0
+
         self.dns_monitor: DNSMonitor | None = None
         if dns_config and dns_config.enabled:
             self.dns_monitor = DNSMonitor(dns_config)
@@ -78,10 +114,47 @@ class NetworkMonitor:
     # ── Lifecycle ──
 
     async def start(self):
+        # Start event bus and processor
+        if self.event_bus:
+            await self.event_bus.start()
+            if self.event_store:
+                self.event_processor = EventProcessor(
+                    bus=self.event_bus,
+                    event_store=self.event_store,
+                    metrics_store=self.metrics_store,
+                )
+                await self.event_processor.start()
+
+        # Start trap listener if enabled
+        import os
+        if os.getenv("TRAP_LISTENER_ENABLED") == "1" and self.event_bus:
+            self.trap_listener = SNMPTrapListener(
+                event_bus=self.event_bus,
+                instance_store=self.instance_store,
+            )
+            await self.trap_listener.start()
+
+        # Start syslog listener if enabled
+        if os.getenv("SYSLOG_LISTENER_ENABLED") == "1" and self.event_bus:
+            self.syslog_listener = SyslogListener(
+                event_bus=self.event_bus,
+                instance_store=self.instance_store,
+            )
+            await self.syslog_listener.start()
+
         self._task = asyncio.create_task(self._run_loop())
         logger.info("NetworkMonitor started (interval=%ds)", self.cycle_interval)
 
     async def stop(self):
+        if self.trap_listener:
+            await self.trap_listener.stop()
+        if self.syslog_listener:
+            await self.syslog_listener.stop()
+        if self.event_processor:
+            await self.event_processor.stop()
+        if self.event_bus:
+            await self.event_bus.stop()
+
         if self._task:
             self._task.cancel()
             try:
@@ -105,12 +178,16 @@ class NetworkMonitor:
         passes = [
             self._probe_pass(),
             self._adapter_pass(),
+            self._protocol_pass(),
             self._drift_pass(),
             self._discovery_pass(),
             self._snmp_pass(),
             self._dns_pass(),
             self._ipam_utilization_pass(),
         ]
+        # Autodiscovery runs on its own interval (not every 30s)
+        if time.time() - self._last_autodiscovery >= self._autodiscovery_interval:
+            passes.append(self._autodiscovery_pass())
         results = await asyncio.gather(*passes, return_exceptions=True)
         for i, result in enumerate(results):
             if isinstance(result, Exception):
@@ -266,6 +343,64 @@ class NetworkMonitor:
                     )
             except Exception as e:
                 logger.debug("Flow discovery failed: %s", e)
+
+    async def _protocol_pass(self):
+        """Profile-based SNMP/gNMI collection for protocol-monitored devices."""
+        try:
+            devices = self.instance_store.list_devices()
+            if not devices:
+                return
+            # Build (device, profile) pairs for SNMP collection
+            snmp_pairs = []
+            for dev in devices:
+                if dev.status == "down":
+                    continue
+                profile = self.profile_loader.get(dev.matched_profile or "generic")
+                if not profile:
+                    profile = self.profile_loader.get("generic")
+                if profile:
+                    has_snmp = any(p.protocol == "snmp" and p.enabled for p in dev.protocols)
+                    if has_snmp:
+                        snmp_pairs.append((dev, profile))
+
+            if snmp_pairs:
+                results = await self.protocol_snmp.collect_batch(snmp_pairs)
+                for data in results:
+                    self.instance_store.update_device_status(
+                        data.device_id, "up", data.timestamp
+                    )
+
+            # Ping pass for protocol-monitored devices
+            ping_results = await self.ping_prober.probe_batch(devices)
+            for device_id, ping in ping_results.items():
+                self.instance_store.update_device_ping(
+                    device_id, ping.model_dump_json()
+                )
+                if not ping.reachable:
+                    self.instance_store.update_device_status(device_id, "unreachable")
+        except Exception as e:
+            logger.debug("Protocol pass failed: %s", e)
+
+    async def _autodiscovery_pass(self):
+        """Subnet scanning for new devices (runs every 5 min, not 30s)."""
+        try:
+            configs = self.instance_store.list_discovery_configs()
+            if not configs:
+                return
+            discovered = await self.autodiscovery_engine.run_discovery_cycle(configs)
+            for device in discovered:
+                existing = self.instance_store.get_device_by_ip(device.management_ip)
+                if not existing:
+                    self.instance_store.upsert_device(device)
+                    logger.info("Autodiscovered new device: %s (%s)",
+                              device.hostname, device.management_ip)
+            # Update discovery config stats
+            for config in configs:
+                config.last_scan = time.time()
+                self.instance_store.upsert_discovery_config(config)
+            self._last_autodiscovery = time.time()
+        except Exception as e:
+            logger.debug("Autodiscovery pass failed: %s", e)
 
     async def _snmp_pass(self):
         if not self.snmp_collector:

@@ -1,6 +1,10 @@
 """NAT resolver node — tracks address translation chain through firewalls."""
+import logging
+
 from src.network.adapters.base import FirewallAdapter
 from src.network.models import NATDirection
+
+logger = logging.getLogger(__name__)
 
 
 async def nat_resolver(state: dict, *, adapters: dict[str, FirewallAdapter]) -> dict:
@@ -34,7 +38,8 @@ async def nat_resolver(state: dict, *, adapters: dict[str, FirewallAdapter]) -> 
 
         try:
             nat_rules = await adapter.get_nat_rules()
-        except Exception:
+        except Exception as e:
+            logger.warning("Failed to get NAT rules from %s: %s", device_id, e)
             continue
 
         for rule in nat_rules:
@@ -71,7 +76,7 @@ async def nat_resolver(state: dict, *, adapters: dict[str, FirewallAdapter]) -> 
                     }
                     translations.append(translation)
                     current_dst = rule.translated_dst
-                    if rule.translated_port:
+                    if rule.translated_port is not None:
                         current_port = rule.translated_port
                     identity_chain.append({
                         "stage": f"post-dnat-{device_id}",

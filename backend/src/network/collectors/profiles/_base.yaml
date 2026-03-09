@@ -1,0 +1,45 @@
+# Base profile — extended by all device profiles.
+# Collects universal SNMP system-group OIDs.
+
+metrics:
+  - MIB: SNMPv2-MIB
+    symbol:
+      OID: 1.3.6.1.2.1.1.3.0
+      name: sysUpTimeInstance
+      metric_type: gauge
+
+  - MIB: HOST-RESOURCES-MIB
+    symbol:
+      OID: 1.3.6.1.2.1.25.3.3.1.2
+      name: hrProcessorLoad
+      metric_type: gauge
+
+  - MIB: HOST-RESOURCES-MIB
+    symbol:
+      OID: 1.3.6.1.2.1.25.2.3.1.6
+      name: hrStorageUsed
+      metric_type: gauge
+
+metadata:
+  device:
+    fields:
+      name:
+        symbol:
+          OID: 1.3.6.1.2.1.1.5.0
+          name: sysName
+      description:
+        symbol:
+          OID: 1.3.6.1.2.1.1.1.0
+          name: sysDescr
+      location:
+        symbol:
+          OID: 1.3.6.1.2.1.1.6.0
+          name: sysLocation
+      contact:
+        symbol:
+          OID: 1.3.6.1.2.1.1.4.0
+          name: sysContact
+      sys_object_id:
+        symbol:
+          OID: 1.3.6.1.2.1.1.2.0
+          name: sysObjectID

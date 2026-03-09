@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 
 export type NavView = 'home' | 'sessions' | 'app-diagnostics' | 'cluster-diagnostics'
   | 'network-troubleshooting' | 'pr-review' | 'github-issue-fix'
-  | 'network-topology' | 'network-adapters' | 'ipam' | 'matrix' | 'observatory'
+  | 'network-topology' | 'network-adapters' | 'device-monitoring' | 'ipam' | 'matrix' | 'observatory'
   | 'k8s-clusters' | 'k8s-diagnostics'
   | 'db-overview' | 'db-connections' | 'db-diagnostics' | 'db-monitoring' | 'db-schema' | 'db-operations'
   | 'integrations' | 'settings' | 'agents';
@@ -59,6 +59,7 @@ const navItems: NavItem[] = [
     children: [
       { id: 'network-topology', label: 'Topology', icon: 'device_hub' },
       { id: 'network-adapters', label: 'Adapters', icon: 'settings_input_component' },
+      { id: 'device-monitoring', label: 'Device Monitoring', icon: 'router' },
       { id: 'ipam', label: 'IPAM', icon: 'dns' },
       { id: 'observatory', label: 'Observatory', icon: 'monitoring' },
       { id: 'matrix', label: 'Matrix', icon: 'grid_view' },

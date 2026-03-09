@@ -94,6 +94,8 @@ class MetricsStore:
             .tag("dst_ip", flow.dst_ip)
             .tag("protocol", str(flow.protocol))
             .tag("exporter", flow.exporter_ip)
+            .tag("src_as", str(flow.src_as))
+            .tag("dst_as", str(flow.dst_as))
             .field("src_port", flow.src_port)
             .field("dst_port", flow.dst_port)
             .field("bytes", flow.bytes)
@@ -311,6 +313,170 @@ class MetricsStore:
             ]
         except Exception as e:
             logger.warning("InfluxDB query failed: %s", e)
+            return []
+
+    async def query_conversations(
+        self, window: str = "5m", limit: int = 50,
+    ) -> list[dict]:
+        """Top conversations by bytes."""
+        window = self._validate_duration(window)
+        limit = self._validate_limit(limit)
+        query = f'''
+        from(bucket: "{self.bucket}")
+          |> range(start: -{window})
+          |> filter(fn: (r) => r._measurement == "flow_summary")
+          |> filter(fn: (r) => r._field == "bytes")
+          |> group(columns: ["src_ip", "dst_ip"])
+          |> sum()
+          |> group()
+          |> sort(columns: ["_value"], desc: true)
+          |> limit(n: {limit})
+        '''
+        try:
+            tables = await self._query_api.query(query)
+            return [
+                {
+                    "src_ip": r.values.get("src_ip", ""),
+                    "dst_ip": r.values.get("dst_ip", ""),
+                    "bytes": r.get_value(),
+                }
+                for table in tables for r in table.records
+            ]
+        except Exception as e:
+            logger.warning("InfluxDB conversations query failed: %s", e)
+            return []
+
+    async def query_applications(
+        self, window: str = "1h", limit: int = 30,
+    ) -> list[dict]:
+        """Application breakdown by bytes — groups by dst_port then maps to app name."""
+        from .flow_receiver import APP_PORTS
+        window = self._validate_duration(window)
+        limit = self._validate_limit(limit)
+        query = f'''
+        from(bucket: "{self.bucket}")
+          |> range(start: -{window})
+          |> filter(fn: (r) => r._measurement == "flow_summary")
+          |> pivot(rowKey: ["_time", "src_ip", "dst_ip"], columnKey: ["_field"], valueColumn: "_value")
+          |> group()
+          |> keep(columns: ["dst_port", "bytes", "packets"])
+        '''
+        try:
+            tables = await self._query_api.query(query)
+            app_agg: dict[str, dict] = {}
+            for table in tables:
+                for r in table.records:
+                    dst_port = int(r.values.get("dst_port", 0))
+                    app_name = APP_PORTS.get(dst_port, "Other")
+                    if app_name not in app_agg:
+                        app_agg[app_name] = {"bytes": 0, "packets": 0, "flows": 0}
+                    app_agg[app_name]["bytes"] += int(r.values.get("bytes", 0))
+                    app_agg[app_name]["packets"] += int(r.values.get("packets", 0))
+                    app_agg[app_name]["flows"] += 1
+            total_bytes = sum(v["bytes"] for v in app_agg.values()) or 1
+            result = [
+                {
+                    "application": k,
+                    "bytes": v["bytes"],
+                    "packets": v["packets"],
+                    "flows": v["flows"],
+                    "percentage": round(v["bytes"] / total_bytes * 100, 2),
+                }
+                for k, v in app_agg.items()
+            ]
+            result.sort(key=lambda x: x["bytes"], reverse=True)
+            return result[:limit]
+        except Exception as e:
+            logger.warning("InfluxDB applications query failed: %s", e)
+            return []
+
+    async def query_asn_breakdown(
+        self, window: str = "1h", limit: int = 30,
+    ) -> list[dict]:
+        """ASN breakdown by bytes — uses src_as and dst_as tags."""
+        window = self._validate_duration(window)
+        limit = self._validate_limit(limit)
+        # Query src_as contribution
+        query_src = f'''
+        from(bucket: "{self.bucket}")
+          |> range(start: -{window})
+          |> filter(fn: (r) => r._measurement == "flow_summary")
+          |> filter(fn: (r) => r._field == "bytes")
+          |> filter(fn: (r) => r.src_as != "0")
+          |> group(columns: ["src_as"])
+          |> sum()
+          |> group()
+          |> sort(columns: ["_value"], desc: true)
+        '''
+        # Query dst_as contribution
+        query_dst = f'''
+        from(bucket: "{self.bucket}")
+          |> range(start: -{window})
+          |> filter(fn: (r) => r._measurement == "flow_summary")
+          |> filter(fn: (r) => r._field == "bytes")
+          |> filter(fn: (r) => r.dst_as != "0")
+          |> group(columns: ["dst_as"])
+          |> sum()
+          |> group()
+          |> sort(columns: ["_value"], desc: true)
+        '''
+        try:
+            asn_agg: dict[int, dict] = {}
+            # Aggregate src_as
+            tables = await self._query_api.query(query_src)
+            for table in tables:
+                for r in table.records:
+                    asn = int(r.values.get("src_as", 0))
+                    if asn == 0:
+                        continue
+                    if asn not in asn_agg:
+                        asn_agg[asn] = {"bytes": 0, "packets": 0, "flows": 0}
+                    asn_agg[asn]["bytes"] += int(r.get_value())
+                    asn_agg[asn]["flows"] += 1
+            # Aggregate dst_as
+            tables = await self._query_api.query(query_dst)
+            for table in tables:
+                for r in table.records:
+                    asn = int(r.values.get("dst_as", 0))
+                    if asn == 0:
+                        continue
+                    if asn not in asn_agg:
+                        asn_agg[asn] = {"bytes": 0, "packets": 0, "flows": 0}
+                    asn_agg[asn]["bytes"] += int(r.get_value())
+                    asn_agg[asn]["flows"] += 1
+            result = [{"asn": k, **v} for k, v in asn_agg.items()]
+            result.sort(key=lambda x: x["bytes"], reverse=True)
+            return result[:limit]
+        except Exception as e:
+            logger.warning("InfluxDB ASN query failed: %s", e)
+            return []
+
+    async def query_flow_volume_timeline(
+        self, window: str = "1h", interval: str = "1m",
+    ) -> list[dict]:
+        """Time-bucketed flow volume for sparklines."""
+        window = self._validate_duration(window)
+        interval = self._validate_duration(interval)
+        query = f'''
+        from(bucket: "{self.bucket}")
+          |> range(start: -{window})
+          |> filter(fn: (r) => r._measurement == "flow_summary")
+          |> filter(fn: (r) => r._field == "bytes")
+          |> group()
+          |> aggregateWindow(every: {interval}, fn: sum, createEmpty: true)
+          |> yield(name: "volume")
+        '''
+        try:
+            tables = await self._query_api.query(query)
+            return [
+                {
+                    "time": r.get_time().isoformat(),
+                    "bytes": r.get_value() or 0,
+                }
+                for table in tables for r in table.records
+            ]
+        except Exception as e:
+            logger.warning("InfluxDB flow volume query failed: %s", e)
             return []
 
     async def query_dns_metrics(
