@@ -22,6 +22,7 @@ _db_monitor = None
 _metrics_store = None
 _alert_engine = None
 _db_adapter_registry = None
+_remediation_engine = None
 
 
 def _get_profile_store():
@@ -64,6 +65,21 @@ def _get_db_adapter_registry():
     return _db_adapter_registry
 
 
+def _get_remediation_engine():
+    global _remediation_engine
+    if _remediation_engine is None:
+        from src.database.remediation_store import RemediationStore
+        from src.database.remediation_engine import RemediationEngine
+        db_path = os.environ.get("DB_DIAGNOSTICS_DB_PATH", "data/debugduck.db")
+        _remediation_engine = RemediationEngine(
+            plan_store=RemediationStore(db_path=db_path),
+            adapter_registry=_get_db_adapter_registry(),
+            profile_store=_get_profile_store(),
+            secret_key=os.environ.get("REMEDIATION_SECRET_KEY", "debugduck-remediation-secret"),
+        )
+    return _remediation_engine
+
+
 # ── Request models ──
 
 
@@ -89,6 +105,22 @@ class UpdateProfileRequest(BaseModel):
 
 class StartDiagnosticRequest(BaseModel):
     profile_id: str
+
+
+class CreatePlanRequest(BaseModel):
+    profile_id: str
+    action: str
+    params: dict = {}
+    finding_id: Optional[str] = None
+
+
+class SuggestRemediationRequest(BaseModel):
+    profile_id: str
+    run_id: str
+
+
+class ExecutePlanRequest(BaseModel):
+    approval_token: str
 
 
 # ── Profile CRUD ──
@@ -397,6 +429,126 @@ def alert_history_endpoint(profile_id: Optional[str] = None, severity: Optional[
         severity=severity, limit=limit,
     )
     return history
+
+
+# ── Remediation endpoints ──
+
+
+@db_router.post("/remediation/plan")
+def create_remediation_plan(req: CreatePlanRequest):
+    engine = _get_remediation_engine()
+    try:
+        return engine.plan(
+            profile_id=req.profile_id, action=req.action,
+            params=req.params, finding_id=req.finding_id,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@db_router.post("/remediation/suggest")
+def suggest_remediation(req: SuggestRemediationRequest):
+    engine = _get_remediation_engine()
+    run_store = _get_run_store()
+    run = run_store.get(req.run_id)
+    if not run:
+        raise HTTPException(status_code=404, detail="Diagnostic run not found")
+    from src.agents.database.remediation_planner import generate_plans_from_findings
+    plans = generate_plans_from_findings(engine, req.profile_id, run.get("findings", []))
+    return {"plans": plans}
+
+
+@db_router.get("/remediation/log")
+def get_remediation_log(profile_id: str, limit: int = 50):
+    engine = _get_remediation_engine()
+    return engine.get_audit_log(profile_id, limit)
+
+
+@db_router.get("/remediation/plans")
+def list_remediation_plans(profile_id: str, status: Optional[str] = None):
+    engine = _get_remediation_engine()
+    return engine.list_plans(profile_id, status)
+
+
+@db_router.get("/remediation/plans/{plan_id}")
+def get_remediation_plan(plan_id: str):
+    engine = _get_remediation_engine()
+    plan = engine.get_plan(plan_id)
+    if not plan:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    return plan
+
+
+@db_router.post("/remediation/approve/{plan_id}")
+def approve_remediation_plan(plan_id: str):
+    engine = _get_remediation_engine()
+    try:
+        return engine.approve(plan_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@db_router.post("/remediation/reject/{plan_id}")
+def reject_remediation_plan(plan_id: str):
+    engine = _get_remediation_engine()
+    try:
+        engine.reject(plan_id)
+        return {"status": "rejected"}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@db_router.post("/remediation/execute/{plan_id}")
+async def execute_remediation_plan(plan_id: str, req: ExecutePlanRequest):
+    engine = _get_remediation_engine()
+    try:
+        result = await engine.execute(plan_id, req.approval_token)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@db_router.get("/config/{profile_id}/recommendations")
+async def get_config_recommendations(profile_id: str):
+    profile = _get_profile_store().get(profile_id)
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    registry = _get_db_adapter_registry()
+    adapter = registry.get_by_profile(profile_id)
+    if not adapter:
+        try:
+            if profile["engine"] == "postgresql":
+                from src.database.adapters.postgres import PostgresAdapter
+                adapter = PostgresAdapter(
+                    host=profile["host"], port=profile["port"],
+                    database=profile["database"],
+                    username=profile["username"], password=profile["password"],
+                )
+                await adapter.connect()
+            else:
+                raise HTTPException(status_code=400, detail=f"Unsupported engine: {profile['engine']}")
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(status_code=502, detail=str(e))
+    try:
+        recs = await adapter.get_config_recommendations()
+        return {"profile_id": profile_id, "recommendations": recs}
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+
+@db_router.post("/queries/{profile_id}/kill/{pid}")
+async def kill_query_shortcut(profile_id: str, pid: int):
+    """Shortcut: creates plan + auto-approves + executes for kill_query."""
+    profile = _get_profile_store().get(profile_id)
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    engine = _get_remediation_engine()
+    plan = engine.plan(profile_id=profile_id, action="kill_query", params={"pid": pid})
+    approval = engine.approve(plan["plan_id"])
+    result = await engine.execute(plan["plan_id"], approval["approval_token"])
+    return result
 
 
 # ── Schema endpoints ──

@@ -19,6 +19,7 @@ def client():
     mod._metrics_store = None
     mod._alert_engine = None
     mod._db_adapter_registry = None
+    mod._remediation_engine = None
 
     from src.api.db_endpoints import db_router
     from fastapi import FastAPI

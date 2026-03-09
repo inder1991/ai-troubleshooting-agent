@@ -328,6 +328,23 @@ def create_app() -> FastAPI:
         except Exception as e:
             logger.warning("DBMonitor startup failed: %s", e)
 
+        # ── Remediation Engine ──
+        try:
+            from src.database.remediation_store import RemediationStore
+            from src.database.remediation_engine import RemediationEngine
+            db_path = os.environ.get("DB_DIAGNOSTICS_DB_PATH", "data/debugduck.db")
+            remediation_store = RemediationStore(db_path=db_path)
+            remediation_engine = RemediationEngine(
+                plan_store=remediation_store,
+                adapter_registry=db_registry,
+                profile_store=db_profile_store,
+                secret_key=os.environ.get("REMEDIATION_SECRET_KEY", "debugduck-remediation-secret"),
+            )
+            db_ep._remediation_engine = remediation_engine
+            logger.info("RemediationEngine initialized")
+        except Exception as e:
+            logger.warning("RemediationEngine startup failed: %s", e)
+
     @app.on_event("shutdown")
     async def shutdown():
         import src.api.db_endpoints as db_ep
