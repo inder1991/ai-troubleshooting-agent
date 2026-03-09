@@ -40,18 +40,21 @@ class CodebaseTools:
             if not self.repo_path.exists():
                 return [{"error": f"Repository path doesn't exist: {self.repo_path}"}]
             
-            # Build grep command
-            if file_extension == "*":
-                cmd = f"grep -rn '{pattern}' {self.repo_path}"
-            else:
-                cmd = f"grep -rn --include='*.{file_extension}' '{pattern}' {self.repo_path}"
-            
-            # Add common exclusions
-            cmd += " --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=venv --exclude-dir=__pycache__"
-            
+            # Build grep command as list to prevent shell injection
+            cmd = ["grep", "-rn"]
+            if file_extension != "*":
+                cmd.append(f"--include=*.{file_extension}")
+            cmd.extend([
+                "--exclude-dir=node_modules",
+                "--exclude-dir=.git",
+                "--exclude-dir=venv",
+                "--exclude-dir=__pycache__",
+                pattern,
+                str(self.repo_path),
+            ])
+
             result = subprocess.run(
                 cmd,
-                shell=True,
                 capture_output=True,
                 text=True,
                 timeout=30
