@@ -2,7 +2,7 @@
  * OperationFormModal — Modal for manually triggering database operations.
  * Dynamic form fields based on selected action type.
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 interface OperationFormModalProps {
   onClose: () => void;
@@ -71,6 +71,29 @@ const OperationFormModal: React.FC<OperationFormModalProps> = ({ onClose, onCrea
   const [configParam, setConfigParam] = useState(CONFIG_ALLOWLIST[0]);
   const [configValue, setConfigValue] = useState('');
 
+  // Dismiss on Escape key
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [onClose]);
+
+  // Reset form fields when action type changes
+  useEffect(() => {
+    setPid('');
+    setVacuumTable('');
+    setVacuumFull(false);
+    setVacuumAnalyze(true);
+    setReindexTable('');
+    setCiTable('');
+    setCiColumns('');
+    setCiUnique(false);
+    setCiName('');
+    setDiName('');
+    setConfigParam(CONFIG_ALLOWLIST[0]);
+    setConfigValue('');
+  }, [action]);
+
   const handleSubmit = () => {
     let params: Record<string, unknown> = {};
     switch (action) {
@@ -108,8 +131,8 @@ const OperationFormModal: React.FC<OperationFormModalProps> = ({ onClose, onCrea
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="bg-[#0d2329] border border-slate-700/50 rounded-xl shadow-2xl w-full max-w-lg mx-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-[#0d2329] border border-slate-700/50 rounded-xl shadow-2xl w-full max-w-lg mx-4" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-700/50">
           <div className="flex items-center gap-2">

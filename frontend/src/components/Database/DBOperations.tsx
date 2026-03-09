@@ -16,6 +16,7 @@ import {
   createRemediationPlan,
 } from '../../services/api';
 import RemediationCard from './RemediationCard';
+import type { RemediationPlan } from './RemediationCard';
 import OperationFormModal from './OperationFormModal';
 
 interface Profile {
@@ -27,31 +28,15 @@ interface Profile {
 interface ActiveQuery {
   pid: number;
   query: string;
-  duration: string;
+  duration_ms: number;
   state: string;
-  username?: string;
-}
-
-interface RemediationPlan {
-  plan_id: string;
-  profile_id: string;
-  finding_id?: string;
-  action: string;
-  params: Record<string, unknown>;
-  sql_preview: string;
-  impact_assessment: string;
-  rollback_sql?: string;
-  requires_downtime: boolean;
-  status: string;
-  created_at: string;
-  approved_at?: string;
-  executed_at?: string;
-  completed_at?: string;
-  result_summary?: string;
+  user: string;
+  database: string;
+  waiting: boolean;
 }
 
 interface ConfigRecommendation {
-  parameter: string;
+  param: string;
   current_value: string;
   recommended_value: string;
   reason: string;
@@ -91,6 +76,9 @@ const DBOperations: React.FC = () => {
   const [configRecs, setConfigRecs] = useState<ConfigRecommendation[]>([]);
   const [auditLog, setAuditLog] = useState<AuditLogEntry[]>([]);
 
+  // Approval tokens for execute flow
+  const [approvalTokens, setApprovalTokens] = useState<Record<string, string>>({});
+
   // Loading states
   const [loadingQueries, setLoadingQueries] = useState(false);
   const [loadingPlans, setLoadingPlans] = useState(false);
@@ -116,8 +104,8 @@ const DBOperations: React.FC = () => {
     if (!selectedProfileId) return;
     setLoadingQueries(true);
     try {
-      const health = await fetchDBActiveQueries(selectedProfileId);
-      setActiveQueries(health.active_queries || []);
+      const data = await fetchDBActiveQueries(selectedProfileId);
+      setActiveQueries(data.queries || []);
     } catch {
       setActiveQueries([]);
     } finally {
@@ -218,6 +206,7 @@ const DBOperations: React.FC = () => {
       const result = await approveRemediationPlan(planId);
       const token = result.approval_token || result.token || '';
       if (token) {
+        setApprovalTokens(prev => ({ ...prev, [planId]: token }));
         await executeRemediationPlan(planId, token);
         alert('Plan approved and execution started');
       } else {
@@ -243,14 +232,26 @@ const DBOperations: React.FC = () => {
 
   const handleExecute = async (planId: string) => {
     try {
-      const result = await approveRemediationPlan(planId);
-      const token = result.approval_token || result.token || '';
+      let token = approvalTokens[planId];
+      if (!token) {
+        // Plan may already be approved — try to re-approve to get a token
+        try {
+          const result = await approveRemediationPlan(planId);
+          token = result.approval_token || result.token || '';
+        } catch {
+          // Plan is likely already approved and we don't have a cached token
+        }
+      }
+      if (!token) {
+        alert('Cannot execute: no approval token available. Please approve the plan first.');
+        return;
+      }
       await executeRemediationPlan(planId, token);
       alert('Execution started');
       await loadPlans();
       await loadLog();
     } catch (err) {
-      alert(`Failed to execute plan: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      alert(`Execution failed: ${err instanceof Error ? err.message : err}`);
     }
   };
 
@@ -380,13 +381,15 @@ const DBOperations: React.FC = () => {
                 <th className="px-4 py-2 text-left font-medium">SQL</th>
                 <th className="px-4 py-2 text-left font-medium">Duration</th>
                 <th className="px-4 py-2 text-left font-medium">State</th>
+                <th className="px-4 py-2 text-left font-medium">User</th>
+                <th className="px-4 py-2 text-left font-medium">Database</th>
                 <th className="px-4 py-2 text-right font-medium">Action</th>
               </tr>
             </thead>
             <tbody>
               {activeQueries.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-6 text-center text-slate-500">
+                  <td colSpan={7} className="px-4 py-6 text-center text-slate-500">
                     No active queries
                   </td>
                 </tr>
@@ -397,10 +400,12 @@ const DBOperations: React.FC = () => {
                     <td className="px-4 py-2 font-mono max-w-xs truncate" title={q.query}>
                       {q.query.length > 80 ? `${q.query.slice(0, 80)}...` : q.query}
                     </td>
-                    <td className="px-4 py-2">{q.duration}</td>
+                    <td className="px-4 py-2">{q.duration_ms >= 1000 ? `${(q.duration_ms / 1000).toFixed(1)}s` : `${Math.round(q.duration_ms)}ms`}</td>
                     <td className="px-4 py-2">
                       <span className="px-1.5 py-0.5 rounded bg-slate-700/50 text-[10px]">{q.state}</span>
                     </td>
+                    <td className="px-4 py-2">{q.user}</td>
+                    <td className="px-4 py-2">{q.database}</td>
                     <td className="px-4 py-2 text-right">
                       <button
                         onClick={() => handleKillQuery(q.pid)}
@@ -491,8 +496,8 @@ const DBOperations: React.FC = () => {
                 </tr>
               ) : (
                 configRecs.map((rec) => (
-                  <tr key={rec.parameter} className="border-b border-slate-700/30 hover:bg-slate-800/30">
-                    <td className="px-4 py-2 font-mono text-cyan-400">{rec.parameter}</td>
+                  <tr key={rec.param} className="border-b border-slate-700/30 hover:bg-slate-800/30">
+                    <td className="px-4 py-2 font-mono text-cyan-400">{rec.param}</td>
                     <td className="px-4 py-2 font-mono">{rec.current_value}</td>
                     <td className="px-4 py-2 font-mono text-green-400">{rec.recommended_value}</td>
                     <td className="px-4 py-2 max-w-xs">{rec.reason}</td>
@@ -509,7 +514,7 @@ const DBOperations: React.FC = () => {
                     </td>
                     <td className="px-4 py-2 text-right">
                       <button
-                        onClick={() => handleApplyConfig(rec.parameter, rec.recommended_value)}
+                        onClick={() => handleApplyConfig(rec.param, rec.recommended_value)}
                         className="flex items-center gap-1 ml-auto px-2 py-1 text-[10px] rounded bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 transition-colors"
                       >
                         <span className="material-symbols-outlined text-[12px]">play_arrow</span>

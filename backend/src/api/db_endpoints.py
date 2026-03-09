@@ -231,6 +231,40 @@ async def get_health(profile_id: str):
         }
 
 
+# ── Active Queries ──
+
+
+@db_router.get("/profiles/{profile_id}/queries")
+async def get_active_queries(profile_id: str):
+    """Get currently active queries for a profile."""
+    profile = _get_profile_store().get(profile_id)
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    registry = _get_db_adapter_registry()
+    adapter = registry.get_by_profile(profile_id)
+    if not adapter:
+        try:
+            if profile["engine"] == "postgresql":
+                from src.database.adapters.postgres import PostgresAdapter
+                adapter = PostgresAdapter(
+                    host=profile["host"], port=profile["port"],
+                    database=profile["database"],
+                    username=profile["username"], password=profile["password"],
+                )
+                await adapter.connect()
+            else:
+                raise HTTPException(status_code=400, detail=f"Unsupported engine: {profile['engine']}")
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(status_code=502, detail=str(e))
+    try:
+        queries = await adapter.get_active_queries()
+        return {"profile_id": profile_id, "queries": [q.model_dump() if hasattr(q, 'model_dump') else q for q in queries]}
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+
 # ── Diagnostics ──
 
 

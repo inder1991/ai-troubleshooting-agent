@@ -1530,7 +1530,7 @@ export const killDBQuery = async (profileId: string, pid: number) => {
 };
 
 export const fetchDBActiveQueries = async (profileId: string) => {
-  const resp = await fetch(`${API_BASE_URL}/api/db/profiles/${profileId}/health`);
+  const resp = await fetch(`${API_BASE_URL}/api/db/profiles/${profileId}/queries`);
   if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch active queries'));
   return resp.json();
 };

@@ -4,7 +4,7 @@
  */
 import React from 'react';
 
-interface RemediationPlan {
+export interface RemediationPlan {
   plan_id: string;
   profile_id: string;
   finding_id?: string;
