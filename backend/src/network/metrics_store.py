@@ -356,7 +356,9 @@ class MetricsStore:
           |> limit(n: {limit})
         '''
         try:
-            tables = await self._query_api.query(query)
+            tables = await asyncio.wait_for(
+                self._query_api.query(query), timeout=self._query_timeout
+            )
             return [
                 {
                     "src_subnet": r.values.get("src_subnet", ""),
@@ -385,7 +387,9 @@ class MetricsStore:
           |> keep(columns: ["dst_port", "bytes", "packets"])
         '''
         try:
-            tables = await self._query_api.query(query)
+            tables = await asyncio.wait_for(
+                self._query_api.query(query), timeout=self._query_timeout
+            )
             app_agg: dict[str, dict] = {}
             for table in tables:
                 for r in table.records:
@@ -446,7 +450,9 @@ class MetricsStore:
         try:
             asn_agg: dict[int, dict] = {}
             # Aggregate src_as
-            tables = await self._query_api.query(query_src)
+            tables = await asyncio.wait_for(
+                self._query_api.query(query_src), timeout=self._query_timeout
+            )
             for table in tables:
                 for r in table.records:
                     asn = int(r.values.get("src_as", 0))
@@ -457,7 +463,9 @@ class MetricsStore:
                     asn_agg[asn]["bytes"] += int(r.get_value())
                     asn_agg[asn]["flows"] += 1
             # Aggregate dst_as
-            tables = await self._query_api.query(query_dst)
+            tables = await asyncio.wait_for(
+                self._query_api.query(query_dst), timeout=self._query_timeout
+            )
             for table in tables:
                 for r in table.records:
                     asn = int(r.values.get("dst_as", 0))
@@ -490,7 +498,9 @@ class MetricsStore:
           |> yield(name: "volume")
         '''
         try:
-            tables = await self._query_api.query(query)
+            tables = await asyncio.wait_for(
+                self._query_api.query(query), timeout=self._query_timeout
+            )
             return [
                 {
                     "time": r.get_time().isoformat(),
@@ -524,7 +534,9 @@ class MetricsStore:
           |> yield(name: "mean")
         '''
         try:
-            tables = await self._query_api.query(query)
+            tables = await asyncio.wait_for(
+                self._query_api.query(query), timeout=self._query_timeout
+            )
             return [
                 {
                     "time": r.get_time().isoformat(),
@@ -554,7 +566,9 @@ class MetricsStore:
           |> yield(name: "mean")
         '''
         try:
-            tables = await self._query_api.query(query)
+            tables = await asyncio.wait_for(
+                self._query_api.query(query), timeout=self._query_timeout
+            )
             return [
                 {"time": r.get_time().isoformat(), "value": r.get_value()}
                 for table in tables for r in table.records
@@ -582,7 +596,9 @@ class MetricsStore:
           |> yield(name: "mean")
         '''
         try:
-            tables = await self._query_api.query(flux, org=self.org)
+            tables = await asyncio.wait_for(
+                self._query_api.query(flux, org=self.org), timeout=self._query_timeout
+            )
             return [
                 {"time": r.get_time().isoformat(), "value": r.get_value()}
                 for table in tables for r in table.records
