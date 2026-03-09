@@ -165,6 +165,204 @@ def client(api_store):
             yield c
 
 
+# ---------------------------------------------------------------------------
+# paginate() helper — unit tests
+# ---------------------------------------------------------------------------
+
+class TestPaginateHelper:
+    """Unit tests for the generic paginate() function."""
+
+    def test_basic_pagination_math(self):
+        """paginate() returns correct total, page, limit, and pages."""
+        from src.api.pagination import paginate
+
+        items = list(range(50))
+        result = paginate(items, page=1, limit=10)
+
+        assert result.total == 50
+        assert result.page == 1
+        assert result.limit == 10
+        assert result.pages == 5  # 50 / 10
+
+    def test_page_two_returns_correct_slice(self):
+        """Page 2 with limit=10 returns items 10..19."""
+        from src.api.pagination import paginate
+
+        items = list(range(50))
+        result = paginate(items, page=2, limit=10)
+
+        assert result.items == list(range(10, 20))
+        assert result.page == 2
+
+    def test_last_page_partial(self):
+        """Last page may contain fewer items than limit."""
+        from src.api.pagination import paginate
+
+        items = list(range(25))
+        result = paginate(items, page=3, limit=10)
+
+        assert result.items == [20, 21, 22, 23, 24]
+        assert result.pages == 3
+
+    def test_page_beyond_range_returns_empty(self):
+        """Requesting a page beyond the last returns an empty items list."""
+        from src.api.pagination import paginate
+
+        items = list(range(5))
+        result = paginate(items, page=99, limit=10)
+
+        assert result.items == []
+        assert result.total == 5
+        assert result.pages == 1
+
+    def test_empty_list(self):
+        """Paginating an empty list gives pages=0 and empty items."""
+        from src.api.pagination import paginate
+
+        result = paginate([], page=1, limit=10)
+
+        assert result.items == []
+        assert result.total == 0
+        assert result.pages == 0
+
+    def test_default_values(self):
+        """Default page=1, limit=25."""
+        from src.api.pagination import paginate
+
+        items = list(range(30))
+        result = paginate(items)
+
+        assert result.page == 1
+        assert result.limit == 25
+        assert result.items == list(range(25))
+        assert result.pages == 2
+
+    def test_limit_capped_at_100(self):
+        """Limit values above 100 are capped to 100."""
+        from src.api.pagination import paginate
+
+        items = list(range(200))
+        result = paginate(items, page=1, limit=500)
+
+        assert result.limit == 100
+        assert len(result.items) == 100
+
+    def test_pages_calculation_rounds_up(self):
+        """pages is ceil(total / limit)."""
+        from src.api.pagination import paginate
+
+        items = list(range(11))
+        result = paginate(items, page=1, limit=5)
+
+        assert result.pages == 3  # ceil(11 / 5) = 3
+
+
+# ---------------------------------------------------------------------------
+# PaginatedResponse model
+# ---------------------------------------------------------------------------
+
+class TestPaginatedResponseModel:
+    def test_model_fields(self):
+        """PaginatedResponse has the expected fields."""
+        from src.api.pagination import PaginatedResponse
+
+        resp = PaginatedResponse(items=[1, 2], total=10, page=1, limit=2, pages=5)
+        assert resp.items == [1, 2]
+        assert resp.total == 10
+        assert resp.page == 1
+        assert resp.limit == 2
+        assert resp.pages == 5
+
+    def test_model_serialization(self):
+        """PaginatedResponse serializes to dict correctly."""
+        from src.api.pagination import PaginatedResponse
+
+        resp = PaginatedResponse(items=["a", "b"], total=5, page=2, limit=2, pages=3)
+        d = resp.model_dump()
+        assert d["items"] == ["a", "b"]
+        assert d["total"] == 5
+        assert d["pages"] == 3
+
+
+# ---------------------------------------------------------------------------
+# GET /api/collector/devices with pagination
+# ---------------------------------------------------------------------------
+
+class TestCollectorDevicesPagination:
+    """Integration tests for paginated collector device list endpoint."""
+
+    @pytest.fixture
+    def collector_client(self, tmp_path):
+        """Spin up a TestClient with a seeded InstanceStore."""
+        from src.network.collectors.instance_store import InstanceStore
+        from src.network.collectors.models import DeviceInstance, DeviceStatus
+        import src.api.collector_endpoints as ep
+
+        store = InstanceStore(db_path=str(tmp_path / "test_collector_devices.db"))
+
+        # Seed 30 devices
+        for i in range(30):
+            device = DeviceInstance(
+                device_id=f"dev-{i:03d}",
+                hostname=f"device-{i}",
+                management_ip=f"10.0.0.{i}",
+                status=DeviceStatus.UP,
+            )
+            store.upsert_device(device)
+
+        original_store = ep._instance_store
+        ep._instance_store = store
+
+        from fastapi import FastAPI
+        from starlette.testclient import TestClient
+
+        app = FastAPI()
+        app.include_router(ep.collector_router)
+        c = TestClient(app)
+        yield c
+        ep._instance_store = original_store
+
+    def test_default_pagination(self, collector_client):
+        """Default page=1, limit=25 returns first 25 devices."""
+        resp = collector_client.get("/api/collector/devices")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["total"] == 30
+        assert data["page"] == 1
+        assert data["limit"] == 25
+        assert data["pages"] == 2
+        assert len(data["items"]) == 25
+
+    def test_page_two(self, collector_client):
+        """page=2 with limit=25 returns 5 remaining items."""
+        resp = collector_client.get("/api/collector/devices?page=2&limit=25")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["page"] == 2
+        assert len(data["items"]) == 5
+        assert data["total"] == 30
+
+    def test_custom_limit(self, collector_client):
+        """Custom limit=10 returns 10 items per page."""
+        resp = collector_client.get("/api/collector/devices?page=1&limit=10")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["limit"] == 10
+        assert len(data["items"]) == 10
+        assert data["pages"] == 3
+
+    def test_limit_capped_at_100(self, collector_client):
+        """limit>100 is capped to 100."""
+        resp = collector_client.get("/api/collector/devices?limit=999")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["limit"] == 100
+
+
+# ---------------------------------------------------------------------------
+# API endpoint — GET /api/v4/network/monitor/devices (existing tests)
+# ---------------------------------------------------------------------------
+
 class TestDevicesEndpoint:
     def test_default_pagination(self, client):
         """GET /devices with defaults returns paginated envelope."""

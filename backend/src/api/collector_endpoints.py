@@ -208,9 +208,16 @@ async def add_device(req: AddDeviceRequest):
 
 
 @collector_router.get("/devices")
-async def list_devices():
-    """List all monitored devices."""
-    return {"devices": [d.model_dump() for d in _store().list_devices()]}
+async def list_devices(page: int = 1, limit: int = 25):
+    """List all monitored devices with pagination."""
+    from src.api.pagination import paginate
+
+    if limit > 100:
+        limit = 100
+
+    all_devices = [d.model_dump() for d in _store().list_devices()]
+    result = paginate(all_devices, page=page, limit=limit)
+    return result.model_dump()
 
 
 @collector_router.get("/devices/{device_id}")
