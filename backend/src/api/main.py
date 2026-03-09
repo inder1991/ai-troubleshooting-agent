@@ -117,6 +117,7 @@ def _reload_adapter_instances():
 
 def create_app() -> FastAPI:
     """Create and configure FastAPI application"""
+    import os
 
     app = FastAPI(
         title="AI Multi-Agent Troubleshooting API",
@@ -129,6 +130,11 @@ def create_app() -> FastAPI:
     # Rate limiting
     app.state.limiter = limiter
     app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+    # API key authentication middleware (only when API_KEYS env var is set)
+    if os.environ.get("API_KEYS", "").strip():
+        from .auth import APIKeyMiddleware
+        app.add_middleware(APIKeyMiddleware)
 
     # CORS middleware
     app.add_middleware(
