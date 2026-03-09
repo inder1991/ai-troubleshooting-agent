@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import asyncio
+import ipaddress
 import logging
+import os
 import re
 from datetime import datetime, timezone
 from dataclasses import dataclass
@@ -12,6 +15,15 @@ from influxdb_client.client.influxdb_client_async import InfluxDBClientAsync
 from influxdb_client import Point, WritePrecision
 
 logger = logging.getLogger(__name__)
+
+
+def ip_to_subnet_tag(ip: str, prefix: int = 24) -> str:
+    """Convert IP to /prefix subnet for tag cardinality control."""
+    try:
+        net = ipaddress.ip_network(f"{ip}/{prefix}", strict=False)
+        return str(net)
+    except ValueError:
+        return "unknown"
 
 
 @dataclass
@@ -43,6 +55,7 @@ class MetricsStore:
         self._client = InfluxDBClientAsync(url=url, token=token, org=org)
         self._write_api = self._client.write_api()
         self._query_api = self._client.query_api()
+        self._query_timeout = float(os.getenv("INFLUXDB_QUERY_TIMEOUT", "30"))
 
     async def health_check(self) -> bool:
         try:
@@ -90,12 +103,14 @@ class MetricsStore:
     async def write_flow(self, flow: FlowRecord) -> None:
         point = (
             Point("flow_summary")
-            .tag("src_ip", flow.src_ip)
-            .tag("dst_ip", flow.dst_ip)
+            .tag("src_subnet", ip_to_subnet_tag(flow.src_ip))
+            .tag("dst_subnet", ip_to_subnet_tag(flow.dst_ip))
             .tag("protocol", str(flow.protocol))
             .tag("exporter", flow.exporter_ip)
             .tag("src_as", str(flow.src_as))
             .tag("dst_as", str(flow.dst_as))
+            .field("src_ip", flow.src_ip)
+            .field("dst_ip", flow.dst_ip)
             .field("src_port", flow.src_port)
             .field("dst_port", flow.dst_port)
             .field("bytes", flow.bytes)
@@ -229,7 +244,9 @@ class MetricsStore:
           |> yield(name: "mean")
         '''
         try:
-            tables = await self._query_api.query(query)
+            tables = await asyncio.wait_for(
+                self._query_api.query(query), timeout=self._query_timeout
+            )
             return [
                 {"time": r.get_time().isoformat(), "value": r.get_value()}
                 for table in tables for r in table.records
@@ -248,18 +265,20 @@ class MetricsStore:
           |> range(start: -{window})
           |> filter(fn: (r) => r._measurement == "flow_summary")
           |> filter(fn: (r) => r._field == "bytes")
-          |> group(columns: ["src_ip", "dst_ip", "protocol"])
+          |> group(columns: ["src_subnet", "dst_subnet", "protocol"])
           |> sum()
           |> group()
           |> sort(columns: ["_value"], desc: true)
           |> limit(n: {limit})
         '''
         try:
-            tables = await self._query_api.query(query)
+            tables = await asyncio.wait_for(
+                self._query_api.query(query), timeout=self._query_timeout
+            )
             return [
                 {
-                    "src_ip": r.values.get("src_ip", ""),
-                    "dst_ip": r.values.get("dst_ip", ""),
+                    "src_subnet": r.values.get("src_subnet", ""),
+                    "dst_subnet": r.values.get("dst_subnet", ""),
                     "protocol": r.values.get("protocol", ""),
                     "bytes": r.get_value(),
                 }
@@ -280,7 +299,9 @@ class MetricsStore:
           |> sum()
         '''
         try:
-            tables = await self._query_api.query(query)
+            tables = await asyncio.wait_for(
+                self._query_api.query(query), timeout=self._query_timeout
+            )
             return [
                 {
                     "src": r.values.get("src_device", ""),
@@ -306,7 +327,9 @@ class MetricsStore:
           |> sort(columns: ["_value"], desc: true)
         '''
         try:
-            tables = await self._query_api.query(query)
+            tables = await asyncio.wait_for(
+                self._query_api.query(query), timeout=self._query_timeout
+            )
             return [
                 {"protocol": r.values.get("protocol", ""), "bytes": r.get_value()}
                 for table in tables for r in table.records
@@ -326,7 +349,7 @@ class MetricsStore:
           |> range(start: -{window})
           |> filter(fn: (r) => r._measurement == "flow_summary")
           |> filter(fn: (r) => r._field == "bytes")
-          |> group(columns: ["src_ip", "dst_ip"])
+          |> group(columns: ["src_subnet", "dst_subnet"])
           |> sum()
           |> group()
           |> sort(columns: ["_value"], desc: true)
@@ -336,8 +359,8 @@ class MetricsStore:
             tables = await self._query_api.query(query)
             return [
                 {
-                    "src_ip": r.values.get("src_ip", ""),
-                    "dst_ip": r.values.get("dst_ip", ""),
+                    "src_subnet": r.values.get("src_subnet", ""),
+                    "dst_subnet": r.values.get("dst_subnet", ""),
                     "bytes": r.get_value(),
                 }
                 for table in tables for r in table.records
@@ -357,7 +380,7 @@ class MetricsStore:
         from(bucket: "{self.bucket}")
           |> range(start: -{window})
           |> filter(fn: (r) => r._measurement == "flow_summary")
-          |> pivot(rowKey: ["_time", "src_ip", "dst_ip"], columnKey: ["_field"], valueColumn: "_value")
+          |> pivot(rowKey: ["_time", "src_subnet", "dst_subnet"], columnKey: ["_field"], valueColumn: "_value")
           |> group()
           |> keep(columns: ["dst_port", "bytes", "packets"])
         '''
