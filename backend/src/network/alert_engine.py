@@ -133,12 +133,15 @@ DEFAULT_RULES = [
 class AlertEngine:
     """Evaluates alert rules against InfluxDB metrics."""
 
+    _DEDUP_WINDOW = 300  # seconds – suppress duplicate fingerprints within this window
+
     def __init__(self, metrics_store: Any, load_defaults: bool = False) -> None:
         self.metrics = metrics_store
         self.rules: list[AlertRule] = []
         self._states: dict[str, AlertState] = {}  # (rule_id, entity_id) -> state
         self._last_fired: dict[str, float] = {}  # (rule_id, entity_id) -> timestamp
         self._active_alerts: dict[str, dict] = {}
+        self._active_fingerprints: dict[str, float] = {}  # fingerprint -> last-fire epoch
         self._maintenance_windows: list[MaintenanceWindow] = []
         self._composite_rules: list[CompositeRule] = []
         self._dispatcher = None
@@ -289,19 +292,21 @@ class AlertEngine:
             if all_met:
                 met_conditions = [r for r in results if r[0]]
                 first = met_conditions[0] if met_conditions else results[0]
-                alert = self._fire_alert(
-                    AlertRule(
-                        id=rule.id, name=rule.name, severity=rule.severity,
-                        entity_type="device", entity_filter=rule.entity_filter,
-                        metric=first[2]["metric"], condition=first[2]["condition"],
-                        threshold=first[2]["threshold"],
-                        cooldown_seconds=rule.cooldown_seconds,
-                    ),
-                    entity_id, first[1], now,
-                )
-                alert["composite"] = True
-                alert["operator"] = rule.operator
-                fired.append(alert)
+                fp = self._make_fingerprint(entity_id, first[2]["metric"], rule.severity)
+                if self._should_fire(fp):
+                    alert = self._fire_alert(
+                        AlertRule(
+                            id=rule.id, name=rule.name, severity=rule.severity,
+                            entity_type="device", entity_filter=rule.entity_filter,
+                            metric=first[2]["metric"], condition=first[2]["condition"],
+                            threshold=first[2]["threshold"],
+                            cooldown_seconds=rule.cooldown_seconds,
+                        ),
+                        entity_id, first[1], now,
+                    )
+                    alert["composite"] = True
+                    alert["operator"] = rule.operator
+                    fired.append(alert)
 
         return fired
 
@@ -344,18 +349,24 @@ class AlertEngine:
 
             if not data:
                 if rule.condition == "absent":
-                    alert = self._fire_alert(rule, entity_id, 0, now)
-                    fired.append(alert)
+                    fp = self._make_fingerprint(entity_id, rule.metric, rule.severity)
+                    if self._should_fire(fp):
+                        alert = self._fire_alert(rule, entity_id, 0, now)
+                        fired.append(alert)
                 continue
 
             latest_value = data[-1].get("value", 0)
 
             if self._check_condition(latest_value, rule.condition, rule.threshold):
-                alert = self._fire_alert(rule, entity_id, latest_value, now)
-                fired.append(alert)
+                fp = self._make_fingerprint(entity_id, rule.metric, rule.severity)
+                if self._should_fire(fp):
+                    alert = self._fire_alert(rule, entity_id, latest_value, now)
+                    fired.append(alert)
             else:
                 # Resolve if was firing
                 if key in self._active_alerts:
+                    fp = self._make_fingerprint(entity_id, rule.metric, rule.severity)
+                    self._resolve_fingerprint(fp)
                     if self._store:
                         old = self._active_alerts[key]
                         self._store.upsert_alert_history(
@@ -369,6 +380,28 @@ class AlertEngine:
                     del self._active_alerts[key]
 
         return fired
+
+    # ------ dedup helpers (Task 11) ------
+
+    @staticmethod
+    def _make_fingerprint(entity_id: str, metric: str, severity: str) -> str:
+        """Create a dedup fingerprint from entity+metric+severity."""
+        return f"{entity_id}:{metric}:{severity}"
+
+    def _should_fire(self, fingerprint: str) -> bool:
+        """Return True if the alert should fire (not a duplicate within the window)."""
+        now = time.time()
+        last = self._active_fingerprints.get(fingerprint)
+        if last is not None and (now - last) < self._DEDUP_WINDOW:
+            return False
+        self._active_fingerprints[fingerprint] = now
+        return True
+
+    def _resolve_fingerprint(self, fingerprint: str) -> None:
+        """Remove a fingerprint on alert resolution."""
+        self._active_fingerprints.pop(fingerprint, None)
+
+    # ------ end dedup helpers ------
 
     def _fire_alert(
         self, rule: AlertRule, entity_id: str, value: float, now: float
@@ -423,10 +456,14 @@ class AlertEngine:
                 await self._dispatcher.dispatch_batch(all_fired)
             except Exception:
                 logger.exception("Notification dispatch failed")
-        # Check escalations for unacknowledged alerts
+        # Check escalations – only for unacknowledged alerts (Task 12)
         if self._dispatcher:
             try:
-                await self._dispatcher.check_escalations(list(self._active_alerts.values()))
+                unacked = [
+                    a for a in self._active_alerts.values()
+                    if not a.get("acknowledged")
+                ]
+                await self._dispatcher.check_escalations(unacked)
             except Exception:
                 logger.exception("Escalation check failed")
         return all_fired
