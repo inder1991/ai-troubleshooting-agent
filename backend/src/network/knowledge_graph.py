@@ -1,4 +1,5 @@
 """Network Knowledge Graph -- NetworkX MultiDiGraph with confidence-weighted edges."""
+import itertools
 import networkx as nx
 from typing import Optional
 from datetime import datetime, timezone
@@ -267,14 +268,24 @@ class NetworkKnowledgeGraph:
                         last_verified_at=route.last_updated or "",
                     )
 
+    # Maximum number of paths to enumerate before stopping (prevents hang on dense graphs)
+    MAX_PATH_ENUMERATION = 1000
+    # Maximum path depth (number of nodes) to consider
+    MAX_PATH_DEPTH = 15
+
     def find_k_shortest_paths(
-        self, src_id: str, dst_id: str, k: int = 3
+        self, src_id: str, dst_id: str, k: int = 3, max_depth: int | None = None
     ) -> list[list[str]]:
         """Find K shortest paths using confidence-weighted dual cost model.
         cost = (1 - confidence) + topology_penalty
+
+        Bounded to enumerate at most MAX_PATH_ENUMERATION paths total and
+        filters out paths longer than *max_depth* nodes (default MAX_PATH_DEPTH).
         """
         if src_id not in self.graph or dst_id not in self.graph:
             return []
+
+        depth_limit = max_depth if max_depth is not None else self.MAX_PATH_DEPTH
 
         cost_graph = nx.DiGraph()
         for u, v, data in self.graph.edges(data=True):
@@ -302,8 +313,17 @@ class NetworkKnowledgeGraph:
                 cost_graph.add_edge(u, v, weight=cost)
 
         try:
-            paths = list(nx.shortest_simple_paths(cost_graph, src_id, dst_id, weight="weight"))
-            return paths[:k]
+            bounded_paths = itertools.islice(
+                nx.shortest_simple_paths(cost_graph, src_id, dst_id, weight="weight"),
+                self.MAX_PATH_ENUMERATION,
+            )
+            result = []
+            for path in bounded_paths:
+                if len(path) <= depth_limit:
+                    result.append(path)
+                if len(result) >= k:
+                    break
+            return result
         except (nx.NetworkXNoPath, nx.NodeNotFound):
             return []
 

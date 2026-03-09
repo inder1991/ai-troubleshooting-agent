@@ -280,3 +280,68 @@ class TestKnowledgeGraphPaths:
                 assert edata["source"] == "api"
                 break
         assert found_route_edge, "Should have a routes_to edge from r1 to fw1"
+
+    # ── 7. Path enumeration bounds ──
+
+    def test_path_finding_bounded(self, store, graph):
+        """Path enumeration should be limited to 1000 paths max and not hang on dense graphs."""
+        # Build a dense graph: 20 nodes, all connected to each other
+        for i in range(20):
+            store.add_device(Device(
+                id=f"dense-{i}", name=f"Dense{i}",
+                device_type=DeviceType.ROUTER, management_ip=f"10.99.0.{i + 1}",
+            ))
+        graph.load_from_store()
+        # Add edges between every pair to create a dense graph
+        for i in range(20):
+            for j in range(20):
+                if i != j:
+                    graph.add_edge(
+                        f"dense-{i}", f"dense-{j}",
+                        EdgeMetadata(confidence=0.9, source=EdgeSource.MANUAL,
+                                     edge_type="connected_to"),
+                    )
+
+        # This should NOT hang — bounded by MAX_PATH_ENUMERATION (1000)
+        paths = graph.find_k_shortest_paths("dense-0", "dense-19", k=5)
+        assert len(paths) <= 5
+        # Every returned path should start at src and end at dst
+        for p in paths:
+            assert p[0] == "dense-0"
+            assert p[-1] == "dense-19"
+
+    def test_path_depth_filter(self, store, graph):
+        """Paths longer than max_depth should be filtered out."""
+        # Build a chain: n0 -> n1 -> n2 -> ... -> n5
+        for i in range(6):
+            store.add_device(Device(
+                id=f"chain-{i}", name=f"Chain{i}",
+                device_type=DeviceType.ROUTER, management_ip=f"10.98.0.{i + 1}",
+            ))
+        graph.load_from_store()
+        for i in range(5):
+            graph.add_edge(
+                f"chain-{i}", f"chain-{i + 1}",
+                EdgeMetadata(confidence=0.9, source=EdgeSource.MANUAL,
+                             edge_type="connected_to"),
+            )
+
+        # With max_depth=3, only paths with <= 3 nodes should be returned
+        # The chain path is 6 nodes long, so it should be filtered out
+        paths = graph.find_k_shortest_paths("chain-0", "chain-5", k=3, max_depth=3)
+        assert len(paths) == 0
+
+        # With max_depth=6, the 6-node path should be returned
+        paths = graph.find_k_shortest_paths("chain-0", "chain-5", k=3, max_depth=6)
+        assert len(paths) == 1
+        assert len(paths[0]) == 6
+
+    def test_max_path_enumeration_constant(self, graph):
+        """Verify the MAX_PATH_ENUMERATION constant is 1000."""
+        from src.network.knowledge_graph import NetworkKnowledgeGraph
+        assert NetworkKnowledgeGraph.MAX_PATH_ENUMERATION == 1000
+
+    def test_max_path_depth_constant(self, graph):
+        """Verify the MAX_PATH_DEPTH constant is 15."""
+        from src.network.knowledge_graph import NetworkKnowledgeGraph
+        assert NetworkKnowledgeGraph.MAX_PATH_DEPTH == 15
