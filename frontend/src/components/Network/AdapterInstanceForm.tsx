@@ -9,11 +9,14 @@ import {
 } from '../../services/api';
 
 const VENDORS = [
+  { value: 'cisco', label: 'Cisco IOS-XE' },
   { value: 'palo_alto', label: 'Palo Alto' },
   { value: 'aws_sg', label: 'AWS Security Group' },
   { value: 'azure_nsg', label: 'Azure NSG' },
   { value: 'oracle_nsg', label: 'Oracle NSG' },
   { value: 'zscaler', label: 'Zscaler' },
+  { value: 'f5', label: 'F5 Load Balancer' },
+  { value: 'checkpoint', label: 'Checkpoint' },
 ];
 
 interface Props {
@@ -25,7 +28,7 @@ const AdapterInstanceForm: React.FC<Props> = ({ instance, onClose }) => {
   const isEditing = !!instance;
 
   const [label, setLabel] = useState(instance?.label || '');
-  const [vendor, setVendor] = useState(instance?.vendor || 'palo_alto');
+  const [vendor, setVendor] = useState(instance?.vendor || 'cisco');
   const [apiEndpoint, setApiEndpoint] = useState(instance?.api_endpoint || '');
   const [apiKey, setApiKey] = useState('');
   const [extraConfig, setExtraConfig] = useState<Record<string, unknown>>(instance?.extra_config || {});
@@ -52,6 +55,21 @@ const AdapterInstanceForm: React.FC<Props> = ({ instance, onClose }) => {
   const [compartmentId, setCompartmentId] = useState((instance?.extra_config?.compartment_id as string) || '');
   const [oracleNsgId, setOracleNsgId] = useState((instance?.extra_config?.nsg_id as string) || '');
 
+  // Cisco
+  const [ciscoUsername, setCiscoUsername] = useState((instance?.extra_config?.username as string) || '');
+  const [ciscoPassword, setCiscoPassword] = useState('');
+  const [verifySsl, setVerifySsl] = useState((instance?.extra_config?.verify_ssl as boolean) ?? false);
+
+  // F5
+  const [f5Username, setF5Username] = useState((instance?.extra_config?.username as string) || '');
+  const [f5Password, setF5Password] = useState('');
+  const [f5Partition, setF5Partition] = useState((instance?.extra_config?.partition as string) || 'Common');
+
+  // Checkpoint
+  const [cpUsername, setCpUsername] = useState((instance?.extra_config?.username as string) || '');
+  const [cpPassword, setCpPassword] = useState('');
+  const [cpDomain, setCpDomain] = useState((instance?.extra_config?.domain as string) || '');
+
   // Zscaler
   const [cloudName, setCloudName] = useState((instance?.extra_config?.cloud_name as string) || '');
   const [zscalerUsername, setZscalerUsername] = useState((instance?.extra_config?.username as string) || '');
@@ -69,6 +87,12 @@ const AdapterInstanceForm: React.FC<Props> = ({ instance, onClose }) => {
 
   const buildExtraConfig = (): Record<string, unknown> => {
     switch (vendor) {
+      case 'cisco':
+        return {
+          username: ciscoUsername,
+          ...(ciscoPassword ? { password: ciscoPassword } : {}),
+          verify_ssl: verifySsl,
+        };
       case 'palo_alto':
         return panoMode === 'panorama'
           ? { device_group: deviceGroups[0] || '', vsys }
@@ -89,6 +113,18 @@ const AdapterInstanceForm: React.FC<Props> = ({ instance, onClose }) => {
           cloud_name: cloudName,
           username: zscalerUsername,
           ...(zscalerPassword ? { password: zscalerPassword } : {}),
+        };
+      case 'f5':
+        return {
+          username: f5Username,
+          ...(f5Password ? { password: f5Password } : {}),
+          partition: f5Partition,
+        };
+      case 'checkpoint':
+        return {
+          username: cpUsername,
+          ...(cpPassword ? { password: cpPassword } : {}),
+          domain: cpDomain,
         };
       default:
         return extraConfig;
@@ -250,6 +286,25 @@ const AdapterInstanceForm: React.FC<Props> = ({ instance, onClose }) => {
           </div>
 
           {/* Vendor-specific fields */}
+          {vendor === 'cisco' && (
+            <div className="space-y-3 p-3 rounded-lg border" style={{ borderColor: '#224349', backgroundColor: '#0a1214' }}>
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Cisco IOS-XE Configuration (RESTCONF)</p>
+              <div>
+                <label className={labelClass}>Username</label>
+                <input type="text" value={ciscoUsername} onChange={(e) => setCiscoUsername(e.target.value)} placeholder="admin" className={inputClass} style={inputStyle} />
+              </div>
+              <div>
+                <label className={labelClass}>Password {isEditing && <span className="text-slate-500 normal-case">(leave blank to keep current)</span>}</label>
+                <input type="password" value={ciscoPassword} onChange={(e) => setCiscoPassword(e.target.value)} placeholder={isEditing ? '••••••••' : 'RESTCONF password'} className={inputClass} style={inputStyle} />
+              </div>
+              <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
+                <input type="checkbox" checked={verifySsl} onChange={(e) => setVerifySsl(e.target.checked)} className="accent-[#07b6d5]" />
+                Verify SSL Certificate
+                <span className="text-xs text-slate-500">(disable for self-signed certs)</span>
+              </label>
+            </div>
+          )}
+
           {vendor === 'palo_alto' && (
             <div className="space-y-3 p-3 rounded-lg border" style={{ borderColor: '#224349', backgroundColor: '#0a1214' }}>
               <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Palo Alto Configuration</p>
@@ -385,6 +440,42 @@ const AdapterInstanceForm: React.FC<Props> = ({ instance, onClose }) => {
               <div>
                 <label className={labelClass}>Password</label>
                 <input type="password" value={zscalerPassword} onChange={(e) => setZscalerPassword(e.target.value)} className={inputClass} style={inputStyle} />
+              </div>
+            </div>
+          )}
+
+          {vendor === 'f5' && (
+            <div className="space-y-3 p-3 rounded-lg border" style={{ borderColor: '#224349', backgroundColor: '#0a1214' }}>
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">F5 Configuration</p>
+              <div>
+                <label className={labelClass}>Username</label>
+                <input type="text" value={f5Username} onChange={(e) => setF5Username(e.target.value)} placeholder="admin" className={inputClass} style={inputStyle} />
+              </div>
+              <div>
+                <label className={labelClass}>Password {isEditing && <span className="text-slate-500 normal-case">(leave blank to keep current)</span>}</label>
+                <input type="password" value={f5Password} onChange={(e) => setF5Password(e.target.value)} placeholder={isEditing ? '••••••••' : 'Password'} className={inputClass} style={inputStyle} />
+              </div>
+              <div>
+                <label className={labelClass}>Partition</label>
+                <input type="text" value={f5Partition} onChange={(e) => setF5Partition(e.target.value)} placeholder="Common" className={inputClass} style={inputStyle} />
+              </div>
+            </div>
+          )}
+
+          {vendor === 'checkpoint' && (
+            <div className="space-y-3 p-3 rounded-lg border" style={{ borderColor: '#224349', backgroundColor: '#0a1214' }}>
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Checkpoint Configuration</p>
+              <div>
+                <label className={labelClass}>Username</label>
+                <input type="text" value={cpUsername} onChange={(e) => setCpUsername(e.target.value)} placeholder="admin" className={inputClass} style={inputStyle} />
+              </div>
+              <div>
+                <label className={labelClass}>Password {isEditing && <span className="text-slate-500 normal-case">(leave blank to keep current)</span>}</label>
+                <input type="password" value={cpPassword} onChange={(e) => setCpPassword(e.target.value)} placeholder={isEditing ? '••••••••' : 'Password'} className={inputClass} style={inputStyle} />
+              </div>
+              <div>
+                <label className={labelClass}>Domain <span className="text-slate-500 normal-case">(optional)</span></label>
+                <input type="text" value={cpDomain} onChange={(e) => setCpDomain(e.target.value)} placeholder="e.g. SMC User" className={inputClass} style={inputStyle} />
               </div>
             </div>
           )}
