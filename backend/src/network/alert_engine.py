@@ -130,6 +130,12 @@ DEFAULT_RULES = [
 ]
 
 
+class FlappingConfig:
+    """Flapping detection constants."""
+    FLAP_WINDOW_SECONDS: int = 300  # 5 minutes
+    FLAP_THRESHOLD: int = 5  # more than 5 transitions triggers suppression
+
+
 class AlertEngine:
     """Evaluates alert rules against InfluxDB metrics."""
 
@@ -146,6 +152,8 @@ class AlertEngine:
         self._composite_rules: list[CompositeRule] = []
         self._dispatcher = None
         self._store = None
+        # Flapping detection: {(device_id, metric): [(timestamp, state), ...]}
+        self._state_transitions: dict[tuple[str, str], list[tuple[float, str]]] = {}
 
         if load_defaults:
             for r in DEFAULT_RULES:
@@ -310,6 +318,26 @@ class AlertEngine:
 
         return fired
 
+    def _record_transition(self, device_id: str, metric: str, state: str, now: float) -> None:
+        """Record a state transition for flapping detection."""
+        key = (device_id, metric)
+        if key not in self._state_transitions:
+            self._state_transitions[key] = []
+        self._state_transitions[key].append((now, state))
+        # Prune old transitions outside the window
+        cutoff = now - FlappingConfig.FLAP_WINDOW_SECONDS
+        self._state_transitions[key] = [
+            (ts, s) for ts, s in self._state_transitions[key] if ts >= cutoff
+        ]
+
+    def _is_flapping(self, device_id: str, metric: str, now: float) -> bool:
+        """Check if a device+metric is flapping (too many transitions in window)."""
+        key = (device_id, metric)
+        transitions = self._state_transitions.get(key, [])
+        cutoff = now - FlappingConfig.FLAP_WINDOW_SECONDS
+        recent = [t for t in transitions if t[0] >= cutoff]
+        return len(recent) > FlappingConfig.FLAP_THRESHOLD
+
     def _check_condition(self, value: float, condition: str, threshold: float) -> bool:
         if condition == "gt":
             return value > threshold
@@ -357,14 +385,33 @@ class AlertEngine:
 
             latest_value = data[-1].get("value", 0)
 
-            if self._check_condition(latest_value, rule.condition, rule.threshold):
+            condition_met = self._check_condition(latest_value, rule.condition, rule.threshold)
+
+            if condition_met:
+                # Record OK -> ALERTING transition
+                self._record_transition(entity_id, rule.metric, "alerting", now)
+
+                # Check flapping before firing
+                if self._is_flapping(entity_id, rule.metric, now):
+                    logger.info(
+                        "Suppressing flapping alert %s for %s/%s",
+                        rule.name, entity_id, rule.metric,
+                    )
+                    alert = self._fire_alert(rule, entity_id, latest_value, now)
+                    alert["flapping"] = True
+                    alert["suppressed"] = True
+                    if key in self._active_alerts:
+                        del self._active_alerts[key]
+                    continue
+
                 fp = self._make_fingerprint(entity_id, rule.metric, rule.severity)
                 if self._should_fire(fp):
                     alert = self._fire_alert(rule, entity_id, latest_value, now)
                     fired.append(alert)
             else:
-                # Resolve if was firing
+                # Record ALERTING -> OK transition if it was previously alerting
                 if key in self._active_alerts:
+                    self._record_transition(entity_id, rule.metric, "ok", now)
                     fp = self._make_fingerprint(entity_id, rule.metric, rule.severity)
                     self._resolve_fingerprint(fp)
                     if self._store:
