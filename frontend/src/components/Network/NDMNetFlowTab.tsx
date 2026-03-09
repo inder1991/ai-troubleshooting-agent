@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   PieChart, Pie, Cell, BarChart, Bar, LineChart, Line,
   XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -45,6 +45,11 @@ interface ProtocolEntry {
   percentage: number;
 }
 
+interface DrillFilter {
+  field: string;
+  value: string;
+}
+
 const NDMNetFlowTab: React.FC = () => {
   const [timeRange, setTimeRange] = useState('1h');
   const [topTalkers, setTopTalkers] = useState<TopTalker[]>([]);
@@ -55,6 +60,7 @@ const NDMNetFlowTab: React.FC = () => {
   const [protocols, setProtocols] = useState<ProtocolEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [drillFilter, setDrillFilter] = useState<DrillFilter | null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -89,6 +95,23 @@ const NDMNetFlowTab: React.FC = () => {
     const interval = setInterval(loadData, 30000);
     return () => clearInterval(interval);
   }, [loadData]);
+
+  // Filter conversations based on drill-through
+  const filteredConversations = useMemo(() => {
+    if (!drillFilter) return conversations;
+    return conversations.filter(conv => {
+      switch (drillFilter.field) {
+        case 'src_ip':
+          return conv.src_ip === drillFilter.value;
+        case 'dst_ip':
+          return conv.dst_ip === drillFilter.value;
+        case 'ip':
+          return conv.src_ip === drillFilter.value || conv.dst_ip === drillFilter.value;
+        default:
+          return true;
+      }
+    });
+  }, [conversations, drillFilter]);
 
   const tooltipStyle = {
     contentStyle: { background: '#0f2023', border: '1px solid rgba(7,182,213,0.2)', borderRadius: 6, fontSize: 12 } as React.CSSProperties,
@@ -149,6 +172,7 @@ const NDMNetFlowTab: React.FC = () => {
           <h3 style={{ fontSize: 14, fontWeight: 600, color: '#e2e8f0', margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: 6 }}>
             <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#07b6d5' }}>leaderboard</span>
             Top Talkers
+            <span style={{ fontSize: 10, color: '#64748b', fontWeight: 400, marginLeft: 4 }}>(click bar to filter)</span>
           </h3>
           {topTalkers.length === 0 ? (
             <div style={{ textAlign: 'center', padding: 32, color: '#64748b', fontSize: 13 }}>No flow data available</div>
@@ -158,7 +182,23 @@ const NDMNetFlowTab: React.FC = () => {
                 <XAxis type="number" tick={{ fill: '#64748b', fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => formatBytes(v)} />
                 <YAxis type="category" dataKey="ip" width={110} tick={{ fill: '#94a3b8', fontSize: 10, fontFamily: 'monospace' }} axisLine={false} tickLine={false} />
                 <Tooltip {...tooltipStyle} formatter={(value: number) => formatBytes(value)} />
-                <Bar dataKey="bytes" fill="#07b6d5" radius={[0, 4, 4, 0]} barSize={14} />
+                <Bar
+                  dataKey="bytes"
+                  fill="#07b6d5"
+                  radius={[0, 4, 4, 0]}
+                  barSize={14}
+                  cursor="pointer"
+                  onClick={(_data: Record<string, unknown>, _index: number) => {
+                    const ip = _data.ip as string;
+                    if (ip) {
+                      setDrillFilter(prev =>
+                        prev?.field === 'ip' && prev?.value === ip
+                          ? null
+                          : { field: 'ip', value: ip }
+                      );
+                    }
+                  }}
+                />
               </BarChart>
             </ResponsiveContainer>
           )}
@@ -229,12 +269,40 @@ const NDMNetFlowTab: React.FC = () => {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
         {/* Conversations Table */}
         <div style={cardStyle}>
-          <h3 style={{ fontSize: 14, fontWeight: 600, color: '#e2e8f0', margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <h3 style={{ fontSize: 14, fontWeight: 600, color: '#e2e8f0', margin: '0 0 8px', display: 'flex', alignItems: 'center', gap: 6 }}>
             <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#07b6d5' }}>swap_horiz</span>
             Conversations
           </h3>
-          {conversations.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: 20, color: '#64748b', fontSize: 12 }}>No conversations</div>
+
+          {/* Drill-through filter chip */}
+          {drillFilter && (
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 500,
+              background: 'rgba(7,182,213,0.12)', color: '#07b6d5',
+              border: '1px solid rgba(7,182,213,0.25)',
+              marginBottom: 8,
+            }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 13 }}>filter_alt</span>
+              Filtered by: {drillFilter.field} = {drillFilter.value}
+              <button
+                onClick={() => setDrillFilter(null)}
+                style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  color: '#07b6d5', padding: 0, display: 'flex', alignItems: 'center',
+                  marginLeft: 2,
+                }}
+                title="Clear filter"
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 14 }}>close</span>
+              </button>
+            </div>
+          )}
+
+          {filteredConversations.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: 20, color: '#64748b', fontSize: 12 }}>
+              {drillFilter ? 'No conversations match this filter' : 'No conversations'}
+            </div>
           ) : (
             <div style={{ maxHeight: 260, overflowY: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -246,7 +314,7 @@ const NDMNetFlowTab: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {conversations.slice(0, 15).map((conv, i) => (
+                  {filteredConversations.slice(0, 15).map((conv, i) => (
                     <tr key={i} style={{ borderBottom: '1px solid rgba(148,163,184,0.05)' }}>
                       <td style={{ padding: '4px 6px', fontSize: 11, color: '#94a3b8', fontFamily: 'monospace' }}>{conv.src_ip}</td>
                       <td style={{ padding: '4px 6px', fontSize: 11, color: '#94a3b8', fontFamily: 'monospace' }}>{conv.dst_ip}</td>
