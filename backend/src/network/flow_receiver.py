@@ -344,9 +344,11 @@ class FlowAggregator:
     """Buffers flow records and flushes aggregated metrics."""
 
     def __init__(
-        self, metrics_store: Any, topology_store: Any,
+        self, metrics_store: Any = None, topology_store: Any = None,
         device_ip_map: dict[str, str] | None = None,
         event_bus: Any | None = None,
+        buffer_size: int = 100_000,
+        biflow_timeout: float = 120.0,
     ) -> None:
         self.metrics = metrics_store
         self.topo_store = topology_store
@@ -356,11 +358,73 @@ class FlowAggregator:
         self._applications: dict[str, dict] = {}
         self._asn_stats: dict[int, dict] = {}
         self._event_bus = event_bus
+        self._biflows: dict[tuple, dict] = {}
+        self._biflow_timeout = biflow_timeout
 
     MAX_BUFFER_SIZE = 100_000
     MAX_CONVERSATIONS = 10_000
     MAX_APPLICATIONS = 500
     MAX_ASN_ENTRIES = 1_000
+    MAX_BIFLOWS = 50_000
+
+    # -- Biflow Stitching --------------------------------------------------
+
+    def _biflow_key(self, flow: FlowRecord) -> tuple:
+        """Canonical 5-tuple key: sorted so forward and reverse match."""
+        a = (flow.src_ip, flow.src_port)
+        b = (flow.dst_ip, flow.dst_port)
+        if a <= b:
+            return (a[0], a[1], b[0], b[1], flow.protocol)
+        return (b[0], b[1], a[0], a[1], flow.protocol)
+
+    def stitch_biflow(self, flow: FlowRecord) -> None:
+        """Add a flow to the biflow stitching table."""
+        key = self._biflow_key(flow)
+        now = time.time()
+
+        if key not in self._biflows:
+            if len(self._biflows) >= self.MAX_BIFLOWS:
+                # Evict oldest
+                oldest_key = min(self._biflows, key=lambda k: self._biflows[k]["last_seen"])
+                del self._biflows[oldest_key]
+            self._biflows[key] = {
+                "src_ip": key[0], "src_port": key[1],
+                "dst_ip": key[2], "dst_port": key[3],
+                "protocol": key[4],
+                "forward_bytes": 0, "forward_packets": 0,
+                "reverse_bytes": 0, "reverse_packets": 0,
+                "first_seen": now, "last_seen": now,
+            }
+
+        bf = self._biflows[key]
+        bf["last_seen"] = now
+
+        # Determine direction: forward if flow matches canonical order
+        is_forward = (flow.src_ip, flow.src_port) <= (flow.dst_ip, flow.dst_port)
+        if is_forward:
+            bf["forward_bytes"] += flow.bytes
+            bf["forward_packets"] += flow.packets
+        else:
+            bf["reverse_bytes"] += flow.bytes
+            bf["reverse_packets"] += flow.packets
+
+    def get_biflows(self, limit: int = 100) -> list[dict]:
+        """Return biflows sorted by total bytes descending."""
+        result = []
+        for bf in self._biflows.values():
+            total = bf["forward_bytes"] + bf["reverse_bytes"]
+            result.append({**bf, "total_bytes": total})
+        result.sort(key=lambda x: x["total_bytes"], reverse=True)
+        return result[:limit]
+
+    def evict_expired_biflows(self) -> int:
+        """Remove biflows older than timeout. Returns count evicted."""
+        now = time.time()
+        expired = [k for k, v in self._biflows.items()
+                   if now - v["last_seen"] > self._biflow_timeout]
+        for k in expired:
+            del self._biflows[k]
+        return len(expired)
 
     def set_device_map(self, device_ip_map: dict[str, str]) -> None:
         self._device_ip_map = device_ip_map
