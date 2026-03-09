@@ -7,6 +7,7 @@ import React, { useState } from 'react';
 interface OperationFormModalProps {
   onClose: () => void;
   onCreate: (action: string, params: Record<string, unknown>) => void;
+  initialAction?: string;
 }
 
 type ActionType = 'kill_query' | 'vacuum' | 'reindex' | 'create_index' | 'drop_index' | 'alter_config';
@@ -43,8 +44,8 @@ const inputClass =
   'w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 placeholder-slate-500 focus:border-cyan-500 outline-none';
 const labelClass = 'block text-xs font-medium text-slate-400 mb-1';
 
-const OperationFormModal: React.FC<OperationFormModalProps> = ({ onClose, onCreate }) => {
-  const [action, setAction] = useState<ActionType>('kill_query');
+const OperationFormModal: React.FC<OperationFormModalProps> = ({ onClose, onCreate, initialAction }) => {
+  const [action, setAction] = useState<ActionType>((initialAction as ActionType) || 'kill_query');
 
   // kill_query
   const [pid, setPid] = useState('');

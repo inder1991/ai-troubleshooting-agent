@@ -61,9 +61,11 @@ interface ConfigRecommendation {
 interface AuditLogEntry {
   timestamp: string;
   action: string;
-  sql: string;
+  sql_executed: string;
   status: string;
   error?: string;
+  before_state?: Record<string, unknown>;
+  after_state?: Record<string, unknown>;
 }
 
 const statusDotColor: Record<string, string> = {
@@ -79,6 +81,9 @@ const DBOperations: React.FC = () => {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [selectedProfileId, setSelectedProfileId] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [showOpMenu, setShowOpMenu] = useState(false);
+  const [modalInitialAction, setModalInitialAction] = useState<string | null>(null);
+  const [expandedLogEntry, setExpandedLogEntry] = useState<string | null>(null);
 
   // Panel data
   const [activeQueries, setActiveQueries] = useState<ActiveQuery[]>([]);
@@ -93,6 +98,8 @@ const DBOperations: React.FC = () => {
   const [loadingLog, setLoadingLog] = useState(false);
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const activeQueriesRef = useRef<HTMLDivElement>(null);
+  const opMenuRef = useRef<HTMLDivElement>(null);
 
   // Load profiles on mount
   useEffect(() => {
@@ -181,6 +188,18 @@ const DBOperations: React.FC = () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
   }, [selectedProfileId, loadQueries, loadPlans]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    if (!showOpMenu) return;
+    const handleClick = (e: MouseEvent) => {
+      if (opMenuRef.current && !opMenuRef.current.contains(e.target as Node)) {
+        setShowOpMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [showOpMenu]);
 
   // Handlers
   const handleKillQuery = async (queryPid: number) => {
@@ -276,17 +295,66 @@ const DBOperations: React.FC = () => {
             ))}
           </select>
         </div>
-        <button
-          onClick={() => setShowModal(true)}
-          className="flex items-center gap-1.5 px-4 py-2 text-xs rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white transition-colors"
-        >
-          <span className="material-symbols-outlined text-[16px]">add</span>
-          New Operation
-        </button>
+        <div className="relative" ref={opMenuRef}>
+          <button
+            onClick={() => setShowOpMenu((v) => !v)}
+            className="flex items-center gap-1.5 px-4 py-2 text-xs rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white transition-colors"
+          >
+            <span className="material-symbols-outlined text-[16px]">add</span>
+            New Operation
+            <span className="material-symbols-outlined text-[16px]">expand_more</span>
+          </button>
+          {showOpMenu && (
+            <div className="absolute right-0 mt-1 w-56 bg-[#0d2329] border border-slate-700/50 rounded-lg shadow-xl z-50 py-1">
+              <button
+                onClick={() => { setShowOpMenu(false); activeQueriesRef.current?.scrollIntoView({ behavior: 'smooth' }); }}
+                className="w-full text-left px-3 py-2 text-sm text-slate-300 hover:bg-slate-700/50 hover:text-slate-100 flex items-center gap-2"
+              >
+                <span className="material-symbols-outlined text-[16px]">cancel</span>
+                Kill Query
+              </button>
+              <button
+                onClick={() => { setShowOpMenu(false); setModalInitialAction('vacuum'); setShowModal(true); }}
+                className="w-full text-left px-3 py-2 text-sm text-slate-300 hover:bg-slate-700/50 hover:text-slate-100 flex items-center gap-2"
+              >
+                <span className="material-symbols-outlined text-[16px]">cleaning_services</span>
+                Vacuum Table
+              </button>
+              <button
+                onClick={() => { setShowOpMenu(false); setModalInitialAction('reindex'); setShowModal(true); }}
+                className="w-full text-left px-3 py-2 text-sm text-slate-300 hover:bg-slate-700/50 hover:text-slate-100 flex items-center gap-2"
+              >
+                <span className="material-symbols-outlined text-[16px]">reorder</span>
+                Reindex Table
+              </button>
+              <button
+                onClick={() => { setShowOpMenu(false); setModalInitialAction('create_index'); setShowModal(true); }}
+                className="w-full text-left px-3 py-2 text-sm text-slate-300 hover:bg-slate-700/50 hover:text-slate-100 flex items-center gap-2"
+              >
+                <span className="material-symbols-outlined text-[16px]">add_circle</span>
+                Create Index
+              </button>
+              <button
+                onClick={() => { setShowOpMenu(false); setModalInitialAction('drop_index'); setShowModal(true); }}
+                className="w-full text-left px-3 py-2 text-sm text-slate-300 hover:bg-slate-700/50 hover:text-slate-100 flex items-center gap-2"
+              >
+                <span className="material-symbols-outlined text-[16px]">remove_circle</span>
+                Drop Index
+              </button>
+              <button
+                onClick={() => { setShowOpMenu(false); setModalInitialAction('alter_config'); setShowModal(true); }}
+                className="w-full text-left px-3 py-2 text-sm text-slate-300 hover:bg-slate-700/50 hover:text-slate-100 flex items-center gap-2"
+              >
+                <span className="material-symbols-outlined text-[16px]">settings</span>
+                Alter Config
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Panel 1: Active Queries */}
-      <div className="bg-[#0d2329] border border-slate-700/50 rounded-lg">
+      <div ref={activeQueriesRef} className="bg-[#0d2329] border border-slate-700/50 rounded-lg">
         <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700/30">
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-cyan-400 text-[18px]">terminal</span>
@@ -491,24 +559,49 @@ const DBOperations: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                auditLog.map((entry, idx) => (
-                  <tr key={idx} className="border-b border-slate-700/30 hover:bg-slate-800/30">
-                    <td className="px-4 py-2 whitespace-nowrap">{new Date(entry.timestamp).toLocaleString()}</td>
-                    <td className="px-4 py-2">{entry.action.replace(/_/g, ' ')}</td>
-                    <td className="px-4 py-2 font-mono max-w-xs truncate" title={entry.sql}>
-                      {entry.sql.length > 60 ? `${entry.sql.slice(0, 60)}...` : entry.sql}
-                    </td>
-                    <td className="px-4 py-2">
-                      <span className="flex items-center gap-1.5">
-                        <span className={`inline-block w-1.5 h-1.5 rounded-full ${statusDotColor[entry.status] || 'bg-slate-400'}`} />
-                        {entry.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-2 text-red-400 max-w-xs truncate" title={entry.error || ''}>
-                      {entry.error || '-'}
-                    </td>
-                  </tr>
-                ))
+                auditLog.map((entry, idx) => {
+                  const entryId = `${entry.timestamp}-${idx}`;
+                  const isExpanded = expandedLogEntry === entryId;
+                  return (
+                    <React.Fragment key={idx}>
+                      <tr
+                        className="border-b border-slate-700/30 hover:bg-slate-800/30 cursor-pointer"
+                        onClick={() => setExpandedLogEntry(isExpanded ? null : entryId)}
+                      >
+                        <td className="px-4 py-2 whitespace-nowrap">{new Date(entry.timestamp).toLocaleString()}</td>
+                        <td className="px-4 py-2">{entry.action.replace(/_/g, ' ')}</td>
+                        <td className="px-4 py-2 font-mono max-w-xs truncate" title={entry.sql_executed}>
+                          {entry.sql_executed.length > 60 ? `${entry.sql_executed.slice(0, 60)}...` : entry.sql_executed}
+                        </td>
+                        <td className="px-4 py-2">
+                          <span className="flex items-center gap-1.5">
+                            <span className={`inline-block w-1.5 h-1.5 rounded-full ${statusDotColor[entry.status] || 'bg-slate-400'}`} />
+                            {entry.status}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2 text-red-400 max-w-xs truncate" title={entry.error || ''}>
+                          {entry.error || '-'}
+                        </td>
+                      </tr>
+                      {isExpanded && (
+                        <tr className="border-b border-slate-700/30">
+                          <td colSpan={5} className="px-4 py-3">
+                            <div className="grid grid-cols-2 gap-4 p-3 bg-[#081418] rounded">
+                              <div>
+                                <div className="text-xs font-semibold text-slate-400 mb-1">Before</div>
+                                <pre className="text-xs text-slate-300 font-mono whitespace-pre-wrap">{JSON.stringify(entry.before_state, null, 2) || '\u2014'}</pre>
+                              </div>
+                              <div>
+                                <div className="text-xs font-semibold text-slate-400 mb-1">After</div>
+                                <pre className="text-xs text-slate-300 font-mono whitespace-pre-wrap">{JSON.stringify(entry.after_state, null, 2) || '\u2014'}</pre>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -518,8 +611,9 @@ const DBOperations: React.FC = () => {
       {/* New Operation Modal */}
       {showModal && (
         <OperationFormModal
-          onClose={() => setShowModal(false)}
+          onClose={() => { setShowModal(false); setModalInitialAction(null); }}
           onCreate={handleCreateOperation}
+          initialAction={modalInitialAction || undefined}
         />
       )}
     </div>
