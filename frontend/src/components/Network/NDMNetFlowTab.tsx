@@ -188,8 +188,8 @@ const NDMNetFlowTab: React.FC = () => {
                   radius={[0, 4, 4, 0]}
                   barSize={14}
                   cursor="pointer"
-                  onClick={(_data: Record<string, unknown>, _index: number) => {
-                    const ip = _data.ip as string;
+                  onClick={(_data: unknown) => {
+                    const ip = (_data as Record<string, unknown>)?.ip as string;
                     if (ip) {
                       setDrillFilter(prev =>
                         prev?.field === 'ip' && prev?.value === ip
