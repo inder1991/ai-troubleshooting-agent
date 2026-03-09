@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 import ipaddress
 import logging
+import os
 import time
 from uuid import uuid4
 
@@ -33,11 +34,16 @@ class AutodiscoveryEngine:
         self,
         profile_loader: ProfileLoader,
         snmp_collector: SNMPProtocolCollector,
-        max_concurrent: int = 50,
+        max_concurrent: int | None = None,
     ) -> None:
         self._profiles = profile_loader
         self._snmp = snmp_collector
-        self._semaphore = asyncio.Semaphore(max_concurrent)
+        # Concurrency limit from env var or constructor arg (default 50)
+        limit = max_concurrent if max_concurrent is not None else int(
+            os.getenv("DISCOVERY_MAX_CONCURRENT_PROBES", "50")
+        )
+        self._max_concurrent = limit
+        self._semaphore = asyncio.Semaphore(limit)
         self._last_scan: dict[str, float] = {}  # config_id → timestamp
 
     async def scan_network(
