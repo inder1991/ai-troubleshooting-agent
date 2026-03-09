@@ -28,6 +28,7 @@ def store():
         s._write_api = AsyncMock()
         s._query_api = AsyncMock()
         s._client = AsyncMock()
+        s._query_timeout = 30.0
         return s
 
 

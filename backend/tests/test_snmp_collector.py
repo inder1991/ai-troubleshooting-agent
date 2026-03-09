@@ -129,6 +129,7 @@ def test_compute_rates_prefers_hc_counters():
 
 @pytest.mark.asyncio
 async def test_snmp_get_populates_interfaces(monkeypatch):
+    import src.network.snmp_collector as snmp_mod
     from src.network.snmp_collector import SNMPCollector, SNMPDeviceConfig
 
     async def mock_walk(cfg):
@@ -153,6 +154,7 @@ async def test_snmp_get_populates_interfaces(monkeypatch):
         return (None, None, None, mock_var_bind)
 
     mock_engine = MagicMock()
+    mock_engine.close_dispatcher = MagicMock()
     mock_target = MagicMock()
 
     async def mock_create(*args, **kwargs):
@@ -160,17 +162,20 @@ async def test_snmp_get_populates_interfaces(monkeypatch):
 
     mock_target.create = mock_create
 
-    mock_module = MagicMock()
-    mock_module.get_cmd = mock_get_cmd
-    mock_module.SnmpEngine = MagicMock(return_value=mock_engine)
-    mock_module.CommunityData = MagicMock()
-    mock_module.UdpTransportTarget = mock_target
-    mock_module.ContextData = MagicMock()
-    mock_module.ObjectType = MagicMock()
-    mock_module.ObjectIdentity = MagicMock()
-
-    import sys
-    monkeypatch.setitem(sys.modules, "pysnmp.hlapi.v3arch.asyncio", mock_module)
+    # Seed module-level names (may not exist when pysnmp is not installed)
+    for attr, val in [
+        ("_PYSNMP_AVAILABLE", True),
+        ("SnmpEngine", MagicMock(return_value=mock_engine)),
+        ("get_cmd", mock_get_cmd),
+        ("CommunityData", MagicMock()),
+        ("UdpTransportTarget", mock_target),
+        ("ContextData", MagicMock()),
+        ("ObjectType", MagicMock()),
+        ("ObjectIdentity", MagicMock()),
+    ]:
+        if not hasattr(snmp_mod, attr):
+            setattr(snmp_mod, attr, None)
+        monkeypatch.setattr(snmp_mod, attr, val)
 
     cfg = SNMPDeviceConfig(device_id="dev-walk", ip="10.0.0.1")
     result = await collector._snmp_get(cfg)
