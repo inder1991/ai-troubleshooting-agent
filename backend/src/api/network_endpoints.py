@@ -5,7 +5,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException, UploadFile, File
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Request, UploadFile, File
 
 from src.api.network_models import (
     AdapterConfigureRequest,
@@ -33,6 +33,9 @@ from src.utils.logger import get_logger
 logger = get_logger(__name__)
 
 network_router = APIRouter(prefix="/api/v4/network", tags=["network"])
+
+# Maximum file size for IPAM imports (50 MB)
+MAX_IMPORT_SIZE = 50 * 1024 * 1024
 
 # ---------------------------------------------------------------------------
 # Shared singletons (initialised lazily on first request)
@@ -239,10 +242,37 @@ async def topology_load():
 
 
 @network_router.post("/ipam/upload")
-async def ipam_upload(file: UploadFile = File(...)):
-    """Accept CSV or Excel file upload, parse IPAM data."""
+async def ipam_upload(request: Request, file: UploadFile = File(...)):
+    """Accept CSV or Excel file upload, parse IPAM data.
+
+    Enforces a MAX_IMPORT_SIZE (50 MB) limit. Checks Content-Length header
+    first for fast rejection, then streams in 64 KB chunks to enforce the
+    limit even when Content-Length is absent.
+    """
+    # Fast reject via Content-Length header if present
+    content_length = request.headers.get("content-length")
+    if content_length is not None:
+        try:
+            if int(content_length) > MAX_IMPORT_SIZE:
+                raise HTTPException(413, f"File exceeds maximum import size of {MAX_IMPORT_SIZE} bytes")
+        except ValueError:
+            pass  # Non-numeric Content-Length; fall through to streaming check
+
+    # Stream in chunks to enforce size limit when Content-Length is missing
+    chunks: list[bytes] = []
+    total_size = 0
+    chunk_size = 64 * 1024  # 64 KB
+    while True:
+        chunk = await file.read(chunk_size)
+        if not chunk:
+            break
+        total_size += len(chunk)
+        if total_size > MAX_IMPORT_SIZE:
+            raise HTTPException(413, f"File exceeds maximum import size of {MAX_IMPORT_SIZE} bytes")
+        chunks.append(chunk)
+    raw = b"".join(chunks)
+
     store = _get_topology_store()
-    raw = await file.read()
     filename = (file.filename or "").lower()
 
     if filename.endswith(".xlsx"):
