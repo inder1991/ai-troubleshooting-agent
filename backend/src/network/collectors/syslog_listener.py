@@ -289,6 +289,7 @@ class SyslogListener:
         event_bus: Any,
         instance_store: Any,
         port: int = 514,
+        listen_ipv6: bool = False,
     ) -> None:
         env_port = os.environ.get("SYSLOG_LISTENER_PORT")
         self._port: int = int(env_port) if env_port else port
@@ -298,6 +299,8 @@ class SyslogListener:
         self._event_bus = event_bus
         self._instance_store = instance_store
         self._transport: asyncio.DatagramTransport | None = None
+        self._transport_v6: asyncio.DatagramTransport | None = None
+        self._listen_ipv6: bool = listen_ipv6
         self._recv_count: int = 0
         self._error_count: int = 0
 
@@ -308,6 +311,8 @@ class SyslogListener:
         if not self._enabled:
             logger.info("Syslog listener disabled via SYSLOG_LISTENER_ENABLED")
             return
+
+        import socket as _socket
 
         loop = asyncio.get_running_loop()
         try:
@@ -326,16 +331,38 @@ class SyslogListener:
                 exc,
             )
 
+        # IPv6 dual-stack support
+        if self._listen_ipv6 and _socket.has_ipv6:
+            try:
+                transport_v6, _ = await loop.create_datagram_endpoint(
+                    lambda: _SyslogDatagramProtocol(self),
+                    local_addr=("::", self._port),
+                    family=_socket.AF_INET6,
+                )
+                self._transport_v6 = transport_v6  # type: ignore[assignment]
+                logger.info(
+                    "Syslog IPv6 listener started on UDP port %d", self._port
+                )
+            except OSError as exc:
+                logger.warning(
+                    "Failed to bind syslog IPv6 listener on UDP port %d: %s",
+                    self._port,
+                    exc,
+                )
+
     async def stop(self) -> None:
         """Close the UDP socket and stop receiving."""
         if self._transport is not None:
             self._transport.close()
             self._transport = None
-            logger.info(
-                "Syslog listener stopped (received=%d, errors=%d)",
-                self._recv_count,
-                self._error_count,
-            )
+        if self._transport_v6 is not None:
+            self._transport_v6.close()
+            self._transport_v6 = None
+        logger.info(
+            "Syslog listener stopped (received=%d, errors=%d)",
+            self._recv_count,
+            self._error_count,
+        )
 
     # ── Datagram handling ─────────────────────────────────────────────
 
