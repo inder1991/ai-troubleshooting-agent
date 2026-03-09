@@ -36,6 +36,7 @@ class TopologyStore:
         self._pool: queue.Queue[sqlite3.Connection] = queue.Queue(maxsize=5)
         self._cache_lock = threading.Lock()
         self._cache = TTLCache(maxsize=64, ttl=10)
+        self._cache_lock = threading.Lock()
         self._init_tables()
         self._migrate_tables()
 

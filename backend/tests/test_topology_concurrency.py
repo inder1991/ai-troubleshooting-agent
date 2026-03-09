@@ -2,6 +2,7 @@
 import os
 import threading
 import pytest
+
 from src.network.topology_store import TopologyStore
 from src.network.models import Device, DeviceType
 
@@ -105,3 +106,67 @@ class TestTopologyConcurrency:
         """Store should have a threading lock for cache access."""
         assert hasattr(store, '_cache_lock')
         assert isinstance(store._cache_lock, type(threading.Lock()))
+
+    def test_concurrent_invalidate_and_read(self, store):
+        """Concurrent cache invalidation and reads should not corrupt state."""
+        errors = []
+
+        def invalidator():
+            try:
+                for _ in range(100):
+                    store._invalidate_cache("list_devices")
+            except Exception as e:
+                errors.append(e)
+
+        def reader():
+            try:
+                for _ in range(100):
+                    store.list_devices()
+            except Exception as e:
+                errors.append(e)
+
+        threads = [
+            threading.Thread(target=invalidator),
+            threading.Thread(target=invalidator),
+            threading.Thread(target=reader),
+            threading.Thread(target=reader),
+        ]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join(timeout=30)
+
+        assert len(errors) == 0, f"Concurrent errors: {errors}"
+
+    def test_concurrent_status_cache(self, store):
+        """Concurrent list_device_statuses and upsert_device_status should be safe."""
+        errors = []
+
+        def status_writer(tid):
+            try:
+                for i in range(30):
+                    store.upsert_device_status(
+                        f"dev-{tid}-{i}", "up", 1.0, 0.0, "icmp"
+                    )
+            except Exception as e:
+                errors.append(e)
+
+        def status_reader():
+            try:
+                for _ in range(30):
+                    store.list_device_statuses()
+            except Exception as e:
+                errors.append(e)
+
+        threads = []
+        for tid in range(3):
+            threads.append(threading.Thread(target=status_writer, args=(tid,)))
+        for _ in range(3):
+            threads.append(threading.Thread(target=status_reader))
+
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join(timeout=30)
+
+        assert len(errors) == 0, f"Concurrent status errors: {errors}"
