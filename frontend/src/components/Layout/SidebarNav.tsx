@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 export type NavView = 'home' | 'sessions' | 'app-diagnostics' | 'cluster-diagnostics'
   | 'network-troubleshooting' | 'pr-review' | 'github-issue-fix'
   | 'network-topology' | 'network-adapters' | 'ipam' | 'matrix' | 'observatory'
-  | 'database' | 'integrations' | 'settings' | 'agents';
+  | 'db-overview' | 'db-connections' | 'db-diagnostics' | 'db-monitoring' | 'db-schema' | 'db-operations'
+  | 'integrations' | 'settings' | 'agents';
 
 type NavLink = { kind: 'link'; id: NavView; label: string; icon: string };
 type NavGroup = { kind: 'group'; group: string; icon: string; children: { id: NavView; label: string; icon: string }[] };
@@ -20,9 +21,10 @@ const navItems: NavItem[] = [
   {
     kind: 'group', group: 'Diagnostics', icon: 'troubleshoot',
     children: [
-      { id: 'app-diagnostics', label: 'App Diagnostics', icon: 'bug_report' },
-      { id: 'cluster-diagnostics', label: 'Cluster Diagnostics', icon: 'health_and_safety' },
-      { id: 'network-troubleshooting', label: 'Network Path', icon: 'route' },
+      { id: 'app-diagnostics', label: 'Application', icon: 'bug_report' },
+      { id: 'cluster-diagnostics', label: 'Cluster', icon: 'health_and_safety' },
+      { id: 'db-diagnostics', label: 'Database', icon: 'storage' },
+      { id: 'network-troubleshooting', label: 'Network', icon: 'route' },
       { id: 'sessions', label: 'Sessions', icon: 'history' },
     ],
   },
@@ -34,14 +36,24 @@ const navItems: NavItem[] = [
     ],
   },
   {
-    kind: 'group', group: 'Infrastructure', icon: 'lan',
+    kind: 'group', group: 'Database', icon: 'storage',
+    children: [
+      { id: 'db-overview', label: 'Overview', icon: 'dashboard' },
+      { id: 'db-connections', label: 'Connections', icon: 'cable' },
+      { id: 'db-diagnostics', label: 'Diagnostics', icon: 'troubleshoot' },
+      { id: 'db-monitoring', label: 'Monitoring', icon: 'monitoring' },
+      { id: 'db-schema', label: 'Schema', icon: 'account_tree' },
+      { id: 'db-operations', label: 'Operations', icon: 'build' },
+    ],
+  },
+  {
+    kind: 'group', group: 'Networking', icon: 'lan',
     children: [
       { id: 'network-topology', label: 'Topology', icon: 'device_hub' },
       { id: 'network-adapters', label: 'Adapters', icon: 'settings_input_component' },
       { id: 'ipam', label: 'IPAM', icon: 'dns' },
       { id: 'observatory', label: 'Observatory', icon: 'monitoring' },
       { id: 'matrix', label: 'Matrix', icon: 'grid_view' },
-      { id: 'database', label: 'Databases', icon: 'storage' },
     ],
   },
   {
@@ -57,8 +69,9 @@ const navItems: NavItem[] = [
 const SidebarNav: React.FC<SidebarNavProps> = ({ activeView, onNavigate, onNewMission }) => {
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [collapsed, setCollapsed] = useState(false);
+  const activeRef = useRef<HTMLButtonElement>(null);
 
-  // Auto-expand group if active view is one of its children
+  // Auto-expand group containing the active view
   useEffect(() => {
     for (const item of navItems) {
       if (item.kind === 'group' && item.children.some((c) => c.id === activeView)) {
@@ -72,6 +85,11 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ activeView, onNavigate, onNewMi
     }
   }, [activeView]);
 
+  // Scroll active item into view on mount/change
+  useEffect(() => {
+    activeRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }, [activeView]);
+
   const toggleGroup = (group: string) => {
     setExpandedGroups((prev) => {
       const next = new Set(prev);
@@ -81,29 +99,42 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ activeView, onNavigate, onNewMi
     });
   };
 
+  const iconEl = (name: string, size = 20) => (
+    <span
+      className="material-symbols-outlined flex-shrink-0"
+      style={{ fontFamily: 'Material Symbols Outlined', fontSize: size }}
+    >
+      {name}
+    </span>
+  );
+
   const renderLink = (id: NavView, label: string, icon: string, indented = false) => {
     const isActive = activeView === id;
     return (
       <button
         key={id}
+        ref={isActive ? activeRef : undefined}
         onClick={() => onNavigate(id)}
         title={collapsed ? label : undefined}
-        className={`flex items-center ${collapsed ? 'justify-center' : ''} gap-3 ${collapsed ? 'px-0 py-2.5' : 'px-3 py-2.5'} rounded-lg transition-colors border ${
-          isActive
-            ? 'text-[#07b6d5]'
-            : 'text-slate-400 hover:text-white border-transparent'
-        }`}
-        style={{
-          ...(isActive ? {
-            backgroundColor: 'rgba(7,182,213,0.1)',
-            borderColor: 'rgba(7,182,213,0.2)',
-          } : {}),
-          ...(!collapsed && indented ? { paddingLeft: '2.25rem' } : {}),
-        }}
+        className={`
+          relative flex items-center gap-2.5 rounded-md transition-all duration-150
+          ${collapsed ? 'justify-center px-0 py-2' : 'px-3 py-[7px]'}
+          ${isActive
+            ? 'text-cyan-300 bg-cyan-500/10'
+            : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]'
+          }
+        `}
+        style={!collapsed && indented ? { paddingLeft: '2.5rem' } : {}}
       >
-        <span className="material-symbols-outlined text-[20px]" style={{ fontFamily: 'Material Symbols Outlined' }}>{icon}</span>
+        {/* Active left accent bar */}
+        {isActive && !collapsed && (
+          <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-r-full bg-cyan-400" />
+        )}
+        {iconEl(icon, indented ? 18 : 20)}
         {!collapsed && (
-          <span className={`text-sm ${isActive ? 'font-semibold tracking-wide' : 'font-medium'}`}>{label}</span>
+          <span className={`text-[13px] leading-tight ${isActive ? 'font-semibold' : 'font-medium'}`}>
+            {label}
+          </span>
         )}
       </button>
     );
@@ -111,126 +142,135 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ activeView, onNavigate, onNewMi
 
   return (
     <aside
-      className={`${collapsed ? 'w-16' : 'w-64'} flex-shrink-0 border-r border-[#224349] flex flex-col justify-between py-6 transition-all duration-200`}
-      style={{ backgroundColor: '#0f2023' }}
+      className={`${collapsed ? 'w-[60px]' : 'w-60'} flex-shrink-0 border-r border-[#1a3a40] flex flex-col h-full transition-all duration-200`}
+      style={{ backgroundColor: '#0c1a1e' }}
     >
-      <div className="flex flex-col gap-8">
-        {/* Brand Logo + Collapse Toggle */}
-        <div className={`${collapsed ? 'px-2' : 'px-6'} flex items-center ${collapsed ? 'justify-center' : 'justify-between'}`}>
-          <div className={`flex items-center ${collapsed ? '' : 'gap-3'}`}>
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center border flex-shrink-0" style={{ backgroundColor: 'rgba(7,182,213,0.2)', borderColor: 'rgba(7,182,213,0.3)' }}>
-              <span className="material-symbols-outlined text-2xl" style={{ fontFamily: 'Material Symbols Outlined', color: '#07b6d5' }}>pest_control</span>
-            </div>
-            {!collapsed && (
-              <div className="flex flex-col">
-                <h1 className="text-white text-lg font-bold leading-none tracking-tight">DebugDuck</h1>
-                <p className="text-[10px] font-bold uppercase tracking-widest mt-1" style={{ color: '#07b6d5' }}>Command Center</p>
-              </div>
-            )}
+      {/* ─── Brand Header (fixed) ─── */}
+      <div className={`${collapsed ? 'px-2 py-4' : 'px-5 py-5'} flex items-center ${collapsed ? 'justify-center' : 'justify-between'} flex-shrink-0`}>
+        <div className={`flex items-center ${collapsed ? '' : 'gap-3'}`}>
+          <div
+            className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+            style={{ backgroundColor: 'rgba(7,182,213,0.15)', border: '1px solid rgba(7,182,213,0.25)' }}
+          >
+            <span className="material-symbols-outlined text-xl" style={{ fontFamily: 'Material Symbols Outlined', color: '#07b6d5' }}>pest_control</span>
           </div>
           {!collapsed && (
-            <button
-              onClick={() => setCollapsed(true)}
-              className="text-slate-500 hover:text-white transition-colors p-1 rounded"
-              title="Collapse sidebar"
-            >
-              <span className="material-symbols-outlined text-[18px]" style={{ fontFamily: 'Material Symbols Outlined' }}>chevron_left</span>
-            </button>
+            <div className="flex flex-col">
+              <h1 className="text-white text-[15px] font-bold leading-none tracking-tight">DebugDuck</h1>
+              <p className="text-[9px] font-bold uppercase tracking-[0.15em] mt-0.5" style={{ color: '#07b6d5' }}>Command Center</p>
+            </div>
           )}
         </div>
-
-        {/* Expand toggle when collapsed */}
-        {collapsed && (
-          <div className="px-2 flex justify-center">
-            <button
-              onClick={() => setCollapsed(false)}
-              className="text-slate-500 hover:text-white transition-colors p-1 rounded"
-              title="Expand sidebar"
-            >
-              <span className="material-symbols-outlined text-[18px]" style={{ fontFamily: 'Material Symbols Outlined' }}>chevron_right</span>
-            </button>
-          </div>
+        {!collapsed && (
+          <button
+            onClick={() => setCollapsed(true)}
+            className="text-slate-500 hover:text-white transition-colors p-0.5 rounded"
+            title="Collapse sidebar"
+          >
+            {iconEl('chevron_left', 18)}
+          </button>
         )}
+      </div>
 
-        {/* Navigation Links */}
-        <nav className={`flex flex-col gap-1 ${collapsed ? 'px-2' : 'px-3'}`}>
-          {navItems.map((item, idx) => {
-            if (item.kind === 'link') {
-              // Standalone link (e.g., Dashboard)
-              if (collapsed) {
-                return (
-                  <div key={item.id}>
-                    {idx > 0 && <div className="my-2 mx-1 border-t border-[#224349]" />}
-                    {renderLink(item.id, item.label, item.icon)}
-                  </div>
-                );
-              }
+      {/* Expand toggle when collapsed */}
+      {collapsed && (
+        <div className="px-2 flex justify-center mb-2">
+          <button
+            onClick={() => setCollapsed(false)}
+            className="text-slate-500 hover:text-white transition-colors p-0.5 rounded"
+            title="Expand sidebar"
+          >
+            {iconEl('chevron_right', 18)}
+          </button>
+        </div>
+      )}
+
+      {/* ─── Scrollable Nav ─── */}
+      <nav
+        className={`flex-1 flex flex-col gap-0.5 ${collapsed ? 'px-1.5' : 'px-2.5'} overflow-y-auto min-h-0 pb-2 sidebar-scroll`}
+      >
+        {navItems.map((item, idx) => {
+          if (item.kind === 'link') {
+            if (collapsed) {
               return (
                 <div key={item.id}>
-                  {idx > 0 && <div className="my-1" />}
+                  {idx > 0 && <div className="my-1.5 mx-1 border-t border-[#1a3a40]" />}
                   {renderLink(item.id, item.label, item.icon)}
                 </div>
               );
             }
-
-            if (collapsed) {
-              // Collapsed: thin divider between groups, flat icon list
-              return (
-                <div key={item.group}>
-                  {idx > 0 && (
-                    <div className="my-2 mx-1 border-t border-[#224349]" />
-                  )}
-                  {item.children.map((child) => renderLink(child.id, child.label, child.icon))}
-                </div>
-              );
-            }
-
-            // Expanded: group headers with expand/collapse
-            const isExpanded = expandedGroups.has(item.group);
-            const hasActiveChild = item.children.some((c) => c.id === activeView);
-
             return (
-              <div key={item.group}>
-                {idx > 0 && <div className="my-1" />}
-                <button
-                  onClick={() => toggleGroup(item.group)}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors border ${
-                    hasActiveChild
-                      ? 'text-[#07b6d5]'
-                      : 'text-slate-400 hover:text-white border-transparent'
-                  }`}
-                  style={hasActiveChild ? {
-                    backgroundColor: 'rgba(7,182,213,0.05)',
-                    borderColor: 'rgba(7,182,213,0.15)',
-                  } : {}}
-                >
-                  <span className="material-symbols-outlined text-[20px]" style={{ fontFamily: 'Material Symbols Outlined' }}>{item.icon}</span>
-                  <span className={`text-sm flex-1 text-left ${hasActiveChild ? 'font-semibold tracking-wide' : 'font-medium'}`}>{item.group}</span>
-                  <span
-                    className="material-symbols-outlined text-[16px] transition-transform duration-200"
-                    style={{ fontFamily: 'Material Symbols Outlined', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
-                  >
-                    expand_more
-                  </span>
-                </button>
-                {isExpanded && (
-                  <div className="flex flex-col gap-0.5 mt-0.5">
-                    {item.children.map((child) => renderLink(child.id, child.label, child.icon, true))}
-                  </div>
-                )}
+              <div key={item.id}>
+                {idx > 0 && <div className="mt-3 mb-1" />}
+                {renderLink(item.id, item.label, item.icon)}
               </div>
             );
-          })}
-        </nav>
-      </div>
+          }
 
-      {/* Sidebar Bottom Action */}
-      <div className={collapsed ? 'px-2' : 'px-4'}>
+          if (collapsed) {
+            return (
+              <div key={item.group}>
+                {idx > 0 && <div className="my-1.5 mx-1 border-t border-[#1a3a40]" />}
+                {item.children.map((child) => renderLink(child.id, child.label, child.icon))}
+              </div>
+            );
+          }
+
+          // Expanded: group with header + children
+          const isExpanded = expandedGroups.has(item.group);
+          const hasActiveChild = item.children.some((c) => c.id === activeView);
+
+          return (
+            <div key={item.group}>
+              {idx > 0 && <div className="mt-3 mb-0.5" />}
+
+              {/* Group header */}
+              <button
+                onClick={() => toggleGroup(item.group)}
+                className={`
+                  w-full flex items-center gap-2.5 px-3 py-[7px] rounded-md transition-all duration-150
+                  ${hasActiveChild
+                    ? 'text-cyan-400'
+                    : 'text-slate-500 hover:text-slate-300'
+                  }
+                `}
+              >
+                {iconEl(item.icon, 20)}
+                <span className={`text-[13px] flex-1 text-left ${hasActiveChild ? 'font-semibold text-cyan-400' : 'font-medium'}`}>
+                  {item.group}
+                </span>
+                <span
+                  className="material-symbols-outlined text-[14px] opacity-50 transition-transform duration-200"
+                  style={{ fontFamily: 'Material Symbols Outlined', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
+                >
+                  expand_more
+                </span>
+              </button>
+
+              {/* Children with animated expand */}
+              <div
+                className="overflow-hidden transition-all duration-200 ease-out"
+                style={{
+                  maxHeight: isExpanded ? `${item.children.length * 36 + 4}px` : '0px',
+                  opacity: isExpanded ? 1 : 0,
+                }}
+              >
+                <div className="flex flex-col gap-px mt-0.5 ml-4 pl-2.5 border-l border-[#1a3a40]">
+                  {item.children.map((child) => renderLink(child.id, child.label, child.icon, true))}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </nav>
+
+      {/* ─── Bottom Action (fixed) ─── */}
+      <div className={`${collapsed ? 'px-1.5' : 'px-3'} py-4 flex-shrink-0 border-t border-[#1a3a40]`}>
         <button
           onClick={onNewMission}
           title={collapsed ? 'New Mission' : undefined}
-          className={`w-full flex items-center justify-center gap-2 font-bold py-2.5 rounded-lg transition-all group`}
-          style={{ backgroundColor: '#07b6d5', color: '#0f2023', boxShadow: '0 4px 14px rgba(7,182,213,0.1)' }}
+          className="w-full flex items-center justify-center gap-2 font-bold py-2.5 rounded-lg transition-all group hover:shadow-lg"
+          style={{ backgroundColor: '#07b6d5', color: '#0c1a1e', boxShadow: '0 2px 12px rgba(7,182,213,0.15)' }}
         >
           <span className="material-symbols-outlined text-[20px] group-hover:rotate-180 transition-transform duration-500" style={{ fontFamily: 'Material Symbols Outlined' }}>add_circle</span>
           {!collapsed && <span className="text-sm">New Mission</span>}

@@ -40,11 +40,16 @@ import NetworkWarRoom from './components/NetworkTroubleshooting/NetworkWarRoom';
 import ReachabilityMatrix from './components/NetworkTroubleshooting/ReachabilityMatrix';
 import NetworkAdaptersView from './components/Network/NetworkAdaptersView';
 import ObservatoryView from './components/Observatory/ObservatoryView';
-import DatabaseLayout from './components/Database/DatabaseLayout';
+import DBOverview from './components/Database/DBOverview';
+import DBConnections from './components/Database/DBConnections';
+import DBDiagnostics from './components/Database/DBDiagnostics';
+import DBMonitoring from './components/Database/DBMonitoring';
+import DBSchema from './components/Database/DBSchema';
+import DBOperations from './components/Database/DBOperations';
 import { Breadcrumbs } from './components/shared';
 
 
-type ViewState = 'home' | 'form' | 'investigation' | 'sessions' | 'integrations' | 'settings' | 'dossier' | 'cluster-diagnostics' | 'agent-matrix' | 'network-troubleshooting' | 'network-topology' | 'network-adapters' | 'ipam' | 'matrix' | 'observatory' | 'database';
+type ViewState = 'home' | 'form' | 'investigation' | 'sessions' | 'integrations' | 'settings' | 'dossier' | 'cluster-diagnostics' | 'agent-matrix' | 'network-troubleshooting' | 'network-topology' | 'network-adapters' | 'ipam' | 'matrix' | 'observatory' | 'db-overview' | 'db-connections' | 'db-diagnostics' | 'db-monitoring' | 'db-schema' | 'db-operations';
 
 function AppInner() {
   const { addToast } = useToast();
@@ -425,7 +430,10 @@ function AppInner() {
     sessions: 'sessions', integrations: 'integrations', settings: 'settings',
     'agent-matrix': 'agents', 'network-topology': 'network-topology',
     'network-adapters': 'network-adapters', ipam: 'ipam', matrix: 'matrix',
-    observatory: 'observatory', database: 'database',
+    observatory: 'observatory',
+    'db-overview': 'db-overview', 'db-connections': 'db-connections',
+    'db-diagnostics': 'db-diagnostics', 'db-monitoring': 'db-monitoring',
+    'db-schema': 'db-schema', 'db-operations': 'db-operations',
   };
 
   const navView: NavView =
@@ -445,13 +453,19 @@ function AppInner() {
     // Code group
     'pr-review': { label: 'PR Review', parent: 'home' },
     'github-issue-fix': { label: 'Issue Fixer', parent: 'home' },
-    // Infrastructure group
+    // Database group
+    'db-overview': { label: 'Overview', parent: 'home' },
+    'db-connections': { label: 'Connections', parent: 'home' },
+    'db-diagnostics': { label: 'Diagnostics', parent: 'home' },
+    'db-monitoring': { label: 'Monitoring', parent: 'home' },
+    'db-schema': { label: 'Schema', parent: 'home' },
+    'db-operations': { label: 'Operations', parent: 'home' },
+    // Networking group
     'network-topology': { label: 'Topology', parent: 'home' },
     'network-adapters': { label: 'Adapters', parent: 'home' },
     ipam: { label: 'IPAM', parent: 'home' },
     matrix: { label: 'Matrix', parent: 'home' },
     observatory: { label: 'Observatory', parent: 'home' },
-    database: { label: 'Databases', parent: 'home' },
     // Configuration group
     integrations: { label: 'Integrations', parent: 'home' },
     settings: { label: 'Settings', parent: 'home' },
@@ -538,9 +552,12 @@ function AppInner() {
           <ObservatoryView />
         )}
 
-        {viewState === 'database' && (
-          <DatabaseLayout />
-        )}
+        {viewState === 'db-overview' && <DBOverview />}
+        {viewState === 'db-connections' && <DBConnections />}
+        {viewState === 'db-diagnostics' && <DBDiagnostics />}
+        {viewState === 'db-monitoring' && <DBMonitoring />}
+        {viewState === 'db-schema' && <DBSchema />}
+        {viewState === 'db-operations' && <DBOperations />}
 
         {viewState === 'form' && selectedCapability && (
           <CapabilityForm
