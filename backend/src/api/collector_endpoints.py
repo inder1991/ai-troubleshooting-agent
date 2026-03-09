@@ -20,6 +20,11 @@ from src.network.collectors.models import (
     SNMPCredentials,
     SNMPVersion,
 )
+from src.network.collectors.mib_registry import (
+    lookup_oid as _mib_lookup,
+    batch_lookup as _mib_batch,
+    search_oids as _mib_search,
+)
 from src.network.collectors.instance_store import InstanceStore
 from src.network.collectors.profile_loader import ProfileLoader
 from src.network.collectors.snmp_collector import SNMPProtocolCollector
@@ -690,4 +695,135 @@ async def device_interfaces(device_id: str):
         "device_id": device_id,
         "interfaces": interfaces,
         "count": len(interfaces),
+    }
+
+
+# ═══════════════════════════════════════════════════════════════
+# MIB Registry Endpoints
+# ═══════════════════════════════════════════════════════════════
+
+class MIBBatchRequest(BaseModel):
+    oids: list[str]
+
+
+@collector_router.get("/mib/lookup")
+async def mib_lookup(oid: str):
+    """Look up a single OID in the MIB registry."""
+    result = _mib_lookup(oid)
+    if result is None:
+        raise HTTPException(404, f"OID {oid} not found in MIB registry")
+    return result
+
+
+@collector_router.post("/mib/batch")
+async def mib_batch(req: MIBBatchRequest):
+    """Batch lookup of multiple OIDs."""
+    return {"results": _mib_batch(req.oids)}
+
+
+@collector_router.get("/mib/search")
+async def mib_search(q: str = ""):
+    """Search OIDs by name, description, or module."""
+    return {"results": _mib_search(q)}
+
+
+# ═══════════════════════════════════════════════════════════════
+# Bulk Device Actions
+# ═══════════════════════════════════════════════════════════════
+
+class BulkActionRequest(BaseModel):
+    device_ids: list[str]
+    action: str  # "delete" | "test" | "ping" | "add_tag" | "remove_tag"
+    tag: str | None = None
+
+
+@collector_router.post("/devices/bulk-action")
+async def bulk_device_action(req: BulkActionRequest):
+    """Perform a bulk action on multiple devices."""
+    valid_actions = {"delete", "test", "ping", "add_tag", "remove_tag"}
+    if req.action not in valid_actions:
+        raise HTTPException(400, f"Invalid action '{req.action}'. Must be one of: {', '.join(sorted(valid_actions))}")
+    if not req.device_ids:
+        raise HTTPException(400, "device_ids must not be empty")
+
+    store = _store()
+    results: dict[str, Any] = {}
+
+    if req.action == "delete":
+        for did in req.device_ids:
+            deleted = store.delete_device(did)
+            results[did] = {"success": deleted}
+
+    elif req.action == "add_tag":
+        if not req.tag:
+            raise HTTPException(400, "tag is required for add_tag action")
+        for did in req.device_ids:
+            device = store.get_device(did)
+            if device:
+                if req.tag not in device.tags:
+                    device.tags.append(req.tag)
+                    store.upsert_device(device)
+                results[did] = {"success": True, "tags": device.tags}
+            else:
+                results[did] = {"success": False, "error": "not_found"}
+
+    elif req.action == "remove_tag":
+        if not req.tag:
+            raise HTTPException(400, "tag is required for remove_tag action")
+        for did in req.device_ids:
+            device = store.get_device(did)
+            if device:
+                if req.tag in device.tags:
+                    device.tags.remove(req.tag)
+                    store.upsert_device(device)
+                results[did] = {"success": True, "tags": device.tags}
+            else:
+                results[did] = {"success": False, "error": "not_found"}
+
+    elif req.action == "test":
+        if not _snmp_collector:
+            raise HTTPException(503, "SNMP collector not available")
+        import asyncio
+        tasks = []
+        device_order = []
+        for did in req.device_ids:
+            device = store.get_device(did)
+            if device:
+                tasks.append(_snmp_collector.health_check(device))
+                device_order.append(did)
+            else:
+                results[did] = {"success": False, "error": "not_found"}
+        if tasks:
+            health_results = await asyncio.gather(*tasks, return_exceptions=True)
+            for did, hr in zip(device_order, health_results):
+                if isinstance(hr, Exception):
+                    results[did] = {"success": False, "error": str(hr)}
+                else:
+                    results[did] = {"success": True, "health": hr.model_dump()}
+
+    elif req.action == "ping":
+        if not _ping_prober:
+            raise HTTPException(503, "Ping prober not available")
+        import asyncio
+        tasks = []
+        device_order = []
+        for did in req.device_ids:
+            device = store.get_device(did)
+            if device:
+                tasks.append(_ping_prober.probe(device.management_ip, device.ping_config))
+                device_order.append(did)
+            else:
+                results[did] = {"success": False, "error": "not_found"}
+        if tasks:
+            ping_results = await asyncio.gather(*tasks, return_exceptions=True)
+            for did, pr in zip(device_order, ping_results):
+                if isinstance(pr, Exception):
+                    results[did] = {"success": False, "error": str(pr)}
+                else:
+                    results[did] = {"success": True, "ping": pr.model_dump()}
+
+    return {
+        "action": req.action,
+        "device_count": len(req.device_ids),
+        "results": results,
     }
