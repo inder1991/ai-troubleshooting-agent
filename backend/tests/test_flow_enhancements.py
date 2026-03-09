@@ -268,3 +268,41 @@ async def test_bounding_keeps_highest_byte_entries(aggregator):
     high_value = [c for c in convos if c["src_ip"] == "192.168.0.1" and c["dst_ip"] == "192.168.0.2"]
     assert len(high_value) == 1
     assert high_value[0]["bytes"] == 999999
+
+
+# ── Template Cache TTL & Bounds ──
+
+def test_template_cache_has_ttl():
+    """Template cache should expire entries older than TTL."""
+    from src.network.flow_receiver import FlowReceiver
+    receiver = FlowReceiver.__new__(FlowReceiver)
+    receiver._v9_templates = {}
+    receiver._template_timestamps = {}
+    receiver._MAX_TEMPLATES = 500
+    receiver._TEMPLATE_TTL = 3600
+
+    import time
+    key = (1, "10.0.0.1")
+    receiver._v9_templates[key] = {"fields": []}
+    receiver._template_timestamps[key] = time.time() - 7200  # 2 hours ago
+
+    # Lookup should return None for expired template
+    result = receiver._get_template(key)
+    assert result is None
+    assert key not in receiver._v9_templates
+
+
+def test_template_cache_bounded():
+    """Template cache should not exceed MAX_TEMPLATES."""
+    from src.network.flow_receiver import FlowReceiver
+    receiver = FlowReceiver.__new__(FlowReceiver)
+    receiver._v9_templates = {}
+    receiver._template_timestamps = {}
+    receiver._MAX_TEMPLATES = 5
+    receiver._TEMPLATE_TTL = 3600
+
+    import time
+    for i in range(10):
+        receiver._store_template((i, "10.0.0.1"), {"fields": []})
+
+    assert len(receiver._v9_templates) <= 5

@@ -7,6 +7,7 @@ import asyncio
 import logging
 import socket
 import struct
+import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any
@@ -68,9 +69,41 @@ class NetFlowV5Record:
 class FlowParser:
     """Parses NetFlow v5/v9 and IPFIX binary packets into FlowRecord objects."""
 
+    _MAX_TEMPLATES = 500
+    _TEMPLATE_TTL = 3600  # seconds
+
     def __init__(self):
         # Template cache: {(exporter_ip, source_id): {template_id: [(field_type, field_len), ...]}}
         self._v9_templates: dict[tuple[str, int], dict[int, list[tuple[int, int]]]] = {}
+        self._template_timestamps: dict[tuple, float] = {}
+
+    def _store_template(self, key: tuple, template: Any) -> None:
+        """Store a template and record its timestamp, evicting oldest if over capacity."""
+        self._v9_templates[key] = template
+        self._template_timestamps[key] = time.time()
+        # Evict oldest entries if cache exceeds max size
+        if len(self._v9_templates) > self._MAX_TEMPLATES:
+            sorted_keys = sorted(
+                self._template_timestamps,
+                key=lambda k: self._template_timestamps[k],
+            )
+            evict_count = len(self._v9_templates) - self._MAX_TEMPLATES
+            for k in sorted_keys[:evict_count]:
+                self._v9_templates.pop(k, None)
+                self._template_timestamps.pop(k, None)
+
+    def _get_template(self, key: tuple) -> Any | None:
+        """Look up a template, returning None if expired or missing."""
+        template = self._v9_templates.get(key)
+        if template is None:
+            return None
+        ts = self._template_timestamps.get(key)
+        if ts is None or (time.time() - ts) > self._TEMPLATE_TTL:
+            # Expired — evict
+            self._v9_templates.pop(key, None)
+            self._template_timestamps.pop(key, None)
+            return None
+        return template
 
     def parse_v5(self, data: bytes, exporter_ip: str) -> list[FlowRecord]:
         header = NetFlowV5Header.from_bytes(data)
@@ -147,8 +180,6 @@ class FlowParser:
 
     def _parse_v9_templates(self, data: bytes, start: int, end: int,
                             cache_key: tuple[str, int]) -> None:
-        if cache_key not in self._v9_templates:
-            self._v9_templates[cache_key] = {}
         offset = start
         while offset < end - 3:
             if offset + 4 > end:
@@ -162,7 +193,29 @@ class FlowParser:
                 ftype, flen = struct.unpack_from("!HH", data, offset)
                 fields.append((ftype, flen))
                 offset += 4
+            # Use composite key (cache_key, template_id) for per-template TTL tracking
+            composite_key = (cache_key, template_id)
+            # Maintain backward-compatible nested dict structure
+            if cache_key not in self._v9_templates:
+                self._v9_templates[cache_key] = {}
             self._v9_templates[cache_key][template_id] = fields
+            self._template_timestamps[composite_key] = time.time()
+            # Evict oldest if total template count exceeds max
+            total = sum(len(v) for v in self._v9_templates.values())
+            if total > self._MAX_TEMPLATES:
+                sorted_keys = sorted(
+                    self._template_timestamps,
+                    key=lambda k: self._template_timestamps[k],
+                )
+                while total > self._MAX_TEMPLATES and sorted_keys:
+                    oldest = sorted_keys.pop(0)
+                    ck, tid = oldest
+                    if ck in self._v9_templates and tid in self._v9_templates[ck]:
+                        del self._v9_templates[ck][tid]
+                        if not self._v9_templates[ck]:
+                            del self._v9_templates[ck]
+                        total -= 1
+                    self._template_timestamps.pop(oldest, None)
 
     def _parse_v9_data(self, data: bytes, start: int, end: int,
                        template_id: int, cache_key: tuple[str, int],
@@ -171,6 +224,18 @@ class FlowParser:
         template = templates.get(template_id)
         if not template:
             logger.debug("No template %d for exporter %s", template_id, cache_key[0])
+            return []
+
+        # Check TTL on the template
+        composite_key = (cache_key, template_id)
+        ts = self._template_timestamps.get(composite_key)
+        if ts is not None and (time.time() - ts) > self._TEMPLATE_TTL:
+            # Expired — evict and reject
+            del self._v9_templates[cache_key][template_id]
+            if not self._v9_templates[cache_key]:
+                del self._v9_templates[cache_key]
+            self._template_timestamps.pop(composite_key, None)
+            logger.debug("Template %d for exporter %s expired", template_id, cache_key[0])
             return []
 
         record_size = sum(flen for _, flen in template)
@@ -457,6 +522,9 @@ class FlowReceiverProtocol(asyncio.DatagramProtocol):
 class FlowReceiver:
     """Manages UDP listeners for NetFlow/sFlow."""
 
+    _MAX_TEMPLATES = 500
+    _TEMPLATE_TTL = 3600  # seconds
+
     def __init__(self, metrics_store: Any, topology_store: Any,
                  event_bus: Any | None = None) -> None:
         self.metrics = metrics_store
@@ -465,6 +533,35 @@ class FlowReceiver:
         self.aggregator = FlowAggregator(metrics_store, topology_store, event_bus=event_bus)
         self._transports: list[asyncio.BaseTransport] = []
         self._flush_task: asyncio.Task | None = None
+        # Expose template cache attributes (delegate to parser for real usage)
+        self._v9_templates = self.parser._v9_templates
+        self._template_timestamps = self.parser._template_timestamps
+
+    def _store_template(self, key: tuple, template: Any) -> None:
+        """Store a template with timestamp, evicting oldest if over capacity."""
+        self._v9_templates[key] = template
+        self._template_timestamps[key] = time.time()
+        if len(self._v9_templates) > self._MAX_TEMPLATES:
+            sorted_keys = sorted(
+                self._template_timestamps,
+                key=lambda k: self._template_timestamps[k],
+            )
+            evict_count = len(self._v9_templates) - self._MAX_TEMPLATES
+            for k in sorted_keys[:evict_count]:
+                self._v9_templates.pop(k, None)
+                self._template_timestamps.pop(k, None)
+
+    def _get_template(self, key: tuple) -> Any | None:
+        """Look up a template, returning None if expired or missing."""
+        template = self._v9_templates.get(key)
+        if template is None:
+            return None
+        ts = self._template_timestamps.get(key)
+        if ts is None or (time.time() - ts) > self._TEMPLATE_TTL:
+            self._v9_templates.pop(key, None)
+            self._template_timestamps.pop(key, None)
+            return None
+        return template
 
     async def start(self, ports: dict[str, int] | None = None) -> None:
         ports = ports or {"netflow": 2055}
