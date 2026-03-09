@@ -12,12 +12,21 @@ interface NDMDevicesTabProps {
 }
 
 type GroupByOption = 'none' | 'vendor' | 'device_type' | 'profile' | 'tag_prefix';
+type SortField = 'hostname' | 'status' | 'vendor' | 'last_collected';
+type SortDir = 'asc' | 'desc';
 
 const STATUS_COLOR: Record<string, string> = {
   up: '#22c55e',
   down: '#ef4444',
   unreachable: '#f59e0b',
   new: '#94a3b8',
+};
+
+const STATUS_ORDER: Record<string, number> = {
+  down: 0,
+  unreachable: 1,
+  new: 2,
+  up: 3,
 };
 
 const cardStyle: React.CSSProperties = {
@@ -35,6 +44,8 @@ const NDMDevicesTab: React.FC<NDMDevicesTabProps> = ({ devices, onSelectDevice, 
   const debouncedSearch = useDebounce(search, 300);
   const [groupBy, setGroupBy] = useState<GroupByOption>('none');
   const [showAddDevice, setShowAddDevice] = useState(false);
+  const [sortField, setSortField] = useState<SortField>('hostname');
+  const [sortDir, setSortDir] = useState<SortDir>('asc');
 
   const handleDelete = useCallback(async (id: string) => {
     if (!confirm('Remove this device from monitoring?')) return;
@@ -63,15 +74,64 @@ const NDMDevicesTab: React.FC<NDMDevicesTabProps> = ({ devices, onSelectDevice, 
     }
   }, [onReload]);
 
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDir(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDir('asc');
+    }
+  };
+
+  const sortIcon = (field: SortField) => {
+    if (sortField !== field) return 'unfold_more';
+    return sortDir === 'desc' ? 'arrow_downward' : 'arrow_upward';
+  };
+
   const filtered = useMemo(() => {
-    if (!debouncedSearch) return devices;
-    const s = debouncedSearch.toLowerCase();
-    return devices.filter(d =>
-      d.hostname.toLowerCase().includes(s) || d.management_ip.includes(s)
-      || d.vendor.toLowerCase().includes(s) || (d.matched_profile || '').toLowerCase().includes(s)
-      || d.tags.some(t => t.toLowerCase().includes(s))
-    );
-  }, [devices, debouncedSearch]);
+    let list = devices;
+    if (debouncedSearch) {
+      const s = debouncedSearch.toLowerCase();
+      list = list.filter(d =>
+        d.hostname.toLowerCase().includes(s) || d.management_ip.includes(s)
+        || d.vendor.toLowerCase().includes(s) || (d.matched_profile || '').toLowerCase().includes(s)
+        || d.tags.some(t => t.toLowerCase().includes(s))
+      );
+    }
+
+    // Sort the list
+    const sorted = [...list].sort((a, b) => {
+      let aVal: string | number;
+      let bVal: string | number;
+
+      switch (sortField) {
+        case 'hostname':
+          aVal = (a.hostname || a.management_ip).toLowerCase();
+          bVal = (b.hostname || b.management_ip).toLowerCase();
+          break;
+        case 'status':
+          aVal = STATUS_ORDER[a.status] ?? 99;
+          bVal = STATUS_ORDER[b.status] ?? 99;
+          break;
+        case 'vendor':
+          aVal = (a.vendor || '').toLowerCase();
+          bVal = (b.vendor || '').toLowerCase();
+          break;
+        case 'last_collected':
+          aVal = a.last_collected ?? 0;
+          bVal = b.last_collected ?? 0;
+          break;
+        default:
+          return 0;
+      }
+
+      if (aVal < bVal) return sortDir === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortDir === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+    return sorted;
+  }, [devices, debouncedSearch, sortField, sortDir]);
 
   const grouped = useMemo(() => {
     if (groupBy === 'none') return { '': filtered };
@@ -187,19 +247,46 @@ const NDMDevicesTab: React.FC<NDMDevicesTabProps> = ({ devices, onSelectDevice, 
     );
   };
 
-  const tableHeaders = ['Status', 'Hostname', 'IP', 'Vendor', 'Profile', 'Tags', 'Last Collected', 'RTT', 'Loss', 'Actions'];
+  const sortableHeaders: { label: string; field: SortField | null }[] = [
+    { label: 'Status', field: 'status' },
+    { label: 'Hostname', field: 'hostname' },
+    { label: 'IP', field: null },
+    { label: 'Vendor', field: 'vendor' },
+    { label: 'Profile', field: null },
+    { label: 'Tags', field: null },
+    { label: 'Last Collected', field: 'last_collected' },
+    { label: 'RTT', field: null },
+    { label: 'Loss', field: null },
+    { label: 'Actions', field: null },
+  ];
 
   const renderTable = (deviceList: MonitoredDevice[]) => (
     <div style={{ overflowX: 'auto' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
           <tr style={{ borderBottom: '1px solid rgba(148,163,184,0.15)' }}>
-            {tableHeaders.map(h => (
-              <th key={h} style={{
-                padding: '8px 8px', textAlign: 'left', fontSize: 11, color: '#64748b',
-                fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px',
-              }}>
-                {h}
+            {sortableHeaders.map(h => (
+              <th
+                key={h.label}
+                onClick={h.field ? () => handleSort(h.field!) : undefined}
+                style={{
+                  padding: '8px 8px', textAlign: 'left', fontSize: 11, color: '#64748b',
+                  fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px',
+                  cursor: h.field ? 'pointer' : 'default',
+                  userSelect: 'none',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                  {h.label}
+                  {h.field && (
+                    <span className="material-symbols-outlined" style={{
+                      fontSize: 14,
+                      color: sortField === h.field ? '#07b6d5' : '#475569',
+                    }}>
+                      {sortIcon(h.field)}
+                    </span>
+                  )}
+                </div>
               </th>
             ))}
           </tr>
