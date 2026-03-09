@@ -290,6 +290,8 @@ class SNMPTrapListener:
     source IP to a device through ``instance_store``, and publishes
     structured events to the ``event_bus``.
 
+    Messages larger than ``MAX_MESSAGE_SIZE`` bytes are truncated.
+
     Configuration
     ~~~~~~~~~~~~~
     * ``TRAP_LISTENER_PORT`` — override the default listening port (162).
@@ -302,6 +304,8 @@ class SNMPTrapListener:
         ...
         await listener.stop()
     """
+
+    MAX_MESSAGE_SIZE = 8192
 
     def __init__(
         self,
@@ -366,6 +370,16 @@ class SNMPTrapListener:
         """
         self._recv_count += 1
 
+        # Message size validation
+        truncated = False
+        if len(data) > self.MAX_MESSAGE_SIZE:
+            logger.warning(
+                "Trap message from %s exceeds MAX_MESSAGE_SIZE (%d > %d), truncating",
+                addr[0], len(data), self.MAX_MESSAGE_SIZE,
+            )
+            data = data[:self.MAX_MESSAGE_SIZE]
+            truncated = True
+
         parsed = parse_snmpv2c_trap(data)
         if parsed is None:
             self._error_count += 1
@@ -402,6 +416,7 @@ class SNMPTrapListener:
             "severity": severity,
             "timestamp": time.time(),
             "raw_pdu": data.hex(),
+            "truncated": truncated,
         }
 
         # Fire-and-forget publish

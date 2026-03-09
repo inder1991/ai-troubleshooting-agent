@@ -271,6 +271,8 @@ class SyslogListener:
     source IP to a device through ``instance_store``, and publishes
     structured events to the ``event_bus``.
 
+    Messages larger than ``MAX_MESSAGE_SIZE`` bytes are truncated.
+
     Configuration
     ~~~~~~~~~~~~~
     * ``SYSLOG_LISTENER_PORT`` — override the default listening port (514).
@@ -283,6 +285,8 @@ class SyslogListener:
         ...
         await listener.stop()
     """
+
+    MAX_MESSAGE_SIZE = 8192
 
     def __init__(
         self,
@@ -374,6 +378,16 @@ class SyslogListener:
         """
         self._recv_count += 1
 
+        # Message size validation
+        truncated = False
+        if len(data) > self.MAX_MESSAGE_SIZE:
+            logger.warning(
+                "Syslog message from %s exceeds MAX_MESSAGE_SIZE (%d > %d), truncating",
+                addr[0], len(data), self.MAX_MESSAGE_SIZE,
+            )
+            data = data[:self.MAX_MESSAGE_SIZE]
+            truncated = True
+
         parsed = parse_syslog_message(data)
         if parsed is None:
             self._error_count += 1
@@ -402,6 +416,7 @@ class SyslogListener:
             "app_name": parsed.get("app_name"),
             "message": parsed.get("message", ""),
             "timestamp": _parse_timestamp(parsed.get("timestamp_raw")),
+            "truncated": truncated,
         }
 
         # Fire-and-forget publish
