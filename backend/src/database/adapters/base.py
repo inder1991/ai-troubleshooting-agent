@@ -19,6 +19,16 @@ from ..models import (
 )
 
 
+# Config allowlist — only these params can be altered
+CONFIG_ALLOWLIST = {
+    "shared_buffers", "work_mem", "maintenance_work_mem", "effective_cache_size",
+    "max_connections", "max_worker_processes", "max_parallel_workers_per_gather",
+    "random_page_cost", "effective_io_concurrency", "checkpoint_completion_target",
+    "wal_buffers", "min_wal_size", "max_wal_size", "log_min_duration_statement",
+    "statement_timeout", "idle_in_transaction_session_timeout",
+}
+
+
 class AdapterHealth(BaseModel):
     status: str  # "healthy", "degraded", "unreachable"
     latency_ms: float = 0.0
@@ -149,3 +159,52 @@ class DatabaseAdapter(ABC):
             self.get_schema_snapshot(),
             self.get_connection_pool(),
         )
+
+    # ── Write operations (P2) ──
+
+    @abstractmethod
+    async def kill_query(self, pid: int) -> dict:
+        """Terminate a backend process by PID."""
+        ...
+
+    @abstractmethod
+    async def vacuum_table(self, table: str, full: bool = False, analyze: bool = True) -> dict:
+        """VACUUM [FULL] [ANALYZE] a table."""
+        ...
+
+    @abstractmethod
+    async def reindex_table(self, table: str) -> dict:
+        """REINDEX TABLE CONCURRENTLY."""
+        ...
+
+    @abstractmethod
+    async def create_index(self, table: str, columns: list[str],
+                           name: str | None = None, unique: bool = False) -> dict:
+        """CREATE INDEX CONCURRENTLY."""
+        ...
+
+    @abstractmethod
+    async def drop_index(self, index_name: str) -> dict:
+        """DROP INDEX CONCURRENTLY."""
+        ...
+
+    async def alter_config(self, param: str, value: str) -> dict:
+        """ALTER SYSTEM SET param = value. Validates against allowlist."""
+        if param not in CONFIG_ALLOWLIST:
+            raise ValueError(f"Parameter '{param}' not in allowlist")
+        return await self._alter_config_impl(param, value)
+
+    @abstractmethod
+    async def _alter_config_impl(self, param: str, value: str) -> dict:
+        """Vendor-specific config alter implementation."""
+        ...
+
+    @abstractmethod
+    async def get_config_recommendations(self) -> list[dict]:
+        """Return config tuning recommendations."""
+        ...
+
+    @abstractmethod
+    async def generate_failover_runbook(self) -> dict:
+        """Generate a failover runbook (read-only, no execution)."""
+        ...

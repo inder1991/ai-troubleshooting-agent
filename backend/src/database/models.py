@@ -143,3 +143,47 @@ class DiagnosticRun(BaseModel):
     completed_at: Optional[datetime] = None
     findings: list[DBFinding] = []
     summary: str = ""
+
+
+# ── Remediation Models ──
+
+
+class RemediationPlan(BaseModel):
+    plan_id: str
+    profile_id: str
+    finding_id: Optional[str] = None
+    action: str
+    params: dict = {}
+    sql_preview: str
+    impact_assessment: str = ""
+    rollback_sql: Optional[str] = None
+    requires_downtime: bool = False
+    status: str = "pending"
+    created_at: str
+    approved_at: Optional[str] = None
+    executed_at: Optional[str] = None
+    completed_at: Optional[str] = None
+    result_summary: Optional[str] = None
+    before_state: Optional[dict] = None
+    after_state: Optional[dict] = None
+
+
+class AuditLogEntry(BaseModel):
+    entry_id: str
+    plan_id: str
+    profile_id: str
+    action: str
+    sql_executed: str
+    status: str
+    before_state: dict = {}
+    after_state: dict = {}
+    error: Optional[str] = None
+    timestamp: str
+
+
+class ConfigRecommendation(BaseModel):
+    param: str
+    current_value: str
+    recommended_value: str
+    reason: str
+    requires_restart: bool = False

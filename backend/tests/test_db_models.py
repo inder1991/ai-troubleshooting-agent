@@ -111,3 +111,37 @@ def test_table_detail():
     assert td.row_estimate == 120000
     assert len(td.columns) == 1
     assert td.bloat_ratio == 0.05
+
+
+def test_remediation_plan():
+    from src.database.models import RemediationPlan
+    p = RemediationPlan(
+        plan_id="plan-1", profile_id="prof-1", action="vacuum",
+        params={"table": "orders", "full": False},
+        sql_preview="VACUUM ANALYZE orders",
+        impact_assessment="~30s, no locks",
+        status="pending", created_at="2026-03-09T00:00:00",
+    )
+    assert p.action == "vacuum"
+    assert p.requires_downtime is False
+    assert p.rollback_sql is None
+
+
+def test_audit_log_entry():
+    from src.database.models import AuditLogEntry
+    e = AuditLogEntry(
+        entry_id="aud-1", plan_id="plan-1", profile_id="prof-1",
+        action="vacuum", sql_executed="VACUUM ANALYZE orders",
+        status="success", timestamp="2026-03-09T00:00:00",
+    )
+    assert e.status == "success"
+    assert e.error is None
+
+
+def test_config_recommendation():
+    from src.database.models import ConfigRecommendation
+    r = ConfigRecommendation(
+        param="shared_buffers", current_value="128MB",
+        recommended_value="1GB", reason="25% of 4GB RAM",
+    )
+    assert r.requires_restart is False

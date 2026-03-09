@@ -99,3 +99,45 @@ class MockDatabaseAdapter(DatabaseAdapter):
 
     async def execute_diagnostic_query(self, sql: str) -> QueryResult:
         return QueryResult(query=sql, execution_time_ms=1.5, rows_returned=1)
+
+    # ── Write operations (P2) ──
+
+    async def kill_query(self, pid: int) -> dict:
+        return {"success": True, "pid": pid, "message": f"Terminated PID {pid}"}
+
+    async def vacuum_table(self, table: str, full: bool = False, analyze: bool = True) -> dict:
+        return {"success": True, "table": table, "full": full, "analyze": analyze}
+
+    async def reindex_table(self, table: str) -> dict:
+        return {"success": True, "table": table, "message": f"Reindexed {table}"}
+
+    async def create_index(self, table: str, columns: list[str],
+                           name: str | None = None, unique: bool = False) -> dict:
+        idx_name = name or f"idx_{table}_{'_'.join(columns)}"
+        return {"success": True, "index_name": idx_name, "table": table, "columns": columns, "unique": unique}
+
+    async def drop_index(self, index_name: str) -> dict:
+        return {"success": True, "index_name": index_name, "message": f"Dropped {index_name}"}
+
+    async def _alter_config_impl(self, param: str, value: str) -> dict:
+        return {"success": True, "param": param, "value": value, "reload": True}
+
+    async def get_config_recommendations(self) -> list[dict]:
+        return [
+            {"param": "shared_buffers", "current_value": "128MB", "recommended_value": "1GB", "reason": "25% of 4GB RAM", "requires_restart": True},
+            {"param": "work_mem", "current_value": "4MB", "recommended_value": "64MB", "reason": "Better sort performance", "requires_restart": False},
+            {"param": "effective_cache_size", "current_value": "4GB", "recommended_value": "3GB", "reason": "75% of RAM", "requires_restart": False},
+        ]
+
+    async def generate_failover_runbook(self) -> dict:
+        return {
+            "steps": [
+                {"order": 1, "description": "Verify replica health", "command": "SELECT pg_is_in_recovery();"},
+                {"order": 2, "description": "Check replication lag", "command": "SELECT * FROM pg_stat_replication;"},
+                {"order": 3, "description": "Promote replica", "command": "SELECT pg_promote();"},
+                {"order": 4, "description": "Update connection strings", "command": "-- Update application config"},
+                {"order": 5, "description": "Verify new primary", "command": "SELECT pg_is_in_recovery(); -- Should return false"},
+            ],
+            "warnings": ["This will cause brief downtime", "Ensure replica is caught up before promoting"],
+            "estimated_downtime": "30-60 seconds",
+        }
