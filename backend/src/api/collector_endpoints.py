@@ -28,6 +28,33 @@ from src.network.metrics_store import MetricsStore
 
 logger = logging.getLogger(__name__)
 
+# Credential field names that must NEVER appear in log output
+_SENSITIVE_FIELDS = {"community_string", "community", "v3_auth_key", "v3_priv_key"}
+
+
+def _redact_credentials(data: dict) -> dict:
+    """Return a shallow copy of *data* with sensitive SNMP credential values replaced by '***'."""
+    redacted = dict(data)
+    for key in _SENSITIVE_FIELDS:
+        if key in redacted and redacted[key]:
+            redacted[key] = "***"
+    # Also redact nested protocol credentials
+    if "protocols" in redacted and isinstance(redacted["protocols"], list):
+        redacted["protocols"] = [
+            _redact_protocol(p) if isinstance(p, dict) else p
+            for p in redacted["protocols"]
+        ]
+    return redacted
+
+
+def _redact_protocol(proto: dict) -> dict:
+    """Redact sensitive fields inside a protocol config dict."""
+    redacted = dict(proto)
+    if "snmp" in redacted and isinstance(redacted["snmp"], dict):
+        redacted["snmp"] = _redact_credentials(redacted["snmp"])
+    return redacted
+
+
 collector_router = APIRouter(prefix="/api/collector", tags=["collector"])
 
 # ── Singletons (initialized at startup) ──
@@ -145,7 +172,13 @@ async def add_device(req: AddDeviceRequest):
             creds_dict = snmp_creds.model_dump()
             sys_oid = await _snmp_collector.query_sys_object_id(req.ip_address, creds_dict)
         except Exception as e:
-            logger.warning("sysObjectID query failed for %s: %s", req.ip_address, e)
+            # Redact exception message in case it contains credential data
+            err_msg = str(e)
+            for field in _SENSITIVE_FIELDS:
+                val = getattr(req, field, None)
+                if val and val in err_msg:
+                    err_msg = err_msg.replace(val, "***")
+            logger.warning("sysObjectID query failed for %s: %s", req.ip_address, err_msg)
 
     if not matched_profile and sys_oid and _profile_loader:
         profile = _profile_loader.match(sys_oid)
@@ -170,6 +203,7 @@ async def add_device(req: AddDeviceRequest):
     )
 
     store.upsert_device(device)
+    logger.info("Device added: %s (%s)", device.hostname, _redact_credentials(device.model_dump()))
     return {"device": device.model_dump(), "message": "Device added successfully"}
 
 
@@ -282,6 +316,7 @@ async def add_discovery_config(req: AddDiscoveryRequest):
     )
 
     store.upsert_discovery_config(config)
+    logger.info("Discovery config added: %s", _redact_credentials(config.model_dump()))
     return {"config": config.model_dump(), "message": "Discovery config added"}
 
 
