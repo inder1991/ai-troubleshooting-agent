@@ -85,6 +85,7 @@ class NetworkMonitor:
         if dns_config and dns_config.enabled:
             self.dns_monitor = DNSMonitor(dns_config)
         self.cycle_interval = 30
+        self._running = False
         self._task: asyncio.Task | None = None
         self._last_cycle_at: float | None = None
         self._last_cycle_duration: float | None = None
@@ -155,6 +156,22 @@ class NetworkMonitor:
         logger.info("NetworkMonitor started (interval=%ds)", self.cycle_interval)
 
     async def stop(self):
+        self._running = False
+        try:
+            await asyncio.wait_for(self._cleanup(), timeout=10.0)
+        except asyncio.TimeoutError:
+            logger.warning("Shutdown timed out after 10s, forcing cleanup")
+            # Cancel any remaining tasks
+            if self._task and not self._task.done():
+                self._task.cancel()
+                try:
+                    await self._task
+                except (asyncio.CancelledError, Exception):
+                    pass
+        logger.info("NetworkMonitor stopped")
+
+    async def _cleanup(self):
+        """Stop all subsystems gracefully."""
         if self.trap_listener:
             await self.trap_listener.stop()
         if self.syslog_listener:
@@ -170,7 +187,6 @@ class NetworkMonitor:
                 await self._task
             except asyncio.CancelledError:
                 pass
-        logger.info("NetworkMonitor stopped")
 
     async def _run_loop(self):
         while True:
