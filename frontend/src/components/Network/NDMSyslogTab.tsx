@@ -52,6 +52,18 @@ const NDMSyslogTab: React.FC<NDMSyslogTabProps> = ({ devices }) => {
   const [autoRefresh, setAutoRefresh] = useState(true);
   const refreshRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // WebSocket state
+  const [isLive, setIsLive] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const wsRef = useRef<WebSocket | null>(null);
+  const bufferRef = useRef<SyslogEntry[]>([]);
+  const isPausedRef = useRef(isPaused);
+
+  // Keep isPausedRef in sync
+  useEffect(() => {
+    isPausedRef.current = isPaused;
+  }, [isPaused]);
+
   // Map device IPs to hostnames for correlation
   const deviceMap = React.useMemo(() => {
     const map: Record<string, string> = {};
@@ -85,16 +97,82 @@ const NDMSyslogTab: React.FC<NDMSyslogTabProps> = ({ devices }) => {
 
   useEffect(() => { loadEntries(); }, [loadEntries]);
 
-  // Auto-refresh every 10s when enabled
+  // WebSocket connection
+  useEffect(() => {
+    let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
+
+    const connect = () => {
+      try {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
+
+        ws.onopen = () => {
+          setIsLive(true);
+        };
+
+        ws.onmessage = (e) => {
+          try {
+            const data = JSON.parse(e.data);
+            if (data.type === 'syslog_event' && data.entry) {
+              if (isPausedRef.current) {
+                bufferRef.current.push(data.entry);
+              } else {
+                setEntries(prev => [data.entry, ...prev].slice(0, 500));
+              }
+            }
+          } catch {
+            // Ignore unparseable messages
+          }
+        };
+
+        ws.onclose = () => {
+          setIsLive(false);
+          wsRef.current = null;
+          // Try to reconnect after 5s
+          reconnectTimeout = setTimeout(connect, 5000);
+        };
+
+        ws.onerror = () => {
+          setIsLive(false);
+        };
+
+        wsRef.current = ws;
+      } catch {
+        setIsLive(false);
+      }
+    };
+
+    connect();
+
+    return () => {
+      if (reconnectTimeout) clearTimeout(reconnectTimeout);
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+    };
+  }, []);
+
+  // Polling fallback when WebSocket is not live
   useEffect(() => {
     if (refreshRef.current) clearInterval(refreshRef.current);
-    if (autoRefresh) {
+    if (!isLive && autoRefresh) {
       refreshRef.current = setInterval(loadEntries, 10000);
     }
     return () => {
       if (refreshRef.current) clearInterval(refreshRef.current);
     };
-  }, [autoRefresh, loadEntries]);
+  }, [isLive, autoRefresh, loadEntries]);
+
+  // Resume: flush buffer
+  const handleResume = () => {
+    const buffered = bufferRef.current;
+    if (buffered.length > 0) {
+      setEntries(prev => [...buffered.reverse(), ...prev].slice(0, 500));
+      bufferRef.current = [];
+    }
+    setIsPaused(false);
+  };
 
   const getSeverityStyle = (severity: string): { bg: string; text: string } => {
     const key = severity.toLowerCase();
@@ -116,6 +194,8 @@ const NDMSyslogTab: React.FC<NDMSyslogTabProps> = ({ devices }) => {
     });
     return counts;
   }, [entries]);
+
+  const bufferedCount = isPaused ? bufferRef.current.length : 0;
 
   if (loading) {
     return (
@@ -185,6 +265,41 @@ const NDMSyslogTab: React.FC<NDMSyslogTabProps> = ({ devices }) => {
           />
         </div>
 
+        {/* Live / Polling indicator */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 5,
+          padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600,
+          background: isLive ? 'rgba(34,197,94,0.12)' : 'rgba(245,158,11,0.12)',
+          color: isLive ? '#22c55e' : '#f59e0b',
+          border: `1px solid ${isLive ? 'rgba(34,197,94,0.3)' : 'rgba(245,158,11,0.3)'}`,
+        }}>
+          <span style={{
+            width: 6, height: 6, borderRadius: '50%',
+            background: isLive ? '#22c55e' : '#f59e0b',
+            boxShadow: isLive ? '0 0 6px #22c55e' : undefined,
+            animation: isLive ? 'pulse-green 2s ease-in-out infinite' : undefined,
+          }} />
+          {isLive ? 'LIVE' : 'POLLING'}
+        </div>
+
+        {/* Pause / Resume button */}
+        <button
+          onClick={() => isPaused ? handleResume() : setIsPaused(true)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 5,
+            padding: '5px 12px', borderRadius: 6, fontSize: 11, fontWeight: 600,
+            border: isPaused ? '1px solid rgba(245,158,11,0.3)' : '1px solid rgba(148,163,184,0.2)',
+            background: isPaused ? 'rgba(245,158,11,0.1)' : 'transparent',
+            color: isPaused ? '#f59e0b' : '#94a3b8',
+            cursor: 'pointer',
+          }}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: 14 }}>
+            {isPaused ? 'play_arrow' : 'pause'}
+          </span>
+          {isPaused ? `Resume${bufferedCount > 0 ? ` (${bufferedCount} buffered)` : ''}` : 'Pause'}
+        </button>
+
         <div style={{ display: 'flex', gap: 4 }}>
           {TIME_RANGES.map(tr => (
             <button
@@ -206,7 +321,7 @@ const NDMSyslogTab: React.FC<NDMSyslogTabProps> = ({ devices }) => {
         <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#94a3b8', cursor: 'pointer' }}>
           <input type="checkbox" checked={autoRefresh} onChange={e => setAutoRefresh(e.target.checked)} />
           Auto-refresh
-          {autoRefresh && (
+          {autoRefresh && !isLive && (
             <span className="material-symbols-outlined" style={{ fontSize: 14, color: '#22c55e', animation: 'spin 2s linear infinite' }}>sync</span>
           )}
         </label>
@@ -248,7 +363,10 @@ const NDMSyslogTab: React.FC<NDMSyslogTabProps> = ({ devices }) => {
                   const deviceHostname = deviceMap[entry.device_ip] || deviceMap[entry.device_id || ''] || entry.hostname;
 
                   return (
-                    <tr key={entry.event_id || idx} style={{ borderBottom: '1px solid rgba(148,163,184,0.05)' }}>
+                    <tr key={entry.event_id || idx} style={{
+                      borderBottom: '1px solid rgba(148,163,184,0.05)',
+                      animation: idx === 0 && isLive && !isPaused ? 'fadeIn 0.3s ease-in' : undefined,
+                    }}>
                       <td style={{ padding: '6px 8px', fontSize: 11, color: '#64748b', whiteSpace: 'nowrap', fontFamily: 'monospace' }}>
                         {formatTimestamp(entry.timestamp)}
                       </td>
@@ -289,6 +407,18 @@ const NDMSyslogTab: React.FC<NDMSyslogTabProps> = ({ devices }) => {
           </div>
         )}
       </div>
+
+      {/* Inline keyframe for fade-in animation */}
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; background: rgba(7,182,213,0.08); }
+          to { opacity: 1; background: transparent; }
+        }
+        @keyframes pulse-green {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.4; }
+        }
+      `}</style>
     </div>
   );
 };
