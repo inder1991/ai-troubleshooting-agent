@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import collections
 import ipaddress
 import logging
 import os
@@ -57,6 +58,7 @@ class MetricsStore:
         self._write_api = self._client.write_api()
         self._query_api = self._client.query_api()
         self._query_timeout = float(os.getenv("INFLUXDB_QUERY_TIMEOUT", "30"))
+        self._retry_queue: collections.deque[Point] = collections.deque(maxlen=1000)
 
     async def health_check(self) -> bool:
         try:
@@ -75,6 +77,28 @@ class MetricsStore:
             await self._write_api.write(bucket=self.bucket, record=point)
         except Exception as e:
             logger.warning("InfluxDB write failed: %s", e)
+            self._retry_queue.append(point)
+
+    async def flush_retry_queue(self) -> int:
+        """Attempt to re-write all queued points. Returns the number successfully flushed.
+
+        Points that still fail remain in the queue for a future attempt.
+        When the deque overflows its maxlen, oldest items are silently dropped.
+        """
+        flushed = 0
+        remaining: list[Point] = []
+        while self._retry_queue:
+            point = self._retry_queue.popleft()
+            try:
+                await self._write_api.write(bucket=self.bucket, record=point)
+                flushed += 1
+            except Exception as e:
+                logger.debug("Retry write still failing: %s", e)
+                remaining.append(point)
+        # Put failed items back (they re-enter in order)
+        for p in remaining:
+            self._retry_queue.append(p)
+        return flushed
 
     async def write_device_metric(
         self, device_id: str, metric: str, value: float
