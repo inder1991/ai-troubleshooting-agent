@@ -22,6 +22,23 @@ const TABS: { key: NDMTabType; label: string; icon: string }[] = [
   { key: 'topology', label: 'Topology', icon: 'lan' },
 ];
 
+// --- Filter Presets (localStorage) ---
+const PRESETS_KEY = 'ndm-filter-presets';
+
+interface FilterPreset {
+  name: string;
+  tags: string[];
+}
+
+const loadPresets = (): FilterPreset[] => {
+  try { return JSON.parse(localStorage.getItem(PRESETS_KEY) || '[]'); }
+  catch { return []; }
+};
+
+const savePresetsToStorage = (presets: FilterPreset[]) => {
+  localStorage.setItem(PRESETS_KEY, JSON.stringify(presets));
+};
+
 const DeviceMonitoring: React.FC = () => {
   const [devices, setDevices] = useState<MonitoredDevice[]>([]);
   const [configs, setConfigs] = useState<DiscoveryConfig[]>([]);
@@ -32,6 +49,10 @@ const DeviceMonitoring: React.FC = () => {
   const [activeTab, setActiveTab] = useState<NDMTabType>('overview');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
+
+  // Preset state
+  const [presets, setPresets] = useState<FilterPreset[]>(loadPresets);
+  const [showPresetDropdown, setShowPresetDropdown] = useState(false);
 
   const reload = useCallback(async () => {
     try {
@@ -80,6 +101,28 @@ const DeviceMonitoring: React.FC = () => {
     () => devices.find(d => d.device_id === selectedDeviceId) || null,
     [devices, selectedDeviceId]
   );
+
+  // Preset handlers
+  const handleSavePreset = () => {
+    if (selectedTags.length === 0) return;
+    const name = prompt('Enter a name for this filter preset:');
+    if (!name || !name.trim()) return;
+    const updated = [...presets, { name: name.trim(), tags: [...selectedTags] }];
+    setPresets(updated);
+    savePresetsToStorage(updated);
+  };
+
+  const handleLoadPreset = (preset: FilterPreset) => {
+    setSelectedTags(preset.tags);
+    setShowPresetDropdown(false);
+  };
+
+  const handleDeletePreset = (index: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const updated = presets.filter((_, i) => i !== index);
+    setPresets(updated);
+    savePresetsToStorage(updated);
+  };
 
   const cardStyle: React.CSSProperties = {
     background: 'rgba(7,182,213,0.04)', border: '1px solid rgba(7,182,213,0.12)',
@@ -207,6 +250,108 @@ const DeviceMonitoring: React.FC = () => {
               Clear
             </button>
           )}
+
+          {/* Divider */}
+          <div style={{ width: 1, height: 20, background: 'rgba(148,163,184,0.15)', marginLeft: 4, marginRight: 4 }} />
+
+          {/* Save Filter button */}
+          <button
+            onClick={handleSavePreset}
+            disabled={selectedTags.length === 0}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 4,
+              padding: '3px 10px', borderRadius: 12, fontSize: 11, fontWeight: 500,
+              border: '1px solid rgba(7,182,213,0.25)',
+              background: selectedTags.length > 0 ? 'rgba(7,182,213,0.08)' : 'transparent',
+              color: selectedTags.length > 0 ? '#07b6d5' : '#475569',
+              cursor: selectedTags.length > 0 ? 'pointer' : 'default',
+              opacity: selectedTags.length > 0 ? 1 : 0.5,
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 14 }}>save</span>
+            Save
+          </button>
+
+          {/* Presets dropdown */}
+          <div style={{ position: 'relative' }}>
+            <button
+              onClick={() => setShowPresetDropdown(prev => !prev)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 4,
+                padding: '3px 10px', borderRadius: 12, fontSize: 11, fontWeight: 500,
+                border: '1px solid rgba(148,163,184,0.2)',
+                background: showPresetDropdown ? 'rgba(7,182,213,0.1)' : 'transparent',
+                color: showPresetDropdown ? '#07b6d5' : '#94a3b8',
+                cursor: 'pointer',
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 14 }}>bookmark</span>
+              Presets
+              {presets.length > 0 && (
+                <span style={{
+                  fontSize: 9, fontWeight: 700, padding: '0 4px', borderRadius: 6,
+                  background: 'rgba(7,182,213,0.2)', color: '#07b6d5',
+                }}>
+                  {presets.length}
+                </span>
+              )}
+              <span className="material-symbols-outlined" style={{ fontSize: 12 }}>
+                {showPresetDropdown ? 'expand_less' : 'expand_more'}
+              </span>
+            </button>
+
+            {showPresetDropdown && (
+              <div style={{
+                position: 'absolute', top: '100%', left: 0, marginTop: 4, zIndex: 100,
+                minWidth: 200, maxHeight: 240, overflowY: 'auto',
+                background: '#0a1a1f', border: '1px solid rgba(7,182,213,0.2)',
+                borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+              }}>
+                {presets.length === 0 ? (
+                  <div style={{ padding: '12px 16px', fontSize: 12, color: '#64748b', textAlign: 'center' }}>
+                    No saved presets
+                  </div>
+                ) : (
+                  presets.map((preset, idx) => (
+                    <div
+                      key={`${preset.name}-${idx}`}
+                      onClick={() => handleLoadPreset(preset)}
+                      style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        padding: '8px 12px', cursor: 'pointer',
+                        borderBottom: idx < presets.length - 1 ? '1px solid rgba(148,163,184,0.08)' : undefined,
+                        transition: 'background 0.1s',
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(7,182,213,0.06)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                    >
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: '#e2e8f0', marginBottom: 2 }}>
+                          {preset.name}
+                        </div>
+                        <div style={{ fontSize: 10, color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {preset.tags.join(', ')}
+                        </div>
+                      </div>
+                      <button
+                        onClick={(e) => handleDeletePreset(idx, e)}
+                        style={{
+                          background: 'none', border: 'none', cursor: 'pointer',
+                          color: '#64748b', padding: 2, display: 'flex', alignItems: 'center',
+                          marginLeft: 8, flexShrink: 0,
+                        }}
+                        title="Delete preset"
+                        onMouseEnter={e => { e.currentTarget.style.color = '#ef4444'; }}
+                        onMouseLeave={e => { e.currentTarget.style.color = '#64748b'; }}
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: 14 }}>delete</span>
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
