@@ -4,6 +4,7 @@ from __future__ import annotations
 import re
 
 from fastapi import APIRouter, HTTPException
+from src.network.asn_registry import lookup_asn as _asn_lookup
 
 flow_router = APIRouter(prefix="/api/v4/network/flows", tags=["flows"])
 
@@ -121,3 +122,12 @@ def flow_status():
         "enabled": _flow_receiver is not None,
         "buffer_size": len(_flow_receiver.aggregator._buffer) if _flow_receiver else 0,
     }
+
+
+@flow_router.get("/asn/lookup")
+async def asn_lookup(asn: int):
+    """Look up an ASN number and return its name and country."""
+    result = _asn_lookup(asn)
+    if result is None:
+        raise HTTPException(404, f"ASN {asn} not found in registry")
+    return {"asn": asn, **result}
