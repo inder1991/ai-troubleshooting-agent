@@ -324,7 +324,17 @@ class SNMPTrapListener:
         self._recv_count: int = 0
         self._error_count: int = 0
 
+    RECV_BUFFER_SIZE = 4 * 1024 * 1024  # 4 MB
+
     # ── Lifecycle ─────────────────────────────────────────────────────
+
+    @staticmethod
+    def _set_socket_buffer(transport: asyncio.BaseTransport) -> None:
+        """Set the UDP receive buffer to 4 MB to handle trap storms."""
+        import socket
+        sock = transport.get_extra_info('socket')
+        if sock:
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 4 * 1024 * 1024)
 
     async def start(self) -> None:
         """Bind the UDP socket and begin receiving traps."""
@@ -339,6 +349,7 @@ class SNMPTrapListener:
                 local_addr=("0.0.0.0", self._port),
             )
             self._transport = transport  # type: ignore[assignment]
+            self._set_socket_buffer(transport)
             logger.info(
                 "SNMP trap listener started on UDP port %d", self._port
             )
