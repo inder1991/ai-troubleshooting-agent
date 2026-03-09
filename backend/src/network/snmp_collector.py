@@ -64,6 +64,18 @@ class SNMPCollector:
         self.metrics = metrics_store
         self._prev_counters: dict[tuple[str, int], tuple[dict, float]] = {}
 
+    @staticmethod
+    def _unwrap_counter(current: int, previous: int, is_64bit: bool) -> int:
+        """Return the correct delta between two counter values, handling wraparound.
+
+        For 32-bit counters (ifInOctets/ifOutOctets), wraps at 2**32.
+        For 64-bit counters (ifHCInOctets/ifHCOutOctets), wraps at 2**64.
+        """
+        delta = current - previous
+        if delta < 0:
+            delta += 2**64 if is_64bit else 2**32
+        return delta
+
     def _compute_rates(
         self, device_id: str, if_index: int, counters: dict
     ) -> dict | None:
@@ -84,18 +96,21 @@ class SNMPCollector:
 
         # Prefer 64-bit HC counters over 32-bit when available
         if "ifHCInOctets" in counters and "ifHCInOctets" in prev_counters:
-            delta_in = counters["ifHCInOctets"] - prev_counters["ifHCInOctets"]
-            delta_out = counters["ifHCOutOctets"] - prev_counters["ifHCOutOctets"]
-            wrap_threshold = 2 ** 64
+            is_64bit = True
+            delta_in = self._unwrap_counter(
+                counters["ifHCInOctets"], prev_counters["ifHCInOctets"], is_64bit
+            )
+            delta_out = self._unwrap_counter(
+                counters["ifHCOutOctets"], prev_counters["ifHCOutOctets"], is_64bit
+            )
         else:
-            delta_in = counters.get("ifInOctets", 0) - prev_counters.get("ifInOctets", 0)
-            delta_out = counters.get("ifOutOctets", 0) - prev_counters.get("ifOutOctets", 0)
-            wrap_threshold = 2 ** 32
-
-        if delta_in < 0:
-            delta_in += wrap_threshold
-        if delta_out < 0:
-            delta_out += wrap_threshold
+            is_64bit = False
+            delta_in = self._unwrap_counter(
+                counters.get("ifInOctets", 0), prev_counters.get("ifInOctets", 0), is_64bit
+            )
+            delta_out = self._unwrap_counter(
+                counters.get("ifOutOctets", 0), prev_counters.get("ifOutOctets", 0), is_64bit
+            )
 
         d_in = delta_in
         d_out = delta_out
