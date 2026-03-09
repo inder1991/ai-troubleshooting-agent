@@ -10,6 +10,16 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
+try:
+    from pysnmp.hlapi.v3arch.asyncio import (
+        bulk_cmd, SnmpEngine, CommunityData, UdpTransportTarget,
+        ContextData, ObjectType, ObjectIdentity, UsmUserData,
+        get_cmd,
+    )
+    _PYSNMP_AVAILABLE = True
+except ImportError:
+    _PYSNMP_AVAILABLE = False
+
 STANDARD_OIDS = {
     "sysUpTime": "1.3.6.1.2.1.1.3.0",
     "sysName": "1.3.6.1.2.1.1.5.0",
@@ -108,76 +118,69 @@ class SNMPCollector:
 
     async def _walk_interfaces(self, cfg: SNMPDeviceConfig) -> dict[int, dict]:
         """SNMP BULKWALK of interface table — returns {if_index: {counters}}."""
-        try:
-            from pysnmp.hlapi.v3arch.asyncio import (
-                bulk_cmd, SnmpEngine, CommunityData, UdpTransportTarget,
-                ContextData, ObjectType, ObjectIdentity, UsmUserData,
-            )
-        except ImportError:
+        if not _PYSNMP_AVAILABLE:
             logger.error("pysnmp-lextudio not installed")
             return {}
 
         engine = SnmpEngine()
-        target = UdpTransportTarget((cfg.ip, cfg.port), timeout=5, retries=1)
-        if cfg.version == "v3":
-            auth = UsmUserData(cfg.v3_user, cfg.v3_auth_key, cfg.v3_priv_key)
-        else:
-            auth = CommunityData(cfg.community, mpModel=1)
+        try:
+            target = UdpTransportTarget((cfg.ip, cfg.port), timeout=5, retries=1)
+            if cfg.version == "v3":
+                auth = UsmUserData(cfg.v3_user, cfg.v3_auth_key, cfg.v3_priv_key)
+            else:
+                auth = CommunityData(cfg.community, mpModel=1)
 
-        walk_oids = {
-            "ifDescr": "1.3.6.1.2.1.2.2.1.2",
-            "ifOperStatus": "1.3.6.1.2.1.2.2.1.8",
-            "ifSpeed": "1.3.6.1.2.1.2.2.1.5",
-            "ifInOctets": "1.3.6.1.2.1.2.2.1.10",
-            "ifOutOctets": "1.3.6.1.2.1.2.2.1.16",
-            "ifInErrors": "1.3.6.1.2.1.2.2.1.14",
-            "ifOutErrors": "1.3.6.1.2.1.2.2.1.20",
-            "ifHCInOctets": "1.3.6.1.2.1.31.1.1.1.6",
-            "ifHCOutOctets": "1.3.6.1.2.1.31.1.1.1.10",
-        }
+            walk_oids = {
+                "ifDescr": "1.3.6.1.2.1.2.2.1.2",
+                "ifOperStatus": "1.3.6.1.2.1.2.2.1.8",
+                "ifSpeed": "1.3.6.1.2.1.2.2.1.5",
+                "ifInOctets": "1.3.6.1.2.1.2.2.1.10",
+                "ifOutOctets": "1.3.6.1.2.1.2.2.1.16",
+                "ifInErrors": "1.3.6.1.2.1.2.2.1.14",
+                "ifOutErrors": "1.3.6.1.2.1.2.2.1.20",
+                "ifHCInOctets": "1.3.6.1.2.1.31.1.1.1.6",
+                "ifHCOutOctets": "1.3.6.1.2.1.31.1.1.1.10",
+            }
 
-        interfaces: dict[int, dict] = {}
+            interfaces: dict[int, dict] = {}
 
-        for name, base_oid in walk_oids.items():
-            marker = base_oid
-            while True:
-                try:
-                    err_indication, err_status, err_index, var_binds = await bulk_cmd(
-                        engine, auth, target, ContextData(),
-                        0, 25,
-                        ObjectType(ObjectIdentity(marker)),
-                    )
-                except Exception:
-                    break
-                if err_indication or err_status:
-                    break
-                out_of_subtree = False
-                for var_bind_row in var_binds:
-                    for oid, val in var_bind_row:
-                        oid_str = str(oid)
-                        if not oid_str.startswith(base_oid):
-                            out_of_subtree = True
+            for name, base_oid in walk_oids.items():
+                marker = base_oid
+                while True:
+                    try:
+                        err_indication, err_status, err_index, var_binds = await bulk_cmd(
+                            engine, auth, target, ContextData(),
+                            0, 25,
+                            ObjectType(ObjectIdentity(marker)),
+                        )
+                    except Exception:
+                        break
+                    if err_indication or err_status:
+                        break
+                    out_of_subtree = False
+                    for var_bind_row in var_binds:
+                        for oid, val in var_bind_row:
+                            oid_str = str(oid)
+                            if not oid_str.startswith(base_oid):
+                                out_of_subtree = True
+                                break
+                            if_index = int(oid_str.split(".")[-1])
+                            if if_index not in interfaces:
+                                interfaces[if_index] = {}
+                            interfaces[if_index][name] = int(val) if name != "ifDescr" else str(val)
+                            marker = oid_str
+                        if out_of_subtree:
                             break
-                        if_index = int(oid_str.split(".")[-1])
-                        if if_index not in interfaces:
-                            interfaces[if_index] = {}
-                        interfaces[if_index][name] = int(val) if name != "ifDescr" else str(val)
-                        marker = oid_str
                     if out_of_subtree:
                         break
-                if out_of_subtree:
-                    break
 
-        return interfaces
+            return interfaces
+        finally:
+            engine.close_dispatcher()
 
     async def _snmp_get(self, cfg: SNMPDeviceConfig) -> dict:
         """Execute SNMP GET/WALK against a device. Returns parsed metrics dict."""
-        try:
-            from pysnmp.hlapi.v3arch.asyncio import (
-                get_cmd, SnmpEngine, CommunityData, UdpTransportTarget,
-                ContextData, ObjectType, ObjectIdentity,
-            )
-        except ImportError:
+        if not _PYSNMP_AVAILABLE:
             logger.error("pysnmp not installed — pip install pysnmp-lextudio")
             return {}
 
@@ -187,7 +190,6 @@ class SNMPCollector:
         if cfg.version == "v2c":
             auth = CommunityData(cfg.community, mpModel=1)
         else:
-            from pysnmp.hlapi.v3arch.asyncio import UsmUserData
             auth = UsmUserData(cfg.v3_user, cfg.v3_auth_key, cfg.v3_priv_key)
 
         result: dict[str, Any] = {"interfaces": {}}
