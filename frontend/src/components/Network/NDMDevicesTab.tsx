@@ -2,6 +2,8 @@ import React, { useState, useMemo, useCallback } from 'react';
 import type { MonitoredDevice } from '../../types';
 import { deleteMonitoredDevice, testMonitoredDevice, pingMonitoredDevice } from '../../services/api';
 import AddDeviceForm from './AddDeviceForm';
+import { useDebounce } from '../../hooks/useDebounce';
+import { showToast } from './Toast';
 
 interface NDMDevicesTabProps {
   devices: MonitoredDevice[];
@@ -30,6 +32,7 @@ const btnStyle: React.CSSProperties = {
 
 const NDMDevicesTab: React.FC<NDMDevicesTabProps> = ({ devices, onSelectDevice, onReload }) => {
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 300);
   const [groupBy, setGroupBy] = useState<GroupByOption>('none');
   const [showAddDevice, setShowAddDevice] = useState(false);
 
@@ -43,9 +46,9 @@ const NDMDevicesTab: React.FC<NDMDevicesTabProps> = ({ devices, onSelectDevice, 
       const result = await testMonitoredDevice(id);
       const status = result.health?.status || 'unknown';
       const msg = result.health?.message || '';
-      alert(`SNMP Test: ${status}\n${msg}`);
+      showToast(`SNMP Test: ${status}\n${msg}`, status === 'ok' ? 'success' : 'warning');
     } catch (err: unknown) {
-      alert(`Test failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      showToast(`Test failed: ${err instanceof Error ? err.message : 'Unknown error'}`, 'error');
     }
   }, []);
 
@@ -53,22 +56,22 @@ const NDMDevicesTab: React.FC<NDMDevicesTabProps> = ({ devices, onSelectDevice, 
     try {
       const result = await pingMonitoredDevice(id);
       const p = result.ping;
-      alert(`Ping: ${p.reachable ? 'Reachable' : 'Unreachable'}\nRTT: ${p.rtt_avg.toFixed(1)}ms\nLoss: ${p.packet_loss_pct.toFixed(0)}%`);
+      showToast(`Ping: ${p.reachable ? 'Reachable' : 'Unreachable'}\nRTT: ${p.rtt_avg.toFixed(1)}ms\nLoss: ${p.packet_loss_pct.toFixed(0)}%`, p.reachable ? 'success' : 'warning');
       onReload();
     } catch (err: unknown) {
-      alert(`Ping failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      showToast(`Ping failed: ${err instanceof Error ? err.message : 'Unknown error'}`, 'error');
     }
   }, [onReload]);
 
   const filtered = useMemo(() => {
-    if (!search) return devices;
-    const s = search.toLowerCase();
+    if (!debouncedSearch) return devices;
+    const s = debouncedSearch.toLowerCase();
     return devices.filter(d =>
       d.hostname.toLowerCase().includes(s) || d.management_ip.includes(s)
       || d.vendor.toLowerCase().includes(s) || (d.matched_profile || '').toLowerCase().includes(s)
       || d.tags.some(t => t.toLowerCase().includes(s))
     );
-  }, [devices, search]);
+  }, [devices, debouncedSearch]);
 
   const grouped = useMemo(() => {
     if (groupBy === 'none') return { '': filtered };

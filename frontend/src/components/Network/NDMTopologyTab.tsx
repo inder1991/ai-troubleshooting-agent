@@ -211,11 +211,53 @@ function getLinkColor(statusA: string, statusB: string): string {
   return '#22c55e';
 }
 
+const MIN_ZOOM = 0.25;
+const MAX_ZOOM = 4;
+const ZOOM_STEP = 0.15;
+
 const NDMTopologyTab: React.FC<NDMTopologyTabProps> = ({ devices, onSelectDevice }) => {
   const [groupBy, setGroupBy] = useState<GroupByOption>('none');
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const svgRef = useRef<SVGSVGElement>(null);
+
+  // Zoom & pan state
+  const [scale, setScale] = useState(1);
+  const [translate, setTranslate] = useState({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const panStart = useRef({ x: 0, y: 0, tx: 0, ty: 0 });
+
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP;
+    setScale(s => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, s + delta)));
+  }, []);
+
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    if (e.button !== 0) return;
+    // Only pan if clicking on background (not a node)
+    const target = e.target as SVGElement;
+    if (target.tagName === 'circle' || target.tagName === 'text' || target.closest('g[style]')) return;
+    setIsPanning(true);
+    panStart.current = { x: e.clientX, y: e.clientY, tx: translate.x, ty: translate.y };
+    (e.target as Element).setPointerCapture?.(e.pointerId);
+  }, [translate]);
+
+  const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    if (!isPanning) return;
+    const dx = e.clientX - panStart.current.x;
+    const dy = e.clientY - panStart.current.y;
+    setTranslate({ x: panStart.current.tx + dx, y: panStart.current.ty + dy });
+  }, [isPanning]);
+
+  const handlePointerUp = useCallback(() => {
+    setIsPanning(false);
+  }, []);
+
+  const handleFit = useCallback(() => {
+    setScale(1);
+    setTranslate({ x: 0, y: 0 });
+  }, []);
 
   const { nodes, groups } = useMemo(
     () => layoutDevicesGrouped(devices, groupBy),
@@ -378,10 +420,49 @@ const NDMTopologyTab: React.FC<NDMTopologyTabProps> = ({ devices, onSelectDevice
           overflow: 'hidden',
         }}
       >
+        {/* Zoom Controls */}
+        <div style={{
+          position: 'absolute', top: 10, right: 10, zIndex: 20,
+          display: 'flex', flexDirection: 'column', gap: 4,
+          background: 'rgba(15,32,35,0.9)', borderRadius: 6,
+          border: '1px solid #1e3a4a', padding: 4,
+        }}>
+          {[
+            { icon: 'add', action: () => setScale(s => Math.min(MAX_ZOOM, s + ZOOM_STEP)), label: 'Zoom in' },
+            { icon: 'remove', action: () => setScale(s => Math.max(MIN_ZOOM, s - ZOOM_STEP)), label: 'Zoom out' },
+            { icon: 'fit_screen', action: handleFit, label: 'Fit to view' },
+          ].map(btn => (
+            <button
+              key={btn.icon}
+              onClick={btn.action}
+              title={btn.label}
+              aria-label={btn.label}
+              style={{
+                width: 28, height: 28, border: 'none', borderRadius: 4,
+                background: 'transparent', color: '#94a3b8', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 18,
+              }}
+              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(7,182,213,0.15)'; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>{btn.icon}</span>
+            </button>
+          ))}
+          <div style={{ fontSize: 9, color: '#64748b', textAlign: 'center', padding: '2px 0' }}>
+            {Math.round(scale * 100)}%
+          </div>
+        </div>
+
         <svg
           ref={svgRef}
           viewBox={`0 0 ${SVG_WIDTH} ${SVG_HEIGHT}`}
-          style={{ width: '100%', height: 'auto', display: 'block' }}
+          style={{ width: '100%', height: 'auto', display: 'block', cursor: isPanning ? 'grabbing' : 'grab' }}
+          onWheel={handleWheel}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
         >
           {/* Background */}
           <rect x={0} y={0} width={SVG_WIDTH} height={SVG_HEIGHT} fill="#0a1a1f" />
@@ -398,6 +479,9 @@ const NDMTopologyTab: React.FC<NDMTopologyTabProps> = ({ devices, onSelectDevice
             </pattern>
           </defs>
           <rect x={0} y={0} width={SVG_WIDTH} height={SVG_HEIGHT} fill="url(#ndm-grid)" />
+
+          {/* Zoom/Pan Transform */}
+          <g transform={`translate(${translate.x}, ${translate.y}) scale(${scale})`}>
 
           {/* Group Rectangles */}
           {groups.map((group, gi) => (
@@ -518,6 +602,7 @@ const NDMTopologyTab: React.FC<NDMTopologyTabProps> = ({ devices, onSelectDevice
               </g>
             );
           })}
+          </g>{/* End zoom/pan transform */}
         </svg>
 
         {/* Tooltip */}

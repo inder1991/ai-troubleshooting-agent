@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import type { MonitoredDevice, InterfaceMetrics } from '../../types';
 import { fetchDeviceInterfaces } from '../../services/api';
+import { useDebounce } from '../../hooks/useDebounce';
 
 interface NDMInterfacesTabProps {
   devices: MonitoredDevice[];
@@ -33,6 +34,7 @@ const NDMInterfacesTab: React.FC<NDMInterfacesTabProps> = ({ devices }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 300);
   const [sortField, setSortField] = useState<'utilization_pct' | 'in_errors' | 'out_errors' | 'speed'>('utilization_pct');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [statusFilter, setStatusFilter] = useState<'all' | 'up' | 'down'>('all');
@@ -77,8 +79,8 @@ const NDMInterfacesTab: React.FC<NDMInterfacesTabProps> = ({ devices }) => {
     if (statusFilter !== 'all') {
       list = list.filter(i => i.status === statusFilter);
     }
-    if (search) {
-      const s = search.toLowerCase();
+    if (debouncedSearch) {
+      const s = debouncedSearch.toLowerCase();
       list = list.filter(i =>
         i.name.toLowerCase().includes(s) || i.device_hostname.toLowerCase().includes(s)
       );
@@ -89,7 +91,7 @@ const NDMInterfacesTab: React.FC<NDMInterfacesTabProps> = ({ devices }) => {
       return sortDir === 'desc' ? (bVal as number) - (aVal as number) : (aVal as number) - (bVal as number);
     });
     return list;
-  }, [allInterfaces, search, sortField, sortDir, statusFilter]);
+  }, [allInterfaces, debouncedSearch, sortField, sortDir, statusFilter]);
 
   const handleSort = (field: typeof sortField) => {
     if (sortField === field) {

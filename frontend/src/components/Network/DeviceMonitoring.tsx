@@ -9,6 +9,8 @@ import NDMSyslogTab from './NDMSyslogTab';
 import NDMTrapsTab from './NDMTrapsTab';
 import NDMTopologyTab from './NDMTopologyTab';
 import DeviceDetailPanel from './DeviceDetailPanel';
+import NDMErrorBoundary from './NDMErrorBoundary';
+import { ToastContainer } from './Toast';
 
 const TABS: { key: NDMTabType; label: string; icon: string }[] = [
   { key: 'overview', label: 'Overview', icon: 'dashboard' },
@@ -209,16 +211,35 @@ const DeviceMonitoring: React.FC = () => {
       )}
 
       {/* Tab Bar */}
-      <div style={{
-        display: 'flex', gap: 0, marginBottom: 20,
-        borderBottom: '1px solid rgba(148,163,184,0.12)',
-      }}>
+      <div
+        role="tablist"
+        aria-label="NDM dashboard tabs"
+        style={{
+          display: 'flex', gap: 0, marginBottom: 20,
+          borderBottom: '1px solid rgba(148,163,184,0.12)',
+        }}
+      >
         {TABS.map(tab => {
           const isActive = activeTab === tab.key;
           return (
             <button
               key={tab.key}
+              role="tab"
+              aria-selected={isActive}
+              aria-controls={`ndm-tabpanel-${tab.key}`}
+              id={`ndm-tab-${tab.key}`}
               onClick={() => setActiveTab(tab.key)}
+              onKeyDown={(e) => {
+                const idx = TABS.findIndex(t => t.key === tab.key);
+                if (e.key === 'ArrowRight' && idx < TABS.length - 1) {
+                  setActiveTab(TABS[idx + 1].key);
+                  (document.getElementById(`ndm-tab-${TABS[idx + 1].key}`) as HTMLElement)?.focus();
+                } else if (e.key === 'ArrowLeft' && idx > 0) {
+                  setActiveTab(TABS[idx - 1].key);
+                  (document.getElementById(`ndm-tab-${TABS[idx - 1].key}`) as HTMLElement)?.focus();
+                }
+              }}
+              tabIndex={isActive ? 0 : -1}
               style={{
                 display: 'flex', alignItems: 'center', gap: 6,
                 padding: '10px 18px', border: 'none', background: 'transparent',
@@ -229,7 +250,7 @@ const DeviceMonitoring: React.FC = () => {
                 transition: 'all 0.15s ease',
               }}
             >
-              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>{tab.icon}</span>
+              <span className="material-symbols-outlined" style={{ fontSize: 18 }} aria-hidden="true">{tab.icon}</span>
               {tab.label}
             </button>
           );
@@ -237,7 +258,15 @@ const DeviceMonitoring: React.FC = () => {
       </div>
 
       {/* Active Tab Content */}
-      {renderTab()}
+      <div
+        role="tabpanel"
+        id={`ndm-tabpanel-${activeTab}`}
+        aria-labelledby={`ndm-tab-${activeTab}`}
+      >
+        <NDMErrorBoundary tabName={TABS.find(t => t.key === activeTab)?.label || activeTab}>
+          {renderTab()}
+        </NDMErrorBoundary>
+      </div>
 
       {/* Device Detail Slide-out Panel */}
       {selectedDeviceId && selectedDevice && (
@@ -246,6 +275,8 @@ const DeviceMonitoring: React.FC = () => {
           onClose={() => setSelectedDeviceId(null)}
         />
       )}
+
+      <ToastContainer />
     </div>
   );
 };

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import type { MonitoredDevice, SyslogEntry } from '../../types';
 import { fetchSyslogEntries } from '../../services/api';
+import { useDebounce } from '../../hooks/useDebounce';
 
 interface NDMSyslogTabProps {
   devices: MonitoredDevice[];
@@ -46,6 +47,7 @@ const NDMSyslogTab: React.FC<NDMSyslogTabProps> = ({ devices }) => {
   const [severityFilter, setSeverityFilter] = useState('all');
   const [facilityFilter, setFacilityFilter] = useState('all');
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 300);
   const [timeRange, setTimeRange] = useState(3600);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const refreshRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -69,7 +71,7 @@ const NDMSyslogTab: React.FC<NDMSyslogTabProps> = ({ devices }) => {
       };
       if (severityFilter !== 'all') filters.severity = severityFilter;
       if (facilityFilter !== 'all') filters.facility = facilityFilter;
-      if (search.trim()) filters.search = search.trim();
+      if (debouncedSearch.trim()) filters.search = debouncedSearch.trim();
 
       const resp = await fetchSyslogEntries(filters as Parameters<typeof fetchSyslogEntries>[0]);
       setEntries(resp.entries || []);
@@ -79,7 +81,7 @@ const NDMSyslogTab: React.FC<NDMSyslogTabProps> = ({ devices }) => {
     } finally {
       setLoading(false);
     }
-  }, [severityFilter, facilityFilter, search, timeRange]);
+  }, [severityFilter, facilityFilter, debouncedSearch, timeRange]);
 
   useEffect(() => { loadEntries(); }, [loadEntries]);
 

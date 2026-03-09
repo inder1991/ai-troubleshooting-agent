@@ -25,7 +25,7 @@ const panelStyle: React.CSSProperties = {
   right: 0,
   top: 0,
   bottom: 0,
-  width: 520,
+  width: 'min(520px, 90vw)',
   background: '#0a1a1f',
   borderLeft: '1px solid rgba(7,182,213,0.2)',
   zIndex: 1000,
