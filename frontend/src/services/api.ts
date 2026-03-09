@@ -1456,3 +1456,81 @@ export const fetchDBTableDetail = async (profileId: string, tableName: string) =
   if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch table detail'));
   return resp.json();
 };
+
+// ── Database Operations / Remediation API ──
+
+export const createRemediationPlan = async (data: { profile_id: string; action: string; params: Record<string, unknown>; finding_id?: string }) => {
+  const resp = await fetch(`${API_BASE_URL}/api/db/remediation/plan`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
+  });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to create plan'));
+  return resp.json();
+};
+
+export const suggestRemediation = async (profileId: string, runId: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/db/remediation/suggest`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ profile_id: profileId, run_id: runId }),
+  });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to suggest remediation'));
+  return resp.json();
+};
+
+export const fetchRemediationPlans = async (profileId: string, status?: string) => {
+  const params = new URLSearchParams({ profile_id: profileId });
+  if (status) params.set('status', status);
+  const resp = await fetch(`${API_BASE_URL}/api/db/remediation/plans?${params}`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch plans'));
+  return resp.json();
+};
+
+export const fetchRemediationPlan = async (planId: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/db/remediation/plans/${planId}`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch plan'));
+  return resp.json();
+};
+
+export const approveRemediationPlan = async (planId: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/db/remediation/approve/${planId}`, { method: 'POST' });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to approve plan'));
+  return resp.json();
+};
+
+export const rejectRemediationPlan = async (planId: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/db/remediation/reject/${planId}`, { method: 'POST' });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to reject plan'));
+  return resp.json();
+};
+
+export const executeRemediationPlan = async (planId: string, approvalToken: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/db/remediation/execute/${planId}`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ approval_token: approvalToken }),
+  });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to execute plan'));
+  return resp.json();
+};
+
+export const fetchRemediationLog = async (profileId: string, limit = 50) => {
+  const resp = await fetch(`${API_BASE_URL}/api/db/remediation/log?profile_id=${profileId}&limit=${limit}`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch audit log'));
+  return resp.json();
+};
+
+export const fetchConfigRecommendations = async (profileId: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/db/config/${profileId}/recommendations`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch config recommendations'));
+  return resp.json();
+};
+
+export const killDBQuery = async (profileId: string, pid: number) => {
+  const resp = await fetch(`${API_BASE_URL}/api/db/queries/${profileId}/kill/${pid}`, { method: 'POST' });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to kill query'));
+  return resp.json();
+};
+
+export const fetchDBActiveQueries = async (profileId: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/db/profiles/${profileId}/health`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch active queries'));
+  return resp.json();
+};

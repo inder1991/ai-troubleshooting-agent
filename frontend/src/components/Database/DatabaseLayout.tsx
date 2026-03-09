@@ -8,8 +8,9 @@ import DBConnections from './DBConnections';
 import DBDiagnostics from './DBDiagnostics';
 import DBMonitoring from './DBMonitoring';
 import DBSchema from './DBSchema';
+import DBOperations from './DBOperations';
 
-type DBView = 'overview' | 'connections' | 'diagnostics' | 'monitoring' | 'schema';
+type DBView = 'overview' | 'connections' | 'diagnostics' | 'monitoring' | 'schema' | 'operations';
 
 const sidebarItems: { id: DBView; label: string; icon: string }[] = [
   { id: 'overview', label: 'Overview', icon: 'dashboard' },
@@ -17,6 +18,7 @@ const sidebarItems: { id: DBView; label: string; icon: string }[] = [
   { id: 'diagnostics', label: 'Diagnostics', icon: 'troubleshoot' },
   { id: 'monitoring', label: 'Monitoring', icon: 'monitoring' },
   { id: 'schema', label: 'Schema', icon: 'account_tree' },
+  { id: 'operations', label: 'Operations', icon: 'build' },
 ];
 
 const DatabaseLayout: React.FC = () => {
@@ -56,6 +58,7 @@ const DatabaseLayout: React.FC = () => {
         {activeView === 'diagnostics' && <DBDiagnostics />}
         {activeView === 'monitoring' && <DBMonitoring />}
         {activeView === 'schema' && <DBSchema />}
+        {activeView === 'operations' && <DBOperations />}
       </div>
     </div>
   );
