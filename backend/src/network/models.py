@@ -20,13 +20,21 @@ def _validate_ip(v: str, field_name: str) -> str:
 
 
 def _validate_cidr(v: str, field_name: str) -> str:
-    """Validate CIDR notation. Empty string is allowed."""
+    """Validate CIDR notation. Empty string is allowed.
+
+    For IPv4 networks, prefix length must be 8-32.
+    """
     if not v:
         return v
     try:
-        _ipaddress.ip_network(v, strict=False)
+        net = _ipaddress.ip_network(v, strict=False)
     except ValueError:
         raise ValueError(f"Invalid CIDR for {field_name}: '{v}'")
+    if net.version == 4:
+        if net.prefixlen < 8 or net.prefixlen > 32:
+            raise ValueError(
+                f"IPv4 CIDR prefix length must be 8-32 for {field_name}, got /{net.prefixlen}"
+            )
     return v
 
 
@@ -645,8 +653,8 @@ class Flow(BaseModel):
     @field_validator("port")
     @classmethod
     def validate_port(cls, v: int) -> int:
-        if v < 0 or v > 65535:
-            raise ValueError(f"port must be 0-65535, got {v}")
+        if v < 1 or v > 65535:
+            raise ValueError(f"port must be 1-65535, got {v}")
         return v
 
     @field_validator("protocol")
@@ -826,9 +834,21 @@ class DNSServerConfig(BaseModel):
     port: int = 53
     enabled: bool = True
 
+    @field_validator("ip")
+    @classmethod
+    def validate_ip(cls, v: str) -> str:
+        return _validate_ip(v, "dns_server ip")
+
+    @field_validator("port")
+    @classmethod
+    def validate_port(cls, v: int) -> int:
+        if v < 1 or v > 65535:
+            raise ValueError(f"port must be 1-65535, got {v}")
+        return v
+
 
 class DNSWatchedHostname(BaseModel):
-    hostname: str
+    hostname: str = Field(max_length=253)
     record_type: DNSRecordType = DNSRecordType.A
     expected_values: list[str] = []
     critical: bool = False

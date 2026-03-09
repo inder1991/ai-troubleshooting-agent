@@ -1,13 +1,15 @@
 """API endpoints for protocol-first device monitoring (Datadog NDM-inspired)."""
 from __future__ import annotations
 
+import ipaddress as _ipaddress
 import logging
+import re
 import time
-from typing import Any
+from typing import Any, Literal
 from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from src.network.collectors.models import (
     DeviceInstance,
@@ -101,8 +103,8 @@ def _store() -> InstanceStore:
 
 class AddDeviceRequest(BaseModel):
     ip_address: str
-    snmp_version: str = "2c"
-    community_string: str = "public"
+    snmp_version: Literal["1", "2c", "3"] = "2c"
+    community_string: str = Field(default="public", max_length=255)
     port: int = 161
     v3_user: str | None = None
     v3_auth_protocol: str | None = None
@@ -112,13 +114,29 @@ class AddDeviceRequest(BaseModel):
     tags: list[str] = Field(default_factory=list)
     profile: str | None = None
     ping: dict[str, Any] | None = None
-    hostname: str | None = None
+    hostname: str | None = Field(default=None, max_length=253)
+
+    @field_validator("ip_address")
+    @classmethod
+    def validate_ip_address(cls, v: str) -> str:
+        try:
+            _ipaddress.ip_address(v)
+        except ValueError:
+            raise ValueError(f"Invalid IP address: '{v}'")
+        return v
+
+    @field_validator("port")
+    @classmethod
+    def validate_port(cls, v: int) -> int:
+        if v < 1 or v > 65535:
+            raise ValueError(f"Port must be 1-65535, got {v}")
+        return v
 
 
 class AddDiscoveryRequest(BaseModel):
     cidr: str
-    snmp_version: str = "2c"
-    community: str = "public"
+    snmp_version: Literal["1", "2c", "3"] = "2c"
+    community: str = Field(default="public", max_length=255)
     v3_user: str | None = None
     v3_auth_protocol: str | None = None
     v3_auth_key: str | None = None
@@ -130,9 +148,41 @@ class AddDiscoveryRequest(BaseModel):
     tags: list[str] = Field(default_factory=list)
     ping: dict[str, Any] | None = None
 
+    @field_validator("cidr")
+    @classmethod
+    def validate_cidr(cls, v: str) -> str:
+        try:
+            net = _ipaddress.ip_network(v, strict=False)
+        except ValueError:
+            raise ValueError(f"Invalid CIDR notation: '{v}'")
+        if net.version == 4:
+            prefix = net.prefixlen
+            if prefix < 8 or prefix > 32:
+                raise ValueError(
+                    f"IPv4 CIDR prefix length must be 8-32, got /{prefix}"
+                )
+        return v
+
+    @field_validator("port")
+    @classmethod
+    def validate_port(cls, v: int) -> int:
+        if v < 1 or v > 65535:
+            raise ValueError(f"Port must be 1-65535, got {v}")
+        return v
+
+    @field_validator("excluded_ips")
+    @classmethod
+    def validate_excluded_ips(cls, v: list[str]) -> list[str]:
+        for ip in v:
+            try:
+                _ipaddress.ip_address(ip)
+            except ValueError:
+                raise ValueError(f"Invalid excluded IP address: '{ip}'")
+        return v
+
 
 class UpdateDeviceRequest(BaseModel):
-    hostname: str | None = None
+    hostname: str | None = Field(default=None, max_length=253)
     tags: list[str] | None = None
     ping: dict[str, Any] | None = None
     profile: str | None = None
