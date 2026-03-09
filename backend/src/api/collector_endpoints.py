@@ -39,6 +39,7 @@ _autodiscovery: AutodiscoveryEngine | None = None
 _ping_prober: PingProber | None = None
 _event_store: EventStore | None = None
 _metrics_store: MetricsStore | None = None
+_topology_store: Any = None
 
 
 def init_collector_endpoints(
@@ -49,9 +50,10 @@ def init_collector_endpoints(
     ping_prober: PingProber,
     event_store: EventStore | None = None,
     metrics_store: MetricsStore | None = None,
+    topology_store: Any = None,
 ) -> None:
     global _instance_store, _profile_loader, _snmp_collector, _autodiscovery, _ping_prober
-    global _event_store, _metrics_store
+    global _event_store, _metrics_store, _topology_store
     _instance_store = instance_store
     _profile_loader = profile_loader
     _snmp_collector = snmp_collector
@@ -59,6 +61,7 @@ def init_collector_endpoints(
     _ping_prober = ping_prober
     _event_store = event_store
     _metrics_store = metrics_store
+    _topology_store = topology_store
 
 
 def _store() -> InstanceStore:
@@ -555,6 +558,18 @@ async def device_metrics_history(device_id: str, window: str = "1h"):
             "temperature": temp,
         },
     }
+
+
+@collector_router.get("/devices/aggregate-metrics")
+async def aggregate_metrics(tag: str | None = None):
+    """Return averaged golden signals across all (or tag-filtered) devices."""
+    if not _topology_store:
+        return {"avg_cpu": 0, "avg_mem": 0, "avg_temp": 0, "device_count": 0}
+    devices = _store().list_devices()
+    if tag:
+        devices = [d for d in devices if tag in (d.tags or [])]
+    device_ids = [d.device_id for d in devices]
+    return _topology_store.aggregate_device_metrics(device_ids)
 
 
 @collector_router.get("/devices/{device_id}/interfaces")

@@ -1772,3 +1772,10 @@ export const fetchFlowVolumeTimeline = async (window: string = '1h', interval: s
   if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch volume timeline'));
   return resp.json();
 };
+
+export const fetchAggregateMetrics = async (tag?: string): Promise<{avg_cpu: number; avg_mem: number; avg_temp: number; device_count: number}> => {
+  const params = tag ? `?tag=${encodeURIComponent(tag)}` : '';
+  const resp = await fetch(`${API_BASE_URL}/api/collector/devices/aggregate-metrics${params}`);
+  if (!resp.ok) return { avg_cpu: 0, avg_mem: 0, avg_temp: 0, device_count: 0 };
+  return resp.json();
+};

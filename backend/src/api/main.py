@@ -248,6 +248,7 @@ def create_app() -> FastAPI:
                     ping_prober=m.ping_prober,
                     event_store=event_store,
                     metrics_store=metrics_store,
+                    topology_store=topo_store,
                 )
                 logger.info("Collector endpoints initialized (%d profiles loaded)",
                           len(m.profile_loader.list_profiles()))

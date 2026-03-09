@@ -3501,6 +3501,63 @@ class TopologyStore:
         finally:
             conn.close()
 
+    def add_metric_history(self, device_id: str, timestamp: float, metrics: dict) -> None:
+        """Store a snapshot of device metrics (convenience wrapper over append_metric)."""
+        conn = self._conn()
+        try:
+            ts = datetime.fromtimestamp(timestamp, tz=timezone.utc).isoformat()
+            for metric_name, value in metrics.items():
+                conn.execute(
+                    "INSERT INTO metric_history (entity_type, entity_id, metric, value, recorded_at) VALUES (?,?,?,?,?)",
+                    ("device", device_id, metric_name, float(value), ts),
+                )
+            conn.commit()
+        finally:
+            conn.close()
+
+    def aggregate_device_metrics(self, device_ids: list[str]) -> dict:
+        """Return averaged latest CPU, memory, temperature across given devices."""
+        if not device_ids:
+            return {"avg_cpu": 0, "avg_mem": 0, "avg_temp": 0, "device_count": 0}
+        conn = self._conn()
+        try:
+            placeholders = ",".join("?" for _ in device_ids)
+            # Get latest metric value per device per metric name
+            rows = conn.execute(f"""
+                SELECT entity_id, metric, value
+                FROM metric_history
+                WHERE entity_type = 'device'
+                AND entity_id IN ({placeholders})
+                AND metric IN ('cpu_pct', 'mem_pct', 'temperature')
+                AND id IN (
+                    SELECT MAX(id) FROM metric_history
+                    WHERE entity_type = 'device'
+                    AND entity_id IN ({placeholders})
+                    AND metric IN ('cpu_pct', 'mem_pct', 'temperature')
+                    GROUP BY entity_id, metric
+                )
+            """, device_ids + device_ids).fetchall()
+
+            cpu_vals, mem_vals, temp_vals = [], [], []
+            seen_devices = set()
+            for row in rows:
+                seen_devices.add(row["entity_id"])
+                if row["metric"] == "cpu_pct":
+                    cpu_vals.append(row["value"])
+                elif row["metric"] == "mem_pct":
+                    mem_vals.append(row["value"])
+                elif row["metric"] == "temperature":
+                    temp_vals.append(row["value"])
+
+            return {
+                "avg_cpu": sum(cpu_vals) / len(cpu_vals) if cpu_vals else 0,
+                "avg_mem": sum(mem_vals) / len(mem_vals) if mem_vals else 0,
+                "avg_temp": sum(temp_vals) / len(temp_vals) if temp_vals else 0,
+                "device_count": len(seen_devices),
+            }
+        finally:
+            conn.close()
+
     def prune_metric_history(self, older_than_days: int = 7) -> int:
         conn = self._conn()
         try:

@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import type { MonitoredDevice, DiscoveryConfig, DeviceProfileSummary, CollectorHealthStatus } from '../../types';
 
@@ -50,7 +50,25 @@ const NDMOverviewTab: React.FC<NDMOverviewTabProps> = ({ devices, configs, profi
   const unreachableCount = devices.filter(d => d.status === 'unreachable').length;
   const newCount = devices.filter(d => d.status === 'new').length;
 
-  // Golden signals: compute averages from last_ping data
+  // Golden signals: real CPU/mem from backend, latency/loss from ping data
+  const [aggregateMetrics, setAggregateMetrics] = useState({ avg_cpu: 0, avg_mem: 0, avg_temp: 0, device_count: 0 });
+
+  useEffect(() => {
+    const fetchMetrics = async () => {
+      try {
+        const res = await fetch('/api/collector/devices/aggregate-metrics');
+        if (res.ok) {
+          setAggregateMetrics(await res.json());
+        }
+      } catch {
+        // Silently fail — gauges show 0
+      }
+    };
+    fetchMetrics();
+    const interval = setInterval(fetchMetrics, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
   const goldenSignals = useMemo(() => {
     const devicesWithPing = devices.filter(d => d.last_ping);
     const avgLatency = devicesWithPing.length > 0
@@ -59,11 +77,13 @@ const NDMOverviewTab: React.FC<NDMOverviewTabProps> = ({ devices, configs, profi
     const avgLoss = devicesWithPing.length > 0
       ? devicesWithPing.reduce((sum, d) => sum + (d.last_ping?.packet_loss_pct || 0), 0) / devicesWithPing.length
       : 0;
-    // CPU and memory are not on MonitoredDevice, so derive from simulated averages
-    const avgCpu = devices.length > 0 ? Math.random() * 40 + 20 : 0;
-    const avgMem = devices.length > 0 ? Math.random() * 30 + 40 : 0;
-    return { avgCpu, avgMem, avgLatency, avgLoss };
-  }, [devices]);
+    return {
+      avgCpu: aggregateMetrics.avg_cpu,
+      avgMem: aggregateMetrics.avg_mem,
+      avgLatency,
+      avgLoss,
+    };
+  }, [devices, aggregateMetrics]);
 
   // Vendor distribution for donut chart
   const vendorData = useMemo(() => {
