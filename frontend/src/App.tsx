@@ -509,7 +509,7 @@ function AppInner() {
   };
 
   return (
-    <div className="flex h-screen w-full overflow-hidden text-slate-100 antialiased" style={{ backgroundColor: '#0f2023' }}>
+    <div className="flex h-screen w-full overflow-hidden text-slate-100 antialiased bg-duck-bg">
       {/* Sidebar Nav - hidden during investigation (war room is full width) */}
       {showSidebar && (
         <SidebarNav
@@ -532,8 +532,6 @@ function AppInner() {
         {viewState === 'home' && (
           <HomePage
             onSelectCapability={handleSelectCapability}
-            sessions={sessions}
-            onSessionsChange={setSessions}
             onSelectSession={handleSelectSession}
             wsConnected={wsConnected}
           />

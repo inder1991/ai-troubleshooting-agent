@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { V4Session, DiagnosticPhase } from '../../types';
 import { listSessionsV4 } from '../../services/api';
@@ -6,8 +6,6 @@ import { ActivityFeedRow, SectionHeader, TimeRangeSelector } from '../shared';
 import type { SystemStatus } from '../shared';
 
 interface LiveIntelligenceFeedProps {
-  sessions: V4Session[];
-  onSessionsChange: (sessions: V4Session[]) => void;
   onSelectSession: (session: V4Session) => void;
 }
 
@@ -39,7 +37,6 @@ const computeDuration = (created: string, updated: string): string => {
 };
 
 const LiveIntelligenceFeed: React.FC<LiveIntelligenceFeedProps> = ({
-  onSessionsChange,
   onSelectSession,
 }) => {
   const [timeRange, setTimeRange] = useState<string>('1h');
@@ -50,10 +47,6 @@ const LiveIntelligenceFeed: React.FC<LiveIntelligenceFeedProps> = ({
     refetchInterval: 10000,
     staleTime: 5000,
   });
-
-  useEffect(() => {
-    onSessionsChange(sessions);
-  }, [sessions, onSessionsChange]);
 
   return (
     <section>

@@ -7,16 +7,12 @@ import { QuickActionsPanel } from './QuickActionsPanel';
 
 interface HomePageProps {
   onSelectCapability: (capability: CapabilityType) => void;
-  sessions: V4Session[];
-  onSessionsChange: (sessions: V4Session[]) => void;
   onSelectSession: (session: V4Session) => void;
   wsConnected: boolean;
 }
 
 const HomePage: React.FC<HomePageProps> = ({
   onSelectCapability,
-  sessions,
-  onSessionsChange,
   onSelectSession,
   wsConnected,
 }) => {
@@ -78,8 +74,6 @@ const HomePage: React.FC<HomePageProps> = ({
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-10">
           <div className="lg:col-span-8">
             <LiveIntelligenceFeed
-              sessions={sessions}
-              onSessionsChange={onSessionsChange}
               onSelectSession={onSelectSession}
             />
           </div>
