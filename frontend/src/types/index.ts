@@ -531,6 +531,13 @@ export interface StartSessionRequest {
   cluster_url?: string;
   scan_mode?: 'diagnostic' | 'guard';
   scope?: DiagnosticScope;
+  // Database diagnostics fields
+  focus?: ('queries' | 'connections' | 'replication' | 'storage' | 'schema')[];
+  database_type?: 'postgres';
+  sampling_mode?: 'light' | 'standard' | 'deep';
+  include_explain_plans?: boolean;
+  parent_session_id?: string;
+  table_filter?: string[];
 }
 
 export interface V4WebSocketMessage {

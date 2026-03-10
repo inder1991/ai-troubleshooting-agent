@@ -10,6 +10,7 @@ import type {
   TroubleshootAppForm,
   ClusterDiagnosticsForm,
   NetworkTroubleshootingForm,
+  DatabaseDiagnosticsForm,
   AttestationGateData,
   DiagnosticScope,
 } from './types';
@@ -382,6 +383,31 @@ function AppInner() {
           });
           setSessions((prev) => [{ ...session, capability: data.capability }, ...prev]);
           setActiveSession({ ...session, capability: data.capability });
+          setCurrentPhase(session.status);
+          setConfidence(session.confidence);
+          setViewState('investigation');
+          refreshStatus(session.session_id);
+        } else if (data.capability === 'database_diagnostics') {
+          const dbData = data as DatabaseDiagnosticsForm;
+          const session = await startSessionV4({
+            service_name: `db-${dbData.profile_id}`,
+            time_window: dbData.time_window,
+            capability: 'database_diagnostics',
+            profile_id: dbData.profile_id,
+            focus: dbData.focus,
+            database_type: dbData.database_type,
+            sampling_mode: dbData.sampling_mode,
+            include_explain_plans: dbData.include_explain_plans,
+            parent_session_id: dbData.parent_session_id,
+            table_filter: dbData.table_filter,
+          });
+          const dbSession: V4Session = {
+            ...session,
+            service_name: session.service_name || `db-${dbData.profile_id}`,
+            capability: 'database_diagnostics',
+          };
+          setSessions((prev) => [dbSession, ...prev]);
+          setActiveSession(dbSession);
           setCurrentPhase(session.status);
           setConfidence(session.confidence);
           setViewState('investigation');
