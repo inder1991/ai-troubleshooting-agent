@@ -399,6 +399,7 @@ export interface V4Findings {
   /** Manual evidence pins collected from live investigation steering (user_chat / quick_action) */
   evidence_pins?: EvidencePinV2[];
   causal_forest?: CausalTree[];
+  evidence_graph?: EvidenceGraphData;
   // Diagnostic scope (returned by backend)
   diagnostic_scope?: DiagnosticScope;
   scope_coverage?: number;
@@ -1162,6 +1163,50 @@ export interface CausalTree {
   operational_recommendations: OperationalRecommendation[];
   triage_status: TriageStatus;
   resource_refs: ResourceRef[];
+}
+
+// Evidence Graph types (Phase 1)
+export interface GraphNode {
+  id: string;
+  node_type: 'error_event' | 'metric_anomaly' | 'k8s_event' | 'trace_span' | 'code_change' | 'config_change' | 'code_location';
+  data: Record<string, unknown>;
+  timestamp: number;
+  confidence: number;
+  severity: string;
+  agent_source: string;
+}
+
+export interface GraphEdge {
+  source: string;
+  target: string;
+  edge_type: 'causes' | 'triggers' | 'manifests_as' | 'correlates_with' | 'precedes' | 'located_in';
+  confidence: number;
+  reasoning: string;
+  created_by: string;
+  temporal_delta_ms?: number;
+}
+
+export interface CausalPath {
+  root: string;
+  leaf: string;
+  path: string[];
+  total_confidence: number;
+}
+
+export interface EvidenceGraphData {
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+  root_causes: Array<{ node_id: string; score: number }>;
+  causal_paths: CausalPath[];
+}
+
+// Chat Tool Call types (Phase 2)
+export interface ChatToolCallEvent {
+  tool: string;
+  input: Record<string, unknown>;
+  status: 'running' | 'complete' | 'error';
+  result_summary?: string;
+  tool_use_id?: string;
 }
 
 export interface TelescopeResource {
