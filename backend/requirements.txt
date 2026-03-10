@@ -37,6 +37,7 @@ cryptography>=41.0.0
 
 # Optional: Database & Caching
 redis[hiredis]>=5.0
+motor>=3.3.0
 # sqlalchemy==2.0.25
 
 # Testing
