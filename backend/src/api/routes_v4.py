@@ -353,6 +353,8 @@ async def start_session(request: StartSessionRequest, background_tasks: Backgrou
 
         logger.info("DB diagnostics session created", extra={"session_id": session_id, "action": "session_created", "extra": "database_diagnostics"})
 
+        background_tasks.add_task(run_db_diagnosis, session_id, sessions[session_id]["db_context"], emitter)
+
         return StartSessionResponse(
             session_id=session_id,
             incident_id=incident_id,
@@ -596,6 +598,84 @@ async def run_diagnosis(session_id: str, supervisor: SupervisorAgent, initial_in
         await emitter.emit("supervisor", "error", f"Diagnosis failed: {str(e)}")
     finally:
         _diagnosis_tasks.pop(session_id, None)
+
+
+async def run_db_diagnosis(session_id: str, db_context: dict, emitter):
+    """Background task: run LangGraph V2 database diagnostics."""
+    from src.agents.database.graph_v2 import build_db_diagnostic_graph_v2
+    from src.database.evidence_store import EvidenceStore
+
+    lock = session_locks.get(session_id, asyncio.Lock())
+    try:
+        graph = build_db_diagnostic_graph_v2()
+
+        investigation_mode = "contextual" if db_context.get("parent_session_id") else "standalone"
+
+        initial_state = {
+            "run_id": f"R-{session_id[:8]}",
+            "session_id": session_id,
+            "profile_id": db_context["profile_id"],
+            "profile_name": db_context.get("profile_id", "unknown"),
+            "host": "",
+            "port": 5432,
+            "database": "",
+            "engine": "postgresql",
+            "investigation_mode": investigation_mode,
+            "sampling_mode": db_context.get("sampling_mode", "standard"),
+            "focus": db_context.get("focus", ["queries", "connections", "storage"]),
+            "table_filter": db_context.get("table_filter", []),
+            "include_explain_plans": db_context.get("include_explain_plans", False),
+            "parent_session_id": db_context.get("parent_session_id", ""),
+            "status": "running",
+            "findings": [],
+            "query_findings": [],
+            "health_findings": [],
+            "schema_findings": [],
+            "summary": "",
+            "_emitter": emitter,
+        }
+
+        # Try to resolve adapter from profile
+        try:
+            from src.database.adapters.registry import adapter_registry
+            adapter = adapter_registry.get_by_profile(db_context["profile_id"])
+            if adapter:
+                initial_state["_adapter"] = adapter
+            else:
+                await emitter.emit("supervisor", "error", f"No adapter found for profile {db_context['profile_id']}")
+                async with lock:
+                    if session_id in sessions:
+                        sessions[session_id]["phase"] = "error"
+                return
+        except ImportError:
+            # Adapter registry not yet implemented — skip execution
+            logger.warning("Adapter registry not available, skipping DB diagnosis execution")
+            await emitter.emit("supervisor", "warning", "Database adapter not configured — diagnosis skipped")
+            async with lock:
+                if session_id in sessions:
+                    sessions[session_id]["phase"] = "error"
+            return
+
+        result = await asyncio.wait_for(graph.ainvoke(initial_state), timeout=180)
+
+        async with lock:
+            if session_id in sessions:
+                sessions[session_id]["state"] = result
+                sessions[session_id]["phase"] = "complete" if result.get("status") == "completed" else "error"
+                sessions[session_id]["confidence"] = 85
+
+    except asyncio.TimeoutError:
+        logger.error("DB diagnosis timed out for session %s", session_id)
+        async with lock:
+            if session_id in sessions:
+                sessions[session_id]["phase"] = "error"
+        await emitter.emit("supervisor", "error", "DB diagnosis timed out after 180s")
+    except Exception as e:
+        logger.error("DB diagnosis failed: %s", e)
+        async with lock:
+            if session_id in sessions:
+                sessions[session_id]["phase"] = "error"
+        await emitter.emit("supervisor", "error", f"DB diagnosis failed: {e}")
 
 
 CLUSTER_CHAT_HISTORY_CAP = 20
