@@ -147,12 +147,117 @@ _build_agent_context()              ◄── UNTOUCHED
 
 **Graph algorithms:**
 
-1. **Root cause ranking** — Weighted PageRank on reversed graph. Nodes with highest authority score = most-likely root cause. Replaces trivial in-degree-zero heuristic.
+1. **Root cause ranking — Causal Influence Scoring** (replaces PageRank):
+
+   PageRank favors highly-connected nodes, not necessarily causes. In incidents, the true root cause often has few outgoing edges but many downstream effects. We use a composite causal influence score instead:
+
+   ```python
+   def rank_root_causes(self) -> list[tuple[str, float]]:
+       """Composite scoring: downstream reach + temporal priority + critic confidence."""
+       scores = {}
+       all_timestamps = [self.G.nodes[n].get("timestamp") for n in self.G.nodes if self.G.nodes[n].get("timestamp")]
+       t_min = min(all_timestamps) if all_timestamps else 0
+       t_max = max(all_timestamps) if all_timestamps else 1
+       t_range = max(t_max - t_min, 1)
+
+       for node in self.G.nodes:
+           # α: downstream reach — how many nodes are reachable from this node
+           reachable = len(nx.descendants(self.G, node))
+           max_reachable = max(len(self.G.nodes) - 1, 1)
+           downstream_reach = reachable / max_reachable
+
+           # β: temporal priority — earlier events score higher
+           t = self.G.nodes[node].get("timestamp", t_max)
+           temporal_priority = 1.0 - ((t - t_min) / t_range)
+
+           # γ: critic confidence — mean confidence of outgoing edges
+           out_edges = self.G.out_edges(node, data=True)
+           edge_confidences = [e[2].get("confidence", 0.5) for e in out_edges]
+           critic_confidence = sum(edge_confidences) / len(edge_confidences) if edge_confidences else 0.5
+
+           # Weighted composite (α=0.4, β=0.35, γ=0.25)
+           scores[node] = 0.4 * downstream_reach + 0.35 * temporal_priority + 0.25 * critic_confidence
+
+       return sorted(scores.items(), key=lambda x: x[1], reverse=True)
+   ```
+
+   **Why these weights:** Downstream reach (0.4) is the strongest signal — root causes propagate widely. Temporal priority (0.35) captures "first mover" — causes precede effects. Critic confidence (0.25) is a tiebreaker — validated causal edges increase trust.
+
 2. **Causal path extraction** — Dijkstra shortest path (weight = 1 - edge.confidence) from each root cause to each symptom. Produces ordered causal chains for the reasoning panel.
 3. **Temporal consistency** — Post-edge-creation sweep: reject edges where source.timestamp > target.timestamp (effect before cause). Log as invariant violation.
 4. **Cycle detection** — `networkx.find_cycle()`. Break cycles by removing lowest-confidence edge. Log broken cycles.
 5. **Blast radius (graph-based)** — BFS from root cause node. Count reachable nodes grouped by type. Replaces the current list-based blast radius that depends on caller-supplied lists.
 6. **Subgraph extraction** — Given a node, extract its 2-hop neighborhood for focused UI rendering.
+
+7. **Graph embeddings for incident similarity** (Phase 2 — after base graph is stable):
+
+   Structural graph alone cannot find similar past incidents. Graph embeddings enable vector-based similarity search against the memory store.
+
+   ```python
+   class GraphEmbedder:
+       """Generate fixed-size vector embedding of an incident graph."""
+
+       def __init__(self, dim: int = 64):
+           self.dim = dim
+
+       def embed(self, graph: nx.DiGraph) -> np.ndarray:
+           """Node2Vec-style embedding: random walks → Word2Vec → mean-pool."""
+           if len(graph.nodes) < 2:
+               return np.zeros(self.dim)
+
+           # Generate random walks (10 walks per node, length 20)
+           walks = self._random_walks(graph, num_walks=10, walk_length=20)
+
+           # Train lightweight Word2Vec on walk sequences
+           # Use node type + severity as "word" (not raw node ID)
+           word_sequences = [
+               [f"{graph.nodes[n].get('node_type', 'unknown')}_{graph.nodes[n].get('severity', 'medium')}" for n in walk]
+               for walk in walks
+           ]
+
+           from gensim.models import Word2Vec
+           model = Word2Vec(word_sequences, vector_size=self.dim, window=5, min_count=1, epochs=10, workers=1)
+
+           # Mean-pool all node vectors
+           vectors = [model.wv[f"{graph.nodes[n].get('node_type')}_{graph.nodes[n].get('severity')}"]
+                      for n in graph.nodes if f"{graph.nodes[n].get('node_type')}_{graph.nodes[n].get('severity')}" in model.wv]
+           return np.mean(vectors, axis=0) if vectors else np.zeros(self.dim)
+
+       def _random_walks(self, graph, num_walks, walk_length):
+           walks = []
+           nodes = list(graph.nodes)
+           for _ in range(num_walks):
+               for start in nodes:
+                   walk = [start]
+                   for _ in range(walk_length - 1):
+                       neighbors = list(graph.successors(walk[-1]))
+                       if not neighbors:
+                           break
+                       walk.append(random.choice(neighbors))
+                   walks.append(walk)
+           return walks
+   ```
+
+   **Integration with memory store:**
+
+   ```python
+   # In MemoryStore — extend existing Jaccard fingerprint matching:
+   def store_incident(self, session_id: str, graph: IncidentGraph, resolution: dict):
+       embedding = self.embedder.embed(graph.G)
+       self.embeddings[session_id] = embedding  # Stored alongside existing JSON memory
+
+   def find_similar_incidents(self, graph: IncidentGraph, top_k: int = 5) -> list[dict]:
+       query_vec = self.embedder.embed(graph.G)
+       similarities = [
+           (sid, cosine_similarity(query_vec, vec))
+           for sid, vec in self.embeddings.items()
+       ]
+       return sorted(similarities, key=lambda x: x[1], reverse=True)[:top_k]
+   ```
+
+   **Dependencies:** `gensim` (for Word2Vec) and `numpy`. Both are lightweight. No vector DB needed — cosine similarity over <1000 stored embeddings is fast enough in-memory.
+
+   **Fallback:** Until enough incidents are stored (< 10), fall back to existing Jaccard fingerprint matching. Graph embeddings phase in as data accumulates.
 
 **Integration into supervisor (additive):**
 
@@ -250,11 +355,21 @@ class DeterministicValidator:
         return PreCheckResult(status="pass")
 ```
 
-**Stage 2: LLM Ensemble Debate (3 calls, Sonnet-tier)**
+**Stage 2: LLM Ensemble Debate (4 roles, Sonnet-tier)**
+
+Four-role debate: **Advocate → Challenger → Evidence Retriever → Judge**
+
+The Evidence Retriever role prevents debates based on incomplete evidence. Before the Judge deliberates, the Retriever fetches additional data that Advocate/Challenger arguments reference but don't have.
 
 ```python
 class EnsembleCritic:
-    """Three-role debate: Advocate, Challenger, Judge."""
+    """Four-role debate: Advocate, Challenger, Evidence Retriever, Judge."""
+
+    RETRIEVER_TOOLS = [
+        {"name": "query_logs", "desc": "Search ES logs by keyword/time range"},
+        {"name": "query_metrics", "desc": "Query Prometheus for metric values"},
+        {"name": "search_similar_incidents", "desc": "Find past incidents with similar patterns"},
+    ]
 
     async def validate(self, finding: Finding, state: DiagnosticState, graph: IncidentGraph) -> EnrichedVerdict:
         # Pre-check
@@ -264,7 +379,7 @@ class EnsembleCritic:
 
         evidence_context = self._build_evidence_context(finding, state, graph)
 
-        # Advocate: argues FOR the finding
+        # 1. Advocate: argues FOR the finding
         advocate_result = await self.llm.chat(
             system="You are an advocate. Argue why this finding is valid...",
             messages=[{"role": "user", "content": evidence_context}],
@@ -272,7 +387,7 @@ class EnsembleCritic:
             temperature=0.0,
         )
 
-        # Challenger: argues AGAINST the finding
+        # 2. Challenger: argues AGAINST the finding
         challenger_result = await self.llm.chat(
             system="You are a challenger. Find contradictions, alternative explanations...",
             messages=[{"role": "user", "content": evidence_context}],
@@ -280,21 +395,70 @@ class EnsembleCritic:
             temperature=0.3,  # Higher temp for creative counter-arguments
         )
 
-        # Judge: reads both, produces structured verdict
+        # 3. Evidence Retriever: fetches additional evidence referenced in debate
+        retriever_result = await self._run_evidence_retriever(
+            advocate_result, challenger_result, evidence_context, state
+        )
+
+        # 4. Judge: reads all three, produces structured verdict
         judge_result = await self.llm.chat(
             system=JUDGE_SYSTEM_PROMPT,  # Includes graph edge output schema
             messages=[{
                 "role": "user",
-                "content": f"ADVOCATE:\n{advocate_result}\n\nCHALLENGER:\n{challenger_result}\n\nRAW EVIDENCE:\n{evidence_context}"
+                "content": (
+                    f"ADVOCATE:\n{advocate_result}\n\n"
+                    f"CHALLENGER:\n{challenger_result}\n\n"
+                    f"ADDITIONAL EVIDENCE:\n{retriever_result}\n\n"
+                    f"RAW EVIDENCE:\n{evidence_context}"
+                )
             }],
             model="claude-sonnet-4-20250514",
             temperature=0.0,
         )
 
         verdict = self._parse_judge_output(judge_result)
-        # verdict.graph_edges: [{source_pin_id, target_pin_id, edge_type, confidence}]
-        # These edges are written into the IncidentGraph by the supervisor
         return verdict
+
+    async def _run_evidence_retriever(self, advocate: str, challenger: str,
+                                       context: str, state: DiagnosticState) -> str:
+        """Evidence Retriever: identifies gaps in the debate and fetches missing data."""
+        response = await self.llm.chat_with_tools(
+            system=(
+                "You are an evidence retriever. Read the advocate and challenger arguments. "
+                "Identify claims that reference data not present in the evidence context. "
+                "Use your tools to fetch that missing data. Return a structured summary of "
+                "what you found. Do NOT argue for or against — just retrieve facts."
+            ),
+            messages=[{
+                "role": "user",
+                "content": f"ADVOCATE:\n{advocate}\n\nCHALLENGER:\n{challenger}\n\nAVAILABLE EVIDENCE:\n{context}"
+            }],
+            tools=self.RETRIEVER_TOOLS,
+            model="claude-sonnet-4-20250514",
+            temperature=0.0,
+        )
+        # Execute up to 3 tool calls, collect results
+        return await self._execute_retriever_tools(response, state, max_calls=3)
+```
+
+**Retriever tool execution reuses existing agent infrastructure:**
+
+```python
+async def _execute_retriever_tools(self, response, state, max_calls=3):
+    """Execute retriever tool calls using existing agent tool functions."""
+    results = []
+    calls = 0
+    for block in response.content:
+        if block.type == "tool_use" and calls < max_calls:
+            if block.name == "query_logs":
+                result = await self.log_agent._search_elasticsearch(block.input)
+            elif block.name == "query_metrics":
+                result = await self.metrics_agent._execute_tool("query_prometheus_range", block.input)
+            elif block.name == "search_similar_incidents":
+                result = self.memory_store.find_similar(block.input.get("pattern", ""))
+            results.append(f"[{block.name}]: {json.dumps(result)[:2000]}")
+            calls += 1
+    return "\n".join(results) if results else "No additional evidence retrieved."
 ```
 
 **Judge output schema:**
@@ -335,38 +499,71 @@ for edge in verdict.graph_edges:
 state.incident_graph_builder.rank_root_causes()  # Re-rank after new edges
 ```
 
-**Confidence calibration:**
+**Confidence calibration — Bayesian approach:**
+
+Platt scaling (logistic curve fitting) requires 50+ labeled samples to be useful and doesn't incorporate domain knowledge. Bayesian calibration is more robust for low-data scenarios because it factors in prior incident accuracy, critic consensus, and evidence count.
 
 ```python
-class ConfidenceCalibrator:
-    """Platt scaling: maps raw LLM confidence → calibrated probability."""
+class BayesianConfidenceCalibrator:
+    """Bayesian calibration: prior × critic_score × evidence_weight → posterior confidence."""
 
     def __init__(self, memory_store: MemoryStore):
-        self.history = []  # (raw_confidence, was_correct) pairs
-        self.A = 0.0  # Platt parameter
-        self.B = 1.0  # Platt parameter
+        self.memory_store = memory_store
+        self.agent_accuracy_priors: dict[str, float] = {}  # Learned per-agent accuracy
 
-    def calibrate(self, raw_confidence: float) -> float:
-        """Apply logistic calibration: P(correct) = 1 / (1 + exp(A * raw + B))"""
-        if len(self.history) < 50:
-            return raw_confidence  # Not enough data, pass through
-        return 1.0 / (1.0 + math.exp(self.A * raw_confidence + self.B))
+    def calibrate(self, finding: Finding, verdict: EnrichedVerdict) -> float:
+        """
+        posterior = prior_accuracy × critic_score × evidence_count_weight
 
-    def record_outcome(self, raw_confidence: float, was_correct: bool):
-        """Called after incident resolution to track accuracy."""
-        self.history.append((raw_confidence, was_correct))
-        if len(self.history) >= 50:
-            self._fit_platt()  # Re-fit logistic curve
+        - prior_accuracy: historical accuracy of this agent type (from resolved incidents)
+        - critic_score: ensemble verdict confidence (0.0-1.0)
+        - evidence_count_weight: diminishing-returns factor for corroborating evidence count
+        """
+        # Prior: agent's historical accuracy (default 0.65 for new agents)
+        prior = self.agent_accuracy_priors.get(finding.agent, 0.65)
 
-    def _fit_platt(self):
-        """Fit A, B parameters using scipy.optimize or manual gradient descent."""
-        # Standard Platt scaling implementation
-        pass
+        # Critic score: from ensemble debate
+        critic_score = verdict.confidence
+
+        # Evidence weight: log-scale so 1 piece = 0.7, 3 pieces = 0.9, 5+ pieces ≈ 1.0
+        evidence_count = len(verdict.supporting_evidence)
+        evidence_weight = min(1.0, 0.5 + 0.2 * math.log1p(evidence_count))
+
+        # Bayesian posterior (normalized product)
+        raw_posterior = prior * critic_score * evidence_weight
+
+        # Normalize to [0.0, 1.0] — raw_posterior max is 1.0×1.0×1.0 = 1.0
+        return round(min(1.0, max(0.0, raw_posterior)), 3)
+
+    def update_priors(self, session_id: str, was_correct: dict[str, bool]):
+        """Called after incident resolution. Updates per-agent accuracy priors."""
+        for agent_name, correct in was_correct.items():
+            current = self.agent_accuracy_priors.get(agent_name, 0.65)
+            # Exponential moving average (α=0.1)
+            self.agent_accuracy_priors[agent_name] = 0.9 * current + 0.1 * (1.0 if correct else 0.0)
+
+    def get_calibration_breakdown(self, finding: Finding, verdict: EnrichedVerdict) -> dict:
+        """Return breakdown for UI display (raw vs calibrated with factor visibility)."""
+        prior = self.agent_accuracy_priors.get(finding.agent, 0.65)
+        evidence_count = len(verdict.supporting_evidence)
+        evidence_weight = min(1.0, 0.5 + 0.2 * math.log1p(evidence_count))
+        return {
+            "raw_confidence": finding.confidence,
+            "calibrated_confidence": self.calibrate(finding, verdict),
+            "factors": {
+                "agent_prior": prior,
+                "critic_score": verdict.confidence,
+                "evidence_weight": evidence_weight,
+                "evidence_count": evidence_count,
+            },
+        }
 ```
 
-**Budget:** 3 Sonnet calls per finding. For P1/P2 incidents, escalate Judge to Opus. Configurable via env var `CRITIC_ENSEMBLE_MODEL`.
+**Example:** Agent reports 85% confidence. Prior accuracy = 0.65, critic score = 0.8, 2 supporting evidence pieces → evidence_weight = 0.72. Calibrated = 0.65 × 0.8 × 0.72 = **0.37**. This correctly reflects that the agent historically over-reports confidence.
 
-**Fallback:** If ensemble times out (30s per role, 90s total), fall back to single-pass critic with `validation_status="pending_critic"` and retry in background.
+**Budget:** 4 Sonnet calls per finding (Advocate + Challenger + Retriever + Judge). For P1/P2 incidents, escalate Judge to Opus. Configurable via env var `CRITIC_ENSEMBLE_MODEL`.
+
+**Fallback:** If ensemble times out (30s per role, 120s total), fall back to single-pass critic with `validation_status="pending_critic"` and retry in background.
 
 ---
 
@@ -444,18 +641,21 @@ async def handle_user_message(self, message: str, state: DiagnosticState, emitte
             return text
 
         if response.stop_reason == "tool_use":
-            # Execute tool calls, emit tool_call events for UI timeline
-            tool_results = []
-            for block in response.content:
-                if block.type == "tool_use":
-                    result = await self._execute_chat_tool(block.name, block.input, state)
-                    await emitter.emit("task_event", {
-                        "event_type": "tool_call",
-                        "agent": "chat",
-                        "tool": block.name,
-                        "details": {"input": block.input, "success": result.success},
-                    })
-                    tool_results.append({"type": "tool_result", "tool_use_id": block.id, "content": result.output})
+            # Execute tool calls IN PARALLEL, emit tool_call events for UI timeline
+            tool_blocks = [b for b in response.content if b.type == "tool_use"]
+
+            # Parallel execution — query_prometheus, query_logs, query_trace can all run simultaneously
+            async def _exec_one(block):
+                result = await self._execute_chat_tool(block.name, block.input, state)
+                await emitter.emit("task_event", {
+                    "event_type": "tool_call",
+                    "agent": "chat",
+                    "tool": block.name,
+                    "details": {"input": block.input, "success": result.success},
+                })
+                return {"type": "tool_result", "tool_use_id": block.id, "content": result.output}
+
+            tool_results = await asyncio.gather(*[_exec_one(b) for b in tool_blocks])
             conversation.extend([response, *tool_results])
 
     # Budget exhausted — return what we have
@@ -463,6 +663,8 @@ async def handle_user_message(self, message: str, state: DiagnosticState, emitte
 ```
 
 **Streaming:** Only the final text response is streamed via WebSocket. Tool call execution happens server-side; tool_call events are emitted to the UI timeline for transparency.
+
+**Parallel tool execution:** When the LLM requests multiple tools in a single turn (e.g., `query_prometheus` + `query_logs` + `query_trace` simultaneously), all calls run via `asyncio.gather()`. This avoids sequential latency — 3 parallel queries at 2s each = 2s total instead of 6s. The Anthropic API natively supports multiple `tool_use` blocks in a single response.
 
 ### 2B. Re-enable Tracing Agent
 
@@ -687,7 +889,77 @@ def _group_by_repo(self, repo_fixes: list[CampaignRepoFix]) -> dict[str, list]:
     # Services in same repo get a single clone + single PR with combined changes
 ```
 
-### 3C. Multi-File Change Visibility (Frontend)
+### 3C. Service Dependency Graph for Campaign Ordering
+
+Currently, campaign fix ordering relies on `causal_role` assigned by the critic. But without knowing the actual service dependency graph, fixes can be generated in wrong order (e.g., fixing a downstream consumer before fixing the upstream provider).
+
+**Service dependency graph** provides topological ordering for campaigns.
+
+```python
+class ServiceDependencyGraph:
+    """Service-to-service dependency graph for fix ordering."""
+
+    def __init__(self):
+        self.G = nx.DiGraph()  # Reuse same NetworkX pattern as incident graph
+
+    def build_from_sources(self, state: DiagnosticState):
+        """Build service graph from multiple data sources."""
+        # Source 1: Trace spans (service A calls service B)
+        if state.trace_analysis:
+            for span in state.trace_analysis.get("spans", []):
+                parent_svc = span.get("service")
+                child_svc = span.get("child_service")
+                if parent_svc and child_svc and parent_svc != child_svc:
+                    self.G.add_edge(parent_svc, child_svc, source="tracing")
+
+        # Source 2: K8s services (from env vars, configmaps referencing other services)
+        if state.k8s_analysis:
+            for dep in state.k8s_analysis.get("service_dependencies", []):
+                self.G.add_edge(dep["from"], dep["to"], source="k8s")
+
+        # Source 3: Network topology (if available from NDM)
+        if hasattr(state, 'network_topology'):
+            for edge in state.network_topology.get("edges", []):
+                self.G.add_edge(edge["source"], edge["target"], source="network")
+
+    def get_fix_order(self, affected_services: list[str]) -> list[str]:
+        """Return topologically sorted fix order: upstream (root) → downstream (leaf)."""
+        subgraph = self.G.subgraph(affected_services)
+        try:
+            return list(nx.topological_sort(subgraph))
+        except nx.NetworkXUnfeasible:
+            # Cycle detected — fall back to causal_role ordering
+            return affected_services
+
+    def get_blast_radius(self, service: str) -> dict:
+        """What services are downstream of a given service?"""
+        downstream = list(nx.descendants(self.G, service))
+        return {
+            "direct_dependents": list(self.G.successors(service)),
+            "transitive_dependents": downstream,
+            "total_affected": len(downstream) + 1,
+        }
+```
+
+**Integration with CampaignOrchestrator:**
+
+```python
+# campaign_orchestrator.py — replace sorted_by_causal_order:
+service_graph = ServiceDependencyGraph()
+service_graph.build_from_sources(state)
+
+# Topological sort: fix root services first, then downstream
+affected_services = [fix.service_name for fix in repo_fixes]
+fix_order = service_graph.get_fix_order(affected_services)
+
+# Reorder repo_fixes by service graph topology
+sorted_fixes = sorted(repo_fixes, key=lambda f: fix_order.index(f.service_name)
+                       if f.service_name in fix_order else len(fix_order))
+```
+
+**Fallback:** If no service graph can be built (no tracing data, no K8s deps), fall back to existing `causal_role` ordering.
+
+### 3D. Multi-File Change Visibility (Frontend)
 
 **Enhanced SurgicalTelescope:**
 
@@ -792,24 +1064,78 @@ Injected into:
 ### New Files
 | File | Description |
 |------|-------------|
-| `backend/src/agents/incident_graph.py` | IncidentGraphBuilder — NetworkX graph + SQLite persistence |
-| `backend/src/agents/critic_ensemble.py` | EnsembleCritic — Advocate/Challenger/Judge + calibration |
+| `backend/src/agents/incident_graph.py` | IncidentGraphBuilder — NetworkX graph + SQLite persistence + Causal Influence Scoring |
+| `backend/src/agents/graph_embedder.py` | GraphEmbedder — Node2Vec embeddings for incident similarity search |
+| `backend/src/agents/critic_ensemble.py` | EnsembleCritic — Advocate/Challenger/Retriever/Judge + Bayesian calibration |
+| `backend/src/agents/service_dependency.py` | ServiceDependencyGraph — service-to-service topology for campaign ordering |
 | `backend/src/prompts/rules.py` | Shared grounding/citation/temporal rules |
 | `backend/src/prompts/agent_prompts.py` | Extracted per-agent system prompts |
 | `backend/src/prompts/chat_prompts.py` | Chat-specific rules and tool descriptions |
 | `backend/src/utils/token_budget.py` | Token estimation and context truncation |
 
-### Modified Files
+### Modified Files — Backend
 | File | Change |
 |------|--------|
 | `backend/src/models/schemas.py` | Add `evidence_graph` field to DiagnosticState, `RepoType` enum |
-| `backend/src/agents/supervisor.py` | Add `_ingest_into_graph()` (additive), upgrade `handle_user_message()` to tool calling, uncomment tracing_agent, add infra repo prompt |
+| `backend/src/agents/supervisor.py` | Add `_ingest_into_graph()` (additive), upgrade `handle_user_message()` to parallel tool calling, uncomment tracing_agent, add infra repo prompt |
 | `backend/src/agents/code_agent.py` | Add `_detect_repo_type()`, infra-repo-aware prompting |
 | `backend/src/agents/fix_generator.py` | Add infra-specific fix rules, prior-fix context injection |
-| `backend/src/agents/campaign_orchestrator.py` | Dependent fix generation, cross-repo PR linking, monorepo grouping |
+| `backend/src/agents/campaign_orchestrator.py` | Dependent fix generation, cross-repo PR linking, monorepo grouping, service graph-based fix ordering |
 | `backend/src/api/routes_v4.py` | Add `evidence_graph` to findings response |
-| `frontend/src/components/Investigation/SurgicalTelescope.tsx` | File tree sidebar, per-file navigation |
-| `frontend/src/components/Investigation/EvidenceFindings.tsx` | Cross-correlation click-through links |
+
+### Modified + New Files — Frontend (13 modified, 2 new)
+
+#### Phase 1: Foundation (Evidence Graph + Critic Ensemble)
+
+| File | Change | Details |
+|------|--------|---------|
+| `frontend/src/types/index.ts` | **Modify** | Add `EvidenceGraph`, `GraphNode`, `GraphEdge`, `CausalPath` types. Extend `V4Findings` with `evidence_graph?: EvidenceGraph` field |
+| `frontend/src/components/Investigation/EvidenceFindings.tsx` | **Modify** | Add "Evidence Graph" section (renders `EvidenceGraphView`) + anchor bar entry. Note: `ErrorPattern.sample_logs` and `correlation_ids` are typed but **never rendered** — add renders here |
+| `frontend/src/components/Investigation/cards/EvidenceGraphView.tsx` | **NEW** | Interactive DAG visualization of evidence graph. D3-force or dagre layout. Nodes colored by type, edges labeled by relationship. Click node → scroll to finding. Minimap toggle. |
+| `frontend/src/components/Investigation/CausalForestView.tsx` | **Modify** | Add optional `graphSource` prop. When evidence graph exists, derive `CausalTree[]` from graph's `causal_paths` instead of flat `findings.causal_tree`. Fallback to existing behavior when no graph. |
+| `frontend/src/components/Investigation/Navigator.tsx` | **Modify** | Add optional graph minimap in topology section. Show root cause count badge from graph's `root_causes[]` array. |
+| `frontend/src/components/Investigation/WorkerSignature.tsx` | **Modify** | Display calibrated confidence (from Platt scaling) alongside raw agent confidence. Show `calibrated: 72%` vs `raw: 85%` when available. |
+
+#### Phase 2: Intelligence (Chat Tool Calling + Tracing + Prompts)
+
+| File | Change | Details |
+|------|--------|---------|
+| `frontend/src/hooks/useWebSocket.ts` | **Modify** | Add `chat_tool_call` message type handler. Dispatch tool call events to ChatContext. Currently only handles: `task_event`, `chat_chunk`, `chat_response`, `connected`. |
+| `frontend/src/App.tsx` | **Modify** | Wire `chat_tool_call` events from WebSocket into ChatContext. Pass through investigation bridge. |
+| `frontend/src/contexts/ChatContext.tsx` | **Modify** | Add `activeToolCalls: ChatToolCallEvent[]` state. Replace heuristic-only `isWaiting` (currently checks for `?` or "confirm" in message text) with server-driven `waiting_for_input` events. |
+| `frontend/src/components/Chat/ChatDrawer.tsx` | **Modify** | Add `ToolCallPill` inline component — shows tool name + spinner during execution, result summary on completion. E.g., `🔍 query_prometheus ✓ 3 results`. No tool calls currently rendered. |
+| `frontend/src/types/index.ts` | **Modify** | Add `ChatToolCallEvent { tool: string; input: object; status: 'running' \| 'complete' \| 'error'; result_summary?: string }` |
+| `frontend/src/components/Investigation/cards/TraceWaterfall.tsx` | **NEW** | Extract from inline definition in `EvidenceFindings.tsx` (~lines 680-750) into standalone component. Enhance with: `start_offset_ms` for proper horizontal positioning, `trace_id` grouping, critical path highlighting. Current `SpanInfo` type is missing these fields — extend in `types/index.ts`. |
+
+#### Phase 3: Multi-Repo + Infra Fix Visibility
+
+| File | Change | Details |
+|------|--------|---------|
+| `frontend/src/App.tsx` | **Modify** | Handle `infra_repo_request` event type from supervisor. Bridge to ChatDrawer as action chip. |
+| `frontend/src/components/Chat/ChatDrawer.tsx` | **Modify** | Add `infra_repo_request` to `deriveActionChips()`. Currently handles: `code_agent_question`, `repo_mismatch`, `fix_proposal`. |
+| `frontend/src/components/Investigation/SurgicalTelescope.tsx` | **Modify** | Add file tree sidebar (200px left panel) with `+N/-M` line counts per file. Currently shows basename-only tabs with no change counts. Add synchronized scroll between file tree selection and diff viewport. |
+| `frontend/src/components/Investigation/CampaignRepoNode.tsx` | **Modify** | Replace 500-char truncated diff preview with syntax-highlighted expandable diff. Add language detection from file extension. |
+| `frontend/src/components/Investigation/CampaignOrchestrationHub.tsx` | **Modify** | Add cross-repo PR link table (matching backend's campaign PR body format). Show coordinated fix campaign status across repos. |
+| `frontend/src/types/campaign.ts` | **Modify** | Add `related_prs: { repo: string; pr_number: number; status: string }[]` to campaign types |
+
+#### Phase 4: Polish (Correlations + Anchor Fixes)
+
+| File | Change | Details |
+|------|--------|---------|
+| `frontend/src/components/Investigation/EvidenceFindings.tsx` | **Modify** | (1) Add cross-correlation click handlers: metric timestamp → filter logs ±2min, trace_id in logs → scroll to TraceWaterfall, span operation → open SurgicalTelescope. (2) Render `ErrorPattern.sample_logs` (currently dead data path — typed but never displayed). (3) Fix Evidence Anchor Bar: currently 7 sections with NO anchor links and trace count uses unfiltered count vs filtered in render. Add `IntersectionObserver` for scroll-spy + click-to-scroll. |
+
+#### Frontend Gaps Discovered During Analysis
+
+| Gap | Location | Impact |
+|-----|----------|--------|
+| `ErrorPattern.sample_logs` never rendered | `EvidenceFindings.tsx` | Users can't see raw log samples for error patterns |
+| `correlation_ids` never rendered | `EvidenceFindings.tsx` | Cross-service correlation IDs invisible |
+| `isWaiting` is heuristic-only | `ChatContext.tsx` | Checks message text for `?` or "confirm" instead of using server `waiting_for_input` events |
+| `TraceWaterfall` defined inline | `EvidenceFindings.tsx:680-750` | Not reusable, not testable, can't be used in Phase 2 tool call rendering |
+| `SpanInfo` missing fields | `types/index.ts` | Missing `start_offset_ms`, `trace_id`, `critical_path` — waterfall can't render properly |
+| Anchor bar has no anchors | `EvidenceFindings.tsx` | 7 section headers rendered but no `IntersectionObserver` or scroll-to behavior |
+| Anchor bar trace count mismatch | `EvidenceFindings.tsx` | Badge shows unfiltered `trace_spans.length` but render filters by `duration_ms` |
+| `api.ts` is passthrough | `services/api.ts` | `getFindings()` passes through all backend fields — no frontend changes needed for new fields |
 
 ### Untouched Files (explicit guarantee)
 | File | Guarantee |
@@ -838,9 +1164,12 @@ Injected into:
 
 | Risk | Mitigation |
 |------|-----------|
-| Ensemble Critic triples LLM cost per finding | Use Sonnet (not Opus) for Advocate/Challenger. Skip ensemble for low-severity findings (P3/P4). Configurable via env var. |
+| Ensemble Critic 4x LLM cost per finding | Use Sonnet for all 4 roles. Skip ensemble for low-severity findings (P3/P4). Retriever max 3 tool calls. Configurable via env var. |
 | Graph adds latency to agent pipeline | Graph operations are O(N) where N ≈ 10-50 nodes per incident. NetworkX handles this in <1ms. |
-| Chat tool calls slow down responses | Max 5 tool calls per message. Tool timeout at 10s each. Stream final text response only. |
+| Chat tool calls slow down responses | Max 5 tool calls per message. **Parallel execution** via `asyncio.gather()`. Tool timeout at 10s each. |
 | Token overflow in ensemble debate | Apply `enforce_budget()` before each debate call. Truncate evidence context if needed. |
 | Tracing agent fails on missing Jaeger | Prerequisite check already exists. Falls back to ELK trace reconstruction. |
 | Infra fix generates wrong Helm syntax | Add Helm/Terraform linters as post-fix validators alongside existing `StaticValidator`. |
+| Graph embeddings need `gensim` dependency | Lightweight (pip install gensim). Fallback to Jaccard matching until 10+ incidents stored. |
+| Service dependency graph incomplete | Multiple sources (tracing, K8s, network). Fallback to `causal_role` ordering if graph can't be built. |
+| Bayesian calibration cold-start | Default prior = 0.65 for unknown agents. Priors improve with resolved incidents (EMA α=0.1). |
