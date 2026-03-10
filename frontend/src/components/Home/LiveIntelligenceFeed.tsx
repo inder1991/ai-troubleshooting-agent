@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import type { V4Session, DiagnosticPhase } from '../../types';
 import { listSessionsV4 } from '../../services/api';
-import { ActivityFeedRow, SectionHeader, TimeRangeSelector, SkeletonLoader } from '../shared';
+import { ActivityFeedRow, SectionHeader, TimeRangeSelector } from '../shared';
 import type { SystemStatus } from '../shared';
 
 interface LiveIntelligenceFeedProps {
@@ -38,29 +39,21 @@ const computeDuration = (created: string, updated: string): string => {
 };
 
 const LiveIntelligenceFeed: React.FC<LiveIntelligenceFeedProps> = ({
-  sessions,
   onSessionsChange,
   onSelectSession,
 }) => {
-  const [loading, setLoading] = useState(false);
   const [timeRange, setTimeRange] = useState<string>('1h');
 
+  const { data: sessions = [], isLoading, isError } = useQuery({
+    queryKey: ['live-sessions'],
+    queryFn: listSessionsV4,
+    refetchInterval: 10000,
+    staleTime: 5000,
+  });
+
   useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      try {
-        const data = await listSessionsV4();
-        onSessionsChange(data);
-      } catch {
-        // silently fail
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-    const interval = setInterval(load, 10000);
-    return () => clearInterval(interval);
-  }, [onSessionsChange]);
+    onSessionsChange(sessions);
+  }, [sessions, onSessionsChange]);
 
   return (
     <section>
@@ -74,33 +67,32 @@ const LiveIntelligenceFeed: React.FC<LiveIntelligenceFeedProps> = ({
           />
         }
       >
-        {loading && (
-          <div className="w-3 h-3 border border-[#07b6d5] border-t-transparent rounded-full animate-spin" />
+        {isLoading && (
+          <div className="w-3 h-3 border border-duck-accent border-t-transparent rounded-full animate-spin" />
         )}
       </SectionHeader>
 
-      <div className="bg-[#0a1517] border border-[#224349] rounded-xl overflow-hidden">
+      <div className="bg-duck-panel border border-duck-border rounded-xl overflow-hidden">
         <div className="max-h-[480px] overflow-y-auto custom-scrollbar">
-          {loading && sessions.length === 0 ? (
-            <div className="flex flex-col gap-1 p-2">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <SkeletonLoader key={i} type="row" height="h-16" />
+          {isLoading && sessions.length === 0 ? (
+            <div className="space-y-2 p-2">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-16 rounded-md bg-duck-surface animate-pulse" style={{ opacity: 1 - i * 0.3 }} />
               ))}
             </div>
+          ) : isError && !isLoading ? (
+            <div className="flex flex-col items-center justify-center h-64 text-center">
+              <span className="material-symbols-outlined text-4xl text-red-500 mb-3" aria-hidden="true">wifi_off</span>
+              <p className="text-sm font-semibold text-slate-300 mb-1">Feed Disconnected</p>
+              <p className="text-xs text-slate-500">Failed to sync with the intelligence server. Retrying...</p>
+            </div>
           ) : sessions.length === 0 ? (
-            <div className="flex items-center justify-center py-20 text-slate-500">
-              <div className="text-center max-w-xs">
-                <span
-                  className="material-symbols-outlined text-4xl text-slate-600 mb-3 block"
-                  style={{ fontFamily: 'Material Symbols Outlined' }}
-                >
-                  satellite_alt
-                </span>
-                <p className="text-sm font-semibold text-slate-400 mb-1">No Active Sessions</p>
-                <p className="text-xs text-slate-600 leading-relaxed">
-                  Launch an investigation, PR review, or cluster scan from Quick Actions to begin monitoring.
-                </p>
+            <div className="flex flex-col items-center justify-center h-64 text-center">
+              <div className="w-16 h-16 rounded-full bg-duck-border/30 flex items-center justify-center mb-4">
+                <span className="material-symbols-outlined text-2xl text-duck-accent" aria-hidden="true">satellite_alt</span>
               </div>
+              <p className="text-sm font-semibold text-slate-300 mb-1">No Active Sessions</p>
+              <p className="text-xs text-slate-500 max-w-sm mx-auto">Launch an investigation from Quick Actions to begin monitoring.</p>
             </div>
           ) : (
             sessions.slice(0, 15).map((session) => {
