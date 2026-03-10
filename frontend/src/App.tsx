@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import type {
   V4Session,
   ChatMessage,
@@ -17,6 +17,8 @@ import { useWebSocketV4 } from './hooks/useWebSocket';
 import type { ChatStreamEndPayload } from './hooks/useWebSocket';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { API_BASE_URL, getSessionStatus, startSessionV4, submitAttestation } from './services/api';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { ToastProvider, useToast } from './components/Toast/ToastContext';
 import { ChatProvider } from './contexts/ChatContext';
 import { CampaignProvider } from './contexts/CampaignContext';
@@ -446,6 +448,18 @@ function AppInner() {
 
   const showSidebar = viewState !== 'investigation' && viewState !== 'dossier' && viewState !== 'cluster-diagnostics' && viewState !== 'agent-matrix' && viewState !== 'network-troubleshooting';
 
+  // Pin-responsive layout: shift main content when flyout is pinned
+  const [isSidebarPinned, setIsSidebarPinned] = useState(() => {
+    try { return localStorage.getItem('sidebar-pinned') === 'true'; } catch { return false; }
+  });
+  useEffect(() => {
+    const handlePinChange = () => {
+      try { setIsSidebarPinned(localStorage.getItem('sidebar-pinned') === 'true'); } catch { /* noop */ }
+    };
+    window.addEventListener('sidebar-pin-change', handlePinChange);
+    return () => window.removeEventListener('sidebar-pin-change', handlePinChange);
+  }, []);
+
   // Group parents are non-clickable text labels (no route)
   const breadcrumbMap: Record<string, { label: string; parent?: string }> = {
     home: { label: 'Dashboard' },
@@ -509,7 +523,10 @@ function AppInner() {
       )}
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <div
+        className="flex-1 flex flex-col min-w-0 overflow-hidden transition-all duration-300 ease-out"
+        style={{ paddingLeft: showSidebar && isSidebarPinned ? 215 : 0 }}
+      >
         {showSidebar && <Breadcrumbs items={getBreadcrumbs()} />}
 
         {viewState === 'home' && (
@@ -662,11 +679,23 @@ function AppInner() {
   );
 }
 
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: true,
+      retry: 1,
+    },
+  },
+});
+
 function App() {
   return (
-    <ToastProvider>
-      <AppInner />
-    </ToastProvider>
+    <QueryClientProvider client={queryClient}>
+      <ToastProvider>
+        <AppInner />
+      </ToastProvider>
+      <ReactQueryDevtools initialIsOpen={false} />
+    </QueryClientProvider>
   );
 }
 
