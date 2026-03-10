@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCampaignContext } from '../../contexts/CampaignContext';
 import CausalRoleBadge from './cards/CausalRoleBadge';
@@ -90,15 +90,44 @@ const SurgicalTelescope: React.FC = () => {
             </div>
           )}
 
-          {/* Diff viewer */}
-          <div className="flex-1 overflow-auto">
-            {activeFile && (
-              <DiffSplitView
-                originalCode={activeFile.original_code}
-                fixedCode={activeFile.fixed_code}
-                diff={activeFile.diff}
-              />
+          {/* Diff viewer with file tree sidebar */}
+          <div className="flex flex-1 overflow-hidden">
+            {/* File tree sidebar */}
+            {files.length > 1 && (
+              <div className="w-[200px] shrink-0 border-r border-slate-800/40 overflow-y-auto bg-slate-950/30">
+                <div className="px-3 py-2 text-[9px] text-slate-500 border-b border-slate-800/30">
+                  {files.length} files changed
+                </div>
+                {files.map((f, i) => {
+                  const diff = f.diff || '';
+                  const additions = (diff.match(/^\+[^+]/gm) || []).length;
+                  const deletions = (diff.match(/^-[^-]/gm) || []).length;
+                  return (
+                    <button
+                      key={f.file_path}
+                      onClick={() => setActiveFileIdx(i)}
+                      className={`w-full text-left px-3 py-1.5 flex items-center gap-1.5 text-[10px] font-mono transition-colors
+                        ${i === activeFileIdx ? 'bg-cyan-950/30 text-cyan-400' : 'text-slate-400 hover:bg-slate-800/30'}`}
+                    >
+                      <span className="truncate flex-1">{f.file_path.split('/').pop()}</span>
+                      <span className="text-emerald-500 shrink-0">+{additions}</span>
+                      <span className="text-red-400 shrink-0">-{deletions}</span>
+                    </button>
+                  );
+                })}
+              </div>
             )}
+
+            {/* Diff content */}
+            <div className="flex-1 overflow-auto">
+              {activeFile && (
+                <DiffSplitView
+                  originalCode={activeFile.original_code}
+                  fixedCode={activeFile.fixed_code}
+                  diff={activeFile.diff}
+                />
+              )}
+            </div>
           </div>
 
           {/* Footer actions */}
