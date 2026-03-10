@@ -275,6 +275,7 @@ class SupervisorAgent:
                     continue
                 if agent_result:
                     await self._update_state_with_result(state, agent_name, agent_result, event_emitter)
+                    await self._ingest_into_graph(state, agent_name, agent_result)
                     state.agents_completed.append(agent_name)
 
                     # Emit agent summary
@@ -1438,6 +1439,43 @@ class SupervisorAgent:
         state.supervisor_reasoning.append(
             f"Round: {agent_name} completed with confidence {confidence}"
         )
+
+    @staticmethod
+    def _finding_to_node_type(agent_name: str, finding: dict) -> str:
+        mapping = {
+            "log_agent": "error_event",
+            "metrics_agent": "metric_anomaly",
+            "k8s_agent": "k8s_event",
+            "tracing_agent": "trace_span",
+            "code_agent": "code_location",
+            "change_agent": "code_change",
+        }
+        return mapping.get(agent_name, "error_event")
+
+    async def _ingest_into_graph(self, state, agent_name: str, result: dict):
+        """Additive layer: reads from state findings, writes to state.evidence_graph."""
+        from src.agents.incident_graph import IncidentGraphBuilder
+
+        if not hasattr(state, '_incident_graph_builder') or state._incident_graph_builder is None:
+            state._incident_graph_builder = IncidentGraphBuilder(state.session_id)
+
+        builder = state._incident_graph_builder
+        new_findings = result.get("findings", [])
+        for finding in new_findings:
+            builder.add_node(
+                node_type=self._finding_to_node_type(agent_name, finding),
+                data=finding,
+                timestamp=finding.get("timestamp", 0),
+                confidence=finding.get("confidence", finding.get("confidence_score", 0.5)),
+                severity=finding.get("severity", "medium"),
+                agent_source=agent_name,
+            )
+
+        builder.create_tentative_edges()
+        builder.enforce_temporal_consistency()
+        builder.break_cycles()
+        builder.rank_root_causes()
+        state.evidence_graph = builder.to_serializable()
 
     def _update_phase(self, state: DiagnosticState, event_emitter: Optional[EventEmitter] = None) -> None:
         """Update diagnostic phase based on completed agents."""
