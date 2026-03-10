@@ -533,7 +533,7 @@ export interface StartSessionRequest {
   scope?: DiagnosticScope;
   // Database diagnostics fields
   focus?: ('queries' | 'connections' | 'replication' | 'storage' | 'schema')[];
-  database_type?: 'postgres';
+  database_type?: 'postgres' | 'mongodb';
   sampling_mode?: 'light' | 'standard' | 'deep';
   include_explain_plans?: boolean;
   parent_session_id?: string;
@@ -619,7 +619,8 @@ export interface DatabaseDiagnosticsForm {
   time_window: '15m' | '1h' | '6h' | '24h';
   focus: ('queries' | 'connections' | 'replication' | 'storage' | 'schema')[];
   table_filter?: string[];
-  database_type: 'postgres';
+  database_type: 'postgres' | 'mongodb';
+  connection_uri?: string;
   sampling_mode: 'light' | 'standard' | 'deep';
   include_explain_plans: boolean;
   parent_session_id?: string;
