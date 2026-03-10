@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react';
-import type { TaskEvent, ChatMessage } from '../types';
+import type { TaskEvent, ChatMessage, ChatToolCallEvent } from '../types';
 import { getEvents } from '../services/api';
 
 // ===== V3 WebSocket (preserved for backward compatibility) =====
@@ -63,6 +63,7 @@ interface V4WebSocketHandlers {
   onChatResponse?: (message: ChatMessage) => void;
   onChatChunk?: (chunk: string) => void;
   onChatStreamEnd?: (payload: ChatStreamEndPayload) => void;
+  onChatToolCall?: (event: ChatToolCallEvent) => void;
   onConnect?: () => void;
   onDisconnect?: () => void;
   onError?: (error: Event) => void;
@@ -148,6 +149,11 @@ export const useWebSocketV4 = (
               } else {
                 handlersRef.current.onChatChunk?.((data as Record<string, unknown>).content as string);
               }
+            }
+            break;
+          case 'chat_tool_call':
+            if (data) {
+              handlersRef.current.onChatToolCall?.(data as ChatToolCallEvent);
             }
             break;
           case 'connected':
