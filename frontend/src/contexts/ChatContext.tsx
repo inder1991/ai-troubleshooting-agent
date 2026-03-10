@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useRef, useEffect, useMemo } from 'react';
-import type { ChatMessage, TaskEvent } from '../types';
+import type { ChatMessage, TaskEvent, ChatToolCallEvent } from '../types';
 import { sendChatMessage } from '../services/api';
 
 // ─── Investigation Context (slow-moving: namespace/service/pod/cluster) ──
@@ -39,6 +39,8 @@ interface ChatUIContextValue {
   closeDrawer: () => void;
   markRead: () => void;
   addMessage: (message: ChatMessage) => void;
+  activeToolCalls: ChatToolCallEvent[];
+  addToolCall: (event: ChatToolCallEvent) => void;
 }
 
 const ChatUIContext = createContext<ChatUIContextValue | null>(null);
@@ -217,6 +219,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isSending, setIsSending] = useState(false);
+  const [activeToolCalls, setActiveToolCalls] = useState<ChatToolCallEvent[]>([]);
   const prevMessageCountRef = useRef(0);
 
   // Investigation context — set by InvestigationView with real namespace/service/pod
@@ -279,6 +282,21 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({
     }));
   }, [sessionId]);
 
+  const addToolCall = useCallback((event: ChatToolCallEvent) => {
+    setActiveToolCalls(prev => {
+      const existing = prev.findIndex(t => t.tool_use_id === event.tool_use_id);
+      if (existing >= 0) {
+        const updated = [...prev];
+        updated[existing] = event;
+        if (event.status === 'complete' || event.status === 'error') {
+          setTimeout(() => setActiveToolCalls(p => p.filter(t => t.tool_use_id !== event.tool_use_id)), 3000);
+        }
+        return updated;
+      }
+      return [...prev, event];
+    });
+  }, []);
+
   // Register addMessage handler for parent (WebSocket bridge)
   useEffect(() => {
     if (onRegisterChatHandler) {
@@ -339,9 +357,12 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({
     closeDrawer,
     markRead,
     addMessage,
+    activeToolCalls,
+    addToolCall,
   }), [
     sessionId, messages, isOpen, unreadCount, isWaiting, isSending,
     sendMessage, toggleDrawer, openDrawer, closeDrawer, markRead, addMessage,
+    activeToolCalls, addToolCall,
   ]);
 
   return (
