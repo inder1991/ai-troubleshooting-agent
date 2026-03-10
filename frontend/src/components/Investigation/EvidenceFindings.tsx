@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { LayoutGroup, AnimatePresence, motion } from 'framer-motion';
 import { useTopologySelection } from '../../contexts/TopologySelectionContext';
+import { useChatUI } from '../../contexts/ChatContext';
 import { filterBannerVariants } from '../../styles/topology-animations';
 import type {
   V4Findings, V4SessionStatus, TaskEvent, Severity, ErrorPattern,
@@ -79,6 +80,25 @@ interface PinnedCard {
 
 const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _status, events, sessionId, phase, onRefresh, onNavigateToDossier, manualPins }) => {
   const { selectedService, clearSelection } = useTopologySelection();
+  const { sendMessage, openDrawer } = useChatUI();
+
+  // ── Cross-correlation click handlers ──
+  const handleMetricToLogs = useCallback((timestamp: string) => {
+    sendMessage(`/logs time:${timestamp} window:2m`);
+    openDrawer();
+  }, [sendMessage, openDrawer]);
+
+  const handleTraceIdClick = useCallback((traceId: string) => {
+    const el = document.getElementById('section-traces');
+    if (el) el.scrollIntoView({ behavior: 'smooth' });
+    sendMessage(`/trace ${traceId}`);
+    openDrawer();
+  }, [sendMessage, openDrawer]);
+
+  const handleSpanClick = useCallback((span: { service: string; operation: string }) => {
+    sendMessage(`/investigate ${span.service} ${span.operation}`);
+    openDrawer();
+  }, [sendMessage, openDrawer]);
 
   // ── P0-3: Build reactive pin update map from WebSocket events ──────
   // Backend emits event_type: "evidence_pin_updated" (not in TS union, but present at runtime)
@@ -381,7 +401,7 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                                   ))}
                                 </div>
                               )}
-                              <ErrorPatternContent pattern={ep} rank={i + 1} />
+                              <ErrorPatternContent pattern={ep} rank={i + 1} onTraceIdClick={handleTraceIdClick} />
                             </AgentFindingCard>
                           );
                         })}
@@ -407,7 +427,7 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                         renderSymptom={(ep, i) => (
                           <AgentFindingCard key={ep.pattern_id || `cas-${i}`} agent="L" title="Cascading Error">
                             <CausalRoleBadge role="cascading_failure" />
-                            <ErrorPatternContent pattern={ep} rank={i + 1} />
+                            <ErrorPatternContent pattern={ep} rank={i + 1} onTraceIdClick={handleTraceIdClick} />
                           </AgentFindingCard>
                         )}
                       />
@@ -416,7 +436,7 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                         {cascadingPatterns.map((ep, i) => (
                           <AgentFindingCard key={ep.pattern_id || `cas-${i}`} agent="L" title="Cascading Error">
                             <CausalRoleBadge role="cascading_failure" />
-                            <ErrorPatternContent pattern={ep} rank={i + 1} />
+                            <ErrorPatternContent pattern={ep} rank={i + 1} onTraceIdClick={handleTraceIdClick} />
                           </AgentFindingCard>
                         ))}
                       </section>
@@ -438,7 +458,7 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                       <SymptomDeck
                         symptoms={ungroupedPatterns}
                         renderSymptom={(ep, i) => (
-                          <ErrorPatternCluster key={ep.pattern_id || `ug-${i}`} pattern={ep} rank={i + 1} />
+                          <ErrorPatternCluster key={ep.pattern_id || `ug-${i}`} pattern={ep} rank={i + 1} onTraceIdClick={handleTraceIdClick} />
                         )}
                       />
                     ) : (
@@ -449,7 +469,7 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                           <span className="text-[10px] font-mono text-slate-500">{ungroupedPatterns.length}</span>
                         </div>
                         {ungroupedPatterns.map((ep, i) => (
-                          <ErrorPatternCluster key={ep.pattern_id || `ug-${i}`} pattern={ep} rank={i + 1} />
+                          <ErrorPatternCluster key={ep.pattern_id || `ug-${i}`} pattern={ep} rank={i + 1} onTraceIdClick={handleTraceIdClick} />
                         ))}
                       </section>
                     )}
@@ -560,6 +580,15 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                               />
                               {ma.correlation_to_incident && (
                                 <p className="text-[10px] text-slate-400 italic mt-1.5">{ma.correlation_to_incident}</p>
+                              )}
+                              {ma.spike_start && (
+                                <button
+                                  onClick={() => handleMetricToLogs(ma.spike_start!)}
+                                  className="mt-2 text-[9px] font-mono text-cyan-400 hover:text-cyan-300 hover:underline transition-colors"
+                                  title="Query logs around this anomaly"
+                                >
+                                  View logs ±2m
+                                </button>
                               )}
                             </AgentFindingCard>
                           );
@@ -826,7 +855,7 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                       {correlatedPatterns.map((ep, i) => (
                         <AgentFindingCard key={ep.pattern_id || `cor-${i}`} agent="L" title="Correlated Pattern">
                           <CausalRoleBadge role="correlated_anomaly" />
-                          <ErrorPatternContent pattern={ep} rank={i + 1} />
+                          <ErrorPatternContent pattern={ep} rank={i + 1} onTraceIdClick={handleTraceIdClick} />
                         </AgentFindingCard>
                       ))}
                     </section>
@@ -843,7 +872,7 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                     onPin={() => handlePin('traces', 'Trace Waterfall', 'L')}
                     isPinned={pinnedSections.has('traces')}
                   >
-                    <TraceWaterfall spans={filteredTraceSpans} />
+                    <TraceWaterfall spans={filteredTraceSpans} onSpanClick={handleSpanClick} />
                   </VineCard>
                 )}
 
@@ -990,7 +1019,13 @@ const StatBox: React.FC<{ label: string; value: number; color?: string }> = ({ l
 
 // ─── Error Pattern Content (inside AgentFindingCard) ──────────────────────
 
-const ErrorPatternContent: React.FC<{ pattern: ErrorPattern; rank: number }> = ({ pattern }) => (
+const TRACE_ID_RE = /\b([0-9a-f]{16,32})\b/gi;
+
+const ErrorPatternContent: React.FC<{
+  pattern: ErrorPattern;
+  rank: number;
+  onTraceIdClick?: (traceId: string) => void;
+}> = ({ pattern, onTraceIdClick }) => (
   <div className="mt-2 space-y-2">
     <div className="flex items-center gap-2">
       <span className={`text-[10px] font-bold uppercase ${
@@ -1026,11 +1061,24 @@ const ErrorPatternContent: React.FC<{ pattern: ErrorPattern; rank: number }> = (
           {pattern.sample_logs.length} sample log{pattern.sample_logs.length > 1 ? 's' : ''}
         </summary>
         <div className="mt-1 space-y-1 max-h-32 overflow-y-auto custom-scrollbar">
-          {pattern.sample_logs.map((log, i) => (
-            <pre key={i} className="text-[10px] text-slate-400 bg-black/30 rounded px-2 py-1 overflow-x-auto">
-              {typeof log === 'string' ? log : log.raw_line || log.message}
-            </pre>
-          ))}
+          {pattern.sample_logs.map((log, i) => {
+            const text = typeof log === 'string' ? log : log.raw_line || log.message;
+            const traceMatch = text.match(TRACE_ID_RE);
+            return (
+              <pre key={i} className="text-[10px] text-slate-400 bg-black/30 rounded px-2 py-1 overflow-x-auto">
+                {text}
+                {traceMatch && onTraceIdClick && (
+                  <button
+                    onClick={() => onTraceIdClick(traceMatch[0])}
+                    className="ml-2 text-cyan-400 hover:text-cyan-300 hover:underline"
+                    title={`View trace ${traceMatch[0]}`}
+                  >
+                    [trace]
+                  </button>
+                )}
+              </pre>
+            );
+          })}
         </div>
       </details>
     )}
@@ -1039,7 +1087,7 @@ const ErrorPatternContent: React.FC<{ pattern: ErrorPattern; rank: number }> = (
 
 // ─── Error Pattern Cluster (legacy fallback) ──────────────────────────────
 
-const ErrorPatternCluster: React.FC<{ pattern: ErrorPattern; rank: number }> = ({ pattern, rank }) => {
+const ErrorPatternCluster: React.FC<{ pattern: ErrorPattern; rank: number; onTraceIdClick?: (traceId: string) => void }> = ({ pattern, rank, onTraceIdClick }) => {
   const [expanded, setExpanded] = useState(rank === 1);
   const sevColor = pattern.severity === 'critical' || pattern.severity === 'high'
     ? 'border-red-500/30 bg-red-500/10'
@@ -1061,7 +1109,7 @@ const ErrorPatternCluster: React.FC<{ pattern: ErrorPattern; rank: number }> = (
       </button>
       {expanded && (
         <div className="px-3 pb-3 border-t border-black/10 pt-2">
-          <ErrorPatternContent pattern={pattern} rank={rank} />
+          <ErrorPatternContent pattern={pattern} rank={rank} onTraceIdClick={onTraceIdClick} />
         </div>
       )}
     </div>

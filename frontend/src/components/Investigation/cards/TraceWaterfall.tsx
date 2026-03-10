@@ -3,9 +3,10 @@ import type { SpanInfo } from '../../../types';
 
 interface TraceWaterfallProps {
   spans: SpanInfo[];
+  onSpanClick?: (span: SpanInfo) => void;
 }
 
-const TraceWaterfall: React.FC<TraceWaterfallProps> = ({ spans }) => {
+const TraceWaterfall: React.FC<TraceWaterfallProps> = ({ spans, onSpanClick }) => {
   const [expandedSpan, setExpandedSpan] = useState<number | null>(null);
   const totalDuration = Math.max(...spans.map((s) => s.duration_ms), 1);
   const errorCount = spans.filter((s) => s.status === 'error' || s.error).length;
@@ -49,7 +50,11 @@ const TraceWaterfall: React.FC<TraceWaterfallProps> = ({ spans }) => {
                 style={{ paddingLeft: `${depth * 16}px` }}
               >
                 <span className="text-[10px] font-mono text-[#07b6d5] w-20 shrink-0 truncate">{span.service}</span>
-                <span className="text-[10px] text-slate-400 w-28 shrink-0 truncate">{span.operation}</span>
+                <span
+                  className={`text-[10px] w-28 shrink-0 truncate ${onSpanClick ? 'text-cyan-400 hover:text-cyan-300 hover:underline cursor-pointer' : 'text-slate-400'}`}
+                  onClick={onSpanClick ? (e) => { e.stopPropagation(); onSpanClick(span); } : undefined}
+                  title={onSpanClick ? `Investigate ${span.operation}` : undefined}
+                >{span.operation}</span>
                 <div className="flex-1 h-3 bg-slate-800/50 rounded overflow-hidden">
                   <div className={`h-full rounded ${barColor}`} style={{ width: `${widthPct}%` }} />
                 </div>
