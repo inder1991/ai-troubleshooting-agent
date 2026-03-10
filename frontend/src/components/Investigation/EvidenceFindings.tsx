@@ -24,6 +24,7 @@ import { SkeletonStack } from '../ui/SkeletonCard';
 import SkeletonCard from '../ui/SkeletonCard';
 import { safeFixed, formatTime, safeDate } from '../../utils/format';
 import CausalForestView from './CausalForestView';
+import EvidenceGraphView from './cards/EvidenceGraphView';
 import GuardScanView from './cluster/GuardScanView';
 import IssueClusterView from './cluster/IssueClusterView';
 
@@ -309,6 +310,18 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                 </motion.div>
               )}
             </AnimatePresence>
+            {/* Evidence Graph DAG */}
+            {findings?.evidence_graph && findings.evidence_graph.nodes.length > 0 && (
+              <VineCard
+                index={vineIndex++}
+                sectionId="evidence-graph"
+                isNew={newSections.has('evidence-graph')}
+              >
+                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Evidence Graph</div>
+                <EvidenceGraphView graph={findings.evidence_graph} />
+              </VineCard>
+            )}
+
             {/* Causal Forest — multi-root-cause view */}
             {findings?.causal_forest && findings.causal_forest.length > 0 && (
               <div className="mb-4">
