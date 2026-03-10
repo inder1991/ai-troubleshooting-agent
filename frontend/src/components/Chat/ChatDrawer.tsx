@@ -9,7 +9,7 @@ import ChatInputArea from './ChatInputArea';
 import ActionChip from './ActionChip';
 import { QuickActionToolbar } from './QuickActionToolbar';
 import { useInvestigationTools } from '../../hooks/useInvestigationTools';
-import type { ChatMessage, RouterContext, QuickActionPayload } from '../../types';
+import type { ChatMessage, RouterContext, QuickActionPayload, ChatToolCallEvent } from '../../types';
 
 // ─── Action Chip Derivation ─────────────────────────────────────────────
 
@@ -65,6 +65,23 @@ function deriveActionChips(message: ChatMessage | undefined): DerivedChip[] {
   return [];
 }
 
+// ─── ToolCallPill ─────────────────────────────────────────────────────────
+
+const ToolCallPill: React.FC<{ tool: ChatToolCallEvent }> = ({ tool }) => (
+  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono bg-white/5 border border-white/10">
+    <span className="material-symbols-outlined text-[14px] text-cyan-400">
+      {tool.status === 'running' ? 'hourglass_top' : tool.status === 'complete' ? 'check_circle' : 'error'}
+    </span>
+    <span className="text-slate-300">{tool.tool}</span>
+    {tool.status === 'running' && (
+      <span className="w-3 h-3 border-2 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin" />
+    )}
+    {tool.result_summary && (
+      <span className="text-slate-500">{tool.result_summary}</span>
+    )}
+  </div>
+);
+
 // ─── ChatDrawer Component ────────────────────────────────────────────────
 
 const ChatDrawer: React.FC = () => {
@@ -76,6 +93,7 @@ const ChatDrawer: React.FC = () => {
     isSending,
     sendMessage,
     closeDrawer,
+    activeToolCalls,
   } = useChatUI();
   const { isStreaming, streamingContent } = useChatStream();
 
@@ -243,6 +261,15 @@ const ChatDrawer: React.FC = () => {
                     ) : (
                       <MarkdownBubble key={`msg-${i}`} message={msg} />
                     )
+                  )}
+
+                  {/* Active tool calls */}
+                  {activeToolCalls.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 px-4 py-2">
+                      {activeToolCalls.map((tc, i) => (
+                        <ToolCallPill key={tc.tool_use_id || i} tool={tc} />
+                      ))}
+                    </div>
                   )}
 
                   {/* Streaming bubble */}
