@@ -1020,6 +1020,20 @@ const ErrorPatternContent: React.FC<{ pattern: ErrorPattern; rank: number }> = (
     {pattern.priority_reasoning && (
       <p className="text-[10px] text-slate-400 italic">{pattern.priority_reasoning}</p>
     )}
+    {pattern.sample_logs && pattern.sample_logs.length > 0 && (
+      <details className="mt-2">
+        <summary className="text-[10px] text-slate-500 cursor-pointer hover:text-slate-300">
+          {pattern.sample_logs.length} sample log{pattern.sample_logs.length > 1 ? 's' : ''}
+        </summary>
+        <div className="mt-1 space-y-1 max-h-32 overflow-y-auto custom-scrollbar">
+          {pattern.sample_logs.map((log, i) => (
+            <pre key={i} className="text-[10px] text-slate-400 bg-black/30 rounded px-2 py-1 overflow-x-auto">
+              {typeof log === 'string' ? log : log.raw_line || log.message}
+            </pre>
+          ))}
+        </div>
+      </details>
+    )}
   </div>
 );
 
