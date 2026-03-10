@@ -83,6 +83,7 @@ class StartSessionRequest(BaseModel):
     target_host: Optional[str] = Field(default=None, alias="targetHost")
     port_num: Optional[int] = Field(default=None, alias="portNum")
     net_protocol: Optional[str] = Field(default=None, alias="netProtocol")
+    extra: Optional[dict] = None  # Additional capability-specific config
 
 
 class StartSessionResponse(BaseModel):
@@ -92,6 +93,7 @@ class StartSessionResponse(BaseModel):
     message: str
     service_name: str = ""
     created_at: str = ""
+    capability: Optional[str] = None
 
 
 class SessionSummary(BaseModel):

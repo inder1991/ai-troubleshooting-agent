@@ -324,6 +324,45 @@ async def start_session(request: StartSessionRequest, background_tasks: Backgrou
             created_at=sessions[session_id]["created_at"],
         )
 
+    # ── Database Diagnostics capability ──
+    if capability == "database_diagnostics":
+        extra = request.extra or {}
+        db_profile_id = request.profileId or extra.get("profile_id", "")
+        sessions[session_id] = {
+            "service_name": request.serviceName or f"db-{db_profile_id}",
+            "incident_id": incident_id,
+            "phase": "initial",
+            "confidence": 0,
+            "capability": "database_diagnostics",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "emitter": emitter,
+            "state": None,
+            "profile_id": db_profile_id,
+            "chat_history": [],
+            "db_context": {
+                "profile_id": db_profile_id,
+                "time_window": extra.get("time_window", "1h"),
+                "focus": extra.get("focus", ["queries", "connections", "storage"]),
+                "database_type": extra.get("database_type", "postgres"),
+                "sampling_mode": extra.get("sampling_mode", "standard"),
+                "include_explain_plans": extra.get("include_explain_plans", False),
+                "parent_session_id": extra.get("parent_session_id"),
+                "table_filter": extra.get("table_filter"),
+            },
+        }
+
+        logger.info("DB diagnostics session created", extra={"session_id": session_id, "action": "session_created", "extra": "database_diagnostics"})
+
+        return StartSessionResponse(
+            session_id=session_id,
+            incident_id=incident_id,
+            status="started",
+            message="Database diagnostics session created",
+            service_name=request.serviceName or f"db-{db_profile_id}",
+            created_at=sessions[session_id]["created_at"],
+            capability="database_diagnostics",
+        )
+
     # ── Default: troubleshoot_app capability ──
     supervisor = SupervisorAgent(connection_config=connection_config)
 
