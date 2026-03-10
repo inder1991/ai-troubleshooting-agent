@@ -1,0 +1,206 @@
+import React, { useState, useEffect } from 'react';
+import type { DatabaseDiagnosticsForm } from '../../../types';
+import { fetchDBProfiles } from '../../../services/api';
+
+interface DatabaseDiagnosticsFieldsProps {
+  data: DatabaseDiagnosticsForm;
+  onChange: (data: DatabaseDiagnosticsForm) => void;
+}
+
+interface DBProfile {
+  id: string;
+  name: string;
+  engine: string;
+  host: string;
+  port: number;
+  database: string;
+}
+
+const FOCUS_OPTIONS = [
+  { value: 'queries' as const, label: 'Queries', icon: 'query_stats' },
+  { value: 'connections' as const, label: 'Connections', icon: 'cable' },
+  { value: 'replication' as const, label: 'Replication', icon: 'sync' },
+  { value: 'storage' as const, label: 'Storage', icon: 'storage' },
+  { value: 'schema' as const, label: 'Schema', icon: 'account_tree' },
+];
+
+const inputClass =
+  'w-full rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-gray-600 bg-[#0f2023] border border-[#224349] focus:border-[#07b6d5] focus:ring-1 focus:ring-[#07b6d5]/30 outline-none transition-colors';
+
+const DatabaseDiagnosticsFields: React.FC<DatabaseDiagnosticsFieldsProps> = ({
+  data,
+  onChange,
+}) => {
+  const [profiles, setProfiles] = useState<DBProfile[]>([]);
+
+  useEffect(() => {
+    fetchDBProfiles().then(setProfiles).catch(() => {});
+  }, []);
+
+  const toggleFocus = (area: DatabaseDiagnosticsForm['focus'][number]) => {
+    const current = data.focus || [];
+    const next = current.includes(area)
+      ? current.filter((f) => f !== area)
+      : [...current, area];
+    onChange({ ...data, focus: next });
+  };
+
+  return (
+    <div className="space-y-5">
+      {/* Database Profile */}
+      <div>
+        <label className="block text-xs font-bold text-duck-muted uppercase tracking-wider mb-2">
+          Database Profile *
+        </label>
+        <select
+          className={inputClass}
+          value={data.profile_id || ''}
+          onChange={(e) => onChange({ ...data, profile_id: e.target.value })}
+          required
+        >
+          <option value="">Select a database profile...</option>
+          {profiles.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name} ({p.engine} — {p.host}:{p.port}/{p.database})
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Time Window */}
+      <div>
+        <label className="block text-xs font-bold text-duck-muted uppercase tracking-wider mb-2">
+          Time Window
+        </label>
+        <select
+          className={inputClass}
+          value={data.time_window}
+          onChange={(e) =>
+            onChange({ ...data, time_window: e.target.value as DatabaseDiagnosticsForm['time_window'] })
+          }
+        >
+          <option value="15m">Last 15 minutes</option>
+          <option value="1h">Last 1 hour</option>
+          <option value="6h">Last 6 hours</option>
+          <option value="24h">Last 24 hours</option>
+        </select>
+      </div>
+
+      {/* Focus Areas */}
+      <div>
+        <label className="block text-xs font-bold text-duck-muted uppercase tracking-wider mb-2">
+          Focus Areas
+        </label>
+        <div className="flex flex-wrap gap-2">
+          {FOCUS_OPTIONS.map((opt) => {
+            const active = data.focus?.includes(opt.value);
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => toggleFocus(opt.value)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                  active
+                    ? 'bg-duck-accent/20 border-duck-accent text-duck-accent'
+                    : 'bg-duck-surface border-duck-border text-slate-400 hover:text-white hover:border-slate-500'
+                }`}
+              >
+                <span className="material-symbols-outlined text-[14px]">{opt.icon}</span>
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Sampling Mode */}
+      <div>
+        <label className="block text-xs font-bold text-duck-muted uppercase tracking-wider mb-2">
+          Sampling Depth
+        </label>
+        <div className="flex gap-3">
+          {(['light', 'standard', 'deep'] as const).map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              onClick={() => onChange({ ...data, sampling_mode: mode })}
+              className={`flex-1 py-2 rounded-lg text-xs font-bold uppercase tracking-wider border transition-all ${
+                data.sampling_mode === mode
+                  ? 'bg-duck-accent/20 border-duck-accent text-duck-accent'
+                  : 'bg-duck-surface border-duck-border text-slate-400 hover:text-white'
+              }`}
+            >
+              {mode}
+            </button>
+          ))}
+        </div>
+        <p className="text-[10px] text-slate-500 mt-1">
+          {data.sampling_mode === 'deep'
+            ? 'Deep: Runs EXPLAIN ANALYZE on replica. Most thorough but adds DB load.'
+            : data.sampling_mode === 'standard'
+            ? 'Standard: Collects pg_stat data + EXPLAIN (no ANALYZE). Balanced.'
+            : 'Light: Quick health check with cached snapshots. Minimal DB load.'}
+        </p>
+      </div>
+
+      {/* Include Explain Plans */}
+      {data.sampling_mode === 'deep' && (
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={data.include_explain_plans}
+            onChange={(e) => onChange({ ...data, include_explain_plans: e.target.checked })}
+            className="rounded border-duck-border bg-duck-surface text-duck-accent focus:ring-duck-accent/30"
+          />
+          <span className="text-sm text-slate-300">
+            Include EXPLAIN ANALYZE (runs on replica only)
+          </span>
+        </label>
+      )}
+
+      {/* Table Filter */}
+      <div>
+        <label className="block text-xs font-bold text-duck-muted uppercase tracking-wider mb-2">
+          Table Filter (optional)
+        </label>
+        <input
+          className={inputClass}
+          placeholder="orders, payments, users (comma-separated)"
+          value={data.table_filter?.join(', ') || ''}
+          onChange={(e) =>
+            onChange({
+              ...data,
+              table_filter: e.target.value
+                ? e.target.value.split(',').map((s) => s.trim()).filter(Boolean)
+                : undefined,
+            })
+          }
+        />
+      </div>
+
+      {/* Related App Session */}
+      <div>
+        <label className="block text-xs font-bold text-duck-muted uppercase tracking-wider mb-2">
+          Related App Session (optional)
+        </label>
+        <input
+          className={inputClass}
+          placeholder="e.g. APP-184 (auto-fills in contextual mode)"
+          value={data.parent_session_id || ''}
+          onChange={(e) =>
+            onChange({
+              ...data,
+              parent_session_id: e.target.value || undefined,
+              context_source: e.target.value ? 'user_selected' : undefined,
+            })
+          }
+        />
+        <p className="text-[10px] text-slate-500 mt-1">
+          Link to an app investigation to focus agents on that service's queries and connections.
+        </p>
+      </div>
+    </div>
+  );
+};
+
+export default DatabaseDiagnosticsFields;

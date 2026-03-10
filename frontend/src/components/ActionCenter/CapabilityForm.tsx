@@ -7,12 +7,14 @@ import type {
   GithubIssueFixForm,
   ClusterDiagnosticsForm,
   NetworkTroubleshootingForm,
+  DatabaseDiagnosticsForm,
 } from '../../types';
 import TroubleshootAppFields from './forms/TroubleshootAppFields';
 import PRReviewFields from './forms/PRReviewFields';
 import GithubIssueFixFields from './forms/GithubIssueFixFields';
 import ClusterDiagnosticsFields from './forms/ClusterDiagnosticsFields';
 import NetworkTroubleshootingFields from './forms/NetworkTroubleshootingFields';
+import DatabaseDiagnosticsFields from './forms/DatabaseDiagnosticsFields';
 
 interface CapabilityFormProps {
   capability: CapabilityType;
@@ -54,6 +56,12 @@ const capabilityMeta: Record<
     icon: 'route',
     color: '#f59e0b',
   },
+  database_diagnostics: {
+    title: 'Database Diagnostics',
+    subtitle: 'AI-powered PostgreSQL investigation with query analysis and performance tuning',
+    icon: 'database',
+    color: '#8b5cf6',
+  },
 };
 
 const getInitialData = (capability: CapabilityType): CapabilityFormData => {
@@ -68,6 +76,16 @@ const getInitialData = (capability: CapabilityType): CapabilityFormData => {
       return { capability: 'cluster_diagnostics', cluster_url: '', auth_method: 'token' };
     case 'network_troubleshooting':
       return { capability: 'network_troubleshooting', src_ip: '', dst_ip: '', port: '443', protocol: 'tcp' as const };
+    case 'database_diagnostics':
+      return {
+        capability: 'database_diagnostics',
+        profile_id: '',
+        time_window: '1h' as const,
+        focus: ['queries', 'connections', 'storage'],
+        database_type: 'postgres' as const,
+        sampling_mode: 'standard' as const,
+        include_explain_plans: false,
+      };
   }
 };
 
@@ -101,6 +119,10 @@ const CapabilityForm: React.FC<CapabilityFormProps> = ({ capability, onBack, onS
       case 'network_troubleshooting': {
         const nd = formData as NetworkTroubleshootingForm;
         return nd.src_ip.trim() !== '' && nd.dst_ip.trim() !== '' && parseInt(nd.port) > 0;
+      }
+      case 'database_diagnostics': {
+        const dd = formData as DatabaseDiagnosticsForm;
+        return dd.profile_id.trim().length > 0;
       }
     }
   };
@@ -161,6 +183,12 @@ const CapabilityForm: React.FC<CapabilityFormProps> = ({ capability, onBack, onS
             {formData.capability === 'network_troubleshooting' && (
               <NetworkTroubleshootingFields
                 data={formData as NetworkTroubleshootingForm}
+                onChange={(d) => setFormData(d)}
+              />
+            )}
+            {formData.capability === 'database_diagnostics' && (
+              <DatabaseDiagnosticsFields
+                data={formData as DatabaseDiagnosticsForm}
                 onChange={(d) => setFormData(d)}
               />
             )}

@@ -553,7 +553,8 @@ export type CapabilityType =
   | 'pr_review'
   | 'github_issue_fix'
   | 'cluster_diagnostics'
-  | 'network_troubleshooting';
+  | 'network_troubleshooting'
+  | 'database_diagnostics';
 
 export interface TroubleshootAppForm {
   capability: 'troubleshoot_app';
@@ -603,6 +604,19 @@ export interface NetworkTroubleshootingForm {
   dst_ip: string;
   port: string;
   protocol: 'tcp' | 'udp';
+}
+
+export interface DatabaseDiagnosticsForm {
+  capability: 'database_diagnostics';
+  profile_id: string;
+  time_window: '15m' | '1h' | '6h' | '24h';
+  focus: ('queries' | 'connections' | 'replication' | 'storage' | 'schema')[];
+  table_filter?: string[];
+  database_type: 'postgres';
+  sampling_mode: 'light' | 'standard' | 'deep';
+  include_explain_plans: boolean;
+  parent_session_id?: string;
+  context_source?: 'user_selected' | 'auto_triggered';
 }
 
 // ===== Cluster Diagnostics Types =====
@@ -781,7 +795,8 @@ export type CapabilityFormData =
   | PRReviewForm
   | GithubIssueFixForm
   | ClusterDiagnosticsForm
-  | NetworkTroubleshootingForm;
+  | NetworkTroubleshootingForm
+  | DatabaseDiagnosticsForm;
 
 // ===== V5 Integration Types =====
 export interface Integration {

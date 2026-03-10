@@ -65,11 +65,21 @@ const capabilities: {
     ctaClasses: 'text-amber-500',
     badge: 'NEW',
   },
+  {
+    type: 'database_diagnostics',
+    title: 'DB Diagnostics',
+    description: 'AI-powered PostgreSQL investigation with query analysis and performance tuning.',
+    icon: 'database',
+    iconClasses: 'text-violet-400 bg-violet-500/10 border-violet-500/20',
+    ctaText: 'Investigate DB',
+    ctaClasses: 'text-violet-400',
+    badge: 'NEW',
+  },
 ];
 
 const CapabilityLauncher: React.FC<CapabilityLauncherProps> = ({ onSelectCapability }) => {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
       {capabilities.map((cap) => (
         <button
           key={cap.type}
