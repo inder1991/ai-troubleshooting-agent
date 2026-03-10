@@ -40,6 +40,13 @@ function deriveActionChips(message: ChatMessage | undefined): DerivedChip[] {
     ];
   }
 
+  if (meta?.type === 'infra_repo_request') {
+    return [
+      { label: 'Add Infra Repo', icon: GitBranch, variant: 'primary', action: 'provide_infra_repo' },
+      { label: 'Skip', icon: SkipForward, variant: 'warning', action: 'skip_infra' },
+    ];
+  }
+
   if (meta?.type === 'fix_proposal') {
     return [
       { label: 'Approve Fix', icon: Check, variant: 'primary', action: 'approve' },
