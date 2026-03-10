@@ -1947,3 +1947,13 @@ export interface SyslogSummary {
 }
 
 export type NDMTabType = 'overview' | 'devices' | 'interfaces' | 'netflow' | 'syslog' | 'traps' | 'topology';
+
+// ===== Environment Health Types =====
+
+export interface HealthNode {
+  id: string;
+  name: string;
+  type: 'cluster' | 'database' | 'network' | 'service';
+  status: 'healthy' | 'degraded' | 'critical' | 'offline';
+  latencyMs?: number;
+}
