@@ -139,3 +139,12 @@ class TestCausalInfluenceScoring:
     def test_empty_graph_returns_empty(self):
         scores = self.builder.rank_root_causes()
         assert scores == []
+
+    def test_blast_radius_bfs(self):
+        n1 = self.builder.add_node("error_event", {}, 1710000000, 0.9, "critical", "log_agent")
+        n2 = self.builder.add_node("metric_anomaly", {}, 1710000100, 0.85, "high", "metrics_agent")
+        n3 = self.builder.add_node("k8s_event", {}, 1710000200, 0.7, "medium", "k8s_agent")
+        self.builder.add_confirmed_edge(n1, n2, "causes", 0.9, "r1", "critic")
+        self.builder.add_confirmed_edge(n2, n3, "triggers", 0.8, "r2", "critic")
+        descendants = nx.descendants(self.builder.G, n1)
+        assert len(descendants) == 2
