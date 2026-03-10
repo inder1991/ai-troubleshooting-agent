@@ -1,19 +1,24 @@
 import React, { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { MetricCard } from '../shared';
 import type { V4Session } from '../../types';
-
-interface MetricRibbonProps {
-  sessions: V4Session[];
-}
+import { listSessionsV4 } from '../../services/api';
 
 const isActive = (s: V4Session) => !['complete', 'diagnosis_complete', 'error'].includes(s.status);
-const isResolvedToday = (s: V4Session) => {
-  if (!['complete', 'diagnosis_complete'].includes(s.status)) return false;
-  const today = new Date().toDateString();
-  return new Date(s.updated_at).toDateString() === today;
-};
 
-export const MetricRibbon: React.FC<MetricRibbonProps> = ({ sessions }) => {
+export const MetricRibbon: React.FC = () => {
+  const { data: sessions = [] } = useQuery({
+    queryKey: ['live-sessions'],
+    queryFn: listSessionsV4,
+    refetchInterval: 10000,
+    staleTime: 5000,
+  });
+
+  const todayStr = new Date().toDateString();
+  const isResolvedToday = (s: V4Session) => {
+    if (!['complete', 'diagnosis_complete'].includes(s.status)) return false;
+    return new Date(s.updated_at).toDateString() === todayStr;
+  };
   const metrics = useMemo(() => {
     const active = sessions.filter(isActive);
     const resolved = sessions.filter(isResolvedToday);
