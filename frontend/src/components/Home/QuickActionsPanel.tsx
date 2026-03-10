@@ -1,35 +1,37 @@
 import React from 'react';
 import { SparklineWidget } from '../shared';
 import type { CapabilityType } from '../../types';
+import { Badge, type BadgeType } from '../ui/Badge';
 
 interface QuickActionsPanelProps {
   onSelectCapability: (capability: CapabilityType) => void;
   wsConnected: boolean;
 }
 
-const actions: { label: string; capability: CapabilityType; icon: string }[] = [
+const actions: { label: string; capability: CapabilityType; icon: string; badge?: BadgeType }[] = [
   { label: 'New Investigation', capability: 'troubleshoot_app', icon: 'troubleshoot' },
-  { label: 'Network Scan', capability: 'network_troubleshooting', icon: 'lan' },
-  { label: 'Cluster Check', capability: 'cluster_diagnostics', icon: 'deployed_code' },
-  { label: 'PR Review', capability: 'pr_review', icon: 'code' },
+  { label: 'Network Scan', capability: 'network_troubleshooting', icon: 'lan', badge: 'NEW' },
+  { label: 'Cluster Check', capability: 'cluster_diagnostics', icon: 'deployed_code', badge: 'PREVIEW' },
+  { label: 'PR Review', capability: 'pr_review', icon: 'code', badge: 'NEW' },
 ];
 
 export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({ onSelectCapability, wsConnected }) => (
   <div className="flex flex-col gap-4">
-    <div className="bg-[#0a1517] border border-[#224349] rounded-lg p-4">
-      <h3 className="text-xs font-bold text-[#94a3b8] uppercase tracking-wider mb-3">Quick Actions</h3>
+    <div className="bg-duck-panel border border-duck-border rounded-lg p-4">
+      <h3 className="text-xs font-bold text-duck-muted uppercase tracking-wider mb-3">Quick Actions</h3>
       <div className="flex flex-col gap-1.5">
         {actions.map((a) => (
           <button
             key={a.capability}
             onClick={() => onSelectCapability(a.capability)}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-300 hover:text-white hover:bg-[#162a2e] transition-colors text-left group"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-300 hover:text-white hover:bg-duck-surface transition-all duration-200 ease-in-out text-left group focus-visible:outline focus-visible:outline-2 focus-visible:outline-duck-accent"
           >
-            <span className="material-symbols-outlined text-[18px] text-[#07b6d5] group-hover:text-white transition-colors" style={{ fontFamily: 'Material Symbols Outlined' }}>
+            <span className="material-symbols-outlined text-[18px] text-duck-accent group-hover:text-white transition-colors" aria-hidden="true">
               {a.icon}
             </span>
             <span className="text-sm font-medium">{a.label}</span>
-            <span className="material-symbols-outlined text-[14px] text-slate-600 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" style={{ fontFamily: 'Material Symbols Outlined' }}>
+            {a.badge && <Badge type={a.badge} className="ml-2" />}
+            <span className="material-symbols-outlined text-[14px] text-slate-600 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" aria-hidden="true">
               arrow_forward
             </span>
           </button>
@@ -37,8 +39,8 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({ onSelectCa
       </div>
     </div>
 
-    <div className="bg-[#0a1517] border border-[#224349] rounded-lg p-4">
-      <h3 className="text-xs font-bold text-[#94a3b8] uppercase tracking-wider mb-3">System Health</h3>
+    <div className="bg-duck-panel border border-duck-border rounded-lg p-4">
+      <h3 className="text-xs font-bold text-duck-muted uppercase tracking-wider mb-3">System Health</h3>
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <span className="text-xs text-slate-400">WebSocket</span>
