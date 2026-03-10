@@ -1,5 +1,7 @@
 import pytest
-from src.agents.critic_ensemble import DeterministicValidator
+import asyncio
+from unittest.mock import AsyncMock, MagicMock, patch
+from src.agents.critic_ensemble import DeterministicValidator, EnsembleCritic
 
 class TestDeterministicValidator:
     def setup_method(self):
@@ -37,3 +39,49 @@ class TestDeterministicValidator:
         result = self.validator.validate(pin, {}, [], existing)
         assert result["status"] == "hard_reject"
         assert any("contradicts" in v for v in result["violations"])
+
+
+class TestEnsembleCritic:
+    def setup_method(self):
+        self.mock_llm = MagicMock()
+        self.critic = EnsembleCritic(llm_client=self.mock_llm)
+
+    def test_hard_reject_skips_llm(self):
+        finding = {"claim": "", "source_agent": ""}
+        state = {"all_findings": []}
+        graph = {"nodes": {}, "edges": []}
+        result = asyncio.run(
+            self.critic.validate(finding, state, graph)
+        )
+        assert result["verdict"] == "challenged"
+        self.mock_llm.chat.assert_not_called()
+
+    @patch("src.agents.critic_ensemble.EnsembleCritic._run_evidence_retriever")
+    def test_full_debate_calls_four_roles(self, mock_retriever):
+        mock_retriever.return_value = "No additional evidence."
+        self.mock_llm.chat = AsyncMock(side_effect=[
+            "The finding is valid because...",
+            "However, there are concerns...",
+            '{"verdict":"validated","confidence":0.82,"causal_role":"root_cause",'
+            '"reasoning":"Valid","supporting_evidence":[],"contradictions":[],"graph_edges":[]}',
+        ])
+        finding = {
+            "claim": "OOMKilled in payment pod",
+            "source_agent": "k8s_agent",
+            "timestamp": 1710000100,
+        }
+        state = {"all_findings": [finding]}
+        graph = {"nodes": {}, "edges": []}
+        result = asyncio.run(
+            self.critic.validate(finding, state, graph)
+        )
+        assert result["verdict"] == "validated"
+        assert result["confidence"] == 0.82
+        assert self.mock_llm.chat.call_count == 3
+        mock_retriever.assert_called_once()
+
+    def test_parse_judge_output_valid_json(self):
+        raw = '{"verdict":"challenged","confidence":0.4,"causal_role":"correlated","reasoning":"Weak evidence","supporting_evidence":[],"contradictions":["metric data missing"],"graph_edges":[]}'
+        result = self.critic._parse_judge_output(raw)
+        assert result["verdict"] == "challenged"
+        assert result["confidence"] == 0.4
