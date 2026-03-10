@@ -16,10 +16,10 @@ const actions: { label: string; capability: CapabilityType; icon: string; badge?
 ];
 
 export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({ onSelectCapability, wsConnected }) => (
-  <div className="flex flex-col gap-4 h-full">
-    <div className="bg-duck-panel border border-duck-border rounded-lg p-4 flex-1 flex flex-col">
-      <h3 className="text-xs font-bold text-duck-muted uppercase tracking-wider mb-3">Quick Actions</h3>
-      <div className="flex flex-col gap-1.5 overflow-y-auto">
+  <div className="flex flex-col gap-4 h-full overflow-hidden">
+    <div className="bg-duck-panel border border-duck-border rounded-lg p-4 flex-1 min-h-0 flex flex-col overflow-hidden">
+      <h3 className="text-xs font-bold text-duck-muted uppercase tracking-wider mb-3 shrink-0">Quick Actions</h3>
+      <div className="flex flex-col gap-1.5 flex-1 min-h-0 overflow-y-auto">
         {actions.map((a) => (
           <button
             key={a.capability}
@@ -39,9 +39,9 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({ onSelectCa
       </div>
     </div>
 
-    <div className="bg-duck-panel border border-duck-border rounded-lg p-4 flex-1 flex flex-col">
-      <h3 className="text-xs font-bold text-duck-muted uppercase tracking-wider mb-3">System Health</h3>
-      <div className="flex flex-col gap-3">
+    <div className="bg-duck-panel border border-duck-border rounded-lg p-4 flex-1 min-h-0 flex flex-col overflow-hidden">
+      <h3 className="text-xs font-bold text-duck-muted uppercase tracking-wider mb-3 shrink-0">System Health</h3>
+      <div className="flex flex-col gap-3 flex-1 min-h-0 overflow-y-auto">
         <div className="flex items-center justify-between">
           <span className="text-xs text-slate-400">WebSocket</span>
           <div className="flex items-center gap-1.5">
