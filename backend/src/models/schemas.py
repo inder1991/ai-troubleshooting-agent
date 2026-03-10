@@ -918,6 +918,9 @@ class DiagnosticState(BaseModel):
     # Causal forest (War Room v2)
     causal_forest: list[CausalTree] = Field(default_factory=list)
 
+    # Evidence graph (incident graph builder output)
+    evidence_graph: Optional[dict] = None  # {nodes, edges, root_causes, causal_paths}
+
     # Cross-cutting
     all_findings: list[Finding] = Field(default_factory=list)
     all_negative_findings: list[NegativeFinding] = Field(default_factory=list)

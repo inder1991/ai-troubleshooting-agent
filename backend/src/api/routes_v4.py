@@ -798,6 +798,7 @@ async def get_findings(session_id: str):
             "closure_state": None,
             "evidence_pins": session.get("evidence_pins", []),
             "causal_forest": [],
+            "evidence_graph": None,
             "message": "Analysis not yet complete",
         }
 
@@ -910,6 +911,7 @@ async def get_findings(session_id: str):
         # Manual evidence pins from live investigation steering (user_chat / quick_action)
         "evidence_pins": session.get("evidence_pins", []),
         "causal_forest": [ct.model_dump(mode="json") for ct in state.causal_forest] if state.causal_forest else [],
+        "evidence_graph": state.evidence_graph,
     }
 
 
