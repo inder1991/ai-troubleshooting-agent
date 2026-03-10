@@ -29,6 +29,9 @@ from src.agents.impact_analyzer import ImpactAnalyzer
 from src.utils.llm_client import AnthropicClient
 from src.utils.event_emitter import EventEmitter
 from src.utils.logger import get_logger
+from src.prompts.rules import GROUNDING_RULES
+from src.prompts.chat_prompts import CHAT_RULES
+from src.utils.token_budget import enforce_budget
 
 logger = get_logger(__name__)
 
@@ -2318,11 +2321,9 @@ Respond ONLY with a JSON array:
         history_messages = [{"role": m["role"], "content": m["content"]} for m in chat_history]
         history_messages.append({"role": "user", "content": message})
 
-        system_text = f"""You are an AI SRE assistant helping diagnose application issues.
-You have access to the full diagnostic findings below. Use them to answer questions accurately.
+        system_text = f"""{CHAT_RULES}
 
-Explain findings, interpret root causes, clarify metric anomalies, guide remediation, and
-suggest follow-up investigation when appropriate. Be concise and reference specific findings.
+{GROUNDING_RULES}
 
 ## Current Diagnostic State
 - Phase: {state.phase.value}
@@ -2332,6 +2333,11 @@ suggest follow-up investigation when appropriate. Be concise and reference speci
 
 ## Diagnostic Findings
 {findings_context}"""
+
+        # Enforce token budget to prevent context overflow
+        system_text, history_messages, _ = enforce_budget(
+            system_text, history_messages, "", model_max=200_000
+        )
 
         # Stream LLM response — emit chat_chunk messages via WebSocket for live typing
         ws_mgr = self._event_emitter._websocket_manager if self._event_emitter else None
