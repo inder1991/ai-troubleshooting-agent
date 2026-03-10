@@ -1,9 +1,14 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import type { CapabilityType, V4Session } from '../../types';
+import { listSessionsV4 } from '../../services/api';
 import CapabilityLauncher from './CapabilityLauncher';
 import LiveIntelligenceFeed from './LiveIntelligenceFeed';
 import { MetricRibbon } from './MetricRibbon';
 import { QuickActionsPanel } from './QuickActionsPanel';
+import { EnvironmentHealth } from './EnvironmentHealth';
+import { AgentFleetPulse } from './AgentFleetPulse';
+import { TimeRangeSelector } from '../shared';
 
 interface HomePageProps {
   onSelectCapability: (capability: CapabilityType) => void;
@@ -11,11 +16,29 @@ interface HomePageProps {
   wsConnected: boolean;
 }
 
+const ACTIVE_PHASES = ['complete', 'diagnosis_complete', 'error'];
+
 const HomePage: React.FC<HomePageProps> = ({
   onSelectCapability,
   onSelectSession,
   wsConnected,
 }) => {
+  const [feedTab, setFeedTab] = useState<'global' | 'mine'>('global');
+  const [timeRange, setTimeRange] = useState<string>('1h');
+
+  // Read from the shared live-sessions cache for the "My Investigations" count
+  const { data: sessions = [] } = useQuery({
+    queryKey: ['live-sessions'],
+    queryFn: listSessionsV4,
+    refetchInterval: 10000,
+    staleTime: 5000,
+  });
+
+  const myActiveCount = useMemo(
+    () => sessions.filter((s) => !ACTIVE_PHASES.includes(s.status)).length,
+    [sessions]
+  );
+
   return (
     <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-duck-bg">
       {/* Top Header */}
@@ -67,30 +90,78 @@ const HomePage: React.FC<HomePageProps> = ({
 
       {/* Main Scrolling Content */}
       <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
-        {/* Metric Ribbon */}
-        <MetricRibbon />
 
-        {/* 2-Column Layout: Activity Feed + Quick Actions */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-10">
+        {/* ROW 1: Triage & Health */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-6">
           <div className="lg:col-span-8">
-            <LiveIntelligenceFeed
-              onSelectSession={onSelectSession}
-            />
+            <MetricRibbon />
           </div>
           <div className="lg:col-span-4">
-            <QuickActionsPanel
-              onSelectCapability={onSelectCapability}
-              wsConnected={wsConnected}
-            />
+            <EnvironmentHealth />
           </div>
         </div>
 
-        {/* Capability Launcher (below operational content) */}
+        {/* ROW 2: Core Workspace (locked 500px) */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8 items-stretch lg:h-[500px]">
+
+          {/* Left Column: Feed with tab bar */}
+          <div className="lg:col-span-8 flex flex-col h-full bg-duck-panel border border-duck-border rounded-lg overflow-hidden">
+            {/* Tab bar */}
+            <div className="flex items-center justify-between px-4 py-3 border-b border-duck-border bg-duck-card/30 shrink-0">
+              <div className="flex gap-6">
+                <button
+                  onClick={() => setFeedTab('global')}
+                  className={`text-sm font-bold pb-1 -mb-[13px] transition-colors ${
+                    feedTab === 'global'
+                      ? 'text-white border-b-2 border-duck-accent'
+                      : 'text-duck-muted hover:text-slate-300'
+                  }`}
+                >
+                  Global Feed
+                </button>
+                <button
+                  onClick={() => setFeedTab('mine')}
+                  className={`text-sm font-bold pb-1 -mb-[13px] transition-colors ${
+                    feedTab === 'mine'
+                      ? 'text-white border-b-2 border-duck-accent'
+                      : 'text-duck-muted hover:text-slate-300'
+                  }`}
+                >
+                  My Investigations ({myActiveCount})
+                </button>
+              </div>
+              <TimeRangeSelector selected={timeRange} onChange={setTimeRange} />
+            </div>
+
+            {/* Scrollable feed */}
+            <div className="flex-1 overflow-y-auto custom-scrollbar">
+              <LiveIntelligenceFeed
+                onSelectSession={onSelectSession}
+                filterActive={feedTab === 'mine'}
+              />
+            </div>
+          </div>
+
+          {/* Right Column: QuickActions + AgentFleetPulse */}
+          <div className="lg:col-span-4 flex flex-col gap-5 h-full">
+            <div className="h-[240px] shrink-0">
+              <QuickActionsPanel
+                onSelectCapability={onSelectCapability}
+                wsConnected={wsConnected}
+              />
+            </div>
+            <div className="h-[240px] shrink-0">
+              <AgentFleetPulse />
+            </div>
+          </div>
+        </div>
+
+        {/* ROW 3: Capabilities (full width) */}
         <section>
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-xl font-bold text-white tracking-tight">Capabilities</h2>
-              <p className="text-sm text-slate-400 mt-1">Deploy automated diagnostics and remediations</p>
+              <h2 className="text-lg font-bold text-white tracking-tight">Capabilities</h2>
+              <p className="text-xs text-duck-muted mt-0.5">Deploy automated diagnostics and remediations</p>
             </div>
           </div>
           <CapabilityLauncher onSelectCapability={onSelectCapability} />
