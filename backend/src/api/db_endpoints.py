@@ -179,6 +179,33 @@ def delete_profile(profile_id: str):
     return {"status": "deleted"}
 
 
+# ── Adapter Factory ──
+
+
+async def _create_adapter_from_profile(profile: dict):
+    """Create and connect a database adapter based on profile engine type."""
+    engine = profile["engine"]
+    if engine == "postgresql":
+        from src.database.adapters.postgres import PostgresAdapter
+        adapter = PostgresAdapter(
+            host=profile["host"], port=profile["port"],
+            database=profile["database"],
+            username=profile["username"], password=profile["password"],
+        )
+    elif engine == "mongodb":
+        from src.database.adapters.mongo import MongoAdapter
+        adapter = MongoAdapter(
+            host=profile["host"], port=profile["port"],
+            database=profile["database"],
+            username=profile["username"], password=profile["password"],
+            connection_uri=profile.get("connection_uri"),
+        )
+    else:
+        raise HTTPException(status_code=400, detail=f"Unsupported engine: {engine}")
+    await adapter.connect()
+    return adapter
+
+
 # ── Health ──
 
 
@@ -190,39 +217,23 @@ async def get_health(profile_id: str):
 
     # Try to connect and get health snapshot
     try:
-        if profile["engine"] == "postgresql":
-            from src.database.adapters.postgres import PostgresAdapter
-
-            adapter = PostgresAdapter(
-                host=profile["host"],
-                port=profile["port"],
-                database=profile["database"],
-                username=profile["username"],
-                password=profile["password"],
-            )
-            await adapter.connect()
-            try:
-                health = await adapter.health_check()
-                stats = await adapter.get_performance_stats()
-                pool = await adapter.get_connection_pool()
-                repl = await adapter.get_replication_status()
-                return {
-                    "profile_id": profile_id,
-                    "status": health.status,
-                    "latency_ms": health.latency_ms,
-                    "version": health.version,
-                    "performance": stats.model_dump(),
-                    "connections": pool.model_dump(),
-                    "replication": repl.model_dump(),
-                }
-            finally:
-                await adapter.disconnect()
-        else:
+        adapter = await _create_adapter_from_profile(profile)
+        try:
+            health = await adapter.health_check()
+            stats = await adapter.get_performance_stats()
+            pool = await adapter.get_connection_pool()
+            repl = await adapter.get_replication_status()
             return {
                 "profile_id": profile_id,
-                "status": "unsupported",
-                "error": f"Engine '{profile['engine']}' not yet supported",
+                "status": health.status,
+                "latency_ms": health.latency_ms,
+                "version": health.version,
+                "performance": stats.model_dump(),
+                "connections": pool.model_dump(),
+                "replication": repl.model_dump(),
             }
+        finally:
+            await adapter.disconnect()
     except Exception as e:
         return {
             "profile_id": profile_id,
@@ -244,16 +255,7 @@ async def get_active_queries(profile_id: str):
     adapter = registry.get_by_profile(profile_id)
     if not adapter:
         try:
-            if profile["engine"] == "postgresql":
-                from src.database.adapters.postgres import PostgresAdapter
-                adapter = PostgresAdapter(
-                    host=profile["host"], port=profile["port"],
-                    database=profile["database"],
-                    username=profile["username"], password=profile["password"],
-                )
-                await adapter.connect()
-            else:
-                raise HTTPException(status_code=400, detail=f"Unsupported engine: {profile['engine']}")
+            adapter = await _create_adapter_from_profile(profile)
         except HTTPException:
             raise
         except Exception as e:
@@ -272,17 +274,8 @@ async def _run_diagnostic(run_id: str, profile: dict):
     """Background task: run the LangGraph diagnostic graph."""
     run_store = _get_run_store()
     try:
-        if profile["engine"] == "postgresql":
-            from src.database.adapters.postgres import PostgresAdapter
-
-            adapter = PostgresAdapter(
-                host=profile["host"],
-                port=profile["port"],
-                database=profile["database"],
-                username=profile["username"],
-                password=profile["password"],
-            )
-            await adapter.connect()
+        if profile["engine"] in ("postgresql", "mongodb"):
+            adapter = await _create_adapter_from_profile(profile)
         else:
             from src.database.adapters.mock_adapter import MockDatabaseAdapter
 
@@ -551,16 +544,7 @@ async def get_config_recommendations(profile_id: str):
     adapter = registry.get_by_profile(profile_id)
     if not adapter:
         try:
-            if profile["engine"] == "postgresql":
-                from src.database.adapters.postgres import PostgresAdapter
-                adapter = PostgresAdapter(
-                    host=profile["host"], port=profile["port"],
-                    database=profile["database"],
-                    username=profile["username"], password=profile["password"],
-                )
-                await adapter.connect()
-            else:
-                raise HTTPException(status_code=400, detail=f"Unsupported engine: {profile['engine']}")
+            adapter = await _create_adapter_from_profile(profile)
         except HTTPException:
             raise
         except Exception as e:
@@ -599,16 +583,7 @@ async def get_schema(profile_id: str):
 
     if not adapter:
         try:
-            if profile["engine"] == "postgresql":
-                from src.database.adapters.postgres import PostgresAdapter
-                adapter = PostgresAdapter(
-                    host=profile["host"], port=profile["port"],
-                    database=profile["database"],
-                    username=profile["username"], password=profile["password"],
-                )
-                await adapter.connect()
-            else:
-                raise HTTPException(status_code=400, detail=f"Unsupported engine: {profile['engine']}")
+            adapter = await _create_adapter_from_profile(profile)
         except HTTPException:
             raise
         except Exception as e:
@@ -632,16 +607,7 @@ async def get_table_detail_endpoint(profile_id: str, table_name: str):
 
     if not adapter:
         try:
-            if profile["engine"] == "postgresql":
-                from src.database.adapters.postgres import PostgresAdapter
-                adapter = PostgresAdapter(
-                    host=profile["host"], port=profile["port"],
-                    database=profile["database"],
-                    username=profile["username"], password=profile["password"],
-                )
-                await adapter.connect()
-            else:
-                raise HTTPException(status_code=400, detail=f"Unsupported engine: {profile['engine']}")
+            adapter = await _create_adapter_from_profile(profile)
         except HTTPException:
             raise
         except Exception as e:
