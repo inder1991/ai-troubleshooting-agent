@@ -121,6 +121,17 @@ router_v4 = APIRouter(prefix="/api/v4", tags=["v4"])
 sessions: Dict[str, Dict[str, Any]] = {}
 supervisors: Dict[str, SupervisorAgent] = {}
 
+
+def _link_sessions(session_a: str, session_b: str):
+    """Bidirectionally link two sessions."""
+    for src, dst in [(session_a, session_b), (session_b, session_a)]:
+        sess = sessions.get(src)
+        if sess:
+            related = sess.setdefault("related_sessions", [])
+            if dst not in related:
+                related.append(dst)
+
+
 # Investigation routers per session
 _investigation_routers: Dict[str, Any] = {}
 
@@ -351,6 +362,14 @@ async def start_session(request: StartSessionRequest, background_tasks: Backgrou
                 "connection_uri": extra.get("connection_uri"),
             },
         }
+
+        # Bidirectional session linking
+        parent_sid = extra.get("parent_session_id")
+        if parent_sid and parent_sid in sessions:
+            _link_sessions(session_id, parent_sid)
+            sessions[session_id]["investigation_mode"] = "contextual"
+        else:
+            sessions[session_id]["investigation_mode"] = "standalone"
 
         logger.info("DB diagnostics session created", extra={"session_id": session_id, "action": "session_created", "extra": "database_diagnostics"})
 
@@ -798,6 +817,9 @@ async def list_sessions():
             phase=data["phase"],
             confidence=data["confidence"],
             created_at=data["created_at"],
+            capability=data.get("capability"),
+            investigation_mode=data.get("investigation_mode"),
+            related_sessions=data.get("related_sessions", []),
         )
         for sid, data in sessions.items()
     ]
@@ -823,6 +845,9 @@ async def get_session_status(session_id: str):
         "breadcrumbs": [],
         "findings_count": 0,
         "token_usage": [],
+        "capability": session.get("capability"),
+        "investigation_mode": session.get("investigation_mode"),
+        "related_sessions": session.get("related_sessions", []),
     }
 
     # Cluster sessions: state is a plain dict

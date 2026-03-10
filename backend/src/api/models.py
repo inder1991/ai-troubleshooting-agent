@@ -103,6 +103,9 @@ class SessionSummary(BaseModel):
     phase: str
     confidence: int
     created_at: str
+    capability: Optional[str] = None
+    investigation_mode: Optional[str] = None
+    related_sessions: list[str] = []
 
 
 # ── Fix Pipeline Models ──────────────────────────────────────────────

@@ -111,9 +111,27 @@ async def context_loader(state: DBDiagnosticStateV2) -> dict:
         await emitter.emit("context_loader", "started",
                           f"Loading context from app session {parent_id}")
 
-    # TODO: Fetch findings from parent session via internal API
-    # For now, return empty context
-    return {"app_context": {"parent_session_id": parent_id}}
+    # Fetch findings from parent session's in-memory state
+    app_context = {"parent_session_id": parent_id}
+    try:
+        from src.api.routes_v4 import sessions as v4_sessions
+        parent = v4_sessions.get(parent_id)
+        if parent and parent.get("state"):
+            pstate = parent["state"]
+            if hasattr(pstate, "all_findings"):
+                app_context["findings_summary"] = [
+                    {"finding_id": f.finding_id, "summary": f.summary, "severity": f.severity}
+                    for f in pstate.all_findings[:10]
+                ]
+            if hasattr(pstate, "incident_id"):
+                app_context["incident_id"] = pstate.incident_id
+    except Exception as e:
+        logger.warning("Failed to load parent context: %s", e)
+
+    if emitter:
+        await emitter.emit("context_loader", "success",
+                          f"Loaded context ({len(app_context.get('findings_summary', []))} findings)")
+    return {"app_context": app_context}
 
 
 # --- Node: Query Analyst (LLM + tools) ---
@@ -270,7 +288,7 @@ async def schema_analyst(state: DBDiagnosticStateV2) -> dict:
 # --- Node: Synthesizer (Sonnet/Opus) ---
 
 async def synthesizer(state: DBDiagnosticStateV2) -> dict:
-    """Combine all findings, identify root cause, generate summary."""
+    """Combine all findings, identify root cause, generate summary and 7-section dossier."""
     emitter = state.get("_emitter")
     if emitter:
         await emitter.emit("synthesizer", "started", "Synthesizing root cause analysis")
@@ -294,12 +312,191 @@ async def synthesizer(state: DBDiagnosticStateV2) -> dict:
     root_cause = all_findings[0]["title"] if all_findings else "No issues detected"
     finding_count = len(all_findings)
     critical_count = sum(1 for f in all_findings if f.get("severity") == "critical")
+    high_count = sum(1 for f in all_findings if f.get("severity") == "high")
+    medium_count = sum(1 for f in all_findings if f.get("severity") == "medium")
+    low_count = sum(1 for f in all_findings if f.get("severity") in ("low", "info"))
+
+    profile_name = state.get("profile_name", "unknown")
+    host = state.get("host", "unknown")
+    engine = state.get("engine", "postgresql")
 
     summary = (
-        f"Investigated {state.get('profile_name', 'unknown')} database. "
+        f"Investigated {profile_name} database. "
         f"Found {finding_count} issue(s), {critical_count} critical. "
         f"Primary concern: {root_cause}."
     )
+
+    # --- Build 7-section dossier ---
+
+    # Section 1: Executive Summary
+    exec_summary = {
+        "profile": profile_name,
+        "host": host,
+        "engine": engine,
+        "total_findings": finding_count,
+        "critical_count": critical_count,
+        "high_count": high_count,
+        "medium_count": medium_count,
+        "low_count": low_count,
+        "needs_human_review": needs_review,
+        "headline": summary,
+        "health_status": (
+            "critical" if critical_count > 0
+            else "degraded" if high_count > 0
+            else "warning" if medium_count > 0
+            else "healthy"
+        ),
+    }
+
+    # Section 2: Root Cause Analysis
+    top_finding = all_findings[0] if all_findings else {}
+    root_cause_analysis = {
+        "primary_root_cause": root_cause,
+        "confidence": top_finding.get("confidence_calibrated", 0.0),
+        "severity": top_finding.get("severity", "info"),
+        "category": top_finding.get("category", "unknown"),
+        "detail": top_finding.get("detail", ""),
+        "rule_check": top_finding.get("rule_check", ""),
+        "supporting_findings": [
+            {
+                "finding_id": f.get("finding_id"),
+                "title": f.get("title"),
+                "severity": f.get("severity"),
+                "agent": f.get("agent"),
+            }
+            for f in all_findings[1:4]  # top 3 supporting
+        ],
+    }
+
+    # Section 3: Evidence Chain
+    evidence_chain = [
+        {
+            "step": i + 1,
+            "finding_id": f.get("finding_id"),
+            "agent": f.get("agent"),
+            "title": f.get("title"),
+            "severity": f.get("severity"),
+            "confidence": f.get("confidence_calibrated", 0.0),
+            "detail": f.get("detail", ""),
+            "rule_check": f.get("rule_check", ""),
+            "evidence_ids": f.get("evidence_ids", []),
+        }
+        for i, f in enumerate(all_findings)
+    ]
+
+    # Section 4: Impact Assessment
+    impact_assessment = {
+        "blast_radius": (
+            "high" if critical_count > 0
+            else "medium" if high_count > 0
+            else "low"
+        ),
+        "affected_layers": list({f.get("category", "unknown") for f in all_findings}),
+        "affected_agents": list({f.get("agent", "unknown") for f in all_findings}),
+        "remediation_available_count": sum(
+            1 for f in all_findings if f.get("remediation_available")
+        ),
+        "estimated_user_impact": (
+            "Service degradation likely" if critical_count > 0
+            else "Partial degradation possible" if high_count > 0
+            else "Minor performance impact" if medium_count > 0
+            else "No immediate user impact"
+        ),
+        "connection_pool_saturation": any(
+            f.get("category") == "connections" for f in all_findings
+        ),
+        "query_latency_elevated": any(
+            f.get("category") == "slow_query" for f in all_findings
+        ),
+    }
+
+    # Section 5: Remediation Recommendations
+    remediation_recommendations = [
+        {
+            "priority": i + 1,
+            "finding_id": f.get("finding_id"),
+            "title": f.get("title"),
+            "severity": f.get("severity"),
+            "recommendation": f.get("recommendation", "No specific recommendation available."),
+            "remediation_available": f.get("remediation_available", False),
+            "category": f.get("category"),
+        }
+        for i, f in enumerate(all_findings)
+        if f.get("recommendation")
+    ]
+
+    # Section 6: Prevention Measures
+    prevention_measures = []
+    category_prevention = {
+        "slow_query": {
+            "measure": "Implement query performance monitoring with pg_stat_statements",
+            "cadence": "Review weekly",
+        },
+        "connections": {
+            "measure": "Configure PgBouncer or HikariCP connection pooling with appropriate pool sizing",
+            "cadence": "Review on capacity change",
+        },
+        "memory": {
+            "measure": "Monitor buffer hit ratios via Prometheus + alerting on cache_hit_ratio < 90%",
+            "cadence": "Alert-driven",
+        },
+        "deadlock": {
+            "measure": "Establish consistent lock ordering conventions and set lock_timeout",
+            "cadence": "Review on schema change",
+        },
+        "index": {
+            "measure": "Schedule periodic index bloat analysis and REINDEX operations",
+            "cadence": "Monthly",
+        },
+    }
+    seen_categories: set[str] = set()
+    for f in all_findings:
+        cat = f.get("category", "unknown")
+        if cat not in seen_categories and cat in category_prevention:
+            seen_categories.add(cat)
+            prevention_measures.append({
+                "category": cat,
+                "measure": category_prevention[cat]["measure"],
+                "cadence": category_prevention[cat]["cadence"],
+                "triggered_by": f.get("finding_id"),
+            })
+
+    if not prevention_measures:
+        prevention_measures.append({
+            "category": "general",
+            "measure": "Continue routine monitoring. No specific prevention measures triggered.",
+            "cadence": "Ongoing",
+            "triggered_by": None,
+        })
+
+    # Section 7: Appendix
+    appendix = {
+        "raw_finding_ids": [f.get("finding_id") for f in all_findings],
+        "agent_summary": {
+            "query_analyst": len(state.get("query_findings", [])),
+            "health_analyst": len(state.get("health_findings", [])),
+            "schema_analyst": len(state.get("schema_findings", [])),
+        },
+        "latency_ms": state.get("health_latency_ms", 0),
+        "investigation_mode": state.get("investigation_mode", "standalone"),
+        "sampling_mode": state.get("sampling_mode", "standard"),
+        "session_id": state.get("session_id", ""),
+        "run_id": state.get("run_id", ""),
+        "low_confidence_findings": [
+            f.get("finding_id") for f in all_findings
+            if f.get("confidence_calibrated", 1.0) < 0.7
+        ],
+    }
+
+    dossier = {
+        "executive_summary": exec_summary,
+        "root_cause_analysis": root_cause_analysis,
+        "evidence_chain": evidence_chain,
+        "impact_assessment": impact_assessment,
+        "remediation_recommendations": remediation_recommendations,
+        "prevention_measures": prevention_measures,
+        "appendix": appendix,
+    }
 
     if emitter:
         await emitter.emit("synthesizer", "success", summary)
@@ -313,6 +510,7 @@ async def synthesizer(state: DBDiagnosticStateV2) -> dict:
         "root_cause": root_cause,
         "needs_human_review": needs_review,
         "status": "completed",
+        "dossier": dossier,
     }
 
 
