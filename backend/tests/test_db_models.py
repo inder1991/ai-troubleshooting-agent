@@ -145,3 +145,76 @@ def test_config_recommendation():
         recommended_value="1GB", reason="25% of 4GB RAM",
     )
     assert r.requires_restart is False
+
+
+# --- V2 Model Tests ---
+
+def test_finding_v2_with_evidence():
+    from src.database.models import DBFindingV2, EvidenceSnippet
+    snippet = EvidenceSnippet(
+        id="e-9001",
+        summary="pg_stat_statements: total_time=1.47E6ms calls=820",
+        artifact_id="art-9001",
+    )
+    finding = DBFindingV2(
+        finding_id="f-0001",
+        agent="query_analyst",
+        category="slow_query",
+        title="High p95 latency for SQL sha:0xabc",
+        severity="high",
+        confidence_raw=0.86,
+        confidence_calibrated=0.78,
+        detail="Query scanning 12M rows",
+        evidence_ids=["e-9001"],
+        evidence_snippets=[snippet],
+        affected_entities={"database": "orders_db", "tables": ["orders"]},
+        recommendation="Add covering index",
+        remediation_available=True,
+        remediation_plan_id="p-77",
+        rule_check="index_suggested: explain.rows_estimated > 100000",
+        meta={"sql_sha": "0xabc", "agent_version": "query_analyst-v2"},
+    )
+    assert finding.confidence_calibrated == 0.78
+    assert finding.evidence_snippets[0].artifact_id == "art-9001"
+
+
+def test_plan_v2_with_steps():
+    from src.database.models import RemediationPlanV2, PlanStep
+    step = PlanStep(
+        step_id="s1",
+        type="create_index",
+        description="Create index on replica",
+        command="CREATE INDEX CONCURRENTLY idx_orders_user ON orders (user_id);",
+        run_target="replica1",
+        estimated_time_minutes=8,
+    )
+    plan = RemediationPlanV2(
+        plan_id="p-77",
+        profile_id="prof-1",
+        created_by="query_analyst",
+        summary="Create index to reduce seq scans",
+        scope={"type": "schema_change", "database": "orders_db"},
+        steps=[step],
+        prechecks=[{"id": "p1", "type": "replica_available", "required": True}],
+        required_approvals=[{"role": "dba", "min_count": 1}],
+        policy_tags=["safe-index", "no-downtime"],
+        estimated_risk="low",
+        immutable_hash="sha256:abc123",
+    )
+    assert plan.steps[0].run_target == "replica1"
+    assert plan.estimated_risk == "low"
+    assert plan.status == "created"
+
+
+def test_finding_v2_rejects_invalid_severity():
+    from src.database.models import DBFindingV2
+    with pytest.raises(Exception):
+        DBFindingV2(
+            finding_id="f-bad",
+            agent="test",
+            category="slow_query",
+            title="Bad",
+            severity="mega_critical",
+            confidence_raw=0.5,
+            detail="test",
+        )

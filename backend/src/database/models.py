@@ -1,7 +1,7 @@
 """Pydantic models for database diagnostics."""
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
@@ -187,3 +187,64 @@ class ConfigRecommendation(BaseModel):
     recommended_value: str
     reason: str
     requires_restart: bool = False
+
+
+# --- V2 Models for AI-Powered Database Diagnostics ---
+
+class EvidenceSnippet(BaseModel):
+    id: str
+    summary: str
+    artifact_id: str
+
+
+class DBFindingV2(BaseModel):
+    finding_id: str
+    agent: str
+    category: Literal[
+        "slow_query", "lock", "replication", "connections",
+        "storage", "schema", "index_candidate", "memory",
+        "configuration", "deadlock",
+    ]
+    title: str
+    severity: Literal["critical", "high", "medium", "low", "info"]
+    confidence_raw: float
+    confidence_calibrated: float = 0.0
+    timestamp: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    detail: str
+    evidence_ids: list[str] = []
+    evidence_snippets: list[EvidenceSnippet] = []
+    affected_entities: dict = {}
+    recommendation: str = ""
+    remediation_available: bool = False
+    remediation_plan_id: Optional[str] = None
+    rule_check: str = ""
+    meta: dict = {}
+
+
+class PlanStep(BaseModel):
+    step_id: str
+    type: str
+    description: str
+    command: str
+    run_target: str
+    estimated_time_minutes: Optional[int] = None
+    checks: list[dict] = []
+
+
+class RemediationPlanV2(BaseModel):
+    plan_id: str
+    profile_id: str
+    created_by: str
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    summary: str
+    scope: dict = {}
+    steps: list[PlanStep] = []
+    prechecks: list[dict] = []
+    required_approvals: list[dict] = []
+    approval_status: str = "pending"
+    approvals: list[dict] = []
+    immutable_hash: str = ""
+    policy_tags: list[str] = []
+    estimated_risk: Literal["low", "medium", "high", "critical"] = "medium"
+    status: str = "created"
+    finding_id: Optional[str] = None
