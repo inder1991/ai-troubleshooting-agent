@@ -14,9 +14,15 @@ const agentMap: Record<AgentCode, { name: string; color: string; bgColor: string
 interface WorkerSignatureProps {
   confidence: number;
   agentCode: AgentCode;
+  calibratedConfidence?: number;
+  calibrationFactors?: {
+    agent_prior: number;
+    critic_score: number;
+    evidence_weight: number;
+  };
 }
 
-const WorkerSignature: React.FC<WorkerSignatureProps> = ({ confidence, agentCode }) => {
+const WorkerSignature: React.FC<WorkerSignatureProps> = ({ confidence, agentCode, calibratedConfidence, calibrationFactors }) => {
   const agent = agentMap[agentCode] || agentMap.C;
 
   return (
@@ -37,16 +43,23 @@ const WorkerSignature: React.FC<WorkerSignatureProps> = ({ confidence, agentCode
         </div>
 
         {/* Right: Confidence text */}
-        <span className="text-[9px] font-mono text-slate-500">
-          {confidence}% Confidence
-        </span>
+        <div className="flex items-center gap-1">
+          <span className="text-[9px] font-mono text-slate-500">
+            {confidence}% Confidence
+          </span>
+          {calibratedConfidence !== undefined && (
+            <span className="text-[9px] font-mono text-slate-600" title={calibrationFactors ? `prior:${calibrationFactors.agent_prior.toFixed(2)} critic:${calibrationFactors.critic_score.toFixed(2)} evidence:${calibrationFactors.evidence_weight.toFixed(2)}` : undefined}>
+              → {Math.round(calibratedConfidence * 100)}% cal
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Animated confidence bar */}
-      <div className="mt-1.5 h-0.5 bg-slate-800/50 rounded-full overflow-hidden">
+      <div className="mt-1.5 h-0.5 bg-slate-800/50 rounded-full overflow-hidden relative">
         <motion.div
           initial={{ width: 0 }}
-          animate={{ width: `${confidence}%` }}
+          animate={{ width: `${calibratedConfidence !== undefined ? Math.round(calibratedConfidence * 100) : confidence}%` }}
           transition={{ duration: 1, ease: 'easeOut' }}
           className="h-full rounded-full"
           style={{ backgroundColor: agent.color }}
