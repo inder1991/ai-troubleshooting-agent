@@ -13,6 +13,7 @@ from src.models.campaign import RemediationCampaign, CampaignRepoFix, CampaignRe
 from src.models.schemas import DiagnosticState, FixedFile
 from src.utils.event_emitter import EventEmitter
 from src.utils.logger import get_logger
+from src.agents.service_dependency import ServiceDependencyGraph
 
 logger = get_logger(__name__)
 
@@ -28,11 +29,31 @@ class CampaignOrchestrator:
         self.repo_paths: dict[str, str] = {}   # repo_url → cloned tmp path
 
     async def run_campaign(self, state: DiagnosticState, campaign: RemediationCampaign) -> None:
-        """Sequential fix generation across repos."""
+        """Sequential fix generation across repos, ordered by service dependency graph."""
         campaign.overall_status = "in_progress"
         self._emit_campaign_update(campaign)
 
+        # Build service dependency graph and order repos topologically
+        svc_graph = ServiceDependencyGraph()
+        svc_graph.build_from_sources(state.__dict__ if hasattr(state, '__dict__') else {})
+        affected_services = [rf.service_name for rf in campaign.repos.values() if rf.service_name]
+        fix_order = svc_graph.get_fix_order(affected_services) if affected_services else []
+
+        # Order repos: topologically sorted first, then remaining
+        ordered_repos: list[tuple[str, CampaignRepoFix]] = []
+        seen = set()
+        for svc in fix_order:
+            for repo_url, repo_fix in campaign.repos.items():
+                if repo_fix.service_name == svc and repo_url not in seen:
+                    ordered_repos.append((repo_url, repo_fix))
+                    seen.add(repo_url)
         for repo_url, repo_fix in campaign.repos.items():
+            if repo_url not in seen:
+                ordered_repos.append((repo_url, repo_fix))
+
+        prior_fixes: dict[str, str] = {}  # service → fix summary for context injection
+
+        for repo_url, repo_fix in ordered_repos:
             try:
                 # 1. Clone repo
                 repo_fix.status = CampaignRepoStatus.CLONING
@@ -50,10 +71,15 @@ class CampaignOrchestrator:
                 )
                 self.repo_agents[repo_url] = agent3
 
-                # 3. Generate fixes
+                # 3. Generate fixes (with prior-fix context)
                 repo_fix.status = CampaignRepoStatus.GENERATING
                 self._emit_campaign_update(campaign)
-                generated_fixes = await agent3.generate_fix(state, "", self.event_emitter)
+                prior_context = ""
+                if prior_fixes:
+                    prior_context = "Prior fixes applied in this campaign:\n" + "\n".join(
+                        f"- {svc}: {summary}" for svc, summary in prior_fixes.items()
+                    )
+                generated_fixes = await agent3.generate_fix(state, prior_context, self.event_emitter)
 
                 # 4. Build per-repo fix data
                 fixed_files_data: list[dict] = []
@@ -81,7 +107,14 @@ class CampaignOrchestrator:
                 repo_fix.status = CampaignRepoStatus.AWAITING_REVIEW
                 self._emit_campaign_update(campaign)
 
-                # 5. Emit chat message for this repo's fix
+                # 5. Track prior fixes for dependent repos
+                if repo_fix.service_name:
+                    prior_fixes[repo_fix.service_name] = (
+                        repo_fix.fix_explanation[:200] if repo_fix.fix_explanation else
+                        f"Fixed {len(generated_fixes)} files"
+                    )
+
+                # 6. Emit chat message for this repo's fix
                 await self._emit_fix_proposal_chat(repo_fix, campaign)
 
             except Exception as e:
