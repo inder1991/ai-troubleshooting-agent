@@ -16,10 +16,10 @@ const actions: { label: string; capability: CapabilityType; icon: string; badge?
 ];
 
 export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({ onSelectCapability, wsConnected }) => (
-  <div className="flex flex-col gap-4">
-    <div className="bg-duck-panel border border-duck-border rounded-lg p-4">
+  <div className="flex flex-col gap-4 h-full">
+    <div className="bg-duck-panel border border-duck-border rounded-lg p-4 flex-1 flex flex-col">
       <h3 className="text-xs font-bold text-duck-muted uppercase tracking-wider mb-3">Quick Actions</h3>
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-1.5 overflow-y-auto">
         {actions.map((a) => (
           <button
             key={a.capability}
@@ -39,7 +39,7 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({ onSelectCa
       </div>
     </div>
 
-    <div className="bg-duck-panel border border-duck-border rounded-lg p-4">
+    <div className="bg-duck-panel border border-duck-border rounded-lg p-4 flex-1 flex flex-col">
       <h3 className="text-xs font-bold text-duck-muted uppercase tracking-wider mb-3">System Health</h3>
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
