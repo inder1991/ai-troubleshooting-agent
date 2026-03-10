@@ -40,6 +40,7 @@ import AgentMatrixView from './components/AgentMatrix/AgentMatrixView';
 import TopologyEditorView from './components/TopologyEditor/TopologyEditorView';
 import IPAMDashboard from './components/IPAM/IPAMDashboard';
 import NetworkWarRoom from './components/NetworkTroubleshooting/NetworkWarRoom';
+import DatabaseWarRoom from './components/Investigation/DatabaseWarRoom';
 import ReachabilityMatrix from './components/NetworkTroubleshooting/ReachabilityMatrix';
 import NetworkAdaptersView from './components/Network/NetworkAdaptersView';
 import DeviceMonitoring from './components/Network/DeviceMonitoring';
@@ -651,17 +652,27 @@ function AppInner() {
             {/* 3-column investigation layout + bottom progress bar */}
             <div className="flex-1 overflow-hidden">
               <ErrorBoundary>
-                <InvestigationView
-                  session={activeSession}
-                  events={currentTaskEvents}
-                  wsConnected={wsConnected}
-                  phase={currentPhase}
-                  confidence={confidence}
-                  tokenUsage={tokenUsage}
-                  attestationGate={attestationGate}
-                  onAttestationDecision={handleAttestationDecision}
-                  onNavigateToDossier={handleNavigateToDossier}
-                />
+                {activeSession.capability === 'database_diagnostics' ? (
+                  <DatabaseWarRoom
+                    session={activeSession}
+                    events={currentTaskEvents}
+                    wsConnected={wsConnected}
+                    phase={currentPhase}
+                    confidence={confidence}
+                  />
+                ) : (
+                  <InvestigationView
+                    session={activeSession}
+                    events={currentTaskEvents}
+                    wsConnected={wsConnected}
+                    phase={currentPhase}
+                    confidence={confidence}
+                    tokenUsage={tokenUsage}
+                    attestationGate={attestationGate}
+                    onAttestationDecision={handleAttestationDecision}
+                    onNavigateToDossier={handleNavigateToDossier}
+                  />
+                )}
               </ErrorBoundary>
             </div>
           </CampaignProvider>
