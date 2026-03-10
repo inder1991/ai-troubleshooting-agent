@@ -131,7 +131,7 @@ class SupervisorAgent:
             "metrics_agent": MetricsAgent,
             "k8s_agent": K8sAgent,
             "change_agent": ChangeAgent,
-            # "tracing_agent": TracingAgent,
+            "tracing_agent": TracingAgent,
             "code_agent": CodeNavigatorAgent,
         }
         self._critic = CriticAgent()
