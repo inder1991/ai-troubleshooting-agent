@@ -102,10 +102,10 @@ const HomePage: React.FC<HomePageProps> = ({
         </div>
 
         {/* ROW 2: Core Workspace (locked 500px) */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8 items-stretch lg:h-[500px]">
+        <div className="grid grid-cols-1 lg:grid-cols-12 lg:grid-rows-[1fr] gap-6 mb-8 lg:h-[500px] overflow-hidden">
 
           {/* Left Column: Feed with tab bar */}
-          <div className="lg:col-span-8 flex flex-col h-full bg-duck-panel border border-duck-border rounded-lg overflow-hidden">
+          <div className="lg:col-span-8 flex flex-col min-h-0 bg-duck-panel border border-duck-border rounded-lg overflow-hidden">
             {/* Tab bar */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-duck-border bg-duck-card/30 shrink-0">
               <div className="flex gap-6">
@@ -134,7 +134,7 @@ const HomePage: React.FC<HomePageProps> = ({
             </div>
 
             {/* Scrollable feed */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar">
+            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
               <LiveIntelligenceFeed
                 onSelectSession={onSelectSession}
                 filterActive={feedTab === 'mine'}
@@ -143,7 +143,7 @@ const HomePage: React.FC<HomePageProps> = ({
           </div>
 
           {/* Right Column: QuickActions + AgentFleetPulse */}
-          <div className="lg:col-span-4 flex flex-col gap-5 h-full">
+          <div className="lg:col-span-4 flex flex-col gap-5 min-h-0 overflow-hidden">
             <div className="h-[240px] shrink-0">
               <QuickActionsPanel
                 onSelectCapability={onSelectCapability}
