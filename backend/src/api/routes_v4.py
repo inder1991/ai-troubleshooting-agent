@@ -348,6 +348,7 @@ async def start_session(request: StartSessionRequest, background_tasks: Backgrou
                 "include_explain_plans": extra.get("include_explain_plans", False),
                 "parent_session_id": extra.get("parent_session_id"),
                 "table_filter": extra.get("table_filter"),
+                "connection_uri": extra.get("connection_uri"),
             },
         }
 
@@ -611,15 +612,25 @@ async def run_db_diagnosis(session_id: str, db_context: dict, emitter):
 
         investigation_mode = "contextual" if db_context.get("parent_session_id") else "standalone"
 
+        # Resolve profile to get actual engine/host/port/database
+        profile = None
+        try:
+            from src.database.profile_store import DBProfileStore
+            import os
+            _ps = DBProfileStore(db_path=os.environ.get("DB_DIAGNOSTICS_DB_PATH", "data/debugduck.db"))
+            profile = _ps.get(db_context["profile_id"])
+        except Exception:
+            pass
+
         initial_state = {
             "run_id": f"R-{session_id[:8]}",
             "session_id": session_id,
             "profile_id": db_context["profile_id"],
-            "profile_name": db_context.get("profile_id", "unknown"),
-            "host": "",
-            "port": 5432,
-            "database": "",
-            "engine": "postgresql",
+            "profile_name": profile.get("name", db_context["profile_id"]) if profile else db_context["profile_id"],
+            "host": profile.get("host", "") if profile else "",
+            "port": profile.get("port", 5432) if profile else 5432,
+            "database": profile.get("database", "") if profile else "",
+            "engine": profile.get("engine", db_context.get("database_type", "postgresql")) if profile else db_context.get("database_type", "postgresql"),
             "investigation_mode": investigation_mode,
             "sampling_mode": db_context.get("sampling_mode", "standard"),
             "focus": db_context.get("focus", ["queries", "connections", "storage"]),
@@ -635,26 +646,34 @@ async def run_db_diagnosis(session_id: str, db_context: dict, emitter):
             "_emitter": emitter,
         }
 
-        # Try to resolve adapter from profile
+        # Try to resolve adapter from registry, fallback to creating from profile
+        adapter = None
         try:
             from src.database.adapters.registry import adapter_registry
             adapter = adapter_registry.get_by_profile(db_context["profile_id"])
-            if adapter:
-                initial_state["_adapter"] = adapter
-            else:
-                await emitter.emit("supervisor", "error", f"No adapter found for profile {db_context['profile_id']}")
+        except ImportError:
+            pass
+
+        if not adapter and profile:
+            try:
+                from src.api.db_endpoints import _create_adapter_from_profile
+                adapter = await _create_adapter_from_profile(profile)
+            except Exception as e:
+                logger.error("Failed to create adapter from profile: %s", e)
+                await emitter.emit("supervisor", "error", f"Failed to connect: {e}")
                 async with lock:
                     if session_id in sessions:
                         sessions[session_id]["phase"] = "error"
                 return
-        except ImportError:
-            # Adapter registry not yet implemented — skip execution
-            logger.warning("Adapter registry not available, skipping DB diagnosis execution")
-            await emitter.emit("supervisor", "warning", "Database adapter not configured — diagnosis skipped")
+
+        if not adapter:
+            await emitter.emit("supervisor", "error", f"No adapter found for profile {db_context['profile_id']}")
             async with lock:
                 if session_id in sessions:
                     sessions[session_id]["phase"] = "error"
             return
+
+        initial_state["_adapter"] = adapter
 
         result = await asyncio.wait_for(graph.ainvoke(initial_state), timeout=180)
 

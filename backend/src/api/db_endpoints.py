@@ -91,6 +91,7 @@ class CreateProfileRequest(BaseModel):
     database: str
     username: str
     password: str
+    connection_uri: str = ""
     tags: dict[str, str] = {}
 
 
@@ -101,6 +102,7 @@ class UpdateProfileRequest(BaseModel):
     database: Optional[str] = None
     username: Optional[str] = None
     password: Optional[str] = None
+    connection_uri: Optional[str] = None
 
 
 class StartDiagnosticRequest(BaseModel):
@@ -137,6 +139,7 @@ def create_profile(req: CreateProfileRequest):
         database=req.database,
         username=req.username,
         password=req.password,
+        connection_uri=req.connection_uri,
         tags=req.tags,
     )
     profile.pop("password", None)

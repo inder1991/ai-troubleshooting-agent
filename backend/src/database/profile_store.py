@@ -30,10 +30,16 @@ class DBProfileStore:
                     database_name TEXT NOT NULL,
                     username TEXT NOT NULL,
                     password TEXT NOT NULL DEFAULT '',
+                    connection_uri TEXT NOT NULL DEFAULT '',
                     tags TEXT NOT NULL DEFAULT '{}',
                     created_at TEXT NOT NULL
                 )
             """)
+            # Migrate: add connection_uri column if missing (existing DBs)
+            try:
+                conn.execute("SELECT connection_uri FROM db_profiles LIMIT 1")
+            except sqlite3.OperationalError:
+                conn.execute("ALTER TABLE db_profiles ADD COLUMN connection_uri TEXT NOT NULL DEFAULT ''")
 
     def create(
         self,
@@ -45,13 +51,14 @@ class DBProfileStore:
         database: str,
         username: str,
         password: str,
+        connection_uri: str = "",
         tags: dict | None = None,
     ) -> dict:
         profile_id = str(uuid.uuid4())
         now = datetime.utcnow().isoformat()
         with self._conn() as conn:
             conn.execute(
-                "INSERT INTO db_profiles (id, name, engine, host, port, database_name, username, password, tags, created_at) VALUES (?,?,?,?,?,?,?,?,?,?)",
+                "INSERT INTO db_profiles (id, name, engine, host, port, database_name, username, password, connection_uri, tags, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
                 (
                     profile_id,
                     name,
@@ -61,6 +68,7 @@ class DBProfileStore:
                     database,
                     username,
                     password,
+                    connection_uri,
                     json.dumps(tags or {}),
                     now,
                 ),
@@ -92,6 +100,7 @@ class DBProfileStore:
             "database",
             "username",
             "password",
+            "connection_uri",
             "tags",
         }
         updates = {k: v for k, v in fields.items() if k in allowed}
@@ -129,6 +138,7 @@ class DBProfileStore:
             "port": row["port"],
             "database": row["database_name"],
             "username": row["username"],
+            "connection_uri": row["connection_uri"] if "connection_uri" in row.keys() else "",
             "tags": json.loads(row["tags"]) if row["tags"] else {},
             "created_at": row["created_at"],
         }

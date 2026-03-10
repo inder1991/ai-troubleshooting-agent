@@ -169,12 +169,19 @@ async def health_analyst(state: DBDiagnosticStateV2) -> dict:
         await emitter.emit("health_analyst", "started", "Analyzing database health")
 
     adapter = state["_adapter"]
+    engine = state.get("engine", "postgresql")
+    is_mongo = engine == "mongodb"
     findings = []
 
     try:
         pool = await adapter.get_connection_pool()
         if pool.max_connections and pool.active / pool.max_connections > 0.8:
             utilization = round(pool.active / pool.max_connections * 100, 1)
+            conn_rec = (
+                "Review application connection pooling and increase maxPoolSize"
+                if is_mongo
+                else "Increase max_connections or reduce connection leaks"
+            )
             findings.append({
                 "finding_id": "f-ha-conn-sat",
                 "agent": "health_analyst",
@@ -185,13 +192,18 @@ async def health_analyst(state: DBDiagnosticStateV2) -> dict:
                 "confidence_calibrated": 0.90,
                 "detail": f"Active: {pool.active}, Max: {pool.max_connections}",
                 "evidence_ids": [],
-                "recommendation": "Increase max_connections or reduce connection leaks",
+                "recommendation": conn_rec,
                 "remediation_available": True,
                 "rule_check": f"utilization={utilization}% > 80%",
             })
 
         perf = await adapter.get_performance_stats()
         if perf.cache_hit_ratio < 0.9:
+            cache_rec = (
+                "Increase WiredTiger cacheSizeGB or review query access patterns"
+                if is_mongo
+                else "Increase shared_buffers or review query access patterns"
+            )
             findings.append({
                 "finding_id": "f-ha-cache",
                 "agent": "health_analyst",
@@ -202,12 +214,17 @@ async def health_analyst(state: DBDiagnosticStateV2) -> dict:
                 "confidence_calibrated": 0.80,
                 "detail": f"Cache hit ratio is {perf.cache_hit_ratio:.2%}, below 90% threshold",
                 "evidence_ids": [],
-                "recommendation": "Increase shared_buffers or review query access patterns",
+                "recommendation": cache_rec,
                 "remediation_available": True,
                 "rule_check": f"cache_hit_ratio={perf.cache_hit_ratio:.4f} < 0.9",
             })
 
         if perf.deadlocks > 0:
+            deadlock_rec = (
+                "Review write concern settings and document access patterns"
+                if is_mongo
+                else "Review lock ordering and transaction isolation"
+            )
             findings.append({
                 "finding_id": "f-ha-deadlock",
                 "agent": "health_analyst",
@@ -218,7 +235,7 @@ async def health_analyst(state: DBDiagnosticStateV2) -> dict:
                 "confidence_calibrated": 0.75,
                 "detail": f"Deadlock count: {perf.deadlocks}",
                 "evidence_ids": [],
-                "recommendation": "Review lock ordering and transaction isolation",
+                "recommendation": deadlock_rec,
                 "remediation_available": False,
                 "rule_check": f"deadlocks={perf.deadlocks} > 0",
             })
