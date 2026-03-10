@@ -27,6 +27,13 @@ from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
+INFRA_FIX_RULES = {
+    "helm": "Modify values.yaml resource limits, NOT template files directly. Use Helm value paths.",
+    "kustomize": "Use patches or overlays, not base modifications. Preserve kustomization.yaml structure.",
+    "terraform": "Update variable defaults in variables.tf, not hardcoded values. Never change resource names.",
+    "k8s_manifest": "Update Deployment/StatefulSet resource requests and limits. Ensure requests <= limits.",
+}
+
 
 class Agent3FixGenerator:
     """
@@ -397,7 +404,14 @@ class Agent3FixGenerator:
                     lines.append(f"- {corr.get('description', 'unknown')[:100]} (risk: {corr.get('risk_score', 'N/A')})")
                 evidence_parts.append("\n".join(lines))
 
-        # 7. Human guidance
+        # 7. Infra-specific fix rules
+        from src.agents.code_agent_utils import detect_repo_type
+        repo_type = detect_repo_type(list(file_originals.keys()) + resolved_targets)
+        if repo_type in ("infrastructure", "monorepo"):
+            rules_text = "\n".join(f"- **{k}**: {v}" for k, v in INFRA_FIX_RULES.items())
+            evidence_parts.append(f"## Infrastructure Fix Rules\nRepo type: {repo_type}\n{rules_text}")
+
+        # 8. Human guidance
         if human_guidance:
             evidence_parts.append(f"## Human Guidance\n{human_guidance}")
 
