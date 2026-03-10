@@ -201,6 +201,9 @@ export interface SpanInfo {
   parent_span_id: string | null;
   error_message?: string;
   tags?: Record<string, string>;
+  start_offset_ms?: number;
+  trace_id?: string;
+  critical_path?: boolean;
 }
 
 export interface PatientZero {
