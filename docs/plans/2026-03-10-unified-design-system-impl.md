@@ -147,16 +147,17 @@ git commit -m "feat(ui): add reusable Badge component (NEW/PREVIEW/BETA)"
 - Modify: `frontend/package.json` (via npm install)
 - Modify: `frontend/src/App.tsx`
 
-**Step 1: Install TanStack Query**
+**Step 1: Install TanStack Query + Devtools**
 
-Run: `cd frontend && npm install @tanstack/react-query`
+Run: `cd frontend && npm install @tanstack/react-query @tanstack/react-query-devtools`
 
-**Step 2: Add QueryClientProvider to App.tsx**
+**Step 2: Add QueryClientProvider + Devtools to App.tsx**
 
-At the top of the file, add the import (after existing imports):
+At the top of the file, add the imports (after existing imports):
 
 ```tsx
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 ```
 
 Before the `function App()` declaration, add:
@@ -181,6 +182,7 @@ function App() {
       <ToastProvider>
         <AppInner />
       </ToastProvider>
+      <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   );
 }
@@ -216,7 +218,7 @@ Before:
 
 After:
 ```html
-    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" as="style" />
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" as="style" crossorigin="anonymous" />
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
 ```
 
@@ -625,6 +627,8 @@ git commit -m "feat(ribbon): migrate to TanStack Query, extract todayStr for per
 - Modify: `frontend/src/App.tsx`
 
 Now that LiveIntelligenceFeed and MetricRibbon self-fetch via useQuery, remove prop drilling.
+
+**Important:** Before removing `sessions` state from App.tsx, check if `AppInner` uses the live sessions array for routing decisions (e.g., rendering ClusterWarRoom or PostMortemDossierView). If so, keep `useQuery(['live-sessions'])` inside AppInner instead — React Query's global cache means calling the same queryKey in AppInner, MetricRibbon, and LiveIntelligenceFeed costs zero extra network requests.
 
 **Step 1: Remove sessions/onSessionsChange from HomePage props**
 
