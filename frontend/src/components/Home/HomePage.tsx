@@ -6,6 +6,7 @@ import CapabilityLauncher from './CapabilityLauncher';
 import LiveIntelligenceFeed from './LiveIntelligenceFeed';
 import { MetricRibbon } from './MetricRibbon';
 import { QuickActionsPanel } from './QuickActionsPanel';
+import { SystemHealthTicker } from '../Layout/SystemHealthTicker';
 import { EnvironmentHealth } from './EnvironmentHealth';
 import { AgentFleetPulse } from './AgentFleetPulse';
 import { TimeRangeSelector } from '../shared';
@@ -43,12 +44,21 @@ const HomePage: React.FC<HomePageProps> = ({
     <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-duck-bg">
       {/* Top Header */}
       <header className="h-16 border-b border-duck-border flex items-center justify-between px-8 shrink-0 bg-duck-panel/50 backdrop-blur-md">
-        <div className="flex items-center gap-6 flex-1">
-          {/* System Health Badge */}
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
-            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-            <span className="text-xs font-bold text-emerald-500 uppercase tracking-tighter">
-              System Health: {wsConnected ? 'Online' : 'Offline'}
+        <div className="flex items-center gap-4 flex-1">
+          {/* Global Status Badge */}
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 h-[34px]">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" aria-hidden="true" />
+            <span className="text-xs font-bold text-emerald-400 tracking-widest uppercase">All Systems Nominal</span>
+          </div>
+
+          {/* Alternating Telemetry Ticker */}
+          <SystemHealthTicker />
+
+          {/* WebSocket Status */}
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-duck-surface border border-duck-border h-[34px]">
+            <span className={`w-1.5 h-1.5 rounded-full ${wsConnected ? 'bg-emerald-500' : 'bg-red-500'}`} />
+            <span className={`text-[10px] font-mono font-bold uppercase tracking-wider ${wsConnected ? 'text-emerald-500' : 'text-red-500'}`}>
+              {wsConnected ? 'WS Sync' : 'WS Offline'}
             </span>
           </div>
 
@@ -147,7 +157,6 @@ const HomePage: React.FC<HomePageProps> = ({
             <div className="h-[240px] shrink-0">
               <QuickActionsPanel
                 onSelectCapability={onSelectCapability}
-                wsConnected={wsConnected}
               />
             </div>
             <div className="h-[240px] shrink-0">
