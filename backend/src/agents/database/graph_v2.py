@@ -38,6 +38,7 @@ class DBDiagnosticStateV2(TypedDict, total=False):
     _evidence_store: object
     _job_queue: object
     _emitter: object
+    _context_fetcher: object  # callable(session_id) -> session dict or None
 
     # Execution state
     status: str  # "running" | "completed" | "failed"
@@ -111,11 +112,11 @@ async def context_loader(state: DBDiagnosticStateV2) -> dict:
         await emitter.emit("context_loader", "started",
                           f"Loading context from app session {parent_id}")
 
-    # Fetch findings from parent session's in-memory state
+    # Fetch findings from parent session via injected fetcher (avoids circular import)
     app_context = {"parent_session_id": parent_id}
     try:
-        from src.api.routes_v4 import sessions as v4_sessions
-        parent = v4_sessions.get(parent_id)
+        fetcher = state.get("_context_fetcher")
+        parent = fetcher(parent_id) if fetcher else None
         if parent and parent.get("state"):
             pstate = parent["state"]
             if hasattr(pstate, "all_findings"):

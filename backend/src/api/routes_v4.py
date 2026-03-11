@@ -365,7 +365,7 @@ async def start_session(request: StartSessionRequest, background_tasks: Backgrou
 
         # Bidirectional session linking
         parent_sid = extra.get("parent_session_id")
-        if parent_sid and parent_sid in sessions:
+        if parent_sid and _UUID4_RE.match(parent_sid) and parent_sid in sessions:
             _link_sessions(session_id, parent_sid)
             sessions[session_id]["investigation_mode"] = "contextual"
         else:
@@ -656,6 +656,7 @@ async def run_db_diagnosis(session_id: str, db_context: dict, emitter):
             "table_filter": db_context.get("table_filter", []),
             "include_explain_plans": db_context.get("include_explain_plans", False),
             "parent_session_id": db_context.get("parent_session_id", ""),
+            "_context_fetcher": lambda sid: sessions.get(sid),
             "status": "running",
             "findings": [],
             "query_findings": [],
