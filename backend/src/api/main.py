@@ -16,6 +16,7 @@ from .pr_endpoints import router as pr_router
 from datetime import datetime
 
 from .routes_v4 import router_v4
+from . import db_session_endpoints as _db_session_endpoints  # noqa: F401 — ensure module is loaded
 from .agent_endpoints import agent_router
 from .routes_v5 import router as v5_router
 from .routes_profiles import router as profiles_router
