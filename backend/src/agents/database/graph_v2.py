@@ -10,6 +10,8 @@ from typing import Optional, TypedDict
 
 from langgraph.graph import END, StateGraph
 
+from src.database.models import DBFindingV2
+
 logger = logging.getLogger(__name__)
 
 
@@ -154,20 +156,20 @@ async def query_analyst(state: DBDiagnosticStateV2) -> dict:
 
         for q in slow:
             severity = "critical" if q.duration_ms > 30000 else "high" if q.duration_ms > 10000 else "medium"
-            findings.append({
-                "finding_id": f"f-qa-{q.pid}",
-                "agent": "query_analyst",
-                "category": "slow_query",
-                "title": f"Slow query (pid={q.pid}, {q.duration_ms}ms)",
-                "severity": severity,
-                "confidence_raw": 0.9,
-                "confidence_calibrated": 0.85,
-                "detail": f"Query running for {q.duration_ms}ms: {q.query[:200]}",
-                "evidence_ids": [],
-                "recommendation": "Review query plan and consider adding indexes",
-                "remediation_available": True,
-                "rule_check": f"duration_ms={q.duration_ms} > 5000",
-            })
+            findings.append(DBFindingV2(
+                finding_id=f"f-qa-{q.pid}",
+                agent="query_analyst",
+                category="slow_query",
+                title=f"Slow query (pid={q.pid}, {q.duration_ms}ms)",
+                severity=severity,
+                confidence_raw=0.9,
+                confidence_calibrated=0.85,
+                detail=f"Query running for {q.duration_ms}ms: {q.query[:200]}",
+                evidence_ids=[],
+                recommendation="Review query plan and consider adding indexes",
+                remediation_available=True,
+                rule_check=f"duration_ms={q.duration_ms} > 5000",
+            ).model_dump())
     except Exception as e:
         logger.error("Query analyst failed: %s", e)
         if emitter:
@@ -201,20 +203,20 @@ async def health_analyst(state: DBDiagnosticStateV2) -> dict:
                 if is_mongo
                 else "Increase max_connections or reduce connection leaks"
             )
-            findings.append({
-                "finding_id": "f-ha-conn-sat",
-                "agent": "health_analyst",
-                "category": "connections",
-                "title": f"Connection pool saturation ({utilization}%)",
-                "severity": "critical" if utilization > 95 else "high",
-                "confidence_raw": 0.95,
-                "confidence_calibrated": 0.90,
-                "detail": f"Active: {pool.active}, Max: {pool.max_connections}",
-                "evidence_ids": [],
-                "recommendation": conn_rec,
-                "remediation_available": True,
-                "rule_check": f"utilization={utilization}% > 80%",
-            })
+            findings.append(DBFindingV2(
+                finding_id="f-ha-conn-sat",
+                agent="health_analyst",
+                category="connections",
+                title=f"Connection pool saturation ({utilization}%)",
+                severity="critical" if utilization > 95 else "high",
+                confidence_raw=0.95,
+                confidence_calibrated=0.90,
+                detail=f"Active: {pool.active}, Max: {pool.max_connections}",
+                evidence_ids=[],
+                recommendation=conn_rec,
+                remediation_available=True,
+                rule_check=f"utilization={utilization}% > 80%",
+            ).model_dump())
 
         perf = await adapter.get_performance_stats()
         if perf.cache_hit_ratio < 0.9:
@@ -223,20 +225,20 @@ async def health_analyst(state: DBDiagnosticStateV2) -> dict:
                 if is_mongo
                 else "Increase shared_buffers or review query access patterns"
             )
-            findings.append({
-                "finding_id": "f-ha-cache",
-                "agent": "health_analyst",
-                "category": "memory",
-                "title": f"Low cache hit ratio ({perf.cache_hit_ratio:.2%})",
-                "severity": "medium",
-                "confidence_raw": 0.85,
-                "confidence_calibrated": 0.80,
-                "detail": f"Cache hit ratio is {perf.cache_hit_ratio:.2%}, below 90% threshold",
-                "evidence_ids": [],
-                "recommendation": cache_rec,
-                "remediation_available": True,
-                "rule_check": f"cache_hit_ratio={perf.cache_hit_ratio:.4f} < 0.9",
-            })
+            findings.append(DBFindingV2(
+                finding_id="f-ha-cache",
+                agent="health_analyst",
+                category="memory",
+                title=f"Low cache hit ratio ({perf.cache_hit_ratio:.2%})",
+                severity="medium",
+                confidence_raw=0.85,
+                confidence_calibrated=0.80,
+                detail=f"Cache hit ratio is {perf.cache_hit_ratio:.2%}, below 90% threshold",
+                evidence_ids=[],
+                recommendation=cache_rec,
+                remediation_available=True,
+                rule_check=f"cache_hit_ratio={perf.cache_hit_ratio:.4f} < 0.9",
+            ).model_dump())
 
         if perf.deadlocks > 0:
             deadlock_rec = (
@@ -244,20 +246,20 @@ async def health_analyst(state: DBDiagnosticStateV2) -> dict:
                 if is_mongo
                 else "Review lock ordering and transaction isolation"
             )
-            findings.append({
-                "finding_id": "f-ha-deadlock",
-                "agent": "health_analyst",
-                "category": "deadlock",
-                "title": f"{perf.deadlocks} deadlocks detected",
-                "severity": "high",
-                "confidence_raw": 0.80,
-                "confidence_calibrated": 0.75,
-                "detail": f"Deadlock count: {perf.deadlocks}",
-                "evidence_ids": [],
-                "recommendation": deadlock_rec,
-                "remediation_available": False,
-                "rule_check": f"deadlocks={perf.deadlocks} > 0",
-            })
+            findings.append(DBFindingV2(
+                finding_id="f-ha-deadlock",
+                agent="health_analyst",
+                category="deadlock",
+                title=f"{perf.deadlocks} deadlocks detected",
+                severity="high",
+                confidence_raw=0.80,
+                confidence_calibrated=0.75,
+                detail=f"Deadlock count: {perf.deadlocks}",
+                evidence_ids=[],
+                recommendation=deadlock_rec,
+                remediation_available=False,
+                rule_check=f"deadlocks={perf.deadlocks} > 0",
+            ).model_dump())
     except Exception as e:
         logger.error("Health analyst failed: %s", e)
         if emitter:
