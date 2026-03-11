@@ -91,7 +91,7 @@ class NetworkChatStore:
                    WHERE user_id = ?
                      AND view = ?
                      AND investigation_session_id IS NULL
-                   ORDER BY created_at DESC
+                   ORDER BY last_message_at DESC
                    LIMIT 1""",
                 (user_id, view),
             ).fetchone()
