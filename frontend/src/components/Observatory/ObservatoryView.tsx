@@ -4,13 +4,20 @@ import NOCWallTab from './NOCWallTab';
 import LiveTopologyTab from './LiveTopologyTab';
 import TrafficFlowsTab from './TrafficFlowsTab';
 import AlertsTab from './AlertsTab';
+import AlertHistoryTab from './AlertHistoryTab';
+import DNSMonitoringTab from './DNSMonitoringTab';
 import { MetricCard } from '../shared/MetricCard';
 import { StatusBadge } from '../shared/StatusBadge';
 import { SkeletonLoader } from '../shared/SkeletonLoader';
+import NetworkChatDrawer from '../NetworkChat/NetworkChatDrawer';
 
-type Tab = 'topology' | 'noc' | 'flows' | 'alerts';
+type Tab = 'topology' | 'noc' | 'flows' | 'alerts' | 'history' | 'dns';
 
-const ObservatoryView: React.FC = () => {
+interface ObservatoryViewProps {
+  onOpenEditor?: () => void;
+}
+
+const ObservatoryView: React.FC<ObservatoryViewProps> = ({ onOpenEditor }) => {
   const [activeTab, setActiveTab] = useState<Tab>('noc');
   const [bellOpen, setBellOpen] = useState(false);
   const bellRef = useRef<HTMLDivElement>(null);
@@ -49,6 +56,8 @@ const ObservatoryView: React.FC = () => {
     { id: 'noc', label: 'Device Health' },
     { id: 'flows', label: 'Traffic Flows' },
     { id: 'alerts', label: 'Alerts' },
+    { id: 'history', label: 'Alert History' },
+    { id: 'dns', label: 'DNS' },
   ];
 
   // Close bell dropdown on outside click
@@ -231,6 +240,7 @@ const ObservatoryView: React.FC = () => {
             links={snapshot.links}
             drifts={snapshot.drifts}
             candidates={snapshot.candidates}
+            onOpenEditor={onOpenEditor}
           />
         ) : activeTab === 'noc' ? (
           <NOCWallTab
@@ -240,10 +250,15 @@ const ObservatoryView: React.FC = () => {
           />
         ) : activeTab === 'alerts' ? (
           <AlertsTab alerts={snapshot.alerts || []} onRefresh={refresh} />
+        ) : activeTab === 'history' ? (
+          <AlertHistoryTab />
+        ) : activeTab === 'dns' ? (
+          <DNSMonitoringTab />
         ) : (
           <TrafficFlowsTab links={snapshot.links} />
         )}
       </div>
+      <NetworkChatDrawer view="observatory" />
     </div>
   );
 };
