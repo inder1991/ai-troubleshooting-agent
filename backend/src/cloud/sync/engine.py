@@ -96,3 +96,56 @@ class CloudSyncEngine:
                 stats["relations_created"] += 1
 
         return stats
+
+    async def mark_stale_deleted(
+        self,
+        account_id: str,
+        region: str,
+        resource_types: list[str],
+        cutoff_ts: str,
+    ) -> int:
+        """Soft-delete resources not seen since cutoff_ts."""
+        return await self._store.mark_stale_deleted(
+            account_id, region, resource_types, cutoff_ts
+        )
+
+    async def acquire_sync_lock(
+        self, account_id: str, tier: int
+    ) -> str | None:
+        """Try to acquire sync lock. Returns sync_job_id or None."""
+        STALE_THRESHOLD_SECONDS = 900
+        running = await self._store.find_running_job(account_id, tier)
+        if running:
+            from datetime import datetime, timezone
+            started = datetime.fromisoformat(running["started_at"].replace("Z", "+00:00"))
+            age = (datetime.now(timezone.utc) - started).total_seconds()
+            if age < STALE_THRESHOLD_SECONDS:
+                return None
+            # Stale lock — reclaim
+            await self._store.complete_sync_job(
+                running["sync_job_id"],
+                status="failed",
+                errors=[{"error": "stale_lock_reclaimed"}],
+            )
+
+        job_id = str(uuid.uuid4())
+        await self._store.create_sync_job(job_id, account_id, tier)
+        return job_id
+
+    async def release_sync_lock(
+        self,
+        sync_job_id: str,
+        status: str = "completed",
+        items_seen: int = 0,
+        items_created: int = 0,
+        items_updated: int = 0,
+        items_deleted: int = 0,
+        api_calls: int = 0,
+        errors: list[dict] | None = None,
+    ) -> None:
+        await self._store.complete_sync_job(
+            sync_job_id, status=status,
+            items_seen=items_seen, items_created=items_created,
+            items_updated=items_updated, items_deleted=items_deleted,
+            api_calls=api_calls, errors=errors,
+        )

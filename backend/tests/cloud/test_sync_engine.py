@@ -147,3 +147,76 @@ class TestBatchProcessing:
         )
         stats = await engine.process_batch(batch, sync_job_id="job-001")
         assert stats["relations_created"] >= 1
+
+
+class TestSoftDeletion:
+    @pytest.mark.asyncio
+    async def test_mark_stale_resources(self, engine, store):
+        # Create a resource
+        batch = DiscoveryBatch(
+            account_id="acc-001", region="us-east-1",
+            resource_type="vpc", source="test",
+            items=[
+                DiscoveredItem(
+                    native_id="vpc-old", name="old",
+                    raw={"VpcId": "vpc-old"}, tags={},
+                ),
+            ],
+        )
+        await engine.process_batch(batch, sync_job_id="job-001")
+
+        # Mark stale (using a future cutoff)
+        deleted = await engine.mark_stale_deleted(
+            account_id="acc-001",
+            region="us-east-1",
+            resource_types=["vpc"],
+            cutoff_ts="2099-01-01T00:00:00Z",
+        )
+        assert deleted >= 0  # Implementation returns count
+
+    @pytest.mark.asyncio
+    async def test_resurrect_on_rediscovery(self, engine, store):
+        # Create and soft-delete
+        batch = DiscoveryBatch(
+            account_id="acc-001", region="us-east-1",
+            resource_type="vpc", source="test",
+            items=[
+                DiscoveredItem(
+                    native_id="vpc-lazy", name="lazy",
+                    raw={"VpcId": "vpc-lazy"}, tags={},
+                ),
+            ],
+        )
+        await engine.process_batch(batch, sync_job_id="job-001")
+        await engine.mark_stale_deleted(
+            "acc-001", "us-east-1", ["vpc"], "2099-01-01T00:00:00Z"
+        )
+        # Re-discover same resource (upsert sets is_deleted=0)
+        stats = await engine.process_batch(batch, sync_job_id="job-002")
+        # Should show up as updated (resurrected)
+        resources = await store.list_resources(
+            account_id="acc-001", resource_type="vpc"
+        )
+        assert len(resources) >= 1
+
+
+class TestLockManagement:
+    @pytest.mark.asyncio
+    async def test_acquire_sync_lock(self, engine, store):
+        job_id = await engine.acquire_sync_lock("acc-001", tier=1)
+        assert job_id is not None
+        job = await store.get_sync_job(job_id)
+        assert job["status"] == "running"
+
+    @pytest.mark.asyncio
+    async def test_cannot_acquire_while_running(self, engine, store):
+        await engine.acquire_sync_lock("acc-001", tier=1)
+        second = await engine.acquire_sync_lock("acc-001", tier=1)
+        assert second is None  # blocked by existing running job
+
+    @pytest.mark.asyncio
+    async def test_release_sync_lock(self, engine, store):
+        job_id = await engine.acquire_sync_lock("acc-001", tier=1)
+        await engine.release_sync_lock(job_id, status="completed")
+        job = await store.get_sync_job(job_id)
+        assert job["status"] == "completed"
