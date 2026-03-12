@@ -24,6 +24,7 @@ from .routes_global_integrations import router as global_integrations_router
 from .routes_audit import router as audit_router
 from .routes_closure import router as closure_router
 from .network_endpoints import network_router
+from .network_chat_endpoints import network_chat_router
 from .monitor_endpoints import monitor_router
 from .dns_endpoints import router as dns_router
 from .flow_endpoints import flow_router, init_flow_endpoints
@@ -162,6 +163,7 @@ def create_app() -> FastAPI:
     app.include_router(closure_router)
     app.include_router(flow_router)
     app.include_router(network_router)
+    app.include_router(network_chat_router)
     app.include_router(monitor_router)
     app.include_router(dns_router)
     app.include_router(export_router)
