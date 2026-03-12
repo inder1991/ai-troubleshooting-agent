@@ -43,7 +43,8 @@ def get_audit() -> AuditLogger:
 # --- Request models ---
 
 class CreateGlobalIntegrationRequest(BaseModel):
-    service_type: Literal["elk", "jira", "confluence", "remedy", "github"]
+    service_type: Literal["elk", "jira", "confluence", "remedy", "github",
+                           "aws", "azure", "oracle", "gcp"]
     name: str
     category: Optional[str] = ""
     url: Optional[str] = ""

@@ -90,13 +90,15 @@ class ClusterProfile(BaseModel):
 class GlobalIntegration(BaseModel):
     """A global ecosystem integration (ELK, Jira, Confluence, Remedy)."""
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    service_type: Literal["elk", "jira", "confluence", "remedy", "github"]
+    service_type: Literal["elk", "jira", "confluence", "remedy", "github",
+                           "aws", "azure", "oracle", "gcp"]
     name: str
     category: str = ""
     url: str = ""
     auth_method: Literal[
         "basic_auth", "bearer_token", "api_key", "cloud_id",
-        "api_token", "oauth2", "certificate", "none"
+        "api_token", "oauth2", "certificate", "none",
+        "iam_role", "azure_sp", "oci_config",
     ] = "none"
     auth_credential_handle: Optional[str] = None
     config: dict = Field(default_factory=dict)  # Service-specific settings, e.g. {"orgs": ["org-a"]}
@@ -143,5 +145,54 @@ DEFAULT_GLOBAL_INTEGRATIONS = [
         "service_type": "github",
         "name": "GitHub Enterprise",
         "category": "Version Control",
+    },
+    {
+        "id": "cloud-aws",
+        "name": "Amazon Web Services",
+        "service_type": "aws",
+        "enabled": False,
+        "base_url": "",
+        "auth_method": "iam_role",
+        "auth_credential_handle": None,
+        "config": {
+            "auth_method": "iam_role",
+            "role_arn": "",
+            "external_id": "",
+            "regions": [],
+            "org_management": False,
+            "sync_config": {
+                "tier_1_interval": 600,
+                "tier_2_interval": 1800,
+                "tier_3_interval": 21600,
+            },
+        },
+    },
+    {
+        "id": "cloud-azure",
+        "name": "Microsoft Azure",
+        "service_type": "azure",
+        "enabled": False,
+        "base_url": "",
+        "auth_method": "azure_sp",
+        "auth_credential_handle": None,
+        "config": {
+            "tenant_id": "",
+            "client_id": "",
+            "subscriptions": [],
+        },
+    },
+    {
+        "id": "cloud-oracle",
+        "name": "Oracle Cloud Infrastructure",
+        "service_type": "oracle",
+        "enabled": False,
+        "base_url": "",
+        "auth_method": "oci_config",
+        "auth_credential_handle": None,
+        "config": {
+            "tenancy_ocid": "",
+            "user_ocid": "",
+            "regions": [],
+        },
     },
 ]
