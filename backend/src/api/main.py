@@ -39,6 +39,10 @@ from .search_endpoints import search_router, init_search_endpoints
 from .db_endpoints import db_router
 from .collector_endpoints import collector_router, init_collector_endpoints
 from .websocket import manager
+
+# Cloud integration (multi-provider inventory)
+from src.cloud.api.router import create_cloud_router
+from src.cloud.cloud_store import CloudStore
 from src.network.prometheus_exporter import MetricsCollector
 from src.utils.logger import get_logger
 
@@ -176,6 +180,11 @@ def create_app() -> FastAPI:
     app.include_router(search_router)
     app.include_router(db_router)
     app.include_router(collector_router)
+
+    # Cloud integration router (multi-provider inventory)
+    _cloud_store = CloudStore()
+    _cloud_integration_router = create_cloud_router(_cloud_store)
+    app.include_router(_cloud_integration_router)
 
     @app.on_event("startup")
     async def startup():
