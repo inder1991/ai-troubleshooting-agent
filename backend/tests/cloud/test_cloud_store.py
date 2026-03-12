@@ -170,6 +170,31 @@ class TestCloudResourceCRUD:
         )
         assert existing == "same_hash"
 
+    @pytest.mark.asyncio
+    async def test_mark_stale_deleted(self, store):
+        await store.upsert_account(
+            account_id="acc-001", provider="aws",
+            display_name="AWS", credential_handle="r",
+            auth_method="iam_role", regions=["us-east-1"],
+        )
+        await store.upsert_resource(
+            resource_id="res-001", provider="aws",
+            account_id="acc-001", region="us-east-1",
+            resource_type="vpc", native_id="vpc-old",
+            raw_compressed=b"data", resource_hash="h1",
+            source="test", sync_tier=1,
+        )
+        # Mark stale with a cutoff in the far future
+        count = await store.mark_stale_deleted(
+            account_id="acc-001",
+            region="us-east-1",
+            resource_types=["vpc"],
+            cutoff_ts="2099-01-01T00:00:00Z",
+        )
+        assert count == 1
+        res = await store.get_resource("res-001")
+        assert res["is_deleted"] == 1
+
 
 class TestCloudSyncJobCRUD:
     @pytest.mark.asyncio

@@ -67,6 +67,18 @@ class CloudStore:
         conn.commit()
         return cursor.fetchall()
 
+    async def _execute_rowcount(self, sql: str, params: tuple = ()) -> int:
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(
+            self._executor, partial(self._sync_execute_rowcount, sql, params)
+        )
+
+    def _sync_execute_rowcount(self, sql: str, params: tuple) -> int:
+        conn = self._get_conn()
+        cursor = conn.execute(sql, params)
+        conn.commit()
+        return cursor.rowcount
+
     async def _execute_batch(self, operations: list[tuple[str, tuple]]) -> None:
         loop = asyncio.get_running_loop()
         await loop.run_in_executor(
@@ -279,7 +291,7 @@ class CloudStore:
     ) -> int:
         placeholders = ",".join("?" for _ in resource_types)
         now = _now_iso()
-        rows = await self._execute(
+        return await self._execute_rowcount(
             f"""UPDATE cloud_resources
                 SET is_deleted = 1, deleted_at = ?
                 WHERE account_id = ? AND region = ?
@@ -288,7 +300,6 @@ class CloudStore:
                   AND last_seen_ts < ?""",
             (now, account_id, region, *resource_types, cutoff_ts),
         )
-        return len(rows) if rows else 0
 
     async def load_native_id_cache(
         self, account_id: str, region: str
