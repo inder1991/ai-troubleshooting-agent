@@ -164,6 +164,9 @@ const GlobalIntegrationsSection: React.FC<GlobalIntegrationsSectionProps> = ({
   onShowAddForm,
   testResults,
 }) => {
+  const CLOUD_PROVIDERS = new Set(['aws', 'azure', 'gcp', 'oracle']);
+  const filteredIntegrations = integrations.filter(gi => !CLOUD_PROVIDERS.has(gi.service_type));
+
   const [localUpdates, setLocalUpdates] = useState<Record<string, Record<string, string>>>({});
 
   // Add form state
@@ -283,10 +286,6 @@ const GlobalIntegrationsSection: React.FC<GlobalIntegrationsSectionProps> = ({
                   <option value="confluence">Confluence</option>
                   <option value="remedy">BMC Remedy</option>
                   <option value="github">GitHub Enterprise</option>
-                  <option value="aws">Amazon Web Services</option>
-                  <option value="azure">Microsoft Azure</option>
-                  <option value="oracle">Oracle Cloud</option>
-                  <option value="gcp">Google Cloud Platform</option>
                 </select>
                 <input
                   type="text"
@@ -366,7 +365,7 @@ const GlobalIntegrationsSection: React.FC<GlobalIntegrationsSectionProps> = ({
 
       {/* Integration Cards */}
       <div className="space-y-4">
-        {integrations.map((gi) => {
+        {filteredIntegrations.map((gi) => {
           const config = serviceConfig[gi.service_type] || {
             icon: 'extension',
             bgColor: 'bg-gray-600/10',

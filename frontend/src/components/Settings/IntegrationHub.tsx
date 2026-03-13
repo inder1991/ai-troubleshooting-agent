@@ -19,6 +19,7 @@ import {
 import ClusterProfilesTable from './ClusterProfilesTable';
 import ClusterConnectionForm from './ClusterConnectionForm';
 import GlobalIntegrationsSection from './GlobalIntegrationsSection';
+import CloudProvidersSection from './CloudProvidersSection';
 import SkeletonTable from '../Skeletons/SkeletonTable';
 import SkeletonCard from '../Skeletons/SkeletonCard';
 
@@ -250,7 +251,7 @@ const IntegrationHub: React.FC<IntegrationHubProps> = ({ onBack }) => {
           <div className="relative">
             <span
               className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[20px]"
-              style={{ fontFamily: 'Material Symbols Outlined', color: '#8fc3cc' }}
+              style={{ color: '#8fc3cc' }}
             >
               search
             </span>
@@ -263,11 +264,11 @@ const IntegrationHub: React.FC<IntegrationHubProps> = ({ onBack }) => {
             />
           </div>
           <button className="text-[#8fc3cc] hover:text-white transition-colors relative">
-            <span className="material-symbols-outlined" style={{ fontFamily: 'Material Symbols Outlined' }}>notifications</span>
+            <span className="material-symbols-outlined">notifications</span>
             <span className="absolute top-0 right-0 w-2 h-2 bg-[#07b6d5] rounded-full border border-[#0f2023]" />
           </button>
           <div className="h-8 w-8 rounded-full bg-[#183034] border border-[#224349] flex items-center justify-center">
-            <span className="material-symbols-outlined text-[#8fc3cc] text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>person</span>
+            <span className="material-symbols-outlined text-[#8fc3cc] text-sm">person</span>
           </div>
         </div>
       </header>
@@ -329,6 +330,14 @@ const IntegrationHub: React.FC<IntegrationHubProps> = ({ onBack }) => {
                 showAddForm={showAddGlobalForm}
                 onShowAddForm={setShowAddGlobalForm}
                 testResults={globalTestResults}
+              />
+
+              {/* Section 4: Cloud Provider Credentials */}
+              <CloudProvidersSection
+                integrations={globalIntegrations}
+                onUpdate={handleGlobalUpdate}
+                onTest={handleTestGlobal}
+                testingId={testingGlobalId}
               />
             </>
           )}
