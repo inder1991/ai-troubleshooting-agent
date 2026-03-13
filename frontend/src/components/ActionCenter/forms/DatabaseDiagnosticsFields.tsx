@@ -16,12 +16,12 @@ interface DBProfile {
   database: string;
 }
 
-const FOCUS_OPTIONS = [
-  { value: 'queries' as const, label: 'Queries', icon: 'query_stats' },
-  { value: 'connections' as const, label: 'Connections', icon: 'cable' },
-  { value: 'replication' as const, label: 'Replication', icon: 'sync' },
-  { value: 'storage' as const, label: 'Storage', icon: 'storage' },
-  { value: 'schema' as const, label: 'Schema', icon: 'account_tree' },
+const FOCUS_OPTIONS: { value: DatabaseDiagnosticsForm['focus'][number]; label: string; icon: string; mongoLabel?: string }[] = [
+  { value: 'queries', label: 'Queries', icon: 'query_stats' },
+  { value: 'connections', label: 'Connections', icon: 'cable' },
+  { value: 'replication', label: 'Replication', icon: 'sync' },
+  { value: 'storage', label: 'Storage', icon: 'storage' },
+  { value: 'schema', label: 'Schema', icon: 'account_tree', mongoLabel: 'Collections' },
 ];
 
 const inputClass =
@@ -37,6 +37,16 @@ const DatabaseDiagnosticsFields: React.FC<DatabaseDiagnosticsFieldsProps> = ({
     fetchDBProfiles().then(setProfiles).catch(() => {});
   }, []);
 
+  // Auto-detect engine from selected profile
+  const selectedProfile = profiles.find((p) => p.id === data.profile_id);
+  const isMongo = selectedProfile?.engine === 'mongodb' || data.database_type === 'mongodb';
+
+  const handleProfileChange = (profileId: string) => {
+    const profile = profiles.find((p) => p.id === profileId);
+    const dbType = profile?.engine === 'mongodb' ? 'mongodb' : 'postgres';
+    onChange({ ...data, profile_id: profileId, database_type: dbType as 'postgres' | 'mongodb' });
+  };
+
   const toggleFocus = (area: DatabaseDiagnosticsForm['focus'][number]) => {
     const current = data.focus || [];
     const next = current.includes(area)
@@ -44,6 +54,18 @@ const DatabaseDiagnosticsFields: React.FC<DatabaseDiagnosticsFieldsProps> = ({
       : [...current, area];
     onChange({ ...data, focus: next });
   };
+
+  const samplingDescriptions: Record<string, string> = isMongo
+    ? {
+        deep: 'Deep: Runs explain("executionStats") on operations. Most thorough.',
+        standard: 'Standard: Collects serverStatus + currentOp metrics. Balanced.',
+        light: 'Light: Quick health check with cached snapshots. Minimal load.',
+      }
+    : {
+        deep: 'Deep: Runs EXPLAIN ANALYZE on replica. Most thorough but adds DB load.',
+        standard: 'Standard: Collects pg_stat data + EXPLAIN (no ANALYZE). Balanced.',
+        light: 'Light: Quick health check with cached snapshots. Minimal DB load.',
+      };
 
   return (
     <div className="space-y-5">
@@ -55,7 +77,7 @@ const DatabaseDiagnosticsFields: React.FC<DatabaseDiagnosticsFieldsProps> = ({
         <select
           className={inputClass}
           value={data.profile_id || ''}
-          onChange={(e) => onChange({ ...data, profile_id: e.target.value })}
+          onChange={(e) => handleProfileChange(e.target.value)}
           required
         >
           <option value="">Select a database profile...</option>
@@ -66,6 +88,24 @@ const DatabaseDiagnosticsFields: React.FC<DatabaseDiagnosticsFieldsProps> = ({
           ))}
         </select>
       </div>
+
+      {/* Connection URI (MongoDB only) */}
+      {isMongo && (
+        <div>
+          <label className="block text-xs font-bold text-duck-muted uppercase tracking-wider mb-2">
+            Connection URI (optional)
+          </label>
+          <input
+            className={inputClass}
+            placeholder="mongodb+srv://user:pass@cluster0.example.net/mydb"
+            value={data.connection_uri || ''}
+            onChange={(e) => onChange({ ...data, connection_uri: e.target.value || undefined })}
+          />
+          <p className="text-[10px] text-slate-500 mt-1">
+            Overrides host/port from profile. Supports mongodb:// and mongodb+srv:// URIs.
+          </p>
+        </div>
+      )}
 
       {/* Time Window */}
       <div>
@@ -94,6 +134,7 @@ const DatabaseDiagnosticsFields: React.FC<DatabaseDiagnosticsFieldsProps> = ({
         <div className="flex flex-wrap gap-2">
           {FOCUS_OPTIONS.map((opt) => {
             const active = data.focus?.includes(opt.value);
+            const label = isMongo && opt.mongoLabel ? opt.mongoLabel : opt.label;
             return (
               <button
                 key={opt.value}
@@ -106,7 +147,7 @@ const DatabaseDiagnosticsFields: React.FC<DatabaseDiagnosticsFieldsProps> = ({
                 }`}
               >
                 <span className="material-symbols-outlined text-[14px]">{opt.icon}</span>
-                {opt.label}
+                {label}
               </button>
             );
           })}
@@ -135,16 +176,12 @@ const DatabaseDiagnosticsFields: React.FC<DatabaseDiagnosticsFieldsProps> = ({
           ))}
         </div>
         <p className="text-[10px] text-slate-500 mt-1">
-          {data.sampling_mode === 'deep'
-            ? 'Deep: Runs EXPLAIN ANALYZE on replica. Most thorough but adds DB load.'
-            : data.sampling_mode === 'standard'
-            ? 'Standard: Collects pg_stat data + EXPLAIN (no ANALYZE). Balanced.'
-            : 'Light: Quick health check with cached snapshots. Minimal DB load.'}
+          {samplingDescriptions[data.sampling_mode]}
         </p>
       </div>
 
-      {/* Include Explain Plans */}
-      {data.sampling_mode === 'deep' && (
+      {/* Include Explain Plans (PostgreSQL deep mode only) */}
+      {!isMongo && data.sampling_mode === 'deep' && (
         <label className="flex items-center gap-2 cursor-pointer">
           <input
             type="checkbox"
@@ -158,14 +195,14 @@ const DatabaseDiagnosticsFields: React.FC<DatabaseDiagnosticsFieldsProps> = ({
         </label>
       )}
 
-      {/* Table Filter */}
+      {/* Table/Collection Filter */}
       <div>
         <label className="block text-xs font-bold text-duck-muted uppercase tracking-wider mb-2">
-          Table Filter (optional)
+          {isMongo ? 'Collection Filter (optional)' : 'Table Filter (optional)'}
         </label>
         <input
           className={inputClass}
-          placeholder="orders, payments, users (comma-separated)"
+          placeholder={isMongo ? 'orders, users, sessions (comma-separated)' : 'orders, payments, users (comma-separated)'}
           value={data.table_filter?.join(', ') || ''}
           onChange={(e) =>
             onChange({

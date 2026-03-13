@@ -28,6 +28,16 @@ const SurgicalTelescope: React.FC = () => {
   const files = telescopeData.files;
   const activeFile = files[activeFileIdx];
 
+  const diffTotals = useMemo(() => files.reduce(
+    (acc, f) => {
+      const d = f.diff || '';
+      acc.add += (d.match(/^\+[^+]/gm) || []).length;
+      acc.del += (d.match(/^-[^-]/gm) || []).length;
+      return acc;
+    },
+    { add: 0, del: 0 },
+  ), [files]);
+
   return (
     <AnimatePresence>
       <motion.div
@@ -96,7 +106,7 @@ const SurgicalTelescope: React.FC = () => {
             {files.length > 1 && (
               <div className="w-[200px] shrink-0 border-r border-slate-800/40 overflow-y-auto bg-slate-950/30">
                 <div className="px-3 py-2 text-[9px] text-slate-500 border-b border-slate-800/30">
-                  {files.length} files changed
+                  {files.length} files changed, <span className="text-emerald-500">{diffTotals.add} insertions(+)</span>, <span className="text-red-400">{diffTotals.del} deletions(-)</span>
                 </div>
                 {files.map((f, i) => {
                   const diff = f.diff || '';

@@ -16,6 +16,7 @@ from .pr_endpoints import router as pr_router
 from datetime import datetime
 
 from .routes_v4 import router_v4
+from . import db_session_endpoints as _db_session_endpoints  # noqa: F401 — ensure module is loaded
 from .agent_endpoints import agent_router
 from .routes_v5 import router as v5_router
 from .routes_profiles import router as profiles_router
@@ -23,6 +24,7 @@ from .routes_global_integrations import router as global_integrations_router
 from .routes_audit import router as audit_router
 from .routes_closure import router as closure_router
 from .network_endpoints import network_router
+from .network_chat_endpoints import network_chat_router
 from .monitor_endpoints import monitor_router
 from .dns_endpoints import router as dns_router
 from .flow_endpoints import flow_router, init_flow_endpoints
@@ -37,6 +39,10 @@ from .search_endpoints import search_router, init_search_endpoints
 from .db_endpoints import db_router
 from .collector_endpoints import collector_router, init_collector_endpoints
 from .websocket import manager
+
+# Cloud integration (multi-provider inventory)
+from src.cloud.api.router import create_cloud_router
+from src.cloud.cloud_store import CloudStore
 from src.network.prometheus_exporter import MetricsCollector
 from src.utils.logger import get_logger
 
@@ -161,6 +167,7 @@ def create_app() -> FastAPI:
     app.include_router(closure_router)
     app.include_router(flow_router)
     app.include_router(network_router)
+    app.include_router(network_chat_router)
     app.include_router(monitor_router)
     app.include_router(dns_router)
     app.include_router(export_router)
@@ -173,6 +180,11 @@ def create_app() -> FastAPI:
     app.include_router(search_router)
     app.include_router(db_router)
     app.include_router(collector_router)
+
+    # Cloud integration router (multi-provider inventory)
+    _cloud_store = CloudStore()
+    _cloud_integration_router = create_cloud_router(_cloud_store)
+    app.include_router(_cloud_integration_router)
 
     @app.on_event("startup")
     async def startup():

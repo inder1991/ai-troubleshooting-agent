@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { MonitoredDevice, DiscoveryConfig, DeviceProfileSummary, CollectorHealthStatus, NDMTabType } from '../../types';
-import { listMonitoredDevices, listDiscoveryConfigs, listDeviceProfiles, getCollectorHealth } from '../../services/api';
+import { listMonitoredDevices, listDiscoveryConfigs, listDeviceProfiles, getCollectorHealth, searchDevices } from '../../services/api';
 import NDMOverviewTab from './NDMOverviewTab';
 import NDMDevicesTab from './NDMDevicesTab';
 import NDMInterfacesTab from './NDMInterfacesTab';
@@ -11,6 +11,7 @@ import NDMTopologyTab from './NDMTopologyTab';
 import DeviceDetailPanel from './DeviceDetailPanel';
 import NDMErrorBoundary from './NDMErrorBoundary';
 import { ToastContainer } from './Toast';
+import NetworkChatDrawer from '../NetworkChat/NetworkChatDrawer';
 
 const TABS: { key: NDMTabType; label: string; icon: string }[] = [
   { key: 'overview', label: 'Overview', icon: 'dashboard' },
@@ -49,6 +50,10 @@ const DeviceMonitoring: React.FC = () => {
   const [activeTab, setActiveTab] = useState<NDMTabType>('overview');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Preset state
   const [presets, setPresets] = useState<FilterPreset[]>(loadPresets);
@@ -124,6 +129,25 @@ const DeviceMonitoring: React.FC = () => {
     savePresetsToStorage(updated);
   };
 
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    if (!query.trim()) {
+      setSearchResults([]);
+      setSearchOpen(false);
+      return;
+    }
+    searchTimer.current = setTimeout(async () => {
+      try {
+        const results = await searchDevices({ name: query });
+        setSearchResults(Array.isArray(results) ? results : results.devices || []);
+        setSearchOpen(true);
+      } catch {
+        setSearchResults([]);
+      }
+    }, 300);
+  };
+
   const cardStyle: React.CSSProperties = {
     background: 'rgba(7,182,213,0.04)', border: '1px solid rgba(7,182,213,0.12)',
     borderRadius: 10, padding: 20,
@@ -148,6 +172,7 @@ const DeviceMonitoring: React.FC = () => {
             profiles={profiles}
             health={health}
             onSelectDevice={setSelectedDeviceId}
+            onReload={reload}
           />
         );
       case 'devices':
@@ -187,6 +212,37 @@ const DeviceMonitoring: React.FC = () => {
           </p>
         </div>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          {/* Device Search Bar */}
+          <div style={{ position: 'relative' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(7,182,213,0.06)', border: '1px solid rgba(7,182,213,0.15)', borderRadius: 8, padding: '6px 12px' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#64748b' }}>search</span>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => handleSearch(e.target.value)}
+                onFocus={() => searchResults.length > 0 && setSearchOpen(true)}
+                onBlur={() => setTimeout(() => setSearchOpen(false), 200)}
+                placeholder="Search devices..."
+                style={{ background: 'transparent', border: 'none', outline: 'none', color: '#e2e8f0', fontSize: 13, width: 200 }}
+              />
+            </div>
+            {searchOpen && searchResults.length > 0 && (
+              <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4, background: '#0a1a1e', border: '1px solid #224349', borderRadius: 8, maxHeight: 240, overflowY: 'auto', zIndex: 50 }}>
+                {searchResults.map((d: any, i: number) => (
+                  <button
+                    key={d.id || d.device_id || i}
+                    onClick={() => { setSelectedDeviceId(d.id || d.device_id); setSearchOpen(false); setSearchQuery(''); }}
+                    style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', background: 'transparent', border: 'none', borderBottom: '1px solid #224349', color: '#e2e8f0', fontSize: 12, cursor: 'pointer' }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(7,182,213,0.08)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                  >
+                    <div style={{ fontWeight: 600 }}>{d.hostname || d.name || d.ip_address}</div>
+                    <div style={{ fontSize: 11, color: '#64748b' }}>{d.ip_address} {d.device_type ? `• ${d.device_type}` : ''}</div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           {health && (
             <span style={{
               fontSize: 11, padding: '4px 10px', borderRadius: 4,
@@ -423,6 +479,7 @@ const DeviceMonitoring: React.FC = () => {
       )}
 
       <ToastContainer />
+      <NetworkChatDrawer view="device-monitoring" />
     </div>
   );
 };

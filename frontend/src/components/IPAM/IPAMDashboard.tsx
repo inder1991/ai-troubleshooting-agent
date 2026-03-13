@@ -47,6 +47,7 @@ import SubnetCalculatorPage from './SubnetCalculatorPage';
 import IPAMAllocationWizard from './IPAMAllocationWizard';
 import IPAMVLANTab from './IPAMVLANTab';
 import IPAMAddressSpaceMap from './IPAMAddressSpaceMap';
+import NetworkChatDrawer from '../NetworkChat/NetworkChatDrawer';
 
 const emptyStats: IPAMStats = {
   total_subnets: 0, total_ips: 0, assigned_ips: 0,
@@ -1020,6 +1021,7 @@ export default function IPAMDashboard() {
           </div>
         ))}
       </div>
+      <NetworkChatDrawer view="ipam" />
     </div>
   );
 }

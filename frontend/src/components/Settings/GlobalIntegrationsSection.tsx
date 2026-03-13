@@ -54,6 +54,38 @@ const serviceConfig: Record<string, { icon: string; bgColor: string; borderColor
     displayName: 'GitHub Enterprise',
     subtitle: 'Version Control',
   },
+  aws: {
+    icon: 'cloud',
+    bgColor: 'bg-[#ff9900]/10',
+    borderColor: 'border-[#ff9900]/20',
+    textColor: 'text-[#ff9900]',
+    displayName: 'Amazon Web Services',
+    subtitle: 'Cloud Infrastructure',
+  },
+  azure: {
+    icon: 'cloud',
+    bgColor: 'bg-[#0078d4]/10',
+    borderColor: 'border-[#0078d4]/20',
+    textColor: 'text-[#0078d4]',
+    displayName: 'Microsoft Azure',
+    subtitle: 'Cloud Infrastructure',
+  },
+  oracle: {
+    icon: 'cloud',
+    bgColor: 'bg-[#c4161c]/10',
+    borderColor: 'border-[#c4161c]/20',
+    textColor: 'text-[#c4161c]',
+    displayName: 'Oracle Cloud',
+    subtitle: 'Cloud Infrastructure',
+  },
+  gcp: {
+    icon: 'cloud',
+    bgColor: 'bg-[#4285f4]/10',
+    borderColor: 'border-[#4285f4]/20',
+    textColor: 'text-[#4285f4]',
+    displayName: 'Google Cloud Platform',
+    subtitle: 'Cloud Infrastructure',
+  },
 };
 
 const statusDisplay: Record<GlobalIntegrationStatus, { text: string; classes: string; dot?: boolean }> = {
@@ -251,6 +283,10 @@ const GlobalIntegrationsSection: React.FC<GlobalIntegrationsSectionProps> = ({
                   <option value="confluence">Confluence</option>
                   <option value="remedy">BMC Remedy</option>
                   <option value="github">GitHub Enterprise</option>
+                  <option value="aws">Amazon Web Services</option>
+                  <option value="azure">Microsoft Azure</option>
+                  <option value="oracle">Oracle Cloud</option>
+                  <option value="gcp">Google Cloud Platform</option>
                 </select>
                 <input
                   type="text"

@@ -31,9 +31,20 @@ import TopologyToolbar from './TopologyToolbar';
 import IPAMUploadDialog from './IPAMUploadDialog';
 import AdapterConfigDialog from './AdapterConfigDialog';
 import ValidationPanel from './ValidationPanel';
+import PathQueryPanel from './PathQueryPanel';
+import DesignLifecycleBar from './DesignLifecycleBar';
+import ChangeSummaryModal from './ChangeSummaryModal';
+import SimulationPanel from './SimulationPanel';
+import DesignManagerPanel from './DesignManagerPanel';
 import { validateTopology, type ValidationError, getNthHostFromCIDR, isCIDRSubsetOf, isIPInCIDR } from '../../utils/networkValidation';
-import { loadTopology, saveTopology, promoteTopology, API_BASE_URL } from '../../services/api';
+import {
+  loadTopology, saveTopology, promoteTopology,
+  fetchLiveInventory, getTopologyDesign, updateTopologyDesign, createTopologyDesign,
+  getDesignDiff, applyDesign, updateDesignStatus,
+} from '../../services/api';
+import type { TopologyDesign, DesignStatus, DesignDiff } from '../../types';
 import { useToast } from '../Toast/ToastContext';
+import NetworkChatDrawer from '../NetworkChat/NetworkChatDrawer';
 
 const nodeTypes = {
   device: DeviceNode,
@@ -117,6 +128,16 @@ function TopologyEditorInner() {
   const [adapterNodeName, setAdapterNodeName] = useState<string | undefined>(undefined);
   const [promoting, setPromoting] = useState(false);
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
+  const [showPathQuery, setShowPathQuery] = useState(false);
+
+  // Design lifecycle state
+  const [currentDesign, setCurrentDesign] = useState<TopologyDesign | null>(null);
+  const [showDiffModal, setShowDiffModal] = useState(false);
+  const [designDiff, setDesignDiff] = useState<DesignDiff | null>(null);
+  const [showDesignManager, setShowDesignManager] = useState(false);
+  const [showSimulation, setShowSimulation] = useState(false);
+  const [applyingDesign, setApplyingDesign] = useState(false);
+  const [simulationPassed, setSimulationPassed] = useState(false);
 
   // Undo/Redo history
   const historyRef = useRef<{ nodes: Node[]; edges: Edge[] }[]>([]);
@@ -181,34 +202,56 @@ function TopologyEditorInner() {
     return () => window.removeEventListener('keydown', handler);
   }, [handleUndo, handleRedo]);
 
-  // Delete selected nodes/edges via toolbar button
+  // Delete selected nodes/edges via toolbar button (protect live nodes)
   const handleDeleteSelected = useCallback(() => {
-    setNodes((nds) => nds.filter((n) => !n.selected));
+    const selectedNodes = nodes.filter((n) => n.selected);
+    const liveNodes = selectedNodes.filter((n) => n.data._source === 'live');
+    if (liveNodes.length > 0) {
+      addToast('warning', 'Live devices cannot be removed from the design');
+    }
+    setNodes((nds) => nds.filter((n) => !n.selected || n.data._source === 'live'));
     setEdges((eds) => eds.filter((e) => !e.selected));
     setSelectedNodeId(null);
-  }, [setNodes, setEdges]);
+  }, [nodes, setNodes, setEdges, addToast]);
 
-  // Load topology on mount — try backend first, fall back to localStorage autosave
+  // Load topology on mount — load live inventory, then overlay design or fallback
   useEffect(() => {
     (async () => {
       let loaded = false;
+      setLoading(true);
+
+      // Try loading live inventory first
       try {
-        setLoading(true);
-        const data = await loadTopology();
-        const snapshotJson = data?.snapshot?.snapshot_json;
-        if (snapshotJson) {
-          const parsed = typeof snapshotJson === 'string'
-            ? JSON.parse(snapshotJson)
-            : snapshotJson;
-          if (parsed.nodes?.length) {
-            setNodes(applyZIndex(parsed.nodes));
-            if (parsed.edges) setEdges(parsed.edges);
-            loaded = true;
-          }
+        const liveData = await fetchLiveInventory();
+        if (liveData?.nodes?.length) {
+          setNodes(applyZIndex(liveData.nodes));
+          if (liveData.edges) setEdges(liveData.edges);
+          loaded = true;
         }
       } catch {
-        // Backend unavailable
+        // Live inventory unavailable — fall through
       }
+
+      // Then try loading last saved snapshot (for planned nodes overlay)
+      if (!loaded) {
+        try {
+          const data = await loadTopology();
+          const snapshotJson = data?.snapshot?.snapshot_json;
+          if (snapshotJson) {
+            const parsed = typeof snapshotJson === 'string'
+              ? JSON.parse(snapshotJson)
+              : snapshotJson;
+            if (parsed.nodes?.length) {
+              setNodes(applyZIndex(parsed.nodes));
+              if (parsed.edges) setEdges(parsed.edges);
+              loaded = true;
+            }
+          }
+        } catch {
+          // Backend unavailable
+        }
+      }
+
       // Fall back to localStorage autosave
       if (!loaded) {
         try {
@@ -531,6 +574,8 @@ function TopologyEditorInner() {
           vendor: '',
           zone: '',
           status: 'healthy',
+          _source: 'planned' as const,
+          _locked: false,
           ...(CIDR_TYPES.has(type) ? { cidr: '10.0.0.0/24' } : {}),
         },
         ...(isContainer
@@ -610,46 +655,7 @@ function TopologyEditorInner() {
     }
   }, [reactFlowInstance, addToast]);
 
-  // Load topology
-  const handleLoad = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await loadTopology();
-      const snapshotJson = data?.snapshot?.snapshot_json;
-      if (snapshotJson) {
-        const parsed = typeof snapshotJson === 'string'
-          ? JSON.parse(snapshotJson)
-          : snapshotJson;
-        if (parsed.nodes) setNodes(applyZIndex(parsed.nodes));
-        if (parsed.edges) setEdges(parsed.edges);
-        addToast('info', 'Topology loaded');
-      }
-    } catch (err) {
-      console.error('Failed to load topology:', err);
-      addToast('error', 'Failed to load topology');
-    } finally {
-      setLoading(false);
-    }
-  }, [setNodes, setEdges, addToast]);
-
-  // Refresh from Knowledge Graph
-  const handleRefreshFromKG = useCallback(async () => {
-    setLoading(true);
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/v4/network/topology/current`);
-      if (response.ok) {
-        const data = await response.json();
-        if (data.nodes) setNodes(applyZIndex(data.nodes as Node[]));
-        if (data.edges) setEdges(data.edges as Edge[]);
-      }
-    } catch (err) {
-      console.error('Failed to refresh from KG:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, [setNodes, setEdges]);
-
-  // Promote to Infrastructure (canvas -> KG)
+  // Legacy promote (kept for backward compat)
   const handlePromote = useCallback(async () => {
     if (!reactFlowInstance) return;
     const flow = reactFlowInstance.toObject();
@@ -671,6 +677,132 @@ function TopologyEditorInner() {
       setPromoting(false);
     }
   }, [reactFlowInstance, addToast]);
+
+  // Design lifecycle: Apply design to infrastructure
+  const handleApplyDesign = useCallback(async () => {
+    if (!currentDesign) return;
+    try {
+      const diff = await getDesignDiff(currentDesign.id);
+      setDesignDiff(diff);
+      setShowDiffModal(true);
+    } catch (err: any) {
+      addToast('error', err.message || 'Failed to compute diff');
+    }
+  }, [currentDesign, addToast]);
+
+  const handleConfirmApply = useCallback(async () => {
+    if (!currentDesign) return;
+    setApplyingDesign(true);
+    try {
+      await applyDesign(currentDesign.id);
+      await updateDesignStatus(currentDesign.id, 'applied');
+      setShowDiffModal(false);
+      setDesignDiff(null);
+      addToast('success', 'Design applied to infrastructure');
+      // Refresh live nodes
+      const liveData = await fetchLiveInventory();
+      if (liveData?.nodes?.length) {
+        setNodes(applyZIndex(liveData.nodes));
+        if (liveData.edges) setEdges(liveData.edges);
+      }
+      setCurrentDesign((d) => d ? { ...d, status: 'applied' } : null);
+    } catch (err: any) {
+      addToast('error', err.message || 'Failed to apply design');
+    } finally {
+      setApplyingDesign(false);
+    }
+  }, [currentDesign, addToast, setNodes, setEdges]);
+
+  // Design lifecycle: Save as design
+  const handleSaveDesign = useCallback(async () => {
+    if (!reactFlowInstance) return;
+    const flow = reactFlowInstance.toObject();
+    const plannedNodes = flow.nodes.filter((n: any) => n.data?._source === 'planned');
+    const plannedEdges = flow.edges.filter((e: any) => e.data?._source === 'planned');
+    const snapshot = JSON.stringify({ nodes: plannedNodes, edges: plannedEdges });
+
+    try {
+      if (currentDesign) {
+        const updated = await updateTopologyDesign(currentDesign.id, { snapshot_json: snapshot });
+        setCurrentDesign(updated);
+        addToast('success', 'Design saved');
+      } else {
+        const name = prompt('Design name:');
+        if (!name) return;
+        const created = await createTopologyDesign(name, '', snapshot);
+        setCurrentDesign(created);
+        addToast('success', `Design "${name}" created`);
+      }
+    } catch (err: any) {
+      addToast('error', err.message || 'Failed to save design');
+    }
+  }, [reactFlowInstance, currentDesign, addToast]);
+
+  // Design lifecycle: Status change
+  const handleDesignStatusChange = useCallback(async (status: DesignStatus) => {
+    if (!currentDesign) return;
+    try {
+      const updated = await updateDesignStatus(currentDesign.id, status);
+      setCurrentDesign(updated);
+      addToast('info', `Design status → ${status}`);
+    } catch (err: any) {
+      addToast('error', err.message || 'Failed to update status');
+    }
+  }, [currentDesign, addToast]);
+
+  // Open a design from the manager
+  const handleOpenDesign = useCallback(async (designId: string) => {
+    try {
+      setLoading(true);
+      const design = await getTopologyDesign(designId);
+      setCurrentDesign(design);
+      setShowDesignManager(false);
+      // Load live inventory as base
+      const liveData = await fetchLiveInventory();
+      const liveNodes = liveData?.nodes || [];
+      const liveEdges = liveData?.edges || [];
+      // Overlay planned nodes from design
+      const snapshot = JSON.parse(design.snapshot_json || '{}');
+      const plannedNodes = snapshot.nodes || [];
+      const plannedEdges = snapshot.edges || [];
+      setNodes(applyZIndex([...liveNodes, ...plannedNodes]));
+      setEdges([...liveEdges, ...plannedEdges]);
+      addToast('info', `Opened design "${design.name}"`);
+    } catch (err: any) {
+      addToast('error', err.message || 'Failed to open design');
+    } finally {
+      setLoading(false);
+    }
+  }, [setNodes, setEdges, addToast]);
+
+  // Create a new design
+  const handleCreateDesign = useCallback(async (designId: string) => {
+    try {
+      const design = await getTopologyDesign(designId);
+      setCurrentDesign(design);
+      setShowDesignManager(false);
+      // Load live inventory as base
+      const liveData = await fetchLiveInventory();
+      if (liveData?.nodes?.length) {
+        setNodes(applyZIndex(liveData.nodes));
+        if (liveData.edges) setEdges(liveData.edges);
+      }
+      addToast('info', `Created design "${design.name}"`);
+    } catch (err: any) {
+      addToast('error', err.message || 'Failed to create design');
+    }
+  }, [setNodes, setEdges, addToast]);
+
+  // Design rename
+  const handleDesignRename = useCallback(async (newName: string) => {
+    if (!currentDesign) return;
+    try {
+      const updated = await updateTopologyDesign(currentDesign.id, { name: newName });
+      setCurrentDesign(updated);
+    } catch (err: any) {
+      addToast('error', err.message || 'Failed to rename');
+    }
+  }, [currentDesign, addToast]);
 
   // Node property update
   const handleNodeUpdate = useCallback(
@@ -807,6 +939,105 @@ function TopologyEditorInner() {
   }, [nodes, reactFlowInstance]);
 
   // IPAM import results
+  const handleExport = useCallback(async (format: 'png' | 'svg' | 'pdf' | 'json') => {
+    if (!reactFlowInstance) return;
+    const fileName = currentDesign?.name || 'topology';
+
+    // JSON: raw data export
+    if (format === 'json') {
+      const flow = reactFlowInstance.toObject();
+      const blob = new Blob([JSON.stringify(flow, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = `${fileName}.json`; a.click();
+      URL.revokeObjectURL(url);
+      return;
+    }
+
+    // The .react-flow container (clips content, this is what we screenshot)
+    const rfContainer = reactFlowWrapper.current?.querySelector('.react-flow') as HTMLElement | null;
+    if (!rfContainer) { addToast('error', 'Canvas not ready'); return; }
+
+    const allNodes = reactFlowInstance.getNodes();
+    if (allNodes.length === 0) { addToast('warning', 'Nothing to export'); return; }
+
+    // Save current viewport so we can restore it after capture
+    const savedViewport = reactFlowInstance.getViewport();
+
+    // Fit view to show all nodes with padding, then wait for render
+    reactFlowInstance.fitView({ padding: 0.1, duration: 0 });
+    // Double rAF ensures ReactFlow has applied the transform and browser has painted
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+    const doExport = async () => {
+      if (format === 'svg') {
+        // For SVG we clone the viewport element and wrap it
+        const viewportEl = rfContainer.querySelector('.react-flow__viewport') as HTMLElement | null;
+        if (!viewportEl) return;
+        const w = rfContainer.clientWidth;
+        const h = rfContainer.clientHeight;
+        const clone = viewportEl.cloneNode(true) as HTMLElement;
+        const svgNS = 'http://www.w3.org/2000/svg';
+        const svg = document.createElementNS(svgNS, 'svg');
+        svg.setAttribute('xmlns', svgNS);
+        svg.setAttribute('width', String(w));
+        svg.setAttribute('height', String(h));
+        svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+        const bg = document.createElementNS(svgNS, 'rect');
+        bg.setAttribute('width', '100%');
+        bg.setAttribute('height', '100%');
+        bg.setAttribute('fill', '#0a0f13');
+        svg.appendChild(bg);
+        const fo = document.createElementNS(svgNS, 'foreignObject');
+        fo.setAttribute('width', String(w));
+        fo.setAttribute('height', String(h));
+        fo.appendChild(clone);
+        svg.appendChild(fo);
+        const svgData = new XMLSerializer().serializeToString(svg);
+        const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = `${fileName}.svg`; a.click();
+        URL.revokeObjectURL(url);
+        return;
+      }
+
+      // PNG and PDF: capture the .react-flow container (it clips to visible area,
+      // and we already fit-viewed so all nodes are visible)
+      const html2canvas = (await import('html2canvas')).default;
+      const canvas = await html2canvas(rfContainer, {
+        backgroundColor: '#0a0f13',
+        scale: 2,
+        useCORS: true,
+        logging: false,
+      });
+
+      if (format === 'png') {
+        canvas.toBlob((blob) => {
+          if (!blob) return;
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a'); a.href = url; a.download = `${fileName}.png`; a.click();
+          URL.revokeObjectURL(url);
+        }, 'image/png');
+      } else if (format === 'pdf') {
+        const { jsPDF } = await import('jspdf');
+        const imgData = canvas.toDataURL('image/png');
+        const pxW = canvas.width;
+        const pxH = canvas.height;
+        const orientation = pxW > pxH ? 'landscape' : 'portrait';
+        const pdf = new jsPDF({ orientation, unit: 'px', format: [pxW, pxH] });
+        pdf.addImage(imgData, 'PNG', 0, 0, pxW, pxH);
+        pdf.save(`${fileName}.pdf`);
+      }
+    };
+
+    try {
+      await doExport();
+      addToast('success', `Exported as ${format.toUpperCase()}`);
+    } finally {
+      // Restore the user's original viewport position
+      reactFlowInstance.setViewport(savedViewport);
+    }
+  }, [currentDesign?.name, reactFlowInstance, addToast, nodes]);
+
   const handleIPAMImported = useCallback(
     (data: { nodes: unknown[]; edges: unknown[] }) => {
       if (data.nodes) setNodes((nds) => applyZIndex([...nds, ...(data.nodes as Node[])]));
@@ -821,12 +1052,11 @@ function TopologyEditorInner() {
     <div className="flex-1 flex flex-col overflow-hidden" style={{ backgroundColor: '#0a0f13' }}>
       {/* Toolbar */}
       <TopologyToolbar
-        onSave={handleSave}
-        onLoad={handleLoad}
-        onImportIPAM={() => setIpamOpen(true)}
-        onAdapterStatus={() => setAdapterOpen(true)}
-        onRefreshFromKG={handleRefreshFromKG}
-        onPromote={handlePromote}
+        onSave={currentDesign ? handleSaveDesign : handleSave}
+        onExport={handleExport}
+        onDesigns={() => setShowDesignManager(true)}
+        onTracePath={() => setShowPathQuery(!showPathQuery)}
+        onApply={currentDesign ? handleApplyDesign : handlePromote}
         onUndo={handleUndo}
         onRedo={handleRedo}
         onDeleteSelected={handleDeleteSelected}
@@ -834,8 +1064,19 @@ function TopologyEditorInner() {
         canRedo={historyIndexRef.current < historyRef.current.length - 1}
         hasSelection={nodes.some((n) => n.selected) || edges.some((e) => e.selected)}
         saving={saving}
-        loading={loading}
-        promoting={promoting}
+        applying={promoting || applyingDesign}
+        tracePathActive={showPathQuery}
+        designName={currentDesign?.name}
+      />
+
+      {/* Design Lifecycle Bar */}
+      <DesignLifecycleBar
+        design={currentDesign}
+        onStatusChange={handleDesignStatusChange}
+        onExport={handleExport}
+        onRename={handleDesignRename}
+        onSimulate={() => setShowSimulation(true)}
+        simulationPassed={simulationPassed}
       />
 
       {/* Main area: palette + canvas + property panel */}
@@ -886,6 +1127,9 @@ function TopologyEditorInner() {
           </ReactFlow>
         </div>
 
+        {/* Path Query side panel */}
+        {showPathQuery && <PathQueryPanel />}
+
         {/* Right panel: Device Properties */}
         <DevicePropertyPanel
           selectedNode={selectedNode}
@@ -918,6 +1162,41 @@ function TopologyEditorInner() {
         nodeId={adapterNodeId}
         nodeName={adapterNodeName}
       />
+
+      {/* Change Summary / Diff Modal */}
+      {showDiffModal && designDiff && (
+        <ChangeSummaryModal
+          diff={designDiff}
+          designName={currentDesign?.name || 'Unnamed'}
+          onConfirm={handleConfirmApply}
+          onCancel={() => { setShowDiffModal(false); setDesignDiff(null); }}
+          applying={applyingDesign}
+        />
+      )}
+
+      {/* Simulation Panel */}
+      {showSimulation && currentDesign && (
+        <SimulationPanel
+          designId={currentDesign.id}
+          onClose={() => setShowSimulation(false)}
+          onSimulationComplete={(passed) => {
+            setSimulationPassed(passed);
+            if (passed) {
+              handleDesignStatusChange('simulated');
+            }
+          }}
+        />
+      )}
+
+      {/* Design Manager Panel */}
+      {showDesignManager && (
+        <DesignManagerPanel
+          onOpen={handleOpenDesign}
+          onCreateNew={handleCreateDesign}
+          onClose={() => setShowDesignManager(false)}
+        />
+      )}
+      <NetworkChatDrawer view="network-topology" />
     </div>
   );
 }

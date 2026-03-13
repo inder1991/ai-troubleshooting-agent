@@ -533,7 +533,7 @@ export interface StartSessionRequest {
   scope?: DiagnosticScope;
   // Database diagnostics fields
   focus?: ('queries' | 'connections' | 'replication' | 'storage' | 'schema')[];
-  database_type?: 'postgres';
+  database_type?: 'postgres' | 'mongodb';
   sampling_mode?: 'light' | 'standard' | 'deep';
   include_explain_plans?: boolean;
   parent_session_id?: string;
@@ -619,7 +619,8 @@ export interface DatabaseDiagnosticsForm {
   time_window: '15m' | '1h' | '6h' | '24h';
   focus: ('queries' | 'connections' | 'replication' | 'storage' | 'schema')[];
   table_filter?: string[];
-  database_type: 'postgres';
+  database_type: 'postgres' | 'mongodb';
+  connection_uri?: string;
   sampling_mode: 'light' | 'standard' | 'deep';
   include_explain_plans: boolean;
   parent_session_id?: string;
@@ -1978,4 +1979,68 @@ export interface HealthNode {
   type: 'cluster' | 'database' | 'network' | 'service';
   status: 'healthy' | 'degraded' | 'critical' | 'offline';
   latencyMs?: number;
+}
+
+// ── Cloud Integration Types ──
+
+export interface CloudAccount {
+  account_id: string;
+  provider: 'aws' | 'azure' | 'oracle' | 'gcp';
+  display_name: string;
+  auth_method: string;
+  regions: string[];
+  sync_enabled: boolean;
+  last_sync_status: 'never' | 'ok' | 'error' | 'paused';
+  consecutive_failures: number;
+}
+
+export interface CloudResource {
+  resource_id: string;
+  provider: string;
+  account_id: string;
+  region: string;
+  resource_type: string;
+  native_id: string;
+  name: string | null;
+  raw_preview: string | null;
+  tags: string | null;
+  sync_tier: number;
+  last_seen_ts: string;
+  is_deleted: boolean;
+  deleted_at: string | null;
+}
+
+export interface CloudResourceDetail extends CloudResource {
+  raw: Record<string, unknown> | null;
+  raw_compressed?: never;  // excluded from API response
+}
+
+export interface CloudResourceRelation {
+  relation_id: string;
+  source_resource_id: string;
+  target_resource_id: string;
+  relation_type: string;
+  metadata: string | null;
+  last_seen_ts: string;
+}
+
+export interface CloudSyncJob {
+  sync_job_id: string;
+  account_id: string;
+  tier: number;
+  started_at: string;
+  finished_at: string | null;
+  status: 'queued' | 'running' | 'completed' | 'failed' | 'paused';
+  items_seen: number;
+  items_created: number;
+  items_updated: number;
+  items_deleted: number;
+  api_calls: number;
+}
+
+export interface CloudSyncStatus {
+  tier_1_last_sync: string | null;
+  tier_2_last_sync: string | null;
+  tier_3_last_sync: string | null;
+  next_sync: string | null;
 }

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { runReachabilityMatrix } from '../../services/api';
+import NetworkChatDrawer from '../NetworkChat/NetworkChatDrawer';
 
 interface MatrixCell {
   src_zone: string;
@@ -82,6 +83,7 @@ const ReachabilityMatrix: React.FC = () => {
           </table>
         </div>
       )}
+      <NetworkChatDrawer view="matrix" />
     </div>
   );
 };

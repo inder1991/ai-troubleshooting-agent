@@ -38,7 +38,7 @@ export interface ClusterProfile {
 
 export interface GlobalIntegration {
   id: string;
-  service_type: 'elk' | 'jira' | 'confluence' | 'remedy' | 'github';
+  service_type: 'elk' | 'jira' | 'confluence' | 'remedy' | 'github' | 'aws' | 'azure' | 'oracle' | 'gcp';
   name: string;
   category: string;
   url: string;

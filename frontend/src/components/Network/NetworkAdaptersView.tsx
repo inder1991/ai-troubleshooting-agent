@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import type { AdapterInstanceStatus } from '../../types';
 import { listAdapterInstances, deleteAdapterInstance, refreshAdapterInstance } from '../../services/api';
 import AdapterInstanceForm from './AdapterInstanceForm';
+import NetworkChatDrawer from '../NetworkChat/NetworkChatDrawer';
 
 const STATUS_COLORS: Record<string, { bg: string; text: string; label: string }> = {
   connected: { bg: 'rgba(34,197,94,0.15)', text: '#22c55e', label: 'Connected' },
@@ -109,7 +110,7 @@ const NetworkAdaptersView: React.FC = () => {
           className="flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
           style={{ backgroundColor: '#07b6d5', color: '#0f2023' }}
         >
-          <span className="material-symbols-outlined text-base" style={{ fontFamily: 'Material Symbols Outlined' }}>add</span>
+          <span className="material-symbols-outlined text-base">add</span>
           Add Adapter
         </button>
       </div>
@@ -155,7 +156,7 @@ const NetworkAdaptersView: React.FC = () => {
         <div className="text-center py-12 text-slate-400">Loading adapters...</div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-12">
-          <span className="material-symbols-outlined text-4xl text-slate-600 mb-2 block" style={{ fontFamily: 'Material Symbols Outlined' }}>
+          <span className="material-symbols-outlined text-4xl text-slate-600 mb-2 block">
             settings_input_component
           </span>
           <p className="text-slate-400 text-sm">
@@ -220,7 +221,7 @@ const NetworkAdaptersView: React.FC = () => {
                           className="p-1.5 rounded hover:bg-white/5 transition-colors text-slate-400 hover:text-[#07b6d5]"
                           title="Edit"
                         >
-                          <span className="material-symbols-outlined text-base" style={{ fontFamily: 'Material Symbols Outlined' }}>edit</span>
+                          <span className="material-symbols-outlined text-base">edit</span>
                         </button>
                         <button
                           onClick={() => handleRefresh(adapter.instance_id)}
@@ -230,7 +231,6 @@ const NetworkAdaptersView: React.FC = () => {
                         >
                           <span
                             className={`material-symbols-outlined text-base ${refreshingId === adapter.instance_id ? 'animate-spin' : ''}`}
-                            style={{ fontFamily: 'Material Symbols Outlined' }}
                           >
                             refresh
                           </span>
@@ -240,7 +240,7 @@ const NetworkAdaptersView: React.FC = () => {
                           className="p-1.5 rounded hover:bg-white/5 transition-colors text-slate-400 hover:text-[#ef4444]"
                           title="Delete"
                         >
-                          <span className="material-symbols-outlined text-base" style={{ fontFamily: 'Material Symbols Outlined' }}>delete</span>
+                          <span className="material-symbols-outlined text-base">delete</span>
                         </button>
                       </div>
                     </td>
@@ -259,6 +259,7 @@ const NetworkAdaptersView: React.FC = () => {
           onClose={handleFormClose}
         />
       )}
+      <NetworkChatDrawer view="network-adapters" />
     </div>
   );
 };

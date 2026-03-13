@@ -1823,3 +1823,77 @@ export const fetchAggregateMetrics = async (tag?: string): Promise<{avg_cpu: num
   if (!resp.ok) return { avg_cpu: 0, avg_mem: 0, avg_temp: 0, device_count: 0 };
   return resp.json();
 };
+
+// ── Cloud Integration APIs ──
+
+export const listCloudAccounts = async () => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/cloud/accounts`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to list cloud accounts'));
+  return resp.json();
+};
+
+export const createCloudIntegrationAccount = async (account: Record<string, unknown>) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/cloud/accounts`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(account),
+  });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to create cloud account'));
+  return resp.json();
+};
+
+export const deleteCloudIntegrationAccount = async (accountId: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/cloud/accounts/${accountId}`, {
+    method: 'DELETE',
+  });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to delete cloud account'));
+  return resp.json();
+};
+
+export const listCloudResources = async (params?: {
+  account_id?: string; region?: string; resource_type?: string; limit?: number;
+}) => {
+  const searchParams = new URLSearchParams();
+  if (params?.account_id) searchParams.set('account_id', params.account_id);
+  if (params?.region) searchParams.set('region', params.region);
+  if (params?.resource_type) searchParams.set('resource_type', params.resource_type);
+  if (params?.limit) searchParams.set('limit', String(params.limit));
+  const resp = await fetch(`${API_BASE_URL}/api/v4/cloud/resources?${searchParams}`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to list cloud resources'));
+  return resp.json();
+};
+
+export const getCloudResource = async (resourceId: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/cloud/resources/${resourceId}`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to get cloud resource'));
+  return resp.json();
+};
+
+export const getCloudResourceRelations = async (resourceId: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/cloud/resources/${resourceId}/relations`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to get resource relations'));
+  return resp.json();
+};
+
+export const listCloudSyncJobs = async (accountId?: string) => {
+  const params = accountId ? `?account_id=${accountId}` : '';
+  const resp = await fetch(`${API_BASE_URL}/api/v4/cloud/sync/jobs${params}`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to list sync jobs'));
+  return resp.json();
+};
+
+export const triggerCloudSync = async (accountId: string, tiers?: number[]) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/cloud/accounts/${accountId}/sync`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ tiers: tiers || [1, 2, 3] }),
+  });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to trigger sync'));
+  return resp.json();
+};
+
+export const testCloudAccountHealth = async (accountId: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/cloud/accounts/${accountId}/health`, {
+    method: 'POST',
+  });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to test cloud account'));
+  return resp.json();
+};

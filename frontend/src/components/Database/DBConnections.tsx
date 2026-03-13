@@ -30,11 +30,12 @@ interface ProfileFormData {
   database: string;
   username: string;
   password: string;
+  connection_uri: string;
 }
 
 const defaultForm: ProfileFormData = {
   name: '', engine: 'postgresql', host: 'localhost', port: 5432,
-  database: '', username: '', password: '',
+  database: '', username: '', password: '', connection_uri: '',
 };
 
 const DBConnections: React.FC = () => {
@@ -47,6 +48,7 @@ const DBConnections: React.FC = () => {
   const [error, setError] = useState('');
   const [testingId, setTestingId] = useState<string | null>(null);
   const [testResults, setTestResults] = useState<Record<string, { status: string; latency_ms?: number }>>({});
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const loadProfiles = useCallback(async () => {
     setLoading(true);
@@ -96,7 +98,9 @@ const DBConnections: React.FC = () => {
     setForm({
       name: p.name, engine: p.engine, host: p.host, port: p.port,
       database: p.database, username: p.username, password: '',
+      connection_uri: (p as DBProfile & { connection_uri?: string }).connection_uri || '',
     });
+    setShowAdvanced(p.engine !== 'mongodb' || !((p as DBProfile & { connection_uri?: string }).connection_uri));
     setShowForm(true);
   };
 
@@ -205,63 +209,104 @@ const DBConnections: React.FC = () => {
                 <input
                   value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
                   className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-cyan-500 outline-none"
-                  placeholder="My PostgreSQL"
+                  placeholder={form.engine === 'mongodb' ? 'My MongoDB' : 'My PostgreSQL'}
                 />
               </div>
               <div>
                 <label className="block text-xs text-slate-400 mb-1">Engine</label>
                 <select
-                  value={form.engine} onChange={(e) => setForm({ ...form, engine: e.target.value })}
+                  value={form.engine} onChange={(e) => {
+                    const engine = e.target.value;
+                    const port = engine === 'mongodb' ? 27017 : 5432;
+                    setForm({ ...form, engine, port, connection_uri: '' });
+                    setShowAdvanced(engine !== 'mongodb');
+                  }}
                   className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-cyan-500 outline-none"
                 >
                   <option value="postgresql">PostgreSQL</option>
+                  <option value="mongodb">MongoDB</option>
                   <option value="mysql" disabled>MySQL (coming soon)</option>
-                  <option value="mongodb" disabled>MongoDB (coming soon)</option>
                 </select>
               </div>
-              <div className="grid grid-cols-3 gap-2">
-                <div className="col-span-2">
-                  <label className="block text-xs text-slate-400 mb-1">Host</label>
-                  <input
-                    value={form.host} onChange={(e) => setForm({ ...form, host: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-cyan-500 outline-none"
-                    placeholder="localhost"
-                  />
-                </div>
+
+              {/* Connection URI — MongoDB primary mode */}
+              {form.engine === 'mongodb' && (
                 <div>
-                  <label className="block text-xs text-slate-400 mb-1">Port</label>
+                  <label className="block text-xs text-slate-400 mb-1">Connection URI</label>
                   <input
-                    type="number" value={form.port}
-                    onChange={(e) => setForm({ ...form, port: parseInt(e.target.value) || 5432 })}
+                    value={form.connection_uri}
+                    onChange={(e) => setForm({ ...form, connection_uri: e.target.value })}
                     className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-cyan-500 outline-none"
+                    placeholder="mongodb+srv://user:pass@cluster0.example.net/mydb"
                   />
+                  <p className="text-[10px] text-slate-500 mt-1">
+                    Supports mongodb:// and mongodb+srv:// URIs.
+                  </p>
                 </div>
-              </div>
-              <div>
-                <label className="block text-xs text-slate-400 mb-1">Database</label>
-                <input
-                  value={form.database} onChange={(e) => setForm({ ...form, database: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-cyan-500 outline-none"
-                  placeholder="mydb"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-xs text-slate-400 mb-1">Username</label>
-                  <input
-                    value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-cyan-500 outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs text-slate-400 mb-1">Password</label>
-                  <input
-                    type="password" value={form.password}
-                    onChange={(e) => setForm({ ...form, password: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-cyan-500 outline-none"
-                  />
-                </div>
-              </div>
+              )}
+
+              {/* Advanced toggle for MongoDB */}
+              {form.engine === 'mongodb' && (
+                <button
+                  type="button"
+                  onClick={() => setShowAdvanced(!showAdvanced)}
+                  className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-200 transition-colors"
+                >
+                  <span className="material-symbols-outlined text-[14px]">
+                    {showAdvanced ? 'expand_less' : 'expand_more'}
+                  </span>
+                  {showAdvanced ? 'Hide' : 'Show'} individual fields
+                </button>
+              )}
+
+              {/* Individual fields — always shown for PG, togglable for MongoDB */}
+              {(form.engine !== 'mongodb' || showAdvanced) && (
+                <>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="col-span-2">
+                      <label className="block text-xs text-slate-400 mb-1">Host</label>
+                      <input
+                        value={form.host} onChange={(e) => setForm({ ...form, host: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-cyan-500 outline-none"
+                        placeholder="localhost"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-slate-400 mb-1">Port</label>
+                      <input
+                        type="number" value={form.port}
+                        onChange={(e) => setForm({ ...form, port: parseInt(e.target.value) || (form.engine === 'mongodb' ? 27017 : 5432) })}
+                        className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-cyan-500 outline-none"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-slate-400 mb-1">Database</label>
+                    <input
+                      value={form.database} onChange={(e) => setForm({ ...form, database: e.target.value })}
+                      className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-cyan-500 outline-none"
+                      placeholder="mydb"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-xs text-slate-400 mb-1">Username</label>
+                      <input
+                        value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-cyan-500 outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-slate-400 mb-1">Password</label>
+                      <input
+                        type="password" value={form.password}
+                        onChange={(e) => setForm({ ...form, password: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-cyan-500 outline-none"
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
@@ -273,7 +318,7 @@ const DBConnections: React.FC = () => {
               </button>
               <button
                 onClick={handleSave}
-                disabled={saving || !form.name || !form.host || !form.database || !form.username}
+                disabled={saving || !form.name || (form.engine === 'mongodb' ? (!form.connection_uri && (!form.host || !form.database)) : (!form.host || !form.database || !form.username))}
                 className="px-4 py-2 text-sm bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white rounded-lg transition-colors"
               >
                 {saving ? 'Saving...' : editingId ? 'Update' : 'Create'}
