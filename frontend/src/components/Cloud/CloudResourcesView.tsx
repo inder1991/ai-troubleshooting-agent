@@ -1,31 +1,38 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
-  listVPCs,
-  createVPC,
-  listRouteTables,
-  createRouteTable,
-  listVPCPeerings,
-  createVPCPeering,
-  listTransitGateways,
-  createTransitGateway,
-  listVPNTunnels,
-  createVPNTunnel,
-  listDirectConnects,
-  createDirectConnect,
+  listCloudAccounts,
+  listCloudResources,
+  listCloudSyncJobs,
+  triggerCloudSync,
 } from '../../services/api';
+import type { CloudAccount, CloudResource, CloudSyncJob } from '../../types';
 import NetworkChatDrawer from '../NetworkChat/NetworkChatDrawer';
 
-/* ---------- style constants ---------- */
+/* ---------- design tokens ---------- */
 
-const COLOR_BG = '#0f2023';
-const COLOR_PRIMARY = '#07b6d5';
+const COLORS = {
+  bg: '#0f2023',
+  primary: '#07b6d5',
+  cardBg: 'rgba(7,182,213,0.04)',
+  cardBorder: 'rgba(7,182,213,0.12)',
+  textPrimary: '#e2e8f0',
+  textSecondary: '#94a3b8',
+  textMuted: '#475569',
+  inputBg: 'rgba(7,182,213,0.06)',
+  inputBorder: 'rgba(7,182,213,0.18)',
+  danger: '#ef4444',
+  success: '#22c55e',
+  warning: '#f59e0b',
+} as const;
+
+/* ---------- style objects ---------- */
 
 const styles = {
   page: {
     minHeight: '100vh',
-    backgroundColor: COLOR_BG,
-    color: '#e2e8f0',
-    padding: '32px 40px',
+    backgroundColor: COLORS.bg,
+    color: COLORS.textPrimary,
+    padding: '24px 32px',
     fontFamily: "'Inter', sans-serif",
   } as React.CSSProperties,
 
@@ -33,145 +40,140 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: 12,
-    marginBottom: 28,
+    marginBottom: 24,
   } as React.CSSProperties,
 
   headerIcon: {
-    fontFamily: 'Material Symbols Outlined',
-    fontSize: 32,
-    color: COLOR_PRIMARY,
+    fontSize: 28,
+    color: COLORS.primary,
   } as React.CSSProperties,
 
   headerTitle: {
-    fontSize: 24,
-    fontWeight: 700,
-    letterSpacing: '-0.02em',
-    color: '#f1f5f9',
-  } as React.CSSProperties,
-
-  tabBar: {
-    display: 'flex',
-    gap: 6,
-    marginBottom: 24,
-    flexWrap: 'wrap' as const,
-  } as React.CSSProperties,
-
-  tab: (active: boolean): React.CSSProperties => ({
-    padding: '8px 18px',
-    borderRadius: 8,
-    border: 'none',
-    cursor: 'pointer',
-    fontSize: 13,
+    fontSize: 22,
     fontWeight: 600,
-    transition: 'all 0.15s ease',
-    backgroundColor: active ? 'rgba(7,182,213,0.15)' : 'transparent',
-    color: active ? COLOR_PRIMARY : '#94a3b8',
-  }),
-
-  card: {
-    backgroundColor: 'rgba(7,182,213,0.04)',
-    border: '1px solid rgba(7,182,213,0.12)',
-    borderRadius: 12,
-    padding: 24,
+    color: COLORS.textPrimary,
+    margin: 0,
+    flex: 1,
   } as React.CSSProperties,
 
-  addBtn: {
-    display: 'inline-flex',
+  filtersRow: {
+    display: 'flex',
+    flexWrap: 'wrap' as const,
+    gap: 12,
     alignItems: 'center',
-    gap: 6,
-    padding: '8px 18px',
-    borderRadius: 8,
-    border: 'none',
-    cursor: 'pointer',
-    fontSize: 13,
-    fontWeight: 600,
-    backgroundColor: COLOR_PRIMARY,
-    color: COLOR_BG,
     marginBottom: 20,
   } as React.CSSProperties,
 
-  table: {
-    width: '100%',
-    borderCollapse: 'collapse' as const,
-  } as React.CSSProperties,
-
-  th: {
-    textAlign: 'left' as const,
-    padding: '10px 14px',
-    fontSize: 11,
-    fontWeight: 700,
-    textTransform: 'uppercase' as const,
-    letterSpacing: '0.06em',
-    color: '#64748b',
-    borderBottom: '1px solid rgba(7,182,213,0.10)',
-  } as React.CSSProperties,
-
-  td: {
-    padding: '10px 14px',
-    fontSize: 13,
-    color: '#cbd5e1',
-    borderBottom: '1px solid rgba(7,182,213,0.06)',
-  } as React.CSSProperties,
-
-  formRow: {
-    display: 'flex',
-    gap: 10,
-    alignItems: 'flex-end',
-    flexWrap: 'wrap' as const,
-    marginBottom: 20,
-  } as React.CSSProperties,
-
-  formGroup: {
+  filterGroup: {
     display: 'flex',
     flexDirection: 'column' as const,
     gap: 4,
   } as React.CSSProperties,
 
-  label: {
-    fontSize: 11,
+  filterLabel: {
+    fontSize: 10,
     fontWeight: 600,
-    color: '#64748b',
+    color: COLORS.textSecondary,
     textTransform: 'uppercase' as const,
-    letterSpacing: '0.04em',
+    letterSpacing: '0.05em',
   } as React.CSSProperties,
 
-  input: {
-    padding: '8px 12px',
-    borderRadius: 6,
-    border: '1px solid rgba(7,182,213,0.15)',
-    backgroundColor: 'rgba(7,182,213,0.06)',
-    color: '#e2e8f0',
+  select: {
+    background: COLORS.inputBg,
+    border: `1px solid ${COLORS.inputBorder}`,
+    borderRadius: 5,
+    padding: '7px 10px',
     fontSize: 13,
+    color: COLORS.textPrimary,
     outline: 'none',
-    minWidth: 140,
+    minWidth: 160,
+  } as React.CSSProperties,
+
+  tabBar: {
+    display: 'flex',
+    gap: 4,
+    borderBottom: `1px solid ${COLORS.cardBorder}`,
+    marginBottom: 20,
+    overflowX: 'auto' as const,
+  } as React.CSSProperties,
+
+  tab: (active: boolean): React.CSSProperties => ({
+    padding: '10px 16px',
+    fontSize: 12,
+    fontWeight: active ? 600 : 400,
+    color: active ? COLORS.primary : COLORS.textSecondary,
+    background: active ? 'rgba(7,182,213,0.08)' : 'transparent',
+    border: 'none',
+    borderBottom: active ? `2px solid ${COLORS.primary}` : '2px solid transparent',
+    cursor: 'pointer',
+    whiteSpace: 'nowrap',
+    transition: 'all 0.15s ease',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
+  }),
+
+  card: {
+    background: COLORS.cardBg,
+    border: `1px solid ${COLORS.cardBorder}`,
+    borderRadius: 8,
+    padding: 20,
+  } as React.CSSProperties,
+
+  toolbar: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 14,
+  } as React.CSSProperties,
+
+  count: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+  } as React.CSSProperties,
+
+  table: {
+    width: '100%',
+    borderCollapse: 'collapse' as const,
+    fontSize: 13,
+  } as React.CSSProperties,
+
+  th: {
+    textAlign: 'left' as const,
+    padding: '10px 12px',
+    color: COLORS.textSecondary,
+    fontWeight: 500,
+    fontSize: 12,
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.04em',
+    borderBottom: `1px solid ${COLORS.cardBorder}`,
+  } as React.CSSProperties,
+
+  td: {
+    padding: '10px 12px',
+    borderBottom: '1px solid rgba(7,182,213,0.06)',
+    color: COLORS.textPrimary,
   } as React.CSSProperties,
 
   btnPrimary: {
-    padding: '8px 18px',
-    borderRadius: 6,
+    background: COLORS.primary,
+    color: COLORS.bg,
     border: 'none',
-    cursor: 'pointer',
-    fontSize: 13,
-    fontWeight: 600,
-    backgroundColor: COLOR_PRIMARY,
-    color: COLOR_BG,
-  } as React.CSSProperties,
-
-  btnCancel: {
-    padding: '8px 18px',
     borderRadius: 6,
-    border: '1px solid rgba(7,182,213,0.15)',
-    cursor: 'pointer',
+    padding: '8px 18px',
     fontSize: 13,
     fontWeight: 600,
-    backgroundColor: 'transparent',
-    color: '#94a3b8',
+    cursor: 'pointer',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 6,
+    transition: 'opacity 0.15s ease',
   } as React.CSSProperties,
 
   empty: {
-    padding: 24,
     textAlign: 'center' as const,
-    color: '#475569',
+    padding: '40px 0',
+    color: COLORS.textMuted,
     fontSize: 13,
   } as React.CSSProperties,
 
@@ -184,587 +186,501 @@ const styles = {
     fontSize: 13,
     marginBottom: 16,
   } as React.CSSProperties,
+
+  syncFooter: {
+    marginTop: 16,
+    padding: '12px 16px',
+    borderRadius: 8,
+    background: 'rgba(7,182,213,0.03)',
+    border: `1px solid ${COLORS.cardBorder}`,
+    display: 'flex',
+    flexWrap: 'wrap' as const,
+    gap: 20,
+    alignItems: 'center',
+    fontSize: 12,
+    color: COLORS.textSecondary,
+  } as React.CSSProperties,
+
+  tag: {
+    display: 'inline-block',
+    padding: '2px 6px',
+    borderRadius: 4,
+    fontSize: 11,
+    background: 'rgba(7,182,213,0.10)',
+    color: COLORS.primary,
+    marginRight: 4,
+    marginBottom: 2,
+  } as React.CSSProperties,
+
+  tierBadge: (tier: number): React.CSSProperties => ({
+    display: 'inline-block',
+    padding: '2px 8px',
+    borderRadius: 4,
+    fontSize: 11,
+    fontWeight: 600,
+    background:
+      tier === 1
+        ? 'rgba(34,197,94,0.12)'
+        : tier === 2
+          ? 'rgba(7,182,213,0.12)'
+          : 'rgba(245,158,11,0.12)',
+    color:
+      tier === 1 ? COLORS.success : tier === 2 ? COLORS.primary : COLORS.warning,
+  }),
 };
 
-/* ---------- types ---------- */
+/* ---------- resource type tabs ---------- */
 
-type TabKey = 'vpcs' | 'routeTables' | 'peerings' | 'transitGateways' | 'vpnTunnels' | 'directConnects';
-
-interface TabDef {
-  key: TabKey;
-  label: string;
-}
-
-const TABS: TabDef[] = [
-  { key: 'vpcs', label: 'VPCs' },
-  { key: 'routeTables', label: 'Route Tables' },
-  { key: 'peerings', label: 'Peerings' },
-  { key: 'transitGateways', label: 'Transit Gateways' },
-  { key: 'vpnTunnels', label: 'VPN Tunnels' },
-  { key: 'directConnects', label: 'Direct Connects' },
+const RESOURCE_TABS = [
+  { id: 'vpc', label: 'VPCs', icon: 'cloud' },
+  { id: 'subnet', label: 'Subnets', icon: 'lan' },
+  { id: 'security_group', label: 'Security Groups', icon: 'security' },
+  { id: 'nacl', label: 'NACLs', icon: 'shield' },
+  { id: 'route_table', label: 'Route Tables', icon: 'route' },
+  { id: 'eni', label: 'ENIs', icon: 'settings_input_component' },
+  { id: 'instance', label: 'Instances', icon: 'dns' },
+  { id: 'elb', label: 'Load Balancers', icon: 'mediation' },
+  { id: 'nat_gateway', label: 'NAT Gateways', icon: 'nat' },
+  { id: 'vpc_peering', label: 'VPC Peerings', icon: 'hub' },
 ];
 
-/* ---------- helper: form field ---------- */
+/* ---------- helpers ---------- */
 
-function FormField({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-}) {
-  return (
-    <div style={styles.formGroup}>
-      <span style={styles.label}>{label}</span>
-      <input
-        style={styles.input}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={label}
-      />
-    </div>
-  );
+function formatTimestamp(ts: string | null): string {
+  if (!ts) return '--';
+  try {
+    const d = new Date(ts);
+    return d.toLocaleString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch {
+    return ts;
+  }
 }
 
-/* ---------- VPCs tab ---------- */
-
-function VPCsTab() {
-  const [items, setItems] = useState<Record<string, unknown>[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: '', cidr: '', region: '', provider: '', status: '' });
-
-  const load = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError('');
-      const data = await listVPCs();
-      setItems(Array.isArray(data) ? data : []);
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to load VPCs');
-    } finally {
-      setLoading(false);
+function parseTags(raw: string | null): Record<string, string> {
+  if (!raw) return {};
+  try {
+    const parsed = JSON.parse(raw);
+    if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+      return parsed as Record<string, string>;
     }
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
-
-  const handleCreate = async () => {
-    try {
-      setError('');
-      await createVPC(form);
-      setForm({ name: '', cidr: '', region: '', provider: '', status: '' });
-      setShowForm(false);
-      await load();
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to create VPC');
-    }
-  };
-
-  return (
-    <div>
-      {error && <div style={styles.error}>{error}</div>}
-      <button style={styles.addBtn} onClick={() => setShowForm((s) => !s)}>
-        <span className="material-symbols-outlined" style={{ fontSize: 16 }}>add</span>
-        Add VPC
-      </button>
-      {showForm && (
-        <div style={styles.formRow}>
-          <FormField label="Name" value={form.name} onChange={(v) => setForm({ ...form, name: v })} />
-          <FormField label="CIDR" value={form.cidr} onChange={(v) => setForm({ ...form, cidr: v })} />
-          <FormField label="Region" value={form.region} onChange={(v) => setForm({ ...form, region: v })} />
-          <FormField label="Provider" value={form.provider} onChange={(v) => setForm({ ...form, provider: v })} />
-          <FormField label="Status" value={form.status} onChange={(v) => setForm({ ...form, status: v })} />
-          <button style={styles.btnPrimary} onClick={handleCreate}>Create</button>
-          <button style={styles.btnCancel} onClick={() => setShowForm(false)}>Cancel</button>
-        </div>
-      )}
-      {loading ? (
-        <div style={styles.empty}>Loading...</div>
-      ) : items.length === 0 ? (
-        <div style={styles.empty}>No VPCs found.</div>
-      ) : (
-        <table style={styles.table}>
-          <thead>
-            <tr>
-              <th style={styles.th}>Name</th>
-              <th style={styles.th}>CIDR</th>
-              <th style={styles.th}>Region</th>
-              <th style={styles.th}>Provider</th>
-              <th style={styles.th}>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((item, i) => (
-              <tr key={i}>
-                <td style={styles.td}>{String(item.name ?? '')}</td>
-                <td style={styles.td}>{String(item.cidr ?? '')}</td>
-                <td style={styles.td}>{String(item.region ?? '')}</td>
-                <td style={styles.td}>{String(item.provider ?? '')}</td>
-                <td style={styles.td}>{String(item.status ?? '')}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-    </div>
-  );
+    return {};
+  } catch {
+    return {};
+  }
 }
 
-/* ---------- Route Tables tab ---------- */
-
-function RouteTablesTab() {
-  const [items, setItems] = useState<Record<string, unknown>[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: '', vpc_id: '', routes_count: '' });
-
-  const load = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError('');
-      const data = await listRouteTables();
-      setItems(Array.isArray(data) ? data : []);
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to load route tables');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
-
-  const handleCreate = async () => {
-    try {
-      setError('');
-      await createRouteTable({ ...form, routes_count: Number(form.routes_count) || 0 });
-      setForm({ name: '', vpc_id: '', routes_count: '' });
-      setShowForm(false);
-      await load();
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to create route table');
-    }
-  };
-
-  return (
-    <div>
-      {error && <div style={styles.error}>{error}</div>}
-      <button style={styles.addBtn} onClick={() => setShowForm((s) => !s)}>
-        <span className="material-symbols-outlined" style={{ fontSize: 16 }}>add</span>
-        Add Route Table
-      </button>
-      {showForm && (
-        <div style={styles.formRow}>
-          <FormField label="Name" value={form.name} onChange={(v) => setForm({ ...form, name: v })} />
-          <FormField label="VPC ID" value={form.vpc_id} onChange={(v) => setForm({ ...form, vpc_id: v })} />
-          <FormField label="Routes Count" value={form.routes_count} onChange={(v) => setForm({ ...form, routes_count: v })} />
-          <button style={styles.btnPrimary} onClick={handleCreate}>Create</button>
-          <button style={styles.btnCancel} onClick={() => setShowForm(false)}>Cancel</button>
-        </div>
-      )}
-      {loading ? (
-        <div style={styles.empty}>Loading...</div>
-      ) : items.length === 0 ? (
-        <div style={styles.empty}>No route tables found.</div>
-      ) : (
-        <table style={styles.table}>
-          <thead>
-            <tr>
-              <th style={styles.th}>Name</th>
-              <th style={styles.th}>VPC ID</th>
-              <th style={styles.th}>Routes Count</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((item, i) => (
-              <tr key={i}>
-                <td style={styles.td}>{String(item.name ?? '')}</td>
-                <td style={styles.td}>{String(item.vpc_id ?? '')}</td>
-                <td style={styles.td}>{String(item.routes_count ?? '')}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-    </div>
-  );
+function syncStatusColor(status: string): string {
+  switch (status) {
+    case 'completed':
+      return COLORS.success;
+    case 'running':
+    case 'queued':
+      return COLORS.primary;
+    case 'failed':
+      return COLORS.danger;
+    case 'paused':
+      return COLORS.warning;
+    default:
+      return COLORS.textSecondary;
+  }
 }
-
-/* ---------- Peerings tab ---------- */
-
-function PeeringsTab() {
-  const [items, setItems] = useState<Record<string, unknown>[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ requester_vpc: '', accepter_vpc: '', status: '' });
-
-  const load = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError('');
-      const data = await listVPCPeerings();
-      setItems(Array.isArray(data) ? data : []);
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to load peerings');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
-
-  const handleCreate = async () => {
-    try {
-      setError('');
-      await createVPCPeering(form);
-      setForm({ requester_vpc: '', accepter_vpc: '', status: '' });
-      setShowForm(false);
-      await load();
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to create peering');
-    }
-  };
-
-  return (
-    <div>
-      {error && <div style={styles.error}>{error}</div>}
-      <button style={styles.addBtn} onClick={() => setShowForm((s) => !s)}>
-        <span className="material-symbols-outlined" style={{ fontSize: 16 }}>add</span>
-        Add Peering
-      </button>
-      {showForm && (
-        <div style={styles.formRow}>
-          <FormField label="Requester VPC" value={form.requester_vpc} onChange={(v) => setForm({ ...form, requester_vpc: v })} />
-          <FormField label="Accepter VPC" value={form.accepter_vpc} onChange={(v) => setForm({ ...form, accepter_vpc: v })} />
-          <FormField label="Status" value={form.status} onChange={(v) => setForm({ ...form, status: v })} />
-          <button style={styles.btnPrimary} onClick={handleCreate}>Create</button>
-          <button style={styles.btnCancel} onClick={() => setShowForm(false)}>Cancel</button>
-        </div>
-      )}
-      {loading ? (
-        <div style={styles.empty}>Loading...</div>
-      ) : items.length === 0 ? (
-        <div style={styles.empty}>No peerings found.</div>
-      ) : (
-        <table style={styles.table}>
-          <thead>
-            <tr>
-              <th style={styles.th}>Requester VPC</th>
-              <th style={styles.th}>Accepter VPC</th>
-              <th style={styles.th}>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((item, i) => (
-              <tr key={i}>
-                <td style={styles.td}>{String(item.requester_vpc ?? '')}</td>
-                <td style={styles.td}>{String(item.accepter_vpc ?? '')}</td>
-                <td style={styles.td}>{String(item.status ?? '')}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-    </div>
-  );
-}
-
-/* ---------- Transit Gateways tab ---------- */
-
-function TransitGatewaysTab() {
-  const [items, setItems] = useState<Record<string, unknown>[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: '', region: '', attachments: '' });
-
-  const load = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError('');
-      const data = await listTransitGateways();
-      setItems(Array.isArray(data) ? data : []);
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to load transit gateways');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
-
-  const handleCreate = async () => {
-    try {
-      setError('');
-      await createTransitGateway({ ...form, attachments: Number(form.attachments) || 0 });
-      setForm({ name: '', region: '', attachments: '' });
-      setShowForm(false);
-      await load();
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to create transit gateway');
-    }
-  };
-
-  return (
-    <div>
-      {error && <div style={styles.error}>{error}</div>}
-      <button style={styles.addBtn} onClick={() => setShowForm((s) => !s)}>
-        <span className="material-symbols-outlined" style={{ fontSize: 16 }}>add</span>
-        Add Transit Gateway
-      </button>
-      {showForm && (
-        <div style={styles.formRow}>
-          <FormField label="Name" value={form.name} onChange={(v) => setForm({ ...form, name: v })} />
-          <FormField label="Region" value={form.region} onChange={(v) => setForm({ ...form, region: v })} />
-          <FormField label="Attachments" value={form.attachments} onChange={(v) => setForm({ ...form, attachments: v })} />
-          <button style={styles.btnPrimary} onClick={handleCreate}>Create</button>
-          <button style={styles.btnCancel} onClick={() => setShowForm(false)}>Cancel</button>
-        </div>
-      )}
-      {loading ? (
-        <div style={styles.empty}>Loading...</div>
-      ) : items.length === 0 ? (
-        <div style={styles.empty}>No transit gateways found.</div>
-      ) : (
-        <table style={styles.table}>
-          <thead>
-            <tr>
-              <th style={styles.th}>Name</th>
-              <th style={styles.th}>Region</th>
-              <th style={styles.th}>Attachments</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((item, i) => (
-              <tr key={i}>
-                <td style={styles.td}>{String(item.name ?? '')}</td>
-                <td style={styles.td}>{String(item.region ?? '')}</td>
-                <td style={styles.td}>{String(item.attachments ?? '')}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-    </div>
-  );
-}
-
-/* ---------- VPN Tunnels tab ---------- */
-
-function VPNTunnelsTab() {
-  const [items, setItems] = useState<Record<string, unknown>[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: '', status: '', remote_ip: '', local_ip: '' });
-
-  const load = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError('');
-      const data = await listVPNTunnels();
-      setItems(Array.isArray(data) ? data : []);
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to load VPN tunnels');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
-
-  const handleCreate = async () => {
-    try {
-      setError('');
-      await createVPNTunnel(form);
-      setForm({ name: '', status: '', remote_ip: '', local_ip: '' });
-      setShowForm(false);
-      await load();
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to create VPN tunnel');
-    }
-  };
-
-  return (
-    <div>
-      {error && <div style={styles.error}>{error}</div>}
-      <button style={styles.addBtn} onClick={() => setShowForm((s) => !s)}>
-        <span className="material-symbols-outlined" style={{ fontSize: 16 }}>add</span>
-        Add VPN Tunnel
-      </button>
-      {showForm && (
-        <div style={styles.formRow}>
-          <FormField label="Name" value={form.name} onChange={(v) => setForm({ ...form, name: v })} />
-          <FormField label="Status" value={form.status} onChange={(v) => setForm({ ...form, status: v })} />
-          <FormField label="Remote IP" value={form.remote_ip} onChange={(v) => setForm({ ...form, remote_ip: v })} />
-          <FormField label="Local IP" value={form.local_ip} onChange={(v) => setForm({ ...form, local_ip: v })} />
-          <button style={styles.btnPrimary} onClick={handleCreate}>Create</button>
-          <button style={styles.btnCancel} onClick={() => setShowForm(false)}>Cancel</button>
-        </div>
-      )}
-      {loading ? (
-        <div style={styles.empty}>Loading...</div>
-      ) : items.length === 0 ? (
-        <div style={styles.empty}>No VPN tunnels found.</div>
-      ) : (
-        <table style={styles.table}>
-          <thead>
-            <tr>
-              <th style={styles.th}>Name</th>
-              <th style={styles.th}>Status</th>
-              <th style={styles.th}>Remote IP</th>
-              <th style={styles.th}>Local IP</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((item, i) => (
-              <tr key={i}>
-                <td style={styles.td}>{String(item.name ?? '')}</td>
-                <td style={styles.td}>{String(item.status ?? '')}</td>
-                <td style={styles.td}>{String(item.remote_ip ?? '')}</td>
-                <td style={styles.td}>{String(item.local_ip ?? '')}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-    </div>
-  );
-}
-
-/* ---------- Direct Connects tab ---------- */
-
-function DirectConnectsTab() {
-  const [items, setItems] = useState<Record<string, unknown>[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: '', bandwidth: '', location: '', status: '' });
-
-  const load = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError('');
-      const data = await listDirectConnects();
-      setItems(Array.isArray(data) ? data : []);
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to load direct connects');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
-
-  const handleCreate = async () => {
-    try {
-      setError('');
-      await createDirectConnect(form);
-      setForm({ name: '', bandwidth: '', location: '', status: '' });
-      setShowForm(false);
-      await load();
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to create direct connect');
-    }
-  };
-
-  return (
-    <div>
-      {error && <div style={styles.error}>{error}</div>}
-      <button style={styles.addBtn} onClick={() => setShowForm((s) => !s)}>
-        <span className="material-symbols-outlined" style={{ fontSize: 16 }}>add</span>
-        Add Direct Connect
-      </button>
-      {showForm && (
-        <div style={styles.formRow}>
-          <FormField label="Name" value={form.name} onChange={(v) => setForm({ ...form, name: v })} />
-          <FormField label="Bandwidth" value={form.bandwidth} onChange={(v) => setForm({ ...form, bandwidth: v })} />
-          <FormField label="Location" value={form.location} onChange={(v) => setForm({ ...form, location: v })} />
-          <FormField label="Status" value={form.status} onChange={(v) => setForm({ ...form, status: v })} />
-          <button style={styles.btnPrimary} onClick={handleCreate}>Create</button>
-          <button style={styles.btnCancel} onClick={() => setShowForm(false)}>Cancel</button>
-        </div>
-      )}
-      {loading ? (
-        <div style={styles.empty}>Loading...</div>
-      ) : items.length === 0 ? (
-        <div style={styles.empty}>No direct connects found.</div>
-      ) : (
-        <table style={styles.table}>
-          <thead>
-            <tr>
-              <th style={styles.th}>Name</th>
-              <th style={styles.th}>Bandwidth</th>
-              <th style={styles.th}>Location</th>
-              <th style={styles.th}>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((item, i) => (
-              <tr key={i}>
-                <td style={styles.td}>{String(item.name ?? '')}</td>
-                <td style={styles.td}>{String(item.bandwidth ?? '')}</td>
-                <td style={styles.td}>{String(item.location ?? '')}</td>
-                <td style={styles.td}>{String(item.status ?? '')}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-    </div>
-  );
-}
-
-/* ---------- tab content map ---------- */
-
-const TAB_CONTENT: Record<TabKey, React.FC> = {
-  vpcs: VPCsTab,
-  routeTables: RouteTablesTab,
-  peerings: PeeringsTab,
-  transitGateways: TransitGatewaysTab,
-  vpnTunnels: VPNTunnelsTab,
-  directConnects: DirectConnectsTab,
-};
 
 /* ---------- main component ---------- */
 
-export default function CloudResourcesView() {
-  const [activeTab, setActiveTab] = useState<TabKey>('vpcs');
-  const ActiveContent = TAB_CONTENT[activeTab];
+export function CloudResourcesView() {
+  /* --- state --- */
+  const [accounts, setAccounts] = useState<CloudAccount[]>([]);
+  const [selectedAccountId, setSelectedAccountId] = useState<string>('');
+  const [selectedRegion, setSelectedRegion] = useState<string>('');
+  const [activeTab, setActiveTab] = useState<string>(RESOURCE_TABS[0].id);
+  const [resources, setResources] = useState<CloudResource[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [syncJobs, setSyncJobs] = useState<CloudSyncJob[]>([]);
+  const [syncing, setSyncing] = useState(false);
 
+  /* --- derived: unique regions from selected account --- */
+  const regionOptions: string[] = (() => {
+    if (!selectedAccountId) {
+      const all = accounts.flatMap((a) => a.regions ?? []);
+      return [...new Set(all)].sort();
+    }
+    const account = accounts.find((a) => a.account_id === selectedAccountId);
+    return account?.regions ? [...new Set(account.regions)].sort() : [];
+  })();
+
+  /* --- load accounts on mount --- */
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await listCloudAccounts();
+        if (!cancelled) {
+          const list = Array.isArray(data) ? data : [];
+          setAccounts(list as CloudAccount[]);
+          if (list.length > 0 && !selectedAccountId) {
+            setSelectedAccountId((list[0] as CloudAccount).account_id);
+          }
+        }
+      } catch (e) {
+        if (!cancelled) {
+          setError(e instanceof Error ? e.message : 'Failed to load accounts');
+        }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /* --- load resources when filters change --- */
+  const loadResources = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const params: {
+        account_id?: string;
+        region?: string;
+        resource_type?: string;
+        limit?: number;
+      } = {
+        resource_type: activeTab,
+        limit: 200,
+      };
+      if (selectedAccountId) params.account_id = selectedAccountId;
+      if (selectedRegion) params.region = selectedRegion;
+
+      const data = await listCloudResources(params);
+      const list = Array.isArray(data) ? data : [];
+      setResources(list as CloudResource[]);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to load resources');
+      setResources([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedAccountId, selectedRegion, activeTab]);
+
+  useEffect(() => {
+    loadResources();
+  }, [loadResources]);
+
+  /* --- load sync jobs for selected account --- */
+  useEffect(() => {
+    if (!selectedAccountId) {
+      setSyncJobs([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await listCloudSyncJobs(selectedAccountId);
+        if (!cancelled) {
+          const list = Array.isArray(data) ? data : [];
+          setSyncJobs(list as CloudSyncJob[]);
+        }
+      } catch {
+        // sync jobs are informational; silently ignore errors
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [selectedAccountId]);
+
+  /* --- sync now handler --- */
+  const handleSyncNow = async () => {
+    if (!selectedAccountId || syncing) return;
+    setSyncing(true);
+    setError(null);
+    try {
+      await triggerCloudSync(selectedAccountId);
+      // Refresh sync jobs and resources after a short delay to let the sync start
+      setTimeout(async () => {
+        try {
+          const [jobsData] = await Promise.all([
+            listCloudSyncJobs(selectedAccountId),
+            loadResources(),
+          ]);
+          const list = Array.isArray(jobsData) ? jobsData : [];
+          setSyncJobs(list as CloudSyncJob[]);
+        } catch {
+          // best effort
+        }
+        setSyncing(false);
+      }, 1500);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to trigger sync');
+      setSyncing(false);
+    }
+  };
+
+  /* --- latest sync job for footer --- */
+  const latestJob: CloudSyncJob | null = syncJobs.length > 0 ? syncJobs[0] : null;
+
+  /* --- render --- */
   return (
     <div style={styles.page}>
-      {/* Header */}
+      {/* Header row */}
       <div style={styles.header}>
         <span className="material-symbols-outlined" style={styles.headerIcon}>
           cloud
         </span>
         <h1 style={styles.headerTitle}>Cloud Resources</h1>
+        <button
+          style={{
+            ...styles.btnPrimary,
+            opacity: syncing || !selectedAccountId ? 0.5 : 1,
+            pointerEvents: syncing || !selectedAccountId ? 'none' : 'auto',
+          }}
+          onClick={handleSyncNow}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
+            sync
+          </span>
+          {syncing ? 'Syncing...' : 'Sync Now'}
+        </button>
       </div>
 
-      {/* Tab bar */}
-      <div style={styles.tabBar}>
-        {TABS.map((tab) => (
-          <button
-            key={tab.key}
-            style={styles.tab(activeTab === tab.key)}
-            onClick={() => setActiveTab(tab.key)}
+      {/* Filter row */}
+      <div style={styles.filtersRow}>
+        {/* Account selector */}
+        <div style={styles.filterGroup}>
+          <span style={styles.filterLabel}>Account</span>
+          <select
+            style={styles.select}
+            value={selectedAccountId}
+            onChange={(e) => {
+              setSelectedAccountId(e.target.value);
+              setSelectedRegion('');
+            }}
           >
+            <option value="">All Accounts</option>
+            {accounts.map((acct) => (
+              <option key={acct.account_id} value={acct.account_id}>
+                {acct.display_name} ({acct.provider})
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Region filter */}
+        <div style={styles.filterGroup}>
+          <span style={styles.filterLabel}>Region</span>
+          <select
+            style={styles.select}
+            value={selectedRegion}
+            onChange={(e) => setSelectedRegion(e.target.value)}
+          >
+            <option value="">All Regions</option>
+            {regionOptions.map((r) => (
+              <option key={r} value={r}>
+                {r}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Account status badge */}
+        {selectedAccountId && (() => {
+          const acct = accounts.find((a) => a.account_id === selectedAccountId);
+          if (!acct) return null;
+          const statusColor =
+            acct.last_sync_status === 'ok'
+              ? COLORS.success
+              : acct.last_sync_status === 'error'
+                ? COLORS.danger
+                : acct.last_sync_status === 'paused'
+                  ? COLORS.warning
+                  : COLORS.textMuted;
+          return (
+            <div style={{ ...styles.filterGroup, justifyContent: 'flex-end' }}>
+              <span style={styles.filterLabel}>Sync Status</span>
+              <span
+                style={{
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: statusColor,
+                  textTransform: 'uppercase',
+                  padding: '7px 0',
+                }}
+              >
+                {acct.last_sync_status}
+              </span>
+            </div>
+          );
+        })()}
+      </div>
+
+      {/* Resource type tab bar */}
+      <div style={styles.tabBar}>
+        {RESOURCE_TABS.map((tab) => (
+          <button
+            key={tab.id}
+            style={styles.tab(activeTab === tab.id)}
+            onClick={() => setActiveTab(tab.id)}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
+              {tab.icon}
+            </span>
             {tab.label}
           </button>
         ))}
       </div>
 
-      {/* Active tab content */}
+      {/* Error banner */}
+      {error && <div style={styles.error}>{error}</div>}
+
+      {/* Resources table */}
       <div style={styles.card}>
-        <ActiveContent />
+        <div style={styles.toolbar}>
+          <span style={styles.count}>
+            {loading ? 'Loading...' : `${resources.length} resource${resources.length !== 1 ? 's' : ''}`}
+          </span>
+          <button
+            style={{
+              ...styles.btnPrimary,
+              background: 'transparent',
+              color: COLORS.textSecondary,
+              border: `1px solid ${COLORS.cardBorder}`,
+              padding: '6px 14px',
+              fontSize: 12,
+              opacity: loading ? 0.5 : 1,
+            }}
+            onClick={loadResources}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 14 }}>
+              refresh
+            </span>
+            Refresh
+          </button>
+        </div>
+
+        {!loading && resources.length === 0 && !error ? (
+          <div style={styles.empty}>
+            <span
+              className="material-symbols-outlined"
+              style={{ fontSize: 40, color: COLORS.textMuted, display: 'block', marginBottom: 8 }}
+            >
+              cloud_off
+            </span>
+            No {RESOURCE_TABS.find((t) => t.id === activeTab)?.label ?? 'resources'} found.
+            {!selectedAccountId && ' Select an account and trigger a sync to discover resources.'}
+          </div>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={styles.table}>
+              <thead>
+                <tr>
+                  <th style={styles.th}>Name</th>
+                  <th style={styles.th}>Native ID</th>
+                  <th style={styles.th}>Region</th>
+                  <th style={styles.th}>Tags</th>
+                  <th style={styles.th}>Last Seen</th>
+                  <th style={styles.th}>Sync Tier</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td
+                      colSpan={6}
+                      style={{ ...styles.td, textAlign: 'center', color: COLORS.textSecondary, padding: 24 }}
+                    >
+                      Loading resources...
+                    </td>
+                  </tr>
+                ) : (
+                  resources.map((res) => {
+                    const tags = parseTags(res.tags);
+                    const tagEntries = Object.entries(tags);
+                    return (
+                      <tr
+                        key={res.resource_id}
+                        style={{ transition: 'background 0.1s ease' }}
+                        onMouseEnter={(e) => {
+                          (e.currentTarget as HTMLTableRowElement).style.background =
+                            'rgba(7,182,213,0.05)';
+                        }}
+                        onMouseLeave={(e) => {
+                          (e.currentTarget as HTMLTableRowElement).style.background = 'transparent';
+                        }}
+                      >
+                        <td style={styles.td}>
+                          <span style={{ fontWeight: 500 }}>
+                            {res.name || <span style={{ color: COLORS.textMuted }}>--</span>}
+                          </span>
+                        </td>
+                        <td style={{ ...styles.td, fontFamily: 'monospace', fontSize: 12 }}>
+                          {res.native_id}
+                        </td>
+                        <td style={styles.td}>{res.region}</td>
+                        <td style={styles.td}>
+                          {tagEntries.length === 0 ? (
+                            <span style={{ color: COLORS.textMuted }}>--</span>
+                          ) : (
+                            <span>
+                              {tagEntries.slice(0, 3).map(([k, v]) => (
+                                <span key={k} style={styles.tag}>
+                                  {k}: {v}
+                                </span>
+                              ))}
+                              {tagEntries.length > 3 && (
+                                <span style={{ ...styles.tag, background: 'rgba(7,182,213,0.06)' }}>
+                                  +{tagEntries.length - 3}
+                                </span>
+                              )}
+                            </span>
+                          )}
+                        </td>
+                        <td style={{ ...styles.td, fontSize: 12 }}>
+                          {formatTimestamp(res.last_seen_ts)}
+                        </td>
+                        <td style={styles.td}>
+                          <span style={styles.tierBadge(res.sync_tier)}>
+                            T{res.sync_tier}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
+
+      {/* Sync status footer */}
+      {latestJob && (
+        <div style={styles.syncFooter}>
+          <span>
+            <span className="material-symbols-outlined" style={{ fontSize: 14, verticalAlign: 'middle', marginRight: 4 }}>
+              info
+            </span>
+            Last sync:
+          </span>
+          <span>
+            Status:{' '}
+            <span style={{ color: syncStatusColor(latestJob.status), fontWeight: 600 }}>
+              {latestJob.status}
+            </span>
+          </span>
+          <span>Tier {latestJob.tier}</span>
+          <span>Seen: {latestJob.items_seen}</span>
+          <span>Created: {latestJob.items_created}</span>
+          <span>Updated: {latestJob.items_updated}</span>
+          <span>Deleted: {latestJob.items_deleted}</span>
+          {latestJob.finished_at && (
+            <span>Finished: {formatTimestamp(latestJob.finished_at)}</span>
+          )}
+        </div>
+      )}
+
       <NetworkChatDrawer view="cloud-resources" />
     </div>
   );
 }
+
+export default CloudResourcesView;
