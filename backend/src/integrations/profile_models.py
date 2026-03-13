@@ -98,7 +98,7 @@ class GlobalIntegration(BaseModel):
     auth_method: Literal[
         "basic_auth", "bearer_token", "api_key", "cloud_id",
         "api_token", "oauth2", "certificate", "none",
-        "iam_role", "azure_sp", "oci_config",
+        "iam_role", "azure_sp", "oci_config", "gcp_sa",
     ] = "none"
     auth_credential_handle: Optional[str] = None
     config: dict = Field(default_factory=dict)  # Service-specific settings, e.g. {"orgs": ["org-a"]}
@@ -192,6 +192,19 @@ DEFAULT_GLOBAL_INTEGRATIONS = [
         "config": {
             "tenancy_ocid": "",
             "user_ocid": "",
+            "regions": [],
+        },
+    },
+    {
+        "id": "cloud-gcp",
+        "name": "Google Cloud Platform",
+        "service_type": "gcp",
+        "enabled": False,
+        "base_url": "",
+        "auth_method": "gcp_sa",
+        "auth_credential_handle": None,
+        "config": {
+            "project_id": "",
             "regions": [],
         },
     },
