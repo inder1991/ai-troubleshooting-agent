@@ -314,6 +314,11 @@ class GlobalProbe:
             ep.error = "No URL configured"
             return ep
 
+        # Cloud providers use SDK-based tests, not HTTP
+        cloud_providers = {"aws", "azure", "gcp", "oracle"}
+        if service_type in cloud_providers:
+            return await self._test_cloud_provider(service_type, credentials)
+
         headers = self._build_auth_headers(auth_method, credentials)
         test_path = self._get_test_path(service_type)
         test_url = f"{url.rstrip('/')}{test_path}"
@@ -346,6 +351,115 @@ class GlobalProbe:
             "github": "/user",
         }
         return paths.get(service_type, "/")
+
+    async def _test_cloud_provider(
+        self, service_type: str, credentials: str | None
+    ) -> EndpointProbeResult:
+        """Test cloud provider connectivity using provider SDKs."""
+        import json
+        import time
+
+        ep = EndpointProbeResult(name=service_type)
+        if not credentials:
+            ep.error = "No credentials configured"
+            return ep
+
+        try:
+            cred_data = json.loads(credentials)
+        except (json.JSONDecodeError, TypeError):
+            ep.error = "Invalid credential format (expected JSON)"
+            return ep
+
+        start = time.monotonic()
+
+        if service_type == "aws":
+            try:
+                import boto3
+                kwargs: dict = {}
+                if cred_data.get("access_key_id"):
+                    kwargs["aws_access_key_id"] = cred_data["access_key_id"]
+                    kwargs["aws_secret_access_key"] = cred_data.get("secret_access_key", "")
+                if cred_data.get("session_token"):
+                    kwargs["aws_session_token"] = cred_data["session_token"]
+                client = boto3.client("sts", **kwargs)
+                identity = client.get_caller_identity()
+                ep.reachable = True
+                ep.latency_ms = round((time.monotonic() - start) * 1000, 1)
+                ep.discovered_url = f"arn: {identity.get('Arn', 'unknown')}"
+            except ImportError:
+                ep.reachable = True
+                ep.latency_ms = 0
+                ep.discovered_url = "Credentials saved (boto3 not installed — cannot verify)"
+            except Exception as e:
+                ep.error = f"AWS auth failed: {e}"
+
+        elif service_type == "azure":
+            try:
+                from azure.identity import ClientSecretCredential
+                from azure.mgmt.resource import SubscriptionClient
+                cred = ClientSecretCredential(
+                    tenant_id=cred_data.get("tenant_id", ""),
+                    client_id=cred_data.get("client_id", ""),
+                    client_secret=cred_data.get("client_secret", ""),
+                )
+                sub_client = SubscriptionClient(cred)
+                subs = list(sub_client.subscriptions.list())
+                ep.reachable = True
+                ep.latency_ms = round((time.monotonic() - start) * 1000, 1)
+                ep.discovered_url = f"{len(subs)} subscription(s) accessible"
+            except ImportError:
+                ep.reachable = True
+                ep.latency_ms = 0
+                ep.discovered_url = "Credentials saved (azure-identity not installed — cannot verify)"
+            except Exception as e:
+                ep.error = f"Azure auth failed: {e}"
+
+        elif service_type == "gcp":
+            try:
+                from google.oauth2 import service_account
+                from google.cloud import resourcemanager_v3
+                info = json.loads(credentials) if isinstance(credentials, str) else cred_data
+                sa_cred = service_account.Credentials.from_service_account_info(info)
+                rm_client = resourcemanager_v3.ProjectsClient(credentials=sa_cred)
+                project_id = info.get("project_id", "")
+                if project_id:
+                    rm_client.get_project(name=f"projects/{project_id}")
+                ep.reachable = True
+                ep.latency_ms = round((time.monotonic() - start) * 1000, 1)
+                ep.discovered_url = f"project: {project_id}"
+            except ImportError:
+                ep.reachable = True
+                ep.latency_ms = 0
+                ep.discovered_url = "Credentials saved (google-cloud SDK not installed — cannot verify)"
+            except Exception as e:
+                ep.error = f"GCP auth failed: {e}"
+
+        elif service_type == "oracle":
+            try:
+                import oci
+                config = {
+                    "tenancy": cred_data.get("tenancy_ocid", ""),
+                    "user": cred_data.get("user_ocid", ""),
+                    "fingerprint": cred_data.get("fingerprint", ""),
+                    "key_content": cred_data.get("private_key", ""),
+                    "region": "us-ashburn-1",
+                }
+                identity_client = oci.identity.IdentityClient(config)
+                identity_client.get_tenancy(config["tenancy"])
+                ep.reachable = True
+                ep.latency_ms = round((time.monotonic() - start) * 1000, 1)
+                ep.discovered_url = f"tenancy: {config['tenancy'][:30]}..."
+            except ImportError:
+                ep.reachable = True
+                ep.latency_ms = 0
+                ep.discovered_url = "Credentials saved (oci SDK not installed — cannot verify)"
+            except Exception as e:
+                ep.error = f"Oracle auth failed: {e}"
+
+        else:
+            ep.error = f"Unknown cloud provider: {service_type}"
+
+        return ep
 
     def _build_auth_headers(
         self, auth_method: str, credentials: Optional[str]
