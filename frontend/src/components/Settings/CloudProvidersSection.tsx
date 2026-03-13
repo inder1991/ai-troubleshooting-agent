@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import type { GlobalIntegration } from '../../types/profiles';
+import CopyButton from '../ui/CopyButton';
 
 // ── Provider definitions ──
 
@@ -58,6 +59,185 @@ const ORACLE_REGIONS = [
   'eu-amsterdam-1', 'uk-london-1', 'ap-tokyo-1',
   'ap-mumbai-1', 'ap-sydney-1',
 ];
+
+// ── Setup Guide Data ──
+
+interface GuideStep {
+  title: string;
+  description: string;
+  code?: string;
+}
+
+interface GuideSection {
+  heading: string;
+  steps: GuideStep[];
+}
+
+const DEBUGDUCK_READ_POLICY = `{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "DebugDuckReadOnly",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DescribeVpcs",
+        "ec2:DescribeSubnets",
+        "ec2:DescribeSecurityGroups",
+        "ec2:DescribeNetworkAcls",
+        "ec2:DescribeRouteTables",
+        "ec2:DescribeNetworkInterfaces",
+        "ec2:DescribeInstances",
+        "ec2:DescribeNatGateways",
+        "ec2:DescribeVpcPeeringConnections",
+        "sts:GetCallerIdentity"
+      ],
+      "Resource": "*"
+    }
+  ]
+}`;
+
+const STS_ASSUME_POLICY = `{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "sts:AssumeRole",
+      "Resource": "arn:aws:iam::*:role/DebugDuck*"
+    }
+  ]
+}`;
+
+const TRUST_POLICY = `{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::<SOURCE_ACCOUNT_ID>:user/debugduck"
+      },
+      "Action": "sts:AssumeRole",
+      "Condition": {
+        "StringEquals": {
+          "sts:ExternalId": "debugduck"
+        }
+      }
+    }
+  ]
+}`;
+
+const SETUP_GUIDES: Record<CloudProvider, GuideSection[]> = {
+  aws: [
+    {
+      heading: 'Single Account Setup',
+      steps: [
+        { title: 'Create IAM User', description: 'Go to IAM > Users > Create user. Select "Programmatic access".' },
+        { title: 'Attach Read-Only Policy', description: 'Create a custom policy with the JSON below and attach it to the user.', code: DEBUGDUCK_READ_POLICY },
+        { title: 'Generate Access Key', description: 'Go to the user\'s Security Credentials tab > Create access key. Copy the Access Key ID and Secret Access Key.' },
+        { title: 'Paste into DebugDuck', description: 'Enter the Access Key ID and Secret Access Key in the fields above.' },
+      ],
+    },
+    {
+      heading: 'Cross-Account Setup',
+      steps: [
+        { title: 'Create IAM User (source account)', description: 'In your central account, create an IAM user with only sts:AssumeRole permission.', code: STS_ASSUME_POLICY },
+        { title: 'Generate Access Key', description: 'Create an access key for the source account user.' },
+        { title: 'Create IAM Role (each target account)', description: 'In each target account, go to IAM > Roles > Create role. Choose "Another AWS account" as the trusted entity.' },
+        { title: 'Attach Read-Only Policy to Role', description: 'Attach the DebugDuck read-only policy to the role in each target account.', code: DEBUGDUCK_READ_POLICY },
+        { title: 'Set Trust Policy', description: 'Update the role\'s trust policy to allow the source account user. Replace <SOURCE_ACCOUNT_ID> with your central account ID.', code: TRUST_POLICY },
+        { title: 'Configure in DebugDuck', description: 'Enter the source account\'s access key, the target role ARN, and the external ID above.' },
+      ],
+    },
+  ],
+  azure: [
+    {
+      heading: 'Azure Setup',
+      steps: [
+        { title: 'Register an App', description: 'Go to Azure AD > App registrations > New registration. Note the Application (client) ID and Directory (tenant) ID.' },
+        { title: 'Create Client Secret', description: 'In the app registration, go to Certificates & secrets > New client secret. Copy the secret value immediately.' },
+        { title: 'Assign Reader Role', description: 'Go to each Subscription > Access control (IAM) > Add role assignment. Assign the "Reader" role to your app registration.' },
+        { title: 'Configure in DebugDuck', description: 'Enter the Tenant ID, Client ID, and Client Secret in the fields above.' },
+      ],
+    },
+  ],
+  gcp: [
+    {
+      heading: 'GCP Setup',
+      steps: [
+        { title: 'Create Service Account', description: 'Go to IAM & Admin > Service Accounts > Create Service Account. Give it a descriptive name like "debugduck-reader".' },
+        { title: 'Grant Roles', description: 'Assign the following roles: Compute Viewer (roles/compute.viewer) and Security Admin (roles/iam.securityAdmin) for security policy reads.' },
+        { title: 'Download JSON Key', description: 'In the service account details, go to Keys > Add Key > Create new key > JSON. Download the key file.' },
+        { title: 'Configure in DebugDuck', description: 'Paste the entire JSON key file contents into the field above.' },
+      ],
+    },
+  ],
+  oracle: [
+    {
+      heading: 'Oracle Cloud Setup',
+      steps: [
+        { title: 'Create API Signing Key', description: 'Go to User Settings > API Keys > Add API Key. Download the private key and note the fingerprint.' },
+        { title: 'Create Group & Policy', description: 'Create a group (e.g., "debugduck-readers") and add your user. Create a policy with: Allow group debugduck-readers to read virtual-network-family in tenancy.' },
+        { title: 'Gather IDs', description: 'Collect your Tenancy OCID, User OCID, and the API key fingerprint from the OCI console.' },
+        { title: 'Configure in DebugDuck', description: 'Enter the Tenancy OCID, User OCID, fingerprint, and private key PEM in the fields above.' },
+      ],
+    },
+  ],
+};
+
+// ── SetupGuide Component ──
+
+function SetupGuide({ provider }: { provider: CloudProvider }) {
+  const [expanded, setExpanded] = useState(false);
+  const sections = SETUP_GUIDES[provider];
+
+  return (
+    <div className="mt-3">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="flex items-center gap-1.5 text-xs text-[#07b6d5] hover:text-[#07b6d5]/80 transition-colors"
+      >
+        <span className="material-symbols-outlined text-sm">
+          {expanded ? 'expand_less' : 'help'}
+        </span>
+        {expanded ? 'Hide Setup Guide' : 'Setup Guide'}
+      </button>
+
+      {expanded && (
+        <div className="mt-3 space-y-4">
+          {sections.map((section) => (
+            <div key={section.heading}>
+              <h4 className="text-xs font-semibold text-white mb-2 uppercase tracking-wide">
+                {section.heading}
+              </h4>
+              <ol className="space-y-3">
+                {section.steps.map((step, idx) => (
+                  <li key={idx} className="flex gap-2.5">
+                    <span className="flex-shrink-0 w-5 h-5 rounded-full bg-[#07b6d5]/10 text-[#07b6d5] text-xs font-bold flex items-center justify-center mt-0.5">
+                      {idx + 1}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-[#8fc3cc]">{step.title}</div>
+                      <div className="text-xs text-[#4a6670] mt-0.5">{step.description}</div>
+                      {step.code && (
+                        <div className="mt-2 relative group">
+                          <pre className="bg-[#0a1a1d] border border-[#224349] rounded-lg p-3 text-xs text-[#8fc3cc] font-mono overflow-x-auto whitespace-pre">
+                            {step.code}
+                          </pre>
+                          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <CopyButton text={step.code} size={14} />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ── Shared styles ──
 
@@ -564,6 +744,7 @@ function ProviderCard({
               onConfigChange={handleConfigChange}
             />
           </div>
+          <SetupGuide provider={provider} />
           <div className="flex items-center justify-end gap-3 mt-4 pt-3 border-t border-[#224349]/50">
             <button
               onClick={() => integration && onTest(integration.id)}

@@ -1,6 +1,7 @@
 """Tests for AWS cloud provider driver."""
+import json
 import pytest
-from unittest.mock import MagicMock, patch, AsyncMock
+from unittest.mock import MagicMock, patch, AsyncMock, call
 from src.cloud.drivers.aws_driver import AWSDriver
 from src.cloud.models import CloudAccount, DiscoveryBatch, DriverHealth
 
@@ -11,7 +12,24 @@ def aws_account():
         account_id="acc-001",
         provider="aws",
         display_name="Test AWS",
-        credential_handle='{"aws_access_key_id":"AKID","aws_secret_access_key":"SECRET"}',
+        credential_handle='{"access_key_id":"AKID","secret_access_key":"SECRET"}',
+        auth_method="access_key",
+        regions=["us-east-1"],
+    )
+
+
+@pytest.fixture
+def aws_role_account():
+    return CloudAccount(
+        account_id="acc-002",
+        provider="aws",
+        display_name="Test AWS Cross-Account",
+        credential_handle=json.dumps({
+            "access_key_id": "AKID",
+            "secret_access_key": "SECRET",
+            "role_arn": "arn:aws:iam::999999999:role/DebugDuck",
+            "external_id": "debugduck-test",
+        }),
         auth_method="access_key",
         regions=["us-east-1"],
     )
@@ -154,3 +172,74 @@ class TestAWSDriverDiscoverVPCs:
         sg_batch = next(b for b in batches if b.resource_type == "security_group")
         assert len(sg_batch.items) == 1
         assert sg_batch.items[0].native_id == "sg-001"
+
+
+class TestExtractCreds:
+    def test_primary_field_names(self, driver):
+        creds = {"access_key_id": "AK1", "secret_access_key": "SK1"}
+        ak, sk = driver._extract_creds(creds)
+        assert ak == "AK1"
+        assert sk == "SK1"
+
+    def test_legacy_field_names(self, driver):
+        creds = {"aws_access_key_id": "AK2", "aws_secret_access_key": "SK2"}
+        ak, sk = driver._extract_creds(creds)
+        assert ak == "AK2"
+        assert sk == "SK2"
+
+    def test_primary_takes_precedence(self, driver):
+        creds = {
+            "access_key_id": "PRIMARY",
+            "aws_access_key_id": "LEGACY",
+            "secret_access_key": "SPRIMARY",
+            "aws_secret_access_key": "SLEGACY",
+        }
+        ak, sk = driver._extract_creds(creds)
+        assert ak == "PRIMARY"
+        assert sk == "SPRIMARY"
+
+
+class TestAWSDriverRoleAssumption:
+    @pytest.mark.asyncio
+    async def test_sts_receives_user_creds_for_role(self, driver, aws_role_account):
+        """STS client must be created with user's access key when assuming a role."""
+        mock_sts = MagicMock()
+        mock_sts.assume_role.return_value = {
+            "Credentials": {
+                "AccessKeyId": "TEMP_AK",
+                "SecretAccessKey": "TEMP_SK",
+                "SessionToken": "TEMP_TOK",
+            }
+        }
+        mock_service_client = MagicMock()
+
+        with patch("boto3.client") as mock_client:
+            # First call = STS client, second call = target service client
+            mock_client.side_effect = [mock_sts, mock_service_client]
+            result = driver._get_boto_client("ec2", aws_role_account, "us-east-1")
+
+        # Verify STS client was created with user credentials
+        sts_call = mock_client.call_args_list[0]
+        assert sts_call == call(
+            "sts",
+            aws_access_key_id="AKID",
+            aws_secret_access_key="SECRET",
+        )
+
+        # Verify assume_role was called with correct params
+        mock_sts.assume_role.assert_called_once_with(
+            RoleArn="arn:aws:iam::999999999:role/DebugDuck",
+            ExternalId="debugduck-test",
+            RoleSessionName="debugduck-cloud-sync",
+        )
+
+        # Verify final client uses temp credentials
+        service_call = mock_client.call_args_list[1]
+        assert service_call == call(
+            "ec2",
+            region_name="us-east-1",
+            aws_access_key_id="TEMP_AK",
+            aws_secret_access_key="TEMP_SK",
+            aws_session_token="TEMP_TOK",
+        )
+        assert result is mock_service_client

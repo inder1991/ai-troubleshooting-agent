@@ -376,16 +376,32 @@ class GlobalProbe:
             try:
                 import boto3
                 kwargs: dict = {}
-                if cred_data.get("access_key_id"):
-                    kwargs["aws_access_key_id"] = cred_data["access_key_id"]
-                    kwargs["aws_secret_access_key"] = cred_data.get("secret_access_key", "")
+                ak = cred_data.get("access_key_id") or cred_data.get("aws_access_key_id")
+                if ak:
+                    kwargs["aws_access_key_id"] = ak
+                    kwargs["aws_secret_access_key"] = (
+                        cred_data.get("secret_access_key")
+                        or cred_data.get("aws_secret_access_key", "")
+                    )
                 if cred_data.get("session_token"):
                     kwargs["aws_session_token"] = cred_data["session_token"]
+
                 client = boto3.client("sts", **kwargs)
                 identity = client.get_caller_identity()
-                ep.reachable = True
                 ep.latency_ms = round((time.monotonic() - start) * 1000, 1)
-                ep.discovered_url = f"arn: {identity.get('Arn', 'unknown')}"
+
+                role_arn = cred_data.get("role_arn", "")
+                if role_arn:
+                    client.assume_role(
+                        RoleArn=role_arn,
+                        ExternalId=cred_data.get("external_id", "debugduck"),
+                        RoleSessionName="debugduck-probe",
+                    )
+                    ep.reachable = True
+                    ep.discovered_url = f"arn: {identity.get('Arn')} -> assumed: {role_arn}"
+                else:
+                    ep.reachable = True
+                    ep.discovered_url = f"arn: {identity.get('Arn', 'unknown')}"
             except ImportError:
                 ep.reachable = True
                 ep.latency_ms = 0

@@ -66,14 +66,21 @@ class AWSDriver(CloudProviderDriver):
         """Return {resource_type: sync_tier} mapping for all AWS types."""
         return dict(self._RESOURCE_TYPES)
 
+    @staticmethod
+    def _extract_creds(creds: dict) -> tuple[str, str]:
+        """Extract access key with fallback for legacy field names."""
+        ak = creds.get("access_key_id") or creds.get("aws_access_key_id", "")
+        sk = creds.get("secret_access_key") or creds.get("aws_secret_access_key", "")
+        return ak, sk
+
     def _get_boto_client(
         self, service: str, account: CloudAccount, region: str = "us-east-1"
     ):
         """Create a boto3 client with the account's credentials.
 
-        Supports two auth methods:
-        - iam_role: assumes a cross-account role via STS
-        - access_key: uses static access key / secret key
+        Supports two auth flows:
+        - role_arn present: assumes a cross-account role via STS (with user creds)
+        - otherwise: uses static access key / secret key directly
         """
         import boto3
 
@@ -82,29 +89,40 @@ class AWSDriver(CloudProviderDriver):
             if isinstance(account.credential_handle, str)
             else {}
         )
+        access_key, secret_key = self._extract_creds(creds)
+        session_token = creds.get("session_token")
+        role_arn = creds.get("role_arn", "")
 
-        if account.auth_method == "iam_role":
-            sts = boto3.client("sts")
+        if role_arn:
+            # Build STS client WITH user credentials
+            sts_kwargs: dict[str, Any] = {}
+            if access_key:
+                sts_kwargs["aws_access_key_id"] = access_key
+                sts_kwargs["aws_secret_access_key"] = secret_key
+            if session_token:
+                sts_kwargs["aws_session_token"] = session_token
+            sts = boto3.client("sts", **sts_kwargs)
             assumed = sts.assume_role(
-                RoleArn=creds.get("role_arn", ""),
+                RoleArn=role_arn,
                 ExternalId=creds.get("external_id", "debugduck"),
                 RoleSessionName="debugduck-cloud-sync",
             )
-            temp_creds = assumed["Credentials"]
+            temp = assumed["Credentials"]
             return boto3.client(
                 service,
                 region_name=region,
-                aws_access_key_id=temp_creds["AccessKeyId"],
-                aws_secret_access_key=temp_creds["SecretAccessKey"],
-                aws_session_token=temp_creds["SessionToken"],
+                aws_access_key_id=temp["AccessKeyId"],
+                aws_secret_access_key=temp["SecretAccessKey"],
+                aws_session_token=temp["SessionToken"],
             )
         else:
-            return boto3.client(
-                service,
-                region_name=region,
-                aws_access_key_id=creds.get("aws_access_key_id", ""),
-                aws_secret_access_key=creds.get("aws_secret_access_key", ""),
-            )
+            kwargs: dict[str, Any] = {}
+            if access_key:
+                kwargs["aws_access_key_id"] = access_key
+                kwargs["aws_secret_access_key"] = secret_key
+            if session_token:
+                kwargs["aws_session_token"] = session_token
+            return boto3.client(service, region_name=region, **kwargs)
 
     # ── ABC implementations ──
 
