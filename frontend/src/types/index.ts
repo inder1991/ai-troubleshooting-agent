@@ -860,6 +860,8 @@ export interface ReasoningStepData {
   decision: string;
   reasoning: string;
   confidence_at_step: number;
+  agent?: string;
+  description?: string;
 }
 
 // ===== V5 Causal Intelligence Types =====
@@ -2043,4 +2045,189 @@ export interface CloudSyncStatus {
   tier_2_last_sync: string | null;
   tier_3_last_sync: string | null;
   next_sync: string | null;
+}
+
+// ── Notification / Alert Routing Types ──
+
+export interface NotificationChannel {
+  id: string;
+  name: string;
+  type: 'slack' | 'email' | 'webhook' | 'pagerduty';
+  config: Record<string, string>;
+}
+
+export interface AlertRouting {
+  id: string;
+  rule_id: string;
+  rule_name?: string;
+  channel_id: string;
+  channel_name?: string;
+}
+
+export interface EscalationStep {
+  level: number;
+  channel_id: string;
+  wait_minutes: number;
+  channel_name?: string;
+}
+
+export interface EscalationPolicy {
+  id: string;
+  name: string;
+  steps: EscalationStep[];
+}
+
+// ── Audit Log Types ──
+
+export interface AuditLogEntry {
+  id: string;
+  timestamp: string;
+  user: string;
+  action: string;
+  entity_type: string;
+  entity_id: string;
+  details: string;
+  ip: string;
+}
+
+// ── Navigator Aliases ──
+
+export type ReasoningStep = ReasoningStepData;
+
+export interface AgentConfidence {
+  agent: string;
+  confidence: number;
+  reasoning: string;
+}
+
+// ── MIB Browser Types ──
+
+export interface MIBEntry {
+  oid: string;
+  name: string;
+  module: string;
+  description: string;
+  syntax: string;
+  access: 'read-only' | 'read-write' | 'read-create' | 'not-accessible' | 'accessible-for-notify';
+  status: 'current' | 'deprecated' | 'obsolete' | 'mandatory';
+  value?: string | number | null;
+  children?: string[];
+}
+
+// ── Alert History Types ──
+
+export interface AlertHistoryEntry {
+  id: string;
+  timestamp: number;
+  severity: 'critical' | 'warning' | 'info';
+  entity_id: string;
+  metric: string;
+  message: string;
+  state: 'firing' | 'resolved';
+  duration?: number;
+}
+
+// ── Composite Alert Types ──
+
+export interface CompositeAlertCondition {
+  metric: string;
+  operator: string;
+  threshold: number;
+}
+
+export interface CompositeAlertRule {
+  id: string;
+  name: string;
+  logic: 'AND' | 'OR';
+  duration_seconds: number;
+  conditions: CompositeAlertCondition[];
+  severity?: string;
+  created_at?: string;
+}
+
+// ── DNS Monitoring Types ──
+
+export interface DNSServer {
+  id: string;
+  ip: string;
+  name?: string;
+  status: string;
+}
+
+export interface DNSWatchedHostname {
+  hostname: string;
+  record_type: string;
+}
+
+export interface DNSMetrics {
+  queries_total: number;
+  total_queries: number;
+  avg_latency_ms: number;
+  nxdomain_count: number;
+  success_rate: number;
+}
+
+export interface DNSQueryResult {
+  hostname: string;
+  record_type: string;
+  server_ip: string;
+  values: string[];
+  records: Array<{ value: string; ttl: number }>;
+  latency_ms: number;
+  success: boolean;
+  status: string;
+  error: string | null;
+}
+
+export interface DNSNXDomainEntry {
+  hostname: string;
+  count: number;
+  first_seen: string;
+  last_seen: string;
+}
+
+// ── Topology Design Types ──
+
+export type DesignStatus = 'draft' | 'reviewed' | 'simulated' | 'approved' | 'parked' | 'applied' | 'verified';
+
+export interface TopologyDesign {
+  id: string;
+  name: string;
+  description: string;
+  status: DesignStatus;
+  snapshot_json: string;
+  version: number;
+  created_at: string;
+  updated_at: string;
+  applied_by?: string;
+}
+
+export interface DesignDiff {
+  added: Array<{ id: string; data?: { label?: string; deviceType?: string; ip?: string; vendor?: string } }>;
+  new_edges: Array<{ source: string; target: string; data?: { label?: string } }>;
+  conflicts: Array<{ type: string; ip?: string; planned_device?: string; conflicts_with?: string; planned_subnet?: string; vlan_id?: string; zone?: string }>;
+  edge_errors: Array<{ edge_id: string; reason: string }>;
+  live_count: number;
+  can_apply: boolean;
+}
+
+// ── Topology Path Types ──
+
+export interface TopologyPathHop {
+  device_name: string;
+  ip: string;
+}
+
+export interface TopologyPath {
+  hops: TopologyPathHop[];
+  latency_ms: number;
+  confidence: number;
+}
+
+// ── Simulation Types ──
+
+export interface SimulationResult {
+  summary: { errors: number; warnings: number; passed: number };
+  integrity_checks: Array<{ severity: 'error' | 'warning'; type: string; device?: string; description: string }>;
+  connectivity_tests: Array<{ result: string; source: string; target: string; blocked_by?: string }>;
 }

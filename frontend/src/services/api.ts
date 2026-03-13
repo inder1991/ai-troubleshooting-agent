@@ -1897,3 +1897,502 @@ export const testCloudAccountHealth = async (accountId: string) => {
   if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to test cloud account'));
   return resp.json();
 };
+
+// ── Notification Channels ──
+
+export const fetchNotificationChannels = async () => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/monitor/notifications/channels`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch channels'));
+  const data = await resp.json();
+  return data.channels ?? data;
+};
+
+export const createNotificationChannel = async (body: { name: string; type: string; config: Record<string, string> }) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/monitor/notifications/channels`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to create channel'));
+  return resp.json();
+};
+
+export const deleteNotificationChannel = async (id: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/monitor/notifications/channels/${id}`, { method: 'DELETE' });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to delete channel'));
+};
+
+// ── Alert Routing ──
+
+export const fetchAlertRoutings = async () => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/monitor/notifications/routings`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch routings'));
+  const data = await resp.json();
+  return data.routings ?? data;
+};
+
+export const createAlertRouting = async (body: { rule_id: string; channel_id: string }) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/monitor/notifications/routings`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to create routing'));
+  return resp.json();
+};
+
+export const deleteAlertRouting = async (id: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/monitor/notifications/routings/${id}`, { method: 'DELETE' });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to delete routing'));
+};
+
+// ── Escalation Policies ──
+
+export const fetchEscalationPolicies = async () => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/monitor/escalations`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch escalation policies'));
+  const data = await resp.json();
+  return data.escalations ?? data;
+};
+
+export const createEscalationPolicy = async (body: { name: string; steps: Array<{ level: number; channel_id: string; wait_minutes: number }> }) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/monitor/escalations`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to create escalation policy'));
+  return resp.json();
+};
+
+export const deleteEscalationPolicy = async (id: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/monitor/escalations/${id}`, { method: 'DELETE' });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to delete escalation policy'));
+};
+
+// ── Audit Log ──
+
+export const fetchAuditLog = async (params: { action?: string; user?: string; entity_type?: string; date_from?: string; date_to?: string; limit?: number; offset?: number } = {}) => {
+  const qs = new URLSearchParams();
+  if (params.limit) qs.set('limit', String(params.limit));
+  if (params.entity_type) qs.set('entity_type', params.entity_type);
+  const resp = await fetch(`${API_BASE_URL}/api/v5/audit/?${qs}`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch audit log'));
+  const data = await resp.json();
+  return data.items ?? data;
+};
+
+// ── Device Search ──
+
+export const searchDevices = async (params: { name?: string; device_type?: string; vendor?: string; location?: string; offset?: number; limit?: number } = {}) => {
+  const qs = new URLSearchParams();
+  if (params.name) qs.set('name', params.name);
+  if (params.device_type) qs.set('device_type', params.device_type);
+  if (params.vendor) qs.set('vendor', params.vendor);
+  if (params.limit) qs.set('limit', String(params.limit));
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/search/devices?${qs}`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to search devices'));
+  return resp.json();
+};
+
+// ── MIB Browser ──
+
+export const mibLookup = async (oid: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/collector/mib/lookup?oid=${encodeURIComponent(oid)}`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'MIB lookup failed'));
+  return resp.json();
+};
+
+export const mibBatchQuery = async (oids: string[]) => {
+  const resp = await fetch(`${API_BASE_URL}/api/collector/mib/batch`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ oids }),
+  });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'MIB batch query failed'));
+  const data = await resp.json();
+  return data.results ?? data;
+};
+
+export const mibSearch = async (query: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/collector/mib/search?q=${encodeURIComponent(query)}`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'MIB search failed'));
+  const data = await resp.json();
+  return data.results ?? data;
+};
+
+// ── NDM Bulk Device Operations ──
+
+export const exportDevices = async (format: 'json' | 'csv' = 'json') => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/export/devices?format=${format}`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to export devices'));
+  if (format === 'csv') return resp.text();
+  return resp.json();
+};
+
+export const importDevices = async (data: FormData | Record<string, unknown>[]) => {
+  const isFormData = data instanceof FormData;
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/export/devices/import`, {
+    method: 'POST',
+    ...(isFormData ? { body: data } : { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to import devices'));
+  return resp.json();
+};
+
+export const bulkDeleteDevices = async (ids: string[]) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/resources/devices/bulk`, {
+    method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ids }),
+  });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to bulk delete devices'));
+  return resp.json();
+};
+
+export const bulkValidate = async (devices: Record<string, unknown>[]) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/resources/validate/bulk`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(devices),
+  });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to validate devices'));
+  return resp.json();
+};
+
+// ── NDM Interface Export ──
+
+export const exportInterfaces = async (format: 'json' | 'csv' = 'json') => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/export/interfaces?format=${format}`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to export interfaces'));
+  if (format === 'csv') return resp.text();
+  return resp.json();
+};
+
+// ── Alert History ──
+
+export const fetchAlertHistory = async (params: { severity?: string; entity_id?: string; state?: string; limit?: number } = {}) => {
+  const qs = new URLSearchParams();
+  if (params.severity) qs.set('severity', params.severity);
+  if (params.entity_id) qs.set('entity_id', params.entity_id);
+  if (params.state) qs.set('state', params.state);
+  if (params.limit) qs.set('limit', String(params.limit));
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/monitor/alerts/history?${qs}`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch alert history'));
+  const data = await resp.json();
+  return data.history ?? data;
+};
+
+// ── Composite Alert Rules ──
+
+export const fetchCompositeAlertRules = async () => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/monitor/alerts/composite-rules`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch composite rules'));
+  const data = await resp.json();
+  return data.rules ?? data;
+};
+
+export const createCompositeAlertRule = async (body: { name: string; logic: 'AND' | 'OR'; duration_seconds: number; conditions: Array<{ metric: string; operator: string; threshold: number }> }) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/monitor/alerts/composite-rules`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to create composite rule'));
+  return resp.json();
+};
+
+export const deleteCompositeAlertRule = async (id: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/monitor/alerts/composite-rules/${id}`, { method: 'DELETE' });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to delete composite rule'));
+};
+
+export const exportAlertRules = async (format: 'json' | 'csv' = 'json') => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/export/alert-rules?format=${format}`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to export alert rules'));
+  if (format === 'csv') return resp.text();
+  return resp.json();
+};
+
+// ── DNS Monitoring ──
+
+export const getDNSConfig = async () => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/dns/config`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch DNS config'));
+  return resp.json();
+};
+
+export const addDNSServer = async (body: { ip: string; name?: string }) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/dns/servers`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to add DNS server'));
+  return resp.json();
+};
+
+export const removeDNSServer = async (serverId: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/dns/servers/${serverId}`, { method: 'DELETE' });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to remove DNS server'));
+  return resp.json();
+};
+
+export const addDNSHostname = async (hostnameOrObj: string | { hostname: string; record_type: string }, recordType?: string) => {
+  const body = typeof hostnameOrObj === 'string'
+    ? { hostname: hostnameOrObj, record_type: recordType ?? 'A' }
+    : hostnameOrObj;
+  const resp = await fetch(`${API_BASE_URL}/api/v4/dns/hostnames`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to add DNS hostname'));
+  return resp.json();
+};
+
+export const removeDNSHostname = async (hostname: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/dns/hostnames/${encodeURIComponent(hostname)}`, { method: 'DELETE' });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to remove DNS hostname'));
+  return resp.json();
+};
+
+export const queryDNS = async (hostname: string, recordType: string, serverIp?: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/dns/query`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ hostname, record_type: recordType, ...(serverIp ? { server_ip: serverIp } : {}) }),
+  });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'DNS query failed'));
+  return resp.json();
+};
+
+export const getDNSMetrics = async () => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/dns/metrics`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch DNS metrics'));
+  return resp.json();
+};
+
+export const getDNSNXDomain = async () => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/dns/nxdomain`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch NXDOMAIN data'));
+  const data = await resp.json();
+  return data.entries ?? data;
+};
+
+// ── Security Resources ──
+
+export const listFirewallRules = async (deviceId?: string) => {
+  const qs = deviceId ? `?device_id=${deviceId}` : '';
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/security/firewall-rules${qs}`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to list firewall rules'));
+  return resp.json();
+};
+
+export const createFirewallRule = async (body: Record<string, unknown>) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/security/firewall-rules`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to create firewall rule'));
+  return resp.json();
+};
+
+export const listNATRules = async (deviceId?: string) => {
+  const qs = deviceId ? `?device_id=${deviceId}` : '';
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/security/nat-rules${qs}`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to list NAT rules'));
+  return resp.json();
+};
+
+export const createNATRule = async (body: Record<string, unknown>) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/security/nat-rules`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to create NAT rule'));
+  return resp.json();
+};
+
+export const listNACLs = async (vpcId?: string) => {
+  const qs = vpcId ? `?vpc_id=${vpcId}` : '';
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/security/nacls${qs}`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to list NACLs'));
+  return resp.json();
+};
+
+export const createNACL = async (body: Record<string, unknown>) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/security/nacls`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to create NACL'));
+  return resp.json();
+};
+
+export const listLoadBalancers = async () => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/security/load-balancers`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to list load balancers'));
+  return resp.json();
+};
+
+export const createLoadBalancer = async (body: Record<string, unknown>) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/security/load-balancers`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to create load balancer'));
+  return resp.json();
+};
+
+export const listSecVLANs = async () => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/security/vlans`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to list VLANs'));
+  return resp.json();
+};
+
+export const createSecVLAN = async (body: Record<string, unknown>) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/security/vlans`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to create VLAN'));
+  return resp.json();
+};
+
+export const listMPLSCircuits = async () => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/security/mpls-circuits`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to list MPLS circuits'));
+  return resp.json();
+};
+
+export const createMPLSCircuit = async (body: Record<string, unknown>) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/security/mpls-circuits`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to create MPLS circuit'));
+  return resp.json();
+};
+
+export const listComplianceZones = async () => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/security/compliance-zones`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to list compliance zones'));
+  return resp.json();
+};
+
+export const createComplianceZone = async (body: Record<string, unknown>) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/security/compliance-zones`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to create compliance zone'));
+  return resp.json();
+};
+
+// ── Topology Designs ──
+
+export const fetchLiveInventory = async () => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/topology/graph`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to fetch live inventory'));
+  return resp.json();
+};
+
+export const listTopologyDesigns = async (status?: string) => {
+  const qs = status ? `?status=${status}` : '';
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/topology/designs${qs}`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to list designs'));
+  const data = await resp.json();
+  return data.designs ?? data;
+};
+
+export const getTopologyDesign = async (designId: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/topology/designs/${designId}`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to get design'));
+  return resp.json();
+};
+
+export const createTopologyDesign = async (nameOrBody: string | { name: string; description?: string; snapshot_json: string }, description?: string, snapshotJson?: unknown) => {
+  const body = typeof nameOrBody === 'string'
+    ? { name: nameOrBody, description: description ?? '', snapshot_json: typeof snapshotJson === 'string' ? snapshotJson : JSON.stringify(snapshotJson ?? {}) }
+    : nameOrBody;
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/topology/designs`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to create design'));
+  return resp.json();
+};
+
+export const updateTopologyDesign = async (designId: string, body: { name?: string; description?: string; snapshot_json?: string; expected_version?: number }) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/topology/designs/${designId}`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to update design'));
+  return resp.json();
+};
+
+export const deleteTopologyDesign = async (designId: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/topology/designs/${designId}`, { method: 'DELETE' });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to delete design'));
+};
+
+export const updateDesignStatus = async (designId: string, status: string, appliedBy?: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/topology/designs/${designId}/status`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status, ...(appliedBy ? { applied_by: appliedBy } : {}) }),
+  });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to update design status'));
+  return resp.json();
+};
+
+export const getDesignDiff = async (designId: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/topology/designs/${designId}/diff`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to get design diff'));
+  return resp.json();
+};
+
+export const applyDesign = async (designId: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/topology/designs/${designId}/apply`, { method: 'POST' });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to apply design'));
+  return resp.json();
+};
+
+// ── Topology Path Query ──
+
+export const queryTopologyPaths = async (src: string, dst: string, k: number = 3) => {
+  const qs = new URLSearchParams({ src, dst, k: String(k) });
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/query/paths?${qs}`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to query paths'));
+  return resp.json();
+};
+
+export const resolveIP = async (ip: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/query/resolve-ip?ip=${encodeURIComponent(ip)}`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to resolve IP'));
+  return resp.json();
+};
+
+// ── Topology Simulation ──
+
+export const simulateDesign = async (designId: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/topology/designs/${designId}/simulate`, { method: 'POST' });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to simulate design'));
+  const data = await resp.json();
+  return data.result ?? data;
+};
+
+export const getSimulationResults = async (designId: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/topology/designs/${designId}/simulation-results`);
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Failed to get simulation results'));
+  return resp.json();
+};
+
+export const simulateConnectivity = async (designId: string, sourceId: string, targetId: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/topology/designs/${designId}/simulate/connectivity`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ source_id: sourceId, target_id: targetId }),
+  });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Connectivity simulation failed'));
+  return resp.json();
+};
+
+export const simulateFirewallPolicy = async (designId: string, srcIp: string, dstIp: string, port: number, protocol: string) => {
+  const resp = await fetch(`${API_BASE_URL}/api/v4/network/topology/designs/${designId}/simulate/firewall`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ src_ip: srcIp, dst_ip: dstIp, port, protocol }),
+  });
+  if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Firewall simulation failed'));
+  return resp.json();
+};
