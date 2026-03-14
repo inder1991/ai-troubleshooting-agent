@@ -58,10 +58,12 @@ const AgentCard: React.FC<AgentCardProps> = ({ agent, onClick }) => {
                 boxShadow: agent.status === 'degraded' ? `0 0 6px ${statusColor}` : undefined,
                 animation: agent.status === 'degraded' ? 'pulse 2s ease-in-out infinite' : undefined,
               }}
+              title={agent.status}
+              aria-label={`Status: ${agent.status}`}
             />
           </div>
           <span
-            className="text-[9px] font-mono uppercase tracking-widest"
+            className="text-[10px] font-mono uppercase tracking-widest"
             style={{ color: '#64748b' }}
           >
             {ROLE_LABELS[agent.role]}
@@ -88,7 +90,7 @@ const AgentCard: React.FC<AgentCardProps> = ({ agent, onClick }) => {
         {agent.tools.slice(0, 4).map((tool) => (
           <span
             key={tool}
-            className="text-[10px] font-mono px-1.5 py-0.5 rounded"
+            className="text-[10px] font-mono px-2 py-1 rounded"
             style={{
               backgroundColor: '#1e1b15',
               color: '#64748b',
@@ -99,7 +101,7 @@ const AgentCard: React.FC<AgentCardProps> = ({ agent, onClick }) => {
         ))}
         {agent.tools.length > 4 && (
           <span
-            className="text-[10px] font-mono px-1.5 py-0.5 rounded"
+            className="text-[10px] font-mono px-2 py-1 rounded"
             style={{ backgroundColor: '#1e1b15', color: '#64748b' }}
           >
             +{agent.tools.length - 4}
@@ -121,7 +123,7 @@ const AgentCard: React.FC<AgentCardProps> = ({ agent, onClick }) => {
           >
             warning
           </span>
-          <span className="text-[10px] font-mono" style={{ color: '#f59e0b' }}>
+          <span className="text-[11px] font-mono" style={{ color: '#f59e0b' }}>
             {agent.degraded_tools.length} tool{agent.degraded_tools.length > 1 ? 's' : ''} degraded
           </span>
         </div>

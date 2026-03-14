@@ -18,6 +18,8 @@ const AgentMatrixView: React.FC<AgentMatrixViewProps> = ({ onGoHome }) => {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<WorkflowTab>('app_diagnostics');
   const [selectedAgent, setSelectedAgent] = useState<AgentInfo | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
 
   const fetchAgents = useCallback(async () => {
     setLoading(true);
@@ -36,19 +38,23 @@ const AgentMatrixView: React.FC<AgentMatrixViewProps> = ({ onGoHome }) => {
     fetchAgents();
   }, [fetchAgents]);
 
-  // If an agent is selected, show detail view
-  if (selectedAgent) {
-    return (
-      <AgentDetailView
-        agent={selectedAgent}
-        onBack={() => setSelectedAgent(null)}
-      />
-    );
-  }
+  const filteredAgents = (data?.agents ?? [])
+    .filter((a) => a.workflow === activeTab)
+    .filter((a) => {
+      if (!searchQuery) return true;
+      const q = searchQuery.toLowerCase();
+      return (
+        a.name.toLowerCase().includes(q) ||
+        a.description.toLowerCase().includes(q) ||
+        a.tools.some((t) => t.toLowerCase().includes(q))
+      );
+    })
+    .filter((a) => statusFilter === 'all' || a.status === statusFilter);
 
-  const filteredAgents = data?.agents.filter((a) => a.workflow === activeTab) ?? [];
   const appCount = data?.agents.filter((a) => a.workflow === 'app_diagnostics').length ?? 0;
   const clusterCount = data?.agents.filter((a) => a.workflow === 'cluster_diagnostics').length ?? 0;
+  const dbCount = data?.agents.filter((a) => a.workflow === 'database_diagnostics').length ?? 0;
+  const assistantCount = data?.agents.filter((a) => a.workflow === 'assistant').length ?? 0;
 
   return (
     <div className="flex flex-col h-full overflow-hidden" style={{ backgroundColor: '#1a1814' }}>
@@ -60,7 +66,7 @@ const AgentMatrixView: React.FC<AgentMatrixViewProps> = ({ onGoHome }) => {
           <div className="flex flex-col items-center gap-4">
             <div className="w-10 h-10 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: '#e09f3e', borderTopColor: 'transparent' }} />
             <span className="text-xs font-mono uppercase tracking-widest" style={{ color: '#64748b' }}>
-              Scanning neural workforce...
+              Loading agents...
             </span>
           </div>
         </div>
@@ -97,9 +103,59 @@ const AgentMatrixView: React.FC<AgentMatrixViewProps> = ({ onGoHome }) => {
             onTabChange={setActiveTab}
             appCount={appCount}
             clusterCount={clusterCount}
+            dbCount={dbCount}
+            assistantCount={assistantCount}
           />
-          <div className="flex-1 overflow-y-auto">
-            <AgentGrid agents={filteredAgents} onSelectAgent={setSelectedAgent} />
+
+          {/* Search + Status Filter */}
+          <div className="flex items-center gap-3 px-8 pb-3">
+            <div className="flex items-center gap-2 flex-1 max-w-md">
+              <span className="material-symbols-outlined text-base" style={{ color: '#64748b' }}>search</span>
+              <input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search agents by name, description, or tool..."
+                className="flex-1 bg-transparent text-sm text-white placeholder:text-slate-600 outline-none"
+              />
+              {searchQuery && (
+                <button onClick={() => setSearchQuery('')} className="text-slate-600 hover:text-slate-300">
+                  <span className="material-symbols-outlined text-sm">close</span>
+                </button>
+              )}
+            </div>
+            <div className="flex items-center gap-1.5">
+              {['all', 'active', 'degraded', 'offline'].map((status) => (
+                <button
+                  key={status}
+                  onClick={() => setStatusFilter(status)}
+                  className="text-[10px] font-mono uppercase px-2.5 py-1 rounded transition-colors"
+                  style={{
+                    backgroundColor: statusFilter === status ? 'rgba(224,159,62,0.15)' : 'transparent',
+                    color: statusFilter === status ? '#e09f3e' : '#64748b',
+                    border: `1px solid ${statusFilter === status ? 'rgba(224,159,62,0.3)' : '#2a2520'}`,
+                  }}
+                >
+                  {status}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex-1 flex overflow-hidden">
+            {/* Grid — takes full width when no agent selected, shrinks when detail open */}
+            <div
+              className={`${selectedAgent ? 'w-1/2 border-r' : 'w-full'} overflow-y-auto transition-all duration-300`}
+              style={{ borderColor: '#2a2520' }}
+            >
+              <AgentGrid agents={filteredAgents} onSelectAgent={setSelectedAgent} />
+            </div>
+
+            {/* Detail slide-over panel */}
+            {selectedAgent && (
+              <div className="w-1/2 overflow-y-auto" style={{ backgroundColor: '#141210' }}>
+                <AgentDetailView agent={selectedAgent} onBack={() => setSelectedAgent(null)} />
+              </div>
+            )}
           </div>
           <AgentMatrixFooter summary={data.summary} />
         </>

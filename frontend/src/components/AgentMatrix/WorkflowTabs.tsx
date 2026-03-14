@@ -1,18 +1,22 @@
 import React from 'react';
 
-export type WorkflowTab = 'app_diagnostics' | 'cluster_diagnostics';
+export type WorkflowTab = 'app_diagnostics' | 'cluster_diagnostics' | 'database_diagnostics' | 'assistant';
 
 interface WorkflowTabsProps {
   activeTab: WorkflowTab;
   onTabChange: (tab: WorkflowTab) => void;
   appCount: number;
   clusterCount: number;
+  dbCount: number;
+  assistantCount: number;
 }
 
-const WorkflowTabs: React.FC<WorkflowTabsProps> = ({ activeTab, onTabChange, appCount, clusterCount }) => {
+const WorkflowTabs: React.FC<WorkflowTabsProps> = ({ activeTab, onTabChange, appCount, clusterCount, dbCount, assistantCount }) => {
   const tabs: { id: WorkflowTab; label: string; icon: string; count: number }[] = [
     { id: 'app_diagnostics', label: 'App Diagnostics', icon: 'bug_report', count: appCount },
     { id: 'cluster_diagnostics', label: 'Cluster Diagnostics', icon: 'cloud_circle', count: clusterCount },
+    { id: 'database_diagnostics', label: 'Database', icon: 'database', count: dbCount },
+    { id: 'assistant', label: 'Assistant', icon: 'smart_toy', count: assistantCount },
   ];
 
   return (

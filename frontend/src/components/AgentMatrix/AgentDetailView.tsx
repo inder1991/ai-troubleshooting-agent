@@ -59,10 +59,10 @@ const AgentDetailView: React.FC<AgentDetailViewProps> = ({ agent, onBack }) => {
   const statusColor = STATUS_COLORS[agent.status];
 
   return (
-    <div className="flex flex-col h-full overflow-hidden" style={{ backgroundColor: '#1a1814' }}>
+    <div className="flex flex-col overflow-hidden">
       {/* Top bar */}
       <header
-        className="flex items-center gap-4 px-8 py-5 border-b flex-shrink-0"
+        className="flex items-center gap-4 px-4 py-3 border-b flex-shrink-0"
         style={{ borderColor: '#3d3528', backgroundColor: '#0a1214' }}
       >
         <button
@@ -116,25 +116,18 @@ const AgentDetailView: React.FC<AgentDetailViewProps> = ({ agent, onBack }) => {
         </div>
       </header>
 
-      {/* Two-column layout */}
-      <div className="flex-1 overflow-y-auto p-6">
-        <div className="flex gap-6 max-w-[1600px] mx-auto">
-          {/* Left column: 40% */}
-          <div className="w-2/5 flex flex-col gap-4 flex-shrink-0">
-            <NeuralArchitectureDiagram stages={agent.architecture_stages} />
-            <CoreConfigPanel llmConfig={agent.llm_config} timeoutS={agent.timeout_s} />
-            <ToolbeltPanel
-              tools={agent.tools}
-              toolHealthChecks={agent.tool_health_checks}
-              degradedTools={agent.degraded_tools}
-            />
-          </div>
-
-          {/* Right column: 60% */}
-          <div className="flex-1 flex flex-col gap-4">
-            <ExecutionTracePanel trace={latestTrace} isLoading={loadingExecs} />
-            <RecentCasesPanel executions={executions} isLoading={loadingExecs} />
-          </div>
+      {/* Single column layout for panel */}
+      <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex flex-col gap-4">
+          <NeuralArchitectureDiagram stages={agent.architecture_stages} />
+          <CoreConfigPanel llmConfig={agent.llm_config} timeoutS={agent.timeout_s} />
+          <ToolbeltPanel
+            tools={agent.tools}
+            toolHealthChecks={agent.tool_health_checks}
+            degradedTools={agent.degraded_tools}
+          />
+          <ExecutionTracePanel trace={latestTrace} isLoading={loadingExecs} />
+          <RecentCasesPanel executions={executions} isLoading={loadingExecs} />
         </div>
       </div>
     </div>

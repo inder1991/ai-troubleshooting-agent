@@ -1383,7 +1383,7 @@ export interface AgentTraceEntry {
 export interface AgentInfo {
   id: string;
   name: string;
-  workflow: 'app_diagnostics' | 'cluster_diagnostics';
+  workflow: 'app_diagnostics' | 'cluster_diagnostics' | 'database_diagnostics' | 'assistant';
   role: 'orchestrator' | 'analysis' | 'validation' | 'fix_generation' | 'domain_expert';
   description: string;
   icon: string;

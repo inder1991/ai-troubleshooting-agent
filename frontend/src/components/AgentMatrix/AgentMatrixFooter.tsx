@@ -35,7 +35,7 @@ const AgentMatrixFooter: React.FC<AgentMatrixFooterProps> = ({ summary }) => {
       </div>
 
       <div className="flex items-center gap-2">
-        <span style={{ color: '#64748b' }}>NEURAL SYNC</span>
+        <span style={{ color: '#64748b' }}>Fleet Health</span>
         <div className="w-20 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: '#1e1b15' }}>
           <div
             className="h-full rounded-full transition-all duration-500"

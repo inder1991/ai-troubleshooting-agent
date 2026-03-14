@@ -66,6 +66,14 @@ const AgentGrid: React.FC<AgentGridProps> = ({ agents, onSelectAgent }) => {
           </div>
         );
       })}
+
+      {grouped.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <span className="material-symbols-outlined text-3xl mb-3" style={{ color: '#3d3528' }}>smart_toy</span>
+          <p className="text-sm" style={{ color: '#64748b' }}>No agents found in this workflow</p>
+          <p className="text-xs mt-1" style={{ color: '#475569' }}>Try a different tab or clear your search</p>
+        </div>
+      )}
     </div>
   );
 };

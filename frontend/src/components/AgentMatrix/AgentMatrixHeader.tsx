@@ -19,10 +19,10 @@ const AgentMatrixHeader: React.FC<AgentMatrixHeaderProps> = ({ onGoHome }) => {
       <div className="flex flex-col gap-0.5">
         <div className="flex items-center gap-3">
           <span className="material-symbols-outlined text-2xl" style={{ color: '#e09f3e' }}>smart_toy</span>
-          <h1 className="text-xl font-bold tracking-wide text-white">NEURAL DIRECTORY HUD</h1>
+          <h1 className="text-xl font-bold tracking-wide text-white">Agent Fleet</h1>
         </div>
-        <p className="text-[10px] font-mono tracking-[0.2em] uppercase ml-10" style={{ color: '#e09f3e', opacity: 0.7 }}>
-          /// LIVE WORKFORCE MATRIX /// AUTONOMOUS DIAGNOSTICS ///
+        <p className="text-[10px] font-mono tracking-[0.2em] ml-10" style={{ color: '#e09f3e', opacity: 0.7 }}>
+          Status and configuration for all diagnostic agents
         </p>
       </div>
     </header>

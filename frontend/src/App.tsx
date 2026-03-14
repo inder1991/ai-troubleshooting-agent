@@ -490,7 +490,7 @@ function AppInner() {
     viewState === 'form' && selectedCapability ? (capabilityToNav[selectedCapability] || 'home')
     : viewToNav[viewState] || 'home';
 
-  const showSidebar = viewState !== 'investigation' && viewState !== 'dossier' && viewState !== 'cluster-diagnostics' && viewState !== 'agent-matrix' && viewState !== 'network-troubleshooting';
+  const showSidebar = viewState !== 'investigation' && viewState !== 'dossier' && viewState !== 'cluster-diagnostics' && viewState !== 'network-troubleshooting';
 
   // Pin-responsive layout: shift main content when flyout is pinned
   const [isSidebarPinned, setIsSidebarPinned] = useState(() => {

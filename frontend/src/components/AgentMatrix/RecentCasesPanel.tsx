@@ -85,11 +85,9 @@ const RecentCasesPanel: React.FC<RecentCasesPanelProps> = ({ executions, isLoadi
                     <span className="text-[10px] font-mono" style={{ color: '#475569' }}>
                       {exec.duration_ms}ms
                     </span>
-                    {exec.confidence > 0 && (
-                      <span className="text-[10px] font-mono" style={{ color: '#475569' }}>
-                        conf: {(exec.confidence * 100).toFixed(0)}%
-                      </span>
-                    )}
+                    <span className="text-[10px] font-mono" style={{ color: '#475569' }}>
+                      conf: {exec.confidence ? `${(exec.confidence * 100).toFixed(0)}%` : '—'}
+                    </span>
                     <span className="text-[10px] font-mono" style={{ color: '#374151' }}>
                       {relativeTime(exec.timestamp)}
                     </span>
