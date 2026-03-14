@@ -21,6 +21,8 @@ from src.utils.event_emitter import EventEmitter
 from src.utils.llm_client import AnthropicClient
 from src.api.websocket import manager
 from src.utils.logger import get_logger
+from src.utils.llm_budget import get_budget_for_mode, adapt_budget
+from src.utils.llm_telemetry import SessionTelemetryCollector
 from src.tools.router_models import InvestigateRequest, InvestigateResponse
 from src.tools.tool_registry import TOOL_REGISTRY
 from src.agents.critic_agent import CriticAgent
@@ -505,12 +507,27 @@ async def run_cluster_diagnosis(session_id, graph, cluster_client, emitter, scan
         ns_result = await cluster_client.list_namespaces()
         initial_state["namespaces"] = ns_result.data
 
+        # Create LLM budget and telemetry collector
+        budget = get_budget_for_mode(scan_mode)
+        telemetry = SessionTelemetryCollector(session_id, scan_mode)
+
+        # Adapt budget based on cluster size
+        nodes_result = await cluster_client.list_nodes()
+        cluster_size = {
+            "nodes": len(nodes_result.data),
+            "pods": 0,
+            "namespaces": len(ns_result.data),
+        }
+        budget = adapt_budget(budget, cluster_size)
+
         await emitter.emit("cluster_supervisor", "phase_change", "Starting cluster diagnostics", {"phase": "collecting_context"})
 
         config = {
             "configurable": {
                 "cluster_client": cluster_client,
                 "emitter": emitter,
+                "budget": budget,
+                "telemetry": telemetry,
             }
         }
 
@@ -524,6 +541,7 @@ async def run_cluster_diagnosis(session_id, graph, cluster_client, emitter, scan
                 sessions[session_id]["state"] = result
                 sessions[session_id]["phase"] = result.get("phase", "complete")
                 sessions[session_id]["confidence"] = int(result.get("data_completeness", 0) * 100)
+                sessions[session_id]["state"]["llm_summary"] = telemetry.get_summary(budget.budget_used_pct()).to_dict()
 
         await emitter.emit("cluster_supervisor", "phase_change", "Cluster diagnostics complete", {"phase": "diagnosis_complete"})
 
@@ -672,8 +690,24 @@ async def chat(session_id: str, request: ChatRequest):
 
 @router_v4.get("/sessions", response_model=list[SessionSummary])
 async def list_sessions():
-    return [
-        SessionSummary(
+    result = []
+    for sid, data in sessions.items():
+        # Extract findings count from session state
+        findings_count = 0
+        critical_count = 0
+        state = data.get("state")
+        if state:
+            if isinstance(state, dict):
+                # DB sessions store findings as list of dicts
+                findings = state.get("findings", [])
+                findings_count = len(findings)
+                critical_count = sum(1 for f in findings if f.get("severity") == "critical")
+            elif hasattr(state, "all_findings"):
+                # App sessions store findings on supervisor state object
+                findings_count = len(state.all_findings)
+                critical_count = sum(1 for f in state.all_findings if getattr(f, "severity", "") == "critical")
+
+        result.append(SessionSummary(
             session_id=sid,
             service_name=data["service_name"],
             incident_id=data.get("incident_id"),
@@ -683,9 +717,24 @@ async def list_sessions():
             capability=data.get("capability"),
             investigation_mode=data.get("investigation_mode"),
             related_sessions=data.get("related_sessions", []),
-        )
-        for sid, data in sessions.items()
-    ]
+            findings_count=findings_count,
+            critical_count=critical_count,
+        ))
+    return result
+
+
+@router_v4.post("/session/{session_id}/cancel")
+async def cancel_session(session_id: str):
+    _validate_session_id(session_id)
+    session = sessions.get(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    session["phase"] = "cancelled"
+    session["_cancelled"] = True
+    emitter = session.get("emitter")
+    if emitter and hasattr(emitter, 'emit'):
+        asyncio.create_task(emitter.emit("supervisor", "warning", "Investigation cancelled by user"))
+    return {"status": "cancelled"}
 
 
 @router_v4.get("/session/{session_id}/status")
@@ -718,6 +767,12 @@ async def get_session_status(session_id: str):
         if state and isinstance(state, dict):
             result["findings_count"] = len(state.get("domain_reports", []))
             result["data_completeness"] = state.get("data_completeness", 0)
+        return result
+
+    # Database sessions: state is a plain dict
+    if session.get("capability") == "database_diagnostics":
+        if state and isinstance(state, dict):
+            result["findings_count"] = len(state.get("findings", []))
         return result
 
     # App sessions: state is a SupervisorAgent state object
@@ -1202,18 +1257,105 @@ async def fix_decide(session_id: str, request: FixDecisionRequest):
     return {"status": "ok", "response": response_text}
 
 
+@router_v4.get("/session/{session_id}/dossier")
+async def get_session_dossier(session_id: str):
+    """Return the synthesizer's dossier and fix recommendations for a DB session."""
+    _validate_session_id(session_id)
+    session = sessions.get(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    state = session.get("state")
+    if not state or not isinstance(state, dict):
+        return {"dossier": None, "fixes": []}
+
+    dossier = state.get("dossier")
+    fixes = state.get("fix_recommendations", [])
+
+    return {"dossier": dossier, "fixes": fixes}
+
+
+@router_v4.get("/session/{session_id}/cluster-dossier")
+async def get_cluster_dossier(session_id: str):
+    """Return a formatted cluster diagnostic dossier for export."""
+    from src.api.main import sessions
+    session = sessions.get(session_id)
+    if not session:
+        raise HTTPException(404, "Session not found")
+
+    if session.get("capability") != "cluster_diagnostics":
+        raise HTTPException(400, "Not a cluster diagnostics session")
+
+    state = session.get("state", {})
+    if not isinstance(state, dict):
+        return {"dossier": None}
+
+    health_report = state.get("health_report", {})
+    if not health_report:
+        return {"dossier": None}
+
+    # Build structured dossier
+    domain_reports = health_report.get("domain_reports", [])
+    causal_chains = health_report.get("causal_chains", [])
+    remediation = health_report.get("remediation", {})
+    blast_radius = health_report.get("blast_radius", {})
+    execution_metadata = health_report.get("execution_metadata", {})
+
+    # Build domain findings sections
+    domain_sections = []
+    for report in domain_reports:
+        domain_sections.append({
+            "domain": report.get("domain", ""),
+            "status": report.get("status", ""),
+            "confidence": report.get("confidence", 0),
+            "anomaly_count": len(report.get("anomalies", [])),
+            "anomalies": report.get("anomalies", []),
+            "ruled_out": report.get("ruled_out", []),
+            "truncation_flags": report.get("truncation_flags", {}),
+            "duration_ms": report.get("duration_ms", 0),
+        })
+
+    dossier = {
+        "session_id": session_id,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "executive_summary": {
+            "platform": health_report.get("platform", ""),
+            "platform_version": health_report.get("platform_version", ""),
+            "health_status": health_report.get("platform_health", "UNKNOWN"),
+            "data_completeness": health_report.get("data_completeness", 0),
+            "total_anomalies": sum(len(r.get("anomalies", [])) for r in domain_reports),
+            "causal_chains_found": len(causal_chains),
+            "scan_mode": health_report.get("scan_mode", "diagnostic"),
+        },
+        "domain_reports": domain_sections,
+        "causal_analysis": {
+            "chains": causal_chains,
+            "uncorrelated_findings": health_report.get("uncorrelated_findings", []),
+        },
+        "blast_radius": blast_radius,
+        "remediation": remediation,
+        "issue_clusters": state.get("issue_clusters", []),
+        "execution_metadata": execution_metadata,
+    }
+
+    return {"dossier": dossier}
+
+
 @router_v4.get("/session/{session_id}/events")
-async def get_events(session_id: str):
+async def get_session_events(session_id: str):
+    """Return all stored events for a session — reliable catch-up for WebSocket misses."""
     _validate_session_id(session_id)
     session = sessions.get(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
 
     emitter = session.get("emitter")
-    if not emitter:
+    if not emitter or not hasattr(emitter, 'get_all_events'):
         return {"events": []}
 
-    return {"events": [e.model_dump(mode="json") for e in emitter.get_all_events()]}
+    return {
+        "events": [e.model_dump(mode="json") for e in emitter.get_all_events()]
+    }
 
 
 # ── Campaign (Multi-Repo) Endpoints ──────────────────────────────────
@@ -1582,3 +1724,19 @@ async def update_triage_status(session_id: str, tree_id: str, update: TriageStat
             return {"status": "updated", "tree_id": tree_id, "triage_status": update.status}
 
     raise HTTPException(status_code=404, detail=f"CausalTree {tree_id} not found")
+
+
+@router_v4.get("/session/{session_id}/llm-summary")
+async def get_llm_summary(session_id: str):
+    """Return LLM usage summary for a session."""
+    from src.api.main import sessions
+    session = sessions.get(session_id)
+    if not session:
+        raise HTTPException(404, "Session not found")
+
+    state = session.get("state", {})
+    if not isinstance(state, dict):
+        return {"llm_summary": None}
+
+    llm_summary = state.get("llm_summary")
+    return {"llm_summary": llm_summary}
