@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import type { AgentInfo } from '../../types';
 
 interface AgentCardProps {
@@ -37,7 +37,15 @@ function formatTimeAgo(timestamp: string): string {
 }
 
 const AgentCard: React.FC<AgentCardProps> = ({ agent, onClick, isSelected }) => {
+  const cardRef = useRef<HTMLButtonElement>(null);
   const statusColor = STATUS_COLORS[agent.status];
+
+  // Scroll selected card into view when grid reflows
+  useEffect(() => {
+    if (isSelected && cardRef.current) {
+      cardRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [isSelected]);
 
   const cardStyle: React.CSSProperties = {
     backgroundColor: agent.status === 'degraded'
@@ -51,6 +59,7 @@ const AgentCard: React.FC<AgentCardProps> = ({ agent, onClick, isSelected }) => 
 
   return (
     <button
+      ref={cardRef}
       onClick={onClick}
       className="text-left w-full rounded-lg border p-4 transition-all duration-200 hover:border-[#e09f3e] group"
       style={cardStyle}
