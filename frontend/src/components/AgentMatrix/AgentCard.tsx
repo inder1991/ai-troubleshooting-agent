@@ -5,6 +5,7 @@ interface AgentCardProps {
   agent: AgentInfo;
   onClick: () => void;
   isSelected?: boolean;
+  enterDelay?: number;
 }
 
 const STATUS_COLORS: Record<AgentInfo['status'], string> = {
@@ -36,7 +37,7 @@ function formatTimeAgo(timestamp: string): string {
   return `${Math.floor(hours / 24)}d ago`;
 }
 
-const AgentCard: React.FC<AgentCardProps> = ({ agent, onClick, isSelected }) => {
+const AgentCard: React.FC<AgentCardProps> = ({ agent, onClick, isSelected, enterDelay = 0 }) => {
   const cardRef = useRef<HTMLButtonElement>(null);
   const statusColor = STATUS_COLORS[agent.status];
 
@@ -58,14 +59,26 @@ const AgentCard: React.FC<AgentCardProps> = ({ agent, onClick, isSelected }) => 
     borderLeftWidth: agent.status !== 'active' ? '3px' : undefined,
     borderLeftColor: agent.status === 'degraded' ? '#f59e0b' : agent.status === 'offline' ? '#ef4444' : undefined,
     opacity: agent.status === 'offline' ? 0.6 : 1,
+    animation: `fadeSlideUp 300ms cubic-bezier(0.25, 1, 0.5, 1) ${enterDelay}ms both`,
+    transition: 'border-color 200ms cubic-bezier(0.25, 1, 0.5, 1), transform 200ms cubic-bezier(0.25, 1, 0.5, 1), box-shadow 200ms cubic-bezier(0.25, 1, 0.5, 1)',
   };
 
   return (
     <button
       ref={cardRef}
       onClick={onClick}
-      className="text-left w-full rounded-lg border p-4 transition-all duration-200 hover:border-[#e09f3e] group"
+      className="text-left w-full rounded-lg border p-4 group"
       style={cardStyle}
+      onMouseEnter={e => {
+        e.currentTarget.style.transform = 'translateY(-2px)';
+        e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
+        e.currentTarget.style.borderColor = '#e09f3e';
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.transform = 'translateY(0)';
+        e.currentTarget.style.boxShadow = 'none';
+        e.currentTarget.style.borderColor = isSelected ? '#e09f3e' : '#3d3528';
+      }}
     >
       {/* Header: Icon + Name + Status */}
       <div className="flex items-center gap-3 mb-2">

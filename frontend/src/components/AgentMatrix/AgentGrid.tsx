@@ -61,12 +61,13 @@ const AgentGrid: React.FC<AgentGridProps> = ({ agents, onSelectAgent, compact, s
 
             {/* Cards grid */}
             <div className={`grid gap-3 ${compact ? 'grid-cols-1 xl:grid-cols-2' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5'}`}>
-              {roleAgents.map((agent) => (
+              {roleAgents.map((agent, index) => (
                 <AgentCard
                   key={agent.id}
                   agent={agent}
                   onClick={() => onSelectAgent(agent)}
                   isSelected={agent.id === selectedAgentId}
+                  enterDelay={index * 30}
                 />
               ))}
             </div>

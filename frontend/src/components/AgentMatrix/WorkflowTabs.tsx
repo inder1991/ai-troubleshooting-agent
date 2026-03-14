@@ -28,11 +28,12 @@ const WorkflowTabs: React.FC<WorkflowTabsProps> = ({ activeTab, onTabChange, app
           <button
             key={tab.id}
             onClick={() => onTabChange(tab.id)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all border"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border"
             style={{
               backgroundColor: isActive ? 'rgba(224,159,62,0.15)' : 'transparent',
               borderColor: isActive ? 'rgba(224,159,62,0.4)' : '#3d3528',
               color: isActive ? '#e09f3e' : '#8a7e6b',
+              transition: 'background-color 200ms cubic-bezier(0.25, 1, 0.5, 1), border-color 200ms cubic-bezier(0.25, 1, 0.5, 1), color 200ms cubic-bezier(0.25, 1, 0.5, 1)',
             }}
           >
             <span className="material-symbols-outlined text-base">{tab.icon}</span>

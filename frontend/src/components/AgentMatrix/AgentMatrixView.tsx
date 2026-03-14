@@ -80,7 +80,7 @@ const AgentMatrixView: React.FC<AgentMatrixViewProps> = ({ onGoHome }) => {
 
       {/* Loading state */}
       {loading && (
-        <div className="flex-1 flex items-center justify-center">
+        <div className="flex-1 flex items-center justify-center" style={{ animation: 'fadeSlideUp 300ms cubic-bezier(0.25, 1, 0.5, 1)' }}>
           <div className="flex flex-col items-center gap-4">
             <div className="w-10 h-10 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: '#e09f3e', borderTopColor: 'transparent' }} />
             <span className="text-xs font-mono uppercase tracking-widest" style={{ color: '#64748b' }}>
@@ -147,11 +147,15 @@ const AgentMatrixView: React.FC<AgentMatrixViewProps> = ({ onGoHome }) => {
                 <button
                   key={status}
                   onClick={() => setStatusFilter(status)}
-                  className="flex items-center gap-1.5 text-[10px] uppercase px-2.5 py-1 rounded transition-colors"
+                  onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.95)'; }}
+                  onMouseUp={e => { e.currentTarget.style.transform = 'scale(1)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; }}
+                  className="flex items-center gap-1.5 text-[10px] uppercase px-2.5 py-1 rounded"
                   style={{
                     backgroundColor: statusFilter === status ? 'rgba(224,159,62,0.15)' : 'transparent',
                     color: statusFilter === status ? '#e09f3e' : '#64748b',
                     border: `1px solid ${statusFilter === status ? 'rgba(224,159,62,0.3)' : '#2a2520'}`,
+                    transition: 'transform 100ms cubic-bezier(0.25, 1, 0.5, 1), background-color 200ms cubic-bezier(0.25, 1, 0.5, 1), color 200ms cubic-bezier(0.25, 1, 0.5, 1)',
                   }}
                 >
                   <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: STATUS_DOTS[status] }} />
@@ -172,7 +176,13 @@ const AgentMatrixView: React.FC<AgentMatrixViewProps> = ({ onGoHome }) => {
 
             {/* Detail slide-over panel */}
             {selectedAgent && (
-              <div className="w-1/2 overflow-y-auto" style={{ backgroundColor: '#141210' }}>
+              <div
+                className="w-1/2 overflow-y-auto"
+                style={{
+                  backgroundColor: '#141210',
+                  animation: 'slideInRight 250ms cubic-bezier(0.25, 1, 0.5, 1) forwards',
+                }}
+              >
                 <AgentDetailView agent={selectedAgent} onBack={() => setSelectedAgent(null)} />
               </div>
             )}

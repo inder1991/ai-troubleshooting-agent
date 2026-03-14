@@ -93,7 +93,7 @@ const AgentDetailView: React.FC<AgentDetailViewProps> = ({ agent, onBack }) => {
           </span>
         </div>
 
-        <div className="flex-1">
+        <div className="flex-1" style={{ animation: 'fadeSlideUp 250ms cubic-bezier(0.25, 1, 0.5, 1) 100ms both' }}>
           <div className="flex items-center gap-3">
             <h1 className="text-lg font-bold text-white">{formatAgentName(agent.name)}</h1>
             <span
