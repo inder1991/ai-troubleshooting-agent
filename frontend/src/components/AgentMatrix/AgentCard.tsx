@@ -21,17 +21,39 @@ const ROLE_LABELS: Record<AgentInfo['role'], string> = {
   domain_expert: 'DOMAIN EXPERT',
 };
 
+function formatAgentName(name: string): string {
+  return name.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+}
+
+function formatTimeAgo(timestamp: string): string {
+  const diff = Date.now() - new Date(timestamp).getTime();
+  if (isNaN(diff) || diff < 0) return '—';
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.floor(hours / 24)}d ago`;
+}
+
 const AgentCard: React.FC<AgentCardProps> = ({ agent, onClick, isSelected }) => {
   const statusColor = STATUS_COLORS[agent.status];
+
+  const cardStyle: React.CSSProperties = {
+    backgroundColor: agent.status === 'degraded'
+      ? 'rgba(245,158,11,0.05)'
+      : isSelected ? '#1a1814' : '#0a1214',
+    borderColor: isSelected ? '#e09f3e' : '#3d3528',
+    borderLeftWidth: agent.status !== 'active' ? '3px' : undefined,
+    borderLeftColor: agent.status === 'degraded' ? '#f59e0b' : agent.status === 'offline' ? '#ef4444' : undefined,
+    opacity: agent.status === 'offline' ? 0.6 : 1,
+  };
 
   return (
     <button
       onClick={onClick}
       className="text-left w-full rounded-lg border p-4 transition-all duration-200 hover:border-[#e09f3e] group"
-      style={{
-        backgroundColor: isSelected ? '#1a1814' : '#0a1214',
-        borderColor: isSelected ? '#e09f3e' : '#3d3528',
-      }}
+      style={cardStyle}
     >
       {/* Header: Icon + Name + Status */}
       <div className="flex items-center gap-3 mb-2">
@@ -51,7 +73,7 @@ const AgentCard: React.FC<AgentCardProps> = ({ agent, onClick, isSelected }) => 
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <h3 className="text-sm font-mono font-semibold text-white truncate">{agent.name}</h3>
+            <h3 className="text-sm font-semibold text-white truncate">{formatAgentName(agent.name)}</h3>
             <span
               className="w-2 h-2 rounded-full flex-shrink-0"
               style={{
@@ -64,7 +86,7 @@ const AgentCard: React.FC<AgentCardProps> = ({ agent, onClick, isSelected }) => 
             />
           </div>
           <span
-            className="text-[10px] font-mono uppercase tracking-widest"
+            className="text-[10px] uppercase tracking-widest"
             style={{ color: '#64748b' }}
           >
             {ROLE_LABELS[agent.role]}
@@ -86,49 +108,25 @@ const AgentCard: React.FC<AgentCardProps> = ({ agent, onClick, isSelected }) => 
         {agent.description}
       </p>
 
-      {/* Tools pills */}
-      <div className="flex flex-wrap gap-1 mb-2">
-        {agent.tools.slice(0, 4).map((tool) => (
-          <span
-            key={tool}
-            className="text-[10px] font-mono px-2 py-1 rounded"
-            style={{
-              backgroundColor: '#1e1b15',
-              color: '#64748b',
-            }}
-          >
-            {tool}
-          </span>
-        ))}
-        {agent.tools.length > 4 && (
-          <span
-            className="text-[10px] font-mono px-2 py-1 rounded"
-            style={{ backgroundColor: '#1e1b15', color: '#64748b' }}
-          >
-            +{agent.tools.length - 4}
-          </span>
-        )}
-        {agent.tools.length === 0 && (
-          <span className="text-[10px] font-mono italic" style={{ color: '#475569' }}>
-            LLM-only
-          </span>
-        )}
+      {/* Operational metrics instead of tool pills */}
+      <div className="flex items-center gap-4 text-[10px]" style={{ color: '#64748b' }}>
+        <span className="flex items-center gap-1">
+          <span className="material-symbols-outlined text-[12px]">schedule</span>
+          {agent.recent_executions.length > 0
+            ? formatTimeAgo(agent.recent_executions[0].timestamp)
+            : '—'}
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="material-symbols-outlined text-[12px]">check_circle</span>
+          {agent.recent_executions.length > 0
+            ? `${Math.round((agent.recent_executions.filter(e => e.status === 'SUCCESS').length / agent.recent_executions.length) * 100)}%`
+            : '—'}
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="material-symbols-outlined text-[12px]">build</span>
+          {agent.tools.length} tools
+        </span>
       </div>
-
-      {/* Degraded tools warning */}
-      {agent.degraded_tools.length > 0 && (
-        <div className="flex items-center gap-1.5 mt-1">
-          <span
-            className="material-symbols-outlined text-xs"
-            style={{ color: '#f59e0b' }}
-          >
-            warning
-          </span>
-          <span className="text-[11px] font-mono" style={{ color: '#f59e0b' }}>
-            {agent.degraded_tools.length} tool{agent.degraded_tools.length > 1 ? 's' : ''} degraded
-          </span>
-        </div>
-      )}
     </button>
   );
 };

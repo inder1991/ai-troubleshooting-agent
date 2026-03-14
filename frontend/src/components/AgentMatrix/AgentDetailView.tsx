@@ -24,6 +24,10 @@ const STATUS_LABELS: Record<AgentInfo['status'], string> = {
   offline: 'OFFLINE',
 };
 
+function formatAgentName(name: string): string {
+  return name.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+}
+
 const AgentDetailView: React.FC<AgentDetailViewProps> = ({ agent, onBack }) => {
   const [executions, setExecutions] = useState<AgentExecution[]>(agent.recent_executions || []);
   const [loadingExecs, setLoadingExecs] = useState(false);
@@ -91,15 +95,15 @@ const AgentDetailView: React.FC<AgentDetailViewProps> = ({ agent, onBack }) => {
 
         <div className="flex-1">
           <div className="flex items-center gap-3">
-            <h1 className="text-lg font-mono font-bold text-white">{agent.name}</h1>
+            <h1 className="text-lg font-bold text-white">{formatAgentName(agent.name)}</h1>
             <span
-              className="text-[9px] font-mono font-semibold uppercase px-2 py-0.5 rounded-full"
+              className="text-[9px] font-semibold uppercase px-2 py-0.5 rounded-full"
               style={{ backgroundColor: 'rgba(224,159,62,0.15)', color: '#e09f3e' }}
             >
-              LVL {agent.level}
+              {agent.workflow.replace(/_/g, ' ')}
             </span>
             <span
-              className="flex items-center gap-1.5 text-[10px] font-mono uppercase px-2 py-0.5 rounded-full"
+              className="flex items-center gap-1.5 text-[10px] uppercase px-2 py-0.5 rounded-full"
               style={{
                 backgroundColor: `${statusColor}15`,
                 color: statusColor,
@@ -116,18 +120,21 @@ const AgentDetailView: React.FC<AgentDetailViewProps> = ({ agent, onBack }) => {
         </div>
       </header>
 
-      {/* Single column layout for panel */}
+      {/* Single column layout — activity first, config second */}
       <div className="flex-1 overflow-y-auto p-4">
         <div className="flex flex-col gap-4">
-          <NeuralArchitectureDiagram stages={agent.architecture_stages} />
-          <CoreConfigPanel llmConfig={agent.llm_config} timeoutS={agent.timeout_s} />
+          {/* Activity first — what operators care about */}
+          <ExecutionTracePanel trace={latestTrace} isLoading={loadingExecs} />
+          <RecentCasesPanel executions={executions} isLoading={loadingExecs} />
+
+          {/* Config second — rarely changes */}
           <ToolbeltPanel
             tools={agent.tools}
             toolHealthChecks={agent.tool_health_checks}
             degradedTools={agent.degraded_tools}
           />
-          <ExecutionTracePanel trace={latestTrace} isLoading={loadingExecs} />
-          <RecentCasesPanel executions={executions} isLoading={loadingExecs} />
+          <CoreConfigPanel llmConfig={agent.llm_config} timeoutS={agent.timeout_s} />
+          <NeuralArchitectureDiagram stages={agent.architecture_stages} />
         </div>
       </div>
     </div>

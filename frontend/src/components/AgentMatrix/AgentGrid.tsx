@@ -25,11 +25,15 @@ const ROLE_DISPLAY: Record<AgentInfo['role'], { label: string; icon: string }> =
   fix_generation: { label: 'Fix Generation Pipeline', icon: 'build' },
 };
 
+const STATUS_SORT: Record<string, number> = { offline: 0, degraded: 1, active: 2 };
+
 const AgentGrid: React.FC<AgentGridProps> = ({ agents, onSelectAgent, compact, selectedAgentId }) => {
-  // Group agents by role, preserving ROLE_ORDER
+  // Group agents by role, preserving ROLE_ORDER, sort degraded/offline to top
   const grouped = ROLE_ORDER.map((role) => ({
     role,
-    agents: agents.filter((a) => a.role === role),
+    agents: agents
+      .filter((a) => a.role === role)
+      .sort((a, b) => (STATUS_SORT[a.status] ?? 2) - (STATUS_SORT[b.status] ?? 2)),
   })).filter((g) => g.agents.length > 0);
 
   return (
@@ -46,10 +50,10 @@ const AgentGrid: React.FC<AgentGridProps> = ({ agents, onSelectAgent, compact, s
               >
                 {display.icon}
               </span>
-              <h2 className="text-xs font-mono font-semibold uppercase tracking-widest" style={{ color: '#8a7e6b' }}>
+              <h2 className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#8a7e6b' }}>
                 {display.label}
               </h2>
-              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded" style={{ backgroundColor: '#1e1b15', color: '#64748b' }}>
+              <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ backgroundColor: '#1e1b15', color: '#64748b' }}>
                 {roleAgents.length}
               </span>
               <div className="flex-1 h-px" style={{ backgroundColor: '#3d3528' }} />

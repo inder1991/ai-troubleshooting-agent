@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import type { AgentInfo, AgentMatrixResponse } from '../../types';
 import { getAgents } from '../../services/api';
 import AgentMatrixHeader from './AgentMatrixHeader';
@@ -56,6 +56,24 @@ const AgentMatrixView: React.FC<AgentMatrixViewProps> = ({ onGoHome }) => {
   const dbCount = data?.agents.filter((a) => a.workflow === 'database_diagnostics').length ?? 0;
   const assistantCount = data?.agents.filter((a) => a.workflow === 'assistant').length ?? 0;
 
+  const degradedByWorkflow = useMemo(() => {
+    if (!data) return {};
+    const counts: Record<string, number> = {};
+    for (const a of data.agents) {
+      if (a.status === 'degraded' || a.status === 'offline') {
+        counts[a.workflow] = (counts[a.workflow] || 0) + 1;
+      }
+    }
+    return counts;
+  }, [data]);
+
+  const STATUS_DOTS: Record<string, string> = {
+    all: '#64748b',
+    active: '#e09f3e',
+    degraded: '#f59e0b',
+    offline: '#ef4444',
+  };
+
   return (
     <div className="flex flex-col h-full overflow-hidden" style={{ backgroundColor: '#1a1814' }}>
       <AgentMatrixHeader onGoHome={onGoHome} />
@@ -105,6 +123,7 @@ const AgentMatrixView: React.FC<AgentMatrixViewProps> = ({ onGoHome }) => {
             clusterCount={clusterCount}
             dbCount={dbCount}
             assistantCount={assistantCount}
+            degradedByWorkflow={degradedByWorkflow}
           />
 
           {/* Search + Status Filter */}
@@ -128,13 +147,14 @@ const AgentMatrixView: React.FC<AgentMatrixViewProps> = ({ onGoHome }) => {
                 <button
                   key={status}
                   onClick={() => setStatusFilter(status)}
-                  className="text-[10px] font-mono uppercase px-2.5 py-1 rounded transition-colors"
+                  className="flex items-center gap-1.5 text-[10px] uppercase px-2.5 py-1 rounded transition-colors"
                   style={{
                     backgroundColor: statusFilter === status ? 'rgba(224,159,62,0.15)' : 'transparent',
                     color: statusFilter === status ? '#e09f3e' : '#64748b',
                     border: `1px solid ${statusFilter === status ? 'rgba(224,159,62,0.3)' : '#2a2520'}`,
                   }}
                 >
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: STATUS_DOTS[status] }} />
                   {status}
                 </button>
               ))}

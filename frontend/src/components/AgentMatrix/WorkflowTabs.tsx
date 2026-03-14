@@ -9,9 +9,10 @@ interface WorkflowTabsProps {
   clusterCount: number;
   dbCount: number;
   assistantCount: number;
+  degradedByWorkflow?: Record<string, number>;
 }
 
-const WorkflowTabs: React.FC<WorkflowTabsProps> = ({ activeTab, onTabChange, appCount, clusterCount, dbCount, assistantCount }) => {
+const WorkflowTabs: React.FC<WorkflowTabsProps> = ({ activeTab, onTabChange, appCount, clusterCount, dbCount, assistantCount, degradedByWorkflow }) => {
   const tabs: { id: WorkflowTab; label: string; icon: string; count: number }[] = [
     { id: 'app_diagnostics', label: 'App Diagnostics', icon: 'bug_report', count: appCount },
     { id: 'cluster_diagnostics', label: 'Cluster Diagnostics', icon: 'cloud_circle', count: clusterCount },
@@ -45,6 +46,9 @@ const WorkflowTabs: React.FC<WorkflowTabsProps> = ({ activeTab, onTabChange, app
             >
               {tab.count}
             </span>
+            {(degradedByWorkflow?.[tab.id] ?? 0) > 0 && (
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" title={`${degradedByWorkflow![tab.id]} degraded`} />
+            )}
           </button>
         );
       })}
