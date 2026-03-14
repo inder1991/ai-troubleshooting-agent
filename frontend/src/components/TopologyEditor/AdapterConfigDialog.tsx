@@ -86,8 +86,8 @@ const AdapterConfigDialog: React.FC<AdapterConfigDialogProps> = ({
 
   const inputStyle: React.CSSProperties = {
     backgroundColor: '#0a0f13',
-    borderColor: '#224349',
-    color: '#e2e8f0',
+    borderColor: '#3d3528',
+    color: '#e8e0d4',
   };
 
   return (
@@ -102,12 +102,12 @@ const AdapterConfigDialog: React.FC<AdapterConfigDialogProps> = ({
       {/* Dialog */}
       <div
         className="relative w-full max-w-lg rounded-xl border p-6 shadow-2xl"
-        style={{ backgroundColor: '#0f2023', borderColor: '#224349' }}
+        style={{ backgroundColor: '#1a1814', borderColor: '#3d3528' }}
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-5">
           <div>
-            <h3 className="text-sm font-mono font-semibold" style={{ color: '#e2e8f0' }}>
+            <h3 className="text-sm font-mono font-semibold" style={{ color: '#e8e0d4' }}>
               Configure Adapter
             </h3>
             {nodeName && (
@@ -122,7 +122,7 @@ const AdapterConfigDialog: React.FC<AdapterConfigDialogProps> = ({
           >
             <span
               className="material-symbols-outlined text-lg"
-              style={{ fontFamily: 'Material Symbols Outlined', color: '#64748b' }}
+              style={{ color: '#64748b' }}
             >
               close
             </span>
@@ -138,7 +138,7 @@ const AdapterConfigDialog: React.FC<AdapterConfigDialogProps> = ({
             <select
               value={vendor}
               onChange={(e) => setVendor(e.target.value as VendorType)}
-              className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#07b6d5]"
+              className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#e09f3e]"
               style={inputStyle}
             >
               {vendorOptions.map((opt) => (
@@ -159,7 +159,7 @@ const AdapterConfigDialog: React.FC<AdapterConfigDialogProps> = ({
               value={apiEndpoint}
               onChange={(e) => setApiEndpoint(e.target.value)}
               placeholder="https://firewall.example.com/api"
-              className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#07b6d5]"
+              className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#e09f3e]"
               style={inputStyle}
             />
           </div>
@@ -174,7 +174,7 @@ const AdapterConfigDialog: React.FC<AdapterConfigDialogProps> = ({
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
               placeholder="Enter API key"
-              className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#07b6d5]"
+              className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#e09f3e]"
               style={inputStyle}
             />
           </div>
@@ -188,7 +188,7 @@ const AdapterConfigDialog: React.FC<AdapterConfigDialogProps> = ({
               value={extraConfig}
               onChange={(e) => setExtraConfig(e.target.value)}
               rows={3}
-              className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#07b6d5] resize-none"
+              className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#e09f3e] resize-none"
               style={inputStyle}
             />
           </div>
@@ -198,8 +198,8 @@ const AdapterConfigDialog: React.FC<AdapterConfigDialogProps> = ({
             <div
               className="p-3 rounded border text-xs font-mono"
               style={{
-                backgroundColor: testResult.success ? '#0f2023' : '#1a0f0f',
-                borderColor: testResult.success ? '#224349' : '#7f1d1d',
+                backgroundColor: testResult.success ? '#1a1814' : '#1a0f0f',
+                borderColor: testResult.success ? '#3d3528' : '#7f1d1d',
                 color: testResult.success ? '#22c55e' : '#ef4444',
               }}
             >
@@ -227,11 +227,10 @@ const AdapterConfigDialog: React.FC<AdapterConfigDialogProps> = ({
               onClick={handleTestConnection}
               disabled={testing || !apiEndpoint}
               className="flex items-center gap-1.5 px-4 py-2 rounded text-xs font-mono border transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ borderColor: '#224349', color: '#f59e0b', backgroundColor: 'transparent' }}
+              style={{ borderColor: '#3d3528', color: '#f59e0b', backgroundColor: 'transparent' }}
             >
               <span
                 className="material-symbols-outlined text-sm"
-                style={{ fontFamily: 'Material Symbols Outlined' }}
               >
                 electrical_services
               </span>
@@ -242,14 +241,14 @@ const AdapterConfigDialog: React.FC<AdapterConfigDialogProps> = ({
               <button
                 onClick={onClose}
                 className="px-4 py-2 rounded text-xs font-mono border transition-colors"
-                style={{ borderColor: '#224349', color: '#64748b', backgroundColor: 'transparent' }}
+                style={{ borderColor: '#3d3528', color: '#64748b', backgroundColor: 'transparent' }}
               >
                 Cancel
               </button>
               <button
                 onClick={handleSave}
                 className="px-4 py-2 rounded text-xs font-mono font-semibold transition-colors"
-                style={{ backgroundColor: '#07b6d5', color: '#0a0f13' }}
+                style={{ backgroundColor: '#e09f3e', color: '#0a0f13' }}
               >
                 Save
               </button>

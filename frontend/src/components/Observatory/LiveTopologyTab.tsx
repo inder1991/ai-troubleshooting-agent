@@ -7,6 +7,7 @@ interface Props {
   links: LinkMetric[];
   drifts: DriftEvent[];
   candidates: DiscoveryCandidate[];
+  onOpenEditor?: () => void;
 }
 
 const statusColor: Record<string, string> = { up: '#22c55e', degraded: '#f59e0b', down: '#ef4444' };
@@ -31,7 +32,7 @@ function formatBw(bps: number): string {
   return `${bps}`;
 }
 
-const LiveTopologyTab: React.FC<Props> = ({ devices, links, drifts, candidates }) => {
+const LiveTopologyTab: React.FC<Props> = ({ devices, links, drifts, candidates, onOpenEditor }) => {
   const [selectedDevice, setSelectedDevice] = useState<DeviceStatus | null>(null);
 
   // Simple grid layout for devices
@@ -62,6 +63,18 @@ const LiveTopologyTab: React.FC<Props> = ({ devices, links, drifts, candidates }
     <div className="flex h-full">
       {/* Main canvas */}
       <div className="flex-1 overflow-auto p-4">
+        <div className="flex justify-end mb-2">
+          {onOpenEditor && (
+            <button
+              onClick={onOpenEditor}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+              style={{ background: 'rgba(224,159,62,0.12)', color: '#e09f3e', border: '1px solid rgba(224,159,62,0.2)' }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 14 }}>edit</span>
+              Open in Editor
+            </button>
+          )}
+        </div>
         {devices.length === 0 ? (
           <div className="flex items-center justify-center h-full text-slate-500 text-sm">
             No devices being monitored. Add devices to the topology to see them here.
@@ -129,7 +142,7 @@ const LiveTopologyTab: React.FC<Props> = ({ devices, links, drifts, candidates }
                 )}
                 <text
                   x={x} y={y + 3}
-                  fill="#e2e8f0"
+                  fill="#e8e0d4"
                   fontSize="10"
                   textAnchor="middle"
                   fontFamily="monospace"
@@ -151,7 +164,7 @@ const LiveTopologyTab: React.FC<Props> = ({ devices, links, drifts, candidates }
                 {device.status !== 'down' && (
                   <text
                     x={x} y={y + 50}
-                    fill="#07b6d5"
+                    fill="#e09f3e"
                     fontSize="9"
                     textAnchor="middle"
                     fontFamily="monospace"
@@ -173,7 +186,7 @@ const LiveTopologyTab: React.FC<Props> = ({ devices, links, drifts, candidates }
             </span>
           )}
           {candidates.length > 0 && (
-            <span style={{ color: '#07b6d5' }}>
+            <span style={{ color: '#e09f3e' }}>
               {candidates.length} discovered device{candidates.length !== 1 ? 's' : ''}
             </span>
           )}

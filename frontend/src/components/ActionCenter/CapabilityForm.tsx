@@ -30,7 +30,7 @@ const capabilityMeta: Record<
     title: 'Troubleshoot Application',
     subtitle: 'Configure log and metric analysis parameters',
     icon: 'troubleshoot',
-    color: '#07b6d5',
+    color: '#e09f3e',
   },
   pr_review: {
     title: 'PR Review',
@@ -135,7 +135,7 @@ const CapabilityForm: React.FC<CapabilityFormProps> = ({ capability, onBack, onS
           onClick={onBack}
           className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-white mb-6 transition-colors"
         >
-          <span className="material-symbols-outlined text-base" style={{ fontFamily: 'Material Symbols Outlined' }}>arrow_back</span>
+          <span className="material-symbols-outlined text-base">arrow_back</span>
           <span>Back to Launcher</span>
         </button>
 
@@ -145,7 +145,7 @@ const CapabilityForm: React.FC<CapabilityFormProps> = ({ capability, onBack, onS
             className="w-10 h-10 rounded-lg flex items-center justify-center"
             style={{ backgroundColor: `${meta.color}15`, border: `1px solid ${meta.color}30` }}
           >
-            <span className="material-symbols-outlined" style={{ fontFamily: 'Material Symbols Outlined', color: meta.color }}>{meta.icon}</span>
+            <span className="material-symbols-outlined" style={{ color: meta.color }}>{meta.icon}</span>
           </div>
           <div>
             <h1 className="text-xl font-bold text-white">{meta.title}</h1>
@@ -155,7 +155,7 @@ const CapabilityForm: React.FC<CapabilityFormProps> = ({ capability, onBack, onS
 
         {/* Form */}
         <form onSubmit={handleSubmit}>
-          <div className="bg-[#1e2f33]/50 border border-[#224349] rounded-xl p-5">
+          <div className="bg-[#252118]/50 border border-[#3d3528] rounded-xl p-5">
             {formData.capability === 'troubleshoot_app' && (
               <TroubleshootAppFields
                 data={formData as TroubleshootAppForm}
@@ -198,9 +198,9 @@ const CapabilityForm: React.FC<CapabilityFormProps> = ({ capability, onBack, onS
           <button
             type="submit"
             disabled={!isValid()}
-            className="mt-6 w-full flex items-center justify-center gap-2 px-6 py-3 bg-[#07b6d5] hover:bg-[#07b6d5]/90 disabled:bg-[#224349] disabled:text-gray-500 disabled:cursor-not-allowed text-[#0f2023] font-bold rounded-xl text-sm transition-colors"
+            className="mt-6 w-full flex items-center justify-center gap-2 px-6 py-3 bg-[#e09f3e] hover:bg-[#e09f3e]/90 disabled:bg-[#3d3528] disabled:text-gray-500 disabled:cursor-not-allowed text-[#1a1814] font-bold rounded-xl text-sm transition-colors"
           >
-            <span className="material-symbols-outlined text-lg" style={{ fontFamily: 'Material Symbols Outlined' }}>rocket_launch</span>
+            <span className="material-symbols-outlined text-lg">rocket_launch</span>
             <span>Deploy Mission</span>
           </button>
         </form>

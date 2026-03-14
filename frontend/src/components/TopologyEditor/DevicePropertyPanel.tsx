@@ -65,7 +65,7 @@ const DevicePropertyPanel: React.FC<DevicePropertyPanelProps> = ({
   // Text annotation fields
   const [annotationText, setAnnotationText] = useState('');
   const [annotationFontSize, setAnnotationFontSize] = useState(12);
-  const [annotationColor, setAnnotationColor] = useState('#e2e8f0');
+  const [annotationColor, setAnnotationColor] = useState('#e8e0d4');
   const [annotationBg, setAnnotationBg] = useState('transparent');
   const [annotationBorder, setAnnotationBorder] = useState('none');
 
@@ -109,7 +109,7 @@ const DevicePropertyPanel: React.FC<DevicePropertyPanelProps> = ({
       if (selectedNode.type === 'text_annotation') {
         setAnnotationText(d.text || '');
         setAnnotationFontSize(Number(d.fontSize) || 12);
-        setAnnotationColor(d.color || '#e2e8f0');
+        setAnnotationColor(d.color || '#e8e0d4');
         setAnnotationBg(d.backgroundColor || 'transparent');
         setAnnotationBorder(d.borderStyle || 'none');
       }
@@ -275,8 +275,8 @@ const DevicePropertyPanel: React.FC<DevicePropertyPanelProps> = ({
     const edgeLabel = (selectedEdge.data?.label as string) || 'connected_to';
     return (
       <div className="w-72 flex-shrink-0 border-l flex flex-col p-4 overflow-y-auto"
-        style={{ backgroundColor: '#0f2023', borderColor: '#224349' }}>
-        <h3 className="text-xs font-mono font-semibold uppercase tracking-widest mb-4" style={{ color: '#07b6d5' }}>
+        style={{ backgroundColor: '#1a1814', borderColor: '#3d3528' }}>
+        <h3 className="text-xs font-mono font-semibold uppercase tracking-widest mb-4" style={{ color: '#e09f3e' }}>
           Edge Properties
         </h3>
         <div className="flex flex-col gap-3">
@@ -285,8 +285,8 @@ const DevicePropertyPanel: React.FC<DevicePropertyPanelProps> = ({
             <select
               value={edgeLabel}
               onChange={(e) => onEdgeUpdate?.(selectedEdge.id, { label: e.target.value })}
-              className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#07b6d5]"
-              style={{ backgroundColor: '#0a0f13', borderColor: '#224349', color: '#e2e8f0' }}>
+              className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#e09f3e]"
+              style={{ backgroundColor: '#0a0f13', borderColor: '#3d3528', color: '#e8e0d4' }}>
               {EDGE_TYPES.map((t) => (
                 <option key={t} value={t}>{t.replace(/_/g, ' ')}</option>
               ))}
@@ -294,13 +294,13 @@ const DevicePropertyPanel: React.FC<DevicePropertyPanelProps> = ({
           </div>
           <div className="flex flex-col gap-1">
             <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#64748b' }}>Source</label>
-            <div className="text-xs font-mono px-3 py-2 rounded border" style={{ backgroundColor: '#0a0f13', borderColor: '#224349', color: '#94a3b8' }}>
+            <div className="text-xs font-mono px-3 py-2 rounded border" style={{ backgroundColor: '#0a0f13', borderColor: '#3d3528', color: '#8a7e6b' }}>
               {selectedEdge.source}
             </div>
           </div>
           <div className="flex flex-col gap-1">
             <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#64748b' }}>Target</label>
-            <div className="text-xs font-mono px-3 py-2 rounded border" style={{ backgroundColor: '#0a0f13', borderColor: '#224349', color: '#94a3b8' }}>
+            <div className="text-xs font-mono px-3 py-2 rounded border" style={{ backgroundColor: '#0a0f13', borderColor: '#3d3528', color: '#8a7e6b' }}>
               {selectedEdge.target}
             </div>
           </div>
@@ -326,20 +326,22 @@ const DevicePropertyPanel: React.FC<DevicePropertyPanelProps> = ({
   const isInterface = selectedNode?.type === 'interface';
   const isAnnotation = selectedNode?.type === 'text_annotation';
   const nodeType = selectedNode?.type || '';
+  const isLiveNode = (selectedNode?.data as Record<string, unknown>)?._source === 'live';
+  const isReadOnly = isLiveNode;
 
   const inputStyle: React.CSSProperties = {
     backgroundColor: '#0a0f13',
-    borderColor: '#224349',
-    color: '#e2e8f0',
+    borderColor: '#3d3528',
+    color: isReadOnly ? '#64748b' : '#e8e0d4',
   };
 
   // === Text Annotation Properties ===
   if (isAnnotation) {
     return (
       <div className="w-72 flex-shrink-0 border-l flex flex-col p-4 overflow-y-auto"
-        style={{ backgroundColor: '#0f2023', borderColor: '#224349' }}>
+        style={{ backgroundColor: '#1a1814', borderColor: '#3d3528' }}>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xs font-mono font-semibold uppercase tracking-widest" style={{ color: '#07b6d5' }}>
+          <h3 className="text-xs font-mono font-semibold uppercase tracking-widest" style={{ color: '#e09f3e' }}>
             Annotation
           </h3>
           {saved && <span className="text-[10px] font-mono animate-pulse" style={{ color: '#22c55e' }}>Saved</span>}
@@ -348,18 +350,18 @@ const DevicePropertyPanel: React.FC<DevicePropertyPanelProps> = ({
           <div className="flex flex-col gap-1">
             <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#64748b' }}>Label</label>
             <input type="text" value={name} onChange={(e) => setName(e.target.value)}
-              className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#07b6d5]" style={inputStyle} />
+              className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#e09f3e]" style={inputStyle} />
           </div>
           <div className="flex flex-col gap-1">
             <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#64748b' }}>Text</label>
             <textarea value={annotationText} onChange={(e) => setAnnotationText(e.target.value)} rows={4}
-              className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#07b6d5] resize-none"
+              className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#e09f3e] resize-none"
               style={inputStyle} placeholder="Enter annotation text..." />
           </div>
           <div className="flex flex-col gap-1">
             <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#64748b' }}>Font Size</label>
             <select value={annotationFontSize} onChange={(e) => setAnnotationFontSize(Number(e.target.value))}
-              className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#07b6d5]" style={inputStyle}>
+              className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#e09f3e]" style={inputStyle}>
               <option value={10}>10px</option>
               <option value={12}>12px</option>
               <option value={14}>14px</option>
@@ -371,8 +373,8 @@ const DevicePropertyPanel: React.FC<DevicePropertyPanelProps> = ({
             <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#64748b' }}>Text Color</label>
             <div className="flex gap-1.5">
               {[
-                { label: 'W', value: '#e2e8f0' },
-                { label: 'C', value: '#07b6d5' },
+                { label: 'W', value: '#e8e0d4' },
+                { label: 'C', value: '#e09f3e' },
                 { label: 'A', value: '#f59e0b' },
                 { label: 'R', value: '#ef4444' },
                 { label: 'G', value: '#22c55e' },
@@ -382,7 +384,7 @@ const DevicePropertyPanel: React.FC<DevicePropertyPanelProps> = ({
                   className="w-7 h-7 rounded border text-[8px] font-mono font-bold flex items-center justify-center"
                   style={{
                     backgroundColor: c.value + '20', color: c.value,
-                    borderColor: annotationColor === c.value ? c.value : '#224349',
+                    borderColor: annotationColor === c.value ? c.value : '#3d3528',
                     borderWidth: annotationColor === c.value ? 2 : 1,
                   }}>
                   {c.label}
@@ -393,7 +395,7 @@ const DevicePropertyPanel: React.FC<DevicePropertyPanelProps> = ({
           <div className="flex flex-col gap-1">
             <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#64748b' }}>Background</label>
             <select value={annotationBg} onChange={(e) => setAnnotationBg(e.target.value)}
-              className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#07b6d5]" style={inputStyle}>
+              className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#e09f3e]" style={inputStyle}>
               <option value="transparent">Transparent</option>
               <option value="rgba(15,32,35,0.8)">Dark</option>
             </select>
@@ -401,7 +403,7 @@ const DevicePropertyPanel: React.FC<DevicePropertyPanelProps> = ({
           <div className="flex flex-col gap-1">
             <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#64748b' }}>Border</label>
             <select value={annotationBorder} onChange={(e) => setAnnotationBorder(e.target.value)}
-              className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#07b6d5]" style={inputStyle}>
+              className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#e09f3e]" style={inputStyle}>
               <option value="none">None</option>
               <option value="dashed">Dashed</option>
               <option value="solid">Solid</option>
@@ -415,17 +417,35 @@ const DevicePropertyPanel: React.FC<DevicePropertyPanelProps> = ({
   return (
     <div
       className="w-72 flex-shrink-0 border-l flex flex-col p-4 overflow-y-auto"
-      style={{ backgroundColor: '#0f2023', borderColor: '#224349' }}
+      style={{ backgroundColor: '#1a1814', borderColor: '#3d3528' }}
     >
       <div className="flex items-center justify-between mb-4">
         <h3
           className="text-xs font-mono font-semibold uppercase tracking-widest"
-          style={{ color: '#07b6d5' }}
+          style={{ color: '#e09f3e' }}
         >
           {isInterface ? 'Interface Properties' : isContainer ? 'Container Properties' : 'Device Properties'}
         </h3>
         {saved && <span className="text-[10px] font-mono animate-pulse" style={{ color: '#22c55e' }}>Saved</span>}
       </div>
+
+      {/* Live / Planned badge */}
+      {isLiveNode && (
+        <div className="mb-3 flex items-center gap-2 px-2 py-1.5 rounded text-[10px] font-semibold uppercase tracking-wider"
+          style={{ background: 'rgba(34,197,94,0.08)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.15)' }}>
+          <span className="material-symbols-outlined" style={{ fontSize: 12 }}>lock</span>
+          LIVE — Read Only
+          {onConfigureAdapter && (
+            <button
+              onClick={() => onConfigureAdapter(selectedNode.id)}
+              className="ml-auto text-[10px] underline"
+              style={{ color: '#e09f3e' }}
+            >
+              Open Adapter Config
+            </button>
+          )}
+        </div>
+      )}
 
       <div className="flex flex-col gap-3">
         {/* Name — always shown */}
@@ -437,7 +457,8 @@ const DevicePropertyPanel: React.FC<DevicePropertyPanelProps> = ({
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#07b6d5]"
+            disabled={isReadOnly}
+            className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#e09f3e] disabled:opacity-50 disabled:cursor-not-allowed"
             style={inputStyle}
           />
         </div>
@@ -454,11 +475,11 @@ const DevicePropertyPanel: React.FC<DevicePropertyPanelProps> = ({
                 value={ip}
                 onChange={(e) => setIp(e.target.value)}
                 placeholder="10.0.1.10"
-                className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#07b6d5]"
-                style={{ ...inputStyle, borderColor: errors.ip ? '#ef4444' : '#224349' }}
+                className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#e09f3e]"
+                style={{ ...inputStyle, borderColor: errors.ip ? '#ef4444' : '#3d3528' }}
               />
-              {errors.ip && <p style={{ color: '#ef4444', fontSize: '10px', fontFamily: 'monospace', marginTop: '2px' }}>{errors.ip}</p>}
-              {!errors.ip && errors.ipSubnet && <p style={{ color: '#f59e0b', fontSize: '10px', fontFamily: 'monospace', marginTop: '2px' }}>{errors.ipSubnet}</p>}
+              {errors.ip && <p className="font-mono" style={{ color: '#ef4444', fontSize: '10px', marginTop: '2px' }}>{errors.ip}</p>}
+              {!errors.ip && errors.ipSubnet && <p className="font-mono" style={{ color: '#f59e0b', fontSize: '10px', marginTop: '2px' }}>{errors.ipSubnet}</p>}
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#64748b' }}>
@@ -467,7 +488,7 @@ const DevicePropertyPanel: React.FC<DevicePropertyPanelProps> = ({
               <select
                 value={zone}
                 onChange={(e) => setZone(e.target.value)}
-                className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#07b6d5]"
+                className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#e09f3e]"
                 style={inputStyle}
               >
                 <option value="">Select role...</option>
@@ -483,7 +504,7 @@ const DevicePropertyPanel: React.FC<DevicePropertyPanelProps> = ({
               <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#64748b' }}>
                 Parent Device
               </label>
-              <div className="text-xs font-mono px-3 py-2 rounded border" style={{ ...inputStyle, color: '#94a3b8' }}>
+              <div className="text-xs font-mono px-3 py-2 rounded border" style={{ ...inputStyle, color: '#8a7e6b' }}>
                 {(selectedNode?.data as Record<string, unknown>)?.parentDeviceName as string || 'Unknown'}
               </div>
             </div>
@@ -503,11 +524,11 @@ const DevicePropertyPanel: React.FC<DevicePropertyPanelProps> = ({
                 value={ip}
                 onChange={(e) => setIp(e.target.value)}
                 placeholder="192.168.1.1"
-                className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#07b6d5]"
-                style={{ ...inputStyle, borderColor: errors.ip ? '#ef4444' : errors.ipSubnet ? '#f59e0b' : '#224349' }}
+                className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#e09f3e]"
+                style={{ ...inputStyle, borderColor: errors.ip ? '#ef4444' : errors.ipSubnet ? '#f59e0b' : '#3d3528' }}
               />
-              {errors.ip && <p style={{ color: '#ef4444', fontSize: '10px', fontFamily: 'monospace', marginTop: '2px' }}>{errors.ip}</p>}
-              {!errors.ip && errors.ipSubnet && <p style={{ color: '#f59e0b', fontSize: '10px', fontFamily: 'monospace', marginTop: '2px' }}>{errors.ipSubnet}</p>}
+              {errors.ip && <p className="font-mono" style={{ color: '#ef4444', fontSize: '10px', marginTop: '2px' }}>{errors.ip}</p>}
+              {!errors.ip && errors.ipSubnet && <p className="font-mono" style={{ color: '#f59e0b', fontSize: '10px', marginTop: '2px' }}>{errors.ipSubnet}</p>}
             </div>
 
             {/* Vendor */}
@@ -520,7 +541,7 @@ const DevicePropertyPanel: React.FC<DevicePropertyPanelProps> = ({
                 value={vendor}
                 onChange={(e) => setVendor(e.target.value)}
                 placeholder="Cisco, Palo Alto, etc."
-                className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#07b6d5]"
+                className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#e09f3e]"
                 style={inputStyle}
               />
             </div>
@@ -533,7 +554,7 @@ const DevicePropertyPanel: React.FC<DevicePropertyPanelProps> = ({
               <select
                 value={deviceType}
                 onChange={(e) => setDeviceType(e.target.value)}
-                className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#07b6d5]"
+                className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#e09f3e]"
                 style={inputStyle}
               >
                 <option value="router">Router</option>
@@ -568,7 +589,7 @@ const DevicePropertyPanel: React.FC<DevicePropertyPanelProps> = ({
                 value={zone}
                 onChange={(e) => setZone(e.target.value)}
                 placeholder="DMZ, Internal, etc."
-                className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#07b6d5]"
+                className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#e09f3e]"
                 style={inputStyle}
               />
             </div>
@@ -581,10 +602,10 @@ const DevicePropertyPanel: React.FC<DevicePropertyPanelProps> = ({
             <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#64748b' }}>CIDR</label>
             <input type="text" value={cidr} onChange={(e) => setCidr(e.target.value)}
                    placeholder={nodeType === 'vpc' ? '10.0.0.0/16' : '10.0.1.0/24'}
-                   className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#07b6d5]"
-                   style={{ ...inputStyle, borderColor: errors.cidr ? '#ef4444' : '#224349' }} />
-            {errors.cidr && <p style={{ color: '#ef4444', fontSize: '10px', fontFamily: 'monospace', marginTop: '2px' }}>{errors.cidr}</p>}
-            {!errors.cidr && errors.cidrContainment && <p style={{ color: '#f59e0b', fontSize: '10px', fontFamily: 'monospace', marginTop: '2px' }}>{errors.cidrContainment}</p>}
+                   className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#e09f3e]"
+                   style={{ ...inputStyle, borderColor: errors.cidr ? '#ef4444' : '#3d3528' }} />
+            {errors.cidr && <p className="font-mono" style={{ color: '#ef4444', fontSize: '10px', marginTop: '2px' }}>{errors.cidr}</p>}
+            {!errors.cidr && errors.cidrContainment && <p className="font-mono" style={{ color: '#f59e0b', fontSize: '10px', marginTop: '2px' }}>{errors.cidrContainment}</p>}
           </div>
         )}
 
@@ -594,7 +615,7 @@ const DevicePropertyPanel: React.FC<DevicePropertyPanelProps> = ({
             <div className="flex flex-col gap-1">
               <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#64748b' }}>Cloud Provider</label>
               <select value={cloudProvider} onChange={(e) => setCloudProvider(e.target.value)}
-                      className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#07b6d5]" style={inputStyle}>
+                      className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#e09f3e]" style={inputStyle}>
                 <option value="aws">AWS</option>
                 <option value="azure">Azure</option>
                 <option value="gcp">GCP</option>
@@ -604,7 +625,7 @@ const DevicePropertyPanel: React.FC<DevicePropertyPanelProps> = ({
             <div className="flex flex-col gap-1">
               <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#64748b' }}>Region</label>
               <input type="text" value={region} onChange={(e) => setRegion(e.target.value)} placeholder="us-east-1"
-                     className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#07b6d5]" style={inputStyle} />
+                     className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#e09f3e]" style={inputStyle} />
             </div>
           </>
         )}
@@ -615,7 +636,7 @@ const DevicePropertyPanel: React.FC<DevicePropertyPanelProps> = ({
             <div className="flex flex-col gap-1">
               <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#64748b' }}>Tunnel Type</label>
               <select value={tunnelType} onChange={(e) => setTunnelType(e.target.value)}
-                      className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#07b6d5]" style={inputStyle}>
+                      className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#e09f3e]" style={inputStyle}>
                 <option value="ipsec">IPSec</option>
                 <option value="gre">GRE</option>
                 <option value="ssl">SSL VPN</option>
@@ -624,14 +645,14 @@ const DevicePropertyPanel: React.FC<DevicePropertyPanelProps> = ({
             <div className="flex flex-col gap-1">
               <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#64748b' }}>Encryption</label>
               <input type="text" value={encryption} onChange={(e) => setEncryption(e.target.value)} placeholder="AES-256-GCM"
-                     className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#07b6d5]" style={inputStyle} />
+                     className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#e09f3e]" style={inputStyle} />
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#64748b' }}>Remote Gateway</label>
               <input type="text" value={remoteGateway} onChange={(e) => setRemoteGateway(e.target.value)} placeholder="203.0.113.1"
-                     className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#07b6d5]"
-                     style={{ ...inputStyle, borderColor: errors.remoteGateway ? '#ef4444' : '#224349' }} />
-              {errors.remoteGateway && <p style={{ color: '#ef4444', fontSize: '10px', fontFamily: 'monospace', marginTop: '2px' }}>{errors.remoteGateway}</p>}
+                     className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#e09f3e]"
+                     style={{ ...inputStyle, borderColor: errors.remoteGateway ? '#ef4444' : '#3d3528' }} />
+              {errors.remoteGateway && <p className="font-mono" style={{ color: '#ef4444', fontSize: '10px', marginTop: '2px' }}>{errors.remoteGateway}</p>}
             </div>
           </>
         )}
@@ -642,7 +663,7 @@ const DevicePropertyPanel: React.FC<DevicePropertyPanelProps> = ({
             <div className="flex flex-col gap-1">
               <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#64748b' }}>LB Type</label>
               <select value={lbType} onChange={(e) => setLbType(e.target.value)}
-                      className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#07b6d5]" style={inputStyle}>
+                      className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#e09f3e]" style={inputStyle}>
                 <option value="alb">Application LB (ALB)</option>
                 <option value="nlb">Network LB (NLB)</option>
                 <option value="azure_lb">Azure LB</option>
@@ -652,7 +673,7 @@ const DevicePropertyPanel: React.FC<DevicePropertyPanelProps> = ({
             <div className="flex flex-col gap-1">
               <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#64748b' }}>Scheme</label>
               <select value={lbScheme} onChange={(e) => setLbScheme(e.target.value)}
-                      className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#07b6d5]" style={inputStyle}>
+                      className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#e09f3e]" style={inputStyle}>
                 <option value="internal">Internal</option>
                 <option value="internet_facing">Internet Facing</option>
               </select>
@@ -666,12 +687,12 @@ const DevicePropertyPanel: React.FC<DevicePropertyPanelProps> = ({
             <div className="flex flex-col gap-1">
               <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#64748b' }}>Zone Name</label>
               <input type="text" value={zoneName} onChange={(e) => setZoneName(e.target.value)} placeholder="us-east-1a"
-                     className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#07b6d5]" style={inputStyle} />
+                     className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#e09f3e]" style={inputStyle} />
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#64748b' }}>Cloud Provider</label>
               <select value={cloudProvider} onChange={(e) => setCloudProvider(e.target.value)}
-                      className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#07b6d5]" style={inputStyle}>
+                      className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#e09f3e]" style={inputStyle}>
                 <option value="aws">AWS</option>
                 <option value="azure">Azure</option>
                 <option value="gcp">GCP</option>
@@ -681,7 +702,7 @@ const DevicePropertyPanel: React.FC<DevicePropertyPanelProps> = ({
             <div className="flex flex-col gap-1">
               <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#64748b' }}>Region</label>
               <input type="text" value={region} onChange={(e) => setRegion(e.target.value)} placeholder="us-east-1"
-                     className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#07b6d5]" style={inputStyle} />
+                     className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#e09f3e]" style={inputStyle} />
             </div>
           </>
         )}
@@ -692,22 +713,22 @@ const DevicePropertyPanel: React.FC<DevicePropertyPanelProps> = ({
             <div className="flex flex-col gap-1">
               <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#64748b' }}>Min Capacity</label>
               <input type="number" value={minCapacity} onChange={(e) => setMinCapacity(Number(e.target.value))} min={0}
-                     className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#07b6d5]" style={inputStyle} />
+                     className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#e09f3e]" style={inputStyle} />
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#64748b' }}>Desired Capacity</label>
               <input type="number" value={desiredCapacity} onChange={(e) => setDesiredCapacity(Number(e.target.value))} min={0}
-                     className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#07b6d5]" style={inputStyle} />
+                     className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#e09f3e]" style={inputStyle} />
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#64748b' }}>Max Capacity</label>
               <input type="number" value={maxCapacity} onChange={(e) => setMaxCapacity(Number(e.target.value))} min={0}
-                     className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#07b6d5]" style={inputStyle} />
+                     className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#e09f3e]" style={inputStyle} />
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#64748b' }}>Launch Template</label>
               <input type="text" value={launchTemplate} onChange={(e) => setLaunchTemplate(e.target.value)} placeholder="lt-0123456789abcdef"
-                     className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#07b6d5]" style={inputStyle} />
+                     className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#e09f3e]" style={inputStyle} />
             </div>
           </>
         )}
@@ -718,7 +739,7 @@ const DevicePropertyPanel: React.FC<DevicePropertyPanelProps> = ({
             <div className="flex flex-col gap-1">
               <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#64748b' }}>HA Mode</label>
               <select value={haMode} onChange={(e) => setHaMode(e.target.value)}
-                      className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#07b6d5]" style={inputStyle}>
+                      className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#e09f3e]" style={inputStyle}>
                 <option value="active_passive">Active / Passive</option>
                 <option value="active_active">Active / Active</option>
                 <option value="vrrp">VRRP</option>
@@ -727,7 +748,7 @@ const DevicePropertyPanel: React.FC<DevicePropertyPanelProps> = ({
             <div className="flex flex-col gap-1">
               <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#64748b' }}>Virtual IPs (VIPs)</label>
               <input type="text" value={virtualIps} onChange={(e) => setVirtualIps(e.target.value)} placeholder="10.0.1.100, 10.0.2.100"
-                     className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#07b6d5]" style={inputStyle} />
+                     className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#e09f3e]" style={inputStyle} />
             </div>
           </>
         )}
@@ -738,7 +759,7 @@ const DevicePropertyPanel: React.FC<DevicePropertyPanelProps> = ({
             <div className="flex flex-col gap-1">
               <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#64748b' }}>Compliance Framework</label>
               <select value={complianceFramework} onChange={(e) => setComplianceFramework(e.target.value)}
-                      className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#07b6d5]" style={inputStyle}>
+                      className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#e09f3e]" style={inputStyle}>
                 <option value="pci_dss">PCI-DSS</option>
                 <option value="soc2">SOC2</option>
                 <option value="hipaa">HIPAA</option>
@@ -748,7 +769,7 @@ const DevicePropertyPanel: React.FC<DevicePropertyPanelProps> = ({
             <div className="flex flex-col gap-1">
               <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#64748b' }}>Zone Type</label>
               <select value={zoneType} onChange={(e) => setZoneType(e.target.value)}
-                      className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#07b6d5]" style={inputStyle}>
+                      className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#e09f3e]" style={inputStyle}>
                 <option value="">Select...</option>
                 <option value="data">Data</option>
                 <option value="dmz">DMZ</option>
@@ -764,14 +785,14 @@ const DevicePropertyPanel: React.FC<DevicePropertyPanelProps> = ({
             <div className="flex flex-col gap-1">
               <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#64748b' }}>Elastic IP</label>
               <input type="text" value={elasticIp} onChange={(e) => setElasticIp(e.target.value)} placeholder="52.x.x.x"
-                     className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#07b6d5]"
-                     style={{ ...inputStyle, borderColor: elasticIp && validateIPv4(elasticIp) ? '#ef4444' : '#224349' }} />
-              {elasticIp && validateIPv4(elasticIp) && <p style={{ color: '#ef4444', fontSize: '10px', fontFamily: 'monospace', marginTop: '2px' }}>{validateIPv4(elasticIp)}</p>}
+                     className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#e09f3e]"
+                     style={{ ...inputStyle, borderColor: elasticIp && validateIPv4(elasticIp) ? '#ef4444' : '#3d3528' }} />
+              {elasticIp && validateIPv4(elasticIp) && <p className="font-mono" style={{ color: '#ef4444', fontSize: '10px', marginTop: '2px' }}>{validateIPv4(elasticIp)}</p>}
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#64748b' }}>Subnet Association</label>
               <input type="text" value={subnetAssociation} onChange={(e) => setSubnetAssociation(e.target.value)} placeholder="subnet-xxx"
-                     className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#07b6d5]" style={inputStyle} />
+                     className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#e09f3e]" style={inputStyle} />
             </div>
           </>
         )}
@@ -781,21 +802,20 @@ const DevicePropertyPanel: React.FC<DevicePropertyPanelProps> = ({
           <div className="flex flex-col gap-1">
             <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#64748b' }}>VPC Association</label>
             <input type="text" value={vpcAssociation} onChange={(e) => setVpcAssociation(e.target.value)} placeholder="vpc-xxx"
-                   className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#07b6d5]" style={inputStyle} />
+                   className="text-sm font-mono px-3 py-2 rounded border focus:outline-none focus:border-[#e09f3e]" style={inputStyle} />
           </div>
         )}
 
         {/* === Add Interface (device only — spawns separate InterfaceNode) === */}
         {!isContainer && !isInterface && ['firewall', 'router', 'switch', 'load_balancer'].includes(deviceType) && onAddInterface && (
-          <div className="mt-2 pt-2 border-t" style={{ borderColor: '#224349' }}>
+          <div className="mt-2 pt-2 border-t" style={{ borderColor: '#3d3528' }}>
             <button
               onClick={() => onAddInterface(selectedNode.id)}
-              className="w-full flex items-center justify-center gap-2 text-xs font-mono px-3 py-2 rounded border transition-colors hover:border-[#07b6d5]"
-              style={{ borderColor: '#224349', color: '#07b6d5', backgroundColor: 'transparent' }}
+              className="w-full flex items-center justify-center gap-2 text-xs font-mono px-3 py-2 rounded border transition-colors hover:border-[#e09f3e]"
+              style={{ borderColor: '#3d3528', color: '#e09f3e', backgroundColor: 'transparent' }}
             >
               <span
                 className="material-symbols-outlined text-sm"
-                style={{ fontFamily: 'Material Symbols Outlined' }}
               >
                 settings_ethernet
               </span>
@@ -814,20 +834,115 @@ const DevicePropertyPanel: React.FC<DevicePropertyPanelProps> = ({
             className="text-sm font-mono px-4 py-2 rounded border transition-colors hover:border-[#f59e0b]"
             style={{
               backgroundColor: 'transparent',
-              borderColor: '#224349',
+              borderColor: '#3d3528',
               color: '#f59e0b',
             }}
           >
             <span className="flex items-center gap-2 justify-center">
               <span
                 className="material-symbols-outlined text-base"
-                style={{ fontFamily: 'Material Symbols Outlined' }}
               >
                 settings_input_component
               </span>
               Manage Adapters
             </span>
           </button>
+        )}
+
+        {/* Credentials for planned devices */}
+        {!isReadOnly && !isContainer && !isInterface && !isAnnotation && vendor && (
+          <details className="mt-2">
+            <summary className="text-[10px] font-mono uppercase tracking-wider cursor-pointer select-none" style={{ color: '#64748b' }}>
+              Credentials
+            </summary>
+            <div className="mt-2 flex flex-col gap-2 pl-1">
+              {(vendor === 'palo_alto' || vendor === 'checkpoint' || vendor === 'cisco' || vendor === 'zscaler' || vendor === 'f5') && (
+                <>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#64748b' }}>API Endpoint</label>
+                    <input type="text" placeholder="https://..." className="text-xs font-mono px-2 py-1.5 rounded border focus:outline-none focus:border-[#e09f3e]"
+                      style={{ backgroundColor: '#0a0f13', borderColor: '#3d3528', color: '#e8e0d4' }}
+                      onChange={(e) => onNodeUpdate(selectedNode!.id, { _cred_api_endpoint: e.target.value })}
+                      defaultValue={(selectedNode?.data as any)?._cred_api_endpoint || ''} />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#64748b' }}>API Key</label>
+                    <input type="password" placeholder="API key or token" className="text-xs font-mono px-2 py-1.5 rounded border focus:outline-none focus:border-[#e09f3e]"
+                      style={{ backgroundColor: '#0a0f13', borderColor: '#3d3528', color: '#e8e0d4' }}
+                      onChange={(e) => onNodeUpdate(selectedNode!.id, { _cred_api_key: e.target.value })}
+                      defaultValue={(selectedNode?.data as any)?._cred_api_key || ''} />
+                  </div>
+                </>
+              )}
+              {(vendor === 'cisco' || vendor === 'f5') && (
+                <>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#64748b' }}>Username</label>
+                    <input type="text" placeholder="admin" className="text-xs font-mono px-2 py-1.5 rounded border focus:outline-none focus:border-[#e09f3e]"
+                      style={{ backgroundColor: '#0a0f13', borderColor: '#3d3528', color: '#e8e0d4' }}
+                      onChange={(e) => onNodeUpdate(selectedNode!.id, { _cred_username: e.target.value })}
+                      defaultValue={(selectedNode?.data as any)?._cred_username || ''} />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#64748b' }}>Password</label>
+                    <input type="password" placeholder="password" className="text-xs font-mono px-2 py-1.5 rounded border focus:outline-none focus:border-[#e09f3e]"
+                      style={{ backgroundColor: '#0a0f13', borderColor: '#3d3528', color: '#e8e0d4' }}
+                      onChange={(e) => onNodeUpdate(selectedNode!.id, { _cred_password: e.target.value })}
+                      defaultValue={(selectedNode?.data as any)?._cred_password || ''} />
+                  </div>
+                </>
+              )}
+              {vendor === 'snmp' && (
+                <>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#64748b' }}>Community String</label>
+                    <input type="password" placeholder="public" className="text-xs font-mono px-2 py-1.5 rounded border focus:outline-none focus:border-[#e09f3e]"
+                      style={{ backgroundColor: '#0a0f13', borderColor: '#3d3528', color: '#e8e0d4' }}
+                      onChange={(e) => onNodeUpdate(selectedNode!.id, { _cred_community: e.target.value })}
+                      defaultValue={(selectedNode?.data as any)?._cred_community || ''} />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#64748b' }}>SNMP Version</label>
+                    <select className="text-xs font-mono px-2 py-1.5 rounded border focus:outline-none focus:border-[#e09f3e]"
+                      style={{ backgroundColor: '#0a0f13', borderColor: '#3d3528', color: '#e8e0d4' }}
+                      onChange={(e) => onNodeUpdate(selectedNode!.id, { _cred_snmp_version: e.target.value })}
+                      defaultValue={(selectedNode?.data as any)?._cred_snmp_version || 'v2c'}>
+                      <option value="v2c">v2c</option>
+                      <option value="v3">v3</option>
+                    </select>
+                  </div>
+                </>
+              )}
+              <button
+                onClick={async () => {
+                  if (!ip || !vendor) return;
+                  try {
+                    const resp = await fetch('http://localhost:8000/api/v4/network/adapters/test', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        vendor,
+                        api_endpoint: (selectedNode?.data as any)?._cred_api_endpoint || '',
+                        api_key: (selectedNode?.data as any)?._cred_api_key || '',
+                      }),
+                    });
+                    if (resp.ok) {
+                      alert('Connection successful!');
+                    } else {
+                      const err = await resp.json().catch(() => ({}));
+                      alert(`Connection failed: ${err.detail || resp.statusText}`);
+                    }
+                  } catch (e: any) {
+                    alert(`Connection failed: ${e.message}`);
+                  }
+                }}
+                className="mt-1 text-xs font-mono font-semibold px-3 py-1.5 rounded transition-colors"
+                style={{ backgroundColor: 'rgba(224,159,62,0.12)', color: '#e09f3e', border: '1px solid rgba(224,159,62,0.2)' }}
+              >
+                Test Connection
+              </button>
+            </div>
+          </details>
         )}
       </div>
     </div>

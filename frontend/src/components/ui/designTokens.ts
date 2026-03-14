@@ -19,14 +19,14 @@ export const tokens = {
     error: 'bg-red-500/10 border-red-500/20 text-red-400',
     warning: 'bg-amber-500/10 border-amber-500/20 text-amber-400',
     success: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400',
-    info: 'bg-cyan-500/10 border-cyan-500/20 text-cyan-400',
+    info: 'bg-amber-500/10 border-amber-500/20 text-amber-400',
   },
 
   /** Disabled button styling */
   disabled: 'disabled:opacity-50 disabled:cursor-not-allowed disabled:saturate-0',
 
   /** Focus-visible ring */
-  focusRing: 'focus-visible:ring-2 focus-visible:ring-[#07b6d5]/50 focus-visible:outline-none',
+  focusRing: 'focus-visible:ring-2 focus-visible:ring-[#e09f3e]/50 focus-visible:outline-none',
 
   /** Transition defaults */
   transition: 'transition-colors duration-150',

@@ -37,7 +37,7 @@ const PRReviewFields: React.FC<PRReviewFieldsProps> = ({ data, onChange }) => {
           type="text"
           value={data.repo_url}
           onChange={(e) => update({ repo_url: e.target.value })}
-          className="w-full px-3 py-2.5 bg-[#0f2023] border border-[#224349] rounded-lg text-sm text-white placeholder-gray-600 focus:border-[#07b6d5] focus:outline-none focus:ring-1 focus:ring-[#07b6d5]/30 transition-colors"
+          className="w-full px-3 py-2.5 bg-[#1a1814] border border-[#3d3528] rounded-lg text-sm text-white placeholder-gray-600 focus:border-[#e09f3e] focus:outline-none focus:ring-1 focus:ring-[#e09f3e]/30 transition-colors"
           placeholder="https://github.com/org/repo"
           required
         />
@@ -52,7 +52,7 @@ const PRReviewFields: React.FC<PRReviewFieldsProps> = ({ data, onChange }) => {
           type="text"
           value={data.pr_number}
           onChange={(e) => update({ pr_number: e.target.value })}
-          className="w-full px-3 py-2.5 bg-[#0f2023] border border-[#224349] rounded-lg text-sm text-white placeholder-gray-600 focus:border-[#07b6d5] focus:outline-none focus:ring-1 focus:ring-[#07b6d5]/30 transition-colors font-mono"
+          className="w-full px-3 py-2.5 bg-[#1a1814] border border-[#3d3528] rounded-lg text-sm text-white placeholder-gray-600 focus:border-[#e09f3e] focus:outline-none focus:ring-1 focus:ring-[#e09f3e]/30 transition-colors font-mono"
           placeholder="#142"
           required
         />
@@ -65,7 +65,7 @@ const PRReviewFields: React.FC<PRReviewFieldsProps> = ({ data, onChange }) => {
           type="text"
           value={data.branch_name || ''}
           onChange={(e) => update({ branch_name: e.target.value || undefined })}
-          className="w-full px-3 py-2.5 bg-[#0f2023] border border-[#224349] rounded-lg text-sm text-white placeholder-gray-600 focus:border-[#07b6d5] focus:outline-none focus:ring-1 focus:ring-[#07b6d5]/30 transition-colors font-mono"
+          className="w-full px-3 py-2.5 bg-[#1a1814] border border-[#3d3528] rounded-lg text-sm text-white placeholder-gray-600 focus:border-[#e09f3e] focus:outline-none focus:ring-1 focus:ring-[#e09f3e]/30 transition-colors font-mono"
           placeholder="feature/my-branch"
         />
       </div>
@@ -83,8 +83,8 @@ const PRReviewFields: React.FC<PRReviewFieldsProps> = ({ data, onChange }) => {
                 onClick={() => toggleFocusArea(mod.id)}
                 className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg border text-sm transition-all ${
                   active
-                    ? 'bg-[#07b6d5]/10 border-[#07b6d5]/30 text-white'
-                    : 'bg-[#0f2023] border-[#224349] text-gray-400 hover:border-[#224349]/80'
+                    ? 'bg-[#e09f3e]/10 border-[#e09f3e]/30 text-white'
+                    : 'bg-[#1a1814] border-[#3d3528] text-gray-400 hover:border-[#3d3528]/80'
                 }`}
               >
                 <div className="flex items-center gap-2.5">
@@ -93,7 +93,7 @@ const PRReviewFields: React.FC<PRReviewFieldsProps> = ({ data, onChange }) => {
                 </div>
                 <div
                   className={`w-8 h-4 rounded-full relative transition-colors ${
-                    active ? 'bg-[#07b6d5]' : 'bg-[#224349]'
+                    active ? 'bg-[#e09f3e]' : 'bg-[#3d3528]'
                   }`}
                 >
                   <div

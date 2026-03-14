@@ -8,12 +8,12 @@ interface SessionTableProps {
 
 const phaseColors: Record<string, string> = {
   initial: 'bg-gray-400',
-  collecting_context: 'bg-cyan-400',
-  logs_analyzed: 'bg-cyan-400',
-  metrics_analyzed: 'bg-cyan-400',
-  k8s_analyzed: 'bg-cyan-400',
-  tracing_analyzed: 'bg-cyan-400',
-  code_analyzed: 'bg-cyan-400',
+  collecting_context: 'bg-amber-400',
+  logs_analyzed: 'bg-amber-400',
+  metrics_analyzed: 'bg-amber-400',
+  k8s_analyzed: 'bg-amber-400',
+  tracing_analyzed: 'bg-amber-400',
+  code_analyzed: 'bg-amber-400',
   validating: 'bg-yellow-400',
   re_investigating: 'bg-orange-400',
   diagnosis_complete: 'bg-green-400',
@@ -54,7 +54,7 @@ const SessionTable: React.FC<SessionTableProps> = ({ sessions, onSelectSession }
 
   if (sessions.length === 0) {
     return (
-      <div className="rounded-xl p-8 text-center border" style={{ backgroundColor: 'rgba(30,47,51,0.3)', borderColor: '#224349' }}>
+      <div className="rounded-xl p-8 text-center border" style={{ backgroundColor: 'rgba(30,47,51,0.3)', borderColor: '#3d3528' }}>
         <p className="text-gray-500 text-sm">No sessions found.</p>
       </div>
     );
@@ -66,15 +66,15 @@ const SessionTable: React.FC<SessionTableProps> = ({ sessions, onSelectSession }
       className="flex items-center gap-1 text-xs text-gray-500 font-medium hover:text-gray-300 transition-colors"
     >
       {label}
-      <span className="material-symbols-outlined text-xs" style={{ fontFamily: 'Material Symbols Outlined' }}>swap_vert</span>
+      <span className="material-symbols-outlined text-xs">swap_vert</span>
     </button>
   );
 
   return (
-    <div className="rounded-xl overflow-hidden border" style={{ backgroundColor: 'rgba(30,47,51,0.3)', borderColor: '#224349' }}>
+    <div className="rounded-xl overflow-hidden border" style={{ backgroundColor: 'rgba(30,47,51,0.3)', borderColor: '#3d3528' }}>
       <table className="w-full text-sm">
         <thead>
-          <tr style={{ borderBottom: '1px solid #224349' }}>
+          <tr style={{ borderBottom: '1px solid #3d3528' }}>
             <th className="text-left px-4 py-3 w-8">
               <span className="text-xs text-gray-500">Status</span>
             </th>
@@ -96,7 +96,7 @@ const SessionTable: React.FC<SessionTableProps> = ({ sessions, onSelectSession }
           {sorted.map((session) => (
             <tr
               key={session.session_id}
-              className="hover:bg-[#162a2e]/50 transition-colors"
+              className="hover:bg-[#1e1b15]/50 transition-colors"
               style={{ borderBottom: '1px solid rgba(34,67,73,0.5)' }}
             >
               <td className="px-4 py-3">
@@ -127,9 +127,9 @@ const SessionTable: React.FC<SessionTableProps> = ({ sessions, onSelectSession }
                 <button
                   onClick={() => onSelectSession(session)}
                   className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs transition-colors"
-                  style={{ backgroundColor: 'rgba(7,182,213,0.1)', color: '#07b6d5' }}
+                  style={{ backgroundColor: 'rgba(224,159,62,0.1)', color: '#e09f3e' }}
                 >
-                  <span className="material-symbols-outlined text-xs" style={{ fontFamily: 'Material Symbols Outlined' }}>visibility</span>
+                  <span className="material-symbols-outlined text-xs">visibility</span>
                   View
                 </button>
               </td>

@@ -56,10 +56,10 @@ const ContextScope: React.FC<ContextScopeProps> = ({ session, events = [] }) => 
   const agentStatuses = buildAgentStatuses(status, events);
 
   return (
-    <div className="flex flex-col h-full bg-slate-900/20 border-l border-[#07b6d5]/10">
+    <div className="flex flex-col h-full bg-slate-900/20 border-l border-[#e09f3e]/10">
       {/* Header */}
-      <div className="p-4 border-b border-[#07b6d5]/10 flex items-center gap-2">
-        <span className="material-symbols-outlined text-slate-400 text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>info</span>
+      <div className="p-4 border-b border-[#e09f3e]/10 flex items-center gap-2">
+        <span className="material-symbols-outlined text-slate-400 text-sm">info</span>
         <h2 className="text-xs font-bold uppercase tracking-widest text-slate-400">Context & Scope</h2>
       </div>
 
@@ -71,7 +71,7 @@ const ContextScope: React.FC<ContextScopeProps> = ({ session, events = [] }) => 
             <InfoRow label="Service" value={session.service_name} />
             <InfoRow label="Namespace" value={namespace} />
             {clusterUrl && <InfoRow label="Cluster" value={shortenUrl(clusterUrl)} title={clusterUrl} />}
-            <InfoRow label="Session ID" value={session.session_id.substring(0, 8).toUpperCase()} valueColor="text-[#07b6d5]" />
+            <InfoRow label="Session ID" value={session.session_id.substring(0, 8).toUpperCase()} valueColor="text-[#e09f3e]" />
             <InfoRow label="Phase" value={phaseLabel(phase)} />
             <InfoRow
               label="Confidence"
@@ -146,9 +146,9 @@ const ContextScope: React.FC<ContextScopeProps> = ({ session, events = [] }) => 
       </div>
 
       {/* Footer action */}
-      <div className="p-4 border-t border-[#07b6d5]/10">
+      <div className="p-4 border-t border-[#e09f3e]/10">
         <button className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-xs font-bold transition-colors border border-slate-700 flex items-center justify-center gap-2">
-          <span className="material-symbols-outlined text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>history</span>
+          <span className="material-symbols-outlined text-sm">history</span>
           View Previous Incidents
         </button>
       </div>
@@ -257,11 +257,11 @@ const KnownPlaybooksSection: React.FC<{ incidents: PastIncidentMatch[] }> = ({ i
         >
           <span
             className="material-symbols-outlined text-xs text-slate-400 transition-transform"
-            style={{ fontFamily: 'Material Symbols Outlined', transform: expanded ? 'rotate(90deg)' : 'none' }}
+            style={{ transform: expanded ? 'rotate(90deg)' : 'none' }}
           >
             chevron_right
           </span>
-          <span className="material-symbols-outlined text-sm text-slate-400" style={{ fontFamily: 'Material Symbols Outlined' }}>
+          <span className="material-symbols-outlined text-sm text-slate-400">
             library_books
           </span>
           <span className="text-[11px] text-slate-300 flex-1">
@@ -301,7 +301,7 @@ const PlaybookRow: React.FC<{ incident: PastIncidentMatch }> = ({ incident }) =>
       >
         <span
           className="material-symbols-outlined text-xs text-slate-500 transition-transform"
-          style={{ fontFamily: 'Material Symbols Outlined', transform: expanded ? 'rotate(90deg)' : 'none' }}
+          style={{ transform: expanded ? 'rotate(90deg)' : 'none' }}
         >
           chevron_right
         </span>

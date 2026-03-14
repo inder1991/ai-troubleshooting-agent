@@ -348,8 +348,8 @@ const NDMTopologyTab: React.FC<NDMTopologyTabProps> = ({ devices, onSelectDevice
               value={groupBy}
               onChange={(e) => setGroupBy(e.target.value as GroupByOption)}
               style={{
-                background: '#0f2023',
-                color: '#e2e8f0',
+                background: '#1a1814',
+                color: '#e8e0d4',
                 border: '1px solid #1e3a4a',
                 borderRadius: 4,
                 padding: '4px 8px',
@@ -371,12 +371,12 @@ const NDMTopologyTab: React.FC<NDMTopologyTabProps> = ({ devices, onSelectDevice
               display: 'flex',
               alignItems: 'center',
               gap: 4,
-              background: 'rgba(7, 182, 213, 0.1)',
-              border: '1px solid rgba(7, 182, 213, 0.3)',
+              background: 'rgba(224, 159, 62, 0.1)',
+              border: '1px solid rgba(224, 159, 62, 0.3)',
               borderRadius: 12,
               padding: '2px 10px',
               fontSize: 12,
-              color: '#07b6d5',
+              color: '#e09f3e',
               fontWeight: 600,
             }}
           >
@@ -399,7 +399,7 @@ const NDMTopologyTab: React.FC<NDMTopologyTabProps> = ({ devices, onSelectDevice
                   background: STATUS_COLORS[status],
                 }}
               />
-              <span style={{ fontSize: 11, color: '#94a3b8' }}>
+              <span style={{ fontSize: 11, color: '#8a7e6b' }}>
                 {label}
                 {statusCounts[status] > 0 && (
                   <span style={{ color: '#64748b', marginLeft: 3 }}>({statusCounts[status]})</span>
@@ -439,11 +439,11 @@ const NDMTopologyTab: React.FC<NDMTopologyTabProps> = ({ devices, onSelectDevice
               aria-label={btn.label}
               style={{
                 width: 28, height: 28, border: 'none', borderRadius: 4,
-                background: 'transparent', color: '#94a3b8', cursor: 'pointer',
+                background: 'transparent', color: '#8a7e6b', cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: 18,
               }}
-              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(7,182,213,0.15)'; }}
+              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(224,159,62,0.15)'; }}
               onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
             >
               <span className="material-symbols-outlined" style={{ fontSize: 18 }}>{btn.icon}</span>
@@ -492,15 +492,15 @@ const NDMTopologyTab: React.FC<NDMTopologyTabProps> = ({ devices, onSelectDevice
                 width={group.width}
                 height={group.height}
                 rx={8}
-                fill="rgba(7, 182, 213, 0.03)"
-                stroke="rgba(7, 182, 213, 0.15)"
+                fill="rgba(224, 159, 62, 0.03)"
+                stroke="rgba(224, 159, 62, 0.15)"
                 strokeWidth={1}
                 strokeDasharray="4 2"
               />
               <text
                 x={group.x + 10}
                 y={group.y + 18}
-                fill="#07b6d5"
+                fill="#e09f3e"
                 fontSize={11}
                 fontWeight={600}
                 fontFamily="Inter, system-ui, sans-serif"
@@ -567,7 +567,7 @@ const NDMTopologyTab: React.FC<NDMTopologyTabProps> = ({ devices, onSelectDevice
                   cx={node.x}
                   cy={node.y}
                   r={28}
-                  fill="#0f2023"
+                  fill="#1a1814"
                   stroke={statusColor}
                   strokeWidth={isHovered ? 2.5 : 2}
                 />
@@ -578,7 +578,7 @@ const NDMTopologyTab: React.FC<NDMTopologyTabProps> = ({ devices, onSelectDevice
                   y={node.y + 1}
                   textAnchor="middle"
                   dominantBaseline="central"
-                  fill={isHovered ? '#e2e8f0' : '#94a3b8'}
+                  fill={isHovered ? '#e8e0d4' : '#8a7e6b'}
                   fontSize={22}
                   fontFamily="Material Symbols Outlined"
                   style={{ pointerEvents: 'none' }}
@@ -591,7 +591,7 @@ const NDMTopologyTab: React.FC<NDMTopologyTabProps> = ({ devices, onSelectDevice
                   x={node.x}
                   y={node.y + 44}
                   textAnchor="middle"
-                  fill={isHovered ? '#e2e8f0' : '#64748b'}
+                  fill={isHovered ? '#e8e0d4' : '#64748b'}
                   fontSize={10}
                   fontFamily="Inter, system-ui, sans-serif"
                   fontWeight={isHovered ? 600 : 400}
@@ -612,7 +612,7 @@ const NDMTopologyTab: React.FC<NDMTopologyTabProps> = ({ devices, onSelectDevice
               position: 'absolute',
               left: tooltipPos.x + 16,
               top: tooltipPos.y - 10,
-              background: '#0f2023',
+              background: '#1a1814',
               border: '1px solid #1e3a4a',
               borderRadius: 8,
               padding: '10px 14px',
@@ -643,7 +643,7 @@ const NDMTopologyTab: React.FC<NDMTopologyTabProps> = ({ devices, onSelectDevice
                 style={{
                   fontSize: 13,
                   fontWeight: 600,
-                  color: '#e2e8f0',
+                  color: '#e8e0d4',
                 }}
               >
                 {hoveredDevice.hostname}
@@ -653,7 +653,7 @@ const NDMTopologyTab: React.FC<NDMTopologyTabProps> = ({ devices, onSelectDevice
             <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16 }}>
                 <span style={{ fontSize: 11, color: '#64748b' }}>IP</span>
-                <span style={{ fontSize: 11, color: '#94a3b8', fontFamily: 'monospace' }}>
+                <span className="font-mono" style={{ fontSize: 11, color: '#8a7e6b' }}>
                   {hoveredDevice.management_ip}
                 </span>
               </div>
@@ -671,20 +671,20 @@ const NDMTopologyTab: React.FC<NDMTopologyTabProps> = ({ devices, onSelectDevice
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16 }}>
                 <span style={{ fontSize: 11, color: '#64748b' }}>Vendor</span>
-                <span style={{ fontSize: 11, color: '#94a3b8' }}>
+                <span style={{ fontSize: 11, color: '#8a7e6b' }}>
                   {hoveredDevice.vendor || 'Unknown'}
                 </span>
               </div>
               {hoveredDevice.model && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16 }}>
                   <span style={{ fontSize: 11, color: '#64748b' }}>Model</span>
-                  <span style={{ fontSize: 11, color: '#94a3b8' }}>{hoveredDevice.model}</span>
+                  <span style={{ fontSize: 11, color: '#8a7e6b' }}>{hoveredDevice.model}</span>
                 </div>
               )}
               {hoveredDevice.tags.length > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16 }}>
                   <span style={{ fontSize: 11, color: '#64748b' }}>Tags</span>
-                  <span style={{ fontSize: 11, color: '#07b6d5' }}>
+                  <span style={{ fontSize: 11, color: '#e09f3e' }}>
                     {hoveredDevice.tags.slice(0, 3).join(', ')}
                     {hoveredDevice.tags.length > 3 ? ` +${hoveredDevice.tags.length - 3}` : ''}
                   </span>

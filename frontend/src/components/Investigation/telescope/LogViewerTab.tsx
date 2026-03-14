@@ -63,7 +63,7 @@ const LogLine: React.FC<{ line: ParsedLine; lineNumber: number }> = ({ line, lin
         {line.isJson && (
           <button
             onClick={() => setExpanded(!expanded)}
-            className="text-cyan-500 hover:text-cyan-400 shrink-0"
+            className="text-amber-500 hover:text-amber-400 shrink-0"
           >
             [{expanded ? '-' : '+'}]
           </button>
@@ -173,7 +173,7 @@ const LogViewerTab: React.FC<LogViewerTabProps> = ({ namespace, kind, name, sess
           value={filterText}
           onChange={e => setFilterText(e.target.value)}
           placeholder="Filter (regex)..."
-          className="flex-1 text-[10px] bg-slate-950/60 border border-slate-800/50 rounded px-2 py-1 text-slate-300 placeholder-slate-600 focus:outline-none focus:border-cyan-700/40"
+          className="flex-1 text-[10px] bg-slate-950/60 border border-slate-800/50 rounded px-2 py-1 text-slate-300 placeholder-slate-600 focus:outline-none focus:border-amber-800/40"
         />
         {(['error', 'warn', 'info', 'debug'] as Severity[]).map(sev => (
           <button
@@ -184,7 +184,7 @@ const LogViewerTab: React.FC<LogViewerTabProps> = ({ namespace, kind, name, sess
                 ? sev === 'error' ? 'bg-red-950/40 text-red-400'
                 : sev === 'warn' ? 'bg-amber-950/40 text-amber-400'
                 : sev === 'debug' ? 'bg-slate-800/40 text-slate-500'
-                : 'bg-cyan-950/40 text-cyan-400'
+                : 'bg-amber-950/40 text-amber-400'
                 : 'text-slate-700'
             }`}
           >
@@ -193,7 +193,7 @@ const LogViewerTab: React.FC<LogViewerTabProps> = ({ namespace, kind, name, sess
         ))}
         <button
           onClick={reEnableAutoScroll}
-          className={`text-[10px] ${autoScroll ? 'text-cyan-400' : 'text-slate-600'}`}
+          className={`text-[10px] ${autoScroll ? 'text-amber-400' : 'text-slate-600'}`}
           title={autoScroll ? 'Auto-scroll ON' : 'Auto-scroll OFF (scroll detected)'}
         >
           <span className="material-symbols-outlined text-[14px]">vertical_align_bottom</span>

@@ -18,19 +18,19 @@ const PastIncidentCard: React.FC<PastIncidentCardProps> = ({ incidents }) => {
   return (
     <div className="space-y-2">
       <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mt-4 flex items-center gap-1.5">
-        <History className="w-3.5 h-3.5 text-[#07b6d5]" />
+        <History className="w-3.5 h-3.5 text-[#e09f3e]" />
         Past Incident Matches
       </h4>
       {incidents.map((incident, idx) => (
         <div
           key={incident.fingerprint_id || idx}
-          className="bg-[#1e2f33]/50 border border-[#224349] rounded-lg p-3 space-y-2"
+          className="bg-[#252118]/50 border border-[#3d3528] rounded-lg p-3 space-y-2"
         >
           {/* Header: similarity score */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-full bg-[#07b6d5]/20 flex items-center justify-center">
-                <History className="w-3 h-3 text-[#07b6d5]" />
+              <div className="w-6 h-6 rounded-full bg-[#e09f3e]/20 flex items-center justify-center">
+                <History className="w-3 h-3 text-[#e09f3e]" />
               </div>
               <span className="text-xs text-gray-400 font-mono">
                 Session {incident.session_id.slice(0, 8)}...
@@ -101,14 +101,14 @@ const PastIncidentCard: React.FC<PastIncidentCardProps> = ({ incidents }) => {
           )}
 
           {/* Time to resolve + action */}
-          <div className="flex items-center justify-between pt-1 border-t border-[#224349]">
+          <div className="flex items-center justify-between pt-1 border-t border-[#3d3528]">
             <div className="flex items-center gap-1">
               <Clock className="w-3 h-3 text-gray-500" />
               <span className="text-xs text-gray-500">
                 Resolved in {formatDuration(incident.time_to_resolve)}
               </span>
             </div>
-            <button className="text-xs bg-[#07b6d5]/20 text-[#07b6d5] px-2 py-1 rounded hover:bg-[#07b6d5]/30 transition-colors">
+            <button className="text-xs bg-[#e09f3e]/20 text-[#e09f3e] px-2 py-1 rounded hover:bg-[#e09f3e]/30 transition-colors">
               Apply Same Resolution
             </button>
           </div>

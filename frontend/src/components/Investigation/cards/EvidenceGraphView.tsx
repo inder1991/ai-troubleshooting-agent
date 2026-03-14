@@ -10,7 +10,7 @@ interface EvidenceGraphViewProps {
 
 const NODE_COLORS: Record<string, string> = {
   error_event: '#ef4444',
-  metric_anomaly: '#06b6d4',
+  metric_anomaly: '#d4922e',
   k8s_event: '#f97316',
   trace_span: '#8b5cf6',
   code_change: '#10b981',
@@ -42,7 +42,7 @@ const EvidenceGraphView: React.FC<EvidenceGraphViewProps> = ({ graph, onNodeClic
       target: e.target,
       label: e.edge_type,
       style: { stroke: `rgba(255,255,255,${e.confidence})` },
-      labelStyle: { fill: '#94a3b8', fontSize: 9 },
+      labelStyle: { fill: '#8a7e6b', fontSize: 9 },
       animated: e.edge_type === 'causes',
     }));
     return { nodes: rfNodes, edges: rfEdges };

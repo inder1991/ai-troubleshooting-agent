@@ -8,7 +8,7 @@ interface SkeletonLoaderProps {
 }
 
 export const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({ type, width, height, className = '' }) => {
-  const base = 'animate-pulse bg-[#162a2e] border border-[#224349]';
+  const base = 'animate-pulse bg-[#1e1b15] border border-[#3d3528]';
 
   if (type === 'avatar') return <div className={`${base} rounded-full ${width || 'w-8'} ${height || 'h-8'} ${className}`} />;
   if (type === 'text') return <div className={`${base} rounded ${width || 'w-full'} ${height || 'h-4'} ${className}`} />;

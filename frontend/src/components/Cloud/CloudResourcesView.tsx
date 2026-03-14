@@ -11,15 +11,15 @@ import NetworkChatDrawer from '../NetworkChat/NetworkChatDrawer';
 /* ---------- design tokens ---------- */
 
 const COLORS = {
-  bg: '#0f2023',
-  primary: '#07b6d5',
-  cardBg: 'rgba(7,182,213,0.04)',
-  cardBorder: 'rgba(7,182,213,0.12)',
-  textPrimary: '#e2e8f0',
-  textSecondary: '#94a3b8',
+  bg: '#1a1814',
+  primary: '#e09f3e',
+  cardBg: 'rgba(224,159,62,0.04)',
+  cardBorder: 'rgba(224,159,62,0.12)',
+  textPrimary: '#e8e0d4',
+  textSecondary: '#8a7e6b',
   textMuted: '#475569',
-  inputBg: 'rgba(7,182,213,0.06)',
-  inputBorder: 'rgba(7,182,213,0.18)',
+  inputBg: 'rgba(224,159,62,0.06)',
+  inputBorder: 'rgba(224,159,62,0.18)',
   danger: '#ef4444',
   success: '#22c55e',
   warning: '#f59e0b',
@@ -102,7 +102,7 @@ const styles = {
     fontSize: 12,
     fontWeight: active ? 600 : 400,
     color: active ? COLORS.primary : COLORS.textSecondary,
-    background: active ? 'rgba(7,182,213,0.08)' : 'transparent',
+    background: active ? 'rgba(224,159,62,0.08)' : 'transparent',
     border: 'none',
     borderBottom: active ? `2px solid ${COLORS.primary}` : '2px solid transparent',
     cursor: 'pointer',
@@ -151,7 +151,7 @@ const styles = {
 
   td: {
     padding: '10px 12px',
-    borderBottom: '1px solid rgba(7,182,213,0.06)',
+    borderBottom: '1px solid rgba(224,159,62,0.06)',
     color: COLORS.textPrimary,
   } as React.CSSProperties,
 
@@ -191,7 +191,7 @@ const styles = {
     marginTop: 16,
     padding: '12px 16px',
     borderRadius: 8,
-    background: 'rgba(7,182,213,0.03)',
+    background: 'rgba(224,159,62,0.03)',
     border: `1px solid ${COLORS.cardBorder}`,
     display: 'flex',
     flexWrap: 'wrap' as const,
@@ -206,7 +206,7 @@ const styles = {
     padding: '2px 6px',
     borderRadius: 4,
     fontSize: 11,
-    background: 'rgba(7,182,213,0.10)',
+    background: 'rgba(224,159,62,0.10)',
     color: COLORS.primary,
     marginRight: 4,
     marginBottom: 2,
@@ -222,7 +222,7 @@ const styles = {
       tier === 1
         ? 'rgba(34,197,94,0.12)'
         : tier === 2
-          ? 'rgba(7,182,213,0.12)'
+          ? 'rgba(224,159,62,0.12)'
           : 'rgba(245,158,11,0.12)',
     color:
       tier === 1 ? COLORS.success : tier === 2 ? COLORS.primary : COLORS.warning,
@@ -601,7 +601,7 @@ export function CloudResourcesView() {
                         style={{ transition: 'background 0.1s ease' }}
                         onMouseEnter={(e) => {
                           (e.currentTarget as HTMLTableRowElement).style.background =
-                            'rgba(7,182,213,0.05)';
+                            'rgba(224,159,62,0.05)';
                         }}
                         onMouseLeave={(e) => {
                           (e.currentTarget as HTMLTableRowElement).style.background = 'transparent';
@@ -627,7 +627,7 @@ export function CloudResourcesView() {
                                 </span>
                               ))}
                               {tagEntries.length > 3 && (
-                                <span style={{ ...styles.tag, background: 'rgba(7,182,213,0.06)' }}>
+                                <span style={{ ...styles.tag, background: 'rgba(224,159,62,0.06)' }}>
                                   +{tagEntries.length - 3}
                                 </span>
                               )}

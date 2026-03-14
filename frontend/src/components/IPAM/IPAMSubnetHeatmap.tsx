@@ -9,7 +9,7 @@ interface Props {
 
 const STATUS_COLORS: Record<string, string> = {
   available: '#10b981',
-  assigned: '#06b6d4',
+  assigned: '#d4922e',
   reserved: '#3b82f6',
   deprecated: '#64748b',
   gateway: '#f59e0b',

@@ -9,7 +9,7 @@ const severityColor = (severity: VerdictEvent['severity']) => {
   switch (severity) {
     case 'FATAL': return '#ef4444';
     case 'WARN': return '#f59e0b';
-    case 'INFO': return '#07b6d5';
+    case 'INFO': return '#e09f3e';
   }
 };
 
@@ -28,7 +28,7 @@ const VerdictStack: React.FC<VerdictStackProps> = ({ events }) => {
           return (
             <div key={i} className="relative group">
               <div
-                className="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full ring-4 ring-[#0f2023] group-hover:ring-opacity-50 transition-all"
+                className="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full ring-4 ring-[#1a1814] group-hover:ring-opacity-50 transition-all"
                 style={{ backgroundColor: color }}
               />
               <div className="text-xs font-mono" style={{ color }}>

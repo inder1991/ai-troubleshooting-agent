@@ -13,7 +13,7 @@ interface AgentDetailViewProps {
 }
 
 const STATUS_COLORS: Record<AgentInfo['status'], string> = {
-  active: '#07b6d5',
+  active: '#e09f3e',
   degraded: '#f59e0b',
   offline: '#ef4444',
 };
@@ -59,31 +59,31 @@ const AgentDetailView: React.FC<AgentDetailViewProps> = ({ agent, onBack }) => {
   const statusColor = STATUS_COLORS[agent.status];
 
   return (
-    <div className="flex flex-col h-full overflow-hidden" style={{ backgroundColor: '#0f2023' }}>
+    <div className="flex flex-col h-full overflow-hidden" style={{ backgroundColor: '#1a1814' }}>
       {/* Top bar */}
       <header
         className="flex items-center gap-4 px-8 py-5 border-b flex-shrink-0"
-        style={{ borderColor: '#224349', backgroundColor: '#0a1214' }}
+        style={{ borderColor: '#3d3528', backgroundColor: '#0a1214' }}
       >
         <button
           onClick={onBack}
           className="flex items-center justify-center w-9 h-9 rounded-lg border transition-colors hover:text-white"
-          style={{ borderColor: '#224349', color: '#64748b' }}
+          style={{ borderColor: '#3d3528', color: '#64748b' }}
           title="Back to Agent Matrix"
         >
-          <span className="material-symbols-outlined text-lg" style={{ fontFamily: 'Material Symbols Outlined' }}>arrow_back</span>
+          <span className="material-symbols-outlined text-lg">arrow_back</span>
         </button>
 
         <div
           className="w-11 h-11 rounded-lg flex items-center justify-center border"
           style={{
-            backgroundColor: 'rgba(7,182,213,0.1)',
-            borderColor: 'rgba(7,182,213,0.2)',
+            backgroundColor: 'rgba(224,159,62,0.1)',
+            borderColor: 'rgba(224,159,62,0.2)',
           }}
         >
           <span
             className="material-symbols-outlined text-xl"
-            style={{ fontFamily: 'Material Symbols Outlined', color: '#07b6d5' }}
+            style={{ color: '#e09f3e' }}
           >
             {agent.icon}
           </span>
@@ -94,7 +94,7 @@ const AgentDetailView: React.FC<AgentDetailViewProps> = ({ agent, onBack }) => {
             <h1 className="text-lg font-mono font-bold text-white">{agent.name}</h1>
             <span
               className="text-[9px] font-mono font-semibold uppercase px-2 py-0.5 rounded-full"
-              style={{ backgroundColor: 'rgba(7,182,213,0.15)', color: '#07b6d5' }}
+              style={{ backgroundColor: 'rgba(224,159,62,0.15)', color: '#e09f3e' }}
             >
               LVL {agent.level}
             </span>
@@ -112,7 +112,7 @@ const AgentDetailView: React.FC<AgentDetailViewProps> = ({ agent, onBack }) => {
               {STATUS_LABELS[agent.status]}
             </span>
           </div>
-          <p className="text-xs mt-0.5" style={{ color: '#94a3b8' }}>{agent.description}</p>
+          <p className="text-xs mt-0.5" style={{ color: '#8a7e6b' }}>{agent.description}</p>
         </div>
       </header>
 

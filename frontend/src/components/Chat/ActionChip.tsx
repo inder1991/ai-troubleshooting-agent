@@ -11,10 +11,10 @@ interface ActionChipProps {
 
 const variantStyles: Record<ActionChipProps['variant'], { bg: string; border: string; text: string; hoverBg: string }> = {
   primary: {
-    bg: 'bg-cyan-500/15',
-    border: 'border-cyan-500/30',
-    text: 'text-cyan-400',
-    hoverBg: 'hover:bg-cyan-500/25',
+    bg: 'bg-amber-500/15',
+    border: 'border-amber-500/30',
+    text: 'text-amber-400',
+    hoverBg: 'hover:bg-amber-500/25',
   },
   warning: {
     bg: 'bg-amber-500/15',

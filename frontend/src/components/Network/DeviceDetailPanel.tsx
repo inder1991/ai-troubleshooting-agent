@@ -28,7 +28,7 @@ const panelStyle: React.CSSProperties = {
   bottom: 0,
   width: 'min(520px, 90vw)',
   background: '#0a1a1f',
-  borderLeft: '1px solid rgba(7,182,213,0.2)',
+  borderLeft: '1px solid rgba(224,159,62,0.2)',
   zIndex: 1000,
   overflowY: 'auto',
   padding: '20px 24px',
@@ -43,8 +43,8 @@ const overlayStyle: React.CSSProperties = {
 };
 
 const cardStyle: React.CSSProperties = {
-  background: 'rgba(7,182,213,0.04)',
-  border: '1px solid rgba(7,182,213,0.12)',
+  background: 'rgba(224,159,62,0.04)',
+  border: '1px solid rgba(224,159,62,0.12)',
   borderRadius: 10,
   padding: 20,
 };
@@ -76,7 +76,7 @@ const statusColors: Record<string, string> = {
   up: '#22c55e',
   down: '#ef4444',
   unreachable: '#f59e0b',
-  new: '#07b6d5',
+  new: '#e09f3e',
 };
 
 const severityColors: Record<string, string> = {
@@ -85,8 +85,8 @@ const severityColors: Record<string, string> = {
   critical: '#ef4444',
   error: '#f97316',
   warning: '#eab308',
-  notice: '#07b6d5',
-  info: '#94a3b8',
+  notice: '#e09f3e',
+  info: '#8a7e6b',
   debug: '#64748b',
   // Trap severities
   major: '#ef4444',
@@ -165,14 +165,14 @@ const CircularGauge = ({
           strokeLinecap="round"
           transform={`rotate(-90 ${cx} ${cy})`}
         />
-        <text x={cx} y={cy - 4} textAnchor="middle" fill="#e2e8f0" fontSize={16} fontWeight={700}>
+        <text x={cx} y={cy - 4} textAnchor="middle" fill="#e8e0d4" fontSize={16} fontWeight={700}>
           {(value ?? 0).toFixed(0)}
         </text>
         <text x={cx} y={cy + 12} textAnchor="middle" fill="#64748b" fontSize={9}>
           {unit}
         </text>
       </svg>
-      <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>{label}</div>
+      <div style={{ fontSize: 11, color: '#8a7e6b', marginTop: 4 }}>{label}</div>
     </div>
   );
 };
@@ -185,14 +185,14 @@ const ChartTooltipContent = ({ active, payload, label }: any) => {
   return (
     <div
       style={{
-        background: '#0f2023',
-        border: '1px solid rgba(7,182,213,0.2)',
+        background: '#1a1814',
+        border: '1px solid rgba(224,159,62,0.2)',
         borderRadius: 6,
         padding: '8px 12px',
         fontSize: 11,
       }}
     >
-      <div style={{ color: '#94a3b8', marginBottom: 4 }}>{label}</div>
+      <div style={{ color: '#8a7e6b', marginBottom: 4 }}>{label}</div>
       {payload.map((p: any, i: number) => (
         <div key={i} style={{ color: p.color, fontWeight: 600 }}>
           {p.name}: {p.value != null ? `${p.value.toFixed(1)}%` : '--'}
@@ -277,12 +277,12 @@ const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({ device: devicePro
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
             <span
               className="material-symbols-outlined"
-              style={{ fontSize: 28, color: '#07b6d5' }}
+              style={{ fontSize: 28, color: '#e09f3e' }}
             >
               dns
             </span>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 18, fontWeight: 700, color: '#e2e8f0' }}>
+              <div style={{ fontSize: 18, fontWeight: 700, color: '#e8e0d4' }}>
                 {device.hostname}
               </div>
               <div style={{ fontSize: 13, color: '#64748b' }}>{device.management_ip}</div>
@@ -321,7 +321,7 @@ const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({ device: devicePro
             style={{
               fontSize: 12,
               fontWeight: 700,
-              color: '#07b6d5',
+              color: '#e09f3e',
               textTransform: 'uppercase',
               letterSpacing: 1,
               marginBottom: 12,
@@ -335,7 +335,7 @@ const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({ device: devicePro
                 <div style={{ fontSize: 10, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>
                   {label}
                 </div>
-                <div style={{ fontSize: 13, color: '#e2e8f0', wordBreak: 'break-all' }}>
+                <div style={{ fontSize: 13, color: '#e8e0d4', wordBreak: 'break-all' }}>
                   {val ?? '--'}
                 </div>
               </div>
@@ -350,7 +350,7 @@ const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({ device: devicePro
               style={{
                 fontSize: 12,
                 fontWeight: 700,
-                color: '#07b6d5',
+                color: '#e09f3e',
                 textTransform: 'uppercase',
                 letterSpacing: 1,
                 marginBottom: 10,
@@ -367,9 +367,9 @@ const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({ device: devicePro
                     fontWeight: 600,
                     padding: '3px 10px',
                     borderRadius: 999,
-                    background: 'rgba(7,182,213,0.1)',
-                    color: '#07b6d5',
-                    border: '1px solid rgba(7,182,213,0.2)',
+                    background: 'rgba(224,159,62,0.1)',
+                    color: '#e09f3e',
+                    border: '1px solid rgba(224,159,62,0.2)',
                   }}
                 >
                   {tag}
@@ -386,7 +386,7 @@ const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({ device: devicePro
               style={{
                 fontSize: 12,
                 fontWeight: 700,
-                color: '#07b6d5',
+                color: '#e09f3e',
                 textTransform: 'uppercase',
                 letterSpacing: 1,
                 marginBottom: 10,
@@ -408,7 +408,7 @@ const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({ device: devicePro
                     border: '1px solid rgba(148,163,184,0.08)',
                   }}
                 >
-                  <span style={{ fontSize: 12, color: '#e2e8f0', fontWeight: 600, textTransform: 'uppercase' }}>
+                  <span style={{ fontSize: 12, color: '#e8e0d4', fontWeight: 600, textTransform: 'uppercase' }}>
                     {p.protocol}
                   </span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -441,7 +441,7 @@ const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({ device: devicePro
               style={{
                 fontSize: 12,
                 fontWeight: 700,
-                color: '#07b6d5',
+                color: '#e09f3e',
                 textTransform: 'uppercase',
                 letterSpacing: 1,
                 marginBottom: 10,
@@ -451,13 +451,13 @@ const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({ device: devicePro
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, textAlign: 'center' }}>
               <div>
-                <div style={{ fontSize: 18, fontWeight: 700, color: '#e2e8f0' }}>
+                <div style={{ fontSize: 18, fontWeight: 700, color: '#e8e0d4' }}>
                   {device.last_ping.rtt_avg.toFixed(1)}
                 </div>
                 <div style={{ fontSize: 10, color: '#64748b' }}>RTT avg (ms)</div>
               </div>
               <div>
-                <div style={{ fontSize: 18, fontWeight: 700, color: '#e2e8f0' }}>
+                <div style={{ fontSize: 18, fontWeight: 700, color: '#e8e0d4' }}>
                   {device.last_ping.rtt_max.toFixed(1)}
                 </div>
                 <div style={{ fontSize: 10, color: '#64748b' }}>RTT max (ms)</div>
@@ -485,7 +485,7 @@ const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({ device: devicePro
               style={{
                 fontSize: 12,
                 fontWeight: 700,
-                color: '#07b6d5',
+                color: '#e09f3e',
                 textTransform: 'uppercase',
                 letterSpacing: 1,
                 marginBottom: 10,
@@ -498,7 +498,7 @@ const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({ device: devicePro
                 const relationshipColors: Record<string, { bg: string; text: string }> = {
                   parent: { bg: 'rgba(168,85,247,0.12)', text: '#a855f7' },
                   child: { bg: 'rgba(34,197,94,0.12)', text: '#22c55e' },
-                  peer: { bg: 'rgba(7,182,213,0.12)', text: '#07b6d5' },
+                  peer: { bg: 'rgba(224,159,62,0.12)', text: '#e09f3e' },
                 };
                 const relStyle = relationshipColors[neighbor.relationship] || relationshipColors.peer;
 
@@ -519,7 +519,7 @@ const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({ device: devicePro
                     }}
                     onMouseEnter={(e) => {
                       if (onSelectDevice) {
-                        e.currentTarget.style.background = 'rgba(7,182,213,0.06)';
+                        e.currentTarget.style.background = 'rgba(224,159,62,0.06)';
                       }
                     }}
                     onMouseLeave={(e) => {
@@ -529,13 +529,13 @@ const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({ device: devicePro
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <span
                         className="material-symbols-outlined"
-                        style={{ fontSize: 16, color: '#07b6d5' }}
+                        style={{ fontSize: 16, color: '#e09f3e' }}
                       >
                         {neighbor.relationship === 'parent' ? 'arrow_upward'
                           : neighbor.relationship === 'child' ? 'arrow_downward'
                           : 'swap_horiz'}
                       </span>
-                      <span style={{ fontSize: 13, color: '#e2e8f0', fontWeight: 500 }}>
+                      <span style={{ fontSize: 13, color: '#e8e0d4', fontWeight: 500 }}>
                         {neighbor.hostname}
                       </span>
                     </div>
@@ -584,7 +584,7 @@ const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({ device: devicePro
             style={{
               fontSize: 12,
               fontWeight: 700,
-              color: '#07b6d5',
+              color: '#e09f3e',
               textTransform: 'uppercase',
               letterSpacing: 1,
               marginBottom: 14,
@@ -593,7 +593,7 @@ const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({ device: devicePro
             Current
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-around' }}>
-            <CircularGauge value={snapshot?.cpu_pct ?? null} label="CPU" color="#07b6d5" />
+            <CircularGauge value={snapshot?.cpu_pct ?? null} label="CPU" color="#e09f3e" />
             <CircularGauge value={snapshot?.mem_pct ?? null} label="Memory" color="#22c55e" />
             <CircularGauge
               value={snapshot?.temperature ?? null}
@@ -613,9 +613,9 @@ const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({ device: devicePro
               onClick={() => setMetricsWindow(w)}
               style={{
                 ...tabBtnBase,
-                background: metricsWindow === w ? 'rgba(7,182,213,0.15)' : 'rgba(148,163,184,0.06)',
-                color: metricsWindow === w ? '#07b6d5' : '#94a3b8',
-                border: metricsWindow === w ? '1px solid rgba(7,182,213,0.3)' : '1px solid rgba(148,163,184,0.1)',
+                background: metricsWindow === w ? 'rgba(224,159,62,0.15)' : 'rgba(148,163,184,0.06)',
+                color: metricsWindow === w ? '#e09f3e' : '#8a7e6b',
+                border: metricsWindow === w ? '1px solid rgba(224,159,62,0.3)' : '1px solid rgba(148,163,184,0.1)',
               }}
             >
               {w}
@@ -629,7 +629,7 @@ const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({ device: devicePro
             style={{
               fontSize: 12,
               fontWeight: 700,
-              color: '#07b6d5',
+              color: '#e09f3e',
               textTransform: 'uppercase',
               letterSpacing: 1,
               marginBottom: 12,
@@ -659,7 +659,7 @@ const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({ device: devicePro
                   type="monotone"
                   dataKey="cpu"
                   name="CPU"
-                  stroke="#07b6d5"
+                  stroke="#e09f3e"
                   strokeWidth={2}
                   dot={false}
                   connectNulls
@@ -734,7 +734,7 @@ const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({ device: devicePro
     const tdStyle: React.CSSProperties = {
       padding: '7px 8px',
       fontSize: 12,
-      color: '#e2e8f0',
+      color: '#e8e0d4',
       borderBottom: '1px solid rgba(148,163,184,0.06)',
       whiteSpace: 'nowrap',
     };
@@ -751,7 +751,7 @@ const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({ device: devicePro
           style={{
             fontSize: 12,
             fontWeight: 700,
-            color: '#07b6d5',
+            color: '#e09f3e',
             textTransform: 'uppercase',
             letterSpacing: 1,
             marginBottom: 12,
@@ -782,7 +782,7 @@ const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({ device: devicePro
                   const errTotal = iface.in_errors + iface.out_errors + iface.in_discards + iface.out_discards;
                   return (
                     <tr key={iface.name} style={{ background: getRowBg(iface.utilization_pct) }}>
-                      <td style={{ ...tdStyle, fontWeight: 600, color: '#07b6d5' }}>{iface.name}</td>
+                      <td style={{ ...tdStyle, fontWeight: 600, color: '#e09f3e' }}>{iface.name}</td>
                       <td style={tdStyle}>
                         <span
                           style={{
@@ -853,7 +853,7 @@ const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({ device: devicePro
     const tdStyle: React.CSSProperties = {
       padding: '7px 8px',
       fontSize: 12,
-      color: '#e2e8f0',
+      color: '#e8e0d4',
       borderBottom: '1px solid rgba(148,163,184,0.06)',
     };
 
@@ -863,7 +863,7 @@ const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({ device: devicePro
           style={{
             fontSize: 12,
             fontWeight: 700,
-            color: '#07b6d5',
+            color: '#e09f3e',
             textTransform: 'uppercase',
             letterSpacing: 1,
             marginBottom: 12,
@@ -889,7 +889,7 @@ const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({ device: devicePro
               <tbody>
                 {syslog.map((entry) => (
                   <tr key={entry.event_id}>
-                    <td style={{ ...tdStyle, whiteSpace: 'nowrap', fontSize: 11, color: '#94a3b8' }}>
+                    <td style={{ ...tdStyle, whiteSpace: 'nowrap', fontSize: 11, color: '#8a7e6b' }}>
                       {formatTimestamp(entry.timestamp)}
                     </td>
                     <td style={tdStyle}>
@@ -907,7 +907,7 @@ const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({ device: devicePro
                         {entry.severity}
                       </span>
                     </td>
-                    <td style={{ ...tdStyle, whiteSpace: 'nowrap', fontWeight: 600, color: '#94a3b8' }}>
+                    <td style={{ ...tdStyle, whiteSpace: 'nowrap', fontWeight: 600, color: '#8a7e6b' }}>
                       {entry.app_name || '--'}
                     </td>
                     <td
@@ -948,7 +948,7 @@ const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({ device: devicePro
     const tdStyle: React.CSSProperties = {
       padding: '7px 8px',
       fontSize: 12,
-      color: '#e2e8f0',
+      color: '#e8e0d4',
       borderBottom: '1px solid rgba(148,163,184,0.06)',
     };
 
@@ -958,7 +958,7 @@ const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({ device: devicePro
           style={{
             fontSize: 12,
             fontWeight: 700,
-            color: '#07b6d5',
+            color: '#e09f3e',
             textTransform: 'uppercase',
             letterSpacing: 1,
             marginBottom: 12,
@@ -984,7 +984,7 @@ const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({ device: devicePro
               <tbody>
                 {traps.map((trap) => (
                   <tr key={trap.event_id}>
-                    <td style={{ ...tdStyle, whiteSpace: 'nowrap', fontSize: 11, color: '#94a3b8' }}>
+                    <td style={{ ...tdStyle, whiteSpace: 'nowrap', fontSize: 11, color: '#8a7e6b' }}>
                       {formatTimestamp(trap.timestamp)}
                     </td>
                     <td style={tdStyle}>
@@ -1002,16 +1002,8 @@ const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({ device: devicePro
                         {trap.severity}
                       </span>
                     </td>
-                    <td
-                      style={{
-                        ...tdStyle,
-                        fontFamily: 'monospace',
-                        fontSize: 11,
-                        maxWidth: 180,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}
+                    <td className="font-mono"
+                      style={{ ...tdStyle, fontSize: 11, maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
                       title={trap.oid}
                     >
                       {trap.oid}
@@ -1074,15 +1066,15 @@ const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({ device: devicePro
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: '#94a3b8',
+            color: '#8a7e6b',
             transition: 'all .15s',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.color = '#e2e8f0';
+            e.currentTarget.style.color = '#e8e0d4';
             e.currentTarget.style.background = 'rgba(148,163,184,0.15)';
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.color = '#94a3b8';
+            e.currentTarget.style.color = '#8a7e6b';
             e.currentTarget.style.background = 'rgba(148,163,184,0.08)';
           }}
         >
@@ -1093,7 +1085,7 @@ const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({ device: devicePro
 
         {/* Header */}
         <div style={{ marginBottom: 18, paddingRight: 36 }}>
-          <div style={{ fontSize: 16, fontWeight: 700, color: '#e2e8f0' }}>
+          <div style={{ fontSize: 16, fontWeight: 700, color: '#e8e0d4' }}>
             {loading ? 'Loading...' : device?.hostname ?? deviceId}
           </div>
           <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
@@ -1121,11 +1113,11 @@ const DeviceDetailPanel: React.FC<DeviceDetailPanelProps> = ({ device: devicePro
                 alignItems: 'center',
                 gap: 5,
                 background:
-                  activeTab === tab.key ? 'rgba(7,182,213,0.12)' : 'transparent',
-                color: activeTab === tab.key ? '#07b6d5' : '#94a3b8',
+                  activeTab === tab.key ? 'rgba(224,159,62,0.12)' : 'transparent',
+                color: activeTab === tab.key ? '#e09f3e' : '#8a7e6b',
                 border:
                   activeTab === tab.key
-                    ? '1px solid rgba(7,182,213,0.25)'
+                    ? '1px solid rgba(224,159,62,0.25)'
                     : '1px solid transparent',
               }}
               onMouseEnter={(e) => {

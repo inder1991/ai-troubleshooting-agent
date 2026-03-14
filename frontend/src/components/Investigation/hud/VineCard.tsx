@@ -34,7 +34,7 @@ const VineCard: React.FC<VineCardProps> = ({
         className={`absolute left-[11px] top-8 w-3 h-3 rounded-full border-2 border-slate-950 transition-all ${
           isRootCause
             ? 'bg-red-500 shadow-[0_0_10px_#ef4444]'
-            : 'bg-cyan-500/50 shadow-[0_0_5px_rgba(6,182,212,0.5)]'
+            : 'bg-amber-500/50 shadow-[0_0_5px_rgba(212,146,46,0.5)]'
         } ${isNew ? 'animate-vine-connect' : ''}`}
       />
 
@@ -53,8 +53,8 @@ const VineCard: React.FC<VineCardProps> = ({
               onClick={onPin}
               className={`p-1 rounded-md transition-colors ${
                 isPinned
-                  ? 'bg-cyan-500/20 text-cyan-400'
-                  : 'bg-slate-800/80 text-slate-500 hover:text-cyan-400'
+                  ? 'bg-amber-500/20 text-amber-400'
+                  : 'bg-slate-800/80 text-slate-500 hover:text-amber-400'
               }`}
               aria-label={isPinned ? 'Unpin evidence' : 'Pin evidence'}
             >

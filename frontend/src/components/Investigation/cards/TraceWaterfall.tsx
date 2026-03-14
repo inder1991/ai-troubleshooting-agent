@@ -29,7 +29,7 @@ const TraceWaterfall: React.FC<TraceWaterfallProps> = ({ spans, onSpanClick }) =
   return (
     <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-4 space-y-3">
       <div className="flex items-center gap-2">
-        <span className="material-symbols-outlined text-cyan-400 text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>stacked_bar_chart</span>
+        <span className="material-symbols-outlined text-amber-400 text-sm">stacked_bar_chart</span>
         <span className="text-[11px] font-bold uppercase tracking-wider">Trace Waterfall</span>
         <span className="text-[10px] text-slate-500 ml-auto">{spans.length} spans, {totalDuration.toFixed(0)}ms</span>
         {errorCount > 0 && <span className="text-red-400 text-[10px] font-bold">{errorCount} errors</span>}
@@ -49,9 +49,9 @@ const TraceWaterfall: React.FC<TraceWaterfallProps> = ({ spans, onSpanClick }) =
                 className={`flex items-center gap-2 py-0.5 w-full text-left ${hasDetail ? 'cursor-pointer hover:bg-slate-800/30 rounded' : 'cursor-default'}`}
                 style={{ paddingLeft: `${depth * 16}px` }}
               >
-                <span className="text-[10px] font-mono text-[#07b6d5] w-20 shrink-0 truncate">{span.service}</span>
+                <span className="text-[10px] font-mono text-[#e09f3e] w-20 shrink-0 truncate">{span.service}</span>
                 <span
-                  className={`text-[10px] w-28 shrink-0 truncate ${onSpanClick ? 'text-cyan-400 hover:text-cyan-300 hover:underline cursor-pointer' : 'text-slate-400'}`}
+                  className={`text-[10px] w-28 shrink-0 truncate ${onSpanClick ? 'text-amber-400 hover:text-amber-300 hover:underline cursor-pointer' : 'text-slate-400'}`}
                   onClick={onSpanClick ? (e) => { e.stopPropagation(); onSpanClick(span); } : undefined}
                   title={onSpanClick ? `Investigate ${span.operation}` : undefined}
                 >{span.operation}</span>

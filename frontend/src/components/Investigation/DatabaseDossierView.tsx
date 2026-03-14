@@ -44,7 +44,7 @@ const DossierSection: React.FC<{
   >
     <div className="flex items-center gap-3 mb-4 border-b border-slate-800 pb-2">
       <div className="w-1 h-6 bg-violet-500 shadow-[0_0_10px_rgba(139,92,246,0.5)]" />
-      <span className="material-symbols-outlined text-violet-400" style={{ fontFamily: 'Material Symbols Outlined' }}>
+      <span className="material-symbols-outlined text-violet-400">
         {icon}
       </span>
       <h2 className="text-lg font-bold text-white">{title}</h2>
@@ -93,7 +93,7 @@ const DatabaseDossierView: React.FC<DatabaseDossierViewProps> = ({ sessionId, on
           onClick={onBack}
           className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-white mb-6 transition-colors"
         >
-          <span className="material-symbols-outlined text-base" style={{ fontFamily: 'Material Symbols Outlined' }}>arrow_back</span>
+          <span className="material-symbols-outlined text-base">arrow_back</span>
           <span>Back to Investigation</span>
         </button>
 
@@ -116,7 +116,7 @@ const DatabaseDossierView: React.FC<DatabaseDossierViewProps> = ({ sessionId, on
               href={`#${s.id}`}
               className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] text-slate-400 hover:text-white bg-duck-card/30 border border-duck-border hover:border-violet-500/30 transition-colors"
             >
-              <span className="material-symbols-outlined text-xs" style={{ fontFamily: 'Material Symbols Outlined' }}>{s.icon}</span>
+              <span className="material-symbols-outlined text-xs">{s.icon}</span>
               {s.title}
             </a>
           ))}
@@ -143,7 +143,7 @@ const DatabaseDossierView: React.FC<DatabaseDossierViewProps> = ({ sessionId, on
         {/* Findings by Agent */}
         <DossierSection id="findings-by-agent" title="Findings by Agent" icon="psychology" index={2}>
           {[
-            { label: 'Query Analyst', items: queryFindings, color: 'cyan' },
+            { label: 'Query Analyst', items: queryFindings, color: 'gold' },
             { label: 'Health Analyst', items: healthFindings, color: 'emerald' },
             { label: 'Schema Analyst', items: schemaFindings, color: 'amber' },
           ].map(({ label, items, color }) => (

@@ -23,7 +23,7 @@ const TRIAGE_SEQUENCE: TriageStatus[] = ['untriaged', 'acknowledged', 'mitigated
 const TRIAGE_COLORS: Record<TriageStatus, string> = {
   untriaged: 'text-red-400 bg-red-950/30',
   acknowledged: 'text-amber-400 bg-amber-950/30',
-  mitigated: 'text-cyan-400 bg-cyan-950/30',
+  mitigated: 'text-amber-400 bg-amber-950/30',
   resolved: 'text-emerald-400 bg-emerald-950/30',
 };
 
@@ -105,7 +105,7 @@ const CausalTreeCard: React.FC<CausalTreeCardProps> = ({ tree, sessionId, onTria
               <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Correlated Signals</span>
               {tree.correlated_signals.map((sig, i) => (
                 <div key={i} className="text-[10px] text-slate-400">
-                  <span className="text-cyan-400">{sig.group_name}</span>: {sig.narrative}
+                  <span className="text-amber-400">{sig.group_name}</span>: {sig.narrative}
                 </div>
               ))}
             </div>

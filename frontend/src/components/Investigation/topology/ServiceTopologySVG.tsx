@@ -16,7 +16,7 @@ const nodeStyles: Record<TopologyNode['role'], { fill: string; stroke: string; c
   upstream: { fill: '#431407', stroke: '#f97316' },
   downstream: { fill: '#1e3a5f', stroke: '#3b82f6' },
   blast_radius: { fill: '#431407', stroke: '#f97316' },
-  normal: { fill: '#0f3443', stroke: '#06b6d4' },
+  normal: { fill: '#0f3443', stroke: '#d4922e' },
 };
 
 const edgeStyles: Record<TopologyEdge['type'], string> = {
@@ -157,7 +157,7 @@ const ServiceTopologySVG: React.FC<ServiceTopologySVGProps> = ({
               x={node.x}
               y={node.y + NODE_RADIUS + 14}
               textAnchor="middle"
-              fill="#94a3b8"
+              fill="#8a7e6b"
               fontSize="9"
               fontFamily="monospace"
             >
@@ -180,7 +180,7 @@ const ServiceTopologySVG: React.FC<ServiceTopologySVGProps> = ({
                 x={node.x}
                 y={node.y + 4}
                 textAnchor="middle"
-                fill="#94a3b8"
+                fill="#8a7e6b"
                 fontSize="8"
               >
                 {node.id.slice(0, 3).toUpperCase()}

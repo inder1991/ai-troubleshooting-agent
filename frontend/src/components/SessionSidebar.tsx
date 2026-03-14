@@ -15,17 +15,18 @@ interface SessionSidebarProps {
 
 const phaseColors: Record<DiagnosticPhase, string> = {
   initial: 'bg-gray-500',
-  collecting_context: 'bg-[#07b6d5]',
-  logs_analyzed: 'bg-[#07b6d5]/80',
-  metrics_analyzed: 'bg-[#07b6d5]/80',
-  k8s_analyzed: 'bg-[#07b6d5]/80',
-  tracing_analyzed: 'bg-[#07b6d5]/80',
-  code_analyzed: 'bg-[#07b6d5]/80',
+  collecting_context: 'bg-[#e09f3e]',
+  logs_analyzed: 'bg-[#e09f3e]/80',
+  metrics_analyzed: 'bg-[#e09f3e]/80',
+  k8s_analyzed: 'bg-[#e09f3e]/80',
+  tracing_analyzed: 'bg-[#e09f3e]/80',
+  code_analyzed: 'bg-[#e09f3e]/80',
   validating: 'bg-yellow-500',
   re_investigating: 'bg-orange-500',
   diagnosis_complete: 'bg-green-500',
   fix_in_progress: 'bg-purple-500',
   complete: 'bg-green-600',
+  cancelled: 'bg-slate-500',
   error: 'bg-red-500',
 };
 
@@ -63,12 +64,12 @@ const SessionSidebar: React.FC<SessionSidebarProps> = ({
   };
 
   return (
-    <div className="w-64 bg-[#0a1a1d] border-r border-[#224349] flex flex-col h-full">
+    <div className="w-64 bg-[#12110e] border-r border-[#3d3528] flex flex-col h-full">
       {/* Logo */}
-      <div className="p-4 border-b border-[#224349]">
+      <div className="p-4 border-b border-[#3d3528]">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-[#07b6d5]/20 flex items-center justify-center">
-            <Zap className="w-4 h-4 text-[#07b6d5]" />
+          <div className="w-8 h-8 rounded-lg bg-[#e09f3e]/20 flex items-center justify-center">
+            <Zap className="w-4 h-4 text-[#e09f3e]" />
           </div>
           <div>
             <h1 className="text-sm font-bold text-white">DebugDuck</h1>
@@ -81,7 +82,7 @@ const SessionSidebar: React.FC<SessionSidebarProps> = ({
       <div className="px-3 py-3">
         <button
           onClick={onNewMission}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#07b6d5] hover:bg-[#07b6d5]/90 text-[#0f2023] rounded-lg text-sm font-bold transition-colors"
+          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#e09f3e] hover:bg-[#e09f3e]/90 text-[#1a1814] rounded-lg text-sm font-bold transition-colors"
         >
           <Plus className="w-4 h-4" />
           New Mission
@@ -100,7 +101,7 @@ const SessionSidebar: React.FC<SessionSidebarProps> = ({
               <button
                 key={item.id}
                 onClick={item.id === 'settings' ? onSettings : undefined}
-                className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-[#1e2f33]/50 transition-colors"
+                className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-[#252118]/50 transition-colors"
               >
                 <Icon className="w-4 h-4" />
                 <span>{item.label}</span>
@@ -130,7 +131,7 @@ const SessionSidebar: React.FC<SessionSidebarProps> = ({
                 {activeSessionId === session.session_id && (
                   <motion.div
                     layoutId="sidebar-active-highlight"
-                    className="absolute inset-0 bg-[#07b6d5]/10 border border-[#07b6d5]/20 rounded-lg -z-10"
+                    className="absolute inset-0 bg-[#e09f3e]/10 border border-[#e09f3e]/20 rounded-lg -z-10"
                     transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                   />
                 )}
@@ -147,9 +148,9 @@ const SessionSidebar: React.FC<SessionSidebarProps> = ({
                 </div>
                 {session.confidence > 0 && (
                   <div className="mt-1">
-                    <div className="h-1 bg-[#224349] rounded-full overflow-hidden">
+                    <div className="h-1 bg-[#3d3528] rounded-full overflow-hidden">
                       <motion.div
-                        className="h-full bg-[#07b6d5] rounded-full shadow-[0_0_10px_rgba(34,211,238,0.5)]"
+                        className="h-full bg-[#e09f3e] rounded-full shadow-[0_0_10px_rgba(34,211,238,0.5)]"
                         initial={{ width: 0 }}
                         animate={{ width: `${Math.round(session.confidence)}%` }}
                         transition={{ type: 'spring', bounce: 0, duration: 0.8 }}
@@ -164,10 +165,10 @@ const SessionSidebar: React.FC<SessionSidebarProps> = ({
       </div>
 
       {/* Footer */}
-      <div className="p-3 border-t border-[#224349]">
+      <div className="p-3 border-t border-[#3d3528]">
         <div className="flex items-center gap-2 px-2">
-          <div className="w-6 h-6 rounded-full bg-[#07b6d5]/20 flex items-center justify-center">
-            <span className="text-[10px] text-[#07b6d5] font-bold">SRE</span>
+          <div className="w-6 h-6 rounded-full bg-[#e09f3e]/20 flex items-center justify-center">
+            <span className="text-[10px] text-[#e09f3e] font-bold">SRE</span>
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-xs text-white truncate">SRE Operator</p>

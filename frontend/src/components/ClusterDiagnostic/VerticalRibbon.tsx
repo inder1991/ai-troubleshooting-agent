@@ -25,7 +25,7 @@ const VerticalRibbon: React.FC<VerticalRibbonProps> = ({ domain, report, onClick
     >
       <span
         className={`material-symbols-outlined text-sm ${isRunning ? 'animate-pulse' : ''}`}
-        style={{ fontFamily: 'Material Symbols Outlined', color: iconColor }}
+        style={{ color: iconColor }}
       >
         {meta.icon}
       </span>

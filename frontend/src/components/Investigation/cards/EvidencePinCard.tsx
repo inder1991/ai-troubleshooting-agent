@@ -10,7 +10,7 @@ const domainColors: Record<EvidencePinDomain, { bg: string; text: string; border
   compute:       { bg: 'bg-orange-500/15', text: 'text-orange-300', border: 'border-orange-500/30' },
   network:       { bg: 'bg-violet-500/15', text: 'text-violet-300', border: 'border-violet-500/30' },
   storage:       { bg: 'bg-blue-500/15',   text: 'text-blue-300',   border: 'border-blue-500/30' },
-  control_plane: { bg: 'bg-cyan-500/15',   text: 'text-cyan-300',   border: 'border-cyan-500/30' },
+  control_plane: { bg: 'bg-amber-500/15',   text: 'text-amber-300',   border: 'border-amber-500/30' },
   security:      { bg: 'bg-red-500/15',    text: 'text-red-300',    border: 'border-red-500/30' },
   unknown:       { bg: 'bg-slate-500/15',  text: 'text-slate-300',  border: 'border-slate-500/30' },
 };
@@ -82,8 +82,7 @@ const EvidencePinCard: React.FC<EvidencePinCardProps> = ({ pin }) => {
               : 'bg-slate-500/15 text-slate-400 border border-slate-600'
           }`}>
             <span
-              className="material-symbols-outlined"
-              style={{ fontFamily: 'Material Symbols Outlined', fontSize: '10px' }}
+              className="material-symbols-outlined text-[10px]"
             >
               {pin.source === 'manual' ? 'person' : 'smart_toy'}
             </span>
@@ -143,11 +142,11 @@ const EvidencePinCard: React.FC<EvidencePinCardProps> = ({ pin }) => {
         <div className="mt-2">
           <button
             onClick={() => setShowRaw(!showRaw)}
-            className="text-[10px] text-cyan-500 hover:text-cyan-400 transition-colors flex items-center gap-1"
+            className="text-[10px] text-amber-500 hover:text-amber-400 transition-colors flex items-center gap-1"
           >
             <span
-              className="material-symbols-outlined"
-              style={{ fontFamily: 'Material Symbols Outlined', fontSize: '12px', transition: 'transform 0.2s' , transform: showRaw ? 'rotate(90deg)' : 'rotate(0deg)' }}
+              className="material-symbols-outlined text-[12px]"
+              style={{ transition: 'transform 0.2s', transform: showRaw ? 'rotate(90deg)' : 'rotate(0deg)' }}
             >
               chevron_right
             </span>
@@ -171,8 +170,7 @@ const EvidencePinCard: React.FC<EvidencePinCardProps> = ({ pin }) => {
       {pin.validation_status === 'validated' && (
         <div className="mt-2 flex items-center gap-1.5 text-[9px] text-emerald-400">
           <span
-            className="material-symbols-outlined"
-            style={{ fontFamily: 'Material Symbols Outlined', fontSize: '12px' }}
+            className="material-symbols-outlined text-[12px]"
           >
             verified
           </span>
@@ -182,8 +180,7 @@ const EvidencePinCard: React.FC<EvidencePinCardProps> = ({ pin }) => {
       {pin.validation_status === 'rejected' && (
         <div className="mt-2 flex items-center gap-1.5 text-[9px] text-slate-500">
           <span
-            className="material-symbols-outlined"
-            style={{ fontFamily: 'Material Symbols Outlined', fontSize: '12px' }}
+            className="material-symbols-outlined text-[12px]"
           >
             cancel
           </span>

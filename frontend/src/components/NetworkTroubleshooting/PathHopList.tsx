@@ -59,19 +59,19 @@ const PathHopList: React.FC<PathHopListProps> = ({ hops }) => {
             />
 
             {/* IP */}
-            <span className="flex-1 truncate" style={{ color: '#e2e8f0' }}>
+            <span className="flex-1 truncate" style={{ color: '#e8e0d4' }}>
               {hop.ip}
             </span>
 
             {/* Device name */}
             {hop.device_name && (
-              <span className="truncate max-w-[100px]" style={{ color: '#07b6d5' }}>
+              <span className="truncate max-w-[100px]" style={{ color: '#e09f3e' }}>
                 {hop.device_name}
               </span>
             )}
 
             {/* RTT */}
-            <span className="flex-shrink-0 tabular-nums" style={{ color: '#94a3b8' }}>
+            <span className="flex-shrink-0 tabular-nums" style={{ color: '#8a7e6b' }}>
               {hop.rtt_ms > 0 ? `${hop.rtt_ms.toFixed(1)}ms` : '*'}
             </span>
           </div>

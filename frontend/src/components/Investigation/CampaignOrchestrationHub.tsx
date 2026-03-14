@@ -28,7 +28,7 @@ const CampaignOrchestrationHub: React.FC<CampaignOrchestrationHubProps> = ({ cam
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800/50">
         <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-cyan-400 text-[18px]">hub</span>
+          <span className="material-symbols-outlined text-amber-400 text-[18px]">hub</span>
           <span className="text-[11px] font-black text-slate-300 tracking-[0.15em] uppercase">
             Remediation Campaign
           </span>
@@ -146,7 +146,7 @@ const CampaignOrchestrationHub: React.FC<CampaignOrchestrationHubProps> = ({ cam
                       <span className="material-symbols-outlined text-[12px] text-emerald-400">check_circle</span>
                       <span className="text-slate-400">{repo.service_name}</span>
                       {repo.pr_url && (
-                        <a href={repo.pr_url} target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:underline">
+                        <a href={repo.pr_url} target="_blank" rel="noopener noreferrer" className="text-amber-400 hover:underline">
                           PR #{repo.pr_number}
                         </a>
                       )}

@@ -12,11 +12,11 @@ const STATUS_DOT: Record<string, string> = {
   up: '#22c55e',
   down: '#ef4444',
   unreachable: '#f59e0b',
-  new: '#94a3b8',
+  new: '#8a7e6b',
 };
 
 const DeviceInstanceCard: React.FC<DeviceInstanceCardProps> = ({ device, onTest, onDelete, onPing }) => {
-  const statusColor = STATUS_DOT[device.status] || '#94a3b8';
+  const statusColor = STATUS_DOT[device.status] || '#8a7e6b';
   const rtt = device.last_ping?.rtt_avg;
   const loss = device.last_ping?.packet_loss_pct;
 
@@ -29,7 +29,7 @@ const DeviceInstanceCard: React.FC<DeviceInstanceCardProps> = ({ device, onTest,
             width: 8, height: 8, borderRadius: '50%', background: statusColor,
             boxShadow: device.status === 'up' ? `0 0 6px ${statusColor}` : undefined,
           }} />
-          <span style={{ fontSize: 12, color: '#94a3b8' }}>
+          <span style={{ fontSize: 12, color: '#8a7e6b' }}>
             {rtt !== undefined && rtt > 0 ? `${rtt.toFixed(1)}ms` : ''}
           </span>
         </div>
@@ -39,20 +39,20 @@ const DeviceInstanceCard: React.FC<DeviceInstanceCardProps> = ({ device, onTest,
       <td style={{ padding: '10px 8px' }}>
         <span style={{
           fontSize: 11, padding: '2px 6px', borderRadius: 4, fontWeight: 500,
-          background: device.discovered ? 'rgba(168,85,247,0.15)' : 'rgba(7,182,213,0.15)',
-          color: device.discovered ? '#a855f7' : '#07b6d5',
+          background: device.discovered ? 'rgba(168,85,247,0.15)' : 'rgba(224,159,62,0.15)',
+          color: device.discovered ? '#a855f7' : '#e09f3e',
         }}>
           {device.discovered ? 'Auto' : 'Manual'}
         </span>
       </td>
 
       {/* Hostname */}
-      <td style={{ padding: '10px 8px', color: '#e2e8f0', fontSize: 13, fontWeight: 500 }}>
+      <td style={{ padding: '10px 8px', color: '#e8e0d4', fontSize: 13, fontWeight: 500 }}>
         {device.hostname || device.management_ip}
       </td>
 
       {/* IP */}
-      <td style={{ padding: '10px 8px', color: '#94a3b8', fontSize: 13, fontFamily: 'monospace' }}>
+      <td className="font-mono" style={{ padding: '10px 8px', color: '#8a7e6b', fontSize: 13 }}>
         {device.management_ip}
       </td>
 
@@ -76,7 +76,7 @@ const DeviceInstanceCard: React.FC<DeviceInstanceCardProps> = ({ device, onTest,
           {device.protocols.filter(p => p.enabled).map(p => (
             <span key={p.protocol} style={{
               fontSize: 10, padding: '1px 5px', borderRadius: 3, textTransform: 'uppercase',
-              background: 'rgba(7,182,213,0.1)', color: '#07b6d5', fontWeight: 600,
+              background: 'rgba(224,159,62,0.1)', color: '#e09f3e', fontWeight: 600,
             }}>
               {p.protocol}
             </span>
@@ -85,7 +85,7 @@ const DeviceInstanceCard: React.FC<DeviceInstanceCardProps> = ({ device, onTest,
       </td>
 
       {/* Vendor */}
-      <td style={{ padding: '10px 8px', color: '#94a3b8', fontSize: 12, textTransform: 'capitalize' }}>
+      <td style={{ padding: '10px 8px', color: '#8a7e6b', fontSize: 12, textTransform: 'capitalize' }}>
         {device.vendor || '-'}
       </td>
 
@@ -95,7 +95,7 @@ const DeviceInstanceCard: React.FC<DeviceInstanceCardProps> = ({ device, onTest,
           {device.tags.slice(0, 3).map(tag => (
             <span key={tag} style={{
               fontSize: 10, padding: '1px 5px', borderRadius: 3,
-              background: 'rgba(148,163,184,0.1)', color: '#94a3b8',
+              background: 'rgba(148,163,184,0.1)', color: '#8a7e6b',
             }}>
               {tag}
             </span>
@@ -107,7 +107,7 @@ const DeviceInstanceCard: React.FC<DeviceInstanceCardProps> = ({ device, onTest,
       </td>
 
       {/* Packet Loss */}
-      <td style={{ padding: '10px 8px', color: '#94a3b8', fontSize: 12 }}>
+      <td style={{ padding: '10px 8px', color: '#8a7e6b', fontSize: 12 }}>
         {loss !== undefined ? `${loss.toFixed(0)}%` : '-'}
       </td>
 
@@ -138,7 +138,7 @@ const DeviceInstanceCard: React.FC<DeviceInstanceCardProps> = ({ device, onTest,
 
 const btnStyle: React.CSSProperties = {
   padding: 4, background: 'transparent', border: '1px solid rgba(148,163,184,0.15)',
-  borderRadius: 4, color: '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center',
+  borderRadius: 4, color: '#8a7e6b', cursor: 'pointer', display: 'flex', alignItems: 'center',
 };
 
 export default DeviceInstanceCard;

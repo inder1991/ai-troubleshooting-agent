@@ -28,7 +28,7 @@ const ClosureStepCard: React.FC<ClosureStepCardProps> = ({
       <div className="px-4 py-2.5 flex items-center gap-2">
         {completed ? (
           <span className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold bg-green-500 text-white shrink-0">
-            <span className="material-symbols-outlined text-xs" style={{ fontFamily: 'Material Symbols Outlined' }}>check</span>
+            <span className="material-symbols-outlined text-xs">check</span>
           </span>
         ) : (
           <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${
@@ -39,7 +39,7 @@ const ClosureStepCard: React.FC<ClosureStepCardProps> = ({
         )}
         <span className={`material-symbols-outlined text-sm ${
           completed ? 'text-green-400' : active ? 'text-violet-400' : 'text-slate-500'
-        }`} style={{ fontFamily: 'Material Symbols Outlined' }}>{icon}</span>
+        }`}>{icon}</span>
         <span className={`text-[11px] font-bold uppercase tracking-wider ${
           completed ? 'text-green-400' : active ? 'text-violet-400' : 'text-slate-500'
         }`}>{title}</span>

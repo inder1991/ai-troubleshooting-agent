@@ -10,7 +10,7 @@ interface TroubleshootAppFieldsProps {
 
 const envBadge: Record<string, string> = {
   prod: 'text-red-400',
-  staging: 'text-[#07b6d5]',
+  staging: 'text-[#e09f3e]',
   dev: 'text-emerald-400',
 };
 
@@ -56,7 +56,7 @@ const TroubleshootAppFields: React.FC<TroubleshootAppFieldsProps> = ({ data, onC
           <select
             value={selectedProfile}
             onChange={(e) => handleProfileSelect(e.target.value)}
-            className="w-full px-3 py-2.5 bg-[#0f2023] border border-[#224349] rounded-lg text-sm text-white focus:border-[#07b6d5] focus:outline-none focus:ring-1 focus:ring-[#07b6d5]/30 transition-colors"
+            className="w-full px-3 py-2.5 bg-[#1a1814] border border-[#3d3528] rounded-lg text-sm text-white focus:border-[#e09f3e] focus:outline-none focus:ring-1 focus:ring-[#e09f3e]/30 transition-colors"
           >
             <option value="">-- Manual Entry --</option>
             {profiles.map((p) => (
@@ -88,7 +88,7 @@ const TroubleshootAppFields: React.FC<TroubleshootAppFieldsProps> = ({ data, onC
           type="text"
           value={data.service_name}
           onChange={(e) => update({ service_name: e.target.value })}
-          className="w-full px-3 py-2.5 bg-[#0f2023] border border-[#224349] rounded-lg text-sm text-white placeholder-gray-600 focus:border-[#07b6d5] focus:outline-none focus:ring-1 focus:ring-[#07b6d5]/30 transition-colors"
+          className="w-full px-3 py-2.5 bg-[#1a1814] border border-[#3d3528] rounded-lg text-sm text-white placeholder-gray-600 focus:border-[#e09f3e] focus:outline-none focus:ring-1 focus:ring-[#e09f3e]/30 transition-colors"
           placeholder="e.g. payment-service"
           required
         />
@@ -100,7 +100,7 @@ const TroubleshootAppFields: React.FC<TroubleshootAppFieldsProps> = ({ data, onC
         <select
           value={data.time_window}
           onChange={(e) => update({ time_window: e.target.value })}
-          className="w-full px-3 py-2.5 bg-[#0f2023] border border-[#224349] rounded-lg text-sm text-white focus:border-[#07b6d5] focus:outline-none focus:ring-1 focus:ring-[#07b6d5]/30 transition-colors"
+          className="w-full px-3 py-2.5 bg-[#1a1814] border border-[#3d3528] rounded-lg text-sm text-white focus:border-[#e09f3e] focus:outline-none focus:ring-1 focus:ring-[#e09f3e]/30 transition-colors"
         >
           <option value="15m">15 minutes</option>
           <option value="30m">30 minutes</option>
@@ -118,7 +118,7 @@ const TroubleshootAppFields: React.FC<TroubleshootAppFieldsProps> = ({ data, onC
           type="text"
           value={data.trace_id || ''}
           onChange={(e) => update({ trace_id: e.target.value || undefined })}
-          className="w-full px-3 py-2.5 bg-[#0f2023] border border-[#224349] rounded-lg text-sm text-white placeholder-gray-600 focus:border-[#07b6d5] focus:outline-none focus:ring-1 focus:ring-[#07b6d5]/30 transition-colors font-mono"
+          className="w-full px-3 py-2.5 bg-[#1a1814] border border-[#3d3528] rounded-lg text-sm text-white placeholder-gray-600 focus:border-[#e09f3e] focus:outline-none focus:ring-1 focus:ring-[#e09f3e]/30 transition-colors font-mono"
           placeholder="abc123def456..."
         />
       </div>
@@ -130,7 +130,7 @@ const TroubleshootAppFields: React.FC<TroubleshootAppFieldsProps> = ({ data, onC
           type="text"
           value={data.namespace || ''}
           onChange={(e) => update({ namespace: e.target.value || undefined })}
-          className="w-full px-3 py-2.5 bg-[#0f2023] border border-[#224349] rounded-lg text-sm text-white placeholder-gray-600 focus:border-[#07b6d5] focus:outline-none focus:ring-1 focus:ring-[#07b6d5]/30 transition-colors"
+          className="w-full px-3 py-2.5 bg-[#1a1814] border border-[#3d3528] rounded-lg text-sm text-white placeholder-gray-600 focus:border-[#e09f3e] focus:outline-none focus:ring-1 focus:ring-[#e09f3e]/30 transition-colors"
           placeholder="production"
         />
       </div>
@@ -142,7 +142,7 @@ const TroubleshootAppFields: React.FC<TroubleshootAppFieldsProps> = ({ data, onC
           type="text"
           value={data.elk_index || ''}
           onChange={(e) => update({ elk_index: e.target.value || undefined })}
-          className="w-full px-3 py-2.5 bg-[#0f2023] border border-[#224349] rounded-lg text-sm text-white placeholder-gray-600 focus:border-[#07b6d5] focus:outline-none focus:ring-1 focus:ring-[#07b6d5]/30 transition-colors font-mono"
+          className="w-full px-3 py-2.5 bg-[#1a1814] border border-[#3d3528] rounded-lg text-sm text-white placeholder-gray-600 focus:border-[#e09f3e] focus:outline-none focus:ring-1 focus:ring-[#e09f3e]/30 transition-colors font-mono"
           placeholder="app-logs-*"
         />
       </div>
@@ -154,7 +154,7 @@ const TroubleshootAppFields: React.FC<TroubleshootAppFieldsProps> = ({ data, onC
           type="text"
           value={data.repo_url || ''}
           onChange={(e) => update({ repo_url: e.target.value || undefined })}
-          className="w-full px-3 py-2.5 bg-[#0f2023] border border-[#224349] rounded-lg text-sm text-white placeholder-gray-600 focus:border-[#07b6d5] focus:outline-none focus:ring-1 focus:ring-[#07b6d5]/30 transition-colors"
+          className="w-full px-3 py-2.5 bg-[#1a1814] border border-[#3d3528] rounded-lg text-sm text-white placeholder-gray-600 focus:border-[#e09f3e] focus:outline-none focus:ring-1 focus:ring-[#e09f3e]/30 transition-colors"
           placeholder="https://github.com/org/repo"
         />
       </div>

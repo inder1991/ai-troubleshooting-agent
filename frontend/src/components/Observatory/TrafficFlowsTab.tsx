@@ -12,7 +12,7 @@ const PROTOCOL_NAMES: Record<string, string> = {
   '6': 'TCP', '17': 'UDP', '1': 'ICMP', '47': 'GRE', '50': 'ESP',
 };
 
-const PROTOCOL_COLORS = ['#07b6d5', '#22c55e', '#f59e0b', '#a855f7', '#ef4444', '#64748b'];
+const PROTOCOL_COLORS = ['#e09f3e', '#22c55e', '#f59e0b', '#a855f7', '#ef4444', '#64748b'];
 
 const TIME_RANGES = ['5m', '15m', '1h', '6h', '24h'] as const;
 
@@ -80,9 +80,9 @@ const TrafficFlowsTab: React.FC<Props> = ({ links }) => {
               onClick={() => setTimeRange(r)}
               className="px-2.5 py-1 rounded text-xs font-mono transition-colors"
               style={{
-                backgroundColor: timeRange === r ? 'rgba(7,182,213,0.15)' : 'transparent',
-                color: timeRange === r ? '#07b6d5' : '#64748b',
-                border: `1px solid ${timeRange === r ? '#07b6d5' : '#224349'}`,
+                backgroundColor: timeRange === r ? 'rgba(224,159,62,0.15)' : 'transparent',
+                color: timeRange === r ? '#e09f3e' : '#64748b',
+                border: `1px solid ${timeRange === r ? '#e09f3e' : '#3d3528'}`,
               }}
             >
               {r}
@@ -98,14 +98,14 @@ const TrafficFlowsTab: React.FC<Props> = ({ links }) => {
             <SectionHeader title="Top Talkers" />
             {topTalkers.length > 0 ? (
               <div className="space-y-1">
-                <div className="grid grid-cols-4 text-[10px] font-mono font-bold pb-1 border-b" style={{ color: '#64748b', borderColor: '#224349' }}>
+                <div className="grid grid-cols-4 text-[10px] font-mono font-bold pb-1 border-b" style={{ color: '#64748b', borderColor: '#3d3528' }}>
                   <span>Source</span><span>Destination</span><span>Protocol</span><span className="text-right">Bytes</span>
                 </div>
                 {topTalkers.map((t, i) => (
-                  <div key={i} className="grid grid-cols-4 text-xs font-mono py-1 border-b" style={{ borderColor: '#22434920' }}>
-                    <span className="truncate" style={{ color: '#e2e8f0' }}>{t.src_ip}</span>
-                    <span className="truncate" style={{ color: '#e2e8f0' }}>{t.dst_ip}</span>
-                    <span style={{ color: '#07b6d5' }}>{PROTOCOL_NAMES[t.protocol] || t.protocol}</span>
+                  <div key={i} className="grid grid-cols-4 text-xs font-mono py-1 border-b" style={{ borderColor: '#3d352820' }}>
+                    <span className="truncate" style={{ color: '#e8e0d4' }}>{t.src_ip}</span>
+                    <span className="truncate" style={{ color: '#e8e0d4' }}>{t.dst_ip}</span>
+                    <span style={{ color: '#e09f3e' }}>{PROTOCOL_NAMES[t.protocol] || t.protocol}</span>
                     <span className="text-right" style={{ color: '#22c55e' }}>{formatBytes(t.bytes)}</span>
                   </div>
                 ))}
@@ -124,11 +124,11 @@ const TrafficFlowsTab: React.FC<Props> = ({ links }) => {
               <ResponsiveContainer width="100%" height={200}>
                 <BarChart data={protocolChartData} layout="vertical">
                   <XAxis type="number" tickFormatter={formatBytes} tick={{ fill: '#64748b', fontSize: 10 }} />
-                  <YAxis type="category" dataKey="name" width={50} tick={{ fill: '#e2e8f0', fontSize: 11 }} />
+                  <YAxis type="category" dataKey="name" width={50} tick={{ fill: '#e8e0d4', fontSize: 11 }} />
                   <Tooltip
                     formatter={(value: number) => formatBytes(value)}
-                    contentStyle={{ backgroundColor: '#0a1a1e', border: '1px solid #224349', borderRadius: '6px', fontSize: '11px' }}
-                    labelStyle={{ color: '#e2e8f0' }}
+                    contentStyle={{ backgroundColor: '#0a1a1e', border: '1px solid #3d3528', borderRadius: '6px', fontSize: '11px' }}
+                    labelStyle={{ color: '#e8e0d4' }}
                   />
                   <Bar dataKey="bytes" radius={[0, 4, 4, 0]}>
                     {protocolChartData.map((_, i) => (
@@ -158,7 +158,7 @@ const TrafficFlowsTab: React.FC<Props> = ({ links }) => {
                 const barWidth = Math.max((link.bandwidth_bps / maxBandwidth) * 100, 5);
                 return (
                   <div key={`${link.src_device_id}-${link.dst_device_id}-${i}`} className="flex items-center gap-3">
-                    <div className="w-28 text-right text-xs font-mono truncate" style={{ color: '#e2e8f0' }}>
+                    <div className="w-28 text-right text-xs font-mono truncate" style={{ color: '#e8e0d4' }}>
                       {link.src_device_id}
                     </div>
                     <div className="flex-1 relative h-6 rounded" style={{ backgroundColor: '#0a1a1e' }}>
@@ -167,13 +167,13 @@ const TrafficFlowsTab: React.FC<Props> = ({ links }) => {
                         style={{ width: `${barWidth}%`, backgroundColor: healthColor(link), opacity: 0.2 }}
                       />
                       <div className="absolute inset-0 flex items-center justify-between px-2 text-[11px] font-mono">
-                        <span style={{ color: '#07b6d5' }}>{formatBandwidth(link.bandwidth_bps)}</span>
+                        <span style={{ color: '#e09f3e' }}>{formatBandwidth(link.bandwidth_bps)}</span>
                         <span style={{ color: '#64748b' }}>
                           {link.latency_ms.toFixed(1)}ms &middot; {(link.utilization * 100).toFixed(0)}% util
                         </span>
                       </div>
                     </div>
-                    <div className="w-28 text-xs font-mono truncate" style={{ color: '#e2e8f0' }}>
+                    <div className="w-28 text-xs font-mono truncate" style={{ color: '#e8e0d4' }}>
                       {link.dst_device_id}
                     </div>
                     <span className="inline-block w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: healthColor(link) }} />
@@ -186,7 +186,7 @@ const TrafficFlowsTab: React.FC<Props> = ({ links }) => {
       </div>
 
       {/* Summary */}
-      <div className="px-6 py-2 border-t text-xs font-mono" style={{ borderColor: '#224349', color: '#64748b' }}>
+      <div className="px-6 py-2 border-t text-xs font-mono" style={{ borderColor: '#3d3528', color: '#64748b' }}>
         {links.length} active links &middot;{' '}
         {links.filter((l) => l.error_rate > 0.05).length} with errors &middot;{' '}
         {links.filter((l) => l.utilization > 0.8).length} highly utilized

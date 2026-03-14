@@ -43,7 +43,7 @@ const EndpointSection: React.FC<EndpointSectionProps> = ({
   const badge = statusBadge[status];
 
   const inputBase =
-    'px-3 py-2 bg-[#0f2023] border border-[#224349] rounded-lg text-sm text-white placeholder-gray-600 focus:border-[#07b6d5] focus:outline-none focus:ring-1 focus:ring-[#07b6d5]/30 transition-colors';
+    'px-3 py-2 bg-[#1a1814] border border-[#3d3528] rounded-lg text-sm text-white placeholder-gray-600 focus:border-[#e09f3e] focus:outline-none focus:ring-1 focus:ring-[#e09f3e]/30 transition-colors';
 
   const handleUrlChange = (val: string) => {
     setUrl(val);
@@ -78,12 +78,11 @@ const EndpointSection: React.FC<EndpointSectionProps> = ({
   };
 
   return (
-    <div className="p-4 rounded-lg bg-[#0a1a1d]/40 border border-[#224349]/50">
+    <div className="p-4 rounded-lg bg-[#12110e]/40 border border-[#3d3528]/50">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <span
-            className="material-symbols-outlined text-[#07b6d5] text-lg"
-            style={{ fontFamily: 'Material Symbols Outlined' }}
+            className="material-symbols-outlined text-[#e09f3e] text-lg"
           >
             {icon}
           </span>
@@ -94,7 +93,6 @@ const EndpointSection: React.FC<EndpointSectionProps> = ({
         >
           <span
             className="material-symbols-outlined text-xs"
-            style={{ fontFamily: 'Material Symbols Outlined' }}
           >
             {badge.icon}
           </span>
@@ -116,7 +114,7 @@ const EndpointSection: React.FC<EndpointSectionProps> = ({
           <button
             onClick={() => onTest(endpointName, url)}
             disabled={!url || testing}
-            className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1 text-[10px] font-bold text-[#07b6d5] bg-[#07b6d5]/10 border border-[#07b6d5]/20 rounded hover:bg-[#07b6d5]/20 disabled:text-gray-600 disabled:bg-transparent disabled:border-transparent disabled:cursor-not-allowed transition-colors"
+            className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1 text-[10px] font-bold text-[#e09f3e] bg-[#e09f3e]/10 border border-[#e09f3e]/20 rounded hover:bg-[#e09f3e]/20 disabled:text-gray-600 disabled:bg-transparent disabled:border-transparent disabled:cursor-not-allowed transition-colors"
           >
             {testing ? 'Testing...' : 'Test'}
           </button>

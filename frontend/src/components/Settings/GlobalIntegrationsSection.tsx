@@ -16,9 +16,9 @@ interface GlobalIntegrationsSectionProps {
 const serviceConfig: Record<string, { icon: string; bgColor: string; borderColor: string; textColor: string; displayName: string; subtitle: string }> = {
   elk: {
     icon: 'analytics',
-    bgColor: 'bg-[#07b6d5]/10',
-    borderColor: 'border-[#07b6d5]/20',
-    textColor: 'text-[#07b6d5]',
+    bgColor: 'bg-[#e09f3e]/10',
+    borderColor: 'border-[#e09f3e]/20',
+    textColor: 'text-[#e09f3e]',
     displayName: 'ELK / Log Stack',
     subtitle: 'Log Aggregation',
   },
@@ -95,7 +95,7 @@ const statusDisplay: Record<GlobalIntegrationStatus, { text: string; classes: st
   conn_error: { text: 'Conn. Error', classes: 'text-red-400' },
 };
 
-const inputClass = 'bg-[#0f2023] border border-[#224349] rounded-lg text-sm text-white focus:ring-1 focus:ring-[#07b6d5] placeholder-[#8fc3cc]/50';
+const inputClass = 'bg-[#1a1814] border border-[#3d3528] rounded-lg text-sm text-white focus:ring-1 focus:ring-[#e09f3e] placeholder-[#8fc3cc]/50';
 
 /** Render auth credential fields based on the selected auth method */
 function AuthFields({
@@ -246,7 +246,7 @@ const GlobalIntegrationsSection: React.FC<GlobalIntegrationsSectionProps> = ({
         {onAdd && (
           <button
             onClick={() => onShowAddForm?.(!showAddForm)}
-            className="flex items-center gap-2 bg-[#224349] text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-[#224349]/80 transition-colors border border-[#07b6d5]/20"
+            className="flex items-center gap-2 bg-[#3d3528] text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-[#3d3528]/80 transition-colors border border-[#e09f3e]/20"
           >
             <span
               className="material-symbols-outlined text-[18px]"
@@ -264,7 +264,7 @@ const GlobalIntegrationsSection: React.FC<GlobalIntegrationsSectionProps> = ({
 
       {/* Add Integration Form */}
       {showAddForm && (
-        <div className="p-5 bg-[#183034]/30 border border-[#07b6d5]/30 rounded-xl mb-4">
+        <div className="p-5 bg-[#183034]/30 border border-[#e09f3e]/30 rounded-xl mb-4">
           <div className="flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-3 min-w-[200px]">
               <div className={`w-10 h-10 ${addConfig.bgColor} rounded flex items-center justify-center border ${addConfig.borderColor} ${addConfig.textColor}`}>
@@ -348,7 +348,7 @@ const GlobalIntegrationsSection: React.FC<GlobalIntegrationsSectionProps> = ({
               <button
                 onClick={handleAddSubmit}
                 disabled={!newName.trim()}
-                className="px-4 py-2 bg-[#07b6d5] text-[#0f2023] rounded-lg text-xs font-bold hover:bg-[#07b6d5]/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="px-4 py-2 bg-[#e09f3e] text-[#1a1814] rounded-lg text-xs font-bold hover:bg-[#e09f3e]/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 Add
               </button>
@@ -382,7 +382,7 @@ const GlobalIntegrationsSection: React.FC<GlobalIntegrationsSectionProps> = ({
           return (
             <div
               key={gi.id}
-              className="p-5 bg-[#183034]/30 border border-[#224349] rounded-xl"
+              className="p-5 bg-[#183034]/30 border border-[#3d3528] rounded-xl"
             >
               <div className="flex flex-wrap items-center gap-4">
                 {/* Icon + Name */}
@@ -480,7 +480,7 @@ const GlobalIntegrationsSection: React.FC<GlobalIntegrationsSectionProps> = ({
                   <button
                     onClick={() => onTest(gi.id)}
                     disabled={isTesting}
-                    className="px-4 py-2 bg-[#07b6d5]/10 text-[#07b6d5] border border-[#07b6d5]/20 rounded-lg text-xs font-bold hover:bg-[#07b6d5]/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-4 py-2 bg-[#e09f3e]/10 text-[#e09f3e] border border-[#e09f3e]/20 rounded-lg text-xs font-bold hover:bg-[#e09f3e]/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isTesting ? 'Testing...' : 'Test Connection'}
                   </button>

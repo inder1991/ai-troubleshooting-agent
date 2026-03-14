@@ -174,6 +174,19 @@ export const getFindings = async (sessionId: string): Promise<V4Findings> => {
   return response.json();
 };
 
+export const getSessionEvents = async (sessionId: string): Promise<TaskEvent[]> => {
+  const response = await fetch(`${API_BASE_URL}/api/v4/session/${sessionId}/events`);
+  if (!response.ok) return [];
+  const data = await response.json();
+  return data.events || [];
+};
+
+export const getSessionDossier = async (sessionId: string): Promise<{ dossier: any; fixes: any[] }> => {
+  const response = await fetch(`${API_BASE_URL}/api/v4/session/${sessionId}/dossier`);
+  if (!response.ok) return { dossier: null, fixes: [] };
+  return response.json();
+};
+
 export const getEvents = async (sessionId: string): Promise<TaskEvent[]> => {
   const response = await fetch(`${API_BASE_URL}/api/v4/session/${sessionId}/events`);
   if (!response.ok) {
@@ -787,16 +800,28 @@ export const fetchEnvironmentHealth = async (): Promise<HealthNode[]> => {
   // If snapshot has no devices, return fallback placeholder nodes
   // so the matrix isn't empty on first load
   if (nodes.length === 0) {
-    const fallbackDomains = [
-      { id: 'core-api', name: 'Core API', type: 'service' as const },
-      { id: 'k8s-cluster', name: 'K8s Cluster', type: 'cluster' as const },
-      { id: 'postgres-primary', name: 'PostgreSQL', type: 'database' as const },
-      { id: 'redis-cache', name: 'Redis Cache', type: 'database' as const },
-      { id: 'elasticsearch', name: 'Elasticsearch', type: 'service' as const },
-      { id: 'edge-network', name: 'Edge Network', type: 'network' as const },
+    const fallbackDomains: Array<{ id: string; name: string; type: HealthNode['type']; status: HealthNode['status']; latencyMs?: number }> = [
+      { id: 'core-api', name: 'Core API', type: 'service', status: 'healthy', latencyMs: 12 },
+      { id: 'auth-svc', name: 'Auth Service', type: 'service', status: 'healthy', latencyMs: 8 },
+      { id: 'k8s-cluster', name: 'K8s Cluster', type: 'cluster', status: 'healthy', latencyMs: 5 },
+      { id: 'k8s-worker-1', name: 'Worker Node 1', type: 'cluster', status: 'healthy', latencyMs: 3 },
+      { id: 'k8s-worker-2', name: 'Worker Node 2', type: 'cluster', status: 'healthy', latencyMs: 4 },
+      { id: 'postgres-primary', name: 'PostgreSQL Primary', type: 'database', status: 'healthy', latencyMs: 2 },
+      { id: 'postgres-replica', name: 'PostgreSQL Replica', type: 'database', status: 'degraded', latencyMs: 45 },
+      { id: 'redis-cache', name: 'Redis Cache', type: 'database', status: 'healthy', latencyMs: 1 },
+      { id: 'elasticsearch', name: 'Elasticsearch', type: 'service', status: 'healthy', latencyMs: 15 },
+      { id: 'rabbitmq', name: 'RabbitMQ', type: 'service', status: 'healthy', latencyMs: 6 },
+      { id: 'edge-lb', name: 'Edge LB', type: 'network', status: 'healthy', latencyMs: 1 },
+      { id: 'cdn', name: 'CDN', type: 'network', status: 'healthy', latencyMs: 22 },
+      { id: 'dns', name: 'DNS', type: 'network', status: 'healthy', latencyMs: 3 },
+      { id: 'payment-gw', name: 'Payment Gateway', type: 'service', status: 'healthy', latencyMs: 89 },
+      { id: 'email-svc', name: 'Email Service', type: 'service', status: 'offline' },
+      { id: 'monitoring', name: 'Monitoring', type: 'service', status: 'healthy', latencyMs: 7 },
+      { id: 'log-pipeline', name: 'Log Pipeline', type: 'service', status: 'healthy', latencyMs: 11 },
+      { id: 'object-store', name: 'Object Storage', type: 'database', status: 'healthy', latencyMs: 18 },
     ];
     for (const d of fallbackDomains) {
-      nodes.push({ ...d, status: 'healthy' });
+      nodes.push(d);
     }
   }
 

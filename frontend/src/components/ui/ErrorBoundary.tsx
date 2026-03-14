@@ -37,12 +37,11 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
       if (this.props.fallback) return this.props.fallback;
 
       return (
-        <div className="flex items-center justify-center h-full min-h-[400px]" style={{ backgroundColor: '#0f2023' }}>
+        <div className="flex items-center justify-center h-full min-h-[400px]" style={{ backgroundColor: '#1a1814' }}>
           <div className="max-w-md text-center p-8">
             <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center">
               <span
                 className="material-symbols-outlined text-red-400 text-3xl"
-                style={{ fontFamily: 'Material Symbols Outlined' }}
               >
                 error
               </span>
@@ -65,7 +64,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
               </button>
               <button
                 onClick={this.handleReload}
-                className="text-xs font-bold px-4 py-2 rounded-lg bg-[#07b6d5]/20 text-[#07b6d5] border border-[#07b6d5]/30 hover:bg-[#07b6d5]/30 transition-colors"
+                className="text-xs font-bold px-4 py-2 rounded-lg bg-[#e09f3e]/20 text-[#e09f3e] border border-[#e09f3e]/30 hover:bg-[#e09f3e]/30 transition-colors"
               >
                 Reload Page
               </button>

@@ -34,7 +34,7 @@ const AZNode: React.FC<NodeProps<AZNodeData>> = ({ data, selected }) => {
 
       {/* Zone name top-left */}
       <div className="absolute top-0 left-3 -translate-y-1/2 px-2 py-0.5 rounded text-[10px] font-mono font-semibold"
-           style={{ zIndex: 10, backgroundColor: '#0f2023', color: '#f59e0b', border: '1px solid #92400e' }}>
+           style={{ zIndex: 10, backgroundColor: '#1a1814', color: '#f59e0b', border: '1px solid #92400e' }}>
         {data.zoneName || data.label}
       </div>
 

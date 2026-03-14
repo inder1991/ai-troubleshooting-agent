@@ -51,7 +51,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
   const confidencePercent = Math.round(confidence);
 
   return (
-    <div className="h-12 bg-[#1e2f33]/80 border-t border-[#224349] flex items-center px-4 gap-6">
+    <div className="h-12 bg-[#252118]/80 border-t border-[#3d3528] flex items-center px-4 gap-6">
       {/* Connection indicator */}
       <div className="flex items-center gap-1.5">
         <span
@@ -77,16 +77,16 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
               {idx > 0 && (
                 <div
                   className={`w-8 h-px mx-1 ${
-                    isComplete ? 'bg-[#07b6d5]' : 'bg-[#224349]'
+                    isComplete ? 'bg-[#e09f3e]' : 'bg-[#3d3528]'
                   }`}
                 />
               )}
               <div
                 className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition-colors ${
                   isActive
-                    ? 'bg-[#07b6d5]/10 text-[#07b6d5] border border-[#07b6d5]/20'
+                    ? 'bg-[#e09f3e]/10 text-[#e09f3e] border border-[#e09f3e]/20'
                     : isComplete
-                    ? 'text-[#07b6d5]/70'
+                    ? 'text-[#e09f3e]/70'
                     : isPending
                     ? 'text-gray-600'
                     : 'text-gray-500'
@@ -95,7 +95,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
                 <Icon className="w-3.5 h-3.5" />
                 <span>{p.label}</span>
                 {isActive && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#07b6d5] animate-pulse ml-0.5" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#e09f3e] animate-pulse ml-0.5" />
                 )}
               </div>
             </React.Fragment>
@@ -107,13 +107,13 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
       {confidence > 0 && (
         <div className="flex items-center gap-2">
           <span className="text-[10px] text-gray-500 uppercase tracking-wider">Confidence</span>
-          <div className="w-16 h-1.5 bg-[#224349] rounded-full overflow-hidden">
+          <div className="w-16 h-1.5 bg-[#3d3528] rounded-full overflow-hidden">
             <div
-              className="h-full bg-[#07b6d5] rounded-full transition-all duration-500"
+              className="h-full bg-[#e09f3e] rounded-full transition-all duration-500"
               style={{ width: `${confidencePercent}%` }}
             />
           </div>
-          <span className="text-xs text-[#07b6d5] font-mono font-medium w-8">
+          <span className="text-xs text-[#e09f3e] font-mono font-medium w-8">
             {confidencePercent}%
           </span>
         </div>

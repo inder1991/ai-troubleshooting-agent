@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { PLAN_NODE_COLORS } from '../db-board/constants';
 
 interface PlanNode {
   'Node Type': string;
@@ -23,12 +24,15 @@ interface ExplainPlanTreeProps {
 }
 
 function nodeColor(nodeType: string): string {
-  if (nodeType.includes('Seq Scan')) return '#ef4444';
-  if (nodeType.includes('Index')) return '#10b981';
-  if (nodeType.includes('Sort')) return '#f59e0b';
-  if (nodeType.includes('Hash')) return '#8b5cf6';
-  if (nodeType.includes('Nested Loop') || nodeType.includes('Merge')) return '#06b6d4';
-  return '#64748b';
+  // Check for exact match first
+  if (PLAN_NODE_COLORS[nodeType]) return PLAN_NODE_COLORS[nodeType];
+  // Fall back to substring matching
+  if (nodeType.includes('Seq Scan')) return PLAN_NODE_COLORS['Seq Scan'];
+  if (nodeType.includes('Index')) return PLAN_NODE_COLORS['Index Scan'];
+  if (nodeType.includes('Sort')) return PLAN_NODE_COLORS['Sort'];
+  if (nodeType.includes('Hash')) return PLAN_NODE_COLORS['Hash'];
+  if (nodeType.includes('Nested Loop') || nodeType.includes('Merge')) return PLAN_NODE_COLORS['Nested Loop'];
+  return PLAN_NODE_COLORS['default'];
 }
 
 function formatCost(cost?: number): string {
@@ -85,11 +89,11 @@ const ExplainPlanNode: React.FC<ExplainPlanTreeProps> = ({ plan, depth = 0 }) =>
         )}
 
         {/* Cost / Rows */}
-        <span className="text-[9px] text-slate-600 ml-auto flex items-center gap-2">
+        <span className="text-[9px] text-slate-400 ml-auto flex items-center gap-2">
           <span>cost={formatCost(plan['Total Cost'])}</span>
           <span>rows={plan['Plan Rows'] ?? '-'}</span>
           {plan['Actual Total Time'] !== undefined && (
-            <span className="text-cyan-500/70">{plan['Actual Total Time'].toFixed(1)}ms</span>
+            <span className="text-amber-500/70">{plan['Actual Total Time'].toFixed(1)}ms</span>
           )}
         </span>
       </button>
@@ -113,23 +117,97 @@ const ExplainPlanNode: React.FC<ExplainPlanTreeProps> = ({ plan, depth = 0 }) =>
   );
 };
 
-const ExplainPlanTree: React.FC<{ plan: PlanNode | null }> = ({ plan }) => {
-  if (!plan) {
+interface EnrichedPlan {
+  plan: PlanNode;
+  query?: string;
+  pid?: number;
+  duration_ms?: number;
+  user?: string;
+}
+
+function isEnrichedPlan(obj: any): obj is EnrichedPlan {
+  return obj && typeof obj === 'object' && 'plan' in obj && obj.plan && typeof obj.plan === 'object';
+}
+
+function formatMs(ms: number): string {
+  return ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${ms}ms`;
+}
+
+function detectWarnings(plan: PlanNode): string[] {
+  const warnings: string[] = [];
+  const check = (node: PlanNode) => {
+    const nodeType = node['Node Type'] || '';
+    if (nodeType.includes('Seq Scan') && node['Relation Name']) {
+      const filter = node['Filter'] || '';
+      const filterCols = filter.match(/\b([a-z_]+)\s*[>=<]/gi) || [];
+      if (filterCols.length > 0) {
+        warnings.push(`Seq Scan on ${node['Relation Name']} — consider adding index on filtered columns`);
+      } else {
+        warnings.push(`Seq Scan on ${node['Relation Name']} — full table scan`);
+      }
+    }
+    if (nodeType.includes('Sort') && (node['Plan Rows'] ?? 0) > 10000) {
+      warnings.push(`Sorting ${node['Plan Rows']?.toLocaleString()} rows — may spill to disk if work_mem is low`);
+    }
+    if (node.Plans) node.Plans.forEach(check);
+  };
+  check(plan);
+  return warnings;
+}
+
+const ExplainPlanTree: React.FC<{ plan: PlanNode | EnrichedPlan | null }> = ({ plan: rawPlan }) => {
+  if (!rawPlan) {
     return (
       <div className="text-center py-4">
-        <span className="material-symbols-outlined text-2xl text-slate-700 block mb-1">account_tree</span>
-        <p className="text-[10px] text-slate-600">No explain plan available</p>
+        <span className="material-symbols-outlined text-2xl text-slate-700 block mb-1" aria-hidden="true">account_tree</span>
+        <p className="text-[10px] text-slate-400">No explain plan available</p>
       </div>
     );
   }
 
+  // Handle both formats: raw PlanNode or enriched {plan, query, pid, ...}
+  const enriched = isEnrichedPlan(rawPlan);
+  const planNode: PlanNode = enriched ? rawPlan.plan : rawPlan;
+  const query = enriched ? rawPlan.query : undefined;
+  const pid = enriched ? rawPlan.pid : undefined;
+  const durationMs = enriched ? rawPlan.duration_ms : undefined;
+  const queryUser = enriched ? rawPlan.user : undefined;
+
+  const warnings = detectWarnings(planNode);
+
   return (
-    <div className="bg-duck-card/30 border border-duck-border rounded-lg p-3 font-mono text-xs overflow-x-auto">
-      <div className="flex items-center gap-2 mb-2 pb-2 border-b border-slate-800">
-        <span className="material-symbols-outlined text-violet-400 text-sm">account_tree</span>
-        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Query Plan</span>
-      </div>
-      <ExplainPlanNode plan={plan} />
+    <div className="overflow-x-auto">
+      {/* Query context header */}
+      {query && (
+        <div className="mb-3 pb-2 border-b border-duck-border/30">
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="material-symbols-outlined text-duck-accent text-sm" aria-hidden="true">query_stats</span>
+            <span className="text-[11px] font-display font-bold text-slate-300">
+              Query Plan {pid ? `for pid:${pid}` : ''}
+              {durationMs ? ` (${formatMs(durationMs)})` : ''}
+            </span>
+            {queryUser && <span className="text-[9px] text-slate-400 ml-auto">user: {queryUser}</span>}
+          </div>
+          <pre className="text-[10px] font-mono text-slate-400 leading-relaxed line-clamp-3 whitespace-pre-wrap break-all bg-duck-bg/50 rounded px-2 py-1.5">
+            {query}
+          </pre>
+        </div>
+      )}
+
+      {/* Plan tree */}
+      <ExplainPlanNode plan={planNode} />
+
+      {/* Warnings */}
+      {warnings.length > 0 && (
+        <div className="mt-3 pt-2 border-t border-duck-border/30 space-y-1">
+          {warnings.map((w, i) => (
+            <div key={i} className="flex items-start gap-1.5">
+              <span className="material-symbols-outlined text-amber-400 text-[12px] shrink-0 mt-0.5" aria-hidden="true">warning</span>
+              <span className="text-[10px] text-amber-400/80">{w}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

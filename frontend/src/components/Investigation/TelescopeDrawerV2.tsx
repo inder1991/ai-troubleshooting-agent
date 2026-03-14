@@ -42,14 +42,14 @@ const TelescopeDrawerV2: React.FC = () => {
       {target && (
         <div className="flex items-center gap-1 px-4 py-2 text-[10px] text-slate-400 overflow-x-auto border-b border-slate-800/30">
           {breadcrumbs.length > 1 && (
-            <button onClick={popBreadcrumb} className="mr-1 hover:text-cyan-400 transition-colors">
+            <button onClick={popBreadcrumb} className="mr-1 hover:text-amber-400 transition-colors">
               <span className="material-symbols-outlined text-[14px]">arrow_back</span>
             </button>
           )}
           {breadcrumbs.map((bc, i) => (
             <React.Fragment key={i}>
               {i > 0 && <span className="text-slate-600">/</span>}
-              <span className={i === breadcrumbs.length - 1 ? 'text-cyan-400 font-medium' : ''}>
+              <span className={i === breadcrumbs.length - 1 ? 'text-amber-400 font-medium' : ''}>
                 {bc.namespace}/{bc.kind}/{bc.name}
               </span>
             </React.Fragment>
@@ -65,7 +65,7 @@ const TelescopeDrawerV2: React.FC = () => {
             onClick={() => setActiveTab(tab)}
             className={`px-3 py-1 rounded text-[10px] font-bold tracking-wider uppercase transition-colors
               ${activeTab === tab
-                ? 'bg-cyan-950/40 text-cyan-400 border border-cyan-700/40'
+                ? 'bg-amber-950/40 text-amber-400 border border-amber-800/40'
                 : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/40'}`}
           >
             {tab}

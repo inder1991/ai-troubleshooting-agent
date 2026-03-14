@@ -15,7 +15,7 @@ const SEVERITY_DOT: Record<string, string> = {
 };
 
 const BASIS_STYLE: Record<string, string> = {
-  topology: 'text-cyan-400 border-cyan-500/40 bg-cyan-500/10',
+  topology: 'text-amber-400 border-amber-500/40 bg-amber-500/10',
   temporal: 'text-amber-400 border-amber-500/40 bg-amber-500/10',
   namespace: 'text-emerald-400 border-emerald-500/40 bg-emerald-500/10',
   node_affinity: 'text-blue-400 border-blue-500/40 bg-blue-500/10',
@@ -30,7 +30,7 @@ export default function IssueClusterView({ clusters }: IssueClusterViewProps) {
   return (
     <div className="space-y-3 mb-4">
       <div className="flex items-center gap-2">
-        <span className="material-symbols-outlined text-cyan-400">hub</span>
+        <span className="material-symbols-outlined text-amber-400">hub</span>
         <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Issue Clusters</span>
         <span className="text-[9px] font-mono text-slate-500">{clusters.length}</span>
       </div>
@@ -47,12 +47,12 @@ export default function IssueClusterView({ clusters }: IssueClusterViewProps) {
               onClick={() => setExpandedId(isExpanded ? null : cluster.cluster_id)}
               className="w-full px-3 py-2 flex items-center gap-2 hover:bg-slate-800/30 transition-colors"
             >
-              <span className="text-[10px] font-mono text-cyan-400">{cluster.cluster_id}</span>
+              <span className="text-[10px] font-mono text-amber-400">{cluster.cluster_id}</span>
 
               {/* Confidence bar */}
               <div className="w-12 h-1 bg-slate-800 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-cyan-500 rounded-full"
+                  className="h-full bg-amber-500 rounded-full"
                   style={{ width: `${Math.round(cluster.confidence * 100)}%` }}
                 />
               </div>

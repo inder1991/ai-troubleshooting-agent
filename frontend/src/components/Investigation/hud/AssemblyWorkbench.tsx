@@ -16,7 +16,7 @@ interface AssemblyWorkbenchProps {
 
 const agentColors: Record<string, string> = {
   L: '#ef4444',
-  M: '#06b6d4',
+  M: '#d4922e',
   K: '#f97316',
   D: '#3b82f6',
   C: '#10b981',
@@ -30,12 +30,12 @@ const AssemblyWorkbench: React.FC<AssemblyWorkbenchProps> = ({
   if (pinnedItems.length === 0) return null;
 
   return (
-    <div className="sticky bottom-4 mx-6 z-50 bg-slate-950/80 backdrop-blur-2xl border border-cyan-500/30 rounded-2xl shadow-[0_-20px_50px_rgba(0,0,0,0.5)] overflow-hidden">
+    <div className="sticky bottom-4 mx-6 z-50 bg-slate-950/80 backdrop-blur-2xl border border-amber-500/30 rounded-2xl shadow-[0_-20px_50px_rgba(0,0,0,0.5)] overflow-hidden">
       {/* Status bar */}
-      <div className="px-4 py-2 bg-cyan-500/5 border-b border-cyan-500/20 flex items-center justify-between">
+      <div className="px-4 py-2 bg-amber-500/5 border-b border-amber-500/20 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Hammer className="w-3.5 h-3.5 text-cyan-400 animate-bounce" />
-          <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-400">
+          <Hammer className="w-3.5 h-3.5 text-amber-400 animate-bounce" />
+          <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400">
             Assembly Dock
           </span>
           <span className="text-[9px] font-mono text-slate-500">

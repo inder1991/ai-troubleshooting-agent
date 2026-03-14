@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import type { V4Findings, V4SessionStatus, TaskEvent, SuggestedPromQLQuery, TimeSeriesDataPoint } from '../../types';
-import { runPromQLQuery } from '../../services/api';
+import React, { useState, useEffect } from 'react';
+import type { V4Findings, V4SessionStatus, TaskEvent, SuggestedPromQLQuery, TimeSeriesDataPoint, AgentConfidence, ReasoningStep } from '../../types';
+import { runPromQLQuery, getConfidence, getReasoning } from '../../services/api';
 import { Play, Copy, Check } from 'lucide-react';
 import InteractiveTopology from './topology/InteractiveTopology';
 import { useTopologySelection } from '../../contexts/TopologySelectionContext';
@@ -18,20 +18,31 @@ interface NavigatorProps {
   findings: V4Findings | null;
   status: V4SessionStatus | null;
   events: TaskEvent[];
+  sessionId: string;
 }
 
-const Navigator: React.FC<NavigatorProps> = ({ findings, status, events }) => {
+const Navigator: React.FC<NavigatorProps> = ({ findings, status, events, sessionId }) => {
   const { selectedService, selectService } = useTopologySelection();
   const { hoveredRepo } = useCampaignContext();
   const agentStatuses = buildAgentStatuses(status, events);
   const totalTokens = status?.token_usage?.reduce((sum, t) => sum + t.total_tokens, 0) ?? 0;
 
+  const [agentConfidence, setAgentConfidence] = useState<AgentConfidence[]>([]);
+  const [reasoning, setReasoning] = useState<ReasoningStep[]>([]);
+  const [reasoningOpen, setReasoningOpen] = useState(false);
+
+  useEffect(() => {
+    if (!sessionId) return;
+    getConfidence(sessionId).then((data) => setAgentConfidence(Array.isArray(data) ? data : data.agents || [])).catch(() => {});
+    getReasoning(sessionId).then((data) => setReasoning(Array.isArray(data) ? data : data.steps || [])).catch(() => {});
+  }, [sessionId]);
+
   return (
     <div className="flex flex-col h-full bg-slate-900/20 overflow-y-auto custom-scrollbar">
       {/* Header */}
       <div className="p-4 border-b border-slate-800 flex items-center gap-2 sticky top-0 z-10 bg-slate-900/90 backdrop-blur">
-        <span className="material-symbols-outlined text-slate-400 text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>explore</span>
-        <h2 className="text-xs font-bold uppercase tracking-widest text-slate-400">Navigator</h2>
+        <span className="material-symbols-outlined text-slate-400 text-sm">explore</span>
+        <h2 className="text-xs font-bold font-display text-slate-400">Navigator</h2>
       </div>
 
       <div className="p-4 space-y-5">
@@ -73,7 +84,7 @@ const Navigator: React.FC<NavigatorProps> = ({ findings, status, events }) => {
           if (!tsData?.length) return null;
           return (
             <div key={i} className="bg-slate-900/40 border border-slate-800 rounded-lg p-2">
-              <div className="text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">{anomaly.metric_name}</div>
+              <div className="text-[9px] font-bold text-slate-500 mb-1">{anomaly.metric_name}</div>
               <NeuralChart
                 height={80}
                 data={tsData.map((p: TimeSeriesDataPoint) => ({
@@ -89,7 +100,7 @@ const Navigator: React.FC<NavigatorProps> = ({ findings, status, events }) => {
 
         {/* Service Topology */}
         <section>
-          <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Service Topology</h3>
+          <h3 className="text-[10px] font-bold font-display text-slate-500 mb-2">Service Topology</h3>
           <div className="bg-slate-900/40 border border-slate-800 rounded-lg p-3">
             {findings ? (
               <InteractiveTopology
@@ -110,15 +121,61 @@ const Navigator: React.FC<NavigatorProps> = ({ findings, status, events }) => {
         {/* Infrastructure Health */}
         <InfraHealthCards findings={findings} />
 
+        {/* Confidence Scores */}
+        <div style={{ marginTop: 16 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#e09f3e', marginBottom: 8 }}>Agent Confidence</div>
+          {agentConfidence.length > 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {agentConfidence.map((ac) => {
+                const agentColors: Record<string, string> = { L: '#ef4444', M: '#e09f3e', K: '#f59e0b', C: '#10b981', D: '#8b5cf6' };
+                const color = agentColors[ac.agent] || '#64748b';
+                return (
+                  <div key={ac.agent} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color, width: 16, textAlign: 'center' }}>{ac.agent}</span>
+                    <div style={{ flex: 1, height: 6, background: 'rgba(255,255,255,0.06)', borderRadius: 3, overflow: 'hidden' }}>
+                      <div style={{ width: `${ac.confidence}%`, height: '100%', background: color, borderRadius: 3, transition: 'width 0.3s ease' }} />
+                    </div>
+                    <span style={{ fontSize: 11, fontFamily: 'monospace', color: '#8a7e6b', width: 32, textAlign: 'right' }}>{ac.confidence}%</span>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div style={{ fontSize: 11, color: '#64748b', fontStyle: 'italic' }}>No confidence data yet</div>
+          )}
+        </div>
+
+        {/* Reasoning Steps */}
+        <div style={{ marginTop: 16 }}>
+          <button
+            onClick={() => setReasoningOpen(!reasoningOpen)}
+            style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', padding: 0, width: '100%' }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 16, color: '#e09f3e', transform: reasoningOpen ? 'rotate(90deg)' : 'rotate(0)', transition: 'transform 0.2s' }}>chevron_right</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: '#e09f3e' }}>Reasoning Steps</span>
+            <span style={{ fontSize: 10, color: '#64748b', marginLeft: 'auto' }}>{reasoning.length}</span>
+          </button>
+          {reasoningOpen && reasoning.length > 0 && (
+            <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {reasoning.map((step, i) => (
+                <div key={i} style={{ background: 'rgba(224,159,62,0.04)', border: '1px solid rgba(224,159,62,0.08)', borderRadius: 6, padding: '8px 10px' }}>
+                  <div style={{ fontSize: 10, color: '#64748b', marginBottom: 2 }}>Step {i + 1} • {step.agent}</div>
+                  <div style={{ fontSize: 12, color: '#e8e0d4' }}>{step.description}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* Agent Status Matrix */}
         <section>
-          <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Agent Status</h3>
+          <h3 className="text-[10px] font-bold font-display text-slate-500 mb-2">Agent Status</h3>
           <div className="bg-slate-900/40 border border-slate-800 rounded-lg p-3 space-y-2">
             {agentStatuses.map((agent, i) => (
               <div key={i} className="flex items-center gap-2">
                 <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold ${
                   agent.code === 'L' ? 'bg-red-500/20 text-red-400' :
-                  agent.code === 'M' ? 'bg-cyan-500/20 text-cyan-400' :
+                  agent.code === 'M' ? 'bg-amber-500/20 text-amber-400' :
                   agent.code === 'K' ? 'bg-orange-500/20 text-orange-400' :
                   agent.code === 'C' ? 'bg-emerald-500/20 text-emerald-400' :
                   'bg-slate-500/20 text-slate-400'
@@ -127,19 +184,19 @@ const Navigator: React.FC<NavigatorProps> = ({ findings, status, events }) => {
                 </span>
                 <span className="text-[11px] text-slate-300 flex-1">{agent.name}</span>
                 <span className={`w-2 h-2 rounded-full ${
-                  agent.status === 'active' ? 'bg-cyan-400 animate-pulse' :
+                  agent.status === 'active' ? 'bg-amber-400 animate-pulse' :
                   agent.status === 'complete' ? 'bg-green-500' :
                   agent.status === 'error' ? 'bg-red-500' : 'bg-slate-600'
                 }`} />
                 {agent.tokens > 0 && (
-                  <span className="text-[9px] font-mono text-slate-500">{agent.tokens.toLocaleString()}</span>
+                  <span className="text-[9px] text-slate-500">{agent.tokens.toLocaleString()}</span>
                 )}
               </div>
             ))}
             {totalTokens > 0 && (
               <div className="border-t border-slate-700 pt-2 flex justify-between">
                 <span className="text-[10px] text-slate-500">Total</span>
-                <span className="text-[10px] font-mono text-slate-400">{totalTokens.toLocaleString()} tokens</span>
+                <span className="text-[10px] text-slate-400">{totalTokens.toLocaleString()} tokens</span>
               </div>
             )}
           </div>
@@ -201,12 +258,12 @@ const MetricsValidationDock: React.FC<{ queries: SuggestedPromQLQuery[] }> = ({ 
 
   return (
     <section>
-      <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Metrics Validation</h3>
+      <h3 className="text-[10px] font-bold font-display text-slate-500 mb-2">Metrics Validation</h3>
       <div className="space-y-2">
         {queries.map((q, i) => (
           <div key={i} className="bg-slate-900/40 border border-slate-800 rounded-lg p-3">
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[10px] font-bold text-cyan-400 uppercase">{q.metric}</span>
+              <span className="text-[10px] font-bold text-amber-400">{q.metric}</span>
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => handleCopy(q.query, i)}
@@ -223,7 +280,7 @@ const MetricsValidationDock: React.FC<{ queries: SuggestedPromQLQuery[] }> = ({ 
                 <button
                   onClick={() => handleRun(q.query, i)}
                   disabled={runResults[i]?.loading}
-                  className="flex items-center gap-1 text-[9px] px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 hover:bg-cyan-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:saturate-0"
+                  className="flex items-center gap-1 text-[9px] px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:saturate-0"
                   title="Execute query"
                   aria-label="Execute query"
                 >
@@ -266,7 +323,7 @@ const InfraHealthCards: React.FC<{ findings: V4Findings | null }> = ({ findings 
 
   return (
     <section>
-      <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Infrastructure Health</h3>
+      <h3 className="text-[10px] font-bold font-display text-slate-500 mb-2">Infrastructure Health</h3>
       <div className="bg-slate-900/40 border border-slate-800 rounded-lg p-3">
         <div className="grid grid-cols-2 gap-3 mb-3">
           <div>
@@ -347,9 +404,9 @@ const GhostTopology: React.FC = () => (
   <svg viewBox="0 0 280 100" className="w-full opacity-20 blur-[1px]" style={{ maxHeight: '120px' }}>
     <line x1="70" y1="50" x2="140" y2="50" stroke="#475569" strokeWidth={1} />
     <line x1="140" y1="50" x2="210" y2="50" stroke="#475569" strokeWidth={1} />
-    <circle cx="70" cy="50" r="16" fill="#0f3443" stroke="#06b6d4" strokeWidth={1.5} />
-    <circle cx="140" cy="50" r="16" fill="#0f3443" stroke="#06b6d4" strokeWidth={1.5} />
-    <circle cx="210" cy="50" r="16" fill="#0f3443" stroke="#06b6d4" strokeWidth={1.5} />
+    <circle cx="70" cy="50" r="16" fill="#0f3443" stroke="#d4922e" strokeWidth={1.5} />
+    <circle cx="140" cy="50" r="16" fill="#0f3443" stroke="#d4922e" strokeWidth={1.5} />
+    <circle cx="210" cy="50" r="16" fill="#0f3443" stroke="#d4922e" strokeWidth={1.5} />
     <text x="70" y="80" textAnchor="middle" fill="#475569" fontSize="8" fontFamily="monospace">svc-a</text>
     <text x="140" y="80" textAnchor="middle" fill="#475569" fontSize="8" fontFamily="monospace">svc-b</text>
     <text x="210" y="80" textAnchor="middle" fill="#475569" fontSize="8" fontFamily="monospace">svc-c</text>

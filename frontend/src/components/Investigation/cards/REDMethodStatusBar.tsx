@@ -17,7 +17,7 @@ const dotColor: Record<Severity | 'ok', string> = {
   critical: 'bg-red-500',
   high: 'bg-red-500',
   medium: 'bg-amber-500',
-  low: 'bg-cyan-500',
+  low: 'bg-amber-500',
   info: 'bg-slate-500',
 };
 
@@ -26,7 +26,7 @@ const textColor: Record<Severity | 'ok', string> = {
   critical: 'text-red-400',
   high: 'text-red-400',
   medium: 'text-amber-400',
-  low: 'text-cyan-400',
+  low: 'text-amber-400',
   info: 'text-slate-400',
 };
 
@@ -125,7 +125,7 @@ const REDMethodStatusBar: React.FC<REDMethodStatusBarProps> = ({
           {narratives.map((n, i) => (
             <div key={i} className="bg-slate-800/30 rounded-lg border border-slate-700/30 px-2.5 py-1.5">
               <div className="flex items-center gap-1.5 mb-0.5">
-                <span className="text-[9px] font-bold text-cyan-400 uppercase">{n.group}</span>
+                <span className="text-[9px] font-bold text-amber-400 uppercase">{n.group}</span>
                 {n.metrics?.length > 0 && (
                   <span className="text-[9px] text-slate-600 font-mono">{n.metrics.length} metrics</span>
                 )}

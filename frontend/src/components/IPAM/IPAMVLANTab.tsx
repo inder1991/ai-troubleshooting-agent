@@ -56,11 +56,11 @@ export default function IPAMVLANTab() {
                 onClick={() => handleSelectVlan(vlan)}
                 className={`w-full text-left flex items-center gap-3 px-3 py-2 rounded text-sm transition-colors ${
                   selectedVlan?.id === vlan.id
-                    ? 'bg-[#1e3a40] border-l-2 border-cyan-400'
+                    ? 'bg-[#1e3a40] border-l-2 border-amber-400'
                     : 'hover:bg-[#1e3a40]/50'
                 }`}
               >
-                <span className="font-mono text-cyan-300 w-12 text-right">{vlan.vlan_number}</span>
+                <span className="font-mono text-amber-300 w-12 text-right">{vlan.vlan_number}</span>
                 <span className="text-slate-300 flex-1 truncate">{vlan.name || '-'}</span>
                 {vlan.vrf_id && vlan.vrf_id !== 'default' && (
                   <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-900/30 text-purple-300">
@@ -100,7 +100,7 @@ export default function IPAMVLANTab() {
                 <h4 className="text-xs text-slate-500 uppercase tracking-wider mb-1">Linked Subnets</h4>
                 <div className="space-y-1">
                   {selectedVlan.subnet_ids.map((sid) => (
-                    <div key={sid} className="text-xs text-slate-300 px-2 py-1 bg-[#0f2023] rounded">
+                    <div key={sid} className="text-xs text-slate-300 px-2 py-1 bg-[#1a1814] rounded">
                       {sid}
                     </div>
                   ))}

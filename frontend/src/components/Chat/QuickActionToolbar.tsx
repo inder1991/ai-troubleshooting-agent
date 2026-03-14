@@ -52,7 +52,7 @@ export const QuickActionToolbar: React.FC<QuickActionToolbarProps> = ({
   if (collapsed) {
     return (
       <button onClick={() => setCollapsed(false)}
-        className="w-full py-1 text-xs text-slate-500 hover:text-cyan-400 transition-colors">
+        className="w-full py-1 text-xs text-slate-500 hover:text-amber-400 transition-colors">
         Show Quick Actions
       </button>
     );
@@ -96,7 +96,7 @@ export const QuickActionToolbar: React.FC<QuickActionToolbarProps> = ({
               className={`flex items-center gap-1 px-2 py-1 text-xs rounded border transition-colors
                 ${isDisabled(tool)
                   ? 'border-slate-700 text-slate-600 cursor-not-allowed opacity-40'
-                  : 'border-slate-700 text-slate-300 hover:border-cyan-600 hover:text-cyan-400'
+                  : 'border-slate-700 text-slate-300 hover:border-amber-600 hover:text-amber-400'
                 }`}>
               <span className="material-symbols-outlined text-sm">{tool.icon}</span>
               {tool.label}

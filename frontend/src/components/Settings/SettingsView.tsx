@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import NotificationChannelsSection from './NotificationChannelsSection';
 
 // ── localStorage keys ────────────────────────────────────────────────
 const LS_TIMEZONE = 'dd-timezone';
@@ -52,12 +53,12 @@ function writeLS(key: string, value: string) {
 const SectionCard: React.FC<{ icon: string; title: string; children: React.ReactNode }> = ({ icon, title, children }) => (
   <div
     className="rounded-lg border p-5 mb-6"
-    style={{ backgroundColor: 'rgba(15,32,35,0.6)', borderColor: '#224349' }}
+    style={{ backgroundColor: 'rgba(15,32,35,0.6)', borderColor: '#3d3528' }}
   >
     <div className="flex items-center gap-2 mb-4">
       <span
         className="material-symbols-outlined text-lg"
-        style={{ fontFamily: 'Material Symbols Outlined', color: '#07b6d5' }}
+        style={{ color: '#e09f3e' }}
       >
         {icon}
       </span>
@@ -80,7 +81,7 @@ const Toggle: React.FC<{ checked: boolean; onChange: (v: boolean) => void; label
       aria-checked={checked}
       onClick={() => onChange(!checked)}
       className="relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200 focus:outline-none"
-      style={{ backgroundColor: checked ? '#07b6d5' : '#334155' }}
+      style={{ backgroundColor: checked ? '#e09f3e' : '#334155' }}
     >
       <span
         className="inline-block h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform duration-200"
@@ -103,7 +104,7 @@ const LabeledSelect: React.FC<{
       value={value}
       onChange={(e) => onChange(e.target.value)}
       className="rounded-md px-3 py-1.5 text-sm text-white outline-none cursor-pointer font-mono"
-      style={{ backgroundColor: 'rgba(30,47,51,0.6)', border: '1px solid #224349' }}
+      style={{ backgroundColor: 'rgba(30,47,51,0.6)', border: '1px solid #3d3528' }}
     >
       {options.map((o) => (
         <option key={o.value} value={o.value}>
@@ -132,21 +133,21 @@ const URLInput: React.FC<{
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         className="flex-1 rounded-md px-3 py-1.5 text-sm text-white placeholder:text-slate-600 outline-none font-mono"
-        style={{ backgroundColor: 'rgba(30,47,51,0.6)', border: '1px solid #224349' }}
+        style={{ backgroundColor: 'rgba(30,47,51,0.6)', border: '1px solid #3d3528' }}
       />
       <button
         onClick={onTest}
         className="flex items-center gap-1 rounded-md px-3 py-1.5 text-xs font-bold uppercase tracking-wide transition-colors"
         style={{
-          border: '1px solid #224349',
+          border: '1px solid #3d3528',
           backgroundColor: 'rgba(30,47,51,0.4)',
-          color: testStatus === 'pass' ? '#10b981' : testStatus === 'fail' ? '#ef4444' : '#94a3b8',
+          color: testStatus === 'pass' ? '#10b981' : testStatus === 'fail' ? '#ef4444' : '#8a7e6b',
         }}
       >
         {testStatus === 'pass' && (
           <span
             className="material-symbols-outlined text-sm"
-            style={{ fontFamily: 'Material Symbols Outlined', color: '#10b981' }}
+            style={{ color: '#10b981' }}
           >
             check_circle
           </span>
@@ -154,7 +155,7 @@ const URLInput: React.FC<{
         {testStatus === 'fail' && (
           <span
             className="material-symbols-outlined text-sm"
-            style={{ fontFamily: 'Material Symbols Outlined', color: '#ef4444' }}
+            style={{ color: '#ef4444' }}
           >
             cancel
           </span>
@@ -172,7 +173,7 @@ const SavedToast: React.FC<{ visible: boolean }> = ({ visible }) => (
   <div
     className="fixed bottom-6 right-6 px-4 py-2 rounded-lg text-xs font-bold text-white shadow-lg transition-all duration-300 pointer-events-none z-50"
     style={{
-      backgroundColor: 'rgba(7,182,213,0.9)',
+      backgroundColor: 'rgba(224,159,62,0.9)',
       opacity: visible ? 1 : 0,
       transform: visible ? 'translateY(0)' : 'translateY(8px)',
     }}
@@ -282,7 +283,7 @@ const SettingsView: React.FC = () => {
         <div className="flex items-center gap-2 mb-8">
           <span
             className="material-symbols-outlined text-xl"
-            style={{ fontFamily: 'Material Symbols Outlined', color: '#07b6d5' }}
+            style={{ color: '#e09f3e' }}
           >
             settings
           </span>
@@ -297,14 +298,14 @@ const SettingsView: React.FC = () => {
             options={TIMEZONES.map((tz) => ({ label: tz, value: tz }))}
             onChange={handleTimezone}
           />
-          <div className="border-t my-1" style={{ borderColor: '#224349' }} />
+          <div className="border-t my-1" style={{ borderColor: '#3d3528' }} />
           <LabeledSelect
             label="Auto-refresh interval"
             value={refreshInterval}
             options={REFRESH_OPTIONS}
             onChange={handleRefresh}
           />
-          <div className="border-t my-1" style={{ borderColor: '#224349' }} />
+          <div className="border-t my-1" style={{ borderColor: '#3d3528' }} />
           <Toggle
             label="Show confidence percentages"
             checked={showConfidence}
@@ -322,7 +323,7 @@ const SettingsView: React.FC = () => {
             testStatus={testResults.prometheus}
             onTest={() => simulateTest('prometheus')}
           />
-          <div className="border-t my-1" style={{ borderColor: '#224349' }} />
+          <div className="border-t my-1" style={{ borderColor: '#3d3528' }} />
           <URLInput
             label="Elasticsearch URL"
             value={elasticsearchUrl}
@@ -331,7 +332,7 @@ const SettingsView: React.FC = () => {
             testStatus={testResults.elasticsearch}
             onTest={() => simulateTest('elasticsearch')}
           />
-          <div className="border-t my-1" style={{ borderColor: '#224349' }} />
+          <div className="border-t my-1" style={{ borderColor: '#3d3528' }} />
           <URLInput
             label="Kubernetes API URL"
             value={k8sUrl}
@@ -349,13 +350,16 @@ const SettingsView: React.FC = () => {
             checked={notifications}
             onChange={handleNotifications}
           />
-          <div className="border-t my-1" style={{ borderColor: '#224349' }} />
+          <div className="border-t my-1" style={{ borderColor: '#3d3528' }} />
           <Toggle
             label="Sound alerts"
             checked={soundAlerts}
             onChange={handleSound}
           />
         </SectionCard>
+
+        {/* ── Notification Channels & Escalation ──────────────────────── */}
+        <NotificationChannelsSection />
 
         {/* ── About ──────────────────────────────────────────────────── */}
         <SectionCard icon="info" title="About">
@@ -364,12 +368,12 @@ const SettingsView: React.FC = () => {
               <span className="text-slate-400">Version</span>
               <span className="font-mono text-white">1.0.0-beta</span>
             </div>
-            <div className="border-t" style={{ borderColor: '#224349' }} />
+            <div className="border-t" style={{ borderColor: '#3d3528' }} />
             <div className="flex items-center justify-between py-1">
               <span className="text-slate-400">Product</span>
               <span className="text-white">DebugDuck Command Center</span>
             </div>
-            <div className="border-t" style={{ borderColor: '#224349' }} />
+            <div className="border-t" style={{ borderColor: '#3d3528' }} />
             <div className="flex items-center justify-between py-1">
               <span className="text-slate-400">Support</span>
               <span className="text-slate-500 cursor-default">Report issues</span>

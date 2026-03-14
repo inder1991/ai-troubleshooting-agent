@@ -29,7 +29,7 @@ const GithubIssueFixFields: React.FC<GithubIssueFixFieldsProps> = ({ data, onCha
           type="text"
           value={data.repo_url}
           onChange={(e) => update({ repo_url: e.target.value })}
-          className="w-full px-3 py-2.5 bg-[#0f2023] border border-[#224349] rounded-lg text-sm text-white placeholder-gray-600 focus:border-[#07b6d5] focus:outline-none focus:ring-1 focus:ring-[#07b6d5]/30 transition-colors"
+          className="w-full px-3 py-2.5 bg-[#1a1814] border border-[#3d3528] rounded-lg text-sm text-white placeholder-gray-600 focus:border-[#e09f3e] focus:outline-none focus:ring-1 focus:ring-[#e09f3e]/30 transition-colors"
           placeholder="https://github.com/org/repo"
           required
         />
@@ -44,7 +44,7 @@ const GithubIssueFixFields: React.FC<GithubIssueFixFieldsProps> = ({ data, onCha
           type="text"
           value={data.issue_number}
           onChange={(e) => update({ issue_number: e.target.value })}
-          className="w-full px-3 py-2.5 bg-[#0f2023] border border-[#224349] rounded-lg text-sm text-white placeholder-gray-600 focus:border-[#07b6d5] focus:outline-none focus:ring-1 focus:ring-[#07b6d5]/30 transition-colors font-mono"
+          className="w-full px-3 py-2.5 bg-[#1a1814] border border-[#3d3528] rounded-lg text-sm text-white placeholder-gray-600 focus:border-[#e09f3e] focus:outline-none focus:ring-1 focus:ring-[#e09f3e]/30 transition-colors font-mono"
           placeholder="#87"
           required
         />
@@ -57,7 +57,7 @@ const GithubIssueFixFields: React.FC<GithubIssueFixFieldsProps> = ({ data, onCha
           type="text"
           value={data.target_branch || ''}
           onChange={(e) => update({ target_branch: e.target.value || undefined })}
-          className="w-full px-3 py-2.5 bg-[#0f2023] border border-[#224349] rounded-lg text-sm text-white placeholder-gray-600 focus:border-[#07b6d5] focus:outline-none focus:ring-1 focus:ring-[#07b6d5]/30 transition-colors font-mono"
+          className="w-full px-3 py-2.5 bg-[#1a1814] border border-[#3d3528] rounded-lg text-sm text-white placeholder-gray-600 focus:border-[#e09f3e] focus:outline-none focus:ring-1 focus:ring-[#e09f3e]/30 transition-colors font-mono"
           placeholder="main"
         />
       </div>
@@ -76,7 +76,7 @@ const GithubIssueFixFields: React.FC<GithubIssueFixFieldsProps> = ({ data, onCha
                 className={`px-2 py-2 rounded-lg border text-xs font-bold transition-all ${
                   active
                     ? 'border-opacity-50 text-white'
-                    : 'bg-[#0f2023] border-[#224349] text-gray-500 hover:text-gray-300'
+                    : 'bg-[#1a1814] border-[#3d3528] text-gray-500 hover:text-gray-300'
                 }`}
                 style={
                   active

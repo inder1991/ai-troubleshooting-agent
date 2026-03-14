@@ -8,8 +8,8 @@ const HUDAtmosphere: React.FC<{ children: React.ReactNode }> = ({ children }) =>
         className="absolute inset-0 opacity-20 pointer-events-none mix-blend-overlay"
         style={{
           backgroundImage: `
-            linear-gradient(rgba(7,182,213,0.1) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(7,182,213,0.1) 1px, transparent 1px)
+            linear-gradient(rgba(224,159,62,0.1) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(224,159,62,0.1) 1px, transparent 1px)
           `,
           backgroundSize: '30px 30px',
         }}

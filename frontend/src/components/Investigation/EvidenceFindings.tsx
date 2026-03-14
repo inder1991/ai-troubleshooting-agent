@@ -272,7 +272,7 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
   let vineIndex = 0;
 
   return (
-    <div className="flex flex-col h-full bg-[#0f2023]">
+    <div className="flex flex-col h-full bg-[#1a1814]">
       <HUDAtmosphere>
         {/* Briefing Header */}
         <BriefingHeader
@@ -293,11 +293,11 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                   initial="hidden"
                   animate="visible"
                   exit="exit"
-                  className="mb-4 flex items-center justify-between px-3 py-2 rounded-lg bg-cyan-500/10 border border-cyan-500/20"
+                  className="mb-4 flex items-center justify-between px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20"
                 >
                   <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-cyan-400" />
-                    <span className="text-[11px] text-cyan-300">
+                    <span className="w-2 h-2 rounded-full bg-amber-400" />
+                    <span className="text-[11px] text-amber-300">
                       Showing evidence for: <span className="font-mono font-bold">{selectedService}</span>
                     </span>
                   </div>
@@ -317,7 +317,7 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                 sectionId="evidence-graph"
                 isNew={newSections.has('evidence-graph')}
               >
-                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Evidence Graph</div>
+                <div className="text-[10px] font-bold font-display text-slate-500 mb-2">Evidence Graph</div>
                 <EvidenceGraphView graph={findings.evidence_graph} />
               </VineCard>
             )}
@@ -332,37 +332,37 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
             {findings && hasContent && (
               <div className="sticky top-0 z-50 bg-slate-950/90 backdrop-blur border-b border-slate-800 flex gap-1.5 p-2 mb-4 rounded-lg overflow-x-auto scrollbar-hide">
                 {rootCausePatterns.length > 0 && (
-                  <a href="#section-root-cause" className="text-[10px] uppercase font-bold text-red-400 bg-red-500/10 px-2 py-1 rounded whitespace-nowrap hover:bg-red-500/20 transition-colors">
+                  <a href="#section-root-cause" className="text-[10px] font-bold text-red-400 bg-red-500/10 px-2 py-1 rounded whitespace-nowrap hover:bg-red-500/20 transition-colors">
                     Root Cause ({rootCausePatterns.length})
                   </a>
                 )}
                 {cascadingPatterns.length > 0 && (
-                  <a href="#section-cascading" className="text-[10px] uppercase font-bold text-orange-400 bg-orange-500/10 px-2 py-1 rounded whitespace-nowrap hover:bg-orange-500/20 transition-colors">
+                  <a href="#section-cascading" className="text-[10px] font-bold text-orange-400 bg-orange-500/10 px-2 py-1 rounded whitespace-nowrap hover:bg-orange-500/20 transition-colors">
                     Cascading ({cascadingPatterns.length})
                   </a>
                 )}
                 {filteredFindings.length > 0 && (
-                  <a href="#section-findings" className="text-[10px] uppercase font-bold text-cyan-400 bg-cyan-500/10 px-2 py-1 rounded whitespace-nowrap hover:bg-cyan-500/20 transition-colors">
+                  <a href="#section-findings" className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-1 rounded whitespace-nowrap hover:bg-amber-500/20 transition-colors">
                     Findings ({filteredFindings.length})
                   </a>
                 )}
                 {filteredMetrics.length > 0 && (
-                  <a href="#section-metrics" className="text-[10px] uppercase font-bold text-cyan-400 bg-cyan-500/10 px-2 py-1 rounded whitespace-nowrap hover:bg-cyan-500/20 transition-colors">
+                  <a href="#section-metrics" className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-1 rounded whitespace-nowrap hover:bg-amber-500/20 transition-colors">
                     Metrics ({filteredMetrics.length})
                   </a>
                 )}
                 {(filteredK8sEvents.length > 0 || filteredPodStatuses.length > 0) && (
-                  <a href="#section-k8s" className="text-[10px] uppercase font-bold text-orange-400 bg-orange-500/10 px-2 py-1 rounded whitespace-nowrap hover:bg-orange-500/20 transition-colors">
+                  <a href="#section-k8s" className="text-[10px] font-bold text-orange-400 bg-orange-500/10 px-2 py-1 rounded whitespace-nowrap hover:bg-orange-500/20 transition-colors">
                     K8s ({filteredK8sEvents.length + filteredPodStatuses.length})
                   </a>
                 )}
                 {(findings?.trace_spans?.length ?? 0) > 0 && (
-                  <a href="#section-traces" className="text-[10px] uppercase font-bold text-violet-400 bg-violet-500/10 px-2 py-1 rounded whitespace-nowrap hover:bg-violet-500/20 transition-colors">
+                  <a href="#section-traces" className="text-[10px] font-bold text-violet-400 bg-violet-500/10 px-2 py-1 rounded whitespace-nowrap hover:bg-violet-500/20 transition-colors">
                     Traces ({findings?.trace_spans?.length})
                   </a>
                 )}
                 {correlatedPatterns.length > 0 && (
-                  <a href="#section-correlated" className="text-[10px] uppercase font-bold text-blue-400 bg-blue-500/10 px-2 py-1 rounded whitespace-nowrap hover:bg-blue-500/20 transition-colors">
+                  <a href="#section-correlated" className="text-[10px] font-bold text-blue-400 bg-blue-500/10 px-2 py-1 rounded whitespace-nowrap hover:bg-blue-500/20 transition-colors">
                     Correlated ({correlatedPatterns.length})
                   </a>
                 )}
@@ -477,9 +477,9 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                     ) : (
                       <section className="space-y-2">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="material-symbols-outlined text-amber-500 text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>receipt_long</span>
-                          <span className="text-[11px] font-bold uppercase tracking-wider">Error Clusters</span>
-                          <span className="text-[10px] font-mono text-slate-500">{ungroupedPatterns.length}</span>
+                          <span className="material-symbols-outlined text-amber-500 text-sm">receipt_long</span>
+                          <span className="text-[11px] font-bold font-display">Error Clusters</span>
+                          <span className="text-[10px] text-slate-500">{ungroupedPatterns.length}</span>
                         </div>
                         {ungroupedPatterns.map((ep, i) => (
                           <ErrorPatternCluster key={ep.pattern_id || `ug-${i}`} pattern={ep} rank={i + 1} onTraceIdClick={handleTraceIdClick} />
@@ -500,7 +500,7 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                     isPinned={pinnedSections.has('findings')}
                   >
                     <section className="space-y-2">
-                      <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Findings</div>
+                      <div className="text-[10px] font-bold font-display text-slate-500 mb-1">Findings</div>
                       {[...filteredFindings]
                         .sort((a, b) => severityRank(a.severity) - severityRank(b.severity))
                         .map((finding, i) => {
@@ -524,14 +524,14 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                                     <p className="text-[10px] text-slate-400">{verdict.reasoning}</p>
                                   )}
                                   {verdict.recommendation && (
-                                    <p className="text-[10px] text-cyan-400 italic">{verdict.recommendation}</p>
+                                    <p className="text-[10px] text-amber-400 italic">{verdict.recommendation}</p>
                                   )}
                                   {verdict.confidence_in_verdict > 0 && (
-                                    <span className="text-[9px] text-slate-500 font-mono">Verdict confidence: {verdict.confidence_in_verdict}%</span>
+                                    <span className="text-[9px] text-slate-500">Verdict confidence: {verdict.confidence_in_verdict}%</span>
                                   )}
                                   {verdict.verdict === 'challenged' && verdict.contradicting_evidence && verdict.contradicting_evidence.length > 0 && (
                                     <div className="mt-1.5 pt-1.5 border-t border-red-500/20">
-                                      <span className="text-[9px] font-bold text-red-400 uppercase tracking-wider">Contradicting Evidence</span>
+                                      <span className="text-[9px] font-bold font-display text-red-400">Contradicting Evidence</span>
                                       <div className="mt-1 space-y-1">
                                         {verdict.contradicting_evidence.map((b, bi) => (
                                           <div key={bi} className="text-[10px] text-slate-400 flex items-start gap-1.5">
@@ -547,7 +547,7 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                                 </div>
                               )}
                               {finding.suggested_fix && (
-                                <p className="text-[10px] text-cyan-400 mt-2">Fix: {finding.suggested_fix}</p>
+                                <p className="text-[10px] text-amber-400 mt-2">Fix: {finding.suggested_fix}</p>
                               )}
                             </AgentFindingCard>
                           );
@@ -568,7 +568,7 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                     isPinned={pinnedSections.has('metrics')}
                   >
                     <section>
-                      <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Metric Anomalies</div>
+                      <div className="text-[10px] font-bold font-display text-slate-500 mb-2">Metric Anomalies</div>
                       <div className="grid grid-cols-2 gap-3">
                         {filteredMetrics.map((ma, i) => {
                           const tsData = findMatchingTimeSeries(findings?.time_series_data || {}, ma.metric_name);
@@ -577,8 +577,8 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                               <div className="flex items-baseline gap-3 mb-2">
                                 <div className="text-xl font-bold font-mono text-white">{safeFixed(ma.current_value, 1)}</div>
                                 <div className="text-xs font-mono text-slate-500">baseline {safeFixed(ma.baseline_value, 1)}</div>
-                                <div className={`text-sm font-mono font-bold ml-auto ${
-                                  ma.severity === 'critical' || ma.severity === 'high' ? 'text-red-400' : 'text-cyan-400'
+                                <div className={`text-sm font-bold ml-auto ${
+                                  ma.severity === 'critical' || ma.severity === 'high' ? 'text-red-400' : 'text-amber-400'
                                 }`}>
                                   {ma.direction === 'above' ? '\u25B2' : '\u25BC'}{Math.round(ma.deviation_percent)}%
                                 </div>
@@ -597,7 +597,7 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                               {ma.spike_start && (
                                 <button
                                   onClick={() => handleMetricToLogs(ma.spike_start!)}
-                                  className="mt-2 text-[9px] font-mono text-cyan-400 hover:text-cyan-300 hover:underline transition-colors"
+                                  className="mt-2 text-[9px] text-amber-400 hover:text-amber-300 hover:underline transition-colors"
                                   title="Query logs around this anomaly"
                                 >
                                   View logs ±2m
@@ -716,7 +716,7 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                         return (
                         <div className="flex items-center gap-2 mb-1">
                           <span className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold bg-blue-500 text-white">D</span>
-                          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Code Navigator</span>
+                          <span className="text-[10px] font-bold font-display text-slate-500">Code Navigator</span>
                           <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
                             conf >= 80 ? 'text-green-400 bg-green-500/10 border border-green-500/20' :
                             conf >= 50 ? 'text-amber-400 bg-amber-500/10 border border-amber-500/20' :
@@ -737,7 +737,7 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                                   ? 'text-red-300 bg-red-500/20 border-red-500/30'
                                   : 'text-amber-300 bg-amber-500/20 border-amber-500/30'
                               }`}>{findings.root_cause_location.fix_relevance.replace(/_/g, ' ').toUpperCase()}</span>
-                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-700/50 text-slate-300 font-mono">
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-700/50 text-slate-300">
                                 {findings.root_cause_location.impact_type.replace(/_/g, ' ')}
                               </span>
                             </div>
@@ -797,7 +797,7 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                         <AgentFindingCard agent="D" title="Shared Resource Conflicts">
                           <div className="flex flex-wrap gap-2">
                             {(findings?.code_shared_resource_conflicts || []).map((conflict, i) => (
-                              <span key={i} className="text-[10px] font-mono px-2.5 py-1 rounded-full bg-purple-500/15 text-purple-400 border border-purple-500/30">
+                              <span key={i} className="text-[10px] px-2.5 py-1 rounded-full bg-purple-500/15 text-purple-400 border border-purple-500/30">
                                 {conflict}
                               </span>
                             ))}
@@ -864,7 +864,7 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                     isPinned={pinnedSections.has('correlated')}
                   >
                     <section className="space-y-2">
-                      <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Correlated Anomalies</div>
+                      <div className="text-[10px] font-bold font-display text-slate-500 mb-1">Correlated Anomalies</div>
                       {correlatedPatterns.map((ep, i) => (
                         <AgentFindingCard key={ep.pattern_id || `cor-${i}`} agent="L" title="Correlated Pattern">
                           <CausalRoleBadge role="correlated_anomaly" />
@@ -928,7 +928,7 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                   <VineCard index={vineIndex++} sectionId="activity-feed">
                     <div className="bg-slate-900/40 border border-slate-800 rounded-xl overflow-hidden">
                       <div className="px-4 py-2 border-b border-slate-800 bg-slate-900/60">
-                        <span className="text-[11px] font-bold uppercase tracking-wider">Agent Activity Feed</span>
+                        <span className="text-[11px] font-bold font-display">Agent Activity Feed</span>
                       </div>
                       <div className="p-4 font-mono text-[11px] space-y-1 text-slate-400 max-h-[300px] overflow-y-auto custom-scrollbar">
                         {events.slice(-20).map((ev, i) => (
@@ -943,7 +943,7 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                             }`}>
                               [{ev.event_type.toUpperCase()}]
                             </span>
-                            <span className="text-[#07b6d5]">{ev.agent_name}</span>
+                            <span className="text-[#e09f3e]">{ev.agent_name}</span>
                             <span className="truncate">{ev.message}</span>
                           </div>
                         ))}
@@ -959,12 +959,11 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
               <div className="mt-6">
                 <div className="flex items-center gap-2 mb-3">
                   <span
-                    className="material-symbols-outlined text-amber-400"
-                    style={{ fontFamily: 'Material Symbols Outlined', fontSize: '16px' }}
+                    className="material-symbols-outlined text-amber-400 text-[16px]"
                   >
                     push_pin
                   </span>
-                  <span className="text-[11px] font-bold text-amber-400 uppercase tracking-wider">
+                  <span className="text-[11px] font-bold font-display text-amber-400">
                     Manual Evidence ({mergedPins.length})
                   </span>
                 </div>
@@ -1083,7 +1082,7 @@ const ErrorPatternContent: React.FC<{
                 {traceMatch && onTraceIdClick && (
                   <button
                     onClick={() => onTraceIdClick(traceMatch[0])}
-                    className="ml-2 text-cyan-400 hover:text-cyan-300 hover:underline"
+                    className="ml-2 text-amber-400 hover:text-amber-300 hover:underline"
                     title={`View trace ${traceMatch[0]}`}
                   >
                     [trace]
@@ -1111,7 +1110,7 @@ const ErrorPatternCluster: React.FC<{ pattern: ErrorPattern; rank: number; onTra
   return (
     <div className={`border rounded-lg overflow-hidden ${sevColor}`}>
       <button onClick={() => setExpanded(!expanded)} className="w-full px-3 py-2.5 text-left flex items-center gap-2" aria-expanded={expanded} aria-label={`${expanded ? 'Collapse' : 'Expand'} error pattern: ${pattern.exception_type}`}>
-        <span className={`material-symbols-outlined text-xs text-slate-400 transition-transform duration-200 ${expanded ? 'rotate-90' : ''}`} style={{ fontFamily: 'Material Symbols Outlined' }}>chevron_right</span>
+        <span className={`material-symbols-outlined text-xs text-slate-400 transition-transform duration-200 ${expanded ? 'rotate-90' : ''}`}>chevron_right</span>
         <span className={`text-[10px] font-bold uppercase ${
           pattern.severity === 'critical' || pattern.severity === 'high' ? 'text-red-400' :
           pattern.severity === 'medium' ? 'text-amber-400' : 'text-blue-400'
@@ -1141,9 +1140,9 @@ const BlastRadiusCard: React.FC<{ blast: BlastRadiusData | null; severity: Sever
   return (
     <div className={`border rounded-xl overflow-hidden ${style.border} ${style.bg}`}>
       <button onClick={() => setExpanded(!expanded)} className="w-full px-4 py-3 text-left flex items-center gap-3" aria-expanded={expanded}>
-        <span className={`material-symbols-outlined text-xs text-slate-400 transition-transform ${expanded ? 'rotate-90' : ''}`} style={{ fontFamily: 'Material Symbols Outlined' }}>chevron_right</span>
-        <span className="material-symbols-outlined text-sm text-slate-400" style={{ fontFamily: 'Material Symbols Outlined' }}>hub</span>
-        <span className="text-[11px] font-bold uppercase tracking-wider">Blast Radius</span>
+        <span className={`material-symbols-outlined text-xs text-slate-400 transition-transform ${expanded ? 'rotate-90' : ''}`}>chevron_right</span>
+        <span className="material-symbols-outlined text-sm text-slate-400">hub</span>
+        <span className="text-[11px] font-bold font-display">Blast Radius</span>
         <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${style.text} bg-black/20`}>{sev}</span>
         <span className="text-[11px] text-slate-400">{blast.scope.replace(/_/g, ' ')} — {totalAffected} affected</span>
       </button>
@@ -1153,23 +1152,23 @@ const BlastRadiusCard: React.FC<{ blast: BlastRadiusData | null; severity: Sever
           {/* Visual service bubbles */}
           <div className="flex flex-wrap gap-2">
             {blast.upstream_affected?.map((svc) => (
-              <span key={`up-${svc}`} className="text-[10px] font-mono px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30">{svc} ↑</span>
+              <span key={`up-${svc}`} className="text-[10px] px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30">{svc} ↑</span>
             ))}
-            <span className="text-[10px] font-mono px-2.5 py-1 rounded-full bg-red-500/15 text-red-400 border border-red-500/30 font-bold">{blast.primary_service}</span>
+            <span className="text-[10px] px-2.5 py-1 rounded-full bg-red-500/15 text-red-400 border border-red-500/30 font-bold">{blast.primary_service}</span>
             {blast.downstream_affected?.map((svc) => (
-              <span key={`dn-${svc}`} className="text-[10px] font-mono px-2.5 py-1 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/30">{svc} ↓</span>
+              <span key={`dn-${svc}`} className="text-[10px] px-2.5 py-1 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/30">{svc} ↓</span>
             ))}
           </div>
           {blast.shared_resources?.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {blast.shared_resources.map((res) => (
-                <span key={res} className="text-[10px] font-mono px-2 py-0.5 rounded bg-purple-500/15 text-purple-400 border border-purple-500/30">{res}</span>
+                <span key={res} className="text-[10px] px-2 py-0.5 rounded bg-purple-500/15 text-purple-400 border border-purple-500/30">{res}</span>
               ))}
             </div>
           )}
           {severity?.factors && Object.keys(severity.factors).length > 0 && (
             <div className="space-y-1 pt-1 border-t border-slate-800">
-              <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Severity Factors</span>
+              <span className="text-[9px] font-bold font-display text-slate-500">Severity Factors</span>
               {Object.entries(severity.factors).map(([key, value]) => (
                 <div key={key} className="flex items-start gap-2 text-[10px]">
                   <span className="text-slate-500 shrink-0">{key.replace(/_/g, ' ')}:</span>
@@ -1221,8 +1220,8 @@ const TemporalFlowTimeline: React.FC<{
     <div className="bg-slate-900/40 border border-slate-800 rounded-xl overflow-hidden">
       <div className="px-4 py-2 border-b border-slate-800 flex items-center justify-between bg-slate-900/60">
         <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-violet-400 text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>timeline</span>
-          <span className="text-[11px] font-bold uppercase tracking-wider">Temporal Flow</span>
+          <span className="material-symbols-outlined text-violet-400 text-sm">timeline</span>
+          <span className="text-[11px] font-bold font-display">Temporal Flow</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-[10px] text-slate-500">{serviceCount} services, {steps.length} steps</span>
@@ -1250,7 +1249,7 @@ const TemporalFlowTimeline: React.FC<{
                       {isPatientZero && <span className="text-[8px] px-1 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30">ORIGIN</span>}
                       <span className="text-[11px] font-mono text-slate-300 truncate">{step.operation}</span>
                     </div>
-                    <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border ${
+                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${
                       step.status === 'ok' ? 'text-green-400 border-green-500/30 bg-green-500/10' :
                       step.status === 'error' ? 'text-red-400 border-red-500/30 bg-red-500/10' :
                       'text-orange-400 border-orange-500/30 bg-orange-500/10'
@@ -1330,8 +1329,8 @@ const CausalityChainCard: React.FC<{ findings: V4Findings | null }> = ({ finding
     <section className="space-y-3">
       <div className="flex items-center gap-2 mb-1">
         <span className="material-symbols-outlined text-violet-400 text-sm"
-              style={{ fontFamily: 'Material Symbols Outlined' }}>account_tree</span>
-        <span className="text-[11px] font-bold uppercase tracking-wider">Causality Chain</span>
+             >account_tree</span>
+        <span className="text-[11px] font-bold font-display">Causality Chain</span>
         <span className="text-[10px] text-slate-500">
           {links.length} correlation{links.length !== 1 ? 's' : ''}
         </span>
@@ -1341,7 +1340,7 @@ const CausalityChainCard: React.FC<{ findings: V4Findings | null }> = ({ finding
       {changeSummary && (
         <div className="rounded-lg bg-blue-500/5 border border-blue-500/20 px-4 py-2.5 flex items-start gap-2.5">
           <span className="material-symbols-outlined text-blue-400 text-sm mt-0.5 shrink-0"
-                style={{ fontFamily: 'Material Symbols Outlined' }}>lightbulb</span>
+               >lightbulb</span>
           <p className="text-[11px] text-slate-300 leading-relaxed">{changeSummary}</p>
         </div>
       )}
@@ -1351,8 +1350,8 @@ const CausalityChainCard: React.FC<{ findings: V4Findings | null }> = ({ finding
         <div className="rounded-lg bg-slate-900/40 border border-slate-700/50 px-4 py-2.5">
           <div className="flex items-center gap-1.5 mb-2">
             <span className="material-symbols-outlined text-amber-400 text-xs"
-                  style={{ fontFamily: 'Material Symbols Outlined' }}>target</span>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400">Top Suspects</span>
+                 >target</span>
+            <span className="text-[10px] font-bold font-display text-amber-400">Top Suspects</span>
             <span className="text-[9px] text-slate-600 ml-1">Files the AI is investigating</span>
           </div>
           <div className="flex flex-wrap gap-1.5">
@@ -1398,10 +1397,10 @@ const CausalityChainCard: React.FC<{ findings: V4Findings | null }> = ({ finding
                   aria-expanded={ruledOutOpen}
                   aria-label={`${ruledOutOpen ? 'Collapse' : 'Expand'} ruled out findings`}>
             <span className={`material-symbols-outlined text-xs text-slate-400 transition-transform duration-200 ${ruledOutOpen ? 'rotate-90' : ''}`}
-                  style={{ fontFamily: 'Material Symbols Outlined' }}>chevron_right</span>
+                 >chevron_right</span>
             <span className="material-symbols-outlined text-slate-400 text-xs"
-                  style={{ fontFamily: 'Material Symbols Outlined' }}>scan_delete</span>
-            <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Ruled Out</span>
+                 >scan_delete</span>
+            <span className="text-[10px] text-slate-400 font-bold font-display">Ruled Out</span>
             <span className="text-[9px] text-slate-500">{changeNegatives.length} checked</span>
           </button>
           {ruledOutOpen && (
@@ -1445,7 +1444,7 @@ const CausalityLinkCard: React.FC<{ link: CausalityLink }> = ({ link }) => {
         {temporalPct > 0 && (
           <span className={`text-[9px] px-1.5 py-0.5 rounded border font-mono flex items-center gap-1 shrink-0 ${temporalColor}`}
                 title="Time proximity to incident start">
-            <span className="material-symbols-outlined text-[10px]" style={{ fontFamily: 'Material Symbols Outlined' }}>schedule</span>
+            <span className="material-symbols-outlined text-[10px]">schedule</span>
             {temporalPct}% match
           </span>
         )}
@@ -1462,10 +1461,10 @@ const CausalityLinkCard: React.FC<{ link: CausalityLink }> = ({ link }) => {
             <span>Author: {link.correlation.author}</span>
             <span>Type: {(link.correlation.change_type || 'code_deploy').replace(/_/g, ' ')}</span>
             {link.correlation.timestamp && <span>{safeDate(link.correlation.timestamp)}</span>}
-            {link.correlation.service_name && <span className="text-cyan-400">{link.correlation.service_name}</span>}
+            {link.correlation.service_name && <span className="text-amber-400">{link.correlation.service_name}</span>}
             {temporalPct > 0 && (
               <span className="flex items-center gap-1">
-                <span className="material-symbols-outlined text-[10px] text-slate-400" style={{ fontFamily: 'Material Symbols Outlined' }}>schedule</span>
+                <span className="material-symbols-outlined text-[10px] text-slate-400">schedule</span>
                 Time proximity: {temporalPct}%
               </span>
             )}
@@ -1476,7 +1475,7 @@ const CausalityLinkCard: React.FC<{ link: CausalityLink }> = ({ link }) => {
             <div className="px-4 py-2 border-t border-slate-800/30">
               <div className="flex items-center gap-1.5 mb-1.5">
                 <span className="w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold bg-blue-500 text-white">D</span>
-                <span className="text-[10px] text-slate-500 uppercase tracking-wider">Diff Analysis</span>
+                <span className="text-[10px] text-slate-500 font-display">Diff Analysis</span>
               </div>
               <div className="space-y-1.5">
                 {link.diffs.map((d, i) => {
@@ -1505,8 +1504,8 @@ const CausalityLinkCard: React.FC<{ link: CausalityLink }> = ({ link }) => {
           {link.fixes.length > 0 && (
             <div className="px-4 py-2 border-t border-slate-800/30">
               <div className="flex items-center gap-1.5 mb-1.5">
-                <span className="material-symbols-outlined text-green-400 text-xs" style={{ fontFamily: 'Material Symbols Outlined' }}>build</span>
-                <span className="text-[10px] text-slate-500 uppercase tracking-wider">Suggested Fix</span>
+                <span className="material-symbols-outlined text-green-400 text-xs">build</span>
+                <span className="text-[10px] text-slate-500 font-display">Suggested Fix</span>
               </div>
               {link.fixes.map((fix, i) => (
                 <div key={i} className="text-[10px]">
@@ -1556,7 +1555,7 @@ const ChangeRow: React.FC<{ correlation: ChangeCorrelation }> = ({ correlation }
   return (
     <div className="bg-slate-800/30 rounded-lg border border-slate-700/50">
       <button onClick={() => setExpanded(!expanded)} className="w-full text-left px-3 py-2 flex items-center gap-2" aria-expanded={expanded}>
-        <span className={`material-symbols-outlined text-xs text-slate-500 transition-transform ${expanded ? 'rotate-90' : ''}`} style={{ fontFamily: 'Material Symbols Outlined' }}>chevron_right</span>
+        <span className={`material-symbols-outlined text-xs text-slate-500 transition-transform ${expanded ? 'rotate-90' : ''}`}>chevron_right</span>
         <span className="text-[11px] font-mono text-violet-400">{correlation.change_id?.slice(0, 8) || '—'}</span>
         <span className="text-[11px] text-slate-300 truncate flex-1">{correlation.description}</span>
         <span className={`text-[10px] font-bold ${riskColor}`}>{riskPct}%</span>
@@ -1610,7 +1609,7 @@ const DiffRow: React.FC<{ item: DiffAnalysisItem }> = ({ item }) => {
   return (
     <div className="bg-slate-800/30 rounded-lg border border-slate-700/50">
       <button onClick={() => setExpanded(!expanded)} className="w-full text-left px-3 py-2 flex items-center gap-2" aria-expanded={expanded}>
-        <span className={`material-symbols-outlined text-xs text-slate-500 transition-transform ${expanded ? 'rotate-90' : ''}`} style={{ fontFamily: 'Material Symbols Outlined' }}>chevron_right</span>
+        <span className={`material-symbols-outlined text-xs text-slate-500 transition-transform ${expanded ? 'rotate-90' : ''}`}>chevron_right</span>
         <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${style.text} ${style.bg} ${style.border}`}>
           {item.verdict.replace(/_/g, ' ').toUpperCase()}
         </span>
@@ -1651,7 +1650,7 @@ const FixRow: React.FC<{ fix: SuggestedFixArea }> = ({ fix }) => {
   return (
     <div className="bg-slate-800/30 rounded-lg border border-slate-700/50">
       <button onClick={() => setExpanded(!expanded)} className="w-full text-left px-3 py-2 flex items-center gap-2" aria-expanded={expanded}>
-        <span className={`material-symbols-outlined text-xs text-slate-500 transition-transform ${expanded ? 'rotate-90' : ''}`} style={{ fontFamily: 'Material Symbols Outlined' }}>chevron_right</span>
+        <span className={`material-symbols-outlined text-xs text-slate-500 transition-transform ${expanded ? 'rotate-90' : ''}`}>chevron_right</span>
         <span className="text-[11px] font-mono text-blue-400 truncate" title={fix.file_path}>{fix.file_path}</span>
         <span className="text-[10px] text-slate-400 truncate flex-1 ml-1">{fix.description}</span>
       </button>
@@ -1677,7 +1676,7 @@ const PodDetailsList: React.FC<{ pods: PodHealthStatus[] }> = ({ pods }) => {
 
   return (
     <div className="space-y-1 mb-2">
-      <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">
+      <span className="text-[9px] font-bold font-display text-slate-500">
         {unhealthyPods.length > 0 ? 'Unhealthy Pods' : 'Pod Details'}
       </span>
       {displayPods.map((pod) => {
@@ -1694,7 +1693,7 @@ const PodDetailsList: React.FC<{ pods: PodHealthStatus[] }> = ({ pods }) => {
               {pod.crash_loop && <span className="text-[9px] px-1 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30">CRASH</span>}
               {pod.restart_count > 0 && <span className="text-[9px] text-amber-400 font-mono">{pod.restart_count}x</span>}
               <span className={`material-symbols-outlined text-xs text-slate-600 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
-                    style={{ fontFamily: 'Material Symbols Outlined' }}>chevron_right</span>
+                   >chevron_right</span>
             </button>
             {isExpanded && (
               <div className="px-2.5 pb-2 pt-1 border-t border-slate-700/30 space-y-1 text-[10px]">
@@ -1759,8 +1758,8 @@ const EventMarkerTimeline: React.FC<{ markers: EventMarker[] }> = ({ markers }) 
   return (
     <div className="bg-slate-900/40 border border-slate-800 rounded-xl overflow-hidden">
       <div className="px-4 py-2 border-b border-slate-800 bg-slate-900/60 flex items-center gap-2">
-        <span className="material-symbols-outlined text-amber-400 text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>flag</span>
-        <span className="text-[11px] font-bold uppercase tracking-wider">Event Markers</span>
+        <span className="material-symbols-outlined text-amber-400 text-sm">flag</span>
+        <span className="text-[11px] font-bold font-display">Event Markers</span>
         <span className="text-[10px] text-slate-500 ml-auto">{markers.length} events</span>
       </div>
       <div className="p-4 space-y-1.5">
@@ -1787,8 +1786,8 @@ const PastIncidentsSection: React.FC<{ incidents: PastIncidentMatch[] }> = ({ in
   return (
     <div className="bg-slate-900/40 border border-slate-800 rounded-xl overflow-hidden">
       <div className="px-4 py-2 border-b border-slate-800 bg-slate-900/60 flex items-center gap-2">
-        <span className="material-symbols-outlined text-violet-400 text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>history</span>
-        <span className="text-[11px] font-bold uppercase tracking-wider text-violet-400">Similar Past Incidents</span>
+        <span className="material-symbols-outlined text-violet-400 text-sm">history</span>
+        <span className="text-[11px] font-bold font-display text-violet-400">Similar Past Incidents</span>
         <span className="text-[10px] text-slate-500 ml-auto">{incidents.length} match{incidents.length !== 1 ? 'es' : ''}</span>
       </div>
       <div className="p-4 space-y-2">
@@ -1806,7 +1805,7 @@ const PastIncidentsSection: React.FC<{ incidents: PastIncidentMatch[] }> = ({ in
                 className="w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-slate-800/50 transition-colors"
               >
                 <span className={`material-symbols-outlined text-xs text-slate-500 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
-                      style={{ fontFamily: 'Material Symbols Outlined' }}>chevron_right</span>
+                     >chevron_right</span>
                 <span className={`text-[10px] font-bold font-mono ${simColor}`}>{similarity}%</span>
                 <span className="text-[11px] text-slate-300 truncate flex-1">{inc.root_cause || 'Unknown root cause'}</span>
                 {inc.time_to_resolve > 0 && (
@@ -1821,7 +1820,7 @@ const PastIncidentsSection: React.FC<{ incidents: PastIncidentMatch[] }> = ({ in
                 <div className="px-3 pb-3 border-t border-slate-700/30 pt-2 space-y-2">
                   {(inc.error_patterns?.length ?? 0) > 0 && (
                     <div>
-                      <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Error Patterns</span>
+                      <span className="text-[9px] font-bold font-display text-slate-500">Error Patterns</span>
                       <div className="flex flex-wrap gap-1 mt-1">
                         {inc.error_patterns?.map((ep, j) => (
                           <span key={j} className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-red-500/10 text-red-400 border border-red-500/20">{ep}</span>
@@ -1831,7 +1830,7 @@ const PastIncidentsSection: React.FC<{ incidents: PastIncidentMatch[] }> = ({ in
                   )}
                   {(inc.affected_services?.length ?? 0) > 0 && (
                     <div>
-                      <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Affected Services</span>
+                      <span className="text-[9px] font-bold font-display text-slate-500">Affected Services</span>
                       <div className="flex flex-wrap gap-1 mt-1">
                         {inc.affected_services?.map((svc, j) => (
                           <span key={j} className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-700/50 text-slate-300">{svc}</span>
@@ -1841,7 +1840,7 @@ const PastIncidentsSection: React.FC<{ incidents: PastIncidentMatch[] }> = ({ in
                   )}
                   {(inc.resolution_steps?.length ?? 0) > 0 && (
                     <div>
-                      <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Resolution Steps</span>
+                      <span className="text-[9px] font-bold font-display text-slate-500">Resolution Steps</span>
                       <ol className="mt-1 space-y-0.5">
                         {inc.resolution_steps?.map((step, j) => (
                           <li key={j} className="text-[10px] text-slate-400 flex items-start gap-1.5">
@@ -1882,11 +1881,10 @@ const PhaseAwareEmptyState: React.FC<{ phase: DiagnosticPhase | null }> = ({ pha
     <div className="flex items-center justify-center h-full min-h-[200px] text-slate-400">
       <div className="text-center">
         {!isComplete && (
-          <div className="w-8 h-8 border-2 border-slate-800 border-t-[#07b6d5] rounded-full animate-spin mx-auto mb-3" />
+          <div className="w-8 h-8 border-2 border-slate-800 border-t-[#e09f3e] rounded-full animate-spin mx-auto mb-3" />
         )}
         <span
           className="material-symbols-outlined text-2xl text-slate-500 mb-2 block"
-          style={{ fontFamily: 'Material Symbols Outlined' }}
         >
           {info.icon}
         </span>

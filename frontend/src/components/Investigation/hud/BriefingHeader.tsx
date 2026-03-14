@@ -48,10 +48,10 @@ const BriefingHeader: React.FC<BriefingHeaderProps> = ({
           animate={isProcessing ? { rotate: [0, -10, 10, -5, 5, 0] } : { rotate: 0 }}
           transition={isProcessing ? { repeat: Infinity, duration: 2, ease: 'easeInOut' } : {}}
         >
-          <HardHat className="w-5 h-5 text-cyan-400" />
+          <HardHat className="w-5 h-5 text-amber-400" />
         </motion.div>
         {isProcessing && (
-          <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
+          <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-amber-400 animate-ping" />
         )}
       </div>
 
@@ -60,7 +60,7 @@ const BriefingHeader: React.FC<BriefingHeaderProps> = ({
         <p className="text-[11px] text-slate-300 font-mono truncate leading-snug">
           <motion.span>{displayedText}</motion.span>
           {isProcessing && (
-            <span className="inline-block w-1.5 h-3 bg-cyan-400 ml-0.5 animate-pulse align-text-bottom" />
+            <span className="inline-block w-1.5 h-3 bg-amber-400 ml-0.5 animate-pulse align-text-bottom" />
           )}
         </p>
       </div>
@@ -73,7 +73,7 @@ const BriefingHeader: React.FC<BriefingHeaderProps> = ({
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 8 }}
           transition={{ duration: 0.2 }}
-          className="text-[9px] font-bold text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.5 rounded-full shrink-0"
+          className="text-[9px] font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full shrink-0"
         >
           {agentName}
         </motion.span>

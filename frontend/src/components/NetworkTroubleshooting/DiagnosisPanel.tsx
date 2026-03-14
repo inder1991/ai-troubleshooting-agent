@@ -26,7 +26,7 @@ const DiagnosisPanel: React.FC<DiagnosisPanelProps> = ({ findings, direction }) 
       {/* Executive Summary */}
       <div
         className="rounded-lg p-4"
-        style={{ backgroundColor: '#0f2023', border: '1px solid #224349' }}
+        style={{ backgroundColor: '#1a1814', border: '1px solid #3d3528' }}
       >
         <div
           className="text-xs font-mono uppercase tracking-wider mb-2"
@@ -41,7 +41,7 @@ const DiagnosisPanel: React.FC<DiagnosisPanelProps> = ({ findings, direction }) 
           {status.toUpperCase()}
         </div>
         {state.executive_summary && (
-          <p className="text-xs font-mono leading-relaxed" style={{ color: '#e2e8f0' }}>
+          <p className="text-xs font-mono leading-relaxed" style={{ color: '#e8e0d4' }}>
             {state.executive_summary}
           </p>
         )}
@@ -50,7 +50,7 @@ const DiagnosisPanel: React.FC<DiagnosisPanelProps> = ({ findings, direction }) 
       {/* Confidence Meter */}
       <div
         className="rounded-lg p-4"
-        style={{ backgroundColor: '#0f2023', border: '1px solid #224349' }}
+        style={{ backgroundColor: '#1a1814', border: '1px solid #3d3528' }}
       >
         <div className="flex items-center justify-between mb-2">
           <span
@@ -61,7 +61,7 @@ const DiagnosisPanel: React.FC<DiagnosisPanelProps> = ({ findings, direction }) 
           </span>
           <span
             className="text-sm font-mono font-bold tabular-nums"
-            style={{ color: '#07b6d5' }}
+            style={{ color: '#e09f3e' }}
           >
             {Math.round(confidence * 100)}%
           </span>
@@ -74,7 +74,7 @@ const DiagnosisPanel: React.FC<DiagnosisPanelProps> = ({ findings, direction }) 
             className="h-full rounded-full transition-all duration-500"
             style={{
               width: `${Math.round(confidence * 100)}%`,
-              backgroundColor: '#07b6d5',
+              backgroundColor: '#e09f3e',
             }}
           />
         </div>
@@ -85,7 +85,7 @@ const DiagnosisPanel: React.FC<DiagnosisPanelProps> = ({ findings, direction }) 
               .map(([key, val]) => (
                 <div key={key} className="flex justify-between text-[11px] font-mono">
                   <span style={{ color: '#64748b' }}>{key.replace(/_/g, ' ')}</span>
-                  <span style={{ color: '#94a3b8' }}>{(Number(val) * 100).toFixed(0)}%</span>
+                  <span style={{ color: '#8a7e6b' }}>{(Number(val) * 100).toFixed(0)}%</span>
                 </div>
               ))}
           </div>
@@ -96,7 +96,7 @@ const DiagnosisPanel: React.FC<DiagnosisPanelProps> = ({ findings, direction }) 
       {state.trace_hops && state.trace_hops.length > 0 && (
         <div
           className="rounded-lg p-4"
-          style={{ backgroundColor: '#0f2023', border: '1px solid #224349' }}
+          style={{ backgroundColor: '#1a1814', border: '1px solid #3d3528' }}
         >
           <PathHopList hops={state.trace_hops} />
         </div>
@@ -106,7 +106,7 @@ const DiagnosisPanel: React.FC<DiagnosisPanelProps> = ({ findings, direction }) 
       {state.identity_chain && state.identity_chain.length > 0 && (
         <div
           className="rounded-lg p-4"
-          style={{ backgroundColor: '#0f2023', border: '1px solid #224349' }}
+          style={{ backgroundColor: '#1a1814', border: '1px solid #3d3528' }}
         >
           <NATChainDisplay chain={state.identity_chain} />
         </div>
@@ -116,7 +116,7 @@ const DiagnosisPanel: React.FC<DiagnosisPanelProps> = ({ findings, direction }) 
       {state.next_steps && state.next_steps.length > 0 && (
         <div
           className="rounded-lg p-4"
-          style={{ backgroundColor: '#0f2023', border: '1px solid #224349' }}
+          style={{ backgroundColor: '#1a1814', border: '1px solid #3d3528' }}
         >
           <div
             className="text-xs font-mono uppercase tracking-wider mb-2"
@@ -129,9 +129,9 @@ const DiagnosisPanel: React.FC<DiagnosisPanelProps> = ({ findings, direction }) 
               <li
                 key={i}
                 className="flex items-start gap-2 text-xs font-mono"
-                style={{ color: '#e2e8f0' }}
+                style={{ color: '#e8e0d4' }}
               >
-                <span style={{ color: '#07b6d5' }}>&#8227;</span>
+                <span style={{ color: '#e09f3e' }}>&#8227;</span>
                 <span>{step}</span>
               </li>
             ))}
@@ -142,7 +142,7 @@ const DiagnosisPanel: React.FC<DiagnosisPanelProps> = ({ findings, direction }) 
       {/* Session Info */}
       <div
         className="rounded-lg p-4"
-        style={{ backgroundColor: '#0f2023', border: '1px solid #224349' }}
+        style={{ backgroundColor: '#1a1814', border: '1px solid #3d3528' }}
       >
         <div
           className="text-xs font-mono uppercase tracking-wider mb-2"
@@ -150,7 +150,7 @@ const DiagnosisPanel: React.FC<DiagnosisPanelProps> = ({ findings, direction }) 
         >
           Session
         </div>
-        <div className="space-y-1 text-xs font-mono" style={{ color: '#94a3b8' }}>
+        <div className="space-y-1 text-xs font-mono" style={{ color: '#8a7e6b' }}>
           <div>
             <span style={{ color: '#64748b' }}>Flow ID: </span>
             <span className="break-all">{findings.flow_id}</span>

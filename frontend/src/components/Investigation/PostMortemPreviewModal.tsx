@@ -63,11 +63,11 @@ const PostMortemPreviewModal: React.FC<PostMortemPreviewModalProps> = ({
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal */}
-      <div className="relative bg-[#0f2023] border border-slate-700/50 rounded-xl shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col">
+      <div className="relative bg-[#1a1814] border border-slate-700/50 rounded-xl shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3 border-b border-slate-800">
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-violet-400 text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>
+            <span className="material-symbols-outlined text-violet-400 text-sm">
               description
             </span>
             <span className="text-sm font-bold text-slate-200">Confluence Post-Mortem Preview</span>
@@ -76,7 +76,7 @@ const PostMortemPreviewModal: React.FC<PostMortemPreviewModalProps> = ({
             onClick={onClose}
             className="text-slate-500 hover:text-slate-300 transition-colors"
           >
-            <span className="material-symbols-outlined text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>close</span>
+            <span className="material-symbols-outlined text-sm">close</span>
           </button>
         </div>
 

@@ -28,7 +28,7 @@ export default function GuardScanView({ scanResult }: GuardScanViewProps) {
     <div className="space-y-3">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <span className="material-symbols-outlined text-cyan-400">health_and_safety</span>
+        <span className="material-symbols-outlined text-amber-400">health_and_safety</span>
         <span className="text-sm font-semibold text-slate-200">Guard Scan</span>
         <span className={`px-2 py-0.5 text-[9px] font-mono uppercase tracking-wider rounded-full border ${healthClass}`}>
           {scanResult.overall_health}
@@ -98,10 +98,10 @@ export default function GuardScanView({ scanResult }: GuardScanViewProps) {
       <div className="border border-slate-700/30 rounded-lg overflow-hidden">
         <button
           onClick={() => toggleSection('delta')}
-          className="w-full px-3 py-2 flex items-center gap-2 bg-cyan-500/5 hover:bg-cyan-500/10 transition-colors"
+          className="w-full px-3 py-2 flex items-center gap-2 bg-amber-500/5 hover:bg-amber-500/10 transition-colors"
         >
-          <span className="material-symbols-outlined text-cyan-400 text-sm">compare_arrows</span>
-          <span className="text-xs font-semibold text-cyan-300">Delta Since Last Scan</span>
+          <span className="material-symbols-outlined text-amber-400 text-sm">compare_arrows</span>
+          <span className="text-xs font-semibold text-amber-300">Delta Since Last Scan</span>
           <span className="material-symbols-outlined text-slate-500 text-sm">
             {sections.delta ? 'expand_less' : 'expand_more'}
           </span>

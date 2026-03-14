@@ -209,23 +209,23 @@ const AdapterInstanceForm: React.FC<Props> = ({ instance, onClose }) => {
     );
   };
 
-  const inputClass = 'w-full px-3 py-2 rounded-lg border text-sm font-mono text-white placeholder-slate-500 focus:outline-none focus:border-[#07b6d5]';
-  const inputStyle = { backgroundColor: '#0a1214', borderColor: '#224349' };
+  const inputClass = 'w-full px-3 py-2 rounded-lg border text-sm font-mono text-white placeholder-slate-500 focus:outline-none focus:border-[#e09f3e]';
+  const inputStyle = { backgroundColor: '#0a1214', borderColor: '#3d3528' };
   const labelClass = 'block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
       <div
         className="w-full max-w-lg max-h-[85vh] overflow-auto rounded-xl border shadow-2xl"
-        style={{ backgroundColor: '#0f2023', borderColor: '#224349' }}
+        style={{ backgroundColor: '#1a1814', borderColor: '#3d3528' }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: '#224349' }}>
+        <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: '#3d3528' }}>
           <h2 className="text-lg font-bold text-white">
             {isEditing ? 'Edit Adapter Instance' : 'New Adapter Instance'}
           </h2>
           <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
-            <span className="material-symbols-outlined" style={{ fontFamily: 'Material Symbols Outlined' }}>close</span>
+            <span className="material-symbols-outlined">close</span>
           </button>
         </div>
 
@@ -287,7 +287,7 @@ const AdapterInstanceForm: React.FC<Props> = ({ instance, onClose }) => {
 
           {/* Vendor-specific fields */}
           {vendor === 'cisco' && (
-            <div className="space-y-3 p-3 rounded-lg border" style={{ borderColor: '#224349', backgroundColor: '#0a1214' }}>
+            <div className="space-y-3 p-3 rounded-lg border" style={{ borderColor: '#3d3528', backgroundColor: '#0a1214' }}>
               <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Cisco IOS-XE Configuration (RESTCONF)</p>
               <div>
                 <label className={labelClass}>Username</label>
@@ -298,7 +298,7 @@ const AdapterInstanceForm: React.FC<Props> = ({ instance, onClose }) => {
                 <input type="password" value={ciscoPassword} onChange={(e) => setCiscoPassword(e.target.value)} placeholder={isEditing ? '••••••••' : 'RESTCONF password'} className={inputClass} style={inputStyle} />
               </div>
               <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
-                <input type="checkbox" checked={verifySsl} onChange={(e) => setVerifySsl(e.target.checked)} className="accent-[#07b6d5]" />
+                <input type="checkbox" checked={verifySsl} onChange={(e) => setVerifySsl(e.target.checked)} className="accent-[#e09f3e]" />
                 Verify SSL Certificate
                 <span className="text-xs text-slate-500">(disable for self-signed certs)</span>
               </label>
@@ -306,7 +306,7 @@ const AdapterInstanceForm: React.FC<Props> = ({ instance, onClose }) => {
           )}
 
           {vendor === 'palo_alto' && (
-            <div className="space-y-3 p-3 rounded-lg border" style={{ borderColor: '#224349', backgroundColor: '#0a1214' }}>
+            <div className="space-y-3 p-3 rounded-lg border" style={{ borderColor: '#3d3528', backgroundColor: '#0a1214' }}>
               <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Palo Alto Configuration</p>
               <div className="flex gap-2">
                 {(['panorama', 'standalone'] as const).map((mode) => (
@@ -314,9 +314,9 @@ const AdapterInstanceForm: React.FC<Props> = ({ instance, onClose }) => {
                     key={mode}
                     onClick={() => setPanoMode(mode)}
                     className={`px-3 py-1 text-xs font-mono rounded border transition-colors ${
-                      panoMode === mode ? 'border-[#07b6d5] text-[#07b6d5]' : 'border-[#224349] text-slate-400'
+                      panoMode === mode ? 'border-[#e09f3e] text-[#e09f3e]' : 'border-[#3d3528] text-slate-400'
                     }`}
-                    style={{ backgroundColor: panoMode === mode ? 'rgba(7,182,213,0.1)' : 'transparent' }}
+                    style={{ backgroundColor: panoMode === mode ? 'rgba(224,159,62,0.1)' : 'transparent' }}
                   >
                     {mode === 'panorama' ? 'Panorama' : 'Standalone'}
                   </button>
@@ -342,7 +342,7 @@ const AdapterInstanceForm: React.FC<Props> = ({ instance, onClose }) => {
                       onClick={handleDiscover}
                       disabled={discovering}
                       className="text-xs font-mono px-3 py-1.5 rounded border transition-colors mb-2"
-                      style={{ borderColor: '#07b6d5', color: '#07b6d5', backgroundColor: 'rgba(7,182,213,0.1)' }}
+                      style={{ borderColor: '#e09f3e', color: '#e09f3e', backgroundColor: 'rgba(224,159,62,0.1)' }}
                     >
                       {discovering ? 'Discovering...' : 'Discover Device Groups'}
                     </button>
@@ -356,7 +356,7 @@ const AdapterInstanceForm: React.FC<Props> = ({ instance, onClose }) => {
                             type="checkbox"
                             checked={deviceGroups.includes(dg.name)}
                             onChange={() => toggleDG(dg.name)}
-                            className="accent-[#07b6d5]"
+                            className="accent-[#e09f3e]"
                           />
                           <span className="font-mono">{dg.name}</span>
                           <span className="text-xs text-slate-500">({dg.connected_devices} devices)</span>
@@ -373,7 +373,7 @@ const AdapterInstanceForm: React.FC<Props> = ({ instance, onClose }) => {
           )}
 
           {vendor === 'aws_sg' && (
-            <div className="space-y-3 p-3 rounded-lg border" style={{ borderColor: '#224349', backgroundColor: '#0a1214' }}>
+            <div className="space-y-3 p-3 rounded-lg border" style={{ borderColor: '#3d3528', backgroundColor: '#0a1214' }}>
               <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">AWS Configuration</p>
               <div>
                 <label className={labelClass}>Region</label>
@@ -395,7 +395,7 @@ const AdapterInstanceForm: React.FC<Props> = ({ instance, onClose }) => {
           )}
 
           {vendor === 'azure_nsg' && (
-            <div className="space-y-3 p-3 rounded-lg border" style={{ borderColor: '#224349', backgroundColor: '#0a1214' }}>
+            <div className="space-y-3 p-3 rounded-lg border" style={{ borderColor: '#3d3528', backgroundColor: '#0a1214' }}>
               <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Azure Configuration</p>
               <div>
                 <label className={labelClass}>Subscription ID</label>
@@ -413,7 +413,7 @@ const AdapterInstanceForm: React.FC<Props> = ({ instance, onClose }) => {
           )}
 
           {vendor === 'oracle_nsg' && (
-            <div className="space-y-3 p-3 rounded-lg border" style={{ borderColor: '#224349', backgroundColor: '#0a1214' }}>
+            <div className="space-y-3 p-3 rounded-lg border" style={{ borderColor: '#3d3528', backgroundColor: '#0a1214' }}>
               <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Oracle Configuration</p>
               <div>
                 <label className={labelClass}>Compartment ID</label>
@@ -427,7 +427,7 @@ const AdapterInstanceForm: React.FC<Props> = ({ instance, onClose }) => {
           )}
 
           {vendor === 'zscaler' && (
-            <div className="space-y-3 p-3 rounded-lg border" style={{ borderColor: '#224349', backgroundColor: '#0a1214' }}>
+            <div className="space-y-3 p-3 rounded-lg border" style={{ borderColor: '#3d3528', backgroundColor: '#0a1214' }}>
               <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Zscaler Configuration</p>
               <div>
                 <label className={labelClass}>Cloud Name</label>
@@ -445,7 +445,7 @@ const AdapterInstanceForm: React.FC<Props> = ({ instance, onClose }) => {
           )}
 
           {vendor === 'f5' && (
-            <div className="space-y-3 p-3 rounded-lg border" style={{ borderColor: '#224349', backgroundColor: '#0a1214' }}>
+            <div className="space-y-3 p-3 rounded-lg border" style={{ borderColor: '#3d3528', backgroundColor: '#0a1214' }}>
               <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">F5 Configuration</p>
               <div>
                 <label className={labelClass}>Username</label>
@@ -463,7 +463,7 @@ const AdapterInstanceForm: React.FC<Props> = ({ instance, onClose }) => {
           )}
 
           {vendor === 'checkpoint' && (
-            <div className="space-y-3 p-3 rounded-lg border" style={{ borderColor: '#224349', backgroundColor: '#0a1214' }}>
+            <div className="space-y-3 p-3 rounded-lg border" style={{ borderColor: '#3d3528', backgroundColor: '#0a1214' }}>
               <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Checkpoint Configuration</p>
               <div>
                 <label className={labelClass}>Username</label>
@@ -502,12 +502,12 @@ const AdapterInstanceForm: React.FC<Props> = ({ instance, onClose }) => {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-6 py-4 border-t" style={{ borderColor: '#224349' }}>
+        <div className="flex items-center justify-between px-6 py-4 border-t" style={{ borderColor: '#3d3528' }}>
           <button
             onClick={handleTest}
             disabled={testing}
             className="text-sm font-mono px-4 py-2 rounded border transition-colors"
-            style={{ borderColor: '#224349', color: '#07b6d5', backgroundColor: 'transparent' }}
+            style={{ borderColor: '#3d3528', color: '#e09f3e', backgroundColor: 'transparent' }}
           >
             {testing ? 'Testing...' : 'Test Connection'}
           </button>
@@ -515,7 +515,7 @@ const AdapterInstanceForm: React.FC<Props> = ({ instance, onClose }) => {
             <button
               onClick={onClose}
               className="text-sm font-mono px-4 py-2 rounded border transition-colors text-slate-400 hover:text-white"
-              style={{ borderColor: '#224349', backgroundColor: 'transparent' }}
+              style={{ borderColor: '#3d3528', backgroundColor: 'transparent' }}
             >
               Cancel
             </button>
@@ -523,7 +523,7 @@ const AdapterInstanceForm: React.FC<Props> = ({ instance, onClose }) => {
               onClick={handleSave}
               disabled={saving || !label.trim()}
               className="text-sm font-mono font-semibold px-4 py-2 rounded transition-colors disabled:opacity-40"
-              style={{ backgroundColor: '#07b6d5', color: '#0f2023' }}
+              style={{ backgroundColor: '#e09f3e', color: '#1a1814' }}
             >
               {saving ? 'Saving...' : isEditing ? 'Update' : 'Create'}
             </button>

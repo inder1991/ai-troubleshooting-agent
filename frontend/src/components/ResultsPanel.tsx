@@ -157,7 +157,7 @@ const ResultsPanel: React.FC<ResultsPanelProps> = ({ sessionId }) => {
   if (loading && !findings) {
     return (
       <div className="h-full flex items-center justify-center">
-        <div className="w-6 h-6 border-2 border-[#07b6d5] border-t-transparent rounded-full animate-spin" />
+        <div className="w-6 h-6 border-2 border-[#e09f3e] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -175,30 +175,30 @@ const ResultsPanel: React.FC<ResultsPanelProps> = ({ sessionId }) => {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 gap-2">
-        <div className="bg-[#1e2f33]/50 border border-[#224349] rounded-lg p-3">
+        <div className="bg-[#252118]/50 border border-[#3d3528] rounded-lg p-3">
           <div className="flex items-center gap-2 mb-1">
             <AlertTriangle className="w-3.5 h-3.5 text-red-400" />
             <span className="text-xs text-gray-400">Errors</span>
           </div>
           <span className="text-lg font-bold text-white">{errorCount}</span>
         </div>
-        <div className="bg-[#1e2f33]/50 border border-[#224349] rounded-lg p-3">
+        <div className="bg-[#252118]/50 border border-[#3d3528] rounded-lg p-3">
           <div className="flex items-center gap-2 mb-1">
             <BarChart3 className="w-3.5 h-3.5 text-yellow-400" />
             <span className="text-xs text-gray-400">Anomalies</span>
           </div>
           <span className="text-lg font-bold text-white">{anomalyCount}</span>
         </div>
-        <div className="bg-[#1e2f33]/50 border border-[#224349] rounded-lg p-3">
+        <div className="bg-[#252118]/50 border border-[#3d3528] rounded-lg p-3">
           <div className="flex items-center gap-2 mb-1">
             <Server className="w-3.5 h-3.5 text-blue-400" />
             <span className="text-xs text-gray-400">Pods</span>
           </div>
           <span className="text-lg font-bold text-white">{podCount}</span>
         </div>
-        <div className="bg-[#1e2f33]/50 border border-[#224349] rounded-lg p-3">
+        <div className="bg-[#252118]/50 border border-[#3d3528] rounded-lg p-3">
           <div className="flex items-center gap-2 mb-1">
-            <GitBranch className="w-3.5 h-3.5 text-[#07b6d5]" />
+            <GitBranch className="w-3.5 h-3.5 text-[#e09f3e]" />
             <span className="text-xs text-gray-400">Findings</span>
           </div>
           <span className="text-lg font-bold text-white">{findingsCount}</span>
@@ -214,7 +214,7 @@ const ResultsPanel: React.FC<ResultsPanelProps> = ({ sessionId }) => {
           {findings.findings.map((f, idx) => (
             <div
               key={idx}
-              className="bg-[#1e2f33]/50 border border-[#224349] rounded-lg p-3"
+              className="bg-[#252118]/50 border border-[#3d3528] rounded-lg p-3"
             >
               <div className="flex items-start justify-between mb-1">
                 <span className="text-sm font-medium text-white">{f.title}</span>
@@ -234,9 +234,9 @@ const ResultsPanel: React.FC<ResultsPanelProps> = ({ sessionId }) => {
               </div>
               <p className="text-xs text-gray-400 line-clamp-2">{f.description}</p>
               <div className="mt-1.5 flex items-center gap-2">
-                <div className="flex-1 h-1 bg-[#224349] rounded-full overflow-hidden">
+                <div className="flex-1 h-1 bg-[#3d3528] rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-[#07b6d5] rounded-full"
+                    className="h-full bg-[#e09f3e] rounded-full"
                     style={{ width: `${Math.round(f.confidence)}%` }}
                   />
                 </div>
@@ -258,7 +258,7 @@ const ResultsPanel: React.FC<ResultsPanelProps> = ({ sessionId }) => {
           {findings.error_patterns.slice(0, 5).map((ep, idx) => (
             <div
               key={idx}
-              className="bg-[#1e2f33]/50 border border-[#224349] rounded-lg p-3"
+              className="bg-[#252118]/50 border border-[#3d3528] rounded-lg p-3"
             >
               <div className="flex items-center justify-between mb-1">
                 <span className="text-xs font-mono text-white truncate flex-1 mr-2">

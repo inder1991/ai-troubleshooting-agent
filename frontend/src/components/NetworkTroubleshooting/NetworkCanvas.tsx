@@ -85,12 +85,12 @@ const NetworkCanvas: React.FC<NetworkCanvasProps> = ({ findings, direction }) =>
     return (
       <div
         className="flex-1 flex items-center justify-center rounded-lg"
-        style={{ backgroundColor: '#0f2023', border: '1px solid #224349' }}
+        style={{ backgroundColor: '#1a1814', border: '1px solid #3d3528' }}
       >
         <div className="text-center font-mono">
           <span
             className="material-symbols-outlined text-3xl block mb-2"
-            style={{ color: '#224349' }}
+            style={{ color: '#3d3528' }}
           >
             route
           </span>
@@ -105,7 +105,7 @@ const NetworkCanvas: React.FC<NetworkCanvasProps> = ({ findings, direction }) =>
   return (
     <div
       className="flex-1 rounded-lg p-4 overflow-auto"
-      style={{ backgroundColor: '#0f2023', border: '1px solid #224349' }}
+      style={{ backgroundColor: '#1a1814', border: '1px solid #3d3528' }}
     >
       <div
         className="text-xs font-mono uppercase tracking-wider mb-4"
@@ -133,12 +133,12 @@ const NetworkCanvas: React.FC<NetworkCanvasProps> = ({ findings, direction }) =>
                   <div
                     className="w-0.5 h-6"
                     style={{
-                      backgroundColor: isBlocked ? '#ef4444' : '#224349',
+                      backgroundColor: isBlocked ? '#ef4444' : '#3d3528',
                       ...(isBlocked
                         ? {}
                         : {
                             backgroundImage:
-                              'repeating-linear-gradient(to bottom, #07b6d5 0, #07b6d5 4px, transparent 4px, transparent 8px)',
+                              'repeating-linear-gradient(to bottom, #e09f3e 0, #e09f3e 4px, transparent 4px, transparent 8px)',
                             backgroundSize: '2px 8px',
                           }),
                     }}
@@ -155,12 +155,12 @@ const NetworkCanvas: React.FC<NetworkCanvasProps> = ({ findings, direction }) =>
                   <div
                     className="w-0.5 h-6"
                     style={{
-                      backgroundColor: isBlocked ? '#ef4444' : '#224349',
+                      backgroundColor: isBlocked ? '#ef4444' : '#3d3528',
                       ...(isBlocked
                         ? {}
                         : {
                             backgroundImage:
-                              'repeating-linear-gradient(to bottom, #07b6d5 0, #07b6d5 4px, transparent 4px, transparent 8px)',
+                              'repeating-linear-gradient(to bottom, #e09f3e 0, #e09f3e 4px, transparent 4px, transparent 8px)',
                             backgroundSize: '2px 8px',
                           }),
                     }}
@@ -173,7 +173,7 @@ const NetworkCanvas: React.FC<NetworkCanvasProps> = ({ findings, direction }) =>
                 className="flex items-center gap-3 px-4 py-2.5 rounded-lg w-full max-w-xs"
                 style={{
                   backgroundColor: '#0a0f13',
-                  border: `1px solid ${isBlocked ? '#ef4444' : '#224349'}`,
+                  border: `1px solid ${isBlocked ? '#ef4444' : '#3d3528'}`,
                   boxShadow: isBlocked ? '0 0 12px rgba(239,68,68,0.15)' : undefined,
                 }}
               >
@@ -191,7 +191,7 @@ const NetworkCanvas: React.FC<NetworkCanvasProps> = ({ findings, direction }) =>
                     {node.device_name && (
                       <span
                         className="text-xs font-mono font-bold truncate"
-                        style={{ color: '#e2e8f0' }}
+                        style={{ color: '#e8e0d4' }}
                       >
                         {node.device_name}
                       </span>
@@ -210,7 +210,7 @@ const NetworkCanvas: React.FC<NetworkCanvasProps> = ({ findings, direction }) =>
                   </div>
                   <div
                     className="text-xs font-mono tabular-nums"
-                    style={{ color: '#94a3b8' }}
+                    style={{ color: '#8a7e6b' }}
                   >
                     {node.ip}
                   </div>
@@ -231,7 +231,7 @@ const NetworkCanvas: React.FC<NetworkCanvasProps> = ({ findings, direction }) =>
       {finalPath && (
         <div
           className="mt-4 pt-3 flex items-center justify-between text-xs font-mono"
-          style={{ borderTop: '1px solid #224349', color: '#64748b' }}
+          style={{ borderTop: '1px solid #3d3528', color: '#64748b' }}
         >
           <span>
             {finalPath.hop_count} hops &middot;{' '}

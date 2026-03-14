@@ -49,7 +49,7 @@ export const ToolParamForm: React.FC<ToolParamFormProps> = ({ tool, context, onE
 
   return (
     <form onSubmit={handleSubmit} role="form" aria-label="Tool parameters" className="bg-slate-800/50 border border-slate-700 rounded-lg p-3 space-y-2">
-      <div className="text-xs font-medium text-cyan-400 mb-2">{tool.label}</div>
+      <div className="text-xs font-medium text-amber-400 mb-2">{tool.label}</div>
       {tool.params_schema.map((p) => (
         <ParamField key={p.name} param={p} value={params[p.name]} onChange={(v) => updateParam(p.name, v)} />
       ))}
@@ -59,7 +59,7 @@ export const ToolParamForm: React.FC<ToolParamFormProps> = ({ tool, context, onE
           Cancel
         </button>
         <button type="submit" disabled={!canSubmit}
-          className="px-3 py-1 text-xs bg-cyan-600 hover:bg-cyan-500 disabled:opacity-40 text-white rounded transition-colors">
+          className="px-3 py-1 text-xs bg-amber-600 hover:bg-amber-500 disabled:opacity-40 text-white rounded transition-colors">
           Run
         </button>
       </div>

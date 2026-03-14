@@ -13,7 +13,7 @@ const STATUS_BORDER: Record<string, string> = {
   SUCCESS: 'border-l-emerald-500',
   PARTIAL: 'border-l-amber-500',
   FAILED: 'border-l-red-500',
-  RUNNING: 'border-l-cyan-500',
+  RUNNING: 'border-l-amber-500',
   PENDING: 'border-l-slate-600',
 };
 
@@ -28,7 +28,7 @@ export default function DomainAgentStatus({ reports }: DomainAgentStatusProps) {
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2 mb-1">
-        <span className="material-symbols-outlined text-cyan-400 text-base">monitor_heart</span>
+        <span className="material-symbols-outlined text-amber-400 text-base">monitor_heart</span>
         <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Domain Agents</span>
       </div>
       {domains.map((domain) => {

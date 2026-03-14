@@ -13,7 +13,7 @@ interface ClusterProfilesTableProps {
 
 const envBadge: Record<Environment, string> = {
   prod: 'bg-red-900/30 text-red-400 border border-red-500/20',
-  staging: 'bg-[#07b6d5]/10 text-[#07b6d5] border border-[#07b6d5]/20',
+  staging: 'bg-[#e09f3e]/10 text-[#e09f3e] border border-[#e09f3e]/20',
   dev: 'bg-emerald-900/30 text-emerald-400 border border-emerald-500/20',
 };
 
@@ -53,11 +53,10 @@ const ClusterProfilesTable: React.FC<ClusterProfilesTableProps> = ({
         </div>
         <button
           onClick={onAddNew}
-          className="flex items-center gap-2 bg-[#224349] text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-[#224349]/80 transition-colors border border-[#07b6d5]/20"
+          className="flex items-center gap-2 bg-[#3d3528] text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-[#3d3528]/80 transition-colors border border-[#e09f3e]/20"
         >
           <span
             className="material-symbols-outlined text-[18px]"
-            style={{ fontFamily: 'Material Symbols Outlined' }}
           >
             add_circle
           </span>
@@ -66,13 +65,13 @@ const ClusterProfilesTable: React.FC<ClusterProfilesTableProps> = ({
       </div>
 
       {profiles.length === 0 ? (
-        <div className="text-center text-gray-600 text-xs py-10 bg-[#183034]/30 border border-dashed border-[#224349] rounded-xl">
+        <div className="text-center text-gray-600 text-xs py-10 bg-[#183034]/30 border border-dashed border-[#3d3528] rounded-xl">
           No cluster profiles configured. Add one to get started.
         </div>
       ) : (
-        <div className="bg-[#183034]/30 rounded-xl border border-[#224349] overflow-hidden">
+        <div className="bg-[#183034]/30 rounded-xl border border-[#3d3528] overflow-hidden">
           <table className="w-full text-left border-collapse">
-            <thead className="bg-[#183034]/50 border-b border-[#224349]">
+            <thead className="bg-[#183034]/50 border-b border-[#3d3528]">
               <tr>
                 <th className="px-6 py-3 text-xs font-bold text-[#8fc3cc] uppercase tracking-wider">Profile Name</th>
                 <th className="px-6 py-3 text-xs font-bold text-[#8fc3cc] uppercase tracking-wider">Environment</th>
@@ -82,7 +81,7 @@ const ClusterProfilesTable: React.FC<ClusterProfilesTableProps> = ({
                 <th className="px-6 py-3 text-xs font-bold text-[#8fc3cc] uppercase tracking-wider text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#224349]">
+            <tbody className="divide-y divide-[#3d3528]">
               {profiles.map((profile) => {
                 const status = statusDot[profile.status];
                 return (
@@ -93,7 +92,7 @@ const ClusterProfilesTable: React.FC<ClusterProfilesTableProps> = ({
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         {profile.is_active && (
-                          <span className="w-1.5 h-1.5 rounded-full bg-[#07b6d5] shadow-[0_0_6px_rgba(7,182,213,0.6)]" />
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#e09f3e] shadow-[0_0_6px_rgba(224,159,62,0.6)]" />
                         )}
                         <span className="text-sm font-medium text-white">{profile.name}</span>
                       </div>
@@ -127,12 +126,11 @@ const ClusterProfilesTable: React.FC<ClusterProfilesTableProps> = ({
                         {!profile.is_active && (
                           <button
                             onClick={() => onActivate(profile.id)}
-                            className="p-1.5 hover:bg-[#07b6d5]/20 text-[#8fc3cc] hover:text-[#07b6d5] rounded transition-colors"
+                            className="p-1.5 hover:bg-[#e09f3e]/20 text-[#8fc3cc] hover:text-[#e09f3e] rounded transition-colors"
                             title="Set as active"
                           >
                             <span
                               className="material-symbols-outlined text-[18px]"
-                              style={{ fontFamily: 'Material Symbols Outlined' }}
                             >
                               check_circle
                             </span>
@@ -142,12 +140,11 @@ const ClusterProfilesTable: React.FC<ClusterProfilesTableProps> = ({
                           <button
                             onClick={() => onProbe(profile.id)}
                             disabled={probingId === profile.id}
-                            className="p-1.5 hover:bg-[#07b6d5]/20 text-[#8fc3cc] hover:text-[#07b6d5] rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="p-1.5 hover:bg-[#e09f3e]/20 text-[#8fc3cc] hover:text-[#e09f3e] rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Probe / Auto-discover"
                           >
                             <span
                               className={`material-symbols-outlined text-[18px] ${probingId === profile.id ? 'animate-spin' : ''}`}
-                              style={{ fontFamily: 'Material Symbols Outlined' }}
                             >
                               radar
                             </span>
@@ -155,12 +152,11 @@ const ClusterProfilesTable: React.FC<ClusterProfilesTableProps> = ({
                         )}
                         <button
                           onClick={() => onEdit(profile)}
-                          className="p-1.5 hover:bg-[#07b6d5]/20 text-[#8fc3cc] hover:text-[#07b6d5] rounded transition-colors"
+                          className="p-1.5 hover:bg-[#e09f3e]/20 text-[#8fc3cc] hover:text-[#e09f3e] rounded transition-colors"
                           title="Edit"
                         >
                           <span
                             className="material-symbols-outlined text-[18px]"
-                            style={{ fontFamily: 'Material Symbols Outlined' }}
                           >
                             edit
                           </span>
@@ -172,7 +168,6 @@ const ClusterProfilesTable: React.FC<ClusterProfilesTableProps> = ({
                         >
                           <span
                             className="material-symbols-outlined text-[18px]"
-                            style={{ fontFamily: 'Material Symbols Outlined' }}
                           >
                             delete
                           </span>

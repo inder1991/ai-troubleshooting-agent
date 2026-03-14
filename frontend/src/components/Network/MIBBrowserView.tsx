@@ -33,8 +33,8 @@ function useDebouncedCallback<T extends (...args: unknown[]) => void>(
 // Shared styles
 // ---------------------------------------------------------------------------
 const cardStyle: React.CSSProperties = {
-  background: 'rgba(7,182,213,0.04)',
-  border: '1px solid rgba(7,182,213,0.12)',
+  background: 'rgba(224,159,62,0.04)',
+  border: '1px solid rgba(224,159,62,0.12)',
   borderRadius: 10,
   padding: 20,
 };
@@ -42,10 +42,10 @@ const cardStyle: React.CSSProperties = {
 const inputStyle: React.CSSProperties = {
   width: '100%',
   padding: '10px 14px',
-  background: 'rgba(7,182,213,0.06)',
-  border: '1px solid rgba(7,182,213,0.15)',
+  background: 'rgba(224,159,62,0.06)',
+  border: '1px solid rgba(224,159,62,0.15)',
   borderRadius: 8,
-  color: '#e2e8f0',
+  color: '#e8e0d4',
   fontSize: 13,
   outline: 'none',
   fontFamily: 'inherit',
@@ -64,7 +64,7 @@ const STATUS_COLORS: Record<string, string> = {
   current: '#22c55e',
   deprecated: '#f59e0b',
   obsolete: '#ef4444',
-  mandatory: '#07b6d5',
+  mandatory: '#e09f3e',
 };
 
 const ACCESS_COLORS: Record<string, string> = {
@@ -162,7 +162,7 @@ const MIBBrowserView: React.FC = () => {
 
   // ----- Render helpers -----
   const renderStatusBadge = (status: string) => {
-    const color = STATUS_COLORS[status.toLowerCase()] || '#94a3b8';
+    const color = STATUS_COLORS[status.toLowerCase()] || '#8a7e6b';
     return (
       <span style={{
         fontSize: 10, padding: '2px 8px', borderRadius: 4, fontWeight: 600,
@@ -175,7 +175,7 @@ const MIBBrowserView: React.FC = () => {
   };
 
   const renderAccessBadge = (access: string) => {
-    const color = ACCESS_COLORS[access.toLowerCase()] || '#94a3b8';
+    const color = ACCESS_COLORS[access.toLowerCase()] || '#8a7e6b';
     return (
       <span style={{
         fontSize: 10, padding: '2px 8px', borderRadius: 4, fontWeight: 600,
@@ -188,17 +188,17 @@ const MIBBrowserView: React.FC = () => {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 0, minHeight: '100vh', background: '#0f2023' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 0, minHeight: '100vh', background: '#1a1814' }}>
       {/* ===== Header ===== */}
       <div style={{
         padding: '20px 28px',
-        borderBottom: '1px solid rgba(7,182,213,0.12)',
+        borderBottom: '1px solid rgba(224,159,62,0.12)',
         display: 'flex', alignItems: 'center', gap: 12,
       }}>
-        <span className="material-symbols-outlined" style={{ fontSize: 28, color: '#07b6d5' }}>
+        <span className="material-symbols-outlined" style={{ fontSize: 28, color: '#e09f3e' }}>
           manage_search
         </span>
-        <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: '#e2e8f0' }}>
+        <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: '#e8e0d4' }}>
           MIB Browser
         </h1>
       </div>
@@ -217,10 +217,10 @@ const MIBBrowserView: React.FC = () => {
           {/* Search Card */}
           <div style={cardStyle}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-              <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#07b6d5' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#e09f3e' }}>
                 search
               </span>
-              <span style={{ fontSize: 13, fontWeight: 600, color: '#e2e8f0' }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: '#e8e0d4' }}>
                 Search by OID or Name
               </span>
             </div>
@@ -237,7 +237,7 @@ const MIBBrowserView: React.FC = () => {
                   className="material-symbols-outlined"
                   style={{
                     position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
-                    fontSize: 18, color: '#07b6d5',
+                    fontSize: 18, color: '#e09f3e',
                     animation: 'spin 1s linear infinite',
                   }}
                 >
@@ -256,12 +256,12 @@ const MIBBrowserView: React.FC = () => {
           {/* Results List */}
           <div style={{ ...cardStyle, padding: 0, maxHeight: 520, overflowY: 'auto' }}>
             <div style={{
-              padding: '14px 20px', borderBottom: '1px solid rgba(7,182,213,0.1)',
+              padding: '14px 20px', borderBottom: '1px solid rgba(224,159,62,0.1)',
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               position: 'sticky', top: 0, background: 'rgba(15,32,35,0.97)', zIndex: 1, borderRadius: '10px 10px 0 0',
             }}>
-              <span style={{ fontSize: 13, fontWeight: 600, color: '#e2e8f0', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span className="material-symbols-outlined" style={{ fontSize: 16, color: '#07b6d5' }}>list</span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: '#e8e0d4', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 16, color: '#e09f3e' }}>list</span>
                 Results
               </span>
               <span style={{ fontSize: 11, color: '#64748b' }}>
@@ -288,23 +288,23 @@ const MIBBrowserView: React.FC = () => {
                     borderBottom: '1px solid rgba(148,163,184,0.06)',
                     cursor: 'pointer',
                     transition: 'background 0.15s',
-                    borderLeft: selectedEntry?.oid === entry.oid ? '3px solid #07b6d5' : '3px solid transparent',
-                    background: selectedEntry?.oid === entry.oid ? 'rgba(7,182,213,0.06)' : 'transparent',
+                    borderLeft: selectedEntry?.oid === entry.oid ? '3px solid #e09f3e' : '3px solid transparent',
+                    background: selectedEntry?.oid === entry.oid ? 'rgba(224,159,62,0.06)' : 'transparent',
                   }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.background = 'rgba(7,182,213,0.06)'; }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.background = 'rgba(224,159,62,0.06)'; }}
                   onMouseLeave={e => {
                     (e.currentTarget as HTMLDivElement).style.background =
-                      selectedEntry?.oid === entry.oid ? 'rgba(7,182,213,0.06)' : 'transparent';
+                      selectedEntry?.oid === entry.oid ? 'rgba(224,159,62,0.06)' : 'transparent';
                   }}
                 >
-                  <div style={{ fontSize: 13, fontWeight: 600, color: '#e2e8f0', marginBottom: 4 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: '#e8e0d4', marginBottom: 4 }}>
                     {entry.name}
                   </div>
-                  <div style={{ fontFamily: 'monospace', fontSize: 11, color: '#07b6d5', marginBottom: 4 }}>
+                  <div style={{ fontFamily: 'monospace', fontSize: 11, color: '#e09f3e', marginBottom: 4 }}>
                     {entry.oid}
                   </div>
                   <div style={{
-                    fontSize: 11, color: '#94a3b8',
+                    fontSize: 11, color: '#8a7e6b',
                     overflow: 'hidden', textOverflow: 'ellipsis',
                     display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
                   }}>
@@ -321,16 +321,16 @@ const MIBBrowserView: React.FC = () => {
           {/* OID Detail Panel */}
           <div style={cardStyle}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-              <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#07b6d5' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#e09f3e' }}>
                 info
               </span>
-              <span style={{ fontSize: 13, fontWeight: 600, color: '#e2e8f0' }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: '#e8e0d4' }}>
                 OID Detail
               </span>
             </div>
 
             {detailLoading ? (
-              <div style={{ textAlign: 'center', padding: 32, color: '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+              <div style={{ textAlign: 'center', padding: 32, color: '#8a7e6b', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                 <span className="material-symbols-outlined" style={{ fontSize: 20, animation: 'spin 1s linear infinite' }}>
                   progress_activity
                 </span>
@@ -347,8 +347,8 @@ const MIBBrowserView: React.FC = () => {
                 <div>
                   <div style={labelStyle}>OID</div>
                   <div style={{
-                    fontFamily: 'monospace', fontSize: 13, color: '#07b6d5', marginTop: 4,
-                    padding: '6px 10px', background: 'rgba(7,182,213,0.06)', borderRadius: 6,
+                    fontFamily: 'monospace', fontSize: 13, color: '#e09f3e', marginTop: 4,
+                    padding: '6px 10px', background: 'rgba(224,159,62,0.06)', borderRadius: 6,
                     wordBreak: 'break-all',
                   }}>
                     {selectedEntry.oid}
@@ -357,7 +357,7 @@ const MIBBrowserView: React.FC = () => {
                 {/* Name */}
                 <div>
                   <div style={labelStyle}>Name</div>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: '#e2e8f0', marginTop: 4 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: '#e8e0d4', marginTop: 4 }}>
                     {selectedEntry.name}
                   </div>
                 </div>
@@ -365,7 +365,7 @@ const MIBBrowserView: React.FC = () => {
                 <div>
                   <div style={labelStyle}>Description</div>
                   <div style={{
-                    fontSize: 12, color: '#94a3b8', marginTop: 4, lineHeight: 1.6,
+                    fontSize: 12, color: '#8a7e6b', marginTop: 4, lineHeight: 1.6,
                     padding: '10px 12px', background: 'rgba(148,163,184,0.04)', borderRadius: 6,
                     border: '1px solid rgba(148,163,184,0.08)',
                     maxHeight: 160, overflowY: 'auto',
@@ -406,11 +406,11 @@ const MIBBrowserView: React.FC = () => {
                 {/* Children hint */}
                 {selectedEntry.children && selectedEntry.children.length > 0 && (
                   <div style={{
-                    marginTop: 4, padding: '8px 12px', background: 'rgba(7,182,213,0.05)',
-                    borderRadius: 6, border: '1px solid rgba(7,182,213,0.1)',
+                    marginTop: 4, padding: '8px 12px', background: 'rgba(224,159,62,0.05)',
+                    borderRadius: 6, border: '1px solid rgba(224,159,62,0.1)',
                     fontSize: 11, color: '#64748b', display: 'flex', alignItems: 'center', gap: 6,
                   }}>
-                    <span className="material-symbols-outlined" style={{ fontSize: 16, color: '#07b6d5' }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: 16, color: '#e09f3e' }}>
                       account_tree
                     </span>
                     {selectedEntry.children.length} child OID{selectedEntry.children.length > 1 ? 's' : ''}
@@ -432,10 +432,10 @@ const MIBBrowserView: React.FC = () => {
           {/* ===== Batch Query Tool ===== */}
           <div style={cardStyle}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-              <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#07b6d5' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#e09f3e' }}>
                 playlist_add_check
               </span>
-              <span style={{ fontSize: 13, fontWeight: 600, color: '#e2e8f0' }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: '#e8e0d4' }}>
                 Batch Query
               </span>
             </div>
@@ -462,9 +462,9 @@ const MIBBrowserView: React.FC = () => {
                 borderRadius: 8,
                 fontSize: 13,
                 fontWeight: 600,
-                border: '1px solid #07b6d5',
-                background: batchLoading || !batchInput.trim() ? 'rgba(7,182,213,0.06)' : 'rgba(7,182,213,0.12)',
-                color: batchLoading || !batchInput.trim() ? '#4a7a85' : '#07b6d5',
+                border: '1px solid #e09f3e',
+                background: batchLoading || !batchInput.trim() ? 'rgba(224,159,62,0.06)' : 'rgba(224,159,62,0.12)',
+                color: batchLoading || !batchInput.trim() ? '#4a7a85' : '#e09f3e',
                 cursor: batchLoading || !batchInput.trim() ? 'not-allowed' : 'pointer',
                 transition: 'background 0.15s',
               }}
@@ -524,16 +524,16 @@ const MIBBrowserView: React.FC = () => {
                           setSelectedEntry(entry);
                           setDetailError('');
                         }}
-                        onMouseEnter={e => { (e.currentTarget as HTMLTableRowElement).style.background = 'rgba(7,182,213,0.05)'; }}
+                        onMouseEnter={e => { (e.currentTarget as HTMLTableRowElement).style.background = 'rgba(224,159,62,0.05)'; }}
                         onMouseLeave={e => { (e.currentTarget as HTMLTableRowElement).style.background = 'transparent'; }}
                       >
                         <td style={{
-                          padding: '8px 10px', fontFamily: 'monospace', fontSize: 11, color: '#07b6d5',
+                          padding: '8px 10px', fontFamily: 'monospace', fontSize: 11, color: '#e09f3e',
                           maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                         }} title={entry.oid}>
                           {entry.oid}
                         </td>
-                        <td style={{ padding: '8px 10px', fontSize: 12, color: '#e2e8f0', fontWeight: 500 }}>
+                        <td style={{ padding: '8px 10px', fontSize: 12, color: '#e8e0d4', fontWeight: 500 }}>
                           {entry.name}
                         </td>
                         <td style={{ padding: '8px 10px', fontFamily: 'monospace', fontSize: 11, color: '#a78bfa' }}>

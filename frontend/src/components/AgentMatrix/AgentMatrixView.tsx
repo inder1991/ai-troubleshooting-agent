@@ -51,14 +51,14 @@ const AgentMatrixView: React.FC<AgentMatrixViewProps> = ({ onGoHome }) => {
   const clusterCount = data?.agents.filter((a) => a.workflow === 'cluster_diagnostics').length ?? 0;
 
   return (
-    <div className="flex flex-col h-full overflow-hidden" style={{ backgroundColor: '#0f2023' }}>
+    <div className="flex flex-col h-full overflow-hidden" style={{ backgroundColor: '#1a1814' }}>
       <AgentMatrixHeader onGoHome={onGoHome} />
 
       {/* Loading state */}
       {loading && (
         <div className="flex-1 flex items-center justify-center">
           <div className="flex flex-col items-center gap-4">
-            <div className="w-10 h-10 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: '#07b6d5', borderTopColor: 'transparent' }} />
+            <div className="w-10 h-10 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: '#e09f3e', borderTopColor: 'transparent' }} />
             <span className="text-xs font-mono uppercase tracking-widest" style={{ color: '#64748b' }}>
               Scanning neural workforce...
             </span>
@@ -72,7 +72,7 @@ const AgentMatrixView: React.FC<AgentMatrixViewProps> = ({ onGoHome }) => {
           <div className="flex flex-col items-center gap-4 text-center max-w-md">
             <span
               className="material-symbols-outlined text-4xl"
-              style={{ fontFamily: 'Material Symbols Outlined', color: '#ef4444' }}
+              style={{ color: '#ef4444' }}
             >
               error
             </span>
@@ -80,9 +80,9 @@ const AgentMatrixView: React.FC<AgentMatrixViewProps> = ({ onGoHome }) => {
             <button
               onClick={fetchAgents}
               className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border transition-colors hover:text-white"
-              style={{ borderColor: '#224349', color: '#94a3b8' }}
+              style={{ borderColor: '#3d3528', color: '#8a7e6b' }}
             >
-              <span className="material-symbols-outlined text-base" style={{ fontFamily: 'Material Symbols Outlined' }}>refresh</span>
+              <span className="material-symbols-outlined text-base">refresh</span>
               Retry
             </button>
           </div>

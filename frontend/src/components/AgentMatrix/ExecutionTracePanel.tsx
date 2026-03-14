@@ -7,14 +7,14 @@ interface ExecutionTracePanelProps {
 }
 
 const LEVEL_COLORS: Record<AgentTraceEntry['level'], string> = {
-  info: '#07b6d5',
+  info: '#e09f3e',
   warn: '#f59e0b',
   error: '#ef4444',
 };
 
 const ExecutionTracePanel: React.FC<ExecutionTracePanelProps> = ({ trace, isLoading }) => {
   return (
-    <div className="rounded-lg border p-4" style={{ backgroundColor: '#0a1214', borderColor: '#224349' }}>
+    <div className="rounded-lg border p-4" style={{ backgroundColor: '#0a1214', borderColor: '#3d3528' }}>
       <h3 className="text-xs font-mono uppercase tracking-widest mb-3" style={{ color: '#64748b' }}>
         Execution Trace
       </h3>
@@ -27,7 +27,7 @@ const ExecutionTracePanel: React.FC<ExecutionTracePanelProps> = ({ trace, isLoad
           <div className="flex items-center gap-2 py-6 justify-center">
             <div
               className="w-4 h-4 rounded-full border-2 border-t-transparent animate-spin"
-              style={{ borderColor: '#07b6d5', borderTopColor: 'transparent' }}
+              style={{ borderColor: '#e09f3e', borderTopColor: 'transparent' }}
             />
             <span className="text-xs font-mono" style={{ color: '#475569' }}>
               Loading trace...
@@ -39,7 +39,7 @@ const ExecutionTracePanel: React.FC<ExecutionTracePanelProps> = ({ trace, isLoad
           <div className="flex flex-col items-center gap-2 py-6">
             <span
               className="material-symbols-outlined text-2xl"
-              style={{ fontFamily: 'Material Symbols Outlined', color: '#1e3a3e' }}
+              style={{ color: '#1e3a3e' }}
             >
               hourglass_empty
             </span>

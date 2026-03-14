@@ -12,14 +12,14 @@ interface TextAnnotationData {
 
 const TextAnnotationNode: React.FC<NodeProps<TextAnnotationData>> = ({ data, selected }) => {
   const fontSize = data.fontSize || 12;
-  const color = data.color || '#e2e8f0';
+  const color = data.color || '#e8e0d4';
   const bg = data.backgroundColor || 'transparent';
   const borderStyle = data.borderStyle || 'none';
 
   return (
     <div className="relative group">
       <NodeResizeControl minWidth={40} minHeight={20}
-        style={{ background: '#07b6d5', width: '8px', height: '8px', borderRadius: '2px' }}
+        style={{ background: '#e09f3e', width: '8px', height: '8px', borderRadius: '2px' }}
       />
 
       <Handle type="target" position={Position.Top} id="top"
@@ -37,7 +37,7 @@ const TextAnnotationNode: React.FC<NodeProps<TextAnnotationData>> = ({ data, sel
           fontSize: `${fontSize}px`,
           color,
           backgroundColor: bg,
-          border: borderStyle === 'none' ? (selected ? '1px dashed #07b6d540' : 'none') : `1px ${borderStyle} ${selected ? '#07b6d5' : '#64748b40'}`,
+          border: borderStyle === 'none' ? (selected ? '1px dashed #e09f3e40' : 'none') : `1px ${borderStyle} ${selected ? '#e09f3e' : '#64748b40'}`,
           borderRadius: '4px',
           lineHeight: 1.4,
         }}

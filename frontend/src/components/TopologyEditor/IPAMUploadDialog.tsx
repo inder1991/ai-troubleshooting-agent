@@ -124,11 +124,11 @@ const IPAMUploadDialog: React.FC<IPAMUploadDialogProps> = ({ open, onClose, onIm
       {/* Dialog */}
       <div
         className="relative w-full max-w-md rounded-xl border p-6 shadow-2xl"
-        style={{ backgroundColor: '#0f2023', borderColor: '#224349' }}
+        style={{ backgroundColor: '#1a1814', borderColor: '#3d3528' }}
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-5">
-          <h3 className="text-sm font-mono font-semibold" style={{ color: '#e2e8f0' }}>
+          <h3 className="text-sm font-mono font-semibold" style={{ color: '#e8e0d4' }}>
             Import IPAM Data
           </h3>
           <button
@@ -137,7 +137,7 @@ const IPAMUploadDialog: React.FC<IPAMUploadDialogProps> = ({ open, onClose, onIm
           >
             <span
               className="material-symbols-outlined text-lg"
-              style={{ fontFamily: 'Material Symbols Outlined', color: '#64748b' }}
+              style={{ color: '#64748b' }}
             >
               close
             </span>
@@ -148,14 +148,14 @@ const IPAMUploadDialog: React.FC<IPAMUploadDialogProps> = ({ open, onClose, onIm
         <div className="flex items-center gap-1 mb-2">
           <span
             className="material-symbols-outlined text-sm"
-            style={{ fontFamily: 'Material Symbols Outlined', color: '#07b6d5' }}
+            style={{ color: '#e09f3e' }}
           >
             download
           </span>
           <button
             onClick={handleDownloadSample}
             className="text-[10px] font-mono underline underline-offset-2 transition-colors hover:brightness-125"
-            style={{ color: '#07b6d5', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+            style={{ color: '#e09f3e', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
           >
             Download Sample CSV
           </button>
@@ -172,13 +172,13 @@ const IPAMUploadDialog: React.FC<IPAMUploadDialogProps> = ({ open, onClose, onIm
           onClick={() => fileRef.current?.click()}
           className="flex flex-col items-center justify-center gap-3 p-8 rounded-lg border-2 border-dashed cursor-pointer transition-colors"
           style={{
-            borderColor: dragOver ? '#07b6d5' : '#224349',
-            backgroundColor: dragOver ? 'rgba(7,182,213,0.05)' : '#0a0f13',
+            borderColor: dragOver ? '#e09f3e' : '#3d3528',
+            backgroundColor: dragOver ? 'rgba(224,159,62,0.05)' : '#0a0f13',
           }}
         >
           <span
             className="material-symbols-outlined text-3xl"
-            style={{ fontFamily: 'Material Symbols Outlined', color: '#64748b' }}
+            style={{ color: '#64748b' }}
           >
             upload_file
           </span>
@@ -197,10 +197,10 @@ const IPAMUploadDialog: React.FC<IPAMUploadDialogProps> = ({ open, onClose, onIm
         {/* Progress */}
         {uploading && (
           <div className="mt-4">
-            <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: '#162a2e' }}>
+            <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: '#1e1b15' }}>
               <div
                 className="h-full rounded-full transition-all duration-500"
-                style={{ width: `${progress}%`, backgroundColor: '#07b6d5' }}
+                style={{ width: `${progress}%`, backgroundColor: '#e09f3e' }}
               />
             </div>
             <p className="text-[10px] font-mono mt-1" style={{ color: '#64748b' }}>
@@ -213,11 +213,11 @@ const IPAMUploadDialog: React.FC<IPAMUploadDialogProps> = ({ open, onClose, onIm
         {result && (
           <div
             className="mt-4 p-3 rounded border text-xs font-mono flex items-start gap-2"
-            style={{ backgroundColor: '#162a2e', borderColor: '#224349', color: '#22c55e' }}
+            style={{ backgroundColor: '#1e1b15', borderColor: '#3d3528', color: '#22c55e' }}
           >
             <span
               className="material-symbols-outlined text-base flex-shrink-0"
-              style={{ fontFamily: 'Material Symbols Outlined', color: '#22c55e' }}
+              style={{ color: '#22c55e' }}
             >
               check_circle
             </span>
@@ -246,7 +246,7 @@ const IPAMUploadDialog: React.FC<IPAMUploadDialogProps> = ({ open, onClose, onIm
             <div className="flex items-center gap-1 mb-1 font-semibold">
               <span
                 className="material-symbols-outlined text-sm"
-                style={{ fontFamily: 'Material Symbols Outlined', color: '#f59e0b' }}
+                style={{ color: '#f59e0b' }}
               >
                 warning
               </span>
@@ -285,7 +285,7 @@ const IPAMUploadDialog: React.FC<IPAMUploadDialogProps> = ({ open, onClose, onIm
               <button
                 onClick={handleClose}
                 className="px-4 py-2 rounded text-xs font-mono border transition-colors"
-                style={{ borderColor: '#224349', color: '#64748b', backgroundColor: 'transparent' }}
+                style={{ borderColor: '#3d3528', color: '#64748b', backgroundColor: 'transparent' }}
               >
                 Cancel
               </button>
@@ -293,7 +293,7 @@ const IPAMUploadDialog: React.FC<IPAMUploadDialogProps> = ({ open, onClose, onIm
                 onClick={handleUpload}
                 disabled={!file || uploading}
                 className="px-4 py-2 rounded text-xs font-mono font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ backgroundColor: '#07b6d5', color: '#0a0f13' }}
+                style={{ backgroundColor: '#e09f3e', color: '#0a0f13' }}
               >
                 {uploading ? 'Uploading...' : 'Upload & Parse'}
               </button>

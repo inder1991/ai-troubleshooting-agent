@@ -36,7 +36,7 @@ const FirewallVerdictCard: React.FC<FirewallVerdictCardProps> = ({ verdict }) =>
   return (
     <div
       className="rounded-lg p-3 font-mono text-xs"
-      style={{ backgroundColor: '#0f2023', border: '1px solid #224349' }}
+      style={{ backgroundColor: '#1a1814', border: '1px solid #3d3528' }}
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
@@ -44,7 +44,7 @@ const FirewallVerdictCard: React.FC<FirewallVerdictCardProps> = ({ verdict }) =>
           <span className="material-symbols-outlined text-sm" style={{ color: '#f59e0b' }}>
             security
           </span>
-          <span style={{ color: '#e2e8f0' }}>{verdict.device_name || verdict.device_id}</span>
+          <span style={{ color: '#e8e0d4' }}>{verdict.device_name || verdict.device_id}</span>
         </div>
         <div className="flex items-center gap-2">
           <span
@@ -89,7 +89,7 @@ const FirewallVerdictCard: React.FC<FirewallVerdictCardProps> = ({ verdict }) =>
 
       {/* Match type */}
       <div className="mb-1.5" style={{ color: '#64748b' }}>
-        Match: <span style={{ color: '#94a3b8' }}>{verdict.match_type}</span>
+        Match: <span style={{ color: '#8a7e6b' }}>{verdict.match_type}</span>
       </div>
 
       {/* Details */}
@@ -113,7 +113,7 @@ const FirewallVerdictCard: React.FC<FirewallVerdictCardProps> = ({ verdict }) =>
             }}
           />
         </div>
-        <span style={{ color: '#94a3b8' }}>
+        <span style={{ color: '#8a7e6b' }}>
           {Math.round(verdict.confidence * 100)}%
         </span>
       </div>

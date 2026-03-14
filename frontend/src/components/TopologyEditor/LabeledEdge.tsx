@@ -2,7 +2,7 @@ import React from 'react';
 import { getBezierPath, EdgeLabelRenderer, type EdgeProps } from 'reactflow';
 
 const edgeColors: Record<string, string> = {
-  connected_to: '#07b6d5',
+  connected_to: '#e09f3e',
   vpc_contains: '#3b82f6',
   load_balances: '#22c55e',
   routes_to: '#a855f7',
@@ -25,7 +25,8 @@ const LabeledEdge: React.FC<EdgeProps> = ({
   selected,
 }) => {
   const edgeType = (data?.label as string) || 'connected_to';
-  const color = edgeColors[edgeType] || '#07b6d5';
+  const color = edgeColors[edgeType] || '#e09f3e';
+  const isPlanned = data?._source === 'planned';
   const interfaceName = sourceHandleId?.startsWith('iface-')
     ? (data?.interface as string) || sourceHandleId.replace('iface-', '')
     : null;
@@ -55,6 +56,8 @@ const LabeledEdge: React.FC<EdgeProps> = ({
           ...style,
           stroke: color,
           strokeWidth: selected ? 2.5 : 2,
+          strokeDasharray: isPlanned ? '8 4' : undefined,
+          opacity: isPlanned ? 0.7 : 1,
           filter: selected ? `drop-shadow(0 0 4px ${color}66)` : undefined,
         }}
       />

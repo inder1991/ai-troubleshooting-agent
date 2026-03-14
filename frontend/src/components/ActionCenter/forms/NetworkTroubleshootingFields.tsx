@@ -20,13 +20,13 @@ const NetworkTroubleshootingFields: React.FC<NetworkTroubleshootingFieldsProps> 
 
   const inputClasses = "w-full rounded-lg border px-3 py-2 text-sm font-mono focus:outline-none focus:ring-1";
   const inputStyle = (hasError: boolean) => ({
-    backgroundColor: '#0f2023',
-    borderColor: hasError ? '#ef4444' : '#224349',
-    color: '#e2e8f0',
+    backgroundColor: '#1a1814',
+    borderColor: hasError ? '#ef4444' : '#3d3528',
+    color: '#e8e0d4',
   });
   const labelClasses = "text-xs font-mono uppercase tracking-widest mb-1.5 block";
   const labelStyle = { color: '#64748b' };
-  const errorStyle = { color: '#ef4444', fontSize: '10px', fontFamily: 'monospace', marginTop: '4px' };
+  const errorStyle = { color: '#ef4444', fontSize: '10px', marginTop: '4px' };
 
   return (
     <div className="space-y-4">
@@ -41,7 +41,7 @@ const NetworkTroubleshootingFields: React.FC<NetworkTroubleshootingFieldsProps> 
           className={inputClasses}
           style={inputStyle(!!errors.src_ip)}
         />
-        {errors.src_ip && <p style={errorStyle}>{errors.src_ip}</p>}
+        {errors.src_ip && <p className="font-mono" style={errorStyle}>{errors.src_ip}</p>}
       </div>
 
       {/* Destination IP */}
@@ -55,7 +55,7 @@ const NetworkTroubleshootingFields: React.FC<NetworkTroubleshootingFieldsProps> 
           className={inputClasses}
           style={inputStyle(!!errors.dst_ip)}
         />
-        {errors.dst_ip && <p style={errorStyle}>{errors.dst_ip}</p>}
+        {errors.dst_ip && <p className="font-mono" style={errorStyle}>{errors.dst_ip}</p>}
       </div>
 
       {/* Port */}
@@ -69,7 +69,7 @@ const NetworkTroubleshootingFields: React.FC<NetworkTroubleshootingFieldsProps> 
           className={inputClasses}
           style={inputStyle(!!errors.port)}
         />
-        {errors.port && <p style={errorStyle}>{errors.port}</p>}
+        {errors.port && <p className="font-mono" style={errorStyle}>{errors.port}</p>}
       </div>
 
       {/* Protocol Toggle */}
@@ -83,10 +83,10 @@ const NetworkTroubleshootingFields: React.FC<NetworkTroubleshootingFieldsProps> 
               onClick={() => update({ protocol: proto })}
               className="px-4 py-2 rounded-lg text-xs font-mono uppercase tracking-wider transition-colors"
               style={{
-                backgroundColor: data.protocol === proto ? '#07b6d5' : '#0f2023',
-                color: data.protocol === proto ? '#0f2023' : '#64748b',
+                backgroundColor: data.protocol === proto ? '#e09f3e' : '#1a1814',
+                color: data.protocol === proto ? '#1a1814' : '#64748b',
                 borderWidth: 1,
-                borderColor: data.protocol === proto ? '#07b6d5' : '#224349',
+                borderColor: data.protocol === proto ? '#e09f3e' : '#3d3528',
               }}
             >
               {proto}

@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import type { MonitoredDevice } from '../../types';
-import { deleteMonitoredDevice, testMonitoredDevice, pingMonitoredDevice } from '../../services/api';
+import { deleteMonitoredDevice, testMonitoredDevice, pingMonitoredDevice, exportDevices, importDevices, bulkDeleteDevices, bulkValidate } from '../../services/api';
 import AddDeviceForm from './AddDeviceForm';
 import { useDebounce } from '../../hooks/useDebounce';
 import { showToast } from './Toast';
@@ -19,7 +19,7 @@ const STATUS_COLOR: Record<string, string> = {
   up: '#22c55e',
   down: '#ef4444',
   unreachable: '#f59e0b',
-  new: '#94a3b8',
+  new: '#8a7e6b',
 };
 
 const STATUS_ORDER: Record<string, number> = {
@@ -30,13 +30,13 @@ const STATUS_ORDER: Record<string, number> = {
 };
 
 const cardStyle: React.CSSProperties = {
-  background: 'rgba(7,182,213,0.04)', border: '1px solid rgba(7,182,213,0.12)',
+  background: 'rgba(224,159,62,0.04)', border: '1px solid rgba(224,159,62,0.12)',
   borderRadius: 10, padding: 20,
 };
 
 const btnStyle: React.CSSProperties = {
   padding: 4, background: 'transparent', border: '1px solid rgba(148,163,184,0.15)',
-  borderRadius: 4, color: '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center',
+  borderRadius: 4, color: '#8a7e6b', cursor: 'pointer', display: 'flex', alignItems: 'center',
 };
 
 const NDMDevicesTab: React.FC<NDMDevicesTabProps> = ({ devices, onSelectDevice, onReload }) => {
@@ -46,6 +46,8 @@ const NDMDevicesTab: React.FC<NDMDevicesTabProps> = ({ devices, onSelectDevice, 
   const [showAddDevice, setShowAddDevice] = useState(false);
   const [sortField, setSortField] = useState<SortField>('hostname');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
+  const [importing, setImporting] = useState(false);
+  const [validating, setValidating] = useState(false);
 
   const handleDelete = useCallback(async (id: string) => {
     if (!confirm('Remove this device from monitoring?')) return;
@@ -73,6 +75,40 @@ const NDMDevicesTab: React.FC<NDMDevicesTabProps> = ({ devices, onSelectDevice, 
       showToast(`Ping failed: ${err instanceof Error ? err.message : 'Unknown error'}`, 'error');
     }
   }, [onReload]);
+
+  const handleExportCSV = async () => {
+    try {
+      const blob = await exportDevices('csv');
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'devices.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch { /* ignore */ }
+  };
+
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImporting(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      await importDevices(formData);
+      onReload();
+    } catch { /* ignore */ }
+    setImporting(false);
+    e.target.value = '';
+  };
+
+  const handleValidateAll = async () => {
+    setValidating(true);
+    try {
+      await bulkValidate(devices.map((d: any) => ({ id: d.id || d.device_id })));
+    } catch { /* ignore */ }
+    setValidating(false);
+  };
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -156,7 +192,7 @@ const NDMDevicesTab: React.FC<NDMDevicesTabProps> = ({ devices, onSelectDevice, 
   }, [filtered, groupBy]);
 
   const renderDeviceRow = (device: MonitoredDevice) => {
-    const statusColor = STATUS_COLOR[device.status] || '#94a3b8';
+    const statusColor = STATUS_COLOR[device.status] || '#8a7e6b';
     const rtt = device.last_ping?.rtt_avg;
     const loss = device.last_ping?.packet_loss_pct;
 
@@ -165,7 +201,7 @@ const NDMDevicesTab: React.FC<NDMDevicesTabProps> = ({ devices, onSelectDevice, 
         key={device.device_id}
         onClick={() => onSelectDevice(device.device_id)}
         style={{ borderBottom: '1px solid rgba(148,163,184,0.08)', cursor: 'pointer', transition: 'background 0.1s' }}
-        onMouseEnter={e => { (e.currentTarget as HTMLTableRowElement).style.background = 'rgba(7,182,213,0.04)'; }}
+        onMouseEnter={e => { (e.currentTarget as HTMLTableRowElement).style.background = 'rgba(224,159,62,0.04)'; }}
         onMouseLeave={e => { (e.currentTarget as HTMLTableRowElement).style.background = 'transparent'; }}
       >
         <td style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>
@@ -183,13 +219,13 @@ const NDMDevicesTab: React.FC<NDMDevicesTabProps> = ({ devices, onSelectDevice, 
             </span>
           </div>
         </td>
-        <td style={{ padding: '10px 8px', color: '#e2e8f0', fontSize: 13, fontWeight: 500 }}>
+        <td style={{ padding: '10px 8px', color: '#e8e0d4', fontSize: 13, fontWeight: 500 }}>
           {device.hostname || device.management_ip}
         </td>
-        <td style={{ padding: '10px 8px', color: '#94a3b8', fontSize: 13, fontFamily: 'monospace' }}>
+        <td className="font-mono" style={{ padding: '10px 8px', color: '#8a7e6b', fontSize: 13 }}>
           {device.management_ip}
         </td>
-        <td style={{ padding: '10px 8px', color: '#94a3b8', fontSize: 12, textTransform: 'capitalize' }}>
+        <td style={{ padding: '10px 8px', color: '#8a7e6b', fontSize: 12, textTransform: 'capitalize' }}>
           {device.vendor || '-'}
         </td>
         <td style={{ padding: '10px 8px' }}>
@@ -209,7 +245,7 @@ const NDMDevicesTab: React.FC<NDMDevicesTabProps> = ({ devices, onSelectDevice, 
             {device.tags.slice(0, 3).map(tag => (
               <span key={tag} style={{
                 fontSize: 10, padding: '1px 5px', borderRadius: 3,
-                background: 'rgba(148,163,184,0.1)', color: '#94a3b8',
+                background: 'rgba(148,163,184,0.1)', color: '#8a7e6b',
               }}>
                 {tag}
               </span>
@@ -224,10 +260,10 @@ const NDMDevicesTab: React.FC<NDMDevicesTabProps> = ({ devices, onSelectDevice, 
             ? new Date(device.last_collected * 1000).toLocaleTimeString()
             : 'Never'}
         </td>
-        <td style={{ padding: '10px 8px', color: '#94a3b8', fontSize: 12 }}>
+        <td style={{ padding: '10px 8px', color: '#8a7e6b', fontSize: 12 }}>
           {rtt !== undefined && rtt > 0 ? `${rtt.toFixed(1)}ms` : '-'}
         </td>
-        <td style={{ padding: '10px 8px', color: '#94a3b8', fontSize: 12 }}>
+        <td style={{ padding: '10px 8px', color: '#8a7e6b', fontSize: 12 }}>
           {loss !== undefined ? `${loss.toFixed(0)}%` : '-'}
         </td>
         <td style={{ padding: '10px 8px' }} onClick={e => e.stopPropagation()}>
@@ -281,7 +317,7 @@ const NDMDevicesTab: React.FC<NDMDevicesTabProps> = ({ devices, onSelectDevice, 
                   {h.field && (
                     <span className="material-symbols-outlined" style={{
                       fontSize: 14,
-                      color: sortField === h.field ? '#07b6d5' : '#475569',
+                      color: sortField === h.field ? '#e09f3e' : '#475569',
                     }}>
                       {sortIcon(h.field)}
                     </span>
@@ -299,8 +335,8 @@ const NDMDevicesTab: React.FC<NDMDevicesTabProps> = ({ devices, onSelectDevice, 
   );
 
   const selectStyle: React.CSSProperties = {
-    padding: '6px 12px', background: 'rgba(7,182,213,0.06)',
-    border: '1px solid rgba(7,182,213,0.15)', borderRadius: 6, color: '#e2e8f0',
+    padding: '6px 12px', background: 'rgba(224,159,62,0.06)',
+    border: '1px solid rgba(224,159,62,0.15)', borderRadius: 6, color: '#e8e0d4',
     fontSize: 12, outline: 'none', cursor: 'pointer',
   };
 
@@ -318,8 +354,8 @@ const NDMDevicesTab: React.FC<NDMDevicesTabProps> = ({ devices, onSelectDevice, 
               value={search} onChange={e => setSearch(e.target.value)}
               placeholder="Search by hostname, IP, vendor, profile, tag..."
               style={{
-                width: '100%', padding: '8px 12px 8px 34px', background: 'rgba(7,182,213,0.06)',
-                border: '1px solid rgba(7,182,213,0.15)', borderRadius: 6, color: '#e2e8f0',
+                width: '100%', padding: '8px 12px 8px 34px', background: 'rgba(224,159,62,0.06)',
+                border: '1px solid rgba(224,159,62,0.15)', borderRadius: 6, color: '#e8e0d4',
                 fontSize: 12, outline: 'none',
               }}
             />
@@ -335,24 +371,67 @@ const NDMDevicesTab: React.FC<NDMDevicesTabProps> = ({ devices, onSelectDevice, 
             </select>
           </div>
         </div>
-        <button
-          onClick={() => setShowAddDevice(true)}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            padding: '8px 16px', background: '#07b6d5', border: 'none', borderRadius: 6,
-            color: '#0f2023', cursor: 'pointer', fontSize: 12, fontWeight: 600,
-          }}
-        >
-          <span className="material-symbols-outlined" style={{ fontSize: 16 }}>add</span>
-          Add Device
-        </button>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <button
+            onClick={handleExportCSV}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '6px 12px', background: 'rgba(224,159,62,0.08)',
+              border: '1px solid rgba(224,159,62,0.2)', borderRadius: 8,
+              color: '#e09f3e', cursor: 'pointer', fontSize: 12, fontWeight: 600,
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>download</span>
+            Export CSV
+          </button>
+          <input type="file" accept=".csv,.json" style={{ display: 'none' }} id="device-import-input" onChange={handleImport} />
+          <button
+            onClick={() => document.getElementById('device-import-input')?.click()}
+            disabled={importing}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '6px 12px', background: 'rgba(224,159,62,0.08)',
+              border: '1px solid rgba(224,159,62,0.2)', borderRadius: 8,
+              color: '#e09f3e', cursor: importing ? 'not-allowed' : 'pointer',
+              fontSize: 12, fontWeight: 600, opacity: importing ? 0.5 : 1,
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>upload</span>
+            {importing ? 'Importing...' : 'Import'}
+          </button>
+          <button
+            onClick={handleValidateAll}
+            disabled={validating}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '6px 12px', background: 'rgba(224,159,62,0.08)',
+              border: '1px solid rgba(224,159,62,0.2)', borderRadius: 8,
+              color: '#e09f3e', cursor: validating ? 'not-allowed' : 'pointer',
+              fontSize: 12, fontWeight: 600, opacity: validating ? 0.5 : 1,
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>verified</span>
+            {validating ? 'Validating...' : 'Validate'}
+          </button>
+          <button
+            onClick={() => setShowAddDevice(true)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '8px 16px', background: '#e09f3e', border: 'none', borderRadius: 6,
+              color: '#1a1814', cursor: 'pointer', fontSize: 12, fontWeight: 600,
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>add</span>
+            Add Device
+          </button>
+        </div>
       </div>
 
       {/* Add Device Form */}
       {showAddDevice && (
         <div style={cardStyle}>
-          <h3 style={{ fontSize: 14, fontWeight: 600, color: '#e2e8f0', margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#07b6d5' }}>add_circle</span>
+          <h3 style={{ fontSize: 14, fontWeight: 600, color: '#e8e0d4', margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#e09f3e' }}>add_circle</span>
             Add Individual Device
           </h3>
           <AddDeviceForm
@@ -373,7 +452,7 @@ const NDMDevicesTab: React.FC<NDMDevicesTabProps> = ({ devices, onSelectDevice, 
       ) : groupBy === 'none' ? (
         <div style={cardStyle}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <h3 style={{ fontSize: 14, fontWeight: 600, color: '#e2e8f0', margin: 0 }}>
+            <h3 style={{ fontSize: 14, fontWeight: 600, color: '#e8e0d4', margin: 0 }}>
               All Devices ({filtered.length})
             </h3>
           </div>
@@ -385,11 +464,11 @@ const NDMDevicesTab: React.FC<NDMDevicesTabProps> = ({ devices, onSelectDevice, 
           .map(([groupName, groupDevices]) => (
             <div key={groupName} style={cardStyle}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <h3 style={{ fontSize: 14, fontWeight: 600, color: '#e2e8f0', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <h3 style={{ fontSize: 14, fontWeight: 600, color: '#e8e0d4', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ textTransform: 'capitalize' }}>{groupName}</span>
                   <span style={{
                     fontSize: 11, padding: '2px 8px', borderRadius: 10,
-                    background: 'rgba(7,182,213,0.15)', color: '#07b6d5',
+                    background: 'rgba(224,159,62,0.15)', color: '#e09f3e',
                   }}>
                     {groupDevices.length}
                   </span>

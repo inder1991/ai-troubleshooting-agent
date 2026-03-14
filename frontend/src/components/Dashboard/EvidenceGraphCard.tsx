@@ -11,7 +11,7 @@ const nodeTypeColor: Record<string, string> = {
   cause: '#f97316',
   symptom: '#ef4444',
   contributing_factor: '#eab308',
-  context: '#94a3b8',
+  context: '#8a7e6b',
 };
 
 const nodeTypeBg: Record<string, string> = {
@@ -46,7 +46,7 @@ const EvidenceGraphCard: React.FC<EvidenceGraphCardProps> = ({ nodes, edges, roo
   const isolated = nodes.filter((n) => !connected.has(n.id));
 
   const renderNode = (node: EvidenceNodeData) => {
-    const color = nodeTypeColor[node.node_type] || '#94a3b8';
+    const color = nodeTypeColor[node.node_type] || '#8a7e6b';
     const bgClass = nodeTypeBg[node.node_type] || 'bg-gray-500/10 border-gray-500/40';
     const label = nodeTypeLabel[node.node_type] || node.node_type;
 

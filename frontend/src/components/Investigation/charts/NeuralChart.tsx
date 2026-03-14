@@ -6,7 +6,7 @@ import {
 
 export interface NeuralChartLine {
   dataKey: string;
-  color: 'cyan' | 'amber' | 'red' | 'slate';
+  color: 'gold' | 'amber' | 'red' | 'slate';
   label?: string;
 }
 
@@ -20,7 +20,7 @@ export interface NeuralChartProps {
 }
 
 const COLOR_MAP: Record<string, string> = {
-  cyan: '#07b6d5',
+  gold: '#e09f3e',
   amber: '#f59e0b',
   red: '#ef4444',
   slate: '#64748b',
@@ -31,7 +31,7 @@ const GLOW_FILTER_ID = 'neural-glow';
 const WarRoomTooltip: React.FC<{ active?: boolean; payload?: Array<{ name: string; value: number; color: string }>; label?: string }> = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-[#0f2023]/95 backdrop-blur-sm border border-slate-700/50 rounded px-3 py-2 shadow-xl">
+    <div className="bg-[#1a1814]/95 backdrop-blur-sm border border-slate-700/50 rounded px-3 py-2 shadow-xl">
       <div className="text-[9px] text-slate-500 font-mono mb-1">{label}</div>
       {payload.map((p, i) => (
         <div key={i} className="flex items-center gap-2 text-[10px] font-mono">

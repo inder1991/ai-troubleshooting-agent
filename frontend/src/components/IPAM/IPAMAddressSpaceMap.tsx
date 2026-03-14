@@ -85,8 +85,8 @@ export default function IPAMAddressSpaceMap({ blockId }: Props) {
 
       {/* Hover detail */}
       {hovered && (
-        <div className="flex items-center gap-4 px-3 py-2 bg-[#0f2023] border border-[#1e3a40] rounded text-xs">
-          <span className="font-mono text-cyan-300">{hovered.cidr}</span>
+        <div className="flex items-center gap-4 px-3 py-2 bg-[#1a1814] border border-[#1e3a40] rounded text-xs">
+          <span className="font-mono text-amber-300">{hovered.cidr}</span>
           <span className="text-slate-400">{hovered.name || 'unnamed'}</span>
           <span className="ml-auto text-slate-300">{hovered.utilization_pct}% utilized</span>
           <span className="text-slate-500">{hovered.size.toLocaleString()} hosts</span>

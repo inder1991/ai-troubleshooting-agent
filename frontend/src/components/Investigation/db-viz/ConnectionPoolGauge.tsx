@@ -1,4 +1,5 @@
 import React from 'react';
+import { VIZ_COLORS } from '../db-board/constants';
 
 interface ConnectionPoolGaugeProps {
   active: number;
@@ -19,20 +20,20 @@ const ConnectionPoolGauge: React.FC<ConnectionPoolGaugeProps> = ({
   const strokeDashoffset = circumference - (circumference * Math.min(utilization, 100)) / 100;
 
   const color =
-    utilization > 80 ? '#ef4444' : utilization > 60 ? '#f59e0b' : '#10b981';
+    utilization > 80 ? VIZ_COLORS.critical : utilization > 60 ? VIZ_COLORS.warning : VIZ_COLORS.excellent;
 
   return (
     <div className="flex items-center gap-4">
       {/* SVG Arc Gauge */}
       <div className="relative w-24 h-24">
-        <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
+        <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" className="w-full h-auto -rotate-90">
           {/* Background circle */}
           <circle
             cx="50"
             cy="50"
             r={radius}
             fill="none"
-            stroke="#1e2f33"
+            stroke="#252118"
             strokeWidth="8"
           />
           {/* Progress arc */}
@@ -53,7 +54,7 @@ const ConnectionPoolGauge: React.FC<ConnectionPoolGaugeProps> = ({
           <span className="text-lg font-bold" style={{ color }}>
             {Math.round(utilization)}%
           </span>
-          <span className="text-[8px] text-slate-500 uppercase tracking-wider">used</span>
+          <span className="text-[8px] text-slate-400 uppercase tracking-wider">used</span>
         </div>
       </div>
 
@@ -61,8 +62,8 @@ const ConnectionPoolGauge: React.FC<ConnectionPoolGaugeProps> = ({
       <div className="space-y-1.5">
         {[
           { label: 'Active', value: active, dotColor: color },
-          { label: 'Idle', value: idle, dotColor: '#64748b' },
-          { label: 'Waiting', value: waiting, dotColor: '#f59e0b' },
+          { label: 'Idle', value: idle, dotColor: VIZ_COLORS.neutral },
+          { label: 'Waiting', value: waiting, dotColor: VIZ_COLORS.warning },
           { label: 'Max', value: max, dotColor: '#475569' },
         ].map(({ label, value, dotColor }) => (
           <div key={label} className="flex items-center gap-2">

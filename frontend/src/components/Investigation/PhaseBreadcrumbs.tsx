@@ -34,13 +34,13 @@ export const PhaseBreadcrumbs: React.FC<PhaseBreadcrumbsProps> = ({ phases, scro
               onClick={() => handleClick(phase.phaseId)}
               className={`text-[9px] font-bold uppercase tracking-wider whitespace-nowrap transition-colors flex items-center gap-1 ${
                 isActive
-                  ? 'text-[#07b6d5] font-bold'
+                  ? 'text-[#e09f3e] font-bold'
                   : isComplete
                     ? 'text-slate-500 hover:text-slate-400'
                     : 'text-slate-600 hover:text-slate-500'
               }`}
             >
-              {isActive && <span className="w-1 h-1 rounded-full bg-[#07b6d5]" />}
+              {isActive && <span className="w-1 h-1 rounded-full bg-[#e09f3e]" />}
               {phase.phase.replace(/_/g, ' ')}
             </button>
           </React.Fragment>

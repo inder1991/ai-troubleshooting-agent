@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import type { MonitoredDevice, SyslogEntry } from '../../types';
-import { fetchSyslogEntries } from '../../services/api';
+import { fetchSyslogEntries, fetchSyslogSummary } from '../../services/api';
 import { useDebounce } from '../../hooks/useDebounce';
 
 interface NDMSyslogTabProps {
@@ -13,8 +13,8 @@ const SEVERITY_COLORS: Record<string, { bg: string; text: string }> = {
   critical:   { bg: 'rgba(239,68,68,0.15)', text: '#ef4444' },
   error:      { bg: 'rgba(249,115,22,0.15)', text: '#f97316' },
   warning:    { bg: 'rgba(245,158,11,0.15)', text: '#f59e0b' },
-  notice:     { bg: 'rgba(7,182,213,0.12)',  text: '#07b6d5' },
-  info:       { bg: 'rgba(148,163,184,0.1)', text: '#94a3b8' },
+  notice:     { bg: 'rgba(224,159,62,0.12)',  text: '#e09f3e' },
+  info:       { bg: 'rgba(148,163,184,0.1)', text: '#8a7e6b' },
   debug:      { bg: 'rgba(100,116,139,0.1)', text: '#64748b' },
 };
 
@@ -30,13 +30,13 @@ const TIME_RANGES = [
 ];
 
 const cardStyle: React.CSSProperties = {
-  background: 'rgba(7,182,213,0.04)', border: '1px solid rgba(7,182,213,0.12)',
+  background: 'rgba(224,159,62,0.04)', border: '1px solid rgba(224,159,62,0.12)',
   borderRadius: 10, padding: 20,
 };
 
 const selectStyle: React.CSSProperties = {
-  padding: '6px 10px', background: 'rgba(7,182,213,0.06)',
-  border: '1px solid rgba(7,182,213,0.15)', borderRadius: 6, color: '#e2e8f0',
+  padding: '6px 10px', background: 'rgba(224,159,62,0.06)',
+  border: '1px solid rgba(224,159,62,0.15)', borderRadius: 6, color: '#e8e0d4',
   fontSize: 12, outline: 'none', cursor: 'pointer',
 };
 
@@ -50,6 +50,7 @@ const NDMSyslogTab: React.FC<NDMSyslogTabProps> = ({ devices }) => {
   const debouncedSearch = useDebounce(search, 300);
   const [timeRange, setTimeRange] = useState(3600);
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const [summary, setSummary] = useState<{ total: number; by_severity: Record<string, number>; top_facility: string; top_host: string } | null>(null);
   const refreshRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // WebSocket state
@@ -63,6 +64,10 @@ const NDMSyslogTab: React.FC<NDMSyslogTabProps> = ({ devices }) => {
   useEffect(() => {
     isPausedRef.current = isPaused;
   }, [isPaused]);
+
+  useEffect(() => {
+    fetchSyslogSummary().then(setSummary).catch(() => {});
+  }, []);
 
   // Map device IPs to hostnames for correlation
   const deviceMap = React.useMemo(() => {
@@ -199,7 +204,7 @@ const NDMSyslogTab: React.FC<NDMSyslogTabProps> = ({ devices }) => {
 
   if (loading) {
     return (
-      <div style={{ padding: 32, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div style={{ padding: 32, color: '#8a7e6b', display: 'flex', alignItems: 'center', gap: 8 }}>
         <span className="material-symbols-outlined" style={{ animation: 'spin 1s linear infinite' }}>progress_activity</span>
         Loading syslog entries...
       </div>
@@ -208,6 +213,30 @@ const NDMSyslogTab: React.FC<NDMSyslogTabProps> = ({ devices }) => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* Summary Cards */}
+      {summary && (
+        <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+          <div style={{ flex: 1, minWidth: 120, background: 'rgba(224,159,62,0.04)', border: '1px solid rgba(224,159,62,0.12)', borderRadius: 10, padding: 16 }}>
+            <div style={{ fontSize: 11, color: '#e09f3e', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Total Entries</div>
+            <div style={{ fontSize: 22, fontWeight: 700, color: '#fff', fontFamily: 'monospace' }}>{summary.total.toLocaleString()}</div>
+          </div>
+          {Object.entries(summary.by_severity).map(([sev, count]) => (
+            <div key={sev} style={{ flex: 1, minWidth: 100, background: 'rgba(224,159,62,0.04)', border: '1px solid rgba(224,159,62,0.12)', borderRadius: 10, padding: 16 }}>
+              <div style={{ fontSize: 11, color: sev === 'critical' ? '#ef4444' : sev === 'warning' ? '#f59e0b' : '#e09f3e', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>{sev}</div>
+              <div style={{ fontSize: 22, fontWeight: 700, color: '#e8e0d4', fontFamily: 'monospace' }}>{count}</div>
+            </div>
+          ))}
+          <div style={{ flex: 1, minWidth: 120, background: 'rgba(224,159,62,0.04)', border: '1px solid rgba(224,159,62,0.12)', borderRadius: 10, padding: 16 }}>
+            <div style={{ fontSize: 11, color: '#e09f3e', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Top Facility</div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#e8e0d4', fontFamily: 'monospace' }}>{summary.top_facility || '—'}</div>
+          </div>
+          <div style={{ flex: 1, minWidth: 120, background: 'rgba(224,159,62,0.04)', border: '1px solid rgba(224,159,62,0.12)', borderRadius: 10, padding: 16 }}>
+            <div style={{ fontSize: 11, color: '#e09f3e', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Top Host</div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#e8e0d4', fontFamily: 'monospace' }}>{summary.top_host || '—'}</div>
+          </div>
+        </div>
+      )}
+
       {/* Severity Summary Bar */}
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         {Object.entries(SEVERITY_COLORS).map(([sev, colors]) => {
@@ -235,7 +264,7 @@ const NDMSyslogTab: React.FC<NDMSyslogTabProps> = ({ devices }) => {
           <span style={{ fontSize: 12, color: '#64748b' }}>Severity:</span>
           <select value={severityFilter} onChange={e => setSeverityFilter(e.target.value)} style={selectStyle}>
             {SEVERITY_OPTIONS.map(s => (
-              <option key={s} value={s} style={{ background: '#0f2023' }}>{s === 'all' ? 'All' : s}</option>
+              <option key={s} value={s} style={{ background: '#1a1814' }}>{s === 'all' ? 'All' : s}</option>
             ))}
           </select>
         </div>
@@ -244,7 +273,7 @@ const NDMSyslogTab: React.FC<NDMSyslogTabProps> = ({ devices }) => {
           <span style={{ fontSize: 12, color: '#64748b' }}>Facility:</span>
           <select value={facilityFilter} onChange={e => setFacilityFilter(e.target.value)} style={selectStyle}>
             {FACILITY_OPTIONS.map(f => (
-              <option key={f} value={f} style={{ background: '#0f2023' }}>{f === 'all' ? 'All' : f}</option>
+              <option key={f} value={f} style={{ background: '#1a1814' }}>{f === 'all' ? 'All' : f}</option>
             ))}
           </select>
         </div>
@@ -258,8 +287,8 @@ const NDMSyslogTab: React.FC<NDMSyslogTabProps> = ({ devices }) => {
             value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Search messages..."
             style={{
-              width: '100%', padding: '6px 10px 6px 30px', background: 'rgba(7,182,213,0.06)',
-              border: '1px solid rgba(7,182,213,0.15)', borderRadius: 6, color: '#e2e8f0',
+              width: '100%', padding: '6px 10px 6px 30px', background: 'rgba(224,159,62,0.06)',
+              border: '1px solid rgba(224,159,62,0.15)', borderRadius: 6, color: '#e8e0d4',
               fontSize: 12, outline: 'none',
             }}
           />
@@ -290,7 +319,7 @@ const NDMSyslogTab: React.FC<NDMSyslogTabProps> = ({ devices }) => {
             padding: '5px 12px', borderRadius: 6, fontSize: 11, fontWeight: 600,
             border: isPaused ? '1px solid rgba(245,158,11,0.3)' : '1px solid rgba(148,163,184,0.2)',
             background: isPaused ? 'rgba(245,158,11,0.1)' : 'transparent',
-            color: isPaused ? '#f59e0b' : '#94a3b8',
+            color: isPaused ? '#f59e0b' : '#8a7e6b',
             cursor: 'pointer',
           }}
         >
@@ -307,9 +336,9 @@ const NDMSyslogTab: React.FC<NDMSyslogTabProps> = ({ devices }) => {
               onClick={() => setTimeRange(tr.seconds)}
               style={{
                 padding: '5px 10px', borderRadius: 5, fontSize: 11, fontWeight: 500,
-                border: timeRange === tr.seconds ? '1px solid #07b6d5' : '1px solid rgba(148,163,184,0.12)',
-                background: timeRange === tr.seconds ? 'rgba(7,182,213,0.12)' : 'transparent',
-                color: timeRange === tr.seconds ? '#07b6d5' : '#94a3b8',
+                border: timeRange === tr.seconds ? '1px solid #e09f3e' : '1px solid rgba(148,163,184,0.12)',
+                background: timeRange === tr.seconds ? 'rgba(224,159,62,0.12)' : 'transparent',
+                color: timeRange === tr.seconds ? '#e09f3e' : '#8a7e6b',
                 cursor: 'pointer',
               }}
             >
@@ -318,7 +347,7 @@ const NDMSyslogTab: React.FC<NDMSyslogTabProps> = ({ devices }) => {
           ))}
         </div>
 
-        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#94a3b8', cursor: 'pointer' }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#8a7e6b', cursor: 'pointer' }}>
           <input type="checkbox" checked={autoRefresh} onChange={e => setAutoRefresh(e.target.checked)} />
           Auto-refresh
           {autoRefresh && !isLive && (
@@ -332,7 +361,7 @@ const NDMSyslogTab: React.FC<NDMSyslogTabProps> = ({ devices }) => {
       {/* Log Viewer Table */}
       <div style={cardStyle}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <h3 style={{ fontSize: 14, fontWeight: 600, color: '#e2e8f0', margin: 0 }}>
+          <h3 style={{ fontSize: 14, fontWeight: 600, color: '#e8e0d4', margin: 0 }}>
             Syslog Entries ({entries.length})
           </h3>
         </div>
@@ -367,7 +396,7 @@ const NDMSyslogTab: React.FC<NDMSyslogTabProps> = ({ devices }) => {
                       borderBottom: '1px solid rgba(148,163,184,0.05)',
                       animation: idx === 0 && isLive && !isPaused ? 'fadeIn 0.3s ease-in' : undefined,
                     }}>
-                      <td style={{ padding: '6px 8px', fontSize: 11, color: '#64748b', whiteSpace: 'nowrap', fontFamily: 'monospace' }}>
+                      <td className="font-mono" style={{ padding: '6px 8px', fontSize: 11, color: '#64748b', whiteSpace: 'nowrap' }}>
                         {formatTimestamp(entry.timestamp)}
                       </td>
                       <td style={{ padding: '6px 8px' }}>
@@ -381,7 +410,7 @@ const NDMSyslogTab: React.FC<NDMSyslogTabProps> = ({ devices }) => {
                       <td style={{ padding: '6px 8px' }}>
                         <span style={{
                           fontSize: 11, padding: '2px 6px', borderRadius: 4,
-                          background: 'rgba(7,182,213,0.1)', color: '#07b6d5',
+                          background: 'rgba(224,159,62,0.1)', color: '#e09f3e',
                           cursor: 'pointer',
                         }}>
                           {deviceHostname}
@@ -390,11 +419,11 @@ const NDMSyslogTab: React.FC<NDMSyslogTabProps> = ({ devices }) => {
                       <td style={{ padding: '6px 8px', fontSize: 11, color: '#64748b' }}>
                         {entry.facility}
                       </td>
-                      <td style={{ padding: '6px 8px', fontSize: 11, color: '#94a3b8' }}>
+                      <td style={{ padding: '6px 8px', fontSize: 11, color: '#8a7e6b' }}>
                         {entry.app_name}
                       </td>
                       <td style={{
-                        padding: '6px 8px', fontSize: 12, color: '#e2e8f0',
+                        padding: '6px 8px', fontSize: 12, color: '#e8e0d4',
                         maxWidth: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                       }} title={entry.message}>
                         {entry.message}
@@ -411,7 +440,7 @@ const NDMSyslogTab: React.FC<NDMSyslogTabProps> = ({ devices }) => {
       {/* Inline keyframe for fade-in animation */}
       <style>{`
         @keyframes fadeIn {
-          from { opacity: 0; background: rgba(7,182,213,0.08); }
+          from { opacity: 0; background: rgba(224,159,62,0.08); }
           to { opacity: 1; background: transparent; }
         }
         @keyframes pulse-green {

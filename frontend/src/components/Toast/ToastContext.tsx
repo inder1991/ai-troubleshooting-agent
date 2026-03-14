@@ -24,7 +24,7 @@ export const useToast = (): ToastContextType => {
 const typeStyles: Record<ToastType, { bg: string; border: string; text: string; icon: string }> = {
   success: { bg: 'bg-green-900/90', border: 'border-green-500', text: 'text-green-100', icon: 'check_circle' },
   error: { bg: 'bg-red-900/90', border: 'border-red-500', text: 'text-red-100', icon: 'error' },
-  info: { bg: 'bg-[#0a2a3d]/90', border: 'border-[#07b6d5]', text: 'text-[#07b6d5]', icon: 'info' },
+  info: { bg: 'bg-[#0a2a3d]/90', border: 'border-[#e09f3e]', text: 'text-[#e09f3e]', icon: 'info' },
   warning: { bg: 'bg-amber-900/90', border: 'border-amber-500', text: 'text-amber-100', icon: 'warning' },
 };
 
@@ -55,7 +55,6 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             >
               <span
                 className="material-symbols-outlined text-base mt-0.5 shrink-0"
-                style={{ fontFamily: 'Material Symbols Outlined' }}
               >
                 {style.icon}
               </span>

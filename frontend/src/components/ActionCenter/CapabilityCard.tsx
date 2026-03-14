@@ -22,7 +22,7 @@ const CapabilityCard: React.FC<CapabilityCardProps> = ({
   return (
     <button
       onClick={() => onSelect(capability)}
-      className="group relative bg-[#1e2f33]/50 border border-[#224349] rounded-xl p-6 text-left transition-all duration-200 hover:border-opacity-60 hover:shadow-lg hover:shadow-black/20 hover:-translate-y-0.5"
+      className="group relative bg-[#252118]/50 border border-[#3d3528] rounded-xl p-6 text-left transition-all duration-200 hover:border-opacity-60 hover:shadow-lg hover:shadow-black/20 hover:-translate-y-0.5"
       style={{ '--card-accent': color } as React.CSSProperties}
     >
       {/* Accent glow */}

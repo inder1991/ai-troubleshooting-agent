@@ -149,13 +149,13 @@ const DeviceMonitoring: React.FC = () => {
   };
 
   const cardStyle: React.CSSProperties = {
-    background: 'rgba(7,182,213,0.04)', border: '1px solid rgba(7,182,213,0.12)',
+    background: 'rgba(224,159,62,0.04)', border: '1px solid rgba(224,159,62,0.12)',
     borderRadius: 10, padding: 20,
   };
 
   if (loading) {
     return (
-      <div style={{ padding: 32, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div style={{ padding: 32, color: '#8a7e6b', display: 'flex', alignItems: 'center', gap: 8 }}>
         <span className="material-symbols-outlined" style={{ animation: 'spin 1s linear infinite' }}>progress_activity</span>
         Loading device monitoring...
       </div>
@@ -203,8 +203,8 @@ const DeviceMonitoring: React.FC = () => {
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: '#e2e8f0', margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span className="material-symbols-outlined" style={{ fontSize: 26, color: '#07b6d5' }}>device_hub</span>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: '#e8e0d4', margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 26, color: '#e09f3e' }}>device_hub</span>
             Network Device Monitoring
           </h1>
           <p style={{ fontSize: 13, color: '#64748b', margin: '4px 0 0' }}>
@@ -214,7 +214,7 @@ const DeviceMonitoring: React.FC = () => {
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           {/* Device Search Bar */}
           <div style={{ position: 'relative' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(7,182,213,0.06)', border: '1px solid rgba(7,182,213,0.15)', borderRadius: 8, padding: '6px 12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(224,159,62,0.06)', border: '1px solid rgba(224,159,62,0.15)', borderRadius: 8, padding: '6px 12px' }}>
               <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#64748b' }}>search</span>
               <input
                 type="text"
@@ -223,17 +223,17 @@ const DeviceMonitoring: React.FC = () => {
                 onFocus={() => searchResults.length > 0 && setSearchOpen(true)}
                 onBlur={() => setTimeout(() => setSearchOpen(false), 200)}
                 placeholder="Search devices..."
-                style={{ background: 'transparent', border: 'none', outline: 'none', color: '#e2e8f0', fontSize: 13, width: 200 }}
+                style={{ background: 'transparent', border: 'none', outline: 'none', color: '#e8e0d4', fontSize: 13, width: 200 }}
               />
             </div>
             {searchOpen && searchResults.length > 0 && (
-              <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4, background: '#0a1a1e', border: '1px solid #224349', borderRadius: 8, maxHeight: 240, overflowY: 'auto', zIndex: 50 }}>
+              <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4, background: '#0a1a1e', border: '1px solid #3d3528', borderRadius: 8, maxHeight: 240, overflowY: 'auto', zIndex: 50 }}>
                 {searchResults.map((d: any, i: number) => (
                   <button
                     key={d.id || d.device_id || i}
                     onClick={() => { setSelectedDeviceId(d.id || d.device_id); setSearchOpen(false); setSearchQuery(''); }}
-                    style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', background: 'transparent', border: 'none', borderBottom: '1px solid #224349', color: '#e2e8f0', fontSize: 12, cursor: 'pointer' }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(7,182,213,0.08)')}
+                    style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', background: 'transparent', border: 'none', borderBottom: '1px solid #3d3528', color: '#e8e0d4', fontSize: 12, cursor: 'pointer' }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(224,159,62,0.08)')}
                     onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                   >
                     <div style={{ fontWeight: 600 }}>{d.hostname || d.name || d.ip_address}</div>
@@ -254,13 +254,13 @@ const DeviceMonitoring: React.FC = () => {
           )}
           <span style={{
             fontSize: 11, padding: '4px 10px', borderRadius: 4,
-            background: 'rgba(7,182,213,0.1)', color: '#07b6d5',
+            background: 'rgba(224,159,62,0.1)', color: '#e09f3e',
           }}>
             {profiles.length} profiles
           </span>
           <span style={{
             fontSize: 11, padding: '4px 10px', borderRadius: 4,
-            background: 'rgba(7,182,213,0.1)', color: '#07b6d5',
+            background: 'rgba(224,159,62,0.1)', color: '#e09f3e',
           }}>
             {filteredDevices.length}/{devices.length} devices
           </span>
@@ -284,9 +284,9 @@ const DeviceMonitoring: React.FC = () => {
                 onClick={() => toggleTag(tag)}
                 style={{
                   padding: '3px 10px', borderRadius: 12, fontSize: 11, fontWeight: 500,
-                  border: active ? '1px solid #07b6d5' : '1px solid rgba(148,163,184,0.2)',
-                  background: active ? 'rgba(7,182,213,0.2)' : 'transparent',
-                  color: active ? '#07b6d5' : '#94a3b8',
+                  border: active ? '1px solid #e09f3e' : '1px solid rgba(148,163,184,0.2)',
+                  background: active ? 'rgba(224,159,62,0.2)' : 'transparent',
+                  color: active ? '#e09f3e' : '#8a7e6b',
                   cursor: 'pointer', transition: 'all 0.15s ease',
                 }}
               >
@@ -317,9 +317,9 @@ const DeviceMonitoring: React.FC = () => {
             style={{
               display: 'flex', alignItems: 'center', gap: 4,
               padding: '3px 10px', borderRadius: 12, fontSize: 11, fontWeight: 500,
-              border: '1px solid rgba(7,182,213,0.25)',
-              background: selectedTags.length > 0 ? 'rgba(7,182,213,0.08)' : 'transparent',
-              color: selectedTags.length > 0 ? '#07b6d5' : '#475569',
+              border: '1px solid rgba(224,159,62,0.25)',
+              background: selectedTags.length > 0 ? 'rgba(224,159,62,0.08)' : 'transparent',
+              color: selectedTags.length > 0 ? '#e09f3e' : '#475569',
               cursor: selectedTags.length > 0 ? 'pointer' : 'default',
               opacity: selectedTags.length > 0 ? 1 : 0.5,
             }}
@@ -336,8 +336,8 @@ const DeviceMonitoring: React.FC = () => {
                 display: 'flex', alignItems: 'center', gap: 4,
                 padding: '3px 10px', borderRadius: 12, fontSize: 11, fontWeight: 500,
                 border: '1px solid rgba(148,163,184,0.2)',
-                background: showPresetDropdown ? 'rgba(7,182,213,0.1)' : 'transparent',
-                color: showPresetDropdown ? '#07b6d5' : '#94a3b8',
+                background: showPresetDropdown ? 'rgba(224,159,62,0.1)' : 'transparent',
+                color: showPresetDropdown ? '#e09f3e' : '#8a7e6b',
                 cursor: 'pointer',
               }}
             >
@@ -346,7 +346,7 @@ const DeviceMonitoring: React.FC = () => {
               {presets.length > 0 && (
                 <span style={{
                   fontSize: 9, fontWeight: 700, padding: '0 4px', borderRadius: 6,
-                  background: 'rgba(7,182,213,0.2)', color: '#07b6d5',
+                  background: 'rgba(224,159,62,0.2)', color: '#e09f3e',
                 }}>
                   {presets.length}
                 </span>
@@ -360,7 +360,7 @@ const DeviceMonitoring: React.FC = () => {
               <div style={{
                 position: 'absolute', top: '100%', left: 0, marginTop: 4, zIndex: 100,
                 minWidth: 200, maxHeight: 240, overflowY: 'auto',
-                background: '#0a1a1f', border: '1px solid rgba(7,182,213,0.2)',
+                background: '#0a1a1f', border: '1px solid rgba(224,159,62,0.2)',
                 borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
               }}>
                 {presets.length === 0 ? (
@@ -378,11 +378,11 @@ const DeviceMonitoring: React.FC = () => {
                         borderBottom: idx < presets.length - 1 ? '1px solid rgba(148,163,184,0.08)' : undefined,
                         transition: 'background 0.1s',
                       }}
-                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(7,182,213,0.06)'; }}
+                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(224,159,62,0.06)'; }}
                       onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
                     >
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 12, fontWeight: 600, color: '#e2e8f0', marginBottom: 2 }}>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: '#e8e0d4', marginBottom: 2 }}>
                           {preset.name}
                         </div>
                         <div style={{ fontSize: 10, color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -444,10 +444,10 @@ const DeviceMonitoring: React.FC = () => {
               style={{
                 display: 'flex', alignItems: 'center', gap: 6,
                 padding: '10px 18px', border: 'none', background: 'transparent',
-                color: isActive ? '#07b6d5' : '#64748b',
+                color: isActive ? '#e09f3e' : '#64748b',
                 fontSize: 13, fontWeight: isActive ? 600 : 400,
                 cursor: 'pointer', position: 'relative',
-                borderBottom: isActive ? '2px solid #07b6d5' : '2px solid transparent',
+                borderBottom: isActive ? '2px solid #e09f3e' : '2px solid transparent',
                 transition: 'all 0.15s ease',
               }}
             >

@@ -60,7 +60,7 @@ const RemediationPacketCard: React.FC<RemediationPacketCardProps> = ({ message }
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-slate-800/50">
         <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-[14px] text-cyan-400">build</span>
+          <span className="material-symbols-outlined text-[14px] text-amber-400">build</span>
           <span className="text-[11px] font-bold text-slate-200">{serviceName}</span>
         </div>
         <CausalRoleBadge role={badgeRole} />
@@ -84,7 +84,7 @@ const RemediationPacketCard: React.FC<RemediationPacketCardProps> = ({ message }
           <>
             <button
               onClick={() => openTelescope(repoUrl)}
-              className="px-3 py-1 rounded bg-slate-800/80 border border-slate-700 hover:bg-slate-700 text-[10px] text-cyan-400 font-bold tracking-wider transition-colors"
+              className="px-3 py-1 rounded bg-slate-800/80 border border-slate-700 hover:bg-slate-700 text-[10px] text-amber-400 font-bold tracking-wider transition-colors"
             >
               View Diff
             </button>

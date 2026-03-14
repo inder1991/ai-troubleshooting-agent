@@ -8,7 +8,7 @@ import { repoNodeVariants } from '../../styles/campaign-animations';
 const causalRoleBorderColor: Record<string, string> = {
   root_cause: 'border-l-red-500',
   cascading: 'border-l-amber-500',
-  correlated: 'border-l-cyan-500',
+  correlated: 'border-l-amber-500',
 };
 
 const causalRoleToBadge: Record<string, 'root_cause' | 'cascading_failure' | 'correlated_anomaly'> = {
@@ -19,8 +19,8 @@ const causalRoleToBadge: Record<string, 'root_cause' | 'cascading_failure' | 'co
 
 const statusIcon: Record<string, { icon: string; className: string }> = {
   pending: { icon: 'schedule', className: 'text-slate-500' },
-  cloning: { icon: 'cloud_download', className: 'text-cyan-400 animate-pulse' },
-  generating: { icon: 'auto_fix_high', className: 'text-cyan-400 campaign-node-generating' },
+  cloning: { icon: 'cloud_download', className: 'text-amber-400 animate-pulse' },
+  generating: { icon: 'auto_fix_high', className: 'text-amber-400 campaign-node-generating' },
   awaiting_review: { icon: 'visibility', className: 'text-amber-400' },
   approved: { icon: 'check_circle', className: 'text-emerald-400' },
   rejected: { icon: 'cancel', className: 'text-red-400' },
@@ -58,7 +58,7 @@ const CampaignRepoNode: React.FC<CampaignRepoNodeProps> = ({
       className={`
         relative border-l-4 ${borderClass} rounded-lg bg-slate-900/60 border border-slate-800/50
         cursor-pointer transition-all hover:bg-slate-800/40
-        ${isSelected ? 'ring-1 ring-cyan-500/40 bg-slate-800/50' : ''}
+        ${isSelected ? 'ring-1 ring-amber-500/40 bg-slate-800/50' : ''}
         ${repoFix.status === 'generating' ? 'campaign-node-generating' : ''}
       `}
     >
@@ -131,7 +131,7 @@ const CampaignRepoNode: React.FC<CampaignRepoNodeProps> = ({
             <div className="flex items-center gap-2">
               <button
                 onClick={e => { e.stopPropagation(); onTelescope(); }}
-                className="flex-1 py-1.5 rounded bg-slate-800/80 border border-slate-700 hover:bg-slate-700 text-[10px] text-cyan-400 font-bold tracking-wider"
+                className="flex-1 py-1.5 rounded bg-slate-800/80 border border-slate-700 hover:bg-slate-700 text-[10px] text-amber-400 font-bold tracking-wider"
               >
                 VIEW DIFF
               </button>

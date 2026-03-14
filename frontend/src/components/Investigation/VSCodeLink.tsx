@@ -19,7 +19,7 @@ const VSCodeLink: React.FC<VSCodeLinkProps> = ({ filePath, repoName, line }) => 
   return (
     <a
       href={href}
-      className="inline-flex items-center gap-1.5 px-2 py-1 rounded bg-slate-800/60 border border-slate-700 hover:bg-slate-700 transition-colors text-[10px] text-cyan-400 font-mono"
+      className="inline-flex items-center gap-1.5 px-2 py-1 rounded bg-slate-800/60 border border-slate-700 hover:bg-slate-700 transition-colors text-[10px] text-amber-400 font-mono"
     >
       <span className="material-symbols-outlined text-[12px]">code</span>
       LAUNCH IDE

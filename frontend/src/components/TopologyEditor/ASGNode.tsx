@@ -40,7 +40,7 @@ const ASGNode: React.FC<NodeProps<ASGNodeData>> = ({ data, selected }) => {
 
       {/* Name top-left */}
       <div className="absolute top-0 left-3 -translate-y-1/2 px-2 py-0.5 rounded text-[10px] font-mono font-semibold"
-           style={{ zIndex: 10, backgroundColor: '#0f2023', color: '#10b981', border: '1px solid #065f46' }}>
+           style={{ zIndex: 10, backgroundColor: '#1a1814', color: '#10b981', border: '1px solid #065f46' }}>
         {data.label}
       </div>
 

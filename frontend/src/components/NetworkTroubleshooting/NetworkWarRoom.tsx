@@ -89,14 +89,14 @@ const NetworkWarRoom: React.FC<NetworkWarRoomProps> = ({ session, onGoHome }) =>
       {/* Header */}
       <div
         className="flex items-center justify-between px-6 py-3 flex-shrink-0"
-        style={{ borderBottom: '1px solid #224349' }}
+        style={{ borderBottom: '1px solid #3d3528' }}
       >
         <div className="flex items-center gap-3">
           <span className="material-symbols-outlined text-lg" style={{ color: '#f59e0b' }}>
             cable
           </span>
           <div>
-            <h1 className="text-sm font-mono font-bold" style={{ color: '#e2e8f0' }}>
+            <h1 className="text-sm font-mono font-bold" style={{ color: '#e8e0d4' }}>
               Network War Room
             </h1>
             <p className="text-xs font-mono" style={{ color: '#64748b' }}>
@@ -112,7 +112,7 @@ const NetworkWarRoom: React.FC<NetworkWarRoomProps> = ({ session, onGoHome }) =>
                 onClick={() => setDirection('forward')}
                 className="px-3 py-1 rounded-md text-xs font-mono font-medium transition-colors"
                 style={direction === 'forward'
-                  ? { backgroundColor: 'rgba(7,182,213,0.15)', color: '#07b6d5' }
+                  ? { backgroundColor: 'rgba(224,159,62,0.15)', color: '#e09f3e' }
                   : { color: '#64748b' }}
               >
                 A&#8594;B
@@ -121,7 +121,7 @@ const NetworkWarRoom: React.FC<NetworkWarRoomProps> = ({ session, onGoHome }) =>
                 onClick={() => setDirection('return')}
                 className="px-3 py-1 rounded-md text-xs font-mono font-medium transition-colors"
                 style={direction === 'return'
-                  ? { backgroundColor: 'rgba(7,182,213,0.15)', color: '#07b6d5' }
+                  ? { backgroundColor: 'rgba(224,159,62,0.15)', color: '#e09f3e' }
                   : { color: '#64748b' }}
               >
                 B&#8594;A
@@ -151,7 +151,7 @@ const NetworkWarRoom: React.FC<NetworkWarRoomProps> = ({ session, onGoHome }) =>
           <button
             onClick={onGoHome}
             className="text-xs font-mono px-3 py-1.5 rounded transition-colors hover:opacity-80"
-            style={{ color: '#64748b', backgroundColor: '#162a2e' }}
+            style={{ color: '#64748b', backgroundColor: '#1e1b15' }}
           >
             Back to Home
           </button>
@@ -165,10 +165,10 @@ const NetworkWarRoom: React.FC<NetworkWarRoomProps> = ({ session, onGoHome }) =>
             <div className="relative w-10 h-10 mx-auto mb-4">
               <div
                 className="absolute inset-0 rounded-full border-2 border-t-transparent animate-spin"
-                style={{ borderColor: '#224349', borderTopColor: '#07b6d5' }}
+                style={{ borderColor: '#3d3528', borderTopColor: '#e09f3e' }}
               />
             </div>
-            <p className="text-sm" style={{ color: '#e2e8f0' }}>
+            <p className="text-sm" style={{ color: '#e8e0d4' }}>
               Analyzing network path...
             </p>
             <p className="text-xs mt-1" style={{ color: '#64748b' }}>
@@ -183,7 +183,7 @@ const NetworkWarRoom: React.FC<NetworkWarRoomProps> = ({ session, onGoHome }) =>
         <div className="flex-1 flex items-center justify-center">
           <div
             className="rounded-lg p-6 max-w-sm text-center font-mono"
-            style={{ backgroundColor: '#0f2023', border: '1px solid rgba(239,68,68,0.3)' }}
+            style={{ backgroundColor: '#1a1814', border: '1px solid rgba(239,68,68,0.3)' }}
           >
             <span className="material-symbols-outlined text-2xl mb-2" style={{ color: '#ef4444' }}>
               error
@@ -202,10 +202,10 @@ const NetworkWarRoom: React.FC<NetworkWarRoomProps> = ({ session, onGoHome }) =>
       {findings && findings.state?.diagnosis_status === 'no_path_known' && (
         <div className="mx-4 mt-2 rounded-lg p-3 flex items-center gap-3 font-mono text-xs"
           style={{ backgroundColor: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)' }}>
-          <span className="material-symbols-outlined text-lg" style={{ fontFamily: 'Material Symbols Outlined', color: '#f59e0b' }}>warning</span>
+          <span className="material-symbols-outlined text-lg" style={{ color: '#f59e0b' }}>warning</span>
           <div>
             <p className="font-semibold" style={{ color: '#f59e0b' }}>No Topology Data</p>
-            <p style={{ color: '#94a3b8' }}>
+            <p style={{ color: '#8a7e6b' }}>
               Import IPAM data or build a topology canvas to enable path analysis.
               Without topology data, the diagnosis engine cannot find network paths.
             </p>
@@ -237,7 +237,7 @@ const NetworkWarRoom: React.FC<NetworkWarRoomProps> = ({ session, onGoHome }) =>
       {isRunning && findings && (
         <div
           className="flex items-center gap-2 px-6 py-2 text-xs font-mono flex-shrink-0"
-          style={{ borderTop: '1px solid #224349', color: '#f59e0b' }}
+          style={{ borderTop: '1px solid #3d3528', color: '#f59e0b' }}
         >
           <div
             className="w-2 h-2 rounded-full animate-pulse"

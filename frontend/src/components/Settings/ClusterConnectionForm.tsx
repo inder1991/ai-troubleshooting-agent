@@ -100,13 +100,13 @@ const ClusterConnectionForm: React.FC<ClusterConnectionFormProps> = ({
   };
 
   const inputClass =
-    'w-full px-3 py-2 bg-[#0f2023] border border-[#224349] rounded-lg text-sm text-white placeholder-gray-600 focus:border-[#07b6d5] focus:outline-none focus:ring-1 focus:ring-[#07b6d5]/30 transition-colors';
+    'w-full px-3 py-2 bg-[#1a1814] border border-[#3d3528] rounded-lg text-sm text-white placeholder-gray-600 focus:border-[#e09f3e] focus:outline-none focus:ring-1 focus:ring-[#e09f3e]/30 transition-colors';
 
   const openshiftApiEndpoint = profile?.endpoints?.openshift_api ?? null;
   const openshiftStatus = openshiftApiEndpoint?.status || 'unknown';
 
   return (
-    <div className="bg-[#0a1a1d] border border-[#224349] rounded-xl p-5 space-y-5">
+    <div className="bg-[#12110e] border border-[#3d3528] rounded-xl p-5 space-y-5">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-bold text-white">
           {profile ? 'Edit Cluster Connection' : 'Add Cluster Connection'}
@@ -117,7 +117,6 @@ const ClusterConnectionForm: React.FC<ClusterConnectionFormProps> = ({
         >
           <span
             className="material-symbols-outlined text-lg"
-            style={{ fontFamily: 'Material Symbols Outlined' }}
           >
             close
           </span>
@@ -252,12 +251,11 @@ const ClusterConnectionForm: React.FC<ClusterConnectionFormProps> = ({
       )}
 
       {/* Cluster API — summary with test button */}
-      <div className="p-4 rounded-lg bg-[#0a1a1d]/40 border border-[#224349]/50">
+      <div className="p-4 rounded-lg bg-[#12110e]/40 border border-[#3d3528]/50">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <span
-              className="material-symbols-outlined text-[#07b6d5] text-lg"
-              style={{ fontFamily: 'Material Symbols Outlined' }}
+              className="material-symbols-outlined text-[#e09f3e] text-lg"
             >
               settings_input_component
             </span>
@@ -289,7 +287,7 @@ const ClusterConnectionForm: React.FC<ClusterConnectionFormProps> = ({
             <label className="block text-[10px] text-gray-500 mb-1 uppercase tracking-wider">
               Endpoint
             </label>
-            <div className="px-3 py-2 bg-[#0f2023]/50 border border-[#224349]/30 rounded-lg text-sm text-gray-400 truncate">
+            <div className="px-3 py-2 bg-[#1a1814]/50 border border-[#3d3528]/30 rounded-lg text-sm text-gray-400 truncate">
               {clusterUrl || 'Not configured'}
             </div>
           </div>
@@ -297,7 +295,7 @@ const ClusterConnectionForm: React.FC<ClusterConnectionFormProps> = ({
             <label className="block text-[10px] text-gray-500 mb-1 uppercase tracking-wider">
               Authentication
             </label>
-            <div className="px-3 py-2 bg-[#0f2023]/50 border border-[#224349]/30 rounded-lg text-sm text-gray-400">
+            <div className="px-3 py-2 bg-[#1a1814]/50 border border-[#3d3528]/30 rounded-lg text-sm text-gray-400">
               {authMethod === 'kubeconfig'
                 ? 'Kubeconfig'
                 : authMethod === 'service_account'
@@ -312,14 +310,13 @@ const ClusterConnectionForm: React.FC<ClusterConnectionFormProps> = ({
             <button
               onClick={handleProbeCluster}
               disabled={!profile?.id || !clusterUrl || probingId === profile?.id}
-              className="w-full px-4 py-2 text-xs font-bold text-[#07b6d5] bg-[#07b6d5]/10 border border-[#07b6d5]/20 rounded-lg hover:bg-[#07b6d5]/20 disabled:text-gray-600 disabled:bg-transparent disabled:border-[#224349] disabled:cursor-not-allowed transition-colors"
+              className="w-full px-4 py-2 text-xs font-bold text-[#e09f3e] bg-[#e09f3e]/10 border border-[#e09f3e]/20 rounded-lg hover:bg-[#e09f3e]/20 disabled:text-gray-600 disabled:bg-transparent disabled:border-[#3d3528] disabled:cursor-not-allowed transition-colors"
               title={!profile?.id ? 'Save profile first to test connection' : 'Test cluster connectivity and auto-discover endpoints'}
             >
               {probingId === profile?.id ? (
                 <span className="flex items-center justify-center gap-1.5">
                   <span
                     className="material-symbols-outlined text-sm animate-spin"
-                    style={{ fontFamily: 'Material Symbols Outlined' }}
                   >
                     progress_activity
                   </span>
@@ -329,7 +326,6 @@ const ClusterConnectionForm: React.FC<ClusterConnectionFormProps> = ({
                 <span className="flex items-center justify-center gap-1.5">
                   <span
                     className="material-symbols-outlined text-sm"
-                    style={{ fontFamily: 'Material Symbols Outlined' }}
                   >
                     cable
                   </span>
@@ -346,13 +342,13 @@ const ClusterConnectionForm: React.FC<ClusterConnectionFormProps> = ({
         )}
         {probeSuccess && (
           <div className="mt-3 px-3 py-2 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 text-[11px] font-medium flex items-center gap-1.5">
-            <span className="material-symbols-outlined text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>check_circle</span>
+            <span className="material-symbols-outlined text-sm">check_circle</span>
             Cluster connected successfully
           </div>
         )}
         {probeError && (
           <div className="mt-3 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-[11px] font-medium flex items-center gap-1.5">
-            <span className="material-symbols-outlined text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>error</span>
+            <span className="material-symbols-outlined text-sm">error</span>
             {probeError}
           </div>
         )}
@@ -401,13 +397,13 @@ const ClusterConnectionForm: React.FC<ClusterConnectionFormProps> = ({
         <button
           onClick={handleSave}
           disabled={!name.trim() || saving}
-          className="px-5 py-2 bg-[#07b6d5] hover:bg-[#07b6d5]/90 text-[#0f2023] rounded-lg text-sm font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-5 py-2 bg-[#e09f3e] hover:bg-[#e09f3e]/90 text-[#1a1814] rounded-lg text-sm font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {saving ? 'Saving...' : profile ? 'Update Profile' : 'Create Profile'}
         </button>
         <button
           onClick={onCancel}
-          className="px-4 py-2 bg-[#1e2f33] hover:bg-[#1e2f33]/80 text-gray-400 rounded-lg text-sm transition-colors"
+          className="px-4 py-2 bg-[#252118] hover:bg-[#252118]/80 text-gray-400 rounded-lg text-sm transition-colors"
         >
           Cancel
         </button>

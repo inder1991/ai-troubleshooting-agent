@@ -16,7 +16,7 @@ interface PaletteCategory {
 
 const envBadge: Record<PaletteEnv, { label: string; color: string; bg: string }> = {
   cloud:    { label: 'AWS', color: '#3b82f6', bg: 'rgba(59,130,246,0.15)' },
-  'on-prem': { label: 'DC',  color: '#94a3b8', bg: 'rgba(148,163,184,0.15)' },
+  'on-prem': { label: 'DC',  color: '#8a7e6b', bg: 'rgba(148,163,184,0.15)' },
   hybrid:   { label: 'ANY', color: '#a855f7', bg: 'rgba(168,85,247,0.15)' },
 };
 
@@ -88,11 +88,11 @@ const NodePalette: React.FC = () => {
   return (
     <div
       className="w-56 flex-shrink-0 border-r flex flex-col gap-1 p-3 overflow-y-auto"
-      style={{ backgroundColor: '#0f2023', borderColor: '#224349' }}
+      style={{ backgroundColor: '#1a1814', borderColor: '#3d3528' }}
     >
       <h3
         className="text-xs font-mono font-semibold uppercase tracking-widest px-2 py-2 mb-1"
-        style={{ color: '#07b6d5' }}
+        style={{ color: '#e09f3e' }}
       >
         Device Palette
       </h3>
@@ -110,16 +110,16 @@ const NodePalette: React.FC = () => {
               key={item.type}
               draggable
               onDragStart={(e) => onDragStart(e, item.type)}
-              className="flex items-center gap-3 px-3 py-2 rounded-lg cursor-grab active:cursor-grabbing border transition-colors hover:border-[#07b6d5]/30"
+              className="flex items-center gap-3 px-3 py-2 rounded-lg cursor-grab active:cursor-grabbing border transition-colors hover:border-[#e09f3e]/30"
               style={{
-                backgroundColor: '#162a2e',
-                borderColor: '#224349',
-                color: '#e2e8f0',
+                backgroundColor: '#1e1b15',
+                borderColor: '#3d3528',
+                color: '#e8e0d4',
               }}
             >
               <span
                 className="material-symbols-outlined text-lg"
-                style={{ fontFamily: 'Material Symbols Outlined', color: '#f59e0b' }}
+                style={{ color: '#f59e0b' }}
               >
                 {item.icon}
               </span>

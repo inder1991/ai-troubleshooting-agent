@@ -16,8 +16,8 @@ export const TrendIndicator: React.FC<TrendIndicatorProps> = ({ value, direction
   const icon = direction === 'up' ? 'arrow_upward' : direction === 'down' ? 'arrow_downward' : 'remove';
 
   return (
-    <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold ${styles}`}>
-      <span className="material-symbols-outlined text-[12px]" style={{ fontFamily: 'Material Symbols Outlined' }}>{icon}</span>
+    <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold ${styles}`}>
+      <span className="material-symbols-outlined text-[12px]">{icon}</span>
       {value}
     </div>
   );

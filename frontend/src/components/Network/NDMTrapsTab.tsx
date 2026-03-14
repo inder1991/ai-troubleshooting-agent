@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import type { MonitoredDevice, TrapEvent } from '../../types';
-import { fetchTrapEvents } from '../../services/api';
+import { fetchTrapEvents, fetchTrapSummary } from '../../services/api';
 
 interface NDMTrapsTabProps {
   devices: MonitoredDevice[];
@@ -34,7 +34,7 @@ const TIME_RANGES = [
 ];
 
 const cardStyle: React.CSSProperties = {
-  background: 'rgba(7,182,213,0.04)', border: '1px solid rgba(7,182,213,0.12)',
+  background: 'rgba(224,159,62,0.04)', border: '1px solid rgba(224,159,62,0.12)',
   borderRadius: 10, padding: 20,
 };
 
@@ -44,6 +44,7 @@ const NDMTrapsTab: React.FC<NDMTrapsTabProps> = ({ devices }) => {
   const [error, setError] = useState('');
   const [severityFilter, setSeverityFilter] = useState('all');
   const [timeRange, setTimeRange] = useState(3600);
+  const [summary, setSummary] = useState<{ total: number; critical: number; warning: number; top_oid: string; top_device: string } | null>(null);
 
   // Map device IPs/IDs to hostnames
   const deviceMap = React.useMemo(() => {
@@ -80,6 +81,10 @@ const NDMTrapsTab: React.FC<NDMTrapsTabProps> = ({ devices }) => {
 
   useEffect(() => { loadTraps(); }, [loadTraps]);
 
+  useEffect(() => {
+    fetchTrapSummary().then(setSummary).catch(() => {});
+  }, []);
+
   // Auto-refresh every 30s
   useEffect(() => {
     const interval = setInterval(loadTraps, 30000);
@@ -112,7 +117,7 @@ const NDMTrapsTab: React.FC<NDMTrapsTabProps> = ({ devices }) => {
 
   if (loading) {
     return (
-      <div style={{ padding: 32, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div style={{ padding: 32, color: '#8a7e6b', display: 'flex', alignItems: 'center', gap: 8 }}>
         <span className="material-symbols-outlined" style={{ animation: 'spin 1s linear infinite' }}>progress_activity</span>
         Loading trap events...
       </div>
@@ -121,6 +126,32 @@ const NDMTrapsTab: React.FC<NDMTrapsTabProps> = ({ devices }) => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* Trap Summary Cards */}
+      {summary && (
+        <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+          <div style={{ flex: 1, minWidth: 120, background: 'rgba(224,159,62,0.04)', border: '1px solid rgba(224,159,62,0.12)', borderRadius: 10, padding: 16 }}>
+            <div style={{ fontSize: 11, color: '#e09f3e', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Total Traps</div>
+            <div style={{ fontSize: 22, fontWeight: 700, color: '#fff', fontFamily: 'monospace' }}>{summary.total.toLocaleString()}</div>
+          </div>
+          <div style={{ flex: 1, minWidth: 120, background: 'rgba(224,159,62,0.04)', border: '1px solid rgba(224,159,62,0.12)', borderRadius: 10, padding: 16 }}>
+            <div style={{ fontSize: 11, color: '#ef4444', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Critical</div>
+            <div style={{ fontSize: 22, fontWeight: 700, color: '#ef4444', fontFamily: 'monospace' }}>{summary.critical}</div>
+          </div>
+          <div style={{ flex: 1, minWidth: 120, background: 'rgba(224,159,62,0.04)', border: '1px solid rgba(224,159,62,0.12)', borderRadius: 10, padding: 16 }}>
+            <div style={{ fontSize: 11, color: '#f59e0b', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Warning</div>
+            <div style={{ fontSize: 22, fontWeight: 700, color: '#f59e0b', fontFamily: 'monospace' }}>{summary.warning}</div>
+          </div>
+          <div style={{ flex: 1, minWidth: 120, background: 'rgba(224,159,62,0.04)', border: '1px solid rgba(224,159,62,0.12)', borderRadius: 10, padding: 16 }}>
+            <div style={{ fontSize: 11, color: '#e09f3e', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Top OID</div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#e8e0d4', fontFamily: 'monospace', wordBreak: 'break-all' }}>{summary.top_oid || '—'}</div>
+          </div>
+          <div style={{ flex: 1, minWidth: 120, background: 'rgba(224,159,62,0.04)', border: '1px solid rgba(224,159,62,0.12)', borderRadius: 10, padding: 16 }}>
+            <div style={{ fontSize: 11, color: '#e09f3e', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Top Device</div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#e8e0d4', fontFamily: 'monospace' }}>{summary.top_device || '—'}</div>
+          </div>
+        </div>
+      )}
+
       {/* Severity Summary */}
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         {Object.entries(SEVERITY_STYLES).map(([sev, styles]) => {
@@ -150,14 +181,14 @@ const NDMTrapsTab: React.FC<NDMTrapsTabProps> = ({ devices }) => {
             value={severityFilter}
             onChange={e => setSeverityFilter(e.target.value)}
             style={{
-              padding: '6px 10px', background: 'rgba(7,182,213,0.06)',
-              border: '1px solid rgba(7,182,213,0.15)', borderRadius: 6, color: '#e2e8f0',
+              padding: '6px 10px', background: 'rgba(224,159,62,0.06)',
+              border: '1px solid rgba(224,159,62,0.15)', borderRadius: 6, color: '#e8e0d4',
               fontSize: 12, outline: 'none', cursor: 'pointer',
             }}
           >
-            <option value="all" style={{ background: '#0f2023' }}>All</option>
+            <option value="all" style={{ background: '#1a1814' }}>All</option>
             {Object.keys(SEVERITY_STYLES).map(s => (
-              <option key={s} value={s} style={{ background: '#0f2023' }}>{s}</option>
+              <option key={s} value={s} style={{ background: '#1a1814' }}>{s}</option>
             ))}
           </select>
         </div>
@@ -169,9 +200,9 @@ const NDMTrapsTab: React.FC<NDMTrapsTabProps> = ({ devices }) => {
               onClick={() => setTimeRange(tr.seconds)}
               style={{
                 padding: '5px 10px', borderRadius: 5, fontSize: 11, fontWeight: 500,
-                border: timeRange === tr.seconds ? '1px solid #07b6d5' : '1px solid rgba(148,163,184,0.12)',
-                background: timeRange === tr.seconds ? 'rgba(7,182,213,0.12)' : 'transparent',
-                color: timeRange === tr.seconds ? '#07b6d5' : '#94a3b8',
+                border: timeRange === tr.seconds ? '1px solid #e09f3e' : '1px solid rgba(148,163,184,0.12)',
+                background: timeRange === tr.seconds ? 'rgba(224,159,62,0.12)' : 'transparent',
+                color: timeRange === tr.seconds ? '#e09f3e' : '#8a7e6b',
                 cursor: 'pointer',
               }}
             >
@@ -187,8 +218,8 @@ const NDMTrapsTab: React.FC<NDMTrapsTabProps> = ({ devices }) => {
           style={{
             display: 'flex', alignItems: 'center', gap: 4,
             padding: '6px 12px', borderRadius: 6, fontSize: 12,
-            border: '1px solid rgba(7,182,213,0.2)', background: 'transparent',
-            color: '#07b6d5', cursor: 'pointer',
+            border: '1px solid rgba(224,159,62,0.2)', background: 'transparent',
+            color: '#e09f3e', cursor: 'pointer',
           }}
         >
           <span className="material-symbols-outlined" style={{ fontSize: 16 }}>refresh</span>
@@ -201,8 +232,8 @@ const NDMTrapsTab: React.FC<NDMTrapsTabProps> = ({ devices }) => {
       {/* Trap Events Table */}
       <div style={cardStyle}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <h3 style={{ fontSize: 14, fontWeight: 600, color: '#e2e8f0', margin: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#07b6d5' }}>notification_important</span>
+          <h3 style={{ fontSize: 14, fontWeight: 600, color: '#e8e0d4', margin: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#e09f3e' }}>notification_important</span>
             Trap Events ({traps.length})
           </h3>
         </div>
@@ -238,7 +269,7 @@ const NDMTrapsTab: React.FC<NDMTrapsTabProps> = ({ devices }) => {
                       borderBottom: '1px solid rgba(148,163,184,0.05)',
                       borderLeft: `3px solid ${sevStyle.text}`,
                     }}>
-                      <td style={{ padding: '8px 8px', fontSize: 11, color: '#64748b', whiteSpace: 'nowrap', fontFamily: 'monospace' }}>
+                      <td className="font-mono" style={{ padding: '8px 8px', fontSize: 11, color: '#64748b', whiteSpace: 'nowrap' }}>
                         {formatTimestamp(trap.timestamp)}
                       </td>
                       <td style={{ padding: '8px 8px' }}>
@@ -251,19 +282,19 @@ const NDMTrapsTab: React.FC<NDMTrapsTabProps> = ({ devices }) => {
                       </td>
                       <td style={{ padding: '8px 8px' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                          <span style={{ fontSize: 12, color: '#e2e8f0', fontWeight: 500 }}>{deviceName}</span>
-                          <span style={{ fontSize: 10, color: '#64748b', fontFamily: 'monospace' }}>{trap.device_ip}</span>
+                          <span style={{ fontSize: 12, color: '#e8e0d4', fontWeight: 500 }}>{deviceName}</span>
+                          <span className="font-mono" style={{ fontSize: 10, color: '#64748b' }}>{trap.device_ip}</span>
                         </div>
                       </td>
                       <td style={{ padding: '8px 8px' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                          <span style={{ fontSize: 11, color: '#94a3b8', fontFamily: 'monospace' }} title={trap.oid}>
+                          <span className="font-mono" style={{ fontSize: 11, color: '#8a7e6b' }} title={trap.oid}>
                             {trap.oid}
                           </span>
                           {oidLabel && (
                             <span style={{
                               fontSize: 10, padding: '1px 6px', borderRadius: 3,
-                              background: 'rgba(7,182,213,0.1)', color: '#07b6d5',
+                              background: 'rgba(224,159,62,0.1)', color: '#e09f3e',
                               display: 'inline-block', width: 'fit-content',
                             }}>
                               {oidLabel}
@@ -272,7 +303,7 @@ const NDMTrapsTab: React.FC<NDMTrapsTabProps> = ({ devices }) => {
                         </div>
                       </td>
                       <td style={{
-                        padding: '8px 8px', fontSize: 12, color: '#e2e8f0',
+                        padding: '8px 8px', fontSize: 12, color: '#e8e0d4',
                         maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                       }} title={trap.value}>
                         {trap.value}

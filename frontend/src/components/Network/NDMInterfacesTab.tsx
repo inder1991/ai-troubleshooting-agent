@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import type { MonitoredDevice, InterfaceMetrics } from '../../types';
-import { fetchDeviceInterfaces } from '../../services/api';
+import { fetchDeviceInterfaces, exportInterfaces } from '../../services/api';
 import { useDebounce } from '../../hooks/useDebounce';
 
 interface NDMInterfacesTabProps {
@@ -13,7 +13,7 @@ interface DeviceInterface extends InterfaceMetrics {
 }
 
 const cardStyle: React.CSSProperties = {
-  background: 'rgba(7,182,213,0.04)', border: '1px solid rgba(7,182,213,0.12)',
+  background: 'rgba(224,159,62,0.04)', border: '1px solid rgba(224,159,62,0.12)',
   borderRadius: 10, padding: 20,
 };
 
@@ -93,6 +93,18 @@ const NDMInterfacesTab: React.FC<NDMInterfacesTabProps> = ({ devices }) => {
     return list;
   }, [allInterfaces, debouncedSearch, sortField, sortDir, statusFilter]);
 
+  const handleExportCSV = async () => {
+    try {
+      const blob = await exportInterfaces('csv');
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'interfaces.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch { /* ignore */ }
+  };
+
   const handleSort = (field: typeof sortField) => {
     if (sortField === field) {
       setSortDir(prev => prev === 'asc' ? 'desc' : 'asc');
@@ -123,7 +135,7 @@ const NDMInterfacesTab: React.FC<NDMInterfacesTabProps> = ({ devices }) => {
 
   if (loading) {
     return (
-      <div style={{ padding: 32, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div style={{ padding: 32, color: '#8a7e6b', display: 'flex', alignItems: 'center', gap: 8 }}>
         <span className="material-symbols-outlined" style={{ animation: 'spin 1s linear infinite' }}>progress_activity</span>
         Fetching interface data from {devices.length} devices...
       </div>
@@ -135,7 +147,7 @@ const NDMInterfacesTab: React.FC<NDMInterfacesTabProps> = ({ devices }) => {
       {/* Summary Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12 }}>
         {[
-          { label: 'Total Interfaces', value: saturationStats.total, color: '#e2e8f0', icon: 'settings_ethernet' },
+          { label: 'Total Interfaces', value: saturationStats.total, color: '#e8e0d4', icon: 'settings_ethernet' },
           { label: 'Healthy (<85%)', value: saturationStats.healthy, color: '#22c55e', icon: 'check_circle' },
           { label: 'Warning (>85%)', value: saturationStats.warning, color: '#f59e0b', icon: 'warning' },
           { label: 'Critical (>95%)', value: saturationStats.critical, color: '#ef4444', icon: 'error' },
@@ -162,12 +174,19 @@ const NDMInterfacesTab: React.FC<NDMInterfacesTabProps> = ({ devices }) => {
             value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Search by interface or device..."
             style={{
-              width: '100%', padding: '8px 12px 8px 34px', background: 'rgba(7,182,213,0.06)',
-              border: '1px solid rgba(7,182,213,0.15)', borderRadius: 6, color: '#e2e8f0',
+              width: '100%', padding: '8px 12px 8px 34px', background: 'rgba(224,159,62,0.06)',
+              border: '1px solid rgba(224,159,62,0.15)', borderRadius: 6, color: '#e8e0d4',
               fontSize: 12, outline: 'none',
             }}
           />
         </div>
+        <button
+          onClick={handleExportCSV}
+          style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(224,159,62,0.08)', border: '1px solid rgba(224,159,62,0.2)', borderRadius: 8, color: '#e09f3e', padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: 16 }}>download</span>
+          Export CSV
+        </button>
         <div style={{ display: 'flex', gap: 4 }}>
           {(['all', 'up', 'down'] as const).map(s => (
             <button
@@ -175,9 +194,9 @@ const NDMInterfacesTab: React.FC<NDMInterfacesTabProps> = ({ devices }) => {
               onClick={() => setStatusFilter(s)}
               style={{
                 padding: '6px 12px', borderRadius: 6, fontSize: 11, fontWeight: 500,
-                border: statusFilter === s ? '1px solid #07b6d5' : '1px solid rgba(148,163,184,0.15)',
-                background: statusFilter === s ? 'rgba(7,182,213,0.15)' : 'transparent',
-                color: statusFilter === s ? '#07b6d5' : '#94a3b8',
+                border: statusFilter === s ? '1px solid #e09f3e' : '1px solid rgba(148,163,184,0.15)',
+                background: statusFilter === s ? 'rgba(224,159,62,0.15)' : 'transparent',
+                color: statusFilter === s ? '#e09f3e' : '#8a7e6b',
                 cursor: 'pointer', textTransform: 'capitalize',
               }}
             >
@@ -225,7 +244,7 @@ const NDMInterfacesTab: React.FC<NDMInterfacesTabProps> = ({ devices }) => {
                       <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                         {col.label}
                         {col.sortable && col.field && (
-                          <span className="material-symbols-outlined" style={{ fontSize: 14, color: sortField === col.field ? '#07b6d5' : '#475569' }}>
+                          <span className="material-symbols-outlined" style={{ fontSize: 14, color: sortField === col.field ? '#e09f3e' : '#475569' }}>
                             {sortIcon(col.field)}
                           </span>
                         )}
@@ -240,10 +259,10 @@ const NDMInterfacesTab: React.FC<NDMInterfacesTabProps> = ({ devices }) => {
                     borderBottom: '1px solid rgba(148,163,184,0.06)',
                     background: getRowBg(iface.utilization_pct),
                   }}>
-                    <td style={{ padding: '8px 8px', fontSize: 12, color: '#e2e8f0', fontWeight: 500 }}>
+                    <td style={{ padding: '8px 8px', fontSize: 12, color: '#e8e0d4', fontWeight: 500 }}>
                       {iface.device_hostname}
                     </td>
-                    <td style={{ padding: '8px 8px', fontSize: 12, color: '#94a3b8', fontFamily: 'monospace' }}>
+                    <td className="font-mono" style={{ padding: '8px 8px', fontSize: 12, color: '#8a7e6b' }}>
                       {iface.name}
                     </td>
                     <td style={{ padding: '8px 8px' }}>
@@ -255,13 +274,13 @@ const NDMInterfacesTab: React.FC<NDMInterfacesTabProps> = ({ devices }) => {
                         {iface.status}
                       </span>
                     </td>
-                    <td style={{ padding: '8px 8px', fontSize: 12, color: '#94a3b8' }}>
+                    <td style={{ padding: '8px 8px', fontSize: 12, color: '#8a7e6b' }}>
                       {iface.speed > 0 ? formatSpeed(iface.speed) : '-'}
                     </td>
-                    <td style={{ padding: '8px 8px', fontSize: 12, color: '#94a3b8', fontFamily: 'monospace' }}>
+                    <td className="font-mono" style={{ padding: '8px 8px', fontSize: 12, color: '#8a7e6b' }}>
                       {formatBytes(iface.in_octets)}
                     </td>
-                    <td style={{ padding: '8px 8px', fontSize: 12, color: '#94a3b8', fontFamily: 'monospace' }}>
+                    <td className="font-mono" style={{ padding: '8px 8px', fontSize: 12, color: '#8a7e6b' }}>
                       {formatBytes(iface.out_octets)}
                     </td>
                     <td style={{ padding: '8px 8px', fontSize: 12, color: iface.in_errors > 0 ? '#ef4444' : '#64748b', fontWeight: iface.in_errors > 0 ? 600 : 400 }}>
@@ -278,13 +297,13 @@ const NDMInterfacesTab: React.FC<NDMInterfacesTabProps> = ({ devices }) => {
                         }}>
                           <div style={{
                             width: `${Math.min(iface.utilization_pct, 100)}%`, height: '100%', borderRadius: 3,
-                            background: iface.utilization_pct > 95 ? '#ef4444' : iface.utilization_pct > 85 ? '#f59e0b' : '#07b6d5',
+                            background: iface.utilization_pct > 95 ? '#ef4444' : iface.utilization_pct > 85 ? '#f59e0b' : '#e09f3e',
                             transition: 'width 0.3s ease',
                           }} />
                         </div>
                         <span style={{
                           fontSize: 12, fontWeight: 600, minWidth: 36,
-                          color: iface.utilization_pct > 95 ? '#ef4444' : iface.utilization_pct > 85 ? '#f59e0b' : '#94a3b8',
+                          color: iface.utilization_pct > 95 ? '#ef4444' : iface.utilization_pct > 85 ? '#f59e0b' : '#8a7e6b',
                         }}>
                           {iface.utilization_pct.toFixed(1)}%
                         </span>

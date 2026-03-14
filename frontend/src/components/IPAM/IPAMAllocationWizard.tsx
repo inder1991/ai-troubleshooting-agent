@@ -52,13 +52,13 @@ export default function IPAMAllocationWizard({ parentSubnetId, parentCidr, onClo
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-      <div className="bg-[#1a2e35] border border-cyan-900/50 rounded-xl p-6 w-[600px] max-h-[80vh] overflow-auto shadow-xl">
+      <div className="bg-[#252118] border border-amber-900/50 rounded-xl p-6 w-[600px] max-h-[80vh] overflow-auto shadow-xl">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-semibold text-white">Subnet Allocation Wizard</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-white text-xl">&times;</button>
         </div>
         <p className="text-sm text-gray-400 mb-4">
-          Parent: <span className="text-cyan-400 font-mono">{parentCidr}</span>
+          Parent: <span className="text-amber-400 font-mono">{parentCidr}</span>
           {' \u2022 '}{totalSpace.toLocaleString()} addresses available
         </p>
 
@@ -76,7 +76,7 @@ export default function IPAMAllocationWizard({ parentSubnetId, parentCidr, onClo
                   <div
                     key={i}
                     className={`h-full cursor-pointer transition-colors ${
-                      selectedRange === r.cidr ? 'bg-cyan-500' : 'bg-emerald-800 hover:bg-emerald-700'
+                      selectedRange === r.cidr ? 'bg-amber-500' : 'bg-emerald-800 hover:bg-emerald-700'
                     }`}
                     style={{ width: `${Math.max((r.host_count / totalSpace) * 100, 2)}%` }}
                     onClick={() => setSelectedRange(r.cidr)}
@@ -97,7 +97,7 @@ export default function IPAMAllocationWizard({ parentSubnetId, parentCidr, onClo
                   key={i}
                   className={`flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-colors ${
                     selectedRange === r.cidr
-                      ? 'bg-cyan-900/40 border border-cyan-500/50'
+                      ? 'bg-amber-900/40 border border-amber-500/50'
                       : 'bg-gray-800/50 hover:bg-gray-800 border border-transparent'
                   }`}
                   onClick={() => setSelectedRange(r.cidr)}
@@ -132,7 +132,7 @@ export default function IPAMAllocationWizard({ parentSubnetId, parentCidr, onClo
                 <button
                   onClick={handleCreate}
                   disabled={creating}
-                  className="w-full py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-medium text-sm transition disabled:opacity-50"
+                  className="w-full py-2 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-medium text-sm transition disabled:opacity-50"
                 >
                   {creating ? 'Creating...' : 'Create Subnet'}
                 </button>

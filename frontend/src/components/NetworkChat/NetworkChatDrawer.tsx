@@ -134,7 +134,7 @@ const NetworkChatDrawer: React.FC<NetworkChatDrawerProps> = ({
                         <button
                           key={p}
                           onClick={() => handlePromptClick(p)}
-                          className="text-left text-xs text-slate-400 hover:text-cyan-400 bg-white/[0.03] hover:bg-white/[0.06] px-3 py-2 rounded-lg border border-white/5 transition-colors"
+                          className="text-left text-xs text-slate-400 hover:text-amber-400 bg-white/[0.03] hover:bg-white/[0.06] px-3 py-2 rounded-lg border border-white/5 transition-colors"
                         >
                           {p}
                         </button>
@@ -177,7 +177,7 @@ const NetworkChatDrawer: React.FC<NetworkChatDrawerProps> = ({
                     onKeyDown={handleKeyDown}
                     placeholder="Ask about this view..."
                     rows={1}
-                    className="flex-1 bg-white/[0.04] border border-white/10 rounded-lg px-3 py-2 text-xs text-slate-200 placeholder-slate-600 resize-none focus:outline-none focus:border-cyan-400/40 transition-colors"
+                    className="flex-1 bg-white/[0.04] border border-white/10 rounded-lg px-3 py-2 text-xs text-slate-200 placeholder-slate-600 resize-none focus:outline-none focus:border-amber-400/40 transition-colors"
                   />
                   <button
                     onClick={handleSend}
@@ -205,7 +205,7 @@ const MessageBubble: React.FC<{ message: NetworkChatMessage }> = ({ message }) =
       <div
         className={`max-w-[85%] px-3 py-2 rounded-lg text-xs leading-relaxed ${
           isUser
-            ? 'bg-cyan-400/10 text-slate-200 rounded-br-none'
+            ? 'bg-amber-400/10 text-slate-200 rounded-br-none'
             : 'bg-white/[0.04] text-slate-300 rounded-bl-none'
         }`}
       >
@@ -222,7 +222,7 @@ const MessageBubble: React.FC<{ message: NetworkChatMessage }> = ({ message }) =
               <span
                 key={i}
                 className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] ${
-                  tc.blocked ? 'bg-red-500/10 text-red-400' : 'bg-cyan-400/10 text-cyan-400'
+                  tc.blocked ? 'bg-red-500/10 text-red-400' : 'bg-amber-400/10 text-amber-400'
                 }`}
               >
                 <span className="material-symbols-outlined text-[11px]">build</span>

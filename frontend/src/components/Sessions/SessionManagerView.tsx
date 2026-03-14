@@ -34,7 +34,7 @@ const SessionManagerView: React.FC<SessionManagerViewProps> = ({
       <div className="max-w-6xl mx-auto px-6 py-8">
         {/* Header */}
         <div className="flex items-center gap-2 mb-6">
-          <span className="material-symbols-outlined text-xl" style={{ fontFamily: 'Material Symbols Outlined', color: '#07b6d5' }}>history</span>
+          <span className="material-symbols-outlined text-xl" style={{ color: '#e09f3e' }}>history</span>
           <h1 className="text-xl font-bold text-white">Session Manager</h1>
         </div>
 

@@ -29,7 +29,7 @@ const CircularGauge: React.FC<{ value: number; label: string; color: string; siz
     <div className="flex flex-col items-center gap-0.5">
       <svg width={size} height={size} className="-rotate-90">
         <circle cx={size / 2} cy={size / 2} r={r} fill="none"
-          stroke="#224349" strokeWidth={3} />
+          stroke="#3d3528" strokeWidth={3} />
         <circle cx={size / 2} cy={size / 2} r={r} fill="none"
           stroke={color} strokeWidth={3}
           strokeDasharray={c} strokeDashoffset={offset}
@@ -111,8 +111,8 @@ const NOCWallTab: React.FC<Props> = ({ devices, drifts, onSelectDevice }) => {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search devices..."
-          className="pl-3 pr-3 py-2 rounded-lg border text-sm font-mono outline-none focus:border-[#07b6d5] max-w-xs"
-          style={{ backgroundColor: '#0a1a1e', borderColor: '#224349', color: '#e2e8f0' }}
+          className="pl-3 pr-3 py-2 rounded-lg border text-sm font-mono outline-none focus:border-[#e09f3e] max-w-xs"
+          style={{ backgroundColor: '#0a1a1e', borderColor: '#3d3528', color: '#e8e0d4' }}
         />
         <div className="flex gap-1">
           {['all', 'down', 'degraded', 'up'].map((s) => (
@@ -121,9 +121,9 @@ const NOCWallTab: React.FC<Props> = ({ devices, drifts, onSelectDevice }) => {
               onClick={() => setStatusFilter(s)}
               className="px-2.5 py-1 rounded text-xs font-mono transition-colors"
               style={{
-                backgroundColor: statusFilter === s ? 'rgba(7,182,213,0.15)' : 'transparent',
-                color: s === 'all' ? (statusFilter === s ? '#07b6d5' : '#64748b') : statusColor[s] || '#64748b',
-                border: `1px solid ${statusFilter === s ? '#07b6d5' : '#224349'}`,
+                backgroundColor: statusFilter === s ? 'rgba(224,159,62,0.15)' : 'transparent',
+                color: s === 'all' ? (statusFilter === s ? '#e09f3e' : '#64748b') : statusColor[s] || '#64748b',
+                border: `1px solid ${statusFilter === s ? '#e09f3e' : '#3d3528'}`,
               }}
             >
               {s.toUpperCase()}
@@ -143,10 +143,10 @@ const NOCWallTab: React.FC<Props> = ({ devices, drifts, onSelectDevice }) => {
               <div
                 key={d.device_id}
                 onClick={() => onSelectDevice(d.device_id)}
-                className="rounded-lg border p-3 cursor-pointer transition-all hover:border-[#07b6d5]"
+                className="rounded-lg border p-3 cursor-pointer transition-all hover:border-[#e09f3e]"
                 style={{
                   backgroundColor: '#0a1a1e',
-                  borderColor: d.status === 'down' ? '#ef444440' : d.status === 'degraded' ? '#f59e0b40' : '#224349',
+                  borderColor: d.status === 'down' ? '#ef444440' : d.status === 'degraded' ? '#f59e0b40' : '#3d3528',
                 }}
               >
                 {/* Header: status + name */}
@@ -154,7 +154,7 @@ const NOCWallTab: React.FC<Props> = ({ devices, drifts, onSelectDevice }) => {
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="w-2.5 h-2.5 rounded-full flex-shrink-0"
                       style={{ backgroundColor: statusColor[d.status] }} />
-                    <span className="text-sm font-mono font-medium truncate" style={{ color: '#e2e8f0' }}>
+                    <span className="text-sm font-mono font-medium truncate" style={{ color: '#e8e0d4' }}>
                       {d.device_id}
                     </span>
                   </div>
@@ -177,7 +177,7 @@ const NOCWallTab: React.FC<Props> = ({ devices, drifts, onSelectDevice }) => {
                     <CircularGauge
                       value={m?.mem_pct || 0}
                       label="MEM"
-                      color={!m || m.mem_pct < 80 ? '#07b6d5' : m.mem_pct < 95 ? '#f59e0b' : '#ef4444'}
+                      color={!m || m.mem_pct < 80 ? '#e09f3e' : m.mem_pct < 95 ? '#f59e0b' : '#ef4444'}
                     />
                   </div>
                   {/* Latency sparkline */}
@@ -185,12 +185,12 @@ const NOCWallTab: React.FC<Props> = ({ devices, drifts, onSelectDevice }) => {
                     {m?.latencyHistory && m.latencyHistory.length > 1 ? (
                       <SparklineWidget
                         data={m.latencyHistory.map(p => p.value)}
-                        color={d.status === 'down' ? 'red' : d.status === 'degraded' ? 'amber' : 'cyan'}
+                        color={d.status === 'down' ? 'red' : d.status === 'degraded' ? 'amber' : 'gold'}
                         height={40}
                         strokeWidth={1.5}
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-[9px] font-mono" style={{ color: '#224349' }}>
+                      <div className="w-full h-full flex items-center justify-center text-[9px] font-mono" style={{ color: '#3d3528' }}>
                         —
                       </div>
                     )}
@@ -214,7 +214,7 @@ const NOCWallTab: React.FC<Props> = ({ devices, drifts, onSelectDevice }) => {
       </div>
 
       {/* Footer summary */}
-      <div className="px-6 py-2 border-t text-xs font-mono" style={{ borderColor: '#224349', color: '#64748b' }}>
+      <div className="px-6 py-2 border-t text-xs font-mono" style={{ borderColor: '#3d3528', color: '#64748b' }}>
         {downCount > 0 && <span style={{ color: '#ef4444' }}>{downCount} DOWN</span>}
         {downCount > 0 && (degradedCount > 0 || upCount > 0) && ' \u00b7 '}
         {degradedCount > 0 && <span style={{ color: '#f59e0b' }}>{degradedCount} DEGRADED</span>}

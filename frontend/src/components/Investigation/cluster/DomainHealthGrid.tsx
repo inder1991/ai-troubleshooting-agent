@@ -28,7 +28,7 @@ export default function DomainHealthGrid({ domains }: DomainHealthGridProps) {
   return (
     <div className="mb-3">
       <div className="flex items-center gap-2 mb-2">
-        <span className="material-symbols-outlined text-cyan-400 text-base">dashboard</span>
+        <span className="material-symbols-outlined text-amber-400 text-base">dashboard</span>
         <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Domain Health</span>
       </div>
       <div className="grid grid-cols-2 gap-1.5">
@@ -45,7 +45,7 @@ export default function DomainHealthGrid({ domains }: DomainHealthGridProps) {
                 )}
                 <div className="w-8 h-1 bg-slate-800 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-cyan-500 rounded-full transition-all"
+                    className="h-full bg-amber-500 rounded-full transition-all"
                     style={{ width: `${Math.min(d.confidence, 100)}%` }}
                   />
                 </div>

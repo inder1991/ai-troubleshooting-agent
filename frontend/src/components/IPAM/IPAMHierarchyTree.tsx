@@ -95,7 +95,7 @@ function TreeNode({
           }
         }}
         className={`w-full flex items-center gap-1.5 px-2 py-1.5 text-sm rounded hover:bg-[#1e3a40] transition-colors ${
-          isSelected ? 'bg-[#1e3a40] border-l-2 border-cyan-400' : ''
+          isSelected ? 'bg-[#1e3a40] border-l-2 border-amber-400' : ''
         }`}
         style={{ paddingLeft: `${depth * 16 + 8}px` }}
       >
@@ -116,7 +116,7 @@ function TreeNode({
           </span>
         )}
         {/* Label */}
-        <span className={`flex-1 text-left truncate ${isSelected ? 'text-cyan-300 font-medium' : 'text-slate-300'}`}>
+        <span className={`flex-1 text-left truncate ${isSelected ? 'text-amber-300 font-medium' : 'text-slate-300'}`}>
           {node.label}
         </span>
         {/* Child count badge for non-subnet nodes */}
@@ -191,7 +191,7 @@ export default function IPAMHierarchyTree({ tree, selectedSubnetId, onSelectSubn
           placeholder="Filter by name or CIDR..."
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
-          className="w-full px-2 py-1 text-xs bg-[#0f2023] border border-[#1e3a40] rounded text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+          className="w-full px-2 py-1 text-xs bg-[#1a1814] border border-[#1e3a40] rounded text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-500"
         />
       </div>
       {/* Tree header */}

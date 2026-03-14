@@ -24,7 +24,6 @@ const ErrorBanner: React.FC<ErrorBannerProps> = ({
     <div className={`flex items-center gap-2.5 px-4 py-2.5 border rounded-lg ${bgClass}`} role="alert">
       <span
         className={`material-symbols-outlined text-base ${textClass} shrink-0`}
-        style={{ fontFamily: 'Material Symbols Outlined' }}
       >
         {icon}
       </span>
@@ -50,7 +49,6 @@ const ErrorBanner: React.FC<ErrorBannerProps> = ({
         >
           <span
             className="material-symbols-outlined text-sm"
-            style={{ fontFamily: 'Material Symbols Outlined' }}
           >
             close
           </span>

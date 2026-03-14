@@ -51,7 +51,7 @@ const NetworkEvidenceStack: React.FC<NetworkEvidenceStackProps> = ({
       {naclVerdicts.length > 0 && (
         <div
           className="rounded-lg p-3"
-          style={{ backgroundColor: '#0f2023', border: '1px solid #224349' }}
+          style={{ backgroundColor: '#1a1814', border: '1px solid #3d3528' }}
         >
           <div
             className="text-xs font-mono uppercase tracking-wider mb-2 flex items-center gap-1.5"
@@ -69,7 +69,7 @@ const NetworkEvidenceStack: React.FC<NetworkEvidenceStackProps> = ({
                 className="flex items-center justify-between rounded px-3 py-2"
                 style={{ backgroundColor: '#0a0f13' }}
               >
-                <span className="text-xs font-mono" style={{ color: '#e2e8f0' }}>{v.nacl_name}</span>
+                <span className="text-xs font-mono" style={{ color: '#e8e0d4' }}>{v.nacl_name}</span>
                 <span
                   className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded uppercase"
                   style={{
@@ -89,7 +89,7 @@ const NetworkEvidenceStack: React.FC<NetworkEvidenceStackProps> = ({
       {vpcCrossings.length > 0 && (
         <div
           className="rounded-lg p-3"
-          style={{ backgroundColor: '#0f2023', border: '1px solid #224349' }}
+          style={{ backgroundColor: '#1a1814', border: '1px solid #3d3528' }}
         >
           <div
             className="text-xs font-mono uppercase tracking-wider mb-2 flex items-center gap-1.5"
@@ -120,7 +120,7 @@ const NetworkEvidenceStack: React.FC<NetworkEvidenceStackProps> = ({
       {vpnSegments.length > 0 && (
         <div
           className="rounded-lg p-3"
-          style={{ backgroundColor: '#0f2023', border: '1px solid #224349' }}
+          style={{ backgroundColor: '#1a1814', border: '1px solid #3d3528' }}
         >
           <div
             className="text-xs font-mono uppercase tracking-wider mb-2 flex items-center gap-1.5"
@@ -139,7 +139,7 @@ const NetworkEvidenceStack: React.FC<NetworkEvidenceStackProps> = ({
                 style={{ backgroundColor: '#0a0f13' }}
               >
                 <div className="flex items-center justify-between mb-1">
-                  <span style={{ color: '#e2e8f0' }}>{seg.name}</span>
+                  <span style={{ color: '#e8e0d4' }}>{seg.name}</span>
                   <span
                     className="text-[10px] px-1.5 py-0.5 rounded uppercase"
                     style={{ color: '#f97316', backgroundColor: 'rgba(249,115,22,0.12)' }}
@@ -160,7 +160,7 @@ const NetworkEvidenceStack: React.FC<NetworkEvidenceStackProps> = ({
       {lbsInPath.length > 0 && (
         <div
           className="rounded-lg p-3"
-          style={{ backgroundColor: '#0f2023', border: '1px solid #224349' }}
+          style={{ backgroundColor: '#1a1814', border: '1px solid #3d3528' }}
         >
           <div
             className="text-xs font-mono uppercase tracking-wider mb-2 flex items-center gap-1.5"
@@ -178,7 +178,7 @@ const NetworkEvidenceStack: React.FC<NetworkEvidenceStackProps> = ({
                 className="flex items-center justify-between rounded px-3 py-2 font-mono text-xs"
                 style={{ backgroundColor: '#0a0f13' }}
               >
-                <span style={{ color: '#e2e8f0' }}>{lb.device_name}</span>
+                <span style={{ color: '#e8e0d4' }}>{lb.device_name}</span>
                 <span
                   className="text-[10px] px-1.5 py-0.5 rounded uppercase"
                   style={{ color: '#22c55e', backgroundColor: 'rgba(34,197,94,0.12)' }}
@@ -195,13 +195,13 @@ const NetworkEvidenceStack: React.FC<NetworkEvidenceStackProps> = ({
       {natTranslations.length > 0 && (
         <div
           className="rounded-lg p-3"
-          style={{ backgroundColor: '#0f2023', border: '1px solid #224349' }}
+          style={{ backgroundColor: '#1a1814', border: '1px solid #3d3528' }}
         >
           <div
             className="text-xs font-mono uppercase tracking-wider mb-2 flex items-center gap-1.5"
             style={{ color: '#64748b' }}
           >
-            <span className="material-symbols-outlined text-sm" style={{ color: '#07b6d5' }}>
+            <span className="material-symbols-outlined text-sm" style={{ color: '#e09f3e' }}>
               swap_horiz
             </span>
             NAT Translations
@@ -218,22 +218,22 @@ const NetworkEvidenceStack: React.FC<NetworkEvidenceStackProps> = ({
                   <span style={{ color: '#64748b' }}>on {nat.device_id}</span>
                 </div>
                 {nat.original_src && (
-                  <div style={{ color: '#94a3b8' }}>
+                  <div style={{ color: '#8a7e6b' }}>
                     Src: {nat.original_src}{' '}
                     {nat.translated_src && (
                       <>
-                        <span style={{ color: '#07b6d5' }}>&rarr;</span>{' '}
+                        <span style={{ color: '#e09f3e' }}>&rarr;</span>{' '}
                         {nat.translated_src}
                       </>
                     )}
                   </div>
                 )}
                 {nat.original_dst && (
-                  <div style={{ color: '#94a3b8' }}>
+                  <div style={{ color: '#8a7e6b' }}>
                     Dst: {nat.original_dst}{' '}
                     {nat.translated_dst && (
                       <>
-                        <span style={{ color: '#07b6d5' }}>&rarr;</span>{' '}
+                        <span style={{ color: '#e09f3e' }}>&rarr;</span>{' '}
                         {nat.translated_dst}
                       </>
                     )}
@@ -249,13 +249,13 @@ const NetworkEvidenceStack: React.FC<NetworkEvidenceStackProps> = ({
       {traceHops.length > 0 && (
         <div
           className="rounded-lg p-3"
-          style={{ backgroundColor: '#0f2023', border: '1px solid #224349' }}
+          style={{ backgroundColor: '#1a1814', border: '1px solid #3d3528' }}
         >
           <div
             className="text-xs font-mono uppercase tracking-wider mb-2 flex items-center gap-1.5"
             style={{ color: '#64748b' }}
           >
-            <span className="material-symbols-outlined text-sm" style={{ color: '#07b6d5' }}>
+            <span className="material-symbols-outlined text-sm" style={{ color: '#e09f3e' }}>
               timeline
             </span>
             Traceroute Raw
@@ -273,16 +273,16 @@ const NetworkEvidenceStack: React.FC<NetworkEvidenceStackProps> = ({
               {traceHops.map((hop) => (
                 <tr
                   key={hop.hop_number}
-                  style={{ color: '#e2e8f0', borderTop: '1px solid #1a3a3f' }}
+                  style={{ color: '#e8e0d4', borderTop: '1px solid #1a3a3f' }}
                 >
                   <td className="py-1 pr-2" style={{ color: '#64748b' }}>
                     {hop.hop_number}
                   </td>
                   <td className="py-1 pr-2 tabular-nums">{hop.ip}</td>
-                  <td className="py-1 pr-2" style={{ color: '#07b6d5' }}>
+                  <td className="py-1 pr-2" style={{ color: '#e09f3e' }}>
                     {hop.device_name || '-'}
                   </td>
-                  <td className="py-1 text-right tabular-nums" style={{ color: '#94a3b8' }}>
+                  <td className="py-1 text-right tabular-nums" style={{ color: '#8a7e6b' }}>
                     {hop.rtt_ms > 0 ? `${hop.rtt_ms.toFixed(1)}ms` : '*'}
                   </td>
                 </tr>
@@ -296,7 +296,7 @@ const NetworkEvidenceStack: React.FC<NetworkEvidenceStackProps> = ({
       {evidence.length > 0 && (
         <div
           className="rounded-lg p-3"
-          style={{ backgroundColor: '#0f2023', border: '1px solid #224349' }}
+          style={{ backgroundColor: '#1a1814', border: '1px solid #3d3528' }}
         >
           <div
             className="text-xs font-mono uppercase tracking-wider mb-2 flex items-center gap-1.5"
@@ -316,11 +316,11 @@ const NetworkEvidenceStack: React.FC<NetworkEvidenceStackProps> = ({
               >
                 <span
                   className="inline-block px-1.5 py-0.5 rounded mr-2 text-[10px] uppercase"
-                  style={{ color: '#07b6d5', backgroundColor: 'rgba(7,182,213,0.12)' }}
+                  style={{ color: '#e09f3e', backgroundColor: 'rgba(224,159,62,0.12)' }}
                 >
                   {e.type}
                 </span>
-                <span style={{ color: '#e2e8f0' }}>{e.detail}</span>
+                <span style={{ color: '#e8e0d4' }}>{e.detail}</span>
               </div>
             ))}
           </div>
@@ -331,7 +331,7 @@ const NetworkEvidenceStack: React.FC<NetworkEvidenceStackProps> = ({
       {contradictions.length > 0 && (
         <div
           className="rounded-lg p-3"
-          style={{ backgroundColor: '#0f2023', border: '1px solid rgba(239,68,68,0.3)' }}
+          style={{ backgroundColor: '#1a1814', border: '1px solid rgba(239,68,68,0.3)' }}
         >
           <div
             className="text-xs font-mono uppercase tracking-wider mb-2 flex items-center gap-1.5"
@@ -347,7 +347,7 @@ const NetworkEvidenceStack: React.FC<NetworkEvidenceStackProps> = ({
                 className="rounded px-2.5 py-1.5 font-mono text-xs"
                 style={{
                   backgroundColor: 'rgba(239,68,68,0.06)',
-                  color: '#e2e8f0',
+                  color: '#e8e0d4',
                 }}
               >
                 <span className="font-bold mr-1" style={{ color: '#ef4444' }}>
@@ -365,7 +365,7 @@ const NetworkEvidenceStack: React.FC<NetworkEvidenceStackProps> = ({
         <div className="rounded-lg p-3 font-mono text-xs"
           style={{ backgroundColor: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
           <p className="font-semibold mb-1" style={{ color: '#f59e0b' }}>No Firewall Adapters</p>
-          <p style={{ color: '#94a3b8' }}>
+          <p style={{ color: '#8a7e6b' }}>
             Firewall rules cannot be verified. Configure adapters in the Topology Editor
             to get accurate firewall verdicts.
           </p>
@@ -376,7 +376,7 @@ const NetworkEvidenceStack: React.FC<NetworkEvidenceStackProps> = ({
       {adapters && adapters.length > 0 && (
         <div
           className="rounded-lg p-3"
-          style={{ backgroundColor: '#0f2023', border: '1px solid #224349' }}
+          style={{ backgroundColor: '#1a1814', border: '1px solid #3d3528' }}
         >
           <div
             className="text-xs font-mono uppercase tracking-wider mb-2"

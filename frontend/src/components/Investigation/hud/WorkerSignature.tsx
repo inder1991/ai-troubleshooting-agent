@@ -5,7 +5,7 @@ type AgentCode = 'L' | 'M' | 'K' | 'D' | 'C';
 
 const agentMap: Record<AgentCode, { name: string; color: string; bgColor: string }> = {
   L: { name: 'Log Analyzer', color: '#ef4444', bgColor: 'bg-red-500' },
-  M: { name: 'Metrics Agent', color: '#06b6d4', bgColor: 'bg-cyan-500' },
+  M: { name: 'Metrics Agent', color: '#d4922e', bgColor: 'bg-amber-500' },
   K: { name: 'K8s Inspector', color: '#f97316', bgColor: 'bg-orange-500' },
   D: { name: 'Code Navigator', color: '#3b82f6', bgColor: 'bg-blue-500' },
   C: { name: 'Change Agent', color: '#10b981', bgColor: 'bg-emerald-500' },

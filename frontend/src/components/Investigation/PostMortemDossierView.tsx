@@ -74,8 +74,8 @@ const DossierSection: React.FC<{
     className="mb-12 group dossier-section"
   >
     <div className="flex items-center gap-3 mb-4 border-b border-slate-800 pb-2">
-      <div className="w-1 h-6 bg-[#07b6d5] shadow-[0_0_10px_rgba(7,182,213,0.5)]" />
-      <span className="material-symbols-outlined text-cyan-500" style={{ fontFamily: 'Material Symbols Outlined' }}>
+      <div className="w-1 h-6 bg-[#e09f3e] shadow-[0_0_10px_rgba(224,159,62,0.5)]" />
+      <span className="material-symbols-outlined text-amber-500">
         {icon}
       </span>
       <h2 className="text-lg font-bold uppercase tracking-widest text-white">{title}</h2>
@@ -90,11 +90,11 @@ const AttestationBadge: React.FC<{ humanVerified: boolean }> = ({ humanVerified 
   <span
     className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider border ${
       humanVerified
-        ? 'bg-cyan-500/10 border-cyan-500/20 text-cyan-400'
+        ? 'bg-amber-500/10 border-amber-500/20 text-amber-400'
         : 'bg-violet-500/10 border-violet-500/20 text-violet-400'
     }`}
   >
-    <span className="material-symbols-outlined text-[12px]" style={{ fontFamily: 'Material Symbols Outlined' }}>
+    <span className="material-symbols-outlined text-[12px]">
       {humanVerified ? 'verified' : 'smart_toy'}
     </span>
     {humanVerified ? 'HUMAN-VERIFIED' : 'AI-GENERATED'}
@@ -282,13 +282,13 @@ const PostMortemDossierView: React.FC<PostMortemDossierViewProps> = ({
 
   if (loading) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-[#0f2023]">
+      <div className="flex-1 flex items-center justify-center bg-[#1a1814]">
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           className="text-center"
         >
-          <span className="material-symbols-outlined text-4xl text-cyan-500 animate-spin" style={{ fontFamily: 'Material Symbols Outlined' }}>
+          <span className="material-symbols-outlined text-4xl text-amber-500 animate-spin">
             sync
           </span>
           <div className="text-sm text-slate-400 mt-3">Compiling incident dossier...</div>
@@ -299,29 +299,29 @@ const PostMortemDossierView: React.FC<PostMortemDossierViewProps> = ({
 
   if (error && !dossierData) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-[#0f2023]">
+      <div className="flex-1 flex items-center justify-center bg-[#1a1814]">
         <div className="text-center">
-          <span className="material-symbols-outlined text-4xl text-red-400" style={{ fontFamily: 'Material Symbols Outlined' }}>error</span>
+          <span className="material-symbols-outlined text-4xl text-red-400">error</span>
           <div className="text-sm text-red-400 mt-3">{error}</div>
-          <button onClick={onBack} className="mt-4 text-sm text-cyan-400 hover:underline">Back to War Room</button>
+          <button onClick={onBack} className="mt-4 text-sm text-amber-400 hover:underline">Back to War Room</button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-[#0f2023] overflow-hidden h-full">
+    <div className="flex-1 flex flex-col bg-[#1a1814] overflow-hidden h-full">
       {/* Header bar */}
       <div className="flex items-center justify-between px-6 py-3 border-b border-slate-800 bg-slate-900/60 shrink-0">
         <button
           onClick={onBack}
           className="dossier-back-button flex items-center gap-2 text-sm text-slate-400 hover:text-white transition-colors"
         >
-          <span className="material-symbols-outlined text-base" style={{ fontFamily: 'Material Symbols Outlined' }}>arrow_back</span>
+          <span className="material-symbols-outlined text-base">arrow_back</span>
           Back to War Room
         </button>
         <div className="flex items-center gap-3">
-          <span className="material-symbols-outlined text-cyan-500" style={{ fontFamily: 'Material Symbols Outlined' }}>description</span>
+          <span className="material-symbols-outlined text-amber-500">description</span>
           <span className="text-sm font-bold uppercase tracking-[0.2em] text-white">Incident Dossier</span>
         </div>
       </div>
@@ -341,7 +341,7 @@ const PostMortemDossierView: React.FC<PostMortemDossierViewProps> = ({
                 onClick={() => handleSectionClick(section.id)}
                 className={`w-full text-left px-3 py-2 rounded-r text-[11px] transition-all flex items-center gap-2 mb-0.5 ${
                   isActive
-                    ? 'border-l-2 border-[#07b6d5] text-white bg-cyan-500/5'
+                    ? 'border-l-2 border-[#e09f3e] text-white bg-amber-500/5'
                     : 'border-l-2 border-transparent text-slate-500 hover:text-slate-300 hover:bg-slate-800/50'
                 }`}
               >
@@ -407,7 +407,7 @@ const PostMortemDossierView: React.FC<PostMortemDossierViewProps> = ({
                     onClick={() => setEditingExec(true)}
                     className="dossier-edit-toggle text-[10px] text-slate-500 hover:text-slate-300 flex items-center gap-1"
                   >
-                    <span className="material-symbols-outlined text-[12px]" style={{ fontFamily: 'Material Symbols Outlined' }}>edit</span>
+                    <span className="material-symbols-outlined text-[12px]">edit</span>
                     Edit
                   </button>
                 )}
@@ -418,11 +418,11 @@ const PostMortemDossierView: React.FC<PostMortemDossierViewProps> = ({
                     value={execSummary}
                     onChange={(e) => setExecSummary(e.target.value)}
                     rows={4}
-                    className="w-full bg-slate-800/60 border border-slate-700/50 rounded-lg p-3 text-[12px] text-slate-200 focus:outline-none focus:border-cyan-500/50 resize-none"
+                    className="w-full bg-slate-800/60 border border-slate-700/50 rounded-lg p-3 text-[12px] text-slate-200 focus:outline-none focus:border-amber-500/50 resize-none"
                   />
                   <button
                     onClick={handleSaveExec}
-                    className="text-[10px] font-bold px-3 py-1.5 rounded bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/30"
+                    className="text-[10px] font-bold px-3 py-1.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30 hover:bg-amber-500/30"
                   >
                     Done
                   </button>
@@ -443,7 +443,7 @@ const PostMortemDossierView: React.FC<PostMortemDossierViewProps> = ({
                     onClick={() => setEditingImpact(true)}
                     className="dossier-edit-toggle text-[10px] text-slate-500 hover:text-slate-300 flex items-center gap-1"
                   >
-                    <span className="material-symbols-outlined text-[12px]" style={{ fontFamily: 'Material Symbols Outlined' }}>edit</span>
+                    <span className="material-symbols-outlined text-[12px]">edit</span>
                     Edit
                   </button>
                 )}
@@ -454,11 +454,11 @@ const PostMortemDossierView: React.FC<PostMortemDossierViewProps> = ({
                     value={impactStmt}
                     onChange={(e) => setImpactStmt(e.target.value)}
                     rows={4}
-                    className="w-full bg-slate-800/60 border border-slate-700/50 rounded-lg p-3 text-[12px] text-slate-200 focus:outline-none focus:border-cyan-500/50 resize-none"
+                    className="w-full bg-slate-800/60 border border-slate-700/50 rounded-lg p-3 text-[12px] text-slate-200 focus:outline-none focus:border-amber-500/50 resize-none"
                   />
                   <button
                     onClick={handleSaveImpact}
-                    className="text-[10px] font-bold px-3 py-1.5 rounded bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/30"
+                    className="text-[10px] font-bold px-3 py-1.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30 hover:bg-amber-500/30"
                   >
                     Done
                   </button>
@@ -477,7 +477,7 @@ const PostMortemDossierView: React.FC<PostMortemDossierViewProps> = ({
                   <MermaidChart chart={findings.code_mermaid_diagram} />
                 ) : (
                   <div className="flex flex-col items-center justify-center h-40 text-slate-500 text-[12px] gap-2">
-                    <span className="material-symbols-outlined text-[20px] text-slate-600" style={{ fontFamily: 'Material Symbols Outlined' }}>account_tree</span>
+                    <span className="material-symbols-outlined text-[20px] text-slate-600">account_tree</span>
                     <span>No topology diagram available.</span>
                     <span className="text-[10px] text-slate-600">Attach a repository to enable code-level topology mapping.</span>
                   </div>
@@ -489,7 +489,7 @@ const PostMortemDossierView: React.FC<PostMortemDossierViewProps> = ({
             <DossierSection id="timeline" title="Timeline of Truth" icon="timeline" index={4} sectionRef={setSectionRef('timeline')}>
               {!findings?.patient_zero && !findings?.service_flow?.length && !findings?.reasoning_chain?.length ? (
                 <div className="text-[12px] text-slate-500 py-4 flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[14px] text-slate-600" style={{ fontFamily: 'Material Symbols Outlined' }}>hourglass_empty</span>
+                  <span className="material-symbols-outlined text-[14px] text-slate-600">hourglass_empty</span>
                   No timeline events available yet. Events populate as the investigation progresses.
                 </div>
               ) : (
@@ -629,7 +629,7 @@ const PostMortemDossierView: React.FC<PostMortemDossierViewProps> = ({
                         href={findings.fix_data.pr_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-cyan-400 hover:underline font-mono"
+                        className="text-amber-400 hover:underline font-mono"
                       >
                         {findings.fix_data.pr_url}
                       </a>
@@ -643,7 +643,7 @@ const PostMortemDossierView: React.FC<PostMortemDossierViewProps> = ({
                   )}
                   {findings.fix_data.diff && (
                     <details className="mt-2">
-                      <summary className="text-[10px] text-cyan-500 cursor-pointer hover:text-cyan-300">
+                      <summary className="text-[10px] text-amber-500 cursor-pointer hover:text-amber-300">
                         View Diff
                       </summary>
                       <pre className="mt-2 text-[10px] text-slate-300 bg-slate-900/80 border border-slate-800 rounded-lg p-3 overflow-x-auto max-h-[400px] overflow-y-auto font-mono whitespace-pre">
@@ -671,7 +671,7 @@ const PostMortemDossierView: React.FC<PostMortemDossierViewProps> = ({
                       {findings.suggested_promql_queries.map((q, i) => (
                         <div key={i} className="bg-slate-800/40 border border-slate-700/50 rounded-lg p-3">
                           <div className="text-[11px] text-slate-300 font-medium">{q.metric}</div>
-                          <code className="block text-[10px] text-cyan-400 font-mono mt-1">{q.query}</code>
+                          <code className="block text-[10px] text-amber-400 font-mono mt-1">{q.query}</code>
                           <div className="text-[10px] text-slate-500 mt-1">{q.rationale}</div>
                         </div>
                       ))}
@@ -702,7 +702,7 @@ const PostMortemDossierView: React.FC<PostMortemDossierViewProps> = ({
                     {findings?.closure_state?.jira_result?.status === 'success' ? (
                       <div className="flex items-center gap-2">
                         <span className="text-green-400">Jira:</span>
-                        <a href={findings.closure_state.jira_result.issue_url} target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:underline">
+                        <a href={findings.closure_state.jira_result.issue_url} target="_blank" rel="noopener noreferrer" className="text-amber-400 hover:underline">
                           {findings.closure_state.jira_result.issue_key}
                         </a>
                       </div>
@@ -712,7 +712,7 @@ const PostMortemDossierView: React.FC<PostMortemDossierViewProps> = ({
                     {findings?.closure_state?.remedy_result?.status === 'success' ? (
                       <div className="flex items-center gap-2">
                         <span className="text-green-400">Remedy:</span>
-                        <a href={findings.closure_state.remedy_result.incident_url} target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:underline">
+                        <a href={findings.closure_state.remedy_result.incident_url} target="_blank" rel="noopener noreferrer" className="text-amber-400 hover:underline">
                           {findings.closure_state.remedy_result.incident_number}
                         </a>
                       </div>
@@ -747,7 +747,7 @@ const PostMortemDossierView: React.FC<PostMortemDossierViewProps> = ({
                       type="text"
                       value={spaceKey}
                       onChange={(e) => setSpaceKey(e.target.value)}
-                      className="text-[12px] bg-slate-800/60 border border-slate-700/50 rounded px-3 py-2 text-slate-200 placeholder-slate-600 w-full font-mono focus:outline-none focus:border-cyan-500/50"
+                      className="text-[12px] bg-slate-800/60 border border-slate-700/50 rounded px-3 py-2 text-slate-200 placeholder-slate-600 w-full font-mono focus:outline-none focus:border-amber-500/50"
                     />
                   </div>
                   <div>
@@ -758,7 +758,7 @@ const PostMortemDossierView: React.FC<PostMortemDossierViewProps> = ({
                       type="text"
                       value={publishTitle}
                       onChange={(e) => setPublishTitle(e.target.value)}
-                      className="text-[12px] bg-slate-800/60 border border-slate-700/50 rounded px-3 py-2 text-slate-200 placeholder-slate-600 w-full focus:outline-none focus:border-cyan-500/50"
+                      className="text-[12px] bg-slate-800/60 border border-slate-700/50 rounded px-3 py-2 text-slate-200 placeholder-slate-600 w-full focus:outline-none focus:border-amber-500/50"
                     />
                   </div>
                 </div>
@@ -769,7 +769,7 @@ const PostMortemDossierView: React.FC<PostMortemDossierViewProps> = ({
                     disabled={publishing || !spaceKey.trim()}
                     className="text-[11px] font-bold px-4 py-2 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
                   >
-                    <span className="material-symbols-outlined text-[14px]" style={{ fontFamily: 'Material Symbols Outlined' }}>
+                    <span className="material-symbols-outlined text-[14px]">
                       {publishing ? 'sync' : 'cloud_upload'}
                     </span>
                     {publishing ? 'Publishing...' : 'Publish to Confluence'}
@@ -809,7 +809,7 @@ const PostMortemDossierView: React.FC<PostMortemDossierViewProps> = ({
               transition={{ delay: 0.3, type: 'spring' }}
               className="relative text-center"
             >
-              <span className="material-symbols-outlined text-6xl text-emerald-400 drop-shadow-[0_0_20px_rgba(16,185,129,0.6)]" style={{ fontFamily: 'Material Symbols Outlined' }}>
+              <span className="material-symbols-outlined text-6xl text-emerald-400 drop-shadow-[0_0_20px_rgba(16,185,129,0.6)]">
                 task_alt
               </span>
               <div className="text-lg font-bold uppercase tracking-[0.3em] text-emerald-300 mt-4">

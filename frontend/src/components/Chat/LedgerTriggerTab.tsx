@@ -8,7 +8,7 @@ const TacticalLogIcon: React.FC<{ isWaiting: boolean }> = ({ isWaiting }) => (
     height="16"
     viewBox="0 0 24 24"
     fill="none"
-    className={`transition-colors ${isWaiting ? 'stroke-amber-400' : 'stroke-cyan-400'}`}
+    className={`transition-colors ${isWaiting ? 'stroke-amber-400' : 'stroke-amber-400'}`}
     strokeWidth="1.5"
     strokeLinecap="round"
     strokeLinejoin="round"
@@ -44,7 +44,7 @@ const LedgerTriggerTab: React.FC = () => {
           className={`fixed right-0 top-1/2 -translate-y-1/2 z-[60] flex flex-col items-center gap-2 py-3 px-1.5 rounded-l-lg border-r-0 cursor-pointer ${
             isWaiting
               ? 'bg-amber-950/30 border border-r-0 border-amber-500/50 shadow-[inset_-2px_0_12px_rgba(245,158,11,0.2)]'
-              : 'bg-slate-900/80 border border-r-0 border-cyan-500/30'
+              : 'bg-slate-900/80 border border-r-0 border-amber-500/30'
           }`}
           style={{
             boxShadow: isWaiting
@@ -64,7 +64,7 @@ const LedgerTriggerTab: React.FC = () => {
           <span className="relative flex items-center justify-center w-1.5 h-1.5">
             <span
               className={`absolute inset-0 rounded-full ${
-                isWaiting ? 'bg-amber-400' : 'bg-cyan-500/50'
+                isWaiting ? 'bg-amber-400' : 'bg-amber-500/50'
               }`}
             />
             {isWaiting && (
@@ -78,7 +78,7 @@ const LedgerTriggerTab: React.FC = () => {
           {/* Dymo-label vertical text */}
           <span
             className={`text-[10px] font-mono font-black tracking-[0.3em] transition-colors ${
-              isWaiting ? 'text-amber-400' : 'text-cyan-500/70'
+              isWaiting ? 'text-amber-400' : 'text-amber-500/70'
             }`}
             style={{ writingMode: 'vertical-lr' }}
           >
@@ -86,7 +86,7 @@ const LedgerTriggerTab: React.FC = () => {
           </span>
 
           {/* Machined edge highlight */}
-          <span className="absolute right-0 top-2 bottom-2 w-[1px] bg-gradient-to-b from-transparent via-cyan-500/20 to-transparent pointer-events-none" />
+          <span className="absolute right-0 top-2 bottom-2 w-[1px] bg-gradient-to-b from-transparent via-amber-500/20 to-transparent pointer-events-none" />
         </motion.button>
       )}
     </AnimatePresence>

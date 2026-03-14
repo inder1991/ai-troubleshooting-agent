@@ -38,7 +38,7 @@ const ChangeCorrelationCard: React.FC<ChangeCorrelationCardProps> = ({ changes }
   return (
     <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
       <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
-        <GitCommit className="w-4 h-4 text-[#07b6d5]" />
+        <GitCommit className="w-4 h-4 text-[#e09f3e]" />
         Change Correlations
         <span className="text-xs text-gray-500 font-normal ml-auto">
           {changes.length} recent {changes.length === 1 ? 'change' : 'changes'}
@@ -105,7 +105,7 @@ const ChangeCorrelationCard: React.FC<ChangeCorrelationCardProps> = ({ changes }
                 <span className="text-[10px] text-gray-500 w-14 flex-shrink-0">Temporal</span>
                 <div className="flex-1 h-1.5 bg-gray-700 rounded-full overflow-hidden">
                   <motion.div
-                    className="h-full rounded-full w-full origin-left bg-[#07b6d5]"
+                    className="h-full rounded-full w-full origin-left bg-[#e09f3e]"
                     initial={{ scaleX: 0 }}
                     animate={{ scaleX: change.temporal_correlation }}
                     transition={{ type: 'spring', stiffness: 120, damping: 20 }}

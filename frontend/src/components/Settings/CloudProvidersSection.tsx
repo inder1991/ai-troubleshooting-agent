@@ -193,7 +193,7 @@ function SetupGuide({ provider }: { provider: CloudProvider }) {
     <div className="mt-3">
       <button
         onClick={() => setExpanded(!expanded)}
-        className="flex items-center gap-1.5 text-xs text-[#07b6d5] hover:text-[#07b6d5]/80 transition-colors"
+        className="flex items-center gap-1.5 text-xs text-[#e09f3e] hover:text-[#e09f3e]/80 transition-colors"
       >
         <span className="material-symbols-outlined text-sm">
           {expanded ? 'expand_less' : 'help'}
@@ -211,7 +211,7 @@ function SetupGuide({ provider }: { provider: CloudProvider }) {
               <ol className="space-y-3">
                 {section.steps.map((step, idx) => (
                   <li key={idx} className="flex gap-2.5">
-                    <span className="flex-shrink-0 w-5 h-5 rounded-full bg-[#07b6d5]/10 text-[#07b6d5] text-xs font-bold flex items-center justify-center mt-0.5">
+                    <span className="flex-shrink-0 w-5 h-5 rounded-full bg-[#e09f3e]/10 text-[#e09f3e] text-xs font-bold flex items-center justify-center mt-0.5">
                       {idx + 1}
                     </span>
                     <div className="flex-1 min-w-0">
@@ -219,7 +219,7 @@ function SetupGuide({ provider }: { provider: CloudProvider }) {
                       <div className="text-xs text-[#4a6670] mt-0.5">{step.description}</div>
                       {step.code && (
                         <div className="mt-2 relative group">
-                          <pre className="bg-[#0a1a1d] border border-[#224349] rounded-lg p-3 text-xs text-[#8fc3cc] font-mono overflow-x-auto whitespace-pre">
+                          <pre className="bg-[#12110e] border border-[#3d3528] rounded-lg p-3 text-xs text-[#8fc3cc] font-mono overflow-x-auto whitespace-pre">
                             {step.code}
                           </pre>
                           <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -242,7 +242,7 @@ function SetupGuide({ provider }: { provider: CloudProvider }) {
 // ── Shared styles ──
 
 const inputClass =
-  'bg-[#0a1a1d] border border-[#224349] rounded-lg text-white text-sm placeholder-[#4a6670] focus:outline-none focus:border-[#07b6d5] transition-colors';
+  'bg-[#12110e] border border-[#3d3528] rounded-lg text-white text-sm placeholder-[#4a6670] focus:outline-none focus:border-[#e09f3e] transition-colors';
 
 const labelClass = 'block text-xs font-medium text-[#8fc3cc] mb-1';
 
@@ -292,7 +292,7 @@ function RegionChips({
       {regions.map((r) => (
         <span
           key={r}
-          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#07b6d5]/10 text-[#07b6d5] text-xs"
+          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#e09f3e]/10 text-[#e09f3e] text-xs"
         >
           {r}
           <button
@@ -306,13 +306,13 @@ function RegionChips({
       <div className="relative">
         <button
           onClick={() => setShowDropdown(!showDropdown)}
-          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-dashed border-[#224349] text-[#4a6670] text-xs hover:border-[#07b6d5] hover:text-[#07b6d5] transition-colors"
+          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-dashed border-[#3d3528] text-[#4a6670] text-xs hover:border-[#e09f3e] hover:text-[#e09f3e] transition-colors"
         >
           <span className="material-symbols-outlined text-xs">add</span>
           Add
         </button>
         {showDropdown && remaining.length > 0 && (
-          <div className="absolute top-7 left-0 z-50 bg-[#0a1a1d] border border-[#224349] rounded-lg shadow-xl max-h-40 overflow-y-auto min-w-[140px]">
+          <div className="absolute top-7 left-0 z-50 bg-[#12110e] border border-[#3d3528] rounded-lg shadow-xl max-h-40 overflow-y-auto min-w-[140px]">
             {remaining.map((r) => (
               <button
                 key={r}
@@ -320,7 +320,7 @@ function RegionChips({
                   onChange([...regions, r]);
                   setShowDropdown(false);
                 }}
-                className="block w-full text-left px-3 py-1.5 text-xs text-[#8fc3cc] hover:bg-[#07b6d5]/10 hover:text-white"
+                className="block w-full text-left px-3 py-1.5 text-xs text-[#8fc3cc] hover:bg-[#e09f3e]/10 hover:text-white"
               >
                 {r}
               </button>
@@ -473,7 +473,7 @@ function AzureFields({
           {subscriptions.map((s) => (
             <span
               key={s}
-              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#07b6d5]/10 text-[#07b6d5] text-xs"
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#e09f3e]/10 text-[#e09f3e] text-xs"
             >
               {s}
               <button
@@ -705,12 +705,12 @@ function ProviderCard({
 
   return (
     <div
-      className="rounded-xl border border-[#224349] bg-[#0f2023] overflow-hidden transition-all"
+      className="rounded-xl border border-[#3d3528] bg-[#1a1814] overflow-hidden transition-all"
       style={{ borderTopColor: meta.accent, borderTopWidth: '2px' }}
     >
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between px-4 py-3 hover:bg-[#0a1a1d]/50 transition-colors"
+        className="w-full flex items-center justify-between px-4 py-3 hover:bg-[#12110e]/50 transition-colors"
       >
         <div className="flex items-center gap-3">
           <div className={`w-8 h-8 rounded-lg ${meta.accentBg} flex items-center justify-center`}>
@@ -734,7 +734,7 @@ function ProviderCard({
       </button>
 
       {expanded && (
-        <div className="px-4 pb-4 border-t border-[#224349]">
+        <div className="px-4 pb-4 border-t border-[#3d3528]">
           <div className="pt-3">
             <FieldsComponent
               creds={creds}
@@ -745,11 +745,11 @@ function ProviderCard({
             />
           </div>
           <SetupGuide provider={provider} />
-          <div className="flex items-center justify-end gap-3 mt-4 pt-3 border-t border-[#224349]/50">
+          <div className="flex items-center justify-end gap-3 mt-4 pt-3 border-t border-[#3d3528]/50">
             <button
               onClick={() => integration && onTest(integration.id)}
               disabled={testing}
-              className="px-4 py-1.5 rounded-lg text-xs font-medium border border-[#224349] text-[#8fc3cc] hover:border-[#07b6d5] hover:text-[#07b6d5] transition-colors disabled:opacity-30"
+              className="px-4 py-1.5 rounded-lg text-xs font-medium border border-[#3d3528] text-[#8fc3cc] hover:border-[#e09f3e] hover:text-[#e09f3e] transition-colors disabled:opacity-30"
             >
               {testing ? (
                 <span className="flex items-center gap-1.5">
@@ -763,7 +763,7 @@ function ProviderCard({
             <button
               onClick={handleSave}
               disabled={!dirty}
-              className="px-4 py-1.5 rounded-lg text-xs font-bold bg-[#07b6d5] text-[#0f2023] hover:bg-[#07b6d5]/80 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              className="px-4 py-1.5 rounded-lg text-xs font-bold bg-[#e09f3e] text-[#1a1814] hover:bg-[#e09f3e]/80 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
             >
               Save
             </button>
@@ -799,7 +799,7 @@ const CloudProvidersSection: React.FC<CloudProvidersSectionProps> = ({
   return (
     <div className="mt-8">
       <div className="flex items-center gap-2 mb-4">
-        <span className="material-symbols-outlined text-[#07b6d5]">cloud</span>
+        <span className="material-symbols-outlined text-[#e09f3e]">cloud</span>
         <h3 className="text-lg font-bold text-white">Cloud Providers</h3>
       </div>
       <p className="text-sm text-[#8fc3cc] mb-4">

@@ -12,7 +12,7 @@ interface AgentCapsuleProps {
 
 const agentColorBar: Record<string, string> = {
   log_agent: 'bg-red-500',
-  metrics_agent: 'bg-cyan-500',
+  metrics_agent: 'bg-amber-500',
   k8s_agent: 'bg-orange-500',
   tracing_agent: 'bg-violet-500',
   code_agent: 'bg-blue-500',
@@ -47,7 +47,6 @@ export const AgentCapsule: React.FC<AgentCapsuleProps> = ({ capsule, filterMode,
         <div className={`flex items-center gap-1.5 px-1.5 py-0.5 rounded-sm ${barColor}/20 border ${barColor.replace('bg-', 'border-')}/40`}>
           <span
             className="material-symbols-outlined text-[10px]"
-            style={{ fontFamily: 'Material Symbols Outlined' }}
           >
             {icon}
           </span>
@@ -63,9 +62,9 @@ export const AgentCapsule: React.FC<AgentCapsuleProps> = ({ capsule, filterMode,
         </span>
         {/* Status dot */}
         {isActive ? (
-          <span className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse" />
+          <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
         ) : capsule.isComplete ? (
-          <span className="material-symbols-outlined text-green-500 text-xs" style={{ fontFamily: 'Material Symbols Outlined' }}>check_circle</span>
+          <span className="material-symbols-outlined text-green-500 text-xs">check_circle</span>
         ) : null}
       </div>
 
@@ -103,7 +102,6 @@ export const AgentCapsule: React.FC<AgentCapsuleProps> = ({ capsule, filterMode,
                       <div className="flex items-center gap-2 text-[10px] mb-1">
                         <span
                           className="material-symbols-outlined text-red-400 text-sm"
-                          style={{ fontFamily: 'Material Symbols Outlined' }}
                         >
                           lightbulb
                         </span>
@@ -145,7 +143,7 @@ export const AgentCapsule: React.FC<AgentCapsuleProps> = ({ capsule, filterMode,
               const colorClass = isError
                 ? 'bg-red-500/10 border border-red-500/20 text-red-400'
                 : isGovernance
-                  ? 'bg-cyan-500/10 border border-cyan-500/20 text-cyan-400'
+                  ? 'bg-amber-500/10 border border-amber-500/20 text-amber-400'
                   : 'bg-amber-500/10 border border-amber-500/20 text-amber-400';
               const iconName = isError ? 'error' : isGovernance ? 'verified_user' : 'warning';
               return (
@@ -155,7 +153,6 @@ export const AgentCapsule: React.FC<AgentCapsuleProps> = ({ capsule, filterMode,
                 >
                   <span
                     className="material-symbols-outlined text-xs"
-                    style={{ fontFamily: 'Material Symbols Outlined' }}
                   >
                     {iconName}
                   </span>
@@ -171,7 +168,6 @@ export const AgentCapsule: React.FC<AgentCapsuleProps> = ({ capsule, filterMode,
           <div className="flex items-center gap-1.5 text-[9px] text-slate-600">
             <span
               className="material-symbols-outlined text-xs"
-              style={{ fontFamily: 'Material Symbols Outlined' }}
             >
               attach_file
             </span>
@@ -207,7 +203,6 @@ const FindingRibbon: React.FC<{ event: import('../../types').TaskEvent; severity
           <span className="text-slate-400 truncate flex-1">{event.message.split(' — ')[0]}</span>
           <span
             className={`material-symbols-outlined text-xs transition-transform ${expanded ? 'rotate-90' : ''}`}
-            style={{ fontFamily: 'Material Symbols Outlined' }}
           >
             chevron_right
           </span>

@@ -22,14 +22,14 @@ import NetworkChatDrawer from '../NetworkChat/NetworkChatDrawer';
 // ---------------------------------------------------------------------------
 
 const COLORS = {
-  bg: '#0f2023',
-  primary: '#07b6d5',
-  cardBg: 'rgba(7,182,213,0.04)',
-  cardBorder: 'rgba(7,182,213,0.12)',
-  textPrimary: '#e2e8f0',
-  textSecondary: '#94a3b8',
-  inputBg: 'rgba(7,182,213,0.06)',
-  inputBorder: 'rgba(7,182,213,0.18)',
+  bg: '#1a1814',
+  primary: '#e09f3e',
+  cardBg: 'rgba(224,159,62,0.04)',
+  cardBorder: 'rgba(224,159,62,0.12)',
+  textPrimary: '#e8e0d4',
+  textSecondary: '#8a7e6b',
+  inputBg: 'rgba(224,159,62,0.06)',
+  inputBorder: 'rgba(224,159,62,0.18)',
   danger: '#ef4444',
 } as const;
 
@@ -69,7 +69,7 @@ const styles = {
     fontSize: 13,
     fontWeight: active ? 600 : 400,
     color: active ? COLORS.primary : COLORS.textSecondary,
-    background: active ? 'rgba(7,182,213,0.08)' : 'transparent',
+    background: active ? 'rgba(224,159,62,0.08)' : 'transparent',
     border: 'none',
     borderBottom: active ? `2px solid ${COLORS.primary}` : '2px solid transparent',
     cursor: 'pointer',
@@ -99,7 +99,7 @@ const styles = {
   } as React.CSSProperties,
   td: {
     padding: '10px 12px',
-    borderBottom: `1px solid rgba(7,182,213,0.06)`,
+    borderBottom: `1px solid rgba(224,159,62,0.06)`,
     color: COLORS.textPrimary,
   } as React.CSSProperties,
   btnPrimary: {
@@ -438,7 +438,7 @@ function ResourceTab({ tab }: ResourceTabProps) {
       {showForm && (
         <div
           style={{
-            background: 'rgba(7,182,213,0.03)',
+            background: 'rgba(224,159,62,0.03)',
             border: `1px solid ${COLORS.cardBorder}`,
             borderRadius: 6,
             padding: 16,
@@ -531,7 +531,7 @@ function ResourceTab({ tab }: ResourceTabProps) {
                     }}
                     onMouseEnter={(e) => {
                       (e.currentTarget as HTMLTableRowElement).style.background =
-                        'rgba(7,182,213,0.05)';
+                        'rgba(224,159,62,0.05)';
                     }}
                     onMouseLeave={(e) => {
                       (e.currentTarget as HTMLTableRowElement).style.background = 'transparent';

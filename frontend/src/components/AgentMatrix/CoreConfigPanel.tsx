@@ -16,7 +16,7 @@ const CoreConfigPanel: React.FC<CoreConfigPanelProps> = ({ llmConfig, timeoutS }
   ];
 
   return (
-    <div className="rounded-lg border p-4" style={{ backgroundColor: '#0a1214', borderColor: '#224349' }}>
+    <div className="rounded-lg border p-4" style={{ backgroundColor: '#0a1214', borderColor: '#3d3528' }}>
       <h3 className="text-xs font-mono uppercase tracking-widest mb-3" style={{ color: '#64748b' }}>
         Core Configuration
       </h3>
@@ -26,11 +26,11 @@ const CoreConfigPanel: React.FC<CoreConfigPanelProps> = ({ llmConfig, timeoutS }
             <div className="flex items-center gap-2">
               <span
                 className="material-symbols-outlined text-sm"
-                style={{ fontFamily: 'Material Symbols Outlined', color: '#475569' }}
+                style={{ color: '#475569' }}
               >
                 {row.icon}
               </span>
-              <span className="text-xs" style={{ color: '#94a3b8' }}>{row.label}</span>
+              <span className="text-xs" style={{ color: '#8a7e6b' }}>{row.label}</span>
             </div>
             <span className="text-xs font-mono font-medium text-white">{row.value}</span>
           </div>

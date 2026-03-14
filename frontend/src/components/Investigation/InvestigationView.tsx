@@ -175,7 +175,7 @@ const InvestigationView: React.FC<InvestigationViewProps> = ({
 
             {/* Right: The Navigator */}
             <div className="col-span-4 border-l border-slate-800 overflow-hidden">
-              <Navigator findings={findings} status={sessionStatus} events={events} />
+              <Navigator findings={findings} status={sessionStatus} events={events} sessionId={session.session_id} />
             </div>
           </div>
         </TopologySelectionProvider>

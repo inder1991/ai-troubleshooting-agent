@@ -30,7 +30,7 @@ const roleLabels: Record<string, string> = {
 };
 
 const InterfaceNode: React.FC<NodeProps<InterfaceNodeData>> = ({ data, selected }) => {
-  const color = roleColors[data.role] || '#07b6d5';
+  const color = roleColors[data.role] || '#e09f3e';
   const roleLabel = roleLabels[data.role] || data.role?.toUpperCase().slice(0, 3) || 'IF';
 
   return (
@@ -55,16 +55,16 @@ const InterfaceNode: React.FC<NodeProps<InterfaceNodeData>> = ({ data, selected 
       <div
         className="w-full h-full flex items-center justify-center gap-1.5 px-2 py-1 rounded border transition-all"
         style={{
-          backgroundColor: selected ? '#162a2e' : '#0f2023',
-          borderColor: selected ? color : '#224349',
+          backgroundColor: selected ? '#1e1b15' : '#1a1814',
+          borderColor: selected ? color : '#3d3528',
           borderLeftWidth: '3px',
           borderLeftColor: color,
         }}
       >
         {/* Port icon */}
         <span
-          className="material-symbols-outlined shrink-0"
-          style={{ fontFamily: 'Material Symbols Outlined', fontSize: '14px', color }}
+          className="material-symbols-outlined shrink-0 text-[14px]"
+          style={{ color }}
         >
           settings_ethernet
         </span>
@@ -72,7 +72,7 @@ const InterfaceNode: React.FC<NodeProps<InterfaceNodeData>> = ({ data, selected 
         {/* Name + role inline, IP + parent shown when space allows */}
         <div className="flex flex-col gap-0 min-w-0 overflow-hidden">
           <div className="flex items-center gap-1">
-            <span className="text-[9px] font-mono font-semibold truncate" style={{ color: '#e2e8f0' }}>
+            <span className="text-[9px] font-mono font-semibold truncate" style={{ color: '#e8e0d4' }}>
               {data.name || 'eth0'}
             </span>
             <span

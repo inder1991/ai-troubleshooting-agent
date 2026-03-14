@@ -542,7 +542,7 @@ function TopologyEditorInner() {
             label: 'Text Note',
             text: '',
             fontSize: 12,
-            color: '#e2e8f0',
+            color: '#e8e0d4',
             backgroundColor: 'transparent',
             borderStyle: 'none',
           },
@@ -1109,7 +1109,7 @@ function TopologyEditorInner() {
             proOptions={{ hideAttribution: true }}
             defaultEdgeOptions={{
               type: 'labeled',
-              style: { stroke: '#224349', strokeWidth: 2 },
+              style: { stroke: '#3d3528', strokeWidth: 2 },
               animated: false,
             }}
           >
@@ -1117,11 +1117,11 @@ function TopologyEditorInner() {
               variant={BackgroundVariant.Dots}
               gap={20}
               size={1}
-              color="#224349"
+              color="#3d3528"
             />
             <Controls
               style={{
-                button: { backgroundColor: '#0f2023', color: '#e2e8f0', borderColor: '#224349' },
+                button: { backgroundColor: '#1a1814', color: '#e8e0d4', borderColor: '#3d3528' },
               } as unknown as React.CSSProperties}
             />
           </ReactFlow>

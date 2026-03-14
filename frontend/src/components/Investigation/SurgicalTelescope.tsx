@@ -64,7 +64,7 @@ const SurgicalTelescope: React.FC = () => {
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-3 border-b border-slate-800/50 bg-slate-900/50">
             <div className="flex items-center gap-3">
-              <span className="material-symbols-outlined text-cyan-400 text-[20px]">biotech</span>
+              <span className="material-symbols-outlined text-amber-400 text-[20px]">biotech</span>
               <span className="text-[12px] font-black text-slate-200 tracking-[0.1em] uppercase">
                 Surgical Telescope
               </span>
@@ -90,7 +90,7 @@ const SurgicalTelescope: React.FC = () => {
                   onClick={() => setActiveFileIdx(i)}
                   className={`px-3 py-1 rounded text-[10px] font-mono whitespace-nowrap transition-colors
                     ${i === activeFileIdx
-                      ? 'bg-cyan-950/40 text-cyan-400 border border-cyan-700/40'
+                      ? 'bg-amber-950/40 text-amber-400 border border-amber-800/40'
                       : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/40'}
                   `}
                 >
@@ -117,7 +117,7 @@ const SurgicalTelescope: React.FC = () => {
                       key={f.file_path}
                       onClick={() => setActiveFileIdx(i)}
                       className={`w-full text-left px-3 py-1.5 flex items-center gap-1.5 text-[10px] font-mono transition-colors
-                        ${i === activeFileIdx ? 'bg-cyan-950/30 text-cyan-400' : 'text-slate-400 hover:bg-slate-800/30'}`}
+                        ${i === activeFileIdx ? 'bg-amber-950/30 text-amber-400' : 'text-slate-400 hover:bg-slate-800/30'}`}
                     >
                       <span className="truncate flex-1">{f.file_path.split('/').pop()}</span>
                       <span className="text-emerald-500 shrink-0">+{additions}</span>

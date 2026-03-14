@@ -33,7 +33,7 @@ const TerminalCodeBlock: React.FC<TerminalCodeBlockProps> = ({ children, classNa
   // Inline code — simple render
   if (inline) {
     return (
-      <code className="text-cyan-300 bg-black/30 px-1 py-0.5 rounded text-[12px] font-mono">
+      <code className="text-amber-300 bg-black/30 px-1 py-0.5 rounded text-[12px] font-mono">
         {children}
       </code>
     );
@@ -49,16 +49,15 @@ const TerminalCodeBlock: React.FC<TerminalCodeBlockProps> = ({ children, classNa
         </span>
         <button
           onClick={handleCopy}
-          className="flex items-center gap-1 text-[10px] text-slate-500 hover:text-cyan-400 transition-colors"
+          className="flex items-center gap-1 text-[10px] text-slate-500 hover:text-amber-400 transition-colors"
           title="Copy to clipboard"
         >
           <span
-            className="material-symbols-outlined text-sm"
-            style={{ fontFamily: 'Material Symbols Outlined', fontSize: '14px' }}
+            className="material-symbols-outlined text-sm text-[14px]"
           >
             {copied ? 'check' : 'content_copy'}
           </span>
-          {copied && <span className="text-cyan-400">Copied</span>}
+          {copied && <span className="text-amber-400">Copied</span>}
         </button>
       </div>
       {/* Code content */}

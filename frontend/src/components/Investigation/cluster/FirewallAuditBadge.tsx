@@ -18,7 +18,7 @@ export default function FirewallAuditBadge({ searchSpace }: FirewallAuditBadgePr
         onClick={() => setExpanded(!expanded)}
         className="w-full px-3 py-2 flex items-center gap-2 text-left hover:bg-slate-800/30 transition-colors"
       >
-        <span className="material-symbols-outlined text-cyan-400 text-base">shield</span>
+        <span className="material-symbols-outlined text-amber-400 text-base">shield</span>
         <span className="text-xs text-slate-300">Causal Firewall</span>
         <div className="ml-auto flex items-center gap-2 text-[10px] font-mono text-slate-500">
           <span>{total_evaluated} evaluated</span>

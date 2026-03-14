@@ -9,7 +9,7 @@ import {
 } from '../../services/api';
 import type { FlowConversation, FlowApplication, FlowASN, FlowVolumePoint } from '../../types';
 
-const CHART_COLORS = ['#07b6d5', '#22c55e', '#f59e0b', '#ef4444', '#a855f7', '#ec4899', '#6366f1', '#14b8a6', '#f97316', '#84cc16'];
+const CHART_COLORS = ['#e09f3e', '#22c55e', '#f59e0b', '#ef4444', '#a855f7', '#ec4899', '#6366f1', '#14b8a6', '#f97316', '#84cc16'];
 
 const TIME_RANGES = [
   { label: '5m', value: '5m' },
@@ -20,7 +20,7 @@ const TIME_RANGES = [
 ];
 
 const cardStyle: React.CSSProperties = {
-  background: 'rgba(7,182,213,0.04)', border: '1px solid rgba(7,182,213,0.12)',
+  background: 'rgba(224,159,62,0.04)', border: '1px solid rgba(224,159,62,0.12)',
   borderRadius: 10, padding: 20,
 };
 
@@ -114,14 +114,14 @@ const NDMNetFlowTab: React.FC = () => {
   }, [conversations, drillFilter]);
 
   const tooltipStyle = {
-    contentStyle: { background: '#0f2023', border: '1px solid rgba(7,182,213,0.2)', borderRadius: 6, fontSize: 12 } as React.CSSProperties,
-    labelStyle: { color: '#e2e8f0' } as React.CSSProperties,
-    itemStyle: { color: '#94a3b8' } as React.CSSProperties,
+    contentStyle: { background: '#1a1814', border: '1px solid rgba(224,159,62,0.2)', borderRadius: 6, fontSize: 12 } as React.CSSProperties,
+    labelStyle: { color: '#e8e0d4' } as React.CSSProperties,
+    itemStyle: { color: '#8a7e6b' } as React.CSSProperties,
   };
 
   if (loading) {
     return (
-      <div style={{ padding: 32, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div style={{ padding: 32, color: '#8a7e6b', display: 'flex', alignItems: 'center', gap: 8 }}>
         <span className="material-symbols-outlined" style={{ animation: 'spin 1s linear infinite' }}>progress_activity</span>
         Loading NetFlow data...
       </div>
@@ -139,9 +139,9 @@ const NDMNetFlowTab: React.FC = () => {
               onClick={() => setTimeRange(tr.value)}
               style={{
                 padding: '6px 14px', borderRadius: 6, fontSize: 12, fontWeight: 500,
-                border: timeRange === tr.value ? '1px solid #07b6d5' : '1px solid rgba(148,163,184,0.15)',
-                background: timeRange === tr.value ? 'rgba(7,182,213,0.15)' : 'transparent',
-                color: timeRange === tr.value ? '#07b6d5' : '#94a3b8',
+                border: timeRange === tr.value ? '1px solid #e09f3e' : '1px solid rgba(148,163,184,0.15)',
+                background: timeRange === tr.value ? 'rgba(224,159,62,0.15)' : 'transparent',
+                color: timeRange === tr.value ? '#e09f3e' : '#8a7e6b',
                 cursor: 'pointer',
               }}
             >
@@ -154,8 +154,8 @@ const NDMNetFlowTab: React.FC = () => {
           style={{
             display: 'flex', alignItems: 'center', gap: 4,
             padding: '6px 12px', borderRadius: 6, fontSize: 12,
-            border: '1px solid rgba(7,182,213,0.2)', background: 'transparent',
-            color: '#07b6d5', cursor: 'pointer',
+            border: '1px solid rgba(224,159,62,0.2)', background: 'transparent',
+            color: '#e09f3e', cursor: 'pointer',
           }}
         >
           <span className="material-symbols-outlined" style={{ fontSize: 16 }}>refresh</span>
@@ -169,8 +169,8 @@ const NDMNetFlowTab: React.FC = () => {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
         {/* Top Talkers Bar Chart */}
         <div style={cardStyle}>
-          <h3 style={{ fontSize: 14, fontWeight: 600, color: '#e2e8f0', margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#07b6d5' }}>leaderboard</span>
+          <h3 style={{ fontSize: 14, fontWeight: 600, color: '#e8e0d4', margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#e09f3e' }}>leaderboard</span>
             Top Talkers
             <span style={{ fontSize: 10, color: '#64748b', fontWeight: 400, marginLeft: 4 }}>(click bar to filter)</span>
           </h3>
@@ -180,11 +180,11 @@ const NDMNetFlowTab: React.FC = () => {
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={topTalkers.slice(0, 10)} layout="vertical" margin={{ left: 10, right: 16, top: 0, bottom: 0 }}>
                 <XAxis type="number" tick={{ fill: '#64748b', fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => formatBytes(v)} />
-                <YAxis type="category" dataKey="ip" width={110} tick={{ fill: '#94a3b8', fontSize: 10, fontFamily: 'monospace' }} axisLine={false} tickLine={false} />
+                <YAxis type="category" dataKey="ip" width={110} tick={{ fill: '#8a7e6b', fontSize: 10, fontFamily: 'monospace' }} axisLine={false} tickLine={false} />
                 <Tooltip {...tooltipStyle} formatter={(value: number) => formatBytes(value)} />
                 <Bar
                   dataKey="bytes"
-                  fill="#07b6d5"
+                  fill="#e09f3e"
                   radius={[0, 4, 4, 0]}
                   barSize={14}
                   cursor="pointer"
@@ -206,8 +206,8 @@ const NDMNetFlowTab: React.FC = () => {
 
         {/* Applications Donut */}
         <div style={cardStyle}>
-          <h3 style={{ fontSize: 14, fontWeight: 600, color: '#e2e8f0', margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#07b6d5' }}>apps</span>
+          <h3 style={{ fontSize: 14, fontWeight: 600, color: '#e8e0d4', margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#e09f3e' }}>apps</span>
             Applications
           </h3>
           {applications.length === 0 ? (
@@ -228,8 +228,8 @@ const NDMNetFlowTab: React.FC = () => {
                 {applications.slice(0, 8).map((app, i) => (
                   <div key={app.app_name} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <div style={{ width: 8, height: 8, borderRadius: 2, background: CHART_COLORS[i % CHART_COLORS.length], flexShrink: 0 }} />
-                    <span style={{ fontSize: 11, color: '#94a3b8', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{app.app_name}</span>
-                    <span style={{ fontSize: 11, color: '#e2e8f0', fontWeight: 600 }}>{app.percentage.toFixed(1)}%</span>
+                    <span style={{ fontSize: 11, color: '#8a7e6b', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{app.app_name}</span>
+                    <span style={{ fontSize: 11, color: '#e8e0d4', fontWeight: 600 }}>{app.percentage.toFixed(1)}%</span>
                   </div>
                 ))}
               </div>
@@ -240,8 +240,8 @@ const NDMNetFlowTab: React.FC = () => {
 
       {/* Flow Volume Timeline */}
       <div style={cardStyle}>
-        <h3 style={{ fontSize: 14, fontWeight: 600, color: '#e2e8f0', margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#07b6d5' }}>timeline</span>
+        <h3 style={{ fontSize: 14, fontWeight: 600, color: '#e8e0d4', margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#e09f3e' }}>timeline</span>
           Flow Volume Timeline
         </h3>
         {volumeTimeline.length === 0 ? (
@@ -258,7 +258,7 @@ const NDMNetFlowTab: React.FC = () => {
               <Tooltip {...tooltipStyle} formatter={(value: number) => formatBytes(value)}
                 labelFormatter={(label: string) => { try { return new Date(label).toLocaleString(); } catch { return label; } }}
               />
-              <Line type="monotone" dataKey="bytes" stroke="#07b6d5" strokeWidth={2} dot={false} />
+              <Line type="monotone" dataKey="bytes" stroke="#e09f3e" strokeWidth={2} dot={false} />
               <Line type="monotone" dataKey="packets" stroke="#22c55e" strokeWidth={1} dot={false} opacity={0.5} />
             </LineChart>
           </ResponsiveContainer>
@@ -269,8 +269,8 @@ const NDMNetFlowTab: React.FC = () => {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
         {/* Conversations Table */}
         <div style={cardStyle}>
-          <h3 style={{ fontSize: 14, fontWeight: 600, color: '#e2e8f0', margin: '0 0 8px', display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#07b6d5' }}>swap_horiz</span>
+          <h3 style={{ fontSize: 14, fontWeight: 600, color: '#e8e0d4', margin: '0 0 8px', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#e09f3e' }}>swap_horiz</span>
             Conversations
           </h3>
 
@@ -279,8 +279,8 @@ const NDMNetFlowTab: React.FC = () => {
             <div style={{
               display: 'inline-flex', alignItems: 'center', gap: 6,
               padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 500,
-              background: 'rgba(7,182,213,0.12)', color: '#07b6d5',
-              border: '1px solid rgba(7,182,213,0.25)',
+              background: 'rgba(224,159,62,0.12)', color: '#e09f3e',
+              border: '1px solid rgba(224,159,62,0.25)',
               marginBottom: 8,
             }}>
               <span className="material-symbols-outlined" style={{ fontSize: 13 }}>filter_alt</span>
@@ -289,7 +289,7 @@ const NDMNetFlowTab: React.FC = () => {
                 onClick={() => setDrillFilter(null)}
                 style={{
                   background: 'none', border: 'none', cursor: 'pointer',
-                  color: '#07b6d5', padding: 0, display: 'flex', alignItems: 'center',
+                  color: '#e09f3e', padding: 0, display: 'flex', alignItems: 'center',
                   marginLeft: 2,
                 }}
                 title="Clear filter"
@@ -316,9 +316,9 @@ const NDMNetFlowTab: React.FC = () => {
                 <tbody>
                   {filteredConversations.slice(0, 15).map((conv, i) => (
                     <tr key={i} style={{ borderBottom: '1px solid rgba(148,163,184,0.05)' }}>
-                      <td style={{ padding: '4px 6px', fontSize: 11, color: '#94a3b8', fontFamily: 'monospace' }}>{conv.src_ip}</td>
-                      <td style={{ padding: '4px 6px', fontSize: 11, color: '#94a3b8', fontFamily: 'monospace' }}>{conv.dst_ip}</td>
-                      <td style={{ padding: '4px 6px', fontSize: 11, color: '#e2e8f0' }}>{formatBytes(conv.bytes)}</td>
+                      <td className="font-mono" style={{ padding: '4px 6px', fontSize: 11, color: '#8a7e6b' }}>{conv.src_ip}</td>
+                      <td className="font-mono" style={{ padding: '4px 6px', fontSize: 11, color: '#8a7e6b' }}>{conv.dst_ip}</td>
+                      <td style={{ padding: '4px 6px', fontSize: 11, color: '#e8e0d4' }}>{formatBytes(conv.bytes)}</td>
                       <td style={{ padding: '4px 6px', fontSize: 11, color: '#64748b' }}>{conv.flows}</td>
                     </tr>
                   ))}
@@ -330,8 +330,8 @@ const NDMNetFlowTab: React.FC = () => {
 
         {/* ASN/Geo Table */}
         <div style={cardStyle}>
-          <h3 style={{ fontSize: 14, fontWeight: 600, color: '#e2e8f0', margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#07b6d5' }}>public</span>
+          <h3 style={{ fontSize: 14, fontWeight: 600, color: '#e8e0d4', margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#e09f3e' }}>public</span>
             ASN / Geo
           </h3>
           {asnData.length === 0 ? (
@@ -349,9 +349,9 @@ const NDMNetFlowTab: React.FC = () => {
                 <tbody>
                   {asnData.slice(0, 15).map((asn, i) => (
                     <tr key={i} style={{ borderBottom: '1px solid rgba(148,163,184,0.05)' }}>
-                      <td style={{ padding: '4px 6px', fontSize: 11, color: '#07b6d5', fontFamily: 'monospace' }}>AS{asn.asn}</td>
-                      <td style={{ padding: '4px 6px', fontSize: 11, color: '#e2e8f0' }}>{formatBytes(asn.bytes)}</td>
-                      <td style={{ padding: '4px 6px', fontSize: 11, color: '#94a3b8' }}>{asn.packets.toLocaleString()}</td>
+                      <td className="font-mono" style={{ padding: '4px 6px', fontSize: 11, color: '#e09f3e' }}>AS{asn.asn}</td>
+                      <td style={{ padding: '4px 6px', fontSize: 11, color: '#e8e0d4' }}>{formatBytes(asn.bytes)}</td>
+                      <td style={{ padding: '4px 6px', fontSize: 11, color: '#8a7e6b' }}>{asn.packets.toLocaleString()}</td>
                       <td style={{ padding: '4px 6px', fontSize: 11, color: '#64748b' }}>{asn.flows}</td>
                     </tr>
                   ))}
@@ -363,8 +363,8 @@ const NDMNetFlowTab: React.FC = () => {
 
         {/* Protocol Breakdown */}
         <div style={cardStyle}>
-          <h3 style={{ fontSize: 14, fontWeight: 600, color: '#e2e8f0', margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#07b6d5' }}>cable</span>
+          <h3 style={{ fontSize: 14, fontWeight: 600, color: '#e8e0d4', margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#e09f3e' }}>cable</span>
             Protocol Breakdown
           </h3>
           {protocols.length === 0 ? (
@@ -374,7 +374,7 @@ const NDMNetFlowTab: React.FC = () => {
               {protocols.slice(0, 8).map((proto, i) => (
                 <div key={proto.protocol}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
-                    <span style={{ fontSize: 12, color: '#e2e8f0', fontWeight: 500 }}>{proto.protocol}</span>
+                    <span style={{ fontSize: 12, color: '#e8e0d4', fontWeight: 500 }}>{proto.protocol}</span>
                     <span style={{ fontSize: 11, color: '#64748b' }}>{proto.percentage.toFixed(1)}% ({formatBytes(proto.bytes)})</span>
                   </div>
                   <div style={{ width: '100%', height: 6, borderRadius: 3, background: 'rgba(148,163,184,0.1)', overflow: 'hidden' }}>

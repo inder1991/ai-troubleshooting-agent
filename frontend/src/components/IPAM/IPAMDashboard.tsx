@@ -431,7 +431,7 @@ export default function IPAMDashboard() {
       {/* Header with Global Search */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <span className="material-symbols-outlined text-2xl text-cyan-400">lan</span>
+          <span className="material-symbols-outlined text-2xl text-amber-400">lan</span>
           <h1 className="text-xl font-bold text-slate-100">Manage Subnets & IP Addresses</h1>
           <span className="text-xs text-slate-500 mt-1">
             {stats.total_subnets} subnets &middot; {stats.total_ips.toLocaleString()} IPs
@@ -440,7 +440,7 @@ export default function IPAMDashboard() {
         <div className="flex items-center gap-2">
           {/* Global Search */}
           <div className="relative">
-            <div className="flex items-center bg-[#0f2023] border border-[#1e3a40] rounded px-2.5">
+            <div className="flex items-center bg-[#1a1814] border border-[#1e3a40] rounded px-2.5">
               <span className="material-symbols-outlined text-sm text-slate-500">search</span>
               <input
                 type="text"
@@ -468,7 +468,7 @@ export default function IPAMDashboard() {
                       setSearchOpen(false);
                     }}
                   >
-                    <span className="font-mono text-sm text-cyan-300">{String(r.address)}</span>
+                    <span className="font-mono text-sm text-amber-300">{String(r.address)}</span>
                     <span className="text-xs text-slate-400">{String(r.hostname || '-')}</span>
                     <span className="text-xs text-slate-500">{String(r.mac_address || '')}</span>
                     <span className="ml-auto text-[10px] text-slate-500 font-mono">{String(r.subnet_cidr || '')}</span>
@@ -502,7 +502,7 @@ export default function IPAMDashboard() {
           </button>
           <button
             onClick={() => setShowCreateSubnet(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-cyan-600 rounded text-sm text-white hover:bg-cyan-500"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 rounded text-sm text-white hover:bg-amber-500"
           >
             <span className="material-symbols-outlined text-sm">add</span>
             Subnet
@@ -555,7 +555,7 @@ export default function IPAMDashboard() {
             onClick={() => setActiveTab(tab.key)}
             className={`flex items-center gap-1.5 px-3 py-2 text-sm border-b-2 transition-colors ${
               activeTab === tab.key
-                ? 'border-cyan-400 text-cyan-300'
+                ? 'border-amber-400 text-amber-300'
                 : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
           >
@@ -767,7 +767,7 @@ export default function IPAMDashboard() {
               {events.slice(0, 15).map((e, i) => (
                 <div key={i} className="flex items-start gap-2 text-[11px] py-1 border-b border-[#1e3a40]/30">
                   <span className={`w-1.5 h-1.5 rounded-full mt-1 flex-shrink-0 ${
-                    e.new_status === 'assigned' ? 'bg-cyan-400' :
+                    e.new_status === 'assigned' ? 'bg-amber-400' :
                     e.new_status === 'reserved' ? 'bg-blue-400' :
                     e.new_status === 'available' ? 'bg-emerald-400' :
                     e.new_status === 'deprecated' ? 'bg-slate-500' : 'bg-slate-600'
@@ -982,7 +982,7 @@ export default function IPAMDashboard() {
       {/* Confirm Dialog (B10) */}
       {confirmDialog.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-          <div className="bg-[#1a2e35] border border-cyan-900/50 rounded-xl p-6 max-w-md shadow-xl">
+          <div className="bg-[#252118] border border-amber-900/50 rounded-xl p-6 max-w-md shadow-xl">
             <h3 className="text-lg font-semibold text-white mb-2">{confirmDialog.title}</h3>
             <p className="text-gray-300 mb-6">{confirmDialog.message}</p>
             <div className="flex justify-end gap-3">
@@ -1047,7 +1047,7 @@ function ImportDialog({
           </p>
         </div>
         {status && (
-          <div className={`text-sm mb-3 ${status.startsWith('Error') ? 'text-red-400' : 'text-cyan-400'}`}>
+          <div className={`text-sm mb-3 ${status.startsWith('Error') ? 'text-red-400' : 'text-amber-400'}`}>
             {status}
           </div>
         )}
@@ -1056,7 +1056,7 @@ function ImportDialog({
           <button
             onClick={() => file && onImport(file)}
             disabled={!file}
-            className="px-3 py-1.5 text-sm bg-cyan-600 text-white rounded hover:bg-cyan-500 disabled:opacity-40"
+            className="px-3 py-1.5 text-sm bg-amber-600 text-white rounded hover:bg-amber-500 disabled:opacity-40"
           >Import</button>
         </div>
       </div>
@@ -1149,7 +1149,7 @@ function CreateSubnetDialog({
                 value={form[f.key as keyof typeof form]}
                 onChange={(e) => set(f.key, e.target.value)}
                 placeholder={f.placeholder}
-                className="flex-1 px-3 py-1.5 bg-[#0f2023] border border-[#1e3a40] rounded text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-cyan-500"
+                className="flex-1 px-3 py-1.5 bg-[#1a1814] border border-[#1e3a40] rounded text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-amber-500"
               />
             </div>
           ))}
@@ -1159,7 +1159,7 @@ function CreateSubnetDialog({
             <select
               value={form.region}
               onChange={(e) => set('region', e.target.value)}
-              className="flex-1 px-3 py-1.5 bg-[#0f2023] border border-[#1e3a40] rounded text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
+              className="flex-1 px-3 py-1.5 bg-[#1a1814] border border-[#1e3a40] rounded text-sm text-slate-200 focus:outline-none focus:border-amber-500"
             >
               <option value="">— Select region —</option>
               {regionOptions.map((r) => (
@@ -1176,7 +1176,7 @@ function CreateSubnetDialog({
                 const selected = siteOptions.find((s) => s.id === e.target.value);
                 setForm((p) => ({ ...p, site_id: e.target.value, site: selected?.name || 'default' }));
               }}
-              className="flex-1 px-3 py-1.5 bg-[#0f2023] border border-[#1e3a40] rounded text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
+              className="flex-1 px-3 py-1.5 bg-[#1a1814] border border-[#1e3a40] rounded text-sm text-slate-200 focus:outline-none focus:border-amber-500"
             >
               <option value="">default</option>
               {siteOptions.map((s) => (
@@ -1190,7 +1190,7 @@ function CreateSubnetDialog({
             <select
               value={form.vrf_id}
               onChange={(e) => set('vrf_id', e.target.value)}
-              className="flex-1 px-3 py-1.5 bg-[#0f2023] border border-[#1e3a40] rounded text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
+              className="flex-1 px-3 py-1.5 bg-[#1a1814] border border-[#1e3a40] rounded text-sm text-slate-200 focus:outline-none focus:border-amber-500"
             >
               <option value="default">default</option>
               {vrfOptions.filter((v) => v.id !== 'default').map((v) => (
@@ -1204,7 +1204,7 @@ function CreateSubnetDialog({
             <select
               value={form.cloud_provider}
               onChange={(e) => set('cloud_provider', e.target.value)}
-              className="flex-1 px-3 py-1.5 bg-[#0f2023] border border-[#1e3a40] rounded text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
+              className="flex-1 px-3 py-1.5 bg-[#1a1814] border border-[#1e3a40] rounded text-sm text-slate-200 focus:outline-none focus:border-amber-500"
             >
               <option value="">On-Premises</option>
               <option value="aws">AWS</option>
@@ -1219,7 +1219,7 @@ function CreateSubnetDialog({
             <select
               value={form.subnet_role}
               onChange={(e) => set('subnet_role', e.target.value)}
-              className="flex-1 px-3 py-1.5 bg-[#0f2023] border border-[#1e3a40] rounded text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
+              className="flex-1 px-3 py-1.5 bg-[#1a1814] border border-[#1e3a40] rounded text-sm text-slate-200 focus:outline-none focus:border-amber-500"
             >
               <option value="">None</option>
               <option value="server">Server</option>
@@ -1233,7 +1233,7 @@ function CreateSubnetDialog({
           </div>
           {/* CIDR Calculator */}
           {form.cidr && cidrInfo && (
-            <div className="ml-[108px] p-2.5 bg-[#0f2023] border border-[#1e3a40] rounded text-xs space-y-1">
+            <div className="ml-[108px] p-2.5 bg-[#1a1814] border border-[#1e3a40] rounded text-xs space-y-1">
               <div className="text-slate-400 font-semibold uppercase tracking-wider mb-1">CIDR Info</div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Network:</span>
@@ -1245,7 +1245,7 @@ function CreateSubnetDialog({
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Usable hosts:</span>
-                <span className="font-mono text-cyan-300">{cidrInfo.hosts?.toLocaleString()}</span>
+                <span className="font-mono text-amber-300">{cidrInfo.hosts?.toLocaleString()}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Prefix:</span>
@@ -1267,7 +1267,7 @@ function CreateSubnetDialog({
           <button
             onClick={() => form.cidr && cidrInfo && cidrFitsBlock && onCreate(form)}
             disabled={!form.cidr || !cidrInfo || !cidrFitsBlock}
-            className="px-3 py-1.5 text-sm bg-cyan-600 text-white rounded hover:bg-cyan-500 disabled:opacity-40"
+            className="px-3 py-1.5 text-sm bg-amber-600 text-white rounded hover:bg-amber-500 disabled:opacity-40"
           >Create & Populate</button>
         </div>
       </div>
@@ -1290,13 +1290,13 @@ function SplitSubnetDialog({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
       <div className="bg-[#132a2f] border border-[#1e3a40] rounded-lg p-6 w-[400px]">
         <h3 className="text-sm font-semibold text-slate-200 mb-4 flex items-center gap-2">
-          <span className="material-symbols-outlined text-lg text-cyan-400">call_split</span>
+          <span className="material-symbols-outlined text-lg text-amber-400">call_split</span>
           Split Subnet
         </h3>
         <div className="space-y-4">
-          <div className="flex items-center justify-between p-3 bg-[#0f2023] rounded border border-[#1e3a40]">
+          <div className="flex items-center justify-between p-3 bg-[#1a1814] rounded border border-[#1e3a40]">
             <span className="text-xs text-slate-400">Source</span>
-            <span className="font-mono text-sm text-cyan-300">{cidr}</span>
+            <span className="font-mono text-sm text-amber-300">{cidr}</span>
           </div>
           <div>
             <label className="text-xs text-slate-400 block mb-1.5">New prefix length</label>
@@ -1307,15 +1307,15 @@ function SplitSubnetDialog({
                 max={Math.min(currentPrefix + 4, 30)}
                 value={newPrefix}
                 onChange={(e) => setNewPrefix(parseInt(e.target.value, 10))}
-                className="flex-1 accent-cyan-500"
+                className="flex-1 accent-amber-500"
               />
               <span className="font-mono text-sm text-slate-200 w-8 text-center">/{newPrefix}</span>
             </div>
           </div>
-          <div className="p-3 bg-[#0f2023] rounded border border-[#1e3a40] text-xs space-y-1.5">
+          <div className="p-3 bg-[#1a1814] rounded border border-[#1e3a40] text-xs space-y-1.5">
             <div className="flex justify-between">
               <span className="text-slate-500">Subnets created:</span>
-              <span className="font-mono text-cyan-300">{subnetCount}</span>
+              <span className="font-mono text-amber-300">{subnetCount}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-500">Hosts per subnet:</span>
@@ -1327,7 +1327,7 @@ function SplitSubnetDialog({
           <button onClick={onClose} className="px-3 py-1.5 text-sm text-slate-400 hover:text-slate-200">Cancel</button>
           <button
             onClick={() => onSplit(newPrefix)}
-            className="px-3 py-1.5 text-sm bg-cyan-600 text-white rounded hover:bg-cyan-500"
+            className="px-3 py-1.5 text-sm bg-amber-600 text-white rounded hover:bg-amber-500"
           >Split into {subnetCount} subnets</button>
         </div>
       </div>
@@ -1355,7 +1355,7 @@ function MergeSubnetsDialog({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
       <div className="bg-[#132a2f] border border-[#1e3a40] rounded-lg p-6 w-[480px]">
         <h3 className="text-sm font-semibold text-slate-200 mb-4 flex items-center gap-2">
-          <span className="material-symbols-outlined text-lg text-cyan-400">merge</span>
+          <span className="material-symbols-outlined text-lg text-amber-400">merge</span>
           Merge Subnets
         </h3>
         <p className="text-xs text-slate-400 mb-3">
@@ -1366,16 +1366,16 @@ function MergeSubnetsDialog({
             <label
               key={s.id}
               className={`flex items-center gap-3 px-3 py-2 border-b border-[#1e3a40]/50 cursor-pointer hover:bg-[#1e3a40]/30 ${
-                selected.has(s.id) ? 'bg-cyan-900/20' : ''
+                selected.has(s.id) ? 'bg-amber-900/20' : ''
               }`}
             >
               <input
                 type="checkbox"
                 checked={selected.has(s.id)}
                 onChange={() => toggle(s.id)}
-                className="accent-cyan-500"
+                className="accent-amber-500"
               />
-              <span className="font-mono text-sm text-cyan-300">{s.cidr}</span>
+              <span className="font-mono text-sm text-amber-300">{s.cidr}</span>
               <span className="text-xs text-slate-500 ml-auto">{s.region || s.site || ''}</span>
             </label>
           ))}
@@ -1387,7 +1387,7 @@ function MergeSubnetsDialog({
             <button
               onClick={() => onMerge(Array.from(selected))}
               disabled={selected.size < 2}
-              className="px-3 py-1.5 text-sm bg-cyan-600 text-white rounded hover:bg-cyan-500 disabled:opacity-40"
+              className="px-3 py-1.5 text-sm bg-amber-600 text-white rounded hover:bg-amber-500 disabled:opacity-40"
             >Merge {selected.size} Subnets</button>
           </div>
         </div>
@@ -1420,7 +1420,7 @@ function EditSubnetDialog({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
       <div className="bg-[#132a2f] border border-[#1e3a40] rounded-lg p-6 w-[440px]">
         <h3 className="text-sm font-semibold text-slate-200 mb-1">Edit Subnet</h3>
-        <div className="font-mono text-cyan-300 text-sm mb-4">{subnet.cidr}</div>
+        <div className="font-mono text-amber-300 text-sm mb-4">{subnet.cidr}</div>
         <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
           {[
             { key: 'gateway_ip', label: 'Gateway IP' },
@@ -1438,7 +1438,7 @@ function EditSubnetDialog({
               <input
                 value={form[f.key as keyof typeof form]}
                 onChange={(e) => set(f.key, e.target.value)}
-                className="flex-1 px-3 py-1.5 bg-[#0f2023] border border-[#1e3a40] rounded text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
+                className="flex-1 px-3 py-1.5 bg-[#1a1814] border border-[#1e3a40] rounded text-sm text-slate-200 focus:outline-none focus:border-amber-500"
               />
             </div>
           ))}
@@ -1448,7 +1448,7 @@ function EditSubnetDialog({
             <select
               value={form.cloud_provider}
               onChange={(e) => set('cloud_provider', e.target.value)}
-              className="flex-1 px-3 py-1.5 bg-[#0f2023] border border-[#1e3a40] rounded text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
+              className="flex-1 px-3 py-1.5 bg-[#1a1814] border border-[#1e3a40] rounded text-sm text-slate-200 focus:outline-none focus:border-amber-500"
             >
               <option value="">On-Premises</option>
               <option value="aws">AWS</option>
@@ -1463,7 +1463,7 @@ function EditSubnetDialog({
             <select
               value={form.subnet_role}
               onChange={(e) => set('subnet_role', e.target.value)}
-              className="flex-1 px-3 py-1.5 bg-[#0f2023] border border-[#1e3a40] rounded text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
+              className="flex-1 px-3 py-1.5 bg-[#1a1814] border border-[#1e3a40] rounded text-sm text-slate-200 focus:outline-none focus:border-amber-500"
             >
               <option value="">None</option>
               <option value="server">Server</option>
@@ -1487,7 +1487,7 @@ function EditSubnetDialog({
               vrf_id: form.vrf_id,
               subnet_role: form.subnet_role,
             })}
-            className="px-3 py-1.5 text-sm bg-cyan-600 text-white rounded hover:bg-cyan-500"
+            className="px-3 py-1.5 text-sm bg-amber-600 text-white rounded hover:bg-amber-500"
           >Save</button>
         </div>
       </div>
@@ -1506,7 +1506,7 @@ function CreateRegionDialog({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
       <div className="bg-[#132a2f] border border-[#1e3a40] rounded-lg p-6 w-[400px]">
         <h3 className="text-sm font-semibold text-slate-200 mb-4 flex items-center gap-2">
-          <span className="material-symbols-outlined text-lg text-cyan-400">public</span>
+          <span className="material-symbols-outlined text-lg text-amber-400">public</span>
           Create Region
         </h3>
         <div className="space-y-3">
@@ -1516,7 +1516,7 @@ function CreateRegionDialog({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="US-East"
-              className="flex-1 px-3 py-1.5 bg-[#0f2023] border border-[#1e3a40] rounded text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-cyan-500"
+              className="flex-1 px-3 py-1.5 bg-[#1a1814] border border-[#1e3a40] rounded text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-amber-500"
             />
           </div>
         </div>
@@ -1525,7 +1525,7 @@ function CreateRegionDialog({
           <button
             onClick={() => name.trim() && onCreate({ name: name.trim() })}
             disabled={!name.trim()}
-            className="px-3 py-1.5 text-sm bg-cyan-600 text-white rounded hover:bg-cyan-500 disabled:opacity-40"
+            className="px-3 py-1.5 text-sm bg-amber-600 text-white rounded hover:bg-amber-500 disabled:opacity-40"
           >Create</button>
         </div>
       </div>
@@ -1551,7 +1551,7 @@ function CreateSiteDialog({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
       <div className="bg-[#132a2f] border border-[#1e3a40] rounded-lg p-6 w-[420px]">
         <h3 className="text-sm font-semibold text-slate-200 mb-4 flex items-center gap-2">
-          <span className="material-symbols-outlined text-lg text-cyan-400">domain</span>
+          <span className="material-symbols-outlined text-lg text-amber-400">domain</span>
           Create Site
         </h3>
         <div className="space-y-3">
@@ -1561,7 +1561,7 @@ function CreateSiteDialog({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="DC-East-1"
-              className="flex-1 px-3 py-1.5 bg-[#0f2023] border border-[#1e3a40] rounded text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-cyan-500"
+              className="flex-1 px-3 py-1.5 bg-[#1a1814] border border-[#1e3a40] rounded text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-amber-500"
             />
           </div>
           <div className="flex items-center gap-3">
@@ -1569,7 +1569,7 @@ function CreateSiteDialog({
             <select
               value={regionId}
               onChange={(e) => setRegionId(e.target.value)}
-              className="flex-1 px-3 py-1.5 bg-[#0f2023] border border-[#1e3a40] rounded text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
+              className="flex-1 px-3 py-1.5 bg-[#1a1814] border border-[#1e3a40] rounded text-sm text-slate-200 focus:outline-none focus:border-amber-500"
             >
               <option value="">— Select region —</option>
               {regions.map((r) => (
@@ -1582,7 +1582,7 @@ function CreateSiteDialog({
             <select
               value={siteType}
               onChange={(e) => setSiteType(e.target.value)}
-              className="flex-1 px-3 py-1.5 bg-[#0f2023] border border-[#1e3a40] rounded text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
+              className="flex-1 px-3 py-1.5 bg-[#1a1814] border border-[#1e3a40] rounded text-sm text-slate-200 focus:outline-none focus:border-amber-500"
             >
               <option value="datacenter">Datacenter</option>
               <option value="branch">Branch</option>
@@ -1596,7 +1596,7 @@ function CreateSiteDialog({
           <button
             onClick={() => name.trim() && onCreate({ name: name.trim(), region_id: regionId || undefined, site_type: siteType })}
             disabled={!name.trim()}
-            className="px-3 py-1.5 text-sm bg-cyan-600 text-white rounded hover:bg-cyan-500 disabled:opacity-40"
+            className="px-3 py-1.5 text-sm bg-amber-600 text-white rounded hover:bg-amber-500 disabled:opacity-40"
           >Create</button>
         </div>
       </div>
@@ -1617,7 +1617,7 @@ function CreateVRFDialog({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
       <div className="bg-[#132a2f] border border-[#1e3a40] rounded-lg p-6 w-[420px]">
         <h3 className="text-sm font-semibold text-slate-200 mb-4 flex items-center gap-2">
-          <span className="material-symbols-outlined text-lg text-cyan-400">route</span>
+          <span className="material-symbols-outlined text-lg text-amber-400">route</span>
           Create VRF
         </h3>
         <div className="space-y-3">
@@ -1627,7 +1627,7 @@ function CreateVRFDialog({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="production"
-              className="flex-1 px-3 py-1.5 bg-[#0f2023] border border-[#1e3a40] rounded text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-cyan-500"
+              className="flex-1 px-3 py-1.5 bg-[#1a1814] border border-[#1e3a40] rounded text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-amber-500"
             />
           </div>
           <div className="flex items-center gap-3">
@@ -1636,7 +1636,7 @@ function CreateVRFDialog({
               value={rd}
               onChange={(e) => setRd(e.target.value)}
               placeholder="65000:100"
-              className="flex-1 px-3 py-1.5 bg-[#0f2023] border border-[#1e3a40] rounded text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-cyan-500"
+              className="flex-1 px-3 py-1.5 bg-[#1a1814] border border-[#1e3a40] rounded text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-amber-500"
             />
           </div>
           <div className="flex items-center gap-3">
@@ -1645,7 +1645,7 @@ function CreateVRFDialog({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Production routing domain"
-              className="flex-1 px-3 py-1.5 bg-[#0f2023] border border-[#1e3a40] rounded text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-cyan-500"
+              className="flex-1 px-3 py-1.5 bg-[#1a1814] border border-[#1e3a40] rounded text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-amber-500"
             />
           </div>
         </div>
@@ -1654,7 +1654,7 @@ function CreateVRFDialog({
           <button
             onClick={() => name.trim() && onCreate({ name: name.trim(), rd: rd || undefined, description: description || undefined })}
             disabled={!name.trim()}
-            className="px-3 py-1.5 text-sm bg-cyan-600 text-white rounded hover:bg-cyan-500 disabled:opacity-40"
+            className="px-3 py-1.5 text-sm bg-amber-600 text-white rounded hover:bg-amber-500 disabled:opacity-40"
           >Create</button>
         </div>
       </div>
@@ -1685,7 +1685,7 @@ function CreateAddressBlockDialog({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
       <div className="bg-[#132a2f] border border-[#1e3a40] rounded-lg p-6 w-[440px]">
         <h3 className="text-sm font-semibold text-slate-200 mb-4 flex items-center gap-2">
-          <span className="material-symbols-outlined text-lg text-cyan-400">grid_view</span>
+          <span className="material-symbols-outlined text-lg text-amber-400">grid_view</span>
           Create Address Block
         </h3>
         <div className="space-y-3">
@@ -1695,13 +1695,13 @@ function CreateAddressBlockDialog({
               value={cidr}
               onChange={(e) => setCidr(e.target.value)}
               placeholder="10.0.0.0/8"
-              className="flex-1 px-3 py-1.5 bg-[#0f2023] border border-[#1e3a40] rounded text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-cyan-500"
+              className="flex-1 px-3 py-1.5 bg-[#1a1814] border border-[#1e3a40] rounded text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-amber-500"
             />
           </div>
           {cidr && cidrInfo && (
-            <div className="ml-[92px] p-2 bg-[#0f2023] border border-[#1e3a40] rounded text-xs space-y-1">
+            <div className="ml-[92px] p-2 bg-[#1a1814] border border-[#1e3a40] rounded text-xs space-y-1">
               <div className="flex justify-between"><span className="text-slate-500">Network:</span><span className="font-mono text-slate-300">{cidrInfo.network}</span></div>
-              <div className="flex justify-between"><span className="text-slate-500">Hosts:</span><span className="font-mono text-cyan-300">{cidrInfo.hosts?.toLocaleString()}</span></div>
+              <div className="flex justify-between"><span className="text-slate-500">Hosts:</span><span className="font-mono text-amber-300">{cidrInfo.hosts?.toLocaleString()}</span></div>
             </div>
           )}
           {cidr && !cidrInfo && (
@@ -1712,7 +1712,7 @@ function CreateAddressBlockDialog({
             <select
               value={vrfId}
               onChange={(e) => setVrfId(e.target.value)}
-              className="flex-1 px-3 py-1.5 bg-[#0f2023] border border-[#1e3a40] rounded text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
+              className="flex-1 px-3 py-1.5 bg-[#1a1814] border border-[#1e3a40] rounded text-sm text-slate-200 focus:outline-none focus:border-amber-500"
             >
               <option value="">— Select VRF —</option>
               {vrfs.map((v) => (
@@ -1725,7 +1725,7 @@ function CreateAddressBlockDialog({
             <select
               value={siteId}
               onChange={(e) => setSiteId(e.target.value)}
-              className="flex-1 px-3 py-1.5 bg-[#0f2023] border border-[#1e3a40] rounded text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
+              className="flex-1 px-3 py-1.5 bg-[#1a1814] border border-[#1e3a40] rounded text-sm text-slate-200 focus:outline-none focus:border-amber-500"
             >
               <option value="">— Select site —</option>
               {sites.map((s) => (
@@ -1738,7 +1738,7 @@ function CreateAddressBlockDialog({
             <select
               value={rir}
               onChange={(e) => setRir(e.target.value)}
-              className="flex-1 px-3 py-1.5 bg-[#0f2023] border border-[#1e3a40] rounded text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
+              className="flex-1 px-3 py-1.5 bg-[#1a1814] border border-[#1e3a40] rounded text-sm text-slate-200 focus:outline-none focus:border-amber-500"
             >
               <option value="private">Private (RFC1918)</option>
               <option value="ARIN">ARIN</option>
@@ -1752,7 +1752,7 @@ function CreateAddressBlockDialog({
           <button
             onClick={() => cidr && cidrInfo && onCreate({ cidr, vrf_id: vrfId || undefined, site_id: siteId || undefined, rir })}
             disabled={!cidr || !cidrInfo}
-            className="px-3 py-1.5 text-sm bg-cyan-600 text-white rounded hover:bg-cyan-500 disabled:opacity-40"
+            className="px-3 py-1.5 text-sm bg-amber-600 text-white rounded hover:bg-amber-500 disabled:opacity-40"
           >Create</button>
         </div>
       </div>
@@ -1780,7 +1780,7 @@ function EditNodeDialog({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
       <div className="bg-[#132a2f] border border-[#1e3a40] rounded-lg p-6 w-[400px]">
         <h3 className="text-sm font-semibold text-slate-200 mb-4 flex items-center gap-2">
-          <span className="material-symbols-outlined text-lg text-cyan-400">{iconMap[nodeType] || 'edit'}</span>
+          <span className="material-symbols-outlined text-lg text-amber-400">{iconMap[nodeType] || 'edit'}</span>
           Edit {label}
         </h3>
         <div className="space-y-3">
@@ -1789,7 +1789,7 @@ function EditNodeDialog({
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="flex-1 px-3 py-1.5 bg-[#0f2023] border border-[#1e3a40] rounded text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-cyan-500"
+              className="flex-1 px-3 py-1.5 bg-[#1a1814] border border-[#1e3a40] rounded text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-amber-500"
             />
           </div>
         </div>
@@ -1798,7 +1798,7 @@ function EditNodeDialog({
           <button
             onClick={() => name.trim() && onSave({ name: name.trim() })}
             disabled={!name.trim()}
-            className="px-3 py-1.5 text-sm bg-cyan-600 text-white rounded hover:bg-cyan-500 disabled:opacity-40"
+            className="px-3 py-1.5 text-sm bg-amber-600 text-white rounded hover:bg-amber-500 disabled:opacity-40"
           >Save</button>
         </div>
       </div>

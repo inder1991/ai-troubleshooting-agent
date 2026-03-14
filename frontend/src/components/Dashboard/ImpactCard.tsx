@@ -36,11 +36,11 @@ const ImpactCard: React.FC<ImpactCardProps> = ({ blastRadius, severity }) => {
   return (
     <div className="space-y-2">
       <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mt-4 flex items-center gap-1.5">
-        <Shield className="w-3.5 h-3.5 text-[#07b6d5]" />
+        <Shield className="w-3.5 h-3.5 text-[#e09f3e]" />
         Impact Analysis
       </h4>
 
-      <div className="bg-[#1e2f33]/50 border border-[#224349] rounded-lg p-4">
+      <div className="bg-[#252118]/50 border border-[#3d3528] rounded-lg p-4">
         {/* Severity Badge */}
         <div className="flex items-center justify-between mb-4">
           <div
@@ -63,9 +63,9 @@ const ImpactCard: React.FC<ImpactCardProps> = ({ blastRadius, severity }) => {
 
         {/* Primary Service */}
         <div className="flex items-center justify-center mb-4">
-          <div className="flex items-center gap-2 bg-[#07b6d5]/10 border border-[#07b6d5]/30 rounded-lg px-3 py-2">
-            <Target className="w-4 h-4 text-[#07b6d5]" />
-            <span className="text-sm font-medium text-[#07b6d5]">
+          <div className="flex items-center gap-2 bg-[#e09f3e]/10 border border-[#e09f3e]/30 rounded-lg px-3 py-2">
+            <Target className="w-4 h-4 text-[#e09f3e]" />
+            <span className="text-sm font-medium text-[#e09f3e]">
               {blastRadius.primary_service}
             </span>
           </div>
@@ -141,7 +141,7 @@ const ImpactCard: React.FC<ImpactCardProps> = ({ blastRadius, severity }) => {
         )}
 
         {/* User Impact */}
-        <div className="flex items-center gap-2 pt-2 border-t border-[#224349]">
+        <div className="flex items-center gap-2 pt-2 border-t border-[#3d3528]">
           <Users className="w-3.5 h-3.5 text-gray-400" />
           <span className="text-xs text-gray-300">
             {blastRadius.estimated_user_impact}
@@ -150,7 +150,7 @@ const ImpactCard: React.FC<ImpactCardProps> = ({ blastRadius, severity }) => {
 
         {/* Business Impact */}
         {blastRadius.business_impact && blastRadius.business_impact.length > 0 && (
-          <div className="mt-3 pt-2 border-t border-[#224349]">
+          <div className="mt-3 pt-2 border-t border-[#3d3528]">
             <div className="flex items-center gap-1 mb-2">
               <Briefcase className="w-3.5 h-3.5 text-amber-400" />
               <span className="text-xs text-gray-400 uppercase tracking-wider font-semibold">
@@ -176,7 +176,7 @@ const ImpactCard: React.FC<ImpactCardProps> = ({ blastRadius, severity }) => {
 
         {/* Factors */}
         {Object.keys(severity.factors).length > 0 && (
-          <div className="mt-3 pt-2 border-t border-[#224349]">
+          <div className="mt-3 pt-2 border-t border-[#3d3528]">
             <div className="flex flex-wrap gap-2">
               {Object.entries(severity.factors).map(([key, value]) => (
                 <span

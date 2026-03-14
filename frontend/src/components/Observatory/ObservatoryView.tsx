@@ -72,11 +72,11 @@ const ObservatoryView: React.FC<ObservatoryViewProps> = ({ onOpenEditor }) => {
   }, []);
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden" style={{ backgroundColor: '#0f2023' }}>
+    <div className="flex-1 flex flex-col overflow-hidden" style={{ backgroundColor: '#1a1814' }}>
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: '#224349' }}>
+      <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: '#3d3528' }}>
         <div className="flex items-center gap-3">
-          <span className="material-symbols-outlined text-2xl" style={{ color: '#07b6d5' }}>
+          <span className="material-symbols-outlined text-2xl" style={{ color: '#e09f3e' }}>
             monitoring
           </span>
           <h1 className="text-xl font-bold text-white">Network Observatory</h1>
@@ -90,7 +90,7 @@ const ObservatoryView: React.FC<ObservatoryViewProps> = ({ onOpenEditor }) => {
                 onClick={() => setActiveTab(tab.id)}
                 className="px-4 py-1.5 rounded-md text-sm font-medium transition-colors relative"
                 style={activeTab === tab.id
-                  ? { backgroundColor: 'rgba(7,182,213,0.15)', color: '#07b6d5' }
+                  ? { backgroundColor: 'rgba(224,159,62,0.15)', color: '#e09f3e' }
                   : { color: '#64748b' }
                 }
               >
@@ -122,8 +122,8 @@ const ObservatoryView: React.FC<ObservatoryViewProps> = ({ onOpenEditor }) => {
             </button>
             {bellOpen && (
               <div className="absolute right-0 top-full mt-2 w-80 rounded-lg border shadow-xl z-50 overflow-hidden"
-                style={{ backgroundColor: '#0a1a1e', borderColor: '#224349' }}>
-                <div className="px-3 py-2 border-b text-xs font-mono font-bold" style={{ borderColor: '#224349', color: '#07b6d5' }}>
+                style={{ backgroundColor: '#0a1a1e', borderColor: '#3d3528' }}>
+                <div className="px-3 py-2 border-b text-xs font-mono font-bold" style={{ borderColor: '#3d3528', color: '#e09f3e' }}>
                   Recent Alerts
                 </div>
                 {(snapshot.alerts || []).length === 0 ? (
@@ -134,13 +134,13 @@ const ObservatoryView: React.FC<ObservatoryViewProps> = ({ onOpenEditor }) => {
                   (snapshot.alerts || []).slice(0, 5).map((alert) => (
                     <div key={alert.key} className="px-3 py-2 border-b text-xs font-mono"
                       style={{
-                        borderColor: '#224349',
+                        borderColor: '#3d3528',
                         opacity: alert.acknowledged ? 0.5 : 1,
                       }}>
                       <div className="flex items-center gap-2">
                         <span className="w-1.5 h-1.5 rounded-full inline-block"
-                          style={{ backgroundColor: alert.severity === 'critical' ? '#ef4444' : alert.severity === 'warning' ? '#f59e0b' : '#07b6d5' }} />
-                        <span style={{ color: '#e2e8f0' }}>{alert.rule_name}</span>
+                          style={{ backgroundColor: alert.severity === 'critical' ? '#ef4444' : alert.severity === 'warning' ? '#f59e0b' : '#e09f3e' }} />
+                        <span style={{ color: '#e8e0d4' }}>{alert.rule_name}</span>
                       </div>
                       <div className="mt-0.5 pl-3.5" style={{ color: '#64748b' }}>
                         {alert.entity_id}: {alert.metric}={alert.value.toFixed(1)}
@@ -151,7 +151,7 @@ const ObservatoryView: React.FC<ObservatoryViewProps> = ({ onOpenEditor }) => {
                 <button
                   onClick={() => { setActiveTab('alerts'); setBellOpen(false); }}
                   className="w-full px-3 py-2 text-xs font-mono text-center transition-colors"
-                  style={{ color: '#07b6d5' }}
+                  style={{ color: '#e09f3e' }}
                 >
                   View all alerts
                 </button>

@@ -18,7 +18,7 @@ const AdapterHealthBadge: React.FC<AdapterHealthBadgeProps> = ({ vendor, status 
   return (
     <span
       className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded font-mono text-xs"
-      style={{ backgroundColor: '#162a2e', color: '#e2e8f0' }}
+      style={{ backgroundColor: '#1e1b15', color: '#e8e0d4' }}
     >
       <span
         className="w-1.5 h-1.5 rounded-full flex-shrink-0"

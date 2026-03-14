@@ -43,7 +43,7 @@ class NDMErrorBoundary extends React.Component<Props, State> {
           >
             error
           </span>
-          <div style={{ fontSize: 14, fontWeight: 600, color: '#e2e8f0', marginBottom: 6 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: '#e8e0d4', marginBottom: 6 }}>
             {this.props.tabName} encountered an error
           </div>
           <div style={{ fontSize: 12, color: '#64748b', marginBottom: 16 }}>
@@ -54,9 +54,9 @@ class NDMErrorBoundary extends React.Component<Props, State> {
             style={{
               padding: '8px 20px',
               borderRadius: 6,
-              border: '1px solid rgba(7,182,213,0.3)',
-              background: 'rgba(7,182,213,0.1)',
-              color: '#07b6d5',
+              border: '1px solid rgba(224,159,62,0.3)',
+              background: 'rgba(224,159,62,0.1)',
+              color: '#e09f3e',
               fontSize: 13,
               fontWeight: 500,
               cursor: 'pointer',

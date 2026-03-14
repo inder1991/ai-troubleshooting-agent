@@ -18,8 +18,8 @@ const PromQLRunResult: React.FC<PromQLRunResultProps> = ({
   if (loading) {
     return (
       <div className="mt-2 space-y-1.5">
-        <div className="h-2 w-3/4 bg-cyan-500/20 rounded animate-pulse" />
-        <div className="h-2 w-1/2 bg-cyan-500/10 rounded animate-pulse" />
+        <div className="h-2 w-3/4 bg-amber-500/20 rounded animate-pulse" />
+        <div className="h-2 w-1/2 bg-amber-500/10 rounded animate-pulse" />
       </div>
     );
   }
@@ -35,7 +35,7 @@ const PromQLRunResult: React.FC<PromQLRunResultProps> = ({
   if (dataPoints.length === 0) return null;
 
   // Determine severity color from current value (heuristic)
-  const valueColor = 'text-cyan-400';
+  const valueColor = 'text-amber-400';
 
   return (
     <div className="mt-2 space-y-1.5">

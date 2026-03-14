@@ -1,12 +1,14 @@
 import React from 'react';
+import ExportMenu from './ExportMenu';
+
+type ExportFormat = 'png' | 'svg' | 'pdf' | 'json';
 
 interface TopologyToolbarProps {
   onSave: () => void;
-  onLoad: () => void;
-  onImportIPAM: () => void;
-  onAdapterStatus: () => void;
-  onRefreshFromKG: () => void;
-  onPromote?: () => void;
+  onExport?: (format: ExportFormat) => void;
+  onDesigns: () => void;
+  onTracePath: () => void;
+  onApply?: () => void;
   onUndo?: () => void;
   onRedo?: () => void;
   onDeleteSelected?: () => void;
@@ -14,18 +16,28 @@ interface TopologyToolbarProps {
   canRedo?: boolean;
   hasSelection?: boolean;
   saving?: boolean;
-  loading?: boolean;
-  refreshing?: boolean;
-  promoting?: boolean;
+  applying?: boolean;
+  tracePathActive?: boolean;
+  designName?: string;
 }
+
+/* ── shared style tokens ─────────────────────────────────── */
+const BTN =
+  'flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-mono font-medium border transition-colors disabled:opacity-30 disabled:cursor-not-allowed';
+const BTN_BG = { backgroundColor: '#1e1b15', borderColor: '#3d3528', color: '#e8e0d4' };
+const BTN_HOVER = 'hover:border-[#e09f3e]/40';
+const ICON = 'material-symbols-outlined';
+const ICON_SIZE = { fontSize: 15 };
+const ICON_COLOR = { ...ICON_SIZE, color: '#e09f3e' };
+const DIVIDER = 'w-px h-5 mx-1';
+const DIVIDER_BG = { backgroundColor: '#3d3528' };
 
 const TopologyToolbar: React.FC<TopologyToolbarProps> = ({
   onSave,
-  onLoad,
-  onImportIPAM,
-  onAdapterStatus,
-  onRefreshFromKG,
-  onPromote,
+  onExport,
+  onDesigns,
+  onTracePath,
+  onApply,
   onUndo,
   onRedo,
   onDeleteSelected,
@@ -33,47 +45,35 @@ const TopologyToolbar: React.FC<TopologyToolbarProps> = ({
   canRedo,
   hasSelection,
   saving,
-  loading,
-  refreshing,
-  promoting,
+  applying,
+  tracePathActive,
+  designName,
 }) => {
-  const buttons: { label: string; icon: string; onClick: () => void; disabled?: boolean }[] = [
-    { label: saving ? 'Saving...' : 'Save', icon: 'save', onClick: onSave, disabled: saving },
-    { label: loading ? 'Loading...' : 'Load', icon: 'folder_open', onClick: onLoad, disabled: loading },
-    { label: refreshing ? 'Refreshing...' : 'Refresh from KG', icon: 'sync', onClick: onRefreshFromKG, disabled: refreshing },
-    { label: 'Import IPAM', icon: 'upload_file', onClick: onImportIPAM },
-    { label: 'Adapter Status', icon: 'hub', onClick: onAdapterStatus },
-  ];
-
   return (
     <div
-      className="flex items-center gap-2 px-4 py-2 border-b"
-      style={{ backgroundColor: '#0f2023', borderColor: '#224349' }}
+      className="flex items-center gap-1.5 px-4 py-2 border-b"
+      style={{ backgroundColor: '#1a1814', borderColor: '#3d3528' }}
     >
-      <span
-        className="material-symbols-outlined text-lg mr-2"
-        style={{ fontFamily: 'Material Symbols Outlined', color: '#07b6d5' }}
-      >
+      {/* ── Title ───────────────────────────────────────── */}
+      <span className={ICON} style={{ ...ICON_SIZE, color: '#e09f3e', marginRight: 4 }}>
         device_hub
       </span>
-      <span className="text-sm font-mono font-semibold mr-4" style={{ color: '#e2e8f0' }}>
+      <span className="text-[12px] font-mono font-semibold mr-3" style={{ color: '#e8e0d4' }}>
         Topology Editor
       </span>
 
-      {/* Undo / Redo / Delete */}
-      <div className="w-px h-5 mx-1" style={{ backgroundColor: '#224349' }} />
+      {/* ── Group 1: Edit ────────────────────────────────── */}
+      <div className={DIVIDER} style={DIVIDER_BG} />
 
       {onUndo && (
         <button
           onClick={onUndo}
           disabled={!canUndo}
           title="Undo (Ctrl+Z)"
-          className="flex items-center gap-1 px-2 py-1.5 rounded text-xs font-mono border transition-colors hover:border-[#07b6d5]/40 disabled:opacity-30 disabled:cursor-not-allowed"
-          style={{ backgroundColor: '#162a2e', borderColor: '#224349', color: '#e2e8f0' }}
+          className={`${BTN} ${BTN_HOVER}`}
+          style={BTN_BG}
         >
-          <span className="material-symbols-outlined text-sm" style={{ fontFamily: 'Material Symbols Outlined', color: '#07b6d5' }}>
-            undo
-          </span>
+          <span className={ICON} style={ICON_COLOR}>undo</span>
         </button>
       )}
 
@@ -82,12 +82,10 @@ const TopologyToolbar: React.FC<TopologyToolbarProps> = ({
           onClick={onRedo}
           disabled={!canRedo}
           title="Redo (Ctrl+Shift+Z)"
-          className="flex items-center gap-1 px-2 py-1.5 rounded text-xs font-mono border transition-colors hover:border-[#07b6d5]/40 disabled:opacity-30 disabled:cursor-not-allowed"
-          style={{ backgroundColor: '#162a2e', borderColor: '#224349', color: '#e2e8f0' }}
+          className={`${BTN} ${BTN_HOVER}`}
+          style={BTN_BG}
         >
-          <span className="material-symbols-outlined text-sm" style={{ fontFamily: 'Material Symbols Outlined', color: '#07b6d5' }}>
-            redo
-          </span>
+          <span className={ICON} style={ICON_COLOR}>redo</span>
         </button>
       )}
 
@@ -96,61 +94,86 @@ const TopologyToolbar: React.FC<TopologyToolbarProps> = ({
           onClick={onDeleteSelected}
           disabled={!hasSelection}
           title="Delete selected (Del)"
-          className="flex items-center gap-1 px-2 py-1.5 rounded text-xs font-mono border transition-colors hover:border-red-500/40 disabled:opacity-30 disabled:cursor-not-allowed"
-          style={{ backgroundColor: '#162a2e', borderColor: '#224349', color: hasSelection ? '#ef4444' : '#e2e8f0' }}
+          className={`${BTN} hover:border-red-500/40`}
+          style={{
+            ...BTN_BG,
+            color: hasSelection ? '#ef4444' : '#e8e0d4',
+          }}
         >
-          <span className="material-symbols-outlined text-sm" style={{ fontFamily: 'Material Symbols Outlined', color: hasSelection ? '#ef4444' : '#07b6d5' }}>
+          <span className={ICON} style={{ ...ICON_SIZE, color: hasSelection ? '#ef4444' : '#e09f3e' }}>
             delete
           </span>
         </button>
       )}
 
-      <div className="w-px h-5 mx-1" style={{ backgroundColor: '#224349' }} />
+      {/* ── Group 2: File ────────────────────────────────── */}
+      <div className={DIVIDER} style={DIVIDER_BG} />
 
-      {buttons.map((btn) => (
+      <button
+        onClick={onSave}
+        disabled={saving}
+        title="Save design"
+        className={`${BTN} ${BTN_HOVER}`}
+        style={BTN_BG}
+      >
+        <span className={ICON} style={ICON_COLOR}>save</span>
+        {saving ? 'Saving…' : 'Save'}
+      </button>
+
+      {onExport && <ExportMenu onExport={onExport} />}
+
+      {/* ── Group 3: Navigate ────────────────────────────── */}
+      <div className={DIVIDER} style={DIVIDER_BG} />
+
+      <button
+        onClick={onDesigns}
+        title="Design Manager"
+        className={`${BTN} ${BTN_HOVER}`}
+        style={BTN_BG}
+      >
+        <span className={ICON} style={ICON_COLOR}>folder_open</span>
+        Designs
+      </button>
+
+      <button
+        onClick={onTracePath}
+        title="Trace Path"
+        className={`${BTN} ${BTN_HOVER}`}
+        style={{
+          ...BTN_BG,
+          ...(tracePathActive
+            ? { borderColor: '#e09f3e', color: '#e09f3e', backgroundColor: 'rgba(224,159,62,0.12)' }
+            : {}),
+        }}
+      >
+        <span className={ICON} style={ICON_COLOR}>route</span>
+        Trace Path
+      </button>
+
+      {/* ── Spacer ───────────────────────────────────────── */}
+      <div className="flex-1" />
+
+      {/* ── Primary CTA: Apply ───────────────────────────── */}
+      {onApply && (
         <button
-          key={btn.label}
-          onClick={btn.onClick}
-          disabled={btn.disabled}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono border transition-colors hover:border-[#07b6d5]/40 disabled:opacity-50 disabled:cursor-not-allowed"
+          onClick={onApply}
+          disabled={applying}
+          className={`${BTN} font-semibold disabled:opacity-50`}
           style={{
-            backgroundColor: '#162a2e',
-            borderColor: '#224349',
-            color: '#e2e8f0',
+            backgroundColor: 'rgba(34,197,94,0.15)',
+            color: '#22c55e',
+            borderColor: 'rgba(34,197,94,0.3)',
           }}
         >
-          <span
-            className="material-symbols-outlined text-sm"
-            style={{ fontFamily: 'Material Symbols Outlined', color: '#07b6d5' }}
-          >
-            {btn.icon}
+          <span className={ICON} style={{ ...ICON_SIZE, color: '#22c55e' }}>
+            {applying ? 'sync' : 'published_with_changes'}
           </span>
-          {btn.label}
+          {applying
+            ? 'Applying…'
+            : designName
+              ? 'Apply to Infrastructure'
+              : 'Promote to Infrastructure'}
         </button>
-      ))}
-
-      {onPromote && (
-        <>
-          <div className="w-px h-5 mx-1" style={{ backgroundColor: '#224349' }} />
-          <button
-            onClick={onPromote}
-            disabled={promoting}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{
-              backgroundColor: 'rgba(34,197,94,0.15)',
-              color: '#22c55e',
-              border: '1px solid rgba(34,197,94,0.3)',
-            }}
-          >
-            <span
-              className="material-symbols-outlined text-sm"
-              style={{ fontFamily: 'Material Symbols Outlined' }}
-            >
-              {promoting ? 'sync' : 'published_with_changes'}
-            </span>
-            {promoting ? 'Promoting...' : 'Promote to Infrastructure'}
-          </button>
-        </>
       )}
     </div>
   );

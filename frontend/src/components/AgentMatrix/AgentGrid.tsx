@@ -40,17 +40,17 @@ const AgentGrid: React.FC<AgentGridProps> = ({ agents, onSelectAgent }) => {
             <div className="flex items-center gap-3 mb-3">
               <span
                 className="material-symbols-outlined text-base"
-                style={{ fontFamily: 'Material Symbols Outlined', color: '#07b6d5' }}
+                style={{ color: '#e09f3e' }}
               >
                 {display.icon}
               </span>
-              <h2 className="text-xs font-mono font-semibold uppercase tracking-widest" style={{ color: '#94a3b8' }}>
+              <h2 className="text-xs font-mono font-semibold uppercase tracking-widest" style={{ color: '#8a7e6b' }}>
                 {display.label}
               </h2>
-              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded" style={{ backgroundColor: '#162a2e', color: '#64748b' }}>
+              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded" style={{ backgroundColor: '#1e1b15', color: '#64748b' }}>
                 {roleAgents.length}
               </span>
-              <div className="flex-1 h-px" style={{ backgroundColor: '#224349' }} />
+              <div className="flex-1 h-px" style={{ backgroundColor: '#3d3528' }} />
             </div>
 
             {/* Cards grid */}

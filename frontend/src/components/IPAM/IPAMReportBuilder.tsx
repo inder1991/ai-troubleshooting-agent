@@ -65,7 +65,7 @@ export default function IPAMReportBuilder() {
             key={rt.id}
             className={`p-3 rounded-lg cursor-pointer transition border ${
               selectedType === rt.id
-                ? 'bg-cyan-900/30 border-cyan-500/50'
+                ? 'bg-amber-900/30 border-amber-500/50'
                 : 'bg-gray-800/50 border-gray-700 hover:bg-gray-800'
             }`}
             onClick={() => { setSelectedType(rt.id); setData(null); }}
@@ -79,7 +79,7 @@ export default function IPAMReportBuilder() {
       <button
         onClick={handleGenerate}
         disabled={loading}
-        className="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-sm transition disabled:opacity-50"
+        className="px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-sm transition disabled:opacity-50"
       >
         {loading ? 'Generating...' : 'Generate Report'}
       </button>

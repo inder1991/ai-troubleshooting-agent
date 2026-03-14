@@ -140,11 +140,11 @@ const AISupervisor: React.FC<AISupervisorProps> = ({
   const toolCallCount = events.filter((e) => e.event_type === 'tool_call').length;
 
   return (
-    <div className="flex flex-col h-full bg-slate-900/20 border-r border-[#07b6d5]/10">
+    <div className="flex flex-col h-full bg-slate-900/20 border-r border-[#e09f3e]/10">
       {/* Header */}
       <div className="p-4 border-b border-primary/10 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-primary text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>psychology</span>
+          <span className="material-symbols-outlined text-primary text-sm">psychology</span>
           <h2 className="text-xs font-bold uppercase tracking-widest text-slate-400">AI Supervisor</h2>
         </div>
         <div className="flex items-center gap-2">
@@ -185,9 +185,9 @@ const AISupervisor: React.FC<AISupervisorProps> = ({
 
         {sending && (
           <div className="flex justify-start">
-            <div className="bg-[#07b6d5]/5 border border-[#07b6d5]/10 rounded-xl px-3 py-2">
+            <div className="bg-[#e09f3e]/5 border border-[#e09f3e]/10 rounded-xl px-3 py-2">
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-[#07b6d5] rounded-full animate-pulse" />
+                <div className="w-2 h-2 bg-[#e09f3e] rounded-full animate-pulse" />
                 <span className="text-xs text-slate-400">Thinking...</span>
               </div>
             </div>
@@ -222,7 +222,7 @@ const AISupervisor: React.FC<AISupervisorProps> = ({
             disabled={sending || !input.trim()}
             className="absolute bottom-2 right-2 p-1.5 bg-primary rounded-md text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-primary/80 transition-colors"
           >
-            <span className="material-symbols-outlined text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>send</span>
+            <span className="material-symbols-outlined text-sm">send</span>
           </button>
         </form>
       </div>
@@ -264,11 +264,11 @@ const PhaseChangeCard: React.FC<{ event: TaskEvent }> = ({ event }) => {
 
   return (
     <div className="flex items-center gap-3 py-2">
-      <div className="flex-1 h-px bg-gradient-to-r from-transparent via-[#07b6d5]/40 to-transparent" />
-      <span className="text-[10px] font-bold tracking-[0.2em] text-[#07b6d5]">
+      <div className="flex-1 h-px bg-gradient-to-r from-transparent via-[#e09f3e]/40 to-transparent" />
+      <span className="text-[10px] font-bold tracking-[0.2em] text-[#e09f3e]">
         {phaseName}
       </span>
-      <div className="flex-1 h-px bg-gradient-to-r from-transparent via-[#07b6d5]/40 to-transparent" />
+      <div className="flex-1 h-px bg-gradient-to-r from-transparent via-[#e09f3e]/40 to-transparent" />
     </div>
   );
 };
@@ -293,13 +293,11 @@ const FindingCard: React.FC<{ event: TaskEvent }> = ({ event }) => {
       >
         <span
           className={`material-symbols-outlined text-xs text-slate-400 transition-transform ${expanded ? 'rotate-90' : ''}`}
-          style={{ fontFamily: 'Material Symbols Outlined' }}
         >
           chevron_right
         </span>
         <span
           className={`material-symbols-outlined text-sm ${style.text}`}
-          style={{ fontFamily: 'Material Symbols Outlined' }}
         >
           {style.icon}
         </span>
@@ -343,7 +341,7 @@ const SummaryCard: React.FC<{ event: TaskEvent }> = ({ event }) => {
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className="bg-[#07b6d5]/5 border border-[#07b6d5]/20 rounded-lg overflow-hidden">
+    <div className="bg-[#e09f3e]/5 border border-[#e09f3e]/20 rounded-lg overflow-hidden">
       {/* L1: Agent name + confidence badge */}
       <button
         onClick={() => setExpanded(!expanded)}
@@ -352,22 +350,20 @@ const SummaryCard: React.FC<{ event: TaskEvent }> = ({ event }) => {
       >
         <span
           className={`material-symbols-outlined text-xs text-slate-400 transition-transform ${expanded ? 'rotate-90' : ''}`}
-          style={{ fontFamily: 'Material Symbols Outlined' }}
         >
           chevron_right
         </span>
         <span
-          className="material-symbols-outlined text-[#07b6d5] text-sm"
-          style={{ fontFamily: 'Material Symbols Outlined' }}
+          className="material-symbols-outlined text-[#e09f3e] text-sm"
         >
           check_circle
         </span>
-        <span className="text-[10px] font-bold uppercase tracking-wider text-[#07b6d5]">
+        <span className="text-[10px] font-bold uppercase tracking-wider text-[#e09f3e]">
           {event.agent_name.replace(/_/g, ' ')}
         </span>
         <div className="ml-auto flex items-center gap-2">
           {findingsCount > 0 && (
-            <span className="text-[10px] px-1.5 py-0.5 bg-[#07b6d5]/20 text-[#07b6d5] rounded">
+            <span className="text-[10px] px-1.5 py-0.5 bg-[#e09f3e]/20 text-[#e09f3e] rounded">
               {findingsCount} findings
             </span>
           )}
@@ -380,7 +376,7 @@ const SummaryCard: React.FC<{ event: TaskEvent }> = ({ event }) => {
       </button>
       {/* L2: Full message on expand */}
       {expanded && (
-        <div className="px-3 pb-3 border-t border-[#07b6d5]/10 pt-2">
+        <div className="px-3 pb-3 border-t border-[#e09f3e]/10 pt-2">
           <p className="text-xs text-slate-300 leading-relaxed">{event.message}</p>
         </div>
       )}
@@ -395,7 +391,6 @@ const StartedCard: React.FC<{ event: TaskEvent }> = ({ event }) => (
     <div className="w-6 h-6 rounded-md bg-blue-500/20 flex items-center justify-center">
       <span
         className="material-symbols-outlined text-blue-400 text-xs"
-        style={{ fontFamily: 'Material Symbols Outlined' }}
       >
         play_circle
       </span>
@@ -419,7 +414,6 @@ const AlertCard: React.FC<{ event: TaskEvent; variant: 'warning' | 'error' }> = 
       <div className="flex items-center gap-2">
         <span
           className={`material-symbols-outlined text-sm ${isError ? 'text-red-400' : 'text-amber-400'}`}
-          style={{ fontFamily: 'Material Symbols Outlined' }}
         >
           {isError ? 'error' : 'warning'}
         </span>
@@ -441,7 +435,6 @@ const SuccessCard: React.FC<{ event: TaskEvent }> = ({ event }) => (
   <div className="flex items-center gap-2 py-1">
     <span
       className="material-symbols-outlined text-green-400 text-sm"
-      style={{ fontFamily: 'Material Symbols Outlined' }}
     >
       check_circle
     </span>
@@ -464,7 +457,6 @@ const ToolCallGroupCard: React.FC<{ group: ToolCallGroup }> = ({ group }) => {
       >
         <span
           className={`material-symbols-outlined text-xs text-purple-400 transition-transform ${expanded ? 'rotate-90' : ''}`}
-          style={{ fontFamily: 'Material Symbols Outlined' }}
         >
           chevron_right
         </span>
@@ -508,7 +500,6 @@ const AttestationRequiredCard: React.FC<{ event: TaskEvent }> = ({ event }) => {
       >
         <span
           className={`material-symbols-outlined text-xs text-amber-400 transition-transform ${expanded ? 'rotate-90' : ''}`}
-          style={{ fontFamily: 'Material Symbols Outlined' }}
         >
           chevron_right
         </span>
@@ -540,14 +531,13 @@ const GenericLogEntry: React.FC<{ event: TaskEvent }> = ({ event }) => (
   <div className="font-mono text-[11px] flex items-start gap-2 py-0.5">
     <span
       className="material-symbols-outlined text-[14px] mt-0.5 text-slate-500"
-      style={{ fontFamily: 'Material Symbols Outlined' }}
     >
       search
     </span>
     <span className="text-slate-600 shrink-0 w-[60px]">
       {new Date(event.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
     </span>
-    <span className="text-[#07b6d5] shrink-0">{event.agent_name}</span>
+    <span className="text-[#e09f3e] shrink-0">{event.agent_name}</span>
     <span className="text-slate-400 truncate">{event.message}</span>
   </div>
 );
@@ -571,11 +561,11 @@ const ChatBubble: React.FC<{ message: ChatMessageType }> = ({ message }) => {
   return (
     <div className="space-y-2">
       <div className="flex items-start gap-3">
-        <div className="w-8 h-8 rounded-lg bg-[#07b6d5]/20 flex items-center justify-center shrink-0">
-          <span className="material-symbols-outlined text-primary text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>smart_toy</span>
+        <div className="w-8 h-8 rounded-lg bg-[#e09f3e]/20 flex items-center justify-center shrink-0">
+          <span className="material-symbols-outlined text-primary text-sm">smart_toy</span>
         </div>
         <div className="flex-1">
-          <div className="bg-[#07b6d5]/5 border border-[#07b6d5]/10 rounded-xl p-3 text-sm leading-relaxed text-slate-300">
+          <div className="bg-[#e09f3e]/5 border border-[#e09f3e]/10 rounded-xl p-3 text-sm leading-relaxed text-slate-300">
             <p className="whitespace-pre-wrap">{message.content}</p>
           </div>
           <p className="text-[10px] text-slate-600 mt-1">
@@ -610,16 +600,16 @@ const PatientZeroCard: React.FC<{ patientZero: PatientZero }> = ({ patientZero }
 const ReasoningChainCard: React.FC<{ chain: ReasoningChainStep[] }> = ({ chain }) => {
   if (!chain.length) return null;
   return (
-    <div className="bg-[#07b6d5]/5 border border-[#07b6d5]/15 rounded-lg overflow-hidden">
-      <div className="px-3 py-2 border-b border-[#07b6d5]/10 flex items-center gap-2">
-        <span className="material-symbols-outlined text-[#07b6d5] text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>psychology</span>
-        <span className="text-[10px] font-bold uppercase tracking-wider text-[#07b6d5]">AI Reasoning Chain</span>
+    <div className="bg-[#e09f3e]/5 border border-[#e09f3e]/15 rounded-lg overflow-hidden">
+      <div className="px-3 py-2 border-b border-[#e09f3e]/10 flex items-center gap-2">
+        <span className="material-symbols-outlined text-[#e09f3e] text-sm">psychology</span>
+        <span className="text-[10px] font-bold uppercase tracking-wider text-[#e09f3e]">AI Reasoning Chain</span>
       </div>
       <div className="p-3 space-y-2">
         {chain.map((step, i) => (
           <div key={i} className="flex gap-2">
-            <div className="w-5 h-5 rounded-full bg-[#07b6d5]/20 flex items-center justify-center shrink-0 mt-0.5">
-              <span className="text-[9px] font-bold text-[#07b6d5]">{step.step}</span>
+            <div className="w-5 h-5 rounded-full bg-[#e09f3e]/20 flex items-center justify-center shrink-0 mt-0.5">
+              <span className="text-[9px] font-bold text-[#e09f3e]">{step.step}</span>
             </div>
             <div>
               <p className="text-[11px] text-slate-300">{step.observation}</p>
@@ -641,17 +631,17 @@ const InferredDependenciesCard: React.FC<{ deps: InferredDependency[]; targetSer
   return (
     <div className="bg-slate-900/40 border border-slate-800 rounded-lg overflow-hidden">
       <div className="px-3 py-2 border-b border-slate-800 flex items-center gap-2 bg-slate-900/60">
-        <span className="material-symbols-outlined text-violet-400 text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>hub</span>
+        <span className="material-symbols-outlined text-violet-400 text-sm">hub</span>
         <span className="text-[10px] font-bold uppercase tracking-wider">Inferred Dependencies</span>
       </div>
       <div className="p-3 space-y-1.5">
         {deps.map((dep, i) => (
           <div key={i} className="flex items-center gap-2 text-[11px]">
-            <span className={`font-mono ${isTarget(dep.source) ? 'text-[#07b6d5] font-bold' : 'text-[#07b6d5]'}`}>
+            <span className={`font-mono ${isTarget(dep.source) ? 'text-[#e09f3e] font-bold' : 'text-[#e09f3e]'}`}>
               {dep.source}
             </span>
             {isTarget(dep.source) && (
-              <span className="text-[8px] px-1 py-0.5 rounded bg-[#07b6d5]/20 text-[#07b6d5] border border-[#07b6d5]/30 font-bold">TARGET</span>
+              <span className="text-[8px] px-1 py-0.5 rounded bg-[#e09f3e]/20 text-[#e09f3e] border border-[#e09f3e]/30 font-bold">TARGET</span>
             )}
             <span className="text-slate-600">{'\u2192'}</span>
             <span className="font-mono text-slate-300">{dep.target || dep.targets?.join(', ')}</span>

@@ -7,7 +7,7 @@ interface Props {
 
 const cards = [
   { key: 'total_ips' as const, label: 'Total IPs', icon: 'lan', color: 'text-slate-300' },
-  { key: 'assigned_ips' as const, label: 'Assigned', icon: 'check_circle', color: 'text-cyan-400' },
+  { key: 'assigned_ips' as const, label: 'Assigned', icon: 'check_circle', color: 'text-amber-400' },
   { key: 'available_ips' as const, label: 'Available', icon: 'radio_button_unchecked', color: 'text-emerald-400' },
   { key: 'reserved_ips' as const, label: 'Reserved', icon: 'lock', color: 'text-blue-400' },
   { key: 'deprecated_ips' as const, label: 'Deprecated', icon: 'do_not_disturb', color: 'text-slate-500' },

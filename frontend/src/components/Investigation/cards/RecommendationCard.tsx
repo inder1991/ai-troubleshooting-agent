@@ -70,7 +70,7 @@ const CommandBlock: React.FC<CommandBlockProps> = ({ step, showDryRun }) => {
         </pre>
         <button
           onClick={handleCopy}
-          className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition-opacity px-1.5 py-0.5 rounded text-[9px] bg-slate-800 text-slate-400 hover:text-cyan-400"
+          className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition-opacity px-1.5 py-0.5 rounded text-[9px] bg-slate-800 text-slate-400 hover:text-amber-400"
         >
           {copied ? 'Copied!' : 'Copy'}
         </button>
@@ -134,13 +134,13 @@ const RecommendationCard: React.FC<RecommendationCardProps> = ({ recommendation:
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowDryRun(true)}
-            className={`text-[9px] font-bold px-2 py-0.5 rounded transition-colors ${showDryRun ? 'bg-cyan-950/40 text-cyan-400 border border-cyan-700/40' : 'text-slate-500 hover:text-slate-300'}`}
+            className={`text-[9px] font-bold px-2 py-0.5 rounded transition-colors ${showDryRun ? 'bg-amber-950/40 text-amber-400 border border-amber-800/40' : 'text-slate-500 hover:text-slate-300'}`}
           >
             Dry Run
           </button>
           <button
             onClick={() => setShowDryRun(false)}
-            className={`text-[9px] font-bold px-2 py-0.5 rounded transition-colors ${!showDryRun ? 'bg-cyan-950/40 text-cyan-400 border border-cyan-700/40' : 'text-slate-500 hover:text-slate-300'}`}
+            className={`text-[9px] font-bold px-2 py-0.5 rounded transition-colors ${!showDryRun ? 'bg-amber-950/40 text-amber-400 border border-amber-800/40' : 'text-slate-500 hover:text-slate-300'}`}
           >
             Live
           </button>

@@ -40,7 +40,7 @@ export default function IPAMDHCPTab() {
         <h3 className="text-lg font-semibold text-white">DHCP Scopes</h3>
         <button
           onClick={() => setShowCreate(!showCreate)}
-          className="px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-sm transition"
+          className="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-sm transition"
         >
           {showCreate ? 'Cancel' : 'Add Scope'}
         </button>

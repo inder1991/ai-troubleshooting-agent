@@ -16,17 +16,17 @@ const ValidationPanel: React.FC<ValidationPanelProps> = ({ errors, onClickError,
   return (
     <div
       className="border-t p-3 overflow-y-auto"
-      style={{ backgroundColor: '#0f1a1e', borderColor: '#224349', maxHeight: '200px' }}
+      style={{ backgroundColor: '#0f1a1e', borderColor: '#3d3528', maxHeight: '200px' }}
     >
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <span
             className="material-symbols-outlined text-base"
-            style={{ fontFamily: 'Material Symbols Outlined', color: '#ef4444' }}
+            style={{ color: '#ef4444' }}
           >
             error
           </span>
-          <span className="text-xs font-mono font-semibold" style={{ color: '#e2e8f0' }}>
+          <span className="text-xs font-mono font-semibold" style={{ color: '#e8e0d4' }}>
             {errorCount > 0 && <span style={{ color: '#ef4444' }}>{errorCount} error{errorCount !== 1 ? 's' : ''}</span>}
             {errorCount > 0 && warnCount > 0 && ', '}
             {warnCount > 0 && <span style={{ color: '#f59e0b' }}>{warnCount} warning{warnCount !== 1 ? 's' : ''}</span>}
@@ -50,7 +50,6 @@ const ValidationPanel: React.FC<ValidationPanelProps> = ({ errors, onClickError,
           >
             <span
               className="material-symbols-outlined text-sm mt-0.5 flex-shrink-0"
-              style={{ fontFamily: 'Material Symbols Outlined' }}
             >
               {err.severity === 'error' ? 'cancel' : err.severity === 'warning' ? 'warning' : 'info'}
             </span>

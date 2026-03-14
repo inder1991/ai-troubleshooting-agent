@@ -62,7 +62,7 @@ export default function IPAMSubnetsTable({ subnets, onSelectSubnet, selectedSubn
           placeholder="Filter subnets..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="px-3 py-1 bg-[#0f2023] border border-[#1e3a40] rounded text-sm text-slate-200 placeholder-slate-500 w-56 focus:outline-none focus:border-cyan-500"
+          className="px-3 py-1 bg-[#1a1814] border border-[#1e3a40] rounded text-sm text-slate-200 placeholder-slate-500 w-56 focus:outline-none focus:border-amber-500"
         />
       </div>
       <div className="max-h-[280px] overflow-y-auto">
@@ -102,7 +102,7 @@ export default function IPAMSubnetsTable({ subnets, onSelectSubnet, selectedSubn
                     isSelected ? 'bg-[#1e3a40]/50' : ''
                   }`}
                 >
-                  <td className="py-2 px-3 font-mono text-cyan-300">{s.cidr}</td>
+                  <td className="py-2 px-3 font-mono text-amber-300">{s.cidr}</td>
                   <td className="py-2 px-3 text-slate-400">{s.region || s.site || '-'}</td>
                   <td className="py-2 px-3 text-slate-400">{s.zone_id || '-'}</td>
                   <td className="py-2 px-3 text-slate-400">{s.vlan_id || '-'}</td>

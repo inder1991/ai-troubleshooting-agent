@@ -60,7 +60,7 @@ export const NODE_COLORS: Record<NodeRole, { fill: string; stroke: string }> = {
   patient_zero: { fill: '#7f1d1d', stroke: '#ef4444' },
   upstream: { fill: '#431407', stroke: '#f97316' },
   downstream: { fill: '#1e3a5f', stroke: '#3b82f6' },
-  normal: { fill: '#0f3443', stroke: '#06b6d4' },
+  normal: { fill: '#0f3443', stroke: '#d4922e' },
 };
 
 export const EDGE_COLORS: Record<EdgeType, { stroke: string; width: number; opacity: number }> = {

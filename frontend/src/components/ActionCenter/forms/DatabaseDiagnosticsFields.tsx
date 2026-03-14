@@ -25,7 +25,7 @@ const FOCUS_OPTIONS: { value: DatabaseDiagnosticsForm['focus'][number]; label: s
 ];
 
 const inputClass =
-  'w-full rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-gray-600 bg-[#0f2023] border border-[#224349] focus:border-[#07b6d5] focus:ring-1 focus:ring-[#07b6d5]/30 outline-none transition-colors';
+  'w-full rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-gray-600 bg-[#1a1814] border border-[#3d3528] focus:border-[#e09f3e] focus:ring-1 focus:ring-[#e09f3e]/30 outline-none transition-colors';
 
 const DatabaseDiagnosticsFields: React.FC<DatabaseDiagnosticsFieldsProps> = ({
   data,

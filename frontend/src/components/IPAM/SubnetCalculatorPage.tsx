@@ -68,7 +68,7 @@ export default function SubnetCalculatorPage() {
             value={cidr}
             onChange={e => setCidr(e.target.value)}
             placeholder="e.g., 192.168.1.0/24"
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-lg text-white font-mono focus:outline-none focus:border-cyan-500"
+            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-lg text-white font-mono focus:outline-none focus:border-amber-500"
           />
         </div>
       </div>
@@ -98,7 +98,7 @@ export default function SubnetCalculatorPage() {
             <div className="space-y-1">
               <div className="flex gap-2 items-center">
                 <span className="text-gray-400 text-xs w-16">Network:</span>
-                <span className="text-cyan-400 font-mono text-xs">{info.networkBinary}</span>
+                <span className="text-amber-400 font-mono text-xs">{info.networkBinary}</span>
               </div>
               <div className="flex gap-2 items-center">
                 <span className="text-gray-400 text-xs w-16">Mask:</span>
@@ -142,7 +142,7 @@ export default function SubnetCalculatorPage() {
                     {splitResults.map((r, i) => (
                       <tr key={i} className="hover:bg-gray-800/50">
                         <td className="px-3 py-1.5 text-gray-500">{i + 1}</td>
-                        <td className="px-3 py-1.5 text-cyan-400 font-mono">{r.cidr}</td>
+                        <td className="px-3 py-1.5 text-amber-400 font-mono">{r.cidr}</td>
                         <td className="px-3 py-1.5 text-gray-300 font-mono">{r.network}</td>
                         <td className="px-3 py-1.5 text-gray-300 font-mono">{r.broadcast}</td>
                         <td className="px-3 py-1.5 text-gray-300">{r.hosts}</td>

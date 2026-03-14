@@ -4,7 +4,7 @@ type AgentCode = 'L' | 'M' | 'K' | 'C' | 'D';
 
 const agentStyles: Record<AgentCode, { border: string; bg: string; label: string }> = {
   L: { border: 'card-border-L', bg: 'bg-red-500/10', label: 'Log Analyzer' },
-  M: { border: 'card-border-M', bg: 'bg-cyan-500/10', label: 'Metric Scanner' },
+  M: { border: 'card-border-M', bg: 'bg-amber-500/10', label: 'Metric Scanner' },
   K: { border: 'card-border-K', bg: 'bg-orange-500/10', label: 'K8s Probe' },
   C: { border: 'card-border-C', bg: 'bg-emerald-500/10', label: 'Change Intel' },
   D: { border: 'card-border-D', bg: 'bg-blue-500/10', label: 'Code Navigator' },
@@ -12,7 +12,7 @@ const agentStyles: Record<AgentCode, { border: string; bg: string; label: string
 
 const badgeColor: Record<AgentCode, string> = {
   L: 'bg-red-500 text-white',
-  M: 'bg-cyan-500 text-white',
+  M: 'bg-amber-500 text-white',
   K: 'bg-orange-500 text-white',
   C: 'bg-emerald-500 text-white',
   D: 'bg-blue-500 text-white',

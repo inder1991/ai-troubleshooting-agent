@@ -12,7 +12,7 @@ const TYPE_STYLES: Record<ToastType, { bg: string; border: string; icon: string;
   success: { bg: 'rgba(34,197,94,0.12)', border: 'rgba(34,197,94,0.3)', icon: 'check_circle', color: '#22c55e' },
   error:   { bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.3)', icon: 'error', color: '#ef4444' },
   warning: { bg: 'rgba(245,158,11,0.12)', border: 'rgba(245,158,11,0.3)', icon: 'warning', color: '#f59e0b' },
-  info:    { bg: 'rgba(7,182,213,0.12)', border: 'rgba(7,182,213,0.3)', icon: 'info', color: '#07b6d5' },
+  info:    { bg: 'rgba(224,159,62,0.12)', border: 'rgba(224,159,62,0.3)', icon: 'info', color: '#e09f3e' },
 };
 
 let globalAddToast: ((message: string, type?: ToastType) => void) | null = null;
@@ -58,7 +58,7 @@ export const ToastContainer: React.FC = () => {
             <span className="material-symbols-outlined" style={{ fontSize: 18, color: style.color, flexShrink: 0, marginTop: 1 }}>
               {style.icon}
             </span>
-            <span style={{ fontSize: 13, color: '#e2e8f0', lineHeight: 1.4, whiteSpace: 'pre-line' }}>
+            <span style={{ fontSize: 13, color: '#e8e0d4', lineHeight: 1.4, whiteSpace: 'pre-line' }}>
               {toast.message}
             </span>
             <button

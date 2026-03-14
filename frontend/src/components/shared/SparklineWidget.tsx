@@ -2,14 +2,14 @@ import React, { useMemo } from 'react';
 
 interface SparklineWidgetProps {
   data: number[];
-  color?: 'cyan' | 'green' | 'amber' | 'red' | 'slate';
+  color?: 'gold' | 'green' | 'amber' | 'red' | 'slate';
   width?: number | string;
   height?: number;
   strokeWidth?: number;
 }
 
 const colorMap: Record<string, string> = {
-  cyan: '#07b6d5',
+  gold: '#e09f3e',
   green: '#22c55e',
   amber: '#f59e0b',
   red: '#ef4444',
@@ -18,7 +18,7 @@ const colorMap: Record<string, string> = {
 
 export const SparklineWidget: React.FC<SparklineWidgetProps> = ({
   data,
-  color = 'cyan',
+  color = 'gold',
   width = '100%',
   height = 32,
   strokeWidth = 2,
@@ -51,7 +51,7 @@ export const SparklineWidget: React.FC<SparklineWidgetProps> = ({
     >
       <polyline
         fill="none"
-        stroke={colorMap[color] || colorMap.cyan}
+        stroke={colorMap[color] || colorMap.gold}
         strokeWidth={strokeWidth}
         strokeLinecap="round"
         strokeLinejoin="round"

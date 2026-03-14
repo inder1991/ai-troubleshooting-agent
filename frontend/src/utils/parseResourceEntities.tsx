@@ -33,13 +33,13 @@ const ResourceEntityInline: React.FC<ResourceEntityInlineProps> = ({ kind, name,
     <button
       type="button"
       onClick={() => onClick?.(kind, name, namespace)}
-      className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-cyan-400
-                 border-b border-dashed border-cyan-500/40 hover:bg-cyan-950/30
-                 hover:border-cyan-400/60 transition-colors cursor-pointer"
+      className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-amber-400
+                 border-b border-dashed border-amber-500/40 hover:bg-amber-950/30
+                 hover:border-amber-400/60 transition-colors cursor-pointer"
       title={`${kind}: ${namespace ? `${namespace}/` : ''}${name}`}
     >
       <span
-        className="text-[11px] text-cyan-500/80"
+        className="text-[11px] text-amber-500/80"
         style={{ fontFamily: 'Material Symbols Outlined' }}
       >
         {icon}

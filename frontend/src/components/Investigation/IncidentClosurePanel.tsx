@@ -128,7 +128,7 @@ const IncidentClosurePanel: React.FC<IncidentClosurePanelProps> = ({
       <div className="bg-slate-900/40 border border-slate-800 rounded-xl overflow-hidden">
         {/* Header */}
         <div className="px-4 py-2.5 border-b border-slate-800 bg-slate-900/60 flex items-center gap-2">
-          <span className="material-symbols-outlined text-violet-400 text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>
+          <span className="material-symbols-outlined text-violet-400 text-sm">
             verified_user
           </span>
           <span className="text-[11px] font-bold uppercase tracking-wider text-violet-400">
@@ -149,7 +149,7 @@ const IncidentClosurePanel: React.FC<IncidentClosurePanelProps> = ({
           {/* Phase gate warning — investigation may still be in progress */}
           {phase && !['diagnosis_complete', 'fix_in_progress', 'fix_complete', 'closed'].includes(phase) && (
             <div className="text-[10px] text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded px-3 py-1.5 flex items-center gap-2">
-              <span className="material-symbols-outlined text-[12px]" style={{ fontFamily: 'Material Symbols Outlined' }}>warning</span>
+              <span className="material-symbols-outlined text-[12px]">warning</span>
               Investigation still in progress — dossier data may be incomplete.
             </div>
           )}
@@ -169,7 +169,7 @@ const IncidentClosurePanel: React.FC<IncidentClosurePanelProps> = ({
                   href={findings.fix_data.pr_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-[#07b6d5] hover:underline font-mono"
+                  className="text-[#e09f3e] hover:underline font-mono"
                 >
                   {findings.fix_data.pr_url.split('/').pop()}
                 </a>
@@ -208,7 +208,7 @@ const IncidentClosurePanel: React.FC<IncidentClosurePanelProps> = ({
                         href={closureState.jira_result.issue_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-[#07b6d5] hover:underline"
+                        className="text-[#e09f3e] hover:underline"
                       >
                         Open
                       </a>
@@ -283,7 +283,7 @@ const IncidentClosurePanel: React.FC<IncidentClosurePanelProps> = ({
                         href={closureState.remedy_result.incident_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-[#07b6d5] hover:underline"
+                        className="text-[#e09f3e] hover:underline"
                       >
                         Open
                       </a>
@@ -323,7 +323,7 @@ const IncidentClosurePanel: React.FC<IncidentClosurePanelProps> = ({
                       href={closureState.confluence_result.page_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-[#07b6d5] hover:underline"
+                      className="text-[#e09f3e] hover:underline"
                     >
                       View Page
                     </a>

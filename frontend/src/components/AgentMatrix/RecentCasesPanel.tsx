@@ -10,7 +10,7 @@ const STATUS_STYLES: Record<string, { color: string; bg: string }> = {
   SUCCESS: { color: '#22c55e', bg: 'rgba(34,197,94,0.1)' },
   FAILED: { color: '#ef4444', bg: 'rgba(239,68,68,0.1)' },
   TIMEOUT: { color: '#f59e0b', bg: 'rgba(245,158,11,0.1)' },
-  RUNNING: { color: '#07b6d5', bg: 'rgba(7,182,213,0.1)' },
+  RUNNING: { color: '#e09f3e', bg: 'rgba(224,159,62,0.1)' },
 };
 
 function relativeTime(ts: string): string {
@@ -28,7 +28,7 @@ const RecentCasesPanel: React.FC<RecentCasesPanelProps> = ({ executions, isLoadi
   const cases = executions.slice(0, 5);
 
   return (
-    <div className="rounded-lg border p-4" style={{ backgroundColor: '#0a1214', borderColor: '#224349' }}>
+    <div className="rounded-lg border p-4" style={{ backgroundColor: '#0a1214', borderColor: '#3d3528' }}>
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-xs font-mono uppercase tracking-widest" style={{ color: '#64748b' }}>
           Recent Cases
@@ -42,7 +42,7 @@ const RecentCasesPanel: React.FC<RecentCasesPanelProps> = ({ executions, isLoadi
         <div className="flex items-center gap-2 py-6 justify-center">
           <div
             className="w-4 h-4 rounded-full border-2 border-t-transparent animate-spin"
-            style={{ borderColor: '#07b6d5', borderTopColor: 'transparent' }}
+            style={{ borderColor: '#e09f3e', borderTopColor: 'transparent' }}
           />
           <span className="text-xs font-mono" style={{ color: '#475569' }}>Loading cases...</span>
         </div>
@@ -52,7 +52,7 @@ const RecentCasesPanel: React.FC<RecentCasesPanelProps> = ({ executions, isLoadi
         <div className="flex flex-col items-center gap-2 py-6">
           <span
             className="material-symbols-outlined text-2xl"
-            style={{ fontFamily: 'Material Symbols Outlined', color: '#1e3a3e' }}
+            style={{ color: '#1e3a3e' }}
           >
             folder_off
           </span>
@@ -68,7 +68,7 @@ const RecentCasesPanel: React.FC<RecentCasesPanelProps> = ({ executions, isLoadi
               <div
                 key={`${exec.session_id}-${i}`}
                 className="flex items-start gap-3 rounded-lg px-3 py-2.5 border"
-                style={{ backgroundColor: '#162a2e', borderColor: '#1e3a3e' }}
+                style={{ backgroundColor: '#1e1b15', borderColor: '#1e3a3e' }}
               >
                 {/* Status badge */}
                 <span

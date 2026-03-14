@@ -53,12 +53,12 @@ const DiscoveryConfigForm: React.FC<DiscoveryConfigFormProps> = ({ onSuccess, on
   };
 
   const inputStyle: React.CSSProperties = {
-    width: '100%', padding: '8px 12px', background: 'rgba(7,182,213,0.06)',
-    border: '1px solid rgba(7,182,213,0.2)', borderRadius: 6, color: '#e2e8f0',
+    width: '100%', padding: '8px 12px', background: 'rgba(224,159,62,0.06)',
+    border: '1px solid rgba(224,159,62,0.2)', borderRadius: 6, color: '#e8e0d4',
     fontSize: 13, outline: 'none',
   };
   const labelStyle: React.CSSProperties = {
-    display: 'block', fontSize: 12, color: '#94a3b8', marginBottom: 4, fontWeight: 500,
+    display: 'block', fontSize: 12, color: '#8a7e6b', marginBottom: 4, fontWeight: 500,
   };
 
   return (
@@ -135,7 +135,7 @@ const DiscoveryConfigForm: React.FC<DiscoveryConfigFormProps> = ({ onSuccess, on
           <label style={labelStyle}>Tags (comma-separated)</label>
           <input style={inputStyle} value={tags} onChange={e => setTags(e.target.value)} placeholder="site:dc1, env:prod" />
         </div>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#94a3b8', cursor: 'pointer', paddingBottom: 8 }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#8a7e6b', cursor: 'pointer', paddingBottom: 8 }}>
           <input type="checkbox" checked={pingEnabled} onChange={e => setPingEnabled(e.target.checked)} />
           Ping enabled
         </label>
@@ -146,11 +146,11 @@ const DiscoveryConfigForm: React.FC<DiscoveryConfigFormProps> = ({ onSuccess, on
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
         <button type="button" onClick={onCancel} style={{
           padding: '8px 16px', background: 'transparent', border: '1px solid rgba(148,163,184,0.3)',
-          borderRadius: 6, color: '#94a3b8', cursor: 'pointer', fontSize: 13,
+          borderRadius: 6, color: '#8a7e6b', cursor: 'pointer', fontSize: 13,
         }}>Cancel</button>
         <button type="submit" disabled={submitting} style={{
-          padding: '8px 16px', background: '#07b6d5', border: 'none',
-          borderRadius: 6, color: '#0f2023', cursor: 'pointer', fontSize: 13, fontWeight: 600,
+          padding: '8px 16px', background: '#e09f3e', border: 'none',
+          borderRadius: 6, color: '#1a1814', cursor: 'pointer', fontSize: 13, fontWeight: 600,
           opacity: submitting ? 0.6 : 1,
         }}>{submitting ? 'Adding...' : 'Add Network'}</button>
       </div>

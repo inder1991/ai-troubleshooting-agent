@@ -11,12 +11,12 @@ mermaid.initialize({
   themeVariables: {
     background: 'transparent',
     primaryColor: '#0f172a',
-    primaryBorderColor: '#07b6d5',
+    primaryBorderColor: '#e09f3e',
     primaryTextColor: '#e5e7eb',
     secondaryColor: '#1e293b',
     secondaryBorderColor: '#22c55e',
     secondaryTextColor: '#e5e7eb',
-    lineColor: '#94a3b8',
+    lineColor: '#8a7e6b',
     edgeLabelBackground: '#020617',
     fontFamily: 'JetBrains Mono, monospace',
     fontSize: '14px',
@@ -127,7 +127,7 @@ export const MermaidChart: React.FC<{ chart: string }> = ({ chart }) => {
             exit={{ opacity: 0 }}
             className="absolute inset-0 flex items-center justify-center"
           >
-            <Loader2 className="w-6 h-6 text-cyan-400 animate-spin" />
+            <Loader2 className="w-6 h-6 text-amber-400 animate-spin" />
           </motion.div>
         )}
 
@@ -142,7 +142,7 @@ export const MermaidChart: React.FC<{ chart: string }> = ({ chart }) => {
             {rawFallback ? (
               <div>
                 <div className="text-[10px] text-amber-400 mb-2 flex items-center gap-1.5">
-                  <span className="material-symbols-outlined text-[12px]" style={{ fontFamily: 'Material Symbols Outlined' }}>warning</span>
+                  <span className="material-symbols-outlined text-[12px]">warning</span>
                   Diagram rendered as text (parse error)
                 </div>
                 <pre className="text-[10px] text-slate-400 font-mono whitespace-pre-wrap leading-relaxed bg-slate-900/60 rounded-lg p-3 border border-slate-800">

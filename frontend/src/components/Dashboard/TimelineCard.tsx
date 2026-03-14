@@ -43,7 +43,7 @@ const TimelineCard: React.FC<TimelineCardProps> = ({ events }) => {
   return (
     <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
       <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
-        <span className="w-2 h-2 rounded-full bg-cyan-500" />
+        <span className="w-2 h-2 rounded-full bg-amber-500" />
         Incident Timeline
       </h3>
 

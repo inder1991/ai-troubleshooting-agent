@@ -13,14 +13,14 @@ const AgentMatrixFooter: React.FC<AgentMatrixFooterProps> = ({ summary }) => {
   return (
     <footer
       className="flex items-center justify-between px-8 py-3 border-t text-[11px] font-mono"
-      style={{ borderColor: '#224349', backgroundColor: '#0a1214' }}
+      style={{ borderColor: '#3d3528', backgroundColor: '#0a1214' }}
     >
       <div className="flex items-center gap-6">
         <span style={{ color: '#64748b' }}>
           TOTAL <span className="text-white font-semibold">{summary.total}</span>
         </span>
         <span style={{ color: '#64748b' }}>
-          ACTIVE <span style={{ color: '#07b6d5' }} className="font-semibold">{summary.active}</span>
+          ACTIVE <span style={{ color: '#e09f3e' }} className="font-semibold">{summary.active}</span>
         </span>
         {summary.degraded > 0 && (
           <span style={{ color: '#64748b' }}>
@@ -36,16 +36,16 @@ const AgentMatrixFooter: React.FC<AgentMatrixFooterProps> = ({ summary }) => {
 
       <div className="flex items-center gap-2">
         <span style={{ color: '#64748b' }}>NEURAL SYNC</span>
-        <div className="w-20 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: '#162a2e' }}>
+        <div className="w-20 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: '#1e1b15' }}>
           <div
             className="h-full rounded-full transition-all duration-500"
             style={{
               width: `${syncPct}%`,
-              backgroundColor: syncPct === 100 ? '#07b6d5' : syncPct >= 80 ? '#f59e0b' : '#ef4444',
+              backgroundColor: syncPct === 100 ? '#e09f3e' : syncPct >= 80 ? '#f59e0b' : '#ef4444',
             }}
           />
         </div>
-        <span style={{ color: syncPct === 100 ? '#07b6d5' : '#f59e0b' }} className="font-semibold">
+        <span style={{ color: syncPct === 100 ? '#e09f3e' : '#f59e0b' }} className="font-semibold">
           {syncPct}%
         </span>
       </div>

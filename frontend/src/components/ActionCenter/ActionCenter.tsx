@@ -21,7 +21,7 @@ const capabilities: {
     title: 'Troubleshoot',
     description: 'Scan logs and metrics for anomalies across microservices',
     icon: Search,
-    color: '#07b6d5',
+    color: '#e09f3e',
   },
   {
     type: 'pr_review',
@@ -87,7 +87,7 @@ const ActionCenter: React.FC<ActionCenterProps> = ({
         {/* Live Intelligence Feed */}
         <div>
           <div className="flex items-center gap-2 mb-4">
-            <Activity className="w-4 h-4 text-[#07b6d5]" />
+            <Activity className="w-4 h-4 text-[#e09f3e]" />
             <h2 className="text-sm font-semibold text-white">Live Intelligence Feed</h2>
             <span className="text-xs text-gray-500">
               {sessions.length} session{sessions.length !== 1 ? 's' : ''}
@@ -95,7 +95,7 @@ const ActionCenter: React.FC<ActionCenterProps> = ({
           </div>
 
           {sessions.length === 0 ? (
-            <div className="bg-[#1e2f33]/30 border border-[#224349] rounded-xl p-8 text-center">
+            <div className="bg-[#252118]/30 border border-[#3d3528] rounded-xl p-8 text-center">
               <p className="text-gray-500 text-sm">No active sessions. Launch a capability to begin.</p>
             </div>
           ) : (
@@ -104,11 +104,11 @@ const ActionCenter: React.FC<ActionCenterProps> = ({
                 <button
                   key={session.session_id}
                   onClick={() => onSelectSession(session)}
-                  className="w-full text-left bg-[#1e2f33]/30 border border-[#224349] rounded-lg p-3 hover:border-[#07b6d5]/30 transition-colors group"
+                  className="w-full text-left bg-[#252118]/30 border border-[#3d3528] rounded-lg p-3 hover:border-[#e09f3e]/30 transition-colors group"
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 rounded-full bg-[#07b6d5] animate-pulse" />
+                      <div className="w-2 h-2 rounded-full bg-[#e09f3e] animate-pulse" />
                       <span className="text-sm text-white font-medium">
                         {session.service_name}
                       </span>
@@ -121,7 +121,7 @@ const ActionCenter: React.FC<ActionCenterProps> = ({
                         {session.status.replace(/_/g, ' ')}
                       </span>
                       {session.confidence > 0 && (
-                        <span className="text-xs text-[#07b6d5] font-mono">
+                        <span className="text-xs text-[#e09f3e] font-mono">
                           {Math.round(session.confidence)}%
                         </span>
                       )}

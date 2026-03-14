@@ -13,7 +13,7 @@ const resourceTypes = ['All Resources', 'Pods', 'Deployments', 'Services', 'Stat
 
 const envBadge: Record<string, string> = {
   prod: 'text-red-400',
-  staging: 'text-[#07b6d5]',
+  staging: 'text-[#e09f3e]',
   dev: 'text-emerald-400',
 };
 
@@ -71,7 +71,7 @@ const ClusterDiagnosticsFields: React.FC<ClusterDiagnosticsFieldsProps> = ({ dat
           <select
             value={selectedProfile}
             onChange={(e) => handleProfileSelect(e.target.value)}
-            className="w-full px-3 py-2.5 bg-[#0f2023] border border-[#224349] rounded-lg text-sm text-white focus:border-[#07b6d5] focus:outline-none focus:ring-1 focus:ring-[#07b6d5]/30 transition-colors"
+            className="w-full px-3 py-2.5 bg-[#1a1814] border border-[#3d3528] rounded-lg text-sm text-white focus:border-[#e09f3e] focus:outline-none focus:ring-1 focus:ring-[#e09f3e]/30 transition-colors"
           >
             <option value="">-- Manual Entry --</option>
             {profiles.map((p) => (
@@ -92,7 +92,7 @@ const ClusterDiagnosticsFields: React.FC<ClusterDiagnosticsFieldsProps> = ({ dat
                   <button
                     type="button"
                     onClick={() => setOverrideAuth(true)}
-                    className="text-[#07b6d5] hover:underline ml-1"
+                    className="text-[#e09f3e] hover:underline ml-1"
                   >
                     Override
                   </button>
@@ -107,7 +107,7 @@ const ClusterDiagnosticsFields: React.FC<ClusterDiagnosticsFieldsProps> = ({ dat
                       setOverrideAuth(false);
                       update({ auth_token: undefined });
                     }}
-                    className="text-[#07b6d5] hover:underline ml-1"
+                    className="text-[#e09f3e] hover:underline ml-1"
                   >
                     Use stored
                   </button>
@@ -131,7 +131,7 @@ const ClusterDiagnosticsFields: React.FC<ClusterDiagnosticsFieldsProps> = ({ dat
                 type="text"
                 value={data.cluster_url}
                 onChange={(e) => update({ cluster_url: e.target.value })}
-                className="w-full px-3 py-2.5 bg-[#0f2023] border border-[#224349] rounded-lg text-sm text-white placeholder-gray-600 focus:border-[#07b6d5] focus:outline-none focus:ring-1 focus:ring-[#07b6d5]/30 transition-colors"
+                className="w-full px-3 py-2.5 bg-[#1a1814] border border-[#3d3528] rounded-lg text-sm text-white placeholder-gray-600 focus:border-[#e09f3e] focus:outline-none focus:ring-1 focus:ring-[#e09f3e]/30 transition-colors"
                 placeholder="https://api.cluster.example.com:6443"
                 required
               />
@@ -151,8 +151,8 @@ const ClusterDiagnosticsFields: React.FC<ClusterDiagnosticsFieldsProps> = ({ dat
                     onClick={() => update({ auth_method: method })}
                     className={`px-3 py-2 rounded-lg border text-xs font-medium transition-all ${
                       active
-                        ? 'bg-[#07b6d5]/10 border-[#07b6d5]/30 text-[#07b6d5]'
-                        : 'bg-[#0f2023] border-[#224349] text-gray-400 hover:text-gray-300'
+                        ? 'bg-[#e09f3e]/10 border-[#e09f3e]/30 text-[#e09f3e]'
+                        : 'bg-[#1a1814] border-[#3d3528] text-gray-400 hover:text-gray-300'
                     }`}
                   >
                     {method === 'token' ? 'Auth Token' : 'Kubeconfig'}
@@ -171,7 +171,7 @@ const ClusterDiagnosticsFields: React.FC<ClusterDiagnosticsFieldsProps> = ({ dat
               value={data.auth_token || ''}
               onChange={(e) => update({ auth_token: e.target.value || undefined })}
               rows={3}
-              className="w-full px-3 py-2.5 bg-[#0f2023] border border-[#224349] rounded-lg text-sm text-white placeholder-gray-600 focus:border-[#07b6d5] focus:outline-none focus:ring-1 focus:ring-[#07b6d5]/30 transition-colors font-mono resize-none"
+              className="w-full px-3 py-2.5 bg-[#1a1814] border border-[#3d3528] rounded-lg text-sm text-white placeholder-gray-600 focus:border-[#e09f3e] focus:outline-none focus:ring-1 focus:ring-[#e09f3e]/30 transition-colors font-mono resize-none"
               placeholder={
                 (data.auth_method || 'token') === 'token'
                   ? 'eyJhbGciOi...'
@@ -180,7 +180,7 @@ const ClusterDiagnosticsFields: React.FC<ClusterDiagnosticsFieldsProps> = ({ dat
             />
             {/* Kubeconfig file upload */}
             {(data.auth_method || 'token') === 'kubeconfig' && (
-              <label className="flex items-center gap-1.5 mt-1.5 cursor-pointer text-[10px] text-[#07b6d5] hover:text-[#07b6d5]/80 transition-colors">
+              <label className="flex items-center gap-1.5 mt-1.5 cursor-pointer text-[10px] text-[#e09f3e] hover:text-[#e09f3e]/80 transition-colors">
                 <span className="material-symbols-outlined text-[14px]">upload_file</span>
                 <span>Upload .kubeconfig</span>
                 <input
@@ -208,13 +208,13 @@ const ClusterDiagnosticsFields: React.FC<ClusterDiagnosticsFieldsProps> = ({ dat
 
       {/* Save This Cluster — only shown in manual entry mode (no profile selected) */}
       {!selectedProfile && (
-        <div className="border border-[#224349] rounded-lg p-3 bg-[#0f2023]/50">
+        <div className="border border-[#3d3528] rounded-lg p-3 bg-[#1a1814]/50">
           <label className="flex items-center gap-2 cursor-pointer">
             <input
               type="checkbox"
               checked={data.save_cluster ?? true}
               onChange={(e) => update({ save_cluster: e.target.checked })}
-              className="w-3.5 h-3.5 rounded border-[#224349] bg-[#0f2023] text-[#07b6d5] focus:ring-[#07b6d5]/30"
+              className="w-3.5 h-3.5 rounded border-[#3d3528] bg-[#1a1814] text-[#e09f3e] focus:ring-[#e09f3e]/30"
             />
             <span className="text-xs text-gray-300">Save this cluster for future diagnostics</span>
           </label>
@@ -223,7 +223,7 @@ const ClusterDiagnosticsFields: React.FC<ClusterDiagnosticsFieldsProps> = ({ dat
               type="text"
               value={data.cluster_name || ''}
               onChange={(e) => update({ cluster_name: e.target.value })}
-              className="w-full mt-2 px-3 py-2 bg-[#0f2023] border border-[#224349] rounded-lg text-sm text-white placeholder-gray-600 focus:border-[#07b6d5] focus:outline-none focus:ring-1 focus:ring-[#07b6d5]/30 transition-colors"
+              className="w-full mt-2 px-3 py-2 bg-[#1a1814] border border-[#3d3528] rounded-lg text-sm text-white placeholder-gray-600 focus:border-[#e09f3e] focus:outline-none focus:ring-1 focus:ring-[#e09f3e]/30 transition-colors"
               placeholder="Cluster name (e.g. prod-east-1)"
             />
           )}
@@ -236,7 +236,7 @@ const ClusterDiagnosticsFields: React.FC<ClusterDiagnosticsFieldsProps> = ({ dat
         <select
           value={data.namespace || ''}
           onChange={(e) => update({ namespace: e.target.value || undefined })}
-          className="w-full px-3 py-2.5 bg-[#0f2023] border border-[#224349] rounded-lg text-sm text-white focus:border-[#07b6d5] focus:outline-none focus:ring-1 focus:ring-[#07b6d5]/30 transition-colors"
+          className="w-full px-3 py-2.5 bg-[#1a1814] border border-[#3d3528] rounded-lg text-sm text-white focus:border-[#e09f3e] focus:outline-none focus:ring-1 focus:ring-[#e09f3e]/30 transition-colors"
         >
           <option value="">All Namespaces</option>
           {namespaces.map((ns) => (
@@ -253,7 +253,7 @@ const ClusterDiagnosticsFields: React.FC<ClusterDiagnosticsFieldsProps> = ({ dat
         <select
           value={data.resource_type || ''}
           onChange={(e) => update({ resource_type: e.target.value || undefined, workload: undefined })}
-          className="w-full px-3 py-2.5 bg-[#0f2023] border border-[#224349] rounded-lg text-sm text-white focus:border-[#07b6d5] focus:outline-none focus:ring-1 focus:ring-[#07b6d5]/30 transition-colors"
+          className="w-full px-3 py-2.5 bg-[#1a1814] border border-[#3d3528] rounded-lg text-sm text-white focus:border-[#e09f3e] focus:outline-none focus:ring-1 focus:ring-[#e09f3e]/30 transition-colors"
         >
           <option value="">All Resources</option>
           {resourceTypes.filter((r) => r !== 'All Resources').map((rt) => (
@@ -272,7 +272,7 @@ const ClusterDiagnosticsFields: React.FC<ClusterDiagnosticsFieldsProps> = ({ dat
             type="text"
             value={data.workload || ''}
             onChange={(e) => update({ workload: e.target.value || undefined })}
-            className="w-full px-3 py-2.5 bg-[#0f2023] border border-[#224349] rounded-lg text-sm text-white placeholder-gray-600 focus:border-[#07b6d5] focus:outline-none focus:ring-1 focus:ring-[#07b6d5]/30 transition-colors"
+            className="w-full px-3 py-2.5 bg-[#1a1814] border border-[#3d3528] rounded-lg text-sm text-white placeholder-gray-600 focus:border-[#e09f3e] focus:outline-none focus:ring-1 focus:ring-[#e09f3e]/30 transition-colors"
             placeholder={`e.g. my-${data.resource_type === 'pods' ? 'pod' : 'app'}-name`}
           />
         </div>
@@ -284,7 +284,7 @@ const ClusterDiagnosticsFields: React.FC<ClusterDiagnosticsFieldsProps> = ({ dat
           type="checkbox"
           checked={data.include_control_plane ?? true}
           onChange={(e) => update({ include_control_plane: e.target.checked })}
-          className="w-3.5 h-3.5 rounded border-[#224349] bg-[#0f2023] text-[#07b6d5] focus:ring-[#07b6d5]/30"
+          className="w-3.5 h-3.5 rounded border-[#3d3528] bg-[#1a1814] text-[#e09f3e] focus:ring-[#e09f3e]/30"
         />
         <label className="text-xs text-gray-300">Include control plane diagnostics</label>
       </div>
@@ -296,7 +296,7 @@ const ClusterDiagnosticsFields: React.FC<ClusterDiagnosticsFieldsProps> = ({ dat
           value={data.symptoms || ''}
           onChange={(e) => update({ symptoms: e.target.value || undefined })}
           rows={2}
-          className="w-full px-3 py-2.5 bg-[#0f2023] border border-[#224349] rounded-lg text-sm text-white placeholder-gray-600 focus:border-[#07b6d5] focus:outline-none focus:ring-1 focus:ring-[#07b6d5]/30 transition-colors resize-none"
+          className="w-full px-3 py-2.5 bg-[#1a1814] border border-[#3d3528] rounded-lg text-sm text-white placeholder-gray-600 focus:border-[#e09f3e] focus:outline-none focus:ring-1 focus:ring-[#e09f3e]/30 transition-colors resize-none"
           placeholder="Describe the observed symptoms..."
         />
       </div>

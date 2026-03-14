@@ -33,7 +33,7 @@ const ReachabilityMatrix: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden p-6" style={{ backgroundColor: '#0f2023' }}>
+    <div className="flex-1 flex flex-col overflow-hidden p-6" style={{ backgroundColor: '#1a1814' }}>
       <h1 className="text-xl font-bold text-white mb-4">Reachability Matrix</h1>
       {/* Zone input */}
       <div className="flex gap-3 mb-4">
@@ -42,11 +42,11 @@ const ReachabilityMatrix: React.FC = () => {
           placeholder="Enter zone IDs comma-separated..."
           onChange={(e) => setZones(e.target.value.split(',').map(z => z.trim()).filter(Boolean))}
           className="flex-1 px-3 py-2 rounded-lg border text-sm font-mono outline-none"
-          style={{ backgroundColor: '#0a1a1e', borderColor: '#224349', color: '#e2e8f0' }}
+          style={{ backgroundColor: '#0a1a1e', borderColor: '#3d3528', color: '#e8e0d4' }}
         />
         <button onClick={handleRun} disabled={loading || zones.length < 2}
           className="px-4 py-2 rounded-lg font-semibold text-sm disabled:opacity-50"
-          style={{ backgroundColor: '#07b6d5', color: '#0f2023' }}>
+          style={{ backgroundColor: '#e09f3e', color: '#1a1814' }}>
           {loading ? 'Computing...' : 'Run Matrix'}
         </button>
       </div>
@@ -57,13 +57,13 @@ const ReachabilityMatrix: React.FC = () => {
             <thead>
               <tr>
                 <th className="p-2 text-left" style={{ color: '#64748b' }}>From \ To</th>
-                {zones.map(z => <th key={z} className="p-2" style={{ color: '#94a3b8' }}>{z}</th>)}
+                {zones.map(z => <th key={z} className="p-2" style={{ color: '#8a7e6b' }}>{z}</th>)}
               </tr>
             </thead>
             <tbody>
               {zones.map(src => (
                 <tr key={src}>
-                  <td className="p-2 font-semibold" style={{ color: '#94a3b8' }}>{src}</td>
+                  <td className="p-2 font-semibold" style={{ color: '#8a7e6b' }}>{src}</td>
                   {zones.map(dst => {
                     if (src === dst) return <td key={dst} className="p-2 text-center" style={{ color: '#64748b' }}>—</td>;
                     const cell = matrix.find(m => m.src_zone === src && m.dst_zone === dst);

@@ -9,7 +9,7 @@ const STATUS_COLORS: Record<string, { bg: string; text: string; label: string }>
   stale: { bg: 'rgba(245,158,11,0.15)', text: '#f59e0b', label: 'Stale' },
   auth_failed: { bg: 'rgba(239,68,68,0.15)', text: '#ef4444', label: 'Auth Failed' },
   unreachable: { bg: 'rgba(239,68,68,0.15)', text: '#ef4444', label: 'Unreachable' },
-  not_configured: { bg: 'rgba(148,163,184,0.15)', text: '#94a3b8', label: 'Not Configured' },
+  not_configured: { bg: 'rgba(148,163,184,0.15)', text: '#8a7e6b', label: 'Not Configured' },
 };
 
 const VENDOR_LABELS: Record<string, string> = {
@@ -98,7 +98,7 @@ const NetworkAdaptersView: React.FC = () => {
   const tdClass = 'px-4 py-3 text-sm font-mono';
 
   return (
-    <div className="flex-1 overflow-auto p-6" style={{ backgroundColor: '#0f2023' }}>
+    <div className="flex-1 overflow-auto p-6" style={{ backgroundColor: '#1a1814' }}>
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -108,7 +108,7 @@ const NetworkAdaptersView: React.FC = () => {
         <button
           onClick={() => { setEditInstance(null); setShowForm(true); }}
           className="flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
-          style={{ backgroundColor: '#07b6d5', color: '#0f2023' }}
+          style={{ backgroundColor: '#e09f3e', color: '#1a1814' }}
         >
           <span className="material-symbols-outlined text-base">add</span>
           Add Adapter
@@ -118,14 +118,14 @@ const NetworkAdaptersView: React.FC = () => {
       {/* Summary Cards */}
       <div className="grid grid-cols-3 gap-4 mb-6">
         {[
-          { label: 'Total Instances', value: summary.total, color: '#07b6d5' },
+          { label: 'Total Instances', value: summary.total, color: '#e09f3e' },
           { label: 'Connected', value: summary.connected, color: '#22c55e' },
-          { label: 'Issues', value: summary.issues, color: summary.issues > 0 ? '#f59e0b' : '#94a3b8' },
+          { label: 'Issues', value: summary.issues, color: summary.issues > 0 ? '#f59e0b' : '#8a7e6b' },
         ].map((card) => (
           <div
             key={card.label}
             className="rounded-lg border p-4"
-            style={{ backgroundColor: 'rgba(15,32,35,0.8)', borderColor: '#224349' }}
+            style={{ backgroundColor: 'rgba(15,32,35,0.8)', borderColor: '#3d3528' }}
           >
             <p className="text-xs text-slate-400 uppercase tracking-wider">{card.label}</p>
             <p className="text-2xl font-bold font-mono mt-1" style={{ color: card.color }}>{card.value}</p>
@@ -140,8 +140,8 @@ const NetworkAdaptersView: React.FC = () => {
           placeholder="Search adapters..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full max-w-sm px-3 py-2 rounded-lg border text-sm font-mono text-white placeholder-slate-500 focus:outline-none focus:border-[#07b6d5]"
-          style={{ backgroundColor: '#0a1214', borderColor: '#224349' }}
+          className="w-full max-w-sm px-3 py-2 rounded-lg border text-sm font-mono text-white placeholder-slate-500 focus:outline-none focus:border-[#e09f3e]"
+          style={{ backgroundColor: '#0a1214', borderColor: '#3d3528' }}
         />
       </div>
 
@@ -164,7 +164,7 @@ const NetworkAdaptersView: React.FC = () => {
           </p>
         </div>
       ) : (
-        <div className="rounded-lg border overflow-hidden" style={{ borderColor: '#224349' }}>
+        <div className="rounded-lg border overflow-hidden" style={{ borderColor: '#3d3528' }}>
           <table className="w-full">
             <thead style={{ backgroundColor: '#0a1214' }}>
               <tr>
@@ -184,11 +184,11 @@ const NetworkAdaptersView: React.FC = () => {
                   <tr
                     key={adapter.instance_id}
                     className="border-t hover:bg-white/[0.02] transition-colors"
-                    style={{ borderColor: '#224349' }}
+                    style={{ borderColor: '#3d3528' }}
                   >
                     <td className={`${tdClass} text-white font-semibold`}>{adapter.label}</td>
                     <td className={tdClass}>
-                      <span className="px-2 py-0.5 rounded text-xs font-semibold" style={{ backgroundColor: 'rgba(7,182,213,0.1)', color: '#07b6d5' }}>
+                      <span className="px-2 py-0.5 rounded text-xs font-semibold" style={{ backgroundColor: 'rgba(224,159,62,0.1)', color: '#e09f3e' }}>
                         {VENDOR_LABELS[adapter.vendor] || adapter.vendor}
                       </span>
                     </td>
@@ -218,7 +218,7 @@ const NetworkAdaptersView: React.FC = () => {
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => { setEditInstance(adapter); setShowForm(true); }}
-                          className="p-1.5 rounded hover:bg-white/5 transition-colors text-slate-400 hover:text-[#07b6d5]"
+                          className="p-1.5 rounded hover:bg-white/5 transition-colors text-slate-400 hover:text-[#e09f3e]"
                           title="Edit"
                         >
                           <span className="material-symbols-outlined text-base">edit</span>

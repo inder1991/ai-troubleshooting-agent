@@ -238,12 +238,12 @@ const IntegrationHub: React.FC<IntegrationHubProps> = ({ onBack }) => {
   );
 
   const inputClass =
-    'px-3 py-2 bg-[#0f2023] border border-[#224349] rounded-lg text-sm text-white placeholder-gray-600 focus:border-[#07b6d5] focus:outline-none focus:ring-1 focus:ring-[#07b6d5]/30 transition-colors';
+    'px-3 py-2 bg-[#1a1814] border border-[#3d3528] rounded-lg text-sm text-white placeholder-gray-600 focus:border-[#e09f3e] focus:outline-none focus:ring-1 focus:ring-[#e09f3e]/30 transition-colors';
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden relative">
       {/* Header */}
-      <header className="h-16 border-b border-[#224349] flex items-center justify-between px-8 bg-[#0f2023]/50 backdrop-blur-md sticky top-0 z-10">
+      <header className="h-16 border-b border-[#3d3528] flex items-center justify-between px-8 bg-[#1a1814]/50 backdrop-blur-md sticky top-0 z-10">
         <div className="flex items-center gap-4">
           <h2 className="text-xl font-bold tracking-tight text-white">Integrations &amp; Cluster Management</h2>
         </div>
@@ -259,15 +259,15 @@ const IntegrationHub: React.FC<IntegrationHubProps> = ({ onBack }) => {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="bg-[#183034] border-none rounded-lg pl-10 pr-4 py-1.5 text-sm w-64 focus:ring-1 focus:ring-[#07b6d5] placeholder-[#8fc3cc]/50 text-white"
+              className="bg-[#183034] border-none rounded-lg pl-10 pr-4 py-1.5 text-sm w-64 focus:ring-1 focus:ring-[#e09f3e] placeholder-[#8fc3cc]/50 text-white"
               placeholder="Search clusters..."
             />
           </div>
           <button className="text-[#8fc3cc] hover:text-white transition-colors relative">
             <span className="material-symbols-outlined">notifications</span>
-            <span className="absolute top-0 right-0 w-2 h-2 bg-[#07b6d5] rounded-full border border-[#0f2023]" />
+            <span className="absolute top-0 right-0 w-2 h-2 bg-[#e09f3e] rounded-full border border-[#1a1814]" />
           </button>
-          <div className="h-8 w-8 rounded-full bg-[#183034] border border-[#224349] flex items-center justify-center">
+          <div className="h-8 w-8 rounded-full bg-[#183034] border border-[#3d3528] flex items-center justify-center">
             <span className="material-symbols-outlined text-[#8fc3cc] text-sm">person</span>
           </div>
         </div>
@@ -280,13 +280,13 @@ const IntegrationHub: React.FC<IntegrationHubProps> = ({ onBack }) => {
             <div className="space-y-8">
               <div>
                 <div className="flex items-center justify-between mb-3">
-                  <div className="h-4 bg-[#1e2f33] rounded animate-pulse w-48" />
-                  <div className="h-7 bg-[#1e2f33] rounded-lg animate-pulse w-32" />
+                  <div className="h-4 bg-[#252118] rounded animate-pulse w-48" />
+                  <div className="h-7 bg-[#252118] rounded-lg animate-pulse w-32" />
                 </div>
                 <SkeletonTable />
               </div>
               <div>
-                <div className="h-4 bg-[#1e2f33] rounded animate-pulse w-56 mb-3" />
+                <div className="h-4 bg-[#252118] rounded animate-pulse w-56 mb-3" />
                 <SkeletonCard />
               </div>
             </div>
@@ -345,7 +345,7 @@ const IntegrationHub: React.FC<IntegrationHubProps> = ({ onBack }) => {
       </div>
 
       {/* Sticky Footer */}
-      <footer className="absolute bottom-0 left-0 right-0 h-20 bg-[#0f2023] border-t border-[#224349] flex items-center justify-end px-8 gap-4 z-20 backdrop-blur-lg bg-opacity-90">
+      <footer className="absolute bottom-0 left-0 right-0 h-20 bg-[#1a1814] border-t border-[#3d3528] flex items-center justify-end px-8 gap-4 z-20 backdrop-blur-lg bg-opacity-90">
         <button
           onClick={handleDiscard}
           disabled={!hasUnsavedChanges}
@@ -356,7 +356,7 @@ const IntegrationHub: React.FC<IntegrationHubProps> = ({ onBack }) => {
         <button
           onClick={handleSaveAll}
           disabled={saving}
-          className="bg-[#07b6d5] text-[#0f2023] px-8 py-2.5 rounded-lg text-sm font-black shadow-[0_0_20px_rgba(7,182,213,0.3)] hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          className="bg-[#e09f3e] text-[#1a1814] px-8 py-2.5 rounded-lg text-sm font-black shadow-[0_0_20px_rgba(224,159,62,0.3)] hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {saving ? 'Saving...' : 'SAVE CONFIGURATION'}
         </button>
