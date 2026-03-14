@@ -2,31 +2,48 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
+import os
 import time
 from typing import Any
 
+from anthropic import RateLimitError, APITimeoutError
+
 from src.agents.cluster.state import DomainReport, DomainStatus, DomainAnomaly, TruncationFlags, FailureReason
 from src.agents.cluster.traced_node import traced_node
+from src.agents.cluster.tools import get_tools_for_agent, get_version_context
+from src.agents.cluster.tool_executor import execute_tool_call
 from src.agents.cluster_client.base import QueryResult, OBJECT_CAPS
 from src.utils.llm_client import AnthropicClient
+from src.utils.llm_telemetry import LLMCallRecord
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
+
+MAX_TOOL_CALLS = 5
+TOOL_CALL_TIMEOUT = 60  # seconds
 
 _SYSTEM_PROMPT = """You are the Node & Capacity diagnostic agent for DebugDuck.
 You analyze: node conditions (DiskPressure, MemoryPressure, PIDPressure, NotReady), resource utilization,
 pod evictions, scheduling failures, resource quotas, and capacity planning.
 
+You also analyze workload health: Deployment replica mismatches, stuck rollouts, StatefulSet ordered pod
+failures, DaemonSet unavailable nodes, HPA scaling limits, Job failures, and CronJob scheduling issues.
+
+For OpenShift, you also analyze BuildConfig failures and ImageStream import issues.
+
 Platform: {platform} {platform_version}
 {platform_capabilities}
+{version_context}
 
-Analyze the provided node data and produce a structured assessment."""
+Analyze the provided node and workload data and produce a structured assessment."""
 
 _ANALYSIS_PROMPT = """Analyze this node and capacity data and produce a JSON response:
 
 ## Data Collected
 {data_json}
+{truncation_note}
 
 ## Required JSON Response Format
 {{
@@ -41,12 +58,26 @@ Rules:
 - Only report anomalies you have evidence for
 - DiskPressure at 97% is critical
 - Pod evictions caused by node conditions are high severity
+- Deployment replicas_ready < replicas_desired = stuck rollout (high severity)
+- DaemonSet number_unavailable > 0 = not running on all nodes (medium severity)
+- HPA at max replicas with unmet target = scaling bottleneck (high severity)
+- StatefulSet replicas_ready < replicas_desired = ordered pod failure (high severity)
+- PDB with disruptionsAllowed=0 blocks all voluntary disruptions (high severity)
+- Pods without resource requests = unpredictable scheduling (medium severity)
+- Pods without resource limits = unlimited consumption risk (medium severity)
+- Pods with requests > limits = invalid config (high severity)
+- Check node resource overcommit ratio
+- Cluster autoscaler pod not running = scaling disabled (high severity if pending pods exist)
+- High number of pending pods with no autoscaler = capacity issue (high severity)
+- Failed jobs with backoffLimit exceeded = high severity
+- CronJobs with suspend=true — note for awareness (low severity)
+- CronJobs not running on schedule — medium severity
 - Include severity (high/medium/low)
 - Confidence reflects data quality and coverage"""
 
 
 async def _llm_analyze(system: str, prompt: str) -> dict:
-    """Two-pass LLM call. Returns parsed JSON dict."""
+    """Heuristic single-pass LLM call (fallback). Returns parsed JSON dict."""
     client = AnthropicClient(agent_name="cluster_node")
     response = await client.chat(
         prompt=prompt,
@@ -64,7 +95,212 @@ async def _llm_analyze(system: str, prompt: str) -> dict:
         return {"anomalies": [], "ruled_out": [], "confidence": 0}
 
 
-@traced_node(timeout_seconds=45)
+async def _heuristic_analyze(data_payload: dict, domain: str = "node") -> dict:
+    """Deterministic rule-based analysis for node/capacity. No LLM calls."""
+    anomalies = []
+    ruled_out = []
+
+    # Check nodes
+    for node in data_payload.get("nodes", []):
+        node_name = node.get("name", "unknown")
+        if node.get("status") == "NotReady":
+            anomalies.append({
+                "domain": domain,
+                "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                "description": f"Node {node_name} is NotReady",
+                "evidence_ref": f"node/{node_name}",
+                "severity": "high",
+            })
+        else:
+            ruled_out.append(f"Node {node_name} status OK")
+
+        if node.get("disk_pressure"):
+            anomalies.append({
+                "domain": domain,
+                "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                "description": f"Node {node_name} has DiskPressure",
+                "evidence_ref": f"node/{node_name}",
+                "severity": "high",
+            })
+        else:
+            ruled_out.append(f"Node {node_name} disk pressure OK")
+
+        if node.get("memory_pressure"):
+            anomalies.append({
+                "domain": domain,
+                "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                "description": f"Node {node_name} has MemoryPressure",
+                "evidence_ref": f"node/{node_name}",
+                "severity": "high",
+            })
+        if node.get("pid_pressure"):
+            anomalies.append({
+                "domain": domain,
+                "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                "description": f"Node {node_name} has PIDPressure",
+                "evidence_ref": f"node/{node_name}",
+                "severity": "medium",
+            })
+
+    # Check deployments for stuck rollouts
+    for dep in data_payload.get("deployments", []):
+        dep_name = dep.get("name", "unknown")
+        ns = dep.get("namespace", "default")
+        desired = dep.get("replicas_desired", dep.get("replicas", 0))
+        ready = dep.get("replicas_ready", dep.get("ready_replicas", 0))
+        if desired and ready < desired:
+            anomalies.append({
+                "domain": domain,
+                "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                "description": f"Deployment {ns}/{dep_name} has {ready}/{desired} replicas ready (stuck rollout)",
+                "evidence_ref": f"deployment/{ns}/{dep_name}",
+                "severity": "high",
+            })
+        if dep.get("stuck_rollout"):
+            anomalies.append({
+                "domain": domain,
+                "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                "description": f"Deployment {ns}/{dep_name} has a stuck rollout",
+                "evidence_ref": f"deployment/{ns}/{dep_name}",
+                "severity": "high",
+            })
+
+    # Check daemonsets
+    for ds in data_payload.get("daemonsets", []):
+        ds_name = ds.get("name", "unknown")
+        ns = ds.get("namespace", "default")
+        unavailable = ds.get("number_unavailable", 0)
+        if unavailable and unavailable > 0:
+            anomalies.append({
+                "domain": domain,
+                "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                "description": f"DaemonSet {ns}/{ds_name} has {unavailable} unavailable nodes",
+                "evidence_ref": f"daemonset/{ns}/{ds_name}",
+                "severity": "medium",
+            })
+
+    # Check warning events volume
+    warning_events = [e for e in data_payload.get("events", []) if e.get("type") == "Warning"]
+    if len(warning_events) > 20:
+        anomalies.append({
+            "domain": domain,
+            "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+            "description": f"High volume of warning events ({len(warning_events)} warnings)",
+            "evidence_ref": "events/warnings",
+            "severity": "medium",
+        })
+
+    confidence = 50 if anomalies else 70
+    return {"anomalies": anomalies, "ruled_out": ruled_out, "confidence": confidence}
+
+
+async def _tool_calling_loop(system: str, initial_context: str, cluster_client,
+                              budget=None, telemetry=None) -> dict | None:
+    """ReAct tool-calling loop for node agent. Returns parsed findings dict or None."""
+    if not os.environ.get("ANTHROPIC_API_KEY"):
+        return None
+
+    llm = AnthropicClient(agent_name="cluster_node", model="claude-haiku-4-5-20251001")
+    tools = get_tools_for_agent("node")
+
+    messages = [{"role": "user", "content": initial_context}]
+    tool_call_count = 0
+    retry_count = 0
+
+    for iteration in range(MAX_TOOL_CALLS + 1):
+        call_start = time.monotonic()
+        try:
+            response = await asyncio.wait_for(
+                llm.chat_with_tools(
+                    system=system,
+                    messages=messages,
+                    tools=tools,
+                    max_tokens=2000,
+                    temperature=0.1,
+                ),
+                timeout=15,
+            )
+        except asyncio.TimeoutError:
+            latency_ms = int((time.monotonic() - call_start) * 1000)
+            if telemetry:
+                telemetry.record_call(LLMCallRecord(
+                    agent_name="cluster_node", model="claude-haiku-4-5-20251001",
+                    call_type="tool_calling", latency_ms=latency_ms,
+                    error="timeout", success=False,
+                ))
+            return None
+        except RateLimitError:
+            if retry_count < 3:
+                await asyncio.sleep(2 ** retry_count)
+                retry_count += 1
+                continue
+            if telemetry:
+                telemetry.record_call(LLMCallRecord(
+                    agent_name="cluster_node", model="claude-haiku-4-5-20251001",
+                    call_type="tool_calling", error="rate_limit", success=False,
+                ))
+            return None
+
+        latency_ms = int((time.monotonic() - call_start) * 1000)
+        usage = getattr(response, "usage", None)
+        in_tok = usage.input_tokens if usage else 0
+        out_tok = usage.output_tokens if usage else 0
+
+        if budget:
+            budget.record(input_tokens=in_tok, output_tokens=out_tok, latency_ms=latency_ms)
+        if telemetry:
+            telemetry.record_call(LLMCallRecord(
+                agent_name="cluster_node", model="claude-haiku-4-5-20251001",
+                call_type="tool_calling", input_tokens=in_tok, output_tokens=out_tok,
+                latency_ms=latency_ms, success=True,
+            ))
+
+        tool_uses = [b for b in response.content if b.type == "tool_use"]
+        text_blocks = [b for b in response.content if b.type == "text"]
+
+        if not tool_uses:
+            text = "".join(b.text for b in text_blocks)
+            try:
+                start = text.index("{")
+                end = text.rindex("}") + 1
+                return json.loads(text[start:end])
+            except (ValueError, json.JSONDecodeError):
+                if telemetry:
+                    telemetry.record_call(LLMCallRecord(
+                        agent_name="cluster_node", call_type="tool_calling",
+                        error="parse_error", success=False,
+                    ))
+                return None
+
+        for tu in tool_uses:
+            if tu.name == "submit_findings":
+                return tu.input
+
+        if tool_call_count >= MAX_TOOL_CALLS:
+            messages.append({"role": "assistant", "content": response.content})
+            messages.append({"role": "user", "content": [
+                {"type": "tool_result", "tool_use_id": tool_uses[0].id,
+                 "content": "Tool budget exhausted. Please submit your findings now using submit_findings."}
+            ]})
+            continue
+
+        messages.append({"role": "assistant", "content": response.content})
+        tool_results = []
+        for tu in tool_uses:
+            result_str = await execute_tool_call(tu.name, tu.input, cluster_client, tool_call_count)
+            tool_results.append({
+                "type": "tool_result",
+                "tool_use_id": tu.id,
+                "content": result_str,
+            })
+            tool_call_count += 1
+
+        messages.append({"role": "user", "content": tool_results})
+
+    return None
+
+
+@traced_node(timeout_seconds=60)
 async def node_agent(state: dict, config: dict) -> dict:
     """LangGraph node: Node & Capacity diagnostics."""
     start_ms = time.monotonic()
@@ -102,36 +338,144 @@ async def node_agent(state: dict, config: dict) -> dict:
 
     pods = await client.list_pods()
 
+    # Workload health
+    deployments = await client.list_deployments()
+    statefulsets = await client.list_statefulsets()
+    daemonsets = await client.list_daemonsets()
+    hpas = await client.list_hpas()
+    pdbs = await client.list_pdbs()
+    jobs = await client.list_jobs()
+    cronjobs = await client.list_cronjobs()
+
+    # Check for RBAC permission denials
+    rbac_anomalies = []
+    rbac_denied = False
+    rbac_counter = 0
+    for result, resource_name in [
+        (nodes, "nodes"), (events, "events"), (pods, "pods"),
+        (deployments, "deployments"), (statefulsets, "statefulsets"),
+        (daemonsets, "daemonsets"), (hpas, "horizontalpodautoscalers"),
+        (pdbs, "poddisruptionbudgets"),
+        (jobs, "jobs"), (cronjobs, "cronjobs"),
+    ]:
+        if result.permission_denied:
+            rbac_denied = True
+            rbac_counter += 1
+            rbac_anomalies.append(DomainAnomaly(
+                domain="node",
+                anomaly_id=f"rbac-node-{rbac_counter:03d}",
+                description=f"Insufficient RBAC permissions to access {resource_name}. Required ClusterRole: view",
+                evidence_ref=f"rbac/{resource_name}",
+                severity="high",
+            ))
+
     platform_caps = (
-        "Full access: MachineSets, MachineConfigPools, plus standard K8s."
+        "Full access: MachineSets, MachineConfigPools, BuildConfigs, ImageStreams, plus standard K8s."
         if platform == "openshift"
-        else "Standard K8s only. No MachineSets or MachineConfigPools."
+        else "Standard K8s only. No MachineSets, MachineConfigPools, BuildConfigs, or ImageStreams."
     )
+
+    # Cluster autoscaler detection
+    autoscaler_pods = [p for p in pods.data if "autoscaler" in p.get("name", "")]
+    pending_metrics = await client.query_prometheus("kube_pod_status_phase{phase='Pending'}")
 
     data_payload = {
         "nodes": nodes.data,
         "events": events.data[:100],
         "top_pods": pods.data[:50],
+        "deployments": deployments.data,
+        "statefulsets": statefulsets.data,
+        "daemonsets": daemonsets.data,
+        "hpas": hpas.data,
+        "pdbs": pdbs.data,
+        "jobs": jobs.data,
+        "cronjobs": cronjobs.data,
+        "autoscaler_pods": autoscaler_pods,
+        "pending_pod_metrics": pending_metrics.data,
     }
+
+    # OpenShift-specific data
+    if platform == "openshift":
+        build_configs = await client.get_build_configs()
+        image_streams = await client.get_image_streams()
+        if build_configs.data:
+            data_payload["build_configs"] = build_configs.data
+        if image_streams.data:
+            data_payload["image_streams"] = image_streams.data
+
+    version_context = get_version_context(platform_version)
+    truncation_note = ""
+    if events.truncated:
+        truncation_note += f"\nNOTE: Events truncated — {events.total_available} total, {events.returned} analyzed."
+    if pods.truncated:
+        truncation_note += f"\nNOTE: Pods truncated — {pods.total_available} total, {pods.returned} analyzed."
+    if nodes.truncated:
+        truncation_note += f"\nNOTE: Nodes truncated — {nodes.total_available} total, {nodes.returned} analyzed."
 
     system = _SYSTEM_PROMPT.format(
         platform=platform,
         platform_version=platform_version,
         platform_capabilities=platform_caps,
+        version_context=version_context,
     )
-    prompt = _ANALYSIS_PROMPT.format(data_json=json.dumps(data_payload, indent=2, default=str))
+    prompt = _ANALYSIS_PROMPT.format(
+        data_json=json.dumps(data_payload, indent=2, default=str),
+        truncation_note=truncation_note,
+    )
 
-    analysis = await _llm_analyze(system, prompt)
+    # Extract budget and telemetry from config
+    budget = config.get("configurable", {}).get("budget")
+    telemetry = config.get("configurable", {}).get("telemetry")
+
+    # Check budget before attempting LLM
+    analysis = None
+    if budget and not budget.can_call():
+        logger.info("Budget exhausted for node, using heuristic")
+        analysis = await _heuristic_analyze(data_payload, "node")
+        if telemetry:
+            telemetry.record_call(LLMCallRecord(
+                agent_name="cluster_node", call_type="heuristic",
+                fallback_used=True, success=True,
+            ))
+    else:
+        # Try tool-calling ReAct loop first, fall back to heuristic single-pass
+        try:
+            initial_context = (
+                "Analyze this Kubernetes cluster for node and capacity issues. "
+                "Start by examining nodes, pods, deployments, and HPAs for resource pressure, "
+                "scheduling failures, and workload health.\n\n"
+                f"Platform: {platform} {platform_version}"
+            )
+            analysis = await asyncio.wait_for(
+                _tool_calling_loop(system, initial_context, client,
+                                   budget=budget, telemetry=telemetry),
+                timeout=TOOL_CALL_TIMEOUT,
+            )
+        except Exception as e:
+            logger.warning("Tool-calling failed for node, falling back to heuristic: %s", e)
+
+        if not analysis:
+            if budget and not budget.can_call():
+                analysis = await _heuristic_analyze(data_payload, "node")
+                if telemetry:
+                    telemetry.record_call(LLMCallRecord(
+                        agent_name="cluster_node", call_type="heuristic",
+                        fallback_used=True, success=True,
+                    ))
+            else:
+                analysis = await _llm_analyze(system, prompt)
 
     anomalies = [
         DomainAnomaly(**a) for a in analysis.get("anomalies", [])
         if isinstance(a, dict) and "domain" in a
     ]
+    anomalies.extend(rbac_anomalies)
 
     elapsed = int((time.monotonic() - start_ms) * 1000)
     report = DomainReport(
         domain="node",
-        status=DomainStatus.SUCCESS,
+        status=DomainStatus.PARTIAL if rbac_denied else DomainStatus.SUCCESS,
+        failure_reason=FailureReason.RBAC_DENIED if rbac_denied else None,
         confidence=analysis.get("confidence", 0),
         anomalies=anomalies,
         ruled_out=analysis.get("ruled_out", []),

@@ -1,0 +1,92 @@
+"""Execute tool calls against the Kubernetes cluster client."""
+
+from __future__ import annotations
+
+import json
+import logging
+from typing import Any
+
+from src.utils.logger import get_logger
+
+logger = get_logger(__name__)
+
+# Maximum result size per tool call (characters)
+MAX_RESULT_SIZE = 8000
+
+
+async def execute_tool_call(tool_name: str, tool_input: dict, cluster_client, tool_call_count: int = 0) -> str:
+    """Execute a single tool call and return the result as a JSON string."""
+    try:
+        if tool_name == "list_pods":
+            result = await cluster_client.list_pods(namespace=tool_input.get("namespace", ""))
+            data = result.data[:50]  # Cap at 50 pods per call
+        elif tool_name == "describe_pod":
+            # Use list_pods with specific name filter
+            ns = tool_input.get("namespace", "")
+            name = tool_input.get("name", "")
+            result = await cluster_client.list_pods(namespace=ns)
+            data = [p for p in result.data if p.get("name") == name]
+            if not data:
+                return json.dumps({"error": f"Pod {name} not found in namespace {ns}"})
+            # Also get events for this pod
+            events = await cluster_client.list_events(
+                namespace=ns,
+                field_selector=f"involvedObject.name={name}"
+            )
+            data = {"pod": data[0], "events": events.data[:20]}
+        elif tool_name == "list_deployments":
+            result = await cluster_client.list_deployments(namespace=tool_input.get("namespace", ""))
+            data = result.data
+        elif tool_name == "list_events":
+            result = await cluster_client.list_events(
+                namespace=tool_input.get("namespace", ""),
+                field_selector=tool_input.get("field_selector", "")
+            )
+            data = result.data[:100]
+        elif tool_name == "list_nodes":
+            result = await cluster_client.list_nodes()
+            data = result.data
+        elif tool_name == "list_pvcs":
+            result = await cluster_client.list_pvcs(namespace=tool_input.get("namespace", ""))
+            data = result.data
+        elif tool_name == "list_services":
+            result = await cluster_client.list_services(namespace=tool_input.get("namespace", ""))
+            data = result.data
+        elif tool_name == "list_hpas":
+            result = await cluster_client.list_hpas(namespace=tool_input.get("namespace", ""))
+            data = result.data
+        elif tool_name == "get_pod_logs":
+            ns = tool_input.get("namespace", "")
+            name = tool_input.get("name", "")
+            tail = tool_input.get("tail_lines", 100)
+            result = await cluster_client.query_logs("pod-logs", {"pod": name, "namespace": ns}, max_lines=tail)
+            data = result.data
+        elif tool_name == "query_prometheus":
+            result = await cluster_client.query_prometheus(
+                query=tool_input.get("query", ""),
+                time_range=tool_input.get("time_range", "1h")
+            )
+            data = result.data
+        elif tool_name == "list_network_policies":
+            result = await cluster_client.list_network_policies(namespace=tool_input.get("namespace", ""))
+            data = result.data
+        elif tool_name == "list_rbac":
+            ns = tool_input.get("namespace", "")
+            roles = await cluster_client.list_roles(namespace=ns)
+            bindings = await cluster_client.list_role_bindings(namespace=ns)
+            sas = await cluster_client.list_service_accounts(namespace=ns)
+            data = {"roles": roles.data, "role_bindings": bindings.data, "service_accounts": sas.data}
+        elif tool_name == "submit_findings":
+            # This is handled by the agent loop, not executed against cluster
+            return json.dumps({"status": "findings_submitted"})
+        else:
+            return json.dumps({"error": f"Unknown tool: {tool_name}"})
+
+        result_str = json.dumps(data, default=str)
+        if len(result_str) > MAX_RESULT_SIZE:
+            result_str = result_str[:MAX_RESULT_SIZE] + '..."truncated"'
+        return result_str
+
+    except Exception as e:
+        logger.error("Tool execution failed: %s(%s): %s", tool_name, tool_input, e)
+        return json.dumps({"error": str(e)})

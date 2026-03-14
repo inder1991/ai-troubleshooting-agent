@@ -41,7 +41,7 @@ def _build_error_report(domain: str, trace: NodeExecution) -> dict:
     }
 
 
-_AGENT_NODE_NAMES = frozenset({"node_agent", "ctrl_plane_agent", "network_agent", "storage_agent"})
+_AGENT_NODE_NAMES = frozenset({"node_agent", "ctrl_plane_agent", "network_agent", "storage_agent", "rbac_agent"})
 
 
 def traced_node(timeout_seconds: float = 60):

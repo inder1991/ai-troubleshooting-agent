@@ -2,17 +2,27 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
+import os
 import time
 from typing import Any
 
+from anthropic import RateLimitError, APITimeoutError
+
 from src.agents.cluster.state import DomainReport, DomainStatus, DomainAnomaly, TruncationFlags, FailureReason
 from src.agents.cluster.traced_node import traced_node
+from src.agents.cluster.tools import get_tools_for_agent, get_version_context
+from src.agents.cluster.tool_executor import execute_tool_call
 from src.agents.cluster_client.base import QueryResult, OBJECT_CAPS
 from src.utils.llm_client import AnthropicClient
+from src.utils.llm_telemetry import LLMCallRecord
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
+
+MAX_TOOL_CALLS = 5
+TOOL_CALL_TIMEOUT = 60  # seconds
 
 _SYSTEM_PROMPT = """You are the Storage & Persistence diagnostic agent for DebugDuck.
 You analyze: PVC capacity and usage, CSI driver health, storage class configuration,
@@ -20,6 +30,7 @@ volume attach/detach latency, IOPS throttling, and stuck volumes.
 
 Platform: {platform} {platform_version}
 {platform_capabilities}
+{version_context}
 
 Analyze the provided storage data and produce a structured assessment."""
 
@@ -27,6 +38,7 @@ _ANALYSIS_PROMPT = """Analyze this storage and persistence data and produce a JS
 
 ## Data Collected
 {data_json}
+{truncation_note}
 
 ## Required JSON Response Format
 {{
@@ -46,7 +58,7 @@ Rules:
 
 
 async def _llm_analyze(system: str, prompt: str) -> dict:
-    """Two-pass LLM call. Returns parsed JSON dict."""
+    """Heuristic single-pass LLM call (fallback). Returns parsed JSON dict."""
     client = AnthropicClient(agent_name="cluster_storage")
     response = await client.chat(
         prompt=prompt,
@@ -62,6 +74,164 @@ async def _llm_analyze(system: str, prompt: str) -> dict:
     except (ValueError, json.JSONDecodeError):
         logger.warning("Failed to parse LLM response as JSON", extra={"action": "parse_error"})
         return {"anomalies": [], "ruled_out": [], "confidence": 0}
+
+
+async def _heuristic_analyze(data_payload: dict, domain: str = "storage") -> dict:
+    """Deterministic rule-based analysis for storage. No LLM calls."""
+    anomalies = []
+    ruled_out = []
+
+    # Check PVCs for Pending status and capacity
+    for pvc in data_payload.get("pvcs", []):
+        pvc_name = pvc.get("name", "unknown")
+        ns = pvc.get("namespace", "default")
+        status = pvc.get("status", pvc.get("phase", ""))
+        if status == "Pending":
+            anomalies.append({
+                "domain": domain,
+                "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                "description": f"PVC {ns}/{pvc_name} is in Pending state (not bound)",
+                "evidence_ref": f"pvc/{ns}/{pvc_name}",
+                "severity": "high",
+            })
+        elif status == "Bound":
+            ruled_out.append(f"PVC {ns}/{pvc_name} bound OK")
+
+    # Check volume metrics for capacity > 90%
+    for metric in data_payload.get("volume_metrics", []):
+        pvc_name = metric.get("pvc", metric.get("persistentvolumeclaim", "unknown"))
+        ns = metric.get("namespace", "default")
+        used = metric.get("value", metric.get("used_bytes", 0))
+        capacity = metric.get("capacity_bytes", 0)
+        if capacity > 0:
+            usage_pct = (used / capacity) * 100
+            if usage_pct > 90:
+                anomalies.append({
+                    "domain": domain,
+                    "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                    "description": f"PVC {ns}/{pvc_name} at {usage_pct:.0f}% capacity",
+                    "evidence_ref": f"pvc/{ns}/{pvc_name}",
+                    "severity": "high",
+                })
+            elif usage_pct > 80:
+                anomalies.append({
+                    "domain": domain,
+                    "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                    "description": f"PVC {ns}/{pvc_name} at {usage_pct:.0f}% capacity (approaching limit)",
+                    "evidence_ref": f"pvc/{ns}/{pvc_name}",
+                    "severity": "medium",
+                })
+            else:
+                ruled_out.append(f"PVC {ns}/{pvc_name} capacity OK ({usage_pct:.0f}%)")
+
+    confidence = 50 if anomalies else 70
+    return {"anomalies": anomalies, "ruled_out": ruled_out, "confidence": confidence}
+
+
+async def _tool_calling_loop(system: str, initial_context: str, cluster_client,
+                              budget=None, telemetry=None) -> dict | None:
+    """ReAct tool-calling loop for storage agent. Returns parsed findings dict or None."""
+    if not os.environ.get("ANTHROPIC_API_KEY"):
+        return None
+
+    llm = AnthropicClient(agent_name="cluster_storage", model="claude-haiku-4-5-20251001")
+    tools = get_tools_for_agent("storage")
+
+    messages = [{"role": "user", "content": initial_context}]
+    tool_call_count = 0
+    retry_count = 0
+
+    for iteration in range(MAX_TOOL_CALLS + 1):
+        call_start = time.monotonic()
+        try:
+            response = await asyncio.wait_for(
+                llm.chat_with_tools(
+                    system=system,
+                    messages=messages,
+                    tools=tools,
+                    max_tokens=2000,
+                    temperature=0.1,
+                ),
+                timeout=15,
+            )
+        except asyncio.TimeoutError:
+            latency_ms = int((time.monotonic() - call_start) * 1000)
+            if telemetry:
+                telemetry.record_call(LLMCallRecord(
+                    agent_name="cluster_storage", model="claude-haiku-4-5-20251001",
+                    call_type="tool_calling", latency_ms=latency_ms,
+                    error="timeout", success=False,
+                ))
+            return None
+        except RateLimitError:
+            if retry_count < 3:
+                await asyncio.sleep(2 ** retry_count)
+                retry_count += 1
+                continue
+            if telemetry:
+                telemetry.record_call(LLMCallRecord(
+                    agent_name="cluster_storage", model="claude-haiku-4-5-20251001",
+                    call_type="tool_calling", error="rate_limit", success=False,
+                ))
+            return None
+
+        latency_ms = int((time.monotonic() - call_start) * 1000)
+        usage = getattr(response, "usage", None)
+        in_tok = usage.input_tokens if usage else 0
+        out_tok = usage.output_tokens if usage else 0
+
+        if budget:
+            budget.record(input_tokens=in_tok, output_tokens=out_tok, latency_ms=latency_ms)
+        if telemetry:
+            telemetry.record_call(LLMCallRecord(
+                agent_name="cluster_storage", model="claude-haiku-4-5-20251001",
+                call_type="tool_calling", input_tokens=in_tok, output_tokens=out_tok,
+                latency_ms=latency_ms, success=True,
+            ))
+
+        tool_uses = [b for b in response.content if b.type == "tool_use"]
+        text_blocks = [b for b in response.content if b.type == "text"]
+
+        if not tool_uses:
+            text = "".join(b.text for b in text_blocks)
+            try:
+                start = text.index("{")
+                end = text.rindex("}") + 1
+                return json.loads(text[start:end])
+            except (ValueError, json.JSONDecodeError):
+                if telemetry:
+                    telemetry.record_call(LLMCallRecord(
+                        agent_name="cluster_storage", call_type="tool_calling",
+                        error="parse_error", success=False,
+                    ))
+                return None
+
+        for tu in tool_uses:
+            if tu.name == "submit_findings":
+                return tu.input
+
+        if tool_call_count >= MAX_TOOL_CALLS:
+            messages.append({"role": "assistant", "content": response.content})
+            messages.append({"role": "user", "content": [
+                {"type": "tool_result", "tool_use_id": tool_uses[0].id,
+                 "content": "Tool budget exhausted. Please submit your findings now using submit_findings."}
+            ]})
+            continue
+
+        messages.append({"role": "assistant", "content": response.content})
+        tool_results = []
+        for tu in tool_uses:
+            result_str = await execute_tool_call(tu.name, tu.input, cluster_client, tool_call_count)
+            tool_results.append({
+                "type": "tool_result",
+                "tool_use_id": tu.id,
+                "content": result_str,
+            })
+            tool_call_count += 1
+
+        messages.append({"role": "user", "content": tool_results})
+
+    return None
 
 
 @traced_node(timeout_seconds=60)
@@ -98,6 +268,22 @@ async def storage_agent(state: dict, config: dict) -> dict:
         pvcs = await client.list_pvcs()
     volume_metrics = await client.query_prometheus("kubelet_volume_stats_used_bytes")
 
+    # Check for RBAC permission denials
+    rbac_anomalies = []
+    rbac_denied = False
+    rbac_counter = 0
+    for result, resource_name in [(pvcs, "persistentvolumeclaims")]:
+        if result.permission_denied:
+            rbac_denied = True
+            rbac_counter += 1
+            rbac_anomalies.append(DomainAnomaly(
+                domain="storage",
+                anomaly_id=f"rbac-storage-{rbac_counter:03d}",
+                description=f"Insufficient RBAC permissions to access {resource_name}. Required ClusterRole: view",
+                evidence_ref=f"rbac/{resource_name}",
+                severity="high",
+            ))
+
     platform_caps = (
         "Full access: StorageClasses, CSI drivers, plus standard K8s."
         if platform == "openshift"
@@ -109,24 +295,74 @@ async def storage_agent(state: dict, config: dict) -> dict:
         "volume_metrics": volume_metrics.data,
     }
 
+    version_context = get_version_context(platform_version)
+    truncation_note = ""
+    if pvcs.truncated:
+        truncation_note += f"\nNOTE: PVCs truncated — {pvcs.total_available} total, {pvcs.returned} analyzed."
+
     system = _SYSTEM_PROMPT.format(
         platform=platform,
         platform_version=platform_version,
         platform_capabilities=platform_caps,
+        version_context=version_context,
     )
-    prompt = _ANALYSIS_PROMPT.format(data_json=json.dumps(data_payload, indent=2, default=str))
+    prompt = _ANALYSIS_PROMPT.format(
+        data_json=json.dumps(data_payload, indent=2, default=str),
+        truncation_note=truncation_note,
+    )
 
-    analysis = await _llm_analyze(system, prompt)
+    # Extract budget and telemetry from config
+    budget = config.get("configurable", {}).get("budget")
+    telemetry = config.get("configurable", {}).get("telemetry")
+
+    # Check budget before attempting LLM
+    analysis = None
+    if budget and not budget.can_call():
+        logger.info("Budget exhausted for storage, using heuristic")
+        analysis = await _heuristic_analyze(data_payload, "storage")
+        if telemetry:
+            telemetry.record_call(LLMCallRecord(
+                agent_name="cluster_storage", call_type="heuristic",
+                fallback_used=True, success=True,
+            ))
+    else:
+        # Try tool-calling ReAct loop first, fall back to heuristic single-pass
+        try:
+            initial_context = (
+                "Analyze this Kubernetes cluster for storage and persistence issues. "
+                "Start by examining PVCs, volume metrics, and events for capacity, binding, and IOPS issues.\n\n"
+                f"Platform: {platform} {platform_version}"
+            )
+            analysis = await asyncio.wait_for(
+                _tool_calling_loop(system, initial_context, client,
+                                   budget=budget, telemetry=telemetry),
+                timeout=TOOL_CALL_TIMEOUT,
+            )
+        except Exception as e:
+            logger.warning("Tool-calling failed for storage, falling back to heuristic: %s", e)
+
+        if not analysis:
+            if budget and not budget.can_call():
+                analysis = await _heuristic_analyze(data_payload, "storage")
+                if telemetry:
+                    telemetry.record_call(LLMCallRecord(
+                        agent_name="cluster_storage", call_type="heuristic",
+                        fallback_used=True, success=True,
+                    ))
+            else:
+                analysis = await _llm_analyze(system, prompt)
 
     anomalies = [
         DomainAnomaly(**a) for a in analysis.get("anomalies", [])
         if isinstance(a, dict) and "domain" in a
     ]
+    anomalies.extend(rbac_anomalies)
 
     elapsed = int((time.monotonic() - start_ms) * 1000)
     report = DomainReport(
         domain="storage",
-        status=DomainStatus.SUCCESS,
+        status=DomainStatus.PARTIAL if rbac_denied else DomainStatus.SUCCESS,
+        failure_reason=FailureReason.RBAC_DENIED if rbac_denied else None,
         confidence=analysis.get("confidence", 0),
         anomalies=anomalies,
         ruled_out=analysis.get("ruled_out", []),

@@ -5,12 +5,16 @@ from __future__ import annotations
 import json
 from typing import Any
 
+import time
+
 from src.agents.cluster.state import (
     DomainReport, DomainStatus, DomainAnomaly, CausalChain, CausalLink,
     BlastRadius, ClusterHealthReport,
 )
+from src.agents.cluster.command_validator import validate_kubectl_command, add_dry_run, generate_rollback
 from src.agents.cluster.traced_node import traced_node
 from src.utils.llm_client import AnthropicClient
+from src.utils.llm_telemetry import LLMCallRecord
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -76,9 +80,16 @@ async def _llm_causal_reasoning(
     reports: list[DomainReport],
     search_space: dict | None = None,
     root_candidates: list[dict] | None = None,
+    budget=None,
+    telemetry=None,
 ) -> dict:
     """Stage 2: LLM identifies cross-domain causal chains."""
-    client = AnthropicClient(agent_name="cluster_synthesizer")
+    # Downgrade model when budget is low
+    model = None
+    if budget and budget.remaining_budget_pct() < 0.3:
+        model = "claude-haiku-4-5-20251001"
+        logger.info("Budget low (%.0f%% remaining), using Haiku for causal reasoning", budget.remaining_budget_pct() * 100)
+    client = AnthropicClient(agent_name="cluster_synthesizer", model=model) if model else AnthropicClient(agent_name="cluster_synthesizer")
 
     anomaly_data = [a.model_dump(mode="json") for a in anomalies]
     report_summaries = [
@@ -140,18 +151,39 @@ These links passed structural validation but have low confidence based on observ
   ]
 }}"""
 
+    call_start = time.monotonic()
     response = await client.chat(
         prompt=prompt,
         system="You are a causal reasoning engine for cluster diagnostics. Be precise and evidence-based.",
         max_tokens=3000,
         temperature=0.1,
     )
+    latency_ms = int((time.monotonic() - call_start) * 1000)
+    usage = getattr(response, "usage", None)
+    in_tok = usage.input_tokens if usage else 0
+    out_tok = usage.output_tokens if usage else 0
+    used_model = model or "claude-sonnet-4-20250514"
+
+    if budget:
+        budget.record(input_tokens=in_tok, output_tokens=out_tok, latency_ms=latency_ms)
+    if telemetry:
+        telemetry.record_call(LLMCallRecord(
+            agent_name="cluster_synthesizer", model=used_model,
+            call_type="synthesis_causal", input_tokens=in_tok, output_tokens=out_tok,
+            latency_ms=latency_ms, success=True,
+        ))
+
     text = response.text
     try:
         start = text.index("{")
         end = text.rindex("}") + 1
         return json.loads(text[start:end])
     except (ValueError, json.JSONDecodeError):
+        if telemetry:
+            telemetry.record_call(LLMCallRecord(
+                agent_name="cluster_synthesizer", call_type="synthesis_causal",
+                error="parse_error", success=False,
+            ))
         return {"causal_chains": [], "uncorrelated_findings": []}
 
 
@@ -159,9 +191,15 @@ async def _llm_verdict(
     causal_chains: list[dict],
     reports: list[DomainReport],
     data_completeness: float,
+    budget=None,
+    telemetry=None,
 ) -> dict:
     """Stage 3: LLM produces verdict and remediation."""
-    client = AnthropicClient(agent_name="cluster_synthesizer")
+    model = None
+    if budget and budget.remaining_budget_pct() < 0.3:
+        model = "claude-haiku-4-5-20251001"
+        logger.info("Budget low (%.0f%% remaining), using Haiku for verdict", budget.remaining_budget_pct() * 100)
+    client = AnthropicClient(agent_name="cluster_synthesizer", model=model) if model else AnthropicClient(agent_name="cluster_synthesizer")
 
     report_summaries = json.dumps([
         {"domain": r.domain, "status": r.status.value, "confidence": r.confidence}
@@ -188,24 +226,55 @@ async def _llm_verdict(
     "affected_nodes": 0
   }},
   "remediation": {{
-    "immediate": [{{"command": "...", "description": "...", "risk_level": "low|medium|high"}}],
+    "immediate": [{{
+      "command": "kubectl ...",
+      "description": "...",
+      "risk_level": "low|medium|high",
+      "rollback": "kubectl ... (command to undo this action)",
+      "pre_check": "kubectl ... (command to run before executing)",
+      "verify": "kubectl ... (command to confirm fix worked)",
+      "expected_output": "description of what verify should show"
+    }}],
     "long_term": [{{"description": "...", "effort_estimate": "..."}}]
   }},
   "re_dispatch_needed": false
 }}"""
 
+    call_start = time.monotonic()
     response = await client.chat(
         prompt=prompt,
-        system="You are a cluster health verdict engine. Be actionable and precise.",
+        system="You are a cluster health verdict engine. Be actionable and precise. "
+               "ALWAYS include -n <namespace> in kubectl commands for namespaced resources. "
+               "Never use default namespace implicitly.",
         max_tokens=2000,
         temperature=0.1,
     )
+    latency_ms = int((time.monotonic() - call_start) * 1000)
+    usage = getattr(response, "usage", None)
+    in_tok = usage.input_tokens if usage else 0
+    out_tok = usage.output_tokens if usage else 0
+    used_model = model or "claude-sonnet-4-20250514"
+
+    if budget:
+        budget.record(input_tokens=in_tok, output_tokens=out_tok, latency_ms=latency_ms)
+    if telemetry:
+        telemetry.record_call(LLMCallRecord(
+            agent_name="cluster_synthesizer", model=used_model,
+            call_type="synthesis_verdict", input_tokens=in_tok, output_tokens=out_tok,
+            latency_ms=latency_ms, success=True,
+        ))
+
     text = response.text
     try:
         start = text.index("{")
         end = text.rindex("}") + 1
         return json.loads(text[start:end])
     except (ValueError, json.JSONDecodeError):
+        if telemetry:
+            telemetry.record_call(LLMCallRecord(
+                agent_name="cluster_synthesizer", call_type="synthesis_verdict",
+                error="parse_error", success=False,
+            ))
         return {
             "platform_health": "UNKNOWN",
             "blast_radius": {"summary": "Unable to determine", "affected_namespaces": 0, "affected_pods": 0, "affected_nodes": 0},
@@ -223,6 +292,19 @@ async def synthesize(state: dict, config: dict) -> dict:
 
     # Reconstruct DomainReports from state
     reports = [DomainReport(**r) for r in state.get("domain_reports", [])]
+
+    # Apply critic validation: filter out dropped anomalies, downgrade severity
+    critic_result = state.get("critic_result")
+    if critic_result:
+        dropped_ids = set(critic_result.get("dropped_anomaly_ids", []))
+        downgraded_ids = set(critic_result.get("downgraded_anomaly_ids", []))
+        for report in reports:
+            report.anomalies = [
+                a for a in report.anomalies if a.anomaly_id not in dropped_ids
+            ]
+            for a in report.anomalies:
+                if a.anomaly_id in downgraded_ids:
+                    a.severity = "medium"
 
     # Stage 1: Merge
     merged = _merge_reports(reports)
@@ -253,6 +335,10 @@ async def synthesize(state: dict, config: dict) -> dict:
     if issue_clusters_summary:
         search_space_for_llm["issue_clusters_summary"] = issue_clusters_summary
 
+    # Extract budget and telemetry from config
+    budget = config.get("configurable", {}).get("budget")
+    telemetry = config.get("configurable", {}).get("telemetry")
+
     # Stage 2: Causal Reasoning (skip if no anomalies)
     causal_result: dict = {"causal_chains": [], "uncorrelated_findings": []}
     if merged["all_anomalies"]:
@@ -261,10 +347,32 @@ async def synthesize(state: dict, config: dict) -> dict:
             reports,
             search_space=search_space_for_llm or None,
             root_candidates=root_candidates or None,
+            budget=budget,
+            telemetry=telemetry,
         )
 
     # Stage 3: Verdict
-    verdict = await _llm_verdict(causal_result.get("causal_chains", []), reports, data_completeness)
+    verdict = await _llm_verdict(
+        causal_result.get("causal_chains", []), reports, data_completeness,
+        budget=budget, telemetry=telemetry,
+    )
+
+    # Post-process remediation commands: validate, add dry-run, auto-fix namespace, generate rollback
+    for step in verdict.get("remediation", {}).get("immediate", []):
+        cmd = step.get("command", "")
+        if cmd:
+            validation = validate_kubectl_command(cmd)
+            if not validation.valid:
+                step["validation_errors"] = validation.errors
+            if validation.is_destructive:
+                step["risk_level"] = "high"
+                step["dry_run"] = add_dry_run(cmd)
+            if validation.missing_namespace and validation.fixed_command:
+                step["command"] = validation.fixed_command
+            if not step.get("rollback"):
+                rollback = generate_rollback(cmd)
+                if rollback:
+                    step["rollback"] = rollback
 
     # Build health report with Pydantic validation safety
     try:

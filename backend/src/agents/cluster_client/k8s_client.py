@@ -131,6 +131,8 @@ class KubernetesClient(ClusterClient):
             )
         except ApiException as e:
             logger.error("Failed to list namespaces: %s", e)
+            if e.status == 403:
+                return QueryResult(permission_denied=True, denied_resource="namespaces")
             return QueryResult()
 
     async def list_nodes(self) -> QueryResult:
@@ -164,6 +166,8 @@ class KubernetesClient(ClusterClient):
             )
         except ApiException as e:
             logger.error("Failed to list nodes: %s", e)
+            if e.status == 403:
+                return QueryResult(permission_denied=True, denied_resource="nodes")
             return QueryResult()
 
     async def list_pods(self, namespace: str = "") -> QueryResult:
@@ -178,8 +182,21 @@ class KubernetesClient(ClusterClient):
                     self._core_api.list_pod_for_all_namespaces
                 )
             cap = OBJECT_CAPS["pods"]
+            # Prioritize unhealthy pods before truncation
+            _STATUS_PRIORITY = {
+                "CrashLoopBackOff": 0, "Error": 0, "Failed": 0, "OOMKilled": 0,
+                "ImagePullBackOff": 1, "Pending": 2, "Running": 3, "Succeeded": 4,
+            }
+            def _pod_sort_key(p):
+                phase = p.status.phase or "Unknown"
+                for cs in (p.status.container_statuses or []):
+                    if cs.state and cs.state.waiting:
+                        phase = cs.state.waiting.reason or phase
+                        break
+                return _STATUS_PRIORITY.get(phase, 3)
+            sorted_items = sorted(result.items, key=_pod_sort_key)
             pods = []
-            for pod in result.items[:cap]:
+            for pod in sorted_items[:cap]:
                 container_statuses = pod.status.container_statuses or []
                 restarts = sum(cs.restart_count for cs in container_statuses)
                 # Determine effective status
@@ -188,6 +205,22 @@ class KubernetesClient(ClusterClient):
                     if cs.state and cs.state.waiting:
                         phase = cs.state.waiting.reason or phase
                         break
+                # Aggregate resource requests/limits across all containers
+                total_requests: dict[str, str] = {"cpu": "", "memory": ""}
+                total_limits: dict[str, str] = {"cpu": "", "memory": ""}
+                has_requests = False
+                has_limits = False
+                for container in (pod.spec.containers or []):
+                    if container.resources:
+                        if container.resources.requests:
+                            has_requests = True
+                            total_requests["cpu"] = container.resources.requests.get("cpu", "") or total_requests["cpu"]
+                            total_requests["memory"] = container.resources.requests.get("memory", "") or total_requests["memory"]
+                        if container.resources.limits:
+                            has_limits = True
+                            total_limits["cpu"] = container.resources.limits.get("cpu", "") or total_limits["cpu"]
+                            total_limits["memory"] = container.resources.limits.get("memory", "") or total_limits["memory"]
+
                 pods.append({
                     "name": pod.metadata.name,
                     "namespace": pod.metadata.namespace,
@@ -195,6 +228,10 @@ class KubernetesClient(ClusterClient):
                     "node": pod.spec.node_name or "",
                     "restarts": restarts,
                     "age": pod.metadata.creation_timestamp.isoformat() if pod.metadata.creation_timestamp else "",
+                    "resources": {
+                        "requests": total_requests if has_requests else {},
+                        "limits": total_limits if has_limits else {},
+                    },
                 })
             truncated = len(result.items) > cap
             return QueryResult(
@@ -205,6 +242,8 @@ class KubernetesClient(ClusterClient):
             )
         except ApiException as e:
             logger.error("Failed to list pods: %s", e)
+            if e.status == 403:
+                return QueryResult(permission_denied=True, denied_resource="pods")
             return QueryResult()
 
     async def list_events(self, namespace: str = "", field_selector: str = "") -> QueryResult:
@@ -222,8 +261,16 @@ class KubernetesClient(ClusterClient):
                     self._core_api.list_event_for_all_namespaces, **kwargs
                 )
             cap = OBJECT_CAPS["events"]
+            # Prioritize: Warning events first, then Normal, sorted by timestamp
+            sorted_events = sorted(
+                result.items,
+                key=lambda e: (
+                    0 if e.type == "Warning" else 1,
+                    e.last_timestamp.isoformat() if e.last_timestamp else "",
+                ),
+            )
             events = []
-            for ev in result.items[:cap]:
+            for ev in sorted_events[:cap]:
                 events.append({
                     "type": ev.type or "Normal",
                     "reason": ev.reason or "",
@@ -242,6 +289,8 @@ class KubernetesClient(ClusterClient):
             )
         except ApiException as e:
             logger.error("Failed to list events: %s", e)
+            if e.status == 403:
+                return QueryResult(permission_denied=True, denied_resource="events")
             return QueryResult()
 
     async def list_pvcs(self, namespace: str = "") -> QueryResult:
@@ -275,6 +324,367 @@ class KubernetesClient(ClusterClient):
             )
         except ApiException as e:
             logger.error("Failed to list PVCs: %s", e)
+            if e.status == 403:
+                return QueryResult(permission_denied=True, denied_resource="persistentvolumeclaims")
+            return QueryResult()
+
+    async def list_deployments(self, namespace: str = "") -> QueryResult:
+        self._ensure_client()
+        try:
+            if namespace:
+                result = await self._run_sync(self._apps_api.list_namespaced_deployment, namespace)
+            else:
+                result = await self._run_sync(self._apps_api.list_deployment_for_all_namespaces)
+            deployments = []
+            for dep in result.items:
+                ready = dep.status.ready_replicas or 0
+                desired = dep.spec.replicas or 0
+                conditions = {
+                    c.type: {"status": c.status, "reason": c.reason or "", "message": c.message or ""}
+                    for c in (dep.status.conditions or [])
+                }
+                deployments.append({
+                    "name": dep.metadata.name,
+                    "namespace": dep.metadata.namespace,
+                    "replicas_desired": desired,
+                    "replicas_ready": ready,
+                    "replicas_available": dep.status.available_replicas or 0,
+                    "replicas_updated": dep.status.updated_replicas or 0,
+                    "strategy": dep.spec.strategy.type if dep.spec.strategy else "RollingUpdate",
+                    "conditions": conditions,
+                    "stuck_rollout": ready < desired and conditions.get("Progressing", {}).get("status") == "False",
+                    "age": dep.metadata.creation_timestamp.isoformat() if dep.metadata.creation_timestamp else "",
+                })
+            return QueryResult(data=deployments, total_available=len(deployments), returned=len(deployments))
+        except ApiException as e:
+            logger.error("Failed to list deployments: %s", e)
+            if e.status == 403:
+                return QueryResult(permission_denied=True, denied_resource="deployments")
+            return QueryResult()
+
+    async def list_statefulsets(self, namespace: str = "") -> QueryResult:
+        self._ensure_client()
+        try:
+            if namespace:
+                result = await self._run_sync(self._apps_api.list_namespaced_stateful_set, namespace)
+            else:
+                result = await self._run_sync(self._apps_api.list_stateful_set_for_all_namespaces)
+            statefulsets = []
+            for sts in result.items:
+                ready = sts.status.ready_replicas or 0
+                desired = sts.spec.replicas or 0
+                conditions = {
+                    c.type: {"status": c.status, "reason": c.reason or "", "message": c.message or ""}
+                    for c in (sts.status.conditions or [])
+                }
+                statefulsets.append({
+                    "name": sts.metadata.name,
+                    "namespace": sts.metadata.namespace,
+                    "replicas_desired": desired,
+                    "replicas_ready": ready,
+                    "replicas_current": sts.status.current_replicas or 0,
+                    "replicas_updated": sts.status.updated_replicas or 0,
+                    "ordinal_start": sts.spec.ordinals.start if sts.spec.ordinals else 0,
+                    "conditions": conditions,
+                    "stuck_rollout": ready < desired,
+                    "age": sts.metadata.creation_timestamp.isoformat() if sts.metadata.creation_timestamp else "",
+                })
+            return QueryResult(data=statefulsets, total_available=len(statefulsets), returned=len(statefulsets))
+        except ApiException as e:
+            logger.error("Failed to list statefulsets: %s", e)
+            if e.status == 403:
+                return QueryResult(permission_denied=True, denied_resource="statefulsets")
+            return QueryResult()
+
+    async def list_daemonsets(self, namespace: str = "") -> QueryResult:
+        self._ensure_client()
+        try:
+            if namespace:
+                result = await self._run_sync(self._apps_api.list_namespaced_daemon_set, namespace)
+            else:
+                result = await self._run_sync(self._apps_api.list_daemon_set_for_all_namespaces)
+            daemonsets = []
+            for ds in result.items:
+                desired = ds.status.desired_number_scheduled or 0
+                ready = ds.status.number_ready or 0
+                daemonsets.append({
+                    "name": ds.metadata.name,
+                    "namespace": ds.metadata.namespace,
+                    "desired_number_scheduled": desired,
+                    "number_ready": ready,
+                    "number_unavailable": ds.status.number_unavailable or 0,
+                    "number_misscheduled": ds.status.number_misscheduled or 0,
+                    "updated_number_scheduled": ds.status.updated_number_scheduled or 0,
+                    "age": ds.metadata.creation_timestamp.isoformat() if ds.metadata.creation_timestamp else "",
+                })
+            return QueryResult(data=daemonsets, total_available=len(daemonsets), returned=len(daemonsets))
+        except ApiException as e:
+            logger.error("Failed to list daemonsets: %s", e)
+            if e.status == 403:
+                return QueryResult(permission_denied=True, denied_resource="daemonsets")
+            return QueryResult()
+
+    async def list_hpas(self, namespace: str = "") -> QueryResult:
+        self._ensure_client()
+        try:
+            autoscaling_api = client.AutoscalingV2Api(self._api_client)
+            if namespace:
+                result = await self._run_sync(autoscaling_api.list_namespaced_horizontal_pod_autoscaler, namespace)
+            else:
+                result = await self._run_sync(autoscaling_api.list_horizontal_pod_autoscaler_for_all_namespaces)
+            hpas = []
+            for hpa in result.items:
+                conditions = {
+                    c.type: {"status": c.status, "reason": c.reason or "", "message": c.message or ""}
+                    for c in (hpa.status.conditions or [])
+                }
+                current_replicas = hpa.status.current_replicas or 0
+                max_replicas = hpa.spec.max_replicas or 0
+                metrics_status = []
+                for metric in (hpa.spec.metrics or []):
+                    m: dict[str, Any] = {"type": metric.type}
+                    if metric.type == "Resource" and metric.resource:
+                        m["resource_name"] = metric.resource.name
+                        if metric.resource.target:
+                            m["target_type"] = metric.resource.target.type
+                            m["target_value"] = metric.resource.target.average_utilization or (
+                                metric.resource.target.average_value or metric.resource.target.value or ""
+                            )
+                    metrics_status.append(m)
+                hpas.append({
+                    "name": hpa.metadata.name,
+                    "namespace": hpa.metadata.namespace,
+                    "min_replicas": hpa.spec.min_replicas or 1,
+                    "max_replicas": max_replicas,
+                    "current_replicas": current_replicas,
+                    "desired_replicas": hpa.status.desired_replicas or 0,
+                    "target_ref": f"{hpa.spec.scale_target_ref.kind}/{hpa.spec.scale_target_ref.name}" if hpa.spec.scale_target_ref else "",
+                    "metrics": metrics_status,
+                    "conditions": conditions,
+                    "scaling_limited": conditions.get("ScalingLimited", {}).get("status") == "True",
+                    "at_max": current_replicas >= max_replicas and max_replicas > 0,
+                })
+            return QueryResult(data=hpas, total_available=len(hpas), returned=len(hpas))
+        except ApiException as e:
+            logger.error("Failed to list HPAs: %s", e)
+            if e.status == 403:
+                return QueryResult(permission_denied=True, denied_resource="horizontalpodautoscalers")
+            return QueryResult()
+        except Exception as e:
+            logger.warning("HPA listing unavailable: %s", e)
+            return QueryResult()
+
+    async def list_vpas(self, namespace: str = "") -> QueryResult:
+        self._ensure_client()
+        try:
+            custom_api = client.CustomObjectsApi(self._api_client)
+            if namespace:
+                result = await self._run_sync(
+                    custom_api.list_namespaced_custom_object,
+                    "autoscaling.k8s.io", "v1", namespace, "verticalpodautoscalers"
+                )
+            else:
+                result = await self._run_sync(
+                    custom_api.list_cluster_custom_object,
+                    "autoscaling.k8s.io", "v1", "verticalpodautoscalers"
+                )
+            vpas = []
+            for vpa in result.get("items", []):
+                recommendations = {}
+                rec = vpa.get("status", {}).get("recommendation", {})
+                for container_rec in rec.get("containerRecommendations", []):
+                    recommendations[container_rec.get("containerName", "")] = {
+                        "target": container_rec.get("target", {}),
+                        "lower_bound": container_rec.get("lowerBound", {}),
+                        "upper_bound": container_rec.get("upperBound", {}),
+                    }
+                vpas.append({
+                    "name": vpa["metadata"]["name"],
+                    "namespace": vpa["metadata"].get("namespace", ""),
+                    "target_ref": f"{vpa.get('spec', {}).get('targetRef', {}).get('kind', '')}/{vpa.get('spec', {}).get('targetRef', {}).get('name', '')}",
+                    "update_policy": vpa.get("spec", {}).get("updatePolicy", {}).get("updateMode", "Auto"),
+                    "recommendations": recommendations,
+                })
+            return QueryResult(data=vpas, total_available=len(vpas), returned=len(vpas))
+        except Exception as e:
+            logger.debug("VPA listing unavailable (CRD may not be installed): %s", e)
+            return QueryResult()
+
+    async def list_services(self, namespace: str = "") -> QueryResult:
+        self._ensure_client()
+        try:
+            if namespace:
+                result = await self._run_sync(
+                    self._core_api.list_namespaced_service, namespace
+                )
+            else:
+                result = await self._run_sync(
+                    self._core_api.list_service_for_all_namespaces
+                )
+            services = []
+            for svc in result.items:
+                ports = []
+                for p in (svc.spec.ports or []):
+                    ports.append({
+                        "port": p.port,
+                        "target_port": str(p.target_port) if p.target_port else "",
+                        "protocol": p.protocol or "TCP",
+                        "name": p.name or "",
+                    })
+                external_ip = ""
+                if svc.spec.type == "LoadBalancer" and svc.status and svc.status.load_balancer:
+                    ingress_list = svc.status.load_balancer.ingress or []
+                    if ingress_list:
+                        external_ip = ingress_list[0].ip or ingress_list[0].hostname or ""
+                    else:
+                        external_ip = "<Pending>"
+                services.append({
+                    "name": svc.metadata.name,
+                    "namespace": svc.metadata.namespace,
+                    "type": svc.spec.type or "ClusterIP",
+                    "cluster_ip": svc.spec.cluster_ip or "",
+                    "ports": ports,
+                    "selector": dict(svc.spec.selector) if svc.spec.selector else {},
+                    "external_ip": external_ip,
+                })
+            return QueryResult(
+                data=services,
+                total_available=len(services),
+                returned=len(services),
+            )
+        except ApiException as e:
+            logger.error("Failed to list services: %s", e)
+            if e.status == 403:
+                return QueryResult(permission_denied=True, denied_resource="services")
+            return QueryResult()
+
+    async def list_endpoints(self, namespace: str = "") -> QueryResult:
+        self._ensure_client()
+        try:
+            if namespace:
+                result = await self._run_sync(
+                    self._core_api.list_namespaced_endpoints, namespace
+                )
+            else:
+                result = await self._run_sync(
+                    self._core_api.list_endpoints_for_all_namespaces
+                )
+            endpoints = []
+            for ep in result.items:
+                subsets_info = []
+                for subset in (ep.subsets or []):
+                    addresses_count = len(subset.addresses or [])
+                    not_ready_count = len(subset.not_ready_addresses or [])
+                    ports = [
+                        {"port": p.port, "protocol": p.protocol or "TCP", "name": p.name or ""}
+                        for p in (subset.ports or [])
+                    ]
+                    subsets_info.append({
+                        "addresses_count": addresses_count,
+                        "not_ready_addresses_count": not_ready_count,
+                        "ports": ports,
+                    })
+                endpoints.append({
+                    "name": ep.metadata.name,
+                    "namespace": ep.metadata.namespace,
+                    "subsets": subsets_info,
+                    "total_ready_addresses": sum(s["addresses_count"] for s in subsets_info),
+                    "total_not_ready_addresses": sum(s["not_ready_addresses_count"] for s in subsets_info),
+                })
+            return QueryResult(
+                data=endpoints,
+                total_available=len(endpoints),
+                returned=len(endpoints),
+            )
+        except ApiException as e:
+            logger.error("Failed to list endpoints: %s", e)
+            if e.status == 403:
+                return QueryResult(permission_denied=True, denied_resource="endpoints")
+            return QueryResult()
+
+    async def list_pdbs(self, namespace: str = "") -> QueryResult:
+        self._ensure_client()
+        try:
+            policy_api = client.PolicyV1Api(self._api_client)
+            if namespace:
+                result = await self._run_sync(
+                    policy_api.list_namespaced_pod_disruption_budget, namespace
+                )
+            else:
+                result = await self._run_sync(
+                    policy_api.list_pod_disruption_budget_for_all_namespaces
+                )
+            pdbs = []
+            for pdb in result.items:
+                pdbs.append({
+                    "name": pdb.metadata.name,
+                    "namespace": pdb.metadata.namespace,
+                    "min_available": str(pdb.spec.min_available) if pdb.spec.min_available is not None else "",
+                    "max_unavailable": str(pdb.spec.max_unavailable) if pdb.spec.max_unavailable is not None else "",
+                    "disruptions_allowed": pdb.status.disruptions_allowed if pdb.status else 0,
+                    "current_healthy": pdb.status.current_healthy if pdb.status else 0,
+                    "desired_healthy": pdb.status.desired_healthy if pdb.status else 0,
+                    "expected_pods": pdb.status.expected_pods if pdb.status else 0,
+                })
+            return QueryResult(
+                data=pdbs,
+                total_available=len(pdbs),
+                returned=len(pdbs),
+            )
+        except ApiException as e:
+            logger.error("Failed to list PDBs: %s", e)
+            if e.status == 403:
+                return QueryResult(permission_denied=True, denied_resource="poddisruptionbudgets")
+            return QueryResult()
+        except Exception as e:
+            logger.warning("PDB listing unavailable: %s", e)
+            return QueryResult()
+
+    async def list_network_policies(self, namespace: str = "") -> QueryResult:
+        self._ensure_client()
+        try:
+            networking_api = client.NetworkingV1Api(self._api_client)
+            if namespace:
+                result = await self._run_sync(
+                    networking_api.list_namespaced_network_policy, namespace
+                )
+            else:
+                result = await self._run_sync(
+                    networking_api.list_network_policy_for_all_namespaces
+                )
+            policies = []
+            for np in result.items:
+                policy_types = np.spec.policy_types or []
+                ingress_rules = np.spec.ingress or []
+                egress_rules = np.spec.egress or []
+                # Empty ingress/egress means block all for that direction
+                has_empty_ingress = "Ingress" in policy_types and len(ingress_rules) == 0
+                has_empty_egress = "Egress" in policy_types and len(egress_rules) == 0
+                pod_selector = {}
+                if np.spec.pod_selector and np.spec.pod_selector.match_labels:
+                    pod_selector = dict(np.spec.pod_selector.match_labels)
+                policies.append({
+                    "name": np.metadata.name,
+                    "namespace": np.metadata.namespace,
+                    "pod_selector": pod_selector,
+                    "policy_types": policy_types,
+                    "ingress_rules_count": len(ingress_rules),
+                    "egress_rules_count": len(egress_rules),
+                    "has_empty_ingress": has_empty_ingress,
+                    "has_empty_egress": has_empty_egress,
+                })
+            return QueryResult(
+                data=policies,
+                total_available=len(policies),
+                returned=len(policies),
+            )
+        except ApiException as e:
+            logger.error("Failed to list network policies: %s", e)
+            if e.status == 403:
+                return QueryResult(permission_denied=True, denied_resource="networkpolicies")
+            return QueryResult()
+        except Exception as e:
+            logger.warning("NetworkPolicy listing unavailable: %s", e)
             return QueryResult()
 
     async def get_api_health(self) -> dict[str, Any]:
@@ -397,6 +807,331 @@ class KubernetesClient(ClusterClient):
             )
         except Exception as e:
             logger.error("Failed to list routes: %s", e)
+            return QueryResult()
+
+    async def get_security_context_constraints(self) -> QueryResult:
+        """OpenShift-specific: list SecurityContextConstraints."""
+        if self._platform != "openshift":
+            return QueryResult()
+        self._ensure_client()
+        try:
+            custom_api = client.CustomObjectsApi(self._api_client)
+            result = await self._run_sync(
+                custom_api.list_cluster_custom_object,
+                "security.openshift.io", "v1", "securitycontextconstraints"
+            )
+            sccs = []
+            for scc in result.get("items", []):
+                sccs.append({
+                    "name": scc["metadata"]["name"],
+                    "allowed_capabilities": scc.get("allowedCapabilities", []),
+                    "run_as_user_strategy": scc.get("runAsUser", {}).get("type", ""),
+                    "volumes": scc.get("volumes", []),
+                })
+            return QueryResult(
+                data=sccs,
+                total_available=len(sccs),
+                returned=len(sccs),
+            )
+        except Exception as e:
+            logger.error("Failed to list SCCs: %s", e)
+            return QueryResult()
+
+    async def get_build_configs(self, namespace: str = "") -> QueryResult:
+        """OpenShift-specific: list BuildConfigs."""
+        if self._platform != "openshift":
+            return QueryResult()
+        self._ensure_client()
+        try:
+            custom_api = client.CustomObjectsApi(self._api_client)
+            if namespace:
+                result = await self._run_sync(
+                    custom_api.list_namespaced_custom_object,
+                    "build.openshift.io", "v1", namespace, "buildconfigs"
+                )
+            else:
+                result = await self._run_sync(
+                    custom_api.list_cluster_custom_object,
+                    "build.openshift.io", "v1", "buildconfigs"
+                )
+            build_configs = []
+            for bc in result.get("items", []):
+                status = bc.get("status", {})
+                strategy = bc.get("spec", {}).get("strategy", {})
+                build_configs.append({
+                    "name": bc["metadata"]["name"],
+                    "namespace": bc["metadata"].get("namespace", ""),
+                    "strategy_type": strategy.get("type", ""),
+                    "last_version": status.get("lastVersion", 0),
+                    "status": status.get("phase", "Unknown"),
+                })
+            return QueryResult(
+                data=build_configs,
+                total_available=len(build_configs),
+                returned=len(build_configs),
+            )
+        except Exception as e:
+            logger.error("Failed to list BuildConfigs: %s", e)
+            return QueryResult()
+
+    async def get_image_streams(self, namespace: str = "") -> QueryResult:
+        """OpenShift-specific: list ImageStreams."""
+        if self._platform != "openshift":
+            return QueryResult()
+        self._ensure_client()
+        try:
+            custom_api = client.CustomObjectsApi(self._api_client)
+            if namespace:
+                result = await self._run_sync(
+                    custom_api.list_namespaced_custom_object,
+                    "image.openshift.io", "v1", namespace, "imagestreams"
+                )
+            else:
+                result = await self._run_sync(
+                    custom_api.list_cluster_custom_object,
+                    "image.openshift.io", "v1", "imagestreams"
+                )
+            image_streams = []
+            for istream in result.get("items", []):
+                tags = []
+                for tag in istream.get("status", {}).get("tags", []):
+                    conditions = tag.get("conditions", [])
+                    import_failed = any(
+                        c.get("type") == "ImportSuccess" and c.get("status") == "False"
+                        for c in conditions
+                    )
+                    tags.append({
+                        "tag": tag.get("tag", ""),
+                        "import_status": "failed" if import_failed else "ok",
+                    })
+                image_streams.append({
+                    "name": istream["metadata"]["name"],
+                    "namespace": istream["metadata"].get("namespace", ""),
+                    "tags": tags,
+                })
+            return QueryResult(
+                data=image_streams,
+                total_available=len(image_streams),
+                returned=len(image_streams),
+            )
+        except Exception as e:
+            logger.error("Failed to list ImageStreams: %s", e)
+            return QueryResult()
+
+    async def get_machine_config_pools(self) -> QueryResult:
+        """OpenShift-specific: list MachineConfigPools."""
+        if self._platform != "openshift":
+            return QueryResult()
+        self._ensure_client()
+        try:
+            custom_api = client.CustomObjectsApi(self._api_client)
+            result = await self._run_sync(
+                custom_api.list_cluster_custom_object,
+                "machineconfiguration.openshift.io", "v1", "machineconfigpools"
+            )
+            pools = []
+            for mcp in result.get("items", []):
+                status = mcp.get("status", {})
+                conditions = {
+                    c["type"]: c["status"]
+                    for c in status.get("conditions", [])
+                }
+                pools.append({
+                    "name": mcp["metadata"]["name"],
+                    "degraded": conditions.get("Degraded") == "True",
+                    "updating": conditions.get("Updating") == "True",
+                    "machine_count": status.get("machineCount", 0),
+                    "ready_count": status.get("readyMachineCount", 0),
+                    "updated_count": status.get("updatedMachineCount", 0),
+                    "unavailable_count": status.get("unavailableMachineCount", 0),
+                })
+            return QueryResult(
+                data=pools,
+                total_available=len(pools),
+                returned=len(pools),
+            )
+        except Exception as e:
+            logger.error("Failed to list MachineConfigPools: %s", e)
+            return QueryResult()
+
+    async def list_roles(self, namespace: str = "") -> QueryResult:
+        self._ensure_client()
+        try:
+            rbac_api = client.RbacAuthorizationV1Api(self._api_client)
+            if namespace:
+                result = await self._run_sync(rbac_api.list_namespaced_role, namespace)
+            else:
+                result = await self._run_sync(rbac_api.list_role_for_all_namespaces)
+            roles = [
+                {
+                    "name": r.metadata.name,
+                    "namespace": r.metadata.namespace,
+                    "rules_count": len(r.rules or []),
+                    "rules": [
+                        {
+                            "api_groups": rule.api_groups or [],
+                            "resources": rule.resources or [],
+                            "verbs": rule.verbs or [],
+                        }
+                        for rule in (r.rules or [])
+                    ],
+                }
+                for r in result.items
+            ]
+            return QueryResult(data=roles, total_available=len(roles), returned=len(roles))
+        except ApiException as e:
+            if e.status == 403:
+                return QueryResult(permission_denied=True, denied_resource="roles")
+            logger.error("Failed to list roles: %s", e)
+            return QueryResult()
+
+    async def list_role_bindings(self, namespace: str = "") -> QueryResult:
+        self._ensure_client()
+        try:
+            rbac_api = client.RbacAuthorizationV1Api(self._api_client)
+            if namespace:
+                result = await self._run_sync(rbac_api.list_namespaced_role_binding, namespace)
+            else:
+                result = await self._run_sync(rbac_api.list_role_binding_for_all_namespaces)
+            bindings = [
+                {
+                    "name": rb.metadata.name,
+                    "namespace": rb.metadata.namespace,
+                    "role_ref": {
+                        "kind": rb.role_ref.kind,
+                        "name": rb.role_ref.name,
+                        "api_group": rb.role_ref.api_group,
+                    },
+                    "subjects": [
+                        {
+                            "kind": s.kind,
+                            "name": s.name,
+                            "namespace": getattr(s, "namespace", None) or "",
+                        }
+                        for s in (rb.subjects or [])
+                    ],
+                }
+                for rb in result.items
+            ]
+            return QueryResult(data=bindings, total_available=len(bindings), returned=len(bindings))
+        except ApiException as e:
+            if e.status == 403:
+                return QueryResult(permission_denied=True, denied_resource="rolebindings")
+            logger.error("Failed to list role bindings: %s", e)
+            return QueryResult()
+
+    async def list_cluster_roles(self) -> QueryResult:
+        self._ensure_client()
+        try:
+            rbac_api = client.RbacAuthorizationV1Api(self._api_client)
+            result = await self._run_sync(rbac_api.list_cluster_role)
+            cluster_roles = [
+                {
+                    "name": cr.metadata.name,
+                    "rules_count": len(cr.rules or []),
+                    "is_aggregate": bool(cr.aggregation_rule),
+                    "rules": [
+                        {
+                            "api_groups": rule.api_groups or [],
+                            "resources": rule.resources or [],
+                            "verbs": rule.verbs or [],
+                        }
+                        for rule in (cr.rules or [])
+                    ],
+                }
+                for cr in result.items
+            ]
+            return QueryResult(data=cluster_roles, total_available=len(cluster_roles), returned=len(cluster_roles))
+        except ApiException as e:
+            if e.status == 403:
+                return QueryResult(permission_denied=True, denied_resource="clusterroles")
+            logger.error("Failed to list cluster roles: %s", e)
+            return QueryResult()
+
+    async def list_service_accounts(self, namespace: str = "") -> QueryResult:
+        self._ensure_client()
+        try:
+            if namespace:
+                result = await self._run_sync(self._core_api.list_namespaced_service_account, namespace)
+            else:
+                result = await self._run_sync(self._core_api.list_service_account_for_all_namespaces)
+            service_accounts = [
+                {
+                    "name": sa.metadata.name,
+                    "namespace": sa.metadata.namespace,
+                    "secrets_count": len(sa.secrets or []),
+                    "automount_token": sa.automount_service_account_token if sa.automount_service_account_token is not None else True,
+                }
+                for sa in result.items
+            ]
+            return QueryResult(data=service_accounts, total_available=len(service_accounts), returned=len(service_accounts))
+        except ApiException as e:
+            if e.status == 403:
+                return QueryResult(permission_denied=True, denied_resource="serviceaccounts")
+            logger.error("Failed to list service accounts: %s", e)
+            return QueryResult()
+
+    async def list_jobs(self, namespace: str = "") -> QueryResult:
+        self._ensure_client()
+        try:
+            batch_api = client.BatchV1Api(self._api_client)
+            if namespace:
+                result = await self._run_sync(batch_api.list_namespaced_job, namespace)
+            else:
+                result = await self._run_sync(batch_api.list_job_for_all_namespaces)
+            jobs = []
+            for job in result.items:
+                conditions = job.status.conditions or []
+                backoff_exceeded = any(
+                    c.type == "Failed" and c.reason == "BackoffLimitExceeded" and c.status == "True"
+                    for c in conditions
+                )
+                deadline_exceeded = any(
+                    c.type == "Failed" and c.reason == "DeadlineExceeded" and c.status == "True"
+                    for c in conditions
+                )
+                jobs.append({
+                    "name": job.metadata.name,
+                    "namespace": job.metadata.namespace,
+                    "completions": job.spec.completions or 1,
+                    "succeeded": job.status.succeeded or 0,
+                    "failed": job.status.failed or 0,
+                    "active": job.status.active or 0,
+                    "backoff_limit_exceeded": backoff_exceeded,
+                    "active_deadline_exceeded": deadline_exceeded,
+                    "age": job.metadata.creation_timestamp.isoformat() if job.metadata.creation_timestamp else "",
+                })
+            return QueryResult(data=jobs, total_available=len(jobs), returned=len(jobs))
+        except ApiException as e:
+            if e.status == 403:
+                return QueryResult(permission_denied=True, denied_resource="jobs")
+            logger.error("Failed to list jobs: %s", e)
+            return QueryResult()
+
+    async def list_cronjobs(self, namespace: str = "") -> QueryResult:
+        self._ensure_client()
+        try:
+            batch_api = client.BatchV1Api(self._api_client)
+            if namespace:
+                result = await self._run_sync(batch_api.list_namespaced_cron_job, namespace)
+            else:
+                result = await self._run_sync(batch_api.list_cron_job_for_all_namespaces)
+            cronjobs = []
+            for cj in result.items:
+                cronjobs.append({
+                    "name": cj.metadata.name,
+                    "namespace": cj.metadata.namespace,
+                    "schedule": cj.spec.schedule or "",
+                    "suspend": cj.spec.suspend or False,
+                    "last_schedule_time": cj.status.last_schedule_time.isoformat() if cj.status and cj.status.last_schedule_time else "",
+                    "active_count": len(cj.status.active or []) if cj.status else 0,
+                    "age": cj.metadata.creation_timestamp.isoformat() if cj.metadata.creation_timestamp else "",
+                })
+            return QueryResult(data=cronjobs, total_available=len(cronjobs), returned=len(cronjobs))
+        except ApiException as e:
+            if e.status == 403:
+                return QueryResult(permission_denied=True, denied_resource="cronjobs")
+            logger.error("Failed to list cronjobs: %s", e)
             return QueryResult()
 
     async def build_topology_snapshot(self) -> "TopologySnapshot":

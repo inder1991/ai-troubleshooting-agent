@@ -14,8 +14,11 @@ from src.agents.cluster.ctrl_plane_agent import ctrl_plane_agent
 from src.agents.cluster.node_agent import node_agent
 from src.agents.cluster.network_agent import network_agent
 from src.agents.cluster.storage_agent import storage_agent
+from src.agents.cluster.rbac_agent import rbac_agent
+from src.agents.cluster.critic_agent import critic_validator
 from src.agents.cluster.synthesizer import synthesize
 from src.agents.cluster.guard_formatter import guard_formatter
+from src.agents.cluster.rbac_checker import rbac_preflight
 from src.agents.cluster.state import DiagnosticScope
 from src.utils.logger import get_logger
 
@@ -24,7 +27,7 @@ logger = get_logger(__name__)
 # Graph-level ceiling (seconds)
 GRAPH_TIMEOUT = 180
 
-ALL_DOMAINS = ["ctrl_plane", "node", "network", "storage"]
+ALL_DOMAINS = ["ctrl_plane", "node", "network", "storage", "rbac"]
 
 
 class State(TypedDict):
@@ -57,6 +60,13 @@ class State(TypedDict):
     scoped_topology_graph: Optional[dict]
     dispatch_domains: list[str]
     scope_coverage: float
+    # Pre-flight RBAC check result
+    rbac_check: Optional[dict]
+    # Critic validation result
+    critic_result: Optional[dict]
+    # LLM budget and telemetry
+    session_budget: Optional[dict]        # SessionBudget.to_dict() for state passing
+    llm_telemetry: Optional[dict]         # SessionLLMSummary.to_dict()
 
 
 # ---------------------------------------------------------------------------
@@ -131,6 +141,7 @@ def _should_redispatch(state: dict) -> list[str]:
             "node": "dispatch_node",
             "network": "dispatch_network",
             "storage": "dispatch_storage",
+            "rbac": "dispatch_rbac",
         }
         targets = [
             domain_to_node[d]
@@ -151,8 +162,10 @@ def build_cluster_diagnostic_graph():
     wrapped_node = _wrap_domain_agent("node", node_agent)
     wrapped_network = _wrap_domain_agent("network", network_agent)
     wrapped_storage = _wrap_domain_agent("storage", storage_agent)
+    wrapped_rbac = _wrap_domain_agent("rbac", rbac_agent)
 
     # Add all nodes
+    graph.add_node("rbac_preflight", rbac_preflight)
     graph.add_node("topology_snapshot_resolver", topology_snapshot_resolver)
     graph.add_node("alert_correlator", alert_correlator)
     graph.add_node("causal_firewall", causal_firewall)
@@ -161,26 +174,33 @@ def build_cluster_diagnostic_graph():
     graph.add_node("node_agent", wrapped_node)
     graph.add_node("network_agent", wrapped_network)
     graph.add_node("storage_agent", wrapped_storage)
+    graph.add_node("rbac_agent", wrapped_rbac)
+    graph.add_node("critic_validator", critic_validator)
     graph.add_node("synthesize", synthesize)
     graph.add_node("guard_formatter", guard_formatter)
 
-    # Sequential pre-processing: topology -> correlator -> firewall -> dispatch_router
-    graph.add_edge(START, "topology_snapshot_resolver")
+    # Sequential pre-processing: rbac_preflight -> topology -> correlator -> firewall -> dispatch_router
+    graph.add_edge(START, "rbac_preflight")
+    graph.add_edge("rbac_preflight", "topology_snapshot_resolver")
     graph.add_edge("topology_snapshot_resolver", "alert_correlator")
     graph.add_edge("alert_correlator", "causal_firewall")
     graph.add_edge("causal_firewall", "dispatch_router")
 
-    # Fan-out: dispatch_router -> all 4 agents in parallel
+    # Fan-out: dispatch_router -> all 5 agents in parallel
     graph.add_edge("dispatch_router", "ctrl_plane_agent")
     graph.add_edge("dispatch_router", "node_agent")
     graph.add_edge("dispatch_router", "network_agent")
     graph.add_edge("dispatch_router", "storage_agent")
+    graph.add_edge("dispatch_router", "rbac_agent")
 
-    # All agents fan-in to synthesize
-    graph.add_edge("ctrl_plane_agent", "synthesize")
-    graph.add_edge("node_agent", "synthesize")
-    graph.add_edge("network_agent", "synthesize")
-    graph.add_edge("storage_agent", "synthesize")
+    # All agents fan-in to critic_validator, then to synthesize
+    graph.add_edge("ctrl_plane_agent", "critic_validator")
+    graph.add_edge("node_agent", "critic_validator")
+    graph.add_edge("network_agent", "critic_validator")
+    graph.add_edge("storage_agent", "critic_validator")
+    graph.add_edge("rbac_agent", "critic_validator")
+
+    graph.add_edge("critic_validator", "synthesize")
 
     # After synthesis: check confidence and optionally re-dispatch
     graph.add_conditional_edges(
@@ -191,6 +211,7 @@ def build_cluster_diagnostic_graph():
             "dispatch_node": "node_agent",
             "dispatch_network": "network_agent",
             "dispatch_storage": "storage_agent",
+            "dispatch_rbac": "rbac_agent",
             "to_guard_formatter": "guard_formatter",
         },
     )

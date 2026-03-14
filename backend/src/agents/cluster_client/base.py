@@ -29,6 +29,8 @@ class QueryResult(BaseModel):
     returned: int = 0
     truncated: bool = False
     sort_order: str = "severity_desc"
+    permission_denied: bool = False
+    denied_resource: str = ""
 
 
 class ClusterClient(ABC):
@@ -71,6 +73,28 @@ class ClusterClient(ABC):
     async def query_logs(self, index: str, query: dict, max_lines: int = 2000) -> QueryResult:
         ...
 
+    # Workload queries (Deployments, StatefulSets, DaemonSets)
+    @abstractmethod
+    async def list_deployments(self, namespace: str = "") -> QueryResult:
+        ...
+
+    @abstractmethod
+    async def list_statefulsets(self, namespace: str = "") -> QueryResult:
+        ...
+
+    @abstractmethod
+    async def list_daemonsets(self, namespace: str = "") -> QueryResult:
+        ...
+
+    # HPA/VPA — non-abstract, not all clusters have these
+    async def list_hpas(self, namespace: str = "") -> QueryResult:
+        """List HorizontalPodAutoscalers. Returns empty by default."""
+        return QueryResult()
+
+    async def list_vpas(self, namespace: str = "") -> QueryResult:
+        """List VerticalPodAutoscalers. Returns empty by default."""
+        return QueryResult()
+
     # OpenShift-specific (return empty on vanilla K8s)
     async def get_cluster_operators(self) -> QueryResult:
         return QueryResult()
@@ -79,6 +103,67 @@ class ClusterClient(ABC):
         return QueryResult()
 
     async def get_routes(self, namespace: str = "") -> QueryResult:
+        return QueryResult()
+
+    async def get_security_context_constraints(self) -> QueryResult:
+        """OpenShift SCCs."""
+        return QueryResult()
+
+    async def get_build_configs(self, namespace: str = "") -> QueryResult:
+        """OpenShift BuildConfigs."""
+        return QueryResult()
+
+    async def get_image_streams(self, namespace: str = "") -> QueryResult:
+        """OpenShift ImageStreams."""
+        return QueryResult()
+
+    async def get_machine_config_pools(self) -> QueryResult:
+        """OpenShift MachineConfigPools."""
+        return QueryResult()
+
+    # RBAC resources — non-abstract, not all agents need these
+    async def list_roles(self, namespace: str = "") -> QueryResult:
+        """List Roles. Returns empty by default."""
+        return QueryResult()
+
+    async def list_role_bindings(self, namespace: str = "") -> QueryResult:
+        """List RoleBindings. Returns empty by default."""
+        return QueryResult()
+
+    async def list_cluster_roles(self) -> QueryResult:
+        """List ClusterRoles. Returns empty by default."""
+        return QueryResult()
+
+    async def list_service_accounts(self, namespace: str = "") -> QueryResult:
+        """List ServiceAccounts. Returns empty by default."""
+        return QueryResult()
+
+    # Services & Endpoints — non-abstract, not all agents need these
+    async def list_services(self, namespace: str = "") -> QueryResult:
+        """List Services. Returns empty by default."""
+        return QueryResult()
+
+    async def list_endpoints(self, namespace: str = "") -> QueryResult:
+        """List Endpoints. Returns empty by default."""
+        return QueryResult()
+
+    # PodDisruptionBudgets — non-abstract, not all agents need these
+    async def list_pdbs(self, namespace: str = "") -> QueryResult:
+        """List PodDisruptionBudgets. Returns empty by default."""
+        return QueryResult()
+
+    # NetworkPolicies — non-abstract, not all agents need these
+    async def list_network_policies(self, namespace: str = "") -> QueryResult:
+        """List NetworkPolicies. Returns empty by default."""
+        return QueryResult()
+
+    # Batch resources — non-abstract, not all agents need these
+    async def list_jobs(self, namespace: str = "") -> QueryResult:
+        """List Jobs. Returns empty by default."""
+        return QueryResult()
+
+    async def list_cronjobs(self, namespace: str = "") -> QueryResult:
+        """List CronJobs. Returns empty by default."""
         return QueryResult()
 
     async def build_topology_snapshot(self) -> "TopologySnapshot":

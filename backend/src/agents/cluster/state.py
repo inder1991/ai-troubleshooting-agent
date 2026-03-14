@@ -33,12 +33,20 @@ class TruncationFlags(BaseModel):
     pvcs: bool = False
 
 
+class EvidenceSource(BaseModel):
+    api_call: str = ""       # "list_pods(namespace='production')"
+    resource: str = ""       # "pod/order-service-abc123"
+    data_snippet: str = ""   # "status.phase=CrashLoopBackOff, restartCount=45"
+    tool_call_id: str = ""   # Links to specific LLM tool call
+
+
 class DomainAnomaly(BaseModel):
     domain: str
     anomaly_id: str
     description: str
     evidence_ref: str
     severity: str = "medium"
+    evidence_sources: list[EvidenceSource] = Field(default_factory=list)
 
 
 class DomainReport(BaseModel):
@@ -83,6 +91,12 @@ class RemediationStep(BaseModel):
     description: str = ""
     risk_level: str = "medium"
     effort_estimate: str = ""
+    rollback: str = ""
+    pre_check: str = ""
+    verify: str = ""
+    expected_output: str = ""
+    dry_run: str = ""
+    validation_errors: list[str] = Field(default_factory=list)
 
 
 class ClusterHealthReport(BaseModel):
@@ -106,7 +120,7 @@ class DiagnosticScope(BaseModel):
     level: Literal["cluster", "namespace", "workload", "component"] = "cluster"
     namespaces: list[str] = Field(default_factory=list)
     workload_key: Optional[str] = None          # "Deployment/my-app"
-    domains: list[str] = Field(default_factory=lambda: ["ctrl_plane", "node", "network", "storage"])
+    domains: list[str] = Field(default_factory=lambda: ["ctrl_plane", "node", "network", "storage", "rbac"])
     include_control_plane: bool = True           # Default ON, user must explicitly uncheck
 
 
@@ -128,7 +142,7 @@ class ClusterDiagnosticState(BaseModel):
     error: Optional[str] = None
     diagnostic_scope: Optional[dict] = None           # DiagnosticScope.model_dump()
     scoped_topology_graph: Optional[dict] = None       # Pruned topology for downstream
-    dispatch_domains: list[str] = Field(default_factory=lambda: ["ctrl_plane", "node", "network", "storage"])
+    dispatch_domains: list[str] = Field(default_factory=lambda: ["ctrl_plane", "node", "network", "storage", "rbac"])
     scope_coverage: float = 1.0                        # dispatched / total domains
 
 

@@ -1,4 +1,4 @@
-"""Control Plane & Etcd diagnostic agent node."""
+"""RBAC & Security diagnostic agent node."""
 
 from __future__ import annotations
 
@@ -24,17 +24,17 @@ logger = get_logger(__name__)
 MAX_TOOL_CALLS = 5
 TOOL_CALL_TIMEOUT = 60  # seconds
 
-_SYSTEM_PROMPT = """You are the Control Plane & Etcd diagnostic agent for DebugDuck.
-You analyze: degraded operators, API server latency, etcd sync/health, certificate expiry, leader election.
-For OpenShift clusters, you also analyze MachineConfigPool health, SCC restrictions, and operator lifecycle.
+_SYSTEM_PROMPT = """You are the RBAC & Security diagnostic agent for DebugDuck.
+You analyze: ServiceAccount misconfigs, role binding issues, pods running as default ServiceAccount,
+excessive permissions, orphaned roles.
 
 Platform: {platform} {platform_version}
 {platform_capabilities}
 {version_context}
 
-Analyze the provided cluster data and produce a structured assessment."""
+Analyze the provided RBAC and security data and produce a structured assessment."""
 
-_ANALYSIS_PROMPT = """Analyze this control plane data and produce a JSON response:
+_ANALYSIS_PROMPT = """Analyze this RBAC and security data and produce a JSON response:
 
 ## Data Collected
 {data_json}
@@ -43,7 +43,7 @@ _ANALYSIS_PROMPT = """Analyze this control plane data and produce a JSON respons
 ## Required JSON Response Format
 {{
   "anomalies": [
-    {{"domain": "ctrl_plane", "anomaly_id": "cp-NNN", "description": "...", "evidence_ref": "ev-ctrl-NNN", "severity": "high|medium|low"}}
+    {{"domain": "rbac", "anomaly_id": "rbac-NNN", "description": "...", "evidence_ref": "ev-rbac-NNN", "severity": "high|medium|low"}}
   ],
   "ruled_out": ["list of things checked and found healthy"],
   "confidence": 0-100
@@ -51,6 +51,12 @@ _ANALYSIS_PROMPT = """Analyze this control plane data and produce a JSON respons
 
 Rules:
 - Only report anomalies you have evidence for
+- ServiceAccounts with no bound roles = low severity (potential orphan)
+- RoleBindings referencing non-existent roles = high severity (broken binding)
+- Pods running as default ServiceAccount = medium severity (security risk, no least-privilege)
+- ClusterRoleBindings granting cluster-admin to non-system ServiceAccounts = high severity (excessive permissions)
+- Orphaned roles (roles with no bindings referencing them) = low severity
+- ServiceAccounts with automountServiceAccountToken=true when not needed = low severity
 - Include severity (high/medium/low)
 - Confidence reflects data quality and coverage
 - ruled_out is important -- shows thoroughness"""
@@ -58,7 +64,7 @@ Rules:
 
 async def _llm_analyze(system: str, prompt: str) -> dict:
     """Heuristic single-pass LLM call (fallback). Returns parsed JSON dict."""
-    client = AnthropicClient(agent_name="cluster_ctrl_plane")
+    client = AnthropicClient(agent_name="cluster_rbac")
     response = await client.chat(
         prompt=prompt,
         system=system,
@@ -75,68 +81,74 @@ async def _llm_analyze(system: str, prompt: str) -> dict:
         return {"anomalies": [], "ruled_out": [], "confidence": 0}
 
 
-async def _heuristic_analyze(data_payload: dict, domain: str = "ctrl_plane") -> dict:
-    """Deterministic rule-based analysis for ctrl_plane. No LLM calls."""
+async def _heuristic_analyze(data_payload: dict, domain: str = "rbac") -> dict:
+    """Deterministic rule-based analysis for RBAC. No LLM calls."""
     anomalies = []
     ruled_out = []
 
-    # Check cluster operators for degraded status
-    for op in data_payload.get("cluster_operators", []):
-        op_name = op.get("name", "unknown")
-        if op.get("degraded"):
+    # Build a set of bound role names for orphan detection
+    bound_roles = set()
+    for rb in data_payload.get("role_bindings", []):
+        role_ref = rb.get("role_ref", rb.get("roleRef", {}))
+        if isinstance(role_ref, dict):
+            bound_roles.add(role_ref.get("name", ""))
+        elif isinstance(role_ref, str):
+            bound_roles.add(role_ref)
+
+    # Check for default ServiceAccount usage in pods (via service_accounts data)
+    for sa in data_payload.get("service_accounts", []):
+        sa_name = sa.get("name", "unknown")
+        ns = sa.get("namespace", "default")
+        if sa_name == "default":
+            # Check if any pods are using it (heuristic: just flag it)
             anomalies.append({
                 "domain": domain,
                 "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
-                "description": f"Operator {op_name} is degraded",
-                "evidence_ref": f"operator/{op_name}",
-                "severity": "high",
+                "description": f"Default ServiceAccount in namespace {ns} may be used by workloads (no least-privilege)",
+                "evidence_ref": f"serviceaccount/{ns}/default",
+                "severity": "medium",
             })
-        elif op.get("available") is False:
+
+    # Check role bindings for references to non-existent roles
+    existing_roles = {r.get("name", "") for r in data_payload.get("roles", [])}
+    existing_cluster_roles = {r.get("name", "") for r in data_payload.get("cluster_roles", [])}
+    all_known_roles = existing_roles | existing_cluster_roles
+
+    for rb in data_payload.get("role_bindings", []):
+        rb_name = rb.get("name", "unknown")
+        ns = rb.get("namespace", "")
+        role_ref = rb.get("role_ref", rb.get("roleRef", {}))
+        ref_name = role_ref.get("name", "") if isinstance(role_ref, dict) else str(role_ref)
+        if ref_name and ref_name not in all_known_roles:
             anomalies.append({
                 "domain": domain,
                 "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
-                "description": f"Operator {op_name} is unavailable",
-                "evidence_ref": f"operator/{op_name}",
+                "description": f"RoleBinding {ns}/{rb_name} references non-existent role '{ref_name}' (dangling binding)",
+                "evidence_ref": f"rolebinding/{ns}/{rb_name}",
                 "severity": "high",
             })
-        else:
-            ruled_out.append(f"Operator {op_name} healthy")
 
-    # Check API health
-    api_health = data_payload.get("api_health", {})
-    if api_health.get("status") not in (None, "ok", "healthy"):
-        anomalies.append({
-            "domain": domain,
-            "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
-            "description": f"API server health check returned: {api_health.get('status', 'unknown')}",
-            "evidence_ref": "api-server/health",
-            "severity": "high",
-        })
-    else:
-        ruled_out.append("API server health OK")
+        # Check for cluster-admin grants to non-system SAs
+        subjects = rb.get("subjects", [])
+        for subj in subjects:
+            if (subj.get("kind") == "ServiceAccount"
+                    and ref_name == "cluster-admin"
+                    and not subj.get("namespace", "").startswith("kube-")
+                    and not subj.get("namespace", "").startswith("openshift-")):
+                anomalies.append({
+                    "domain": domain,
+                    "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                    "description": f"ServiceAccount {subj.get('namespace','')}/{subj.get('name','')} has cluster-admin (excessive permissions)",
+                    "evidence_ref": f"rolebinding/{ns}/{rb_name}",
+                    "severity": "high",
+                })
 
-    # Check events for warnings
-    warning_events = [e for e in data_payload.get("events", []) if e.get("type") == "Warning"]
-    if len(warning_events) > 10:
-        anomalies.append({
-            "domain": domain,
-            "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
-            "description": f"High volume of warning events ({len(warning_events)} warnings in control plane events)",
-            "evidence_ref": "events/warnings",
-            "severity": "medium",
-        })
-
-    # Check MachineConfigPools (OpenShift)
-    for mcp in data_payload.get("machine_config_pools", []):
-        mcp_name = mcp.get("name", "unknown")
-        if mcp.get("degraded"):
-            anomalies.append({
-                "domain": domain,
-                "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
-                "description": f"MachineConfigPool {mcp_name} is degraded",
-                "evidence_ref": f"mcp/{mcp_name}",
-                "severity": "high",
-            })
+    # Check for orphaned roles
+    for role in data_payload.get("roles", []):
+        role_name = role.get("name", "unknown")
+        ns = role.get("namespace", "")
+        if role_name not in bound_roles and not role_name.startswith("system:"):
+            ruled_out.append(f"Role {ns}/{role_name} has no bindings (potential orphan)")
 
     confidence = 50 if anomalies else 70
     return {"anomalies": anomalies, "ruled_out": ruled_out, "confidence": confidence}
@@ -144,12 +156,12 @@ async def _heuristic_analyze(data_payload: dict, domain: str = "ctrl_plane") -> 
 
 async def _tool_calling_loop(system: str, initial_context: str, cluster_client,
                               budget=None, telemetry=None) -> dict | None:
-    """ReAct tool-calling loop for ctrl_plane agent. Returns parsed findings dict or None."""
+    """ReAct tool-calling loop for rbac agent. Returns parsed findings dict or None."""
     if not os.environ.get("ANTHROPIC_API_KEY"):
         return None
 
-    llm = AnthropicClient(agent_name="cluster_ctrl_plane", model="claude-haiku-4-5-20251001")
-    tools = get_tools_for_agent("ctrl_plane")
+    llm = AnthropicClient(agent_name="cluster_rbac", model="claude-haiku-4-5-20251001")
+    tools = get_tools_for_agent("rbac")
 
     messages = [{"role": "user", "content": initial_context}]
     tool_call_count = 0
@@ -172,11 +184,11 @@ async def _tool_calling_loop(system: str, initial_context: str, cluster_client,
             latency_ms = int((time.monotonic() - call_start) * 1000)
             if telemetry:
                 telemetry.record_call(LLMCallRecord(
-                    agent_name="cluster_ctrl_plane", model="claude-haiku-4-5-20251001",
+                    agent_name="cluster_rbac", model="claude-haiku-4-5-20251001",
                     call_type="tool_calling", latency_ms=latency_ms,
                     error="timeout", success=False,
                 ))
-            return None  # Triggers heuristic fallback
+            return None
         except RateLimitError:
             if retry_count < 3:
                 await asyncio.sleep(2 ** retry_count)
@@ -184,31 +196,29 @@ async def _tool_calling_loop(system: str, initial_context: str, cluster_client,
                 continue
             if telemetry:
                 telemetry.record_call(LLMCallRecord(
-                    agent_name="cluster_ctrl_plane", model="claude-haiku-4-5-20251001",
+                    agent_name="cluster_rbac", model="claude-haiku-4-5-20251001",
                     call_type="tool_calling", error="rate_limit", success=False,
                 ))
-            return None  # Triggers heuristic fallback
+            return None
 
         latency_ms = int((time.monotonic() - call_start) * 1000)
-        input_tokens = getattr(response, "usage", None)
-        in_tok = input_tokens.input_tokens if input_tokens else 0
-        out_tok = input_tokens.output_tokens if input_tokens else 0
+        usage = getattr(response, "usage", None)
+        in_tok = usage.input_tokens if usage else 0
+        out_tok = usage.output_tokens if usage else 0
 
         if budget:
             budget.record(input_tokens=in_tok, output_tokens=out_tok, latency_ms=latency_ms)
         if telemetry:
             telemetry.record_call(LLMCallRecord(
-                agent_name="cluster_ctrl_plane", model="claude-haiku-4-5-20251001",
+                agent_name="cluster_rbac", model="claude-haiku-4-5-20251001",
                 call_type="tool_calling", input_tokens=in_tok, output_tokens=out_tok,
                 latency_ms=latency_ms, success=True,
             ))
 
-        # Check if the model wants to use tools
         tool_uses = [b for b in response.content if b.type == "tool_use"]
         text_blocks = [b for b in response.content if b.type == "text"]
 
         if not tool_uses:
-            # Model is done -- extract findings from text
             text = "".join(b.text for b in text_blocks)
             try:
                 start = text.index("{")
@@ -217,17 +227,15 @@ async def _tool_calling_loop(system: str, initial_context: str, cluster_client,
             except (ValueError, json.JSONDecodeError):
                 if telemetry:
                     telemetry.record_call(LLMCallRecord(
-                        agent_name="cluster_ctrl_plane", call_type="tool_calling",
+                        agent_name="cluster_rbac", call_type="tool_calling",
                         error="parse_error", success=False,
                     ))
                 return None
 
-        # Check for submit_findings tool
         for tu in tool_uses:
             if tu.name == "submit_findings":
                 return tu.input
 
-        # Budget exhausted -- force the model to respond
         if tool_call_count >= MAX_TOOL_CALLS:
             messages.append({"role": "assistant", "content": response.content})
             messages.append({"role": "user", "content": [
@@ -236,7 +244,6 @@ async def _tool_calling_loop(system: str, initial_context: str, cluster_client,
             ]})
             continue
 
-        # Execute tool calls
         messages.append({"role": "assistant", "content": response.content})
         tool_results = []
         for tu in tool_uses:
@@ -250,17 +257,17 @@ async def _tool_calling_loop(system: str, initial_context: str, cluster_client,
 
         messages.append({"role": "user", "content": tool_results})
 
-    return None  # Exhausted iterations
+    return None
 
 
 @traced_node(timeout_seconds=60)
-async def ctrl_plane_agent(state: dict, config: dict) -> dict:
-    """LangGraph node: Control Plane & Etcd diagnostics."""
+async def rbac_agent(state: dict, config: dict) -> dict:
+    """LangGraph node: RBAC & Security diagnostics."""
     start_ms = time.monotonic()
     client = config.get("configurable", {}).get("cluster_client")
     if not client:
         return {"domain_reports": [DomainReport(
-            domain="ctrl_plane", status=DomainStatus.FAILED,
+            domain="rbac", status=DomainStatus.FAILED,
             failure_reason=FailureReason.EXCEPTION,
         ).model_dump(mode="json")]}
 
@@ -268,70 +275,44 @@ async def ctrl_plane_agent(state: dict, config: dict) -> dict:
     platform_version = state.get("platform_version", "")
 
     # Gather data
-    api_health = await client.get_api_health()
-    operators = await client.get_cluster_operators()
-
-    # Namespace-scoped event fetching to avoid cluster-wide leakage
-    scope = state.get("diagnostic_scope", {})
-    ns_list = scope.get("namespaces", [])
-    if ns_list:
-
-        all_events: list = []
-        for namespace in ns_list:
-            result = await client.list_events(
-                namespace=namespace,
-                field_selector="involvedObject.kind=Node",
-            )
-            all_events.extend(result.data if hasattr(result, "data") else [])
-        cap = OBJECT_CAPS["events"]
-        events = QueryResult(
-            data=all_events[:cap],
-            total_available=len(all_events),
-            returned=min(len(all_events), cap),
-            truncated=len(all_events) > cap,
-        )
-    else:
-        events = await client.list_events(field_selector="involvedObject.kind=Node")
+    roles = await client.list_roles()
+    role_bindings = await client.list_role_bindings()
+    cluster_roles = await client.list_cluster_roles()
+    service_accounts = await client.list_service_accounts()
 
     # Check for RBAC permission denials
     rbac_anomalies = []
     rbac_denied = False
-    for result, resource_name in [(events, "events")]:
+    rbac_counter = 0
+    for result, resource_name in [
+        (roles, "roles"), (role_bindings, "rolebindings"),
+        (cluster_roles, "clusterroles"), (service_accounts, "serviceaccounts"),
+    ]:
         if result.permission_denied:
             rbac_denied = True
+            rbac_counter += 1
             rbac_anomalies.append(DomainAnomaly(
-                domain="ctrl_plane",
-                anomaly_id=f"rbac-ctrl_plane-001",
+                domain="rbac",
+                anomaly_id=f"rbac-perm-{rbac_counter:03d}",
                 description=f"Insufficient RBAC permissions to access {resource_name}. Required ClusterRole: view",
                 evidence_ref=f"rbac/{resource_name}",
                 severity="high",
             ))
 
     platform_caps = (
-        "Full access: ClusterOperators, Routes, SCCs, MachineSets, plus standard K8s."
+        "Full access: SecurityContextConstraints, plus standard K8s RBAC."
         if platform == "openshift"
-        else "Standard K8s only. No Routes, SCCs, ClusterOperators."
+        else "Standard K8s RBAC only."
     )
 
     data_payload = {
-        "api_health": api_health,
-        "cluster_operators": operators.data,
-        "events": events.data[:100],
+        "roles": roles.data,
+        "role_bindings": role_bindings.data,
+        "cluster_roles": cluster_roles.data,
+        "service_accounts": service_accounts.data,
     }
 
-    # OpenShift-specific data
-    if platform == "openshift":
-        machine_config_pools = await client.get_machine_config_pools()
-        sccs = await client.get_security_context_constraints()
-        if machine_config_pools.data:
-            data_payload["machine_config_pools"] = machine_config_pools.data
-        if sccs.data:
-            data_payload["security_context_constraints"] = sccs.data
-
     version_context = get_version_context(platform_version)
-    truncation_note = ""
-    if events.truncated:
-        truncation_note += f"\nNOTE: Events truncated — {events.total_available} total, {events.returned} analyzed."
 
     system = _SYSTEM_PROMPT.format(
         platform=platform,
@@ -341,7 +322,7 @@ async def ctrl_plane_agent(state: dict, config: dict) -> dict:
     )
     prompt = _ANALYSIS_PROMPT.format(
         data_json=json.dumps(data_payload, indent=2, default=str),
-        truncation_note=truncation_note,
+        truncation_note="",
     )
 
     # Extract budget and telemetry from config
@@ -351,19 +332,20 @@ async def ctrl_plane_agent(state: dict, config: dict) -> dict:
     # Check budget before attempting LLM
     analysis = None
     if budget and not budget.can_call():
-        logger.info("Budget exhausted for ctrl_plane, using heuristic")
-        analysis = await _heuristic_analyze(data_payload, "ctrl_plane")
+        logger.info("Budget exhausted for rbac, using heuristic")
+        analysis = await _heuristic_analyze(data_payload, "rbac")
         if telemetry:
             telemetry.record_call(LLMCallRecord(
-                agent_name="cluster_ctrl_plane", call_type="heuristic",
+                agent_name="cluster_rbac", call_type="heuristic",
                 fallback_used=True, success=True,
             ))
     else:
         # Try tool-calling ReAct loop first, fall back to heuristic single-pass
         try:
             initial_context = (
-                "Analyze this Kubernetes cluster for control plane issues. "
-                "Start by examining nodes and events for API server, etcd, and operator health.\n\n"
+                "Analyze this Kubernetes cluster for RBAC and security issues. "
+                "Start by examining roles, role bindings, and service accounts for misconfigurations, "
+                "excessive permissions, and orphaned resources.\n\n"
                 f"Platform: {platform} {platform_version}"
             )
             analysis = await asyncio.wait_for(
@@ -372,15 +354,14 @@ async def ctrl_plane_agent(state: dict, config: dict) -> dict:
                 timeout=TOOL_CALL_TIMEOUT,
             )
         except Exception as e:
-            logger.warning("Tool-calling failed for ctrl_plane, falling back to heuristic: %s", e)
+            logger.warning("Tool-calling failed for rbac, falling back to heuristic: %s", e)
 
         if not analysis:
-            # Try single-pass LLM if budget allows, otherwise heuristic
             if budget and not budget.can_call():
-                analysis = await _heuristic_analyze(data_payload, "ctrl_plane")
+                analysis = await _heuristic_analyze(data_payload, "rbac")
                 if telemetry:
                     telemetry.record_call(LLMCallRecord(
-                        agent_name="cluster_ctrl_plane", call_type="heuristic",
+                        agent_name="cluster_rbac", call_type="heuristic",
                         fallback_used=True, success=True,
                     ))
             else:
@@ -394,14 +375,14 @@ async def ctrl_plane_agent(state: dict, config: dict) -> dict:
 
     elapsed = int((time.monotonic() - start_ms) * 1000)
     report = DomainReport(
-        domain="ctrl_plane",
+        domain="rbac",
         status=DomainStatus.PARTIAL if rbac_denied else DomainStatus.SUCCESS,
         failure_reason=FailureReason.RBAC_DENIED if rbac_denied else None,
         confidence=analysis.get("confidence", 0),
         anomalies=anomalies,
         ruled_out=analysis.get("ruled_out", []),
         evidence_refs=[a.evidence_ref for a in anomalies],
-        truncation_flags=TruncationFlags(events=events.truncated),
+        truncation_flags=TruncationFlags(),
         duration_ms=elapsed,
     )
 
