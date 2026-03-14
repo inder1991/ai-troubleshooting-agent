@@ -147,7 +147,7 @@ const AgentMatrixView: React.FC<AgentMatrixViewProps> = ({ onGoHome }) => {
               className={`${selectedAgent ? 'w-1/2 border-r' : 'w-full'} overflow-y-auto transition-all duration-300`}
               style={{ borderColor: '#2a2520' }}
             >
-              <AgentGrid agents={filteredAgents} onSelectAgent={setSelectedAgent} />
+              <AgentGrid agents={filteredAgents} onSelectAgent={setSelectedAgent} compact={!!selectedAgent} selectedAgentId={selectedAgent?.id} />
             </div>
 
             {/* Detail slide-over panel */}

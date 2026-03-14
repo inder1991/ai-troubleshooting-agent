@@ -4,6 +4,7 @@ import type { AgentInfo } from '../../types';
 interface AgentCardProps {
   agent: AgentInfo;
   onClick: () => void;
+  isSelected?: boolean;
 }
 
 const STATUS_COLORS: Record<AgentInfo['status'], string> = {
@@ -20,7 +21,7 @@ const ROLE_LABELS: Record<AgentInfo['role'], string> = {
   domain_expert: 'DOMAIN EXPERT',
 };
 
-const AgentCard: React.FC<AgentCardProps> = ({ agent, onClick }) => {
+const AgentCard: React.FC<AgentCardProps> = ({ agent, onClick, isSelected }) => {
   const statusColor = STATUS_COLORS[agent.status];
 
   return (
@@ -28,8 +29,8 @@ const AgentCard: React.FC<AgentCardProps> = ({ agent, onClick }) => {
       onClick={onClick}
       className="text-left w-full rounded-lg border p-4 transition-all duration-200 hover:border-[#e09f3e] group"
       style={{
-        backgroundColor: '#0a1214',
-        borderColor: '#3d3528',
+        backgroundColor: isSelected ? '#1a1814' : '#0a1214',
+        borderColor: isSelected ? '#e09f3e' : '#3d3528',
       }}
     >
       {/* Header: Icon + Name + Status */}

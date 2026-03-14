@@ -5,6 +5,8 @@ import AgentCard from './AgentCard';
 interface AgentGridProps {
   agents: AgentInfo[];
   onSelectAgent: (agent: AgentInfo) => void;
+  compact?: boolean;
+  selectedAgentId?: string;
 }
 
 const ROLE_ORDER: AgentInfo['role'][] = [
@@ -23,7 +25,7 @@ const ROLE_DISPLAY: Record<AgentInfo['role'], { label: string; icon: string }> =
   fix_generation: { label: 'Fix Generation Pipeline', icon: 'build' },
 };
 
-const AgentGrid: React.FC<AgentGridProps> = ({ agents, onSelectAgent }) => {
+const AgentGrid: React.FC<AgentGridProps> = ({ agents, onSelectAgent, compact, selectedAgentId }) => {
   // Group agents by role, preserving ROLE_ORDER
   const grouped = ROLE_ORDER.map((role) => ({
     role,
@@ -31,7 +33,7 @@ const AgentGrid: React.FC<AgentGridProps> = ({ agents, onSelectAgent }) => {
   })).filter((g) => g.agents.length > 0);
 
   return (
-    <div className="flex flex-col gap-6 px-8 py-4">
+    <div className={`flex flex-col gap-6 ${compact ? 'px-4' : 'px-8'} py-4`}>
       {grouped.map(({ role, agents: roleAgents }) => {
         const display = ROLE_DISPLAY[role];
         return (
@@ -54,12 +56,13 @@ const AgentGrid: React.FC<AgentGridProps> = ({ agents, onSelectAgent }) => {
             </div>
 
             {/* Cards grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3">
+            <div className={`grid gap-3 ${compact ? 'grid-cols-1 xl:grid-cols-2' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5'}`}>
               {roleAgents.map((agent) => (
                 <AgentCard
                   key={agent.id}
                   agent={agent}
                   onClick={() => onSelectAgent(agent)}
+                  isSelected={agent.id === selectedAgentId}
                 />
               ))}
             </div>
