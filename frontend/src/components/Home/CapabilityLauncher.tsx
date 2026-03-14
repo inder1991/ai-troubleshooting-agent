@@ -107,7 +107,7 @@ const CapabilityLauncher: React.FC<CapabilityLauncherProps> = ({ onSelectCapabil
 
           {/* CTA - appears on hover */}
           <div
-            className={`mt-4 flex items-center text-micro font-bold opacity-0 group-hover:opacity-100 transition-opacity uppercase tracking-widest ${cap.ctaClasses}`}
+            className={`mt-4 flex items-center text-micro font-bold opacity-0 group-hover:opacity-100 transition-opacity ${cap.ctaClasses}`}
           >
             {cap.ctaText}
             <span className="material-symbols-outlined text-xs ml-1" aria-hidden="true">arrow_forward</span>

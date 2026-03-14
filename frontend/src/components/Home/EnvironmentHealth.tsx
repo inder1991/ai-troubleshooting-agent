@@ -1,25 +1,13 @@
 import React, { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import * as Tooltip from '@radix-ui/react-tooltip';
 import { fetchEnvironmentHealth } from '../../services/api';
 import type { HealthNode } from '../../types';
 
-const getNodeStyles = (status: HealthNode['status']) => {
-  switch (status) {
-    case 'critical':
-      return 'bg-red-500/20 border-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)] animate-pulse';
-    case 'degraded':
-      return 'bg-amber-500/20 border-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)] animate-pulse';
-    case 'offline':
-      return 'bg-slate-800 border-slate-700 opacity-50';
-    case 'healthy':
-    default:
-      return 'bg-duck-surface border-duck-border/40 hover:border-duck-accent/50 transition-colors';
-  }
+const statusIcon: Record<string, { icon: string; cls: string }> = {
+  critical: { icon: 'error', cls: 'text-red-400' },
+  degraded: { icon: 'warning', cls: 'text-amber-400' },
+  offline: { icon: 'cancel', cls: 'text-slate-400' },
 };
-
-const statusTextColor = (status: HealthNode['status']) =>
-  status === 'healthy' ? 'text-emerald-400' : status === 'degraded' ? 'text-amber-400' : 'text-red-400';
 
 export const EnvironmentHealth: React.FC = () => {
   const { data: nodes = [], isLoading } = useQuery({
@@ -28,80 +16,93 @@ export const EnvironmentHealth: React.FC = () => {
     refetchInterval: 10000,
   });
 
-  const { healthyCount, issueCount } = useMemo(() => {
-    const issues = nodes.filter(n => n.status !== 'healthy');
+  const { healthyCount, issues } = useMemo(() => {
+    const problemNodes = nodes.filter(n => n.status !== 'healthy');
     return {
-      healthyCount: nodes.length - issues.length,
-      issueCount: issues.length,
+      healthyCount: nodes.length - problemNodes.length,
+      issues: problemNodes.sort((a, b) => {
+        const order: Record<string, number> = { critical: 0, degraded: 1, offline: 2 };
+        return (order[a.status] ?? 3) - (order[b.status] ?? 3);
+      }),
     };
   }, [nodes]);
 
-  return (
-    <div className="bg-duck-panel border border-duck-border rounded-lg h-full p-4 flex flex-col">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-3 shrink-0">
-        <div>
-          <h3 className="text-xs font-bold text-duck-muted uppercase tracking-wider">
-            Environment Health
-          </h3>
-          <div className="text-[10px] font-mono text-slate-400 mt-0.5">
-            {isLoading ? 'Scanning...' : `${healthyCount}/${nodes.length} Systems Nominal`}
-          </div>
-        </div>
+  if (isLoading) {
+    return (
+      <div className="flex items-center gap-2 px-3 py-2 bg-duck-panel border border-duck-border rounded-lg">
+        <span className="material-symbols-outlined text-sm text-slate-400 animate-spin" aria-hidden="true">progress_activity</span>
+        <span className="text-[11px] text-slate-400">Scanning systems...</span>
+      </div>
+    );
+  }
 
-        {!isLoading && issueCount > 0 && (
-          <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-red-500/10 border border-red-500/20">
-            <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" aria-hidden="true" />
-            <span className="text-[9px] leading-none font-bold text-red-400 uppercase tracking-wider">
-              {issueCount} {issueCount === 1 ? 'Issue' : 'Issues'}
-            </span>
-          </div>
-        )}
+  // All healthy — compact with mini grid
+  if (issues.length === 0) {
+    return (
+      <div className="bg-duck-panel border border-duck-border rounded-lg px-3 py-2">
+        <div className="flex items-center gap-[2px] mb-2">
+          {nodes.slice(0, 24).map((node) => (
+            <span key={node.id} className="w-1.5 h-1.5 rounded-[1px] bg-emerald-500/30" aria-hidden="true" />
+          ))}
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="material-symbols-outlined text-sm text-emerald-400" aria-hidden="true">check_circle</span>
+          <span className="text-[11px] font-display font-bold text-emerald-400">
+            {nodes.length}/{nodes.length} Systems Nominal
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  // Has issues — show problems only, summarize healthy
+  return (
+    <div className="bg-duck-panel border border-duck-border rounded-lg px-3 py-2">
+      {/* Mini NOC strip */}
+      <div className="flex items-center gap-[2px] mb-2 pb-2 border-b border-duck-border/30">
+        {nodes.slice(0, 24).map((node) => (
+          <span
+            key={node.id}
+            className={`w-1.5 h-1.5 rounded-[1px] ${
+              node.status === 'critical' ? 'bg-red-400 animate-pulse' :
+              node.status === 'degraded' ? 'bg-amber-400' :
+              node.status === 'offline' ? 'bg-slate-600' :
+              'bg-emerald-500/30'
+            }`}
+            aria-hidden="true"
+          />
+        ))}
       </div>
 
-      {/* NOC Matrix */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar pr-1">
-        <Tooltip.Provider delayDuration={0}>
-          <div className="grid grid-cols-[repeat(auto-fit,minmax(20px,1fr))] gap-1.5">
-            {isLoading ? (
-              Array.from({ length: 48 }).map((_, i) => (
-                <div key={i} className="aspect-square rounded-[3px] bg-duck-surface animate-pulse" />
-              ))
-            ) : (
-              nodes.map((node) => (
-                <Tooltip.Root key={node.id}>
-                  <Tooltip.Trigger asChild>
-                    <button
-                      className={`aspect-square rounded-[3px] border ${getNodeStyles(node.status)}`}
-                      aria-label={`${node.name} status: ${node.status}`}
-                    />
-                  </Tooltip.Trigger>
-                  <Tooltip.Portal>
-                    <Tooltip.Content
-                      className="z-50 bg-duck-flyout border border-duck-border rounded px-2.5 py-1.5 shadow-xl"
-                      sideOffset={5}
-                    >
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-[10px] font-bold text-white uppercase tracking-wider">
-                          {node.name}
-                        </span>
-                        <div className="flex items-center gap-2 text-[10px] font-mono">
-                          <span className={statusTextColor(node.status)}>
-                            {node.status.toUpperCase()}
-                          </span>
-                          {node.latencyMs != null && (
-                            <span className="text-slate-500">{node.latencyMs}ms</span>
-                          )}
-                        </div>
-                      </div>
-                      <Tooltip.Arrow className="fill-duck-border" />
-                    </Tooltip.Content>
-                  </Tooltip.Portal>
-                </Tooltip.Root>
-              ))
-            )}
-          </div>
-        </Tooltip.Provider>
+      {/* Issue list */}
+      <div className="space-y-1.5">
+        {issues.map((node) => {
+          const si = statusIcon[node.status] || statusIcon.degraded;
+          return (
+            <div key={node.id} className="flex items-center gap-2">
+              <span className={`material-symbols-outlined text-[14px] ${si.cls}`} aria-hidden="true">
+                {si.icon}
+              </span>
+              <span className="text-[11px] text-slate-200 font-display font-bold flex-1 truncate">
+                {node.name}
+              </span>
+              <span className={`text-[10px] ${si.cls}`}>
+                {node.status}
+              </span>
+              {node.latencyMs != null && (
+                <span className="text-[10px] text-slate-400 font-mono">{node.latencyMs}ms</span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Healthy summary */}
+      <div className="flex items-center gap-1.5 mt-2 pt-1.5 border-t border-duck-border/30">
+        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" aria-hidden="true" />
+        <span className="text-[10px] text-slate-400">
+          {healthyCount} system{healthyCount !== 1 ? 's' : ''} healthy
+        </span>
       </div>
     </div>
   );

@@ -53,7 +53,7 @@ const TIME_RANGES = [
 ];
 
 const CHART_CONFIGS = [
-  { metric: 'db_conn_active', label: 'Active Connections', color: '#07b6d5', unit: '' },
+  { metric: 'db_conn_active', label: 'Active Connections', color: '#e09f3e', unit: '' },
   { metric: 'db_cache_hit_ratio', label: 'Cache Hit Ratio', color: '#10b981', unit: '%', scale: 100 },
   { metric: 'db_tps', label: 'Transactions/sec', color: '#f59e0b', unit: '/s' },
   { metric: 'db_repl_lag_bytes', label: 'Replication Lag', color: '#8b5cf6', unit: 'B' },
@@ -226,7 +226,7 @@ const DBMonitoring: React.FC = () => {
           <select
             value={selectedProfileId}
             onChange={(e) => setSelectedProfileId(e.target.value)}
-            className="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-cyan-500 outline-none"
+            className="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-amber-500 outline-none"
           >
             {profiles.map((p) => (
               <option key={p.id} value={p.id}>{p.name} ({p.engine})</option>
@@ -239,7 +239,7 @@ const DBMonitoring: React.FC = () => {
                 onClick={() => setTimeRange(tr)}
                 className={`px-2.5 py-1 text-xs transition-colors ${
                   timeRange.label === tr.label
-                    ? 'bg-cyan-600 text-white'
+                    ? 'bg-amber-600 text-white'
                     : 'bg-slate-800 text-slate-400 hover:text-slate-200'
                 }`}
               >
@@ -323,7 +323,7 @@ const DBMonitoring: React.FC = () => {
           <h3 className="text-sm font-medium text-slate-400">Alert Rules</h3>
           <button
             onClick={() => setShowRuleForm(true)}
-            className="flex items-center gap-1 px-2.5 py-1 text-xs bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg transition-colors"
+            className="flex items-center gap-1 px-2.5 py-1 text-xs bg-amber-600 hover:bg-amber-500 text-white rounded-lg transition-colors"
           >
             <span className="material-symbols-outlined text-[14px]">add</span>
             Add Rule
@@ -358,7 +358,7 @@ const DBMonitoring: React.FC = () => {
                   <td className="px-4 py-2 text-right flex items-center justify-end gap-1">
                     <button
                       onClick={() => handleEditRule(r)}
-                      className="text-slate-500 hover:text-cyan-400 transition-colors"
+                      className="text-slate-500 hover:text-amber-400 transition-colors"
                     >
                       <span className="material-symbols-outlined text-[16px]">edit</span>
                     </button>
@@ -390,7 +390,7 @@ const DBMonitoring: React.FC = () => {
                 <input
                   value={newRule.name}
                   onChange={(e) => setNewRule({ ...newRule, name: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-cyan-500 outline-none"
+                  className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-amber-500 outline-none"
                   placeholder="My custom rule"
                 />
               </div>
@@ -400,7 +400,7 @@ const DBMonitoring: React.FC = () => {
                   <select
                     value={newRule.metric}
                     onChange={(e) => setNewRule({ ...newRule, metric: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-cyan-500 outline-none"
+                    className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-amber-500 outline-none"
                   >
                     <option value="db_conn_utilization">Connection Utilization</option>
                     <option value="db_cache_hit_ratio">Cache Hit Ratio</option>
@@ -415,7 +415,7 @@ const DBMonitoring: React.FC = () => {
                   <select
                     value={newRule.condition}
                     onChange={(e) => setNewRule({ ...newRule, condition: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-cyan-500 outline-none"
+                    className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-amber-500 outline-none"
                   >
                     <option value="gt">Greater than</option>
                     <option value="lt">Less than</option>
@@ -430,7 +430,7 @@ const DBMonitoring: React.FC = () => {
                     type="number"
                     value={newRule.threshold}
                     onChange={(e) => setNewRule({ ...newRule, threshold: parseFloat(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-cyan-500 outline-none"
+                    className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-amber-500 outline-none"
                   />
                 </div>
                 <div>
@@ -439,7 +439,7 @@ const DBMonitoring: React.FC = () => {
                     type="number"
                     value={newRule.cooldown}
                     onChange={(e) => setNewRule({ ...newRule, cooldown: parseInt(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-cyan-500 outline-none"
+                    className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-amber-500 outline-none"
                   />
                 </div>
               </div>
@@ -448,7 +448,7 @@ const DBMonitoring: React.FC = () => {
                 <select
                   value={newRule.severity}
                   onChange={(e) => setNewRule({ ...newRule, severity: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-cyan-500 outline-none"
+                  className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-amber-500 outline-none"
                 >
                   <option value="warning">Warning</option>
                   <option value="critical">Critical</option>
@@ -461,7 +461,7 @@ const DBMonitoring: React.FC = () => {
               <button
                 onClick={handleCreateRule}
                 disabled={!newRule.name}
-                className="px-4 py-2 text-sm bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white rounded-lg transition-colors"
+                className="px-4 py-2 text-sm bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white rounded-lg transition-colors"
               >
                 {editingRuleId ? 'Update' : 'Create'}
               </button>

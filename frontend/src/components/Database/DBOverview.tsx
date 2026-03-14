@@ -137,7 +137,7 @@ const DBOverview: React.FC = () => {
               <div className="grid grid-cols-3 gap-2 text-center">
                 <div className="rounded-lg bg-slate-800/50 p-2">
                   <p className="text-xs text-slate-500">Active</p>
-                  <p className="text-lg font-semibold text-cyan-400">{p.connections.active}</p>
+                  <p className="text-lg font-semibold text-amber-400">{p.connections.active}</p>
                 </div>
                 <div className="rounded-lg bg-slate-800/50 p-2">
                   <p className="text-xs text-slate-500">Cache Hit</p>
@@ -165,7 +165,7 @@ const DBOverview: React.FC = () => {
                   <div
                     className={`h-full rounded-full transition-all ${
                       ((p.connections.active + p.connections.idle) / p.connections.max_connections) > 0.8
-                        ? 'bg-red-500' : 'bg-cyan-500'
+                        ? 'bg-red-500' : 'bg-amber-500'
                     }`}
                     style={{
                       width: `${Math.min(100, ((p.connections.active + p.connections.idle) / p.connections.max_connections) * 100)}%`,

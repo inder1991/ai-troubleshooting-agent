@@ -15,7 +15,7 @@ const actions: { label: string; capability: CapabilityType; icon: string; badge?
 
 export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({ onSelectCapability }) => (
   <div className="bg-duck-panel border border-duck-border rounded-lg p-4 h-full flex flex-col">
-    <h3 className="text-xs font-bold text-duck-muted uppercase tracking-wider mb-3 shrink-0">
+    <h3 className="text-xs font-bold text-duck-muted font-display mb-3 shrink-0">
       Quick Actions
     </h3>
 

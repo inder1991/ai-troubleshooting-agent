@@ -131,7 +131,7 @@ const DBDiagnostics: React.FC = () => {
           <select
             value={selectedProfileId}
             onChange={(e) => { setSelectedProfileId(e.target.value); setActiveRun(null); }}
-            className="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-cyan-500 outline-none"
+            className="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-amber-500 outline-none"
           >
             {profiles.map((p) => (
               <option key={p.id} value={p.id}>{p.name} ({p.engine})</option>
@@ -141,7 +141,7 @@ const DBDiagnostics: React.FC = () => {
         <button
           onClick={handleStart}
           disabled={starting || polling || !selectedProfileId}
-          className="flex items-center gap-1.5 px-4 py-2 text-sm bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white rounded-lg transition-colors"
+          className="flex items-center gap-1.5 px-4 py-2 text-sm bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white rounded-lg transition-colors"
         >
           <span className={`material-symbols-outlined text-[16px] ${polling ? 'animate-spin' : ''}`}>
             {polling ? 'progress_activity' : 'play_arrow'}
@@ -224,7 +224,7 @@ const DBDiagnostics: React.FC = () => {
                 key={r.run_id}
                 onClick={() => handleViewRun(r.run_id)}
                 className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left transition-colors ${
-                  activeRun?.run_id === r.run_id ? 'bg-cyan-500/10 border border-cyan-500/30' : 'hover:bg-slate-800/50 border border-transparent'
+                  activeRun?.run_id === r.run_id ? 'bg-amber-500/10 border border-amber-500/30' : 'hover:bg-slate-800/50 border border-transparent'
                 }`}
               >
                 <div className="flex items-center gap-2">

@@ -36,7 +36,7 @@ export const SystemHealthTicker: React.FC = () => {
           className="flex items-center gap-1.5 text-xs w-full"
         >
           <span className="text-duck-muted font-medium">{current.label}:</span>
-          <span className="font-mono text-white font-bold ml-auto">{current.value}</span>
+          <span className="text-white font-bold ml-auto">{current.value}</span>
         </motion.div>
       </AnimatePresence>
     </div>

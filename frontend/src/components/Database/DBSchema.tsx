@@ -138,7 +138,7 @@ const DBSchema: React.FC = () => {
           <select
             value={selectedProfileId}
             onChange={(e) => setSelectedProfileId(e.target.value)}
-            className="w-full px-2 py-1.5 rounded-lg bg-slate-800 border border-slate-600 text-xs text-slate-100 focus:border-cyan-500 outline-none"
+            className="w-full px-2 py-1.5 rounded-lg bg-slate-800 border border-slate-600 text-xs text-slate-100 focus:border-amber-500 outline-none"
           >
             {profiles.map((p) => (
               <option key={p.id} value={p.id}>{p.name}</option>
@@ -148,7 +148,7 @@ const DBSchema: React.FC = () => {
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
             placeholder="Filter tables..."
-            className="w-full px-2 py-1.5 rounded-lg bg-slate-800 border border-slate-600 text-xs text-slate-100 focus:border-cyan-500 outline-none placeholder:text-slate-600"
+            className="w-full px-2 py-1.5 rounded-lg bg-slate-800 border border-slate-600 text-xs text-slate-100 focus:border-amber-500 outline-none placeholder:text-slate-600"
           />
         </div>
 
@@ -171,7 +171,7 @@ const DBSchema: React.FC = () => {
                   <span className="material-symbols-outlined text-[14px]" style={{ transform: expandedGroups.has('Tables') ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }}>
                     chevron_right
                   </span>
-                  <span className="material-symbols-outlined text-[14px] text-cyan-400">table_chart</span>
+                  <span className="material-symbols-outlined text-[14px] text-amber-400">table_chart</span>
                   Tables
                   <span className="ml-auto text-slate-600">{filteredTables.length}</span>
                 </button>
@@ -182,7 +182,7 @@ const DBSchema: React.FC = () => {
                         key={t.name}
                         onClick={() => loadTableDetail(t.name)}
                         className={`flex items-center justify-between w-full text-left px-2 py-1 rounded text-xs transition-colors ${
-                          selectedTable === t.name ? 'bg-cyan-500/10 text-cyan-400' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                          selectedTable === t.name ? 'bg-amber-500/10 text-amber-400' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
                         }`}
                       >
                         <span className="truncate">{t.name}</span>
@@ -307,7 +307,7 @@ const DBSchema: React.FC = () => {
                     {tableDetail.columns.map((c) => (
                       <tr key={c.name} className="border-b border-slate-700/30 last:border-0 hover:bg-slate-800/30">
                         <td className="px-4 py-1.5 font-mono text-xs text-slate-200">{c.name}</td>
-                        <td className="px-4 py-1.5 font-mono text-xs text-cyan-400/80">{c.data_type}</td>
+                        <td className="px-4 py-1.5 font-mono text-xs text-amber-400/80">{c.data_type}</td>
                         <td className="px-4 py-1.5 text-center text-xs text-slate-500">{c.nullable ? 'YES' : 'NO'}</td>
                         <td className="px-4 py-1.5 font-mono text-xs text-slate-500">{c.default || '-'}</td>
                         <td className="px-4 py-1.5 text-center">
@@ -340,7 +340,7 @@ const DBSchema: React.FC = () => {
                           <td className="px-4 py-1.5 font-mono text-xs text-slate-200">{idx.name}</td>
                           <td className="px-4 py-1.5 font-mono text-xs text-slate-400">{idx.columns.join(', ')}</td>
                           <td className="px-4 py-1.5 text-center">
-                            {idx.unique && <span className="text-xs bg-cyan-500/20 text-cyan-400 px-1.5 py-0.5 rounded">UNIQUE</span>}
+                            {idx.unique && <span className="text-xs bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded">UNIQUE</span>}
                           </td>
                           <td className="px-4 py-1.5 text-right text-xs text-slate-500">{formatBytes(idx.size_bytes)}</td>
                         </tr>

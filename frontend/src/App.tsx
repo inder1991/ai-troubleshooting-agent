@@ -19,7 +19,7 @@ import type { ChatStreamEndPayload } from './hooks/useWebSocket';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { API_BASE_URL, getSessionStatus, startSessionV4, submitAttestation } from './services/api';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+
 import { ToastProvider, useToast } from './components/Toast/ToastContext';
 import { ChatProvider } from './contexts/ChatContext';
 import { CampaignProvider } from './contexts/CampaignContext';
@@ -47,15 +47,19 @@ import DeviceMonitoring from './components/Network/DeviceMonitoring';
 import ObservatoryView from './components/Observatory/ObservatoryView';
 import DBOverview from './components/Database/DBOverview';
 import DBConnections from './components/Database/DBConnections';
-import DBDiagnostics from './components/Database/DBDiagnostics';
+import DBDiagnosticsPage from './components/Database/DBDiagnosticsPage';
 import DBMonitoring from './components/Database/DBMonitoring';
 import DBSchema from './components/Database/DBSchema';
 import DBOperations from './components/Database/DBOperations';
 import KubernetesClusters from './components/Kubernetes/KubernetesClusters';
+import AuditLogView from './components/AuditLog/AuditLogView';
+import MIBBrowserView from './components/Network/MIBBrowserView';
+import CloudResourcesView from './components/Cloud/CloudResourcesView';
+import SecurityResourcesView from './components/Security/SecurityResourcesView';
 import { Breadcrumbs } from './components/shared';
 
 
-type ViewState = 'home' | 'form' | 'investigation' | 'sessions' | 'integrations' | 'settings' | 'dossier' | 'cluster-diagnostics' | 'agent-matrix' | 'network-troubleshooting' | 'network-topology' | 'network-adapters' | 'device-monitoring' | 'ipam' | 'matrix' | 'observatory' | 'db-overview' | 'db-connections' | 'db-diagnostics' | 'db-monitoring' | 'db-schema' | 'db-operations' | 'k8s-clusters';
+type ViewState = 'home' | 'form' | 'investigation' | 'sessions' | 'integrations' | 'settings' | 'dossier' | 'cluster-diagnostics' | 'agent-matrix' | 'network-troubleshooting' | 'network-topology' | 'network-adapters' | 'device-monitoring' | 'ipam' | 'matrix' | 'observatory' | 'db-overview' | 'db-connections' | 'db-diagnostics' | 'db-monitoring' | 'db-schema' | 'db-operations' | 'k8s-clusters' | 'audit-log' | 'mib-browser' | 'cloud-resources' | 'security-resources';
 
 function AppInner() {
   const { addToast } = useToast();
@@ -192,9 +196,7 @@ function AppInner() {
 
   // Navigation
   const handleNavigate = useCallback((view: NavView) => {
-    if (view === 'agents') {
-      setViewState('agent-matrix');
-    } else if (view === 'app-diagnostics') {
+    if (view === 'app-diagnostics') {
       setSelectedCapability('troubleshoot_app');
       setViewState('form');
     } else if (view === 'k8s-diagnostics') {
@@ -390,21 +392,34 @@ function AppInner() {
           refreshStatus(session.session_id);
         } else if (data.capability === 'database_diagnostics') {
           const dbData = data as DatabaseDiagnosticsForm;
+          // Resolve profile name
+          let profileName = dbData.profile_id.slice(0, 8);
+          try {
+            const { fetchDBProfiles } = await import('./services/api');
+            const profiles = await fetchDBProfiles();
+            const match = profiles.find((p: { id: string; name: string }) => p.id === dbData.profile_id);
+            if (match) profileName = match.name;
+          } catch { /* use truncated ID */ }
+
           const session = await startSessionV4({
-            service_name: `db-${dbData.profile_id}`,
+            service_name: profileName,
             time_window: dbData.time_window,
             capability: 'database_diagnostics',
             profile_id: dbData.profile_id,
-            focus: dbData.focus,
-            database_type: dbData.database_type,
-            sampling_mode: dbData.sampling_mode,
-            include_explain_plans: dbData.include_explain_plans,
-            parent_session_id: dbData.parent_session_id,
-            table_filter: dbData.table_filter,
+            extra: {
+              profile_id: dbData.profile_id,
+              focus: dbData.focus,
+              database_type: dbData.database_type,
+              sampling_mode: dbData.sampling_mode,
+              include_explain_plans: dbData.include_explain_plans,
+              parent_session_id: dbData.parent_session_id,
+              table_filter: dbData.table_filter,
+              time_window: dbData.time_window,
+            },
           });
           const dbSession: V4Session = {
             ...session,
-            service_name: session.service_name || `db-${dbData.profile_id}`,
+            service_name: session.service_name || profileName,
             capability: 'database_diagnostics',
           };
           setSessions((prev) => [dbSession, ...prev]);
@@ -459,7 +474,7 @@ function AppInner() {
 
   const viewToNav: Record<string, NavView> = {
     sessions: 'sessions', integrations: 'integrations', settings: 'settings',
-    'agent-matrix': 'agents', 'cluster-diagnostics': 'k8s-diagnostics',
+    'agent-matrix': 'agent-matrix', 'cluster-diagnostics': 'k8s-diagnostics',
     'k8s-clusters': 'k8s-clusters', 'network-topology': 'network-topology',
     'network-adapters': 'network-adapters', 'device-monitoring': 'device-monitoring',
     ipam: 'ipam', matrix: 'matrix',
@@ -467,6 +482,8 @@ function AppInner() {
     'db-overview': 'db-overview', 'db-connections': 'db-connections',
     'db-diagnostics': 'db-diagnostics', 'db-monitoring': 'db-monitoring',
     'db-schema': 'db-schema', 'db-operations': 'db-operations',
+    'audit-log': 'audit-log', 'mib-browser': 'mib-browser',
+    'cloud-resources': 'cloud-resources', 'security-resources': 'security-resources',
   };
 
   const navView: NavView =
@@ -516,7 +533,12 @@ function AppInner() {
     // Configuration group
     integrations: { label: 'Integrations', parent: 'home' },
     settings: { label: 'Settings', parent: 'home' },
-    agents: { label: 'Agent Matrix', parent: 'home' },
+    'agent-matrix': { label: 'Agent Matrix', parent: 'home' },
+    // New views
+    'audit-log': { label: 'Audit Log', parent: 'home' },
+    'mib-browser': { label: 'MIB Browser', parent: 'home' },
+    'cloud-resources': { label: 'Cloud Resources', parent: 'home' },
+    'security-resources': { label: 'Security Resources', parent: 'home' },
   };
 
   const getBreadcrumbs = () => {
@@ -601,17 +623,22 @@ function AppInner() {
         )}
 
         {viewState === 'observatory' && (
-          <ObservatoryView />
+          <ObservatoryView onOpenEditor={() => setViewState('network-topology')} />
         )}
 
         {viewState === 'db-overview' && <DBOverview />}
         {viewState === 'db-connections' && <DBConnections />}
-        {viewState === 'db-diagnostics' && <DBDiagnostics />}
+        {viewState === 'db-diagnostics' && <DBDiagnosticsPage />}
         {viewState === 'db-monitoring' && <DBMonitoring />}
         {viewState === 'db-schema' && <DBSchema />}
         {viewState === 'db-operations' && <DBOperations />}
 
         {viewState === 'k8s-clusters' && <KubernetesClusters />}
+
+        {viewState === 'audit-log' && <AuditLogView />}
+        {viewState === 'mib-browser' && <MIBBrowserView />}
+        {viewState === 'cloud-resources' && <CloudResourcesView />}
+        {viewState === 'security-resources' && <SecurityResourcesView />}
 
         {viewState === 'form' && selectedCapability && (
           <CapabilityForm
@@ -729,7 +756,7 @@ function App() {
       <ToastProvider>
         <AppInner />
       </ToastProvider>
-      <ReactQueryDevtools initialIsOpen={false} />
+
     </QueryClientProvider>
   );
 }

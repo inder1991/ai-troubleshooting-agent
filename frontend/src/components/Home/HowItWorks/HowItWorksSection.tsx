@@ -29,20 +29,19 @@ const HowItWorksSection: React.FC = () => {
       </div>
 
       {/* Tab Bar */}
-      <div className="flex gap-1.5 mb-6 border-b border-[#224349]">
+      <div className="flex gap-1.5 mb-6 border-b border-[#3d3528]">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-bold uppercase tracking-wider transition-colors relative ${
               activeTab === tab.id
-                ? 'text-[#07b6d5]'
+                ? 'text-[#e09f3e]'
                 : 'text-slate-500 hover:text-slate-300'
             }`}
           >
             <span
               className="material-symbols-outlined text-base"
-              style={{ fontFamily: 'Material Symbols Outlined' }}
             >
               {tab.icon}
             </span>
@@ -50,7 +49,7 @@ const HowItWorksSection: React.FC = () => {
             {activeTab === tab.id && (
               <motion.div
                 layoutId="activeTabIndicator"
-                className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#07b6d5]"
+                className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#e09f3e]"
                 transition={{ type: 'spring', stiffness: 400, damping: 30 }}
               />
             )}

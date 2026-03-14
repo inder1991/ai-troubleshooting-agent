@@ -2,13 +2,16 @@ import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { CapabilityType, V4Session } from '../../types';
 import { listSessionsV4 } from '../../services/api';
-import CapabilityLauncher from './CapabilityLauncher';
-import LiveIntelligenceFeed from './LiveIntelligenceFeed';
-import { MetricRibbon } from './MetricRibbon';
-import { QuickActionsPanel } from './QuickActionsPanel';
-import { SystemHealthTicker } from '../Layout/SystemHealthTicker';
+import { MetricStrip } from './MetricStrip';
+import { EventTicker } from './EventTicker';
+import HeroCapabilities from './HeroCapabilities';
 import { EnvironmentHealth } from './EnvironmentHealth';
-import { AgentFleetPulse } from './AgentFleetPulse';
+import { RecentAlerts } from './RecentAlerts';
+import { RecentFindings } from './RecentFindings';
+import { WeeklyStats } from './WeeklyStats';
+import { CompactAgentFleet } from './CompactAgentFleet';
+import AssistantDock from '../Assistant/AssistantDock';
+import LiveIntelligenceFeed from './LiveIntelligenceFeed';
 import { TimeRangeSelector } from '../shared';
 
 interface HomePageProps {
@@ -27,7 +30,6 @@ const HomePage: React.FC<HomePageProps> = ({
   const [feedTab, setFeedTab] = useState<'global' | 'mine'>('global');
   const [timeRange, setTimeRange] = useState<string>('1h');
 
-  // Read from the shared live-sessions cache for the "My Investigations" count
   const { data: sessions = [] } = useQuery({
     queryKey: ['live-sessions'],
     queryFn: listSessionsV4,
@@ -40,111 +42,83 @@ const HomePage: React.FC<HomePageProps> = ({
     [sessions]
   );
 
+
   return (
-    <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-duck-bg">
-      {/* Top Header */}
-      <header className="h-16 border-b border-duck-border flex items-center justify-between px-8 shrink-0 bg-duck-panel/50 backdrop-blur-md">
-        <div className="flex items-center gap-4 flex-1">
-          {/* Global Status Badge */}
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 h-[34px]">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" aria-hidden="true" />
-            <span className="text-xs font-bold text-emerald-400 tracking-widest uppercase">All Systems Nominal</span>
-          </div>
-
-          {/* Alternating Telemetry Ticker */}
-          <SystemHealthTicker />
-
-          {/* WebSocket Status */}
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-duck-surface border border-duck-border h-[34px]">
-            <span className={`w-1.5 h-1.5 rounded-full ${wsConnected ? 'bg-emerald-500' : 'bg-red-500'}`} />
-            <span className={`text-[10px] font-mono font-bold uppercase tracking-wider ${wsConnected ? 'text-emerald-500' : 'text-red-500'}`}>
-              {wsConnected ? 'WS Sync' : 'WS Offline'}
-            </span>
-          </div>
-
-          {/* Global Search */}
-          <div className="relative max-w-md w-full">
-            <span
-              className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xl"
-              aria-hidden="true"
-            >search</span>
-            <input
-              className="w-full rounded-lg pl-11 py-2 text-sm text-white placeholder:text-slate-500 transition-all duration-200 ease-in-out outline-none bg-duck-card/40 border border-duck-border focus-visible:outline focus-visible:outline-2 focus-visible:outline-duck-accent"
-              placeholder="Search logs, agents, or PRs (⌘ + K)"
-              type="text"
-            />
-          </div>
+    <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-duck-bg mc-grid-bg">
+      {/* Header — Search | Event Ticker | Bell */}
+      <header className="h-14 border-b border-duck-border flex items-center px-6 shrink-0 bg-duck-panel/40">
+        {/* Search — fixed width, left */}
+        <div className="relative w-56 shrink-0">
+          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]" aria-hidden="true">search</span>
+          <input
+            className="w-full rounded-md pl-9 pr-3 py-1.5 text-[13px] font-display text-white placeholder:text-slate-500 outline-none bg-duck-card/30 border border-duck-border/50 focus-visible:border-duck-accent transition-colors"
+            placeholder="Search..."
+            type="text"
+            aria-label="Search sessions"
+          />
         </div>
 
-        <div className="flex items-center gap-4">
-          {/* Notifications */}
-          <button className="relative p-2 text-slate-400 hover:text-white transition-all duration-200 ease-in-out focus-visible:outline focus-visible:outline-2 focus-visible:outline-duck-accent" aria-label="View Notifications">
-            <span className="material-symbols-outlined" aria-hidden="true">notifications</span>
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-duck-accent shadow-[0_0_0_2px_#0f2023]" />
-          </button>
+        {/* Separator */}
+        <div className="w-px h-6 bg-duck-border/30 mx-4 shrink-0" />
 
-          <div className="h-8 w-px bg-duck-border" />
-
-          {/* User Profile */}
-          <div className="flex items-center gap-3 cursor-pointer group focus-visible:outline focus-visible:outline-2 focus-visible:outline-duck-accent" role="button" tabIndex={0} aria-label="User Profile">
-            <div className="text-right hidden sm:block">
-              <p className="text-xs font-bold text-white leading-none">SRE Admin</p>
-              <p className="text-micro text-slate-500 mt-1">Platform Engineer</p>
-            </div>
-            <div className="w-9 h-9 rounded-lg border border-duck-border shadow-md flex items-center justify-center bg-duck-accent/20">
-              <span className="material-symbols-outlined text-lg text-duck-accent" aria-hidden="true">person</span>
-            </div>
-          </div>
+        {/* Event Ticker — fills center */}
+        <div className="flex-1 min-w-0 overflow-hidden">
+          <EventTicker />
         </div>
+
+        {/* Separator */}
+        <div className="w-px h-6 bg-duck-border/30 mx-4 shrink-0" />
+
+        {/* Notification bell */}
+        <button
+          className="relative w-9 h-9 flex items-center justify-center rounded-md text-slate-400 hover:text-white hover:bg-duck-card/30 transition-all shrink-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-duck-accent"
+          aria-label="Notifications"
+        >
+          <span className="material-symbols-outlined text-[20px]" aria-hidden="true">notifications</span>
+          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-duck-accent shadow-[0_0_0_2px_#12110e]" aria-hidden="true" />
+        </button>
       </header>
 
-      {/* Main Scrolling Content */}
-      <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+      {/* Metric Strip */}
+      <MetricStrip />
 
-        {/* ROW 1: Triage & Health */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-6">
-          <div className="lg:col-span-8">
-            <MetricRibbon />
-          </div>
-          <div className="lg:col-span-4">
-            <EnvironmentHealth />
-          </div>
-        </div>
+      {/* Capability pills — single line */}
+      <HeroCapabilities onSelectCapability={onSelectCapability} />
 
-        {/* ROW 2: Core Workspace (locked 500px) */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 lg:grid-rows-[1fr] gap-6 mb-8 lg:h-[500px] overflow-hidden">
-
-          {/* Left Column: Feed with tab bar */}
-          <div className="lg:col-span-8 flex flex-col min-h-0 bg-duck-panel border border-duck-border rounded-lg overflow-hidden">
+      {/* Feed + Right Panels */}
+      <div className="flex-1 overflow-y-auto custom-scrollbar px-6 pb-4">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 h-full">
+          {/* Feed (9 col) */}
+          <div className="lg:col-span-9 flex flex-col min-h-0">
             {/* Tab bar */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-duck-border bg-duck-card/30 shrink-0">
-              <div className="flex gap-6">
+            <div className="flex items-center justify-between px-2 py-2 shrink-0">
+              <div className="flex gap-5">
                 <button
                   onClick={() => setFeedTab('global')}
-                  className={`text-sm font-bold pb-1 -mb-[13px] transition-colors ${
+                  className={`text-sm font-display font-bold pb-1 transition-colors ${
                     feedTab === 'global'
                       ? 'text-white border-b-2 border-duck-accent'
-                      : 'text-duck-muted hover:text-slate-300'
+                      : 'text-slate-400 hover:text-slate-300'
                   }`}
                 >
-                  Global Feed
+                  Global Investigations
                 </button>
                 <button
                   onClick={() => setFeedTab('mine')}
-                  className={`text-sm font-bold pb-1 -mb-[13px] transition-colors ${
+                  className={`text-sm font-display font-bold pb-1 transition-colors ${
                     feedTab === 'mine'
                       ? 'text-white border-b-2 border-duck-accent'
-                      : 'text-duck-muted hover:text-slate-300'
+                      : 'text-slate-400 hover:text-slate-300'
                   }`}
                 >
-                  My Investigations ({myActiveCount})
+                  My Active ({myActiveCount})
                 </button>
               </div>
               <TimeRangeSelector selected={timeRange} onChange={setTimeRange} />
             </div>
 
-            {/* Scrollable feed */}
-            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
+            {/* Feed content */}
+            <div className="flex-1 overflow-y-auto custom-scrollbar bg-duck-panel/30 border border-duck-border/50 rounded-lg">
               <LiveIntelligenceFeed
                 onSelectSession={onSelectSession}
                 filterActive={feedTab === 'mine'}
@@ -152,30 +126,47 @@ const HomePage: React.FC<HomePageProps> = ({
             </div>
           </div>
 
-          {/* Right Column: QuickActions + AgentFleetPulse */}
-          <div className="lg:col-span-4 flex flex-col gap-5 min-h-0 overflow-hidden">
-            <div className="h-[240px] shrink-0">
-              <QuickActionsPanel
-                onSelectCapability={onSelectCapability}
-              />
+          {/* Right Panels (3 col) */}
+          <div className="lg:col-span-3 flex flex-col gap-2 pt-10">
+            {/* Environment Health */}
+            <EnvironmentHealth />
+
+            {/* Recent Alerts */}
+            <div className="bg-duck-card/20 border border-duck-border/50 rounded-lg p-2.5 relative overflow-hidden">
+              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-amber-500/40 via-amber-500/20 to-transparent" />
+              <RecentAlerts />
             </div>
-            <div className="h-[240px] shrink-0">
-              <AgentFleetPulse />
+
+            {/* Recent Findings */}
+            <div className="bg-duck-card/20 border border-duck-border/50 rounded-lg p-2.5 relative overflow-hidden">
+              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-emerald-500/30 via-emerald-500/10 to-transparent" />
+              <RecentFindings />
+            </div>
+
+            {/* Weekly Stats */}
+            <div className="bg-duck-card/20 border border-duck-border/50 rounded-lg p-2.5 relative overflow-hidden">
+              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-violet-500/30 via-violet-500/10 to-transparent" />
+              <WeeklyStats />
+            </div>
+
+            {/* Agent Fleet */}
+            <div className="bg-duck-card/20 border border-duck-border/50 rounded-lg p-2.5 relative overflow-hidden flex-1">
+              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-duck-accent/30 via-duck-accent/10 to-transparent" />
+              <CompactAgentFleet />
             </div>
           </div>
         </div>
-
-        {/* ROW 3: Capabilities (full width) */}
-        <section>
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="text-lg font-bold text-white tracking-tight">Capabilities</h2>
-              <p className="text-xs text-duck-muted mt-0.5">Deploy automated diagnostics and remediations</p>
-            </div>
-          </div>
-          <CapabilityLauncher onSelectCapability={onSelectCapability} />
-        </section>
       </div>
+
+      {/* AI Assistant Dock — pinned to bottom */}
+      <AssistantDock
+        onNavigate={(page) => {
+          console.log('Assistant navigate:', page);
+        }}
+        onStartInvestigation={(capability) => {
+          onSelectCapability(capability as CapabilityType);
+        }}
+      />
     </div>
   );
 };

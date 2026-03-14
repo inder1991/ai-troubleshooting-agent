@@ -122,7 +122,7 @@ const DBConnections: React.FC = () => {
         <h2 className="text-lg font-semibold text-slate-100">Connection Profiles</h2>
         <button
           onClick={() => { setEditingId(null); setForm(defaultForm); setShowForm(true); setError(''); }}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-amber-600 hover:bg-amber-500 text-white rounded-lg transition-colors"
         >
           <span className="material-symbols-outlined text-[16px]">add</span>
           Add Connection
@@ -144,7 +144,7 @@ const DBConnections: React.FC = () => {
           {profiles.map((p) => (
             <div key={p.id} className="flex items-center justify-between px-4 py-3 rounded-lg border border-slate-700/50 bg-[#0d2328] hover:border-slate-600/50 transition-colors">
               <div className="flex items-center gap-3">
-                <span className="material-symbols-outlined text-cyan-400">storage</span>
+                <span className="material-symbols-outlined text-amber-400">storage</span>
                 <div>
                   <p className="text-sm font-medium text-slate-100">{p.name}</p>
                   <p className="text-xs text-slate-500">{p.engine} • {p.host}:{p.port}/{p.database} • {p.username}</p>
@@ -166,7 +166,7 @@ const DBConnections: React.FC = () => {
                 <button
                   onClick={() => handleTestConnection(p.id)}
                   disabled={testingId === p.id}
-                  className="p-1.5 text-slate-400 hover:text-cyan-400 transition-colors"
+                  className="p-1.5 text-slate-400 hover:text-amber-400 transition-colors"
                   title="Test connection"
                 >
                   <span className={`material-symbols-outlined text-[18px] ${testingId === p.id ? 'animate-spin' : ''}`}>
@@ -208,7 +208,7 @@ const DBConnections: React.FC = () => {
                 <label className="block text-xs text-slate-400 mb-1">Name</label>
                 <input
                   value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-cyan-500 outline-none"
+                  className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-amber-500 outline-none"
                   placeholder={form.engine === 'mongodb' ? 'My MongoDB' : 'My PostgreSQL'}
                 />
               </div>
@@ -221,7 +221,7 @@ const DBConnections: React.FC = () => {
                     setForm({ ...form, engine, port, connection_uri: '' });
                     setShowAdvanced(engine !== 'mongodb');
                   }}
-                  className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-cyan-500 outline-none"
+                  className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-amber-500 outline-none"
                 >
                   <option value="postgresql">PostgreSQL</option>
                   <option value="mongodb">MongoDB</option>
@@ -236,7 +236,7 @@ const DBConnections: React.FC = () => {
                   <input
                     value={form.connection_uri}
                     onChange={(e) => setForm({ ...form, connection_uri: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-cyan-500 outline-none"
+                    className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-amber-500 outline-none"
                     placeholder="mongodb+srv://user:pass@cluster0.example.net/mydb"
                   />
                   <p className="text-[10px] text-slate-500 mt-1">
@@ -267,7 +267,7 @@ const DBConnections: React.FC = () => {
                       <label className="block text-xs text-slate-400 mb-1">Host</label>
                       <input
                         value={form.host} onChange={(e) => setForm({ ...form, host: e.target.value })}
-                        className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-cyan-500 outline-none"
+                        className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-amber-500 outline-none"
                         placeholder="localhost"
                       />
                     </div>
@@ -276,7 +276,7 @@ const DBConnections: React.FC = () => {
                       <input
                         type="number" value={form.port}
                         onChange={(e) => setForm({ ...form, port: parseInt(e.target.value) || (form.engine === 'mongodb' ? 27017 : 5432) })}
-                        className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-cyan-500 outline-none"
+                        className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-amber-500 outline-none"
                       />
                     </div>
                   </div>
@@ -284,7 +284,7 @@ const DBConnections: React.FC = () => {
                     <label className="block text-xs text-slate-400 mb-1">Database</label>
                     <input
                       value={form.database} onChange={(e) => setForm({ ...form, database: e.target.value })}
-                      className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-cyan-500 outline-none"
+                      className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-amber-500 outline-none"
                       placeholder="mydb"
                     />
                   </div>
@@ -293,7 +293,7 @@ const DBConnections: React.FC = () => {
                       <label className="block text-xs text-slate-400 mb-1">Username</label>
                       <input
                         value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })}
-                        className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-cyan-500 outline-none"
+                        className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-amber-500 outline-none"
                       />
                     </div>
                     <div>
@@ -301,7 +301,7 @@ const DBConnections: React.FC = () => {
                       <input
                         type="password" value={form.password}
                         onChange={(e) => setForm({ ...form, password: e.target.value })}
-                        className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-cyan-500 outline-none"
+                        className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-amber-500 outline-none"
                       />
                     </div>
                   </div>
@@ -319,7 +319,7 @@ const DBConnections: React.FC = () => {
               <button
                 onClick={handleSave}
                 disabled={saving || !form.name || (form.engine === 'mongodb' ? (!form.connection_uri && (!form.host || !form.database)) : (!form.host || !form.database || !form.username))}
-                className="px-4 py-2 text-sm bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white rounded-lg transition-colors"
+                className="px-4 py-2 text-sm bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white rounded-lg transition-colors"
               >
                 {saving ? 'Saving...' : editingId ? 'Update' : 'Create'}
               </button>

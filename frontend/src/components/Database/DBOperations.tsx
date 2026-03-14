@@ -56,7 +56,7 @@ interface AuditLogEntry {
 const statusDotColor: Record<string, string> = {
   completed: 'bg-green-400',
   failed: 'bg-red-400',
-  executing: 'bg-cyan-400 animate-pulse',
+  executing: 'bg-amber-400 animate-pulse',
   pending: 'bg-yellow-400',
   approved: 'bg-blue-400',
   rejected: 'bg-slate-400',
@@ -289,7 +289,7 @@ const DBOperations: React.FC = () => {
           <select
             value={selectedProfileId}
             onChange={(e) => setSelectedProfileId(e.target.value)}
-            className="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-cyan-500 outline-none"
+            className="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-amber-500 outline-none"
           >
             {profiles.map((p) => (
               <option key={p.id} value={p.id}>{p.name} ({p.engine})</option>
@@ -299,7 +299,7 @@ const DBOperations: React.FC = () => {
         <div className="relative" ref={opMenuRef}>
           <button
             onClick={() => setShowOpMenu((v) => !v)}
-            className="flex items-center gap-1.5 px-4 py-2 text-xs rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white transition-colors"
+            className="flex items-center gap-1.5 px-4 py-2 text-xs rounded-lg bg-amber-600 hover:bg-amber-500 text-white transition-colors"
           >
             <span className="material-symbols-outlined text-[16px]">add</span>
             New Operation
@@ -358,7 +358,7 @@ const DBOperations: React.FC = () => {
       <div ref={activeQueriesRef} className="bg-[#0d2329] border border-slate-700/50 rounded-lg">
         <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700/30">
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-cyan-400 text-[18px]">terminal</span>
+            <span className="material-symbols-outlined text-amber-400 text-[18px]">terminal</span>
             <h3 className="text-sm font-semibold text-slate-200">Active Queries</h3>
             <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-700/60 text-slate-400">
               {activeQueries.length}
@@ -427,7 +427,7 @@ const DBOperations: React.FC = () => {
       <div className="bg-[#0d2329] border border-slate-700/50 rounded-lg">
         <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700/30">
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-cyan-400 text-[18px]">pending_actions</span>
+            <span className="material-symbols-outlined text-amber-400 text-[18px]">pending_actions</span>
             <h3 className="text-sm font-semibold text-slate-200">Pending Plans</h3>
             <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-700/60 text-slate-400">
               {plans.length}
@@ -463,7 +463,7 @@ const DBOperations: React.FC = () => {
       <div className="bg-[#0d2329] border border-slate-700/50 rounded-lg">
         <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700/30">
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-cyan-400 text-[18px]">tune</span>
+            <span className="material-symbols-outlined text-amber-400 text-[18px]">tune</span>
             <h3 className="text-sm font-semibold text-slate-200">Config Recommendations</h3>
           </div>
           <button
@@ -497,7 +497,7 @@ const DBOperations: React.FC = () => {
               ) : (
                 configRecs.map((rec) => (
                   <tr key={rec.param} className="border-b border-slate-700/30 hover:bg-slate-800/30">
-                    <td className="px-4 py-2 font-mono text-cyan-400">{rec.param}</td>
+                    <td className="px-4 py-2 font-mono text-amber-400">{rec.param}</td>
                     <td className="px-4 py-2 font-mono">{rec.current_value}</td>
                     <td className="px-4 py-2 font-mono text-green-400">{rec.recommended_value}</td>
                     <td className="px-4 py-2 max-w-xs">{rec.reason}</td>
@@ -515,7 +515,7 @@ const DBOperations: React.FC = () => {
                     <td className="px-4 py-2 text-right">
                       <button
                         onClick={() => handleApplyConfig(rec.param, rec.recommended_value)}
-                        className="flex items-center gap-1 ml-auto px-2 py-1 text-[10px] rounded bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 transition-colors"
+                        className="flex items-center gap-1 ml-auto px-2 py-1 text-[10px] rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 transition-colors"
                       >
                         <span className="material-symbols-outlined text-[12px]">play_arrow</span>
                         Apply
@@ -533,7 +533,7 @@ const DBOperations: React.FC = () => {
       <div className="bg-[#0d2329] border border-slate-700/50 rounded-lg">
         <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700/30">
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-cyan-400 text-[18px]">history</span>
+            <span className="material-symbols-outlined text-amber-400 text-[18px]">history</span>
             <h3 className="text-sm font-semibold text-slate-200">Execution Log</h3>
           </div>
           <button

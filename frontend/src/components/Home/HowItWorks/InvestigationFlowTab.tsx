@@ -58,12 +58,12 @@ const InvestigationFlowTab: React.FC = () => {
   const getStatusClasses = (status: NodeStatus): string => {
     switch (status) {
       case 'active':
-        return 'border-[#07b6d5] shadow-[0_0_30px_rgba(7,182,213,0.15)]';
+        return 'border-[#e09f3e] shadow-[0_0_30px_rgba(224,159,62,0.15)]';
       case 'done':
-        return 'border-[#224349]/60 opacity-60';
+        return 'border-[#3d3528]/60 opacity-60';
       case 'visible':
       default:
-        return 'border-[#224349]';
+        return 'border-[#3d3528]';
     }
   };
 
@@ -74,7 +74,7 @@ const InvestigationFlowTab: React.FC = () => {
       case 'active':
         return {
           text: 'processing...',
-          className: 'text-[#07b6d5] animate-pulse',
+          className: 'text-[#e09f3e] animate-pulse',
         };
       case 'done':
         return { text: 'complete \u2713', className: 'text-emerald-500' };
@@ -99,9 +99,9 @@ const InvestigationFlowTab: React.FC = () => {
       </div>
 
       {/* 2. Progress Bar */}
-      <div className="h-1.5 bg-[#224349] rounded-full mt-3 mb-4 overflow-hidden">
+      <div className="h-1.5 bg-[#3d3528] rounded-full mt-3 mb-4 overflow-hidden">
         <div
-          className="h-full rounded-full transition-all duration-700 ease-out bg-[#07b6d5]"
+          className="h-full rounded-full transition-all duration-700 ease-out bg-[#e09f3e]"
           style={{ width: `${progressPercent}%` }}
         />
       </div>
@@ -116,8 +116,8 @@ const InvestigationFlowTab: React.FC = () => {
             dotColor = 'bg-slate-400';
             textColor = 'text-slate-400';
           } else if (index === activePhaseIndex) {
-            dotColor = 'bg-[#07b6d5]';
-            textColor = 'text-[#07b6d5] font-bold';
+            dotColor = 'bg-[#e09f3e]';
+            textColor = 'text-[#e09f3e] font-bold';
           } else {
             dotColor = 'bg-slate-600';
             textColor = 'text-slate-600';
@@ -152,15 +152,15 @@ const InvestigationFlowTab: React.FC = () => {
                 top: 90,
                 width: 565,
                 height: 210,
-                borderColor: 'rgba(7,182,213,0.15)',
+                borderColor: 'rgba(224,159,62,0.15)',
                 zIndex: 0,
               }}
             >
               <div
                 className="absolute -top-2.5 left-5 px-2 text-[9px] font-bold tracking-wider uppercase"
                 style={{
-                  backgroundColor: '#0f2023',
-                  color: 'rgba(7,182,213,0.3)',
+                  backgroundColor: '#1a1814',
+                  color: 'rgba(224,159,62,0.3)',
                 }}
               >
                 asyncio.gather — parallel
@@ -192,7 +192,7 @@ const InvestigationFlowTab: React.FC = () => {
               >
                 {/* Icon circle */}
                 <div
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-[#0f2023] mb-2 relative"
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-[#1a1814] mb-2 relative"
                   style={{ backgroundColor: node.color }}
                 >
                   {node.iconLabel}
@@ -232,7 +232,7 @@ const InvestigationFlowTab: React.FC = () => {
                       : 'max-h-0 opacity-0 overflow-hidden'
                   }`}
                 >
-                  <div className="text-[10px] font-mono text-slate-300 mt-2 pt-2 border-t border-[#224349]">
+                  <div className="text-[10px] font-mono text-slate-300 mt-2 pt-2 border-t border-[#3d3528]">
                     {node.outputText}
                   </div>
                 </div>
@@ -243,7 +243,7 @@ const InvestigationFlowTab: React.FC = () => {
       </div>
 
       {/* 5. Controls Bar */}
-      <div className="flex items-center justify-between mt-4 pt-4 border-t border-[#224349]">
+      <div className="flex items-center justify-between mt-4 pt-4 border-t border-[#3d3528]">
         {/* Speed buttons */}
         <div className="flex items-center gap-2">
           <span className="text-xs text-slate-500">Speed:</span>
@@ -253,8 +253,8 @@ const InvestigationFlowTab: React.FC = () => {
               onClick={() => setSpeed(s)}
               className={`px-2.5 py-1 rounded text-xs font-mono transition-colors ${
                 speed === s
-                  ? 'bg-[#07b6d5]/20 text-[#07b6d5] border border-[#07b6d5]/30'
-                  : 'bg-slate-900/50 text-slate-500 border border-[#224349] hover:text-slate-300'
+                  ? 'bg-[#e09f3e]/20 text-[#e09f3e] border border-[#e09f3e]/30'
+                  : 'bg-slate-900/50 text-slate-500 border border-[#3d3528] hover:text-slate-300'
               }`}
             >
               {s}x
@@ -267,7 +267,7 @@ const InvestigationFlowTab: React.FC = () => {
           {(isRunning || progressPercent > 0) && (
             <button
               onClick={resetAnimation}
-              className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-bold transition-colors border border-[#224349]"
+              className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-bold transition-colors border border-[#3d3528]"
             >
               Reset
             </button>
@@ -277,8 +277,8 @@ const InvestigationFlowTab: React.FC = () => {
             disabled={isRunning}
             className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${
               isRunning
-                ? 'bg-[#07b6d5]/40 text-white/50 cursor-not-allowed'
-                : 'bg-[#07b6d5] hover:bg-[#07b6d5]/80 text-white'
+                ? 'bg-[#e09f3e]/40 text-white/50 cursor-not-allowed'
+                : 'bg-[#e09f3e] hover:bg-[#e09f3e]/80 text-white'
             }`}
           >
             Start Investigation

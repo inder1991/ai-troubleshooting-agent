@@ -104,7 +104,7 @@ const downstreamServices: Service[] = [
 const contextCards = [
   {
     title: 'Symptoms',
-    borderColor: '#07b6d5',
+    borderColor: '#e09f3e',
     icon: 'troubleshoot',
     body: (
       <p className="text-sm text-slate-400 leading-relaxed">
@@ -297,7 +297,7 @@ const ScenarioTab: React.FC<ScenarioTabProps> = ({ onSwitchToFlow }) => {
           {contextCards.map((card) => (
             <div
               key={card.title}
-              className="bg-slate-900/50 border border-[#224349] rounded-lg p-4"
+              className="bg-slate-900/50 border border-[#3d3528] rounded-lg p-4"
               style={{ borderTop: `3px solid ${card.borderColor}` }}
             >
               <div className="flex items-center gap-2 mb-3">
@@ -323,14 +323,14 @@ const ScenarioTab: React.FC<ScenarioTabProps> = ({ onSwitchToFlow }) => {
         viewport={{ once: true, amount: 0.2 }}
         custom={3}
       >
-        <div className="bg-slate-900/50 border border-[#224349] rounded-lg p-6 text-center max-w-md mx-auto">
+        <div className="bg-slate-900/50 border border-[#3d3528] rounded-lg p-6 text-center max-w-md mx-auto">
           <p className="text-sm text-slate-400">
             Ready to watch the AI agents investigate and resolve this incident
             in real-time?
           </p>
           <button
             onClick={onSwitchToFlow}
-            className="mt-3 px-5 py-2.5 rounded-lg bg-[#07b6d5] hover:bg-[#07b6d5]/80 text-white text-sm font-bold transition-colors"
+            className="mt-3 px-5 py-2.5 rounded-lg bg-[#e09f3e] hover:bg-[#e09f3e]/80 text-white text-sm font-bold transition-colors"
           >
             Launch Investigation Flow &rarr;
           </button>

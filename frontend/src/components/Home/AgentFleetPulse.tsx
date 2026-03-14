@@ -84,19 +84,19 @@ export const AgentFleetPulse: React.FC = () => {
     <div className="bg-duck-panel border border-duck-border rounded-lg h-full flex flex-col overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between px-3 pt-3 pb-2 shrink-0">
-        <h3 className="text-xs font-bold text-duck-muted uppercase tracking-wider">Agent Fleet</h3>
+        <h3 className="text-xs font-bold text-slate-400 font-display">Agent Fleet</h3>
         {!isLoading && (
-          <div className="flex items-center gap-3 text-[10px] font-mono text-slate-400">
+          <div className="flex items-center gap-3 text-[10px] text-slate-400">
             <span className="flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-duck-accent" />
+              <span className="w-1.5 h-1.5 rounded-full bg-duck-accent" aria-hidden="true" />
               {analyzingCount}
             </span>
             <span className="flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" aria-hidden="true" />
               {summary.degraded}
             </span>
             <span className="flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+              <span className="w-1.5 h-1.5 rounded-full bg-red-500" aria-hidden="true" />
               {summary.offline}
             </span>
           </div>
@@ -104,7 +104,7 @@ export const AgentFleetPulse: React.FC = () => {
       </div>
 
       {/* Swarm */}
-      <div className="px-3 pb-2 overflow-y-auto custom-scrollbar" style={{ maxHeight: 80 }}>
+      <div className="px-3 pb-2 overflow-y-auto custom-scrollbar max-h-[80px]">
         <Tooltip.Provider delayDuration={0}>
           <div className="grid grid-cols-[repeat(auto-fit,minmax(12px,1fr))] gap-1">
             {isLoading
@@ -124,7 +124,7 @@ export const AgentFleetPulse: React.FC = () => {
                         sideOffset={5}
                       >
                         <p className="text-[10px] font-bold text-white">{agent.name}</p>
-                        <p className="text-[10px] text-duck-muted">
+                        <p className="text-[10px] text-slate-400">
                           {dotLabel[agent.visual]} · {agent.role}
                         </p>
                         <Tooltip.Arrow className="fill-duck-border" />

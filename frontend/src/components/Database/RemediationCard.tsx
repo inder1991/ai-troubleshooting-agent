@@ -32,7 +32,7 @@ interface RemediationCardProps {
 const statusStyles: Record<string, string> = {
   pending: 'bg-yellow-500/20 text-yellow-400',
   approved: 'bg-blue-500/20 text-blue-400',
-  executing: 'bg-cyan-500/20 text-cyan-400 animate-pulse',
+  executing: 'bg-amber-500/20 text-amber-400 animate-pulse',
   completed: 'bg-green-500/20 text-green-400',
   failed: 'bg-red-500/20 text-red-400',
   rejected: 'bg-slate-500/20 text-slate-400',
@@ -47,7 +47,7 @@ const RemediationCard: React.FC<RemediationCardProps> = ({ plan, onApprove, onRe
       {/* Header */}
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 min-w-0">
-          <span className="material-symbols-outlined text-cyan-400 text-[18px]">build</span>
+          <span className="material-symbols-outlined text-amber-400 text-[18px]">build</span>
           <span className="text-sm font-semibold text-slate-200 truncate">
             {plan.action.replace(/_/g, ' ').toUpperCase()}
             {plan.params.table ? ` on ${plan.params.table}` : ''}
@@ -114,7 +114,7 @@ const RemediationCard: React.FC<RemediationCardProps> = ({ plan, onApprove, onRe
           </button>
           <button
             onClick={() => onApprove?.(plan.plan_id)}
-            className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white transition-colors"
+            className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-lg bg-amber-600 hover:bg-amber-500 text-white transition-colors"
           >
             <span className="material-symbols-outlined text-[14px]">check</span>
             Approve &amp; Run

@@ -41,7 +41,7 @@ const CONFIG_ALLOWLIST = [
 ];
 
 const inputClass =
-  'w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 placeholder-slate-500 focus:border-cyan-500 outline-none';
+  'w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 placeholder-slate-500 focus:border-amber-500 outline-none';
 const labelClass = 'block text-xs font-medium text-slate-400 mb-1';
 
 const OperationFormModal: React.FC<OperationFormModalProps> = ({ onClose, onCreate, initialAction }) => {
@@ -136,7 +136,7 @@ const OperationFormModal: React.FC<OperationFormModalProps> = ({ onClose, onCrea
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-700/50">
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-cyan-400">build</span>
+            <span className="material-symbols-outlined text-amber-400">build</span>
             <h3 className="text-sm font-semibold text-slate-200">New Operation</h3>
           </div>
           <button onClick={onClose} className="text-slate-500 hover:text-slate-300 transition-colors">
@@ -192,7 +192,7 @@ const OperationFormModal: React.FC<OperationFormModalProps> = ({ onClose, onCrea
                     type="checkbox"
                     checked={vacuumFull}
                     onChange={(e) => setVacuumFull(e.target.checked)}
-                    className="rounded border-slate-600 bg-slate-800 text-cyan-500 focus:ring-cyan-500"
+                    className="rounded border-slate-600 bg-slate-800 text-amber-500 focus:ring-amber-500"
                   />
                   FULL
                 </label>
@@ -201,7 +201,7 @@ const OperationFormModal: React.FC<OperationFormModalProps> = ({ onClose, onCrea
                     type="checkbox"
                     checked={vacuumAnalyze}
                     onChange={(e) => setVacuumAnalyze(e.target.checked)}
-                    className="rounded border-slate-600 bg-slate-800 text-cyan-500 focus:ring-cyan-500"
+                    className="rounded border-slate-600 bg-slate-800 text-amber-500 focus:ring-amber-500"
                   />
                   ANALYZE
                 </label>
@@ -259,7 +259,7 @@ const OperationFormModal: React.FC<OperationFormModalProps> = ({ onClose, onCrea
                   type="checkbox"
                   checked={ciUnique}
                   onChange={(e) => setCiUnique(e.target.checked)}
-                  className="rounded border-slate-600 bg-slate-800 text-cyan-500 focus:ring-cyan-500"
+                  className="rounded border-slate-600 bg-slate-800 text-amber-500 focus:ring-amber-500"
                 />
                 Unique index
               </label>
@@ -317,7 +317,7 @@ const OperationFormModal: React.FC<OperationFormModalProps> = ({ onClose, onCrea
           </button>
           <button
             onClick={handleSubmit}
-            className="px-4 py-2 text-xs rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white transition-colors"
+            className="px-4 py-2 text-xs rounded-lg bg-amber-600 hover:bg-amber-500 text-white transition-colors"
           >
             <span className="flex items-center gap-1">
               <span className="material-symbols-outlined text-[14px]">add</span>

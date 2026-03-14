@@ -8,21 +8,21 @@ export default {
   theme: {
     extend: {
       colors: {
-        'primary': '#07b6d5',
-        'background-light': '#f5f8f8',
-        'background-dark': '#0f2023',
-        'neutral-slate': '#1e2f33',
-        'neutral-border': '#224349',
+        'primary': '#e09f3e',
+        'background-light': '#f5f0e8',
+        'background-dark': '#1a1814',
+        'neutral-slate': '#252118',
+        'neutral-border': '#3d3528',
         duck: {
-          bg:      '#0f2023',
-          card:    '#1e2f33',
-          border:  '#224349',
-          accent:  '#07b6d5',
-          surface: '#162a2e',
-          panel:   '#0a1517',
-          sidebar: '#000000',
-          flyout:  '#090909',
-          muted:   '#94a3b8',
+          bg:      '#1a1814',
+          card:    '#252118',
+          border:  '#3d3528',
+          accent:  '#e09f3e',
+          surface: '#1e1b15',
+          panel:   '#12110e',
+          sidebar: '#0d0c0a',
+          flyout:  '#0f0e0b',
+          muted:   '#8a7e6b',
         },
       },
       fontSize: {
@@ -30,9 +30,9 @@ export default {
         nano:  ['8px',  { lineHeight: '12px', letterSpacing: '0.05em' }],
       },
       fontFamily: {
-        display: ['Inter', 'sans-serif'],
+        display: ['"DM Sans"', 'Inter', 'sans-serif'],
         sans: ['Inter', 'system-ui', 'Avenir', 'Helvetica', 'Arial', 'sans-serif'],
-        mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'monospace'],
+        mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'monospace'],
       },
       borderRadius: {
         DEFAULT: '0.25rem',

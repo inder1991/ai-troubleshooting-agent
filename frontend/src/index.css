@@ -9,7 +9,7 @@
 
   color-scheme: dark;
   color: rgba(255, 255, 255, 0.87);
-  background-color: #0f2023;
+  background-color: #1a1814;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -21,7 +21,7 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background-color: #0f2023;
+  background-color: #1a1814;
   font-family: 'Inter', sans-serif;
   overflow: hidden;
 }
@@ -34,14 +34,14 @@ body {
   width: 4px;
 }
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: rgba(7, 182, 213, 0.05);
+  background: transparent;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(7, 182, 213, 0.2);
+  background: rgba(255, 255, 255, 0.05);
   border-radius: 10px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(7, 182, 213, 0.4);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 #root {
@@ -68,12 +68,12 @@ body {
 
 .mermaid text {
   font-size: 13px !important;
-  fill: #e5e7eb !important;
+  fill: #e8e0d4 !important;
 }
 
 /* Prose overrides for dark theme markdown rendering */
 .prose-invert code {
-  color: #e5e7eb;
+  color: #e8e0d4;
   background-color: rgba(0, 0, 0, 0.3);
   padding: 0.125rem 0.25rem;
   border-radius: 0.25rem;
@@ -96,39 +96,48 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(7, 182, 213, 0.15);
+  background: rgba(224, 159, 62, 0.15);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(7, 182, 213, 0.3);
+  background: rgba(224, 159, 62, 0.3);
 }
 
 .sidebar-scroll::-webkit-scrollbar {
   width: 3px;
 }
 .sidebar-scroll::-webkit-scrollbar-thumb {
-  background: rgba(7, 182, 213, 0.1);
+  background: rgba(224, 159, 62, 0.1);
   border-radius: 2px;
 }
 .sidebar-scroll::-webkit-scrollbar-thumb:hover {
-  background: rgba(7, 182, 213, 0.25);
+  background: rgba(224, 159, 62, 0.25);
 }
 .sidebar-scroll {
   scrollbar-width: thin;
-  scrollbar-color: rgba(7, 182, 213, 0.1) transparent;
+  scrollbar-color: rgba(224, 159, 62, 0.1) transparent;
 }
 
 /* Selection color */
 ::selection {
-  background-color: rgba(7, 182, 213, 0.3);
+  background-color: rgba(224, 159, 62, 0.3);
   color: white;
 }
 
 /* Focus ring override */
 *:focus-visible {
-  outline: 1px solid rgba(7, 182, 213, 0.5);
+  outline: 1px solid rgba(224, 159, 62, 0.5);
   outline-offset: 2px;
+}
+
+/* ─── Mission Control Grid Texture ────────────────────────── */
+
+.mc-grid-bg {
+  background-image:
+    linear-gradient(rgba(224, 159, 62, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(224, 159, 62, 0.03) 1px, transparent 1px);
+  background-size: 24px 24px;
 }
 
 /* ─── War Room Animations ─────────────────────────────────────────────── */
@@ -154,7 +163,7 @@ body {
 
 /* Agent left-border colors */
 .card-border-L { border-left: 3px solid #ef4444; }
-.card-border-M { border-left: 3px solid #06b6d4; }
+.card-border-M { border-left: 3px solid #d4922e; }
 .card-border-K { border-left: 3px solid #f97316; }
 .card-border-C { border-left: 3px solid #10b981; }
 .card-border-D { border-left: 3px solid #3b82f6; }
@@ -201,13 +210,22 @@ body {
 }
 .animate-highlight { animation: highlight-flash 1s ease-out; }
 
+/* Ops log entry flash for new feed items */
+@keyframes ops-entry-flash {
+  0% { background-color: rgba(224, 159, 62, 0.08); }
+  100% { background-color: transparent; }
+}
+.ops-entry-new {
+  animation: ops-entry-flash 1.5s ease-out;
+}
+
 /* ─── Focus ring refinements ───────────────────────────────────────────── */
 
 button:focus-visible,
 a:focus-visible,
 [role="button"]:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px rgba(7, 182, 213, 0.5);
+  box-shadow: 0 0 0 2px rgba(224, 159, 62, 0.5);
   border-radius: inherit;
 }
 
@@ -228,13 +246,13 @@ a:focus-visible,
 
 /* Phase divider line */
 .phase-divider-line {
-  background: linear-gradient(to right, rgba(7, 182, 213, 0.3), transparent);
+  background: linear-gradient(to right, rgba(224, 159, 62, 0.3), transparent);
 }
 
 /* Phase pulse animation */
 @keyframes phase-pulse {
-  0%, 100% { opacity: 0.6; box-shadow: 0 0 4px rgba(6, 182, 212, 0.3); }
-  50% { opacity: 1; box-shadow: 0 0 10px rgba(6, 182, 212, 0.6); }
+  0%, 100% { opacity: 0.6; box-shadow: 0 0 4px rgba(212, 146, 46, 0.3); }
+  50% { opacity: 1; box-shadow: 0 0 10px rgba(212, 146, 46, 0.6); }
 }
 .animate-phase-pulse {
   animation: phase-pulse 2s ease-in-out infinite;
@@ -280,7 +298,7 @@ a:focus-visible,
 
 /* Tool call line indicators */
 .tool-line-success {
-  background-color: #07b6d5;
+  background-color: #e09f3e;
   opacity: 0.5;
 }
 .tool-line-success:hover {
@@ -296,7 +314,7 @@ a:focus-visible,
 
 /* Neural stream tint */
 .neural-stream-tint {
-  background-color: rgba(7, 182, 213, 0.05);
+  background-color: rgba(224, 159, 62, 0.05);
 }
 
 /* Phase breadcrumb bar */
@@ -314,7 +332,7 @@ a:focus-visible,
 }
 .streaming-cursor::after {
   content: '\2588';
-  color: #07b6d5;
+  color: #e09f3e;
   animation: cursor-blink 1s step-end infinite;
   margin-left: 1px;
 }
@@ -355,13 +373,13 @@ a:focus-visible,
 
 /* ─── Topology Editor Dark Theme Overrides ────────────────────────────── */
 
-.react-flow__connection-path { stroke: #07b6d5; stroke-width: 2; }
+.react-flow__connection-path { stroke: #e09f3e; stroke-width: 2; }
 .react-flow__edge-path { transition: stroke-width 0.2s ease, stroke-opacity 0.2s ease; }
-.react-flow__edge:hover .react-flow__edge-path { stroke-width: 3 !important; filter: drop-shadow(0 0 3px rgba(7, 182, 213, 0.3)) !important; }
-.react-flow__edge.selected .react-flow__edge-path { stroke-width: 2.5 !important; filter: drop-shadow(0 0 6px rgba(7, 182, 213, 0.5)) !important; }
-.react-flow__controls button { background: #0f2023 !important; color: #e2e8f0 !important; border-color: #224349 !important; }
-.react-flow__controls button:hover { background: #1a3a40 !important; border-color: #07b6d5 !important; }
-.react-flow__controls button svg { fill: #e2e8f0 !important; }
+.react-flow__edge:hover .react-flow__edge-path { stroke-width: 3 !important; filter: drop-shadow(0 0 3px rgba(224, 159, 62, 0.3)) !important; }
+.react-flow__edge.selected .react-flow__edge-path { stroke-width: 2.5 !important; filter: drop-shadow(0 0 6px rgba(224, 159, 62, 0.5)) !important; }
+.react-flow__controls button { background: #1a1814 !important; color: #e8e0d4 !important; border-color: #3d3528 !important; }
+.react-flow__controls button:hover { background: #252118 !important; border-color: #e09f3e !important; }
+.react-flow__controls button svg { fill: #e8e0d4 !important; }
 .react-flow__node.selected { filter: drop-shadow(0 0 4px rgba(7,182,213,0.4)); }
 
 
@@ -374,8 +392,8 @@ a:focus-visible,
 /* ─── Campaign Animations ─────────────────────────────────────────────── */
 
 @keyframes campaign-node-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(7, 182, 213, 0); }
-  50% { box-shadow: 0 0 12px 2px rgba(7, 182, 213, 0.3); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(224, 159, 62, 0); }
+  50% { box-shadow: 0 0 12px 2px rgba(224, 159, 62, 0.3); }
 }
 .campaign-node-generating { animation: campaign-node-pulse 2s ease-in-out infinite; }
 
@@ -402,9 +420,9 @@ a:focus-visible,
 /* ─── How It Works — Node Pulse Ring ──────────────────────────────────── */
 
 @keyframes node-pulse-ring {
-  0% { box-shadow: 0 0 0 0 rgba(7, 182, 213, 0.4); }
-  70% { box-shadow: 0 0 0 8px rgba(7, 182, 213, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(7, 182, 213, 0); }
+  0% { box-shadow: 0 0 0 0 rgba(224, 159, 62, 0.4); }
+  70% { box-shadow: 0 0 0 8px rgba(224, 159, 62, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(224, 159, 62, 0); }
 }
 .animate-node-pulse-ring { animation: node-pulse-ring 1.5s ease-out infinite; }
 
@@ -459,7 +477,7 @@ a:focus-visible,
 .neural-pulse-path {
   stroke-dasharray: 10 200;
   animation: neural-dash-pulse 2s linear infinite;
-  filter: drop-shadow(0 0 4px #07b6d5);
+  filter: drop-shadow(0 0 4px #e09f3e);
 }
 
 /* Tether path (dashed connecting lines) */
@@ -472,7 +490,7 @@ a:focus-visible,
 }
 .tether-path-flow {
   stroke-dasharray: 8 4;
-  filter: drop-shadow(0 0 3px #07b6d5);
+  filter: drop-shadow(0 0 3px #e09f3e);
 }
 
 /* Vertical ribbon writing mode */

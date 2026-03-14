@@ -8,13 +8,13 @@ import { sectionFadeUp } from './howItWorksAnimations';
 
 const C = {
   red: '#ef4444',
-  cyan: '#07b6d5',
+  gold: '#e09f3e',
   orange: '#f97316',
   purple: '#a78bfa',
   emerald: '#10b981',
   blue: '#3b82f6',
   yellow: '#eab308',
-  gray: '#94a3b8',
+  gray: '#8a7e6b',
 } as const;
 
 /* ------------------------------------------------------------------ */
@@ -23,13 +23,13 @@ const C = {
 
 const flowBoxes: { label: string; small: string; color: string }[] = [
   { label: 'User Reports', small: 'Incident Form', color: C.gray },
-  { label: 'FastAPI', small: 'Session + WS', color: C.cyan },
+  { label: 'FastAPI', small: 'Session + WS', color: C.gold },
   { label: 'Supervisor', small: 'State Machine', color: C.emerald },
 ];
 
 const agentCluster: { label: string; color: string }[] = [
   { label: 'Log', color: C.red },
-  { label: 'Metrics', color: C.cyan },
+  { label: 'Metrics', color: C.gold },
   { label: 'K8s', color: C.orange },
   { label: 'Tracing', color: C.purple },
   { label: 'Change', color: C.emerald },
@@ -53,7 +53,7 @@ const agents = [
   {
     num: 2,
     name: 'Metrics Agent',
-    color: C.cyan,
+    color: C.gold,
     pattern: 'ReAct (5 iter) / Two-pass',
     desc: 'Queries Prometheus for RED metrics + saturation. Spike detection via Median Absolute Deviation (MAD) — more robust than stddev for noisy time series.',
   },
@@ -90,7 +90,7 @@ const agents = [
 const phases = [
   { num: 0, name: 'Session Start', sub: 'User → API', color: C.gray },
   { num: 1, name: 'Log Analysis', sub: 'Direct LLM', color: C.red },
-  { num: 2, name: 'Parallel Telemetry', sub: 'asyncio.gather', color: C.cyan },
+  { num: 2, name: 'Parallel Telemetry', sub: 'asyncio.gather', color: C.gold },
   { num: 3, name: 'Reasoning Chain', sub: 'Causal narrative', color: C.emerald },
   { num: 4, name: 'Code Analysis', sub: 'ReAct 15 iter', color: C.blue },
   { num: 5, name: 'Critic', sub: 'Cross-validate', color: C.purple },
@@ -192,7 +192,7 @@ const ArchitectureTab: React.FC = () => {
           <Arrow />
 
           {/* Agent cluster */}
-          <span className="flex items-center gap-1.5 px-2 py-1 rounded border border-[#224349] bg-slate-900/50">
+          <span className="flex items-center gap-1.5 px-2 py-1 rounded border border-[#3d3528] bg-slate-900/50">
             {agentCluster.map((a) => (
               <span
                 key={a.label}
@@ -233,7 +233,7 @@ const ArchitectureTab: React.FC = () => {
           {agents.map((agent) => (
             <div
               key={agent.num}
-              className="rounded-lg p-3.5 bg-slate-900/50 border border-[#224349]"
+              className="rounded-lg p-3.5 bg-slate-900/50 border border-[#3d3528]"
               style={{ borderTopWidth: 3, borderTopColor: agent.color }}
             >
               <div className="flex items-center gap-2.5 mb-2">
@@ -268,7 +268,7 @@ const ArchitectureTab: React.FC = () => {
             return (
               <div
                 key={phase.num}
-                className={`flex items-center gap-2 px-3 py-2 bg-slate-900/50 border border-[#224349] ${
+                className={`flex items-center gap-2 px-3 py-2 bg-slate-900/50 border border-[#3d3528] ${
                   isFirst ? 'rounded-l-lg' : ''
                 } ${isLast ? 'rounded-r-lg' : ''}`}
                 style={{ borderLeftWidth: isFirst ? 1 : 0 }}
@@ -314,7 +314,7 @@ const ArchitectureTab: React.FC = () => {
                       ? 'border-slate-600 bg-slate-800/60'
                       : isHuman
                         ? 'border-yellow-700 bg-yellow-950/30'
-                        : 'bg-slate-900/50 border-[#224349]'
+                        : 'bg-slate-900/50 border-[#3d3528]'
                   }`}
                   style={{
                     borderColor: isNoLlm ? undefined : step.color,
@@ -347,7 +347,7 @@ const ArchitectureTab: React.FC = () => {
           {gates.map((gate, i) => (
             <div
               key={gate.name}
-              className="bg-slate-900/50 border border-[#224349] rounded-lg p-3"
+              className="bg-slate-900/50 border border-[#3d3528] rounded-lg p-3"
               style={{ borderTopWidth: 3, borderTopColor: C.yellow }}
             >
               <div className="flex items-center gap-2 mb-2">
@@ -379,10 +379,10 @@ const ArchitectureTab: React.FC = () => {
         custom={5}
       >
         <SectionTitle>14 Total Components</SectionTitle>
-        <div className="overflow-x-auto rounded-lg border border-[#224349]">
+        <div className="overflow-x-auto rounded-lg border border-[#3d3528]">
           <table className="w-full text-xs">
             <thead>
-              <tr className="bg-[#07b6d5]/10 text-[#07b6d5]">
+              <tr className="bg-[#e09f3e]/10 text-[#e09f3e]">
                 <th className="px-3 py-2 text-left font-bold">#</th>
                 <th className="px-3 py-2 text-left font-bold">Component</th>
                 <th className="px-3 py-2 text-left font-bold">Pattern</th>
@@ -400,7 +400,7 @@ const ArchitectureTab: React.FC = () => {
                   <td className="px-3 py-2 text-slate-400 font-mono">{c.pattern}</td>
                   <td className="px-3 py-2">
                     {c.llm.startsWith('Yes') ? (
-                      <span className="text-[#07b6d5] font-bold">{c.llm}</span>
+                      <span className="text-[#e09f3e] font-bold">{c.llm}</span>
                     ) : (
                       <span className="text-slate-600">{c.llm}</span>
                     )}
@@ -425,7 +425,7 @@ const ArchitectureTab: React.FC = () => {
           {stack.map((s) => (
             <div
               key={s.label}
-              className="bg-slate-900/50 border border-[#224349] rounded-lg p-3"
+              className="bg-slate-900/50 border border-[#3d3528] rounded-lg p-3"
             >
               <span className="text-xs font-bold text-white block mb-1">{s.label}</span>
               <span className="text-xs text-slate-400">{s.items}</span>
