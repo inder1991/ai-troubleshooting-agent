@@ -40,10 +40,13 @@ const AgentCard: React.FC<AgentCardProps> = ({ agent, onClick, isSelected }) => 
   const cardRef = useRef<HTMLButtonElement>(null);
   const statusColor = STATUS_COLORS[agent.status];
 
-  // Scroll selected card into view when grid reflows
+  // Scroll selected card into view after grid reflow completes (300ms transition)
   useEffect(() => {
     if (isSelected && cardRef.current) {
-      cardRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      const timer = setTimeout(() => {
+        cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 350);
+      return () => clearTimeout(timer);
     }
   }, [isSelected]);
 
