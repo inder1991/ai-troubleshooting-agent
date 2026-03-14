@@ -18,6 +18,13 @@ from src.agents.cluster.rbac_agent import rbac_agent
 from src.agents.cluster.critic_agent import critic_validator
 from src.agents.cluster.synthesizer import synthesize
 from src.agents.cluster.guard_formatter import guard_formatter
+from src.agents.cluster.signal_normalizer import signal_normalizer
+from src.agents.cluster.failure_patterns import failure_pattern_matcher
+from src.agents.cluster.temporal_analyzer import temporal_analyzer
+from src.agents.cluster.diagnostic_graph_builder import diagnostic_graph_builder
+from src.agents.cluster.issue_lifecycle import issue_lifecycle_classifier
+from src.agents.cluster.hypothesis_engine import hypothesis_engine
+from src.agents.cluster.solution_validator import solution_validator
 from src.agents.cluster.rbac_checker import rbac_preflight
 from src.agents.cluster.state import DiagnosticScope
 from src.utils.logger import get_logger
@@ -67,6 +74,15 @@ class State(TypedDict):
     # LLM budget and telemetry
     session_budget: Optional[dict]        # SessionBudget.to_dict() for state passing
     llm_telemetry: Optional[dict]         # SessionLLMSummary.to_dict()
+    # Diagnostic intelligence pipeline
+    normalized_signals: list[dict]
+    pattern_matches: list[dict]
+    temporal_analysis: Optional[dict]
+    diagnostic_graph: Optional[dict]
+    diagnostic_issues: list[dict]
+    ranked_hypotheses: list[dict]
+    hypotheses_by_issue: Optional[dict]
+    hypothesis_selection: Optional[dict]
 
 
 # ---------------------------------------------------------------------------
@@ -175,8 +191,15 @@ def build_cluster_diagnostic_graph():
     graph.add_node("network_agent", wrapped_network)
     graph.add_node("storage_agent", wrapped_storage)
     graph.add_node("rbac_agent", wrapped_rbac)
+    graph.add_node("signal_normalizer", signal_normalizer)
+    graph.add_node("failure_pattern_matcher", failure_pattern_matcher)
+    graph.add_node("temporal_analyzer", temporal_analyzer)
+    graph.add_node("diagnostic_graph_builder", diagnostic_graph_builder)
+    graph.add_node("issue_lifecycle_classifier", issue_lifecycle_classifier)
+    graph.add_node("hypothesis_engine", hypothesis_engine)
     graph.add_node("critic_validator", critic_validator)
     graph.add_node("synthesize", synthesize)
+    graph.add_node("solution_validator", solution_validator)
     graph.add_node("guard_formatter", guard_formatter)
 
     # Sequential pre-processing: rbac_preflight -> topology -> correlator -> firewall -> dispatch_router
@@ -193,18 +216,28 @@ def build_cluster_diagnostic_graph():
     graph.add_edge("dispatch_router", "storage_agent")
     graph.add_edge("dispatch_router", "rbac_agent")
 
-    # All agents fan-in to critic_validator, then to synthesize
-    graph.add_edge("ctrl_plane_agent", "critic_validator")
-    graph.add_edge("node_agent", "critic_validator")
-    graph.add_edge("network_agent", "critic_validator")
-    graph.add_edge("storage_agent", "critic_validator")
-    graph.add_edge("rbac_agent", "critic_validator")
+    # Fan-in: agents → diagnostic intelligence pipeline
+    graph.add_edge("ctrl_plane_agent", "signal_normalizer")
+    graph.add_edge("node_agent", "signal_normalizer")
+    graph.add_edge("network_agent", "signal_normalizer")
+    graph.add_edge("storage_agent", "signal_normalizer")
+    graph.add_edge("rbac_agent", "signal_normalizer")
 
+    # Sequential intelligence pipeline
+    graph.add_edge("signal_normalizer", "failure_pattern_matcher")
+    graph.add_edge("failure_pattern_matcher", "temporal_analyzer")
+    graph.add_edge("temporal_analyzer", "diagnostic_graph_builder")
+    graph.add_edge("diagnostic_graph_builder", "issue_lifecycle_classifier")
+    graph.add_edge("issue_lifecycle_classifier", "hypothesis_engine")
+    graph.add_edge("hypothesis_engine", "critic_validator")
+
+    # Critic → Synthesizer → Solution Validator
     graph.add_edge("critic_validator", "synthesize")
+    graph.add_edge("synthesize", "solution_validator")
 
-    # After synthesis: check confidence and optionally re-dispatch
+    # After solution validation: check confidence and optionally re-dispatch
     graph.add_conditional_edges(
-        "synthesize",
+        "solution_validator",
         _should_redispatch,
         {
             "dispatch_ctrl_plane": "ctrl_plane_agent",

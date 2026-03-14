@@ -111,6 +111,17 @@ class ClusterHealthReport(BaseModel):
     domain_reports: list[DomainReport] = Field(default_factory=list)
     remediation: dict[str, list] = Field(default_factory=dict)
     execution_metadata: dict[str, Any] = Field(default_factory=dict)
+    # Diagnostic intelligence output
+    critical_incidents: list[dict] = Field(default_factory=list)
+    other_findings: list[dict] = Field(default_factory=list)
+    symptom_map: dict[str, str] = Field(default_factory=dict)
+    ranked_hypotheses: list[dict] = Field(default_factory=list)
+    hypothesis_selection: Optional[dict] = None
+    pattern_matches_count: int = 0
+    signals_count: int = 0
+    diagnostic_graph_node_count: int = 0
+    diagnostic_graph_edge_count: int = 0
+    issue_lifecycle_summary: dict[str, int] = Field(default_factory=dict)
 
 
 class DiagnosticScope(BaseModel):
@@ -276,3 +287,181 @@ class GuardScanResult(BaseModel):
     delta: ScanDelta = Field(default_factory=ScanDelta)
     overall_health: str = "UNKNOWN"
     risk_score: float = 0.0
+
+
+# ---------------------------------------------------------------------------
+# Diagnostic Intelligence Engine models
+# ---------------------------------------------------------------------------
+
+
+class NormalizedSignal(BaseModel):
+    """Canonical signal extracted from domain report data."""
+    signal_id: str = ""
+    signal_type: str = ""             # "CRASHLOOP", "NODE_DISK_PRESSURE", etc.
+    resource_key: str = ""            # "pod/production/payments-api-abc123"
+    source_domain: str = ""           # "node", "network", etc.
+    raw_value: Any = None
+    reliability: float = 0.5          # Signal weight (1.0=node_condition, 0.4=log)
+    timestamp: str = ""
+    namespace: str = ""
+
+
+class FailurePattern(BaseModel):
+    """Known failure pattern for deterministic matching."""
+    pattern_id: str
+    name: str = ""
+    version: str = "1.0"
+    scope: str = "resource"           # "resource" | "namespace" | "cluster"
+    priority: int = 5                 # Higher wins on conflict
+    conditions: list[dict] = Field(default_factory=list)
+    probable_causes: list[str] = Field(default_factory=list)
+    known_fixes: list[str] = Field(default_factory=list)
+    severity: str = "medium"
+    confidence_boost: float = 0.2
+
+
+class PatternMatch(BaseModel):
+    """Result of matching a failure pattern against signals."""
+    pattern_id: str
+    name: str = ""
+    matched_conditions: list[str] = Field(default_factory=list)
+    affected_resources: list[str] = Field(default_factory=list)
+    confidence_boost: float = 0.0
+    severity: str = "medium"
+    scope: str = "resource"
+    probable_causes: list[str] = Field(default_factory=list)
+    known_fixes: list[str] = Field(default_factory=list)
+
+
+class DiagnosticNode(BaseModel):
+    """A node in the diagnostic evidence graph."""
+    node_id: str
+    node_type: str = "signal"         # "signal" | "resource" | "pattern"
+    resource_key: str = ""
+    signal_type: str = ""
+    severity: str = "medium"
+    reliability: float = 0.5
+    first_seen: str = ""
+    last_seen: str = ""
+    event_age_seconds: int = 0
+    restart_velocity: float = 0.0
+    resource_age_seconds: int = 0
+    event_count_recent: int = 0       # Last 5 min
+    event_count_baseline: int = 0     # Last 60 min
+    namespace: str = ""
+
+
+class DiagnosticEdge(BaseModel):
+    """A typed edge in the diagnostic evidence graph."""
+    from_id: str
+    to_id: str
+    edge_type: str = ""               # "CAUSES" | "DEPENDS_ON" | "OBSERVED_AFTER" | "AFFECTS" | "SYMPTOM_OF"
+    confidence: float = 0.5
+    evidence: str = ""
+
+
+class DiagnosticGraph(BaseModel):
+    """Cross-domain evidence graph built from signals and topology."""
+    nodes: dict[str, DiagnosticNode] = Field(default_factory=dict)
+    edges: list[DiagnosticEdge] = Field(default_factory=list)
+
+
+class IssueState(str, Enum):
+    """Issue lifecycle states ordered by operator relevance."""
+    ACTIVE_DISRUPTION = "ACTIVE_DISRUPTION"
+    WORSENING = "WORSENING"
+    NEW = "NEW"
+    EXISTING = "EXISTING"
+    LONG_STANDING = "LONG_STANDING"
+    INTERMITTENT = "INTERMITTENT"
+    SYMPTOM = "SYMPTOM"
+    RESOLVED = "RESOLVED"
+    ACKNOWLEDGED = "ACKNOWLEDGED"
+
+
+class LifecycleThresholds(BaseModel):
+    """Tunable thresholds for issue lifecycle classification."""
+    active_event_age_seconds: int = 120
+    active_restart_velocity: float = 1.0
+    active_blast_radius_min: int = 2
+    worsening_rate_multiplier: float = 3.0
+    new_first_seen_seconds: int = 900
+    long_standing_age_seconds: int = 86400
+    flap_count_threshold: int = 3
+    intermittent_window_seconds: int = 600
+
+
+class DiagnosticIssue(BaseModel):
+    """A classified issue with lifecycle state and priority."""
+    issue_id: str
+    state: IssueState = IssueState.EXISTING
+    priority_score: float = 0.0
+    first_seen: str = ""
+    last_state_change: str = ""
+    state_duration_seconds: int = 0
+    event_count_recent: int = 0
+    event_count_baseline: int = 0
+    restart_velocity: float = 0.0
+    severity_trend: str = "stable"    # "escalating" | "stable" | "de-escalating"
+    is_root_cause: bool = False
+    is_symptom: bool = False
+    root_cause_id: str = ""
+    blast_radius: int = 0
+    affected_resources: list[str] = Field(default_factory=list)
+    signals: list[str] = Field(default_factory=list)
+    pattern_matches: list[str] = Field(default_factory=list)
+    anomaly_ids: list[str] = Field(default_factory=list)
+    description: str = ""
+    severity: str = "medium"
+
+
+class WeightedEvidence(BaseModel):
+    """Evidence with signal reliability weight."""
+    signal_id: str = ""
+    signal_type: str = ""
+    resource_key: str = ""
+    weight: float = 0.5
+    reliability: float = 0.5
+    relevance: str = ""
+
+
+class Hypothesis(BaseModel):
+    """A root cause hypothesis with weighted evidence."""
+    hypothesis_id: str
+    cause: str = ""
+    cause_type: str = ""
+    source: str = "pattern"           # "pattern" | "graph_traversal" | "signal_correlation"
+    supporting_evidence: list[WeightedEvidence] = Field(default_factory=list)
+    contradicting_evidence: list[WeightedEvidence] = Field(default_factory=list)
+    evidence_score: float = 0.0
+    contradiction_penalty: float = 0.0
+    confidence: float = 0.0
+    affected_issues: list[str] = Field(default_factory=list)
+    explains_count: int = 0
+    blast_radius: int = 0
+    issue_state: Optional[str] = None
+    root_resource: str = ""
+    causal_chain: list[str] = Field(default_factory=list)
+    depth: int = 0
+    evidence_ids: list[str] = Field(default_factory=list)
+
+
+class SimulationResult(BaseModel):
+    """Result of simulating a remediation command's cluster impact."""
+    action: str = ""
+    target: str = ""
+    impact: str = ""
+    side_effects: list[str] = Field(default_factory=list)
+    recovery: str = ""
+
+
+class SolutionValidation(BaseModel):
+    """Validation result for a remediation step."""
+    risk_level: str = "safe"          # "safe" | "caution" | "dangerous" | "forbidden"
+    warnings: list[str] = Field(default_factory=list)
+    requires_confirmation: bool = False
+    blocked: bool = False
+    block_reason: str = ""
+    simulation: Optional[SimulationResult] = None
+    remediation_confidence: float = 0.0
+    confidence_label: str = ""

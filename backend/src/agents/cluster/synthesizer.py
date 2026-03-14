@@ -82,6 +82,7 @@ async def _llm_causal_reasoning(
     root_candidates: list[dict] | None = None,
     budget=None,
     telemetry=None,
+    **kwargs,
 ) -> dict:
     """Stage 2: LLM identifies cross-domain causal chains."""
     # Downgrade model when budget is low
@@ -121,6 +122,26 @@ These links passed structural validation but have low confidence based on observ
 {blocked_count} causal links were blocked by structural invariants and excluded from your input.
 """
 
+    # Include pre-ranked hypotheses if available
+    hypotheses = kwargs.get("hypotheses", [])
+    selection = kwargs.get("hypothesis_selection", {})
+    hypotheses_section = ""
+    if hypotheses:
+        hypotheses_section = f"""
+## Pre-Ranked Root Cause Hypotheses (from deterministic engine)
+{json.dumps(hypotheses[:10], indent=2)}
+
+## Hypothesis Selection
+{json.dumps(selection, indent=2)}
+
+The deterministic analysis engine has identified and ranked these root cause hypotheses.
+Your job is to:
+1. Explain the top hypothesis in clear natural language for an SRE
+2. If selection_method is 'ambiguous_needs_llm', choose between the close candidates
+3. Generate remediation for the top 3 root causes
+4. Flag anything the engine may have missed (low confidence addendum)
+"""
+
     prompt = f"""Analyze these cross-domain anomalies and identify causal chains.
 
 ## Anomalies Found
@@ -129,6 +150,7 @@ These links passed structural validation but have low confidence based on observ
 ## Domain Report Summaries
 {json.dumps(report_summaries, indent=2)}
 {cluster_section}
+{hypotheses_section}
 ## Allowed Link Types
 {json.dumps(CONSTRAINED_LINK_TYPES)}
 
@@ -293,8 +315,18 @@ async def synthesize(state: dict, config: dict) -> dict:
     # Reconstruct DomainReports from state
     reports = [DomainReport(**r) for r in state.get("domain_reports", [])]
 
+    # Read hypothesis and diagnostic intelligence data from state
+    ranked_hypotheses = state.get("ranked_hypotheses", [])
+    hypothesis_selection = state.get("hypothesis_selection", {})
+    diagnostic_issues = state.get("diagnostic_issues", [])
+
     # Apply critic validation: filter out dropped anomalies, downgrade severity
-    critic_result = state.get("critic_result")
+    critic_result = state.get("critic_result", {})
+
+    # Filter out rejected hypotheses
+    dropped = set(critic_result.get("dropped_hypotheses", []))
+    valid_hypotheses = [h for h in ranked_hypotheses if h.get("hypothesis_id") not in dropped]
+
     if critic_result:
         dropped_ids = set(critic_result.get("dropped_anomaly_ids", []))
         downgraded_ids = set(critic_result.get("downgraded_anomaly_ids", []))
@@ -349,6 +381,8 @@ async def synthesize(state: dict, config: dict) -> dict:
             root_candidates=root_candidates or None,
             budget=budget,
             telemetry=telemetry,
+            hypotheses=valid_hypotheses,
+            hypothesis_selection=hypothesis_selection,
         )
 
     # Stage 3: Verdict
@@ -416,6 +450,40 @@ async def synthesize(state: dict, config: dict) -> dict:
             "annotated_count": len(annotated_links),
         },
     )
+
+    # Tiered output from diagnostic_issues
+    critical_incidents = []
+    other_findings = []
+    symptom_map = {}
+
+    for issue in diagnostic_issues:
+        issue_state = issue.get("state", "EXISTING")
+        if issue.get("is_symptom"):
+            symptom_map[issue["issue_id"]] = issue.get("root_cause_id", "")
+        elif issue_state in ("ACTIVE_DISRUPTION", "WORSENING", "NEW"):
+            if len(critical_incidents) < 3:
+                critical_incidents.append(issue)
+            else:
+                other_findings.append(issue)
+        else:
+            other_findings.append(issue)
+
+    health_report.critical_incidents = critical_incidents
+    health_report.other_findings = other_findings
+    health_report.symptom_map = symptom_map
+    health_report.ranked_hypotheses = valid_hypotheses[:5]
+    health_report.hypothesis_selection = hypothesis_selection
+    health_report.signals_count = len(state.get("normalized_signals", []))
+    health_report.pattern_matches_count = len(state.get("pattern_matches", []))
+    diag_graph = state.get("diagnostic_graph", {})
+    health_report.diagnostic_graph_node_count = len(diag_graph.get("nodes", {}))
+    health_report.diagnostic_graph_edge_count = len(diag_graph.get("edges", []))
+    # Build lifecycle summary
+    lifecycle_summary = {}
+    for issue in diagnostic_issues:
+        s = issue.get("state", "EXISTING")
+        lifecycle_summary[s] = lifecycle_summary.get(s, 0) + 1
+    health_report.issue_lifecycle_summary = lifecycle_summary
 
     re_dispatch_needed = verdict.get("re_dispatch_needed", False)
     re_dispatch_domains = verdict.get("re_dispatch_domains", []) if re_dispatch_needed else []
