@@ -20,6 +20,9 @@ import RootCauseCard from './RootCauseCard';
 import VerdictStack from './VerdictStack';
 import RemediationCard from './RemediationCard';
 import NeuralPulseSVG from './NeuralPulseSVG';
+import AgentTimeline from './AgentTimeline';
+import EventLogViewer from './EventLogViewer';
+import ScanDiff from './ScanDiff';
 
 interface ClusterWarRoomProps {
   session: V4Session;
@@ -30,13 +33,14 @@ interface ClusterWarRoomProps {
   onGoHome: () => void;
 }
 
-const ALL_DOMAINS: ClusterDomainKey[] = ['node', 'ctrl_plane', 'network', 'storage'];
+const ALL_DOMAINS: ClusterDomainKey[] = ['node', 'ctrl_plane', 'network', 'storage', 'rbac'];
 
 const DOMAIN_LABELS: Record<ClusterDomainKey, string> = {
   ctrl_plane: 'Control Plane',
   node: 'Compute',
   network: 'Network',
   storage: 'Storage',
+  rbac: 'RBAC',
 };
 
 const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
@@ -47,6 +51,7 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [expandedDomain, setExpandedDomain] = useState<ClusterDomainKey>('node');
   const [selectedNode, setSelectedNode] = useState<string | undefined>();
+  const [budgetPct, setBudgetPct] = useState<number | null>(null);
 
   // ── Data Fetching ──
   const fetchFindings = useCallback(async () => {
@@ -69,11 +74,25 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
     }
   }, [session.session_id]);
 
+  // ── LLM Budget Polling ──
+  const fetchBudget = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/v4/session/${session.session_id}/llm-summary`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.llm_summary) {
+          setBudgetPct(Math.round(data.llm_summary.budget_used_pct * 100));
+        }
+      }
+    } catch { /* ignore */ }
+  }, [session.session_id]);
+
   useEffect(() => {
     fetchFindings();
-    const interval = setInterval(fetchFindings, 5000);
+    fetchBudget();
+    const interval = setInterval(() => { fetchFindings(); fetchBudget(); }, 5000);
     return () => clearInterval(interval);
-  }, [fetchFindings]);
+  }, [fetchFindings, fetchBudget]);
 
   // ── Derived Data ──
   const domainReports = useMemo(() => findings?.domain_reports || [], [findings]);
@@ -93,6 +112,32 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
     () => findings?.remediation?.immediate || [],
     [findings]
   );
+
+  // ── Truncation warnings ──
+  const truncationWarnings = useMemo(() => {
+    const warnings: string[] = [];
+    for (const report of domainReports) {
+      const flags = report.truncation_flags || {};
+      for (const [key, truncated] of Object.entries(flags)) {
+        if (truncated) {
+          warnings.push(`${report.domain}: ${key} data was truncated — analysis may be incomplete`);
+        }
+      }
+    }
+    return warnings;
+  }, [domainReports]);
+
+  // ── Scan diff delta (for guard mode) ──
+  const scanDelta = useMemo(() => {
+    return (findings as unknown as Record<string, unknown>)?.scan_delta as {
+      new_risks: string[];
+      resolved_risks: string[];
+      worsened: string[];
+      improved: string[];
+      previous_scan_id?: string;
+      previous_scanned_at?: string;
+    } | undefined;
+  }, [findings]);
 
   // ── Namespace workloads derived from expanded domain report anomalies ──
   const namespaceWorkloads = useMemo((): NamespaceWorkload[] => {
@@ -203,13 +248,14 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
   }, [domainReports]);
 
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-[#0f2023] crt-scanlines relative font-sans text-slate-300">
+    <div className="flex flex-col h-full overflow-hidden bg-[#1a1814] crt-scanlines relative font-sans text-slate-300">
       <ClusterHeader
         sessionId={session.session_id}
         confidence={confidence}
         platformHealth={findings?.platform_health || ''}
         wsConnected={wsConnected}
         onGoHome={onGoHome}
+        phase={phase || undefined}
       />
 
       {/* Domain Health Ribbon */}
@@ -245,6 +291,26 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
         </div>
       )}
 
+      {/* Truncation warning banner */}
+      {truncationWarnings.length > 0 && (
+        <div className="mx-6 mt-2 px-3 py-2 rounded border border-amber-500/30 bg-amber-500/5 flex items-center gap-2">
+          <span className="material-symbols-outlined text-amber-500 text-[16px]">warning</span>
+          <span className="text-xs text-amber-400">
+            Analysis may be incomplete: {truncationWarnings.join('. ')}
+          </span>
+        </div>
+      )}
+
+      {/* LLM budget warning banner */}
+      {budgetPct !== null && budgetPct > 80 && (
+        <div className="mx-6 mt-2 px-3 py-2 rounded border border-amber-500/30 bg-amber-500/10 flex items-center gap-2">
+          <span className="material-symbols-outlined text-amber-500 text-[16px]">warning</span>
+          <span className="text-xs text-amber-400">
+            LLM budget {budgetPct}% consumed — remaining agents using heuristic analysis
+          </span>
+        </div>
+      )}
+
       {/* Main War Room Grid */}
       <main className="flex-1 grid grid-cols-12 overflow-hidden relative">
         {loading && !findings && !error && (
@@ -276,14 +342,15 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
             <NeuralPulseSVG hasRootCause={!!primaryChain} />
 
             {/* ── LEFT COLUMN (col-3) ── */}
-            <section className="col-span-3 border-r border-[#1f3b42] bg-[#0f2023]/50 p-4 flex flex-col gap-4 overflow-hidden z-10">
+            <section className="col-span-3 border-r border-[#1f3b42] bg-[#1a1814]/50 p-4 flex flex-col gap-4 overflow-hidden z-10">
               <ExecutionDAG domainReports={domainReports} phase={phase || 'pre_flight'} />
+              <AgentTimeline domainReports={domainReports} phase={phase || 'pre_flight'} />
               <FleetHeatmap nodes={fleetNodes} selectedNode={selectedNode} onSelectNode={setSelectedNode} />
               <ResourceVelocity />
             </section>
 
             {/* ── CENTER COLUMN (col-5) ── */}
-            <section className="col-span-5 flex h-full bg-[#0f2023] overflow-hidden relative border-r border-[#1f3b42]">
+            <section className="col-span-5 flex h-full bg-[#1a1814] overflow-hidden relative border-r border-[#1f3b42]">
               <DomainPanel domain={expandedDomain} report={expandedReport} namespaces={namespaceWorkloads} />
               <div className="w-[40px] flex flex-col bg-[#152a2f] border-l border-[#1f3b42] shrink-0 z-10">
                 {collapsedDomains.map(d => (
@@ -298,15 +365,19 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
             </section>
 
             {/* ── RIGHT COLUMN (col-4) ── */}
-            <section className="col-span-4 bg-[#0f2023]/50 p-4 flex flex-col gap-4 overflow-hidden relative z-10">
+            <section className="col-span-4 bg-[#1a1814]/50 p-4 flex flex-col gap-4 overflow-hidden relative z-10">
               <RootCauseCard chain={primaryChain} confidence={confidence} />
               <VerdictStack events={mockVerdictEvents} />
               <RemediationCard steps={immediateSteps} blastRadius={findings?.blast_radius} />
+              {scanDelta && <ScanDiff delta={scanDelta} />}
             </section>
           </>
         )}
       </main>
 
+      <div className="px-6 py-2 shrink-0">
+        <EventLogViewer events={events} />
+      </div>
       <CommandBar />
       <ChatDrawer />
       <LedgerTriggerTab />

@@ -12,6 +12,7 @@ const HOLD_DURATION_MS = 1500;
 const RemediationCard: React.FC<RemediationCardProps> = ({ steps, blastRadius }) => {
   const [holdingIndex, setHoldingIndex] = useState<number | null>(null);
   const [holdProgress, setHoldProgress] = useState(0);
+  const [executedSteps, setExecutedSteps] = useState<Set<number>>(new Set());
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startRef = useRef(0);
   const { sendMessage, openDrawer } = useChatUI();
@@ -27,6 +28,7 @@ const RemediationCard: React.FC<RemediationCardProps> = ({ steps, blastRadius })
         if (timerRef.current) clearInterval(timerRef.current);
         setHoldingIndex(null);
         setHoldProgress(0);
+        setExecutedSteps(prev => new Set(prev).add(index));
         sendMessage(`Execute: ${command}`);
         openDrawer();
       }
@@ -38,6 +40,11 @@ const RemediationCard: React.FC<RemediationCardProps> = ({ steps, blastRadius })
     setHoldingIndex(null);
     setHoldProgress(0);
   }, []);
+
+  const runQuickAction = useCallback((command: string) => {
+    sendMessage(`Execute: ${command}`);
+    openDrawer();
+  }, [sendMessage, openDrawer]);
 
   useEffect(() => {
     return () => {
@@ -53,10 +60,64 @@ const RemediationCard: React.FC<RemediationCardProps> = ({ steps, blastRadius })
     <div className="bg-[#152a2f] border border-[#1f3b42] rounded-lg p-4 shadow-lg">
       <h3 className="text-[10px] uppercase font-bold tracking-widest text-slate-500 mb-3">Proposed Remediation</h3>
 
+      {/* Pre-check command */}
+      {primaryStep.pre_check && (
+        <div className="mb-3">
+          <span className="text-[9px] uppercase font-semibold text-slate-500 tracking-wider">Pre-check</span>
+          <div className="bg-black/40 rounded p-2 font-mono text-[10px] text-blue-400 mt-1 border border-[#1f3b42]/30 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-slate-500 shrink-0">$</span>
+              <span className="truncate">{primaryStep.pre_check}</span>
+            </div>
+            <button
+              onClick={() => runQuickAction(primaryStep.pre_check!)}
+              className="shrink-0 text-[9px] px-2 py-0.5 rounded border border-blue-500/30 text-blue-400 hover:bg-blue-500/10 transition-colors"
+            >
+              Run
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Dry-run command */}
+      {primaryStep.dry_run && (
+        <div className="mb-3">
+          <span className="text-[9px] uppercase font-semibold text-slate-500 tracking-wider">Dry Run</span>
+          <div className="bg-black/40 rounded p-2 font-mono text-[10px] text-amber-400 mt-1 border border-[#1f3b42]/30 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-slate-500 shrink-0">$</span>
+              <span className="truncate">{primaryStep.dry_run}</span>
+            </div>
+            <button
+              onClick={() => runQuickAction(primaryStep.dry_run!)}
+              className="shrink-0 text-[9px] px-2 py-0.5 rounded border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 transition-colors"
+            >
+              Preview
+            </button>
+          </div>
+          {primaryStep.expected_output && (
+            <div className="text-[9px] text-slate-600 mt-1 pl-2 border-l border-slate-700">
+              Expected: {primaryStep.expected_output}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Main command */}
       {primaryStep.command && (
         <div className="bg-black/40 rounded p-3 font-mono text-xs text-emerald-400 mb-3 border border-[#1f3b42]/30 flex items-center gap-2">
           <span className="text-slate-500">$</span>
           {primaryStep.command}
+        </div>
+      )}
+
+      {/* Validation errors */}
+      {primaryStep.validation_errors && primaryStep.validation_errors.length > 0 && (
+        <div className="mb-3 px-2 py-1.5 rounded border border-red-500/20 bg-red-500/5">
+          <span className="text-[9px] uppercase font-semibold text-red-400 tracking-wider">Validation Errors</span>
+          {primaryStep.validation_errors.map((err, i) => (
+            <div key={i} className="text-[10px] text-red-300 mt-0.5">• {err}</div>
+          ))}
         </div>
       )}
 
@@ -70,7 +131,7 @@ const RemediationCard: React.FC<RemediationCardProps> = ({ steps, blastRadius })
 
       {primaryStep.command && (
         <button
-          className="w-full bg-[#07b6d5]/10 border border-[#07b6d5] rounded h-12 flex items-center justify-between px-4 relative overflow-hidden cursor-pointer select-none transition-colors"
+          className="w-full bg-[#e09f3e]/10 border border-[#e09f3e] rounded h-12 flex items-center justify-between px-4 relative overflow-hidden cursor-pointer select-none transition-colors"
           onMouseDown={() => startHold(0, primaryStep.command!)}
           onMouseUp={cancelHold}
           onMouseLeave={cancelHold}
@@ -82,7 +143,7 @@ const RemediationCard: React.FC<RemediationCardProps> = ({ steps, blastRadius })
             style={{ width: holdingIndex === 0 ? `${holdProgress * 100}%` : '0%' }}
           />
           <span className={`font-bold tracking-widest text-xs uppercase z-10 transition-colors ${
-            holdingIndex === 0 ? 'text-white' : 'text-[#07b6d5]'
+            holdingIndex === 0 ? 'text-white' : 'text-[#e09f3e]'
           }`}>
             Confirm {primaryStep.description || 'Action'}
           </span>
@@ -91,20 +152,20 @@ const RemediationCard: React.FC<RemediationCardProps> = ({ steps, blastRadius })
               <path
                 d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                 fill="none"
-                stroke={holdingIndex === 0 ? '#ffffff30' : '#07b6d530'}
+                stroke={holdingIndex === 0 ? '#ffffff30' : '#e09f3e30'}
                 strokeWidth="3"
               />
               <path
                 d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                 fill="none"
-                stroke={holdingIndex === 0 ? '#fff' : '#07b6d5'}
+                stroke={holdingIndex === 0 ? '#fff' : '#e09f3e'}
                 strokeWidth="3"
                 strokeDasharray={`${(holdingIndex === 0 ? holdProgress : 0) * 100}, 100`}
-                style={{ filter: 'drop-shadow(0 0 2px rgba(7,182,213,0.8))' }}
+                style={{ filter: 'drop-shadow(0 0 2px rgba(224,159,62,0.8))' }}
               />
             </svg>
             <div className={`absolute inset-0 flex items-center justify-center text-[8px] font-mono font-bold transition-colors ${
-              holdingIndex === 0 ? 'text-white' : 'text-[#07b6d5]'
+              holdingIndex === 0 ? 'text-white' : 'text-[#e09f3e]'
             }`}>
               HOLD
             </div>
@@ -112,13 +173,61 @@ const RemediationCard: React.FC<RemediationCardProps> = ({ steps, blastRadius })
         </button>
       )}
 
+      {/* Post-execution actions: Verify + Rollback */}
+      {executedSteps.has(0) && (primaryStep.verify || primaryStep.rollback) && (
+        <div className="flex gap-2 mt-2">
+          {primaryStep.verify && (
+            <button
+              onClick={() => runQuickAction(primaryStep.verify!)}
+              className="flex-1 text-[10px] px-3 py-1.5 rounded border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 transition-colors font-semibold uppercase tracking-wider"
+            >
+              Verify
+            </button>
+          )}
+          {primaryStep.rollback && (
+            <button
+              onClick={() => runQuickAction(primaryStep.rollback!)}
+              className="flex-1 text-[10px] px-3 py-1.5 rounded border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors font-semibold uppercase tracking-wider"
+            >
+              Rollback
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Rollback/verify info shown even before execution */}
+      {!executedSteps.has(0) && (primaryStep.verify || primaryStep.rollback) && (
+        <div className="mt-2 text-[9px] text-slate-600 space-y-0.5">
+          {primaryStep.rollback && (
+            <div className="flex items-center gap-1">
+              <span className="text-slate-500">Rollback:</span>
+              <code className="text-red-400/60 font-mono">{primaryStep.rollback}</code>
+            </div>
+          )}
+          {primaryStep.verify && (
+            <div className="flex items-center gap-1">
+              <span className="text-slate-500">Verify:</span>
+              <code className="text-emerald-400/60 font-mono">{primaryStep.verify}</code>
+            </div>
+          )}
+        </div>
+      )}
+
       {steps.length > 1 && (
         <div className="mt-3 space-y-2">
           {steps.slice(1).map((step, i) => (
             <div key={i} className="text-xs text-slate-400">
               <p>{step.description}</p>
+              {step.pre_check && (
+                <div className="flex items-center gap-1 mt-1">
+                  <code className="text-[10px] text-blue-400/70 font-mono">pre: {step.pre_check}</code>
+                </div>
+              )}
               {step.command && (
-                <code className="text-[10px] text-[#07b6d5] block mt-1 font-mono">$ {step.command}</code>
+                <code className="text-[10px] text-[#e09f3e] block mt-1 font-mono">$ {step.command}</code>
+              )}
+              {step.rollback && (
+                <code className="text-[10px] text-red-400/50 block mt-0.5 font-mono">rollback: {step.rollback}</code>
               )}
             </div>
           ))}

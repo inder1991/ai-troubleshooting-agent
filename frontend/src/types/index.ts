@@ -86,6 +86,7 @@ export type DiagnosticPhase =
   | 'diagnosis_complete'
   | 'fix_in_progress'
   | 'complete'
+  | 'cancelled'
   | 'error';
 
 export type Severity = 'critical' | 'high' | 'medium' | 'low' | 'info';
@@ -298,7 +299,7 @@ export interface TokenUsage {
 export interface TaskEvent {
   session_id: string;
   agent_name: string;
-  event_type: 'started' | 'progress' | 'success' | 'warning' | 'error' | 'tool_call' | 'phase_change' | 'finding' | 'summary' | 'attestation_required' | 'fix_proposal' | 'fix_approved' | 'waiting_for_input';
+  event_type: 'started' | 'progress' | 'success' | 'warning' | 'error' | 'tool_call' | 'phase_change' | 'finding' | 'summary' | 'attestation_required' | 'fix_proposal' | 'fix_approved' | 'waiting_for_input' | 'reasoning';
   message: string;
   timestamp: string;
   details?: Record<string, unknown>;
@@ -333,6 +334,8 @@ export interface V4Session {
   created_at: string;
   updated_at: string;
   capability?: CapabilityType;
+  findings_count?: number;
+  critical_count?: number;
 }
 
 export interface V4SessionStatus {
@@ -538,6 +541,7 @@ export interface StartSessionRequest {
   include_explain_plans?: boolean;
   parent_session_id?: string;
   table_filter?: string[];
+  extra?: Record<string, unknown>;
 }
 
 export interface V4WebSocketMessage {
@@ -677,6 +681,12 @@ export interface ClusterRemediationStep {
   description: string;
   risk_level?: string;
   effort_estimate?: string;
+  rollback?: string;
+  pre_check?: string;
+  verify?: string;
+  expected_output?: string;
+  dry_run?: string;
+  validation_errors?: string[];
 }
 
 export interface ClusterHealthReport {
@@ -1045,7 +1055,7 @@ export interface PostmortemDossierData {
 
 /* ── Cluster War Room UI types ─────────────────── */
 
-export type ClusterDomainKey = 'ctrl_plane' | 'node' | 'network' | 'storage';
+export type ClusterDomainKey = 'ctrl_plane' | 'node' | 'network' | 'storage' | 'rbac';
 
 export interface FleetNode {
   name: string;
