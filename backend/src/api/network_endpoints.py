@@ -12,10 +12,15 @@ from src.api.network_models import (
     AdapterInstanceCreateRequest,
     AdapterInstanceUpdateRequest,
     AdapterBindRequest,
+    DesignCreateRequest,
+    DesignStatusRequest,
+    DesignUpdateRequest,
     DiagnoseRequest,
     DiagnoseResponse,
     HAGroupRequest,
     MatrixRequest,
+    SimulateConnectivityRequest,
+    SimulateFirewallRequest,
     TopologyPromoteRequest,
     TopologySaveRequest,
 )
@@ -1351,6 +1356,186 @@ async def topology_promote(req: TopologyPromoteRequest):
     kg = _get_knowledge_graph()
     result = kg.promote_from_canvas(req.nodes, req.edges)
     return {"status": "promoted", **result}
+
+
+# ── Topology Designs (Design-Lifecycle) ──
+
+@network_router.post("/topology/designs")
+async def create_design(req: DesignCreateRequest):
+    """Create a new topology design."""
+    store = _get_topology_store()
+    design_id = str(uuid.uuid4())
+    result = store.create_design(design_id, req.name, req.description, req.snapshot_json)
+    return result
+
+
+@network_router.get("/topology/designs")
+async def list_designs(status: str | None = None):
+    """List topology designs, optionally filtered by status."""
+    store = _get_topology_store()
+    return {"designs": store.list_designs(status)}
+
+
+@network_router.get("/topology/designs/{design_id}")
+async def get_design(design_id: str):
+    """Get a single topology design."""
+    store = _get_topology_store()
+    design = store.get_design(design_id)
+    if not design:
+        raise HTTPException(status_code=404, detail="Design not found")
+    return design
+
+
+@network_router.put("/topology/designs/{design_id}")
+async def update_design(design_id: str, req: DesignUpdateRequest):
+    """Update a topology design. Supports optimistic locking via expected_version."""
+    store = _get_topology_store()
+    try:
+        result = store.update_design(
+            design_id,
+            name=req.name,
+            description=req.description,
+            snapshot_json=req.snapshot_json,
+            expected_version=req.expected_version,
+        )
+        return result
+    except ValueError as e:
+        if "VERSION_CONFLICT" in str(e):
+            raise HTTPException(status_code=409, detail="Version conflict: design was modified by another user")
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@network_router.delete("/topology/designs/{design_id}")
+async def delete_design(design_id: str):
+    """Delete a topology design."""
+    store = _get_topology_store()
+    if not store.delete_design(design_id):
+        raise HTTPException(status_code=404, detail="Design not found")
+    return {"status": "deleted"}
+
+
+@network_router.post("/topology/designs/{design_id}/status")
+async def update_design_status(design_id: str, req: DesignStatusRequest):
+    """Transition a design's lifecycle status."""
+    store = _get_topology_store()
+    design = store.get_design(design_id)
+    if not design:
+        raise HTTPException(status_code=404, detail="Design not found")
+    result = store.update_design_status(design_id, req.status, req.applied_by)
+    return result
+
+
+@network_router.get("/topology/designs/{design_id}/diff")
+async def get_design_diff(design_id: str):
+    """Compute diff between design's planned nodes and live inventory."""
+    store = _get_topology_store()
+    try:
+        return store.compute_design_diff(design_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@network_router.post("/topology/designs/{design_id}/apply")
+async def apply_design(design_id: str):
+    """Apply a design's planned nodes to the live inventory."""
+    store = _get_topology_store()
+    kg = _get_knowledge_graph()
+    design = store.get_design(design_id)
+    if not design:
+        raise HTTPException(status_code=404, detail="Design not found")
+    try:
+        result = kg.apply_design(design_id, expected_live_hash=design.get("live_hash"))
+        return {"status": "applied", **result}
+    except ValueError as e:
+        msg = str(e)
+        if "LIVE_DRIFT" in msg:
+            raise HTTPException(status_code=409, detail=msg)
+        if "CONFLICTS" in msg:
+            raise HTTPException(status_code=422, detail=msg)
+        raise HTTPException(status_code=400, detail=msg)
+
+
+@network_router.get("/topology/live-inventory")
+async def live_inventory():
+    """Return live devices as ReactFlow-compatible nodes/edges."""
+    store = _get_topology_store()
+    return store.get_live_inventory_as_reactflow()
+
+
+# ── Simulation Endpoints ──
+
+@network_router.post("/topology/designs/{design_id}/simulate")
+async def simulate_design(design_id: str):
+    """Run a full what-if simulation for a design."""
+    import json as json_mod
+    store = _get_topology_store()
+    kg = _get_knowledge_graph()
+    design = store.get_design(design_id)
+    if not design:
+        raise HTTPException(status_code=404, detail="Design not found")
+
+    from src.network.simulation.network_simulator import NetworkSimulator
+    simulator = NetworkSimulator(store, kg)
+    result = simulator.run_full_simulation(design_id)
+
+    # Cache result
+    sim_id = str(uuid.uuid4())
+    store.save_simulation_result(sim_id, design_id, json_mod.dumps(result))
+
+    return result
+
+
+@network_router.get("/topology/designs/{design_id}/simulation-results")
+async def get_simulation_results(design_id: str):
+    """Get cached simulation results for a design."""
+    import json as json_mod
+    store = _get_topology_store()
+    result = store.get_simulation_result(design_id)
+    if not result:
+        raise HTTPException(status_code=404, detail="No simulation results found")
+    return json_mod.loads(result["result_json"])
+
+
+@network_router.post("/topology/designs/{design_id}/simulate/connectivity")
+async def simulate_connectivity(design_id: str, req: SimulateConnectivityRequest):
+    """Test connectivity between two nodes in a simulated topology."""
+    store = _get_topology_store()
+    kg = _get_knowledge_graph()
+    design = store.get_design(design_id)
+    if not design:
+        raise HTTPException(status_code=404, detail="Design not found")
+
+    from src.network.simulation.network_simulator import NetworkSimulator
+    simulator = NetworkSimulator(store, kg)
+    sim_topo = simulator.build_simulated_topology(design_id)
+    result = simulator.simulate_connectivity(sim_topo, req.source_id, req.target_id)
+    return {
+        "reachable": result.reachable,
+        "path": result.path,
+        "blocked_by": result.blocked_by,
+    }
+
+
+@network_router.post("/topology/designs/{design_id}/simulate/firewall")
+async def simulate_firewall(design_id: str, req: SimulateFirewallRequest):
+    """Test if a packet would be allowed through the simulated topology."""
+    store = _get_topology_store()
+    kg = _get_knowledge_graph()
+    design = store.get_design(design_id)
+    if not design:
+        raise HTTPException(status_code=404, detail="Design not found")
+
+    from src.network.simulation.network_simulator import NetworkSimulator, PacketSpec
+    simulator = NetworkSimulator(store, kg)
+    sim_topo = simulator.build_simulated_topology(design_id)
+    packet = PacketSpec(src_ip=req.src_ip, dst_ip=req.dst_ip, port=req.port, protocol=req.protocol)
+    result = simulator.simulate_firewall_policy(sim_topo, packet)
+    return {
+        "allowed": result.allowed,
+        "firewall_id": result.firewall_id,
+        "rule_id": result.rule_id,
+        "rule_description": result.rule_description,
+    }
 
 
 @network_router.get("/flows")

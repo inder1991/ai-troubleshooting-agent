@@ -110,6 +110,9 @@ async def run_db_diagnosis(session_id: str, db_context: dict, emitter):
     try:
         graph = build_db_diagnostic_graph_v2()
 
+        if not os.environ.get("ANTHROPIC_API_KEY"):
+            logger.info("No ANTHROPIC_API_KEY — DB agents will use heuristic-only mode")
+
         investigation_mode = (
             "contextual" if db_context.get("parent_session_id") else "standalone"
         )

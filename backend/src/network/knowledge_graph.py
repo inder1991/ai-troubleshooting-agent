@@ -545,6 +545,101 @@ class NetworkKnowledgeGraph:
 
         return stats
 
+    def apply_design(self, design_id: str, expected_live_hash: str | None = None) -> dict:
+        """Apply planned nodes from a design to the live inventory.
+
+        Performs TOCTOU check, re-validates conflicts, and applies transactionally.
+        """
+        import json
+
+        # TOCTOU check
+        current_hash = self.store.compute_live_hash()
+        if expected_live_hash and current_hash != expected_live_hash:
+            raise ValueError(
+                "LIVE_DRIFT: Live inventory changed since diff was computed. "
+                "Please re-run diff."
+            )
+
+        # Re-run conflict check
+        diff = self.store.compute_design_diff(design_id)
+        if not diff["can_apply"]:
+            raise ValueError(
+                f"CONFLICTS: {len(diff['conflicts'])} conflicts and "
+                f"{len(diff['edge_errors'])} edge errors remain."
+            )
+
+        design = self.store.get_design(design_id)
+        if not design:
+            raise ValueError(f"Design {design_id} not found")
+
+        snapshot = json.loads(design["snapshot_json"])
+        planned_nodes = [n for n in snapshot.get("nodes", [])
+                         if n.get("data", {}).get("_source") == "planned"]
+        planned_edges = [e for e in snapshot.get("edges", [])
+                         if e.get("data", {}).get("_source") == "planned"]
+
+        stats = {"devices_added": 0, "edges_added": 0, "skipped": [], "errors": []}
+
+        # Apply planned nodes as devices
+        live_ids = {d.id for d in self.store.list_devices()}
+        devices_to_add = []
+        for node in planned_nodes:
+            nid = node.get("id", "")
+            data = node.get("data", {})
+            if nid in live_ids:
+                stats["skipped"].append(nid)
+                continue
+
+            dt_str = (data.get("deviceType") or "HOST").upper()
+            try:
+                dt = DeviceType[dt_str]
+            except KeyError:
+                dt = DeviceType.HOST
+
+            device = Device(
+                id=nid,
+                name=data.get("label", nid),
+                device_type=dt,
+                management_ip=data.get("ip", ""),
+                vendor=data.get("vendor", ""),
+                location=data.get("location", ""),
+                zone_id=data.get("zone", ""),
+                vlan_id=_safe_int(data.get("vlan"), 0),
+                description=data.get("description", ""),
+            )
+            devices_to_add.append(device)
+
+        # Transactional apply
+        try:
+            for device in devices_to_add:
+                self.store.add_device(device)
+                self.add_device(device)
+                stats["devices_added"] += 1
+
+            for edge in planned_edges:
+                src = edge.get("source", "")
+                tgt = edge.get("target", "")
+                if src and tgt:
+                    edge_data = edge.get("data", {})
+                    label = edge_data.get("label", "connected_to") if edge_data else "connected_to"
+                    self.add_edge(
+                        src, tgt,
+                        EdgeMetadata(
+                            confidence=0.8,
+                            source=EdgeSource.MANUAL,
+                            edge_type=label,
+                        ),
+                    )
+                    stats["edges_added"] += 1
+        except Exception as e:
+            stats["errors"].append(str(e))
+            raise
+
+        # Update design status
+        self.store.update_design_status(design_id, "applied")
+        stats["new_live_hash"] = self.store.compute_live_hash()
+        return stats
+
     def export_react_flow_graph(self) -> dict:
         """Convert KG nodes/edges to React Flow format for canvas rendering."""
         rf_nodes = []

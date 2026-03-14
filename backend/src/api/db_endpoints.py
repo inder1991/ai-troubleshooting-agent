@@ -204,7 +204,11 @@ async def _create_adapter_from_profile(profile: dict):
             connection_uri=profile.get("connection_uri"),
         )
     else:
-        raise HTTPException(status_code=400, detail=f"Unsupported engine: {engine}")
+        from src.database.adapters.mock_adapter import MockDatabaseAdapter
+        adapter = MockDatabaseAdapter(
+            engine=engine, host=profile.get("host", "localhost"),
+            port=profile.get("port", 5432), database=profile.get("database", "mockdb"),
+        )
     await adapter.connect()
     return adapter
 

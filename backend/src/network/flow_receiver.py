@@ -8,6 +8,7 @@ import logging
 import socket
 import struct
 import time
+from collections import OrderedDict
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any
@@ -354,9 +355,9 @@ class FlowAggregator:
         self.topo_store = topology_store
         self._buffer: list[FlowRecord] = []
         self._device_ip_map = device_ip_map or {}
-        self._conversations: dict[tuple[str, str], dict] = {}
-        self._applications: dict[str, dict] = {}
-        self._asn_stats: dict[int, dict] = {}
+        self._conversations: OrderedDict[tuple[str, str], dict] = OrderedDict()
+        self._applications: OrderedDict[str, dict] = OrderedDict()
+        self._asn_stats: OrderedDict[int, dict] = OrderedDict()
         self._event_bus = event_bus
         self._biflows: dict[tuple, dict] = {}
         self._biflow_timeout = biflow_timeout
@@ -366,6 +367,24 @@ class FlowAggregator:
     MAX_APPLICATIONS = 500
     MAX_ASN_ENTRIES = 1_000
     MAX_BIFLOWS = 50_000
+
+    # -- Bounded OrderedDict helper ------------------------------------------
+
+    @staticmethod
+    def _bounded_set(
+        od: "OrderedDict",
+        key: Any,
+        value: Any,
+        max_size: int = 10_000,
+    ) -> None:
+        """Insert/update *key* in *od*, evicting the oldest entry when the dict
+        would exceed *max_size*.  Uses FIFO eviction (oldest insertion order)."""
+        if key in od:
+            # Move to end so recently-updated entries are treated as newest
+            od.move_to_end(key)
+        od[key] = value
+        while len(od) > max_size:
+            od.popitem(last=False)  # remove oldest (FIFO)
 
     # -- Biflow Stitching --------------------------------------------------
 
@@ -511,6 +530,8 @@ class FlowAggregator:
                 pass
 
         # -- Conversation aggregation ----------------------------------------
+        # Accumulate into a plain dict first, then merge into the bounded
+        # OrderedDict so we only pay the eviction cost once per flush.
         conversations: dict[tuple[str, str], dict] = {}
         for flow in batch:
             key = (flow.src_ip, flow.dst_ip)
@@ -520,10 +541,8 @@ class FlowAggregator:
             conversations[key]["packets"] += flow.packets
             conversations[key]["flows"] += 1
             conversations[key]["latency_sum"] += (flow.end_time - flow.start_time).total_seconds()
-        if len(conversations) > self.MAX_CONVERSATIONS:
-            sorted_convos = sorted(conversations.items(), key=lambda x: x[1]["bytes"])
-            conversations = dict(sorted_convos[len(sorted_convos) - self.MAX_CONVERSATIONS:])
-        self._conversations = conversations
+        for key, value in conversations.items():
+            self._bounded_set(self._conversations, key, value, self.MAX_CONVERSATIONS)
 
         # -- Application breakdown -------------------------------------------
         applications: dict[str, dict] = {}
@@ -534,10 +553,8 @@ class FlowAggregator:
             applications[app_name]["bytes"] += flow.bytes
             applications[app_name]["packets"] += flow.packets
             applications[app_name]["flows"] += 1
-        if len(applications) > self.MAX_APPLICATIONS:
-            sorted_apps = sorted(applications.items(), key=lambda x: x[1]["bytes"])
-            applications = dict(sorted_apps[len(sorted_apps) - self.MAX_APPLICATIONS:])
-        self._applications = applications
+        for key, value in applications.items():
+            self._bounded_set(self._applications, key, value, self.MAX_APPLICATIONS)
 
         # -- ASN stats -------------------------------------------------------
         asn_stats: dict[int, dict] = {}
@@ -550,10 +567,8 @@ class FlowAggregator:
                 asn_stats[asn]["bytes"] += flow.bytes
                 asn_stats[asn]["packets"] += flow.packets
                 asn_stats[asn]["flows"] += 1
-        if len(asn_stats) > self.MAX_ASN_ENTRIES:
-            sorted_asns = sorted(asn_stats.items(), key=lambda x: x[1]["bytes"])
-            asn_stats = dict(sorted_asns[len(sorted_asns) - self.MAX_ASN_ENTRIES:])
-        self._asn_stats = asn_stats
+        for key, value in asn_stats.items():
+            self._bounded_set(self._asn_stats, key, value, self.MAX_ASN_ENTRIES)
 
         # -- Publish to event bus --------------------------------------------
         if self._event_bus:

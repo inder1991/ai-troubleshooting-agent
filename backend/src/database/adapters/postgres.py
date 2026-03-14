@@ -1,6 +1,7 @@
 """PostgreSQL adapter using asyncpg."""
 from __future__ import annotations
 
+import asyncio
 import logging
 import time
 from typing import Optional
@@ -33,6 +34,8 @@ ROW_LIMIT = 1000
 class PostgresAdapter(DatabaseAdapter):
     """PostgreSQL adapter using asyncpg for async connectivity."""
 
+    MAX_CONNECT_RETRIES = 3
+
     def __init__(
         self,
         host: str,
@@ -41,24 +44,49 @@ class PostgresAdapter(DatabaseAdapter):
         username: str,
         password: str,
         ttl: int = 300,
+        connect_timeout: int = 10,
+        query_timeout: int = 30,
     ):
         super().__init__(
-            engine="postgresql", host=host, port=port, database=database, ttl=ttl
+            engine="postgresql", host=host, port=port, database=database,
+            ttl=ttl, connect_timeout=connect_timeout, query_timeout=query_timeout,
         )
         self._username = username
         self._password = password
         self._conn: Optional[asyncpg.Connection] = None
 
     async def connect(self) -> None:
-        self._conn = await asyncpg.connect(
-            host=self.host,
-            port=self.port,
-            database=self.database,
-            user=self._username,
-            password=self._password,
-            timeout=10,
+        """Connect with retry logic (3 attempts, exponential backoff)."""
+        last_err: Optional[Exception] = None
+        for attempt in range(1, self.MAX_CONNECT_RETRIES + 1):
+            try:
+                self._conn = await asyncio.wait_for(
+                    asyncpg.connect(
+                        host=self.host,
+                        port=self.port,
+                        database=self.database,
+                        user=self._username,
+                        password=self._password,
+                        timeout=self.connect_timeout,
+                    ),
+                    timeout=self.connect_timeout,
+                )
+                self._connected = True
+                logger.info("Connected to %s:%s/%s on attempt %d",
+                            self.host, self.port, self.database, attempt)
+                return
+            except Exception as e:
+                last_err = e
+                if attempt < self.MAX_CONNECT_RETRIES:
+                    backoff = 2 ** (attempt - 1)  # 1s, 2s
+                    logger.warning(
+                        "Connection attempt %d/%d failed (%s), retrying in %ds",
+                        attempt, self.MAX_CONNECT_RETRIES, e, backoff,
+                    )
+                    await asyncio.sleep(backoff)
+        raise ConnectionError(
+            f"Failed to connect after {self.MAX_CONNECT_RETRIES} attempts: {last_err}"
         )
-        self._connected = True
 
     async def disconnect(self) -> None:
         if self._conn:
@@ -80,6 +108,38 @@ class PostgresAdapter(DatabaseAdapter):
             )
         except Exception as e:
             return AdapterHealth(status="degraded", error=str(e))
+
+    async def check_permissions(self) -> dict:
+        """Check read permissions on critical pg_stat views."""
+        checks = {
+            'pg_stat_activity': 'SELECT 1 FROM pg_stat_activity LIMIT 1',
+            'pg_stat_user_tables': 'SELECT 1 FROM pg_stat_user_tables LIMIT 1',
+            'pg_stat_user_indexes': 'SELECT 1 FROM pg_stat_user_indexes LIMIT 1',
+            'pg_stat_replication': 'SELECT 1 FROM pg_stat_replication LIMIT 0',
+        }
+        result = {}
+        for view, sql in checks.items():
+            try:
+                await self._conn.fetch(sql)
+                result[view] = True
+            except Exception:
+                result[view] = False
+        return result
+
+    async def get_slow_queries_from_stats(self) -> list[dict]:
+        """Return top 10 historically slow queries from pg_stat_statements."""
+        try:
+            rows = await self._conn.fetch("""
+                SELECT queryid, query, calls, mean_exec_time,
+                       total_exec_time, stddev_exec_time, rows
+                FROM pg_stat_statements
+                ORDER BY mean_exec_time DESC
+                LIMIT 10
+            """)
+            return [dict(r) for r in rows]
+        except Exception as e:
+            logger.warning("pg_stat_statements not available: %s", e)
+            return []
 
     async def _fetch_performance_stats(self) -> PerfSnapshot:
         row = await self._conn.fetchrow("""
@@ -168,6 +228,7 @@ class PostgresAdapter(DatabaseAdapter):
                    pg_total_relation_size(c.oid) AS size_bytes
             FROM pg_class c JOIN pg_stat_user_tables s ON c.relname = s.relname
             WHERE c.relkind = 'r'
+              AND s.schemaname NOT IN ('pg_catalog', 'information_schema', 'pg_toast')
             ORDER BY size_bytes DESC LIMIT 100
         """)
         indexes = await self._conn.fetch("""
@@ -175,6 +236,7 @@ class PostgresAdapter(DatabaseAdapter):
                    idx_scan, idx_tup_read, idx_tup_fetch,
                    pg_relation_size(indexrelid) AS size_bytes
             FROM pg_stat_user_indexes
+            WHERE schemaname NOT IN ('pg_catalog', 'information_schema', 'pg_toast')
             ORDER BY size_bytes DESC LIMIT 200
         """)
         total_row = await self._conn.fetchrow(
@@ -260,13 +322,178 @@ class PostgresAdapter(DatabaseAdapter):
             max_connections=row["max_conn"],
         )
 
+    # ── Diagnostic accessors ──
+
+    async def get_wait_events(self) -> list[dict]:
+        """Return current wait events grouped by type."""
+        try:
+            rows = await asyncio.wait_for(
+                self._conn.fetch("""
+                    SELECT wait_event_type, wait_event, count(*) AS cnt,
+                           array_agg(pid) AS pids
+                    FROM pg_stat_activity
+                    WHERE wait_event IS NOT NULL AND pid != pg_backend_pid()
+                    GROUP BY 1, 2
+                    ORDER BY cnt DESC
+                    LIMIT 10
+                """),
+                timeout=self.query_timeout,
+            )
+            return [dict(r) for r in rows]
+        except Exception as e:
+            logger.warning("get_wait_events failed: %s", e)
+            return []
+
+    async def get_lock_chains(self) -> list[dict]:
+        """Return blocking lock chains (who blocks whom)."""
+        try:
+            rows = await asyncio.wait_for(
+                self._conn.fetch("""
+                    SELECT
+                        blocked.pid AS blocked_pid,
+                        blocked.usename AS blocked_user,
+                        blocked.query AS blocked_query,
+                        blocking.pid AS blocking_pid,
+                        blocking.usename AS blocking_user,
+                        blocking.query AS blocking_query
+                    FROM pg_locks bl
+                    JOIN pg_stat_activity blocked ON bl.pid = blocked.pid
+                    JOIN pg_locks kl ON bl.locktype = kl.locktype
+                        AND bl.database IS NOT DISTINCT FROM kl.database
+                        AND bl.relation IS NOT DISTINCT FROM kl.relation
+                        AND bl.page IS NOT DISTINCT FROM kl.page
+                        AND bl.tuple IS NOT DISTINCT FROM kl.tuple
+                        AND bl.virtualxid IS NOT DISTINCT FROM kl.virtualxid
+                        AND bl.transactionid IS NOT DISTINCT FROM kl.transactionid
+                        AND bl.classid IS NOT DISTINCT FROM kl.classid
+                        AND bl.objid IS NOT DISTINCT FROM kl.objid
+                        AND bl.objsubid IS NOT DISTINCT FROM kl.objsubid
+                        AND bl.pid != kl.pid
+                    JOIN pg_stat_activity blocking ON kl.pid = blocking.pid
+                    WHERE NOT bl.granted AND kl.granted
+                        AND blocked.pid != pg_backend_pid()
+                        AND blocking.pid != pg_backend_pid()
+                    LIMIT 5
+                """),
+                timeout=self.query_timeout,
+            )
+            return [dict(r) for r in rows]
+        except Exception as e:
+            logger.warning("get_lock_chains failed: %s", e)
+            return []
+
+    async def get_long_transactions(self) -> list[dict]:
+        """Return transactions idle in transaction > 5 minutes."""
+        try:
+            rows = await asyncio.wait_for(
+                self._conn.fetch("""
+                    SELECT pid, usename, state, query,
+                           EXTRACT(EPOCH FROM now() - xact_start)::int AS age_seconds
+                    FROM pg_stat_activity
+                    WHERE state = 'idle in transaction'
+                        AND EXTRACT(EPOCH FROM now() - xact_start) > 300
+                        AND pid != pg_backend_pid()
+                    ORDER BY age_seconds DESC
+                    LIMIT 5
+                """),
+                timeout=self.query_timeout,
+            )
+            return [dict(r) for r in rows]
+        except Exception as e:
+            logger.warning("get_long_transactions failed: %s", e)
+            return []
+
+    async def get_autovacuum_status(self) -> dict:
+        """Return running vacuums and stale tables needing vacuum."""
+        result: dict = {"running": [], "stale": []}
+        try:
+            running = await asyncio.wait_for(
+                self._conn.fetch("""
+                    SELECT pid, datname, relid::regclass::text AS table_name,
+                           phase, heap_blks_total, heap_blks_scanned
+                    FROM pg_stat_progress_vacuum
+                """),
+                timeout=self.query_timeout,
+            )
+            result["running"] = [dict(r) for r in running]
+        except Exception as e:
+            logger.warning("get_autovacuum_status (running) failed: %s", e)
+
+        try:
+            stale = await asyncio.wait_for(
+                self._conn.fetch("""
+                    SELECT relname, n_dead_tup, n_live_tup,
+                           last_autovacuum, last_autoanalyze
+                    FROM pg_stat_user_tables
+                    WHERE n_dead_tup > 1000
+                      AND schemaname NOT IN ('pg_catalog', 'information_schema', 'pg_toast')
+                    ORDER BY n_dead_tup DESC
+                    LIMIT 10
+                """),
+                timeout=self.query_timeout,
+            )
+            result["stale"] = [dict(r) for r in stale]
+        except Exception as e:
+            logger.warning("get_autovacuum_status (stale) failed: %s", e)
+
+        return result
+
+    async def get_table_access_patterns(self) -> list[dict]:
+        """Return sequential vs index scan ratios per table."""
+        try:
+            rows = await asyncio.wait_for(
+                self._conn.fetch("""
+                    SELECT relname, seq_scan, idx_scan,
+                           CASE WHEN seq_scan + idx_scan > 0
+                               THEN round(seq_scan::numeric / (seq_scan + idx_scan), 2)
+                               ELSE 0
+                           END AS seq_scan_ratio
+                    FROM pg_stat_user_tables
+                    WHERE schemaname NOT IN ('pg_catalog', 'information_schema', 'pg_toast')
+                    ORDER BY seq_scan DESC
+                    LIMIT 10
+                """),
+                timeout=self.query_timeout,
+            )
+            return [dict(r) for r in rows]
+        except Exception as e:
+            logger.warning("get_table_access_patterns failed: %s", e)
+            return []
+
+    async def explain_query(self, sql: str) -> dict | None:
+        """Run EXPLAIN (FORMAT JSON) with a 10s timeout.
+
+        Safety: uses EXPLAIN only — never EXPLAIN ANALYZE — so the query
+        is *not* executed on production.
+        """
+        if not self._conn:
+            return None
+        try:
+            import json as _json
+
+            row = await self._conn.fetchval(
+                f"EXPLAIN (FORMAT JSON) {sql}",
+                timeout=QUERY_TIMEOUT_SEC,
+            )
+            # asyncpg returns a JSON string; parse the first plan node
+            plan_list = _json.loads(row) if isinstance(row, str) else row
+            if isinstance(plan_list, list) and plan_list:
+                return plan_list[0].get("Plan")
+            return None
+        except Exception as e:
+            logger.warning("EXPLAIN failed: %s", e)
+            return None
+
     async def execute_diagnostic_query(self, sql: str) -> QueryResult:
         """Execute a READ-ONLY diagnostic query with timeout and row limit."""
         try:
             start = time.time()
-            rows = await self._conn.fetch(
-                f"SELECT * FROM ({sql}) AS q LIMIT {ROW_LIMIT}",
-                timeout=QUERY_TIMEOUT_SEC,
+            rows = await asyncio.wait_for(
+                self._conn.fetch(
+                    f"SELECT * FROM ({sql}) AS q LIMIT {ROW_LIMIT}",
+                    timeout=self.query_timeout,
+                ),
+                timeout=self.query_timeout,
             )
             elapsed = (time.time() - start) * 1000
             return QueryResult(
@@ -274,6 +501,8 @@ class PostgresAdapter(DatabaseAdapter):
                 execution_time_ms=round(elapsed, 2),
                 rows_returned=len(rows),
             )
+        except asyncio.TimeoutError:
+            return QueryResult(query=sql, error=f"Query timed out after {self.query_timeout}s")
         except Exception as e:
             return QueryResult(query=sql, error=str(e))
 

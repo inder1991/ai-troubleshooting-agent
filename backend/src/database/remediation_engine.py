@@ -1,16 +1,81 @@
 """RemediationEngine — saga orchestrator for database operations.
 
 Flow: plan → approve (JWT) → execute → verify → rollback on failure.
+
+JWT tokens are signed with HMAC-SHA256 (HS256) using the stdlib ``hmac`` and
+``hashlib`` modules so that no third-party JWT library is required.  The token
+payload carries:
+  - plan_id          — the plan being approved
+  - profile_id       — owning profile
+  - action           — the action type
+  - approved_at      — ISO-8601 approval timestamp
+  - plan_hash        — SHA-256 hex-digest of the canonical plan JSON (integrity)
+  - exp              — Unix expiry timestamp (5 minutes)
 """
 from __future__ import annotations
 
+import base64
+import hashlib
+import hmac
+import json
 import logging
 from datetime import datetime, timedelta, UTC
 from typing import Optional
 
-import jwt
-
 logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Minimal HS256 JWT helpers (no PyJWT dependency required)
+# ---------------------------------------------------------------------------
+
+def _b64url_encode(data: bytes) -> str:
+    """URL-safe base64 encode without padding."""
+    return base64.urlsafe_b64encode(data).rstrip(b"=").decode()
+
+
+def _b64url_decode(s: str) -> bytes:
+    """URL-safe base64 decode, adding back stripped padding."""
+    padding = 4 - len(s) % 4
+    if padding != 4:
+        s += "=" * padding
+    return base64.urlsafe_b64decode(s)
+
+
+def _jwt_encode(payload: dict, secret: str) -> str:
+    """Encode a JWT with HS256 signature."""
+    header = _b64url_encode(json.dumps({"alg": "HS256", "typ": "JWT"}, separators=(",", ":")).encode())
+    body = _b64url_encode(json.dumps(payload, separators=(",", ":")).encode())
+    signing_input = f"{header}.{body}".encode()
+    sig = hmac.new(secret.encode(), signing_input, hashlib.sha256).digest()
+    return f"{header}.{body}.{_b64url_encode(sig)}"
+
+
+def _jwt_decode(token: str, secret: str) -> dict:
+    """Decode and verify a JWT with HS256 signature.
+
+    Raises ``ValueError`` on any verification or expiry failure.
+    """
+    try:
+        parts = token.split(".")
+        if len(parts) != 3:
+            raise ValueError("Malformed token")
+        header_b64, body_b64, sig_b64 = parts
+        signing_input = f"{header_b64}.{body_b64}".encode()
+        expected_sig = hmac.new(secret.encode(), signing_input, hashlib.sha256).digest()
+        actual_sig = _b64url_decode(sig_b64)
+        if not hmac.compare_digest(expected_sig, actual_sig):
+            raise ValueError("Signature verification failed")
+        payload = json.loads(_b64url_decode(body_b64))
+    except (ValueError, KeyError, json.JSONDecodeError, Exception) as exc:
+        raise ValueError(f"Invalid or expired approval token") from exc
+    # Check expiry
+    exp = payload.get("exp")
+    if exp is not None:
+        if datetime.now(UTC).timestamp() > exp:
+            raise ValueError("Invalid or expired approval token")
+    return payload
+
 
 # Action → SQL preview generator
 _SQL_GENERATORS = {
@@ -74,7 +139,16 @@ class RemediationEngine:
         )
 
     def approve(self, plan_id: str) -> dict:
-        """Approve a plan and generate a JWT token."""
+        """Approve a plan and generate a JWT-signed token.
+
+        The token payload contains:
+          - plan_id        — the plan being approved
+          - profile_id     — owning profile
+          - action         — the action type
+          - approved_at    — ISO-8601 approval timestamp
+          - plan_hash      — SHA-256 hex-digest of the canonical plan JSON
+          - exp            — Unix expiry timestamp (5 minutes from now)
+        """
         plan = self._store.get_plan(plan_id)
         if not plan:
             raise ValueError(f"Plan {plan_id} not found")
@@ -83,14 +157,36 @@ class RemediationEngine:
 
         now = datetime.now(UTC)
         expires = now + timedelta(minutes=5)
-        token = jwt.encode(
-            {"plan_id": plan_id, "profile_id": plan["profile_id"],
-             "action": plan["action"], "exp": expires},
+        approved_at = now.isoformat()
+
+        # Compute SHA-256 digest of the canonical plan for integrity binding.
+        # Use a stable subset of fields so the hash is deterministic.
+        plan_canonical = json.dumps(
+            {
+                "plan_id": plan_id,
+                "profile_id": plan["profile_id"],
+                "action": plan["action"],
+                "params": plan.get("params", {}),
+                "sql_preview": plan.get("sql_preview", ""),
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        plan_hash = hashlib.sha256(plan_canonical.encode()).hexdigest()
+
+        token = _jwt_encode(
+            {
+                "plan_id": plan_id,
+                "profile_id": plan["profile_id"],
+                "action": plan["action"],
+                "approved_at": approved_at,
+                "plan_hash": plan_hash,
+                "exp": int(expires.timestamp()),
+            },
             self._secret_key,
-            algorithm="HS256",
         )
         self._store.update_plan(plan_id, status="approved",
-                                approved_at=now.isoformat())
+                                approved_at=approved_at)
         return {
             "plan_id": plan_id,
             "approval_token": token,
@@ -106,11 +202,8 @@ class RemediationEngine:
 
     async def execute(self, plan_id: str, token: str) -> dict:
         """Execute an approved plan. Full saga: pre-flight → execute → verify → rollback."""
-        # Validate token
-        try:
-            payload = jwt.decode(token, self._secret_key, algorithms=["HS256"])
-        except jwt.InvalidTokenError:
-            raise ValueError("Invalid or expired approval token")
+        # Validate JWT token (raises ValueError on bad/expired token)
+        payload = _jwt_decode(token, self._secret_key)
 
         if payload.get("plan_id") != plan_id:
             raise ValueError("Token does not match plan")

@@ -1,5 +1,6 @@
 """SQLite persistence for the Network Knowledge Graph."""
 import sqlite3
+import hashlib
 import json
 import os
 import queue
@@ -453,6 +454,29 @@ class TopologyStore:
                     mac_address TEXT DEFAULT '',
                     status TEXT DEFAULT 'in-use',
                     FOREIGN KEY (cloud_account_id) REFERENCES cloud_accounts(id) ON DELETE CASCADE
+                );
+
+                CREATE TABLE IF NOT EXISTS topology_designs (
+                    id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    description TEXT DEFAULT '',
+                    status TEXT DEFAULT 'draft',
+                    snapshot_json TEXT NOT NULL,
+                    base_snapshot_id INTEGER,
+                    version INTEGER DEFAULT 1,
+                    live_hash TEXT DEFAULT '',
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    applied_at TEXT,
+                    applied_by TEXT
+                );
+
+                CREATE TABLE IF NOT EXISTS simulation_results (
+                    id TEXT PRIMARY KEY,
+                    design_id TEXT NOT NULL,
+                    result_json TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    FOREIGN KEY (design_id) REFERENCES topology_designs(id) ON DELETE CASCADE
                 );
             """)
             conn.commit()
@@ -2949,6 +2973,439 @@ class TopologyStore:
                 "timestamp": d["timestamp"],
                 "description": d["description"],
             }
+        finally:
+            conn.close()
+
+    # ── Topology Designs ──
+    def create_design(self, id: str, name: str, description: str = "", snapshot_json: str = "{}") -> dict:
+        conn = self._conn()
+        try:
+            now = datetime.now(timezone.utc).isoformat()
+            conn.execute(
+                "INSERT INTO topology_designs (id, name, description, snapshot_json, created_at, updated_at) VALUES (?,?,?,?,?,?)",
+                (id, name, description, snapshot_json, now, now),
+            )
+            conn.commit()
+            return self.get_design(id)
+        finally:
+            conn.close()
+
+    def update_design(self, id: str, name: str | None = None, description: str | None = None,
+                      snapshot_json: str | None = None, expected_version: int | None = None) -> dict:
+        conn = self._conn()
+        try:
+            row = conn.execute("SELECT * FROM topology_designs WHERE id=?", (id,)).fetchone()
+            if not row:
+                raise ValueError(f"Design {id} not found")
+            current = dict(row)
+            if expected_version is not None and current["version"] != expected_version:
+                raise ValueError("VERSION_CONFLICT")
+            updates = []
+            params = []
+            if name is not None:
+                updates.append("name=?")
+                params.append(name)
+            if description is not None:
+                updates.append("description=?")
+                params.append(description)
+            if snapshot_json is not None:
+                updates.append("snapshot_json=?")
+                params.append(snapshot_json)
+            updates.append("version=version+1")
+            updates.append("updated_at=?")
+            params.append(datetime.now(timezone.utc).isoformat())
+            params.append(id)
+            conn.execute(f"UPDATE topology_designs SET {', '.join(updates)} WHERE id=?", params)
+            conn.commit()
+            return self.get_design(id)
+        finally:
+            conn.close()
+
+    def update_design_status(self, id: str, status: str, applied_by: str | None = None) -> dict:
+        conn = self._conn()
+        try:
+            updates = ["status=?", "updated_at=?"]
+            params = [status, datetime.now(timezone.utc).isoformat()]
+            if status == "applied":
+                updates.append("applied_at=?")
+                params.append(datetime.now(timezone.utc).isoformat())
+                if applied_by:
+                    updates.append("applied_by=?")
+                    params.append(applied_by)
+            params.append(id)
+            conn.execute(f"UPDATE topology_designs SET {', '.join(updates)} WHERE id=?", params)
+            conn.commit()
+            return self.get_design(id)
+        finally:
+            conn.close()
+
+    def get_design(self, id: str) -> dict | None:
+        conn = self._conn()
+        try:
+            row = conn.execute("SELECT * FROM topology_designs WHERE id=?", (id,)).fetchone()
+            if not row:
+                return None
+            return dict(row)
+        finally:
+            conn.close()
+
+    def list_designs(self, status: str | None = None) -> list[dict]:
+        conn = self._conn()
+        try:
+            if status:
+                rows = conn.execute(
+                    "SELECT * FROM topology_designs WHERE status=? ORDER BY updated_at DESC", (status,)
+                ).fetchall()
+            else:
+                rows = conn.execute(
+                    "SELECT * FROM topology_designs ORDER BY updated_at DESC"
+                ).fetchall()
+            return [dict(r) for r in rows]
+        finally:
+            conn.close()
+
+    def delete_design(self, id: str) -> bool:
+        conn = self._conn()
+        try:
+            cursor = conn.execute("DELETE FROM topology_designs WHERE id=?", (id,))
+            conn.commit()
+            return cursor.rowcount > 0
+        finally:
+            conn.close()
+
+    def compute_live_hash(self) -> str:
+        """SHA-256 of sorted device IDs + management_ips for TOCTOU protection."""
+        devices = self.list_devices()
+        entries = sorted(f"{d.id}:{d.management_ip}" for d in devices)
+        return hashlib.sha256("|".join(entries).encode()).hexdigest()
+
+    def get_live_inventory_as_reactflow(self) -> dict:
+        """Return all live devices + edges as ReactFlow-compatible nodes/edges."""
+        devices = self.list_devices()
+        statuses = self.list_device_statuses()
+        status_map = {s["device_id"]: s["status"] for s in statuses}
+        edges_raw = self.list_edge_confidences()
+
+        nodes = []
+        cols = max(int(len(devices) ** 0.5), 1)
+        for i, device in enumerate(devices):
+            col = i % cols
+            row = i // cols
+            nodes.append({
+                "id": device.id,
+                "type": "device",
+                "position": {"x": col * 200, "y": row * 150},
+                "data": {
+                    "label": device.name,
+                    "deviceType": device.device_type.value if hasattr(device.device_type, 'value') else str(device.device_type),
+                    "ip": device.management_ip,
+                    "vendor": device.vendor,
+                    "zone": device.zone_id,
+                    "status": status_map.get(device.id, "healthy"),
+                    "_source": "live",
+                    "_locked": True,
+                },
+            })
+
+        edges = []
+        for ec in edges_raw:
+            edges.append({
+                "id": f"e-{ec['source']}-{ec['target']}",
+                "source": ec["source"],
+                "target": ec["target"],
+                "data": {
+                    "label": ec.get("edge_type", "connected_to"),
+                    "_source": "live",
+                },
+            })
+
+        return {"nodes": nodes, "edges": edges}
+
+    def compute_design_diff(self, design_id: str) -> dict:
+        """Compute diff between a design's planned nodes and live inventory.
+
+        Returns conflicts, edge errors, added nodes/edges, and can_apply flag.
+        """
+        import ipaddress as ipaddr
+
+        design = self.get_design(design_id)
+        if not design:
+            raise ValueError(f"Design {design_id} not found")
+
+        snapshot = json.loads(design["snapshot_json"])
+        planned_nodes = [n for n in snapshot.get("nodes", []) if n.get("data", {}).get("_source") == "planned"]
+        planned_edges = [e for e in snapshot.get("edges", []) if e.get("data", {}).get("_source") == "planned"]
+
+        # Live inventory
+        live_devices = self.list_devices()
+        live_ids = {d.id for d in live_devices}
+        live_ips = {d.management_ip for d in live_devices if d.management_ip}
+        live_names = {d.name for d in live_devices}
+
+        # HA VIPs to exclude from IP conflict checks
+        ha_groups = self.list_ha_groups()
+        ha_vips = set()
+        for hg in ha_groups:
+            ha_vips.update(hg.virtual_ips)
+
+        # Live subnets and VLANs for overlap detection
+        live_subnets = self.list_subnets()
+        live_vlans = self.list_vlans()
+
+        # Compute live hash for TOCTOU
+        live_hash = self.compute_live_hash()
+
+        # Store hash in design for later apply-time check
+        conn = self._conn()
+        try:
+            conn.execute("UPDATE topology_designs SET live_hash=? WHERE id=?", (live_hash, design_id))
+            conn.commit()
+        finally:
+            conn.close()
+
+        conflicts = []
+        edge_errors = []
+        added = []
+        new_edges = []
+
+        # Collect planned IPs/names for intra-design conflict detection
+        planned_ips: dict[str, str] = {}
+        planned_ids: set[str] = set()
+        planned_names: dict[str, str] = {}
+        planned_cidrs: dict[str, str] = {}
+        planned_vlans: dict[str, str] = {}
+
+        for node in planned_nodes:
+            nid = node.get("id", "")
+            data = node.get("data", {})
+            label = data.get("label", nid)
+            ip = data.get("ip", "")
+
+            # ID conflict
+            if nid in live_ids:
+                conflicts.append({
+                    "type": "id_conflict",
+                    "planned_device": label,
+                    "conflicts_with": nid,
+                })
+            # Intra-design ID conflict
+            if nid in planned_ids:
+                conflicts.append({
+                    "type": "id_conflict",
+                    "planned_device": label,
+                    "conflicts_with": f"planned:{nid}",
+                })
+            planned_ids.add(nid)
+
+            # Hostname conflict
+            if label in live_names:
+                conflicts.append({
+                    "type": "hostname_conflict",
+                    "planned_device": label,
+                    "conflicts_with": label,
+                })
+            if label in planned_names and planned_names[label] != nid:
+                conflicts.append({
+                    "type": "hostname_conflict",
+                    "planned_device": label,
+                    "conflicts_with": f"planned:{planned_names[label]}",
+                })
+            planned_names[label] = nid
+
+            # IP conflict
+            if ip and ip not in ha_vips:
+                if ip in live_ips:
+                    conflicts.append({
+                        "type": "ip_conflict",
+                        "planned_device": label,
+                        "ip": ip,
+                        "conflicts_with": next((d.name for d in live_devices if d.management_ip == ip), "unknown"),
+                    })
+                if ip in planned_ips and planned_ips[ip] != nid:
+                    conflicts.append({
+                        "type": "ip_conflict",
+                        "planned_device": label,
+                        "ip": ip,
+                        "conflicts_with": f"planned:{planned_ips[ip]}",
+                    })
+                planned_ips[ip] = nid
+
+            # Subnet overlap detection
+            cidr = data.get("cidr", "")
+            if cidr:
+                try:
+                    planned_net = ipaddr.ip_network(cidr, strict=False)
+                    for ls in live_subnets:
+                        try:
+                            live_net = ipaddr.ip_network(ls.cidr, strict=False)
+                            if planned_net.overlaps(live_net) and str(planned_net) != str(live_net):
+                                conflicts.append({
+                                    "type": "subnet_overlap",
+                                    "planned_device": label,
+                                    "planned_subnet": cidr,
+                                    "conflicts_with": ls.cidr,
+                                })
+                        except ValueError:
+                            pass
+                    # Intra-design subnet overlap
+                    for prev_cidr, prev_id in planned_cidrs.items():
+                        if prev_id != nid:
+                            try:
+                                prev_net = ipaddr.ip_network(prev_cidr, strict=False)
+                                if planned_net.overlaps(prev_net):
+                                    conflicts.append({
+                                        "type": "subnet_overlap",
+                                        "planned_device": label,
+                                        "planned_subnet": cidr,
+                                        "conflicts_with": f"planned:{prev_id}",
+                                    })
+                            except ValueError:
+                                pass
+                    planned_cidrs[cidr] = nid
+                except ValueError:
+                    pass
+
+            # VLAN conflict detection
+            vlan_id = data.get("vlan")
+            zone = data.get("zone", "")
+            if vlan_id and zone:
+                for lv in live_vlans:
+                    lv_dict = lv if isinstance(lv, dict) else lv.__dict__ if hasattr(lv, '__dict__') else {}
+                    lv_vlan = lv_dict.get("vlan_id") or lv_dict.get("id", "")
+                    lv_zone = lv_dict.get("zone_id", "")
+                    if str(lv_vlan) == str(vlan_id) and lv_zone == zone:
+                        conflicts.append({
+                            "type": "vlan_conflict",
+                            "planned_device": label,
+                            "vlan_id": vlan_id,
+                            "zone": zone,
+                            "conflicts_with": f"existing_vlan_{lv_vlan}",
+                        })
+                # Intra-design VLAN conflict
+                vlan_key = f"{vlan_id}:{zone}"
+                if vlan_key in planned_vlans and planned_vlans[vlan_key] != nid:
+                    conflicts.append({
+                        "type": "vlan_conflict",
+                        "planned_device": label,
+                        "vlan_id": vlan_id,
+                        "zone": zone,
+                        "conflicts_with": f"planned:{planned_vlans[vlan_key]}",
+                    })
+                planned_vlans[vlan_key] = nid
+
+            if nid not in live_ids:
+                added.append(node)
+
+        # All node IDs (live + planned) for edge validation
+        all_node_ids = live_ids | planned_ids
+
+        # Edge validation
+        # Build zone map for zone adjacency checks
+        device_zones: dict[str, str] = {}
+        for d in live_devices:
+            if d.zone_id:
+                device_zones[d.id] = d.zone_id
+        for node in planned_nodes:
+            z = node.get("data", {}).get("zone", "")
+            if z:
+                device_zones[node.get("id", "")] = z
+
+        # Device type map
+        device_types: dict[str, str] = {}
+        for d in live_devices:
+            device_types[d.id] = d.device_type.value if hasattr(d.device_type, 'value') else str(d.device_type)
+        for node in planned_nodes:
+            dt = node.get("data", {}).get("deviceType", "")
+            if dt:
+                device_types[node.get("id", "")] = dt
+
+        # Firewall device IDs for zone adjacency checks
+        fw_types = {"firewall", "FIREWALL"}
+
+        for edge in planned_edges:
+            eid = edge.get("id", "")
+            src = edge.get("source", "")
+            tgt = edge.get("target", "")
+
+            # Existence check
+            if src not in all_node_ids:
+                edge_errors.append({
+                    "type": "dangling_edge",
+                    "edge_id": eid,
+                    "reason": f"Source node '{src}' not found in live inventory or planned nodes",
+                })
+                continue
+            if tgt not in all_node_ids:
+                edge_errors.append({
+                    "type": "dangling_edge",
+                    "edge_id": eid,
+                    "reason": f"Target node '{tgt}' not found in live inventory or planned nodes",
+                })
+                continue
+
+            # Zone adjacency check
+            src_zone = device_zones.get(src, "")
+            tgt_zone = device_zones.get(tgt, "")
+            if src_zone and tgt_zone and src_zone != tgt_zone:
+                src_type = device_types.get(src, "")
+                tgt_type = device_types.get(tgt, "")
+                if src_type not in fw_types and tgt_type not in fw_types:
+                    edge_errors.append({
+                        "type": "zone_violation",
+                        "edge_id": eid,
+                        "reason": f"Cross-zone connection ({src_zone} → {tgt_zone}) without firewall",
+                    })
+
+            # Device type compatibility check
+            INCOMPATIBLE_PAIRS = {
+                frozenset({"vpn_tunnel", "direct_connect"}),
+                frozenset({"subnet", "subnet"}),
+            }
+            src_type = device_types.get(src, "").lower()
+            tgt_type = device_types.get(tgt, "").lower()
+            if frozenset({src_type, tgt_type}) in INCOMPATIBLE_PAIRS:
+                edge_errors.append({
+                    "type": "type_incompatible",
+                    "edge_id": eid,
+                    "reason": f"Incompatible device types: {src_type} ↔ {tgt_type}",
+                })
+
+            new_edges.append(edge)
+
+        return {
+            "added": added,
+            "new_edges": new_edges,
+            "live_count": len(live_devices),
+            "live_hash": live_hash,
+            "conflicts": conflicts,
+            "edge_errors": edge_errors,
+            "can_apply": len(conflicts) == 0 and len(edge_errors) == 0,
+        }
+
+    # ── Simulation Results ──
+    def save_simulation_result(self, id: str, design_id: str, result_json: str) -> dict:
+        conn = self._conn()
+        try:
+            now = datetime.now(timezone.utc).isoformat()
+            conn.execute(
+                "INSERT OR REPLACE INTO simulation_results (id, design_id, result_json, created_at) VALUES (?,?,?,?)",
+                (id, design_id, result_json, now),
+            )
+            conn.commit()
+            return {"id": id, "design_id": design_id, "created_at": now}
+        finally:
+            conn.close()
+
+    def get_simulation_result(self, design_id: str) -> dict | None:
+        conn = self._conn()
+        try:
+            row = conn.execute(
+                "SELECT * FROM simulation_results WHERE design_id=? ORDER BY created_at DESC LIMIT 1",
+                (design_id,),
+            ).fetchone()
+            if not row:
+                return None
+            return dict(row)
         finally:
             conn.close()
 

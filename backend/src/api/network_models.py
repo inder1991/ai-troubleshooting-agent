@@ -95,3 +95,43 @@ class AdapterInstanceUpdateRequest(BaseModel):
 
 class AdapterBindRequest(BaseModel):
     device_ids: list[str]
+
+
+# ── Topology Design Lifecycle ──
+
+class DesignCreateRequest(BaseModel):
+    name: str
+    description: str = ""
+    snapshot_json: str = "{}"
+
+
+class DesignUpdateRequest(BaseModel):
+    name: str | None = None
+    description: str | None = None
+    snapshot_json: str | None = None
+    expected_version: int | None = None
+
+
+class DesignStatusRequest(BaseModel):
+    status: str
+    applied_by: str | None = None
+
+    @field_validator("status")
+    @classmethod
+    def validate_status(cls, v: str) -> str:
+        allowed = {"draft", "reviewed", "simulated", "approved", "parked", "applied", "verified"}
+        if v not in allowed:
+            raise ValueError(f"status must be one of {allowed}, got '{v}'")
+        return v
+
+
+class SimulateConnectivityRequest(BaseModel):
+    source_id: str
+    target_id: str
+
+
+class SimulateFirewallRequest(BaseModel):
+    src_ip: str
+    dst_ip: str
+    port: int = 80
+    protocol: str = "tcp"

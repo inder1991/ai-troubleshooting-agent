@@ -52,6 +52,7 @@ class NetworkToolExecutor:
             "get_subnet_utilization": self._handle_get_subnet_utilization,
             "get_ip_conflicts": self._handle_get_ip_conflicts,
             "get_capacity_forecast": self._handle_get_capacity_forecast,
+            "get_allocation_history": self._handle_get_allocation_history,
             "list_subnets": self._handle_list_subnets,
             # Firewall tools
             "evaluate_rule": self._handle_evaluate_rule,
@@ -62,6 +63,7 @@ class NetworkToolExecutor:
             "list_devices": self._handle_list_devices,
             "get_device_health": self._handle_get_device_health,
             "get_interface_stats": self._handle_get_interface_stats,
+            "get_snmp_metrics": self._handle_get_snmp_metrics,
             "get_syslog_events": self._handle_get_syslog_events,
             "get_traps": self._handle_get_traps,
             # Alert tools
@@ -70,6 +72,7 @@ class NetworkToolExecutor:
             "get_drift_events": self._handle_get_drift_events,
             # Diagnostic tools
             "diagnose_path": self._handle_diagnose_path,
+            "explain_finding": self._handle_explain_finding,
             "correlate_events": self._handle_correlate_events,
             "root_cause_analyze": self._handle_root_cause_analyze,
             # Control plane tools
@@ -204,6 +207,13 @@ class NetworkToolExecutor:
             "GET", f"subnets/{args['subnet_id']}/forecast"
         )
 
+    async def _handle_get_allocation_history(self, args: dict):
+        return await self._call_network_api(
+            "GET",
+            f"subnets/{args['subnet_id']}/allocation-history",
+            params={"limit": args.get("limit", 50)},
+        )
+
     async def _handle_list_subnets(self, args: dict):
         return await self._call_network_api(
             "GET", "subnets", params={"limit": args.get("limit", 100)}
@@ -256,6 +266,14 @@ class NetworkToolExecutor:
             "GET", f"devices/{args['device_id']}/interface-stats", params=params
         )
 
+    async def _handle_get_snmp_metrics(self, args: dict):
+        params: dict = {}
+        if args.get("oid"):
+            params["oid"] = args["oid"]
+        return await self._call_network_api(
+            "GET", f"devices/{args['device_id']}/snmp/metrics", params=params
+        )
+
     async def _handle_get_syslog_events(self, args: dict):
         return await self._call_network_api(
             "GET",
@@ -304,6 +322,11 @@ class NetworkToolExecutor:
                 "port": args.get("port", 80),
                 "protocol": args.get("protocol", "tcp"),
             },
+        )
+
+    async def _handle_explain_finding(self, args: dict):
+        return await self._call_network_api(
+            "GET", f"diagnose/findings/{args['finding_id']}/explain"
         )
 
     async def _handle_correlate_events(self, args: dict):

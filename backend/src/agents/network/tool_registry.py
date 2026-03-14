@@ -177,6 +177,18 @@ _IPAM_TOOLS: list[dict] = [
         },
     },
     {
+        "name": "get_allocation_history",
+        "description": "Get IP allocation history for a subnet showing assignments, releases, and changes over time.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "subnet_id": {"type": "string", "description": "Subnet ID or CIDR"},
+                "limit": {"type": "integer", "default": 50},
+            },
+            "required": ["subnet_id"],
+        },
+    },
+    {
         "name": "list_subnets",
         "description": "List all subnets with CIDR, name, VLAN, utilization, and zone.",
         "input_schema": {
@@ -282,6 +294,18 @@ _DEVICE_TOOLS: list[dict] = [
         },
     },
     {
+        "name": "get_snmp_metrics",
+        "description": "Get SNMP-polled metrics for a device: CPU, memory, interface counters, custom OIDs.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "device_id": {"type": "string", "description": "Device ID"},
+                "oid": {"type": "string", "description": "Optional specific OID to query"},
+            },
+            "required": ["device_id"],
+        },
+    },
+    {
         "name": "get_traps",
         "description": "Get recent SNMP traps for a device.",
         "input_schema": {
@@ -339,6 +363,17 @@ _DIAGNOSTIC_TOOLS: list[dict] = [
                 "protocol": {"type": "string", "default": "tcp"},
             },
             "required": ["src_ip", "dst_ip"],
+        },
+    },
+    {
+        "name": "explain_finding",
+        "description": "Explain a specific diagnostic finding in plain language, including what it means, its severity, and recommended next steps.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "finding_id": {"type": "string", "description": "Finding ID or description to explain"},
+            },
+            "required": ["finding_id"],
         },
     },
     {

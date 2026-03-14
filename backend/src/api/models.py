@@ -106,6 +106,8 @@ class SessionSummary(BaseModel):
     capability: Optional[str] = None
     investigation_mode: Optional[str] = None
     related_sessions: list[str] = []
+    findings_count: int = 0
+    critical_count: int = 0
 
 
 # ── Fix Pipeline Models ──────────────────────────────────────────────

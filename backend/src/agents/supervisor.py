@@ -89,6 +89,167 @@ def generate_incident_id() -> str:
     return f"INC-{date_part}-{rand_part}"
 
 
+# ── Chat tool definitions (Anthropic tool_use format) ──────────────────────
+
+_CHAT_TOOLS: list[dict] = [
+    {
+        "name": "get_findings",
+        "description": (
+            "Retrieve all diagnostic findings from the current investigation session. "
+            "Returns a list of findings sorted by severity (critical first), each with "
+            "finding_id, agent_name, category, severity, confidence_score, and summary."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {},
+            "required": [],
+        },
+    },
+    {
+        "name": "get_finding_detail",
+        "description": (
+            "Retrieve full details for a specific finding by its ID. "
+            "Returns the finding's summary, severity, confidence, breadcrumbs (evidence trail), "
+            "negative findings (things ruled out), critic verdict, and resource references."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "finding_id": {
+                    "type": "string",
+                    "description": "The unique ID of the finding to retrieve.",
+                },
+            },
+            "required": ["finding_id"],
+        },
+    },
+    {
+        "name": "get_session_summary",
+        "description": (
+            "Get a summary of the current diagnostic session including phase, service name, "
+            "incident ID, agents that have completed, overall confidence score, reasoning chain, "
+            "and timeline of key events."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {},
+            "required": [],
+        },
+    },
+]
+
+
+def _execute_chat_tool(tool_name: str, tool_input: dict, state: DiagnosticState) -> str:
+    """Execute a chat tool against the current diagnostic state and return a JSON string."""
+    try:
+        if tool_name == "get_findings":
+            return _tool_get_findings(state)
+        elif tool_name == "get_finding_detail":
+            return _tool_get_finding_detail(state, tool_input.get("finding_id", ""))
+        elif tool_name == "get_session_summary":
+            return _tool_get_session_summary(state)
+        else:
+            return json.dumps({"error": f"Unknown tool: {tool_name}"})
+    except Exception as e:
+        logger.warning("Chat tool execution failed: %s(%s) — %s", tool_name, tool_input, e)
+        return json.dumps({"error": str(e)})
+
+
+def _tool_get_findings(state: DiagnosticState) -> str:
+    """Return all findings sorted by severity."""
+    severity_order = {"critical": 0, "high": 1, "medium": 2, "low": 3}
+    sorted_findings = sorted(
+        state.all_findings,
+        key=lambda f: severity_order.get(f.severity, 3),
+    )
+    findings_out = []
+    for f in sorted_findings:
+        findings_out.append({
+            "finding_id": f.finding_id,
+            "agent_name": f.agent_name,
+            "category": f.category,
+            "severity": f.severity,
+            "confidence_score": f.confidence_score,
+            "summary": f.summary,
+        })
+    return json.dumps({"count": len(findings_out), "findings": findings_out})
+
+
+def _tool_get_finding_detail(state: DiagnosticState, finding_id: str) -> str:
+    """Return detailed info for a single finding by ID."""
+    for f in state.all_findings:
+        if f.finding_id == finding_id:
+            detail = {
+                "finding_id": f.finding_id,
+                "agent_name": f.agent_name,
+                "category": f.category,
+                "severity": f.severity,
+                "confidence_score": f.confidence_score,
+                "summary": f.summary,
+                "breadcrumbs": [
+                    {
+                        "source_type": b.source_type,
+                        "action": b.action,
+                        "raw_evidence": b.raw_evidence[:500] if b.raw_evidence else "",
+                    }
+                    for b in (f.breadcrumbs or [])
+                ],
+                "negative_findings": [
+                    {"what_was_checked": nf.what_was_checked, "result": nf.result}
+                    for nf in (f.negative_findings or [])
+                ],
+                "critic_verdict": None,
+                "resource_refs": [
+                    {"ref_type": r.ref_type, "ref_id": r.ref_id}
+                    for r in (f.resource_refs or [])
+                ] if f.resource_refs else [],
+            }
+            if f.critic_verdict:
+                detail["critic_verdict"] = {
+                    "plausibility": f.critic_verdict.plausibility,
+                    "confidence_in_verdict": f.critic_verdict.confidence_in_verdict,
+                    "recommendation": f.critic_verdict.recommendation,
+                }
+            return json.dumps(detail)
+    return json.dumps({"error": f"Finding '{finding_id}' not found. Use get_findings to list available IDs."})
+
+
+def _tool_get_session_summary(state: DiagnosticState) -> str:
+    """Return a session-level summary."""
+    summary = {
+        "session_id": state.session_id,
+        "incident_id": state.incident_id,
+        "service_name": state.service_name,
+        "phase": state.phase.value,
+        "overall_confidence": state.overall_confidence,
+        "agents_completed": state.agents_completed,
+        "agents_pending": state.agents_pending,
+        "findings_count": len(state.all_findings),
+        "reasoning_chain": [],
+        "timeline_events": [],
+    }
+    # Reasoning chain
+    for step in (state.reasoning_chain or [])[:10]:
+        if isinstance(step, dict):
+            summary["reasoning_chain"].append(step.get("summary", str(step)))
+        else:
+            summary["reasoning_chain"].append(getattr(step, "summary", str(step)))
+
+    # Task events as timeline
+    for evt in (state.task_events or [])[:15]:
+        if isinstance(evt, dict):
+            summary["timeline_events"].append(evt)
+        else:
+            summary["timeline_events"].append({
+                "timestamp": evt.timestamp.isoformat() if hasattr(evt, "timestamp") else "",
+                "agent_name": getattr(evt, "agent_name", ""),
+                "event_type": getattr(evt, "event_type", ""),
+                "message": getattr(evt, "message", str(evt)),
+            })
+
+    return json.dumps(summary, default=str)
+
+
 class SupervisorAgent:
     """State machine orchestrator that routes work to specialized agents."""
 
@@ -2332,27 +2493,83 @@ Respond ONLY with a JSON array:
 - Overall confidence: {state.overall_confidence}%
 
 ## Diagnostic Findings
-{findings_context}"""
+{findings_context}
+
+## Tools
+You have access to tools that let you query live investigation data.
+Use them when the user asks for specific findings, details, or a summary
+that goes beyond what is already in the Diagnostic Findings above.
+Do NOT call tools if you can answer from the context already provided."""
 
         # Enforce token budget to prevent context overflow
         system_text, history_messages, _ = enforce_budget(
             system_text, history_messages, "", model_max=200_000
         )
 
-        # Stream LLM response — emit chat_chunk messages via WebSocket for live typing
         ws_mgr = self._event_emitter._websocket_manager if self._event_emitter else None
+
+        # ── Tool-calling loop (max 3 rounds to prevent runaway) ──
+        MAX_TOOL_ROUNDS = 3
+        messages_for_llm = list(history_messages)
         full_response = ""
-        async for chunk in self.llm_client.chat_stream(
-            prompt=message,
-            system=system_text,
-            messages=history_messages,
-        ):
-            full_response += chunk
+
+        for _tool_round in range(MAX_TOOL_ROUNDS + 1):
+            response = await self.llm_client.chat_with_tools(
+                system=system_text,
+                messages=messages_for_llm,
+                tools=_CHAT_TOOLS,
+                max_tokens=4096,
+            )
+
+            # Separate text blocks from tool_use blocks
+            text_blocks = [b for b in response.content if b.type == "text"]
+            tool_use_blocks = [b for b in response.content if b.type == "tool_use"]
+
+            if not tool_use_blocks:
+                # No tool calls — extract final text response
+                full_response = text_blocks[0].text if text_blocks else ""
+                break
+
+            # Notify client that tool calls are in progress
             if ws_mgr:
+                tool_names = [b.name for b in tool_use_blocks]
                 await ws_mgr.send_message(
                     state.session_id,
-                    {"type": "chat_chunk", "data": {"content": chunk, "done": False}},
+                    {"type": "chat_chunk", "data": {
+                        "content": "",
+                        "done": False,
+                        "tool_calls": tool_names,
+                    }},
                 )
+
+            # Append assistant message (contains both text + tool_use blocks)
+            messages_for_llm.append({"role": "assistant", "content": response.content})
+
+            # Execute each tool and collect results
+            tool_results = []
+            for tool_block in tool_use_blocks:
+                result_str = _execute_chat_tool(tool_block.name, tool_block.input, state)
+                tool_results.append({
+                    "type": "tool_result",
+                    "tool_use_id": tool_block.id,
+                    "content": result_str,
+                })
+
+            messages_for_llm.append({"role": "user", "content": tool_results})
+        else:
+            # Exhausted tool rounds — grab whatever text we have
+            if text_blocks:
+                full_response = text_blocks[0].text
+            else:
+                full_response = "I ran into a limit while looking up data. Here is what I found so far."
+
+        # ── Stream final text to WebSocket ──
+        if ws_mgr and full_response:
+            # Send the full response as a single chunk (tool-calling path is non-streaming)
+            await ws_mgr.send_message(
+                state.session_id,
+                {"type": "chat_chunk", "data": {"content": full_response, "done": False}},
+            )
 
         # Send final chat_chunk with done=True and full_response
         if ws_mgr:
@@ -2370,7 +2587,7 @@ Respond ONLY with a JSON array:
                 },
             )
 
-        # Store conversation history
+        # Store conversation history (only user message + final assistant text)
         if session is not None:
             chat_history.append({"role": "user", "content": message})
             chat_history.append({"role": "assistant", "content": full_response})

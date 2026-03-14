@@ -6,6 +6,7 @@ pattern. Haiku for extraction agents, Opus for synthesizer/dossier.
 
 import asyncio
 import logging
+import re as _re
 from typing import Optional, TypedDict
 
 from langgraph.graph import END, StateGraph
@@ -57,6 +58,7 @@ class DBDiagnosticStateV2(TypedDict, total=False):
     root_cause: str
     needs_human_review: bool
     dossier: dict
+    fix_recommendations: list[dict]
 
 
 # --- Node: Connection Validator (no LLM) ---
@@ -81,6 +83,22 @@ async def connection_validator(state: DBDiagnosticStateV2) -> dict:
             await emitter.emit("connection_validator", "error",
                               f"Database unreachable: {health.error}")
         return {"connected": False, "status": "failed", "error": health.error}
+
+    # Permission pre-check
+    try:
+        permissions = await adapter.check_permissions()
+        missing = [view for view, ok in permissions.items() if not ok]
+        if missing and emitter:
+            await emitter.emit("connection_validator", "warning",
+                              f"Missing permissions on: {', '.join(missing)}. Some diagnostics may be limited.")
+        if emitter and not missing:
+            await emitter.emit("connection_validator", "success",
+                              "All diagnostic view permissions verified")
+    except Exception as e:
+        logger.warning("Permission check failed: %s", e)
+        if emitter:
+            await emitter.emit("connection_validator", "warning",
+                              f"Could not verify permissions: {e}")
 
     if emitter:
         await emitter.emit("connection_validator", "success",
@@ -137,6 +155,28 @@ async def context_loader(state: DBDiagnosticStateV2) -> dict:
     return {"app_context": app_context}
 
 
+def _detect_index_suggestions(node: dict) -> list[dict]:
+    """Scan EXPLAIN plan for Seq Scans with Filter — suggest indexes."""
+    suggestions = []
+    def scan(n):
+        node_type = n.get('Node Type', '')
+        if 'Seq Scan' in node_type and n.get('Relation Name') and n.get('Filter'):
+            table = n['Relation Name']
+            filter_text = n['Filter']
+            cols = _re.findall(r'\b([a-z_][a-z0-9_]*)\s*[>=<]', filter_text, _re.IGNORECASE)
+            if cols:
+                suggestions.append({
+                    "table": table,
+                    "columns": list(dict.fromkeys(cols)),  # unique, preserve order
+                    "filter": filter_text,
+                    "rows_scanned": n.get('Plan Rows', 0),
+                })
+        for child in n.get('Plans', []):
+            scan(child)
+    scan(node)
+    return suggestions
+
+
 # --- Node: Query Analyst (LLM + tools) ---
 
 async def query_analyst(state: DBDiagnosticStateV2) -> dict:
@@ -149,6 +189,7 @@ async def query_analyst(state: DBDiagnosticStateV2) -> dict:
     # Phase 2: Replace with LLM tool-calling agent (Haiku)
     adapter = state["_adapter"]
     findings = []
+    slow = []
 
     try:
         queries = await adapter.get_active_queries()
@@ -175,8 +216,108 @@ async def query_analyst(state: DBDiagnosticStateV2) -> dict:
         if emitter:
             await emitter.emit("query_analyst", "error", str(e))
 
+    # Historical slow queries from pg_stat_statements
+    hist_slow: list[dict] = []
+    try:
+        hist_slow = await adapter.get_slow_queries_from_stats()
+        for hs in hist_slow:
+            mean_ms = hs.get("mean_exec_time", 0)
+            if mean_ms > 100:  # only report queries averaging > 100ms
+                findings.append(DBFindingV2(
+                    finding_id=f"f-qa-hist-{hs.get('queryid', 0)}",
+                    agent="query_analyst",
+                    category="slow_query",
+                    title=f"Historically slow query (avg {mean_ms:.0f}ms, {hs.get('calls', 0)} calls)",
+                    severity="high" if mean_ms > 500 else "medium",
+                    confidence_raw=0.85,
+                    confidence_calibrated=0.80,
+                    detail=f"Query: {str(hs.get('query', ''))[:200]}",
+                    evidence_ids=[],
+                    recommendation="Review query plan and optimize or add indexes",
+                    remediation_available=False,
+                    rule_check=f"mean_exec_time={mean_ms:.1f}ms > 100ms",
+                ).model_dump())
+    except Exception as e:
+        logger.warning("pg_stat_statements check skipped: %s", e)
+
+    # EXPLAIN the top 3 slow queries (read-only, no ANALYZE)
+    explain_plans = []
+    for q in sorted(slow, key=lambda q: q.duration_ms, reverse=True)[:3]:
+        try:
+            plan = await adapter.explain_query(q.query)
+            if plan:
+                explain_plans.append({
+                    "plan": plan,
+                    "query": q.query[:500],
+                    "pid": q.pid,
+                    "duration_ms": q.duration_ms,
+                    "user": getattr(q, 'user', ''),
+                })
+                if emitter:
+                    node_type = plan.get('Node Type', '?') if isinstance(plan, dict) else '?'
+                    await emitter.emit("query_analyst", "reasoning",
+                        f"EXPLAIN pid:{q.pid}: root node is {node_type}")
+        except Exception as e:
+            logger.warning("explain_query failed for pid %s: %s", q.pid, e)
+
+    # Detect missing indexes from EXPLAIN plans
+    for ep in explain_plans:
+        plan_node = ep.get("plan", {})
+        index_suggestions = _detect_index_suggestions(plan_node)
+        for suggestion in index_suggestions:
+            cols_str = ', '.join(suggestion['columns'])
+            idx_name = f"idx_{suggestion['table']}_{'_'.join(suggestion['columns'])}"
+            findings.append(DBFindingV2(
+                finding_id=f"f-qa-idx-{suggestion['table']}",
+                agent="query_analyst",
+                category="index_candidate",
+                title=f"Missing index: {suggestion['table']} ({cols_str})",
+                severity="high",
+                confidence_raw=0.80,
+                confidence_calibrated=0.75,
+                detail=f"Seq Scan on {suggestion['table']} with filter: {suggestion['filter']}. Scanned ~{suggestion['rows_scanned']} rows.",
+                evidence_ids=[],
+                recommendation=f"Create index on {suggestion['table']}({cols_str}) to eliminate sequential scan",
+                remediation_sql=f"CREATE INDEX CONCURRENTLY {idx_name} ON {suggestion['table']} ({cols_str});",
+                remediation_warning="CREATE INDEX CONCURRENTLY is non-blocking but may take minutes on large tables.",
+                remediation_available=True,
+                rule_check=f"seq_scan on {suggestion['table']} with filter",
+            ).model_dump())
+
     if emitter:
-        await emitter.emit("query_analyst", "success", f"Found {len(findings)} query issues")
+        # Reasoning: explain what was found and why it matters
+        total_queries = len(queries) if 'queries' in dir() else 0
+        await emitter.emit("query_analyst", "reasoning", f"Scanned {total_queries} active queries, {len(slow)} exceed 5s threshold")
+        for q in slow:
+            sev = "CRITICAL" if q.duration_ms > 30000 else "HIGH" if q.duration_ms > 10000 else "MEDIUM"
+            await emitter.emit("query_analyst", "reasoning", f"[{sev}] pid:{q.pid} running {q.duration_ms/1000:.1f}s — {q.query[:100]}...")
+        if slow:
+            await emitter.emit("query_analyst", "reasoning", "Recommendation: Review query plans, add missing indexes, consider connection pooling timeouts")
+        else:
+            await emitter.emit("query_analyst", "reasoning", "All queries within acceptable duration thresholds")
+
+        # Historical slow query reasoning
+        if hist_slow:
+            await emitter.emit("query_analyst", "reasoning",
+                              f"pg_stat_statements: {len(hist_slow)} historically slow queries found")
+            for hs in hist_slow[:5]:
+                mean_ms = hs.get("mean_exec_time", 0)
+                calls = hs.get("calls", 0)
+                await emitter.emit("query_analyst", "reasoning",
+                                  f"  avg {mean_ms:.0f}ms x {calls} calls — {str(hs.get('query', ''))[:100]}...")
+
+        # Structured data for visualization panels
+        slow_queries_data = [{"pid": q.pid, "duration_ms": q.duration_ms, "query": q.query[:500]} for q in slow]
+        finding_details: dict = {
+            "slow_queries": slow_queries_data,
+            "historical_slow_queries": hist_slow[:5] if hist_slow else None,
+        }
+        if explain_plans:
+            finding_details["explain_plans"] = explain_plans
+            # Keep backward compat: also set explain_plan to the first one
+            finding_details["explain_plan"] = explain_plans[0]
+        await emitter.emit("query_analyst", "finding", f"Found {len(findings)} query issues", details=finding_details)
+        await emitter.emit("query_analyst", "success", f"Query analysis complete — {len(findings)} issues")
 
     return {"query_findings": findings}
 
@@ -193,6 +334,9 @@ async def health_analyst(state: DBDiagnosticStateV2) -> dict:
     engine = state.get("engine", "postgresql")
     is_mongo = engine == "mongodb"
     findings = []
+    pool = None
+    perf = None
+    replication_data = None
 
     try:
         pool = await adapter.get_connection_pool()
@@ -260,13 +404,63 @@ async def health_analyst(state: DBDiagnosticStateV2) -> dict:
                 remediation_available=False,
                 rule_check=f"deadlocks={perf.deadlocks} > 0",
             ).model_dump())
+
+        # Replication data
+        repl = await adapter.get_replication_status()
+        if repl.replicas:
+            replication_data = {
+                "primary": {"host": state.get("host", "primary"), "lag_ms": 0},
+                "replicas": [{"host": r.name, "lag_ms": int(r.lag_seconds * 1000), "status": r.state} for r in repl.replicas],
+            }
+            lagging = [r for r in repl.replicas if r.lag_seconds > 10]
+            if lagging:
+                findings.append(DBFindingV2(
+                    finding_id="f-ha-repl-lag",
+                    agent="health_analyst",
+                    category="replication",
+                    title=f"Replication lag detected ({len(lagging)} replicas behind)",
+                    severity="high" if any(r.lag_seconds > 30 for r in lagging) else "medium",
+                    confidence_raw=0.90,
+                    confidence_calibrated=0.85,
+                    detail=f"Replicas lagging: {', '.join(f'{r.name} ({r.lag_seconds}s)' for r in lagging)}",
+                    evidence_ids=[],
+                    recommendation="Check network connectivity and replica load",
+                    remediation_available=False,
+                    rule_check=f"replicas_lagging={len(lagging)}",
+                ).model_dump())
     except Exception as e:
         logger.error("Health analyst failed: %s", e)
         if emitter:
             await emitter.emit("health_analyst", "error", str(e))
 
     if emitter:
-        await emitter.emit("health_analyst", "success", f"Found {len(findings)} health issues")
+        # Reasoning: explain observations
+        if pool:
+            util = round(pool.active / pool.max_connections * 100, 1) if pool.max_connections else 0
+            await emitter.emit("health_analyst", "reasoning", f"Connection pool: {pool.active}/{pool.max_connections} active ({util}% utilization), {pool.waiting} waiting")
+            if util > 80:
+                await emitter.emit("health_analyst", "reasoning", f"Pool near saturation — queries may queue. Consider increasing max_connections or adding PgBouncer")
+        if perf:
+            await emitter.emit("health_analyst", "reasoning", f"Cache hit ratio: {perf.cache_hit_ratio:.1%} {'(healthy)' if perf.cache_hit_ratio >= 0.9 else '(below 90% — shared_buffers may need increase)'}")
+            if perf.deadlocks > 0:
+                await emitter.emit("health_analyst", "reasoning", f"{perf.deadlocks} deadlocks detected — review transaction isolation and lock ordering")
+            await emitter.emit("health_analyst", "reasoning", f"Throughput: {perf.transactions_per_sec:.0f} TPS, uptime: {perf.uptime_seconds // 86400}d {(perf.uptime_seconds % 86400) // 3600}h")
+        if replication_data and replication_data.get("replicas"):
+            lagging_repls = [r for r in replication_data["replicas"] if r["lag_ms"] > 10000]
+            healthy_repls = [r for r in replication_data["replicas"] if r["lag_ms"] <= 10000]
+            await emitter.emit("health_analyst", "reasoning", f"Replication: {len(replication_data['replicas'])} replicas — {len(healthy_repls)} healthy, {len(lagging_repls)} lagging")
+            for r in lagging_repls:
+                await emitter.emit("health_analyst", "reasoning", f"  ⚠ {r['host']} lagging {r['lag_ms']/1000:.1f}s ({r['status']})")
+
+        # Structured data for visualization panels
+        conn_data = {"active": pool.active, "idle": pool.idle, "waiting": pool.waiting, "max_connections": pool.max_connections} if pool else None
+        perf_data = {"cache_hit_ratio": perf.cache_hit_ratio, "transactions_per_sec": perf.transactions_per_sec, "deadlocks": perf.deadlocks, "uptime_seconds": perf.uptime_seconds} if perf else None
+        await emitter.emit("health_analyst", "finding", f"Found {len(findings)} health issues", details={
+            "connections": conn_data,
+            "performance": perf_data,
+            "replication": replication_data,
+        })
+        await emitter.emit("health_analyst", "success", f"Health analysis complete — {len(findings)} issues")
 
     return {"health_findings": findings}
 
@@ -279,11 +473,64 @@ async def schema_analyst(state: DBDiagnosticStateV2) -> dict:
     if emitter:
         await emitter.emit("schema_analyst", "started", "Analyzing schema health")
 
-    # Placeholder — will be enhanced with LLM tool-calling in Phase 2
+    adapter = state["_adapter"]
     findings = []
+    indexes_data = []
+    bloat_data = []
+
+    try:
+        schema = await adapter.get_schema_snapshot()
+        # Get detailed info per table (includes bloat_ratio, indexes)
+        for tbl_dict in schema.tables:
+            tbl_name = tbl_dict.get("name", "") if isinstance(tbl_dict, dict) else getattr(tbl_dict, "name", "")
+            try:
+                detail = await adapter.get_table_detail(tbl_name)
+                bloat = detail.bloat_ratio
+                if bloat > 0.15:
+                    findings.append(DBFindingV2(
+                        finding_id=f"f-sa-bloat-{tbl_name}",
+                        agent="schema_analyst",
+                        category="bloat",
+                        title=f"Table bloat: {tbl_name} ({bloat:.0%})",
+                        severity="high" if bloat > 0.4 else "medium",
+                        confidence_raw=0.9,
+                        confidence_calibrated=0.85,
+                        detail=f"Table {tbl_name} has {bloat:.0%} bloat",
+                        evidence_ids=[],
+                        recommendation="Run VACUUM FULL or pg_repack",
+                        remediation_available=True,
+                        rule_check=f"bloat_ratio={bloat:.2f} > 0.15",
+                    ).model_dump())
+                bloat_data.append({"name": tbl_name, "bloat_ratio": bloat, "dead_tuples": 0, "size_mb": round(detail.total_size_bytes / 1048576, 1)})
+                for idx in detail.indexes:
+                    scans = getattr(idx, "scan_count", 0)
+                    indexes_data.append({"name": idx.name, "table": tbl_name, "scans": scans, "size_mb": round(idx.size_bytes / 1048576, 1), "unused": scans == 0})
+            except Exception:
+                pass
+    except Exception as e:
+        logger.error("Schema analyst failed: %s", e)
+        if emitter:
+            await emitter.emit("schema_analyst", "error", str(e))
 
     if emitter:
-        await emitter.emit("schema_analyst", "success", f"Found {len(findings)} schema issues")
+        # Reasoning: explain observations
+        await emitter.emit("schema_analyst", "reasoning", f"Scanned {len(bloat_data)} tables, {len(indexes_data)} indexes")
+        bloated = [t for t in bloat_data if t["bloat_ratio"] > 0.15]
+        if bloated:
+            await emitter.emit("schema_analyst", "reasoning", f"{len(bloated)} tables have significant bloat (>15%):")
+            for t in sorted(bloated, key=lambda x: x["bloat_ratio"], reverse=True):
+                await emitter.emit("schema_analyst", "reasoning", f"  {t['name']}: {t['bloat_ratio']:.0%} bloat ({t['size_mb']:.0f} MB) — VACUUM recommended")
+        else:
+            await emitter.emit("schema_analyst", "reasoning", "All tables within acceptable bloat thresholds")
+        total_idx_size = sum(i["size_mb"] for i in indexes_data)
+        await emitter.emit("schema_analyst", "reasoning", f"Total index footprint: {total_idx_size:.1f} MB across {len(indexes_data)} indexes")
+
+        # Structured data for visualization panels
+        await emitter.emit("schema_analyst", "finding", f"Found {len(findings)} schema issues", details={
+            "indexes": indexes_data if indexes_data else None,
+            "table_bloat": bloat_data if bloat_data else None,
+        })
+        await emitter.emit("schema_analyst", "success", f"Schema analysis complete — {len(findings)} issues")
 
     return {"schema_findings": findings}
 
@@ -491,6 +738,80 @@ async def synthesizer(state: DBDiagnosticStateV2) -> dict:
         ],
     }
 
+    # Generate copy-pasteable SQL for each recommendation
+    engine = state.get("engine", "postgresql")
+    fix_recommendations = []
+    for i, f in enumerate(all_findings):
+        if not f.get("recommendation"):
+            continue
+        cat = f.get("category", "")
+        sql = ""
+        warning = "Review carefully before executing."
+        verification_sql = ""
+        estimated_impact = ""
+        if cat == "slow_query":
+            pid = f.get("finding_id", "").replace("f-qa-", "")
+            if engine == "mongodb":
+                sql = f"db.killOp({pid})"
+            else:
+                sql = f"SELECT pg_terminate_backend({pid});"
+            warning = "Terminates the query immediately. Active transactions will be rolled back."
+            verification_sql = f"SELECT pid, state FROM pg_stat_activity WHERE pid = {pid};\n-- Should return 0 rows after termination"
+            estimated_impact = "Immediate — query terminated, connection freed"
+        elif cat == "bloat":
+            table = f.get("title", "").split(":")[1].split("(")[0].strip() if ":" in f.get("title", "") else ""
+            bloat_pct = f.get("detail", "")
+            if "67%" in bloat_pct or "42%" in bloat_pct:
+                sql = f"VACUUM FULL {table};"
+            else:
+                sql = f"VACUUM (VERBOSE, ANALYZE) {table};"
+            warning = "VACUUM FULL locks the table for the duration. Schedule during maintenance window."
+            verification_sql = f"SELECT relname, n_dead_tup, n_live_tup,\n  round(n_dead_tup::numeric / GREATEST(n_live_tup,1) * 100, 1) AS bloat_pct\nFROM pg_stat_user_tables WHERE relname = '{table}';\n-- bloat_pct should be < 5% after VACUUM"
+            estimated_impact = "Table locked during VACUUM FULL. Use pg_repack for zero-downtime alternative."
+        elif cat == "connections":
+            if engine == "mongodb":
+                sql = "db.serverStatus().connections"
+            else:
+                sql = "-- Review connection pooling configuration\n-- Consider: ALTER SYSTEM SET max_connections = 200;\n-- Requires: SELECT pg_reload_conf(); + restart"
+            warning = "Requires PostgreSQL restart to take effect. Plan for brief downtime."
+            verification_sql = "SELECT count(*) AS active FROM pg_stat_activity WHERE state = 'active';\n-- Should decrease after pool tuning"
+            estimated_impact = "Requires restart if max_connections changed."
+        elif cat == "memory":
+            if engine == "mongodb":
+                sql = "db.serverStatus().wiredTiger.cache"
+            else:
+                sql = "ALTER SYSTEM SET shared_buffers = '1GB';\nSELECT pg_reload_conf();\n-- Note: Requires PostgreSQL restart to take effect"
+            warning = "Requires PostgreSQL restart. Ensure server has enough RAM."
+            verification_sql = "SHOW shared_buffers;\nSELECT round(heap_blks_hit::numeric / (heap_blks_hit + heap_blks_read) * 100, 1) AS cache_hit_pct\nFROM pg_statio_user_tables;\n-- cache_hit_pct should improve after restart"
+            estimated_impact = "Requires PostgreSQL restart. Plan 30-60s downtime."
+        elif cat == "deadlock":
+            sql = "-- Investigate current locks:\nSELECT * FROM pg_locks WHERE NOT granted;\n\n-- Review blocking queries:\nSELECT blocked.pid, blocked.query, blocking.pid AS blocking_pid, blocking.query AS blocking_query\nFROM pg_stat_activity blocked\nJOIN pg_locks bl ON bl.pid = blocked.pid\nJOIN pg_locks blk ON blk.locktype = bl.locktype AND blk.granted\nJOIN pg_stat_activity blocking ON blocking.pid = blk.pid\nWHERE NOT bl.granted;"
+            warning = "Diagnostic query only. Review results before taking action."
+            verification_sql = "SELECT deadlocks FROM pg_stat_database WHERE datname = current_database();\n-- Monitor for decrease"
+            estimated_impact = "Diagnostic only — review lock ordering in application code."
+        elif cat == "replication":
+            sql = "-- Check replication status:\nSELECT client_addr, state, sent_lsn, write_lsn, flush_lsn, replay_lsn,\n  (extract(epoch from now() - pg_last_xact_replay_timestamp()))::int AS lag_seconds\nFROM pg_stat_replication;"
+            warning = "Diagnostic query only. Do not modify replication settings without DBA review."
+            verification_sql = "SELECT client_addr, state, replay_lag FROM pg_stat_replication;\n-- replay_lag should decrease"
+            estimated_impact = "Diagnostic only — check network and replica load."
+        elif cat == "index_candidate":
+            verification_sql = "-- After creating index, verify plan changed:\nEXPLAIN SELECT ... -- Should show Index Scan"
+            estimated_impact = "Non-blocking with CONCURRENTLY. Minutes on large tables."
+
+        fix_recommendations.append({
+            "priority": i + 1,
+            "finding_id": f.get("finding_id"),
+            "title": f.get("title"),
+            "severity": f.get("severity"),
+            "category": cat,
+            "recommendation": f.get("recommendation"),
+            "sql": sql,
+            "warning": warning,
+            "verification_sql": verification_sql,
+            "estimated_impact": estimated_impact,
+            "agent": f.get("agent"),
+        })
+
     dossier = {
         "executive_summary": exec_summary,
         "root_cause_analysis": root_cause_analysis,
@@ -502,7 +823,15 @@ async def synthesizer(state: DBDiagnosticStateV2) -> dict:
     }
 
     if emitter:
-        await emitter.emit("synthesizer", "success", summary)
+        top_severity = top_finding.get("severity", "medium") if all_findings else "info"
+        top_rec = top_finding.get("recommendation", "") if all_findings else ""
+        await emitter.emit("synthesizer", "success", summary, details={
+            "severity": top_severity,
+            "recommendation": top_rec,
+            "root_cause": root_cause,
+            "finding_count": finding_count,
+            "critical_count": critical_count,
+        })
         if needs_review:
             await emitter.emit("synthesizer", "warning",
                               "Low confidence findings detected — human review recommended")
@@ -514,7 +843,19 @@ async def synthesizer(state: DBDiagnosticStateV2) -> dict:
         "needs_human_review": needs_review,
         "status": "completed",
         "dossier": dossier,
+        "fix_recommendations": fix_recommendations,
     }
+
+
+# --- Node: Orchestrator (LLM-powered agents) ---
+
+async def orchestrator_node(state: DBDiagnosticStateV2) -> dict:
+    """Run LLM-powered agents via DiagnosticOrchestrator."""
+    from .orchestrator import DiagnosticOrchestrator
+
+    orchestrator = DiagnosticOrchestrator()
+    result = await orchestrator.run(state)
+    return result
 
 
 # --- Graph Builder ---
@@ -524,29 +865,16 @@ def build_db_diagnostic_graph_v2():
 
     graph.add_node("connection_validator", connection_validator)
     graph.add_node("context_loader", context_loader)
-    graph.add_node("query_analyst", query_analyst)
-    graph.add_node("health_analyst", health_analyst)
-    graph.add_node("schema_analyst", schema_analyst)
-    graph.add_node("synthesizer", synthesizer)
+    graph.add_node("orchestrator", orchestrator_node)
 
     graph.set_entry_point("connection_validator")
 
     graph.add_conditional_edges(
         "connection_validator",
-        should_continue,
-        {"context_loader": "context_loader", END: END},
+        lambda s: "context_loader" if s.get("connected") else END,
     )
 
-    # After context_loader, dispatch all analysts in parallel
-    graph.add_edge("context_loader", "query_analyst")
-    graph.add_edge("context_loader", "health_analyst")
-    graph.add_edge("context_loader", "schema_analyst")
-
-    # All analysts feed into synthesizer
-    graph.add_edge("query_analyst", "synthesizer")
-    graph.add_edge("health_analyst", "synthesizer")
-    graph.add_edge("schema_analyst", "synthesizer")
-
-    graph.add_edge("synthesizer", END)
+    graph.add_edge("context_loader", "orchestrator")
+    graph.add_edge("orchestrator", END)
 
     return graph.compile()

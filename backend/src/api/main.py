@@ -38,6 +38,7 @@ from .discovery_endpoints import discovery_router, init_discovery_endpoints
 from .search_endpoints import search_router, init_search_endpoints
 from .db_endpoints import db_router
 from .collector_endpoints import collector_router, init_collector_endpoints
+from .assistant_endpoints import assistant_router
 from .websocket import manager
 
 # Cloud integration (multi-provider inventory)
@@ -180,6 +181,7 @@ def create_app() -> FastAPI:
     app.include_router(search_router)
     app.include_router(db_router)
     app.include_router(collector_router)
+    app.include_router(assistant_router)
 
     # Cloud integration router (multi-provider inventory)
     _cloud_store = CloudStore()
@@ -513,6 +515,21 @@ def create_app() -> FastAPI:
                     "timestamp": datetime.now().isoformat()
                 }
             })
+
+            # Replay any events emitted before WS connected
+            try:
+                from .routes_v4 import sessions as _sessions
+                session_data = _sessions.get(session_id)
+                if session_data:
+                    emitter = session_data.get("emitter")
+                    if emitter and hasattr(emitter, 'get_all_events'):
+                        for event in emitter.get_all_events():
+                            await manager.send_message(session_id, {
+                                "type": "task_event",
+                                "data": event.model_dump(mode="json"),
+                            })
+            except Exception as e:
+                logger.warning("Event replay failed: %s", e)
             
             # Keep connection alive and receive messages
             while True:

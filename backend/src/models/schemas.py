@@ -158,7 +158,7 @@ class TokenUsage(BaseModel):
 class TaskEvent(BaseModel):
     timestamp: datetime
     agent_name: str
-    event_type: Literal["started", "progress", "success", "warning", "error", "tool_call", "phase_change", "finding", "summary", "attestation_required", "fix_proposal", "fix_approved", "waiting_for_input"]
+    event_type: Literal["started", "progress", "success", "warning", "error", "tool_call", "phase_change", "finding", "summary", "attestation_required", "fix_proposal", "fix_approved", "waiting_for_input", "reasoning"]
     message: str
     details: Optional[dict] = None
     session_id: Optional[str] = None

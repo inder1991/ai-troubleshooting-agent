@@ -9,6 +9,7 @@ from typing import Any
 import httpx
 
 from src.agents.react_base import ReActAgent
+from src.agents.code_agent_utils import get_infra_hints_for_files
 from src.models.schemas import ImpactedFile, LineRange, FixArea, CodeAnalysisResult, TokenUsage
 from src.utils.event_emitter import EventEmitter
 from src.utils.logger import get_logger
@@ -440,6 +441,13 @@ class CodeNavigatorAgent(ReActAgent):
                     if patch:
                         parts.append(f"  ```\n  {patch[:500]}\n  ```")
 
+        # Infra hints for any infra files already pre-fetched
+        infra_hints = self._build_infra_hints_section(
+            list(file_contents.keys()), file_contents
+        )
+        if infra_hints:
+            parts.append(infra_hints)
+
         parts.append("\n## Your Task\n")
         parts.append(
             "Analyze the pre-fetched data above. Respond with JSON:\n"
@@ -526,6 +534,13 @@ class CodeNavigatorAgent(ReActAgent):
             parts.append("\n## Repository File Tree\n")
             parts.append("\n".join(f"  {f}" for f in tree[:150]))
 
+        # Infra hints for all files (pre-fetched + additional)
+        infra_hints = self._build_infra_hints_section(
+            list(all_files.keys()), all_files
+        )
+        if infra_hints:
+            parts.append(infra_hints)
+
         # Preliminary analysis from Call 1
         if plan.get("preliminary_analysis"):
             parts.append(f"\n## Preliminary Analysis (from Phase 1)\n{plan['preliminary_analysis']}")
@@ -571,6 +586,22 @@ class CodeNavigatorAgent(ReActAgent):
 
         return "\n".join(parts)
 
+    def _build_infra_hints_section(self, file_paths: list[str], file_contents: dict[str, str] | None = None) -> str:
+        """Return a formatted infra-specific analysis hints block, or empty string if no infra files."""
+        hints = get_infra_hints_for_files(file_paths, file_contents)
+        if not hints:
+            return ""
+        lines = ["\n## Infrastructure File Analysis Hints"]
+        lines.append(
+            "The following files are infrastructure configs. Apply the type-specific checks below "
+            "when analysing them — these are common sources of production incidents."
+        )
+        for fp, file_hints in hints.items():
+            lines.append(f"\n### {fp}")
+            for h in file_hints:
+                lines.append(f"- {h}")
+        return "\n".join(lines)
+
     def _two_pass_system_prompt(self) -> str:
         """System prompt for Call 1 (Plan)."""
         return (
@@ -582,7 +613,12 @@ class CodeNavigatorAgent(ReActAgent):
             "2. Determine if you need any additional files or searches to complete your analysis\n"
             "3. If you already have enough data, produce your final analysis directly\n\n"
             "Be efficient — request only files that are directly relevant to the root cause. "
-            "You have a budget of 10 additional files and 5 additional searches."
+            "You have a budget of 10 additional files and 5 additional searches.\n\n"
+            "## Infrastructure File Awareness\n"
+            "When the repository contains Helm charts, Terraform configs, Kubernetes manifests, or "
+            "Dockerfiles, pay special attention to these — they are frequent incident root causes. "
+            "Look for: missing resource limits, unpinned image tags, absent security contexts, "
+            "misconfigured probes, overly permissive IAM, and hardcoded secrets."
         )
 
     def _two_pass_analysis_system_prompt(self) -> str:
@@ -598,7 +634,19 @@ class CodeNavigatorAgent(ReActAgent):
             "- suggested_fix_areas: specific code changes to fix the issue\n"
             "- diff_analysis: whether recent changes contributed to the incident\n"
             "- overall_confidence: 0-100 based on evidence strength\n\n"
-            "Be precise. Cite specific files and line numbers from the data provided."
+            "Be precise. Cite specific files and line numbers from the data provided.\n\n"
+            "## Infrastructure File Analysis\n"
+            "If the source files include Helm charts (Chart.yaml, values.yaml, templates/*.yaml), "
+            "Terraform (*.tf, *.tfvars), Kubernetes manifests (files with 'apiVersion:' and 'kind:'), "
+            "or Dockerfiles, apply these checks:\n"
+            "- Helm: unpinned image tags, missing resource limits/requests, absent liveness/readiness probes, "
+            "hardcoded secrets in values, insecure securityContext\n"
+            "- Terraform: overly permissive IAM (*), unpinned provider versions, hardcoded credentials, "
+            "missing lifecycle prevent_destroy on stateful resources\n"
+            "- K8s manifests: missing resource limits (OOM risk), runAsRoot containers, "
+            "hostNetwork/hostPID: true, missing PodDisruptionBudget\n"
+            "- Dockerfiles: 'latest' base image tag, running as root (no USER), "
+            "hardcoded secrets in ENV/ARG, COPY . . including sensitive files"
         )
 
     def _parse_plan_response(self, text: str) -> dict:
@@ -900,7 +948,38 @@ graph TD
     User["Client"] -->|POST /checkout| CS["checkout-svc\\nsrc/main.py"]
     CS -->|call_inventory| IS["inventory-svc:8002"]
     IS -->|stock check| Redis[("Redis")]
-    style Redis fill:#ff4444,stroke:#cc0000,color:#fff"""
+    style Redis fill:#ff4444,stroke:#cc0000,color:#fff
+
+## INFRASTRUCTURE FILE AWARENESS
+When you encounter the following file types, apply type-specific analysis checks:
+
+**Helm charts** (Chart.yaml, values.yaml, templates/*.yaml):
+- Unpinned image tags ('latest') → use digest or semver
+- Missing resources.requests/limits → OOM kills and CPU throttling
+- Absent livenessProbe/readinessProbe → silent failures and traffic to crashing pods
+- Hardcoded secrets in values.yaml → use Secrets references
+- insecure securityContext (runAsRoot, allowPrivilegeEscalation: true)
+
+**Terraform** (*.tf, *.tfvars):
+- Overly permissive IAM policies ('*' actions/resources)
+- Unpinned provider versions → unexpected drift
+- Hardcoded credentials in .tf files
+- Missing lifecycle { prevent_destroy } on stateful resources (RDS, S3)
+- count vs for_each changes that silently destroy/recreate resources
+
+**Kubernetes manifests** (files with 'apiVersion:' and 'kind:' fields):
+- Missing resources.limits → node OOM, evictions
+- Containers running as root (no securityContext.runAsNonRoot)
+- hostNetwork: true or hostPID: true → security exposure
+- Missing PodDisruptionBudget → rolling updates cause downtime
+- HPA minReplicas < 2 → single point of failure
+
+**Dockerfiles** (Dockerfile, Dockerfile.*, *.dockerfile):
+- Base image using 'latest' tag → non-reproducible builds
+- No USER instruction (running as root)
+- COPY . . including .git, .env, or credentials
+- Hardcoded secrets in ENV or ARG instructions
+- Missing HEALTHCHECK → container restart loops go undetected"""
 
     async def _build_initial_prompt(self, context: dict) -> str:
         self._repo_url = context.get("repo_url", "")
@@ -1575,3 +1654,7 @@ graph TD
         if "shared" in desc_lower or "utility" in desc_lower or "helper" in desc_lower or "common" in desc_lower:
             return "shared_resource"
         return "shared_resource"
+
+
+# Backward-compatible alias used by tests and external callers
+CodeAgent = CodeNavigatorAgent

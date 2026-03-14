@@ -54,12 +54,16 @@ class DatabaseAdapter(ABC):
         port: int,
         database: str,
         ttl: int = DEFAULT_TTL,
+        connect_timeout: int = 10,
+        query_timeout: int = 30,
     ):
         self.engine = engine
         self.host = host
         self.port = port
         self.database = database
         self._ttl = ttl
+        self.connect_timeout = connect_timeout
+        self.query_timeout = query_timeout
         self._connected = False
 
         # Snapshot caches
@@ -91,6 +95,16 @@ class DatabaseAdapter(ABC):
 
     @abstractmethod
     async def health_check(self) -> AdapterHealth: ...
+
+    @abstractmethod
+    async def check_permissions(self) -> dict:
+        """Check read permissions on diagnostic views. Returns {view_name: bool}."""
+        ...
+
+    @abstractmethod
+    async def get_slow_queries_from_stats(self) -> list[dict]:
+        """Return historically slow queries from pg_stat_statements or equivalent."""
+        ...
 
     # ── Snapshot fetchers (vendor-specific, called on cache miss) ──
 
@@ -143,6 +157,38 @@ class DatabaseAdapter(ABC):
         if not self._cache_fresh() or self._pool_cache is None:
             self._pool_cache = await self._fetch_connection_pool()
         return self._pool_cache
+
+    # ── Diagnostic accessors (non-abstract — safe defaults) ──
+
+    async def get_wait_events(self) -> list[dict]:
+        """Return current wait events from pg_stat_activity."""
+        return []
+
+    async def get_lock_chains(self) -> list[dict]:
+        """Return blocking lock chains (who blocks whom)."""
+        return []
+
+    async def get_long_transactions(self) -> list[dict]:
+        """Return transactions idle in transaction > 5 minutes."""
+        return []
+
+    async def get_autovacuum_status(self) -> dict:
+        """Return running vacuums and stale tables needing vacuum."""
+        return {"running": [], "stale": []}
+
+    async def get_table_access_patterns(self) -> list[dict]:
+        """Return sequential vs index scan ratios per table."""
+        return []
+
+    # ── EXPLAIN (read-only, no ANALYZE) ──
+
+    async def explain_query(self, sql: str) -> dict | None:
+        """Return the query plan for *sql* without executing it.
+
+        Subclasses should override with engine-specific implementation.
+        Default returns None (not supported).
+        """
+        return None
 
     # ── Live queries ──
 

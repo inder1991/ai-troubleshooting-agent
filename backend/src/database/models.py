@@ -79,6 +79,7 @@ class IndexInfo(BaseModel):
     columns: list[str] = []
     unique: bool = False
     size_bytes: int = 0
+    scan_count: int = 0
 
 
 class TableDetail(BaseModel):
@@ -197,6 +198,14 @@ class EvidenceSnippet(BaseModel):
     artifact_id: str
 
 
+class EvidenceSource(BaseModel):
+    """Links a finding to the specific tool call that produced the evidence."""
+    tool_call_id: str = ""
+    tool_name: str = ""
+    data_snippet: str = ""
+    truncated: bool = False
+
+
 class DBFindingV2(BaseModel):
     finding_id: str
     agent: str
@@ -219,6 +228,10 @@ class DBFindingV2(BaseModel):
     remediation_plan_id: Optional[str] = None
     rule_check: str = ""
     meta: dict = {}
+    evidence_sources: list[EvidenceSource] = []    # Provenance: which tool calls support this
+    related_findings: list[str] = []               # Cross-agent correlation: finding IDs
+    remediation_sql: str = ""                      # Context-aware SQL command
+    remediation_warning: str = ""                  # Risk warning for the SQL
 
 
 class PlanStep(BaseModel):
