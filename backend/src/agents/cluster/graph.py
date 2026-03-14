@@ -71,9 +71,6 @@ class State(TypedDict):
     rbac_check: Optional[dict]
     # Critic validation result
     critic_result: Optional[dict]
-    # LLM budget and telemetry
-    session_budget: Optional[dict]        # SessionBudget.to_dict() for state passing
-    llm_telemetry: Optional[dict]         # SessionLLMSummary.to_dict()
     # Diagnostic intelligence pipeline
     normalized_signals: list[dict]
     pattern_matches: list[dict]

@@ -839,6 +839,7 @@ async def get_findings(session_id: str):
                 "critical_incidents": health_report.get("critical_incidents", []) if health_report else [],
                 "other_findings": health_report.get("other_findings", []) if health_report else [],
                 "symptom_map": health_report.get("symptom_map", {}) if health_report else {},
+                "hypothesis_selection": health_report.get("hypothesis_selection") if health_report else None,
             }
         return {**common, "platform": "", "platform_version": "", "platform_health": "PENDING", "data_completeness": 0.0, "domain_reports": []}
 

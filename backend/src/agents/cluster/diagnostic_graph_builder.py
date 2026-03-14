@@ -2,12 +2,22 @@
 
 from __future__ import annotations
 import uuid
-from collections import defaultdict, deque
+from collections import defaultdict
 from src.agents.cluster.state import DiagnosticNode, DiagnosticEdge, DiagnosticGraph, NormalizedSignal
+from src.agents.cluster.graph_utils import bfs_reachable, graph_has_path
 from src.agents.cluster.traced_node import traced_node
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
+
+PATTERN_ROOT_SIGNALS = {
+    "CRASHLOOP_OOM": "OOM_KILLED",
+    "NODE_DISK_FULL": "NODE_DISK_PRESSURE",
+    "STUCK_ROLLOUT": "ROLLOUT_STUCK",
+    "NODE_PRESSURE_EVICTION": "NODE_DISK_PRESSURE",
+    "NODE_MEMORY_EVICTION": "NODE_MEMORY_PRESSURE",
+    "NETPOL_BLOCKING_CONFIRMED": "NETPOL_EMPTY_INGRESS",
+}
 
 
 def build_diagnostic_graph(
@@ -125,10 +135,12 @@ def build_diagnostic_graph(
     for pm_dict in pattern_matches:
         pm_conditions = pm_dict.get("matched_conditions", [])
         pm_resources = pm_dict.get("affected_resources", [])
+        pattern_id = pm_dict.get("pattern_id", "")
         if len(pm_conditions) > 1:
-            # First condition is likely the root, rest are symptoms
-            root_type = pm_conditions[0]
-            for symptom_type in pm_conditions[1:]:
+            root_type = PATTERN_ROOT_SIGNALS.get(pattern_id, pm_conditions[0])
+            for symptom_type in pm_conditions:
+                if symptom_type == root_type:
+                    continue
                 root_nodes = [nid for nid, n in nodes.items() if n.signal_type == root_type]
                 symptom_nodes = [nid for nid, n in nodes.items() if n.signal_type == symptom_type]
                 for r in root_nodes:
@@ -138,33 +150,14 @@ def build_diagnostic_graph(
                             confidence=0.7, evidence=f"Pattern links {root_type} -> {symptom_type}"
                         ))
 
+    valid_edges = [e for e in edges if e.from_id in nodes and e.to_id in nodes]
+    if len(valid_edges) < len(edges):
+        logger.warning("Removed %d dangling edges", len(edges) - len(valid_edges))
+    edges = valid_edges
+
     graph = DiagnosticGraph(nodes=nodes, edges=edges)
     logger.info("Built diagnostic graph: %d nodes, %d edges", len(nodes), len(edges))
     return graph
-
-
-def bfs_reachable(graph: DiagnosticGraph, start_id: str) -> set[str]:
-    """BFS to find all reachable nodes from start."""
-    adj: dict[str, set[str]] = defaultdict(set)
-    for edge in graph.edges:
-        adj[edge.from_id].add(edge.to_id)
-
-    visited = set()
-    queue = deque([start_id])
-    while queue:
-        current = queue.popleft()
-        if current in visited:
-            continue
-        visited.add(current)
-        for neighbor in adj.get(current, set()):
-            if neighbor not in visited:
-                queue.append(neighbor)
-    return visited
-
-
-def graph_has_path(graph: DiagnosticGraph, from_id: str, to_id: str) -> bool:
-    """Check if a directed path exists between two nodes."""
-    return to_id in bfs_reachable(graph, from_id)
 
 
 @traced_node(timeout_seconds=5)

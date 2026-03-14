@@ -74,14 +74,18 @@ def compute_priority_score(
     severity: str,
     blast_radius: int,
     is_root_cause: bool,
+    is_symptom: bool = False,
 ) -> float:
     """Compute priority score for sorting issues."""
-    return (
+    base = (
         SEVERITY_WEIGHT.get(severity, 2)
         + 0.5 * blast_radius
         + STATE_WEIGHT.get(state, 0.0)
         + (2.0 if is_root_cause else 0)
     )
+    if is_symptom:
+        return min(base, 3.0)
+    return base
 
 
 def build_diagnostic_issues(
@@ -95,7 +99,17 @@ def build_diagnostic_issues(
     if thresholds is None:
         thresholds = LifecycleThresholds()
 
-    graph = DiagnosticGraph(**diagnostic_graph) if isinstance(diagnostic_graph, dict) else diagnostic_graph
+    if not diagnostic_graph or not isinstance(diagnostic_graph, dict):
+        logger.warning("Empty or invalid diagnostic graph")
+        return []
+    if not diagnostic_graph.get("nodes"):
+        logger.warning("Diagnostic graph has no nodes")
+        return []
+    try:
+        graph = DiagnosticGraph(**diagnostic_graph)
+    except Exception as e:
+        logger.error("Failed to parse diagnostic graph: %s", e)
+        return []
     resource_temporals = temporal_data.get("resource_temporals", {})
 
     # Build adjacency for blast radius calculation
@@ -158,7 +172,7 @@ def build_diagnostic_issues(
         severity = "critical" if "critical" in severities else "high" if "high" in severities else "medium"
 
         # Compute priority
-        priority = compute_priority_score(state, severity, blast_radius, is_root_cause)
+        priority = compute_priority_score(state, severity, blast_radius, is_root_cause, is_symptom=is_symptom)
 
         # Find matching patterns
         matched_pattern_ids = []

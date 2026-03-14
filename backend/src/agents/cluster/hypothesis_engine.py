@@ -21,7 +21,7 @@ from src.agents.cluster.state import (
     PatternMatch,
     WeightedEvidence,
 )
-from src.agents.cluster.diagnostic_graph_builder import bfs_reachable, graph_has_path
+from src.agents.cluster.graph_utils import bfs_reachable, graph_has_path
 from src.agents.cluster.traced_node import traced_node
 from src.utils.logger import get_logger
 
@@ -503,6 +503,7 @@ def collect_negative_evidence(
 
 def _logistic(x: float) -> float:
     """Logistic normalization to [0, 1]."""
+    x = max(-10.0, min(10.0, x))
     return 1.0 / (1.0 + math.exp(-x))
 
 
@@ -548,9 +549,8 @@ def score_hypothesis(h: Hypothesis) -> Hypothesis:
 
 
 def _merge_key(h: Hypothesis) -> str:
-    """Dedup key: (resource_key, signal_family)."""
-    family = SIGNAL_FAMILIES.get(h.cause_type, h.cause_type)
-    return f"{h.root_resource}||{family}"
+    """Dedup key: (resource_key, cause_type)."""
+    return f"{h.root_resource}||{h.cause_type}"
 
 
 def deduplicate_hypotheses(hypotheses: list[Hypothesis]) -> list[Hypothesis]:
@@ -685,6 +685,19 @@ async def hypothesis_engine(state: dict, config: dict) -> dict:
     h_corr = hypotheses_from_correlation(signals, diagnostic_graph_data)
 
     all_hypotheses = h_patterns + h_graph + h_corr
+
+    if not all_hypotheses:
+        logger.warning("No hypotheses generated from any source")
+        return {
+            "ranked_hypotheses": [],
+            "hypotheses_by_issue": {},
+            "hypothesis_selection": {
+                "root_causes": [],
+                "selection_method": "no_hypotheses",
+                "llm_reasoning_needed": False,
+            },
+        }
+
     logger.info(
         "Generated hypotheses: %d pattern, %d graph, %d correlation",
         len(h_patterns), len(h_graph), len(h_corr),
@@ -710,6 +723,16 @@ async def hypothesis_engine(state: dict, config: dict) -> dict:
                 if iss.issue_id not in h.affected_issues:
                     h.affected_issues.append(iss.issue_id)
                     h.issue_state = iss.state.value if isinstance(iss.state, IssueState) else iss.state
+
+    # Fallback: link hypotheses with empty affected_issues via shared signals
+    for h in all_hypotheses:
+        if not h.affected_issues and h.supporting_evidence:
+            for issue in issues:
+                issue_dict = issue if isinstance(issue, dict) else issue.model_dump()
+                issue_signals = set(issue_dict.get("signals", []))
+                h_signals = {e.signal_type for e in h.supporting_evidence}
+                if issue_signals & h_signals:
+                    h.affected_issues.append(issue_dict.get("issue_id", ""))
 
     # --- Score ---
     for h in all_hypotheses:

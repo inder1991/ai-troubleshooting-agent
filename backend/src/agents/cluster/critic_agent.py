@@ -3,13 +3,28 @@
 from __future__ import annotations
 
 from collections import defaultdict, deque
+from datetime import datetime
 
-from src.agents.cluster.diagnostic_graph_builder import bfs_reachable
+from src.agents.cluster.graph_utils import bfs_reachable
 from src.agents.cluster.state import DiagnosticGraph, Hypothesis, NormalizedSignal
 from src.agents.cluster.traced_node import traced_node
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
+
+
+def _compare_timestamps(ts1: str, ts2: str) -> int:
+    """Compare two ISO timestamp strings. Returns -1 if ts1 < ts2, 1 if ts1 > ts2, 0 if equal or on error."""
+    try:
+        dt1 = datetime.fromisoformat(ts1.replace("Z", "+00:00"))
+        dt2 = datetime.fromisoformat(ts2.replace("Z", "+00:00"))
+        if dt1 < dt2:
+            return -1
+        if dt1 > dt2:
+            return 1
+        return 0
+    except (ValueError, TypeError):
+        return 0
 
 
 # ---------------------------------------------------------------------------
@@ -165,7 +180,7 @@ def _check_temporal_consistency(
         rk = nd.get("resource_key", "")
         if rk in chain_resources and rk != root:
             fs = nd.get("first_seen", "")
-            if fs and fs < root_first:
+            if fs and _compare_timestamps(fs, root_first) < 0:
                 violations.append(f"{rk} first_seen={fs} < root {root_first}")
 
     if violations:

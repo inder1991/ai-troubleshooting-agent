@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 from typing import Any
 
@@ -174,12 +175,19 @@ Your job is to:
 }}"""
 
     call_start = time.monotonic()
-    response = await client.chat(
-        prompt=prompt,
-        system="You are a causal reasoning engine for cluster diagnostics. Be precise and evidence-based.",
-        max_tokens=3000,
-        temperature=0.1,
-    )
+    try:
+        response = await asyncio.wait_for(
+            client.chat(
+                prompt=prompt,
+                system="You are a causal reasoning engine for cluster diagnostics. Be precise and evidence-based.",
+                max_tokens=3000,
+                temperature=0.1,
+            ),
+            timeout=30,
+        )
+    except asyncio.TimeoutError:
+        logger.warning("LLM causal reasoning timed out after 30s")
+        return {"causal_chains": [], "uncorrelated_findings": []}
     latency_ms = int((time.monotonic() - call_start) * 1000)
     usage = getattr(response, "usage", None)
     in_tok = usage.input_tokens if usage else 0
@@ -263,14 +271,26 @@ async def _llm_verdict(
 }}"""
 
     call_start = time.monotonic()
-    response = await client.chat(
-        prompt=prompt,
-        system="You are a cluster health verdict engine. Be actionable and precise. "
-               "ALWAYS include -n <namespace> in kubectl commands for namespaced resources. "
-               "Never use default namespace implicitly.",
-        max_tokens=2000,
-        temperature=0.1,
-    )
+    try:
+        response = await asyncio.wait_for(
+            client.chat(
+                prompt=prompt,
+                system="You are a cluster health verdict engine. Be actionable and precise. "
+                       "ALWAYS include -n <namespace> in kubectl commands for namespaced resources. "
+                       "Never use default namespace implicitly.",
+                max_tokens=2000,
+                temperature=0.1,
+            ),
+            timeout=30,
+        )
+    except asyncio.TimeoutError:
+        logger.warning("LLM verdict timed out after 30s")
+        return {
+            "platform_health": "UNKNOWN",
+            "blast_radius": {"summary": "Unable to determine", "affected_namespaces": 0, "affected_pods": 0, "affected_nodes": 0},
+            "remediation": {"immediate": [], "long_term": []},
+            "re_dispatch_needed": False,
+        }
     latency_ms = int((time.monotonic() - call_start) * 1000)
     usage = getattr(response, "usage", None)
     in_tok = usage.input_tokens if usage else 0
@@ -484,6 +504,13 @@ async def synthesize(state: dict, config: dict) -> dict:
         s = issue.get("state", "EXISTING")
         lifecycle_summary[s] = lifecycle_summary.get(s, 0) + 1
     health_report.issue_lifecycle_summary = lifecycle_summary
+
+    if not health_report.remediation.get("immediate"):
+        logger.warning("No immediate remediations in health report")
+    if not health_report.causal_chains:
+        logger.warning("No causal chains identified")
+    if health_report.data_completeness < 0.5:
+        logger.warning("Low data completeness: %.0f%%", health_report.data_completeness * 100)
 
     re_dispatch_needed = verdict.get("re_dispatch_needed", False)
     re_dispatch_domains = verdict.get("re_dispatch_domains", []) if re_dispatch_needed else []

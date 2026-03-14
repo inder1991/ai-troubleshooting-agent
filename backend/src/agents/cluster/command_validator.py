@@ -212,7 +212,8 @@ def check_forbidden(command: str) -> tuple[bool, str]:
     """Return (blocked, reason) if command is forbidden."""
     cmd_lower = command.lower().strip()
     for forbidden in FORBIDDEN_COMMANDS:
-        if forbidden in cmd_lower:
+        pattern = r'\b' + re.escape(forbidden) + r'\b'
+        if re.search(pattern, cmd_lower):
             return True, f"Blocked: '{forbidden}' requires manual execution"
     return False, ""
 
@@ -359,6 +360,8 @@ def check_fixes_root_cause(step: dict, hypothesis_selection: dict) -> str:
 
 def compute_remediation_confidence(step: dict, hypothesis: dict, simulation: dict, risk: str) -> float:
     """Score how likely this remediation fixes the problem."""
+    if not hypothesis or not hypothesis.get("hypothesis_id"):
+        return 0.3  # Speculative without hypothesis context
     score = 0.0
     score += hypothesis.get("confidence", 0) * 0.4
     if step.get("source") == "pattern":

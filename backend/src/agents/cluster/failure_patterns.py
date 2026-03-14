@@ -124,13 +124,22 @@ FAILURE_PATTERNS: list[FailurePattern] = [
         severity="medium", confidence_boost=0.1,
     ),
     FailurePattern(
-        pattern_id="NETPOL_BLOCKING",
-        name="NetworkPolicy blocking traffic",
-        version="1.0", scope="namespace", priority=7,
+        pattern_id="NETPOL_BLOCKING_CONFIRMED",
+        name="NetworkPolicy blocking traffic (confirmed)",
+        version="1.0", scope="namespace", priority=8,
         conditions=[{"signal": "NETPOL_EMPTY_INGRESS"}, {"signal": "SERVICE_ZERO_ENDPOINTS"}],
         probable_causes=["Overly restrictive NetworkPolicy", "Default-deny without allow rules"],
         known_fixes=["Review NetworkPolicy ingress rules", "Add allow rules for required traffic"],
-        severity="high", confidence_boost=0.2,
+        severity="high", confidence_boost=0.25,
+    ),
+    FailurePattern(
+        pattern_id="NETPOL_SUSPICIOUS",
+        name="NetworkPolicy with empty ingress (suspicious)",
+        version="1.0", scope="namespace", priority=4,
+        conditions=[{"signal": "NETPOL_EMPTY_INGRESS"}],
+        probable_causes=["Overly restrictive NetworkPolicy", "Default-deny without allow rules"],
+        known_fixes=["Review NetworkPolicy ingress rules", "Add allow rules for required traffic"],
+        severity="medium", confidence_boost=0.1,
     ),
     FailurePattern(
         pattern_id="JOB_FAILURE",
@@ -206,37 +215,18 @@ def resolve_priority_conflicts(matches: list[PatternMatch]) -> list[PatternMatch
     if len(matches) <= 1:
         return matches
 
-    # Build pattern priority lookup
     priority_map = {p.pattern_id: p.priority for p in FAILURE_PATTERNS}
 
-    # Group by affected resource
-    resource_patterns: dict[str, list[PatternMatch]] = {}
+    resource_best: dict[str, str] = {}
     for m in matches:
+        pri = priority_map.get(m.pattern_id, 0)
         for res in m.affected_resources:
-            resource_patterns.setdefault(res, []).append(m)
+            current_best = resource_best.get(res)
+            if not current_best or pri > priority_map.get(current_best, 0):
+                resource_best[res] = m.pattern_id
 
-    # Find patterns to remove (lower priority on same resource)
-    keep_ids = set()
-    for res, res_matches in resource_patterns.items():
-        if len(res_matches) <= 1:
-            for m in res_matches:
-                keep_ids.add(m.pattern_id)
-            continue
-        # Keep highest priority
-        best = max(res_matches, key=lambda m: priority_map.get(m.pattern_id, 0))
-        keep_ids.add(best.pattern_id)
-        # Also keep patterns on different resources
-        for m in res_matches:
-            if m.pattern_id != best.pattern_id:
-                # Keep if it has resources not covered by best
-                other_resources = set(m.affected_resources) - set(best.affected_resources)
-                if other_resources:
-                    keep_ids.add(m.pattern_id)
-
-    # Actually keep all unique patterns — priority only demotes, doesn't remove
-    # Just sort by priority descending
-    result = sorted(matches, key=lambda m: priority_map.get(m.pattern_id, 0), reverse=True)
-    return result
+    keep_ids = set(resource_best.values())
+    return [m for m in matches if m.pattern_id in keep_ids]
 
 
 @traced_node(timeout_seconds=5)

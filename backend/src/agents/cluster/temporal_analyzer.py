@@ -19,17 +19,17 @@ def _parse_timestamp(ts: str) -> datetime | None:
         return None
     try:
         return datetime.fromisoformat(ts.replace("Z", "+00:00"))
-    except (ValueError, TypeError):
+    except (ValueError, TypeError) as e:
+        logger.warning("Failed to parse timestamp '%s': %s", ts, e)
         return None
 
 
 def _seconds_since(ts: str) -> int:
-    """Seconds elapsed since a timestamp."""
+    """Seconds elapsed since a timestamp. Returns -1 for unparseable timestamps."""
     dt = _parse_timestamp(ts)
     if not dt:
-        return 0
-    now = datetime.now(timezone.utc)
-    return max(0, int((now - dt).total_seconds()))
+        return -1
+    return max(0, int((datetime.now(timezone.utc) - dt).total_seconds()))
 
 
 def compute_temporal_attributes(
@@ -68,7 +68,10 @@ def compute_temporal_attributes(
         res_key = sig.resource_key
 
         ts = _parse_timestamp(sig.timestamp)
-        event_age = _seconds_since(sig.timestamp) if sig.timestamp else 0
+        event_age = _seconds_since(sig.timestamp) if sig.timestamp else -1
+        if event_age < 0:
+            event_age = 3600  # Default 1 hour — safe middle ground
+            logger.debug("Using default age for %s", res_key)
 
         signal_temporals[sig_id] = {
             "event_age_seconds": event_age,

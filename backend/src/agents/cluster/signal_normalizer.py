@@ -57,6 +57,19 @@ def extract_signals(reports: list[dict]) -> list[NormalizedSignal]:
             continue
 
         for anomaly in report.get("anomalies", []):
+            # Fast path: use explicit signal_type if provided by domain agent
+            explicit_type = anomaly.get("signal_type")
+            if explicit_type:
+                ref = anomaly.get("evidence_ref", "")
+                ns = ref.split("/")[0] if "/" in ref else ""
+                signals.append(_make_signal(
+                    explicit_type, ref, domain,
+                    "pod_phase",  # default reliability key
+                    namespace=ns
+                ))
+                continue
+
+            # Slow path: infer from description text
             desc = anomaly.get("description", "").lower()
             ref = anomaly.get("evidence_ref", "")
             severity = anomaly.get("severity", "medium")

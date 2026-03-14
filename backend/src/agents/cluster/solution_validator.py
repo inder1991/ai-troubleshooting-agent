@@ -112,14 +112,18 @@ async def solution_validator(state: dict, config: dict) -> dict:
 
     # Validate immediate steps
     validated_immediate = []
+    speculative = []
     for step in remediation.get("immediate", []):
         validated = validate_solution_step(step, topology, domain_reports, hypothesis_selection)
-        # Filter out low confidence (< 0.3) from immediate — move to other_findings
         conf = validated.get("validation", {}).get("remediation_confidence", 0)
         if conf >= 0.3 or not validated.get("validation"):
             validated_immediate.append(validated)
+        else:
+            speculative.append(validated)
 
     remediation["immediate"] = validated_immediate
+    if speculative:
+        remediation["speculative"] = speculative
     health_report["remediation"] = remediation
 
     return {"health_report": health_report}

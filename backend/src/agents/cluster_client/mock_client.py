@@ -32,11 +32,30 @@ class MockClusterClient(ClusterClient):
     async def list_pods(self, namespace: str = "") -> QueryResult:
         data = _load_fixture("cluster_node_mock.json")
         pods = data.get("top_pods", [])
+        # Inject a failure pod for testing signal extraction
+        if not any(p.get("status") == "CrashLoopBackOff" for p in pods):
+            pods.append({
+                "name": "payments-api-crash-7f9b4",
+                "namespace": "production",
+                "status": "CrashLoopBackOff",
+                "node": pods[0].get("node", "worker-1") if pods else "worker-1",
+                "restarts": 47,
+                "age": "2026-03-15T10:00:00Z",
+            })
         return QueryResult(data=pods, total_available=len(pods), returned=len(pods))
 
     async def list_events(self, namespace: str = "", field_selector: str = "") -> QueryResult:
         data = _load_fixture("cluster_node_mock.json")
         events = data.get("events", [])
+        # Inject a FailedScheduling event if none exist
+        if not any(e.get("reason") == "FailedScheduling" for e in events):
+            events.append({
+                "type": "Warning",
+                "reason": "FailedScheduling",
+                "object": "pod/pending-workload-abc12",
+                "message": "0/6 nodes available: insufficient cpu, 3 were control-plane",
+                "timestamp": "2026-03-15T10:05:00Z",
+            })
         cap = OBJECT_CAPS["events"]
         truncated = len(events) > cap
         returned = events[:cap]
