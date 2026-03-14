@@ -20,11 +20,7 @@ const FleetHeatmap: React.FC<FleetHeatmapProps> = ({ nodes, selectedNode, onSele
   const nodeCount = nodes.length || 0;
 
   const displayNodes = useMemo(() => {
-    if (nodes.length > 0) return nodes;
-    return Array.from({ length: 60 }, (_, i) => ({
-      name: `node-${i}`,
-      status: 'unknown' as const,
-    }));
+    return nodes;
   }, [nodes]);
 
   return (
@@ -32,6 +28,9 @@ const FleetHeatmap: React.FC<FleetHeatmapProps> = ({ nodes, selectedNode, onSele
       <h3 className="text-[10px] uppercase font-bold tracking-widest text-slate-500 mb-3 flex justify-between">
         Fleet Heatmap <span>{nodeCount} Nodes</span>
       </h3>
+      {displayNodes.length === 0 && (
+        <div className="text-[10px] text-slate-600 text-center py-4">Waiting for node data...</div>
+      )}
       <div className="grid grid-cols-12 gap-1 min-h-[80px]">
         {displayNodes.map((node, i) => {
           const isCritical = node.status === 'critical';

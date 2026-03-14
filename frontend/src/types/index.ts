@@ -687,6 +687,7 @@ export interface ClusterRemediationStep {
   expected_output?: string;
   dry_run?: string;
   validation_errors?: string[];
+  validation?: SolutionValidation;
 }
 
 export interface ClusterHealthReport {
@@ -711,6 +712,15 @@ export interface ClusterHealthReport {
   issue_clusters?: IssueCluster[];
   causal_search_space?: CausalSearchSpace;
   topology_snapshot?: TopologySnapshot;
+  diagnostic_issues?: DiagnosticIssue[];
+  critical_incidents?: DiagnosticIssue[];
+  other_findings?: DiagnosticIssue[];
+  symptom_map?: Record<string, string>;
+  ranked_hypotheses?: RankedHypothesis[];
+  hypothesis_selection?: { root_causes: RankedHypothesis[]; selection_method: string; llm_reasoning_needed: boolean };
+  issue_lifecycle_summary?: Record<IssueLifecycleState, number>;
+  signals_count?: number;
+  pattern_matches_count?: number;
 }
 
 // --- Topology ---
@@ -765,6 +775,73 @@ export interface CausalSearchSpace {
   total_evaluated: number;
   total_blocked: number;
   total_annotated: number;
+}
+
+// ---------------------------------------------------------------------------
+// Diagnostic Intelligence types
+// ---------------------------------------------------------------------------
+
+export type IssueLifecycleState =
+  | 'ACTIVE_DISRUPTION' | 'WORSENING' | 'NEW' | 'EXISTING'
+  | 'LONG_STANDING' | 'INTERMITTENT' | 'SYMPTOM' | 'RESOLVED' | 'ACKNOWLEDGED';
+
+export interface DiagnosticIssue {
+  issue_id: string;
+  state: IssueLifecycleState;
+  priority_score: number;
+  first_seen: string;
+  last_state_change: string;
+  state_duration_seconds: number;
+  event_count_recent: number;
+  event_count_baseline: number;
+  restart_velocity: number;
+  severity_trend: string;
+  is_root_cause: boolean;
+  is_symptom: boolean;
+  root_cause_id: string;
+  blast_radius: number;
+  affected_resources: string[];
+  signals: string[];
+  pattern_matches: string[];
+  anomaly_ids: string[];
+  description: string;
+  severity: string;
+}
+
+export interface RankedHypothesis {
+  hypothesis_id: string;
+  cause: string;
+  cause_type: string;
+  source: string;
+  confidence: number;
+  evidence_score: number;
+  contradiction_penalty: number;
+  explains_count: number;
+  blast_radius: number;
+  root_resource: string;
+  causal_chain: string[];
+  depth: number;
+  supporting_evidence: { signal_type: string; relevance: string; weight: number }[];
+  contradicting_evidence: { signal_type: string; relevance: string; weight: number }[];
+}
+
+export interface RemediationSimulation {
+  action: string;
+  target: string;
+  impact: string;
+  side_effects: string[];
+  recovery: string;
+}
+
+export interface SolutionValidation {
+  risk_level: string;
+  warnings: string[];
+  requires_confirmation: boolean;
+  blocked: boolean;
+  block_reason?: string;
+  simulation?: RemediationSimulation;
+  remediation_confidence: number;
+  confidence_label: string;
 }
 
 // --- Guard Mode ---

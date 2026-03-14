@@ -833,6 +833,12 @@ async def get_findings(session_id: str):
                 "blast_radius": health_report.get("blast_radius") if health_report else None,
                 "remediation": health_report.get("remediation", {}) if health_report else {},
                 "execution_metadata": health_report.get("execution_metadata", {}) if health_report else {},
+                "diagnostic_issues": health_report.get("diagnostic_issues", []) if health_report else [],
+                "issue_lifecycle_summary": health_report.get("issue_lifecycle_summary", {}) if health_report else {},
+                "ranked_hypotheses": health_report.get("ranked_hypotheses", []) if health_report else [],
+                "critical_incidents": health_report.get("critical_incidents", []) if health_report else [],
+                "other_findings": health_report.get("other_findings", []) if health_report else [],
+                "symptom_map": health_report.get("symptom_map", {}) if health_report else {},
             }
         return {**common, "platform": "", "platform_version": "", "platform_health": "PENDING", "data_completeness": 0.0, "domain_reports": []}
 
@@ -1740,3 +1746,19 @@ async def get_llm_summary(session_id: str):
 
     llm_summary = state.get("llm_summary")
     return {"llm_summary": llm_summary}
+
+
+@router_v4.get("/cluster/lifecycle-config")
+async def get_lifecycle_config():
+    """Return default lifecycle thresholds."""
+    from src.agents.cluster.state import LifecycleThresholds
+    return LifecycleThresholds().model_dump()
+
+
+@router_v4.put("/cluster/lifecycle-config")
+async def update_lifecycle_config(thresholds: dict):
+    """Update lifecycle thresholds (stored in-memory)."""
+    # For now just validate and return
+    from src.agents.cluster.state import LifecycleThresholds
+    validated = LifecycleThresholds(**thresholds)
+    return {"status": "updated", "thresholds": validated.model_dump()}

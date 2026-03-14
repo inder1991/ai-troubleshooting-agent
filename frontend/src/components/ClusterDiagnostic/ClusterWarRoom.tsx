@@ -1,26 +1,23 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type {
   V4Session, ClusterHealthReport, ClusterDomainReport,
-  ClusterDomainKey, TaskEvent, NamespaceWorkload, VerdictEvent,
+  ClusterDomainKey, TaskEvent, NamespaceWorkload,
   FleetNode,
 } from '../../types';
 import { API_BASE_URL } from '../../services/api';
 import { SkeletonLoader } from '../shared/SkeletonLoader';
-import { MetricCard } from '../shared/MetricCard';
 import ChatDrawer from '../Chat/ChatDrawer';
 import LedgerTriggerTab from '../Chat/LedgerTriggerTab';
 import ClusterHeader from './ClusterHeader';
 import CommandBar from './CommandBar';
-import ExecutionDAG from './ExecutionDAG';
+import ExecutionProgress from './ExecutionProgress';
 import FleetHeatmap from './FleetHeatmap';
-import ResourceVelocity from './ResourceVelocity';
 import DomainPanel from './DomainPanel';
 import VerticalRibbon from './VerticalRibbon';
-import RootCauseCard from './RootCauseCard';
-import VerdictStack from './VerdictStack';
+import IssuePriorityPanel from './IssuePriorityPanel';
+import LifecycleSummaryStrip from './LifecycleSummaryStrip';
+import HypothesisCard from './HypothesisCard';
 import RemediationCard from './RemediationCard';
-import NeuralPulseSVG from './NeuralPulseSVG';
-import AgentTimeline from './AgentTimeline';
 import EventLogViewer from './EventLogViewer';
 import ScanDiff from './ScanDiff';
 
@@ -52,6 +49,7 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
   const [expandedDomain, setExpandedDomain] = useState<ClusterDomainKey>('node');
   const [selectedNode, setSelectedNode] = useState<string | undefined>();
   const [budgetPct, setBudgetPct] = useState<number | null>(null);
+  const [centerView, setCenterView] = useState<'priority' | ClusterDomainKey>('priority');
 
   // ── Data Fetching ──
   const fetchFindings = useCallback(async () => {
@@ -110,6 +108,22 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
   );
   const immediateSteps = useMemo(
     () => findings?.remediation?.immediate || [],
+    [findings]
+  );
+  const diagnosticIssues = useMemo(
+    () => findings?.diagnostic_issues || [],
+    [findings]
+  );
+  const symptomMap = useMemo(
+    () => findings?.symptom_map || {},
+    [findings]
+  );
+  const causalChains = useMemo(
+    () => findings?.causal_chains || [],
+    [findings]
+  );
+  const rankedHypotheses = useMemo(
+    () => findings?.ranked_hypotheses || [],
     [findings]
   );
 
@@ -219,19 +233,6 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
     return Array.from(nodeMap.values());
   }, [domainReports]);
 
-  const mockVerdictEvents = useMemo((): VerdictEvent[] => {
-    if (!primaryChain) return [];
-    return [
-      { timestamp: '14:02:11', severity: 'FATAL', message: primaryChain.root_cause.description },
-      ...primaryChain.cascading_effects.map(e => ({
-        timestamp: '—',
-        severity: 'WARN' as const,
-        message: e.description,
-        domain: e.domain as ClusterDomainKey,
-      })),
-    ];
-  }, [primaryChain]);
-
   // ── Auto-expand most affected domain (only on initial load) ──
   const hasAutoExpanded = useRef(false);
 
@@ -247,8 +248,53 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
     }
   }, [domainReports]);
 
+  // ── Center view: resolve the domain report when viewing a domain ──
+  const centerDomainReport = useMemo(() => {
+    if (centerView === 'priority') return undefined;
+    return domainReports.find(r => r.domain === centerView);
+  }, [centerView, domainReports]);
+
+  const centerNamespaceWorkloads = useMemo((): NamespaceWorkload[] => {
+    if (centerView === 'priority' || !centerDomainReport) return [];
+    if (centerDomainReport.anomalies.length === 0) {
+      return [{ namespace: 'default', status: 'Healthy', replica_status: 'All healthy', last_deploy: '—' }];
+    }
+    const nsMap = new Map<string, NamespaceWorkload>();
+    for (const anomaly of centerDomainReport.anomalies) {
+      const ref = anomaly.evidence_ref || '';
+      const parts = ref.split('/');
+      const ns = parts.length > 1 ? parts[0] : 'default';
+      const resourceName = parts.length > 1 ? parts[1] : ref;
+      if (!nsMap.has(ns)) {
+        nsMap.set(ns, {
+          namespace: ns,
+          status: anomaly.severity === 'critical' ? 'Critical' : anomaly.severity === 'warning' ? 'Degraded' : 'Healthy',
+          replica_status: '',
+          last_deploy: '—',
+          workloads: [],
+        });
+      }
+      const nsEntry = nsMap.get(ns)!;
+      if (nsEntry.workloads) {
+        nsEntry.workloads.push({
+          name: resourceName,
+          kind: 'Pod',
+          status: anomaly.severity === 'critical' ? 'Failed' : 'Pending',
+          restarts: 0,
+          cpu_usage: '',
+          memory_usage: '',
+          is_trigger: anomaly.severity === 'critical',
+          age: '',
+        });
+      }
+      if (anomaly.severity === 'critical') nsEntry.status = 'Critical';
+      else if (anomaly.severity === 'warning' && nsEntry.status !== 'Critical') nsEntry.status = 'Degraded';
+    }
+    return Array.from(nsMap.values());
+  }, [centerView, centerDomainReport]);
+
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-[#1a1814] crt-scanlines relative font-sans text-slate-300">
+    <div className="flex flex-col h-full overflow-hidden bg-[#1a1814] relative font-sans text-slate-300">
       <ClusterHeader
         sessionId={session.session_id}
         confidence={confidence}
@@ -258,27 +304,14 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
         phase={phase || undefined}
       />
 
-      {/* Domain Health Ribbon */}
+      {/* Lifecycle Summary Strip (replaces Domain Health Ribbon) */}
       {findings && (
-        <div className="grid grid-cols-4 gap-3 px-6 py-3 border-b border-[#1f3b42] shrink-0">
-          {ALL_DOMAINS.map(domain => {
-            const report = domainReports.find(r => r.domain === domain);
-            const anomalyCount = report?.anomalies.length || 0;
-            const status = report?.status || 'PENDING';
-            const isHealthy = status === 'SUCCESS' && anomalyCount === 0;
-            return (
-              <MetricCard
-                key={domain}
-                title={DOMAIN_LABELS[domain]}
-                value={isHealthy ? 'Healthy' : `${anomalyCount} issues`}
-                trendValue={status === 'RUNNING' ? 'Scanning...' : status}
-                trendDirection={isHealthy ? 'down' : anomalyCount > 0 ? 'up' : 'neutral'}
-                trendType={isHealthy ? 'good' : anomalyCount > 0 ? 'bad' : 'neutral'}
-                sparklineData={[anomalyCount, anomalyCount]}
-              />
-            );
-          })}
-        </div>
+        <LifecycleSummaryStrip
+          diagnosticIssues={diagnosticIssues}
+          domainReports={domainReports}
+          dataCompleteness={findings.data_completeness}
+          phase={phase || 'pre_flight'}
+        />
       )}
 
       {/* Error banner */}
@@ -339,35 +372,58 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
 
         {(!loading || findings) && (
           <>
-            <NeuralPulseSVG hasRootCause={!!primaryChain} />
-
             {/* ── LEFT COLUMN (col-3) ── */}
             <section className="col-span-3 border-r border-[#1f3b42] bg-[#1a1814]/50 p-4 flex flex-col gap-4 overflow-hidden z-10">
-              <ExecutionDAG domainReports={domainReports} phase={phase || 'pre_flight'} />
-              <AgentTimeline domainReports={domainReports} phase={phase || 'pre_flight'} />
+              <ExecutionProgress domainReports={domainReports} phase={phase || 'pre_flight'} />
               <FleetHeatmap nodes={fleetNodes} selectedNode={selectedNode} onSelectNode={setSelectedNode} />
-              <ResourceVelocity />
             </section>
 
             {/* ── CENTER COLUMN (col-5) ── */}
             <section className="col-span-5 flex h-full bg-[#1a1814] overflow-hidden relative border-r border-[#1f3b42]">
-              <DomainPanel domain={expandedDomain} report={expandedReport} namespaces={namespaceWorkloads} />
+              {centerView === 'priority' ? (
+                <div className="flex-1 overflow-y-auto">
+                  <IssuePriorityPanel
+                    diagnosticIssues={diagnosticIssues}
+                    domainReports={domainReports}
+                    causalChains={causalChains}
+                    symptomMap={symptomMap}
+                    phase={phase || 'pre_flight'}
+                  />
+                </div>
+              ) : (
+                <DomainPanel
+                  domain={centerView}
+                  report={centerDomainReport}
+                  namespaces={centerNamespaceWorkloads}
+                />
+              )}
               <div className="w-[40px] flex flex-col bg-[#152a2f] border-l border-[#1f3b42] shrink-0 z-10">
-                {collapsedDomains.map(d => (
+                <VerticalRibbon
+                  domain={'node' as ClusterDomainKey}
+                  isPriority
+                  onClick={() => setCenterView('priority')}
+                  onPriorityClick={() => setCenterView('priority')}
+                  isActive={centerView === 'priority'}
+                />
+                {ALL_DOMAINS.map(d => (
                   <VerticalRibbon
                     key={d}
                     domain={d}
                     report={domainReports.find(r => r.domain === d)}
-                    onClick={() => setExpandedDomain(d)}
+                    onClick={() => setCenterView(d)}
+                    isActive={centerView === d}
                   />
                 ))}
               </div>
             </section>
 
             {/* ── RIGHT COLUMN (col-4) ── */}
-            <section className="col-span-4 bg-[#1a1814]/50 p-4 flex flex-col gap-4 overflow-hidden relative z-10">
-              <RootCauseCard chain={primaryChain} confidence={confidence} />
-              <VerdictStack events={mockVerdictEvents} />
+            <section className="col-span-4 bg-[#1a1814]/50 p-4 flex flex-col gap-4 overflow-y-auto relative z-10">
+              <HypothesisCard
+                hypotheses={rankedHypotheses}
+                primaryChain={primaryChain}
+                confidence={confidence}
+              />
               <RemediationCard steps={immediateSteps} blastRadius={findings?.blast_radius} />
               {scanDelta && <ScanDiff delta={scanDelta} />}
             </section>

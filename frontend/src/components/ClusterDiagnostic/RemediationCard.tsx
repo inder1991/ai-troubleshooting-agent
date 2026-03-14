@@ -129,7 +129,76 @@ const RemediationCard: React.FC<RemediationCardProps> = ({ steps, blastRadius })
         </div>
       )}
 
-      {primaryStep.command && (
+      {/* Simulation preview */}
+      {primaryStep.validation?.simulation && (
+        <div className="mb-3 px-3 py-2 rounded border border-[#1f3b42] bg-[#1a1814]/40">
+          <span className="text-[9px] uppercase font-bold tracking-wider text-slate-500">Impact Simulation</span>
+          <div className="mt-1.5 space-y-1 text-[10px]">
+            <div className="text-slate-400">
+              <span className="text-slate-500">Action:</span>{' '}
+              <span className="text-[#e09f3e] font-mono">{primaryStep.validation.simulation.action}</span>{' '}
+              <span className="text-slate-300 font-mono">{primaryStep.validation.simulation.target}</span>
+            </div>
+            <div className="text-slate-400">
+              <span className="text-slate-500">Impact:</span>{' '}
+              {primaryStep.validation.simulation.impact}
+            </div>
+            {primaryStep.validation.simulation.side_effects && primaryStep.validation.simulation.side_effects.length > 0 && (
+              <div>
+                <span className="text-slate-500">Side effects:</span>
+                {primaryStep.validation.simulation.side_effects.map((se, i) => (
+                  <div key={i} className="text-amber-400/70 ml-2">- {se}</div>
+                ))}
+              </div>
+            )}
+            <div className="text-slate-400">
+              <span className="text-slate-500">Recovery:</span>{' '}
+              {primaryStep.validation.simulation.recovery}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Remediation confidence badge */}
+      {primaryStep.validation?.remediation_confidence != null && (
+        <div className="mb-3 flex items-center gap-2">
+          <span className="text-[9px] uppercase font-semibold text-slate-500 tracking-wider">Confidence:</span>
+          <span className="text-[10px] text-slate-400">{primaryStep.validation.confidence_label}</span>
+          <span
+            className="w-2 h-2 rounded-full"
+            style={{
+              backgroundColor:
+                primaryStep.validation.remediation_confidence >= 0.8 ? '#10b981' :
+                primaryStep.validation.remediation_confidence >= 0.5 ? '#e09f3e' :
+                primaryStep.validation.remediation_confidence >= 0.3 ? '#64748b' :
+                '#ef4444',
+            }}
+          />
+        </div>
+      )}
+
+      {/* Blocked reason */}
+      {primaryStep.validation?.blocked && (
+        <div className="mb-3 px-2 py-1.5 rounded border border-red-500/20 bg-red-500/5">
+          <div className="flex items-center gap-1.5">
+            <span className="material-symbols-outlined text-red-400 text-[14px]">block</span>
+            <span className="text-[10px] text-red-400 font-semibold">Blocked</span>
+          </div>
+          {primaryStep.validation.block_reason && (
+            <p className="text-[10px] text-red-300/70 mt-1">{primaryStep.validation.block_reason}</p>
+          )}
+        </div>
+      )}
+
+      {/* Requires confirmation warning */}
+      {primaryStep.validation?.requires_confirmation && !primaryStep.validation?.blocked && primaryStep.command && (
+        <div className="mb-2 flex items-center gap-1.5 px-2 py-1 rounded bg-amber-500/5 border border-amber-500/20">
+          <span className="material-symbols-outlined text-amber-500 text-[14px]">warning</span>
+          <span className="text-[9px] text-amber-400">This action requires manual confirmation before execution</span>
+        </div>
+      )}
+
+      {primaryStep.command && !primaryStep.validation?.blocked && (
         <button
           className="w-full bg-[#e09f3e]/10 border border-[#e09f3e] rounded h-12 flex items-center justify-between px-4 relative overflow-hidden cursor-pointer select-none transition-colors"
           onMouseDown={() => startHold(0, primaryStep.command!)}
