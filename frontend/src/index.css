@@ -131,13 +131,19 @@ body {
   outline-offset: 2px;
 }
 
-/* ─── Mission Control Grid Texture ────────────────────────── */
+/* ─── Command Center Ambient Glow ─────────────────────────── */
+/* Three directional light sources — like monitors illuminating   */
+/* a dark operations room from different angles.                  */
 
-.mc-grid-bg {
+.command-center-bg {
+  background-color: #1a1814;
   background-image:
-    linear-gradient(rgba(224, 159, 62, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(224, 159, 62, 0.03) 1px, transparent 1px);
-  background-size: 24px 24px;
+    /* Top center — warm header glow (strongest, where the ticker lives) */
+    radial-gradient(ellipse 80% 40% at 50% 0%, rgba(224, 159, 62, 0.04) 0%, transparent 100%),
+    /* Bottom left — cool-warm feed glow */
+    radial-gradient(ellipse 60% 50% at 20% 100%, rgba(224, 159, 62, 0.02) 0%, transparent 100%),
+    /* Bottom right — faint sidebar warmth */
+    radial-gradient(ellipse 40% 50% at 90% 80%, rgba(224, 159, 62, 0.015) 0%, transparent 100%);
 }
 
 /* ─── War Room Animations ─────────────────────────────────────────────── */

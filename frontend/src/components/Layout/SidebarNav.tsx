@@ -206,7 +206,7 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ activeView, onNavigate, onNewMi
       onMouseLeave={() => { handleMouseLeaveNav(); resetHoverStyles(); }}
     >
       {/* ─── TIER 1: Persistent Sidebar ─── */}
-      <aside className={`${collapsed ? 'w-12' : 'w-52'} shrink-0 bg-duck-sidebar mc-grid-bg border-r border-duck-border/40 flex flex-col h-full z-30 relative transition-all duration-200`}>
+      <aside className={`${collapsed ? 'w-12' : 'w-52'} shrink-0 bg-duck-sidebar border-r border-duck-border/40 flex flex-col h-full z-30 relative transition-all duration-200`}>
         {/* Brand + Collapse toggle */}
         <div className={`flex items-center ${collapsed ? 'justify-center p-3' : 'justify-between px-4 py-4'} mb-2 flex-shrink-0`}>
           <button

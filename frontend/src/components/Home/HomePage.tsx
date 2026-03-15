@@ -44,7 +44,7 @@ const HomePage: React.FC<HomePageProps> = ({
 
 
   return (
-    <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-duck-bg mc-grid-bg">
+    <div className="flex-1 flex flex-col min-w-0 overflow-hidden command-center-bg">
       {/* Header — Search | Event Ticker | Bell */}
       <header
         className="h-14 border-b border-duck-border flex items-center px-6 shrink-0 bg-duck-panel/40"
