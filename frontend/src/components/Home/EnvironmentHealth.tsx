@@ -27,9 +27,16 @@ export const EnvironmentHealth: React.FC = () => {
     };
   }, [nodes]);
 
+  // Determine left border color by worst status
+  const borderColor = isLoading ? '#64748b'
+    : issues.some(n => n.status === 'critical') ? '#ef4444'
+    : issues.some(n => n.status === 'degraded') ? '#f59e0b'
+    : '#10b981';
+
   if (isLoading) {
     return (
-      <div className="flex items-center gap-2 px-3 py-2 bg-duck-panel border border-duck-border rounded-lg">
+      <div className="flex items-center gap-2 px-3 py-2 bg-duck-panel border border-duck-border rounded-lg"
+        style={{ borderLeft: `3px solid ${borderColor}` }}>
         <span className="material-symbols-outlined text-sm text-slate-400 animate-spin" aria-hidden="true">progress_activity</span>
         <span className="text-[11px] text-slate-400">Scanning systems...</span>
       </div>
@@ -39,7 +46,8 @@ export const EnvironmentHealth: React.FC = () => {
   // All healthy — compact with mini grid
   if (issues.length === 0) {
     return (
-      <div className="bg-duck-panel border border-duck-border rounded-lg px-3 py-2">
+      <div className="bg-duck-panel border border-duck-border rounded-lg px-3 py-2"
+        style={{ borderLeft: `3px solid ${borderColor}` }}>
         <div className="flex items-center gap-[2px] mb-2">
           {nodes.slice(0, 24).map((node) => (
             <span key={node.id} className="w-1.5 h-1.5 rounded-[1px] bg-emerald-500/30" aria-hidden="true" />
@@ -57,7 +65,8 @@ export const EnvironmentHealth: React.FC = () => {
 
   // Has issues — show problems only, summarize healthy
   return (
-    <div className="bg-duck-panel border border-duck-border rounded-lg px-3 py-2">
+    <div className="bg-duck-panel border border-duck-border rounded-lg px-3 py-2"
+      style={{ borderLeft: `3px solid ${borderColor}` }}>
       {/* Mini NOC strip */}
       <div className="flex items-center gap-[2px] mb-2 pb-2 border-b border-duck-border/30">
         {nodes.slice(0, 24).map((node) => (
