@@ -255,6 +255,10 @@ def create_app() -> FastAPI:
             fixture_result = load_enterprise_fixtures(topo_store)
             if fixture_result.get("loaded"):
                 logger.info("Enterprise fixtures: %d entities loaded", fixture_result.get("total", 0))
+                # Rebuild KG from store so fixtures are visible in topology/path diagnosis
+                if _net_kg:
+                    _net_kg.load_from_store()
+                    logger.info("Knowledge graph rebuilt with fixture data")
         except Exception as e:
             logger.warning("Enterprise fixture loading failed: %s", e)
 
@@ -391,7 +395,7 @@ def create_app() -> FastAPI:
                 devices = topo_store.list_devices()
                 if devices:
                     _device_list = [
-                        {"id": d.id, "management_ip": d.management_ip}
+                        {"id": d.id, "name": d.name, "vendor": d.vendor, "management_ip": d.management_ip, "ha_role": getattr(d, 'ha_role', '')}
                         for d in devices if d.management_ip
                     ]
                     _snmp_sched.set_devices(_device_list)
