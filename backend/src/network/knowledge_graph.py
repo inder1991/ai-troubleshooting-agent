@@ -835,10 +835,15 @@ class NetworkKnowledgeGraph:
         "branch": "Branch Offices",
     }
 
-    # Define group layout order (dynamic positioning calculated at export time)
-    GROUP_ORDER = ["onprem", "aws", "azure", "oci", "gcp", "branch"]
-    H_GAP_GROUPS = 200  # Horizontal gap between left and right columns
-    V_GAP_GROUPS = 120  # Vertical gap between stacked groups
+    # Group accent colors — distinct per cloud/site
+    GROUP_ACCENTS = {
+        "onprem": "#e09f3e",  # Amber
+        "aws":    "#f59e0b",  # Orange
+        "azure":  "#3b82f6",  # Blue
+        "oci":    "#ef4444",  # Red
+        "gcp":    "#10b981",  # Emerald
+        "branch": "#8b5cf6",  # Violet
+    }
 
     def _compute_topology_hash(self) -> str:
         """SHA-256 hash of topology structure + key attributes for change detection."""
@@ -1015,173 +1020,184 @@ class NetworkKnowledgeGraph:
             g = node["data"]["group"]
             groups_found.setdefault(g, []).append(node)
 
-        # ── Hierarchical layout: position by network role within each group ──
-        # Rank 0: Internet/ISP edge
-        # Rank 1: Perimeter firewalls
-        # Rank 2: Core firewalls, Core routers
-        # Rank 3: Distribution (LBs, edge routers, proxies)
-        # Rank 4: Access switches, servers, endpoints
-        # Rank 5: Cloud gateways (DX/ER/FC termination, TGW)
-        # Rank 6: Cloud workloads (VPCs, VMs)
-
+        # ── Rank helper for sorting within cloud groups ──
         ROLE_RANK = {
-            # On-prem hierarchy
-            "perimeter": 1,
-            "core": 2,
-            "distribution": 3,
-            "access": 4,
-            "edge": 3,
-            "cloud_gateway": 5,
+            "perimeter": 1, "core": 2, "distribution": 3,
+            "access": 4, "edge": 3, "cloud_gateway": 5,
         }
-
         DEVICE_TYPE_RANK = {
-            # Fallback when role is empty
-            "FIREWALL": 2,
-            "ROUTER": 3,
-            "LOAD_BALANCER": 3,
-            "SWITCH": 4,
-            "PROXY": 3,
-            "HOST": 6,
-            "TRANSIT_GATEWAY": 5,
-            "CLOUD_GATEWAY": 5,
-            "NAT_GATEWAY": 5,
-            "VIRTUAL_APPLIANCE": 4,
-            "VPN_CONCENTRATOR": 3,
+            "FIREWALL": 2, "ROUTER": 3, "LOAD_BALANCER": 3, "SWITCH": 4,
+            "PROXY": 3, "HOST": 6, "TRANSIT_GATEWAY": 5, "CLOUD_GATEWAY": 5,
+            "NAT_GATEWAY": 5, "VIRTUAL_APPLIANCE": 4, "VPN_CONCENTRATOR": 3,
         }
 
         def _get_rank(node_data: dict, group: str = "") -> int:
             role = node_data.get("role", "")
-
-            # Cloud groups have inverted hierarchy: gateway at top
             if group in ("aws", "azure", "oci", "gcp"):
                 CLOUD_RANK = {
-                    "cloud_gateway": 0,  # TGW, vWAN hub, DRG — entry point
-                    "core": 1,           # Inspection firewalls
-                    "distribution": 2,   # GWLB, F5 VE, NVA
-                    "edge": 3,           # CSR, NAT GW, IGW, ER GW
-                    "access": 4,         # VPCs, VNets, VCNs
+                    "cloud_gateway": 0, "core": 1, "distribution": 2,
+                    "edge": 3, "access": 4,
                 }
                 if role and role in CLOUD_RANK:
                     return CLOUD_RANK[role]
-
-            # On-prem hierarchy
             if role and role in ROLE_RANK:
                 return ROLE_RANK[role]
             dt = node_data.get("deviceType", "HOST")
             return DEVICE_TYPE_RANK.get(dt, 5)
 
-        # Within each group, sort by rank then name for deterministic layout
-        for group_id, group_nodes in groups_found.items():
-            group_nodes.sort(key=lambda n: (_get_rank(n["data"], group_id), n["data"].get("label", "")))
+        # ══════════════════════════════════════════════════════════════
+        # Radial Hub-Spoke Layout
+        # ══════════════════════════════════════════════════════════════
+        import math
 
-        # Layout constants
+        CENTER_X = 1200  # Canvas center
+        CENTER_Y = 800
+        INNER_RADIUS = 350   # Distribution devices
+        OUTER_RADIUS = 900   # Cloud groups and branches
         NODE_W = 180
         NODE_H = 80
-        H_GAP = 40      # Horizontal gap between nodes
-        V_GAP = 100     # Vertical gap between ranks
-        GROUP_PAD = 50   # Padding inside group container
-        LABEL_H = 30     # Height for group label
 
-        # Calculate group sizes first (rank buckets + dimensions)
-        group_rank_buckets: dict[str, dict[int, list]] = {}
-        group_sizes: dict[str, tuple[int, int]] = {}  # group_id → (width, height)
-
-        for group_id, group_nodes in groups_found.items():
-            if not group_nodes:
-                continue
-
-            # Group nodes by rank
-            rank_buckets: dict[int, list] = {}
-            for node in group_nodes:
-                rank = _get_rank(node["data"], group_id)
-                rank_buckets.setdefault(rank, []).append(node)
-
-            group_rank_buckets[group_id] = rank_buckets
-            sorted_ranks = sorted(rank_buckets.keys())
-
-            # Calculate group dimensions
-            max_cols = max(len(nodes) for nodes in rank_buckets.values()) if rank_buckets else 1
-            group_w = max_cols * (NODE_W + H_GAP) + GROUP_PAD * 2
-            group_h = len(sorted_ranks) * (NODE_H + V_GAP) + GROUP_PAD + LABEL_H
-            group_sizes[group_id] = (max(group_w, 400), max(group_h, 300))
-
-        # Position groups dynamically in two columns: left (onprem, branch) and right (clouds)
-        left_groups = [g for g in self.GROUP_ORDER if g in groups_found and g in ("onprem", "branch")]
-        right_groups = [g for g in self.GROUP_ORDER if g in groups_found and g not in ("onprem", "branch")]
-
-        # Left column: stack vertically
-        left_x = 50
-        left_y = 50
-        group_positions: dict[str, dict] = {}
-        for g in left_groups:
-            w, h = group_sizes.get(g, (400, 300))
-            group_positions[g] = {"x": left_x, "y": left_y}
-            left_y += h + self.V_GAP_GROUPS
-
-        # Right column: start at x = left_max_width + gap
-        left_max_width = max((group_sizes.get(g, (400, 300))[0] for g in left_groups), default=400)
-        right_x = left_x + left_max_width + self.H_GAP_GROUPS
-        right_y = 50
-        for g in right_groups:
-            w, h = group_sizes.get(g, (400, 300))
-            group_positions[g] = {"x": right_x, "y": right_y}
-            right_y += h + self.V_GAP_GROUPS
-
-        # Group accent colors — distinct per cloud/site
-        GROUP_ACCENTS = {
-            "onprem": "#e09f3e",  # Amber
-            "aws":    "#f59e0b",  # Orange
-            "azure":  "#3b82f6",  # Blue
-            "oci":    "#ef4444",  # Red
-            "gcp":    "#10b981",  # Emerald
-            "branch": "#8b5cf6",  # Violet
+        # Angles for outer groups (degrees, math convention: 0=right, 90=up)
+        # Y is negated below to convert to screen coords (Y-down)
+        OUTER_ANGLES: dict[str, int] = {
+            "aws": 0,           # Right
+            "azure": 180,       # Left
+            "oci": 240,         # Lower-left (math: 240° = lower-left)
+            "gcp": 60,          # Upper-right
+            "branch": 310,      # Lower-right (math: 310° = lower-right)
         }
 
-        # Layout each group as a hierarchical column
-        for group_id, group_nodes in groups_found.items():
-            if not group_nodes or group_id not in group_rank_buckets:
-                continue
+        # ── Step 1: Classify on-prem devices into core/inner rings ──
+        core_devices: list = []    # Core FW, core routers, perimeter FW
+        inner_devices: list = []   # Distribution, edge, access, proxy
 
-            rank_buckets = group_rank_buckets[group_id]
-            sorted_ranks = sorted(rank_buckets.keys())
-            gw, gh = group_sizes.get(group_id, (400, 300))
-            pos = group_positions.get(group_id, {"x": 50, "y": 50})
-            accent = GROUP_ACCENTS.get(group_id, "#3d3528")
+        onprem_nodes = groups_found.get("onprem", [])
+        for node in onprem_nodes:
+            role = node["data"].get("role", "")
+            if role in ("core", "perimeter"):
+                core_devices.append(node)
+            else:
+                inner_devices.append(node)
+
+        # ── Step 2: Position CORE devices in a tight cluster at center ──
+        core_cols = min(len(core_devices), 4)
+        core_rows = math.ceil(len(core_devices) / max(core_cols, 1))
+        for idx, node in enumerate(core_devices):
+            col = idx % core_cols
+            row = idx // core_cols
+            node["position"] = {
+                "x": int(CENTER_X - (core_cols * NODE_W) / 2 + col * (NODE_W + 20)),
+                "y": int(CENTER_Y - (core_rows * NODE_H) / 2 + row * (NODE_H + 30)),
+            }
+
+        # ── Step 3: Position INNER ring devices around core ──
+        if inner_devices:
+            angle_step = 360 / len(inner_devices)
+            for idx, node in enumerate(inner_devices):
+                angle_rad = math.radians(idx * angle_step + 45)  # Start at 45°
+                node["position"] = {
+                    "x": int(CENTER_X + INNER_RADIUS * math.cos(angle_rad) - NODE_W / 2),
+                    "y": int(CENTER_Y - INNER_RADIUS * math.sin(angle_rad) - NODE_H / 2),  # Negate sin for screen Y-down
+                }
+
+        # ── Step 4: Position OUTER groups (clouds + branches) ──
+        outer_group_positions: dict[str, tuple[int, int]] = {}  # group_id → center (x, y)
+
+        for group_id, group_nodes in groups_found.items():
+            if group_id == "onprem":
+                continue  # Already positioned above
+
+            angle_deg = OUTER_ANGLES.get(group_id, 45)
+            angle_rad = math.radians(angle_deg)
+
+            # Group center position
+            gx = int(CENTER_X + OUTER_RADIUS * math.cos(angle_rad))
+            gy = int(CENTER_Y - OUTER_RADIUS * math.sin(angle_rad))  # Negate sin for screen Y-down
+            outer_group_positions[group_id] = (gx, gy)
+
+            # Position devices within this outer group in a small cluster
+            n = len(group_nodes)
+            cols = min(n, 3)
+            rows = math.ceil(n / max(cols, 1))
+            cluster_w = cols * (NODE_W + 20)
+            cluster_h = rows * (NODE_H + 30)
+
+            # Sort by rank within cloud group
+            group_nodes.sort(key=lambda nd: (_get_rank(nd["data"], group_id), nd["data"].get("label", "")))
+
+            for idx, node in enumerate(group_nodes):
+                col = idx % cols
+                row = idx // cols
+                node["position"] = {
+                    "x": int(gx - cluster_w / 2 + col * (NODE_W + 20)),
+                    "y": int(gy - cluster_h / 2 + row * (NODE_H + 30)),
+                }
+
+        # ── Step 5: Create group label nodes (no containers — just floating labels) ──
+        # On-prem: label above the core cluster
+        rf_nodes.append({
+            "id": "group-onprem",
+            "type": "group",
+            "data": {"label": self.GROUP_LABELS.get("onprem", "On-Premises DC")},
+            "position": {"x": CENTER_X - 300, "y": CENTER_Y - 280},
+            "style": {
+                "width": 600, "height": 560,
+                "backgroundColor": f"{self.GROUP_ACCENTS['onprem']}08",
+                "border": f"1.5px solid {self.GROUP_ACCENTS['onprem']}30",
+                "borderRadius": 16,
+                "padding": 0,
+                "fontSize": 13, "fontWeight": 700,
+                "color": f"{self.GROUP_ACCENTS['onprem']}80",
+                "letterSpacing": "0.04em",
+            },
+            "selectable": False, "draggable": False,
+        })
+        # Set on-prem devices as children of the group
+        for node in core_devices + inner_devices:
+            node["parentId"] = "group-onprem"
+            # Convert absolute position to relative to group
+            node["position"]["x"] -= (CENTER_X - 300)
+            node["position"]["y"] -= (CENTER_Y - 280)
+
+        # Outer group labels
+        for group_id, (gx, gy) in outer_group_positions.items():
+            group_nodes = groups_found.get(group_id, [])
+            if not group_nodes:
+                continue
+            accent = self.GROUP_ACCENTS.get(group_id, "#3d3528")
+
+            # Calculate cluster bounding box
+            n = len(group_nodes)
+            cols = min(n, 3)
+            rows = math.ceil(n / max(cols, 1))
+            cluster_w = max(cols * (NODE_W + 20) + 60, 300)
+            cluster_h = max(rows * (NODE_H + 30) + 60, 200)
 
             rf_nodes.append({
                 "id": f"group-{group_id}",
                 "type": "group",
                 "data": {"label": self.GROUP_LABELS.get(group_id, group_id)},
-                "position": {"x": pos["x"], "y": pos["y"]},
+                "position": {"x": int(gx - cluster_w / 2), "y": int(gy - cluster_h / 2)},
                 "style": {
-                    "width": max(gw, 400),
-                    "height": max(gh, 300),
-                    "backgroundColor": f"{accent}0D",   # ~5% opacity — visible tint
-                    "border": f"1.5px solid {accent}40", # ~25% opacity — clearly visible
-                    "borderRadius": 12,
-                    "padding": 10,
-                    "fontSize": 13,
-                    "fontWeight": 700,
-                    "color": f"{accent}90",              # ~56% opacity — readable label
+                    "width": cluster_w, "height": cluster_h,
+                    "backgroundColor": f"{accent}08",
+                    "border": f"1.5px solid {accent}30",
+                    "borderRadius": 16,
+                    "padding": 0,
+                    "fontSize": 13, "fontWeight": 700,
+                    "color": f"{accent}80",
                     "letterSpacing": "0.04em",
                 },
-                "selectable": False,
-                "draggable": False,
+                "selectable": False, "draggable": False,
             })
 
-            # Position nodes by rank (top = low rank, bottom = high rank)
-            for rank_idx, rank in enumerate(sorted_ranks):
-                rank_nodes = rank_buckets[rank]
-                row_width = len(rank_nodes) * (NODE_W + H_GAP) - H_GAP
-                start_x = GROUP_PAD + (gw - GROUP_PAD * 2 - row_width) / 2  # Center within group
-
-                for col_idx, node in enumerate(rank_nodes):
-                    node["position"] = {
-                        "x": int(start_x + col_idx * (NODE_W + H_GAP)),
-                        "y": int(LABEL_H + GROUP_PAD + rank_idx * (NODE_H + V_GAP)),
-                    }
-                    node["parentId"] = f"group-{group_id}"
-                    # Don't set extent — allows edges to cross group boundaries
+            # Set outer devices as children — convert to relative positions
+            group_offset_x = int(gx - cluster_w / 2)
+            group_offset_y = int(gy - cluster_h / 2)
+            for node in group_nodes:
+                node["parentId"] = f"group-{group_id}"
+                node["position"]["x"] -= group_offset_x
+                node["position"]["y"] -= group_offset_y
 
         rf_nodes.extend(all_device_nodes)
 

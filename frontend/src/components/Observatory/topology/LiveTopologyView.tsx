@@ -173,7 +173,7 @@ const LiveTopologyView: React.FC = () => {
         if (pathMode) { setPathSource(null); setPathNodes(new Set()); }
       }
       if (e.key === 'f' || e.key === 'F') {
-        reactFlowInstance.current?.fitView({ padding: 0.15 });
+        reactFlowInstance.current?.fitView({ padding: 0.1 });
       }
       if (e.key === 'Escape') {
         setPathMode(false);
@@ -298,7 +298,7 @@ const LiveTopologyView: React.FC = () => {
 
         {/* Fit View */}
         <button
-          onClick={() => reactFlowInstance.current?.fitView({ padding: 0.15 })}
+          onClick={() => reactFlowInstance.current?.fitView({ padding: 0.1 })}
           style={{ background: '#1e1b15', border: '1px solid #3d3528', borderRadius: 6, color: '#8a7e6b', padding: '4px 8px', cursor: 'pointer', minHeight: 28 }}
           title="Fit view (F)"
         >
@@ -377,7 +377,7 @@ const LiveTopologyView: React.FC = () => {
         nodeTypes={nodeTypes}
         onInit={(instance) => {
           reactFlowInstance.current = instance;
-          setTimeout(() => instance.fitView({ padding: 0.15 }), 100);
+          setTimeout(() => instance.fitView({ padding: 0.1 }), 100);
           hasInitialFit.current = true;
         }}
         onNodeMouseEnter={(_, node) => {
