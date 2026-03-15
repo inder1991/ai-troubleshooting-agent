@@ -246,6 +246,16 @@ def create_app() -> FastAPI:
         except Exception as e:
             logger.warning("Event bus init failed: %s", e)
 
+        # ── Load enterprise network fixtures into topology store ──
+        try:
+            from src.network.fixture_loader import load_enterprise_fixtures
+            topo_store = _net_topo_store()
+            fixture_result = load_enterprise_fixtures(topo_store)
+            if fixture_result.get("loaded"):
+                logger.info("Enterprise fixtures: %d entities loaded", fixture_result.get("total", 0))
+        except Exception as e:
+            logger.warning("Enterprise fixture loading failed: %s", e)
+
         try:
             from src.network.monitor import NetworkMonitor
             topo_store = _net_topo_store()

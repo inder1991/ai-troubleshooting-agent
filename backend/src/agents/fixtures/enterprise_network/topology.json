@@ -1,0 +1,2805 @@
+{
+  "devices": [
+    {
+      "id": "pa-core-fw-01",
+      "name": "pa-core-fw-01",
+      "vendor": "Palo Alto",
+      "device_type": "firewall",
+      "management_ip": "10.1.40.10",
+      "model": "PA-5260",
+      "location": "DC-East",
+      "zone_id": "zone-trust-prod",
+      "ha_group_id": "ha-pa-core",
+      "ha_role": "active",
+      "description": "Core firewall - east/west segmentation"
+    },
+    {
+      "id": "pa-core-fw-02",
+      "name": "pa-core-fw-02",
+      "vendor": "Palo Alto",
+      "device_type": "firewall",
+      "management_ip": "10.1.40.11",
+      "model": "PA-5260",
+      "location": "DC-East",
+      "zone_id": "zone-trust-prod",
+      "ha_group_id": "ha-pa-core",
+      "ha_role": "standby",
+      "description": "Core firewall standby"
+    },
+    {
+      "id": "cp-perim-fw-01",
+      "name": "cp-perim-fw-01",
+      "vendor": "Checkpoint",
+      "device_type": "firewall",
+      "management_ip": "10.1.40.20",
+      "model": "6800",
+      "location": "DC-East",
+      "zone_id": "zone-internet-edge",
+      "ha_group_id": "ha-cp-perim",
+      "ha_role": "active",
+      "description": "Perimeter firewall - north/south"
+    },
+    {
+      "id": "cp-perim-fw-02",
+      "name": "cp-perim-fw-02",
+      "vendor": "Checkpoint",
+      "device_type": "firewall",
+      "management_ip": "10.1.40.21",
+      "model": "6800",
+      "location": "DC-East",
+      "zone_id": "zone-internet-edge",
+      "ha_group_id": "ha-cp-perim",
+      "ha_role": "standby",
+      "description": "Perimeter firewall standby"
+    },
+    {
+      "id": "zs-proxy-01",
+      "name": "zs-proxy-01",
+      "vendor": "Zscaler",
+      "device_type": "firewall",
+      "management_ip": "10.1.40.30",
+      "model": "ZIA",
+      "location": "DC-East",
+      "zone_id": "zone-internet-edge",
+      "description": "Zscaler Internet Access proxy"
+    },
+    {
+      "id": "rtr-core-01",
+      "name": "rtr-core-01",
+      "vendor": "Cisco",
+      "device_type": "router",
+      "management_ip": "10.1.40.40",
+      "model": "C9500-48Y4C",
+      "location": "DC-East",
+      "zone_id": "zone-cloud-transit",
+      "ha_group_id": "ha-rtr-core",
+      "ha_role": "active",
+      "description": "Core router - cloud transit and inter-VLAN"
+    },
+    {
+      "id": "rtr-core-02",
+      "name": "rtr-core-02",
+      "vendor": "Cisco",
+      "device_type": "router",
+      "management_ip": "10.1.40.41",
+      "model": "C9500-48Y4C",
+      "location": "DC-East",
+      "zone_id": "zone-cloud-transit",
+      "ha_group_id": "ha-rtr-core",
+      "ha_role": "standby",
+      "description": "Core router standby"
+    },
+    {
+      "id": "rtr-dc-edge-01",
+      "name": "rtr-dc-edge-01",
+      "vendor": "Cisco",
+      "device_type": "router",
+      "management_ip": "10.1.40.42",
+      "model": "ASR 1001-X",
+      "location": "DC-East",
+      "zone_id": "zone-cloud-transit",
+      "description": "DC edge router - DX/ER/FC termination primary"
+    },
+    {
+      "id": "rtr-dc-edge-02",
+      "name": "rtr-dc-edge-02",
+      "vendor": "Cisco",
+      "device_type": "router",
+      "management_ip": "10.1.40.43",
+      "model": "ASR 1001-X",
+      "location": "DC-East",
+      "zone_id": "zone-cloud-transit",
+      "description": "DC edge router secondary"
+    },
+    {
+      "id": "f5-lb-01",
+      "name": "f5-lb-01",
+      "vendor": "F5",
+      "device_type": "load_balancer",
+      "management_ip": "10.1.40.50",
+      "model": "BIG-IP i5800",
+      "location": "DC-East",
+      "zone_id": "zone-dmz",
+      "ha_group_id": "ha-f5-onprem",
+      "ha_role": "active",
+      "description": "On-prem load balancer active"
+    },
+    {
+      "id": "f5-lb-02",
+      "name": "f5-lb-02",
+      "vendor": "F5",
+      "device_type": "load_balancer",
+      "management_ip": "10.1.40.51",
+      "model": "BIG-IP i5800",
+      "location": "DC-East",
+      "zone_id": "zone-dmz",
+      "ha_group_id": "ha-f5-onprem",
+      "ha_role": "standby",
+      "description": "On-prem load balancer standby"
+    },
+    {
+      "id": "sw-access-01",
+      "name": "sw-access-01",
+      "vendor": "Cisco",
+      "device_type": "switch",
+      "management_ip": "10.1.40.60",
+      "model": "C9300-48T",
+      "location": "DC-East",
+      "zone_id": "zone-trust-prod",
+      "description": "Access switch - production server racks"
+    },
+    {
+      "id": "sw-access-02",
+      "name": "sw-access-02",
+      "vendor": "Cisco",
+      "device_type": "switch",
+      "management_ip": "10.1.40.61",
+      "model": "C9300-48T",
+      "location": "DC-East",
+      "zone_id": "zone-trust-corp",
+      "description": "Access switch - corporate/user racks"
+    },
+    {
+      "id": "tgw-hub-01",
+      "name": "tgw-hub-01",
+      "vendor": "AWS",
+      "device_type": "router",
+      "management_ip": "",
+      "model": "Transit Gateway",
+      "location": "us-east-1",
+      "zone_id": "zone-cloud-transit",
+      "description": "AWS Transit Gateway hub"
+    },
+    {
+      "id": "vpc-production",
+      "name": "vpc-production",
+      "vendor": "AWS",
+      "device_type": "host",
+      "management_ip": "",
+      "model": "VPC",
+      "location": "us-east-1",
+      "description": "AWS Production VPC 10.10.0.0/16"
+    },
+    {
+      "id": "vpc-staging",
+      "name": "vpc-staging",
+      "vendor": "AWS",
+      "device_type": "host",
+      "management_ip": "",
+      "model": "VPC",
+      "location": "us-east-1",
+      "description": "AWS Staging VPC 10.11.0.0/16"
+    },
+    {
+      "id": "vpc-shared-services",
+      "name": "vpc-shared-services",
+      "vendor": "AWS",
+      "device_type": "host",
+      "management_ip": "",
+      "model": "VPC",
+      "location": "us-east-1",
+      "description": "AWS Shared Services VPC 10.12.0.0/16"
+    },
+    {
+      "id": "vpc-inspection",
+      "name": "vpc-inspection",
+      "vendor": "AWS",
+      "device_type": "host",
+      "management_ip": "",
+      "model": "VPC",
+      "location": "us-east-1",
+      "description": "AWS Inspection VPC 10.13.0.0/16"
+    },
+    {
+      "id": "pa-aws-fw-01",
+      "name": "pa-aws-fw-01",
+      "vendor": "Palo Alto",
+      "device_type": "firewall",
+      "management_ip": "10.13.1.10",
+      "model": "VM-300",
+      "location": "us-east-1",
+      "zone_id": "zone-cloud-transit",
+      "ha_group_id": "ha-pa-aws",
+      "ha_role": "active",
+      "description": "AWS inspection firewall active"
+    },
+    {
+      "id": "pa-aws-fw-02",
+      "name": "pa-aws-fw-02",
+      "vendor": "Palo Alto",
+      "device_type": "firewall",
+      "management_ip": "10.13.1.11",
+      "model": "VM-300",
+      "location": "us-east-1",
+      "zone_id": "zone-cloud-transit",
+      "ha_group_id": "ha-pa-aws",
+      "ha_role": "standby",
+      "description": "AWS inspection firewall standby"
+    },
+    {
+      "id": "csr-aws-01",
+      "name": "csr-aws-01",
+      "vendor": "Cisco",
+      "device_type": "router",
+      "management_ip": "10.13.2.10",
+      "model": "CSR1000v",
+      "location": "us-east-1",
+      "zone_id": "zone-cloud-transit",
+      "description": "AWS cloud router - GRE tunnel endpoint"
+    },
+    {
+      "id": "f5-aws-01",
+      "name": "f5-aws-01",
+      "vendor": "F5",
+      "device_type": "load_balancer",
+      "management_ip": "10.10.1.100",
+      "model": "BIG-IP VE",
+      "location": "us-east-1",
+      "zone_id": "zone-trust-prod",
+      "description": "AWS production load balancer"
+    },
+    {
+      "id": "gwlb-inspection-01",
+      "name": "gwlb-inspection-01",
+      "vendor": "AWS",
+      "device_type": "load_balancer",
+      "management_ip": "",
+      "model": "Gateway Load Balancer",
+      "location": "us-east-1",
+      "zone_id": "zone-cloud-transit",
+      "description": "AWS GWLB for inspection VPC"
+    },
+    {
+      "id": "natgw-prod-01",
+      "name": "natgw-prod-01",
+      "vendor": "AWS",
+      "device_type": "router",
+      "management_ip": "",
+      "model": "NAT Gateway",
+      "location": "us-east-1",
+      "description": "AWS NAT Gateway for production VPC"
+    },
+    {
+      "id": "igw-prod-01",
+      "name": "igw-prod-01",
+      "vendor": "AWS",
+      "device_type": "router",
+      "management_ip": "",
+      "model": "Internet Gateway",
+      "location": "us-east-1",
+      "zone_id": "zone-internet-edge",
+      "description": "AWS Internet Gateway for production VPC"
+    },
+    {
+      "id": "vwan-hub-01",
+      "name": "vwan-hub-01",
+      "vendor": "Azure",
+      "device_type": "router",
+      "management_ip": "",
+      "model": "vWAN Hub",
+      "location": "westeurope",
+      "zone_id": "zone-cloud-transit",
+      "description": "Azure Virtual WAN Hub"
+    },
+    {
+      "id": "vnet-production",
+      "name": "vnet-production",
+      "vendor": "Azure",
+      "device_type": "host",
+      "management_ip": "",
+      "model": "VNet",
+      "location": "westeurope",
+      "description": "Azure Production VNet 10.20.0.0/16"
+    },
+    {
+      "id": "vnet-shared",
+      "name": "vnet-shared",
+      "vendor": "Azure",
+      "device_type": "host",
+      "management_ip": "",
+      "model": "VNet",
+      "location": "westeurope",
+      "description": "Azure Shared Services VNet 10.21.0.0/16"
+    },
+    {
+      "id": "er-gw-01",
+      "name": "er-gw-01",
+      "vendor": "Azure",
+      "device_type": "router",
+      "management_ip": "",
+      "model": "ExpressRoute Gateway",
+      "location": "westeurope",
+      "zone_id": "zone-cloud-transit",
+      "description": "Azure ExpressRoute Gateway"
+    },
+    {
+      "id": "nva-azure-01",
+      "name": "nva-azure-01",
+      "vendor": "Azure",
+      "device_type": "firewall",
+      "management_ip": "10.20.1.10",
+      "model": "NVA",
+      "location": "westeurope",
+      "zone_id": "zone-cloud-transit",
+      "description": "Azure Network Virtual Appliance"
+    },
+    {
+      "id": "vcn-production",
+      "name": "vcn-production",
+      "vendor": "OCI",
+      "device_type": "host",
+      "management_ip": "",
+      "model": "VCN",
+      "location": "us-ashburn-1",
+      "description": "OCI Production VCN 10.30.0.0/16"
+    },
+    {
+      "id": "drg-01",
+      "name": "drg-01",
+      "vendor": "OCI",
+      "device_type": "router",
+      "management_ip": "",
+      "model": "Dynamic Routing Gateway",
+      "location": "us-ashburn-1",
+      "zone_id": "zone-cloud-transit",
+      "description": "OCI DRG for cross-cloud connectivity"
+    },
+    {
+      "id": "oci-lb-01",
+      "name": "oci-lb-01",
+      "vendor": "OCI",
+      "device_type": "load_balancer",
+      "management_ip": "10.30.1.100",
+      "model": "OCI Load Balancer",
+      "location": "us-ashburn-1",
+      "zone_id": "zone-trust-prod",
+      "description": "OCI production load balancer"
+    },
+    {
+      "id": "rtr-branch-ny",
+      "name": "rtr-branch-ny",
+      "vendor": "Cisco",
+      "device_type": "router",
+      "management_ip": "172.16.1.1",
+      "model": "ISR 4321",
+      "location": "Branch-NY",
+      "description": "New York branch router"
+    },
+    {
+      "id": "rtr-branch-london",
+      "name": "rtr-branch-london",
+      "vendor": "Cisco",
+      "device_type": "router",
+      "management_ip": "172.16.2.1",
+      "model": "ISR 4321",
+      "location": "Branch-London",
+      "description": "London branch router"
+    }
+  ],
+  "interfaces": [
+    {
+      "id": "pa-core-fw-01-eth1-1",
+      "device_id": "pa-core-fw-01",
+      "name": "ethernet1/1",
+      "ip": "10.0.0.1",
+      "mac": "00:1B:17:AA:01:01",
+      "zone_id": "zone-untrust",
+      "speed": "10Gbps",
+      "status": "up",
+      "role": "outside",
+      "subnet_id": "subnet-p2p-core-cp"
+    },
+    {
+      "id": "pa-core-fw-01-eth1-2",
+      "device_id": "pa-core-fw-01",
+      "name": "ethernet1/2",
+      "ip": "10.1.10.1",
+      "mac": "00:1B:17:AA:01:02",
+      "zone_id": "zone-trust-prod",
+      "speed": "10Gbps",
+      "status": "up",
+      "role": "inside",
+      "subnet_id": "subnet-prod",
+      "vlan_id": 10
+    },
+    {
+      "id": "pa-core-fw-01-eth1-3",
+      "device_id": "pa-core-fw-01",
+      "name": "ethernet1/3",
+      "ip": "10.1.20.1",
+      "mac": "00:1B:17:AA:01:03",
+      "zone_id": "zone-trust-corp",
+      "speed": "10Gbps",
+      "status": "up",
+      "role": "inside",
+      "subnet_id": "subnet-corp",
+      "vlan_id": 20
+    },
+    {
+      "id": "pa-core-fw-01-eth1-4",
+      "device_id": "pa-core-fw-01",
+      "name": "ethernet1/4",
+      "ip": "10.1.30.1",
+      "mac": "00:1B:17:AA:01:04",
+      "zone_id": "zone-dmz",
+      "speed": "10Gbps",
+      "status": "up",
+      "role": "dmz",
+      "subnet_id": "subnet-dmz",
+      "vlan_id": 30
+    },
+    {
+      "id": "pa-core-fw-01-eth1-5",
+      "device_id": "pa-core-fw-01",
+      "name": "ethernet1/5",
+      "ip": "10.0.0.9",
+      "mac": "00:1B:17:AA:01:05",
+      "zone_id": "zone-cloud-transit",
+      "speed": "10Gbps",
+      "status": "up",
+      "role": "inside",
+      "subnet_id": "subnet-p2p-core-rtr"
+    },
+    {
+      "id": "pa-core-fw-01-ae1",
+      "device_id": "pa-core-fw-01",
+      "name": "ae1",
+      "ip": "10.0.0.5",
+      "mac": "00:1B:17:AA:01:06",
+      "zone_id": "zone-ha",
+      "speed": "10Gbps",
+      "status": "up",
+      "role": "sync",
+      "subnet_id": "subnet-p2p-ha-pa"
+    },
+    {
+      "id": "pa-core-fw-01-mgmt",
+      "device_id": "pa-core-fw-01",
+      "name": "management",
+      "ip": "10.1.40.10",
+      "mac": "00:1B:17:AA:01:FF",
+      "zone_id": "zone-mgmt",
+      "speed": "1Gbps",
+      "status": "up",
+      "role": "management",
+      "subnet_id": "subnet-mgmt",
+      "vlan_id": 40
+    },
+    {
+      "id": "pa-core-fw-02-eth1-1",
+      "device_id": "pa-core-fw-02",
+      "name": "ethernet1/1",
+      "ip": "10.0.0.17",
+      "mac": "00:1B:17:AA:02:01",
+      "zone_id": "zone-untrust",
+      "speed": "10Gbps",
+      "status": "up",
+      "role": "outside",
+      "subnet_id": "subnet-p2p-core-cp"
+    },
+    {
+      "id": "pa-core-fw-02-eth1-2",
+      "device_id": "pa-core-fw-02",
+      "name": "ethernet1/2",
+      "ip": "10.1.10.2",
+      "mac": "00:1B:17:AA:02:02",
+      "zone_id": "zone-trust-prod",
+      "speed": "10Gbps",
+      "status": "up",
+      "role": "inside",
+      "subnet_id": "subnet-prod",
+      "vlan_id": 10
+    },
+    {
+      "id": "pa-core-fw-02-ae1",
+      "device_id": "pa-core-fw-02",
+      "name": "ae1",
+      "ip": "10.0.0.6",
+      "mac": "00:1B:17:AA:02:06",
+      "zone_id": "zone-ha",
+      "speed": "10Gbps",
+      "status": "up",
+      "role": "sync",
+      "subnet_id": "subnet-p2p-ha-pa"
+    },
+    {
+      "id": "pa-core-fw-02-mgmt",
+      "device_id": "pa-core-fw-02",
+      "name": "management",
+      "ip": "10.1.40.11",
+      "mac": "00:1B:17:AA:02:FF",
+      "zone_id": "zone-mgmt",
+      "speed": "1Gbps",
+      "status": "up",
+      "role": "management",
+      "subnet_id": "subnet-mgmt",
+      "vlan_id": 40
+    },
+    {
+      "id": "cp-perim-fw-01-eth0",
+      "device_id": "cp-perim-fw-01",
+      "name": "eth0",
+      "ip": "203.0.113.2",
+      "mac": "00:1C:7F:BB:01:01",
+      "zone_id": "zone-internet-edge",
+      "speed": "10Gbps",
+      "status": "up",
+      "role": "outside",
+      "subnet_id": "subnet-internet-edge"
+    },
+    {
+      "id": "cp-perim-fw-01-eth1",
+      "device_id": "cp-perim-fw-01",
+      "name": "eth1",
+      "ip": "10.0.0.2",
+      "mac": "00:1C:7F:BB:01:02",
+      "zone_id": "zone-untrust",
+      "speed": "10Gbps",
+      "status": "up",
+      "role": "inside",
+      "subnet_id": "subnet-p2p-core-cp"
+    },
+    {
+      "id": "cp-perim-fw-01-eth2",
+      "device_id": "cp-perim-fw-01",
+      "name": "eth2",
+      "ip": "10.0.0.13",
+      "mac": "00:1C:7F:BB:01:03",
+      "zone_id": "zone-ha",
+      "speed": "10Gbps",
+      "status": "up",
+      "role": "sync",
+      "subnet_id": "subnet-p2p-ha-cp"
+    },
+    {
+      "id": "cp-perim-fw-01-mgmt",
+      "device_id": "cp-perim-fw-01",
+      "name": "mgmt",
+      "ip": "10.1.40.20",
+      "mac": "00:1C:7F:BB:01:FF",
+      "zone_id": "zone-mgmt",
+      "speed": "1Gbps",
+      "status": "up",
+      "role": "management",
+      "subnet_id": "subnet-mgmt",
+      "vlan_id": 40
+    },
+    {
+      "id": "cp-perim-fw-02-eth0",
+      "device_id": "cp-perim-fw-02",
+      "name": "eth0",
+      "ip": "203.0.113.3",
+      "mac": "00:1C:7F:BB:02:01",
+      "zone_id": "zone-internet-edge",
+      "speed": "10Gbps",
+      "status": "up",
+      "role": "outside",
+      "subnet_id": "subnet-internet-edge"
+    },
+    {
+      "id": "cp-perim-fw-02-eth1",
+      "device_id": "cp-perim-fw-02",
+      "name": "eth1",
+      "ip": "10.0.0.18",
+      "mac": "00:1C:7F:BB:02:02",
+      "zone_id": "zone-untrust",
+      "speed": "10Gbps",
+      "status": "up",
+      "role": "inside",
+      "subnet_id": "subnet-p2p-core-cp"
+    },
+    {
+      "id": "cp-perim-fw-02-eth2",
+      "device_id": "cp-perim-fw-02",
+      "name": "eth2",
+      "ip": "10.0.0.14",
+      "mac": "00:1C:7F:BB:02:03",
+      "zone_id": "zone-ha",
+      "speed": "10Gbps",
+      "status": "up",
+      "role": "sync",
+      "subnet_id": "subnet-p2p-ha-cp"
+    },
+    {
+      "id": "cp-perim-fw-02-mgmt",
+      "device_id": "cp-perim-fw-02",
+      "name": "mgmt",
+      "ip": "10.1.40.21",
+      "mac": "00:1C:7F:BB:02:FF",
+      "zone_id": "zone-mgmt",
+      "speed": "1Gbps",
+      "status": "up",
+      "role": "management",
+      "subnet_id": "subnet-mgmt",
+      "vlan_id": 40
+    },
+    {
+      "id": "zs-proxy-01-eth0",
+      "device_id": "zs-proxy-01",
+      "name": "eth0",
+      "ip": "10.1.40.30",
+      "mac": "00:1D:AA:CC:01:01",
+      "zone_id": "zone-mgmt",
+      "speed": "1Gbps",
+      "status": "up",
+      "role": "management",
+      "subnet_id": "subnet-mgmt",
+      "vlan_id": 40
+    },
+    {
+      "id": "zs-proxy-01-eth1",
+      "device_id": "zs-proxy-01",
+      "name": "eth1",
+      "ip": "10.1.20.10",
+      "mac": "00:1D:AA:CC:01:02",
+      "zone_id": "zone-trust-corp",
+      "speed": "10Gbps",
+      "status": "up",
+      "role": "inside",
+      "subnet_id": "subnet-corp",
+      "vlan_id": 20
+    },
+    {
+      "id": "zs-proxy-01-eth2",
+      "device_id": "zs-proxy-01",
+      "name": "eth2",
+      "ip": "10.0.0.22",
+      "mac": "00:1D:AA:CC:01:03",
+      "zone_id": "zone-untrust",
+      "speed": "10Gbps",
+      "status": "up",
+      "role": "outside",
+      "subnet_id": "subnet-p2p-transit"
+    },
+    {
+      "id": "rtr-core-01-gi0-0-0",
+      "device_id": "rtr-core-01",
+      "name": "GigabitEthernet0/0/0",
+      "ip": "10.0.0.10",
+      "mac": "00:1E:BD:DD:01:01",
+      "zone_id": "zone-cloud-transit",
+      "speed": "10Gbps",
+      "status": "up",
+      "subnet_id": "subnet-p2p-core-rtr"
+    },
+    {
+      "id": "rtr-core-01-gi0-0-1",
+      "device_id": "rtr-core-01",
+      "name": "GigabitEthernet0/0/1",
+      "ip": "10.0.0.33",
+      "mac": "00:1E:BD:DD:01:02",
+      "zone_id": "zone-cloud-transit",
+      "speed": "10Gbps",
+      "status": "up",
+      "subnet_id": "subnet-p2p-core-edge"
+    },
+    {
+      "id": "rtr-core-01-gi0-0-2",
+      "device_id": "rtr-core-01",
+      "name": "GigabitEthernet0/0/2",
+      "ip": "10.1.100.1",
+      "mac": "00:1E:BD:DD:01:03",
+      "zone_id": "zone-trust-prod",
+      "speed": "10Gbps",
+      "status": "up",
+      "subnet_id": "subnet-storage",
+      "vlan_id": 100
+    },
+    {
+      "id": "rtr-core-01-lo0",
+      "device_id": "rtr-core-01",
+      "name": "Loopback0",
+      "ip": "10.0.0.240",
+      "mac": "",
+      "zone_id": "zone-mgmt",
+      "status": "up",
+      "role": "loopback"
+    },
+    {
+      "id": "rtr-core-01-mgmt",
+      "device_id": "rtr-core-01",
+      "name": "Management0",
+      "ip": "10.1.40.40",
+      "mac": "00:1E:BD:DD:01:FF",
+      "zone_id": "zone-mgmt",
+      "speed": "1Gbps",
+      "status": "up",
+      "role": "management",
+      "subnet_id": "subnet-mgmt",
+      "vlan_id": 40
+    },
+    {
+      "id": "rtr-core-02-gi0-0-0",
+      "device_id": "rtr-core-02",
+      "name": "GigabitEthernet0/0/0",
+      "ip": "10.0.0.11",
+      "mac": "00:1E:BD:DD:02:01",
+      "zone_id": "zone-cloud-transit",
+      "speed": "10Gbps",
+      "status": "up",
+      "subnet_id": "subnet-p2p-core-rtr"
+    },
+    {
+      "id": "rtr-core-02-gi0-0-1",
+      "device_id": "rtr-core-02",
+      "name": "GigabitEthernet0/0/1",
+      "ip": "10.0.0.37",
+      "mac": "00:1E:BD:DD:02:02",
+      "zone_id": "zone-cloud-transit",
+      "speed": "10Gbps",
+      "status": "up",
+      "subnet_id": "subnet-p2p-core-edge2"
+    },
+    {
+      "id": "rtr-core-02-lo0",
+      "device_id": "rtr-core-02",
+      "name": "Loopback0",
+      "ip": "10.0.0.241",
+      "mac": "",
+      "zone_id": "zone-mgmt",
+      "status": "up",
+      "role": "loopback"
+    },
+    {
+      "id": "rtr-core-02-mgmt",
+      "device_id": "rtr-core-02",
+      "name": "Management0",
+      "ip": "10.1.40.41",
+      "mac": "00:1E:BD:DD:02:FF",
+      "zone_id": "zone-mgmt",
+      "speed": "1Gbps",
+      "status": "up",
+      "role": "management",
+      "subnet_id": "subnet-mgmt",
+      "vlan_id": 40
+    },
+    {
+      "id": "rtr-dc-edge-01-gi0-0-0",
+      "device_id": "rtr-dc-edge-01",
+      "name": "GigabitEthernet0/0/0",
+      "ip": "10.0.0.34",
+      "mac": "00:1E:BD:EE:01:01",
+      "zone_id": "zone-cloud-transit",
+      "speed": "10Gbps",
+      "status": "up",
+      "subnet_id": "subnet-p2p-core-edge"
+    },
+    {
+      "id": "rtr-dc-edge-01-gi0-0-1",
+      "device_id": "rtr-dc-edge-01",
+      "name": "GigabitEthernet0/0/1",
+      "ip": "169.254.100.1",
+      "mac": "00:1E:BD:EE:01:02",
+      "zone_id": "zone-cloud-transit",
+      "speed": "10Gbps",
+      "status": "up",
+      "subnet_id": "subnet-dx-primary",
+      "vlan_id": 200
+    },
+    {
+      "id": "rtr-dc-edge-01-gi0-0-2",
+      "device_id": "rtr-dc-edge-01",
+      "name": "GigabitEthernet0/0/2",
+      "ip": "169.254.200.1",
+      "mac": "00:1E:BD:EE:01:03",
+      "zone_id": "zone-cloud-transit",
+      "speed": "10Gbps",
+      "status": "up",
+      "subnet_id": "subnet-er-primary"
+    },
+    {
+      "id": "rtr-dc-edge-01-gi0-0-3",
+      "device_id": "rtr-dc-edge-01",
+      "name": "GigabitEthernet0/0/3",
+      "ip": "169.254.50.1",
+      "mac": "00:1E:BD:EE:01:04",
+      "zone_id": "zone-cloud-transit",
+      "speed": "10Gbps",
+      "status": "up",
+      "subnet_id": "subnet-fc-primary"
+    },
+    {
+      "id": "rtr-dc-edge-01-tun100",
+      "device_id": "rtr-dc-edge-01",
+      "name": "Tunnel100",
+      "ip": "169.254.101.1",
+      "mac": "",
+      "zone_id": "zone-cloud-transit",
+      "status": "up",
+      "subnet_id": "subnet-gre-primary"
+    },
+    {
+      "id": "rtr-dc-edge-01-tun200",
+      "device_id": "rtr-dc-edge-01",
+      "name": "Tunnel200",
+      "ip": "169.254.102.1",
+      "mac": "",
+      "zone_id": "zone-cloud-transit",
+      "status": "down",
+      "subnet_id": "subnet-gre-secondary"
+    },
+    {
+      "id": "rtr-dc-edge-01-mgmt",
+      "device_id": "rtr-dc-edge-01",
+      "name": "Management0",
+      "ip": "10.1.40.42",
+      "mac": "00:1E:BD:EE:01:FF",
+      "zone_id": "zone-mgmt",
+      "speed": "1Gbps",
+      "status": "up",
+      "role": "management",
+      "subnet_id": "subnet-mgmt",
+      "vlan_id": 40
+    },
+    {
+      "id": "rtr-dc-edge-02-gi0-0-0",
+      "device_id": "rtr-dc-edge-02",
+      "name": "GigabitEthernet0/0/0",
+      "ip": "10.0.0.38",
+      "mac": "00:1E:BD:EE:02:01",
+      "zone_id": "zone-cloud-transit",
+      "speed": "10Gbps",
+      "status": "up",
+      "subnet_id": "subnet-p2p-core-edge2"
+    },
+    {
+      "id": "rtr-dc-edge-02-gi0-0-1",
+      "device_id": "rtr-dc-edge-02",
+      "name": "GigabitEthernet0/0/1",
+      "ip": "169.254.100.5",
+      "mac": "00:1E:BD:EE:02:02",
+      "zone_id": "zone-cloud-transit",
+      "speed": "10Gbps",
+      "status": "up",
+      "subnet_id": "subnet-dx-secondary"
+    },
+    {
+      "id": "rtr-dc-edge-02-mgmt",
+      "device_id": "rtr-dc-edge-02",
+      "name": "Management0",
+      "ip": "10.1.40.43",
+      "mac": "00:1E:BD:EE:02:FF",
+      "zone_id": "zone-mgmt",
+      "speed": "1Gbps",
+      "status": "up",
+      "role": "management",
+      "subnet_id": "subnet-mgmt",
+      "vlan_id": 40
+    },
+    {
+      "id": "f5-lb-01-1-1",
+      "device_id": "f5-lb-01",
+      "name": "1.1",
+      "ip": "10.1.30.100",
+      "mac": "00:23:E9:FF:01:01",
+      "zone_id": "zone-dmz",
+      "speed": "10Gbps",
+      "status": "up",
+      "role": "outside",
+      "subnet_id": "subnet-dmz",
+      "vlan_id": 30
+    },
+    {
+      "id": "f5-lb-01-1-2",
+      "device_id": "f5-lb-01",
+      "name": "1.2",
+      "ip": "10.1.10.100",
+      "mac": "00:23:E9:FF:01:02",
+      "zone_id": "zone-trust-prod",
+      "speed": "10Gbps",
+      "status": "up",
+      "role": "inside",
+      "subnet_id": "subnet-prod",
+      "vlan_id": 10
+    },
+    {
+      "id": "f5-lb-01-mgmt",
+      "device_id": "f5-lb-01",
+      "name": "mgmt",
+      "ip": "10.1.40.50",
+      "mac": "00:23:E9:FF:01:FF",
+      "zone_id": "zone-mgmt",
+      "speed": "1Gbps",
+      "status": "up",
+      "role": "management",
+      "subnet_id": "subnet-mgmt",
+      "vlan_id": 40
+    },
+    {
+      "id": "f5-lb-02-1-1",
+      "device_id": "f5-lb-02",
+      "name": "1.1",
+      "ip": "10.1.30.101",
+      "mac": "00:23:E9:FF:02:01",
+      "zone_id": "zone-dmz",
+      "speed": "10Gbps",
+      "status": "up",
+      "role": "outside",
+      "subnet_id": "subnet-dmz",
+      "vlan_id": 30
+    },
+    {
+      "id": "f5-lb-02-1-2",
+      "device_id": "f5-lb-02",
+      "name": "1.2",
+      "ip": "10.1.10.101",
+      "mac": "00:23:E9:FF:02:02",
+      "zone_id": "zone-trust-prod",
+      "speed": "10Gbps",
+      "status": "up",
+      "role": "inside",
+      "subnet_id": "subnet-prod",
+      "vlan_id": 10
+    },
+    {
+      "id": "f5-lb-02-mgmt",
+      "device_id": "f5-lb-02",
+      "name": "mgmt",
+      "ip": "10.1.40.51",
+      "mac": "00:23:E9:FF:02:FF",
+      "zone_id": "zone-mgmt",
+      "speed": "1Gbps",
+      "status": "up",
+      "role": "management",
+      "subnet_id": "subnet-mgmt",
+      "vlan_id": 40
+    },
+    {
+      "id": "sw-access-01-gi1-0-1",
+      "device_id": "sw-access-01",
+      "name": "GigabitEthernet1/0/1",
+      "ip": "10.1.10.251",
+      "mac": "00:1E:F7:AA:01:01",
+      "zone_id": "zone-trust-prod",
+      "speed": "1Gbps",
+      "status": "up",
+      "subnet_id": "subnet-prod",
+      "vlan_id": 10
+    },
+    {
+      "id": "sw-access-01-gi1-0-48",
+      "device_id": "sw-access-01",
+      "name": "GigabitEthernet1/0/48",
+      "ip": "10.1.100.251",
+      "mac": "00:1E:F7:AA:01:30",
+      "zone_id": "zone-trust-prod",
+      "speed": "10Gbps",
+      "status": "up",
+      "subnet_id": "subnet-storage",
+      "vlan_id": 100
+    },
+    {
+      "id": "sw-access-01-mgmt",
+      "device_id": "sw-access-01",
+      "name": "Management0",
+      "ip": "10.1.40.60",
+      "mac": "00:1E:F7:AA:01:FF",
+      "zone_id": "zone-mgmt",
+      "speed": "1Gbps",
+      "status": "up",
+      "role": "management",
+      "subnet_id": "subnet-mgmt",
+      "vlan_id": 40
+    },
+    {
+      "id": "sw-access-02-gi1-0-1",
+      "device_id": "sw-access-02",
+      "name": "GigabitEthernet1/0/1",
+      "ip": "10.1.20.251",
+      "mac": "00:1E:F7:AA:02:01",
+      "zone_id": "zone-trust-corp",
+      "speed": "1Gbps",
+      "status": "up",
+      "subnet_id": "subnet-corp",
+      "vlan_id": 20
+    },
+    {
+      "id": "sw-access-02-gi1-0-24",
+      "device_id": "sw-access-02",
+      "name": "GigabitEthernet1/0/24",
+      "ip": "10.1.50.251",
+      "mac": "00:1E:F7:AA:02:18",
+      "zone_id": "zone-trust-corp",
+      "speed": "1Gbps",
+      "status": "up",
+      "subnet_id": "subnet-voice",
+      "vlan_id": 50
+    },
+    {
+      "id": "sw-access-02-mgmt",
+      "device_id": "sw-access-02",
+      "name": "Management0",
+      "ip": "10.1.40.61",
+      "mac": "00:1E:F7:AA:02:FF",
+      "zone_id": "zone-mgmt",
+      "speed": "1Gbps",
+      "status": "up",
+      "role": "management",
+      "subnet_id": "subnet-mgmt",
+      "vlan_id": 40
+    },
+    {
+      "id": "tgw-hub-01-attach-prod",
+      "device_id": "tgw-hub-01",
+      "name": "tgw-attach-vpc-production",
+      "ip": "",
+      "status": "up",
+      "subnet_id": "subnet-aws-prod"
+    },
+    {
+      "id": "tgw-hub-01-attach-staging",
+      "device_id": "tgw-hub-01",
+      "name": "tgw-attach-vpc-staging",
+      "ip": "",
+      "status": "up",
+      "subnet_id": "subnet-aws-staging"
+    },
+    {
+      "id": "tgw-hub-01-attach-shared",
+      "device_id": "tgw-hub-01",
+      "name": "tgw-attach-vpc-shared",
+      "ip": "",
+      "status": "up",
+      "subnet_id": "subnet-aws-shared"
+    },
+    {
+      "id": "tgw-hub-01-attach-inspect",
+      "device_id": "tgw-hub-01",
+      "name": "tgw-attach-vpc-inspection",
+      "ip": "",
+      "status": "up",
+      "subnet_id": "subnet-aws-inspection"
+    },
+    {
+      "id": "vpc-production-eni-01",
+      "device_id": "vpc-production",
+      "name": "eni-prod-app-01",
+      "ip": "10.10.1.50",
+      "mac": "02:AA:BB:01:01:01",
+      "status": "up",
+      "subnet_id": "subnet-aws-prod-app"
+    },
+    {
+      "id": "vpc-production-eni-02",
+      "device_id": "vpc-production",
+      "name": "eni-prod-app-02",
+      "ip": "10.10.1.51",
+      "mac": "02:AA:BB:01:01:02",
+      "status": "up",
+      "subnet_id": "subnet-aws-prod-app"
+    },
+    {
+      "id": "vpc-production-eni-03",
+      "device_id": "vpc-production",
+      "name": "eni-prod-db-01",
+      "ip": "10.10.2.50",
+      "mac": "02:AA:BB:01:02:01",
+      "status": "up",
+      "subnet_id": "subnet-aws-prod-db"
+    },
+    {
+      "id": "vpc-staging-eni-01",
+      "device_id": "vpc-staging",
+      "name": "eni-staging-app-01",
+      "ip": "10.11.1.50",
+      "mac": "02:AA:BB:02:01:01",
+      "status": "up",
+      "subnet_id": "subnet-aws-staging-app"
+    },
+    {
+      "id": "vpc-staging-eni-02",
+      "device_id": "vpc-staging",
+      "name": "eni-staging-db-01",
+      "ip": "10.11.2.50",
+      "mac": "02:AA:BB:02:02:01",
+      "status": "up",
+      "subnet_id": "subnet-aws-staging-db"
+    },
+    {
+      "id": "vpc-shared-services-eni-01",
+      "device_id": "vpc-shared-services",
+      "name": "eni-shared-dns-01",
+      "ip": "10.12.1.10",
+      "mac": "02:AA:BB:03:01:01",
+      "status": "up",
+      "subnet_id": "subnet-aws-shared-svc"
+    },
+    {
+      "id": "vpc-shared-services-eni-02",
+      "device_id": "vpc-shared-services",
+      "name": "eni-shared-ad-01",
+      "ip": "10.12.1.20",
+      "mac": "02:AA:BB:03:01:02",
+      "status": "up",
+      "subnet_id": "subnet-aws-shared-svc"
+    },
+    {
+      "id": "vpc-inspection-eni-01",
+      "device_id": "vpc-inspection",
+      "name": "eni-inspection-data-01",
+      "ip": "10.13.1.50",
+      "mac": "02:AA:BB:04:01:01",
+      "status": "up",
+      "subnet_id": "subnet-aws-inspection-data"
+    },
+    {
+      "id": "pa-aws-fw-01-eth0",
+      "device_id": "pa-aws-fw-01",
+      "name": "ethernet1/1",
+      "ip": "10.13.1.10",
+      "mac": "02:1B:17:CC:01:01",
+      "zone_id": "zone-cloud-transit",
+      "speed": "10Gbps",
+      "status": "up",
+      "role": "inside",
+      "subnet_id": "subnet-aws-inspection-data"
+    },
+    {
+      "id": "pa-aws-fw-01-eth1",
+      "device_id": "pa-aws-fw-01",
+      "name": "ethernet1/2",
+      "ip": "10.13.2.11",
+      "mac": "02:1B:17:CC:01:02",
+      "zone_id": "zone-cloud-transit",
+      "speed": "10Gbps",
+      "status": "up",
+      "role": "outside",
+      "subnet_id": "subnet-aws-inspection-mgmt"
+    },
+    {
+      "id": "pa-aws-fw-01-mgmt",
+      "device_id": "pa-aws-fw-01",
+      "name": "management",
+      "ip": "10.13.3.10",
+      "mac": "02:1B:17:CC:01:FF",
+      "zone_id": "zone-mgmt",
+      "speed": "1Gbps",
+      "status": "up",
+      "role": "management"
+    },
+    {
+      "id": "pa-aws-fw-02-eth0",
+      "device_id": "pa-aws-fw-02",
+      "name": "ethernet1/1",
+      "ip": "10.13.1.11",
+      "mac": "02:1B:17:CC:02:01",
+      "zone_id": "zone-cloud-transit",
+      "speed": "10Gbps",
+      "status": "up",
+      "role": "inside",
+      "subnet_id": "subnet-aws-inspection-data"
+    },
+    {
+      "id": "pa-aws-fw-02-eth1",
+      "device_id": "pa-aws-fw-02",
+      "name": "ethernet1/2",
+      "ip": "10.13.2.12",
+      "mac": "02:1B:17:CC:02:02",
+      "zone_id": "zone-cloud-transit",
+      "speed": "10Gbps",
+      "status": "up",
+      "role": "outside",
+      "subnet_id": "subnet-aws-inspection-mgmt"
+    },
+    {
+      "id": "pa-aws-fw-02-mgmt",
+      "device_id": "pa-aws-fw-02",
+      "name": "management",
+      "ip": "10.13.3.11",
+      "mac": "02:1B:17:CC:02:FF",
+      "zone_id": "zone-mgmt",
+      "speed": "1Gbps",
+      "status": "up",
+      "role": "management"
+    },
+    {
+      "id": "csr-aws-01-gi1",
+      "device_id": "csr-aws-01",
+      "name": "GigabitEthernet1",
+      "ip": "10.13.2.10",
+      "mac": "02:1E:BD:CC:01:01",
+      "zone_id": "zone-cloud-transit",
+      "speed": "10Gbps",
+      "status": "up",
+      "subnet_id": "subnet-aws-inspection-mgmt"
+    },
+    {
+      "id": "csr-aws-01-tun100",
+      "device_id": "csr-aws-01",
+      "name": "Tunnel100",
+      "ip": "169.254.101.2",
+      "mac": "",
+      "zone_id": "zone-cloud-transit",
+      "status": "up",
+      "subnet_id": "subnet-gre-primary"
+    },
+    {
+      "id": "csr-aws-01-tun200",
+      "device_id": "csr-aws-01",
+      "name": "Tunnel200",
+      "ip": "169.254.102.2",
+      "mac": "",
+      "zone_id": "zone-cloud-transit",
+      "status": "down",
+      "subnet_id": "subnet-gre-secondary"
+    },
+    {
+      "id": "f5-aws-01-data",
+      "device_id": "f5-aws-01",
+      "name": "1.1",
+      "ip": "10.10.1.100",
+      "mac": "02:23:E9:CC:01:01",
+      "zone_id": "zone-trust-prod",
+      "speed": "10Gbps",
+      "status": "up",
+      "role": "inside",
+      "subnet_id": "subnet-aws-prod-app"
+    },
+    {
+      "id": "f5-aws-01-mgmt",
+      "device_id": "f5-aws-01",
+      "name": "mgmt",
+      "ip": "10.10.1.101",
+      "mac": "02:23:E9:CC:01:FF",
+      "zone_id": "zone-mgmt",
+      "speed": "1Gbps",
+      "status": "up",
+      "role": "management"
+    },
+    {
+      "id": "gwlb-inspection-01-geneve",
+      "device_id": "gwlb-inspection-01",
+      "name": "geneve-endpoint",
+      "ip": "10.13.1.200",
+      "mac": "",
+      "zone_id": "zone-cloud-transit",
+      "status": "up",
+      "subnet_id": "subnet-aws-inspection-data"
+    },
+    {
+      "id": "gwlb-inspection-01-health",
+      "device_id": "gwlb-inspection-01",
+      "name": "health-check",
+      "ip": "10.13.1.201",
+      "mac": "",
+      "zone_id": "zone-cloud-transit",
+      "status": "up"
+    },
+    {
+      "id": "natgw-prod-01-public",
+      "device_id": "natgw-prod-01",
+      "name": "public-eni",
+      "ip": "52.20.100.1",
+      "mac": "",
+      "zone_id": "zone-internet-edge",
+      "status": "up"
+    },
+    {
+      "id": "natgw-prod-01-private",
+      "device_id": "natgw-prod-01",
+      "name": "private-eni",
+      "ip": "10.10.3.100",
+      "mac": "",
+      "status": "up",
+      "subnet_id": "subnet-aws-prod-pub"
+    },
+    {
+      "id": "igw-prod-01-attach",
+      "device_id": "igw-prod-01",
+      "name": "igw-attachment",
+      "ip": "",
+      "status": "up"
+    },
+    {
+      "id": "igw-prod-01-public",
+      "device_id": "igw-prod-01",
+      "name": "public-interface",
+      "ip": "",
+      "zone_id": "zone-internet-edge",
+      "status": "up"
+    },
+    {
+      "id": "vwan-hub-01-er",
+      "device_id": "vwan-hub-01",
+      "name": "er-connection",
+      "ip": "169.254.200.2",
+      "mac": "",
+      "zone_id": "zone-cloud-transit",
+      "status": "up",
+      "subnet_id": "subnet-er-primary"
+    },
+    {
+      "id": "vwan-hub-01-vnet-prod",
+      "device_id": "vwan-hub-01",
+      "name": "vnet-prod-connection",
+      "ip": "",
+      "status": "up"
+    },
+    {
+      "id": "vwan-hub-01-vnet-shared",
+      "device_id": "vwan-hub-01",
+      "name": "vnet-shared-connection",
+      "ip": "",
+      "status": "up"
+    },
+    {
+      "id": "vnet-production-nic-01",
+      "device_id": "vnet-production",
+      "name": "nic-azure-app-01",
+      "ip": "10.20.1.50",
+      "mac": "02:CC:DD:01:01:01",
+      "status": "up",
+      "subnet_id": "subnet-azure-prod-app"
+    },
+    {
+      "id": "vnet-production-nic-02",
+      "device_id": "vnet-production",
+      "name": "nic-azure-app-02",
+      "ip": "10.20.1.51",
+      "mac": "02:CC:DD:01:01:02",
+      "status": "up",
+      "subnet_id": "subnet-azure-prod-app"
+    },
+    {
+      "id": "vnet-shared-nic-01",
+      "device_id": "vnet-shared",
+      "name": "nic-azure-shared-01",
+      "ip": "10.21.1.10",
+      "mac": "02:CC:DD:02:01:01",
+      "status": "up",
+      "subnet_id": "subnet-azure-shared-svc"
+    },
+    {
+      "id": "vnet-shared-nic-02",
+      "device_id": "vnet-shared",
+      "name": "nic-azure-shared-02",
+      "ip": "10.21.1.20",
+      "mac": "02:CC:DD:02:01:02",
+      "status": "up",
+      "subnet_id": "subnet-azure-shared-svc"
+    },
+    {
+      "id": "er-gw-01-er-port",
+      "device_id": "er-gw-01",
+      "name": "expressroute-port",
+      "ip": "169.254.200.3",
+      "mac": "",
+      "zone_id": "zone-cloud-transit",
+      "status": "up"
+    },
+    {
+      "id": "er-gw-01-vnet-port",
+      "device_id": "er-gw-01",
+      "name": "vnet-gateway-port",
+      "ip": "10.20.0.4",
+      "mac": "",
+      "status": "up",
+      "subnet_id": "subnet-azure-prod"
+    },
+    {
+      "id": "nva-azure-01-trust",
+      "device_id": "nva-azure-01",
+      "name": "trust-nic",
+      "ip": "10.20.1.10",
+      "mac": "02:CC:DD:03:01:01",
+      "zone_id": "zone-trust-prod",
+      "speed": "10Gbps",
+      "status": "up",
+      "role": "inside",
+      "subnet_id": "subnet-azure-prod-app"
+    },
+    {
+      "id": "nva-azure-01-untrust",
+      "device_id": "nva-azure-01",
+      "name": "untrust-nic",
+      "ip": "10.20.0.10",
+      "mac": "02:CC:DD:03:01:02",
+      "zone_id": "zone-untrust",
+      "speed": "10Gbps",
+      "status": "up",
+      "role": "outside",
+      "subnet_id": "subnet-azure-prod"
+    },
+    {
+      "id": "nva-azure-01-mgmt",
+      "device_id": "nva-azure-01",
+      "name": "mgmt-nic",
+      "ip": "10.20.2.10",
+      "mac": "02:CC:DD:03:01:FF",
+      "zone_id": "zone-mgmt",
+      "speed": "1Gbps",
+      "status": "up",
+      "role": "management"
+    },
+    {
+      "id": "vcn-production-vnic-01",
+      "device_id": "vcn-production",
+      "name": "vnic-oci-app-01",
+      "ip": "10.30.1.50",
+      "mac": "02:DD:EE:01:01:01",
+      "status": "up",
+      "subnet_id": "subnet-oci-prod-app"
+    },
+    {
+      "id": "vcn-production-vnic-02",
+      "device_id": "vcn-production",
+      "name": "vnic-oci-app-02",
+      "ip": "10.30.1.51",
+      "mac": "02:DD:EE:01:01:02",
+      "status": "up",
+      "subnet_id": "subnet-oci-prod-app"
+    },
+    {
+      "id": "drg-01-fc-attach",
+      "device_id": "drg-01",
+      "name": "fastconnect-attachment",
+      "ip": "169.254.50.2",
+      "mac": "",
+      "zone_id": "zone-cloud-transit",
+      "status": "up",
+      "subnet_id": "subnet-fc-primary"
+    },
+    {
+      "id": "drg-01-vcn-attach",
+      "device_id": "drg-01",
+      "name": "vcn-attachment",
+      "ip": "10.30.0.1",
+      "mac": "",
+      "status": "up",
+      "subnet_id": "subnet-oci-prod"
+    },
+    {
+      "id": "oci-lb-01-frontend",
+      "device_id": "oci-lb-01",
+      "name": "frontend-vnic",
+      "ip": "10.30.1.100",
+      "mac": "02:DD:EE:02:01:01",
+      "zone_id": "zone-trust-prod",
+      "speed": "10Gbps",
+      "status": "up",
+      "role": "outside",
+      "subnet_id": "subnet-oci-prod-app"
+    },
+    {
+      "id": "oci-lb-01-backend",
+      "device_id": "oci-lb-01",
+      "name": "backend-vnic",
+      "ip": "10.30.2.100",
+      "mac": "02:DD:EE:02:01:02",
+      "zone_id": "zone-trust-prod",
+      "speed": "10Gbps",
+      "status": "up",
+      "role": "inside",
+      "subnet_id": "subnet-oci-prod-db"
+    },
+    {
+      "id": "rtr-branch-ny-gi0-0",
+      "device_id": "rtr-branch-ny",
+      "name": "GigabitEthernet0/0",
+      "ip": "172.16.1.1",
+      "mac": "00:1E:BD:FF:01:01",
+      "speed": "1Gbps",
+      "status": "up",
+      "subnet_id": "subnet-branch-ny"
+    },
+    {
+      "id": "rtr-branch-ny-gi0-1",
+      "device_id": "rtr-branch-ny",
+      "name": "GigabitEthernet0/1",
+      "ip": "10.0.0.41",
+      "mac": "00:1E:BD:FF:01:02",
+      "zone_id": "zone-cloud-transit",
+      "speed": "1Gbps",
+      "status": "up",
+      "vrf": "MPLS-WAN",
+      "subnet_id": "subnet-p2p-mpls-ny"
+    },
+    {
+      "id": "rtr-branch-ny-mgmt",
+      "device_id": "rtr-branch-ny",
+      "name": "Management0",
+      "ip": "172.16.1.254",
+      "mac": "00:1E:BD:FF:01:FF",
+      "speed": "1Gbps",
+      "status": "up",
+      "role": "management"
+    },
+    {
+      "id": "rtr-branch-london-gi0-0",
+      "device_id": "rtr-branch-london",
+      "name": "GigabitEthernet0/0",
+      "ip": "172.16.2.1",
+      "mac": "00:1E:BD:FF:02:01",
+      "speed": "1Gbps",
+      "status": "up",
+      "subnet_id": "subnet-branch-london"
+    },
+    {
+      "id": "rtr-branch-london-gi0-1",
+      "device_id": "rtr-branch-london",
+      "name": "GigabitEthernet0/1",
+      "ip": "10.0.0.45",
+      "mac": "00:1E:BD:FF:02:02",
+      "zone_id": "zone-cloud-transit",
+      "speed": "1Gbps",
+      "status": "up",
+      "vrf": "MPLS-WAN",
+      "subnet_id": "subnet-p2p-mpls-london"
+    },
+    {
+      "id": "rtr-branch-london-mgmt",
+      "device_id": "rtr-branch-london",
+      "name": "Management0",
+      "ip": "172.16.2.254",
+      "mac": "00:1E:BD:FF:02:FF",
+      "speed": "1Gbps",
+      "status": "up",
+      "role": "management"
+    }
+  ],
+  "zones": [
+    {
+      "id": "zone-untrust",
+      "name": "Untrust",
+      "security_level": 10,
+      "description": "Untrusted zone between perimeter and core firewalls",
+      "zone_type": "data"
+    },
+    {
+      "id": "zone-trust-prod",
+      "name": "Trust-Production",
+      "security_level": 80,
+      "description": "Trusted production server zone",
+      "zone_type": "data"
+    },
+    {
+      "id": "zone-trust-corp",
+      "name": "Trust-Corporate",
+      "security_level": 70,
+      "description": "Trusted corporate/user zone",
+      "zone_type": "data"
+    },
+    {
+      "id": "zone-dmz",
+      "name": "DMZ",
+      "security_level": 50,
+      "description": "Demilitarized zone for public-facing services",
+      "zone_type": "dmz"
+    },
+    {
+      "id": "zone-mgmt",
+      "name": "Management",
+      "security_level": 90,
+      "description": "Out-of-band management network",
+      "zone_type": "management"
+    },
+    {
+      "id": "zone-cloud-transit",
+      "name": "Cloud-Transit",
+      "security_level": 40,
+      "description": "Transit zone for DX/ER/FC and inter-cloud routing",
+      "zone_type": "data"
+    },
+    {
+      "id": "zone-ha",
+      "name": "HA-Sync",
+      "security_level": 95,
+      "description": "HA heartbeat and state synchronization zone",
+      "zone_type": "data"
+    },
+    {
+      "id": "zone-internet-edge",
+      "name": "Internet-Edge",
+      "security_level": 5,
+      "description": "Internet-facing edge zone",
+      "zone_type": "data"
+    }
+  ],
+  "subnets": [
+    {
+      "id": "subnet-prod",
+      "cidr": "10.1.10.0/24",
+      "vlan_id": 10,
+      "zone_id": "zone-trust-prod",
+      "gateway_ip": "10.1.10.1",
+      "description": "On-prem production servers",
+      "site": "DC-East",
+      "environment": "production",
+      "subnet_role": "server"
+    },
+    {
+      "id": "subnet-corp",
+      "cidr": "10.1.20.0/24",
+      "vlan_id": 20,
+      "zone_id": "zone-trust-corp",
+      "gateway_ip": "10.1.20.1",
+      "description": "On-prem corporate users",
+      "site": "DC-East",
+      "environment": "production",
+      "subnet_role": "user"
+    },
+    {
+      "id": "subnet-dmz",
+      "cidr": "10.1.30.0/24",
+      "vlan_id": 30,
+      "zone_id": "zone-dmz",
+      "gateway_ip": "10.1.30.1",
+      "description": "DMZ for load balancers and reverse proxies",
+      "site": "DC-East",
+      "environment": "production",
+      "subnet_role": "dmz"
+    },
+    {
+      "id": "subnet-mgmt",
+      "cidr": "10.1.40.0/24",
+      "vlan_id": 40,
+      "zone_id": "zone-mgmt",
+      "gateway_ip": "10.1.40.1",
+      "description": "Out-of-band management",
+      "site": "DC-East",
+      "environment": "production",
+      "subnet_role": "management"
+    },
+    {
+      "id": "subnet-voice",
+      "cidr": "10.1.50.0/24",
+      "vlan_id": 50,
+      "zone_id": "zone-trust-corp",
+      "gateway_ip": "10.1.50.1",
+      "description": "Voice/VoIP subnet",
+      "site": "DC-East",
+      "environment": "production",
+      "subnet_role": "voice"
+    },
+    {
+      "id": "subnet-storage",
+      "cidr": "10.1.100.0/24",
+      "vlan_id": 100,
+      "zone_id": "zone-trust-prod",
+      "gateway_ip": "10.1.100.1",
+      "description": "SAN/NAS storage network",
+      "site": "DC-East",
+      "environment": "production",
+      "subnet_role": "storage"
+    },
+    {
+      "id": "subnet-p2p-transit",
+      "cidr": "10.0.0.0/24",
+      "zone_id": "zone-cloud-transit",
+      "description": "Point-to-point transit links",
+      "site": "DC-East"
+    },
+    {
+      "id": "subnet-internet-edge",
+      "cidr": "203.0.113.0/29",
+      "zone_id": "zone-internet-edge",
+      "gateway_ip": "203.0.113.1",
+      "description": "Public-facing internet edge",
+      "site": "DC-East",
+      "environment": "production"
+    },
+    {
+      "id": "subnet-aws-prod",
+      "cidr": "10.10.0.0/16",
+      "zone_id": "zone-trust-prod",
+      "description": "AWS Production VPC supernet",
+      "region": "us-east-1",
+      "environment": "production",
+      "vpc_id": "vpc-prod-aws",
+      "cloud_provider": "aws"
+    },
+    {
+      "id": "subnet-aws-prod-app",
+      "cidr": "10.10.1.0/24",
+      "zone_id": "zone-trust-prod",
+      "gateway_ip": "10.10.1.1",
+      "description": "AWS production application tier",
+      "region": "us-east-1",
+      "environment": "production",
+      "vpc_id": "vpc-prod-aws",
+      "cloud_provider": "aws",
+      "parent_subnet_id": "subnet-aws-prod",
+      "subnet_role": "server"
+    },
+    {
+      "id": "subnet-aws-prod-db",
+      "cidr": "10.10.2.0/24",
+      "zone_id": "zone-trust-prod",
+      "gateway_ip": "10.10.2.1",
+      "description": "AWS production database tier",
+      "region": "us-east-1",
+      "environment": "production",
+      "vpc_id": "vpc-prod-aws",
+      "cloud_provider": "aws",
+      "parent_subnet_id": "subnet-aws-prod",
+      "subnet_role": "server"
+    },
+    {
+      "id": "subnet-aws-prod-pub",
+      "cidr": "10.10.3.0/24",
+      "zone_id": "zone-dmz",
+      "gateway_ip": "10.10.3.1",
+      "description": "AWS production public subnet",
+      "region": "us-east-1",
+      "environment": "production",
+      "vpc_id": "vpc-prod-aws",
+      "cloud_provider": "aws",
+      "parent_subnet_id": "subnet-aws-prod",
+      "subnet_role": "dmz"
+    },
+    {
+      "id": "subnet-aws-staging",
+      "cidr": "10.11.0.0/16",
+      "zone_id": "zone-trust-prod",
+      "description": "AWS Staging VPC supernet",
+      "region": "us-east-1",
+      "environment": "staging",
+      "vpc_id": "vpc-staging-aws",
+      "cloud_provider": "aws"
+    },
+    {
+      "id": "subnet-aws-staging-app",
+      "cidr": "10.11.1.0/24",
+      "zone_id": "zone-trust-prod",
+      "gateway_ip": "10.11.1.1",
+      "description": "AWS staging application tier",
+      "region": "us-east-1",
+      "environment": "staging",
+      "vpc_id": "vpc-staging-aws",
+      "cloud_provider": "aws",
+      "parent_subnet_id": "subnet-aws-staging",
+      "subnet_role": "server"
+    },
+    {
+      "id": "subnet-aws-staging-db",
+      "cidr": "10.11.2.0/24",
+      "zone_id": "zone-trust-prod",
+      "gateway_ip": "10.11.2.1",
+      "description": "AWS staging database tier",
+      "region": "us-east-1",
+      "environment": "staging",
+      "vpc_id": "vpc-staging-aws",
+      "cloud_provider": "aws",
+      "parent_subnet_id": "subnet-aws-staging",
+      "subnet_role": "server"
+    },
+    {
+      "id": "subnet-aws-shared",
+      "cidr": "10.12.0.0/16",
+      "description": "AWS Shared Services VPC supernet",
+      "region": "us-east-1",
+      "environment": "production",
+      "vpc_id": "vpc-shared-aws",
+      "cloud_provider": "aws"
+    },
+    {
+      "id": "subnet-aws-shared-svc",
+      "cidr": "10.12.1.0/24",
+      "gateway_ip": "10.12.1.1",
+      "description": "AWS shared services subnet (DNS, AD, logging)",
+      "region": "us-east-1",
+      "environment": "production",
+      "vpc_id": "vpc-shared-aws",
+      "cloud_provider": "aws",
+      "parent_subnet_id": "subnet-aws-shared",
+      "subnet_role": "server"
+    },
+    {
+      "id": "subnet-aws-inspection",
+      "cidr": "10.13.0.0/16",
+      "zone_id": "zone-cloud-transit",
+      "description": "AWS Inspection VPC supernet",
+      "region": "us-east-1",
+      "environment": "production",
+      "vpc_id": "vpc-inspection-aws",
+      "cloud_provider": "aws"
+    },
+    {
+      "id": "subnet-aws-inspection-data",
+      "cidr": "10.13.1.0/24",
+      "zone_id": "zone-cloud-transit",
+      "gateway_ip": "10.13.1.1",
+      "description": "AWS inspection data plane",
+      "region": "us-east-1",
+      "environment": "production",
+      "vpc_id": "vpc-inspection-aws",
+      "cloud_provider": "aws",
+      "parent_subnet_id": "subnet-aws-inspection",
+      "subnet_role": "server"
+    },
+    {
+      "id": "subnet-aws-inspection-mgmt",
+      "cidr": "10.13.2.0/24",
+      "zone_id": "zone-cloud-transit",
+      "gateway_ip": "10.13.2.1",
+      "description": "AWS inspection management and router plane",
+      "region": "us-east-1",
+      "environment": "production",
+      "vpc_id": "vpc-inspection-aws",
+      "cloud_provider": "aws",
+      "parent_subnet_id": "subnet-aws-inspection",
+      "subnet_role": "management"
+    },
+    {
+      "id": "subnet-azure-prod",
+      "cidr": "10.20.0.0/16",
+      "description": "Azure Production VNet supernet",
+      "region": "westeurope",
+      "environment": "production",
+      "cloud_provider": "azure"
+    },
+    {
+      "id": "subnet-azure-prod-app",
+      "cidr": "10.20.1.0/24",
+      "zone_id": "zone-trust-prod",
+      "gateway_ip": "10.20.1.1",
+      "description": "Azure production application subnet",
+      "region": "westeurope",
+      "environment": "production",
+      "cloud_provider": "azure",
+      "parent_subnet_id": "subnet-azure-prod",
+      "subnet_role": "server"
+    },
+    {
+      "id": "subnet-azure-shared",
+      "cidr": "10.21.0.0/16",
+      "description": "Azure Shared VNet supernet",
+      "region": "westeurope",
+      "environment": "production",
+      "cloud_provider": "azure"
+    },
+    {
+      "id": "subnet-azure-shared-svc",
+      "cidr": "10.21.1.0/24",
+      "gateway_ip": "10.21.1.1",
+      "description": "Azure shared services subnet",
+      "region": "westeurope",
+      "environment": "production",
+      "cloud_provider": "azure",
+      "parent_subnet_id": "subnet-azure-shared",
+      "subnet_role": "server"
+    },
+    {
+      "id": "subnet-oci-prod",
+      "cidr": "10.30.0.0/16",
+      "description": "OCI Production VCN supernet",
+      "region": "us-ashburn-1",
+      "environment": "production",
+      "cloud_provider": "oci"
+    },
+    {
+      "id": "subnet-oci-prod-app",
+      "cidr": "10.30.1.0/24",
+      "zone_id": "zone-trust-prod",
+      "gateway_ip": "10.30.1.1",
+      "description": "OCI production application subnet",
+      "region": "us-ashburn-1",
+      "environment": "production",
+      "cloud_provider": "oci",
+      "parent_subnet_id": "subnet-oci-prod",
+      "subnet_role": "server"
+    },
+    {
+      "id": "subnet-oci-prod-db",
+      "cidr": "10.30.2.0/24",
+      "zone_id": "zone-trust-prod",
+      "gateway_ip": "10.30.2.1",
+      "description": "OCI production database subnet",
+      "region": "us-ashburn-1",
+      "environment": "production",
+      "cloud_provider": "oci",
+      "parent_subnet_id": "subnet-oci-prod",
+      "subnet_role": "server"
+    },
+    {
+      "id": "subnet-branch-ny",
+      "cidr": "172.16.1.0/24",
+      "gateway_ip": "172.16.1.1",
+      "description": "New York branch LAN",
+      "site": "Branch-NY",
+      "environment": "production",
+      "subnet_role": "user"
+    },
+    {
+      "id": "subnet-branch-london",
+      "cidr": "172.16.2.0/24",
+      "gateway_ip": "172.16.2.1",
+      "description": "London branch LAN",
+      "site": "Branch-London",
+      "environment": "production",
+      "subnet_role": "user"
+    },
+    {
+      "id": "subnet-p2p-core-cp",
+      "cidr": "10.0.0.0/29",
+      "zone_id": "zone-untrust",
+      "description": "P2P link PA Core to Checkpoint Perimeter",
+      "site": "DC-East"
+    },
+    {
+      "id": "subnet-p2p-core-rtr",
+      "cidr": "10.0.0.8/29",
+      "zone_id": "zone-cloud-transit",
+      "description": "P2P link PA Core to core routers",
+      "site": "DC-East"
+    },
+    {
+      "id": "subnet-p2p-ha-pa",
+      "cidr": "10.0.0.4/30",
+      "zone_id": "zone-ha",
+      "description": "PA Core HA sync link",
+      "site": "DC-East"
+    },
+    {
+      "id": "subnet-p2p-ha-cp",
+      "cidr": "10.0.0.12/30",
+      "zone_id": "zone-ha",
+      "description": "Checkpoint HA sync link",
+      "site": "DC-East"
+    },
+    {
+      "id": "subnet-p2p-core-edge",
+      "cidr": "10.0.0.32/30",
+      "zone_id": "zone-cloud-transit",
+      "description": "P2P link core router to DC edge primary",
+      "site": "DC-East"
+    },
+    {
+      "id": "subnet-p2p-core-edge2",
+      "cidr": "10.0.0.36/30",
+      "zone_id": "zone-cloud-transit",
+      "description": "P2P link core router to DC edge secondary",
+      "site": "DC-East"
+    },
+    {
+      "id": "subnet-dx-primary",
+      "cidr": "169.254.100.0/30",
+      "zone_id": "zone-cloud-transit",
+      "description": "AWS Direct Connect primary BGP peering"
+    },
+    {
+      "id": "subnet-dx-secondary",
+      "cidr": "169.254.100.4/30",
+      "zone_id": "zone-cloud-transit",
+      "description": "AWS Direct Connect secondary BGP peering"
+    },
+    {
+      "id": "subnet-er-primary",
+      "cidr": "169.254.200.0/30",
+      "zone_id": "zone-cloud-transit",
+      "description": "Azure ExpressRoute primary BGP peering"
+    },
+    {
+      "id": "subnet-fc-primary",
+      "cidr": "169.254.50.0/30",
+      "zone_id": "zone-cloud-transit",
+      "description": "OCI FastConnect primary BGP peering"
+    },
+    {
+      "id": "subnet-gre-primary",
+      "cidr": "169.254.101.0/30",
+      "zone_id": "zone-cloud-transit",
+      "description": "GRE tunnel primary inner addresses"
+    },
+    {
+      "id": "subnet-gre-secondary",
+      "cidr": "169.254.102.0/30",
+      "zone_id": "zone-cloud-transit",
+      "description": "GRE tunnel secondary inner addresses"
+    },
+    {
+      "id": "subnet-p2p-mpls-ny",
+      "cidr": "10.0.0.40/30",
+      "zone_id": "zone-cloud-transit",
+      "description": "MPLS P2P link to Branch-NY"
+    },
+    {
+      "id": "subnet-p2p-mpls-london",
+      "cidr": "10.0.0.44/30",
+      "zone_id": "zone-cloud-transit",
+      "description": "MPLS P2P link to Branch-London"
+    }
+  ],
+  "vlans": [
+    {
+      "id": "vlan-10",
+      "vlan_number": 10,
+      "name": "Production",
+      "trunk_ports": ["sw-access-01-gi1-0-1"],
+      "site": "DC-East",
+      "description": "Production server VLAN",
+      "subnet_ids": ["subnet-prod"]
+    },
+    {
+      "id": "vlan-20",
+      "vlan_number": 20,
+      "name": "Corporate",
+      "trunk_ports": ["sw-access-02-gi1-0-1"],
+      "site": "DC-East",
+      "description": "Corporate user VLAN",
+      "subnet_ids": ["subnet-corp"]
+    },
+    {
+      "id": "vlan-30",
+      "vlan_number": 30,
+      "name": "DMZ",
+      "trunk_ports": ["f5-lb-01-1-1", "f5-lb-02-1-1"],
+      "site": "DC-East",
+      "description": "DMZ VLAN for public-facing services",
+      "subnet_ids": ["subnet-dmz"]
+    },
+    {
+      "id": "vlan-40",
+      "vlan_number": 40,
+      "name": "Management",
+      "site": "DC-East",
+      "description": "Out-of-band management VLAN",
+      "subnet_ids": ["subnet-mgmt"]
+    },
+    {
+      "id": "vlan-50",
+      "vlan_number": 50,
+      "name": "Voice",
+      "trunk_ports": ["sw-access-02-gi1-0-24"],
+      "site": "DC-East",
+      "description": "Voice/VoIP VLAN",
+      "subnet_ids": ["subnet-voice"]
+    },
+    {
+      "id": "vlan-100",
+      "vlan_number": 100,
+      "name": "Storage",
+      "trunk_ports": ["sw-access-01-gi1-0-48"],
+      "site": "DC-East",
+      "description": "Storage iSCSI/NFS VLAN",
+      "subnet_ids": ["subnet-storage"]
+    },
+    {
+      "id": "vlan-200",
+      "vlan_number": 200,
+      "name": "WAN-Transit",
+      "trunk_ports": ["rtr-dc-edge-01-gi0-0-1"],
+      "site": "DC-East",
+      "description": "WAN transit for DX/ER/FC connections",
+      "subnet_ids": ["subnet-dx-primary"]
+    },
+    {
+      "id": "vlan-999",
+      "vlan_number": 999,
+      "name": "Internet-Edge",
+      "site": "DC-East",
+      "description": "Internet edge VLAN",
+      "subnet_ids": ["subnet-internet-edge"]
+    }
+  ],
+  "routes": [
+    {
+      "id": "route-core01-aws",
+      "device_id": "rtr-core-01",
+      "destination_cidr": "10.10.0.0/16",
+      "next_hop": "169.254.100.2",
+      "interface": "GigabitEthernet0/0/1",
+      "metric": 100,
+      "protocol": "bgp",
+      "learned_from": "dx-primary"
+    },
+    {
+      "id": "route-core01-azure",
+      "device_id": "rtr-core-01",
+      "destination_cidr": "10.20.0.0/16",
+      "next_hop": "169.254.200.2",
+      "interface": "GigabitEthernet0/0/1",
+      "metric": 100,
+      "protocol": "bgp",
+      "learned_from": "er-primary"
+    },
+    {
+      "id": "route-core01-oci",
+      "device_id": "rtr-core-01",
+      "destination_cidr": "10.30.0.0/16",
+      "next_hop": "169.254.50.2",
+      "interface": "GigabitEthernet0/0/1",
+      "metric": 100,
+      "protocol": "bgp",
+      "learned_from": "fc-primary"
+    },
+    {
+      "id": "route-core01-default",
+      "device_id": "rtr-core-01",
+      "destination_cidr": "0.0.0.0/0",
+      "next_hop": "10.0.0.9",
+      "interface": "GigabitEthernet0/0/0",
+      "metric": 1,
+      "protocol": "static"
+    },
+    {
+      "id": "route-core01-branch-ny",
+      "device_id": "rtr-core-01",
+      "destination_cidr": "172.16.1.0/24",
+      "next_hop": "10.0.0.41",
+      "interface": "GigabitEthernet0/0/1",
+      "metric": 100,
+      "protocol": "bgp",
+      "learned_from": "mpls-ny"
+    },
+    {
+      "id": "route-core01-branch-london",
+      "device_id": "rtr-core-01",
+      "destination_cidr": "172.16.2.0/24",
+      "next_hop": "10.0.0.45",
+      "interface": "GigabitEthernet0/0/1",
+      "metric": 200,
+      "protocol": "bgp",
+      "learned_from": "mpls-london"
+    },
+    {
+      "id": "route-core01-staging",
+      "device_id": "rtr-core-01",
+      "destination_cidr": "10.11.0.0/16",
+      "next_hop": "169.254.100.2",
+      "interface": "GigabitEthernet0/0/1",
+      "metric": 100,
+      "protocol": "bgp",
+      "learned_from": "dx-primary"
+    },
+    {
+      "id": "route-core01-shared",
+      "device_id": "rtr-core-01",
+      "destination_cidr": "10.12.0.0/16",
+      "next_hop": "169.254.100.2",
+      "interface": "GigabitEthernet0/0/1",
+      "metric": 100,
+      "protocol": "bgp",
+      "learned_from": "dx-primary"
+    },
+    {
+      "id": "route-core01-inspection",
+      "device_id": "rtr-core-01",
+      "destination_cidr": "10.13.0.0/16",
+      "next_hop": "169.254.100.2",
+      "interface": "GigabitEthernet0/0/1",
+      "metric": 100,
+      "protocol": "bgp",
+      "learned_from": "dx-primary"
+    },
+    {
+      "id": "route-core01-azure-shared",
+      "device_id": "rtr-core-01",
+      "destination_cidr": "10.21.0.0/16",
+      "next_hop": "169.254.200.2",
+      "interface": "GigabitEthernet0/0/1",
+      "metric": 100,
+      "protocol": "bgp",
+      "learned_from": "er-primary"
+    },
+    {
+      "id": "route-pa-core-cloud",
+      "device_id": "pa-core-fw-01",
+      "destination_cidr": "10.10.0.0/8",
+      "next_hop": "10.0.0.10",
+      "interface": "ethernet1/5",
+      "metric": 1,
+      "protocol": "static"
+    },
+    {
+      "id": "route-pa-core-default",
+      "device_id": "pa-core-fw-01",
+      "destination_cidr": "0.0.0.0/0",
+      "next_hop": "10.0.0.2",
+      "interface": "ethernet1/1",
+      "metric": 10,
+      "protocol": "static"
+    },
+    {
+      "id": "route-pa-core-branch-ny",
+      "device_id": "pa-core-fw-01",
+      "destination_cidr": "172.16.1.0/24",
+      "next_hop": "10.0.0.10",
+      "interface": "ethernet1/5",
+      "metric": 1,
+      "protocol": "static"
+    },
+    {
+      "id": "route-pa-core-branch-london",
+      "device_id": "pa-core-fw-01",
+      "destination_cidr": "172.16.2.0/24",
+      "next_hop": "10.0.0.10",
+      "interface": "ethernet1/5",
+      "metric": 1,
+      "protocol": "static"
+    },
+    {
+      "id": "route-cp-default",
+      "device_id": "cp-perim-fw-01",
+      "destination_cidr": "0.0.0.0/0",
+      "next_hop": "203.0.113.1",
+      "interface": "eth0",
+      "metric": 1,
+      "protocol": "static"
+    },
+    {
+      "id": "route-cp-internal",
+      "device_id": "cp-perim-fw-01",
+      "destination_cidr": "10.0.0.0/8",
+      "next_hop": "10.0.0.1",
+      "interface": "eth1",
+      "metric": 1,
+      "protocol": "static"
+    },
+    {
+      "id": "route-edge01-aws-gre",
+      "device_id": "rtr-dc-edge-01",
+      "destination_cidr": "10.10.0.0/16",
+      "next_hop": "169.254.101.2",
+      "interface": "Tunnel100",
+      "metric": 50,
+      "protocol": "bgp",
+      "learned_from": "csr-aws-01"
+    },
+    {
+      "id": "route-branch-ny-default",
+      "device_id": "rtr-branch-ny",
+      "destination_cidr": "0.0.0.0/0",
+      "next_hop": "10.0.0.42",
+      "interface": "GigabitEthernet0/1",
+      "metric": 1,
+      "protocol": "static",
+      "vrf": "MPLS-WAN"
+    },
+    {
+      "id": "route-branch-london-default",
+      "device_id": "rtr-branch-london",
+      "destination_cidr": "0.0.0.0/0",
+      "next_hop": "10.0.0.46",
+      "interface": "GigabitEthernet0/1",
+      "metric": 1,
+      "protocol": "static",
+      "vrf": "MPLS-WAN"
+    },
+    {
+      "id": "route-csr-aws-onprem",
+      "device_id": "csr-aws-01",
+      "destination_cidr": "10.1.0.0/16",
+      "next_hop": "169.254.101.1",
+      "interface": "Tunnel100",
+      "metric": 50,
+      "protocol": "bgp",
+      "learned_from": "rtr-dc-edge-01"
+    }
+  ],
+  "firewall_rules": [
+    {
+      "id": "fwr-pa-trust-dmz-https",
+      "device_id": "pa-core-fw-01",
+      "rule_name": "Trust-to-DMZ-HTTPS",
+      "src_zone": "zone-trust-prod",
+      "dst_zone": "zone-dmz",
+      "src_ips": ["10.1.10.0/24", "10.1.20.0/24"],
+      "dst_ips": ["10.1.30.0/24"],
+      "ports": [443, 80],
+      "protocol": "tcp",
+      "action": "allow",
+      "logged": true,
+      "order": 10
+    },
+    {
+      "id": "fwr-pa-trust-cloud",
+      "device_id": "pa-core-fw-01",
+      "rule_name": "Trust-to-Cloud-Allow",
+      "src_zone": "zone-trust-prod",
+      "dst_zone": "zone-cloud-transit",
+      "src_ips": ["10.1.0.0/16"],
+      "dst_ips": ["10.10.0.0/16", "10.11.0.0/16", "10.12.0.0/16", "10.13.0.0/16", "10.20.0.0/16", "10.21.0.0/16", "10.30.0.0/16"],
+      "ports": [443, 8443, 5432, 3306, 6379, 22],
+      "protocol": "tcp",
+      "action": "allow",
+      "logged": true,
+      "order": 20
+    },
+    {
+      "id": "fwr-pa-dmz-trust-app",
+      "device_id": "pa-core-fw-01",
+      "rule_name": "DMZ-to-Trust-App",
+      "src_zone": "zone-dmz",
+      "dst_zone": "zone-trust-prod",
+      "src_ips": ["10.1.30.0/24"],
+      "dst_ips": ["10.1.10.0/24"],
+      "ports": [8080, 5432, 6379],
+      "protocol": "tcp",
+      "action": "allow",
+      "logged": true,
+      "order": 30
+    },
+    {
+      "id": "fwr-pa-corp-internet",
+      "device_id": "pa-core-fw-01",
+      "rule_name": "Corp-to-Internet",
+      "src_zone": "zone-trust-corp",
+      "dst_zone": "zone-untrust",
+      "src_ips": ["10.1.20.0/24"],
+      "dst_ips": ["0.0.0.0/0"],
+      "ports": [443, 80],
+      "protocol": "tcp",
+      "action": "allow",
+      "logged": false,
+      "order": 40
+    },
+    {
+      "id": "fwr-pa-mgmt-allow",
+      "device_id": "pa-core-fw-01",
+      "rule_name": "Mgmt-SSH-SNMP",
+      "src_zone": "zone-mgmt",
+      "dst_zone": "zone-trust-prod",
+      "src_ips": ["10.1.40.0/24"],
+      "dst_ips": ["10.1.0.0/16"],
+      "ports": [22, 161, 162, 443],
+      "protocol": "tcp",
+      "action": "allow",
+      "logged": true,
+      "order": 50
+    },
+    {
+      "id": "fwr-pa-implicit-deny",
+      "device_id": "pa-core-fw-01",
+      "rule_name": "Implicit-Deny",
+      "src_zone": "",
+      "dst_zone": "",
+      "src_ips": ["0.0.0.0/0"],
+      "dst_ips": ["0.0.0.0/0"],
+      "ports": [],
+      "protocol": "any",
+      "action": "deny",
+      "logged": true,
+      "order": 9999
+    },
+    {
+      "id": "fwr-cp-ext-dmz-https",
+      "device_id": "cp-perim-fw-01",
+      "rule_name": "External-to-DMZ-HTTPS",
+      "src_zone": "zone-internet-edge",
+      "dst_zone": "zone-dmz",
+      "src_ips": ["0.0.0.0/0"],
+      "dst_ips": ["203.0.113.5"],
+      "ports": [443],
+      "protocol": "tcp",
+      "action": "allow",
+      "logged": true,
+      "order": 10
+    },
+    {
+      "id": "fwr-cp-int-ext-snat",
+      "device_id": "cp-perim-fw-01",
+      "rule_name": "Internal-to-External",
+      "src_zone": "zone-untrust",
+      "dst_zone": "zone-internet-edge",
+      "src_ips": ["10.0.0.0/8"],
+      "dst_ips": ["0.0.0.0/0"],
+      "ports": [443, 80],
+      "protocol": "tcp",
+      "action": "allow",
+      "logged": false,
+      "order": 20
+    },
+    {
+      "id": "fwr-cp-implicit-deny",
+      "device_id": "cp-perim-fw-01",
+      "rule_name": "Implicit-Deny",
+      "src_zone": "",
+      "dst_zone": "",
+      "src_ips": ["0.0.0.0/0"],
+      "dst_ips": ["0.0.0.0/0"],
+      "ports": [],
+      "protocol": "any",
+      "action": "deny",
+      "logged": true,
+      "order": 9999
+    },
+    {
+      "id": "fwr-pa-aws-prod-staging-db",
+      "device_id": "pa-aws-fw-01",
+      "rule_name": "Prod-to-Staging-DB",
+      "src_zone": "zone-trust-prod",
+      "dst_zone": "zone-trust-prod",
+      "src_ips": ["10.10.0.0/16"],
+      "dst_ips": ["10.11.0.0/16"],
+      "ports": [5432],
+      "protocol": "tcp",
+      "action": "allow",
+      "logged": true,
+      "order": 10
+    },
+    {
+      "id": "fwr-pa-aws-shared-all",
+      "device_id": "pa-aws-fw-01",
+      "rule_name": "All-to-SharedServices",
+      "src_zone": "zone-trust-prod",
+      "dst_zone": "zone-trust-prod",
+      "src_ips": ["10.10.0.0/16", "10.11.0.0/16"],
+      "dst_ips": ["10.12.0.0/16"],
+      "ports": [53, 88, 389, 636, 443],
+      "protocol": "tcp",
+      "action": "allow",
+      "logged": false,
+      "order": 20
+    },
+    {
+      "id": "fwr-pa-aws-onprem",
+      "device_id": "pa-aws-fw-01",
+      "rule_name": "AWS-to-OnPrem",
+      "src_zone": "zone-cloud-transit",
+      "dst_zone": "zone-trust-prod",
+      "src_ips": ["10.10.0.0/16", "10.11.0.0/16"],
+      "dst_ips": ["10.1.0.0/16"],
+      "ports": [443, 8443, 5432],
+      "protocol": "tcp",
+      "action": "allow",
+      "logged": true,
+      "order": 30
+    },
+    {
+      "id": "fwr-pa-aws-implicit-deny",
+      "device_id": "pa-aws-fw-01",
+      "rule_name": "Implicit-Deny",
+      "src_zone": "",
+      "dst_zone": "",
+      "src_ips": ["0.0.0.0/0"],
+      "dst_ips": ["0.0.0.0/0"],
+      "ports": [],
+      "protocol": "any",
+      "action": "deny",
+      "logged": true,
+      "order": 9999
+    },
+    {
+      "id": "fwr-nva-azure-onprem",
+      "device_id": "nva-azure-01",
+      "rule_name": "Azure-to-OnPrem",
+      "src_zone": "zone-trust-prod",
+      "dst_zone": "zone-untrust",
+      "src_ips": ["10.20.0.0/16"],
+      "dst_ips": ["10.1.0.0/16"],
+      "ports": [443, 8443],
+      "protocol": "tcp",
+      "action": "allow",
+      "logged": true,
+      "order": 10
+    },
+    {
+      "id": "fwr-nva-azure-deny",
+      "device_id": "nva-azure-01",
+      "rule_name": "Implicit-Deny",
+      "src_zone": "",
+      "dst_zone": "",
+      "src_ips": ["0.0.0.0/0"],
+      "dst_ips": ["0.0.0.0/0"],
+      "ports": [],
+      "protocol": "any",
+      "action": "deny",
+      "logged": true,
+      "order": 9999
+    }
+  ],
+  "nat_rules": [
+    {
+      "id": "nat-cp-dnat-web",
+      "device_id": "cp-perim-fw-01",
+      "original_src": "",
+      "original_dst": "203.0.113.5",
+      "translated_src": "",
+      "translated_dst": "10.1.30.100",
+      "original_port": 443,
+      "translated_port": 443,
+      "direction": "dnat",
+      "rule_id": "dnat-001",
+      "description": "DNAT inbound HTTPS to F5 VIP"
+    },
+    {
+      "id": "nat-cp-snat-outbound",
+      "device_id": "cp-perim-fw-01",
+      "original_src": "10.0.0.0",
+      "original_dst": "",
+      "translated_src": "203.0.113.4",
+      "translated_dst": "",
+      "original_port": 0,
+      "translated_port": 0,
+      "direction": "snat",
+      "rule_id": "snat-001",
+      "description": "SNAT all internal to public IP for outbound"
+    },
+    {
+      "id": "nat-f5-snat-automap",
+      "device_id": "f5-lb-01",
+      "original_src": "",
+      "original_dst": "10.1.30.100",
+      "translated_src": "10.1.10.100",
+      "translated_dst": "",
+      "original_port": 443,
+      "translated_port": 443,
+      "direction": "snat",
+      "rule_id": "snat-automap",
+      "description": "F5 SNAT automap - VIP to pool member source"
+    },
+    {
+      "id": "nat-natgw-prod-snat",
+      "device_id": "natgw-prod-01",
+      "original_src": "10.10.0.0",
+      "original_dst": "",
+      "translated_src": "52.20.100.1",
+      "translated_dst": "",
+      "original_port": 0,
+      "translated_port": 0,
+      "direction": "snat",
+      "rule_id": "natgw-snat",
+      "description": "AWS NAT Gateway SNAT for production VPC outbound"
+    }
+  ],
+  "vpcs": [
+    {
+      "id": "vpc-prod-aws",
+      "name": "vpc-production",
+      "cloud_provider": "aws",
+      "region": "us-east-1",
+      "cidr_blocks": ["10.10.0.0/16"],
+      "account_id": "123456789012",
+      "compliance_zone": "pci"
+    },
+    {
+      "id": "vpc-staging-aws",
+      "name": "vpc-staging",
+      "cloud_provider": "aws",
+      "region": "us-east-1",
+      "cidr_blocks": ["10.11.0.0/16"],
+      "account_id": "123456789012"
+    },
+    {
+      "id": "vpc-shared-aws",
+      "name": "vpc-shared-services",
+      "cloud_provider": "aws",
+      "region": "us-east-1",
+      "cidr_blocks": ["10.12.0.0/16"],
+      "account_id": "123456789012"
+    },
+    {
+      "id": "vpc-inspection-aws",
+      "name": "vpc-inspection",
+      "cloud_provider": "aws",
+      "region": "us-east-1",
+      "cidr_blocks": ["10.13.0.0/16"],
+      "account_id": "123456789012"
+    }
+  ],
+  "transit_gateways": [
+    {
+      "id": "tgw-hub-01",
+      "name": "tgw-hub-01",
+      "cloud_provider": "aws",
+      "region": "us-east-1",
+      "attached_vpc_ids": ["vpc-prod-aws", "vpc-staging-aws", "vpc-shared-aws", "vpc-inspection-aws"],
+      "route_table_id": "tgw-rtb-01"
+    }
+  ],
+  "vpn_tunnels": [
+    {
+      "id": "gre-dx-01",
+      "name": "GRE-DX-01",
+      "tunnel_type": "gre",
+      "local_gateway_id": "rtr-dc-edge-01",
+      "remote_gateway_ip": "10.13.2.10",
+      "local_cidrs": ["10.1.0.0/16", "10.0.0.0/24"],
+      "remote_cidrs": ["10.10.0.0/16", "10.11.0.0/16", "10.12.0.0/16", "10.13.0.0/16"],
+      "encryption": "none",
+      "ike_version": "",
+      "status": "up"
+    },
+    {
+      "id": "gre-dx-02",
+      "name": "GRE-DX-02",
+      "tunnel_type": "gre",
+      "local_gateway_id": "rtr-dc-edge-01",
+      "remote_gateway_ip": "10.13.2.10",
+      "local_cidrs": ["10.1.0.0/16", "10.0.0.0/24"],
+      "remote_cidrs": ["10.10.0.0/16", "10.11.0.0/16", "10.12.0.0/16", "10.13.0.0/16"],
+      "encryption": "none",
+      "ike_version": "",
+      "status": "down"
+    }
+  ],
+  "direct_connects": [
+    {
+      "id": "dx-primary",
+      "name": "AWS Direct Connect Primary",
+      "provider": "aws_dx",
+      "bandwidth_mbps": 10000,
+      "location": "Equinix DC6 Ashburn",
+      "vlan_id": 200,
+      "bgp_asn": 65001,
+      "status": "up"
+    },
+    {
+      "id": "er-primary",
+      "name": "Azure ExpressRoute Primary",
+      "provider": "azure_er",
+      "bandwidth_mbps": 5000,
+      "location": "Equinix AM5 Amsterdam",
+      "vlan_id": 201,
+      "bgp_asn": 65002,
+      "status": "up"
+    },
+    {
+      "id": "fc-primary",
+      "name": "OCI FastConnect Primary",
+      "provider": "oci_fc",
+      "bandwidth_mbps": 5000,
+      "location": "Equinix DC6 Ashburn",
+      "vlan_id": 202,
+      "bgp_asn": 65003,
+      "status": "up"
+    }
+  ],
+  "ha_groups": [
+    {
+      "id": "ha-pa-core",
+      "name": "PA Core HA Pair",
+      "ha_mode": "active_passive",
+      "member_ids": ["pa-core-fw-01", "pa-core-fw-02"],
+      "virtual_ips": ["10.1.10.1", "10.1.20.1", "10.1.30.1"],
+      "active_member_id": "pa-core-fw-01",
+      "priority_map": {"pa-core-fw-01": 100, "pa-core-fw-02": 50},
+      "sync_interface": "ae1"
+    },
+    {
+      "id": "ha-cp-perim",
+      "name": "Checkpoint Perimeter HA Pair",
+      "ha_mode": "active_passive",
+      "member_ids": ["cp-perim-fw-01", "cp-perim-fw-02"],
+      "virtual_ips": ["203.0.113.2", "10.0.0.2"],
+      "active_member_id": "cp-perim-fw-01",
+      "priority_map": {"cp-perim-fw-01": 100, "cp-perim-fw-02": 50},
+      "sync_interface": "eth2"
+    },
+    {
+      "id": "ha-f5-onprem",
+      "name": "F5 On-Prem HA Pair",
+      "ha_mode": "active_passive",
+      "member_ids": ["f5-lb-01", "f5-lb-02"],
+      "virtual_ips": ["10.1.30.100"],
+      "active_member_id": "f5-lb-01",
+      "priority_map": {"f5-lb-01": 100, "f5-lb-02": 50},
+      "sync_interface": "1.3"
+    },
+    {
+      "id": "ha-pa-aws",
+      "name": "PA AWS Inspection HA Pair",
+      "ha_mode": "active_passive",
+      "member_ids": ["pa-aws-fw-01", "pa-aws-fw-02"],
+      "virtual_ips": ["10.13.1.10"],
+      "active_member_id": "pa-aws-fw-01",
+      "priority_map": {"pa-aws-fw-01": 100, "pa-aws-fw-02": 50},
+      "sync_interface": "ethernet1/3"
+    },
+    {
+      "id": "ha-rtr-core",
+      "name": "Core Router VRRP Group",
+      "ha_mode": "vrrp",
+      "member_ids": ["rtr-core-01", "rtr-core-02"],
+      "virtual_ips": ["10.0.0.254"],
+      "active_member_id": "rtr-core-01",
+      "priority_map": {"rtr-core-01": 110, "rtr-core-02": 100},
+      "sync_interface": ""
+    }
+  ],
+  "load_balancers": [
+    {
+      "id": "lb-f5-onprem",
+      "name": "f5-onprem-lb",
+      "lb_type": "nlb",
+      "scheme": "internal",
+      "vpc_id": "",
+      "listeners": [
+        {"protocol": "tcp", "port": 443, "target_group": "tg-web-app-pool"},
+        {"protocol": "tcp", "port": 8443, "target_group": "tg-api-pool"}
+      ],
+      "health_check_path": "/health"
+    },
+    {
+      "id": "lb-f5-aws",
+      "name": "f5-aws-lb",
+      "lb_type": "nlb",
+      "scheme": "internal",
+      "vpc_id": "vpc-prod-aws",
+      "listeners": [
+        {"protocol": "tcp", "port": 443, "target_group": "tg-aws-web-pool"}
+      ],
+      "health_check_path": "/health"
+    },
+    {
+      "id": "lb-gwlb-inspection",
+      "name": "gwlb-inspection",
+      "lb_type": "nlb",
+      "scheme": "internal",
+      "vpc_id": "vpc-inspection-aws",
+      "listeners": [
+        {"protocol": "tcp", "port": 6081, "target_group": "tg-inspection-targets"}
+      ],
+      "health_check_path": "/health"
+    }
+  ],
+  "lb_target_groups": [
+    {
+      "id": "tg-web-app-pool",
+      "lb_id": "lb-f5-onprem",
+      "name": "web-app-pool",
+      "protocol": "tcp",
+      "port": 8080,
+      "target_ids": ["10.1.10.50", "10.1.10.51", "10.1.10.52"],
+      "health_status": "degraded"
+    },
+    {
+      "id": "tg-api-pool",
+      "lb_id": "lb-f5-onprem",
+      "name": "api-pool",
+      "protocol": "tcp",
+      "port": 8443,
+      "target_ids": ["10.1.10.60", "10.1.10.61"],
+      "health_status": "healthy"
+    },
+    {
+      "id": "tg-aws-web-pool",
+      "lb_id": "lb-f5-aws",
+      "name": "aws-web-pool",
+      "protocol": "tcp",
+      "port": 8080,
+      "target_ids": ["10.10.1.50", "10.10.1.51"],
+      "health_status": "healthy"
+    },
+    {
+      "id": "tg-inspection-targets",
+      "lb_id": "lb-gwlb-inspection",
+      "name": "inspection-targets",
+      "protocol": "tcp",
+      "port": 6081,
+      "target_ids": ["pa-aws-fw-01", "pa-aws-fw-02"],
+      "health_status": "healthy"
+    }
+  ],
+  "mpls_circuits": [
+    {
+      "id": "mpls-ny",
+      "name": "MPLS-Branch-NY",
+      "label": 10001,
+      "provider": "AT&T MPLS",
+      "bandwidth_mbps": 100,
+      "endpoints": ["rtr-core-01", "rtr-branch-ny"],
+      "qos_class": "EF"
+    },
+    {
+      "id": "mpls-london",
+      "name": "MPLS-Branch-London",
+      "label": 10002,
+      "provider": "BT MPLS",
+      "bandwidth_mbps": 50,
+      "endpoints": ["rtr-core-01", "rtr-branch-london"],
+      "qos_class": "AF41"
+    }
+  ]
+}
