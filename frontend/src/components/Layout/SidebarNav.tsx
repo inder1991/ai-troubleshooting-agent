@@ -111,7 +111,7 @@ const iconEl = (name: string, size = 19) => (
   </span>
 );
 
-const flyoutSpring = { type: 'spring' as const, stiffness: 500, damping: 42 };
+const flyoutTransition = { duration: 0.2, ease: [0.25, 1, 0.5, 1] as const }; // ease-out-quart, no bounce
 
 const SidebarNav: React.FC<SidebarNavProps> = ({ activeView, onNavigate, onNewMission }) => {
   const [hoveredGroup, setHoveredGroup] = useState<string | null>(null);
@@ -392,7 +392,7 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ activeView, onNavigate, onNewMi
             initial={{ opacity: 0, x: -12 }}
             animate={{ opacity: 1, x: 0, y: flyoutY }}
             exit={{ opacity: 0, x: -12 }}
-            transition={flyoutSpring}
+            transition={flyoutTransition}
             style={{ position: 'absolute', top: 0, left: 199 }}
             className="w-fit min-w-[215px] max-w-[320px] h-fit max-h-[calc(100vh-16px)] bg-[#080807] border border-duck-border/15 border-l-0 shadow-2xl z-50 overflow-hidden rounded-r-xl"
           >
