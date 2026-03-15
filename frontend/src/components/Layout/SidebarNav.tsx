@@ -1,5 +1,4 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { Badge } from '../ui/Badge';
 
 export type NavView = 'home' | 'sessions' | 'app-diagnostics' | 'cluster-diagnostics'
@@ -110,8 +109,6 @@ const iconEl = (name: string, size = 19) => (
     {name}
   </span>
 );
-
-const flyoutTransition = { duration: 0.35, ease: [0.22, 1, 0.36, 1] as const }; // ease-out-quint, smooth and deliberate
 
 const SidebarNav: React.FC<SidebarNavProps> = ({ activeView, onNavigate, onNewMission }) => {
   const [hoveredGroup, setHoveredGroup] = useState<string | null>(null);
@@ -389,26 +386,20 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ activeView, onNavigate, onNewMi
         </div>
       </aside>
 
-      {/* ─── TIER 2: Elastic Hover Flyout ─── */}
-      <AnimatePresence>
-        {displayGroup && displayGroupItem && (
-          <motion.div
-            key={displayGroup}
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0, y: flyoutY }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={flyoutTransition}
-            style={{ position: 'absolute', top: 0, left: 199 }}
+      {/* ─── TIER 2: Flyout Panel — appears/disappears, content swaps without re-animation ─── */}
+      {displayGroup && displayGroupItem && (
+          <div
+            style={{
+              position: 'absolute',
+              top: flyoutY,
+              left: 199,
+              transition: 'top 200ms cubic-bezier(0.22, 1, 0.36, 1)',
+            }}
             className="w-fit min-w-[215px] max-w-[320px] h-fit max-h-[calc(100vh-16px)] bg-[#080807] border border-duck-border/15 border-l-0 shadow-2xl z-50 overflow-hidden rounded-r-xl"
           >
             <div className="p-5 flex flex-col">
-              {/* Flyout Header — slight delay after panel slides in */}
-              <motion.header
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.15, delay: 0.05 }}
-                className="flex items-center justify-between mb-5 gap-8"
-              >
+              {/* Flyout Header */}
+              <header className="flex items-center justify-between mb-5 gap-8">
                 <h2 className="text-[10px] font-display font-bold uppercase tracking-wider text-slate-400 whitespace-nowrap">
                   {displayGroupItem.group}
                 </h2>
@@ -431,18 +422,15 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ activeView, onNavigate, onNewMi
                     {pinned ? 'keep_filled' : 'keep'}
                   </span>
                 </button>
-              </motion.header>
+              </header>
 
               {/* Children Links — staggered entrance */}
               <nav className="flex flex-col gap-0.5" role="menu">
-                {displayGroupItem.children.map((child, childIdx) => {
+                {displayGroupItem.children.map((child) => {
                   const isActive = activeView === child.id;
                   return (
-                    <motion.button
+                    <button
                       key={child.id}
-                      initial={{ opacity: 0, x: -8 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.15, delay: childIdx * 0.03, ease: [0.25, 1, 0.5, 1] }}
                       onClick={() => { onNavigate(child.id); if (!pinned) setHoveredGroup(null); }}
                       role="menuitem"
                       className={`
@@ -477,14 +465,13 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ activeView, onNavigate, onNewMi
                         <span className={`text-xs font-medium transition-colors ${isActive ? 'text-[#e09f3e]' : 'text-slate-400'}`} data-label>{child.label}</span>
                       </div>
                       {child.badge && <Badge type={child.badge} />}
-                    </motion.button>
+                    </button>
                   );
                 })}
               </nav>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </div>
+      )}
     </div>
   );
 };
