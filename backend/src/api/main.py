@@ -39,6 +39,11 @@ from .search_endpoints import search_router, init_search_endpoints
 from .db_endpoints import db_router
 from .collector_endpoints import collector_router, init_collector_endpoints
 from .assistant_endpoints import assistant_router
+from .network_metrics_endpoints import router as monitoring_metrics_router, init_monitoring
+from .network_flow_endpoints import router as flow_analysis_router, init_flows
+from .network_probe_endpoints import router as probe_router, init_probes
+from .network_discovery_endpoints import router as autodiscovery_router, init_discovery as init_autodiscovery
+from .network_drift_endpoints import router as drift_router, init_drift
 from .websocket import manager
 
 # Cloud integration (multi-provider inventory)
@@ -182,6 +187,11 @@ def create_app() -> FastAPI:
     app.include_router(db_router)
     app.include_router(collector_router)
     app.include_router(assistant_router)
+    app.include_router(monitoring_metrics_router)
+    app.include_router(flow_analysis_router)
+    app.include_router(probe_router)
+    app.include_router(autodiscovery_router)
+    app.include_router(drift_router)
 
     # Cloud integration router (multi-provider inventory)
     _cloud_store = CloudStore()
@@ -352,6 +362,110 @@ def create_app() -> FastAPI:
             logger.info("Search endpoints initialized")
         except Exception as e:
             logger.warning("Search endpoints init failed: %s", e)
+
+        # ── Initialize SQLite Metrics Store + SNMP Scheduler ──
+        try:
+            import asyncio as _asyncio
+            from src.network.sqlite_metrics_store import SQLiteMetricsStore
+            from src.network.snmp_scheduler import SNMPPollingScheduler
+
+            _sqlite_metrics = SQLiteMetricsStore()
+            _snmp_sched = SNMPPollingScheduler(_sqlite_metrics, interval_seconds=60)
+
+            # Build device list from topology store
+            _device_list = []
+            try:
+                topo_store = _net_topo_store()
+                devices = topo_store.list_devices()
+                if devices:
+                    _device_list = [
+                        {"id": d.id, "management_ip": d.management_ip}
+                        for d in devices if d.management_ip
+                    ]
+                    _snmp_sched.set_devices(_device_list)
+            except Exception:
+                pass
+
+            # ── SQLite Alert Engine ──
+            _sqlite_alert_engine = None
+            try:
+                from src.network.sqlite_alert_engine import SQLiteAlertEngine
+                _sqlite_alert_engine = SQLiteAlertEngine(_sqlite_metrics)
+                _sqlite_alert_engine.set_devices(_device_list)
+                _asyncio.create_task(_sqlite_alert_engine.start(interval=30))
+                logger.info("SQLiteAlertEngine started (%d rules, %d devices)",
+                           len(_sqlite_alert_engine.get_rules()), len(_device_list))
+            except Exception as e:
+                logger.warning("SQLiteAlertEngine startup failed: %s", e)
+
+            init_monitoring(_sqlite_metrics, _snmp_sched, alert_engine=_sqlite_alert_engine)
+
+            _asyncio.create_task(_snmp_sched.start())
+            logger.info("SQLite MetricsStore + SNMP scheduler started")
+
+            # ── Discovery Scheduler ──
+            try:
+                from src.network.discovery_scheduler import DiscoveryScheduler
+                _discovery_sched = DiscoveryScheduler(interval_seconds=300)
+                _discovery_sched.set_devices(_device_list)
+                init_autodiscovery(_discovery_sched)
+                _asyncio.create_task(_discovery_sched.start())
+                logger.info("DiscoveryScheduler started (%d devices)", len(_device_list))
+            except Exception as e:
+                logger.warning("DiscoveryScheduler startup failed: %s", e)
+
+            # ── Config Drift Engine ──
+            try:
+                from src.network.config_drift import ConfigDriftEngine
+                _drift_engine = ConfigDriftEngine()
+                init_drift(_drift_engine)
+                logger.info("ConfigDriftEngine initialized")
+            except Exception as e:
+                logger.warning("ConfigDriftEngine startup failed: %s", e)
+
+            # ── Flow Store (SQLite-based flow aggregation) ──
+            try:
+                from src.network.flow_store import FlowStore
+                _flow_store = FlowStore()
+                init_flows(_flow_store)
+                logger.info("FlowStore initialized")
+            except Exception as e:
+                logger.warning("FlowStore init failed: %s", e)
+
+            # ── Mock Event Generator (syslog/trap demo data) ──
+            try:
+                from src.network.event_generator import MockEventGenerator
+                _event_gen = MockEventGenerator(_sqlite_metrics)
+                _asyncio.create_task(_event_gen.start())
+                logger.info("MockEventGenerator started")
+            except Exception as e:
+                logger.warning("MockEventGenerator startup failed: %s", e)
+
+            # ── Ping Probe Scheduler ──
+            try:
+                from src.network.ping_scheduler import PingProbeScheduler
+                _ping_sched = PingProbeScheduler(_sqlite_metrics, interval_seconds=30)
+                init_probes(_sqlite_metrics, _ping_sched)
+
+                # Load probe targets from topology store devices
+                try:
+                    topo_store = _net_topo_store()
+                    devices = topo_store.list_devices()
+                    if devices:
+                        _ping_sched.set_targets([
+                            {"ip": d.management_ip, "name": d.id}
+                            for d in devices if d.management_ip
+                        ])
+                except Exception:
+                    pass
+
+                _asyncio.create_task(_ping_sched.start())
+                logger.info("PingProbeScheduler started")
+            except Exception as e:
+                logger.warning("PingProbeScheduler startup failed: %s", e)
+
+        except Exception as e:
+            logger.warning("SQLite metrics / SNMP scheduler startup failed: %s", e)
 
         # ── Initialize DB Monitor ──
         try:
