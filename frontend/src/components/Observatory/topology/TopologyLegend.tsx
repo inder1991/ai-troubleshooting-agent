@@ -21,7 +21,7 @@ const TopologyLegend: React.FC = () => {
   const [open, setOpen] = useState(false);
 
   return (
-    <div style={{ position: 'absolute', bottom: 16, right: 16, zIndex: 20 }}>
+    <div style={{ position: 'absolute', bottom: 16, left: 16, zIndex: 20 }}>
       <button
         onClick={() => setOpen(!open)}
         style={{

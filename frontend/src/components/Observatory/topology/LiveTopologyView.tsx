@@ -64,6 +64,9 @@ const LiveTopologyView: React.FC = () => {
   // Task 9: Context menu
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; nodeId: string; data: any } | null>(null);
 
+  // Filters popover
+  const [showFilters, setShowFilters] = useState(false);
+
   // Fetch topology
   const { data: topoData, isLoading, error, refetch } = useQuery({
     queryKey: ['live-topology'],
@@ -161,6 +164,30 @@ const LiveTopologyView: React.FC = () => {
     } catch { /* ignore */ }
   }, []);
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement) return;
+      if (e.key === 'p' || e.key === 'P') {
+        setPathMode(prev => !prev);
+        if (pathMode) { setPathSource(null); setPathNodes(new Set()); }
+      }
+      if (e.key === 'f' || e.key === 'F') {
+        reactFlowInstance.current?.fitView({ padding: 0.15 });
+      }
+      if (e.key === 'Escape') {
+        setPathMode(false);
+        setPathSource(null);
+        setPathNodes(new Set());
+        setBlastTargets(new Set());
+        setContextMenu(null);
+        setShowFilters(false);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [pathMode]);
+
   const groups = useMemo(() => topoData?.groups || [], [topoData]);
 
   // Memoize MiniMap nodeColor
@@ -200,12 +227,12 @@ const LiveTopologyView: React.FC = () => {
     <div
       style={{ width: '100%', height: '100%', position: 'relative' }}
       onMouseMove={(e) => setMousePos({ x: e.clientX, y: e.clientY })}
-      onClick={() => setContextMenu(null)}
+      onClick={() => { setContextMenu(null); setShowFilters(false); }}
     >
       {/* Toolbar */}
       <div style={{
         position: 'absolute', top: 12, left: 12, zIndex: 20,
-        display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap',
+        display: 'flex', gap: 6, alignItems: 'center',
       }}>
         {/* Group filter */}
         <select
@@ -213,7 +240,7 @@ const LiveTopologyView: React.FC = () => {
           onChange={e => setGroupFilter(e.target.value)}
           style={{
             background: '#1e1b15', border: '1px solid #3d3528', borderRadius: 6,
-            color: '#8a7e6b', fontSize: 10, padding: '4px 8px', outline: 'none',
+            color: '#8a7e6b', fontSize: 10, padding: '4px 8px', outline: 'none', minHeight: 28,
           }}
         >
           <option value="all">All Groups</option>
@@ -222,35 +249,63 @@ const LiveTopologyView: React.FC = () => {
           ))}
         </select>
 
-        {/* Edge type toggles */}
-        <div style={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-          {Object.entries(edgeFilters).map(([type, enabled]) => (
-            <button
-              key={type}
-              onClick={() => setEdgeFilters(prev => ({ ...prev, [type]: !prev[type] }))}
+        {/* Filters popover */}
+        <div style={{ position: 'relative' }}>
+          <button
+            onClick={(e) => { e.stopPropagation(); setShowFilters(!showFilters); }}
+            style={{
+              background: showFilters ? 'rgba(224,159,62,0.15)' : '#1e1b15',
+              border: `1px solid ${showFilters ? '#e09f3e' : '#3d3528'}`,
+              borderRadius: 6, color: showFilters ? '#e09f3e' : '#8a7e6b',
+              fontSize: 11, padding: '4px 10px', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: 4, minHeight: 28,
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 14 }}>tune</span>
+            Filters
+          </button>
+          {showFilters && (
+            <div
               style={{
-                background: enabled ? 'rgba(224,159,62,0.15)' : 'transparent',
-                border: `1px solid ${enabled ? 'rgba(224,159,62,0.3)' : '#3d3528'}`,
-                color: enabled ? '#e09f3e' : '#64748b',
-                borderRadius: 4, padding: '4px 10px', fontSize: 11, cursor: 'pointer',
-                minHeight: 28,
+                position: 'absolute', top: 34, left: 0, zIndex: 30,
+                background: '#1e1b15', border: '1px solid #3d3528', borderRadius: 8,
+                padding: 8, minWidth: 160, boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
               }}
+              onClick={e => e.stopPropagation()}
             >
-              {FILTER_LABELS[type] || type}
-            </button>
-          ))}
+              <div style={{ color: '#64748b', fontSize: 9, fontWeight: 600, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Edge Types</div>
+              {Object.entries(edgeFilters).map(([type, enabled]) => (
+                <label key={type} style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  padding: '4px 6px', fontSize: 11, color: enabled ? '#e09f3e' : '#64748b',
+                  cursor: 'pointer', borderRadius: 4,
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = '#252118'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={enabled}
+                    onChange={() => setEdgeFilters(prev => ({ ...prev, [type]: !prev[type] }))}
+                    style={{ accentColor: '#e09f3e', width: 14, height: 14 }}
+                  />
+                  {FILTER_LABELS[type] || type}
+                </label>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Fit View button */}
+        {/* Fit View */}
         <button
           onClick={() => reactFlowInstance.current?.fitView({ padding: 0.15 })}
-          style={{ background: '#1e1b15', border: '1px solid #3d3528', borderRadius: 6, color: '#8a7e6b', fontSize: 10, padding: '4px 8px', cursor: 'pointer' }}
-          title="Fit view to canvas"
+          style={{ background: '#1e1b15', border: '1px solid #3d3528', borderRadius: 6, color: '#8a7e6b', padding: '4px 8px', cursor: 'pointer', minHeight: 28 }}
+          title="Fit view (F)"
         >
           <span className="material-symbols-outlined" style={{ fontSize: 14 }}>fit_screen</span>
         </button>
 
-        {/* Task 8: Trace Path button */}
+        {/* Trace Path */}
         <button
           onClick={() => {
             if (pathMode) {
@@ -268,44 +323,50 @@ const LiveTopologyView: React.FC = () => {
             borderRadius: 6,
             color: pathMode ? '#e09f3e' : '#8a7e6b',
             fontSize: 11, padding: '4px 10px', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', gap: 4,
+            display: 'flex', alignItems: 'center', gap: 4, minHeight: 28,
           }}
+          title="Trace path (P)"
         >
           <span className="material-symbols-outlined" style={{ fontSize: 14 }}>route</span>
           {pathMode ? (pathSource ? 'Click destination...' : 'Click source...') : 'Trace Path'}
         </button>
 
-        {/* Task 7: Blast radius badge */}
-        {blastTargets.size > 0 && (
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)',
-            borderRadius: 6, padding: '4px 10px', fontSize: 11, color: '#ef4444',
-          }}>
-            <span className="material-symbols-outlined" style={{ fontSize: 14 }}>crisis_alert</span>
-            Blast Radius: {blastTargets.size} affected
-            <button onClick={() => setBlastTargets(new Set())} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: 11 }}>&#x2715;</button>
-          </div>
-        )}
-
-        {/* Task 8: Path info badge */}
-        {pathNodes.size > 0 && (
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            background: 'rgba(224,159,62,0.15)', border: '1px solid rgba(224,159,62,0.3)',
-            borderRadius: 6, padding: '4px 10px', fontSize: 11, color: '#e09f3e',
-          }}>
-            <span className="material-symbols-outlined" style={{ fontSize: 14 }}>route</span>
-            Path: {pathNodes.size} hops
-            <button onClick={() => setPathNodes(new Set())} style={{ color: '#e09f3e', background: 'none', border: 'none', cursor: 'pointer', fontSize: 11 }}>&#x2715;</button>
-          </div>
-        )}
-
         {/* Stats */}
-        <span style={{ color: '#64748b', fontSize: 10, marginLeft: 8 }}>
-          {topoData.device_count} devices | {topoData.edge_count} links
+        <span style={{ color: '#64748b', fontSize: 10 }}>
+          {topoData.device_count} devices &middot; {topoData.edge_count} links
         </span>
       </div>
+
+      {/* Blast radius + Path badges — below toolbar, not inline */}
+      {(blastTargets.size > 0 || pathNodes.size > 0) && (
+        <div style={{
+          position: 'absolute', top: 48, left: 12, zIndex: 20,
+          display: 'flex', gap: 6,
+        }}>
+          {blastTargets.size > 0 && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)',
+              borderRadius: 6, padding: '4px 10px', fontSize: 11, color: '#ef4444',
+            }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 14 }}>crisis_alert</span>
+              Blast Radius: {blastTargets.size} affected
+              <button onClick={() => setBlastTargets(new Set())} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: 11 }}>&times;</button>
+            </div>
+          )}
+          {pathNodes.size > 0 && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              background: 'rgba(224,159,62,0.15)', border: '1px solid rgba(224,159,62,0.3)',
+              borderRadius: 6, padding: '4px 10px', fontSize: 11, color: '#e09f3e',
+            }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 14 }}>route</span>
+              Path: {pathNodes.size} hops
+              <button onClick={() => setPathNodes(new Set())} style={{ color: '#e09f3e', background: 'none', border: 'none', cursor: 'pointer', fontSize: 11 }}>&times;</button>
+            </div>
+          )}
+        </div>
+      )}
 
       <ReactFlow
         nodes={nodes}
@@ -332,31 +393,28 @@ const LiveTopologyView: React.FC = () => {
         onNodeClick={async (_, node) => {
           if (node.type === 'group') return;
 
+          // Path trace mode: select source/destination
           if (pathMode) {
             if (!pathSource) {
               setPathSource(node.id);
             } else {
               try {
-                const srcIp = node.data?.ip || node.id;
-                const dstIp = nodes.find(n => n.id === pathSource)?.data?.ip || pathSource;
-                const result = await fetchTopologyPath(dstIp, srcIp);
+                const srcIp = nodes.find(n => n.id === pathSource)?.data?.ip || pathSource;
+                const dstIp = node.data?.ip || node.id;
+                const result = await fetchTopologyPath(srcIp, dstIp);
                 if (result.paths && result.paths.length > 0) {
                   setPathNodes(new Set(result.paths[0]));
                 }
               } catch { /* ignore */ }
               setPathMode(false);
               setPathSource(null);
-              setTimeout(() => setPathNodes(new Set()), 8000);
             }
             return;
           }
 
-          try {
-            const result = await fetchBlastRadius(node.id);
-            const affectedIds = new Set(result.affected.map((a: any) => a.id));
-            setBlastTargets(affectedIds);
-            setTimeout(() => setBlastTargets(new Set()), 5000);
-          } catch { /* ignore */ }
+          // Normal click: clear any previous highlights
+          if (blastTargets.size > 0) setBlastTargets(new Set());
+          if (pathNodes.size > 0) setPathNodes(new Set());
         }}
         onNodeContextMenu={(e, node) => {
           e.preventDefault();
@@ -466,13 +524,10 @@ const LiveTopologyView: React.FC = () => {
               try {
                 const result = await fetchBlastRadius(contextMenu.nodeId);
                 setBlastTargets(new Set(result.affected.map((a: any) => a.id)));
-                setTimeout(() => setBlastTargets(new Set()), 5000);
               } catch { /* ignore */ }
               setContextMenu(null);
             }},
             { icon: 'route', label: 'Trace Path From Here', action: () => { setPathMode(true); setPathSource(contextMenu.nodeId); setContextMenu(null); } },
-            { icon: 'info', label: 'Show Details', action: () => { setContextMenu(null); } },
-            { icon: 'terminal', label: 'Show Interfaces', action: () => { setContextMenu(null); } },
           ].map(item => (
             <button
               key={item.label}

@@ -101,8 +101,8 @@ const LiveDeviceNode: React.FC<LiveDeviceNodeProps> = memo(({ data, selected }) 
       <Handle type="source" position={Position.Right} style={{ background: 'transparent', border: 'none', width: 1, height: 1 }} />
 
       {/* SVG Device Icon — uses currentColor for smooth status transitions */}
-      <svg width={36} height={36} viewBox={svgData.viewBox} style={{ overflow: 'visible', color: iconColor, transition: 'color 500ms ease-out' }}>
-        <path d={svgData.path} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+      <svg width={40} height={40} viewBox={svgData.viewBox} style={{ overflow: 'visible', color: iconColor, transition: 'color 500ms ease-out' }}>
+        <path d={svgData.path} fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
       </svg>
 
       {/* Device name */}
