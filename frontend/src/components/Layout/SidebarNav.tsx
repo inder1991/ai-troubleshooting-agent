@@ -208,7 +208,7 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ activeView, onNavigate, onNewMi
       {/* ─── TIER 1: Persistent Sidebar ─── */}
       <aside
         className={`${collapsed ? 'w-12' : 'w-52'} shrink-0 border-r border-duck-border/40 flex flex-col h-full z-30 relative transition-all duration-200`}
-        style={{ background: 'linear-gradient(180deg, #0d0c0a 0%, #110f0b 100%)' }}
+        style={{ background: 'linear-gradient(180deg, #13110d 0%, #161310 100%)' }}
       >
         {/* Brand + Collapse toggle */}
         <div className={`flex items-center ${collapsed ? 'justify-center p-3' : 'justify-between px-4 py-4'} mb-2 flex-shrink-0`}>
