@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import ReactFlow, {
   Background, Controls, MiniMap,
   useNodesState, useEdgesState,
@@ -24,15 +24,28 @@ const DEFAULT_FILTERS: Record<string, boolean> = {
   mpls_path: true,
 };
 
+const FILTER_LABELS: Record<string, string> = {
+  layer2_link: 'Physical',
+  layer3_link: 'L3 Links',
+  ha_peer: 'HA Pairs',
+  tunnel_link: 'Tunnels',
+  routes_via: 'Routes',
+  attached_to: 'Attachments',
+  load_balances: 'Load Balancers',
+  mpls_path: 'MPLS',
+};
+
 const LiveTopologyView: React.FC = () => {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [lastVersion, setLastVersion] = useState('');
   const [edgeFilters, setEdgeFilters] = useState<Record<string, boolean>>(DEFAULT_FILTERS);
   const [groupFilter, setGroupFilter] = useState('all');
+  const reactFlowInstance = useRef<any>(null);
+  const hasInitialFit = useRef(false);
 
   // Fetch topology
-  const { data: topoData, isLoading, error } = useQuery({
+  const { data: topoData, isLoading, error, refetch } = useQuery({
     queryKey: ['live-topology'],
     queryFn: fetchTopologyCurrent,
     refetchInterval: 60000,
@@ -89,15 +102,15 @@ const LiveTopologyView: React.FC = () => {
     }
   }, [topoData, edgeFilters, groupFilter]);
 
-  // Update node status from health data
+  // Update node status from health data — only update changed nodes
   useEffect(() => {
     if (!healthData) return;
     setNodes(prev => prev.map(node => {
       const health = healthData[node.id];
-      if (health && node.data) {
+      if (health && node.data && health.status !== node.data.status) {
         return { ...node, data: { ...node.data, status: health.status } };
       }
-      return node;
+      return node; // Same reference — no re-render for this node
     }));
   }, [healthData]);
 
@@ -112,10 +125,19 @@ const LiveTopologyView: React.FC = () => {
 
   const groups = useMemo(() => topoData?.groups || [], [topoData]);
 
+  // Memoize MiniMap nodeColor
+  const miniMapNodeColor = useCallback((node: any) => {
+    const status = node.data?.status || 'unknown';
+    if (status === 'healthy') return '#10b981';
+    if (status === 'degraded') return '#f59e0b';
+    if (status === 'critical') return '#ef4444';
+    return '#64748b';
+  }, []);
+
   if (isLoading) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#64748b' }}>
-        <span className="material-symbols-outlined" style={{ fontSize: 20, animation: 'spin 1s linear infinite', marginRight: 8 }}>progress_activity</span>
+        <span className="material-symbols-outlined animate-spin" style={{ fontSize: 20, marginRight: 8 }}>progress_activity</span>
         Loading topology...
       </div>
     );
@@ -126,6 +148,12 @@ const LiveTopologyView: React.FC = () => {
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#64748b', gap: 8 }}>
         <span className="material-symbols-outlined" style={{ fontSize: 32, color: '#ef4444' }}>error</span>
         <p style={{ fontSize: 13 }}>Failed to load topology</p>
+        <button
+          onClick={() => refetch()}
+          style={{ background: '#1e1b15', border: '1px solid #3d3528', borderRadius: 6, color: '#8a7e6b', fontSize: 12, padding: '6px 16px', cursor: 'pointer', marginTop: 8 }}
+        >
+          Retry
+        </button>
       </div>
     );
   }
@@ -162,13 +190,23 @@ const LiveTopologyView: React.FC = () => {
                 background: enabled ? 'rgba(224,159,62,0.15)' : 'transparent',
                 border: `1px solid ${enabled ? 'rgba(224,159,62,0.3)' : '#3d3528'}`,
                 color: enabled ? '#e09f3e' : '#64748b',
-                borderRadius: 4, padding: '2px 6px', fontSize: 9, cursor: 'pointer',
+                borderRadius: 4, padding: '4px 10px', fontSize: 11, cursor: 'pointer',
+                minHeight: 28,
               }}
             >
-              {type.replace(/_/g, ' ').replace('link', '').trim()}
+              {FILTER_LABELS[type] || type}
             </button>
           ))}
         </div>
+
+        {/* Fit View button */}
+        <button
+          onClick={() => reactFlowInstance.current?.fitView({ padding: 0.15 })}
+          style={{ background: '#1e1b15', border: '1px solid #3d3528', borderRadius: 6, color: '#8a7e6b', fontSize: 10, padding: '4px 8px', cursor: 'pointer' }}
+          title="Fit view to canvas"
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: 14 }}>fit_screen</span>
+        </button>
 
         {/* Stats */}
         <span style={{ color: '#64748b', fontSize: 10, marginLeft: 8 }}>
@@ -183,8 +221,12 @@ const LiveTopologyView: React.FC = () => {
         onEdgesChange={onEdgesChange}
         onNodeDragStop={onNodeDragStop}
         nodeTypes={nodeTypes}
-        fitView
-        fitViewOptions={{ padding: 0.2 }}
+        onInit={(instance) => {
+          reactFlowInstance.current = instance;
+          // Fit view once on initial load, then never again
+          setTimeout(() => instance.fitView({ padding: 0.15 }), 100);
+          hasInitialFit.current = true;
+        }}
         minZoom={0.1}
         maxZoom={2}
         proOptions={{ hideAttribution: true }}
@@ -196,10 +238,7 @@ const LiveTopologyView: React.FC = () => {
           showInteractive={false}
         />
         <MiniMap
-          nodeColor={(node) => {
-            const status = node.data?.status || 'unknown';
-            return status === 'healthy' ? '#10b981' : status === 'degraded' ? '#f59e0b' : status === 'critical' ? '#ef4444' : '#64748b';
-          }}
+          nodeColor={miniMapNodeColor}
           style={{ background: '#1e1b15', border: '1px solid #3d3528', borderRadius: 8 }}
           maskColor="rgba(26, 24, 20, 0.8)"
         />
