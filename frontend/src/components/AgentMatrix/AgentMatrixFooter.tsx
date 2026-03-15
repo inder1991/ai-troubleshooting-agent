@@ -9,7 +9,7 @@ const AgentMatrixFooter: React.FC<AgentMatrixFooterProps> = ({ summary }) => {
   return (
     <footer
       className="flex items-center justify-between px-8 py-2.5 border-t text-[11px]"
-      style={{ borderColor: '#2a2520', backgroundColor: '#141210' }}
+      style={{ borderColor: '#3d3528', backgroundColor: '#13110d' }}
     >
       <div className="flex items-center gap-5">
         <span style={{ color: '#64748b' }}>

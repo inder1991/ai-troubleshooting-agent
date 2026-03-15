@@ -11,7 +11,7 @@ export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
   selected,
   onChange,
 }) => (
-  <div className="flex items-center gap-0.5 bg-[#12110e] rounded-lg p-0.5 border border-[#3d3528]">
+  <div className="flex items-center gap-0.5 bg-duck-panel rounded-lg p-0.5 border border-[#3d3528]">
     {options.map((opt) => (
       <button
         key={opt}

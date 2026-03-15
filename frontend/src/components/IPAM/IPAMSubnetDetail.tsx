@@ -275,12 +275,12 @@ export default function IPAMSubnetDetail({ subnet, onUtilizationChange, addToast
               </span>
             )}
             {subnet.subnet_role && (
-              <span className="px-1.5 py-0.5 rounded bg-[#1e3a40] text-slate-300">
+              <span className="px-1.5 py-0.5 rounded bg-[#252118] text-slate-300">
                 {subnet.subnet_role}
               </span>
             )}
             {subnet.environment && (
-              <span className="px-1.5 py-0.5 rounded bg-[#1e3a40] text-amber-300">
+              <span className="px-1.5 py-0.5 rounded bg-[#252118] text-amber-300">
                 {subnet.environment}
               </span>
             )}
@@ -290,7 +290,7 @@ export default function IPAMSubnetDetail({ subnet, onUtilizationChange, addToast
           <button
             onClick={handleScanSubnet}
             disabled={scanning}
-            className="flex items-center gap-1 px-2.5 py-1.5 text-xs bg-[#1a1814] border border-[#1e3a40] rounded text-slate-300 hover:bg-[#1e3a40] hover:text-amber-300 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex items-center gap-1 px-2.5 py-1.5 text-xs bg-[#1a1814] border border-[#3d3528] rounded text-slate-300 hover:bg-[#252118] hover:text-amber-300 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <span className={`material-symbols-outlined text-sm ${scanning ? 'animate-spin' : ''}`}>
               {scanning ? 'progress_activity' : 'radar'}
@@ -336,7 +336,7 @@ export default function IPAMSubnetDetail({ subnet, onUtilizationChange, addToast
       )}
 
       {/* Tabs: IP ADDRESS VIEW | CHART VIEW */}
-      <div className="flex items-center border-b border-[#1e3a40]">
+      <div className="flex items-center border-b border-[#3d3528]">
         <button
           onClick={() => setActiveTab('table')}
           className={`px-4 py-2 text-xs font-semibold uppercase tracking-wider border-b-2 transition-colors ${
@@ -379,7 +379,7 @@ export default function IPAMSubnetDetail({ subnet, onUtilizationChange, addToast
               const sc = statusConfig[status] || statusConfig.available;
               const pct = ips.length > 0 ? Math.round((count / ips.length) * 100) : 0;
               return (
-                <div key={status} className="flex items-center gap-3 p-3 bg-[#1a1814] rounded-lg border border-[#1e3a40]">
+                <div key={status} className="flex items-center gap-3 p-3 bg-[#1a1814] rounded-lg border border-[#3d3528]">
                   <div className={`w-3 h-3 rounded-full ${sc.dot}`} />
                   <div className="flex-1">
                     <div className="text-xs text-slate-400 uppercase">{sc.label}</div>
@@ -391,7 +391,7 @@ export default function IPAMSubnetDetail({ subnet, onUtilizationChange, addToast
             })}
           </div>
           {/* Visual bar breakdown */}
-          <div className="mt-6 flex h-8 rounded-lg overflow-hidden border border-[#1e3a40]">
+          <div className="mt-6 flex h-8 rounded-lg overflow-hidden border border-[#3d3528]">
             {Object.entries(chartData).map(([status, count]) => {
               if (count === 0) return null;
               const pct = ips.length > 0 ? (count / ips.length) * 100 : 0;
@@ -427,7 +427,7 @@ export default function IPAMSubnetDetail({ subnet, onUtilizationChange, addToast
           <div className="flex flex-wrap items-center gap-2 text-xs">
             <button
               onClick={handleNextAvailable}
-              className="flex items-center gap-1 px-2.5 py-1.5 bg-[#1a1814] border border-[#1e3a40] rounded text-slate-300 hover:bg-[#1e3a40] hover:text-amber-300"
+              className="flex items-center gap-1 px-2.5 py-1.5 bg-[#1a1814] border border-[#3d3528] rounded text-slate-300 hover:bg-[#252118] hover:text-amber-300"
             >
               <span className="material-symbols-outlined text-sm">add_circle</span>
               Next Available
@@ -438,7 +438,7 @@ export default function IPAMSubnetDetail({ subnet, onUtilizationChange, addToast
                 <select
                   value={bulkAction}
                   onChange={(e) => setBulkAction(e.target.value)}
-                  className="px-2 py-1 bg-[#1a1814] border border-[#1e3a40] rounded text-slate-300"
+                  className="px-2 py-1 bg-[#1a1814] border border-[#3d3528] rounded text-slate-300"
                 >
                   <option value="">Set Status...</option>
                   <option value="available">Available</option>
@@ -459,7 +459,7 @@ export default function IPAMSubnetDetail({ subnet, onUtilizationChange, addToast
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-2 py-1.5 bg-[#1a1814] border border-[#1e3a40] rounded text-slate-300 focus:outline-none"
+              className="px-2 py-1.5 bg-[#1a1814] border border-[#3d3528] rounded text-slate-300 focus:outline-none"
             >
               <option value="">ALL</option>
               <option value="available">Available</option>
@@ -472,7 +472,7 @@ export default function IPAMSubnetDetail({ subnet, onUtilizationChange, addToast
               placeholder="Search IP, hostname, MAC..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-48 px-2.5 py-1.5 bg-[#1a1814] border border-[#1e3a40] rounded text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-500"
+              className="w-48 px-2.5 py-1.5 bg-[#1a1814] border border-[#3d3528] rounded text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-500"
             />
           </div>
 
@@ -487,7 +487,7 @@ export default function IPAMSubnetDetail({ subnet, onUtilizationChange, addToast
             <>
             <div className="max-h-[400px] overflow-y-auto">
               <table className="w-full text-sm">
-                <thead className="sticky top-0 bg-[#132a2f] z-10">
+                <thead className="sticky top-0 bg-[#1e1b15] z-10">
                   <tr className="text-left text-xs text-slate-500 uppercase tracking-wider">
                     <th className="py-2 px-2 w-8">
                       <input
@@ -518,7 +518,7 @@ export default function IPAMSubnetDetail({ subnet, onUtilizationChange, addToast
                     return (
                       <tr
                         key={ip.id}
-                        className={`border-t border-[#1e3a40]/50 hover:bg-[#1e3a40]/30 transition-colors ${
+                        className={`border-t border-[#3d3528]/50 hover:bg-[#252118]/30 transition-colors ${
                           ip.status === 'deprecated' ? 'opacity-50' : ''
                         } ${isSelected ? 'bg-amber-900/20' : ''}`}
                       >
@@ -564,12 +564,12 @@ export default function IPAMSubnetDetail({ subnet, onUtilizationChange, addToast
                                 <span className="material-symbols-outlined text-sm">more_vert</span>
                               </button>
                               {actionMenuId === ip.id && (
-                                <div className="absolute right-0 top-8 z-50 bg-[#132a2f] border border-[#1e3a40] rounded shadow-lg min-w-[140px]">
+                                <div className="absolute right-0 top-8 z-50 bg-[#1e1b15] border border-[#3d3528] rounded shadow-lg min-w-[140px]">
                                   {getActions(ip).map((a) => (
                                     <button
                                       key={a.action}
                                       onClick={() => handleAction(ip.id, a.action)}
-                                      className="w-full text-left px-3 py-1.5 text-sm text-slate-300 hover:bg-[#1e3a40]"
+                                      className="w-full text-left px-3 py-1.5 text-sm text-slate-300 hover:bg-[#252118]"
                                     >
                                       {a.label}
                                     </button>
@@ -595,7 +595,7 @@ export default function IPAMSubnetDetail({ subnet, onUtilizationChange, addToast
                   <button
                     onClick={() => setPage((p) => Math.max(0, p - 1))}
                     disabled={page === 0}
-                    className="px-2.5 py-1 bg-[#1a1814] border border-[#1e3a40] rounded text-slate-300 hover:bg-[#1e3a40] disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="px-2.5 py-1 bg-[#1a1814] border border-[#3d3528] rounded text-slate-300 hover:bg-[#252118] disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     Previous
                   </button>
@@ -605,7 +605,7 @@ export default function IPAMSubnetDetail({ subnet, onUtilizationChange, addToast
                   <button
                     onClick={() => setPage((p) => p + 1)}
                     disabled={(page + 1) * pageSize >= totalCount}
-                    className="px-2.5 py-1 bg-[#1a1814] border border-[#1e3a40] rounded text-slate-300 hover:bg-[#1e3a40] disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="px-2.5 py-1 bg-[#1a1814] border border-[#3d3528] rounded text-slate-300 hover:bg-[#252118] disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     Next
                   </button>
@@ -620,12 +620,12 @@ export default function IPAMSubnetDetail({ subnet, onUtilizationChange, addToast
       {/* Assign Dialog */}
       {assignDialogId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-          <div className="bg-[#132a2f] border border-[#1e3a40] rounded-lg p-6 w-96">
+          <div className="bg-[#1e1b15] border border-[#3d3528] rounded-lg p-6 w-96">
             <h4 className="text-sm font-semibold text-slate-200 mb-3">Assign IP to Device</h4>
             <select
               value={assignDeviceId}
               onChange={(e) => setAssignDeviceId(e.target.value)}
-              className="w-full px-3 py-2 bg-[#1a1814] border border-[#1e3a40] rounded text-sm text-slate-200 mb-4"
+              className="w-full px-3 py-2 bg-[#1a1814] border border-[#3d3528] rounded text-sm text-slate-200 mb-4"
             >
               <option value="">Select device...</option>
               {devices.map((d) => (
@@ -654,7 +654,7 @@ export default function IPAMSubnetDetail({ subnet, onUtilizationChange, addToast
       {/* Correlation Trace Modal */}
       {(correlationChain || correlationLoading) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-          <div className="bg-[#132a2f] border border-[#1e3a40] rounded-lg p-6 w-[420px]">
+          <div className="bg-[#1e1b15] border border-[#3d3528] rounded-lg p-6 w-[420px]">
             <div className="flex items-center justify-between mb-4">
               <h4 className="text-sm font-semibold text-slate-200">IP Correlation Trace</h4>
               <button onClick={() => setCorrelationChain(null)} className="text-slate-500 hover:text-slate-300">
@@ -715,7 +715,7 @@ export default function IPAMSubnetDetail({ subnet, onUtilizationChange, addToast
       {/* IP History Modal */}
       {historyIp && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-          <div className="bg-[#132a2f] border border-[#1e3a40] rounded-lg p-6 w-[480px] max-h-[500px] flex flex-col">
+          <div className="bg-[#1e1b15] border border-[#3d3528] rounded-lg p-6 w-[480px] max-h-[500px] flex flex-col">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h4 className="text-sm font-semibold text-slate-200">IP History</h4>
@@ -736,7 +736,7 @@ export default function IPAMSubnetDetail({ subnet, onUtilizationChange, addToast
               ) : (
                 <div className="space-y-2">
                   {historyEvents.map((evt, i) => (
-                    <div key={i} className="flex items-start gap-3 p-2.5 bg-[#1a1814] border border-[#1e3a40] rounded">
+                    <div key={i} className="flex items-start gap-3 p-2.5 bg-[#1a1814] border border-[#3d3528] rounded">
                       <div className="flex flex-col items-center gap-1 flex-shrink-0">
                         <span className={`w-2.5 h-2.5 rounded-full ${
                           evt.new_status === 'assigned' ? 'bg-amber-400' :
@@ -745,7 +745,7 @@ export default function IPAMSubnetDetail({ subnet, onUtilizationChange, addToast
                           evt.new_status === 'deprecated' ? 'bg-slate-500' : 'bg-slate-600'
                         }`} />
                         {i < historyEvents.length - 1 && (
-                          <div className="w-px h-6 bg-[#1e3a40]" />
+                          <div className="w-px h-6 bg-[#252118]" />
                         )}
                       </div>
                       <div className="flex-1 min-w-0">

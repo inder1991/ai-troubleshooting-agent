@@ -152,7 +152,7 @@ const RemediationPanel: React.FC<RemediationPanelProps> = ({
               <button
                 onClick={handleDryRun}
                 disabled={loading}
-                className="flex-1 px-3 py-1.5 text-xs font-medium rounded bg-[#3d3528] text-[#e09f3e] hover:bg-[#2a555c] transition-colors disabled:opacity-50"
+                className="flex-1 px-3 py-1.5 text-xs font-medium rounded bg-[#3d3528] text-[#e09f3e] hover:bg-[#252118] transition-colors disabled:opacity-50"
               >
                 {loading ? '...' : 'Dry Run'}
               </button>
@@ -194,7 +194,7 @@ const RemediationPanel: React.FC<RemediationPanelProps> = ({
                 </button>
                 <button
                   onClick={() => setShowConfirm(false)}
-                  className="px-3 py-1 text-xs rounded bg-[#3d3528] text-gray-400 hover:bg-[#2a555c]"
+                  className="px-3 py-1 text-xs rounded bg-[#3d3528] text-gray-400 hover:bg-[#252118]"
                 >
                   Cancel
                 </button>
@@ -204,7 +204,7 @@ const RemediationPanel: React.FC<RemediationPanelProps> = ({
 
           {/* Dry Run Output */}
           {dryRunOutput && (
-            <div className="bg-[#12110e] border border-[#3d3528] rounded p-2">
+            <div className="bg-[#161310] border border-[#3d3528] rounded p-2">
               <span className="text-xs text-gray-500 block mb-1">Dry Run Output</span>
               <pre className="text-xs text-gray-300 whitespace-pre-wrap">{dryRunOutput}</pre>
             </div>
@@ -212,7 +212,7 @@ const RemediationPanel: React.FC<RemediationPanelProps> = ({
 
           {/* Execution Output */}
           {executeOutput && (
-            <div className="bg-[#12110e] border border-[#3d3528] rounded p-2">
+            <div className="bg-[#161310] border border-[#3d3528] rounded p-2">
               <span className="text-xs text-gray-500 block mb-1">Execution Output</span>
               <pre className="text-xs text-gray-300 whitespace-pre-wrap">{executeOutput}</pre>
             </div>

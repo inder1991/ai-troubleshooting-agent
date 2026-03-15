@@ -55,7 +55,7 @@ const AgentCard: React.FC<AgentCardProps> = ({ agent, onClick, isSelected, enter
   const cardStyle: React.CSSProperties = {
     backgroundColor: agent.status === 'degraded'
       ? 'rgba(245,158,11,0.05)'
-      : isSelected ? '#1a1814' : '#0a1214',
+      : isSelected ? '#1a1814' : '#1e1b15',
     borderColor: isSelected ? '#e09f3e' : '#3d3528',
     borderLeftWidth: agent.status !== 'active' ? '3px' : undefined,
     borderLeftColor: agent.status === 'degraded' ? '#f59e0b' : agent.status === 'offline' ? '#ef4444' : undefined,

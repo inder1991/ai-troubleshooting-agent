@@ -11,7 +11,7 @@ const ToolbeltPanel: React.FC<ToolbeltPanelProps> = ({ tools, toolHealthChecks, 
 
   if (tools.length === 0) {
     return (
-      <div className="rounded-lg border p-4" style={{ backgroundColor: '#0a1214', borderColor: '#3d3528' }}>
+      <div className="rounded-lg border p-4" style={{ backgroundColor: '#1e1b15', borderColor: '#3d3528' }}>
         <h3 className="text-xs font-mono uppercase tracking-widest mb-3" style={{ color: '#64748b' }}>
           Toolbelt
         </h3>
@@ -31,7 +31,7 @@ const ToolbeltPanel: React.FC<ToolbeltPanelProps> = ({ tools, toolHealthChecks, 
   }
 
   return (
-    <div className="rounded-lg border p-4" style={{ backgroundColor: '#0a1214', borderColor: '#3d3528' }}>
+    <div className="rounded-lg border p-4" style={{ backgroundColor: '#1e1b15', borderColor: '#3d3528' }}>
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-xs font-mono uppercase tracking-widest" style={{ color: '#64748b' }}>
           Toolbelt

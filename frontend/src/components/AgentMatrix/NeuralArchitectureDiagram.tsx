@@ -7,7 +7,7 @@ interface NeuralArchitectureDiagramProps {
 const NeuralArchitectureDiagram: React.FC<NeuralArchitectureDiagramProps> = ({ stages }) => {
   if (stages.length === 0) {
     return (
-      <div className="rounded-lg border p-4" style={{ backgroundColor: '#0a1214', borderColor: '#3d3528' }}>
+      <div className="rounded-lg border p-4" style={{ backgroundColor: '#1e1b15', borderColor: '#3d3528' }}>
         <h3 className="text-xs font-mono uppercase tracking-widest mb-3" style={{ color: '#64748b' }}>
           Architecture Pipeline
         </h3>
@@ -17,7 +17,7 @@ const NeuralArchitectureDiagram: React.FC<NeuralArchitectureDiagramProps> = ({ s
   }
 
   return (
-    <div className="rounded-lg border p-4" style={{ backgroundColor: '#0a1214', borderColor: '#3d3528' }}>
+    <div className="rounded-lg border p-4" style={{ backgroundColor: '#1e1b15', borderColor: '#3d3528' }}>
       <h3 className="text-xs font-mono uppercase tracking-widest mb-4" style={{ color: '#64748b' }}>
         Architecture Pipeline
       </h3>

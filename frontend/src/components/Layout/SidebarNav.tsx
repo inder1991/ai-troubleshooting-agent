@@ -278,8 +278,8 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ activeView, onNavigate, onNewMi
                     relative w-full flex items-center gap-3 px-3 py-2 rounded-md transition-all duration-150 text-left
                     focus-visible:outline focus-visible:outline-2 focus-visible:outline-duck-accent
                     ${isActive
-                      ? 'bg-[#080807] border-l-2 border-l-duck-accent'
-                      : 'hover:bg-[#080807]/50 border-l-2 border-l-transparent'
+                      ? 'bg-[#13110d] border-l-2 border-l-duck-accent'
+                      : 'hover:bg-[#1e1b15]/30 border-l-2 border-l-transparent'
                     }
                   `}
                 >
@@ -316,10 +316,10 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ activeView, onNavigate, onNewMi
                   group relative w-full flex items-center gap-3 px-3 py-2 rounded-md transition-all duration-150 text-left
                   focus-visible:outline focus-visible:outline-2 focus-visible:outline-duck-accent
                   ${isGroupActive
-                    ? 'bg-[#080807] rounded-r-none border-l-2 border-l-duck-accent'
+                    ? 'bg-[#13110d] rounded-r-none border-l-2 border-l-duck-accent'
                     : hasActiveChild
-                      ? 'bg-[#080807] border-l-2 border-l-duck-accent'
-                      : 'hover:bg-[#080807]/50 border-l-2 border-l-transparent'
+                      ? 'bg-[#13110d] border-l-2 border-l-duck-accent'
+                      : 'hover:bg-[#1e1b15]/30 border-l-2 border-l-transparent'
                   }
                 `}
               >
@@ -396,7 +396,7 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ activeView, onNavigate, onNewMi
               left: 199,
               transition: 'top 200ms cubic-bezier(0.22, 1, 0.36, 1)',
             }}
-            className="w-fit min-w-[215px] max-w-[320px] h-fit max-h-[calc(100vh-16px)] bg-[#080807] border border-duck-border/15 border-l-0 shadow-2xl z-50 overflow-hidden rounded-r-xl"
+            className="w-fit min-w-[215px] max-w-[320px] h-fit max-h-[calc(100vh-16px)] bg-[#13110d] border border-duck-border/15 border-l-0 shadow-2xl z-50 overflow-hidden rounded-r-xl"
           >
             <div className="p-5 flex flex-col">
               {/* Flyout Header */}

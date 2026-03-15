@@ -67,7 +67,7 @@ const AgentDetailView: React.FC<AgentDetailViewProps> = ({ agent, onBack }) => {
       {/* Top bar */}
       <header
         className="flex items-center gap-4 px-4 py-3 border-b flex-shrink-0"
-        style={{ borderColor: '#3d3528', backgroundColor: '#0a1214' }}
+        style={{ borderColor: '#3d3528', backgroundColor: '#13110d' }}
       >
         <button
           onClick={onBack}

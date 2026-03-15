@@ -125,7 +125,7 @@ const KubernetesClusters: React.FC = () => {
           <div className="relative">
             <span
               className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[18px]"
-              style={{ color: '#8fc3cc' }}
+              style={{ color: '#8a7e6b' }}
             >
               search
             </span>
@@ -133,7 +133,7 @@ const KubernetesClusters: React.FC = () => {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="bg-[#183034] border-none rounded-lg pl-9 pr-4 py-1.5 text-sm w-56 focus:ring-1 focus:ring-[#e09f3e] placeholder-[#8fc3cc]/50 text-white"
+              className="bg-[#252118] border-none rounded-lg pl-9 pr-4 py-1.5 text-sm w-56 focus:ring-1 focus:ring-[#e09f3e] placeholder-[#8a7e6b]/50 text-white"
               placeholder="Search clusters..."
             />
           </div>

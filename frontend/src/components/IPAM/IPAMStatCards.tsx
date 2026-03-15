@@ -27,7 +27,7 @@ export default function IPAMStatCards({ stats }: Props) {
         return (
           <div
             key={c.key}
-            className="bg-[#132a2f] border border-[#1e3a40] rounded-lg p-3"
+            className="bg-[#1e1b15] border border-[#3d3528] rounded-lg p-3"
           >
             <div className="flex items-center gap-2 mb-1.5">
               <span className={`material-symbols-outlined text-lg ${c.color}`}>

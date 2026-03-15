@@ -56,7 +56,7 @@ export default function IPAMAddressSpaceMap({ blockId }: Props) {
       </div>
 
       {/* Stacked bar */}
-      <div className="flex h-10 rounded-lg overflow-hidden border border-[#1e3a40]">
+      <div className="flex h-10 rounded-lg overflow-hidden border border-[#3d3528]">
         {subnets.map((seg, i) => {
           const widthPct = (seg.size / totalSize) * 100;
           if (widthPct < 0.5) return null;
@@ -85,7 +85,7 @@ export default function IPAMAddressSpaceMap({ blockId }: Props) {
 
       {/* Hover detail */}
       {hovered && (
-        <div className="flex items-center gap-4 px-3 py-2 bg-[#1a1814] border border-[#1e3a40] rounded text-xs">
+        <div className="flex items-center gap-4 px-3 py-2 bg-[#1a1814] border border-[#3d3528] rounded text-xs">
           <span className="font-mono text-amber-300">{hovered.cidr}</span>
           <span className="text-slate-400">{hovered.name || 'unnamed'}</span>
           <span className="ml-auto text-slate-300">{hovered.utilization_pct}% utilized</span>
