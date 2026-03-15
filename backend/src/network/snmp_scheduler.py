@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import random
 from typing import Any
+from src.config import is_demo_mode
 from src.network.sqlite_metrics_store import SQLiteMetricsStore
 from src.utils.logger import get_logger
 
@@ -94,7 +95,10 @@ class SNMPPollingScheduler:
             return
 
         try:
-            metrics = await _mock_snmp_poll(device_id, management_ip)
+            if is_demo_mode():
+                metrics = await _mock_snmp_poll(device_id, management_ip)
+            else:
+                metrics = await _real_snmp_poll(device_id, management_ip, device)
 
             # Store device-level metrics
             self.store.write_device_metric(device_id, "cpu_pct", metrics["cpu_pct"], "%")
@@ -134,3 +138,13 @@ class SNMPPollingScheduler:
     def stop(self) -> None:
         self._running = False
         logger.info("SNMP polling stopped")
+
+
+async def _real_snmp_poll(device_id: str, management_ip: str, device: dict) -> dict:
+    """Real SNMP poll — uses pysnmp or net-snmp subprocess.
+
+    TODO: Implement when pysnmp is available.
+    For now, falls back to mock in production too with a warning.
+    """
+    logger.warning("Real SNMP not yet implemented for %s — using mock", device_id)
+    return await _mock_snmp_poll(device_id, management_ip)

@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import random
 from typing import Any
+from src.config import is_demo_mode
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -52,7 +53,10 @@ class PingProbeScheduler:
         if not ip:
             return
         try:
-            result = await _mock_ping(ip)
+            if is_demo_mode():
+                result = await _mock_ping(ip)
+            else:
+                result = await _real_ping(ip)
             self.store.write_probe_metric(
                 target_ip=ip,
                 probe_type="icmp",
@@ -65,3 +69,38 @@ class PingProbeScheduler:
 
     def stop(self) -> None:
         self._running = False
+
+
+async def _real_ping(target_ip: str) -> dict:
+    """Real ICMP ping using subprocess.
+
+    TODO: Implement with subprocess ping or raw socket.
+    Falls back to mock with warning.
+    """
+    import asyncio
+    import re
+    import subprocess
+
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            "ping", "-c", "3", "-W", "2", target_ip,
+            stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
+        )
+        stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=10)
+        output = stdout.decode()
+
+        # Parse ping output for RTT and loss
+        loss_match = re.search(r'(\d+)% packet loss', output)
+        rtt_match = re.search(r'min/avg/max.*= [\d.]+/([\d.]+)/', output)
+
+        loss = float(loss_match.group(1)) if loss_match else 100
+        rtt = float(rtt_match.group(1)) if rtt_match else 0
+
+        return {
+            "avg_rtt_ms": rtt,
+            "packet_loss_pct": loss,
+            "status": "ok" if loss == 0 else "degraded" if loss < 100 else "down",
+        }
+    except Exception as e:
+        logger.warning("Real ping failed for %s: %s", target_ip, e)
+        return {"avg_rtt_ms": 0, "packet_loss_pct": 100, "status": "down"}

@@ -9,6 +9,7 @@ from __future__ import annotations
 import asyncio
 import random
 from typing import Any
+from src.config import is_demo_mode
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -38,8 +39,14 @@ MOCK_NEIGHBORS = {
 
 async def discover_device_neighbors(device_id: str) -> list[dict]:
     """Discover neighbors for a device (mock LLDP/CDP/ARP)."""
-    await asyncio.sleep(random.uniform(0.1, 0.3))
-    return MOCK_NEIGHBORS.get(device_id, [])
+    if is_demo_mode():
+        await asyncio.sleep(random.uniform(0.1, 0.3))
+        return MOCK_NEIGHBORS.get(device_id, [])
+    else:
+        # Real discovery via SNMP LLDP/CDP walks
+        # TODO: Implement real SNMP walks
+        logger.debug("Real discovery not yet implemented for %s", device_id)
+        return []
 
 
 class DiscoveryScheduler:

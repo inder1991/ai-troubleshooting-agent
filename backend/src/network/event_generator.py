@@ -9,6 +9,7 @@ from __future__ import annotations
 import asyncio
 import random
 from typing import Any
+from src.config import is_demo_mode
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -38,6 +39,9 @@ class MockEventGenerator:
         self._running = False
 
     async def start(self):
+        if not is_demo_mode():
+            logger.info("Production mode — mock event generator disabled")
+            return
         self._running = True
         logger.info("Mock event generator started")
         while self._running:

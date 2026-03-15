@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from src.config import is_demo_mode
 from src.utils.logger import get_logger
 from src.network.models import (
     Device, Interface, Subnet, Zone,
@@ -30,6 +31,10 @@ def load_enterprise_fixtures(topology_store) -> dict:
 
     Returns a summary dict of what was loaded.
     """
+    if not is_demo_mode():
+        logger.info("Production mode — skipping fixture loading")
+        return {"loaded": False, "reason": "production_mode"}
+
     if not FIXTURE_PATH.exists():
         logger.info("No enterprise fixtures found at %s", FIXTURE_PATH)
         return {"loaded": False}

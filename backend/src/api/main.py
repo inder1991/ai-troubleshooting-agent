@@ -50,6 +50,7 @@ from .websocket import manager
 from src.cloud.api.router import create_cloud_router
 from src.cloud.cloud_store import CloudStore
 from src.network.prometheus_exporter import MetricsCollector
+from src.config import APP_MODE
 from src.utils.logger import get_logger
 
 logger = get_logger("main")
@@ -201,6 +202,7 @@ def create_app() -> FastAPI:
     @app.on_event("startup")
     async def startup():
         import os
+        logger.info("DebugDuck starting in %s mode", APP_MODE.upper())
         _init_stores()
         _reload_adapter_instances()
         # Start session TTL cleanup loop
