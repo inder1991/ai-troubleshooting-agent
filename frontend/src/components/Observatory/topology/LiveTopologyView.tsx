@@ -128,10 +128,10 @@ const LiveTopologyView: React.FC = () => {
   // Memoize MiniMap nodeColor
   const miniMapNodeColor = useCallback((node: any) => {
     const status = node.data?.status || 'unknown';
-    if (status === 'healthy') return '#10b981';
+    if (status === 'healthy') return '#22c55e';
     if (status === 'degraded') return '#f59e0b';
     if (status === 'critical') return '#ef4444';
-    return '#64748b';
+    return '#94a3b8';
   }, []);
 
   if (isLoading) {
@@ -230,9 +230,9 @@ const LiveTopologyView: React.FC = () => {
         minZoom={0.1}
         maxZoom={2}
         proOptions={{ hideAttribution: true }}
-        style={{ background: '#1a1814' }}
+        style={{ background: '#201d17' }}
       >
-        <Background color="#3d3528" gap={40} size={1} style={{ opacity: 0.15 }} />
+        <Background color="#ffffff" gap={30} size={0.5} style={{ opacity: 0.04 }} />
         <Controls
           style={{ background: '#1e1b15', border: '1px solid #3d3528', borderRadius: 8 }}
           showInteractive={false}

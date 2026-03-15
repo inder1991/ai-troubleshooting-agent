@@ -814,16 +814,16 @@ class NetworkKnowledgeGraph:
 
     # ── Edge styling by type ──
     EDGE_STYLES = {
-        "layer2_link":   {"stroke": "#64748b", "strokeWidth": 2},
-        "layer3_link":   {"stroke": "#3d3528", "strokeWidth": 2},
-        "ha_peer":       {"stroke": "#f59e0b", "strokeWidth": 2, "strokeDasharray": "5,5"},
-        "tunnel_link":   {"stroke": "#0ea5e9", "strokeWidth": 2, "strokeDasharray": "8,4"},
-        "routes_via":    {"stroke": "#3d3528", "strokeWidth": 1, "opacity": 0.4},
-        "attached_to":   {"stroke": "#10b981", "strokeWidth": 2},
-        "load_balances": {"stroke": "#8b5cf6", "strokeWidth": 2},
-        "mpls_path":     {"stroke": "#e09f3e", "strokeWidth": 3},
-        "connected_to":  {"stroke": "#3d3528", "strokeWidth": 1, "opacity": 0.3},
-        "vpc_contains":  {"stroke": "#3d3528", "strokeWidth": 1, "strokeDasharray": "3,3"},
+        "layer2_link":   {"stroke": "#22c55e", "strokeWidth": 3},                          # Bright green, thick
+        "layer3_link":   {"stroke": "#22c55e", "strokeWidth": 3},                          # Same green — physical link
+        "ha_peer":       {"stroke": "#f59e0b", "strokeWidth": 2, "strokeDasharray": "6,4"}, # Amber dashed
+        "tunnel_link":   {"stroke": "#06b6d4", "strokeWidth": 3, "strokeDasharray": "10,5"}, # Cyan dashed, thick
+        "routes_via":    {"stroke": "#64748b", "strokeWidth": 1, "opacity": 0.3},            # Very subtle
+        "attached_to":   {"stroke": "#06b6d4", "strokeWidth": 3},                           # Cyan solid — cloud attach
+        "load_balances": {"stroke": "#a855f7", "strokeWidth": 2},                           # Purple
+        "mpls_path":     {"stroke": "#f59e0b", "strokeWidth": 4},                           # Amber, thickest — WAN
+        "connected_to":  {"stroke": "#22c55e", "strokeWidth": 2},                           # Green
+        "vpc_contains":  {"stroke": "#64748b", "strokeWidth": 1, "strokeDasharray": "3,3"}, # Subtle
     }
 
     GROUP_LABELS = {
@@ -1108,16 +1108,19 @@ class NetworkKnowledgeGraph:
                 "data": {"label": self.GROUP_LABELS.get(group_id, group_id)},
                 "position": {"x": pos["x"], "y": pos["y"]},
                 "style": {
-                    "width": gw,
-                    "height": gh,
-                    "backgroundColor": "rgba(30, 27, 21, 0.6)",
-                    "border": f"2px solid {accent}80",
-                    "borderRadius": 12,
-                    "padding": 10,
+                    "width": max(gw, 400),
+                    "height": max(gh, 300),
+                    "backgroundColor": f"{accent}08",  # 3% opacity — barely visible tint
+                    "border": "none",
+                    "borderRadius": 16,
+                    "padding": 0,
                     "fontSize": 14,
-                    "color": accent,
-                    "fontWeight": 600,
+                    "fontWeight": 700,
+                    "color": f"{accent}50",  # 31% opacity label
+                    "letterSpacing": "0.05em",
                 },
+                "selectable": False,
+                "draggable": False,
             })
 
             # Position nodes by rank (top = low rank, bottom = high rank)
@@ -1164,7 +1167,8 @@ class NetworkKnowledgeGraph:
             # Link status
             if data.get("status") == "DOWN":
                 style["stroke"] = "#ef4444"
-                style["strokeDasharray"] = "4,4"
+                style["strokeWidth"] = 4
+                style["strokeDasharray"] = "6,3"
 
             # Build edge label from interface names
             src_iface = data.get("src_interface") or data.get("local_port", "")

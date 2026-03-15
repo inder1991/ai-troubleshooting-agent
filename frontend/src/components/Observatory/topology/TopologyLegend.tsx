@@ -1,19 +1,20 @@
 import React, { useState } from 'react';
 
 const LEGEND_ITEMS = [
-  { label: 'L2 Link (LLDP/CDP)', color: '#64748b', dash: false },
-  { label: 'L3 Link (P2P)', color: '#3d3528', dash: false },
-  { label: 'HA Peer', color: '#f59e0b', dash: true },
-  { label: 'GRE/IPsec Tunnel', color: '#0ea5e9', dash: true },
-  { label: 'MPLS Circuit', color: '#e09f3e', dash: false, thick: true },
-  { label: 'Route (summary)', color: '#3d3528', dash: false, thin: true },
+  { label: 'Physical Link (L2/L3)', color: '#22c55e', width: 3 },
+  { label: 'WAN / MPLS', color: '#f59e0b', width: 4 },
+  { label: 'HA Peer', color: '#f59e0b', width: 2, dash: true },
+  { label: 'Tunnel (GRE/IPsec)', color: '#06b6d4', width: 3, dash: true },
+  { label: 'Cloud Attachment', color: '#06b6d4', width: 3 },
+  { label: 'Load Balancer', color: '#a855f7', width: 2 },
+  { label: 'Link Down', color: '#ef4444', width: 4, dash: true },
 ];
 
 const STATUS_ITEMS = [
-  { label: 'Healthy', color: '#10b981' },
+  { label: 'Healthy', color: '#22c55e' },
   { label: 'Degraded', color: '#f59e0b' },
   { label: 'Critical', color: '#ef4444' },
-  { label: 'Unknown', color: '#64748b' },
+  { label: 'Initializing', color: '#e09f3e' },
 ];
 
 const TopologyLegend: React.FC = () => {
@@ -40,8 +41,8 @@ const TopologyLegend: React.FC = () => {
           <div style={{ fontSize: 9, color: '#64748b', fontWeight: 600, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Links</div>
           {LEGEND_ITEMS.map(item => (
             <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-              <svg width={24} height={4}>
-                <line x1={0} y1={2} x2={24} y2={2} stroke={item.color} strokeWidth={item.thick ? 3 : item.thin ? 1 : 2} strokeDasharray={item.dash ? '4,3' : 'none'} />
+              <svg width={24} height={6}>
+                <line x1={0} y1={3} x2={24} y2={3} stroke={item.color} strokeWidth={item.width} strokeDasharray={item.dash ? '4,3' : 'none'} />
               </svg>
               <span style={{ color: '#8a7e6b', fontSize: 10 }}>{item.label}</span>
             </div>
