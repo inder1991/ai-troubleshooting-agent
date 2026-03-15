@@ -2452,3 +2452,30 @@ export async function getClusterCost(clusterId: string): Promise<ClusterCostSumm
   const data = await res.json();
   return data.cost_summary || null;
 }
+
+// ── Live Topology API ──
+
+export async function fetchTopologyCurrent(): Promise<any> {
+  const res = await fetch(`${API_BASE_URL}/api/v4/network/topology/current`);
+  if (!res.ok) throw new Error('Failed to fetch topology');
+  return res.json();
+}
+
+export async function fetchBatchDeviceHealth(): Promise<Record<string, { status: string; cpu_pct: number | null; memory_pct: number | null }>> {
+  const res = await fetch(`${API_BASE_URL}/api/v4/monitoring/devices/health/batch`);
+  if (!res.ok) return {};
+  const data = await res.json();
+  return data.devices || {};
+}
+
+export async function fetchTopologyPath(srcIp: string, dstIp: string): Promise<{ paths: string[][] }> {
+  const res = await fetch(`${API_BASE_URL}/api/v4/network/topology/path?src_ip=${encodeURIComponent(srcIp)}&dst_ip=${encodeURIComponent(dstIp)}`);
+  if (!res.ok) return { paths: [] };
+  return res.json();
+}
+
+export async function fetchBlastRadius(deviceId: string): Promise<{ affected: { id: string; name: string }[]; count: number }> {
+  const res = await fetch(`${API_BASE_URL}/api/v4/network/topology/blast-radius?device_id=${encodeURIComponent(deviceId)}`);
+  if (!res.ok) return { affected: [], count: 0 };
+  return res.json();
+}

@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useMonitorSnapshot } from './hooks/useMonitorSnapshot';
 import NOCWallTab from './NOCWallTab';
 import LiveTopologyTab from './LiveTopologyTab';
+import LiveTopologyView from './topology/LiveTopologyView';
 import TrafficFlowsTab from './TrafficFlowsTab';
 import AlertsTab from './AlertsTab';
 import AlertHistoryTab from './AlertHistoryTab';
@@ -235,13 +236,9 @@ const ObservatoryView: React.FC<ObservatoryViewProps> = ({ onOpenEditor }) => {
             </div>
           </div>
         ) : activeTab === 'topology' ? (
-          <LiveTopologyTab
-            devices={snapshot.devices}
-            links={snapshot.links}
-            drifts={snapshot.drifts}
-            candidates={snapshot.candidates}
-            onOpenEditor={onOpenEditor}
-          />
+          <div style={{ height: '100%', minHeight: 0 }}>
+            <LiveTopologyView />
+          </div>
         ) : activeTab === 'noc' ? (
           <NOCWallTab
             devices={snapshot.devices}
