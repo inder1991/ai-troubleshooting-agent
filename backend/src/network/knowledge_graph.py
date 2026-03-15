@@ -837,8 +837,8 @@ class NetworkKnowledgeGraph:
 
     # Define group layout order (dynamic positioning calculated at export time)
     GROUP_ORDER = ["onprem", "aws", "azure", "oci", "gcp", "branch"]
-    H_GAP_GROUPS = 150  # Horizontal gap between left and right columns
-    V_GAP_GROUPS = 80   # Vertical gap between stacked groups
+    H_GAP_GROUPS = 200  # Horizontal gap between left and right columns
+    V_GAP_GROUPS = 120  # Vertical gap between stacked groups
 
     def _compute_topology_hash(self) -> str:
         """SHA-256 hash of topology structure + key attributes for change detection."""
@@ -1110,14 +1110,14 @@ class NetworkKnowledgeGraph:
                 "style": {
                     "width": max(gw, 400),
                     "height": max(gh, 300),
-                    "backgroundColor": f"{accent}08",  # 3% opacity — barely visible tint
-                    "border": "none",
-                    "borderRadius": 16,
-                    "padding": 0,
-                    "fontSize": 14,
+                    "backgroundColor": f"{accent}0D",   # ~5% opacity — visible tint
+                    "border": f"1.5px solid {accent}40", # ~25% opacity — clearly visible
+                    "borderRadius": 12,
+                    "padding": 10,
+                    "fontSize": 13,
                     "fontWeight": 700,
-                    "color": f"{accent}50",  # 31% opacity label
-                    "letterSpacing": "0.05em",
+                    "color": f"{accent}90",              # ~56% opacity — readable label
+                    "letterSpacing": "0.04em",
                 },
                 "selectable": False,
                 "draggable": False,
@@ -1174,16 +1174,26 @@ class NetworkKnowledgeGraph:
             src_iface = data.get("src_interface") or data.get("local_port", "")
             dst_iface = data.get("dst_interface") or data.get("remote_port", "")
             edge_label = ""
-            if src_iface and dst_iface:
-                edge_label = f"{src_iface} ↔ {dst_iface}"
+            if edge_type == "mpls_path":
+                bw = data.get("bandwidth", "")
+                edge_label = f"MPLS {bw}".strip()
             elif edge_type == "tunnel_link":
-                edge_label = data.get("tunnel_type", "tunnel")
+                ttype = data.get("tunnel_type", "GRE").upper()
+                edge_label = ttype
+            elif edge_type == "attached_to":
+                edge_label = "TGW"
+            elif src_iface and dst_iface:
+                edge_label = f"{src_iface} ↔ {dst_iface}"
             elif edge_type == "ha_peer":
                 edge_label = "HA"
             elif edge_type == "routes_via":
                 edge_label = data.get("destination", "")
-            elif edge_type == "mpls_path":
-                edge_label = "MPLS"
+
+            # WAN links get larger, more prominent labels
+            is_wan = edge_type in ("mpls_path", "tunnel_link", "attached_to")
+            label_size = 10 if is_wan else 8
+            label_fill = "#94a3b8" if is_wan else "#64748b"
+            label_weight = 600 if is_wan else 400
 
             rf_edges.append({
                 "id": f"e-{src}-{dst}-{edge_type}-{key}",
@@ -1191,7 +1201,7 @@ class NetworkKnowledgeGraph:
                 "target": dst,
                 "type": "smoothstep",
                 "label": edge_label,
-                "labelStyle": {"fontSize": 8, "fill": "#64748b"},
+                "labelStyle": {"fontSize": label_size, "fill": label_fill, "fontWeight": label_weight},
                 "labelBgStyle": {"fill": "#1a1814", "fillOpacity": 0.8},
                 "labelBgPadding": [4, 2],
                 "data": {

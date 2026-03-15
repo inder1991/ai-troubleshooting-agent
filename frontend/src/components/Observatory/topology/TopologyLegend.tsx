@@ -17,6 +17,14 @@ const STATUS_ITEMS = [
   { label: 'Initializing', color: '#e09f3e' },
 ];
 
+const TYPE_ITEMS = [
+  { label: 'Firewall', color: '#ef4444' },
+  { label: 'Router', color: '#3b82f6' },
+  { label: 'Switch', color: '#10b981' },
+  { label: 'Load Balancer', color: '#a855f7' },
+  { label: 'Cloud / Transit GW', color: '#f59e0b' },
+];
+
 const TopologyLegend: React.FC = () => {
   const [open, setOpen] = useState(false);
 
@@ -51,6 +59,15 @@ const TopologyLegend: React.FC = () => {
           {STATUS_ITEMS.map(item => (
             <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
               <span style={{ width: 8, height: 8, borderRadius: '50%', background: item.color, flexShrink: 0 }} />
+              <span style={{ color: '#8a7e6b', fontSize: 10 }}>{item.label}</span>
+            </div>
+          ))}
+          <div style={{ fontSize: 9, color: '#64748b', fontWeight: 600, marginTop: 8, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Device Types</div>
+          {TYPE_ITEMS.map(item => (
+            <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+              <span style={{
+                width: 16, height: 3, borderRadius: 1, background: item.color, flexShrink: 0,
+              }} />
               <span style={{ color: '#8a7e6b', fontSize: 10 }}>{item.label}</span>
             </div>
           ))}

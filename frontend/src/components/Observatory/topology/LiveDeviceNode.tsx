@@ -2,57 +2,32 @@ import React, { memo } from 'react';
 import { Handle, Position } from 'reactflow';
 
 const STATUS_COLORS: Record<string, string> = {
-  healthy: '#22c55e',       // Bright green (not emerald — needs to pop)
-  degraded: '#f59e0b',      // Amber
-  critical: '#ef4444',      // Red
+  healthy: '#22c55e',
+  degraded: '#f59e0b',
+  critical: '#ef4444',
   unreachable: '#ef4444',
   stale: '#94a3b8',
   unknown: '#94a3b8',
-  initializing: '#e09f3e',  // Warm amber — "starting up"
+  initializing: '#e09f3e',
 };
 
-// SVG paths for network device icons (Cisco-style silhouettes)
-const DEVICE_SVGS: Record<string, { path: string; viewBox: string }> = {
-  ROUTER: {
-    viewBox: '0 0 36 36',
-    path: 'M18 4 L32 18 L18 32 L4 18 Z M18 10 L26 18 L18 26 L10 18 Z M14 18 L18 14 L22 18 L18 22 Z',
-  },
-  SWITCH: {
-    viewBox: '0 0 36 36',
-    path: 'M4 10 H32 V26 H4 Z M8 14 H12 V18 H8 Z M14 14 H18 V18 H14 Z M20 14 H24 V18 H20 Z M26 14 H30 V18 H26 Z M10 21 V24 M16 21 V24 M22 21 V24 M28 21 V24',
-  },
-  FIREWALL: {
-    viewBox: '0 0 36 36',
-    path: 'M4 6 H32 V30 H4 Z M4 14 H32 M4 22 H32 M12 6 V30 M20 6 V30 M28 6 V30',
-  },
-  LOAD_BALANCER: {
-    viewBox: '0 0 36 36',
-    path: 'M18 4 L4 18 H14 L8 32 H28 L22 18 H32 Z',
-  },
-  HOST: {
-    viewBox: '0 0 36 36',
-    path: 'M6 6 H30 V24 H6 Z M4 24 H32 V30 H4 Z M14 27 H22',
-  },
-  CLOUD_GATEWAY: {
-    viewBox: '0 0 36 36',
-    path: 'M8 24 C2 24 2 16 8 16 C8 10 14 6 20 8 C26 4 34 10 30 18 C34 18 34 24 28 24 Z M14 20 L18 16 L22 20 M18 16 V28',
-  },
-  TRANSIT_GATEWAY: {
-    viewBox: '0 0 36 36',
-    path: 'M18 4 L32 12 V24 L18 32 L4 24 V12 Z M18 4 V32 M4 12 L32 24 M32 12 L4 24',
-  },
-  PROXY: {
-    viewBox: '0 0 36 36',
-    path: 'M6 8 H30 V28 H6 Z M6 14 H30 M18 8 V28 M11 18 L15 22 L11 26 M25 18 L21 22 L25 26',
-  },
+// Each device TYPE gets its own accent color — recognizable at a glance
+const TYPE_CONFIG: Record<string, { icon: string; color: string; label: string }> = {
+  FIREWALL:          { icon: 'local_fire_department', color: '#ef4444', label: 'Firewall' },
+  ROUTER:            { icon: 'router',               color: '#3b82f6', label: 'Router' },
+  SWITCH:            { icon: 'device_hub',           color: '#10b981', label: 'Switch' },
+  LOAD_BALANCER:     { icon: 'balance',              color: '#a855f7', label: 'Load Balancer' },
+  HOST:              { icon: 'dns',                  color: '#64748b', label: 'Server' },
+  TRANSIT_GATEWAY:   { icon: 'hub',                  color: '#f59e0b', label: 'Transit GW' },
+  CLOUD_GATEWAY:     { icon: 'cloud_sync',           color: '#06b6d4', label: 'Cloud GW' },
+  NAT_GATEWAY:       { icon: 'swap_horiz',           color: '#06b6d4', label: 'NAT GW' },
+  VIRTUAL_APPLIANCE: { icon: 'memory',               color: '#8b5cf6', label: 'Virtual' },
+  PROXY:             { icon: 'vpn_lock',             color: '#f59e0b', label: 'Proxy' },
+  VPN_CONCENTRATOR:  { icon: 'vpn_key',              color: '#06b6d4', label: 'VPN' },
+  SDWAN_EDGE:        { icon: 'lan',                  color: '#10b981', label: 'SD-WAN' },
 };
 
-const TYPE_ABBREV: Record<string, string> = {
-  ROUTER: 'RTR', SWITCH: 'SW', FIREWALL: 'FW', LOAD_BALANCER: 'LB',
-  HOST: 'SRV', TRANSIT_GATEWAY: 'TGW', CLOUD_GATEWAY: 'CGW',
-  VIRTUAL_APPLIANCE: 'VA', PROXY: 'PRX', VPN_CONCENTRATOR: 'VPN',
-  NAT_GATEWAY: 'NAT', SDWAN_EDGE: 'SDWAN', ACCESS_POINT: 'AP',
-};
+const DEFAULT_CONFIG = { icon: 'dns', color: '#64748b', label: 'Device' };
 
 interface LiveDeviceNodeProps {
   data: {
@@ -72,60 +47,100 @@ interface LiveDeviceNodeProps {
 
 const LiveDeviceNode: React.FC<LiveDeviceNodeProps> = memo(({ data, selected }) => {
   const statusColor = STATUS_COLORS[data.status] || STATUS_COLORS.unknown;
-  const svgData = DEVICE_SVGS[data.deviceType] || DEVICE_SVGS.HOST;
-  const typeAbbrev = TYPE_ABBREV[data.deviceType] || '?';
+  const typeConfig = TYPE_CONFIG[data.deviceType] || DEFAULT_CONFIG;
   const isHighlighted = data.isOnPath || data.isBlastTarget || selected;
-  const iconColor = isHighlighted ? '#e09f3e' : statusColor;
+
+  // Highlighted = amber glow, blast = red glow, otherwise status border
+  const borderColor = isHighlighted ? '#e09f3e' : data.isBlastTarget ? '#ef4444' : statusColor;
+  const shadowColor = isHighlighted ? 'rgba(224,159,62,0.4)' : data.isBlastTarget ? 'rgba(239,68,68,0.4)' : 'none';
 
   return (
     <div style={{
-      display: 'flex', flexDirection: 'column', alignItems: 'center',
-      padding: '4px 8px',
-      filter: isHighlighted ? 'drop-shadow(0 0 8px rgba(224,159,62,0.5))' : data.status === 'critical' ? `drop-shadow(0 0 6px ${statusColor})` : 'none',
-      cursor: 'pointer',
-      transition: 'filter 200ms',
-      animation: data.status === 'critical' ? 'pulse-glow 2s ease-in-out infinite' : 'none',
+      background: '#1e1b15',
+      borderRadius: 8,
+      overflow: 'hidden',
+      minWidth: 150,
+      maxWidth: 200,
+      border: `1.5px solid ${borderColor}`,
+      boxShadow: shadowColor !== 'none' ? `0 0 12px ${shadowColor}` : '0 1px 4px rgba(0,0,0,0.3)',
+      transition: 'border-color 300ms, box-shadow 300ms',
     }}>
-      {data.status === 'critical' && (
-        <style>{`
-          @keyframes pulse-glow {
-            0%, 100% { filter: drop-shadow(0 0 4px ${statusColor}); }
-            50% { filter: drop-shadow(0 0 10px ${statusColor}); }
-          }
-        `}</style>
-      )}
-      {/* Invisible handles for edge connections */}
+      {/* Colored top accent bar — device TYPE color */}
+      <div style={{
+        height: 3,
+        background: typeConfig.color,
+        opacity: 0.8,
+      }} />
+
+      {/* Invisible handles */}
       <Handle type="target" position={Position.Top} style={{ background: 'transparent', border: 'none', width: 1, height: 1 }} />
       <Handle type="source" position={Position.Bottom} style={{ background: 'transparent', border: 'none', width: 1, height: 1 }} />
       <Handle type="target" position={Position.Left} style={{ background: 'transparent', border: 'none', width: 1, height: 1 }} />
       <Handle type="source" position={Position.Right} style={{ background: 'transparent', border: 'none', width: 1, height: 1 }} />
 
-      {/* SVG Device Icon — uses currentColor for smooth status transitions */}
-      <svg width={40} height={40} viewBox={svgData.viewBox} style={{ overflow: 'visible', color: iconColor, transition: 'color 500ms ease-out' }}>
-        <path d={svgData.path} fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
+      <div style={{ padding: '8px 10px 6px' }}>
+        {/* Icon + Name row */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{
+            width: 32, height: 32, borderRadius: 6,
+            background: `${typeConfig.color}18`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0,
+          }}>
+            <span className="material-symbols-outlined" style={{
+              fontSize: 20, color: typeConfig.color,
+            }}>
+              {typeConfig.icon}
+            </span>
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{
+              color: 'white', fontSize: 11, fontWeight: 600,
+              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+            }}>
+              {data.label}
+            </div>
+            <div style={{ color: '#8a7e6b', fontSize: 9 }}>
+              {data.vendor || typeConfig.label}
+            </div>
+          </div>
+          {/* Status dot */}
+          <span style={{
+            width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
+            background: statusColor,
+            boxShadow: data.status === 'critical' ? `0 0 6px ${statusColor}` : 'none',
+            animation: data.status === 'critical' ? 'pulse 2s ease-in-out infinite' : 'none',
+          }} />
+        </div>
 
-      {/* Device name */}
-      <div style={{
-        color: 'white', fontSize: 11, fontWeight: 600, marginTop: 4,
-        textAlign: 'center', maxWidth: 120,
-        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-        textShadow: '0 1px 3px rgba(0,0,0,0.8)',
-      }}>
-        {data.label}
-      </div>
-
-      {/* Vendor + Type + HA */}
-      <div style={{
-        color: '#8a7e6b', fontSize: 8, textAlign: 'center', marginTop: 1,
-        display: 'flex', gap: 4, alignItems: 'center',
-      }}>
-        <span style={{ color: statusColor, fontWeight: 700 }}>{typeAbbrev}</span>
-        {data.haRole && (
-          <span style={{ color: data.haRole === 'active' ? '#22c55e' : '#64748b' }}>
-            {data.haRole}
+        {/* Bottom row: type badge + HA role + IP */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 4, marginTop: 6,
+          fontSize: 8, color: '#64748b',
+        }}>
+          <span style={{
+            background: `${typeConfig.color}20`,
+            color: typeConfig.color,
+            padding: '1px 5px',
+            borderRadius: 3,
+            fontWeight: 700,
+            fontSize: 8,
+            letterSpacing: '0.03em',
+          }}>
+            {typeConfig.label}
           </span>
-        )}
+          {data.haRole && (
+            <span style={{ color: data.haRole === 'active' ? '#22c55e' : '#64748b', fontWeight: 600 }}>
+              {data.haRole}
+            </span>
+          )}
+          <span style={{ flex: 1 }} />
+          {data.ip && (
+            <span style={{ fontFamily: 'monospace', fontSize: 8, color: '#64748b' }}>
+              {data.ip}
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );
