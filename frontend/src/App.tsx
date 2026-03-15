@@ -569,7 +569,7 @@ function AppInner() {
   };
 
   return (
-    <div className="flex h-screen w-full overflow-hidden text-slate-100 antialiased bg-duck-bg">
+    <div className="flex h-screen w-full overflow-hidden text-slate-100 antialiased command-center-bg">
       {/* Sidebar Nav - hidden during investigation (war room is full width) */}
       {showSidebar && (
         <SidebarNav
