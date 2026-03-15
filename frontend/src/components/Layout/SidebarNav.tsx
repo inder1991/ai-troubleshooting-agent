@@ -4,7 +4,7 @@ import { Badge } from '../ui/Badge';
 export type NavView = 'home' | 'sessions' | 'app-diagnostics' | 'cluster-diagnostics'
   | 'network-troubleshooting' | 'pr-review' | 'github-issue-fix'
   | 'network-topology' | 'network-adapters' | 'device-monitoring' | 'ipam' | 'matrix' | 'observatory'
-  | 'k8s-clusters' | 'k8s-diagnostics'
+  | 'k8s-clusters' | 'k8s-diagnostics' | 'cluster-registry' | 'cluster-recommendations'
   | 'db-overview' | 'db-connections' | 'db-diagnostics' | 'db-monitoring' | 'db-schema' | 'db-operations'
   | 'integrations' | 'settings' | 'agent-matrix'
   | 'audit-log' | 'mib-browser' | 'cloud-resources' | 'security-resources';
@@ -50,6 +50,7 @@ const navItems: NavItem[] = [
     kind: 'group', group: 'Infrastructure', icon: 'dns',
     children: [
       { id: 'k8s-clusters', label: 'K8s Clusters', icon: 'deployed_code' },
+      { id: 'cluster-registry', label: 'Clusters', icon: 'cloud_circle' },
       { id: 'network-topology', label: 'Topology', icon: 'device_hub' },
       { id: 'network-adapters', label: 'Adapters', icon: 'settings_input_component' },
       { id: 'device-monitoring', label: 'Devices', icon: 'router' },

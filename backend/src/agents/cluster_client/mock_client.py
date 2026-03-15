@@ -710,6 +710,38 @@ class MockClusterClient(ClusterClient):
             cronjobs = [cj for cj in cronjobs if cj["namespace"] == namespace]
         return QueryResult(data=cronjobs, total_available=len(cronjobs), returned=len(cronjobs))
 
+    async def list_tls_secrets(self, namespace: str = "") -> QueryResult:
+        from datetime import datetime, timedelta
+        now = datetime.now()
+        secrets = [
+            {"name": "api-tls-cert", "namespace": "production", "expiry_date": (now + timedelta(days=12)).isoformat(), "days_to_expiry": 12, "issuer": "letsencrypt"},
+            {"name": "internal-ca", "namespace": "kube-system", "expiry_date": (now + timedelta(days=180)).isoformat(), "days_to_expiry": 180, "issuer": "internal-ca"},
+            {"name": "payment-tls", "namespace": "production", "expiry_date": (now + timedelta(days=5)).isoformat(), "days_to_expiry": 5, "issuer": "letsencrypt"},
+        ]
+        return QueryResult(data=secrets, total_available=len(secrets), returned=len(secrets))
+
+    async def list_resource_quotas(self, namespace: str = "") -> QueryResult:
+        quotas = [
+            {"name": "production-quota", "namespace": "production", "hard": {"cpu": "20", "memory": "40Gi", "pods": "100"}, "used": {"cpu": "18", "memory": "35Gi", "pods": "87"}},
+            {"name": "staging-quota", "namespace": "staging", "hard": {"cpu": "10", "memory": "20Gi", "pods": "50"}, "used": {"cpu": "3", "memory": "6Gi", "pods": "12"}},
+        ]
+        return QueryResult(data=quotas, total_available=len(quotas), returned=len(quotas))
+
+    async def get_node_os_info(self) -> QueryResult:
+        nodes = [
+            {"name": "worker-1", "kernel_version": "5.15.0-91-generic", "os_image": "Ubuntu 22.04.3 LTS", "kubelet_version": "v1.28.3", "creation_timestamp": "2026-01-15T10:00:00Z", "labels": {"node.kubernetes.io/instance-type": "m5.xlarge", "eks.amazonaws.com/nodegroup": "workers"}},
+            {"name": "worker-2", "kernel_version": "5.15.0-91-generic", "os_image": "Ubuntu 22.04.3 LTS", "kubelet_version": "v1.28.3", "creation_timestamp": "2026-01-15T10:00:00Z", "labels": {"node.kubernetes.io/instance-type": "m5.xlarge"}},
+            {"name": "worker-3", "kernel_version": "5.15.0-76-generic", "os_image": "Ubuntu 22.04.1 LTS", "kubelet_version": "v1.28.3", "creation_timestamp": "2025-11-20T08:00:00Z", "labels": {"node.kubernetes.io/instance-type": "m5.2xlarge"}},
+        ]
+        return QueryResult(data=nodes, total_available=len(nodes), returned=len(nodes))
+
+    async def list_api_versions_in_use(self) -> QueryResult:
+        deprecated = [
+            {"api_version": "batch/v1beta1", "group": "batch", "version": "v1beta1", "status": "deprecated"},
+            {"api_version": "policy/v1beta1", "group": "policy", "version": "v1beta1", "status": "deprecated"},
+        ]
+        return QueryResult(data=deprecated, total_available=len(deprecated), returned=len(deprecated))
+
     async def build_topology_snapshot(self) -> "TopologySnapshot":
         from src.agents.cluster.state import TopologySnapshot, TopologyNode, TopologyEdge
         nodes_result = await self.list_nodes()

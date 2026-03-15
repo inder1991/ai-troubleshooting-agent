@@ -1763,3 +1763,117 @@ async def update_lifecycle_config(thresholds: dict):
     from src.agents.cluster.state import LifecycleThresholds
     validated = LifecycleThresholds(**thresholds)
     return {"status": "updated", "thresholds": validated.model_dump()}
+
+
+# ---------------------------------------------------------------------------
+# Cluster Registry & Recommendations
+# ---------------------------------------------------------------------------
+
+# In-memory store for recommendation snapshots (replace with DB in production)
+_recommendation_snapshots: Dict[str, Any] = {}
+
+@router_v4.get("/clusters")
+async def list_clusters():
+    """List all connected clusters with health and recommendation summaries."""
+    from src.api.main import sessions
+
+    clusters = []
+    # Derive from integration profiles and recent sessions
+    seen_clusters: dict[str, dict] = {}
+
+    for sid, session in sessions.items():
+        if session.get("capability") != "cluster_diagnostics":
+            continue
+        cluster_url = session.get("connection_config", {}).get("cluster_url", "") if isinstance(session.get("connection_config"), dict) else ""
+        cluster_name = session.get("service_name", cluster_url or sid[:8])
+
+        if cluster_name not in seen_clusters:
+            state = session.get("state", {})
+            health = "UNKNOWN"
+            if isinstance(state, dict):
+                hr = state.get("health_report", {})
+                if hr:
+                    health = hr.get("platform_health", "UNKNOWN")
+
+            # Check for cached recommendation snapshot
+            snapshot = _recommendation_snapshots.get(cluster_name)
+
+            seen_clusters[cluster_name] = {
+                "cluster_id": cluster_name,
+                "cluster_name": cluster_name,
+                "provider": state.get("platform", "kubernetes") if isinstance(state, dict) else "kubernetes",
+                "node_count": 0,
+                "pod_count": 0,
+                "health_status": health,
+                "monthly_cost": snapshot.get("cost_summary", {}).get("current_monthly_cost", 0) if snapshot else 0,
+                "idle_pct": snapshot.get("cost_summary", {}).get("idle_cpu_pct", 0) if snapshot else 0,
+                "recommendation_count": len(snapshot.get("scored_recommendations", [])) if snapshot else 0,
+                "critical_count": snapshot.get("critical_count", 0) if snapshot else 0,
+                "last_scan_at": snapshot.get("scanned_at", "") if snapshot else "",
+                "total_savings_usd": snapshot.get("total_savings_usd", 0) if snapshot else 0,
+            }
+
+    return {"clusters": list(seen_clusters.values())}
+
+
+@router_v4.get("/clusters/{cluster_id}/recommendations")
+async def get_cluster_recommendations(cluster_id: str):
+    """Get full recommendations for a cluster."""
+    snapshot = _recommendation_snapshots.get(cluster_id)
+    if not snapshot:
+        return {"snapshot": None, "message": "No recommendations available. Run a refresh."}
+    return {"snapshot": snapshot}
+
+
+@router_v4.post("/clusters/{cluster_id}/recommendations/refresh")
+async def refresh_cluster_recommendations(cluster_id: str, background_tasks: BackgroundTasks):
+    """Trigger a fresh recommendation scan for a cluster."""
+    from src.agents.cluster_client.mock_client import MockClusterClient
+    from src.agents.cluster.proactive_analyzer import run_proactive_analysis
+    from src.agents.cluster.cost_analyzer import run_cost_analysis
+    from src.agents.cluster.workload_optimizer import run_workload_optimization
+    from src.agents.cluster.recommendation_engine import build_recommendation_snapshot
+
+    # For now, use mock client. In production, look up real client from integrations.
+    cluster_client = MockClusterClient()
+
+    async def _run_refresh():
+        try:
+            # Run all analyzers
+            proactive = await run_proactive_analysis(cluster_client)
+            cost_result = await run_cost_analysis(cluster_client)
+            workload_recs = await run_workload_optimization(cluster_client)
+
+            cost_summary = cost_result.get("cost_summary")
+            cost_optimization = cost_result.get("optimization")
+
+            provider = "aws"  # Detect from client
+            platform = await cluster_client.detect_platform()
+
+            snapshot = build_recommendation_snapshot(
+                cluster_id=cluster_id,
+                cluster_name=cluster_id,
+                provider=provider,
+                proactive_findings=proactive,
+                cost_summary=cost_summary,
+                cost_recommendation=cost_optimization,
+                workload_recommendations=workload_recs,
+            )
+
+            _recommendation_snapshots[cluster_id] = snapshot.model_dump(mode="json")
+            logger.info("Recommendation refresh complete for %s: %d findings",
+                       cluster_id, len(snapshot.scored_recommendations))
+        except Exception as e:
+            logger.error("Recommendation refresh failed for %s: %s", cluster_id, e)
+
+    background_tasks.add_task(_run_refresh)
+    return {"status": "refresh_started", "cluster_id": cluster_id}
+
+
+@router_v4.get("/clusters/{cluster_id}/cost")
+async def get_cluster_cost(cluster_id: str):
+    """Get cost breakdown for a cluster."""
+    snapshot = _recommendation_snapshots.get(cluster_id)
+    if not snapshot:
+        return {"cost_summary": None}
+    return {"cost_summary": snapshot.get("cost_summary")}

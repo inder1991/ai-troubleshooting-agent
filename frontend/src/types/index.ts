@@ -2318,3 +2318,88 @@ export interface SimulationResult {
   integrity_checks: Array<{ severity: 'error' | 'warning'; type: string; device?: string; description: string }>;
   connectivity_tests: Array<{ result: string; source: string; target: string; blocked_by?: string }>;
 }
+
+// ---------------------------------------------------------------------------
+// Cluster Registry & Recommendations types
+// ---------------------------------------------------------------------------
+
+export interface ClusterRegistryEntry {
+  cluster_id: string;
+  cluster_name: string;
+  provider: string;
+  node_count: number;
+  pod_count: number;
+  health_status: string;
+  monthly_cost: number;
+  idle_pct: number;
+  recommendation_count: number;
+  critical_count: number;
+  last_scan_at: string;
+  total_savings_usd: number;
+}
+
+export interface ProactiveFindingDTO {
+  finding_id: string;
+  check_type: string;
+  severity: string;
+  lifecycle_state: string;
+  title: string;
+  description: string;
+  affected_resources: string[];
+  affected_workloads: string[];
+  days_until_impact: number;
+  estimated_savings_usd: number;
+  recommendation: string;
+  commands: string[];
+  dry_run_command: string;
+  rollback_command: string;
+  confidence: number;
+  source: string;
+}
+
+export interface ScoredRecommendationDTO {
+  recommendation_id: string;
+  category: string;
+  score: number;
+  title: string;
+  description: string;
+  severity: string;
+  source: string;
+  affected_resources: string[];
+  affected_workloads: string[];
+  commands: string[];
+  dry_run_command: string;
+  rollback_command: string;
+  days_until_impact: number;
+  estimated_savings_usd: number;
+  risk_level: string;
+  confidence: number;
+}
+
+export interface ClusterCostSummaryDTO {
+  cluster_id: string;
+  provider: string;
+  node_count: number;
+  pod_count: number;
+  current_monthly_cost: number;
+  projected_monthly_cost: number;
+  projected_savings_usd: number;
+  idle_cpu_pct: number;
+  idle_memory_pct: number;
+  instance_breakdown: { instance_type: string; count: number; unit_cost: number; total_cost: number }[];
+  namespace_costs: { namespace: string; cpu_requested: number; pod_count: number; estimated_cost: number; cost_pct: number }[];
+}
+
+export interface ClusterRecommendationSnapshotDTO {
+  cluster_id: string;
+  cluster_name: string;
+  provider: string;
+  scanned_at: string;
+  proactive_findings: ProactiveFindingDTO[];
+  cost_summary: ClusterCostSummaryDTO | null;
+  scored_recommendations: ScoredRecommendationDTO[];
+  total_savings_usd: number;
+  critical_count: number;
+  optimization_count: number;
+  security_count: number;
+}

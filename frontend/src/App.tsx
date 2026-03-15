@@ -56,10 +56,12 @@ import AuditLogView from './components/AuditLog/AuditLogView';
 import MIBBrowserView from './components/Network/MIBBrowserView';
 import CloudResourcesView from './components/Cloud/CloudResourcesView';
 import SecurityResourcesView from './components/Security/SecurityResourcesView';
+import ClusterRegistryPage from './components/ClusterRegistry/ClusterRegistryPage';
+import ClusterRecommendationsPage from './components/ClusterRegistry/ClusterRecommendationsPage';
 import { Breadcrumbs } from './components/shared';
 
 
-type ViewState = 'home' | 'form' | 'investigation' | 'sessions' | 'integrations' | 'settings' | 'dossier' | 'cluster-diagnostics' | 'agent-matrix' | 'network-troubleshooting' | 'network-topology' | 'network-adapters' | 'device-monitoring' | 'ipam' | 'matrix' | 'observatory' | 'db-overview' | 'db-connections' | 'db-diagnostics' | 'db-monitoring' | 'db-schema' | 'db-operations' | 'k8s-clusters' | 'audit-log' | 'mib-browser' | 'cloud-resources' | 'security-resources';
+type ViewState = 'home' | 'form' | 'investigation' | 'sessions' | 'integrations' | 'settings' | 'dossier' | 'cluster-diagnostics' | 'agent-matrix' | 'network-troubleshooting' | 'network-topology' | 'network-adapters' | 'device-monitoring' | 'ipam' | 'matrix' | 'observatory' | 'db-overview' | 'db-connections' | 'db-diagnostics' | 'db-monitoring' | 'db-schema' | 'db-operations' | 'k8s-clusters' | 'audit-log' | 'mib-browser' | 'cloud-resources' | 'security-resources' | 'cluster-registry' | 'cluster-recommendations';
 
 function AppInner() {
   const { addToast } = useToast();
@@ -74,6 +76,7 @@ function AppInner() {
   const [tokenUsage, setTokenUsage] = useState<TokenUsage[]>([]);
   const [attestationGate, setAttestationGate] = useState<AttestationGateData | null>(null);
   const [wsMaxReconnectsHit, setWsMaxReconnectsHit] = useState(false);
+  const [selectedClusterId, setSelectedClusterId] = useState('');
   const activeSessionId = activeSession?.session_id ?? null;
 
   // Refresh session status
@@ -484,6 +487,7 @@ function AppInner() {
     'db-schema': 'db-schema', 'db-operations': 'db-operations',
     'audit-log': 'audit-log', 'mib-browser': 'mib-browser',
     'cloud-resources': 'cloud-resources', 'security-resources': 'security-resources',
+    'cluster-registry': 'cluster-registry', 'cluster-recommendations': 'cluster-recommendations',
   };
 
   const navView: NavView =
@@ -539,6 +543,8 @@ function AppInner() {
     'mib-browser': { label: 'MIB Browser', parent: 'home' },
     'cloud-resources': { label: 'Cloud Resources', parent: 'home' },
     'security-resources': { label: 'Security Resources', parent: 'home' },
+    'cluster-registry': { label: 'Cluster Fleet', parent: 'home' },
+    'cluster-recommendations': { label: 'Recommendations', parent: 'cluster-registry' },
   };
 
   const getBreadcrumbs = () => {
@@ -547,11 +553,16 @@ function AppInner() {
     const entry = breadcrumbMap[key];
     if (!entry) return [];
     const items: { label: string; onClick?: () => void }[] = [];
-    if (entry.parent) {
-      const parentEntry = breadcrumbMap[entry.parent];
-      if (parentEntry) {
-        items.push({ label: parentEntry.label, onClick: () => handleNavigate('home') });
-      }
+    // Walk up the parent chain to build breadcrumb trail
+    const chain: { key: string; label: string }[] = [];
+    let current = entry.parent;
+    while (current && breadcrumbMap[current]) {
+      chain.unshift({ key: current, label: breadcrumbMap[current].label });
+      current = breadcrumbMap[current].parent;
+    }
+    for (const crumb of chain) {
+      const navTarget = crumb.key as NavView;
+      items.push({ label: crumb.label, onClick: () => handleNavigate(navTarget) });
     }
     items.push({ label: entry.label });
     return items;
@@ -639,6 +650,19 @@ function AppInner() {
         {viewState === 'mib-browser' && <MIBBrowserView />}
         {viewState === 'cloud-resources' && <CloudResourcesView />}
         {viewState === 'security-resources' && <SecurityResourcesView />}
+
+        {viewState === 'cluster-registry' && (
+          <ClusterRegistryPage
+            onViewRecommendations={(id) => { setSelectedClusterId(id); setViewState('cluster-recommendations'); }}
+            onRunScan={(id) => { setSelectedClusterId(id); }}
+          />
+        )}
+        {viewState === 'cluster-recommendations' && (
+          <ClusterRecommendationsPage
+            clusterId={selectedClusterId}
+            onBack={() => setViewState('cluster-registry')}
+          />
+        )}
 
         {viewState === 'form' && selectedCapability && (
           <CapabilityForm

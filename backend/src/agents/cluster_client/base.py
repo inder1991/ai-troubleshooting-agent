@@ -166,6 +166,23 @@ class ClusterClient(ABC):
         """List CronJobs. Returns empty by default."""
         return QueryResult()
 
+    # Recommendation analysis methods
+    async def list_tls_secrets(self, namespace: str = "") -> QueryResult:
+        """List TLS secrets with certificate expiry information."""
+        return QueryResult()
+
+    async def list_resource_quotas(self, namespace: str = "") -> QueryResult:
+        """List ResourceQuotas with usage vs hard limits."""
+        return QueryResult()
+
+    async def get_node_os_info(self) -> QueryResult:
+        """List nodes with OS/kernel info and creation dates."""
+        return QueryResult()
+
+    async def list_api_versions_in_use(self) -> QueryResult:
+        """Scan common resources for apiVersion usage to detect deprecations."""
+        return QueryResult()
+
     async def build_topology_snapshot(self) -> "TopologySnapshot":
         """Build resource dependency graph from cluster state."""
         from src.agents.cluster.state import TopologySnapshot

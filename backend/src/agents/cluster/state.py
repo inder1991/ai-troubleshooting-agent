@@ -465,3 +465,136 @@ class SolutionValidation(BaseModel):
     simulation: Optional[SimulationResult] = None
     remediation_confidence: float = 0.0
     confidence_label: str = ""
+
+
+# ---------------------------------------------------------------------------
+# Cluster Recommendations & Cost Optimization models
+# ---------------------------------------------------------------------------
+
+
+class ProactiveFinding(BaseModel):
+    """A finding from proactive analysis (cert expiry, deprecated API, etc.)."""
+    finding_id: str = ""
+    check_type: str = ""          # "cert_expiry" | "deprecated_api" | "image_stale" | ...
+    severity: str = "medium"
+    lifecycle_state: str = "NEW"  # Reuses IssueState values
+
+    title: str = ""
+    description: str = ""
+    affected_resources: list[str] = Field(default_factory=list)
+    affected_workloads: list[str] = Field(default_factory=list)
+
+    days_until_impact: int = -1   # -1 = already impacting
+    estimated_savings_usd: float = 0.0
+
+    recommendation: str = ""
+    commands: list[str] = Field(default_factory=list)
+    dry_run_command: str = ""
+    rollback_command: str = ""
+
+    confidence: float = 0.0
+    source: str = "proactive"     # "proactive" | "cost" | "workload" | "slo"
+    cloud_provider: str = ""
+
+
+class CostRecommendation(BaseModel):
+    """Cost optimization recommendation for a cluster."""
+    recommendation_id: str = ""
+    scope: str = "cluster"        # "cluster" | "namespace" | "workload"
+
+    current_instance_types: list[dict] = Field(default_factory=list)
+    current_monthly_cost: float = 0.0
+
+    recommended_instance_types: list[dict] = Field(default_factory=list)
+    projected_monthly_cost: float = 0.0
+    projected_savings_usd: float = 0.0
+    projected_savings_pct: float = 0.0
+
+    idle_capacity_pct: float = 0.0
+    affected_workloads: list[str] = Field(default_factory=list)
+    constraints_respected: list[str] = Field(default_factory=list)
+    risk_level: str = "safe"
+
+
+class WorkloadRecommendation(BaseModel):
+    """Right-sizing recommendation for a single workload."""
+    recommendation_id: str = ""
+    workload: str = ""            # "deployment/production/api-gateway"
+    namespace: str = ""
+
+    current_cpu_request: str = ""
+    current_cpu_limit: str = ""
+    current_memory_request: str = ""
+    current_memory_limit: str = ""
+
+    recommended_cpu_request: str = ""
+    recommended_memory_request: str = ""
+
+    p95_cpu_usage: str = ""
+    p95_memory_usage: str = ""
+    observation_window: str = "7d"
+
+    cpu_reduction_pct: float = 0.0
+    memory_reduction_pct: float = 0.0
+
+    recommended_hpa: Optional[dict] = None
+    recommended_vpa: Optional[dict] = None
+
+    risk_level: str = "safe"
+    throttling_risk: bool = False
+
+
+class ScoredRecommendation(BaseModel):
+    """A scored, prioritized recommendation from any source."""
+    recommendation_id: str = ""
+    category: str = "known_issue"  # "critical_risk" | "optimization" | "security" | "known_issue"
+    score: float = 0.0             # 0-100
+
+    title: str = ""
+    description: str = ""
+    severity: str = "medium"
+    source: str = ""               # "proactive" | "cost" | "workload" | "slo"
+
+    affected_resources: list[str] = Field(default_factory=list)
+    affected_workloads: list[str] = Field(default_factory=list)
+
+    commands: list[str] = Field(default_factory=list)
+    dry_run_command: str = ""
+    rollback_command: str = ""
+    yaml_diff: Optional[str] = None
+
+    days_until_impact: int = -1
+    estimated_savings_usd: float = 0.0
+    risk_level: str = "safe"
+    confidence: float = 0.0
+
+
+class ClusterCostSummary(BaseModel):
+    """Cost summary for a cluster."""
+    cluster_id: str = ""
+    provider: str = ""
+    node_count: int = 0
+    pod_count: int = 0
+    current_monthly_cost: float = 0.0
+    projected_monthly_cost: float = 0.0
+    projected_savings_usd: float = 0.0
+    idle_cpu_pct: float = 0.0
+    idle_memory_pct: float = 0.0
+    instance_breakdown: list[dict] = Field(default_factory=list)
+    namespace_costs: list[dict] = Field(default_factory=list)
+
+
+class ClusterRecommendationSnapshot(BaseModel):
+    """Full recommendation snapshot for a cluster, persisted for the registry."""
+    cluster_id: str = ""
+    cluster_name: str = ""
+    provider: str = ""
+    scanned_at: str = ""
+    proactive_findings: list[ProactiveFinding] = Field(default_factory=list)
+    cost_summary: Optional[ClusterCostSummary] = None
+    workload_recommendations: list[WorkloadRecommendation] = Field(default_factory=list)
+    scored_recommendations: list[ScoredRecommendation] = Field(default_factory=list)
+    total_savings_usd: float = 0.0
+    critical_count: int = 0
+    optimization_count: int = 0
+    security_count: int = 0

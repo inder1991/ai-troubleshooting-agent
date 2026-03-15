@@ -17,6 +17,9 @@ import type {
   AgentMatrixResponse,
   AgentExecutionsResponse,
   HealthNode,
+  ClusterRegistryEntry,
+  ClusterRecommendationSnapshotDTO,
+  ClusterCostSummaryDTO,
 } from '../types';
 
 export const API_BASE_URL = 'http://localhost:8000';
@@ -2421,3 +2424,31 @@ export const simulateFirewallPolicy = async (designId: string, srcIp: string, ds
   if (!resp.ok) throw new Error(await extractErrorDetail(resp, 'Firewall simulation failed'));
   return resp.json();
 };
+
+// ===== Cluster Registry & Recommendations =====
+
+export async function listClusters(): Promise<ClusterRegistryEntry[]> {
+  const res = await fetch(`${API_BASE_URL}/api/v4/clusters`);
+  if (!res.ok) throw new Error('Failed to fetch clusters');
+  const data = await res.json();
+  return data.clusters || [];
+}
+
+export async function getClusterRecommendations(clusterId: string): Promise<ClusterRecommendationSnapshotDTO | null> {
+  const res = await fetch(`${API_BASE_URL}/api/v4/clusters/${encodeURIComponent(clusterId)}/recommendations`);
+  if (!res.ok) throw new Error('Failed to fetch recommendations');
+  const data = await res.json();
+  return data.snapshot || null;
+}
+
+export async function refreshClusterRecommendations(clusterId: string): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/api/v4/clusters/${encodeURIComponent(clusterId)}/recommendations/refresh`, { method: 'POST' });
+  if (!res.ok) throw new Error('Failed to start refresh');
+}
+
+export async function getClusterCost(clusterId: string): Promise<ClusterCostSummaryDTO | null> {
+  const res = await fetch(`${API_BASE_URL}/api/v4/clusters/${encodeURIComponent(clusterId)}/cost`);
+  if (!res.ok) throw new Error('Failed to fetch cost');
+  const data = await res.json();
+  return data.cost_summary || null;
+}

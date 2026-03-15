@@ -1134,6 +1134,146 @@ class KubernetesClient(ClusterClient):
             logger.error("Failed to list cronjobs: %s", e)
             return QueryResult()
 
+    async def list_tls_secrets(self, namespace: str = "") -> QueryResult:
+        """List TLS secrets with certificate expiry dates."""
+        self._ensure_client()
+        try:
+            if namespace:
+                result = await self._run_sync(
+                    self._core_api.list_namespaced_secret, namespace,
+                    field_selector="type=kubernetes.io/tls"
+                )
+            else:
+                result = await self._run_sync(
+                    self._core_api.list_secret_for_all_namespaces,
+                    field_selector="type=kubernetes.io/tls"
+                )
+            secrets = []
+            for sec in result.items:
+                cert_data = (sec.data or {}).get("tls.crt", "")
+                expiry_days = -1
+                expiry_date = ""
+                if cert_data:
+                    try:
+                        import base64
+                        import subprocess
+                        cert_bytes = base64.b64decode(cert_data)
+                        proc = subprocess.run(
+                            ["openssl", "x509", "-enddate", "-noout"],
+                            input=cert_bytes, capture_output=True, timeout=5
+                        )
+                        if proc.returncode == 0:
+                            # Parse: notAfter=Mar 22 12:00:00 2026 GMT
+                            date_str = proc.stdout.decode().strip().split("=", 1)[-1]
+                            from datetime import datetime, timezone
+                            exp_dt = datetime.strptime(date_str, "%b %d %H:%M:%S %Y %Z")
+                            expiry_date = exp_dt.isoformat()
+                            expiry_days = (exp_dt - datetime.now()).days
+                    except Exception:
+                        pass
+
+                secrets.append({
+                    "name": sec.metadata.name,
+                    "namespace": sec.metadata.namespace,
+                    "expiry_date": expiry_date,
+                    "days_to_expiry": expiry_days,
+                    "issuer": "",  # Could parse from cert
+                })
+            return QueryResult(data=secrets, total_available=len(secrets), returned=len(secrets))
+        except ApiException as e:
+            if e.status == 403:
+                return QueryResult(permission_denied=True, denied_resource="secrets")
+            logger.error("Failed to list TLS secrets: %s", e)
+            return QueryResult()
+
+    async def list_resource_quotas(self, namespace: str = "") -> QueryResult:
+        self._ensure_client()
+        try:
+            if namespace:
+                result = await self._run_sync(
+                    self._core_api.list_namespaced_resource_quota, namespace
+                )
+            else:
+                result = await self._run_sync(
+                    self._core_api.list_resource_quota_for_all_namespaces
+                )
+            quotas = []
+            for q in result.items:
+                hard = {k: str(v) for k, v in (q.status.hard or {}).items()}
+                used = {k: str(v) for k, v in (q.status.used or {}).items()}
+                quotas.append({
+                    "name": q.metadata.name,
+                    "namespace": q.metadata.namespace,
+                    "hard": hard,
+                    "used": used,
+                })
+            return QueryResult(data=quotas, total_available=len(quotas), returned=len(quotas))
+        except ApiException as e:
+            if e.status == 403:
+                return QueryResult(permission_denied=True, denied_resource="resourcequotas")
+            logger.error("Failed to list resource quotas: %s", e)
+            return QueryResult()
+
+    async def get_node_os_info(self) -> QueryResult:
+        self._ensure_client()
+        try:
+            result = await self._run_sync(self._core_api.list_node)
+            nodes = []
+            for node in result.items:
+                info = node.status.node_info if node.status else None
+                nodes.append({
+                    "name": node.metadata.name,
+                    "kernel_version": info.kernel_version if info else "",
+                    "os_image": info.os_image if info else "",
+                    "container_runtime": info.container_runtime_version if info else "",
+                    "kubelet_version": info.kubelet_version if info else "",
+                    "creation_timestamp": node.metadata.creation_timestamp.isoformat() if node.metadata.creation_timestamp else "",
+                    "labels": dict(node.metadata.labels or {}),
+                })
+            return QueryResult(data=nodes, total_available=len(nodes), returned=len(nodes))
+        except ApiException as e:
+            if e.status == 403:
+                return QueryResult(permission_denied=True, denied_resource="nodes")
+            logger.error("Failed to get node OS info: %s", e)
+            return QueryResult()
+
+    async def list_api_versions_in_use(self) -> QueryResult:
+        self._ensure_client()
+        try:
+            versions_found: dict[str, list[str]] = {}
+            # Check common resource types
+            checks = [
+                ("batch/v1beta1", "cronjobs", lambda: self._run_sync(
+                    client.BatchV1Api(self._api_client).list_cron_job_for_all_namespaces)),
+                ("policy/v1beta1", "podsecuritypolicies", None),
+                ("extensions/v1beta1", "ingresses", None),
+            ]
+
+            # Simple approach: list API resources and check for deprecated groups
+            api_groups = await self._run_sync(
+                client.ApisApi(self._api_client).get_api_versions
+            )
+            deprecated_groups = []
+            for group in api_groups.groups:
+                name = group.name
+                for version in group.versions:
+                    v = version.version
+                    full = f"{name}/{v}"
+                    if "beta" in v or "alpha" in v:
+                        deprecated_groups.append({
+                            "api_version": full,
+                            "group": name,
+                            "version": v,
+                            "status": "deprecated" if "beta" in v else "alpha",
+                        })
+
+            return QueryResult(data=deprecated_groups, total_available=len(deprecated_groups), returned=len(deprecated_groups))
+        except ApiException as e:
+            if e.status == 403:
+                return QueryResult(permission_denied=True, denied_resource="apigroups")
+            logger.error("Failed to list API versions: %s", e)
+            return QueryResult()
+
     async def build_topology_snapshot(self) -> "TopologySnapshot":
         """Build resource topology from live cluster state with TTL caching."""
         now = time.monotonic()
