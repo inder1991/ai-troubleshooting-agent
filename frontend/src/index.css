@@ -146,6 +146,54 @@ body {
     radial-gradient(ellipse 40% 50% at 90% 80%, rgba(224, 159, 62, 0.015) 0%, transparent 100%);
 }
 
+/* ─── Layer 2: Surface Depth ──────────────────────────────────────────── */
+/* Panels float 1mm above the background — top-lit border creates depth  */
+
+.surface-panel {
+  background: rgba(18, 17, 14, 0.6);
+  border: 1px solid rgba(42, 37, 32, 0.5);
+  border-top-color: rgba(42, 37, 32, 0.8);  /* Brighter top edge — top-lit */
+  border-radius: 8px;
+}
+
+/* ─── Layer 3: Status Aurora ─────────────────────────────────────────── */
+/* A living 2px line that reflects overall system health.                 */
+
+.status-aurora {
+  height: 2px;
+  flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.status-aurora::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  filter: blur(3px);
+}
+
+.status-aurora--healthy {
+  background: linear-gradient(90deg, transparent 0%, rgba(16, 185, 129, 0.5) 30%, rgba(16, 185, 129, 0.3) 70%, transparent 100%);
+}
+.status-aurora--healthy::after {
+  background: linear-gradient(90deg, transparent 0%, rgba(16, 185, 129, 0.3) 30%, rgba(16, 185, 129, 0.15) 70%, transparent 100%);
+}
+
+.status-aurora--active {
+  background: linear-gradient(90deg, transparent 0%, rgba(224, 159, 62, 0.5) 30%, rgba(224, 159, 62, 0.3) 70%, transparent 100%);
+}
+.status-aurora--active::after {
+  background: linear-gradient(90deg, transparent 0%, rgba(224, 159, 62, 0.3) 30%, rgba(224, 159, 62, 0.15) 70%, transparent 100%);
+}
+
+.status-aurora--critical {
+  background: linear-gradient(90deg, transparent 0%, rgba(239, 68, 68, 0.5) 25%, rgba(239, 68, 68, 0.4) 50%, rgba(224, 159, 62, 0.3) 75%, transparent 100%);
+}
+.status-aurora--critical::after {
+  background: linear-gradient(90deg, transparent 0%, rgba(239, 68, 68, 0.3) 25%, rgba(239, 68, 68, 0.2) 50%, rgba(224, 159, 62, 0.15) 75%, transparent 100%);
+}
+
 /* ─── War Room Animations ─────────────────────────────────────────────── */
 
 @keyframes pulse-red {

@@ -42,6 +42,14 @@ const HomePage: React.FC<HomePageProps> = ({
     [sessions]
   );
 
+  // Status aurora color — reflects overall system state
+  const auroraClass = useMemo(() => {
+    const hasCritical = sessions.some(s => (s.critical_count ?? 0) > 0);
+    const hasActive = sessions.some(s => !ACTIVE_PHASES.includes(s.status));
+    if (hasCritical) return 'status-aurora status-aurora--critical';
+    if (hasActive) return 'status-aurora status-aurora--active';
+    return 'status-aurora status-aurora--healthy';
+  }, [sessions]);
 
   return (
     <div className="flex-1 flex flex-col min-w-0 overflow-hidden command-center-bg">
@@ -86,6 +94,9 @@ const HomePage: React.FC<HomePageProps> = ({
           <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-duck-accent shadow-[0_0_0_2px_#12110e]" aria-hidden="true" />
         </button>
       </header>
+
+      {/* Status Aurora — living line reflecting system health */}
+      <div className={auroraClass} />
 
       {/* Metric Strip */}
       <div style={{ animation: 'fadeSlideUp 400ms cubic-bezier(0.25, 1, 0.5, 1) 50ms both' }}>
@@ -132,7 +143,7 @@ const HomePage: React.FC<HomePageProps> = ({
             </div>
 
             {/* Feed content */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar bg-duck-panel/30 border border-duck-border/50 rounded-lg">
+            <div className="flex-1 overflow-y-auto custom-scrollbar surface-panel">
               <LiveIntelligenceFeed
                 onSelectSession={onSelectSession}
                 filterActive={feedTab === 'mine'}
@@ -148,22 +159,22 @@ const HomePage: React.FC<HomePageProps> = ({
             </div>
 
             {/* Recent Alerts */}
-            <div style={{ animation: 'fadeSlideLeft 350ms cubic-bezier(0.25, 1, 0.5, 1) 280ms both' }} className="bg-duck-card/20 border border-duck-border/50 rounded-lg p-2.5 overflow-hidden">
+            <div style={{ animation: 'fadeSlideLeft 350ms cubic-bezier(0.25, 1, 0.5, 1) 280ms both' }} className="surface-panel p-2.5 overflow-hidden">
               <RecentAlerts />
             </div>
 
             {/* Recent Findings */}
-            <div style={{ animation: 'fadeSlideLeft 350ms cubic-bezier(0.25, 1, 0.5, 1) 360ms both' }} className="bg-duck-card/20 border border-duck-border/50 rounded-lg p-2.5 overflow-hidden">
+            <div style={{ animation: 'fadeSlideLeft 350ms cubic-bezier(0.25, 1, 0.5, 1) 360ms both' }} className="surface-panel p-2.5 overflow-hidden">
               <RecentFindings />
             </div>
 
             {/* Weekly Stats */}
-            <div style={{ animation: 'fadeSlideLeft 350ms cubic-bezier(0.25, 1, 0.5, 1) 440ms both' }} className="bg-duck-card/20 border border-duck-border/50 rounded-lg p-2.5 overflow-hidden">
+            <div style={{ animation: 'fadeSlideLeft 350ms cubic-bezier(0.25, 1, 0.5, 1) 440ms both' }} className="surface-panel p-2.5 overflow-hidden">
               <WeeklyStats />
             </div>
 
             {/* Agent Fleet */}
-            <div style={{ animation: 'fadeSlideLeft 350ms cubic-bezier(0.25, 1, 0.5, 1) 520ms both' }} className="bg-duck-card/20 border border-duck-border/50 rounded-lg p-2.5 overflow-hidden flex-1">
+            <div style={{ animation: 'fadeSlideLeft 350ms cubic-bezier(0.25, 1, 0.5, 1) 520ms both' }} className="surface-panel p-2.5 overflow-hidden flex-1">
               <CompactAgentFleet />
             </div>
           </div>
