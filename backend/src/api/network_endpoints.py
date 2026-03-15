@@ -48,6 +48,7 @@ MAX_IMPORT_SIZE = 50 * 1024 * 1024
 
 _topology_store: TopologyStore | None = None
 _knowledge_graph: NetworkKnowledgeGraph | None = None
+_sqlite_metrics_store = None  # Set from main.py startup for topology health overlay
 _adapter_registry = AdapterRegistry()
 _network_sessions: Dict[str, Dict[str, Any]] = {}
 
@@ -1347,7 +1348,7 @@ async def topology_load_version(snap_id: int):
 async def topology_current():
     """Return current KG state as React Flow nodes/edges."""
     kg = _get_knowledge_graph()
-    return kg.export_react_flow_graph()
+    return kg.export_react_flow_graph(metrics_store=_sqlite_metrics_store)
 
 
 @network_router.post("/topology/promote")

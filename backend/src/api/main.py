@@ -416,6 +416,10 @@ def create_app() -> FastAPI:
 
             init_monitoring(_sqlite_metrics, _snmp_sched, alert_engine=_sqlite_alert_engine)
 
+            # Share SQLite metrics store with network_endpoints for topology health overlay
+            import src.api.network_endpoints as _net_ep
+            _net_ep._sqlite_metrics_store = _sqlite_metrics
+
             _asyncio.create_task(_snmp_sched.start())
             logger.info("SQLite MetricsStore + SNMP scheduler started")
 

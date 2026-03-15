@@ -1,8 +1,12 @@
 """Network Knowledge Graph -- NetworkX MultiDiGraph with confidence-weighted edges."""
 import itertools
+import logging
+import time
 import networkx as nx
 from typing import Optional
 from datetime import datetime, timezone
+
+logger = logging.getLogger(__name__)
 from .models import (
     Device, DeviceType, Subnet, Zone, Interface, EdgeMetadata, EdgeSource, Route,
     VPC, TransitGateway, VPNTunnel, DirectConnect, NACL, LoadBalancer,
@@ -20,6 +24,12 @@ def _safe_int(val, default: int = 0) -> int:
     except (ValueError, TypeError):
         return default
 
+
+# ── Topology export cache (module-level) ──
+_topo_cache: dict | None = None
+_topo_cache_ts: float = 0
+_topo_cache_hash: str = ""
+_TOPO_CACHE_TTL = 60  # seconds
 
 # Topology penalties for dual cost model
 _TOPOLOGY_PENALTIES = {
@@ -170,6 +180,151 @@ class NetworkKnowledgeGraph:
         # Load Compliance Zones
         for cz in self.store.list_compliance_zones():
             self.graph.add_node(cz.id, **cz.model_dump(mode="json"), node_type="compliance_zone")
+
+        # ══════════════════════════════════════════════════════════════
+        # Device-to-device edges (L2, P2P L3, routes, HA, tunnels)
+        # ══════════════════════════════════════════════════════════════
+
+        # ── Layer-2 links from LLDP/CDP neighbor tables ──
+        try:
+            from src.network.discovery_scheduler import MOCK_NEIGHBORS
+            for device_id, neighbors in MOCK_NEIGHBORS.items():
+                if device_id not in self.graph:
+                    continue
+                for n in neighbors:
+                    remote_id = n.get("remote_device", "")
+                    if remote_id not in self.graph:
+                        continue
+                    # Avoid duplicate L2 edges
+                    existing_l2 = any(
+                        d.get("edge_type") == "layer2_link"
+                        for _, _, d in self.graph.edges(device_id, data=True)
+                        if _ == remote_id
+                    )
+                    if not existing_l2:
+                        self.graph.add_edge(device_id, remote_id,
+                            edge_type="layer2_link",
+                            local_port=n.get("local_port", ""),
+                            remote_port=n.get("remote_port", ""),
+                            protocol=n.get("protocol", "LLDP"),
+                            confidence=1.0,
+                            source=EdgeSource.API.value,
+                            last_verified_at=datetime.now(timezone.utc).isoformat())
+        except ImportError:
+            pass
+        except Exception as e:
+            logger.warning("L2 neighbor edge creation failed: %s", e)
+
+        # ── P2P shared subnet → device-to-device links (only /30, /31) ──
+        import ipaddress as _ipaddress
+
+        subnet_devices: dict[str, list[tuple[str, str, str]]] = {}
+        for d in self.store.list_devices():
+            for iface in self.store.list_interfaces(device_id=d.id):
+                if iface.ip:
+                    s_meta = self.ip_resolver.resolve(iface.ip)
+                    if s_meta:
+                        sid = s_meta.get("id", "")
+                        subnet_devices.setdefault(sid, []).append((d.id, iface.name, iface.ip))
+
+        for sid, members in subnet_devices.items():
+            if len(members) < 2:
+                continue
+            # Only P2P subnets get device↔device edges
+            subnet_obj = next((s for s in subnets if s.id == sid), None)
+            if not subnet_obj:
+                continue
+            try:
+                net = _ipaddress.ip_network(subnet_obj.cidr, strict=False)
+                if net.prefixlen < 30:
+                    continue  # Large subnet — devices connect via subnet node, not each other
+            except (ValueError, TypeError):
+                continue
+
+            for i in range(len(members)):
+                for j in range(i + 1, len(members)):
+                    d1_id, d1_iface, d1_ip = members[i]
+                    d2_id, d2_iface, d2_ip = members[j]
+                    self.graph.add_edge(d1_id, d2_id,
+                        edge_type="layer3_link",
+                        src_interface=d1_iface, dst_interface=d2_iface,
+                        src_ip=d1_ip, dst_ip=d2_ip,
+                        subnet_id=sid,
+                        confidence=0.9,
+                        source=EdgeSource.API.value,
+                        last_verified_at=datetime.now(timezone.utc).isoformat())
+
+        # ── Route-based forwarding edges (default + summary routes only) ──
+        for route in self.store.list_routes():
+            src_device = route.device_id
+            if src_device not in self.graph:
+                continue
+            next_hop_device = self._device_index.get(route.next_hop)
+            if not next_hop_device or next_hop_device == src_device:
+                continue
+            if next_hop_device not in self.graph:
+                continue
+
+            try:
+                net = _ipaddress.ip_network(route.destination_cidr, strict=False)
+                is_default = route.destination_cidr == "0.0.0.0/0"
+                is_summary = net.prefixlen <= 24
+                is_dynamic = route.protocol.upper() in ("BGP", "OSPF", "EIGRP", "IS-IS")
+            except (ValueError, TypeError):
+                continue
+
+            if not (is_default or (is_summary and is_dynamic)):
+                continue
+
+            # Avoid duplicate route edges to same next-hop
+            existing_route = any(
+                d.get("edge_type") == "routes_via" and d.get("destination") == route.destination_cidr
+                for _, target, d in self.graph.edges(src_device, data=True)
+                if target == next_hop_device
+            )
+            if not existing_route:
+                self.graph.add_edge(src_device, next_hop_device,
+                    edge_type="routes_via",
+                    destination=route.destination_cidr,
+                    protocol=route.protocol,
+                    metric=route.metric,
+                    confidence=0.85,
+                    source=EdgeSource.API.value,
+                    last_verified_at=datetime.now(timezone.utc).isoformat())
+
+        # ── HA peer edges ──
+        for ha in self.store.list_ha_groups():
+            members = ha.member_ids
+            for i in range(len(members)):
+                for j in range(i + 1, len(members)):
+                    if members[i] in self.graph and members[j] in self.graph:
+                        self.graph.add_edge(members[i], members[j],
+                            edge_type="ha_peer",
+                            ha_group=ha.id, ha_mode=ha.ha_mode.value,
+                            confidence=1.0,
+                            source=EdgeSource.API.value,
+                            last_verified_at=datetime.now(timezone.utc).isoformat())
+                        self.graph.add_edge(members[j], members[i],
+                            edge_type="ha_peer",
+                            ha_group=ha.id, ha_mode=ha.ha_mode.value,
+                            confidence=1.0,
+                            source=EdgeSource.API.value,
+                            last_verified_at=datetime.now(timezone.utc).isoformat())
+
+        # ── VPN tunnel device-to-device links ──
+        for vpn in self.store.list_vpn_tunnels():
+            if vpn.local_gateway_id and vpn.remote_gateway_ip:
+                remote_device = self._device_index.get(vpn.remote_gateway_ip)
+                if remote_device and vpn.local_gateway_id in self.graph and remote_device in self.graph:
+                    if vpn.local_gateway_id != remote_device:
+                        self.graph.add_edge(vpn.local_gateway_id, remote_device,
+                            edge_type="tunnel_link",
+                            tunnel_id=vpn.id,
+                            tunnel_type=vpn.tunnel_type.value,
+                            status=vpn.status.value,
+                            confidence=0.9,
+                            source=EdgeSource.API.value,
+                            last_verified_at=datetime.now(timezone.utc).isoformat())
 
         # Restore persisted edge confidences
         for ec in self.store.list_edge_confidences():
@@ -640,41 +795,131 @@ class NetworkKnowledgeGraph:
         stats["new_live_hash"] = self.store.compute_live_hash()
         return stats
 
-    def export_react_flow_graph(self) -> dict:
-        """Convert KG nodes/edges to React Flow format for canvas rendering."""
-        rf_nodes = []
-        rf_edges = []
-        ROW_WIDTH = 250
-        COL_HEIGHT = 150
+    # ── Visual node types (skip zones, subnets, NACLs, etc.) ──
+    VISUAL_NODE_TYPES = {"device", "vpc", "transit_gateway", "direct_connect", "vlan"}
 
-        node_type_map = {
-            "device": "device",
-            "subnet": "subnet",
-            "vpc": "vpc",
-            "compliance_zone": "compliance_zone",
-            "availability_zone": "availability_zone",
-            "auto_scaling_group": "auto_scaling_group",
-        }
+    # ── Edge styling by type ──
+    EDGE_STYLES = {
+        "layer2_link":   {"stroke": "#64748b", "strokeWidth": 2},
+        "layer3_link":   {"stroke": "#3d3528", "strokeWidth": 2},
+        "ha_peer":       {"stroke": "#f59e0b", "strokeWidth": 2, "strokeDasharray": "5,5"},
+        "tunnel_link":   {"stroke": "#0ea5e9", "strokeWidth": 2, "strokeDasharray": "8,4"},
+        "routes_via":    {"stroke": "#3d3528", "strokeWidth": 1, "opacity": 0.4},
+        "attached_to":   {"stroke": "#10b981", "strokeWidth": 2},
+        "load_balances": {"stroke": "#8b5cf6", "strokeWidth": 2},
+        "mpls_path":     {"stroke": "#e09f3e", "strokeWidth": 3},
+        "connected_to":  {"stroke": "#3d3528", "strokeWidth": 1, "opacity": 0.3},
+        "vpc_contains":  {"stroke": "#3d3528", "strokeWidth": 1, "strokeDasharray": "3,3"},
+    }
 
-        # Separate nodes by type for hierarchical positioning
-        vpc_nodes = []
-        container_nodes = []  # AZ, subnet
-        device_nodes = []
+    GROUP_LABELS = {
+        "onprem": "On-Premises DC",
+        "aws": "AWS",
+        "azure": "Azure",
+        "oci": "Oracle Cloud",
+        "gcp": "GCP",
+        "branch": "Branch Offices",
+    }
+
+    GROUP_POSITIONS = {
+        "onprem": {"x": 50, "y": 50},
+        "aws":    {"x": 900, "y": 50},
+        "azure":  {"x": 900, "y": 550},
+        "oci":    {"x": 900, "y": 900},
+        "branch": {"x": 50, "y": 900},
+    }
+
+    def _compute_topology_hash(self) -> str:
+        """SHA-256 hash of topology structure + key attributes for change detection."""
+        import hashlib, json
+        nodes_data = sorted([
+            (nid, data.get("node_type", ""), data.get("name", ""), data.get("management_ip", ""))
+            for nid, data in self.graph.nodes(data=True)
+        ])
+        edges_data = sorted([
+            (s, d, data.get("edge_type", ""), data.get("status", ""))
+            for s, d, _, data in self.graph.edges(data=True, keys=True)
+        ])
+        content = json.dumps({"n": nodes_data, "e": edges_data}, sort_keys=True)
+        return hashlib.sha256(content.encode()).hexdigest()[:16]
+
+    def _get_device_group(self, node_data: dict) -> str:
+        """Classify a device into a site/cloud group for visual grouping."""
+        location = (node_data.get("location", "") or "").lower()
+        cloud = (node_data.get("cloud_provider", "") or "").lower()
+        region = (node_data.get("region", "") or "").lower()
+
+        if cloud == "aws" or "aws" in location or "us-east" in region:
+            return "aws"
+        if cloud == "azure" or "azure" in location or "westeurope" in region:
+            return "azure"
+        if cloud == "oci" or "oracle" in location or "ashburn" in region:
+            return "oci"
+        if cloud == "gcp" or "gcp" in location:
+            return "gcp"
+        if "branch" in location:
+            return "branch"
+        return "onprem"
+
+    def _get_device_status(self, device_id: str, metrics_store) -> str:
+        """Derive device health status from latest metrics (Fix C: unknown vs unreachable)."""
+        if not metrics_store:
+            return "unknown"
+        cpu = metrics_store.get_latest_device_metric(device_id, "cpu_pct")
+        if cpu is None:
+            return "unknown"
+        if cpu > 95:
+            return "critical"
+        if cpu > 80:
+            return "degraded"
+        return "healthy"
+
+    def export_react_flow_graph(self, metrics_store=None) -> dict:
+        """Convert KG nodes/edges to React Flow format with grouping, dedup, and caching."""
+        global _topo_cache, _topo_cache_ts, _topo_cache_hash
+
+        now = time.time()
+        current_hash = self._compute_topology_hash()
+
+        # Check cache: topology unchanged AND TTL not expired
+        if (
+            _topo_cache is not None
+            and current_hash == _topo_cache_hash
+            and (now - _topo_cache_ts) < _TOPO_CACHE_TTL
+        ):
+            # Even when cached, refresh device status (status changes faster than topology)
+            if metrics_store:
+                for node in _topo_cache["nodes"]:
+                    if node.get("type") != "group":
+                        entity_id = node["data"].get("entityId", node["id"])
+                        node["data"]["status"] = self._get_device_status(entity_id, metrics_store)
+            _topo_cache["exported_at"] = now
+            return _topo_cache
+
+        # ── Rebuild export ──
+        rf_nodes: list[dict] = []
+        rf_edges: list[dict] = []
+
+        # ── Nodes: only visual types ──
+        all_device_nodes: list[dict] = []
 
         for node_id, data in self.graph.nodes(data=True):
             ntype = data.get("node_type", "device")
-            rf_type = node_type_map.get(ntype, "device")
+            if ntype not in self.VISUAL_NODE_TYPES:
+                continue
+
             data_dict = {
                 "label": data.get("name", node_id),
                 "entityId": node_id,
                 "deviceType": data.get("device_type", "HOST"),
                 "ip": data.get("management_ip") or data.get("cidr", ""),
                 "vendor": data.get("vendor", ""),
-                "zone": data.get("zone_id", ""),
-                "vlan": data.get("vlan_id", 0),
-                "description": data.get("description", ""),
+                "role": data.get("role", ""),
+                "group": self._get_device_group(data),
+                "status": self._get_device_status(node_id, metrics_store),
+                "haRole": data.get("ha_role", ""),
                 "location": data.get("location", "") or data.get("site", ""),
-                "status": "healthy",
+                "osVersion": data.get("os_version", ""),
             }
 
             # Include interfaces for device nodes
@@ -687,54 +932,114 @@ class NetworkKnowledgeGraph:
                         "ip": iface.ip,
                         "role": iface.role,
                         "zone": iface.zone_id,
-                        "subnetId": iface.subnet_id,
+                        "operStatus": iface.oper_status,
+                        "adminStatus": iface.admin_status,
                     }
                     for iface in device_ifaces
                 ]
 
             node_entry = {
                 "id": node_id,
-                "type": rf_type,
+                "type": ntype,
                 "data": data_dict,
             }
+            all_device_nodes.append(node_entry)
 
-            if ntype == "vpc":
-                vpc_nodes.append(node_entry)
-            elif ntype in ("subnet", "availability_zone", "auto_scaling_group", "compliance_zone"):
-                container_nodes.append(node_entry)
-            else:
-                device_nodes.append(node_entry)
+        # ── Group container nodes by site/cloud ──
+        groups_found: dict[str, list] = {}
+        for node in all_device_nodes:
+            g = node["data"]["group"]
+            groups_found.setdefault(g, []).append(node)
 
-        # Hierarchical positioning
-        vpc_x = 0
-        for vi, vpc_node in enumerate(vpc_nodes):
-            vpc_node["position"] = {"x": vpc_x, "y": 0}
-            vpc_node["style"] = {"width": 800, "height": 500}
-            vpc_x += 900
+        for group_id, group_nodes in groups_found.items():
+            pos = self.GROUP_POSITIONS.get(group_id, {"x": 50, "y": 50})
+            cols = min(4, max(2, len(group_nodes) // 3 + 1))
+            width = cols * 220 + 100
+            height = (len(group_nodes) // cols + 1) * 120 + 80
 
-        # Place containers in grid inside their VPC region
-        for ci, cn in enumerate(container_nodes):
-            cn["position"] = {"x": 50 + (ci % 3) * ROW_WIDTH, "y": 50 + (ci // 3) * COL_HEIGHT}
-            cn["style"] = {"width": 220, "height": 180}
-
-        # Place devices
-        for di, dn in enumerate(device_nodes):
-            dn["position"] = {"x": (di % 6) * ROW_WIDTH, "y": 600 + (di // 6) * COL_HEIGHT}
-
-        rf_nodes = vpc_nodes + container_nodes + device_nodes
-
-        for u, v, edata in self.graph.edges(data=True):
-            edge_type = edata.get("edge_type", "connected_to")
-            rf_edges.append({
-                "id": f"e-{u}-{v}-{edge_type}",
-                "source": u,
-                "target": v,
-                "type": "labeled",
-                "data": {
-                    "label": edge_type,
-                    "interface": edata.get("interface", ""),
+            rf_nodes.append({
+                "id": f"group-{group_id}",
+                "type": "group",
+                "data": {"label": self.GROUP_LABELS.get(group_id, group_id)},
+                "position": {"x": pos["x"], "y": pos["y"]},
+                "style": {
+                    "width": width,
+                    "height": height,
+                    "backgroundColor": "rgba(30, 27, 21, 0.3)",
+                    "border": "1px dashed #3d3528",
+                    "borderRadius": 8,
                 },
-                "animated": edata.get("confidence", 0) < 0.8,
             })
 
-        return {"nodes": rf_nodes, "edges": rf_edges}
+            # Position devices within group
+            for idx, node in enumerate(group_nodes):
+                col = idx % cols
+                row = idx // cols
+                node["position"] = {"x": 40 + col * 220, "y": 50 + row * 120}
+                node["parentId"] = f"group-{group_id}"
+                node["extent"] = "parent"
+
+        rf_nodes.extend(all_device_nodes)
+
+        # ── Edges: deduplicate bidirectional, style by type ──
+        # Build set of visual node IDs for filtering
+        visual_node_ids = {n["id"] for n in all_device_nodes}
+
+        seen_edges: set[tuple] = set()
+        for src, dst, key, data in self.graph.edges(data=True, keys=True):
+            # Skip edges between non-visual nodes
+            if src not in visual_node_ids or dst not in visual_node_ids:
+                continue
+
+            edge_type = data.get("edge_type", "link")
+            dedup_key = (min(src, dst), max(src, dst), edge_type)
+
+            # Fix A: Ghost link — if both L2 and L3 exist, prefer L2
+            l2_key = (min(src, dst), max(src, dst), "layer2_link")
+            l3_key = (min(src, dst), max(src, dst), "layer3_link")
+            if edge_type == "layer3_link" and l2_key in seen_edges:
+                continue  # Skip L3 — L2 already covers this link
+
+            if dedup_key in seen_edges:
+                continue
+            seen_edges.add(dedup_key)
+
+            style = dict(self.EDGE_STYLES.get(edge_type, self.EDGE_STYLES["layer3_link"]))
+
+            # Link status
+            if data.get("status") == "DOWN":
+                style["stroke"] = "#ef4444"
+                style["strokeDasharray"] = "4,4"
+
+            rf_edges.append({
+                "id": f"e-{src}-{dst}-{edge_type}-{key}",
+                "source": src,
+                "target": dst,
+                "type": "smoothstep",
+                "data": {
+                    "edgeType": edge_type,
+                    "srcInterface": data.get("src_interface") or data.get("local_port", ""),
+                    "dstInterface": data.get("dst_interface") or data.get("remote_port", ""),
+                    "protocol": data.get("protocol", ""),
+                    "status": data.get("status", "up"),
+                },
+                "style": style,
+                "animated": edge_type == "tunnel_link" and data.get("status", "UP") == "UP",
+            })
+
+        result = {
+            "nodes": rf_nodes,
+            "edges": rf_edges,
+            "topology_version": current_hash,
+            "exported_at": now,
+            "device_count": len([n for n in rf_nodes if n.get("type") != "group"]),
+            "edge_count": len(rf_edges),
+            "groups": list(groups_found.keys()),
+        }
+
+        # Update cache
+        _topo_cache = result
+        _topo_cache_ts = now
+        _topo_cache_hash = current_hash
+
+        return result

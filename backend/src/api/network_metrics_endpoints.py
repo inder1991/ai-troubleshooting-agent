@@ -42,6 +42,36 @@ async def get_monitoring_summary():
     }
 
 
+@router.get("/devices/health/batch")
+async def get_batch_device_health():
+    """Get health status for all polled devices — used by topology canvas for coloring."""
+    if not _metrics_store or not _snmp_scheduler:
+        return {"devices": {}}
+
+    result = {}
+    for device in _snmp_scheduler._devices:
+        device_id = device.get("id", "")
+        cpu = _metrics_store.get_latest_device_metric(device_id, "cpu_pct")
+        memory = _metrics_store.get_latest_device_metric(device_id, "memory_pct")
+
+        if cpu is None:
+            status = "unknown"
+        elif cpu > 95 or (memory and memory > 95):
+            status = "critical"
+        elif cpu > 80 or (memory and memory > 85):
+            status = "degraded"
+        else:
+            status = "healthy"
+
+        result[device_id] = {
+            "status": status,
+            "cpu_pct": round(cpu, 1) if cpu is not None else None,
+            "memory_pct": round(memory, 1) if memory is not None else None,
+        }
+
+    return {"devices": result}
+
+
 @router.get("/devices/{device_id}/health")
 async def get_device_health(device_id: str):
     """Get latest health summary for a device."""
