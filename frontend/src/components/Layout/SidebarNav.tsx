@@ -111,7 +111,7 @@ const iconEl = (name: string, size = 19) => (
   </span>
 );
 
-const flyoutTransition = { duration: 0.2, ease: [0.25, 1, 0.5, 1] as const }; // ease-out-quart, no bounce
+const flyoutTransition = { duration: 0.35, ease: [0.22, 1, 0.36, 1] as const }; // ease-out-quint, smooth and deliberate
 
 const SidebarNav: React.FC<SidebarNavProps> = ({ activeView, onNavigate, onNewMission }) => {
   const [hoveredGroup, setHoveredGroup] = useState<string | null>(null);
@@ -389,9 +389,9 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ activeView, onNavigate, onNewMi
         {displayGroup && displayGroupItem && (
           <motion.div
             key={displayGroup}
-            initial={{ opacity: 0, x: -12 }}
+            initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0, y: flyoutY }}
-            exit={{ opacity: 0, x: -12 }}
+            exit={{ opacity: 0, x: -20 }}
             transition={flyoutTransition}
             style={{ position: 'absolute', top: 0, left: 199 }}
             className="w-fit min-w-[215px] max-w-[320px] h-fit max-h-[calc(100vh-16px)] bg-[#080807] border border-duck-border/15 border-l-0 shadow-2xl z-50 overflow-hidden rounded-r-xl"
