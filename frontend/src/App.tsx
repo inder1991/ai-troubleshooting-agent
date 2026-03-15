@@ -45,6 +45,7 @@ import ReachabilityMatrix from './components/NetworkTroubleshooting/Reachability
 import NetworkAdaptersView from './components/Network/NetworkAdaptersView';
 import DeviceMonitoring from './components/Network/DeviceMonitoring';
 import ObservatoryView from './components/Observatory/ObservatoryView';
+import FullScreenTopology from './components/Observatory/topology/FullScreenTopology';
 import DBOverview from './components/Database/DBOverview';
 import DBConnections from './components/Database/DBConnections';
 import DBDiagnosticsPage from './components/Database/DBDiagnosticsPage';
@@ -61,7 +62,7 @@ import ClusterRecommendationsPage from './components/ClusterRegistry/ClusterReco
 import { Breadcrumbs } from './components/shared';
 
 
-type ViewState = 'home' | 'form' | 'investigation' | 'sessions' | 'integrations' | 'settings' | 'dossier' | 'cluster-diagnostics' | 'agent-matrix' | 'network-troubleshooting' | 'network-topology' | 'network-adapters' | 'device-monitoring' | 'ipam' | 'matrix' | 'observatory' | 'db-overview' | 'db-connections' | 'db-diagnostics' | 'db-monitoring' | 'db-schema' | 'db-operations' | 'k8s-clusters' | 'audit-log' | 'mib-browser' | 'cloud-resources' | 'security-resources' | 'cluster-registry' | 'cluster-recommendations';
+type ViewState = 'home' | 'form' | 'investigation' | 'sessions' | 'integrations' | 'settings' | 'dossier' | 'cluster-diagnostics' | 'agent-matrix' | 'network-troubleshooting' | 'network-topology' | 'network-adapters' | 'device-monitoring' | 'ipam' | 'matrix' | 'observatory' | 'db-overview' | 'db-connections' | 'db-diagnostics' | 'db-monitoring' | 'db-schema' | 'db-operations' | 'k8s-clusters' | 'audit-log' | 'mib-browser' | 'cloud-resources' | 'security-resources' | 'cluster-registry' | 'cluster-recommendations' | 'live-topology';
 
 function AppInner() {
   const { addToast } = useToast();
@@ -478,7 +479,7 @@ function AppInner() {
   const viewToNav: Record<string, NavView> = {
     sessions: 'sessions', integrations: 'integrations', settings: 'settings',
     'agent-matrix': 'agent-matrix', 'cluster-diagnostics': 'k8s-diagnostics',
-    'k8s-clusters': 'k8s-clusters', 'network-topology': 'network-topology',
+    'k8s-clusters': 'k8s-clusters', 'network-topology': 'network-topology', 'live-topology': 'network-topology',
     'network-adapters': 'network-adapters', 'device-monitoring': 'device-monitoring',
     ipam: 'ipam', matrix: 'matrix',
     observatory: 'observatory',
@@ -494,7 +495,7 @@ function AppInner() {
     viewState === 'form' && selectedCapability ? (capabilityToNav[selectedCapability] || 'home')
     : viewToNav[viewState] || 'home';
 
-  const showSidebar = viewState !== 'investigation' && viewState !== 'dossier' && viewState !== 'cluster-diagnostics' && viewState !== 'network-troubleshooting';
+  const showSidebar = viewState !== 'investigation' && viewState !== 'dossier' && viewState !== 'cluster-diagnostics' && viewState !== 'network-troubleshooting' && viewState !== 'live-topology';
 
   // Pin-responsive layout: shift main content when flyout is pinned
   const [isSidebarPinned, setIsSidebarPinned] = useState(() => {
@@ -528,7 +529,8 @@ function AppInner() {
     'db-schema': { label: 'Schema', parent: 'home' },
     'db-operations': { label: 'Operations', parent: 'home' },
     // Networking group
-    'network-topology': { label: 'Topology', parent: 'home' },
+    'network-topology': { label: 'Topology Editor', parent: 'home' },
+    'live-topology': { label: 'Live Topology', parent: 'observatory' },
     'network-adapters': { label: 'Adapters', parent: 'home' },
     'device-monitoring': { label: 'Device Monitoring', parent: 'home' },
     ipam: { label: 'IPAM', parent: 'home' },
@@ -634,7 +636,11 @@ function AppInner() {
         )}
 
         {viewState === 'observatory' && (
-          <ObservatoryView onOpenEditor={() => setViewState('network-topology')} />
+          <ObservatoryView onOpenEditor={() => setViewState('network-topology')} onOpenTopology={() => setViewState('live-topology' as ViewState)} />
+        )}
+
+        {viewState === 'live-topology' && (
+          <FullScreenTopology onGoBack={() => setViewState('observatory')} />
         )}
 
         {viewState === 'db-overview' && <DBOverview />}

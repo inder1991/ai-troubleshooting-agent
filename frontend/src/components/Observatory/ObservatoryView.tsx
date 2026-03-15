@@ -16,9 +16,10 @@ type Tab = 'topology' | 'noc' | 'flows' | 'alerts' | 'history' | 'dns';
 
 interface ObservatoryViewProps {
   onOpenEditor?: () => void;
+  onOpenTopology?: () => void;
 }
 
-const ObservatoryView: React.FC<ObservatoryViewProps> = ({ onOpenEditor }) => {
+const ObservatoryView: React.FC<ObservatoryViewProps> = ({ onOpenEditor, onOpenTopology }) => {
   const [activeTab, setActiveTab] = useState<Tab>('noc');
   const [bellOpen, setBellOpen] = useState(false);
   const bellRef = useRef<HTMLDivElement>(null);
@@ -236,8 +237,34 @@ const ObservatoryView: React.FC<ObservatoryViewProps> = ({ onOpenEditor }) => {
             </div>
           </div>
         ) : activeTab === 'topology' ? (
-          <div style={{ height: '100%', minHeight: 0 }}>
-            <LiveTopologyView />
+          <div className="flex flex-col items-center justify-center h-full gap-4 p-8">
+            <span className="material-symbols-outlined" style={{ fontSize: 48, color: '#e09f3e' }}>device_hub</span>
+            <h2 style={{ color: 'white', fontSize: 18, fontWeight: 600 }}>Live Network Topology</h2>
+            <p style={{ color: '#8a7e6b', fontSize: 13, textAlign: 'center', maxWidth: 400 }}>
+              View your full network diagram with hierarchical layout, device health status, and link monitoring.
+            </p>
+            <button
+              onClick={() => onOpenTopology?.()}
+              style={{
+                background: 'rgba(224,159,62,0.15)',
+                border: '1px solid rgba(224,159,62,0.4)',
+                color: '#e09f3e',
+                borderRadius: 8,
+                padding: '10px 24px',
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                transition: 'background 200ms',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(224,159,62,0.25)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(224,159,62,0.15)'; }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>open_in_full</span>
+              Open Full Screen
+            </button>
           </div>
         ) : activeTab === 'noc' ? (
           <NOCWallTab

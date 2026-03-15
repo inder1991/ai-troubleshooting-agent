@@ -1044,6 +1044,17 @@ class NetworkKnowledgeGraph:
 
             pos = self.GROUP_POSITIONS.get(group_id, {"x": 50, "y": 50})
 
+            # Group accent colors — distinct per cloud/site
+            GROUP_ACCENTS = {
+                "onprem": "#e09f3e",  # Amber
+                "aws":    "#f59e0b",  # Orange
+                "azure":  "#3b82f6",  # Blue
+                "oci":    "#ef4444",  # Red
+                "gcp":    "#10b981",  # Emerald
+                "branch": "#8b5cf6",  # Violet
+            }
+            accent = GROUP_ACCENTS.get(group_id, "#3d3528")
+
             rf_nodes.append({
                 "id": f"group-{group_id}",
                 "type": "group",
@@ -1052,10 +1063,13 @@ class NetworkKnowledgeGraph:
                 "style": {
                     "width": max(group_w, 400),
                     "height": max(group_h, 300),
-                    "backgroundColor": "rgba(30, 27, 21, 0.3)",
-                    "border": "1px dashed #3d3528",
+                    "backgroundColor": "rgba(30, 27, 21, 0.5)",
+                    "border": f"2px solid {accent}40",
                     "borderRadius": 12,
                     "padding": 10,
+                    "fontSize": 14,
+                    "color": accent,
+                    "fontWeight": 600,
                 },
             })
 
