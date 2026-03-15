@@ -397,8 +397,13 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ activeView, onNavigate, onNewMi
             className="w-fit min-w-[215px] max-w-[320px] h-fit max-h-[calc(100vh-16px)] bg-[#080807] border border-duck-border/15 border-l-0 shadow-2xl z-50 overflow-hidden rounded-r-xl"
           >
             <div className="p-5 flex flex-col">
-              {/* Flyout Header */}
-              <header className="flex items-center justify-between mb-5 gap-8">
+              {/* Flyout Header — slight delay after panel slides in */}
+              <motion.header
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.15, delay: 0.05 }}
+                className="flex items-center justify-between mb-5 gap-8"
+              >
                 <h2 className="text-[10px] font-display font-bold uppercase tracking-wider text-slate-400 whitespace-nowrap">
                   {displayGroupItem.group}
                 </h2>
@@ -406,9 +411,13 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ activeView, onNavigate, onNewMi
                   onClick={handlePinToggle}
                   title={pinned ? 'Unpin panel' : 'Pin panel open'}
                   aria-label={pinned ? 'Unpin panel' : 'Pin panel open'}
-                  className={`p-1 rounded transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-duck-accent ${
+                  className={`p-1 rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-duck-accent ${
                     pinned ? 'text-duck-accent' : 'text-slate-600 hover:text-slate-400'
                   }`}
+                  style={{ transition: 'color 150ms cubic-bezier(0.25, 1, 0.5, 1), transform 100ms cubic-bezier(0.25, 1, 0.5, 1)' }}
+                  onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.9)'; }}
+                  onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
                 >
                   <span
                     className="material-symbols-outlined text-[16px]"
@@ -417,33 +426,40 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ activeView, onNavigate, onNewMi
                     {pinned ? 'keep_filled' : 'keep'}
                   </span>
                 </button>
-              </header>
+              </motion.header>
 
-              {/* Children Links */}
+              {/* Children Links — staggered entrance */}
               <nav className="flex flex-col gap-0.5" role="menu">
-                {displayGroupItem.children.map((child) => {
+                {displayGroupItem.children.map((child, childIdx) => {
                   const isActive = activeView === child.id;
                   return (
-                    <button
+                    <motion.button
                       key={child.id}
+                      initial={{ opacity: 0, x: -8 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.15, delay: childIdx * 0.03, ease: [0.25, 1, 0.5, 1] }}
                       onClick={() => { onNavigate(child.id); if (!pinned) setHoveredGroup(null); }}
                       role="menuitem"
                       className={`
-                        flex items-center justify-between gap-10 px-3 py-1.5 rounded-md transition-all duration-150 text-left whitespace-nowrap
+                        flex items-center justify-between gap-10 px-3 py-1.5 rounded-md text-left whitespace-nowrap
                         focus-visible:outline focus-visible:outline-2 focus-visible:outline-duck-accent
                         ${isActive
                           ? 'bg-duck-accent/10'
                           : 'hover:bg-white/[0.05]'
                         }
                       `}
-                      style={isActive ? {} : undefined}
+                      style={{
+                        transition: 'background-color 150ms cubic-bezier(0.25, 1, 0.5, 1), transform 150ms cubic-bezier(0.25, 1, 0.5, 1)',
+                      }}
                       onMouseEnter={(e) => {
                         const label = e.currentTarget.querySelector('[data-label]') as HTMLElement;
                         const icon = e.currentTarget.querySelector('[data-icon]') as HTMLElement;
                         if (label) label.style.color = '#e09f3e';
                         if (icon) icon.style.opacity = '1';
+                        if (!isActive) e.currentTarget.style.transform = 'translateX(3px)';
                       }}
                       onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'translateX(0)';
                         if (isActive) return;
                         const label = e.currentTarget.querySelector('[data-label]') as HTMLElement;
                         const icon = e.currentTarget.querySelector('[data-icon]') as HTMLElement;
@@ -456,7 +472,7 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ activeView, onNavigate, onNewMi
                         <span className={`text-xs font-medium transition-colors ${isActive ? 'text-[#e09f3e]' : 'text-slate-400'}`} data-label>{child.label}</span>
                       </div>
                       {child.badge && <Badge type={child.badge} />}
-                    </button>
+                    </motion.button>
                   );
                 })}
               </nav>
