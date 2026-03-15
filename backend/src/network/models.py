@@ -62,6 +62,15 @@ class DeviceType(str, Enum):
     ROUTE_TABLE = "route_table"
     SECURITY_GROUP = "security_group"
     ELASTIC_IP = "elastic_ip"
+    # Enterprise network device types
+    VPN_CONCENTRATOR = "vpn_concentrator"
+    SDWAN_EDGE = "sdwan_edge"
+    IDS_IPS = "ids_ips"
+    WAF = "waf"
+    CLOUD_GATEWAY = "cloud_gateway"
+    WIRELESS_CONTROLLER = "wireless_controller"
+    ACCESS_POINT = "access_point"
+    VIRTUAL_APPLIANCE = "virtual_appliance"
 
 class FirewallVendor(str, Enum):
     PALO_ALTO = "palo_alto"
@@ -218,6 +227,15 @@ class Device(BaseModel):
     description: str = ""
     ha_group_id: str = ""
     ha_role: str = ""  # "active", "standby", "member", or ""
+    # Enterprise inventory fields
+    role: str = ""              # "core" | "distribution" | "access" | "edge" | "cloud_gateway" | ""
+    serial_number: str = ""
+    os_version: str = ""
+    site_id: str = ""
+    region: str = ""
+    cloud_provider: str = ""   # "aws" | "azure" | "gcp" | "oci" | ""
+    discovered_at: str = ""
+    last_seen: str = ""
 
     @field_validator("management_ip")
     @classmethod
@@ -244,6 +262,14 @@ class Interface(BaseModel):
     role: str = ""       # InterfaceRole value or empty
     subnet_id: str = ""  # FK to subnet
     vlan_id: int = 0
+    # Physical / operational attributes
+    mtu: int = 0
+    duplex: str = ""          # "full" | "half" | "auto" | ""
+    admin_status: str = "up"  # "up" | "down"
+    oper_status: str = "up"   # "up" | "down" | "testing"
+    description: str = ""
+    channel_group: str = ""   # For LAG/port-channel membership
+    media_type: str = ""      # "copper" | "fiber" | "virtual" | ""
 
     @field_validator("ip")
     @classmethod

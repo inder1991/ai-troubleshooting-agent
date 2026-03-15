@@ -11,7 +11,9 @@
       "zone_id": "zone-trust-prod",
       "ha_group_id": "ha-pa-core",
       "ha_role": "active",
-      "description": "Core firewall - east/west segmentation"
+      "description": "Core firewall - east/west segmentation",
+      "role": "core",
+      "os_version": "PAN-OS 11.1.2"
     },
     {
       "id": "pa-core-fw-02",
@@ -74,7 +76,9 @@
       "zone_id": "zone-cloud-transit",
       "ha_group_id": "ha-rtr-core",
       "ha_role": "active",
-      "description": "Core router - cloud transit and inter-VLAN"
+      "description": "Core router - cloud transit and inter-VLAN",
+      "role": "core",
+      "os_version": "IOS-XE 17.9.4"
     },
     {
       "id": "rtr-core-02",
@@ -98,7 +102,9 @@
       "model": "ASR 1001-X",
       "location": "DC-East",
       "zone_id": "zone-cloud-transit",
-      "description": "DC edge router - DX/ER/FC termination primary"
+      "description": "DC edge router - DX/ER/FC termination primary",
+      "role": "edge",
+      "os_version": "IOS-XE 17.6.5"
     },
     {
       "id": "rtr-dc-edge-02",
@@ -122,7 +128,8 @@
       "zone_id": "zone-dmz",
       "ha_group_id": "ha-f5-onprem",
       "ha_role": "active",
-      "description": "On-prem load balancer active"
+      "description": "On-prem load balancer active",
+      "role": "distribution"
     },
     {
       "id": "f5-lb-02",
@@ -146,7 +153,8 @@
       "model": "C9300-48T",
       "location": "DC-East",
       "zone_id": "zone-trust-prod",
-      "description": "Access switch - production server racks"
+      "description": "Access switch - production server racks",
+      "role": "access"
     },
     {
       "id": "sw-access-02",
@@ -836,7 +844,9 @@
       "mac": "",
       "zone_id": "zone-cloud-transit",
       "status": "down",
-      "subnet_id": "subnet-gre-secondary"
+      "subnet_id": "subnet-gre-secondary",
+      "admin_status": "up",
+      "oper_status": "down"
     },
     {
       "id": "rtr-dc-edge-01-mgmt",
@@ -897,7 +907,8 @@
       "status": "up",
       "role": "outside",
       "subnet_id": "subnet-dmz",
-      "vlan_id": 30
+      "vlan_id": 30,
+      "description": "External VIP interface - DMZ facing"
     },
     {
       "id": "f5-lb-01-1-2",
@@ -910,7 +921,8 @@
       "status": "up",
       "role": "inside",
       "subnet_id": "subnet-prod",
-      "vlan_id": 10
+      "vlan_id": 10,
+      "description": "Internal pool member interface - production VLAN"
     },
     {
       "id": "f5-lb-01-mgmt",
@@ -923,7 +935,8 @@
       "status": "up",
       "role": "management",
       "subnet_id": "subnet-mgmt",
-      "vlan_id": 40
+      "vlan_id": 40,
+      "description": "Out-of-band management interface"
     },
     {
       "id": "f5-lb-02-1-1",
@@ -1241,7 +1254,9 @@
       "mac": "",
       "zone_id": "zone-cloud-transit",
       "status": "down",
-      "subnet_id": "subnet-gre-secondary"
+      "subnet_id": "subnet-gre-secondary",
+      "admin_status": "up",
+      "oper_status": "down"
     },
     {
       "id": "f5-aws-01-data",
