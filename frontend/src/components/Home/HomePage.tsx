@@ -148,22 +148,22 @@ const HomePage: React.FC<HomePageProps> = ({
             </div>
 
             {/* Recent Alerts */}
-            <div style={{ animation: 'fadeSlideLeft 350ms cubic-bezier(0.25, 1, 0.5, 1) 280ms both', borderLeft: '3px solid #f59e0b' }} className="bg-duck-card/20 border border-duck-border/50 rounded-lg p-2.5 overflow-hidden">
+            <div style={{ animation: 'fadeSlideLeft 350ms cubic-bezier(0.25, 1, 0.5, 1) 280ms both' }} className="bg-duck-card/20 border border-duck-border/50 rounded-lg p-2.5 overflow-hidden">
               <RecentAlerts />
             </div>
 
             {/* Recent Findings */}
-            <div style={{ animation: 'fadeSlideLeft 350ms cubic-bezier(0.25, 1, 0.5, 1) 360ms both', borderLeft: '3px solid #10b981' }} className="bg-duck-card/20 border border-duck-border/50 rounded-lg p-2.5 overflow-hidden">
+            <div style={{ animation: 'fadeSlideLeft 350ms cubic-bezier(0.25, 1, 0.5, 1) 360ms both' }} className="bg-duck-card/20 border border-duck-border/50 rounded-lg p-2.5 overflow-hidden">
               <RecentFindings />
             </div>
 
             {/* Weekly Stats */}
-            <div style={{ animation: 'fadeSlideLeft 350ms cubic-bezier(0.25, 1, 0.5, 1) 440ms both', borderLeft: '3px solid #8b5cf6' }} className="bg-duck-card/20 border border-duck-border/50 rounded-lg p-2.5 overflow-hidden">
+            <div style={{ animation: 'fadeSlideLeft 350ms cubic-bezier(0.25, 1, 0.5, 1) 440ms both' }} className="bg-duck-card/20 border border-duck-border/50 rounded-lg p-2.5 overflow-hidden">
               <WeeklyStats />
             </div>
 
             {/* Agent Fleet */}
-            <div style={{ animation: 'fadeSlideLeft 350ms cubic-bezier(0.25, 1, 0.5, 1) 520ms both', borderLeft: '3px solid #e09f3e' }} className="bg-duck-card/20 border border-duck-border/50 rounded-lg p-2.5 overflow-hidden flex-1">
+            <div style={{ animation: 'fadeSlideLeft 350ms cubic-bezier(0.25, 1, 0.5, 1) 520ms both' }} className="bg-duck-card/20 border border-duck-border/50 rounded-lg p-2.5 overflow-hidden flex-1">
               <CompactAgentFleet />
             </div>
           </div>
