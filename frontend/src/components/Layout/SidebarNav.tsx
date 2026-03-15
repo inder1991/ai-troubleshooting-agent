@@ -164,9 +164,7 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ activeView, onNavigate, onNewMi
       setFlyoutY(Math.max(0, Math.min(offsetY, maxY)));
     }
 
-    hoverTimerRef.current = setTimeout(() => {
-      setHoveredGroup(groupName);
-    }, 150);  // Deliberate delay — prevents flyout from flickering on quick mouse movement
+    setHoveredGroup(groupName);  // Instant — flyout has no animation, so no flicker risk
   };
 
   const handleMouseLeaveNav = () => {
