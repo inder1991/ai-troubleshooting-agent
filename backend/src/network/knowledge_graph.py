@@ -956,6 +956,52 @@ class NetworkKnowledgeGraph:
                     for iface in device_ifaces
                 ]
 
+            # Operational metrics from SNMP/vendor collectors
+            if metrics_store and ntype == "device":
+                cpu = metrics_store.get_latest_device_metric(node_id, "cpu_pct")
+                memory = metrics_store.get_latest_device_metric(node_id, "memory_pct")
+                data_dict["cpuPct"] = round(cpu, 1) if cpu is not None else None
+                data_dict["memoryPct"] = round(memory, 1) if memory is not None else None
+
+                # Firewall-specific
+                if data.get("device_type") in ("firewall", "FIREWALL"):
+                    sessions = metrics_store.get_latest_device_metric(node_id, "session_count")
+                    session_max = metrics_store.get_latest_device_metric(node_id, "session_max")
+                    data_dict["sessionCount"] = int(sessions) if sessions is not None else None
+                    data_dict["sessionMax"] = int(session_max) if session_max is not None else None
+
+                    threat_hits = metrics_store.get_latest_device_metric(node_id, "threat_hits_total")
+                    data_dict["threatHits"] = int(threat_hits) if threat_hits is not None else None
+
+                # Load balancer-specific
+                if data.get("device_type") in ("load_balancer", "LOAD_BALANCER"):
+                    ssl_tps = metrics_store.get_latest_device_metric(node_id, "ssl_tps")
+                    data_dict["sslTps"] = int(ssl_tps) if ssl_tps is not None else None
+
+                    # Find pool health from metrics
+                    for metric_name in ["pool_web-app-pool_members_up", "pool_api-pool_members_up", "pool_aws-web-pool_members_up"]:
+                        up = metrics_store.get_latest_device_metric(node_id, metric_name)
+                        total_metric = metric_name.replace("_up", "_total")
+                        total = metrics_store.get_latest_device_metric(node_id, total_metric)
+                        if up is not None and total is not None:
+                            data_dict["poolHealth"] = f"{int(up)}/{int(total)}"
+                            break
+
+                # Router-specific
+                if data.get("device_type") in ("router", "ROUTER"):
+                    bgp_peers = []
+                    # Check for BGP peer metrics
+                    for key in ["bgp_peer_10.255.0.2_state", "bgp_peer_169.254.100.2_state"]:
+                        state = metrics_store.get_latest_device_metric(node_id, key)
+                        if state is not None:
+                            bgp_peers.append(state)
+                    if bgp_peers:
+                        up = sum(1 for p in bgp_peers if p == 1)
+                        data_dict["bgpPeers"] = f"{up}/{len(bgp_peers)}"
+
+                    route_count = metrics_store.get_latest_device_metric(node_id, "route_table_size_ipv4")
+                    data_dict["routeCount"] = int(route_count) if route_count is not None else None
+
             node_entry = {
                 "id": node_id,
                 "type": ntype,
@@ -1173,21 +1219,59 @@ class NetworkKnowledgeGraph:
             # Build edge label from interface names
             src_iface = data.get("src_interface") or data.get("local_port", "")
             dst_iface = data.get("dst_interface") or data.get("remote_port", "")
+
+            # Link utilization from interface metrics
+            link_util = None
+            link_speed = ""
+            if metrics_store:
+                src_iface_name = data.get("src_interface") or data.get("local_port", "")
+                if src_iface_name and src:
+                    util = metrics_store.get_latest_device_metric(src, f"iface_{src_iface_name}_utilization_pct")
+                    if util is not None:
+                        link_util = round(util, 0)
+
+            # Get interface speed from topology store
+            if src_iface:
+                ifaces = self.store.list_interfaces(device_id=src)
+                for iface in ifaces:
+                    if iface.name == src_iface:
+                        link_speed = iface.speed
+                        break
+
+            # Build edge label with operational data
             edge_label = ""
-            if edge_type == "mpls_path":
-                bw = data.get("bandwidth", "")
-                edge_label = f"MPLS {bw}".strip()
+            if edge_type in ("mpls_path",):
+                edge_label = f"MPLS"
+                if link_speed:
+                    edge_label += f" · {link_speed}"
             elif edge_type == "tunnel_link":
                 ttype = data.get("tunnel_type", "GRE").upper()
                 edge_label = ttype
+                if data.get("status") == "DOWN":
+                    edge_label += " DOWN"
             elif edge_type == "attached_to":
                 edge_label = "TGW"
             elif src_iface and dst_iface:
-                edge_label = f"{src_iface} ↔ {dst_iface}"
+                parts = []
+                if link_speed:
+                    parts.append(link_speed)
+                if link_util is not None:
+                    parts.append(f"{int(link_util)}%")
+                edge_label = " · ".join(parts) if parts else ""
             elif edge_type == "ha_peer":
                 edge_label = "HA"
             elif edge_type == "routes_via":
                 edge_label = data.get("destination", "")
+
+            # Adjust edge stroke based on utilization
+            if link_util is not None and link_util > 0:
+                # Scale width: 2px at 0%, 5px at 100%
+                style["strokeWidth"] = max(2, min(6, 2 + link_util / 25))
+                # Color shift: normal green → amber at high util → red at critical
+                if link_util > 90:
+                    style["stroke"] = "#ef4444"  # Red — critical
+                elif link_util > 75:
+                    style["stroke"] = "#f59e0b"  # Amber — warning
 
             # WAN links get larger, more prominent labels
             is_wan = edge_type in ("mpls_path", "tunnel_link", "attached_to")
@@ -1210,6 +1294,8 @@ class NetworkKnowledgeGraph:
                     "dstInterface": dst_iface,
                     "protocol": data.get("protocol", ""),
                     "status": data.get("status", "up"),
+                    "utilization": link_util,
+                    "speed": link_speed,
                 },
                 "style": style,
                 "animated": edge_type == "tunnel_link" and data.get("status", "UP") == "UP",

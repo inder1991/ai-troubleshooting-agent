@@ -490,6 +490,48 @@ const LiveTopologyView: React.FC = () => {
                 <span style={{ color: hoveredNode.data.haRole === 'active' ? '#22c55e' : '#64748b' }}>{hoveredNode.data.haRole}</span>
               </div>
             )}
+            {/* Firewall-specific */}
+            {hoveredNode.data.sessionCount != null && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10 }}>
+                <span style={{ color: '#64748b' }}>Sessions</span>
+                <span style={{ color: '#94a3b8', fontFamily: 'monospace' }}>
+                  {hoveredNode.data.sessionCount.toLocaleString()}
+                  {hoveredNode.data.sessionMax ? ` / ${hoveredNode.data.sessionMax.toLocaleString()}` : ''}
+                </span>
+              </div>
+            )}
+            {hoveredNode.data.threatHits != null && hoveredNode.data.threatHits > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10 }}>
+                <span style={{ color: '#64748b' }}>Threats Blocked</span>
+                <span style={{ color: '#ef4444', fontFamily: 'monospace' }}>{hoveredNode.data.threatHits}</span>
+              </div>
+            )}
+            {/* Load balancer */}
+            {hoveredNode.data.poolHealth && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10 }}>
+                <span style={{ color: '#64748b' }}>Pool Health</span>
+                <span style={{ color: '#22c55e', fontFamily: 'monospace' }}>{hoveredNode.data.poolHealth} up</span>
+              </div>
+            )}
+            {hoveredNode.data.sslTps != null && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10 }}>
+                <span style={{ color: '#64748b' }}>SSL TPS</span>
+                <span style={{ color: '#94a3b8', fontFamily: 'monospace' }}>{hoveredNode.data.sslTps.toLocaleString()}</span>
+              </div>
+            )}
+            {/* Router */}
+            {hoveredNode.data.bgpPeers && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10 }}>
+                <span style={{ color: '#64748b' }}>BGP Peers</span>
+                <span style={{ color: '#94a3b8' }}>{hoveredNode.data.bgpPeers} up</span>
+              </div>
+            )}
+            {hoveredNode.data.routeCount != null && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10 }}>
+                <span style={{ color: '#64748b' }}>Routes</span>
+                <span style={{ color: '#94a3b8', fontFamily: 'monospace' }}>{hoveredNode.data.routeCount.toLocaleString()}</span>
+              </div>
+            )}
             {hoveredNode.data.interfaces?.length > 0 && (
               <div style={{ marginTop: 4, paddingTop: 4, borderTop: '1px solid #3d3528' }}>
                 <div style={{ color: '#64748b', fontSize: 9, marginBottom: 2 }}>Interfaces: {hoveredNode.data.interfaces.length}</div>

@@ -41,6 +41,16 @@ interface LiveDeviceNodeProps {
     haRole: string;
     isOnPath?: boolean;
     isBlastTarget?: boolean;
+    // Operational metrics
+    cpuPct?: number | null;
+    memoryPct?: number | null;
+    sessionCount?: number | null;
+    sessionMax?: number | null;
+    threatHits?: number | null;
+    sslTps?: number | null;
+    poolHealth?: string | null;
+    bgpPeers?: string | null;
+    routeCount?: number | null;
   };
   selected: boolean;
 }
@@ -141,6 +151,53 @@ const LiveDeviceNode: React.FC<LiveDeviceNodeProps> = memo(({ data, selected }) 
             </span>
           )}
         </div>
+
+        {/* Operational metrics micro-bar (only when data available) */}
+        {(data.cpuPct != null || data.sessionCount != null || data.poolHealth || data.bgpPeers) && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 6, marginTop: 4,
+            paddingTop: 4, borderTop: '1px solid #2a2520',
+            fontSize: 8, color: '#64748b',
+          }}>
+            {/* CPU micro-bar for all devices */}
+            {data.cpuPct != null && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                <span style={{ fontSize: 7 }}>CPU</span>
+                <div style={{ width: 30, height: 4, background: '#2a2520', borderRadius: 2, overflow: 'hidden' }}>
+                  <div style={{
+                    width: `${Math.min(data.cpuPct, 100)}%`, height: '100%', borderRadius: 2,
+                    background: data.cpuPct > 90 ? '#ef4444' : data.cpuPct > 70 ? '#f59e0b' : '#22c55e',
+                    transition: 'width 500ms, background 500ms',
+                  }} />
+                </div>
+                <span style={{ fontFamily: 'monospace', color: data.cpuPct > 80 ? '#f59e0b' : '#64748b' }}>
+                  {data.cpuPct.toFixed(0)}%
+                </span>
+              </div>
+            )}
+
+            {/* Firewall: session count */}
+            {data.sessionCount != null && (
+              <span style={{ color: '#94a3b8' }}>
+                {data.sessionCount > 1000 ? `${(data.sessionCount/1000).toFixed(0)}K` : data.sessionCount} sess
+              </span>
+            )}
+
+            {/* LB: pool health */}
+            {data.poolHealth && (
+              <span style={{ color: data.poolHealth.startsWith(data.poolHealth.split('/')[1]) ? '#22c55e' : '#f59e0b' }}>
+                {'\u{1F7E2}'} {data.poolHealth}
+              </span>
+            )}
+
+            {/* Router: BGP peers */}
+            {data.bgpPeers && (
+              <span style={{ color: '#94a3b8' }}>
+                BGP {data.bgpPeers}
+              </span>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
