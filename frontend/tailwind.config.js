@@ -19,9 +19,9 @@ export default {
           border:  '#3d3528',
           accent:  '#e09f3e',
           surface: '#1e1b15',
-          panel:   '#12110e',
-          sidebar: '#0d0c0a',
-          flyout:  '#0f0e0b',
+          panel:   '#161310',    // warmed — was #12110e (too cold)
+          sidebar: '#13110d',    // warmed — was #0d0c0a (dead black)
+          flyout:  '#13110d',    // matches sidebar — was #0f0e0b
           muted:   '#8a7e6b',
         },
       },
