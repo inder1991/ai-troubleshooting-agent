@@ -8,6 +8,7 @@ const STATUS_COLORS: Record<string, string> = {
   unreachable: '#ef4444',
   stale: '#64748b',
   unknown: '#64748b',
+  initializing: '#e09f3e',  // Amber — "warming up", not broken
 };
 
 const DEVICE_ICONS: Record<string, string> = {

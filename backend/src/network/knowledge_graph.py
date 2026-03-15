@@ -107,9 +107,10 @@ class NetworkKnowledgeGraph:
                         last_verified_at=datetime.now(timezone.utc).isoformat(),
                     )
 
-        # Load VPCs
+        # Load VPCs (don't overwrite if already loaded as device)
         for vpc in self.store.list_vpcs():
-            self.graph.add_node(vpc.id, **vpc.model_dump(mode="json"), node_type="vpc")
+            if vpc.id not in self.graph:
+                self.graph.add_node(vpc.id, **vpc.model_dump(mode="json"), node_type="vpc")
             # VPC contains subnets — find subnets whose CIDR falls within VPC CIDRs
             for s in subnets:
                 for vpc_cidr in vpc.cidr_blocks:
@@ -132,9 +133,10 @@ class NetworkKnowledgeGraph:
                                 edge_type="peered_to", confidence=0.95,
                                 source=EdgeSource.API.value, peering_id=p.id)
 
-        # Load Transit Gateways
+        # Load Transit Gateways (don't overwrite if already loaded as device)
         for tgw in self.store.list_transit_gateways():
-            self.graph.add_node(tgw.id, **tgw.model_dump(mode="json"), node_type="transit_gateway")
+            if tgw.id not in self.graph:
+                self.graph.add_node(tgw.id, **tgw.model_dump(mode="json"), node_type="transit_gateway")
             for vpc_id in tgw.attached_vpc_ids:
                 self.graph.add_edge(vpc_id, tgw.id, edge_type="attached_to",
                                     confidence=0.95, source=EdgeSource.API.value)
@@ -808,7 +810,7 @@ class NetworkKnowledgeGraph:
         return stats
 
     # ── Visual node types (skip zones, subnets, NACLs, etc.) ──
-    VISUAL_NODE_TYPES = {"device", "vpc", "transit_gateway"}  # VLANs and DX are properties, not visual nodes
+    VISUAL_NODE_TYPES = {"device"}  # VPCs and TGW are already device nodes in fixtures
 
     # ── Edge styling by type ──
     EDGE_STYLES = {
@@ -833,14 +835,10 @@ class NetworkKnowledgeGraph:
         "branch": "Branch Offices",
     }
 
-    GROUP_POSITIONS = {
-        "onprem": {"x": 50, "y": 50},       # Left — data center
-        "aws":    {"x": 1200, "y": 50},      # Right top — primary cloud
-        "azure":  {"x": 1200, "y": 700},     # Right middle — secondary cloud
-        "oci":    {"x": 1200, "y": 1250},    # Right bottom — tertiary cloud
-        "gcp":    {"x": 1200, "y": 1700},    # Right far bottom
-        "branch": {"x": 50, "y": 1000},      # Bottom left — branch offices
-    }
+    # Define group layout order (dynamic positioning calculated at export time)
+    GROUP_ORDER = ["onprem", "aws", "azure", "oci", "gcp", "branch"]
+    H_GAP_GROUPS = 150  # Horizontal gap between left and right columns
+    V_GAP_GROUPS = 80   # Vertical gap between stacked groups
 
     def _compute_topology_hash(self) -> str:
         """SHA-256 hash of topology structure + key attributes for change detection."""
@@ -882,12 +880,12 @@ class NetworkKnowledgeGraph:
         return "onprem"
 
     def _get_device_status(self, device_id: str, metrics_store) -> str:
-        """Derive device health status from latest metrics (Fix C: unknown vs unreachable)."""
+        """Derive device health status from latest metrics."""
         if not metrics_store:
-            return "unknown"
+            return "initializing"  # Monitoring not started yet
         cpu = metrics_store.get_latest_device_metric(device_id, "cpu_pct")
         if cpu is None:
-            return "unknown"
+            return "initializing"  # Not polled yet — monitoring warming up
         if cpu > 95:
             return "critical"
         if cpu > 80:
@@ -1005,8 +1003,22 @@ class NetworkKnowledgeGraph:
             "VPN_CONCENTRATOR": 3,
         }
 
-        def _get_rank(node_data: dict) -> int:
+        def _get_rank(node_data: dict, group: str = "") -> int:
             role = node_data.get("role", "")
+
+            # Cloud groups have inverted hierarchy: gateway at top
+            if group in ("aws", "azure", "oci", "gcp"):
+                CLOUD_RANK = {
+                    "cloud_gateway": 0,  # TGW, vWAN hub, DRG — entry point
+                    "core": 1,           # Inspection firewalls
+                    "distribution": 2,   # GWLB, F5 VE, NVA
+                    "edge": 3,           # CSR, NAT GW, IGW, ER GW
+                    "access": 4,         # VPCs, VNets, VCNs
+                }
+                if role and role in CLOUD_RANK:
+                    return CLOUD_RANK[role]
+
+            # On-prem hierarchy
             if role and role in ROLE_RANK:
                 return ROLE_RANK[role]
             dt = node_data.get("deviceType", "HOST")
@@ -1014,7 +1026,7 @@ class NetworkKnowledgeGraph:
 
         # Within each group, sort by rank then name for deterministic layout
         for group_id, group_nodes in groups_found.items():
-            group_nodes.sort(key=lambda n: (_get_rank(n["data"]), n["data"].get("label", "")))
+            group_nodes.sort(key=lambda n: (_get_rank(n["data"], group_id), n["data"].get("label", "")))
 
         # Layout constants
         NODE_W = 180
@@ -1024,7 +1036,10 @@ class NetworkKnowledgeGraph:
         GROUP_PAD = 50   # Padding inside group container
         LABEL_H = 30     # Height for group label
 
-        # Layout each group as a hierarchical column
+        # Calculate group sizes first (rank buckets + dimensions)
+        group_rank_buckets: dict[str, dict[int, list]] = {}
+        group_sizes: dict[str, tuple[int, int]] = {}  # group_id → (width, height)
+
         for group_id, group_nodes in groups_found.items():
             if not group_nodes:
                 continue
@@ -1032,27 +1047,59 @@ class NetworkKnowledgeGraph:
             # Group nodes by rank
             rank_buckets: dict[int, list] = {}
             for node in group_nodes:
-                rank = _get_rank(node["data"])
+                rank = _get_rank(node["data"], group_id)
                 rank_buckets.setdefault(rank, []).append(node)
 
+            group_rank_buckets[group_id] = rank_buckets
             sorted_ranks = sorted(rank_buckets.keys())
 
             # Calculate group dimensions
             max_cols = max(len(nodes) for nodes in rank_buckets.values()) if rank_buckets else 1
             group_w = max_cols * (NODE_W + H_GAP) + GROUP_PAD * 2
             group_h = len(sorted_ranks) * (NODE_H + V_GAP) + GROUP_PAD + LABEL_H
+            group_sizes[group_id] = (max(group_w, 400), max(group_h, 300))
 
-            pos = self.GROUP_POSITIONS.get(group_id, {"x": 50, "y": 50})
+        # Position groups dynamically in two columns: left (onprem, branch) and right (clouds)
+        left_groups = [g for g in self.GROUP_ORDER if g in groups_found and g in ("onprem", "branch")]
+        right_groups = [g for g in self.GROUP_ORDER if g in groups_found and g not in ("onprem", "branch")]
 
-            # Group accent colors — distinct per cloud/site
-            GROUP_ACCENTS = {
-                "onprem": "#e09f3e",  # Amber
-                "aws":    "#f59e0b",  # Orange
-                "azure":  "#3b82f6",  # Blue
-                "oci":    "#ef4444",  # Red
-                "gcp":    "#10b981",  # Emerald
-                "branch": "#8b5cf6",  # Violet
-            }
+        # Left column: stack vertically
+        left_x = 50
+        left_y = 50
+        group_positions: dict[str, dict] = {}
+        for g in left_groups:
+            w, h = group_sizes.get(g, (400, 300))
+            group_positions[g] = {"x": left_x, "y": left_y}
+            left_y += h + self.V_GAP_GROUPS
+
+        # Right column: start at x = left_max_width + gap
+        left_max_width = max((group_sizes.get(g, (400, 300))[0] for g in left_groups), default=400)
+        right_x = left_x + left_max_width + self.H_GAP_GROUPS
+        right_y = 50
+        for g in right_groups:
+            w, h = group_sizes.get(g, (400, 300))
+            group_positions[g] = {"x": right_x, "y": right_y}
+            right_y += h + self.V_GAP_GROUPS
+
+        # Group accent colors — distinct per cloud/site
+        GROUP_ACCENTS = {
+            "onprem": "#e09f3e",  # Amber
+            "aws":    "#f59e0b",  # Orange
+            "azure":  "#3b82f6",  # Blue
+            "oci":    "#ef4444",  # Red
+            "gcp":    "#10b981",  # Emerald
+            "branch": "#8b5cf6",  # Violet
+        }
+
+        # Layout each group as a hierarchical column
+        for group_id, group_nodes in groups_found.items():
+            if not group_nodes or group_id not in group_rank_buckets:
+                continue
+
+            rank_buckets = group_rank_buckets[group_id]
+            sorted_ranks = sorted(rank_buckets.keys())
+            gw, gh = group_sizes.get(group_id, (400, 300))
+            pos = group_positions.get(group_id, {"x": 50, "y": 50})
             accent = GROUP_ACCENTS.get(group_id, "#3d3528")
 
             rf_nodes.append({
@@ -1061,10 +1108,10 @@ class NetworkKnowledgeGraph:
                 "data": {"label": self.GROUP_LABELS.get(group_id, group_id)},
                 "position": {"x": pos["x"], "y": pos["y"]},
                 "style": {
-                    "width": max(group_w, 400),
-                    "height": max(group_h, 300),
-                    "backgroundColor": "rgba(30, 27, 21, 0.5)",
-                    "border": f"2px solid {accent}40",
+                    "width": gw,
+                    "height": gh,
+                    "backgroundColor": "rgba(30, 27, 21, 0.6)",
+                    "border": f"2px solid {accent}80",
                     "borderRadius": 12,
                     "padding": 10,
                     "fontSize": 14,
@@ -1077,7 +1124,7 @@ class NetworkKnowledgeGraph:
             for rank_idx, rank in enumerate(sorted_ranks):
                 rank_nodes = rank_buckets[rank]
                 row_width = len(rank_nodes) * (NODE_W + H_GAP) - H_GAP
-                start_x = GROUP_PAD + (max(group_w, 400) - GROUP_PAD * 2 - row_width) / 2  # Center within group
+                start_x = GROUP_PAD + (gw - GROUP_PAD * 2 - row_width) / 2  # Center within group
 
                 for col_idx, node in enumerate(rank_nodes):
                     node["position"] = {
@@ -1085,7 +1132,7 @@ class NetworkKnowledgeGraph:
                         "y": int(LABEL_H + GROUP_PAD + rank_idx * (NODE_H + V_GAP)),
                     }
                     node["parentId"] = f"group-{group_id}"
-                    node["extent"] = "parent"
+                    # Don't set extent — allows edges to cross group boundaries
 
         rf_nodes.extend(all_device_nodes)
 
