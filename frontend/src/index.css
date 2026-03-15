@@ -552,6 +552,13 @@ a:focus-visible,
   to { transform: translateY(0); opacity: 1; }
 }
 
+/* ─── Homepage Entrance Animations ───────────────────────────────────── */
+
+@keyframes fadeSlideLeft {
+  from { transform: translateX(12px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
 /* ─── Accessibility: Reduced Motion ──────────────────────────────────── */
 
 @media (prefers-reduced-motion: reduce) {
@@ -568,6 +575,10 @@ a:focus-visible,
     to { opacity: 1; }
   }
   @keyframes fadeSlideUp {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes fadeSlideLeft {
     from { opacity: 0; }
     to { opacity: 1; }
   }

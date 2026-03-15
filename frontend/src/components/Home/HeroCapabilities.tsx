@@ -21,11 +21,25 @@ const HeroCapabilities: React.FC<HeroCapabilitiesProps> = ({ onSelectCapability 
       <span className="text-xs font-display font-bold text-white">Start Investigation</span>
     </div>
     <div className="grid grid-cols-3 lg:grid-cols-6 gap-2">
-      {caps.map((cap) => (
+      {caps.map((cap, index) => (
         <button
           key={cap.type}
           onClick={() => onSelectCapability(cap.type)}
-          className={`flex flex-col items-start px-3 py-2.5 rounded-lg bg-duck-card/30 border transition-all hover:bg-duck-card/60 group focus-visible:outline focus-visible:outline-2 focus-visible:outline-duck-accent ${cap.accent}`}
+          className={`flex flex-col items-start px-3 py-2.5 rounded-lg bg-duck-card/30 border group focus-visible:outline focus-visible:outline-2 focus-visible:outline-duck-accent ${cap.accent}`}
+          style={{
+            transition: 'transform 200ms cubic-bezier(0.25, 1, 0.5, 1), box-shadow 200ms cubic-bezier(0.25, 1, 0.5, 1), border-color 200ms cubic-bezier(0.25, 1, 0.5, 1), background-color 200ms cubic-bezier(0.25, 1, 0.5, 1)',
+            animation: `fadeSlideUp 300ms cubic-bezier(0.25, 1, 0.5, 1) ${index * 40}ms both`,
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.transform = 'translateY(-2px)';
+            e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = 'none';
+          }}
+          onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.97)'; }}
+          onMouseUp={e => { e.currentTarget.style.transform = 'translateY(-2px)'; }}
         >
           <div className="flex items-center gap-2 mb-1">
             <span className="material-symbols-outlined text-[18px] opacity-70 group-hover:opacity-100 transition-opacity" aria-hidden="true">{cap.icon}</span>

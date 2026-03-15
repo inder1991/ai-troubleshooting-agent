@@ -46,12 +46,20 @@ const HomePage: React.FC<HomePageProps> = ({
   return (
     <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-duck-bg mc-grid-bg">
       {/* Header — Search | Event Ticker | Bell */}
-      <header className="h-14 border-b border-duck-border flex items-center px-6 shrink-0 bg-duck-panel/40">
+      <header
+        className="h-14 border-b border-duck-border flex items-center px-6 shrink-0 bg-duck-panel/40"
+        style={{ animation: 'fadeSlideUp 400ms cubic-bezier(0.25, 1, 0.5, 1) 0ms both' }}
+      >
         {/* Search — fixed width, left */}
         <div className="relative w-56 shrink-0">
           <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]" aria-hidden="true">search</span>
           <input
-            className="w-full rounded-md pl-9 pr-3 py-1.5 text-[13px] font-display text-white placeholder:text-slate-500 outline-none bg-duck-card/30 border border-duck-border/50 focus-visible:border-duck-accent transition-colors"
+            className="w-full rounded-md pl-9 pr-3 py-1.5 text-[13px] font-display text-white placeholder:text-slate-500 outline-none bg-duck-card/30 border border-duck-border/50 focus-visible:border-duck-accent"
+            style={{
+              transition: 'border-color 200ms cubic-bezier(0.25, 1, 0.5, 1), box-shadow 200ms cubic-bezier(0.25, 1, 0.5, 1)',
+            }}
+            onFocus={e => { e.currentTarget.style.boxShadow = '0 0 0 2px rgba(224,159,62,0.15)'; }}
+            onBlur={e => { e.currentTarget.style.boxShadow = 'none'; }}
             placeholder="Search..."
             type="text"
             aria-label="Search sessions"
@@ -80,13 +88,17 @@ const HomePage: React.FC<HomePageProps> = ({
       </header>
 
       {/* Metric Strip */}
-      <MetricStrip />
+      <div style={{ animation: 'fadeSlideUp 400ms cubic-bezier(0.25, 1, 0.5, 1) 50ms both' }}>
+        <MetricStrip />
+      </div>
 
       {/* Capability pills — single line */}
-      <HeroCapabilities onSelectCapability={onSelectCapability} />
+      <div style={{ animation: 'fadeSlideUp 400ms cubic-bezier(0.25, 1, 0.5, 1) 100ms both' }}>
+        <HeroCapabilities onSelectCapability={onSelectCapability} />
+      </div>
 
       {/* Feed + Right Panels */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar px-6 pb-4">
+      <div className="flex-1 overflow-y-auto custom-scrollbar px-6 pb-4" style={{ animation: 'fadeSlideUp 400ms cubic-bezier(0.25, 1, 0.5, 1) 150ms both' }}>
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 h-full">
           {/* Feed (9 col) */}
           <div className="lg:col-span-9 flex flex-col min-h-0">
@@ -95,21 +107,23 @@ const HomePage: React.FC<HomePageProps> = ({
               <div className="flex gap-5">
                 <button
                   onClick={() => setFeedTab('global')}
-                  className={`text-sm font-display font-bold pb-1 transition-colors ${
-                    feedTab === 'global'
-                      ? 'text-white border-b-2 border-duck-accent'
-                      : 'text-slate-400 hover:text-slate-300'
-                  }`}
+                  className="text-sm font-display font-bold pb-1"
+                  style={{
+                    color: feedTab === 'global' ? 'white' : '#94a3b8',
+                    borderBottom: feedTab === 'global' ? '2px solid #e09f3e' : '2px solid transparent',
+                    transition: 'color 200ms cubic-bezier(0.25, 1, 0.5, 1), border-color 200ms cubic-bezier(0.25, 1, 0.5, 1)',
+                  }}
                 >
                   Global Investigations
                 </button>
                 <button
                   onClick={() => setFeedTab('mine')}
-                  className={`text-sm font-display font-bold pb-1 transition-colors ${
-                    feedTab === 'mine'
-                      ? 'text-white border-b-2 border-duck-accent'
-                      : 'text-slate-400 hover:text-slate-300'
-                  }`}
+                  className="text-sm font-display font-bold pb-1"
+                  style={{
+                    color: feedTab === 'mine' ? 'white' : '#94a3b8',
+                    borderBottom: feedTab === 'mine' ? '2px solid #e09f3e' : '2px solid transparent',
+                    transition: 'color 200ms cubic-bezier(0.25, 1, 0.5, 1), border-color 200ms cubic-bezier(0.25, 1, 0.5, 1)',
+                  }}
                 >
                   My Active ({myActiveCount})
                 </button>
@@ -129,28 +143,30 @@ const HomePage: React.FC<HomePageProps> = ({
           {/* Right Panels (3 col) */}
           <div className="lg:col-span-3 flex flex-col gap-2 pt-10">
             {/* Environment Health */}
-            <EnvironmentHealth />
+            <div style={{ animation: 'fadeSlideLeft 350ms cubic-bezier(0.25, 1, 0.5, 1) 200ms both' }}>
+              <EnvironmentHealth />
+            </div>
 
             {/* Recent Alerts */}
-            <div className="bg-duck-card/20 border border-duck-border/50 rounded-lg p-2.5 relative overflow-hidden">
+            <div style={{ animation: 'fadeSlideLeft 350ms cubic-bezier(0.25, 1, 0.5, 1) 280ms both' }} className="bg-duck-card/20 border border-duck-border/50 rounded-lg p-2.5 relative overflow-hidden">
               <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-amber-500/40 via-amber-500/20 to-transparent" />
               <RecentAlerts />
             </div>
 
             {/* Recent Findings */}
-            <div className="bg-duck-card/20 border border-duck-border/50 rounded-lg p-2.5 relative overflow-hidden">
+            <div style={{ animation: 'fadeSlideLeft 350ms cubic-bezier(0.25, 1, 0.5, 1) 360ms both' }} className="bg-duck-card/20 border border-duck-border/50 rounded-lg p-2.5 relative overflow-hidden">
               <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-emerald-500/30 via-emerald-500/10 to-transparent" />
               <RecentFindings />
             </div>
 
             {/* Weekly Stats */}
-            <div className="bg-duck-card/20 border border-duck-border/50 rounded-lg p-2.5 relative overflow-hidden">
+            <div style={{ animation: 'fadeSlideLeft 350ms cubic-bezier(0.25, 1, 0.5, 1) 440ms both' }} className="bg-duck-card/20 border border-duck-border/50 rounded-lg p-2.5 relative overflow-hidden">
               <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-violet-500/30 via-violet-500/10 to-transparent" />
               <WeeklyStats />
             </div>
 
             {/* Agent Fleet */}
-            <div className="bg-duck-card/20 border border-duck-border/50 rounded-lg p-2.5 relative overflow-hidden flex-1">
+            <div style={{ animation: 'fadeSlideLeft 350ms cubic-bezier(0.25, 1, 0.5, 1) 520ms both' }} className="bg-duck-card/20 border border-duck-border/50 rounded-lg p-2.5 relative overflow-hidden flex-1">
               <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-duck-accent/30 via-duck-accent/10 to-transparent" />
               <CompactAgentFleet />
             </div>
