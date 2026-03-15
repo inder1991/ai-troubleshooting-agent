@@ -84,16 +84,25 @@ const LiveDeviceNode: React.FC<LiveDeviceNodeProps> = memo(({ data, selected }) 
       filter: isHighlighted ? 'drop-shadow(0 0 8px rgba(224,159,62,0.5))' : data.status === 'critical' ? `drop-shadow(0 0 6px ${statusColor})` : 'none',
       cursor: 'pointer',
       transition: 'filter 200ms',
+      animation: data.status === 'critical' ? 'pulse-glow 2s ease-in-out infinite' : 'none',
     }}>
+      {data.status === 'critical' && (
+        <style>{`
+          @keyframes pulse-glow {
+            0%, 100% { filter: drop-shadow(0 0 4px ${statusColor}); }
+            50% { filter: drop-shadow(0 0 10px ${statusColor}); }
+          }
+        `}</style>
+      )}
       {/* Invisible handles for edge connections */}
       <Handle type="target" position={Position.Top} style={{ background: 'transparent', border: 'none', width: 1, height: 1 }} />
       <Handle type="source" position={Position.Bottom} style={{ background: 'transparent', border: 'none', width: 1, height: 1 }} />
       <Handle type="target" position={Position.Left} style={{ background: 'transparent', border: 'none', width: 1, height: 1 }} />
       <Handle type="source" position={Position.Right} style={{ background: 'transparent', border: 'none', width: 1, height: 1 }} />
 
-      {/* SVG Device Icon */}
-      <svg width={36} height={36} viewBox={svgData.viewBox} style={{ overflow: 'visible' }}>
-        <path d={svgData.path} fill="none" stroke={iconColor} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+      {/* SVG Device Icon — uses currentColor for smooth status transitions */}
+      <svg width={36} height={36} viewBox={svgData.viewBox} style={{ overflow: 'visible', color: iconColor, transition: 'color 500ms ease-out' }}>
+        <path d={svgData.path} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
       </svg>
 
       {/* Device name */}
