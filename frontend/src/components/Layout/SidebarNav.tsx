@@ -169,12 +169,17 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ activeView, onNavigate, onNewMi
 
     hoverTimerRef.current = setTimeout(() => {
       setHoveredGroup(groupName);
-    }, 60);
+    }, 150);  // Deliberate delay — prevents flyout from flickering on quick mouse movement
   };
 
   const handleMouseLeaveNav = () => {
     if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
-    if (!pinned) setHoveredGroup(null);
+    // Grace period before closing — prevents flyout from closing when moving mouse to it
+    if (!pinned) {
+      hoverTimerRef.current = setTimeout(() => {
+        setHoveredGroup(null);
+      }, 200);
+    }
   };
 
   const handlePinToggle = () => {
