@@ -696,3 +696,290 @@ Tasks 9, 10 in parallel:
 | No path visualization | Click source→dest, highlight shortest path (Dynatrace Smartscape-style) |
 | No clustering | Collapsible groups, branch clustering for >5 nodes |
 | Export every request | 60s cache with version check |
+| No failure impact analysis | Click device → see blast radius (networkx.descendants) |
+
+---
+
+## Critical Fixes Addendum (Applied Across Tasks)
+
+These gotchas MUST be handled during implementation. Each is tagged to the task it affects.
+
+### Fix A: Ghost Link Problem (Task 1 + Task 3)
+
+When both an L2 link (LLDP) and L3 P2P subnet exist on the same interface pair, two overlapping edges appear.
+
+**Rule:** Prefer `layer2_link`. If both exist, merge — keep the L2 edge but decorate it with L3 metadata (IPs, subnet_id):
+
+```python
+# In Task 3 dedup logic:
+for dedup_key, edges in grouped_edges.items():
+    if len(edges) > 1:
+        has_l2 = any(e["edge_type"] == "layer2_link" for e in edges)
+        has_l3 = any(e["edge_type"] == "layer3_link" for e in edges)
+        if has_l2 and has_l3:
+            # Keep L2 edge, merge L3 metadata into it
+            l2_edge = next(e for e in edges if e["edge_type"] == "layer2_link")
+            l3_edge = next(e for e in edges if e["edge_type"] == "layer3_link")
+            l2_edge["data"]["l3_ip_src"] = l3_edge.get("src_ip", "")
+            l2_edge["data"]["l3_ip_dst"] = l3_edge.get("dst_ip", "")
+            l2_edge["data"]["subnet_id"] = l3_edge.get("subnet_id", "")
+            # Export only the merged L2 edge
+```
+
+### Fix B: Dagre Yo-Yo Effect (Task 5)
+
+Auto-layout recalculates on every refresh, causing nodes to jump.
+
+**Rule:** Store `last_position` per node in localStorage. Only run full dagre layout when:
+1. `topology_version` changes (new devices/links)
+2. User clicks "Re-layout" button
+3. First load (no saved positions)
+
+```typescript
+const STORAGE_KEY = 'topology-node-positions';
+
+// On topology load:
+const savedPositions = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+const nodesWithPositions = nodes.map(n => ({
+    ...n,
+    position: savedPositions[n.id] || n.position,
+}));
+
+// Only dagre if version changed:
+if (topoData.topology_version !== lastVersion) {
+    const laidOut = dagreLayout(nodesWithPositions, edges);
+    // Save new positions
+    const posMap = {};
+    laidOut.forEach(n => { posMap[n.id] = n.position; });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(posMap));
+}
+```
+
+### Fix C: Unknown vs Unreachable (Task 4)
+
+Distinguish two red-ish states:
+- **Unknown (gray #64748b):** Metrics haven't been collected yet. Device just added, SNMP hasn't polled.
+- **Unreachable (red #ef4444):** SNMP poll attempted but timed out / connection refused. Device exists but can't be reached.
+
+```python
+def _get_device_status(self, device_id: str, metrics_store) -> str:
+    if not metrics_store:
+        return "unknown"
+
+    cpu = metrics_store.get_latest_device_metric(device_id, "cpu_pct")
+    last_poll_age = metrics_store.get_metric_age(device_id, "cpu_pct")
+
+    if cpu is None:
+        if last_poll_age is not None and last_poll_age < 120:
+            return "unreachable"  # Polled recently but got nothing
+        return "unknown"  # Never polled
+
+    if last_poll_age and last_poll_age > 300:
+        return "stale"  # Data older than 5 min
+
+    if cpu > 95:
+        return "critical"
+    if cpu > 80:
+        return "degraded"
+    return "healthy"
+```
+
+Frontend status colors:
+```typescript
+const STATUS_COLORS = {
+    healthy: '#10b981',      // Emerald
+    degraded: '#f59e0b',     // Amber
+    critical: '#ef4444',     // Red
+    unreachable: '#ef4444',  // Red (with different icon)
+    stale: '#64748b',        // Gray (data too old)
+    unknown: '#64748b',      // Gray (never polled)
+};
+```
+
+### Fix D: Link Status from ifOperStatus/ifAdminStatus (Task 3)
+
+True link status requires SNMP interface status, not just tunnel status:
+
+```python
+def _get_link_status(self, src_device: str, src_iface: str, data: dict, metrics_store) -> str:
+    # Tunnel-specific status
+    if data.get("edge_type") == "tunnel_link":
+        if data.get("status") == "DOWN":
+            return "down"
+
+    # Interface operational status from SNMP
+    if metrics_store and src_device and src_iface:
+        oper_status = metrics_store.get_latest_interface_metric(
+            src_device, src_iface, "oper_status")
+        admin_status = metrics_store.get_latest_interface_metric(
+            src_device, src_iface, "admin_status")
+        if admin_status == 2:  # ifAdminStatus down
+            return "maintenance"
+        if oper_status == 2:  # ifOperStatus down
+            return "down"
+
+    return "up"
+```
+
+Edge styling by link status:
+```python
+LINK_STATUS_STYLES = {
+    "up": {},  # Use default edge style
+    "down": {"stroke": "#ef4444", "strokeDasharray": "4,4"},
+    "maintenance": {"stroke": "#64748b", "strokeDasharray": "8,4", "opacity": 0.5},
+}
+```
+
+### Fix E: Path Algorithm Excludes Route Edges (Task 8)
+
+`shortest_path()` on the full graph may traverse `routes_via` edges, producing unrealistic paths.
+
+**Rule:** Build a physical-only subgraph for path computation:
+
+```python
+def find_physical_path(self, src_ip: str, dst_ip: str, k: int = 3) -> list:
+    """Shortest path using only physical/L2/L3/tunnel links, not route edges."""
+    PHYSICAL_EDGE_TYPES = {"layer2_link", "layer3_link", "tunnel_link",
+                           "attached_to", "load_balances", "mpls_path"}
+
+    # Build subgraph with only physical edges
+    physical_edges = [(u, v, k, d) for u, v, k, d in self.graph.edges(data=True, keys=True)
+                      if d.get("edge_type") in PHYSICAL_EDGE_TYPES]
+    subgraph = nx.MultiDiGraph()
+    subgraph.add_nodes_from(self.graph.nodes(data=True))
+    for u, v, k, d in physical_edges:
+        subgraph.add_edge(u, v, key=k, **d)
+
+    # Resolve IPs to device IDs
+    src_device = self._device_index.get(src_ip, src_ip)
+    dst_device = self._device_index.get(dst_ip, dst_ip)
+
+    try:
+        paths = list(nx.shortest_simple_paths(subgraph, src_device, dst_device))
+        return [list(p) for p in paths[:k]]
+    except (nx.NetworkXNoPath, nx.NodeNotFound):
+        return []
+```
+
+### Fix F: Dagre Global Layout with Group Constraints (Task 5)
+
+Instead of layout-per-group with manual offsets (brittle), use global dagre with rank constraints:
+
+```typescript
+// Set rank for each group to control vertical positioning
+const GROUP_RANKS = {
+    onprem: 0,     // Top
+    aws: 0,        // Same rank as on-prem (side by side)
+    azure: 1,      // Below
+    oci: 1,        // Same rank as Azure
+    branch: 2,     // Bottom
+};
+
+// Use dagre's rank attribute
+nodes.forEach(node => {
+    const group = node.data.group || 'onprem';
+    g.setNode(node.id, {
+        width: 160, height: 60,
+        rank: GROUP_RANKS[group] ?? 0,
+    });
+});
+
+// Cross-group edges handle inter-site connectivity naturally
+```
+
+### Fix G: Cluster Collapse Preserves Edges (Task 7)
+
+When collapsing a group into a cluster node, remap edges:
+
+```typescript
+function collapseGroup(groupId: string, nodes: Node[], edges: Edge[]): { nodes: Node[], edges: Edge[] } {
+    const groupNodeIds = new Set(nodes.filter(n => n.data.group === groupId).map(n => n.id));
+    const clusterNodeId = `cluster-${groupId}`;
+
+    // Create cluster node
+    const clusterNode = {
+        id: clusterNodeId,
+        type: 'cluster',
+        data: { label: `${groupId.toUpperCase()} (${groupNodeIds.size})`, deviceCount: groupNodeIds.size },
+        position: averagePosition(nodes.filter(n => groupNodeIds.has(n.id))),
+    };
+
+    // Remap edges: if source or target is in the group, point to cluster
+    const remappedEdges = edges
+        .filter(e => !(groupNodeIds.has(e.source) && groupNodeIds.has(e.target)))  // Drop internal edges
+        .map(e => ({
+            ...e,
+            source: groupNodeIds.has(e.source) ? clusterNodeId : e.source,
+            target: groupNodeIds.has(e.target) ? clusterNodeId : e.target,
+        }));
+
+    // Dedupe remapped edges
+    const seen = new Set();
+    const dedupedEdges = remappedEdges.filter(e => {
+        const key = `${e.source}-${e.target}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+    });
+
+    // Replace group nodes with cluster node
+    const remainingNodes = nodes.filter(n => !groupNodeIds.has(n.id));
+    return { nodes: [...remainingNodes, clusterNode], edges: dedupedEdges };
+}
+```
+
+### Fix H: Blast Radius Analysis (New Task 11)
+
+Click any device → highlight all downstream affected devices using `networkx.descendants()`:
+
+**Backend:**
+```python
+@router.post("/topology/blast-radius")
+async def compute_blast_radius(device_id: str):
+    """Compute failure impact — all devices downstream of this device."""
+    if device_id not in kg.graph:
+        return {"affected": [], "count": 0}
+
+    # Use physical subgraph (same as path computation)
+    descendants = nx.descendants(physical_subgraph, device_id)
+    affected = [{"id": d, "name": kg.graph.nodes[d].get("name", d)}
+                for d in descendants if kg.graph.nodes[d].get("node_type") == "device"]
+
+    return {"device_id": device_id, "affected": affected, "count": len(affected)}
+```
+
+**Frontend:**
+- Right-click device → "Show Blast Radius"
+- Affected devices get red border pulse
+- Badge: "Failure Impact: 23 devices"
+- Click elsewhere to dismiss
+
+**Commit:** `feat(observatory): blast radius analysis on device click`
+
+---
+
+## Updated Implementation Order
+
+```
+Task 1: KG edge generation (L2 + filtered L3 + tunnels + HA) + Fix A (ghost dedup)
+  ↓
+Task 2: Topology versioning + cached export
+  ↓
+Task 3: ReactFlow export (grouping, edge styling, link status via Fix D, utilization)
+  ↓
+Task 4: Device status from metrics (Fix C: unknown vs unreachable vs stale)
+  ↓
+Task 5: Dagre auto-layout (Fix B: localStorage positions, Fix F: global rank constraints)
+  ↓
+Tasks 6, 7, 8 in parallel:
+  - LiveDeviceNode + legend
+  - Node clustering (Fix G: preserve edges on collapse)
+  - Path highlighting (Fix E: physical-only subgraph)
+  ↓
+Tasks 9, 10, 11 in parallel:
+  - Change detection + auto-refresh
+  - View controls + filters
+  - Blast radius analysis (Fix H)
+```
+
+**Total: 11 tasks + 8 integrated fixes.**
