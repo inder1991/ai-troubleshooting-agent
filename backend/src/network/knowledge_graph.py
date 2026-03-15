@@ -17,6 +17,11 @@ from .ip_resolver import IPResolver
 from .interface_validation import validate_device_interfaces
 
 
+def _strip_cidr(ip: str) -> str:
+    """Strip prefix length from CIDR notation. '10.0.0.1/30' → '10.0.0.1'."""
+    return ip.split("/")[0] if ip and "/" in ip else ip
+
+
 def _safe_int(val, default: int = 0) -> int:
     """Safely convert to int, returning default on failure."""
     try:
@@ -86,9 +91,11 @@ class NetworkKnowledgeGraph:
         for d in self.store.list_devices():
             for iface in self.store.list_interfaces(device_id=d.id):
                 if iface.ip:
-                    self._device_index[iface.ip] = d.id
+                    bare_ip = _strip_cidr(iface.ip)
+                    self._device_index[bare_ip] = d.id
+                    self._device_index[iface.ip] = d.id  # Also index with CIDR for route lookups
                 # Find which subnet this interface IP belongs to
-                subnet_meta = self.ip_resolver.resolve(iface.ip)
+                subnet_meta = self.ip_resolver.resolve(_strip_cidr(iface.ip)) if iface.ip else None
                 if subnet_meta:
                     self.graph.add_edge(
                         d.id, subnet_meta.get("id", iface.ip),
@@ -848,16 +855,23 @@ class NetworkKnowledgeGraph:
         location = (node_data.get("location", "") or "").lower()
         cloud = (node_data.get("cloud_provider", "") or "").lower()
         region = (node_data.get("region", "") or "").lower()
+        name = (node_data.get("name", "") or "").lower()
+        loc_or_region = location + " " + region  # Check both
 
-        if cloud == "aws" or "aws" in location or "us-east" in region:
+        # AWS detection
+        if cloud == "aws" or "us-east" in loc_or_region or "us-west" in loc_or_region or "aws" in name or "vpc-" in name or "tgw-" in name or "gwlb-" in name or "natgw-" in name or "igw-" in name or "csr-aws" in name:
             return "aws"
-        if cloud == "azure" or "azure" in location or "westeurope" in region:
+        # Azure detection
+        if cloud == "azure" or "westeurope" in loc_or_region or "eastus" in loc_or_region or "azure" in name or "vwan-" in name or "vnet-" in name or "nva-azure" in name or "er-gw" in name:
             return "azure"
-        if cloud == "oci" or "oracle" in location or "ashburn" in region:
+        # OCI detection
+        if cloud == "oci" or "ashburn" in loc_or_region or "oracle" in loc_or_region or "oci" in name or "vcn-" in name or "drg-" in name:
             return "oci"
-        if cloud == "gcp" or "gcp" in location:
+        # GCP detection
+        if cloud == "gcp" or "gcp" in loc_or_region:
             return "gcp"
-        if "branch" in location:
+        # Branch
+        if "branch" in location or "branch" in name:
             return "branch"
         return "onprem"
 
