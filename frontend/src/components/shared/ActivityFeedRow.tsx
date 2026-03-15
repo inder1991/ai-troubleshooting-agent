@@ -1,5 +1,6 @@
 import React from 'react';
 import { StatusBadge, type SystemStatus } from './StatusBadge';
+import { CAPABILITY_COLORS } from '../../constants/colors';
 
 interface ActivityFeedRowProps {
   targetService: string;
@@ -15,6 +16,7 @@ interface ActivityFeedRowProps {
   capabilityIcon?: string;
   findingsCount?: number;
   criticalCount?: number;
+  capability?: string;
 }
 
 export const ActivityFeedRow: React.FC<ActivityFeedRowProps> = ({
@@ -31,16 +33,24 @@ export const ActivityFeedRow: React.FC<ActivityFeedRowProps> = ({
   capabilityIcon = 'memory',
   findingsCount,
   criticalCount,
+  capability,
 }) => {
   const barColor = confidenceScore >= 80 ? 'bg-emerald-500' : confidenceScore >= 50 ? 'bg-amber-500' : 'bg-red-500';
   const isRunning = !isComplete;
 
+  const severityTint = status === 'critical' ? 'rgba(239, 68, 68, 0.06)'
+    : (criticalCount ?? 0) > 0 ? 'rgba(239, 68, 68, 0.04)'
+    : isRunning ? 'rgba(224, 159, 62, 0.03)'
+    : 'transparent';
+
   return (
     <button
       onClick={onClick}
-      className={`w-full text-left px-4 py-3 border-b border-duck-border/30 hover:bg-duck-surface/30 transition-colors group focus-visible:outline focus-visible:outline-2 focus-visible:outline-duck-accent ${
-        isRunning ? 'border-l-2 border-l-amber-400/50' : 'border-l-2 border-l-transparent'
-      }`}
+      className="w-full text-left px-4 py-3 border-b border-duck-border/30 hover:bg-duck-surface/30 transition-colors group focus-visible:outline focus-visible:outline-2 focus-visible:outline-duck-accent"
+      style={{
+        borderLeft: `3px solid ${CAPABILITY_COLORS[capability || ''] || '#3d3528'}`,
+        backgroundColor: severityTint,
+      }}
       aria-label={`${targetService} — ${phase}`}
     >
       {/* Row 1: Service + Incident ID + Status + Duration */}

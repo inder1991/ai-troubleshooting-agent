@@ -190,6 +190,7 @@ const LiveIntelligenceFeed: React.FC<LiveIntelligenceFeedProps> = ({
               isComplete={COMPLETED_PHASES.includes(session.status)}
               findingsCount={session.findings_count}
               criticalCount={session.critical_count}
+              capability={session.capability}
               onClick={() => onSelectSession(session)}
               onViewReport={() => handleDownloadReport(session)}
             />

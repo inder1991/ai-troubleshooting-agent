@@ -1,5 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import type { AgentInfo } from '../../types';
+import { ROLE_COLORS } from '../../constants/colors';
 
 interface AgentCardProps {
   agent: AgentInfo;
@@ -85,13 +86,13 @@ const AgentCard: React.FC<AgentCardProps> = ({ agent, onClick, isSelected, enter
         <div
           className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 border"
           style={{
-            backgroundColor: 'rgba(224,159,62,0.1)',
-            borderColor: 'rgba(224,159,62,0.2)',
+            backgroundColor: `${ROLE_COLORS[agent.role] || '#e09f3e'}15`,
+            borderColor: `${ROLE_COLORS[agent.role] || '#e09f3e'}30`,
           }}
         >
           <span
             className="material-symbols-outlined text-lg"
-            style={{ color: '#e09f3e' }}
+            style={{ color: ROLE_COLORS[agent.role] || '#e09f3e' }}
           >
             {agent.icon}
           </span>

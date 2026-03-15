@@ -74,7 +74,7 @@ export const MetricStrip: React.FC = () => {
       <div className="flex items-center gap-1.5">
         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" aria-hidden="true" />
         <span className="text-[11px] text-slate-300 whitespace-nowrap">
-          <span className="font-mono font-bold text-white" style={{ fontVariantNumeric: 'tabular-nums' }}>{sessions.length > 0 ? metrics.resolved : '—'}</span> Resolved
+          <span className="font-mono font-bold text-emerald-400" style={{ fontVariantNumeric: 'tabular-nums' }}>{sessions.length > 0 ? metrics.resolved : '—'}</span> Resolved
         </span>
       </div>
 
@@ -82,7 +82,7 @@ export const MetricStrip: React.FC = () => {
 
       <div className="flex items-center gap-1.5">
         <span className="text-[11px] text-slate-300 whitespace-nowrap">
-          Conf <span className="font-mono font-bold text-white" style={{ fontVariantNumeric: 'tabular-nums' }}>{sessions.length > 0 ? `${metrics.avgConf}%` : '—'}</span>
+          Conf <span className={`font-mono font-bold ${metrics.avgConf === 0 ? 'text-white' : metrics.avgConf >= 70 ? 'text-white' : metrics.avgConf >= 40 ? 'text-amber-400' : 'text-red-400'}`} style={{ fontVariantNumeric: 'tabular-nums' }}>{sessions.length > 0 ? `${metrics.avgConf}%` : '—'}</span>
         </span>
       </div>
 
@@ -90,7 +90,7 @@ export const MetricStrip: React.FC = () => {
 
       <div className="flex items-center gap-1.5">
         <span className="text-[11px] text-slate-300 whitespace-nowrap">
-          MTTR <span className="font-mono font-bold text-white" style={{ fontVariantNumeric: 'tabular-nums' }}>{metrics.mttr > 0 ? `${metrics.mttr.toFixed(1)}m` : '—'}</span>
+          MTTR <span className={`font-mono font-bold ${metrics.mttr === 0 ? 'text-white' : metrics.mttr < 5 ? 'text-white' : metrics.mttr < 15 ? 'text-amber-400' : 'text-red-400'}`} style={{ fontVariantNumeric: 'tabular-nums' }}>{metrics.mttr > 0 ? `${metrics.mttr.toFixed(1)}m` : '—'}</span>
         </span>
       </div>
     </div>

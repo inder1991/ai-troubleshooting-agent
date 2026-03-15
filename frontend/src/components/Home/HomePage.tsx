@@ -148,26 +148,22 @@ const HomePage: React.FC<HomePageProps> = ({
             </div>
 
             {/* Recent Alerts */}
-            <div style={{ animation: 'fadeSlideLeft 350ms cubic-bezier(0.25, 1, 0.5, 1) 280ms both' }} className="bg-duck-card/20 border border-duck-border/50 rounded-lg p-2.5 relative overflow-hidden">
-              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-amber-500/40 via-amber-500/20 to-transparent" />
+            <div style={{ animation: 'fadeSlideLeft 350ms cubic-bezier(0.25, 1, 0.5, 1) 280ms both', borderLeft: '3px solid #f59e0b' }} className="bg-duck-card/20 border border-duck-border/50 rounded-lg p-2.5 overflow-hidden">
               <RecentAlerts />
             </div>
 
             {/* Recent Findings */}
-            <div style={{ animation: 'fadeSlideLeft 350ms cubic-bezier(0.25, 1, 0.5, 1) 360ms both' }} className="bg-duck-card/20 border border-duck-border/50 rounded-lg p-2.5 relative overflow-hidden">
-              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-emerald-500/30 via-emerald-500/10 to-transparent" />
+            <div style={{ animation: 'fadeSlideLeft 350ms cubic-bezier(0.25, 1, 0.5, 1) 360ms both', borderLeft: '3px solid #10b981' }} className="bg-duck-card/20 border border-duck-border/50 rounded-lg p-2.5 overflow-hidden">
               <RecentFindings />
             </div>
 
             {/* Weekly Stats */}
-            <div style={{ animation: 'fadeSlideLeft 350ms cubic-bezier(0.25, 1, 0.5, 1) 440ms both' }} className="bg-duck-card/20 border border-duck-border/50 rounded-lg p-2.5 relative overflow-hidden">
-              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-violet-500/30 via-violet-500/10 to-transparent" />
+            <div style={{ animation: 'fadeSlideLeft 350ms cubic-bezier(0.25, 1, 0.5, 1) 440ms both', borderLeft: '3px solid #8b5cf6' }} className="bg-duck-card/20 border border-duck-border/50 rounded-lg p-2.5 overflow-hidden">
               <WeeklyStats />
             </div>
 
             {/* Agent Fleet */}
-            <div style={{ animation: 'fadeSlideLeft 350ms cubic-bezier(0.25, 1, 0.5, 1) 520ms both' }} className="bg-duck-card/20 border border-duck-border/50 rounded-lg p-2.5 relative overflow-hidden flex-1">
-              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-duck-accent/30 via-duck-accent/10 to-transparent" />
+            <div style={{ animation: 'fadeSlideLeft 350ms cubic-bezier(0.25, 1, 0.5, 1) 520ms both', borderLeft: '3px solid #e09f3e' }} className="bg-duck-card/20 border border-duck-border/50 rounded-lg p-2.5 overflow-hidden flex-1">
               <CompactAgentFleet />
             </div>
           </div>

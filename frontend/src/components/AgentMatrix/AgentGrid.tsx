@@ -1,5 +1,6 @@
 import React from 'react';
 import type { AgentInfo } from '../../types';
+import { ROLE_COLORS } from '../../constants/colors';
 import AgentCard from './AgentCard';
 
 interface AgentGridProps {
@@ -46,7 +47,7 @@ const AgentGrid: React.FC<AgentGridProps> = ({ agents, onSelectAgent, compact, s
             <div className="flex items-center gap-3 mb-3">
               <span
                 className="material-symbols-outlined text-base"
-                style={{ color: '#e09f3e' }}
+                style={{ color: ROLE_COLORS[role] || '#e09f3e' }}
               >
                 {display.icon}
               </span>
