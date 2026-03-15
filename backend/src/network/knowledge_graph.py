@@ -166,9 +166,14 @@ class NetworkKnowledgeGraph:
             self.graph.add_node(lb.id, **lb.model_dump(mode="json"), node_type="load_balancer")
             for tg in self.store.list_lb_target_groups(lb_id=lb.id):
                 for target_id in tg.target_ids:
-                    self.graph.add_edge(lb.id, target_id, edge_type="load_balances",
-                                        confidence=0.9, source=EdgeSource.API.value,
-                                        port=tg.port, protocol=tg.protocol)
+                    # Only add edge if target exists as a device (avoid phantom nodes from IPs)
+                    resolved = target_id
+                    if target_id not in self.graph:
+                        resolved = self._device_index.get(_strip_cidr(target_id))
+                    if resolved and resolved in self.graph:
+                        self.graph.add_edge(lb.id, resolved, edge_type="load_balances",
+                                            confidence=0.9, source=EdgeSource.API.value,
+                                            port=tg.port, protocol=tg.protocol)
 
         # Load VLANs
         for vlan in self.store.list_vlans():
@@ -803,7 +808,7 @@ class NetworkKnowledgeGraph:
         return stats
 
     # ── Visual node types (skip zones, subnets, NACLs, etc.) ──
-    VISUAL_NODE_TYPES = {"device", "vpc", "transit_gateway", "direct_connect", "vlan"}
+    VISUAL_NODE_TYPES = {"device", "vpc", "transit_gateway"}  # VLANs and DX are properties, not visual nodes
 
     # ── Edge styling by type ──
     EDGE_STYLES = {
@@ -829,11 +834,12 @@ class NetworkKnowledgeGraph:
     }
 
     GROUP_POSITIONS = {
-        "onprem": {"x": 50, "y": 50},
-        "aws":    {"x": 900, "y": 50},
-        "azure":  {"x": 900, "y": 550},
-        "oci":    {"x": 900, "y": 900},
-        "branch": {"x": 50, "y": 900},
+        "onprem": {"x": 50, "y": 50},       # Left — data center
+        "aws":    {"x": 1200, "y": 50},      # Right top — primary cloud
+        "azure":  {"x": 1200, "y": 700},     # Right middle — secondary cloud
+        "oci":    {"x": 1200, "y": 1250},    # Right bottom — tertiary cloud
+        "gcp":    {"x": 1200, "y": 1700},    # Right far bottom
+        "branch": {"x": 50, "y": 1000},      # Bottom left — branch offices
     }
 
     def _compute_topology_hash(self) -> str:
@@ -965,11 +971,78 @@ class NetworkKnowledgeGraph:
             g = node["data"]["group"]
             groups_found.setdefault(g, []).append(node)
 
+        # ── Hierarchical layout: position by network role within each group ──
+        # Rank 0: Internet/ISP edge
+        # Rank 1: Perimeter firewalls
+        # Rank 2: Core firewalls, Core routers
+        # Rank 3: Distribution (LBs, edge routers, proxies)
+        # Rank 4: Access switches, servers, endpoints
+        # Rank 5: Cloud gateways (DX/ER/FC termination, TGW)
+        # Rank 6: Cloud workloads (VPCs, VMs)
+
+        ROLE_RANK = {
+            # On-prem hierarchy
+            "perimeter": 1,
+            "core": 2,
+            "distribution": 3,
+            "access": 4,
+            "edge": 3,
+            "cloud_gateway": 5,
+        }
+
+        DEVICE_TYPE_RANK = {
+            # Fallback when role is empty
+            "FIREWALL": 2,
+            "ROUTER": 3,
+            "LOAD_BALANCER": 3,
+            "SWITCH": 4,
+            "PROXY": 3,
+            "HOST": 6,
+            "TRANSIT_GATEWAY": 5,
+            "CLOUD_GATEWAY": 5,
+            "NAT_GATEWAY": 5,
+            "VIRTUAL_APPLIANCE": 4,
+            "VPN_CONCENTRATOR": 3,
+        }
+
+        def _get_rank(node_data: dict) -> int:
+            role = node_data.get("role", "")
+            if role and role in ROLE_RANK:
+                return ROLE_RANK[role]
+            dt = node_data.get("deviceType", "HOST")
+            return DEVICE_TYPE_RANK.get(dt, 5)
+
+        # Within each group, sort by rank then name for deterministic layout
         for group_id, group_nodes in groups_found.items():
+            group_nodes.sort(key=lambda n: (_get_rank(n["data"]), n["data"].get("label", "")))
+
+        # Layout constants
+        NODE_W = 180
+        NODE_H = 80
+        H_GAP = 40      # Horizontal gap between nodes
+        V_GAP = 100     # Vertical gap between ranks
+        GROUP_PAD = 50   # Padding inside group container
+        LABEL_H = 30     # Height for group label
+
+        # Layout each group as a hierarchical column
+        for group_id, group_nodes in groups_found.items():
+            if not group_nodes:
+                continue
+
+            # Group nodes by rank
+            rank_buckets: dict[int, list] = {}
+            for node in group_nodes:
+                rank = _get_rank(node["data"])
+                rank_buckets.setdefault(rank, []).append(node)
+
+            sorted_ranks = sorted(rank_buckets.keys())
+
+            # Calculate group dimensions
+            max_cols = max(len(nodes) for nodes in rank_buckets.values()) if rank_buckets else 1
+            group_w = max_cols * (NODE_W + H_GAP) + GROUP_PAD * 2
+            group_h = len(sorted_ranks) * (NODE_H + V_GAP) + GROUP_PAD + LABEL_H
+
             pos = self.GROUP_POSITIONS.get(group_id, {"x": 50, "y": 50})
-            cols = min(4, max(2, len(group_nodes) // 3 + 1))
-            width = cols * 220 + 100
-            height = (len(group_nodes) // cols + 1) * 120 + 80
 
             rf_nodes.append({
                 "id": f"group-{group_id}",
@@ -977,21 +1050,28 @@ class NetworkKnowledgeGraph:
                 "data": {"label": self.GROUP_LABELS.get(group_id, group_id)},
                 "position": {"x": pos["x"], "y": pos["y"]},
                 "style": {
-                    "width": width,
-                    "height": height,
+                    "width": max(group_w, 400),
+                    "height": max(group_h, 300),
                     "backgroundColor": "rgba(30, 27, 21, 0.3)",
                     "border": "1px dashed #3d3528",
-                    "borderRadius": 8,
+                    "borderRadius": 12,
+                    "padding": 10,
                 },
             })
 
-            # Position devices within group
-            for idx, node in enumerate(group_nodes):
-                col = idx % cols
-                row = idx // cols
-                node["position"] = {"x": 40 + col * 220, "y": 50 + row * 120}
-                node["parentId"] = f"group-{group_id}"
-                node["extent"] = "parent"
+            # Position nodes by rank (top = low rank, bottom = high rank)
+            for rank_idx, rank in enumerate(sorted_ranks):
+                rank_nodes = rank_buckets[rank]
+                row_width = len(rank_nodes) * (NODE_W + H_GAP) - H_GAP
+                start_x = GROUP_PAD + (max(group_w, 400) - GROUP_PAD * 2 - row_width) / 2  # Center within group
+
+                for col_idx, node in enumerate(rank_nodes):
+                    node["position"] = {
+                        "x": int(start_x + col_idx * (NODE_W + H_GAP)),
+                        "y": int(LABEL_H + GROUP_PAD + rank_idx * (NODE_H + V_GAP)),
+                    }
+                    node["parentId"] = f"group-{group_id}"
+                    node["extent"] = "parent"
 
         rf_nodes.extend(all_device_nodes)
 
@@ -1025,15 +1105,34 @@ class NetworkKnowledgeGraph:
                 style["stroke"] = "#ef4444"
                 style["strokeDasharray"] = "4,4"
 
+            # Build edge label from interface names
+            src_iface = data.get("src_interface") or data.get("local_port", "")
+            dst_iface = data.get("dst_interface") or data.get("remote_port", "")
+            edge_label = ""
+            if src_iface and dst_iface:
+                edge_label = f"{src_iface} ↔ {dst_iface}"
+            elif edge_type == "tunnel_link":
+                edge_label = data.get("tunnel_type", "tunnel")
+            elif edge_type == "ha_peer":
+                edge_label = "HA"
+            elif edge_type == "routes_via":
+                edge_label = data.get("destination", "")
+            elif edge_type == "mpls_path":
+                edge_label = "MPLS"
+
             rf_edges.append({
                 "id": f"e-{src}-{dst}-{edge_type}-{key}",
                 "source": src,
                 "target": dst,
                 "type": "smoothstep",
+                "label": edge_label,
+                "labelStyle": {"fontSize": 8, "fill": "#64748b"},
+                "labelBgStyle": {"fill": "#1a1814", "fillOpacity": 0.8},
+                "labelBgPadding": [4, 2],
                 "data": {
                     "edgeType": edge_type,
-                    "srcInterface": data.get("src_interface") or data.get("local_port", ""),
-                    "dstInterface": data.get("dst_interface") or data.get("remote_port", ""),
+                    "srcInterface": src_iface,
+                    "dstInterface": dst_iface,
                     "protocol": data.get("protocol", ""),
                     "status": data.get("status", "up"),
                 },

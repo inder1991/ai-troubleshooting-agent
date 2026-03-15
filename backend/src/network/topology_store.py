@@ -73,13 +73,22 @@ class TopologyStore:
                 CREATE TABLE IF NOT EXISTS devices (
                     id TEXT PRIMARY KEY, name TEXT, vendor TEXT, device_type TEXT,
                     management_ip TEXT, model TEXT, location TEXT,
-                    zone_id TEXT DEFAULT '', vlan_id INTEGER DEFAULT 0, description TEXT DEFAULT ''
+                    zone_id TEXT DEFAULT '', vlan_id INTEGER DEFAULT 0, description TEXT DEFAULT '',
+                    ha_group_id TEXT DEFAULT '', ha_role TEXT DEFAULT '',
+                    role TEXT DEFAULT '', serial_number TEXT DEFAULT '',
+                    os_version TEXT DEFAULT '', site_id TEXT DEFAULT '',
+                    region TEXT DEFAULT '', cloud_provider TEXT DEFAULT '',
+                    discovered_at TEXT DEFAULT '', last_seen TEXT DEFAULT ''
                 );
                 CREATE TABLE IF NOT EXISTS interfaces (
                     id TEXT PRIMARY KEY, device_id TEXT, name TEXT, ip TEXT,
                     mac TEXT, zone_id TEXT, vrf TEXT, speed TEXT, status TEXT,
                     role TEXT DEFAULT '', subnet_id TEXT DEFAULT '',
                     vlan_id INTEGER DEFAULT 0,
+                    mtu INTEGER DEFAULT 0, duplex TEXT DEFAULT '',
+                    admin_status TEXT DEFAULT 'up', oper_status TEXT DEFAULT 'up',
+                    description TEXT DEFAULT '', channel_group TEXT DEFAULT '',
+                    media_type TEXT DEFAULT '',
                     FOREIGN KEY (device_id) REFERENCES devices(id) ON DELETE CASCADE
                 );
                 CREATE TABLE IF NOT EXISTS subnets (
@@ -493,6 +502,21 @@ class TopologyStore:
                 "ALTER TABLE devices ADD COLUMN description TEXT DEFAULT ''",
                 "ALTER TABLE devices ADD COLUMN ha_group_id TEXT DEFAULT ''",
                 "ALTER TABLE devices ADD COLUMN ha_role TEXT DEFAULT ''",
+                "ALTER TABLE devices ADD COLUMN role TEXT DEFAULT ''",
+                "ALTER TABLE devices ADD COLUMN serial_number TEXT DEFAULT ''",
+                "ALTER TABLE devices ADD COLUMN os_version TEXT DEFAULT ''",
+                "ALTER TABLE devices ADD COLUMN site_id TEXT DEFAULT ''",
+                "ALTER TABLE devices ADD COLUMN region TEXT DEFAULT ''",
+                "ALTER TABLE devices ADD COLUMN cloud_provider TEXT DEFAULT ''",
+                "ALTER TABLE devices ADD COLUMN discovered_at TEXT DEFAULT ''",
+                "ALTER TABLE devices ADD COLUMN last_seen TEXT DEFAULT ''",
+                "ALTER TABLE interfaces ADD COLUMN mtu INTEGER DEFAULT 0",
+                "ALTER TABLE interfaces ADD COLUMN duplex TEXT DEFAULT ''",
+                "ALTER TABLE interfaces ADD COLUMN admin_status TEXT DEFAULT 'up'",
+                "ALTER TABLE interfaces ADD COLUMN oper_status TEXT DEFAULT 'up'",
+                "ALTER TABLE interfaces ADD COLUMN description TEXT DEFAULT ''",
+                "ALTER TABLE interfaces ADD COLUMN channel_group TEXT DEFAULT ''",
+                "ALTER TABLE interfaces ADD COLUMN media_type TEXT DEFAULT ''",
                 "ALTER TABLE interfaces ADD COLUMN role TEXT DEFAULT ''",
                 "ALTER TABLE interfaces ADD COLUMN subnet_id TEXT DEFAULT ''",
                 "ALTER TABLE zones ADD COLUMN zone_type TEXT DEFAULT ''",
@@ -596,11 +620,19 @@ class TopologyStore:
         conn = self._conn()
         try:
             conn.execute(
-                "INSERT OR REPLACE INTO devices (id, name, vendor, device_type, management_ip, model, location, zone_id, vlan_id, description, ha_group_id, ha_role) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+                """INSERT OR REPLACE INTO devices
+                   (id, name, vendor, device_type, management_ip, model, location,
+                    zone_id, vlan_id, description, ha_group_id, ha_role,
+                    role, serial_number, os_version, site_id, region,
+                    cloud_provider, discovered_at, last_seen)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (device.id, device.name, device.vendor, device.device_type.value,
                  device.management_ip, device.model, device.location,
                  device.zone_id, device.vlan_id, device.description,
-                 device.ha_group_id, device.ha_role),
+                 device.ha_group_id, device.ha_role,
+                 device.role, device.serial_number, device.os_version,
+                 device.site_id, device.region, device.cloud_provider,
+                 device.discovered_at, device.last_seen),
             )
             conn.commit()
         finally:
@@ -624,6 +656,14 @@ class TopologyStore:
                 description=d.get("description") or "",
                 ha_group_id=d.get("ha_group_id") or "",
                 ha_role=d.get("ha_role") or "",
+                role=d.get("role") or "",
+                serial_number=d.get("serial_number") or "",
+                os_version=d.get("os_version") or "",
+                site_id=d.get("site_id") or "",
+                region=d.get("region") or "",
+                cloud_provider=d.get("cloud_provider") or "",
+                discovered_at=d.get("discovered_at") or "",
+                last_seen=d.get("last_seen") or "",
             )
         finally:
             conn.close()
@@ -658,6 +698,14 @@ class TopologyStore:
                     description=d.get("description") or "",
                     ha_group_id=d.get("ha_group_id") or "",
                     ha_role=d.get("ha_role") or "",
+                    role=d.get("role") or "",
+                    serial_number=d.get("serial_number") or "",
+                    os_version=d.get("os_version") or "",
+                    site_id=d.get("site_id") or "",
+                    region=d.get("region") or "",
+                    cloud_provider=d.get("cloud_provider") or "",
+                    discovered_at=d.get("discovered_at") or "",
+                    last_seen=d.get("last_seen") or "",
                 ))
             if use_cache:
                 with self._cache_lock:
@@ -699,7 +747,9 @@ class TopologyStore:
                 return None
             d = dict(existing)
             allowed = {"name", "vendor", "device_type", "management_ip", "model",
-                       "location", "zone_id", "vlan_id", "description", "ha_group_id", "ha_role"}
+                       "location", "zone_id", "vlan_id", "description", "ha_group_id", "ha_role",
+                       "role", "serial_number", "os_version", "site_id", "region",
+                       "cloud_provider", "discovered_at", "last_seen"}
             updates = {k: v for k, v in kwargs.items() if k in allowed}
             if not updates:
                 return self.get_device(device_id)
@@ -2451,10 +2501,17 @@ class TopologyStore:
         conn = self._conn()
         try:
             conn.execute(
-                "INSERT OR REPLACE INTO interfaces VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+                """INSERT OR REPLACE INTO interfaces
+                   (id, device_id, name, ip, mac, zone_id, vrf, speed, status,
+                    role, subnet_id, vlan_id, mtu, duplex, admin_status,
+                    oper_status, description, channel_group, media_type)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (iface.id, iface.device_id, iface.name, iface.ip,
                  iface.mac, iface.zone_id, iface.vrf, iface.speed, iface.status,
-                 iface.role, iface.subnet_id, iface.vlan_id),
+                 iface.role, iface.subnet_id, iface.vlan_id,
+                 iface.mtu, iface.duplex, iface.admin_status,
+                 iface.oper_status, iface.description, iface.channel_group,
+                 iface.media_type),
             )
             conn.commit()
         finally:

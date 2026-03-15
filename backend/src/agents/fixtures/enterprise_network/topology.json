@@ -26,7 +26,8 @@
       "zone_id": "zone-trust-prod",
       "ha_group_id": "ha-pa-core",
       "ha_role": "standby",
-      "description": "Core firewall standby"
+      "description": "Core firewall standby",
+      "role": "core"
     },
     {
       "id": "cp-perim-fw-01",
@@ -39,7 +40,8 @@
       "zone_id": "zone-internet-edge",
       "ha_group_id": "ha-cp-perim",
       "ha_role": "active",
-      "description": "Perimeter firewall - north/south"
+      "description": "Perimeter firewall - north/south",
+      "role": "perimeter"
     },
     {
       "id": "cp-perim-fw-02",
@@ -52,7 +54,8 @@
       "zone_id": "zone-internet-edge",
       "ha_group_id": "ha-cp-perim",
       "ha_role": "standby",
-      "description": "Perimeter firewall standby"
+      "description": "Perimeter firewall standby",
+      "role": "perimeter"
     },
     {
       "id": "zs-proxy-01",
@@ -63,7 +66,8 @@
       "model": "ZIA",
       "location": "DC-East",
       "zone_id": "zone-internet-edge",
-      "description": "Zscaler Internet Access proxy"
+      "description": "Zscaler Internet Access proxy",
+      "role": "distribution"
     },
     {
       "id": "rtr-core-01",
@@ -91,7 +95,8 @@
       "zone_id": "zone-cloud-transit",
       "ha_group_id": "ha-rtr-core",
       "ha_role": "standby",
-      "description": "Core router standby"
+      "description": "Core router standby",
+      "role": "core"
     },
     {
       "id": "rtr-dc-edge-01",
@@ -115,7 +120,8 @@
       "model": "ASR 1001-X",
       "location": "DC-East",
       "zone_id": "zone-cloud-transit",
-      "description": "DC edge router secondary"
+      "description": "DC edge router secondary",
+      "role": "edge"
     },
     {
       "id": "f5-lb-01",
@@ -142,7 +148,8 @@
       "zone_id": "zone-dmz",
       "ha_group_id": "ha-f5-onprem",
       "ha_role": "standby",
-      "description": "On-prem load balancer standby"
+      "description": "On-prem load balancer standby",
+      "role": "distribution"
     },
     {
       "id": "sw-access-01",
@@ -165,7 +172,8 @@
       "model": "C9300-48T",
       "location": "DC-East",
       "zone_id": "zone-trust-corp",
-      "description": "Access switch - corporate/user racks"
+      "description": "Access switch - corporate/user racks",
+      "role": "access"
     },
     {
       "id": "tgw-hub-01",
@@ -176,7 +184,8 @@
       "model": "Transit Gateway",
       "location": "us-east-1",
       "zone_id": "zone-cloud-transit",
-      "description": "AWS Transit Gateway hub"
+      "description": "AWS Transit Gateway hub",
+      "role": "cloud_gateway"
     },
     {
       "id": "vpc-production",
@@ -186,7 +195,8 @@
       "management_ip": "",
       "model": "VPC",
       "location": "us-east-1",
-      "description": "AWS Production VPC 10.10.0.0/16"
+      "description": "AWS Production VPC 10.10.0.0/16",
+      "role": "access"
     },
     {
       "id": "vpc-staging",
@@ -196,7 +206,8 @@
       "management_ip": "",
       "model": "VPC",
       "location": "us-east-1",
-      "description": "AWS Staging VPC 10.11.0.0/16"
+      "description": "AWS Staging VPC 10.11.0.0/16",
+      "role": "access"
     },
     {
       "id": "vpc-shared-services",
@@ -206,7 +217,8 @@
       "management_ip": "",
       "model": "VPC",
       "location": "us-east-1",
-      "description": "AWS Shared Services VPC 10.12.0.0/16"
+      "description": "AWS Shared Services VPC 10.12.0.0/16",
+      "role": "access"
     },
     {
       "id": "vpc-inspection",
@@ -216,7 +228,8 @@
       "management_ip": "",
       "model": "VPC",
       "location": "us-east-1",
-      "description": "AWS Inspection VPC 10.13.0.0/16"
+      "description": "AWS Inspection VPC 10.13.0.0/16",
+      "role": "distribution"
     },
     {
       "id": "pa-aws-fw-01",
@@ -229,7 +242,8 @@
       "zone_id": "zone-cloud-transit",
       "ha_group_id": "ha-pa-aws",
       "ha_role": "active",
-      "description": "AWS inspection firewall active"
+      "description": "AWS inspection firewall active",
+      "role": "core"
     },
     {
       "id": "pa-aws-fw-02",
@@ -242,7 +256,8 @@
       "zone_id": "zone-cloud-transit",
       "ha_group_id": "ha-pa-aws",
       "ha_role": "standby",
-      "description": "AWS inspection firewall standby"
+      "description": "AWS inspection firewall standby",
+      "role": "core"
     },
     {
       "id": "csr-aws-01",
@@ -253,7 +268,8 @@
       "model": "CSR1000v",
       "location": "us-east-1",
       "zone_id": "zone-cloud-transit",
-      "description": "AWS cloud router - GRE tunnel endpoint"
+      "description": "AWS cloud router - GRE tunnel endpoint",
+      "role": "edge"
     },
     {
       "id": "f5-aws-01",
@@ -264,7 +280,8 @@
       "model": "BIG-IP VE",
       "location": "us-east-1",
       "zone_id": "zone-trust-prod",
-      "description": "AWS production load balancer"
+      "description": "AWS production load balancer",
+      "role": "distribution"
     },
     {
       "id": "gwlb-inspection-01",
@@ -275,7 +292,8 @@
       "model": "Gateway Load Balancer",
       "location": "us-east-1",
       "zone_id": "zone-cloud-transit",
-      "description": "AWS GWLB for inspection VPC"
+      "description": "AWS GWLB for inspection VPC",
+      "role": "distribution"
     },
     {
       "id": "natgw-prod-01",
@@ -285,7 +303,8 @@
       "management_ip": "",
       "model": "NAT Gateway",
       "location": "us-east-1",
-      "description": "AWS NAT Gateway for production VPC"
+      "description": "AWS NAT Gateway for production VPC",
+      "role": "edge"
     },
     {
       "id": "igw-prod-01",
@@ -296,7 +315,8 @@
       "model": "Internet Gateway",
       "location": "us-east-1",
       "zone_id": "zone-internet-edge",
-      "description": "AWS Internet Gateway for production VPC"
+      "description": "AWS Internet Gateway for production VPC",
+      "role": "edge"
     },
     {
       "id": "vwan-hub-01",
@@ -307,7 +327,8 @@
       "model": "vWAN Hub",
       "location": "westeurope",
       "zone_id": "zone-cloud-transit",
-      "description": "Azure Virtual WAN Hub"
+      "description": "Azure Virtual WAN Hub",
+      "role": "cloud_gateway"
     },
     {
       "id": "vnet-production",
@@ -317,7 +338,8 @@
       "management_ip": "",
       "model": "VNet",
       "location": "westeurope",
-      "description": "Azure Production VNet 10.20.0.0/16"
+      "description": "Azure Production VNet 10.20.0.0/16",
+      "role": "access"
     },
     {
       "id": "vnet-shared",
@@ -327,7 +349,8 @@
       "management_ip": "",
       "model": "VNet",
       "location": "westeurope",
-      "description": "Azure Shared Services VNet 10.21.0.0/16"
+      "description": "Azure Shared Services VNet 10.21.0.0/16",
+      "role": "access"
     },
     {
       "id": "er-gw-01",
@@ -338,7 +361,8 @@
       "model": "ExpressRoute Gateway",
       "location": "westeurope",
       "zone_id": "zone-cloud-transit",
-      "description": "Azure ExpressRoute Gateway"
+      "description": "Azure ExpressRoute Gateway",
+      "role": "edge"
     },
     {
       "id": "nva-azure-01",
@@ -349,7 +373,8 @@
       "model": "NVA",
       "location": "westeurope",
       "zone_id": "zone-cloud-transit",
-      "description": "Azure Network Virtual Appliance"
+      "description": "Azure Network Virtual Appliance",
+      "role": "core"
     },
     {
       "id": "vcn-production",
@@ -359,7 +384,8 @@
       "management_ip": "",
       "model": "VCN",
       "location": "us-ashburn-1",
-      "description": "OCI Production VCN 10.30.0.0/16"
+      "description": "OCI Production VCN 10.30.0.0/16",
+      "role": "access"
     },
     {
       "id": "drg-01",
@@ -370,7 +396,8 @@
       "model": "Dynamic Routing Gateway",
       "location": "us-ashburn-1",
       "zone_id": "zone-cloud-transit",
-      "description": "OCI DRG for cross-cloud connectivity"
+      "description": "OCI DRG for cross-cloud connectivity",
+      "role": "cloud_gateway"
     },
     {
       "id": "oci-lb-01",
@@ -381,7 +408,8 @@
       "model": "OCI Load Balancer",
       "location": "us-ashburn-1",
       "zone_id": "zone-trust-prod",
-      "description": "OCI production load balancer"
+      "description": "OCI production load balancer",
+      "role": "distribution"
     },
     {
       "id": "rtr-branch-ny",
@@ -391,7 +419,8 @@
       "management_ip": "172.16.1.1",
       "model": "ISR 4321",
       "location": "Branch-NY",
-      "description": "New York branch router"
+      "description": "New York branch router",
+      "role": "edge"
     },
     {
       "id": "rtr-branch-london",
@@ -401,7 +430,8 @@
       "management_ip": "172.16.2.1",
       "model": "ISR 4321",
       "location": "Branch-London",
-      "description": "London branch router"
+      "description": "London branch router",
+      "role": "edge"
     }
   ],
   "interfaces": [
@@ -2040,28 +2070,41 @@
       "id": "vlan-10",
       "vlan_number": 10,
       "name": "Production",
-      "trunk_ports": ["sw-access-01-gi1-0-1"],
+      "trunk_ports": [
+        "sw-access-01-gi1-0-1"
+      ],
       "site": "DC-East",
       "description": "Production server VLAN",
-      "subnet_ids": ["subnet-prod"]
+      "subnet_ids": [
+        "subnet-prod"
+      ]
     },
     {
       "id": "vlan-20",
       "vlan_number": 20,
       "name": "Corporate",
-      "trunk_ports": ["sw-access-02-gi1-0-1"],
+      "trunk_ports": [
+        "sw-access-02-gi1-0-1"
+      ],
       "site": "DC-East",
       "description": "Corporate user VLAN",
-      "subnet_ids": ["subnet-corp"]
+      "subnet_ids": [
+        "subnet-corp"
+      ]
     },
     {
       "id": "vlan-30",
       "vlan_number": 30,
       "name": "DMZ",
-      "trunk_ports": ["f5-lb-01-1-1", "f5-lb-02-1-1"],
+      "trunk_ports": [
+        "f5-lb-01-1-1",
+        "f5-lb-02-1-1"
+      ],
       "site": "DC-East",
       "description": "DMZ VLAN for public-facing services",
-      "subnet_ids": ["subnet-dmz"]
+      "subnet_ids": [
+        "subnet-dmz"
+      ]
     },
     {
       "id": "vlan-40",
@@ -2069,34 +2112,48 @@
       "name": "Management",
       "site": "DC-East",
       "description": "Out-of-band management VLAN",
-      "subnet_ids": ["subnet-mgmt"]
+      "subnet_ids": [
+        "subnet-mgmt"
+      ]
     },
     {
       "id": "vlan-50",
       "vlan_number": 50,
       "name": "Voice",
-      "trunk_ports": ["sw-access-02-gi1-0-24"],
+      "trunk_ports": [
+        "sw-access-02-gi1-0-24"
+      ],
       "site": "DC-East",
       "description": "Voice/VoIP VLAN",
-      "subnet_ids": ["subnet-voice"]
+      "subnet_ids": [
+        "subnet-voice"
+      ]
     },
     {
       "id": "vlan-100",
       "vlan_number": 100,
       "name": "Storage",
-      "trunk_ports": ["sw-access-01-gi1-0-48"],
+      "trunk_ports": [
+        "sw-access-01-gi1-0-48"
+      ],
       "site": "DC-East",
       "description": "Storage iSCSI/NFS VLAN",
-      "subnet_ids": ["subnet-storage"]
+      "subnet_ids": [
+        "subnet-storage"
+      ]
     },
     {
       "id": "vlan-200",
       "vlan_number": 200,
       "name": "WAN-Transit",
-      "trunk_ports": ["rtr-dc-edge-01-gi0-0-1"],
+      "trunk_ports": [
+        "rtr-dc-edge-01-gi0-0-1"
+      ],
       "site": "DC-East",
       "description": "WAN transit for DX/ER/FC connections",
-      "subnet_ids": ["subnet-dx-primary"]
+      "subnet_ids": [
+        "subnet-dx-primary"
+      ]
     },
     {
       "id": "vlan-999",
@@ -2104,7 +2161,9 @@
       "name": "Internet-Edge",
       "site": "DC-East",
       "description": "Internet edge VLAN",
-      "subnet_ids": ["subnet-internet-edge"]
+      "subnet_ids": [
+        "subnet-internet-edge"
+      ]
     }
   ],
   "routes": [
@@ -2309,9 +2368,17 @@
       "rule_name": "Trust-to-DMZ-HTTPS",
       "src_zone": "zone-trust-prod",
       "dst_zone": "zone-dmz",
-      "src_ips": ["10.1.10.0/24", "10.1.20.0/24"],
-      "dst_ips": ["10.1.30.0/24"],
-      "ports": [443, 80],
+      "src_ips": [
+        "10.1.10.0/24",
+        "10.1.20.0/24"
+      ],
+      "dst_ips": [
+        "10.1.30.0/24"
+      ],
+      "ports": [
+        443,
+        80
+      ],
       "protocol": "tcp",
       "action": "allow",
       "logged": true,
@@ -2323,9 +2390,26 @@
       "rule_name": "Trust-to-Cloud-Allow",
       "src_zone": "zone-trust-prod",
       "dst_zone": "zone-cloud-transit",
-      "src_ips": ["10.1.0.0/16"],
-      "dst_ips": ["10.10.0.0/16", "10.11.0.0/16", "10.12.0.0/16", "10.13.0.0/16", "10.20.0.0/16", "10.21.0.0/16", "10.30.0.0/16"],
-      "ports": [443, 8443, 5432, 3306, 6379, 22],
+      "src_ips": [
+        "10.1.0.0/16"
+      ],
+      "dst_ips": [
+        "10.10.0.0/16",
+        "10.11.0.0/16",
+        "10.12.0.0/16",
+        "10.13.0.0/16",
+        "10.20.0.0/16",
+        "10.21.0.0/16",
+        "10.30.0.0/16"
+      ],
+      "ports": [
+        443,
+        8443,
+        5432,
+        3306,
+        6379,
+        22
+      ],
       "protocol": "tcp",
       "action": "allow",
       "logged": true,
@@ -2337,9 +2421,17 @@
       "rule_name": "DMZ-to-Trust-App",
       "src_zone": "zone-dmz",
       "dst_zone": "zone-trust-prod",
-      "src_ips": ["10.1.30.0/24"],
-      "dst_ips": ["10.1.10.0/24"],
-      "ports": [8080, 5432, 6379],
+      "src_ips": [
+        "10.1.30.0/24"
+      ],
+      "dst_ips": [
+        "10.1.10.0/24"
+      ],
+      "ports": [
+        8080,
+        5432,
+        6379
+      ],
       "protocol": "tcp",
       "action": "allow",
       "logged": true,
@@ -2351,9 +2443,16 @@
       "rule_name": "Corp-to-Internet",
       "src_zone": "zone-trust-corp",
       "dst_zone": "zone-untrust",
-      "src_ips": ["10.1.20.0/24"],
-      "dst_ips": ["0.0.0.0/0"],
-      "ports": [443, 80],
+      "src_ips": [
+        "10.1.20.0/24"
+      ],
+      "dst_ips": [
+        "0.0.0.0/0"
+      ],
+      "ports": [
+        443,
+        80
+      ],
       "protocol": "tcp",
       "action": "allow",
       "logged": false,
@@ -2365,9 +2464,18 @@
       "rule_name": "Mgmt-SSH-SNMP",
       "src_zone": "zone-mgmt",
       "dst_zone": "zone-trust-prod",
-      "src_ips": ["10.1.40.0/24"],
-      "dst_ips": ["10.1.0.0/16"],
-      "ports": [22, 161, 162, 443],
+      "src_ips": [
+        "10.1.40.0/24"
+      ],
+      "dst_ips": [
+        "10.1.0.0/16"
+      ],
+      "ports": [
+        22,
+        161,
+        162,
+        443
+      ],
       "protocol": "tcp",
       "action": "allow",
       "logged": true,
@@ -2379,8 +2487,12 @@
       "rule_name": "Implicit-Deny",
       "src_zone": "",
       "dst_zone": "",
-      "src_ips": ["0.0.0.0/0"],
-      "dst_ips": ["0.0.0.0/0"],
+      "src_ips": [
+        "0.0.0.0/0"
+      ],
+      "dst_ips": [
+        "0.0.0.0/0"
+      ],
       "ports": [],
       "protocol": "any",
       "action": "deny",
@@ -2393,9 +2505,15 @@
       "rule_name": "External-to-DMZ-HTTPS",
       "src_zone": "zone-internet-edge",
       "dst_zone": "zone-dmz",
-      "src_ips": ["0.0.0.0/0"],
-      "dst_ips": ["203.0.113.5"],
-      "ports": [443],
+      "src_ips": [
+        "0.0.0.0/0"
+      ],
+      "dst_ips": [
+        "203.0.113.5"
+      ],
+      "ports": [
+        443
+      ],
       "protocol": "tcp",
       "action": "allow",
       "logged": true,
@@ -2407,9 +2525,16 @@
       "rule_name": "Internal-to-External",
       "src_zone": "zone-untrust",
       "dst_zone": "zone-internet-edge",
-      "src_ips": ["10.0.0.0/8"],
-      "dst_ips": ["0.0.0.0/0"],
-      "ports": [443, 80],
+      "src_ips": [
+        "10.0.0.0/8"
+      ],
+      "dst_ips": [
+        "0.0.0.0/0"
+      ],
+      "ports": [
+        443,
+        80
+      ],
       "protocol": "tcp",
       "action": "allow",
       "logged": false,
@@ -2421,8 +2546,12 @@
       "rule_name": "Implicit-Deny",
       "src_zone": "",
       "dst_zone": "",
-      "src_ips": ["0.0.0.0/0"],
-      "dst_ips": ["0.0.0.0/0"],
+      "src_ips": [
+        "0.0.0.0/0"
+      ],
+      "dst_ips": [
+        "0.0.0.0/0"
+      ],
       "ports": [],
       "protocol": "any",
       "action": "deny",
@@ -2435,9 +2564,15 @@
       "rule_name": "Prod-to-Staging-DB",
       "src_zone": "zone-trust-prod",
       "dst_zone": "zone-trust-prod",
-      "src_ips": ["10.10.0.0/16"],
-      "dst_ips": ["10.11.0.0/16"],
-      "ports": [5432],
+      "src_ips": [
+        "10.10.0.0/16"
+      ],
+      "dst_ips": [
+        "10.11.0.0/16"
+      ],
+      "ports": [
+        5432
+      ],
       "protocol": "tcp",
       "action": "allow",
       "logged": true,
@@ -2449,9 +2584,20 @@
       "rule_name": "All-to-SharedServices",
       "src_zone": "zone-trust-prod",
       "dst_zone": "zone-trust-prod",
-      "src_ips": ["10.10.0.0/16", "10.11.0.0/16"],
-      "dst_ips": ["10.12.0.0/16"],
-      "ports": [53, 88, 389, 636, 443],
+      "src_ips": [
+        "10.10.0.0/16",
+        "10.11.0.0/16"
+      ],
+      "dst_ips": [
+        "10.12.0.0/16"
+      ],
+      "ports": [
+        53,
+        88,
+        389,
+        636,
+        443
+      ],
       "protocol": "tcp",
       "action": "allow",
       "logged": false,
@@ -2463,9 +2609,18 @@
       "rule_name": "AWS-to-OnPrem",
       "src_zone": "zone-cloud-transit",
       "dst_zone": "zone-trust-prod",
-      "src_ips": ["10.10.0.0/16", "10.11.0.0/16"],
-      "dst_ips": ["10.1.0.0/16"],
-      "ports": [443, 8443, 5432],
+      "src_ips": [
+        "10.10.0.0/16",
+        "10.11.0.0/16"
+      ],
+      "dst_ips": [
+        "10.1.0.0/16"
+      ],
+      "ports": [
+        443,
+        8443,
+        5432
+      ],
       "protocol": "tcp",
       "action": "allow",
       "logged": true,
@@ -2477,8 +2632,12 @@
       "rule_name": "Implicit-Deny",
       "src_zone": "",
       "dst_zone": "",
-      "src_ips": ["0.0.0.0/0"],
-      "dst_ips": ["0.0.0.0/0"],
+      "src_ips": [
+        "0.0.0.0/0"
+      ],
+      "dst_ips": [
+        "0.0.0.0/0"
+      ],
       "ports": [],
       "protocol": "any",
       "action": "deny",
@@ -2491,9 +2650,16 @@
       "rule_name": "Azure-to-OnPrem",
       "src_zone": "zone-trust-prod",
       "dst_zone": "zone-untrust",
-      "src_ips": ["10.20.0.0/16"],
-      "dst_ips": ["10.1.0.0/16"],
-      "ports": [443, 8443],
+      "src_ips": [
+        "10.20.0.0/16"
+      ],
+      "dst_ips": [
+        "10.1.0.0/16"
+      ],
+      "ports": [
+        443,
+        8443
+      ],
       "protocol": "tcp",
       "action": "allow",
       "logged": true,
@@ -2505,8 +2671,12 @@
       "rule_name": "Implicit-Deny",
       "src_zone": "",
       "dst_zone": "",
-      "src_ips": ["0.0.0.0/0"],
-      "dst_ips": ["0.0.0.0/0"],
+      "src_ips": [
+        "0.0.0.0/0"
+      ],
+      "dst_ips": [
+        "0.0.0.0/0"
+      ],
       "ports": [],
       "protocol": "any",
       "action": "deny",
@@ -2574,7 +2744,9 @@
       "name": "vpc-production",
       "cloud_provider": "aws",
       "region": "us-east-1",
-      "cidr_blocks": ["10.10.0.0/16"],
+      "cidr_blocks": [
+        "10.10.0.0/16"
+      ],
       "account_id": "123456789012",
       "compliance_zone": "pci"
     },
@@ -2583,7 +2755,9 @@
       "name": "vpc-staging",
       "cloud_provider": "aws",
       "region": "us-east-1",
-      "cidr_blocks": ["10.11.0.0/16"],
+      "cidr_blocks": [
+        "10.11.0.0/16"
+      ],
       "account_id": "123456789012"
     },
     {
@@ -2591,7 +2765,9 @@
       "name": "vpc-shared-services",
       "cloud_provider": "aws",
       "region": "us-east-1",
-      "cidr_blocks": ["10.12.0.0/16"],
+      "cidr_blocks": [
+        "10.12.0.0/16"
+      ],
       "account_id": "123456789012"
     },
     {
@@ -2599,7 +2775,9 @@
       "name": "vpc-inspection",
       "cloud_provider": "aws",
       "region": "us-east-1",
-      "cidr_blocks": ["10.13.0.0/16"],
+      "cidr_blocks": [
+        "10.13.0.0/16"
+      ],
       "account_id": "123456789012"
     }
   ],
@@ -2609,7 +2787,12 @@
       "name": "tgw-hub-01",
       "cloud_provider": "aws",
       "region": "us-east-1",
-      "attached_vpc_ids": ["vpc-prod-aws", "vpc-staging-aws", "vpc-shared-aws", "vpc-inspection-aws"],
+      "attached_vpc_ids": [
+        "vpc-prod-aws",
+        "vpc-staging-aws",
+        "vpc-shared-aws",
+        "vpc-inspection-aws"
+      ],
       "route_table_id": "tgw-rtb-01"
     }
   ],
@@ -2620,8 +2803,16 @@
       "tunnel_type": "gre",
       "local_gateway_id": "rtr-dc-edge-01",
       "remote_gateway_ip": "10.13.2.10",
-      "local_cidrs": ["10.1.0.0/16", "10.0.0.0/24"],
-      "remote_cidrs": ["10.10.0.0/16", "10.11.0.0/16", "10.12.0.0/16", "10.13.0.0/16"],
+      "local_cidrs": [
+        "10.1.0.0/16",
+        "10.0.0.0/24"
+      ],
+      "remote_cidrs": [
+        "10.10.0.0/16",
+        "10.11.0.0/16",
+        "10.12.0.0/16",
+        "10.13.0.0/16"
+      ],
       "encryption": "none",
       "ike_version": "",
       "status": "up"
@@ -2632,8 +2823,16 @@
       "tunnel_type": "gre",
       "local_gateway_id": "rtr-dc-edge-01",
       "remote_gateway_ip": "10.13.2.10",
-      "local_cidrs": ["10.1.0.0/16", "10.0.0.0/24"],
-      "remote_cidrs": ["10.10.0.0/16", "10.11.0.0/16", "10.12.0.0/16", "10.13.0.0/16"],
+      "local_cidrs": [
+        "10.1.0.0/16",
+        "10.0.0.0/24"
+      ],
+      "remote_cidrs": [
+        "10.10.0.0/16",
+        "10.11.0.0/16",
+        "10.12.0.0/16",
+        "10.13.0.0/16"
+      ],
       "encryption": "none",
       "ike_version": "",
       "status": "down"
@@ -2676,50 +2875,93 @@
       "id": "ha-pa-core",
       "name": "PA Core HA Pair",
       "ha_mode": "active_passive",
-      "member_ids": ["pa-core-fw-01", "pa-core-fw-02"],
-      "virtual_ips": ["10.1.10.1", "10.1.20.1", "10.1.30.1"],
+      "member_ids": [
+        "pa-core-fw-01",
+        "pa-core-fw-02"
+      ],
+      "virtual_ips": [
+        "10.1.10.1",
+        "10.1.20.1",
+        "10.1.30.1"
+      ],
       "active_member_id": "pa-core-fw-01",
-      "priority_map": {"pa-core-fw-01": 100, "pa-core-fw-02": 50},
+      "priority_map": {
+        "pa-core-fw-01": 100,
+        "pa-core-fw-02": 50
+      },
       "sync_interface": "ae1"
     },
     {
       "id": "ha-cp-perim",
       "name": "Checkpoint Perimeter HA Pair",
       "ha_mode": "active_passive",
-      "member_ids": ["cp-perim-fw-01", "cp-perim-fw-02"],
-      "virtual_ips": ["203.0.113.2", "10.0.0.2"],
+      "member_ids": [
+        "cp-perim-fw-01",
+        "cp-perim-fw-02"
+      ],
+      "virtual_ips": [
+        "203.0.113.2",
+        "10.0.0.2"
+      ],
       "active_member_id": "cp-perim-fw-01",
-      "priority_map": {"cp-perim-fw-01": 100, "cp-perim-fw-02": 50},
+      "priority_map": {
+        "cp-perim-fw-01": 100,
+        "cp-perim-fw-02": 50
+      },
       "sync_interface": "eth2"
     },
     {
       "id": "ha-f5-onprem",
       "name": "F5 On-Prem HA Pair",
       "ha_mode": "active_passive",
-      "member_ids": ["f5-lb-01", "f5-lb-02"],
-      "virtual_ips": ["10.1.30.100"],
+      "member_ids": [
+        "f5-lb-01",
+        "f5-lb-02"
+      ],
+      "virtual_ips": [
+        "10.1.30.100"
+      ],
       "active_member_id": "f5-lb-01",
-      "priority_map": {"f5-lb-01": 100, "f5-lb-02": 50},
+      "priority_map": {
+        "f5-lb-01": 100,
+        "f5-lb-02": 50
+      },
       "sync_interface": "1.3"
     },
     {
       "id": "ha-pa-aws",
       "name": "PA AWS Inspection HA Pair",
       "ha_mode": "active_passive",
-      "member_ids": ["pa-aws-fw-01", "pa-aws-fw-02"],
-      "virtual_ips": ["10.13.1.10"],
+      "member_ids": [
+        "pa-aws-fw-01",
+        "pa-aws-fw-02"
+      ],
+      "virtual_ips": [
+        "10.13.1.10"
+      ],
       "active_member_id": "pa-aws-fw-01",
-      "priority_map": {"pa-aws-fw-01": 100, "pa-aws-fw-02": 50},
+      "priority_map": {
+        "pa-aws-fw-01": 100,
+        "pa-aws-fw-02": 50
+      },
       "sync_interface": "ethernet1/3"
     },
     {
       "id": "ha-rtr-core",
       "name": "Core Router VRRP Group",
       "ha_mode": "vrrp",
-      "member_ids": ["rtr-core-01", "rtr-core-02"],
-      "virtual_ips": ["10.0.0.254"],
+      "member_ids": [
+        "rtr-core-01",
+        "rtr-core-02"
+      ],
+      "virtual_ips": [
+        "10.0.0.254"
+      ],
       "active_member_id": "rtr-core-01",
-      "priority_map": {"rtr-core-01": 110, "rtr-core-02": 100},
+      "priority_map": {
+        "rtr-core-01": 110,
+        "rtr-core-02": 100
+      },
       "sync_interface": ""
     }
   ],
@@ -2731,8 +2973,16 @@
       "scheme": "internal",
       "vpc_id": "",
       "listeners": [
-        {"protocol": "tcp", "port": 443, "target_group": "tg-web-app-pool"},
-        {"protocol": "tcp", "port": 8443, "target_group": "tg-api-pool"}
+        {
+          "protocol": "tcp",
+          "port": 443,
+          "target_group": "tg-web-app-pool"
+        },
+        {
+          "protocol": "tcp",
+          "port": 8443,
+          "target_group": "tg-api-pool"
+        }
       ],
       "health_check_path": "/health"
     },
@@ -2743,7 +2993,11 @@
       "scheme": "internal",
       "vpc_id": "vpc-prod-aws",
       "listeners": [
-        {"protocol": "tcp", "port": 443, "target_group": "tg-aws-web-pool"}
+        {
+          "protocol": "tcp",
+          "port": 443,
+          "target_group": "tg-aws-web-pool"
+        }
       ],
       "health_check_path": "/health"
     },
@@ -2754,7 +3008,11 @@
       "scheme": "internal",
       "vpc_id": "vpc-inspection-aws",
       "listeners": [
-        {"protocol": "tcp", "port": 6081, "target_group": "tg-inspection-targets"}
+        {
+          "protocol": "tcp",
+          "port": 6081,
+          "target_group": "tg-inspection-targets"
+        }
       ],
       "health_check_path": "/health"
     }
@@ -2766,7 +3024,11 @@
       "name": "web-app-pool",
       "protocol": "tcp",
       "port": 8080,
-      "target_ids": ["10.1.10.50", "10.1.10.51", "10.1.10.52"],
+      "target_ids": [
+        "10.1.10.50",
+        "10.1.10.51",
+        "10.1.10.52"
+      ],
       "health_status": "degraded"
     },
     {
@@ -2775,7 +3037,10 @@
       "name": "api-pool",
       "protocol": "tcp",
       "port": 8443,
-      "target_ids": ["10.1.10.60", "10.1.10.61"],
+      "target_ids": [
+        "10.1.10.60",
+        "10.1.10.61"
+      ],
       "health_status": "healthy"
     },
     {
@@ -2784,7 +3049,10 @@
       "name": "aws-web-pool",
       "protocol": "tcp",
       "port": 8080,
-      "target_ids": ["10.10.1.50", "10.10.1.51"],
+      "target_ids": [
+        "10.10.1.50",
+        "10.10.1.51"
+      ],
       "health_status": "healthy"
     },
     {
@@ -2793,7 +3061,10 @@
       "name": "inspection-targets",
       "protocol": "tcp",
       "port": 6081,
-      "target_ids": ["pa-aws-fw-01", "pa-aws-fw-02"],
+      "target_ids": [
+        "pa-aws-fw-01",
+        "pa-aws-fw-02"
+      ],
       "health_status": "healthy"
     }
   ],
@@ -2804,7 +3075,10 @@
       "label": 10001,
       "provider": "AT&T MPLS",
       "bandwidth_mbps": 100,
-      "endpoints": ["rtr-core-01", "rtr-branch-ny"],
+      "endpoints": [
+        "rtr-core-01",
+        "rtr-branch-ny"
+      ],
       "qos_class": "EF"
     },
     {
@@ -2813,7 +3087,10 @@
       "label": 10002,
       "provider": "BT MPLS",
       "bandwidth_mbps": 50,
-      "endpoints": ["rtr-core-01", "rtr-branch-london"],
+      "endpoints": [
+        "rtr-core-01",
+        "rtr-branch-london"
+      ],
       "qos_class": "AF41"
     }
   ]
