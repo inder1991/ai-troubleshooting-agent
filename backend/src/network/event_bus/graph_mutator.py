@@ -16,6 +16,7 @@ from src.network.event_bus.topology_channels import (
     INTERFACE_CHANGED,
     LINK_DISCOVERED,
     ROUTE_CHANGED,
+    POLICY_CHANGED,
     STALE_DETECTED,
 )
 from src.network.repository.neo4j_connection import Neo4jConnectionManager
@@ -35,6 +36,7 @@ class GraphMutatorConsumer:
         await bus.subscribe(INTERFACE_CHANGED, self._handle_interface)
         await bus.subscribe(LINK_DISCOVERED, self._handle_link)
         await bus.subscribe(ROUTE_CHANGED, self._handle_route)
+        await bus.subscribe(POLICY_CHANGED, self._handle_policy)
         await bus.subscribe(STALE_DETECTED, self._handle_stale)
 
     # ── Handlers ──────────────────────────────────────────────────────
@@ -127,6 +129,28 @@ class GraphMutatorConsumer:
             logger.info("MERGE Route %s", entity_id)
         except Exception:
             logger.error("Failed to MERGE Route %s", entity_id, exc_info=True)
+
+    async def _handle_policy(self, channel: str, event: dict[str, Any]) -> None:
+        data = event.get("data", {})
+        entity_id = event.get("entity_id", "")
+        query = (
+            "MERGE (sp:SecurityPolicy {id: $id}) "
+            "SET sp.device_id=$device_id, sp.name=$name, "
+            "sp.action=$action, sp.rule_order=$rule_order, "
+            "sp.last_synced=timestamp()"
+        )
+        params = {
+            "id": entity_id,
+            "device_id": data.get("device_id", ""),
+            "name": data.get("name", ""),
+            "action": data.get("action", ""),
+            "rule_order": data.get("rule_order", 0),
+        }
+        try:
+            self._neo4j.execute_write(query, params)
+            logger.info("MERGE SecurityPolicy %s", entity_id)
+        except Exception:
+            logger.error("Failed to MERGE SecurityPolicy %s", entity_id, exc_info=True)
 
     async def _handle_stale(self, channel: str, event: dict[str, Any]) -> None:
         entity_id = event["entity_id"]

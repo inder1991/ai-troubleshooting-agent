@@ -65,10 +65,19 @@ class DiscoveryScheduler:
         while self._running:
             try:
                 logger.debug("Incremental discovery tick")
+                if self.handler is None:
+                    await asyncio.sleep(self.incremental_interval)
+                    continue
+                # Run device-type adapters against known devices
                 for adapter in self.adapters:
-                    if hasattr(adapter, "discover"):
-                        # Adapters handle their own target selection
-                        pass
+                    if adapter.supports({"type": "device"}):
+                        # In production, iterate known devices from repo
+                        # For now, adapters with mock data run against their own targets
+                        try:
+                            async for obs in adapter.discover({"type": "device", "device_id": "__incremental__"}):
+                                self.handler.handle(obs)
+                        except Exception:
+                            logger.debug("Adapter %s has no incremental targets", adapter.__class__.__name__)
             except Exception:
                 logger.exception("Error in incremental discovery loop")
             await asyncio.sleep(self.incremental_interval)
@@ -78,9 +87,16 @@ class DiscoveryScheduler:
         while self._running:
             try:
                 logger.debug("Cloud sync tick")
+                if self.handler is None:
+                    await asyncio.sleep(self.cloud_sync_interval)
+                    continue
                 for adapter in self.adapters:
-                    if hasattr(adapter, "discover"):
-                        pass
+                    if adapter.supports({"type": "cloud_account", "provider": "aws"}):
+                        try:
+                            async for obs in adapter.discover({"type": "cloud_account", "provider": "aws"}):
+                                self.handler.handle(obs)
+                        except Exception:
+                            logger.debug("Cloud adapter %s failed", adapter.__class__.__name__)
             except Exception:
                 logger.exception("Error in cloud sync loop")
             await asyncio.sleep(self.cloud_sync_interval)
@@ -91,7 +107,11 @@ class DiscoveryScheduler:
             try:
                 logger.debug("Full crawl tick")
                 if self.crawler is not None and hasattr(self.crawler, "crawl"):
-                    pass
+                    seeds = getattr(self, "seed_devices", [])
+                    if seeds:
+                        await self.crawler.crawl(seeds=seeds, max_depth=5, max_devices=1000)
+                    else:
+                        logger.debug("No seed devices configured for full crawl")
             except Exception:
                 logger.exception("Error in full crawl loop")
             await asyncio.sleep(self.full_crawl_interval)
