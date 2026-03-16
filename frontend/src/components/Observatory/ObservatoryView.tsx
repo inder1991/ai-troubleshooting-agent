@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useMonitorSnapshot } from './hooks/useMonitorSnapshot';
 import NOCWallTab from './NOCWallTab';
 import LiveTopologyTab from './LiveTopologyTab';
-import LiveTopologyView from './topology/LiveTopologyView';
+import LiveTopologyView from './topology/LiveTopologyViewV2';
 import TrafficFlowsTab from './TrafficFlowsTab';
 import AlertsTab from './AlertsTab';
 import AlertHistoryTab from './AlertHistoryTab';

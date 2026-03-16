@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import LiveTopologyView from './LiveTopologyView';
+import LiveTopologyView from './LiveTopologyViewV2';
 
 interface FullScreenTopologyProps {
   onGoBack: () => void;
