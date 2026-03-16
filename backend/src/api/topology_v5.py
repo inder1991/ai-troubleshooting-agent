@@ -394,14 +394,13 @@ def build_topology_export(repo: SQLiteRepository, site_id: str | None = None, kg
     # Compute layout
     layout = compute_radial_layout(layout_devices)
 
-    # Apply positions and parentId to device nodes
-    device_nodes = nodes  # alias for clarity
+    # Apply positions to device nodes (NO parentId — devices are top-level
+    # so cross-group edges render freely without clipping)
+    device_nodes = nodes
     for node in device_nodes:
         pos_info = layout["device_positions"].get(node["id"])
         if pos_info:
             node["position"] = {"x": pos_info["x"], "y": pos_info["y"]}
-            if "parentId" in pos_info:
-                node["parentId"] = pos_info["parentId"]
         else:
             node["position"] = {"x": 0, "y": 0}
 

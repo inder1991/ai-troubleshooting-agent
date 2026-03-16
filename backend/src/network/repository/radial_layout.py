@@ -1,12 +1,10 @@
 """
 Multi-column tiered layout for enterprise network topology.
 
-Each environment (on-prem, AWS, Azure, OCI, branch) gets its own vertical
-column.  Within each column devices are arranged top-to-bottom by network
-tier: perimeter → core → distribution → access.
-
-WAN links (MPLS, DirectConnect, ExpressRoute) run horizontally between
-columns at the edge tier — no crossing through the center.
+Each environment gets a vertical column. Within each column, devices
+are arranged top-down by network tier. All devices are positioned at
+the TOP LEVEL (no parentId) so cross-group edges render freely.
+Group containers are visual-only backgrounds.
 
     BRANCH      ON-PREMISES        AWS           AZURE         OCI
     ──────      ───────────        ───           ─────         ───
@@ -14,7 +12,6 @@ columns at the edge tier — no crossing through the center.
    Tier 1       Core FW/RTR      CSR/TGW       VWAN Hub       VCN
    Tier 2       Distrib/LB       Cloud FW      NVA/ER-GW      LB
    Tier 3       Access/Switch    VPC/LB        VNet           Workloads
-   Tier 4       Servers          Workloads     Workloads
 """
 
 from __future__ import annotations
@@ -23,24 +20,23 @@ import math
 
 # ── Layout constants ─────────────────────────────────────────────────
 
-NODE_W = 180
-NODE_H = 90
+NODE_W = 170
+NODE_H = 80
 H_GAP = 30          # horizontal gap between nodes in same tier
-V_GAP = 40          # vertical gap between tiers
-COL_GAP = 120       # gap between column containers
-CONTAINER_PAD = 50   # padding inside group container
-LABEL_H = 50        # height reserved for env label above container
+V_GAP = 50          # vertical gap between tiers
+COL_GAP = 80        # gap between columns
+CONTAINER_PAD = 30   # padding inside group background
+TOP_MARGIN = 80      # space for env label above container
 
-# ── Tier assignment by role / device type ────────────────────────────
+# ── Tier assignment ──────────────────────────────────────────────────
 
-# Lower tier number = higher on screen (closer to internet/WAN edge)
 ROLE_TO_TIER: dict[str, int] = {
     "perimeter": 0,
     "core": 1,
+    "cloud_gateway": 0,
     "distribution": 2,
     "edge": 2,
     "access": 3,
-    "cloud_gateway": 0,
 }
 
 DEVICE_TYPE_TO_TIER: dict[str, int] = {
@@ -49,8 +45,8 @@ DEVICE_TYPE_TO_TIER: dict[str, int] = {
     "LOAD_BALANCER": 2,
     "SWITCH": 3,
     "PROXY": 2,
-    "HOST": 4,
-    "TRANSIT_GATEWAY": 1,
+    "HOST": 3,
+    "TRANSIT_GATEWAY": 0,
     "CLOUD_GATEWAY": 0,
     "NAT_GATEWAY": 0,
     "VIRTUAL_APPLIANCE": 2,
@@ -58,7 +54,7 @@ DEVICE_TYPE_TO_TIER: dict[str, int] = {
     "SDWAN_EDGE": 2,
 }
 
-# ── Column ordering (left to right) ─────────────────────────────────
+# ── Column ordering ──────────────────────────────────────────────────
 
 COLUMN_ORDER = ["branch", "onprem", "aws", "azure", "oci", "gcp"]
 
@@ -81,10 +77,7 @@ GROUP_ACCENTS: dict[str, str] = {
 }
 
 
-# ── Helpers ──────────────────────────────────────────────────────────
-
 def _get_tier(device: dict, group: str = "") -> int:
-    """Assign a tier (row) to a device. Lower = higher on screen."""
     role = (device.get("role") or "").lower()
     if role in ROLE_TO_TIER:
         return ROLE_TO_TIER[role]
@@ -92,185 +85,131 @@ def _get_tier(device: dict, group: str = "") -> int:
     return DEVICE_TYPE_TO_TIER.get(dt, 3)
 
 
-def _make_group_style(accent: str, width: int, height: int) -> dict:
-    return {
-        "width": width,
-        "height": height,
-        "backgroundColor": f"{accent}08",
-        "border": f"1.5px solid {accent}30",
-        "borderRadius": 12,
-        "padding": 0,
-    }
-
-
-# ── Main entry point ────────────────────────────────────────────────
+# ── Main layout ─────────────────────────────────────────────────────
 
 def compute_radial_layout(
     devices: list[dict],
     group_classify_fn=None,
 ) -> dict:
-    """
-    Compute multi-column tiered layout for topology visualization.
-
-    Despite the function name (kept for backward compatibility), this
-    now produces a tiered column layout, not a radial one.
-    """
     if not devices:
-        return {
-            "device_positions": {},
-            "group_nodes": [],
-            "env_labels": [],
-            "groups_found": {},
-        }
+        return {"device_positions": {}, "group_nodes": [], "env_labels": [], "groups_found": {}}
 
-    # ── 1. Classify devices into groups ──────────────────────────────
+    # 1. Classify into groups
     groups_found: dict[str, list[dict]] = {}
     for dev in devices:
         g = group_classify_fn(dev) if group_classify_fn else dev.get("group", "onprem")
         groups_found.setdefault(g, []).append(dev)
 
-    # ── 2. For each group, assign tiers and sort ─────────────────────
-    # group_tiers[group_id] = {tier_num: [devices]}
+    # 2. Assign tiers within each group
     group_tiers: dict[str, dict[int, list[dict]]] = {}
     for gid, devs in groups_found.items():
         tiers: dict[int, list[dict]] = {}
         for dev in devs:
             t = _get_tier(dev, gid)
             tiers.setdefault(t, []).append(dev)
-        # Sort devices within each tier alphabetically
         for t in tiers:
             tiers[t].sort(key=lambda d: d.get("label", d.get("id", "")))
         group_tiers[gid] = tiers
 
-    # ── 3. Compute column widths and heights ─────────────────────────
-    # Each column's width = max(tier_width) across all its tiers
-    # Each column's height = sum of tier heights + gaps
+    # 3. Compute column dimensions
+    ordered_groups = [g for g in COLUMN_ORDER if g in group_tiers]
 
-    col_metrics: dict[str, dict] = {}  # gid -> {width, height, tier_y_offsets, tier_widths}
-
-    for gid in COLUMN_ORDER:
-        if gid not in group_tiers:
-            continue
+    col_info: dict[str, dict] = {}
+    for gid in ordered_groups:
         tiers = group_tiers[gid]
         tier_nums = sorted(tiers.keys())
+        max_w = 0
+        tier_y_offsets: dict[int, int] = {}
+        y_cursor = CONTAINER_PAD
 
-        max_width = 0
-        total_height = 0
-        tier_y: dict[int, int] = {}     # tier -> y offset within column
-        tier_w: dict[int, int] = {}     # tier -> width
-
-        for i, t in enumerate(tier_nums):
+        for t in tier_nums:
             n = len(tiers[t])
-            # Arrange tier devices in a single row (or wrap to 2 rows if > 3)
-            cols = min(n, 3)
+            cols = min(n, 2) if n <= 4 else min(n, 3)
             rows = math.ceil(n / max(cols, 1))
             w = cols * (NODE_W + H_GAP) - H_GAP
-            h = rows * (NODE_H + V_GAP) - V_GAP
+            h = rows * (NODE_H + 10) - 10  # tighter within a tier
 
-            tier_y[t] = total_height
-            tier_w[t] = w
-            max_width = max(max_width, w)
-            total_height += h
-            if i < len(tier_nums) - 1:
-                total_height += V_GAP * 2  # extra gap between tiers
+            tier_y_offsets[t] = y_cursor
+            max_w = max(max_w, w)
+            y_cursor += h + V_GAP
 
-        col_metrics[gid] = {
-            "width": max_width,
-            "height": total_height,
-            "tier_y": tier_y,
-            "tier_w": tier_w,
+        total_h = y_cursor - V_GAP + CONTAINER_PAD
+        col_info[gid] = {
+            "width": max_w,
+            "height": total_h,
+            "tier_y": tier_y_offsets,
         }
 
-    # ── 4. Position columns left to right ────────────────────────────
-    ordered_groups = [g for g in COLUMN_ORDER if g in col_metrics]
+    # 4. Position columns left to right
     col_x: dict[str, int] = {}
-    current_x = CONTAINER_PAD
-
+    x_cursor = COL_GAP
     for gid in ordered_groups:
-        col_x[gid] = current_x
-        current_x += col_metrics[gid]["width"] + 2 * CONTAINER_PAD + COL_GAP
+        col_x[gid] = x_cursor
+        col_w = col_info[gid]["width"] + 2 * CONTAINER_PAD
+        x_cursor += col_w + COL_GAP
 
-    # Vertically align all columns so tier 1 (core) is roughly at the same Y
-    # Find the max height and center shorter columns
-    max_height = max((m["height"] for m in col_metrics.values()), default=400)
-    col_y: dict[str, int] = {}
-    for gid in ordered_groups:
-        # Center column vertically
-        col_y[gid] = LABEL_H + CONTAINER_PAD + (max_height - col_metrics[gid]["height"]) // 2
+    # Vertically align — all columns start at same Y
+    base_y = TOP_MARGIN + 10
 
-    # ── 5. Compute absolute device positions ─────────────────────────
-    abs_positions: dict[str, dict] = {}
+    # 5. Compute ABSOLUTE device positions (no parentId)
+    device_positions: dict[str, dict] = {}
 
     for gid in ordered_groups:
         tiers = group_tiers[gid]
-        metrics = col_metrics[gid]
-        base_x = col_x[gid]
-        base_y = col_y[gid]
+        info = col_info[gid]
+        cx = col_x[gid]
 
         for t, devs in tiers.items():
-            tier_y_offset = metrics["tier_y"].get(t, 0)
-            tier_width = metrics["tier_w"].get(t, 0)
-            # Center this tier within the column
-            x_offset = (metrics["width"] - tier_width) // 2
-
+            ty = base_y + info["tier_y"].get(t, 0)
             n = len(devs)
-            cols = min(n, 3)
+            cols = min(n, 2) if n <= 4 else min(n, 3)
+            tier_w = cols * (NODE_W + H_GAP) - H_GAP
+            # Center tier within column
+            x_offset = cx + CONTAINER_PAD + (info["width"] - tier_w) // 2
+
             for idx, dev in enumerate(devs):
                 col = idx % cols
                 row = idx // cols
-                abs_positions[dev["id"]] = {
-                    "x": base_x + x_offset + col * (NODE_W + H_GAP),
-                    "y": base_y + tier_y_offset + row * (NODE_H + V_GAP),
+                device_positions[dev["id"]] = {
+                    "x": x_offset + col * (NODE_W + H_GAP),
+                    "y": ty + row * (NODE_H + 10),
                 }
 
-    # ── 6. Create group container nodes ──────────────────────────────
+    # 6. Group background containers (visual only, no parentId on devices)
     group_nodes: list[dict] = []
-
     for gid in ordered_groups:
         accent = GROUP_ACCENTS.get(gid, "#64748b")
-        metrics = col_metrics[gid]
-        container_w = metrics["width"] + 2 * CONTAINER_PAD
-        container_h = metrics["height"] + 2 * CONTAINER_PAD
-        gx = col_x[gid] - CONTAINER_PAD
-        gy = col_y[gid] - CONTAINER_PAD
+        info = col_info[gid]
+        gx = col_x[gid]
+        gy = base_y - 5
+        gw = info["width"] + 2 * CONTAINER_PAD
+        gh = info["height"] + 10
 
         group_nodes.append({
             "id": f"group-{gid}",
             "type": "group",
             "data": {"label": GROUP_LABELS.get(gid, gid)},
             "position": {"x": gx, "y": gy},
-            "style": _make_group_style(accent, container_w, container_h),
+            "style": {
+                "width": gw,
+                "height": gh,
+                "backgroundColor": f"{accent}06",
+                "border": f"1px dashed {accent}25",
+                "borderRadius": 8,
+                "padding": 0,
+                "pointerEvents": "none",
+            },
             "selectable": False,
             "draggable": False,
         })
 
-        # Convert device positions to relative (within group container)
-        for dev in groups_found[gid]:
-            pos = abs_positions.get(dev["id"])
-            if pos:
-                pos["x"] -= gx
-                pos["y"] -= gy
-
-    # ── 7. Build device_positions with parentId ──────────────────────
-    device_positions: dict[str, dict] = {}
-    for dev in devices:
-        did = dev["id"]
-        g = group_classify_fn(dev) if group_classify_fn else dev.get("group", "onprem")
-        if did in abs_positions:
-            device_positions[did] = {
-                **abs_positions[did],
-                "parentId": f"group-{g}",
-            }
-
-    # ── 8. Environment label nodes above each group ──────────────────
+    # 7. Environment labels above each column
     env_labels: list[dict] = []
-
     for gid in ordered_groups:
         accent = GROUP_ACCENTS.get(gid, "#64748b")
-        metrics = col_metrics[gid]
-        gx = col_x[gid] - CONTAINER_PAD
-        gy = col_y[gid] - CONTAINER_PAD
-        container_w = metrics["width"] + 2 * CONTAINER_PAD
+        info = col_info[gid]
+        gx = col_x[gid]
+        gw = info["width"] + 2 * CONTAINER_PAD
 
         env_labels.append({
             "id": f"env-label-{gid}",
@@ -281,7 +220,7 @@ def compute_radial_layout(
                 "accent": accent,
                 "deviceCount": len(groups_found[gid]),
             },
-            "position": {"x": gx + container_w // 2 - 80, "y": gy - LABEL_H},
+            "position": {"x": gx + gw // 2 - 80, "y": base_y - TOP_MARGIN + 5},
             "selectable": False,
             "draggable": False,
         })

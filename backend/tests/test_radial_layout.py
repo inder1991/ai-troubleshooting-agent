@@ -38,14 +38,17 @@ class TestRadialLayout:
         assert label["type"] == "envLabel"
         assert label["data"]["label"] == "ON-PREMISES DC"
 
-    def test_devices_have_parent_id(self):
+    def test_devices_have_absolute_positions(self):
+        """Devices are top-level (no parentId) so edges render freely."""
         devices = [
             {"id": "fw-01", "group": "onprem", "role": "core", "deviceType": "FIREWALL"},
         ]
         result = compute_radial_layout(devices)
         pos = result["device_positions"]["fw-01"]
-        assert "parentId" in pos
-        assert pos["parentId"] == "group-onprem"
+        assert "x" in pos
+        assert "y" in pos
+        # No parentId — devices are top-level for cross-group edge rendering
+        assert "parentId" not in pos
 
     def test_35_devices_no_overlap(self):
         # Simulate the real fixture data distribution

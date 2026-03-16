@@ -26,11 +26,12 @@ class TestV5LayoutIntegration:
             assert "x" in node["position"]
             assert "y" in node["position"]
 
-    def test_nodes_have_parent_id(self, repo_with_devices):
+    def test_nodes_are_top_level(self, repo_with_devices):
+        """Devices have no parentId — they're top-level for free edge rendering."""
         result = build_topology_export(repo_with_devices)
         device_nodes = [n for n in result["nodes"] if n.get("type") == "device"]
         for node in device_nodes:
-            assert "parentId" in node, f"Node {node['id']} missing parentId"
+            assert "parentId" not in node, f"Node {node['id']} should not have parentId"
 
     def test_group_containers_present(self, repo_with_devices):
         result = build_topology_export(repo_with_devices)
