@@ -1,8 +1,8 @@
 """Tests for DiscoveryAdapter interface and DiscoveryObservation model."""
 
 import pytest
-from backend.src.network.discovery.observation import ObservationType, DiscoveryObservation
-from backend.src.network.discovery.adapter import DiscoveryAdapter
+from src.network.discovery.observation import ObservationType, DiscoveryObservation
+from src.network.discovery.adapter import DiscoveryAdapter
 
 
 EXPECTED_TYPES = [
