@@ -65,6 +65,7 @@ class EdgeBuilderService:
         edges.extend(self._build_mpls_edges())
         edges.extend(self._build_tgw_edges())
         edges.extend(self._build_lb_edges())
+        edges.extend(self._build_cloud_topology_edges())
 
         # Deduplicate
         deduped = self._deduplicate(edges)
@@ -353,6 +354,147 @@ class EdgeBuilderService:
                             protocol="lb",
                             confidence=0.9,
                         ))
+
+        return edges
+
+    # ── 9. Cloud topology edges (VPC/VNet/VCN → gateway/TGW/hub) ──
+
+    def _build_cloud_topology_edges(self) -> list[NeighborLink]:
+        """Build edges between cloud constructs that share a cloud region/provider.
+
+        Heuristics:
+        - VPC-like devices in AWS → connect to TGW or CSR in same group
+        - VNet-like devices in Azure → connect to VWAN hub or ER gateway
+        - VCN-like devices in OCI → connect to DRG
+        - NAT GW / IGW → connect to their VPC device
+        - NVA → connect to VNet device
+        - Cloud LBs → connect to cloud firewalls or VPC devices
+        - Zscaler proxy → connect to core firewall (on-prem)
+        - Disconnected switches → connect to nearest core device
+        """
+        edges = []
+        devices = self._store.list_devices()
+        device_map = {d.id: d for d in devices}
+        device_ids = set(device_map.keys())
+
+        # Classify devices by group/role for matching
+        group_devices: dict[str, list] = {}
+        for d in devices:
+            loc = (d.location or "").lower()
+            name = d.id.lower()
+            group = "onprem"
+            if any(x in loc for x in ("us-east", "us-west", "eu-west", "ap-")) or any(x in name for x in ("aws", "vpc-", "csr-", "tgw-", "natgw-", "igw-")):
+                group = "aws"
+            elif any(x in loc for x in ("westeurope", "eastus", "northeurope")) or any(x in name for x in ("azure", "vnet-", "vwan-", "nva-", "er-gw")):
+                group = "azure"
+            elif any(x in loc for x in ("ashburn", "phoenix", "london-oci")) or any(x in name for x in ("oci", "vcn-", "drg-")):
+                group = "oci"
+            group_devices.setdefault(group, []).append(d)
+
+        def find_gateway(group: str, role_hints: list[str], type_hints: list[str]) -> str | None:
+            """Find the gateway/hub device in a cloud group."""
+            for d in group_devices.get(group, []):
+                if d.role and d.role.lower() in role_hints:
+                    return d.id
+                if d.device_type.value.upper() in type_hints:
+                    return d.id
+                if any(h in d.id.lower() for h in role_hints):
+                    return d.id
+            return None
+
+        # AWS: VPCs → TGW or CSR
+        aws_gw = find_gateway("aws", ["cloud_gateway", "tgw", "csr"], ["ROUTER", "TRANSIT_GATEWAY"])
+        for d in group_devices.get("aws", []):
+            if d.id == aws_gw:
+                continue
+            dt = d.device_type.value.upper()
+            name = d.id.lower()
+            # VPC devices connect to TGW/CSR
+            if "vpc" in name or dt == "HOST":
+                if aws_gw:
+                    edges.append(self._make_link(aws_gw, "tgw-attach", d.id, "vpc-attach",
+                                                  "attached_to", "tgw", 0.9))
+            # NAT GW and IGW connect to first VPC device
+            elif "natgw" in name or "igw" in name:
+                vpc_dev = next((x for x in group_devices.get("aws", []) if "vpc" in x.id.lower()), None)
+                if vpc_dev:
+                    edges.append(self._make_link(d.id, "gw-attach", vpc_dev.id, "gw-attach",
+                                                  "attached_to", "cloud_gw", 0.85))
+            # Cloud LBs connect to cloud FW or VPC
+            elif dt == "LOAD_BALANCER":
+                cloud_fw = next((x for x in group_devices.get("aws", [])
+                                 if x.device_type.value.upper() == "FIREWALL"), None)
+                if cloud_fw:
+                    edges.append(self._make_link(d.id, "lb-forward", cloud_fw.id, "lb-backend",
+                                                  "load_balances", "lb", 0.85))
+
+        # Azure: VNets → VWAN hub or ER gateway
+        azure_gw = find_gateway("azure", ["cloud_gateway", "vwan", "er-gw"], ["ROUTER"])
+        for d in group_devices.get("azure", []):
+            if d.id == azure_gw:
+                continue
+            name = d.id.lower()
+            dt = d.device_type.value.upper()
+            if "vnet" in name or dt == "HOST":
+                if azure_gw:
+                    edges.append(self._make_link(azure_gw, "hub-attach", d.id, "vnet-attach",
+                                                  "attached_to", "vnet_peering", 0.9))
+            elif "nva" in name or dt == "FIREWALL":
+                # NVA connects to first VNet
+                vnet_dev = next((x for x in group_devices.get("azure", []) if "vnet" in x.id.lower()), None)
+                if vnet_dev:
+                    edges.append(self._make_link(d.id, "nva-inside", vnet_dev.id, "nva-attach",
+                                                  "attached_to", "nva", 0.85))
+
+        # OCI: VCNs → DRG
+        oci_gw = find_gateway("oci", ["cloud_gateway", "drg"], ["ROUTER"])
+        for d in group_devices.get("oci", []):
+            if d.id == oci_gw:
+                continue
+            name = d.id.lower()
+            dt = d.device_type.value.upper()
+            if "vcn" in name or dt == "HOST":
+                if oci_gw:
+                    edges.append(self._make_link(oci_gw, "drg-attach", d.id, "vcn-attach",
+                                                  "attached_to", "drg", 0.9))
+            elif dt == "LOAD_BALANCER":
+                vcn_dev = next((x for x in group_devices.get("oci", []) if "vcn" in x.id.lower()), None)
+                if vcn_dev:
+                    edges.append(self._make_link(d.id, "lb-forward", vcn_dev.id, "lb-backend",
+                                                  "load_balances", "lb", 0.85))
+
+        # On-prem: disconnected devices → nearest core device
+        onprem_core = None
+        for d in group_devices.get("onprem", []):
+            if d.role and d.role.lower() in ("core", "perimeter"):
+                onprem_core = d.id
+                break
+
+        if onprem_core:
+            # Check which onprem devices are already connected
+            connected_onprem = set()
+            for method in [self._build_l2_edges, self._build_l3_p2p_edges]:
+                for e in method():
+                    connected_onprem.add(e.device_id)
+                    connected_onprem.add(e.remote_device)
+
+            for d in group_devices.get("onprem", []):
+                if d.id in connected_onprem or d.id == onprem_core:
+                    continue
+                name = d.id.lower()
+                dt = d.device_type.value.upper()
+                # Proxy → core firewall
+                if "proxy" in name or "zs" in name:
+                    edges.append(self._make_link(d.id, "proxy-uplink", onprem_core, "proxy-downlink",
+                                                  "layer3_link", "l3_p2p", 0.8))
+                # Disconnected switch → core switch or router
+                elif dt == "SWITCH":
+                    edges.append(self._make_link(d.id, "uplink", onprem_core, "downlink",
+                                                  "layer2_link", "inferred", 0.7))
+                # Disconnected LB → core
+                elif dt == "LOAD_BALANCER":
+                    edges.append(self._make_link(d.id, "lb-uplink", onprem_core, "lb-downlink",
+                                                  "load_balances", "lb", 0.7))
 
         return edges
 
