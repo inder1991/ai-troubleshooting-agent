@@ -1,62 +1,31 @@
 """
-Multi-column tiered layout for enterprise network topology.
+Semantic force-directed layout for enterprise network topology.
 
-Each environment gets a vertical column. Within each column, devices
-are arranged top-down by network tier. All devices are positioned at
-the TOP LEVEL (no parentId) so cross-group edges render freely.
-Group containers are visual-only backgrounds.
+Uses NetworkX spring_layout with edge weights derived from connection
+semantics. Connected devices attract each other — physical links pull
+strongly, WAN links pull weakly. Devices in the same cloud group have
+a gentle clustering force.
 
-    BRANCH      ON-PREMISES        AWS           AZURE         OCI
-    ──────      ───────────        ───           ─────         ───
-   Tier 0       Perimeter FW     IGW/NAT       Azure FW       DRG
-   Tier 1       Core FW/RTR      CSR/TGW       VWAN Hub       VCN
-   Tier 2       Distrib/LB       Cloud FW      NVA/ER-GW      LB
-   Tier 3       Access/Switch    VPC/LB        VNet           Workloads
+Result: devices position themselves naturally based on connectivity.
+On-prem core clusters in the center (most connections). Cloud groups
+orbit based on their actual WAN connection points. No hardcoded
+columns or tiers.
 """
 
 from __future__ import annotations
 
-import math
+import logging
+import networkx as nx
 
-# ── Layout constants ─────────────────────────────────────────────────
+logger = logging.getLogger(__name__)
+
+# ── Visual constants ─────────────────────────────────────────────────
 
 NODE_W = 170
 NODE_H = 80
-H_GAP = 30          # horizontal gap between nodes in same tier
-V_GAP = 50          # vertical gap between tiers
-COL_GAP = 80        # gap between columns
-CONTAINER_PAD = 30   # padding inside group background
-TOP_MARGIN = 80      # space for env label above container
-
-# ── Tier assignment ──────────────────────────────────────────────────
-
-ROLE_TO_TIER: dict[str, int] = {
-    "perimeter": 0,
-    "core": 1,
-    "cloud_gateway": 0,
-    "distribution": 2,
-    "edge": 2,
-    "access": 3,
-}
-
-DEVICE_TYPE_TO_TIER: dict[str, int] = {
-    "FIREWALL": 1,
-    "ROUTER": 1,
-    "LOAD_BALANCER": 2,
-    "SWITCH": 3,
-    "PROXY": 2,
-    "HOST": 3,
-    "TRANSIT_GATEWAY": 0,
-    "CLOUD_GATEWAY": 0,
-    "NAT_GATEWAY": 0,
-    "VIRTUAL_APPLIANCE": 2,
-    "VPN_CONCENTRATOR": 1,
-    "SDWAN_EDGE": 2,
-}
-
-# ── Column ordering ──────────────────────────────────────────────────
-
-COLUMN_ORDER = ["branch", "onprem", "aws", "azure", "oci", "gcp"]
+CANVAS_SCALE = 260     # multiplier for spring_layout coordinates → pixels
+CANVAS_OFFSET_X = 1800  # shift so nothing is at negative coords
+CANVAS_OFFSET_Y = 1000
 
 GROUP_LABELS: dict[str, str] = {
     "onprem": "ON-PREMISES DC",
@@ -76,140 +45,141 @@ GROUP_ACCENTS: dict[str, str] = {
     "branch": "#8b5cf6",
 }
 
+# ── Edge weight by connection type ───────────────────────────────────
+# Lower weight = stronger attraction = closer together.
+# Physical links pull strongly (devices are in same rack/room).
+# WAN links pull weakly (devices are geographically distant).
 
-def _get_tier(device: dict, group: str = "") -> int:
-    role = (device.get("role") or "").lower()
-    if role in ROLE_TO_TIER:
-        return ROLE_TO_TIER[role]
-    dt = (device.get("deviceType") or "HOST").upper()
-    return DEVICE_TYPE_TO_TIER.get(dt, 3)
+EDGE_WEIGHT: dict[str, float] = {
+    # Physical / L2 / L3 — very close
+    "LLDP": 0.8,
+    "CDP": 0.8,
+    "l3_p2p": 0.9,
+    "layer2_link": 0.8,
+    "layer3_link": 0.9,
+    # HA pairs — extremely close (same chassis/rack)
+    "active_passive": 0.3,
+    "active_active": 0.3,
+    "vrrp": 0.3,
+    "cluster": 0.3,
+    # LB → backend — close
+    "lb": 1.0,
+    "load_balances": 1.0,
+    # Cloud attachment (TGW→VPC) — medium
+    "tgw": 1.5,
+    "attached_to": 1.5,
+    "cloud_gw": 1.5,
+    "vnet_peering": 1.5,
+    "nva": 1.2,
+    "drg": 1.5,
+    # Inferred link — medium
+    "inferred": 1.5,
+    # Routing adjacency — weak (logical, not physical)
+    "bgp": 2.5,
+    "BGP": 2.5,
+    "ospf": 2.0,
+    "static": 2.0,
+    # WAN links — very weak (long distance)
+    "MPLS": 3.5,
+    "mpls_path": 3.5,
+    "gre": 3.0,
+    "ipsec": 3.0,
+    "vxlan": 2.5,
+}
 
+# Group attraction — devices in same group get a gentle pull
+GROUP_ATTRACTION = 1.8
 
-# ── Main layout ─────────────────────────────────────────────────────
 
 def compute_radial_layout(
     devices: list[dict],
     group_classify_fn=None,
+    edges: list = None,
 ) -> dict:
+    """
+    Compute force-directed layout using semantic edge weights.
+
+    Despite the function name (kept for backward compat), this now uses
+    NetworkX spring_layout, not a radial algorithm.
+    """
     if not devices:
         return {"device_positions": {}, "group_nodes": [], "env_labels": [], "groups_found": {}}
 
-    # 1. Classify into groups
+    # 1. Build device lookup
+    dev_map = {d["id"]: d for d in devices}
     groups_found: dict[str, list[dict]] = {}
     for dev in devices:
         g = group_classify_fn(dev) if group_classify_fn else dev.get("group", "onprem")
         groups_found.setdefault(g, []).append(dev)
 
-    # 2. Assign tiers within each group
-    group_tiers: dict[str, dict[int, list[dict]]] = {}
-    for gid, devs in groups_found.items():
-        tiers: dict[int, list[dict]] = {}
-        for dev in devs:
-            t = _get_tier(dev, gid)
-            tiers.setdefault(t, []).append(dev)
-        for t in tiers:
-            tiers[t].sort(key=lambda d: d.get("label", d.get("id", "")))
-        group_tiers[gid] = tiers
+    # 2. Build NetworkX graph with semantic weights
+    G = nx.Graph()
 
-    # 3. Compute column dimensions
-    ordered_groups = [g for g in COLUMN_ORDER if g in group_tiers]
+    for dev in devices:
+        G.add_node(dev["id"], group=dev.get("group", "onprem"))
 
-    col_info: dict[str, dict] = {}
-    for gid in ordered_groups:
-        tiers = group_tiers[gid]
-        tier_nums = sorted(tiers.keys())
-        max_w = 0
-        tier_y_offsets: dict[int, int] = {}
-        y_cursor = CONTAINER_PAD
+    # Add real edges from EdgeBuilder (passed in or empty)
+    if edges:
+        for e in edges:
+            src = e.device_id if hasattr(e, 'device_id') else e.get("device_id", "")
+            dst = e.remote_device if hasattr(e, 'remote_device') else e.get("remote_device", "")
+            proto = e.protocol if hasattr(e, 'protocol') else e.get("protocol", "")
+            if src in dev_map and dst in dev_map:
+                w = EDGE_WEIGHT.get(proto, 1.5)
+                # If edge already exists, use minimum weight (strongest pull wins)
+                if G.has_edge(src, dst):
+                    existing_w = G[src][dst].get("weight", 99)
+                    w = min(w, existing_w)
+                G.add_edge(src, dst, weight=w)
 
-        for t in tier_nums:
-            n = len(tiers[t])
-            cols = min(n, 2) if n <= 4 else min(n, 3)
-            rows = math.ceil(n / max(cols, 1))
-            w = cols * (NODE_W + H_GAP) - H_GAP
-            h = rows * (NODE_H + 10) - 10  # tighter within a tier
+    # Add soft group clustering edges (invisible, just for layout force)
+    for gid, group_devs in groups_found.items():
+        for i in range(len(group_devs)):
+            for j in range(i + 1, len(group_devs)):
+                a = group_devs[i]["id"]
+                b = group_devs[j]["id"]
+                if not G.has_edge(a, b):
+                    G.add_edge(a, b, weight=GROUP_ATTRACTION)
 
-            tier_y_offsets[t] = y_cursor
-            max_w = max(max_w, w)
-            y_cursor += h + V_GAP
+    # 3. Run spring layout
+    # k = optimal distance between nodes. Higher = more spread.
+    # iterations = more = better convergence.
+    k_value = 3.0 if len(devices) < 20 else 4.0 if len(devices) < 50 else 5.0
+    pos = nx.spring_layout(
+        G,
+        k=k_value,
+        iterations=200,
+        weight="weight",
+        seed=42,  # deterministic
+    )
 
-        total_h = y_cursor - V_GAP + CONTAINER_PAD
-        col_info[gid] = {
-            "width": max_w,
-            "height": total_h,
-            "tier_y": tier_y_offsets,
+    # 4. Scale to pixel coordinates
+    device_positions: dict[str, dict] = {}
+    for dev_id, (x, y) in pos.items():
+        device_positions[dev_id] = {
+            "x": int(x * CANVAS_SCALE * len(devices) / 8 + CANVAS_OFFSET_X),
+            "y": int(y * CANVAS_SCALE * len(devices) / 8 + CANVAS_OFFSET_Y),
         }
 
-    # 4. Position columns left to right
-    col_x: dict[str, int] = {}
-    x_cursor = COL_GAP
-    for gid in ordered_groups:
-        col_x[gid] = x_cursor
-        col_w = col_info[gid]["width"] + 2 * CONTAINER_PAD
-        x_cursor += col_w + COL_GAP
+    # 5. Prevent overlap: push apart any nodes that are too close
+    _resolve_overlaps(device_positions, min_dx=NODE_W + 15, min_dy=NODE_H + 10)
 
-    # Vertically align — all columns start at same Y
-    base_y = TOP_MARGIN + 10
-
-    # 5. Compute ABSOLUTE device positions (no parentId)
-    device_positions: dict[str, dict] = {}
-
-    for gid in ordered_groups:
-        tiers = group_tiers[gid]
-        info = col_info[gid]
-        cx = col_x[gid]
-
-        for t, devs in tiers.items():
-            ty = base_y + info["tier_y"].get(t, 0)
-            n = len(devs)
-            cols = min(n, 2) if n <= 4 else min(n, 3)
-            tier_w = cols * (NODE_W + H_GAP) - H_GAP
-            # Center tier within column
-            x_offset = cx + CONTAINER_PAD + (info["width"] - tier_w) // 2
-
-            for idx, dev in enumerate(devs):
-                col = idx % cols
-                row = idx // cols
-                device_positions[dev["id"]] = {
-                    "x": x_offset + col * (NODE_W + H_GAP),
-                    "y": ty + row * (NODE_H + 10),
-                }
-
-    # 6. Group background containers (visual only, no parentId on devices)
-    group_nodes: list[dict] = []
-    for gid in ordered_groups:
-        accent = GROUP_ACCENTS.get(gid, "#64748b")
-        info = col_info[gid]
-        gx = col_x[gid]
-        gy = base_y - 5
-        gw = info["width"] + 2 * CONTAINER_PAD
-        gh = info["height"] + 10
-
-        group_nodes.append({
-            "id": f"group-{gid}",
-            "type": "group",
-            "data": {"label": GROUP_LABELS.get(gid, gid)},
-            "position": {"x": gx, "y": gy},
-            "style": {
-                "width": gw,
-                "height": gh,
-                "backgroundColor": f"{accent}06",
-                "border": f"1px dashed {accent}25",
-                "borderRadius": 8,
-                "padding": 0,
-                "pointerEvents": "none",
-            },
-            "selectable": False,
-            "draggable": False,
-        })
-
-    # 7. Environment labels above each column
+    # 6. Create env labels at the centroid of each group (no background boxes)
+    # Force-directed layout naturally clusters groups — boxes would overlap.
+    group_nodes: list[dict] = []  # empty — no background rectangles
     env_labels: list[dict] = []
-    for gid in ordered_groups:
+
+    for gid, group_devs in groups_found.items():
+        member_ids = [d["id"] for d in group_devs]
+        member_positions = [device_positions[mid] for mid in member_ids if mid in device_positions]
+        if not member_positions:
+            continue
+
         accent = GROUP_ACCENTS.get(gid, "#64748b")
-        info = col_info[gid]
-        gx = col_x[gid]
-        gw = info["width"] + 2 * CONTAINER_PAD
+
+        # Centroid of group members
+        cx = sum(p["x"] for p in member_positions) // len(member_positions)
+        cy = min(p["y"] for p in member_positions) - 55
 
         env_labels.append({
             "id": f"env-label-{gid}",
@@ -218,9 +188,9 @@ def compute_radial_layout(
                 "label": GROUP_LABELS.get(gid, gid),
                 "envType": gid,
                 "accent": accent,
-                "deviceCount": len(groups_found[gid]),
+                "deviceCount": len(group_devs),
             },
-            "position": {"x": gx + gw // 2 - 80, "y": base_y - TOP_MARGIN + 5},
+            "position": {"x": cx - 60, "y": cy},
             "selectable": False,
             "draggable": False,
         })
@@ -231,3 +201,36 @@ def compute_radial_layout(
         "env_labels": env_labels,
         "groups_found": groups_found,
     }
+
+
+def _resolve_overlaps(positions: dict[str, dict], min_dx: int, min_dy: int,
+                       max_iterations: int = 50) -> None:
+    """Push overlapping nodes apart iteratively."""
+    ids = list(positions.keys())
+    for _ in range(max_iterations):
+        moved = False
+        for i in range(len(ids)):
+            for j in range(i + 1, len(ids)):
+                a = positions[ids[i]]
+                b = positions[ids[j]]
+                dx = abs(a["x"] - b["x"])
+                dy = abs(a["y"] - b["y"])
+                if dx < min_dx and dy < min_dy:
+                    # Push apart
+                    push_x = (min_dx - dx) // 2 + 1
+                    push_y = (min_dy - dy) // 2 + 1
+                    if a["x"] <= b["x"]:
+                        a["x"] -= push_x
+                        b["x"] += push_x
+                    else:
+                        a["x"] += push_x
+                        b["x"] -= push_x
+                    if a["y"] <= b["y"]:
+                        a["y"] -= push_y
+                        b["y"] += push_y
+                    else:
+                        a["y"] += push_y
+                        b["y"] -= push_y
+                    moved = True
+        if not moved:
+            break

@@ -41,7 +41,7 @@ const FILTER_LABELS: Record<string, string> = {
   mpls: 'MPLS',
 };
 
-const POSITIONS_KEY = 'topo-positions-v4'; // v4 = tiered columns, no parentId
+const POSITIONS_KEY = 'topo-positions-v5'; // v5 = force-directed semantic layout
 
 /* ── API ───────────────────────────────────────────────────────────── */
 

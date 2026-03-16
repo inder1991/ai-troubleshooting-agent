@@ -391,8 +391,8 @@ def build_topology_export(repo: SQLiteRepository, site_id: str | None = None, kg
             "label": d.get("label", node["id"]),
         })
 
-    # Compute layout
-    layout = compute_radial_layout(layout_devices)
+    # Compute layout — pass edges so force-directed layout uses connectivity
+    layout = compute_radial_layout(layout_devices, edges=all_neighbor_links)
 
     # Apply positions to device nodes (NO parentId — devices are top-level
     # so cross-group edges render freely without clipping)
