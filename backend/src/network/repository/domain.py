@@ -59,13 +59,13 @@ class Interface:
     mac: Optional[str] = None
     admin_state: str = "up"
     oper_state: str = "up"
-    speed: Optional[str] = None
+    speed: Optional[str] = None  # str to support values like "10G", "1G", "auto"
     mtu: Optional[int] = None
     duplex: Optional[str] = None
     port_channel_id: Optional[str] = None
     description: Optional[str] = None
     vrf_instance_id: Optional[str] = None
-    vlan_membership: list[int] = field(default_factory=list)
+    vlan_membership: list[int] = field(default_factory=list)  # VLAN IDs are integers
 
 
 # ── IPAddress ───────────────────────────────────────────────────────────────
@@ -172,7 +172,7 @@ class VRFInstance:
     last_seen: datetime
 
     # Optional
-    table_id: Optional[int] = None
+    table_id: Optional[int] = None  # kernel routing table ID
 
 
 # ── Route ───────────────────────────────────────────────────────────────────
@@ -239,8 +239,8 @@ class SecurityPolicy:
     dst_zone: Optional[str] = None
     src_ip: Optional[str] = None
     dst_ip: Optional[str] = None
-    src_port_range: Optional[str] = None
-    dst_port_range: Optional[str] = None
+    src_port_range: Optional[str] = None  # str to support ranges like "8080-8090"
+    dst_port_range: Optional[str] = None  # str to support ranges like "443"
     protocol: Optional[str] = None
     log: bool = False
     stateful: bool = True
@@ -266,6 +266,6 @@ class NATRule:
     original_dst: Optional[str] = None
     translated_src: Optional[str] = None
     translated_dst: Optional[str] = None
-    original_port: Optional[str] = None
-    translated_port: Optional[str] = None
+    original_port: Optional[str] = None  # str to support ranges
+    translated_port: Optional[str] = None  # str to support ranges
     direction: Optional[str] = None
