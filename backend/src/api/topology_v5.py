@@ -345,7 +345,7 @@ def build_topology_export(repo: SQLiteRepository, site_id: str | None = None, kg
             "id": link.id,
             "source": link.device_id,
             "target": link.remote_device,
-            "type": "smoothstep",
+            "type": "default",
             "label": speed_str,
             "labelStyle": {"fontSize": label_size, "fill": label_fill, "fontWeight": 600 if is_wan else 400},
             "labelBgStyle": {"fill": "#1a1814", "fillOpacity": 0.8},

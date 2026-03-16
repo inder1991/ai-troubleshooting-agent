@@ -41,7 +41,7 @@ const FILTER_LABELS: Record<string, string> = {
   mpls: 'MPLS',
 };
 
-const POSITIONS_KEY = 'topo-positions-v5'; // v5 = force-directed semantic layout
+const POSITIONS_KEY = 'topo-positions-v6'; // v6 = two-phase layout (group force + tier grid)
 
 /* ── API ───────────────────────────────────────────────────────────── */
 
