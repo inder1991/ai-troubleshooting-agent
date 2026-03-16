@@ -44,6 +44,7 @@ from .network_flow_endpoints import router as flow_analysis_router, init_flows
 from .network_probe_endpoints import router as probe_router, init_probes
 from .network_discovery_endpoints import router as autodiscovery_router, init_discovery as init_autodiscovery
 from .network_drift_endpoints import router as drift_router, init_drift
+from .topology_v5 import router as topology_v5_router
 from .websocket import manager
 
 # Cloud integration (multi-provider inventory)
@@ -193,6 +194,7 @@ def create_app() -> FastAPI:
     app.include_router(probe_router)
     app.include_router(autodiscovery_router)
     app.include_router(drift_router)
+    app.include_router(topology_v5_router)
 
     # Cloud integration router (multi-provider inventory)
     _cloud_store = CloudStore()
