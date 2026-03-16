@@ -45,14 +45,26 @@ def classify_group(device_data: dict) -> str:
     region = (device_data.get("region") or "").lower()
     combined = f"{site_id} {hostname} {location} {region}"
 
-    # AWS
-    if cloud == "aws" or "aws" in combined or "vpc-" in hostname or "tgw-" in hostname or "natgw-" in hostname or "igw-" in hostname or "csr-aws" in hostname:
+    # AWS — cloud_provider, name patterns, AWS region patterns
+    aws_regions = ("us-east-", "us-west-", "eu-west-", "eu-central-", "ap-southeast-", "ap-northeast-", "sa-east-", "ca-central-")
+    if (cloud == "aws" or "aws" in combined
+            or any(hostname.startswith(p) for p in ("vpc-", "tgw-", "natgw-", "igw-", "gwlb-", "csr-aws", "pa-aws", "f5-aws"))
+            or any(r in location for r in aws_regions)
+            or any(r in region for r in aws_regions)):
         return "aws"
-    # Azure
-    if cloud == "azure" or "azure" in combined or "vwan-" in hostname or "vnet-" in hostname or "nva-azure" in hostname or "er-gw" in hostname:
+    # Azure — cloud_provider, name patterns, Azure region patterns
+    azure_regions = ("westeurope", "eastus", "northeurope", "westus", "centralus", "uksouth")
+    if (cloud == "azure" or "azure" in combined
+            or any(hostname.startswith(p) for p in ("vwan-", "vnet-", "nva-azure", "er-gw"))
+            or any(r in location for r in azure_regions)
+            or any(r in region for r in azure_regions)):
         return "azure"
-    # OCI
-    if cloud == "oci" or "oci" in combined or "oracle" in combined or "vcn-" in hostname or "drg-" in hostname:
+    # OCI — cloud_provider, name patterns, OCI region patterns
+    oci_regions = ("us-ashburn", "us-phoenix", "eu-frankfurt-oci", "uk-london-oci", "ap-mumbai-oci")
+    if (cloud == "oci" or "oci" in combined or "oracle" in combined
+            or any(hostname.startswith(p) for p in ("vcn-", "drg-", "oci-"))
+            or any(r in location for r in oci_regions)
+            or any(r in region for r in oci_regions)):
         return "oci"
     # GCP
     if cloud == "gcp" or "gcp" in combined:
