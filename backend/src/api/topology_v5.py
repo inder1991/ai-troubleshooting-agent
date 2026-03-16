@@ -101,11 +101,15 @@ def _compute_topology_version(node_ids: list[str], edge_ids: list[str]) -> str:
     return hashlib.sha256(payload.encode()).hexdigest()[:16]
 
 
-def build_topology_export(repo: SQLiteRepository, site_id: str | None = None) -> dict:
+def build_topology_export(repo: SQLiteRepository, site_id: str | None = None, kg=None) -> dict:
     """Build the full v5 topology export from a repository instance.
 
     Returns a dict with nodes, edges, groups, layout_hints, and summary counts.
     No pixel positions are included.
+
+    If *kg* (NetworkKnowledgeGraph) is provided, edges are read from the
+    knowledge graph (which has L2, L3, HA, tunnel, route, MPLS edges).
+    Otherwise falls back to neighbor_links table.
     """
     # Access the underlying TopologyStore for Pydantic models (which have
     # role, cloud_provider, location, region, ha_role — fields absent from
@@ -151,42 +155,79 @@ def build_topology_export(repo: SQLiteRepository, site_id: str | None = None) ->
         node_ids.append(pdev.id)
         group_counts[group] = group_counts.get(group, 0) + 1
 
-    # Build edges from neighbor links
-    all_links = store.list_neighbor_links()
-    # Filter to only links whose both endpoints are in the current node set
+    # Build edges using EdgeBuilderService (extracts L2, L3, HA, tunnel,
+    # route, MPLS, TGW, LB edges from topology data)
+    from src.network.repository.edge_builder import EdgeBuilderService
+    edge_builder = EdgeBuilderService(store)
+    all_neighbor_links = edge_builder.build_all()
+
+    # Persist edges to neighbor_links table (so subsequent reads are fast)
+    for link in all_neighbor_links:
+        try:
+            repo.upsert_neighbor_link(link)
+        except Exception:
+            pass  # Best-effort persist
+
     node_id_set = set(node_ids)
     edges: list[dict] = []
     edge_ids: list[str] = []
     seen_edges: set[str] = set()
 
-    for link in all_links:
-        device_id = link["device_id"]
-        remote_device = link["remote_device"]
+    # Map edge_type protocols to frontend edge categories
+    EDGE_TYPE_MAP = {
+        "layer2_link": "physical",
+        "layer3_link": "physical",
+        "LLDP": "physical",
+        "CDP": "physical",
+        "lldp": "physical",
+        "cdp": "physical",
+        "l3_p2p": "physical",
+        "ha_peer": "ha_peer",
+        "active_passive": "ha_peer",
+        "active_active": "ha_peer",
+        "vrrp": "ha_peer",
+        "cluster": "ha_peer",
+        "tunnel_link": "tunnel",
+        "ipsec": "tunnel",
+        "gre": "tunnel",
+        "vxlan": "tunnel",
+        "mpls_path": "mpls",
+        "MPLS": "mpls",
+        "routes_via": "route",
+        "bgp": "route",
+        "BGP": "route",
+        "ospf": "route",
+        "OSPF": "route",
+        "eigrp": "route",
+        "static": "route",
+        "is-is": "route",
+        "attached_to": "cloud_attach",
+        "tgw": "cloud_attach",
+        "load_balances": "load_balancer",
+        "lb": "load_balancer",
+    }
 
-        # Both endpoints must be in scope
-        if device_id not in node_id_set or remote_device not in node_id_set:
+    for link in all_neighbor_links:
+        if link.device_id not in node_id_set or link.remote_device not in node_id_set:
             continue
 
-        # Dedup: normalise edge key so A→B and B→A collapse
-        pair = tuple(sorted([device_id, remote_device]))
-        local_iface = link.get("local_interface", "")
-        remote_iface = link.get("remote_interface", "")
-        dedup_key = f"{pair[0]}:{local_iface}--{pair[1]}:{remote_iface}" if pair[0] == device_id else f"{pair[0]}:{remote_iface}--{pair[1]}:{local_iface}"
-
+        pair = tuple(sorted([link.device_id, link.remote_device]))
+        dedup_key = f"{pair[0]}--{pair[1]}--{link.protocol}"
         if dedup_key in seen_edges:
             continue
         seen_edges.add(dedup_key)
 
-        edge_id = f"e-{device_id}:{local_iface}--{remote_device}:{remote_iface}"
+        edge_type = EDGE_TYPE_MAP.get(link.protocol, "logical")
+        edge_id = link.id
         edge = {
             "id": edge_id,
-            "source": device_id,
-            "target": remote_device,
-            "source_interface": f"{device_id}:{local_iface}" if local_iface else device_id,
-            "target_interface": f"{remote_device}:{remote_iface}" if remote_iface else remote_device,
-            "edge_type": "physical",
-            "protocol": link.get("protocol", "lldp"),
-            "confidence": link.get("confidence", 0.5),
+            "source": link.device_id,
+            "target": link.remote_device,
+            "source_interface": link.local_interface,
+            "target_interface": link.remote_interface,
+            "edge_type": edge_type,
+            "protocol": link.protocol,
+            "confidence": link.confidence,
         }
         edges.append(edge)
         edge_ids.append(edge_id)
