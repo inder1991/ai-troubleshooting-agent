@@ -36,7 +36,7 @@ class TestRadialLayout:
         assert len(result["env_labels"]) >= 1
         label = result["env_labels"][0]
         assert label["type"] == "envLabel"
-        assert label["data"]["label"] == "On-Premises DC"
+        assert label["data"]["label"] == "ON-PREMISES DC"
 
     def test_devices_have_parent_id(self):
         devices = [
