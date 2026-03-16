@@ -10,10 +10,7 @@ import { fetchBatchDeviceHealth, fetchBlastRadius, fetchTopologyPath } from '../
 import LiveDeviceNode from './LiveDeviceNode';
 import EnvironmentLabel from './EnvironmentLabel';
 import TopologyLegend from './TopologyLegend';
-import { computeLayout } from './layout/LayoutEngine';
-import { getEdgeStyle, getEdgeLabel } from './layout/edgeStyles';
 import { TopologyStreamManager, TopologyDelta } from './realtime/TopologyStreamManager';
-import type { ApiNode, ApiEdge, ApiGroup, LayoutAlgorithm } from './layout/types';
 
 const API_BASE_URL = 'http://localhost:8000';
 
@@ -24,40 +21,31 @@ const STATUS_COLORS: Record<string, string> = {
   unreachable: '#ef4444', stale: '#94a3b8', unknown: '#94a3b8', initializing: '#e09f3e',
 };
 
-// Edge type filter defaults
+// Edge type filter defaults (matches V5 edge_type values)
 const DEFAULT_FILTERS: Record<string, boolean> = {
-  layer2_link: true,
-  layer3_link: true,
+  physical: true,
   ha_peer: true,
-  tunnel_link: true,
-  routes_via: false,  // Off by default - too noisy
-  attached_to: true,
-  load_balances: true,
-  mpls_path: true,
+  tunnel: true,
+  route: false,  // Off by default - too noisy
+  cloud_attach: true,
+  load_balancer: true,
+  mpls: true,
 };
 
 const FILTER_LABELS: Record<string, string> = {
-  layer2_link: 'Physical',
-  layer3_link: 'L3 Links',
+  physical: 'Physical',
   ha_peer: 'HA Pairs',
-  tunnel_link: 'Tunnels',
-  routes_via: 'Routes',
-  attached_to: 'Attachments',
-  load_balances: 'Load Balancers',
-  mpls_path: 'MPLS',
+  tunnel: 'Tunnels',
+  route: 'Routes',
+  cloud_attach: 'Cloud Attachments',
+  load_balancer: 'Load Balancers',
+  mpls: 'MPLS',
 };
 
 const POSITIONS_KEY = 'topo-positions-v2';
 
-/** Fetch topology from v5 API */
-async function fetchTopologyV5(): Promise<{
-  nodes: ApiNode[];
-  edges: ApiEdge[];
-  groups: ApiGroup[];
-  layout_hints?: { algorithm?: string };
-  device_count: number;
-  edge_count: number;
-}> {
+/** Fetch topology from v5 API — returns positioned nodes + styled edges */
+async function fetchTopologyV5(): Promise<any> {
   const resp = await fetch(`${API_BASE_URL}/api/v5/topology`);
   if (!resp.ok) throw new Error(`Topology fetch failed (HTTP ${resp.status})`);
   return resp.json();
@@ -108,46 +96,45 @@ const LiveTopologyViewV2: React.FC = () => {
     refetchInterval: 30000,
   });
 
-  // Compute layout when data arrives (frontend layout engine)
+  // Apply topology data — positions come from backend (proven radial layout)
   useEffect(() => {
     if (!topoData?.nodes) return;
 
-    const algorithm = (topoData.layout_hints?.algorithm || 'hierarchical') as LayoutAlgorithm;
-    const { nodes: rfNodes, edges: rfEdges } = computeLayout({
-      nodes: topoData.nodes,
-      edges: topoData.edges,
-      groups: topoData.groups || [],
-      algorithm,
-      canvasWidth: window.innerWidth,
-      canvasHeight: window.innerHeight - 60,
-    });
+    // V5 API returns nodes with positions, group containers, env labels, styled edges
+    // — same format as V4. No frontend layout computation needed.
+    const newNodes: Node[] = topoData.nodes.map((n: any) => ({
+      ...n,
+      position: n.position || { x: 0, y: 0 },
+    }));
 
-    // Apply saved positions (drag persistence)
+    // Restore drag-saved positions (overrides backend positions for dragged nodes)
     let savedPositions: Record<string, { x: number; y: number }> = {};
     try {
       savedPositions = JSON.parse(localStorage.getItem(POSITIONS_KEY) || '{}');
     } catch { /* ignore */ }
 
-    const positioned = rfNodes.map(n => {
-      if (savedPositions[n.id] && n.type !== 'group') {
+    const positioned = newNodes.map(n => {
+      if (savedPositions[n.id] && n.type !== 'group' && n.type !== 'envLabel') {
         return { ...n, position: savedPositions[n.id] };
       }
       return n;
     });
 
     // Apply edge filters
-    const filteredEdges = rfEdges.filter((e: Edge) => {
-      const edgeType = e.data?.edgeType || e.data?.edge_type || 'layer3_link';
+    const filteredEdges = (topoData.edges || []).filter((e: any) => {
+      const edgeType = e.data?.edgeType || 'physical';
       return edgeFilters[edgeType] !== false;
     });
 
     // Apply group filter
     const visibleNodes = groupFilter === 'all'
       ? positioned
-      : positioned.filter((n: Node) => n.data?.group === groupFilter || n.type === 'group');
+      : positioned.filter((n: Node) =>
+          n.data?.group === groupFilter || n.type === 'group' || n.type === 'envLabel'
+        );
 
     const visibleNodeIds = new Set(visibleNodes.map(n => n.id));
-    const visibleEdges = filteredEdges.filter((e: Edge) =>
+    const visibleEdges = filteredEdges.filter((e: any) =>
       visibleNodeIds.has(e.source) && visibleNodeIds.has(e.target)
     );
 
@@ -268,7 +255,7 @@ const LiveTopologyViewV2: React.FC = () => {
 
   const groups = useMemo(() => {
     if (!topoData?.groups) return [];
-    return topoData.groups.map((g: ApiGroup) => g.label || g.id);
+    return topoData.groups.map((g: any) => g.label || g.id);
   }, [topoData]);
 
   // Memoize MiniMap nodeColor
