@@ -41,7 +41,7 @@ const FILTER_LABELS: Record<string, string> = {
   mpls: 'MPLS',
 };
 
-const POSITIONS_KEY = 'topo-positions-v2';
+const POSITIONS_KEY = 'topo-positions-v3'; // v3 = tiered layout (clears old radial positions)
 
 /* ── API ───────────────────────────────────────────────────────────── */
 
