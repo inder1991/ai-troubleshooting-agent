@@ -8,9 +8,10 @@ import 'reactflow/dist/style.css';
 import { useQuery } from '@tanstack/react-query';
 import { fetchTopologyCurrent, fetchBatchDeviceHealth, fetchBlastRadius, fetchTopologyPath } from '../../../services/api';
 import LiveDeviceNode from './LiveDeviceNode';
+import EnvironmentLabel from './EnvironmentLabel';
 import TopologyLegend from './TopologyLegend';
 
-const nodeTypes = { device: LiveDeviceNode };
+const nodeTypes = { device: LiveDeviceNode, envLabel: EnvironmentLabel };
 
 const STATUS_COLORS: Record<string, string> = {
   healthy: '#22c55e', degraded: '#f59e0b', critical: '#ef4444',

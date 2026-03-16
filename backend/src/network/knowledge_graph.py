@@ -1203,6 +1203,49 @@ class NetworkKnowledgeGraph:
 
         rf_nodes.extend(all_device_nodes)
 
+        # ── Step 6: Add environment label nodes above each group ──
+        # These are custom "envLabel" nodes — large, prominent, with icon
+        # Positioned above and centered on each group
+
+        # On-prem label
+        onprem_accent = self.GROUP_ACCENTS.get("onprem", "#e09f3e")
+        rf_nodes.append({
+            "id": "env-label-onprem",
+            "type": "envLabel",
+            "data": {
+                "label": "On-Premises DC",
+                "envType": "onprem",
+                "accent": onprem_accent,
+                "deviceCount": len(core_devices) + len(inner_devices),
+            },
+            "position": {"x": CENTER_X - 120, "y": CENTER_Y - 320},
+            "selectable": False, "draggable": False,
+        })
+
+        # Outer group labels
+        for group_id, (gx, gy) in outer_group_positions.items():
+            group_nodes_list = groups_found.get(group_id, [])
+            if not group_nodes_list:
+                continue
+            accent = self.GROUP_ACCENTS.get(group_id, "#3d3528")
+            n = len(group_nodes_list)
+            cols = min(n, 3)
+            rows_count = math.ceil(n / max(cols, 1))
+            cluster_h_val = max(rows_count * (NODE_H + 30) + 60, 200)
+
+            rf_nodes.append({
+                "id": f"env-label-{group_id}",
+                "type": "envLabel",
+                "data": {
+                    "label": self.GROUP_LABELS.get(group_id, group_id),
+                    "envType": group_id,
+                    "accent": accent,
+                    "deviceCount": n,
+                },
+                "position": {"x": gx - 100, "y": int(gy - cluster_h_val / 2 - 50)},
+                "selectable": False, "draggable": False,
+            })
+
         # ── Edges: deduplicate bidirectional, style by type ──
         # Build set of visual node IDs for filtering
         visual_node_ids = {n["id"] for n in all_device_nodes}
