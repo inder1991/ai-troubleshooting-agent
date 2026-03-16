@@ -23,47 +23,52 @@ def repo(tmp_path):
     return repo
 
 
+def _first_device(result):
+    """Return the first device node from the result (skip group/label nodes)."""
+    return next(n for n in result["nodes"] if n.get("type") == "device")
+
+
 class TestV5NodeParity:
     def test_node_has_label(self, repo):
         result = build_topology_export(repo)
-        node = result["nodes"][0]
+        node = _first_device(result)
         assert "data" in node
         assert node["data"]["label"] == "rtr-01"
 
     def test_node_has_entity_id(self, repo):
         result = build_topology_export(repo)
-        assert result["nodes"][0]["data"]["entityId"] == "rtr-01"
+        assert _first_device(result)["data"]["entityId"] == "rtr-01"
 
     def test_node_has_ip(self, repo):
         result = build_topology_export(repo)
-        assert result["nodes"][0]["data"]["ip"] == "10.0.0.1"
+        assert _first_device(result)["data"]["ip"] == "10.0.0.1"
 
     def test_node_has_role(self, repo):
         result = build_topology_export(repo)
-        assert result["nodes"][0]["data"]["role"] == "core"
+        assert _first_device(result)["data"]["role"] == "core"
 
     def test_node_has_location(self, repo):
         result = build_topology_export(repo)
-        assert result["nodes"][0]["data"]["location"] == "DC-East"
+        assert _first_device(result)["data"]["location"] == "DC-East"
 
     def test_node_has_os_version(self, repo):
         result = build_topology_export(repo)
-        assert result["nodes"][0]["data"]["osVersion"] == "IOS-XE 17.6"
+        assert _first_device(result)["data"]["osVersion"] == "IOS-XE 17.6"
 
     def test_node_has_interfaces(self, repo):
         result = build_topology_export(repo)
-        ifaces = result["nodes"][0]["data"]["interfaces"]
+        ifaces = _first_device(result)["data"]["interfaces"]
         assert len(ifaces) >= 1
         assert ifaces[0]["name"] == "Gi0/0"
         assert ifaces[0]["ip"] == "10.0.0.1"
 
     def test_node_has_ha_role(self, repo):
         result = build_topology_export(repo)
-        assert result["nodes"][0]["data"]["haRole"] == "active"
+        assert _first_device(result)["data"]["haRole"] == "active"
 
     def test_node_has_metric_placeholders(self, repo):
         result = build_topology_export(repo)
-        data = result["nodes"][0]["data"]
+        data = _first_device(result)["data"]
         for key in ["cpuPct", "memoryPct", "sessionCount", "poolHealth", "bgpPeers"]:
             assert key in data
 

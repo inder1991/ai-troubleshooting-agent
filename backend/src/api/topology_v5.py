@@ -1,8 +1,7 @@
-"""V5 Topology API — semantic export with layout hints, no pixel coordinates.
+"""V5 Topology API — semantic export with radial layout positions.
 
 Exports topology data from the repository with group classification,
-rank computation, and algorithm recommendations so the frontend layout
-engine can make its own positioning decisions.
+rank computation, and radial hub-spoke layout positions for ReactFlow.
 """
 
 from __future__ import annotations
@@ -106,7 +105,7 @@ def build_topology_export(repo: SQLiteRepository, site_id: str | None = None, kg
 
     Returns a dict with nodes, edges, groups, layout_hints, and summary counts.
     Node and edge data shapes match V4 (LiveDeviceNode.tsx expectations).
-    No pixel positions are included — Task 4 adds those.
+    Radial layout positions (x, y, parentId) are computed and applied to each device node.
 
     If *kg* (NetworkKnowledgeGraph) is provided, edges are read from the
     knowledge graph (which has L2, L3, HA, tunnel, route, MPLS edges).
@@ -365,18 +364,51 @@ def build_topology_export(repo: SQLiteRepository, site_id: str | None = None, kg
             "device_count": count,
         })
 
+    # ── Radial layout: compute positions + group containers ───────────
+    from src.network.repository.radial_layout import compute_radial_layout
+
+    # Prepare device data for layout computation
+    layout_devices = []
+    for node in nodes:
+        d = node["data"]
+        layout_devices.append({
+            "id": node["id"],
+            "group": d.get("group", "onprem"),
+            "role": d.get("role", ""),
+            "deviceType": d.get("deviceType", "HOST"),
+            "label": d.get("label", node["id"]),
+        })
+
+    # Compute layout
+    layout = compute_radial_layout(layout_devices)
+
+    # Apply positions and parentId to device nodes
+    device_nodes = nodes  # alias for clarity
+    for node in device_nodes:
+        pos_info = layout["device_positions"].get(node["id"])
+        if pos_info:
+            node["position"] = {"x": pos_info["x"], "y": pos_info["y"]}
+            if "parentId" in pos_info:
+                node["parentId"] = pos_info["parentId"]
+        else:
+            node["position"] = {"x": 0, "y": 0}
+
+    # Build final node list: groups first, then env labels, then devices
+    # (ReactFlow requires parent nodes before children in the array)
+    all_nodes = layout["group_nodes"] + layout["env_labels"] + device_nodes
+
     topology_version = _compute_topology_version(node_ids, edge_ids)
 
     return {
-        "nodes": nodes,
+        "nodes": all_nodes,
         "edges": edges,
         "groups": groups,
         "layout_hints": {
-            "algorithm": recommend_algorithm(len(nodes)),
+            "algorithm": recommend_algorithm(len(device_nodes)),
             "grouping": "site",
         },
         "topology_version": topology_version,
-        "device_count": len(nodes),
+        "device_count": len(device_nodes),
         "edge_count": len(edges),
     }
 
@@ -425,11 +457,10 @@ async def topology_stream(websocket: WebSocket):
 
 @router.get("/topology")
 def get_topology_v5(site_id: Optional[str] = Query(default=None)):
-    """Export the full topology graph with semantic data and layout hints.
+    """Export the full topology graph with radial layout positions.
 
-    NO pixel positions are included — the frontend layout engine decides
-    coordinates using the ``layout_hints.algorithm`` recommendation and
-    per-node ``rank`` / ``group`` metadata.
+    Each device node includes ``position: {x, y}`` and ``parentId`` for
+    ReactFlow group nesting.  Group containers and env labels are prepended.
     """
     repo = _get_repo()
     return build_topology_export(repo, site_id=site_id)

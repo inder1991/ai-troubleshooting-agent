@@ -194,9 +194,11 @@ class TestBuildTopologyExport:
         result = build_topology_export(repo)
         assert result["device_count"] == 1
         assert result["edge_count"] == 0
-        assert len(result["nodes"]) == 1
 
-        node = result["nodes"][0]
+        device_nodes = [n for n in result["nodes"] if n.get("type") == "device"]
+        assert len(device_nodes) == 1
+
+        node = device_nodes[0]
         assert node["id"] == "rtr-01"
         assert node["type"] == "device"
         assert node["rank"] == 1
@@ -296,7 +298,8 @@ class TestBuildTopologyExport:
         ))
         result = build_topology_export(repo, site_id="dc-east")
         assert result["device_count"] == 1
-        assert result["nodes"][0]["id"] == "rtr-01"
+        device_nodes = [n for n in result["nodes"] if n.get("type") == "device"]
+        assert device_nodes[0]["id"] == "rtr-01"
 
     def test_layout_hints_present(self, repo):
         result = build_topology_export(repo)
@@ -315,18 +318,19 @@ class TestBuildTopologyExport:
         v2 = build_topology_export(repo)["topology_version"]
         assert v1 != v2
 
-    def test_no_pixel_positions(self, repo):
-        """Ensure no position/x/y fields leak into the export."""
+    def test_device_nodes_have_positions(self, repo):
+        """Device nodes should have radial layout positions."""
         store = repo._store
         store.add_device(PD(
             id="rtr-01", name="rtr-01", device_type=DeviceType.ROUTER,
             management_ip="10.0.0.1",
         ))
         result = build_topology_export(repo)
-        node = result["nodes"][0]
-        assert "x" not in node
-        assert "y" not in node
-        assert "position" not in node
+        device_nodes = [n for n in result["nodes"] if n.get("type") == "device"]
+        node = device_nodes[0]
+        assert "position" in node
+        assert "x" in node["position"]
+        assert "y" in node["position"]
 
     def test_ha_role_populated(self, repo):
         store = repo._store
@@ -335,7 +339,8 @@ class TestBuildTopologyExport:
             management_ip="10.0.0.1", ha_role="active",
         ))
         result = build_topology_export(repo)
-        assert result["nodes"][0]["data"]["haRole"] == "active"
+        device_nodes = [n for n in result["nodes"] if n.get("type") == "device"]
+        assert device_nodes[0]["data"]["haRole"] == "active"
 
     def test_response_structure_keys(self, repo):
         result = build_topology_export(repo)
