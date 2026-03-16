@@ -9,9 +9,10 @@ from __future__ import annotations
 
 import hashlib
 import json
+import uuid
 from typing import Optional
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
 
 from src.network.topology_store import TopologyStore
 from src.network.repository.sqlite_repository import SQLiteRepository
@@ -227,6 +228,36 @@ def _get_repo() -> SQLiteRepository:
 
 
 # ── Endpoint ──────────────────────────────────────────────────────────────
+
+
+# ── Module-level WebSocket publisher singleton ────────────────────────────
+
+_ws_publisher = None
+
+
+def get_ws_publisher():
+    """Return (or lazily create) the singleton WebSocketTopologyPublisher."""
+    global _ws_publisher
+    if _ws_publisher is None:
+        from src.network.event_bus.websocket_publisher import WebSocketTopologyPublisher
+        _ws_publisher = WebSocketTopologyPublisher()
+    return _ws_publisher
+
+
+@router.websocket("/topology/stream")
+async def topology_stream(websocket: WebSocket):
+    """Real-time topology delta stream over WebSocket."""
+    await websocket.accept()
+    client_id = str(uuid.uuid4())
+    publisher = get_ws_publisher()
+    publisher.register(client_id, websocket)
+    try:
+        while True:
+            await websocket.receive_text()  # Keep-alive
+    except WebSocketDisconnect:
+        publisher.unregister(client_id)
+    except Exception:
+        publisher.unregister(client_id)
 
 
 @router.get("/topology")
