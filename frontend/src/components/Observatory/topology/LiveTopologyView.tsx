@@ -428,17 +428,17 @@ const LiveTopologyView: React.FC = () => {
         minZoom={0.1}
         maxZoom={2}
         proOptions={{ hideAttribution: true }}
-        style={{ background: '#201d17' }}
+        style={{ background: '#181a1e' }}
       >
-        <Background color="#ffffff" gap={30} size={0.5} style={{ opacity: 0.04 }} />
+        <Background color="#ffffff" gap={30} size={0.5} style={{ opacity: 0.03 }} />
         <Controls
-          style={{ background: '#1e1b15', border: '1px solid #3d3528', borderRadius: 8 }}
+          style={{ background: '#1a1c22', border: '1px solid #2a2d35', borderRadius: 8 }}
           showInteractive={false}
         />
         <MiniMap
           nodeColor={miniMapNodeColor}
-          style={{ background: '#1e1b15', border: '1px solid #3d3528', borderRadius: 8 }}
-          maskColor="rgba(26, 24, 20, 0.8)"
+          style={{ background: '#1a1c22', border: '1px solid #2a2d35', borderRadius: 8 }}
+          maskColor="rgba(24, 26, 30, 0.8)"
         />
       </ReactFlow>
 
