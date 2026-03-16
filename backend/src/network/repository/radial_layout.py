@@ -164,9 +164,8 @@ def compute_radial_layout(
     # 5. Prevent overlap: push apart any nodes that are too close
     _resolve_overlaps(device_positions, min_dx=NODE_W + 15, min_dy=NODE_H + 10)
 
-    # 6. Create env labels at the centroid of each group (no background boxes)
-    # Force-directed layout naturally clusters groups — boxes would overlap.
-    group_nodes: list[dict] = []  # empty — no background rectangles
+    # 6. Create group backgrounds + env labels from actual device positions
+    group_nodes: list[dict] = []
     env_labels: list[dict] = []
 
     for gid, group_devs in groups_found.items():
@@ -176,11 +175,37 @@ def compute_radial_layout(
             continue
 
         accent = GROUP_ACCENTS.get(gid, "#64748b")
+        pad = 35
 
-        # Centroid of group members
-        cx = sum(p["x"] for p in member_positions) // len(member_positions)
-        cy = min(p["y"] for p in member_positions) - 55
+        # Bounding box from actual positions (after force-directed + overlap resolution)
+        min_x = min(p["x"] for p in member_positions) - pad
+        min_y = min(p["y"] for p in member_positions) - pad
+        max_x = max(p["x"] for p in member_positions) + NODE_W + pad
+        max_y = max(p["y"] for p in member_positions) + NODE_H + pad
 
+        gw = max_x - min_x
+        gh = max_y - min_y
+
+        group_nodes.append({
+            "id": f"group-{gid}",
+            "type": "group",
+            "data": {"label": GROUP_LABELS.get(gid, gid)},
+            "position": {"x": min_x, "y": min_y},
+            "style": {
+                "width": gw,
+                "height": gh,
+                "backgroundColor": f"{accent}08",
+                "border": f"1px solid {accent}20",
+                "borderRadius": 10,
+                "padding": 0,
+                "pointerEvents": "none",
+            },
+            "selectable": False,
+            "draggable": False,
+            "zIndex": -1,
+        })
+
+        # Env label above group
         env_labels.append({
             "id": f"env-label-{gid}",
             "type": "envLabel",
@@ -190,7 +215,7 @@ def compute_radial_layout(
                 "accent": accent,
                 "deviceCount": len(group_devs),
             },
-            "position": {"x": cx - 60, "y": cy},
+            "position": {"x": min_x + gw // 2 - 80, "y": min_y - 55},
             "selectable": False,
             "draggable": False,
         })

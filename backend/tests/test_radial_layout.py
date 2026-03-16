@@ -63,8 +63,7 @@ class TestRadialLayout:
             devices.append({"id": f"branch-{i}", "group": "branch", "role": "edge", "deviceType": "ROUTER"})
         result = compute_radial_layout(devices)
         assert len(result["device_positions"]) == 31
-        # No group containers (force-directed uses labels only)
-        assert len(result["group_nodes"]) == 0
+        assert len(result["group_nodes"]) == 5
         assert len(result["env_labels"]) == 5
 
     def test_no_overlap(self):
