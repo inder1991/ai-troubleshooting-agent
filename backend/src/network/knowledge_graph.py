@@ -63,6 +63,7 @@ class NetworkKnowledgeGraph:
         self.graph = nx.MultiDiGraph()
         self.ip_resolver = IPResolver()
         self._device_index: dict[str, str] = {}  # ip -> device_id
+        self.repo = None  # Optional TopologyRepository — set externally for migration
 
     def load_from_store(self) -> None:
         """Load all topology entities from SQLite into the graph."""
