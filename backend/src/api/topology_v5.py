@@ -105,7 +105,8 @@ def build_topology_export(repo: SQLiteRepository, site_id: str | None = None, kg
     """Build the full v5 topology export from a repository instance.
 
     Returns a dict with nodes, edges, groups, layout_hints, and summary counts.
-    No pixel positions are included.
+    Node and edge data shapes match V4 (LiveDeviceNode.tsx expectations).
+    No pixel positions are included — Task 4 adds those.
 
     If *kg* (NetworkKnowledgeGraph) is provided, edges are read from the
     knowledge graph (which has L2, L3, HA, tunnel, route, MPLS edges).
@@ -120,7 +121,15 @@ def build_topology_export(repo: SQLiteRepository, site_id: str | None = None, kg
     if site_id:
         pydantic_devices = [d for d in pydantic_devices if (d.site_id or "") == site_id]
 
-    # Build nodes
+    # ── Optional metrics store ────────────────────────────────────────────
+    metrics_store = None
+    try:
+        from src.network.sqlite_metrics_store import SQLiteMetricsStore
+        metrics_store = SQLiteMetricsStore()
+    except Exception:
+        pass
+
+    # ── Build nodes (V4-compatible data shape) ────────────────────────────
     nodes: list[dict] = []
     node_ids: list[str] = []
     group_counts: dict[str, int] = {}
@@ -138,40 +147,104 @@ def build_topology_export(repo: SQLiteRepository, site_id: str | None = None, kg
         group = classify_group(device_data)
         rank = compute_rank(dt_val, pdev.role or "")
 
+        # Interfaces from store
+        device_ifaces = store.list_interfaces(device_id=pdev.id)
+        interfaces_data = [
+            {
+                "id": iface.id,
+                "name": iface.name,
+                "ip": iface.ip,
+                "role": iface.role,
+                "zone": iface.zone_id,
+                "operStatus": iface.oper_status,
+                "adminStatus": iface.admin_status,
+            }
+            for iface in device_ifaces
+        ]
+
+        node_data = {
+            "label": pdev.name or pdev.id,
+            "entityId": pdev.id,
+            "deviceType": dt_val.upper(),
+            "ip": pdev.management_ip or "",
+            "vendor": pdev.vendor or "",
+            "role": pdev.role or "",
+            "group": group,
+            "status": "initializing",
+            "haRole": pdev.ha_role or "",
+            "location": pdev.location or "",
+            "osVersion": pdev.os_version or "",
+            "interfaces": interfaces_data,
+            # Metrics placeholders
+            "cpuPct": None,
+            "memoryPct": None,
+            "sessionCount": None,
+            "sessionMax": None,
+            "threatHits": None,
+            "sslTps": None,
+            "poolHealth": None,
+            "bgpPeers": None,
+            "routeCount": None,
+        }
+
+        # Enrich from metrics store if available
+        if metrics_store is not None:
+            try:
+                cpu = metrics_store.get_latest_device_metric(pdev.id, "cpu_pct")
+                memory = metrics_store.get_latest_device_metric(pdev.id, "memory_pct")
+                node_data["cpuPct"] = round(cpu, 1) if cpu is not None else None
+                node_data["memoryPct"] = round(memory, 1) if memory is not None else None
+
+                dt_lower = dt_val.lower()
+                if dt_lower == "firewall":
+                    sc = metrics_store.get_latest_device_metric(pdev.id, "session_count")
+                    sm = metrics_store.get_latest_device_metric(pdev.id, "session_max")
+                    th = metrics_store.get_latest_device_metric(pdev.id, "threat_hits")
+                    node_data["sessionCount"] = int(sc) if sc is not None else None
+                    node_data["sessionMax"] = int(sm) if sm is not None else None
+                    node_data["threatHits"] = int(th) if th is not None else None
+                elif dt_lower == "load_balancer":
+                    st = metrics_store.get_latest_device_metric(pdev.id, "ssl_tps")
+                    ph = metrics_store.get_latest_device_metric(pdev.id, "pool_health")
+                    node_data["sslTps"] = int(st) if st is not None else None
+                    node_data["poolHealth"] = round(ph, 1) if ph is not None else None
+                elif dt_lower == "router":
+                    bp = metrics_store.get_latest_device_metric(pdev.id, "bgp_peers")
+                    rc = metrics_store.get_latest_device_metric(pdev.id, "route_count")
+                    node_data["bgpPeers"] = int(bp) if bp is not None else None
+                    node_data["routeCount"] = int(rc) if rc is not None else None
+
+                # Derive status from metrics
+                if cpu is not None or memory is not None:
+                    node_data["status"] = "healthy"
+                    if (cpu is not None and cpu > 90) or (memory is not None and memory > 90):
+                        node_data["status"] = "critical"
+                    elif (cpu is not None and cpu > 70) or (memory is not None and memory > 70):
+                        node_data["status"] = "warning"
+            except Exception:
+                pass
+
         node = {
             "id": pdev.id,
-            "hostname": pdev.name or pdev.id,
-            "vendor": pdev.vendor or "",
-            "device_type": dt_val.upper(),
-            "site_id": pdev.site_id or "",
-            "group": group,
+            "type": "device",
+            "data": node_data,
+            # Preserved for layout engine (Task 3/4)
             "rank": rank,
-            "status": "healthy",
-            "confidence": 0.9,
-            "ha_role": pdev.ha_role if pdev.ha_role else None,
-            "metrics": {},
         }
         nodes.append(node)
         node_ids.append(pdev.id)
         group_counts[group] = group_counts.get(group, 0) + 1
 
-    # Build edges using EdgeBuilderService (extracts L2, L3, HA, tunnel,
-    # route, MPLS, TGW, LB edges from topology data)
-    from src.network.repository.edge_builder import EdgeBuilderService
-    edge_builder = EdgeBuilderService(store)
-    all_neighbor_links = edge_builder.build_all()
-
-    # Persist edges to neighbor_links table (so subsequent reads are fast)
-    for link in all_neighbor_links:
-        try:
-            repo.upsert_neighbor_link(link)
-        except Exception:
-            pass  # Best-effort persist
-
-    node_id_set = set(node_ids)
-    edges: list[dict] = []
-    edge_ids: list[str] = []
-    seen_edges: set[str] = set()
+    # ── Edge style constants ──────────────────────────────────────────────
+    EDGE_STYLES = {
+        "physical":      {"stroke": "#22c55e", "strokeWidth": 3},
+        "ha_peer":       {"stroke": "#f59e0b", "strokeWidth": 2, "strokeDasharray": "6,4"},
+        "tunnel":        {"stroke": "#06b6d4", "strokeWidth": 3, "strokeDasharray": "10,5"},
+        "route":         {"stroke": "#64748b", "strokeWidth": 1, "opacity": 0.3},
+        "cloud_attach":  {"stroke": "#06b6d4", "strokeWidth": 3},
+        "load_balancer": {"stroke": "#a855f7", "strokeWidth": 2},
+        "mpls":          {"stroke": "#f59e0b", "strokeWidth": 4},
+    }
 
     # Map edge_type protocols to frontend edge categories
     EDGE_TYPE_MAP = {
@@ -207,6 +280,23 @@ def build_topology_export(repo: SQLiteRepository, site_id: str | None = None, kg
         "lb": "load_balancer",
     }
 
+    # ── Build edges (V4-compatible data shape) ────────────────────────────
+    from src.network.repository.edge_builder import EdgeBuilderService
+    edge_builder = EdgeBuilderService(store)
+    all_neighbor_links = edge_builder.build_all()
+
+    # Persist edges to neighbor_links table (so subsequent reads are fast)
+    for link in all_neighbor_links:
+        try:
+            repo.upsert_neighbor_link(link)
+        except Exception:
+            pass  # Best-effort persist
+
+    node_id_set = set(node_ids)
+    edges: list[dict] = []
+    edge_ids: list[str] = []
+    seen_edges: set[str] = set()
+
     for link in all_neighbor_links:
         if link.device_id not in node_id_set or link.remote_device not in node_id_set:
             continue
@@ -217,20 +307,52 @@ def build_topology_export(repo: SQLiteRepository, site_id: str | None = None, kg
             continue
         seen_edges.add(dedup_key)
 
-        edge_type = EDGE_TYPE_MAP.get(link.protocol, "logical")
-        edge_id = link.id
+        edge_type = EDGE_TYPE_MAP.get(link.protocol, "physical")
+        style = dict(EDGE_STYLES.get(edge_type, EDGE_STYLES["physical"]))
+
+        # Extract interface names from link IDs (device_id:iface_name -> iface_name)
+        src_iface_name = link.local_interface.split(":", 1)[1] if ":" in link.local_interface else link.local_interface
+        dst_iface_name = link.remote_interface.split(":", 1)[1] if ":" in link.remote_interface else link.remote_interface
+
+        # Get interface speed from store
+        speed_str = ""
+        try:
+            ifaces = store.list_interfaces(device_id=link.device_id)
+            for iface in ifaces:
+                if iface.name == src_iface_name:
+                    speed_str = iface.speed or ""
+                    break
+        except Exception:
+            pass
+
+        # WAN edges get larger labels
+        is_wan = edge_type in ("mpls", "tunnel", "cloud_attach")
+        label_size = 10 if is_wan else 8
+        label_fill = "#94a3b8" if is_wan else "#64748b"
+
         edge = {
-            "id": edge_id,
+            "id": link.id,
             "source": link.device_id,
             "target": link.remote_device,
-            "source_interface": link.local_interface,
-            "target_interface": link.remote_interface,
-            "edge_type": edge_type,
-            "protocol": link.protocol,
-            "confidence": link.confidence,
+            "type": "smoothstep",
+            "label": speed_str,
+            "labelStyle": {"fontSize": label_size, "fill": label_fill, "fontWeight": 600 if is_wan else 400},
+            "labelBgStyle": {"fill": "#1a1814", "fillOpacity": 0.8},
+            "labelBgPadding": [4, 2],
+            "data": {
+                "edgeType": edge_type,
+                "srcInterface": src_iface_name,
+                "dstInterface": dst_iface_name,
+                "protocol": link.protocol,
+                "status": "up",
+                "utilization": None,
+                "speed": speed_str,
+            },
+            "style": style,
+            "animated": edge_type == "tunnel",
         }
         edges.append(edge)
-        edge_ids.append(edge_id)
+        edge_ids.append(link.id)
 
     # Groups summary
     groups: list[dict] = []

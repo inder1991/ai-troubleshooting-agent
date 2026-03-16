@@ -198,15 +198,15 @@ class TestBuildTopologyExport:
 
         node = result["nodes"][0]
         assert node["id"] == "rtr-01"
-        assert node["hostname"] == "rtr-01"
-        assert node["vendor"] == "cisco"
-        assert node["device_type"] == "ROUTER"
-        assert node["group"] == "onprem"
+        assert node["type"] == "device"
         assert node["rank"] == 1
-        assert node["status"] == "healthy"
-        assert node["confidence"] == 0.9
-        assert node["ha_role"] is None
-        assert node["metrics"] == {}
+        data = node["data"]
+        assert data["label"] == "rtr-01"
+        assert data["vendor"] == "cisco"
+        assert data["deviceType"] == "ROUTER"
+        assert data["group"] == "onprem"
+        assert data["status"] == "initializing"
+        assert data["haRole"] == ""
 
     def test_groups_populated(self, repo):
         repo._store.add_device(PD(
@@ -256,7 +256,7 @@ class TestBuildTopologyExport:
                     if {e["source"], e["target"]} == {"rtr-01", "sw-01"}]
         assert len(matching) >= 1
         edge = matching[0]
-        assert edge["edge_type"] == "physical"
+        assert edge["data"]["edgeType"] == "physical"
 
     def test_edges_dedup(self, repo):
         """Bidirectional LLDP links should be deduplicated."""
@@ -335,7 +335,7 @@ class TestBuildTopologyExport:
             management_ip="10.0.0.1", ha_role="active",
         ))
         result = build_topology_export(repo)
-        assert result["nodes"][0]["ha_role"] == "active"
+        assert result["nodes"][0]["data"]["haRole"] == "active"
 
     def test_response_structure_keys(self, repo):
         result = build_topology_export(repo)
