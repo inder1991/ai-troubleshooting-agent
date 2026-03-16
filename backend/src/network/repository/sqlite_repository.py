@@ -233,8 +233,20 @@ class SQLiteRepository(TopologyRepository):
         return results
 
     def get_neighbors(self, device_id: str) -> list[NeighborLink]:
-        # Task 4 adds the neighbor links table
-        return []
+        import json
+        rows = self._store.list_neighbor_links(device_id=device_id)
+        return [NeighborLink(
+            id=r["id"],
+            device_id=r["device_id"],
+            local_interface=r["local_interface"],
+            remote_device=r["remote_device"],
+            remote_interface=r["remote_interface"],
+            protocol=r["protocol"],
+            sources=json.loads(r["sources"]) if r["sources"] else [],
+            first_seen=self._parse_datetime(r["first_seen"]),
+            last_seen=self._parse_datetime(r["last_seen"]),
+            confidence=r["confidence"],
+        ) for r in rows]
 
     def get_security_policies(self, device_id: str) -> list[SecurityPolicy]:
         pydantic_rules = self._store.list_firewall_rules(device_id=device_id)
@@ -289,7 +301,19 @@ class SQLiteRepository(TopologyRepository):
         return ip_address
 
     def upsert_neighbor_link(self, link: NeighborLink) -> NeighborLink:
-        # Task 4 adds the neighbor links table
+        import json
+        self._store.upsert_neighbor_link(
+            link_id=link.id,
+            device_id=link.device_id,
+            local_interface=link.local_interface,
+            remote_device=link.remote_device,
+            remote_interface=link.remote_interface,
+            protocol=link.protocol,
+            sources=json.dumps(link.sources),
+            first_seen=link.first_seen.isoformat() if hasattr(link.first_seen, 'isoformat') else str(link.first_seen),
+            last_seen=link.last_seen.isoformat() if hasattr(link.last_seen, 'isoformat') else str(link.last_seen),
+            confidence=link.confidence,
+        )
         return link
 
     def upsert_route(self, route: Route) -> Route:

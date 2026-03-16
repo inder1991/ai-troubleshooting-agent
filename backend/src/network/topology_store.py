@@ -487,6 +487,22 @@ class TopologyStore:
                     created_at TEXT NOT NULL,
                     FOREIGN KEY (design_id) REFERENCES topology_designs(id) ON DELETE CASCADE
                 );
+
+                CREATE TABLE IF NOT EXISTS neighbor_links (
+                    id TEXT PRIMARY KEY,
+                    device_id TEXT NOT NULL,
+                    local_interface TEXT NOT NULL,
+                    remote_device TEXT NOT NULL,
+                    remote_interface TEXT NOT NULL,
+                    protocol TEXT NOT NULL,
+                    sources TEXT DEFAULT '[]',
+                    first_seen TEXT DEFAULT '',
+                    last_seen TEXT DEFAULT '',
+                    confidence REAL DEFAULT 0.5,
+                    UNIQUE(device_id, local_interface, remote_device, remote_interface)
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_neighbor_device ON neighbor_links(device_id);
             """)
             conn.commit()
         finally:
@@ -4252,5 +4268,38 @@ class TopologyStore:
             else:
                 row = conn.execute("SELECT COUNT(*) FROM alert_history").fetchone()
             return row[0]
+        finally:
+            conn.close()
+
+    # ── Neighbor Links ──
+
+    def upsert_neighbor_link(self, link_id: str, device_id: str, local_interface: str,
+                              remote_device: str, remote_interface: str, protocol: str,
+                              sources: str = "[]", first_seen: str = "",
+                              last_seen: str = "", confidence: float = 0.5) -> None:
+        conn = self._conn()
+        try:
+            conn.execute(
+                "INSERT OR REPLACE INTO neighbor_links "
+                "(id, device_id, local_interface, remote_device, remote_interface, "
+                "protocol, sources, first_seen, last_seen, confidence) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?)",
+                (link_id, device_id, local_interface, remote_device,
+                 remote_interface, protocol, sources, first_seen, last_seen, confidence),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+    def list_neighbor_links(self, device_id: str = None) -> list[dict]:
+        conn = self._conn()
+        try:
+            if device_id:
+                rows = conn.execute(
+                    "SELECT * FROM neighbor_links WHERE device_id=?", (device_id,)
+                ).fetchall()
+            else:
+                rows = conn.execute("SELECT * FROM neighbor_links").fetchall()
+            return [dict(r) for r in rows]
         finally:
             conn.close()
