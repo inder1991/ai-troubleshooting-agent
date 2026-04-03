@@ -32,10 +32,10 @@ const WorkflowRunCard: React.FC<Props> = ({ run, selected, onClick }) => {
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <div className="text-xs font-mono font-semibold truncate" style={{ color: '#e8e0d4' }}>
+          <div className="text-xs font-display font-semibold truncate" style={{ color: '#e8e0d4' }}>
             {run.workflow_name}
           </div>
-          <div className="text-[10px] font-mono mt-0.5 truncate" style={{ color: '#64748b' }}>
+          <div className="text-[10px] font-sans mt-0.5 truncate" style={{ color: '#64748b' }}>
             {run.service_name}
           </div>
         </div>
@@ -43,11 +43,11 @@ const WorkflowRunCard: React.FC<Props> = ({ run, selected, onClick }) => {
           <span className="material-symbols-outlined" style={{ fontSize: 14, color: cfg.color }}>
             {cfg.icon}
           </span>
-          <span className="text-[10px] font-mono" style={{ color: cfg.color }}>{cfg.label}</span>
+          <span className="text-[10px] font-sans" style={{ color: cfg.color }}>{cfg.label}</span>
         </div>
       </div>
 
-      <div className="mt-2 flex items-center gap-3 text-[10px] font-mono" style={{ color: '#3d4a50' }}>
+      <div className="mt-2 flex items-center gap-3 text-[10px] font-sans" style={{ color: '#3d4a50' }}>
         <span>{new Date(run.started_at).toLocaleString()}</span>
         <span>·</span>
         <span>{elapsed(run.started_at, run.finished_at)}</span>

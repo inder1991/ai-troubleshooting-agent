@@ -70,8 +70,8 @@ const WorkflowRunDetail: React.FC<Props> = ({ run, onClose }) => {
     <div className="h-full flex flex-col overflow-hidden" style={{ background: '#0c1a1f' }}>
       <div className="flex items-center justify-between px-5 py-4 border-b flex-shrink-0" style={{ borderColor: '#1e2a2e' }}>
         <div>
-          <div className="text-sm font-mono font-bold" style={{ color: '#e8e0d4' }}>{run.service_name}</div>
-          <div className="text-[10px] font-mono mt-0.5" style={{ color: '#64748b' }}>
+          <div className="text-sm font-display font-bold" style={{ color: '#e8e0d4' }}>{run.service_name}</div>
+          <div className="text-[10px] font-sans mt-0.5" style={{ color: '#64748b' }}>
             {run.workflow_name} · {new Date(run.started_at).toLocaleString()}
           </div>
         </div>
@@ -83,7 +83,7 @@ const WorkflowRunDetail: React.FC<Props> = ({ run, onClose }) => {
       <div className="flex-1 overflow-auto px-5 py-4 space-y-4">
         {/* Steps */}
         <div>
-          <div className="text-[10px] font-mono uppercase tracking-widest mb-3" style={{ color: '#3d4a50' }}>Steps</div>
+          <div className="text-[10px] font-sans uppercase tracking-widest mb-3" style={{ color: '#3d4a50' }}>Steps</div>
           <div className="space-y-2">
             {steps.map(step => {
               const cfg = STATUS_CONFIG[step.status];
@@ -98,12 +98,12 @@ const WorkflowRunDetail: React.FC<Props> = ({ run, onClose }) => {
                   <div className="flex-1 min-w-0">
                     <div className="text-[11px] font-mono" style={{ color: '#e8e0d4' }}>{step.id}</div>
                     {finding && (
-                      <div className="text-[10px] font-mono mt-0.5 truncate" style={{ color: '#9a9080' }}>
+                      <div className="text-[10px] font-sans mt-0.5 truncate" style={{ color: '#9a9080' }}>
                         {finding.summary || finding.title}
                       </div>
                     )}
                   </div>
-                  <span className="text-[10px] font-mono flex-shrink-0" style={{ color: cfg.color }}>
+                  <span className="text-[10px] font-sans flex-shrink-0" style={{ color: cfg.color }}>
                     {step.status}
                   </span>
                 </div>
@@ -117,20 +117,20 @@ const WorkflowRunDetail: React.FC<Props> = ({ run, onClose }) => {
           <div className="rounded-lg p-4" style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.3)' }}>
             <div className="flex items-center gap-2 mb-2">
               <span className="material-symbols-outlined" style={{ fontSize: 16, color: '#f59e0b' }}>pending_actions</span>
-              <span className="text-xs font-mono font-semibold" style={{ color: '#f59e0b' }}>Awaiting Approval</span>
+              <span className="text-xs font-display font-semibold" style={{ color: '#f59e0b' }}>Awaiting Approval</span>
             </div>
-            <div className="text-[11px] font-mono mb-3" style={{ color: '#9a9080' }}>
+            <div className="text-[11px] font-sans mb-3" style={{ color: '#9a9080' }}>
               fix_generator has proposed a fix. Review and approve to create a PR.
             </div>
             <div className="flex gap-2">
               <button onClick={handleApprove} disabled={approving}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-sans"
                 style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.4)', color: '#22c55e' }}>
                 <span className="material-symbols-outlined" style={{ fontSize: 13 }}>check</span>
                 {approving ? 'Approving...' : 'Approve & Create PR'}
               </button>
               <button onClick={handleReject}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-sans"
                 style={{ background: 'transparent', border: '1px solid rgba(239,68,68,0.4)', color: '#ef4444' }}>
                 <span className="material-symbols-outlined" style={{ fontSize: 13 }}>close</span>
                 Reject
@@ -142,7 +142,7 @@ const WorkflowRunDetail: React.FC<Props> = ({ run, onClose }) => {
         {/* Confidence bar */}
         {run.overall_confidence !== undefined && (
           <div className="rounded p-3" style={{ background: '#0a1214', border: '1px solid #1a2428' }}>
-            <div className="text-[10px] font-mono uppercase tracking-widest mb-2" style={{ color: '#3d4a50' }}>Overall Confidence</div>
+            <div className="text-[10px] font-sans uppercase tracking-widest mb-2" style={{ color: '#3d4a50' }}>Overall Confidence</div>
             <div className="flex items-center gap-3">
               <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: '#1a2428' }}>
                 <div className="h-full rounded-full" style={{

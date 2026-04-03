@@ -23,7 +23,7 @@ const WorkflowBuilderView: React.FC = () => {
       {/* Toolbar */}
       <div className="flex items-center justify-between px-5 py-3 border-b flex-shrink-0" style={{ borderColor: '#1e2a2e' }}>
         <div>
-          <h1 className="text-base font-mono font-bold" style={{ color: '#e8e0d4' }}>
+          <h1 className="text-base font-display font-bold" style={{ color: '#e8e0d4' }}>
             {parsed.name || 'Untitled Workflow'}
           </h1>
           {parsed.id && (
@@ -32,13 +32,13 @@ const WorkflowBuilderView: React.FC = () => {
         </div>
         <div className="flex items-center gap-2">
           {parsed.errors.length > 0 ? (
-            <span className="flex items-center gap-1 text-[10px] font-mono px-2 py-1 rounded"
+            <span className="flex items-center gap-1 text-[10px] font-sans px-2 py-1 rounded"
               style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444' }}>
               <span className="material-symbols-outlined" style={{ fontSize: 12 }}>error</span>
               {parsed.errors.length} error{parsed.errors.length !== 1 ? 's' : ''}
             </span>
           ) : (
-            <span className="flex items-center gap-1 text-[10px] font-mono px-2 py-1 rounded"
+            <span className="flex items-center gap-1 text-[10px] font-sans px-2 py-1 rounded"
               style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)', color: '#22c55e' }}>
               <span className="material-symbols-outlined" style={{ fontSize: 12 }}>check_circle</span>
               Valid
@@ -46,7 +46,7 @@ const WorkflowBuilderView: React.FC = () => {
           )}
 
           <button onClick={handleSave}
-            className="flex items-center gap-1 px-3 py-1.5 rounded text-xs font-mono"
+            className="flex items-center gap-1 px-3 py-1.5 rounded text-xs font-sans"
             style={{ background: 'rgba(7,182,213,0.1)', border: '1px solid rgba(7,182,213,0.3)', color: saved ? '#22c55e' : '#07b6d5' }}>
             <span className="material-symbols-outlined" style={{ fontSize: 13 }}>{saved ? 'check' : 'save'}</span>
             {saved ? 'Saved' : 'Save'}
@@ -54,7 +54,7 @@ const WorkflowBuilderView: React.FC = () => {
 
           <button
             disabled
-            className="flex items-center gap-1 px-3 py-1.5 rounded text-xs font-mono cursor-not-allowed"
+            className="flex items-center gap-1 px-3 py-1.5 rounded text-xs font-sans cursor-not-allowed"
             style={{ background: 'transparent', border: '1px solid #1e2a2e', color: '#3d4a50' }}
             title="Workflow execution available after platform backend ships"
           >
@@ -69,8 +69,8 @@ const WorkflowBuilderView: React.FC = () => {
         {/* YAML Editor */}
         <div className="flex flex-col border-r" style={{ width: '50%', borderColor: '#1e2a2e' }}>
           <div className="px-4 py-2 border-b flex-shrink-0 flex items-center justify-between" style={{ borderColor: '#1e2a2e' }}>
-            <span className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#3d4a50' }}>Workflow YAML</span>
-            <span className="text-[10px] font-mono" style={{ color: '#3d4a50' }}>{parsed.steps.length} steps</span>
+            <span className="text-[10px] font-sans uppercase tracking-widest" style={{ color: '#3d4a50' }}>Workflow YAML</span>
+            <span className="text-[10px] font-sans" style={{ color: '#3d4a50' }}>{parsed.steps.length} steps</span>
           </div>
           <textarea
             value={yaml}
@@ -82,7 +82,7 @@ const WorkflowBuilderView: React.FC = () => {
           {parsed.errors.length > 0 && (
             <div className="border-t px-4 py-2 flex-shrink-0 space-y-1" style={{ borderColor: '#1e2a2e', background: '#0c1214' }}>
               {parsed.errors.map((e, i) => (
-                <div key={i} className="flex items-start gap-1.5 text-[10px] font-mono" style={{ color: '#ef4444' }}>
+                <div key={i} className="flex items-start gap-1.5 text-[10px] font-sans" style={{ color: '#ef4444' }}>
                   <span className="material-symbols-outlined flex-shrink-0" style={{ fontSize: 12 }}>error</span>
                   {e}
                 </div>
@@ -94,7 +94,7 @@ const WorkflowBuilderView: React.FC = () => {
         {/* DAG Preview */}
         <div className="flex flex-col" style={{ width: '50%' }}>
           <div className="px-4 py-2 border-b flex-shrink-0 flex items-center justify-between" style={{ borderColor: '#1e2a2e' }}>
-            <span className="text-[10px] font-mono uppercase tracking-widest" style={{ color: '#3d4a50' }}>DAG Preview</span>
+            <span className="text-[10px] font-sans uppercase tracking-widest" style={{ color: '#3d4a50' }}>DAG Preview</span>
           </div>
           <div className="flex-1">
             <WorkflowDagPreview workflow={parsed} />
