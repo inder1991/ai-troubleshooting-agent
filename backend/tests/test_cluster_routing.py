@@ -304,6 +304,43 @@ class TestProfileRole:
         assert resp.json()["role"] == "view"
 
 
+class TestResolvedConnectionConfig:
+    def test_has_auth_method_field(self):
+        from src.integrations.connection_config import ResolvedConnectionConfig
+        cfg = ResolvedConnectionConfig(
+            cluster_url="https://x.com",
+            cluster_token="tok",
+            auth_method="token",
+        )
+        assert cfg.auth_method == "token"
+        assert cfg.kubeconfig_content == ""
+        assert cfg.role == ""
+
+    def test_kubeconfig_content_field(self):
+        from src.integrations.connection_config import ResolvedConnectionConfig
+        cfg = ResolvedConnectionConfig(
+            auth_method="kubeconfig",
+            kubeconfig_content="apiVersion: v1\nkind: Config\n",
+        )
+        assert cfg.auth_method == "kubeconfig"
+        assert cfg.kubeconfig_content == "apiVersion: v1\nkind: Config\n"
+
+    def test_role_field_default_empty(self):
+        from src.integrations.connection_config import ResolvedConnectionConfig
+        cfg = ResolvedConnectionConfig()
+        assert cfg.role == ""
+
+    def test_config_from_env_reads_auth_method(self, monkeypatch):
+        monkeypatch.setenv("K8S_AUTH_METHOD", "kubeconfig")
+        monkeypatch.setenv("KUBECONFIG_CONTENT", "apiVersion: v1")
+        from src.integrations import connection_config
+        import importlib
+        importlib.reload(connection_config)
+        cfg = connection_config._config_from_env()
+        assert cfg.auth_method == "kubeconfig"
+        assert cfg.kubeconfig_content == "apiVersion: v1"
+
+
 class TestAppChatFindings:
     """Verify app chat includes actual findings in the LLM prompt."""
 

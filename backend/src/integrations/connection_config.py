@@ -62,6 +62,11 @@ class ResolvedConnectionConfig:
     # Known service topology (manually configured or from prior analysis)
     known_dependencies: tuple = ()  # Tuple of (source, target, relationship) triples
 
+    # Auth method and kubeconfig content
+    auth_method: str = "token"          # "token" | "kubeconfig" | "service_account"
+    kubeconfig_content: str = ""        # raw kubeconfig YAML when auth_method == "kubeconfig"
+    role: str = ""                      # RBAC role metadata
+
 
 def resolve_active_profile(profile_id: Optional[str] = None) -> ResolvedConnectionConfig:
     """Resolve a connection config from a profile, falling back to env vars.
@@ -231,6 +236,8 @@ def resolve_active_profile(profile_id: Optional[str] = None) -> ResolvedConnecti
         cluster_type=profile.cluster_type,
         namespace=os.getenv("K8S_NAMESPACE", "default"),
         verify_ssl=False,
+        auth_method=profile.auth_method,
+        role=getattr(profile, "role", ""),
         prometheus_url=prom_url or os.getenv("PROMETHEUS_URL", ""),
         prometheus_auth_method=prom_auth,
         prometheus_credentials=prom_creds,
@@ -350,6 +357,8 @@ def _config_from_env() -> ResolvedConnectionConfig:
         cluster_type="openshift",
         namespace=os.getenv("K8S_NAMESPACE", "default"),
         verify_ssl=os.getenv("K8S_VERIFY_SSL", "false").lower() == "true",
+        auth_method=os.environ.get("K8S_AUTH_METHOD", "token"),
+        kubeconfig_content=os.environ.get("KUBECONFIG_CONTENT", ""),
         prometheus_url=os.getenv("PROMETHEUS_URL", "http://localhost:9090"),
         elasticsearch_url=elk_url,
         elasticsearch_auth_method=elk_auth,
