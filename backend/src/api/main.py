@@ -44,6 +44,8 @@ from .network_flow_endpoints import router as flow_analysis_router, init_flows
 from .network_probe_endpoints import router as probe_router, init_probes
 from .network_discovery_endpoints import router as autodiscovery_router, init_discovery as init_autodiscovery
 from .network_drift_endpoints import router as drift_router, init_drift
+from .network_event_endpoints import router as event_router, init_events
+from .network_alert_endpoints import router as alert_rules_router, init_alerts
 from .topology_v5 import router as topology_v5_router
 from .websocket import manager
 
@@ -194,6 +196,8 @@ def create_app() -> FastAPI:
     app.include_router(probe_router)
     app.include_router(autodiscovery_router)
     app.include_router(drift_router)
+    app.include_router(event_router)
+    app.include_router(alert_rules_router)
     app.include_router(topology_v5_router)
 
     # Cloud integration router (multi-provider inventory)
@@ -417,6 +421,20 @@ def create_app() -> FastAPI:
                 logger.warning("SQLiteAlertEngine startup failed: %s", e)
 
             init_monitoring(_sqlite_metrics, _snmp_sched, alert_engine=_sqlite_alert_engine)
+
+            # ── Alert endpoints ──
+            try:
+                init_alerts(_sqlite_metrics, _sqlite_alert_engine)
+                logger.info("Alert endpoints initialized")
+            except Exception as e:
+                logger.warning("Alert endpoints init failed: %s", e)
+
+            # ── Event endpoints ──
+            try:
+                init_events(_sqlite_metrics, event_store)
+                logger.info("Event endpoints initialized")
+            except Exception as e:
+                logger.warning("Event endpoints init failed: %s", e)
 
             # Share SQLite metrics store with network_endpoints for topology health overlay
             import src.api.network_endpoints as _net_ep
