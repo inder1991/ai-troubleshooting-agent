@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { API_BASE_URL } from '../../../services/api';
+import { t } from '../../../styles/tokens';
 
 interface AgentSummary {
   id: string;
@@ -9,16 +10,16 @@ interface AgentSummary {
 }
 
 const WORKFLOW_LABELS: Record<string, string> = {
-  app_diagnostics: 'App',
-  cluster_diagnostics: 'Cluster',
-  network_diagnostics: 'Network',
+  app_diagnostics:      'App',
+  cluster_diagnostics:  'Cluster',
+  network_diagnostics:  'Network',
   database_diagnostics: 'Database',
 };
 
 const STATUS_COLOR: Record<string, string> = {
-  active: '#22c55e',
-  degraded: '#f59e0b',
-  offline: '#ef4444',
+  active:   t.green,
+  degraded: t.amber,
+  offline:  t.red,
 };
 
 interface Props {
@@ -28,12 +29,15 @@ interface Props {
 const AgentBrowserPanel: React.FC<Props> = ({ onInsertAgent }) => {
   const [agents, setAgents] = useState<AgentSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
   const [search, setSearch] = useState('');
 
-  useEffect(() => {
+  const loadAgents = useCallback(() => {
+    setLoading(true);
+    setError(false);
     window.fetch(`${API_BASE_URL}/api/v4/agents`)
-      .then(r => r.ok ? r.json() : null)
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
       .then(data => {
         if (data?.agents) {
           setAgents(data.agents.map((a: any) => ({
@@ -44,9 +48,11 @@ const AgentBrowserPanel: React.FC<Props> = ({ onInsertAgent }) => {
           })));
         }
       })
-      .catch(() => {})
+      .catch(() => setError(true))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => { loadAgents(); }, [loadAgents]);
 
   const handleCopy = (agentId: string) => {
     onInsertAgent(agentId);
@@ -69,42 +75,63 @@ const AgentBrowserPanel: React.FC<Props> = ({ onInsertAgent }) => {
   });
 
   return (
-    <div className="flex flex-col h-full" style={{ background: '#0a1214' }}>
+    <div className="flex flex-col h-full" style={{ background: t.bgBase }}>
       {/* Header */}
-      <div className="px-3 py-2 border-b flex-shrink-0" style={{ borderColor: '#1e2a2e' }}>
-        <div className="text-[10px] font-sans uppercase tracking-widest mb-2" style={{ color: '#3d4a50' }}>
+      <div className="px-3 py-2 border-b flex-shrink-0" style={{ borderColor: t.borderDefault }}>
+        <div className="text-[10px] font-sans uppercase tracking-widest mb-2" style={{ color: t.textFaint }}>
           Agents
         </div>
+        <label htmlFor="agent-search" className="sr-only">Search agents</label>
         <input
+          id="agent-search"
           type="text"
           placeholder="Search..."
           value={search}
           onChange={e => setSearch(e.target.value)}
-          className="w-full text-[10px] font-mono px-2 py-1.5 rounded outline-none"
+          className="w-full text-[10px] font-mono px-2 py-1.5 rounded"
           style={{
-            background: '#080f12',
-            border: '1px solid #1e2a2e',
-            color: '#e8e0d4',
+            background: t.bgDeep,
+            border: `1px solid ${t.borderDefault}`,
+            color: t.textPrimary,
+            outline: 'none',
           }}
+          onFocus={e => { e.currentTarget.style.borderColor = t.cyanBorder; }}
+          onBlur={e => { e.currentTarget.style.borderColor = t.borderDefault; }}
         />
       </div>
 
       {/* Agent list */}
       <div className="flex-1 overflow-auto">
         {loading && (
-          <div className="flex items-center justify-center h-16 text-[10px] font-sans" style={{ color: '#3d4a50' }}>
+          <div className="flex items-center justify-center h-16 text-[10px] font-sans" style={{ color: t.textFaint }}>
             Loading...
           </div>
         )}
-        {!loading && filtered.length === 0 && (
-          <div className="flex items-center justify-center h-16 text-[10px] font-sans" style={{ color: '#3d4a50' }}>
+        {error && (
+          <div className="flex flex-col items-center justify-center h-24 gap-2 px-3">
+            <span className="text-[10px] font-sans text-center" style={{ color: t.textMuted }}>
+              Failed to load agents.
+            </span>
+            <button
+              onClick={loadAgents}
+              className="text-[10px] font-sans px-2 py-1 rounded"
+              style={{ background: t.cyanBg, border: `1px solid ${t.cyanBorder}`, color: t.cyan }}
+            >
+              Retry
+            </button>
+          </div>
+        )}
+        {!loading && !error && filtered.length === 0 && (
+          <div className="flex items-center justify-center h-16 text-[10px] font-sans" style={{ color: t.textFaint }}>
             No agents found
           </div>
         )}
-        {Object.entries(groups).map(([groupLabel, groupAgents]) => (
+        {!loading && !error && Object.entries(groups).map(([groupLabel, groupAgents]) => (
           <div key={groupLabel}>
-            <div className="px-3 py-1.5 text-[9px] font-sans uppercase tracking-widest sticky top-0"
-              style={{ color: '#3d4a50', background: '#0c1a1f', borderBottom: '1px solid #1a2428' }}>
+            <div
+              className="px-3 py-1.5 text-[9px] font-sans uppercase tracking-widest sticky top-0"
+              style={{ color: t.textFaint, background: t.bgSurface, borderBottom: `1px solid ${t.bgTrack}` }}
+            >
               {groupLabel}
             </div>
             {groupAgents.map(agent => (
@@ -120,8 +147,8 @@ const AgentBrowserPanel: React.FC<Props> = ({ onInsertAgent }) => {
       </div>
 
       {/* Footer hint */}
-      <div className="px-3 py-2 border-t flex-shrink-0" style={{ borderColor: '#1e2a2e' }}>
-        <p className="text-[9px] font-sans" style={{ color: '#3d4a50', lineHeight: 1.4 }}>
+      <div className="px-3 py-2 border-t flex-shrink-0" style={{ borderColor: t.borderDefault }}>
+        <p className="text-[9px] font-sans" style={{ color: t.textFaint, lineHeight: 1.4 }}>
           Click to copy <span className="font-mono">agent: id</span> to clipboard
         </p>
       </div>
@@ -141,26 +168,26 @@ const AgentRow: React.FC<AgentRowProps> = ({ agent, copied, onCopy }) => {
     <button
       onClick={onCopy}
       className="w-full flex items-center gap-2 px-3 py-2 text-left"
+      aria-label={`Copy ${agent.id} to editor`}
       style={{
-        borderBottom: '1px solid #0f1a1e',
-        background: hovered ? 'rgba(7,182,213,0.04)' : 'transparent',
+        borderBottom: `1px solid ${t.borderFaint}`,
+        background: hovered ? t.cyanHover : 'transparent',
       }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      title={`Copy: agent: ${agent.id}`}
     >
       <div
         className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-        style={{ background: STATUS_COLOR[agent.status] || '#3d4a50' }}
+        style={{ background: STATUS_COLOR[agent.status] || t.textFaint }}
       />
       <div className="flex-1 min-w-0">
-        <div className="text-[10px] font-mono truncate" style={{ color: '#e8e0d4' }}>
+        <div className="text-[10px] font-mono truncate" style={{ color: t.textPrimary }}>
           {agent.id}
         </div>
       </div>
       <span
         className="text-[9px] font-sans flex-shrink-0 transition-opacity"
-        style={{ color: copied ? '#22c55e' : '#07b6d5', opacity: hovered || copied ? 1 : 0 }}
+        style={{ color: copied ? t.green : t.cyan, opacity: hovered || copied ? 1 : 0 }}
       >
         {copied ? 'copied' : 'copy'}
       </span>

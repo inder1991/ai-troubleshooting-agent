@@ -3,6 +3,7 @@ import { useWorkflowRuns } from './useWorkflowRuns';
 import WorkflowRunCard from './WorkflowRunCard';
 import WorkflowRunDetail from './WorkflowRunDetail';
 import type { WorkflowRun } from './useWorkflowRuns';
+import { t } from '../../../styles/tokens';
 
 interface Props { onNavigate?: (view: string) => void; }
 
@@ -11,17 +12,23 @@ const WorkflowRunsView: React.FC<Props> = ({ onNavigate }) => {
   const [selected, setSelected] = useState<WorkflowRun | null>(null);
 
   return (
-    <div className="flex h-full" style={{ background: '#0a1214' }}>
-      <div className="flex flex-col border-r" style={{ width: selected ? 320 : '100%', borderColor: '#1e2a2e', transition: 'width 0.2s' }}>
-        <div className="flex items-center justify-between px-5 py-4 border-b flex-shrink-0" style={{ borderColor: '#1e2a2e' }}>
+    <div className="flex h-full" style={{ background: t.bgBase }}>
+      <div
+        className="flex flex-col border-r"
+        style={{ width: selected ? 320 : '100%', borderColor: t.borderDefault, transition: 'width 0.2s' }}
+      >
+        <div
+          className="flex items-center justify-between px-5 py-4 border-b flex-shrink-0"
+          style={{ borderColor: t.borderDefault }}
+        >
           <div>
-            <h1 className="text-base font-display font-bold" style={{ color: '#e8e0d4' }}>Workflow Runs</h1>
-            <p className="text-xs font-sans mt-0.5" style={{ color: '#64748b' }}>
+            <h1 className="text-base font-display font-bold" style={{ color: t.textPrimary }}>Workflow Runs</h1>
+            <p className="text-xs font-sans mt-0.5" style={{ color: t.textMuted }}>
               {runs.length} run{runs.length !== 1 ? 's' : ''}
             </p>
           </div>
           <div className="flex items-center gap-2">
-<button onClick={refresh} style={{ color: '#64748b' }}>
+            <button onClick={refresh} aria-label="Refresh workflow runs" style={{ color: t.textMuted }}>
               <span className="material-symbols-outlined" style={{ fontSize: 16 }}>refresh</span>
             </button>
           </div>
@@ -29,16 +36,16 @@ const WorkflowRunsView: React.FC<Props> = ({ onNavigate }) => {
 
         <div className="flex-1 overflow-auto">
           {loading && (
-            <div className="flex items-center justify-center h-32 text-xs font-sans" style={{ color: '#64748b' }}>
+            <div className="flex items-center justify-center h-32 text-xs font-sans" style={{ color: t.textMuted }}>
               Loading...
             </div>
           )}
           {!loading && runs.length === 0 && (
             <div className="flex flex-col items-center justify-center h-48 gap-3">
-              <span className="material-symbols-outlined" style={{ fontSize: 36, color: '#1e2a2e' }}>play_circle</span>
-              <div className="text-xs font-sans text-center" style={{ color: '#64748b' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 36, color: t.borderDefault }}>play_circle</span>
+              <div className="text-xs font-sans text-center" style={{ color: t.textMuted }}>
                 No workflow runs yet.<br />
-                <span style={{ color: '#3d4a50' }}>Start an investigation from App Diagnostics.</span>
+                <span style={{ color: t.textFaint }}>Start an investigation from App Diagnostics.</span>
               </div>
             </div>
           )}

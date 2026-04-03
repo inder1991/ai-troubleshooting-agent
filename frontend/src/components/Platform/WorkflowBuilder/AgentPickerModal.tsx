@@ -85,7 +85,7 @@ const AgentPickerModal: React.FC<Props> = ({ onSelect, onClose }) => {
           maxHeight: 480,
           background: t.bgSurface,
           border: `1px solid ${t.borderDefault}`,
-          boxShadow: '0 24px 48px rgba(0,0,0,0.5)',
+          boxShadow: t.shadowModal,
         }}
         role="dialog"
         aria-modal="true"

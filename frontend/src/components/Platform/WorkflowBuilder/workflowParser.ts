@@ -1,6 +1,7 @@
 export interface WorkflowStep {
   id: string;
   label?: string;          // human-readable display name
+  description?: string;    // optional longer description shown as tooltip
   agent: string;
   depends_on: string[];
   condition?: string;
