@@ -43,7 +43,11 @@ export function parseWorkflowYaml(yaml: string): ParsedWorkflow {
     } else {
       const multiLine = block.match(/depends_on:\s*\n((?:\s+-\s+\S+\n?)+)/);
       if (multiLine) {
-        multiLine[1].match(/\S+/g)?.forEach(d => depends_on.push(d.replace('-', '').trim()));
+        const matches = multiLine[1].match(/^\s+-\s+(\S+)/gm);
+        matches?.forEach(line => {
+          const id = line.replace(/^\s+-\s+/, '').trim();
+          if (id) depends_on.push(id);
+        });
       }
     }
 
@@ -83,6 +87,8 @@ export function parseWorkflowYaml(yaml: string): ParsedWorkflow {
   };
   const cycleReported = new Set<string>();
   steps.forEach(s => {
+    visited.clear();
+    inStack.clear();
     if (hasCycle(s.id) && !cycleReported.has(s.id)) {
       errors.push(`Cycle detected involving step '${s.id}'`);
       cycleReported.add(s.id);
