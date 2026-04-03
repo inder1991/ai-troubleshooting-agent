@@ -223,8 +223,48 @@ def start_cleanup_task():
 
 
 def create_cluster_client(connection_config=None):
-    """Factory for cluster client. Returns MockClusterClient for now; swappable for real client."""
+    """Factory for cluster client.
+
+    Resolution order:
+    1. connection_config has cluster_url or cluster_token → real KubernetesClient (bearer token)
+    2. KUBECONFIG env var set or ~/.kube/config exists → real KubernetesClient (kubeconfig)
+    3. Fallback → MockClusterClient
+    """
+    import os
+    from pathlib import Path
     from src.agents.cluster_client.mock_client import MockClusterClient
+
+    # 1. Profile / ad-hoc credentials
+    if connection_config and (
+        getattr(connection_config, "cluster_url", "") or
+        getattr(connection_config, "cluster_token", "")
+    ):
+        try:
+            from src.agents.cluster_client.k8s_client import KubernetesClient
+            platform = getattr(connection_config, "cluster_type", "openshift")
+            logger.info("Using real KubernetesClient (bearer token, platform=%s)", platform)
+            return KubernetesClient(
+                api_url=getattr(connection_config, "cluster_url", ""),
+                token=getattr(connection_config, "cluster_token", ""),
+                verify_ssl=getattr(connection_config, "verify_ssl", False),
+            )
+        except ImportError:
+            logger.warning("kubernetes library not installed — falling back to mock")
+            return MockClusterClient(platform=getattr(connection_config, "cluster_type", "openshift"))
+
+    # 2. Kubeconfig on disk
+    kubeconfig = os.environ.get("KUBECONFIG", "")
+    default_kubeconfig = Path.home() / ".kube" / "config"
+    if kubeconfig or default_kubeconfig.exists():
+        try:
+            from src.agents.cluster_client.k8s_client import KubernetesClient
+            logger.info("Using real KubernetesClient (kubeconfig=%s)", kubeconfig or str(default_kubeconfig))
+            return KubernetesClient(kubeconfig_path=kubeconfig)
+        except ImportError:
+            logger.warning("kubernetes library not installed — falling back to mock")
+
+    # 3. Mock fallback
+    logger.info("No cluster credentials found — using MockClusterClient")
     return MockClusterClient(platform="openshift")
 
 
