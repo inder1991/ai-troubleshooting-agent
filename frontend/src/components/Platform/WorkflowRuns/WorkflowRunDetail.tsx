@@ -83,18 +83,17 @@ const WorkflowRunDetail: React.FC<Props> = ({ run, onClose }) => {
       <div className="flex-1 overflow-auto px-5 py-4 space-y-4">
         {/* Steps */}
         <div>
-          <div className="text-[10px] font-sans uppercase tracking-widest mb-3" style={{ color: '#3d4a50' }}>Steps</div>
-          <div className="space-y-2">
+          <div className="text-[10px] font-sans uppercase tracking-widest mb-2" style={{ color: '#3d4a50' }}>Steps</div>
+          <div className="divide-y" style={{ borderColor: '#1a2428' }}>
             {steps.map(step => {
               const cfg = STATUS_CONFIG[step.status];
               const finding = findings.find((f: any) =>
                 f.source_agent === step.id || f.agent === step.id
               );
               return (
-                <div key={step.id} className="flex items-start gap-3 rounded px-3 py-2.5"
-                  style={{ background: '#0a1214', border: '1px solid #1a2428' }}>
+                <div key={step.id} className="flex items-start gap-3 py-2.5">
                   <span className="material-symbols-outlined flex-shrink-0 mt-0.5"
-                    style={{ fontSize: 15, color: cfg.color }}>{cfg.icon}</span>
+                    style={{ fontSize: 14, color: cfg.color }}>{cfg.icon}</span>
                   <div className="flex-1 min-w-0">
                     <div className="text-[11px] font-mono" style={{ color: '#e8e0d4' }}>{step.id}</div>
                     {finding && (
@@ -141,11 +140,11 @@ const WorkflowRunDetail: React.FC<Props> = ({ run, onClose }) => {
 
         {/* Confidence bar */}
         {run.overall_confidence !== undefined && (
-          <div className="rounded p-3" style={{ background: '#0a1214', border: '1px solid #1a2428' }}>
+          <div className="pt-1">
             <div className="text-[10px] font-sans uppercase tracking-widest mb-2" style={{ color: '#3d4a50' }}>Overall Confidence</div>
             <div className="flex items-center gap-3">
-              <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: '#1a2428' }}>
-                <div className="h-full rounded-full" style={{
+              <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: '#1a2428' }}>
+                <div className="h-full rounded-full transition-all" style={{
                   width: `${run.overall_confidence * 100}%`,
                   background: run.overall_confidence > 0.8 ? '#22c55e' : run.overall_confidence > 0.5 ? '#f59e0b' : '#ef4444',
                 }} />
