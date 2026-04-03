@@ -4,7 +4,9 @@ import WorkflowRunCard from './WorkflowRunCard';
 import WorkflowRunDetail from './WorkflowRunDetail';
 import type { WorkflowRun } from './useWorkflowRuns';
 
-const WorkflowRunsView: React.FC = () => {
+interface Props { onNavigate?: (view: string) => void; }
+
+const WorkflowRunsView: React.FC<Props> = ({ onNavigate }) => {
   const { runs, loading, refresh } = useWorkflowRuns();
   const [selected, setSelected] = useState<WorkflowRun | null>(null);
 
@@ -53,7 +55,7 @@ const WorkflowRunsView: React.FC = () => {
 
       {selected && (
         <div className="flex-1 overflow-hidden">
-          <WorkflowRunDetail run={selected} onClose={() => setSelected(null)} />
+          <WorkflowRunDetail run={selected} onClose={() => setSelected(null)} onNavigate={onNavigate} />
         </div>
       )}
     </div>

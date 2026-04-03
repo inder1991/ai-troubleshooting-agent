@@ -766,7 +766,7 @@ function AppInner() {
 
         {viewState === 'agent-catalog' && <AgentCatalogView />}
         {viewState === 'workflow-builder' && <WorkflowBuilderView />}
-        {viewState === 'workflow-runs' && <WorkflowRunsView />}
+        {viewState === 'workflow-runs' && <WorkflowRunsView onNavigate={(v) => setViewState(v as ViewState)} />}
 
         {viewState === 'network-troubleshooting' && activeSession && (
           <NetworkWarRoom

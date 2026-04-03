@@ -31,9 +31,9 @@ function buildSteps(run: WorkflowRun): Step[] {
   }));
 }
 
-interface Props { run: WorkflowRun; onClose: () => void; }
+interface Props { run: WorkflowRun; onClose: () => void; onNavigate?: (view: string) => void; }
 
-const WorkflowRunDetail: React.FC<Props> = ({ run, onClose }) => {
+const WorkflowRunDetail: React.FC<Props> = ({ run, onClose, onNavigate }) => {
   const [steps, setSteps] = useState<Step[]>(() => buildSteps(run));
   const [findings, setFindings] = useState<any[]>([]);
   const [approving, setApproving] = useState(false);
@@ -75,9 +75,26 @@ const WorkflowRunDetail: React.FC<Props> = ({ run, onClose }) => {
             {run.workflow_name} · {new Date(run.started_at).toLocaleString()}
           </div>
         </div>
-        <button onClick={onClose}>
-          <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#64748b' }}>close</span>
-        </button>
+        <div className="flex items-center">
+          {run.status === 'failed' && onNavigate && (
+            <button
+              onClick={() => onNavigate('workflow-builder')}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-sans mr-2"
+              style={{
+                background: 'rgba(239,68,68,0.08)',
+                border: '1px solid rgba(239,68,68,0.3)',
+                color: '#ef4444',
+              }}
+              title="Open this workflow in the builder to debug"
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 13 }}>bug_report</span>
+              Debug in Builder
+            </button>
+          )}
+          <button onClick={onClose}>
+            <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#64748b' }}>close</span>
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 overflow-auto px-5 py-4 space-y-4">
