@@ -29,8 +29,8 @@ export function parseWorkflowYaml(yaml: string): ParsedWorkflow {
 
   const idMatch = yaml.match(/^id:\s*(.+)$/m);
   const nameMatch = yaml.match(/^name:\s*(.+)$/m);
-  const versionMatch = yaml.match(/^version:\s*"?([^"\n]+)"?/m);
-  const triggersMatch = yaml.match(/^trigger:\s*\[([^\]]+)\]/m);
+  const versionMatch = yaml.match(/^version:\s*"?([^"\n]+?)"?\s*$/m);
+  const triggersMatch = yaml.match(/^triggers?:\s*\[([^\]]+)\]/m);
   const triggers = triggersMatch
     ? triggersMatch[1].split(',').map(t => t.trim())
     : [];
@@ -67,8 +67,8 @@ export function parseWorkflowYaml(yaml: string): ParsedWorkflow {
     }
 
     const conditionM = block.match(/condition:\s*"(.+)"/);
-    const gateM = block.match(/gate:\s*(\S+)/);
-    const labelM = block.match(/\s+label:\s*"?([^"\n]+)"?\s*$/m);
+    const gateM = block.match(/^\s+gate:\s*(\S+)/m);
+    const labelM = block.match(/\s+label:\s*"?([^"\n]+?)"?\s*$/m);
     const timeoutM = block.match(/\s+timeout:\s*(\d+)/);
     const retriesM = block.match(/\s+retries:\s*(\d+)/);
     const retryDelayM = block.match(/\s+retry_delay:\s*(\d+)/);
@@ -76,11 +76,11 @@ export function parseWorkflowYaml(yaml: string): ParsedWorkflow {
 
     // Parse parameters block
     const parameters: Record<string, string> = {};
-    const paramSection = block.match(/\s+parameters:\s*\n((?:\s+\w+:.+\n?)+)/);
+    const paramSection = block.match(/\s+parameters:\s*\n((?:\s+[\w-]+:.+\n?)+)/);
     if (paramSection) {
-      const paramLines = paramSection[1].match(/\s+(\w+):\s*(.+)/g) || [];
+      const paramLines = paramSection[1].match(/\s+([\w-]+):\s*(.+)/g) || [];
       paramLines.forEach(line => {
-        const [, k, v] = line.match(/\s+(\w+):\s*(.+)/) || [];
+        const [, k, v] = line.match(/\s+([\w-]+):\s*(.+)/) || [];
         if (k && v) parameters[k.trim()] = v.trim().replace(/^["']|["']$/g, '');
       });
     }
