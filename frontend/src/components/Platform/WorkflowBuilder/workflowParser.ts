@@ -145,3 +145,177 @@ steps:
     gate: human_approval
     gate_timeout: 30m
 `;
+
+export const CLUSTER_DIAGNOSTICS_TEMPLATE = `id: cluster_diagnostics
+name: Cluster Diagnostics
+version: "1.0"
+trigger: [api]
+
+triggers:
+  inputs:
+    - name: namespace
+      label: "Namespace"
+      type: string
+      default: "default"
+    - name: cluster_url
+      label: "Cluster URL"
+      type: string
+      required: true
+
+steps:
+  - id: k8s
+    agent: k8s_agent
+    depends_on: []
+    input:
+      namespace: "{{ trigger.namespace }}"
+      cluster_url: "{{ trigger.cluster_url }}"
+
+  - id: metrics
+    agent: metrics_agent
+    depends_on: []
+    input:
+      namespace: "{{ trigger.namespace }}"
+
+  - id: critic
+    agent: critic_agent
+    depends_on: [k8s, metrics]
+
+  - id: fix
+    agent: fix_generator
+    depends_on: [critic]
+    gate: human_approval
+    gate_timeout: 30m
+`;
+
+export const NETWORK_DIAGNOSTICS_TEMPLATE = `id: network_diagnostics
+name: Network Diagnostics
+version: "1.0"
+trigger: [api]
+
+triggers:
+  inputs:
+    - name: src_ip
+      label: "Source IP"
+      type: string
+      required: true
+    - name: dst_ip
+      label: "Destination IP"
+      type: string
+      required: true
+    - name: port
+      label: "Port"
+      type: string
+      default: "80"
+
+steps:
+  - id: connectivity
+    agent: network_analysis_agent
+    depends_on: []
+    input:
+      src_ip: "{{ trigger.src_ip }}"
+      dst_ip: "{{ trigger.dst_ip }}"
+      port: "{{ trigger.port }}"
+
+  - id: routing
+    agent: tracing_agent
+    depends_on: []
+    input:
+      src_ip: "{{ trigger.src_ip }}"
+      dst_ip: "{{ trigger.dst_ip }}"
+
+  - id: critic
+    agent: critic_agent
+    depends_on: [connectivity, routing]
+
+  - id: fix
+    agent: fix_generator
+    depends_on: [critic]
+    gate: human_approval
+    gate_timeout: 30m
+`;
+
+export const DB_DIAGNOSTICS_TEMPLATE = `id: db_diagnostics
+name: Database Diagnostics
+version: "1.0"
+trigger: [api]
+
+triggers:
+  inputs:
+    - name: database_name
+      label: "Database Name"
+      type: string
+      required: true
+    - name: time_window
+      label: "Time Window"
+      type: select
+      options: ["15m", "1h", "6h", "24h"]
+      default: "1h"
+
+steps:
+  - id: db_analysis
+    agent: db_agent
+    depends_on: []
+    input:
+      database_name: "{{ trigger.database_name }}"
+      time_window: "{{ trigger.time_window }}"
+
+  - id: query_analysis
+    agent: code_navigator_agent
+    depends_on: []
+    input:
+      database_name: "{{ trigger.database_name }}"
+
+  - id: critic
+    agent: critic_agent
+    depends_on: [db_analysis, query_analysis]
+
+  - id: fix
+    agent: fix_generator
+    depends_on: [critic]
+    gate: human_approval
+    gate_timeout: 30m
+`;
+
+export interface WorkflowTemplate {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  yaml: string;
+  stepCount: number;
+}
+
+export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
+  {
+    id: 'app_diagnostics',
+    name: 'App Diagnostics',
+    description: 'Full application investigation: logs, metrics, K8s, critic, fix with human approval gate.',
+    icon: 'bug_report',
+    yaml: APP_DIAGNOSTICS_TEMPLATE,
+    stepCount: 5,
+  },
+  {
+    id: 'cluster_diagnostics',
+    name: 'Cluster Diagnostics',
+    description: 'Kubernetes cluster health: pod status, resource metrics, root cause, remediation.',
+    icon: 'cloud',
+    yaml: CLUSTER_DIAGNOSTICS_TEMPLATE,
+    stepCount: 4,
+  },
+  {
+    id: 'network_diagnostics',
+    name: 'Network Diagnostics',
+    description: 'Network path analysis: connectivity check, route tracing, and remediation proposal.',
+    icon: 'hub',
+    yaml: NETWORK_DIAGNOSTICS_TEMPLATE,
+    stepCount: 4,
+  },
+  {
+    id: 'db_diagnostics',
+    name: 'Database Diagnostics',
+    description: 'Database health analysis: query performance, slow queries, index recommendations.',
+    icon: 'database',
+    yaml: DB_DIAGNOSTICS_TEMPLATE,
+    stepCount: 4,
+  },
+];
