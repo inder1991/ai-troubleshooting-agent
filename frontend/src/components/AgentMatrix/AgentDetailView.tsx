@@ -160,27 +160,7 @@ const AgentDetailView: React.FC<AgentDetailViewProps> = ({ agent, onBack }) => {
           />
           <CoreConfigPanel llmConfig={agent.llm_config} timeoutS={agent.timeout_s} />
 
-          {/* Platform: standalone invocation — coming soon */}
-          <div
-            className="rounded-lg p-4 border"
-            style={{ background: '#0d0b08', borderColor: '#2a2520' }}
-          >
-            <div className="flex items-center gap-2 mb-2">
-              <span className="material-symbols-outlined" style={{ fontSize: 15, color: '#3d3528' }}>play_circle</span>
-              <span className="text-xs font-mono font-semibold" style={{ color: '#4a5568' }}>Try it</span>
-              <span
-                className="text-[9px] font-mono px-1.5 py-0.5 rounded"
-                style={{ background: '#1a1814', color: '#3d3528', border: '1px solid #2a2520' }}
-              >
-                COMING SOON
-              </span>
-            </div>
-            <p className="text-[10px] font-mono" style={{ color: '#3d3528' }}>
-              Invoke this agent standalone via <span style={{ color: '#4a5568' }}>POST /api/v4/agents/{agent.id}/run</span> — available after platform backend ships.
-            </p>
-          </div>
-
-          <NeuralArchitectureDiagram stages={agent.architecture_stages} />
+<NeuralArchitectureDiagram stages={agent.architecture_stages} />
         </div>
       </div>
     </div>

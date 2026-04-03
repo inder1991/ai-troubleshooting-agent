@@ -19,14 +19,7 @@ const WorkflowRunsView: React.FC = () => {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <button disabled
-              className="flex items-center gap-1 px-3 py-1.5 rounded text-xs font-sans cursor-not-allowed"
-              style={{ border: '1px solid #1e2a2e', color: '#3d4a50', background: 'transparent' }}
-              title="Workflow triggering available after platform backend ships">
-              <span className="material-symbols-outlined" style={{ fontSize: 13 }}>play_circle</span>
-              New Run
-            </button>
-            <button onClick={refresh} style={{ color: '#64748b' }}>
+<button onClick={refresh} style={{ color: '#64748b' }}>
               <span className="material-symbols-outlined" style={{ fontSize: 16 }}>refresh</span>
             </button>
           </div>

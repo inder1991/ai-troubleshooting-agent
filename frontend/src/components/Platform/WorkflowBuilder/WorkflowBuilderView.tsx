@@ -52,15 +52,6 @@ const WorkflowBuilderView: React.FC = () => {
             {saved ? 'Saved' : 'Save'}
           </button>
 
-          <button
-            disabled
-            className="flex items-center gap-1 px-3 py-1.5 rounded text-xs font-sans cursor-not-allowed"
-            style={{ background: 'transparent', border: '1px solid #1e2a2e', color: '#3d4a50' }}
-            title="Workflow execution available after platform backend ships"
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: 13 }}>play_circle</span>
-            Run
-          </button>
         </div>
       </div>
 
