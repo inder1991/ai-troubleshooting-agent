@@ -341,6 +341,47 @@ class TestResolvedConnectionConfig:
         assert cfg.kubeconfig_content == "apiVersion: v1"
 
 
+class TestCreateClusterClient:
+    def test_returns_tuple(self, monkeypatch):
+        """create_cluster_client always returns (client, temp_path_or_None)."""
+        from src.api.routes_v4 import create_cluster_client
+        from src.integrations.connection_config import ResolvedConnectionConfig
+
+        # Patch KubernetesClient to avoid real network calls
+        monkeypatch.setattr(
+            "src.api.routes_v4.KubernetesClient",
+            lambda **kwargs: object()
+        )
+        cfg = ResolvedConnectionConfig(cluster_url="https://api.example.com:6443", cluster_token="tok")
+        result = create_cluster_client(cfg)
+        assert isinstance(result, tuple)
+        assert len(result) == 2
+        client, temp_path = result
+        assert client is not None
+        assert temp_path is None  # no temp file for bearer token auth
+
+    def test_kubeconfig_content_creates_temp_file(self, monkeypatch, tmp_path):
+        """When auth_method=kubeconfig and kubeconfig_content set, a temp file is created."""
+        import os
+        from src.api.routes_v4 import create_cluster_client
+        from src.integrations.connection_config import ResolvedConnectionConfig
+
+        monkeypatch.setattr(
+            "src.api.routes_v4.KubernetesClient",
+            lambda **kwargs: type("C", (), {"kubeconfig_path": kwargs.get("kubeconfig_path")})()
+        )
+        cfg = ResolvedConnectionConfig(
+            auth_method="kubeconfig",
+            kubeconfig_content="apiVersion: v1\nkind: Config\n",
+        )
+        client, temp_path = create_cluster_client(cfg)
+        assert temp_path is not None
+        assert os.path.exists(temp_path)
+        assert open(temp_path).read() == "apiVersion: v1\nkind: Config\n"
+        # Cleanup
+        os.unlink(temp_path)
+
+
 class TestAppChatFindings:
     """Verify app chat includes actual findings in the LLM prompt."""
 

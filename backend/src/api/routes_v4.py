@@ -27,6 +27,7 @@ from src.tools.router_models import InvestigateRequest, InvestigateResponse
 from src.tools.tool_registry import TOOL_REGISTRY
 from src.agents.critic_agent import CriticAgent
 from src.models.schemas import EvidencePin
+from src.agents.cluster_client.k8s_client import KubernetesClient
 
 logger = get_logger(__name__)
 
@@ -223,49 +224,66 @@ def start_cleanup_task():
 
 
 def create_cluster_client(connection_config=None):
-    """Factory for cluster client.
+    """
+    Create a cluster client from connection config.
+    Returns (client, temp_kubeconfig_path_or_None).
 
     Resolution order:
-    1. connection_config has cluster_url or cluster_token → real KubernetesClient (bearer token)
-    2. KUBECONFIG env var set or ~/.kube/config exists → real KubernetesClient (kubeconfig)
-    3. Fallback → MockClusterClient
+    1. bearer token (cluster_url + cluster_token)
+    2. kubeconfig content written to temp file
+    3. KUBECONFIG env var or ~/.kube/config
+    4. MockClusterClient fallback
     """
-    import os
+    import tempfile
     from pathlib import Path
     from src.agents.cluster_client.mock_client import MockClusterClient
 
-    # 1. Profile / ad-hoc credentials
-    if connection_config and (
-        getattr(connection_config, "cluster_url", "") or
-        getattr(connection_config, "cluster_token", "")
-    ):
+    temp_path = None
+    cluster_url = getattr(connection_config, "cluster_url", "") if connection_config else ""
+    cluster_token = getattr(connection_config, "cluster_token", "") if connection_config else ""
+    auth_method = getattr(connection_config, "auth_method", "token") if connection_config else "token"
+    kubeconfig_content = getattr(connection_config, "kubeconfig_content", "") if connection_config else ""
+    verify_ssl = getattr(connection_config, "verify_ssl", False) if connection_config else False
+
+    # 1. Bearer token
+    if cluster_url or cluster_token:
         try:
-            from src.agents.cluster_client.k8s_client import KubernetesClient
-            platform = getattr(connection_config, "cluster_type", "openshift")
-            logger.info("Using real KubernetesClient (bearer token, platform=%s)", platform)
             return KubernetesClient(
-                api_url=getattr(connection_config, "cluster_url", ""),
-                token=getattr(connection_config, "cluster_token", ""),
-                verify_ssl=getattr(connection_config, "verify_ssl", False),
-            )
-        except ImportError:
-            logger.warning("kubernetes library not installed — falling back to mock")
-            return MockClusterClient(platform=getattr(connection_config, "cluster_type", "openshift"))
+                api_url=cluster_url or None,
+                token=cluster_token or None,
+                verify_ssl=verify_ssl,
+            ), None
+        except Exception as e:
+            logger.warning("Failed to create KubernetesClient with bearer token: %s", e)
 
-    # 2. Kubeconfig on disk
-    kubeconfig = os.environ.get("KUBECONFIG", "")
-    default_kubeconfig = Path.home() / ".kube" / "config"
-    if kubeconfig or default_kubeconfig.exists():
+    # 2. Kubeconfig content (temp file)
+    if auth_method == "kubeconfig" and kubeconfig_content:
         try:
-            from src.agents.cluster_client.k8s_client import KubernetesClient
-            logger.info("Using real KubernetesClient (kubeconfig=%s)", kubeconfig or str(default_kubeconfig))
-            return KubernetesClient(kubeconfig_path=kubeconfig)
-        except ImportError:
-            logger.warning("kubernetes library not installed — falling back to mock")
+            with tempfile.NamedTemporaryFile(
+                mode="w", suffix=".yaml", delete=False
+            ) as f:
+                f.write(kubeconfig_content)
+                temp_path = f.name
+            return KubernetesClient(kubeconfig_path=temp_path), temp_path
+        except Exception as e:
+            logger.warning("Failed to create KubernetesClient from kubeconfig content: %s", e)
+            if temp_path:
+                Path(temp_path).unlink(missing_ok=True)
+                temp_path = None
 
-    # 3. Mock fallback
-    logger.info("No cluster credentials found — using MockClusterClient")
-    return MockClusterClient(platform="openshift")
+    # 3. KUBECONFIG env var or ~/.kube/config
+    kubeconfig_env = os.environ.get("KUBECONFIG", "")
+    default_kubeconfig = Path.home() / ".kube" / "config"
+    if kubeconfig_env or default_kubeconfig.exists():
+        try:
+            kubeconfig_path = kubeconfig_env or str(default_kubeconfig)
+            return KubernetesClient(kubeconfig_path=kubeconfig_path), None
+        except Exception as e:
+            logger.warning("Failed to create KubernetesClient from kubeconfig file: %s", e)
+
+    # 4. Mock fallback
+    logger.info("No cluster credentials found, using MockClusterClient")
+    return MockClusterClient(platform="openshift"), None
 
 
 @router_v4.post("/session/start", response_model=StartSessionResponse)
@@ -305,7 +323,7 @@ async def start_session(request: StartSessionRequest, background_tasks: Backgrou
             except Exception as e:
                 logger.warning("Could not build ad-hoc connection config: %s", e)
 
-        cluster_client = create_cluster_client(connection_config)
+        cluster_client, kubeconfig_temp_path = create_cluster_client(connection_config)
         graph = build_cluster_diagnostic_graph()
 
         # Build diagnostic scope from request
@@ -337,6 +355,7 @@ async def start_session(request: StartSessionRequest, background_tasks: Backgrou
             "connection_config": connection_config,
             "scan_mode": request.scan_mode,
             "diagnostic_scope": scope.model_dump(mode="json"),
+            "kubeconfig_temp_path": kubeconfig_temp_path,
         }
 
         background_tasks.add_task(
@@ -602,6 +621,10 @@ async def run_cluster_diagnosis(session_id, graph, cluster_client, emitter, scan
     finally:
         _diagnosis_tasks.pop(session_id, None)
         await cluster_client.close()
+        temp_path = sessions.get(session_id, {}).pop("kubeconfig_temp_path", None)
+        if temp_path:
+            from pathlib import Path
+            Path(temp_path).unlink(missing_ok=True)
 
 
 async def run_diagnosis(session_id: str, supervisor: SupervisorAgent, initial_input: dict, emitter: EventEmitter):
