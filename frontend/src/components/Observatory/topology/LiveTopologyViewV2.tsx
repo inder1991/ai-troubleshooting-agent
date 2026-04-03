@@ -14,7 +14,29 @@ import { TopologyStreamManager, TopologyDelta } from './realtime/TopologyStreamM
 
 /* ── Constants ─────────────────────────────────────────────────────── */
 
-const nodeTypes = { device: LiveDeviceNode, envLabel: EnvironmentLabel };
+const ClusterNode: React.FC<{ data: any }> = ({ data }) => (
+  <div
+    onClick={data.onExpand}
+    style={{
+      background: '#0f2023', border: `1px solid ${data.accent || '#07b6d5'}40`,
+      borderRadius: 8, padding: '10px 16px', cursor: 'pointer', minWidth: 140,
+      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+    }}
+    title="Click to expand"
+  >
+    <span className="material-symbols-outlined" style={{ fontSize: 20, color: data.accent || '#07b6d5' }}>
+      device_hub
+    </span>
+    <div style={{ fontSize: 11, fontFamily: 'monospace', color: '#e8e0d4', fontWeight: 600 }}>
+      {data.label}
+    </div>
+    <div style={{ fontSize: 10, fontFamily: 'monospace', color: '#64748b' }}>
+      {data.deviceCount} devices · click to expand
+    </div>
+  </div>
+);
+
+const nodeTypes = { device: LiveDeviceNode, envLabel: EnvironmentLabel, cluster: ClusterNode };
 
 const STATUS_COLORS: Record<string, string> = {
   healthy: '#22c55e', degraded: '#f59e0b', critical: '#ef4444',
@@ -80,6 +102,21 @@ const LiveTopologyViewV2: React.FC = () => {
   // Filters popover
   const [showFilters, setShowFilters] = useState(false);
 
+  // Topology change detection
+  const [lastTopoVersion, setLastTopoVersion] = useState<string>('');
+  const [topoChangeToast, setTopoChangeToast] = useState<string | null>(null);
+
+  // Group clustering
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+
+  const toggleGroup = useCallback((groupId: string) => {
+    setCollapsedGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(groupId)) next.delete(groupId); else next.add(groupId);
+      return next;
+    });
+  }, []);
+
   /* ── Data fetching ─────────────────────────────────────────────── */
 
   const { data: topoData, isLoading, error, refetch } = useQuery({
@@ -138,9 +175,93 @@ const LiveTopologyViewV2: React.FC = () => {
       visibleNodeIds.has(e.source) && visibleNodeIds.has(e.target)
     );
 
-    setNodes(visibleNodes);
-    setEdges(visibleEdges);
-  }, [topoData, edgeFilters, groupFilter]);
+    // Apply group collapsing
+    const GROUP_ACCENTS: Record<string, string> = {
+      onprem: '#22c55e', aws: '#f59e0b', azure: '#3b82f6',
+      oci: '#ef4444', gcp: '#a855f7', branch: '#06b6d4',
+    };
+
+    let finalNodes = visibleNodes;
+    let finalEdges = visibleEdges;
+
+    if (collapsedGroups.size > 0) {
+      const collapsedNodeIds = new Set<string>();
+      const clusterNodes: Node[] = [];
+
+      for (const groupId of collapsedGroups) {
+        const groupDevices = visibleNodes.filter(
+          n => n.type === 'device' && n.data?.group === groupId
+        );
+        if (groupDevices.length === 0) continue;
+
+        groupDevices.forEach(n => collapsedNodeIds.add(n.id));
+
+        // Find center position of collapsed group
+        const avgX = groupDevices.reduce((s, n) => s + n.position.x, 0) / groupDevices.length;
+        const avgY = groupDevices.reduce((s, n) => s + n.position.y, 0) / groupDevices.length;
+
+        clusterNodes.push({
+          id: `cluster-${groupId}`,
+          type: 'cluster',
+          position: { x: avgX, y: avgY },
+          data: {
+            label: groupId.toUpperCase(),
+            deviceCount: groupDevices.length,
+            accent: GROUP_ACCENTS[groupId] || '#07b6d5',
+            onExpand: () => toggleGroup(groupId),
+          },
+        });
+      }
+
+      // Remove collapsed device nodes + their group/envLabel nodes
+      finalNodes = visibleNodes.filter(n => {
+        if (collapsedNodeIds.has(n.id)) return false;
+        if (n.type === 'group' && collapsedGroups.has(n.id.replace('group-', ''))) return false;
+        if (n.type === 'envLabel' && collapsedGroups.has(n.id.replace('env-label-', ''))) return false;
+        return true;
+      });
+      finalNodes = [...finalNodes, ...clusterNodes];
+
+      // Remap edges: if source/target is collapsed, point to cluster node
+      const seenEdges = new Set<string>();
+      finalEdges = visibleEdges
+        .filter(e => !(collapsedNodeIds.has(e.source) && collapsedNodeIds.has(e.target)))
+        .map(e => {
+          const src = collapsedNodeIds.has(e.source)
+            ? `cluster-${visibleNodes.find(n => n.id === e.source)?.data?.group || ''}`
+            : e.source;
+          const tgt = collapsedNodeIds.has(e.target)
+            ? `cluster-${visibleNodes.find(n => n.id === e.target)?.data?.group || ''}`
+            : e.target;
+          return { ...e, id: `${src}-${tgt}`, source: src, target: tgt };
+        })
+        .filter(e => {
+          const key = `${e.source}||${e.target}`;
+          if (seenEdges.has(key)) return false;
+          seenEdges.add(key);
+          return true;
+        });
+    }
+
+    setNodes(finalNodes);
+    setEdges(finalEdges);
+  }, [topoData, edgeFilters, groupFilter, collapsedGroups]);
+
+  /* ── Topology change detection ────────────────────────────────── */
+
+  useEffect(() => {
+    const version = topoData?.topology_version;
+    if (!version) return;
+    if (!lastTopoVersion) {
+      setLastTopoVersion(version);
+      return;
+    }
+    if (version !== lastTopoVersion) {
+      setLastTopoVersion(version);
+      setTopoChangeToast('Topology updated — new devices or links detected');
+      setTimeout(() => setTopoChangeToast(null), 4000);
+    }
+  }, [topoData?.topology_version]);
 
   /* ── WebSocket ─────────────────────────────────────────────────── */
 
@@ -290,6 +411,21 @@ const LiveTopologyViewV2: React.FC = () => {
       onMouseMove={onMouseMoveThrottled}
       onClick={() => { setContextMenu(null); setShowFilters(false); }}
     >
+      {/* ── Topology change toast ───────────────────────────────── */}
+      {topoChangeToast && (
+        <div style={{
+          position: 'absolute', top: 50, left: '50%', transform: 'translateX(-50%)',
+          zIndex: 50, background: '#0f2023', border: '1px solid #07b6d5',
+          borderRadius: 6, padding: '6px 14px',
+          fontSize: 11, fontFamily: 'monospace', color: '#07b6d5',
+          display: 'flex', alignItems: 'center', gap: 6,
+          boxShadow: '0 2px 16px rgba(7,182,213,0.15)',
+        }}>
+          <span className="material-symbols-outlined" style={{ fontSize: 14 }}>refresh</span>
+          {topoChangeToast}
+        </div>
+      )}
+
       {/* ── Toolbar ──────────────────────────────────────────────── */}
       <div style={{
         position: 'absolute', top: 10, left: 10, zIndex: 20,
@@ -312,6 +448,23 @@ const LiveTopologyViewV2: React.FC = () => {
             <option key={g.id} value={g.id}>{g.label}</option>
           ))}
         </select>
+
+        {/* Group collapse toggles */}
+        {groups.length > 0 && groupFilter === 'all' && (groups as { id: string; label: string }[]).map((g) => (
+          <button
+            key={g.id}
+            onClick={() => toggleGroup(g.id)}
+            style={{
+              fontSize: 9, padding: '2px 6px', borderRadius: 3, cursor: 'pointer',
+              background: collapsedGroups.has(g.id) ? 'rgba(7,182,213,0.15)' : 'transparent',
+              border: `1px solid ${collapsedGroups.has(g.id) ? '#07b6d5' : '#2a2520'}`,
+              color: collapsedGroups.has(g.id) ? '#07b6d5' : '#7a7060',
+              fontFamily: 'monospace', minHeight: 26,
+            }}
+          >
+            {collapsedGroups.has(g.id) ? '▶' : '▼'} {g.label}
+          </button>
+        ))}
 
         {/* Edge filters */}
         <div style={{ position: 'relative' }}>

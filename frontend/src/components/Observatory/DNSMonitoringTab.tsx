@@ -302,8 +302,16 @@ const DNSMonitoringTab: React.FC = () => {
             </tbody>
           </table>
         ) : (
-          <div className="text-xs font-mono py-4 text-center" style={{ color: '#64748b' }}>
-            No DNS servers configured.
+          <div className="flex flex-col items-center py-6 gap-3">
+            <span className="material-symbols-outlined text-3xl" style={{ color: '#3d3528' }}>dns</span>
+            <div className="text-xs font-mono text-center space-y-1">
+              <div style={{ color: '#e8e0d4' }}>No DNS servers configured</div>
+              <div style={{ color: '#64748b' }}>Add probe targets below to monitor resolution latency and availability</div>
+            </div>
+            <div className="text-[10px] font-mono space-y-0.5 text-left" style={{ color: '#7a7060' }}>
+              <div>• On-Prem AD DNS — <span style={{ color: '#07b6d5' }}>10.1.40.100</span></div>
+              <div>• AWS Route 53 — <span style={{ color: '#07b6d5' }}>vpc-shared-services resolver</span></div>
+            </div>
           </div>
         )}
 

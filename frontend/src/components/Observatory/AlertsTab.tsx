@@ -146,13 +146,17 @@ const AlertsTab: React.FC<Props> = ({ alerts, onRefresh }) => {
 
       {/* Alert list */}
       {filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16">
-          <span className="material-symbols-outlined text-4xl mb-3" style={{ color: '#3d3528' }}>
-            check_circle
-          </span>
-          <span className="text-sm font-mono" style={{ color: '#64748b' }}>
-            No active alerts
-          </span>
+        <div className="flex flex-col items-center justify-center py-12 gap-4">
+          <span className="material-symbols-outlined text-4xl" style={{ color: '#3d3528' }}>notifications_off</span>
+          <div className="text-center space-y-1">
+            <div className="text-sm font-mono" style={{ color: '#e8e0d4' }}>No active alerts</div>
+            <div className="text-xs font-mono" style={{ color: '#64748b' }}>Connect event sources to receive real-time alerts</div>
+          </div>
+          <div className="text-xs font-mono space-y-1 text-left" style={{ color: '#7a7060' }}>
+            <div>• Syslog — <span style={{ color: '#07b6d5' }}>UDP 514</span> (Cisco, Palo Alto, F5)</div>
+            <div>• SNMP Traps — <span style={{ color: '#07b6d5' }}>UDP 162</span> (any v2c/v3 device)</div>
+            <div>• Webhooks — HTTP POST from cloud providers</div>
+          </div>
         </div>
       ) : (
         <div className="space-y-2">
