@@ -97,7 +97,6 @@ const navItems: NavItem[] = [
   {
     kind: 'group', group: 'Platform', icon: 'hub',
     children: [
-      { id: 'agent-catalog', label: 'Agent Catalog', icon: 'smart_toy', badge: 'NEW' },
       { id: 'workflow-builder', label: 'Workflow Builder', icon: 'account_tree', badge: 'NEW' },
       { id: 'workflow-runs', label: 'Workflow Runs', icon: 'play_circle', badge: 'NEW' },
     ],

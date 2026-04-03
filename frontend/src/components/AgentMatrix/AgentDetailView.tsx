@@ -32,6 +32,14 @@ const AgentDetailView: React.FC<AgentDetailViewProps> = ({ agent, onBack }) => {
   const [executions, setExecutions] = useState<AgentExecution[]>(agent.recent_executions || []);
   const [loadingExecs, setLoadingExecs] = useState(false);
   const [latestTrace, setLatestTrace] = useState<AgentTraceEntry[] | undefined>(undefined);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyYaml = () => {
+    const yaml = `- id: ${agent.id}\n  agent: ${agent.id}\n  input:\n    # fill required fields\n`;
+    navigator.clipboard.writeText(yaml);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const fetchExecutions = useCallback(async () => {
     setLoadingExecs(true);
@@ -118,6 +126,23 @@ const AgentDetailView: React.FC<AgentDetailViewProps> = ({ agent, onBack }) => {
           </div>
           <p className="text-xs mt-0.5" style={{ color: '#8a7e6b' }}>{agent.description}</p>
         </div>
+
+        {/* Platform actions */}
+        <button
+          onClick={handleCopyYaml}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-mono flex-shrink-0 border transition-colors"
+          style={{
+            borderColor: copied ? 'rgba(34,197,94,0.4)' : '#3d3528',
+            color: copied ? '#22c55e' : '#64748b',
+            background: copied ? 'rgba(34,197,94,0.08)' : 'transparent',
+          }}
+          title="Copy workflow step YAML"
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: 14 }}>
+            {copied ? 'check' : 'content_copy'}
+          </span>
+          {copied ? 'Copied!' : 'Copy YAML'}
+        </button>
       </header>
 
       {/* Single column layout — activity first, config second */}
@@ -134,6 +159,27 @@ const AgentDetailView: React.FC<AgentDetailViewProps> = ({ agent, onBack }) => {
             degradedTools={agent.degraded_tools}
           />
           <CoreConfigPanel llmConfig={agent.llm_config} timeoutS={agent.timeout_s} />
+
+          {/* Platform: standalone invocation — coming soon */}
+          <div
+            className="rounded-lg p-4 border"
+            style={{ background: '#0d0b08', borderColor: '#2a2520' }}
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <span className="material-symbols-outlined" style={{ fontSize: 15, color: '#3d3528' }}>play_circle</span>
+              <span className="text-xs font-mono font-semibold" style={{ color: '#4a5568' }}>Try it</span>
+              <span
+                className="text-[9px] font-mono px-1.5 py-0.5 rounded"
+                style={{ background: '#1a1814', color: '#3d3528', border: '1px solid #2a2520' }}
+              >
+                COMING SOON
+              </span>
+            </div>
+            <p className="text-[10px] font-mono" style={{ color: '#3d3528' }}>
+              Invoke this agent standalone via <span style={{ color: '#4a5568' }}>POST /api/v4/agents/{agent.id}/run</span> — available after platform backend ships.
+            </p>
+          </div>
+
           <NeuralArchitectureDiagram stages={agent.architecture_stages} />
         </div>
       </div>
