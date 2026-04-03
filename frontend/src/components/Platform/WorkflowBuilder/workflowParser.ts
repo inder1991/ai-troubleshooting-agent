@@ -1,16 +1,26 @@
 export interface WorkflowStep {
   id: string;
+  label?: string;          // human-readable display name
   agent: string;
   depends_on: string[];
   condition?: string;
   gate?: string;
+  timeout?: number;        // seconds
+  retries?: number;        // 0–5
+  retry_delay?: number;    // seconds
+  human_gate?: boolean;    // true if gate === 'human_approval'
+  skip_if?: string;        // expression string
+  parameters?: Record<string, string>;  // custom agent parameters
 }
 
 export interface ParsedWorkflow {
   id?: string;
   name?: string;
+  version?: string;
+  triggers?: string[];
   steps: WorkflowStep[];
   errors: string[];
+  dirty?: boolean;
 }
 
 export function parseWorkflowYaml(yaml: string): ParsedWorkflow {
@@ -19,6 +29,11 @@ export function parseWorkflowYaml(yaml: string): ParsedWorkflow {
 
   const idMatch = yaml.match(/^id:\s*(.+)$/m);
   const nameMatch = yaml.match(/^name:\s*(.+)$/m);
+  const versionMatch = yaml.match(/^version:\s*"?([^"\n]+)"?/m);
+  const triggersMatch = yaml.match(/^trigger:\s*\[([^\]]+)\]/m);
+  const triggers = triggersMatch
+    ? triggersMatch[1].split(',').map(t => t.trim())
+    : [];
 
   const stepsSection = yaml.split(/^steps:\s*$/m)[1] || '';
   const stepBlocks = stepsSection.split(/(?=\n\s{2}-\s)/);
@@ -53,13 +68,38 @@ export function parseWorkflowYaml(yaml: string): ParsedWorkflow {
 
     const conditionM = block.match(/condition:\s*"(.+)"/);
     const gateM = block.match(/gate:\s*(\S+)/);
+    const labelM = block.match(/\s+label:\s*"?([^"\n]+)"?\s*$/m);
+    const timeoutM = block.match(/\s+timeout:\s*(\d+)/);
+    const retriesM = block.match(/\s+retries:\s*(\d+)/);
+    const retryDelayM = block.match(/\s+retry_delay:\s*(\d+)/);
+    const skipIfM = block.match(/\s+skip_if:\s*"?([^"\n]+)"?\s*$/m);
+
+    // Parse parameters block
+    const parameters: Record<string, string> = {};
+    const paramSection = block.match(/\s+parameters:\s*\n((?:\s+\w+:.+\n?)+)/);
+    if (paramSection) {
+      const paramLines = paramSection[1].match(/\s+(\w+):\s*(.+)/g) || [];
+      paramLines.forEach(line => {
+        const [, k, v] = line.match(/\s+(\w+):\s*(.+)/) || [];
+        if (k && v) parameters[k.trim()] = v.trim().replace(/^["']|["']$/g, '');
+      });
+    }
+
+    const humanGate = gateM?.[1] === 'human_approval';
 
     steps.push({
       id: stepId,
+      label: labelM?.[1]?.trim(),
       agent,
       depends_on,
       condition: conditionM?.[1],
       gate: gateM?.[1],
+      timeout: timeoutM ? parseInt(timeoutM[1]) : undefined,
+      retries: retriesM ? parseInt(retriesM[1]) : undefined,
+      retry_delay: retryDelayM ? parseInt(retryDelayM[1]) : undefined,
+      human_gate: humanGate || undefined,
+      skip_if: skipIfM?.[1]?.trim(),
+      parameters: Object.keys(parameters).length > 0 ? parameters : undefined,
     });
   }
 
@@ -95,7 +135,14 @@ export function parseWorkflowYaml(yaml: string): ParsedWorkflow {
     }
   });
 
-  return { id: idMatch?.[1]?.trim(), name: nameMatch?.[1]?.trim(), steps, errors };
+  return {
+    id: idMatch?.[1]?.trim(),
+    name: nameMatch?.[1]?.trim(),
+    version: versionMatch?.[1]?.trim(),
+    triggers,
+    steps,
+    errors,
+  };
 }
 
 export const APP_DIAGNOSTICS_TEMPLATE = `id: app_diagnostics
