@@ -60,9 +60,12 @@ import SecurityResourcesView from './components/Security/SecurityResourcesView';
 import ClusterRegistryPage from './components/ClusterRegistry/ClusterRegistryPage';
 import ClusterRecommendationsPage from './components/ClusterRegistry/ClusterRecommendationsPage';
 import { Breadcrumbs } from './components/shared';
+import AgentCatalogView from './components/Platform/AgentCatalog/AgentCatalogView';
+import WorkflowBuilderView from './components/Platform/WorkflowBuilder/WorkflowBuilderView';
+import WorkflowRunsView from './components/Platform/WorkflowRuns/WorkflowRunsView';
 
 
-type ViewState = 'home' | 'form' | 'investigation' | 'sessions' | 'integrations' | 'settings' | 'dossier' | 'cluster-diagnostics' | 'agent-matrix' | 'network-troubleshooting' | 'network-topology' | 'network-adapters' | 'device-monitoring' | 'ipam' | 'matrix' | 'observatory' | 'db-overview' | 'db-connections' | 'db-diagnostics' | 'db-monitoring' | 'db-schema' | 'db-operations' | 'k8s-clusters' | 'audit-log' | 'mib-browser' | 'cloud-resources' | 'security-resources' | 'cluster-registry' | 'cluster-recommendations' | 'live-topology';
+type ViewState = 'home' | 'form' | 'investigation' | 'sessions' | 'integrations' | 'settings' | 'dossier' | 'cluster-diagnostics' | 'agent-matrix' | 'network-troubleshooting' | 'network-topology' | 'network-adapters' | 'device-monitoring' | 'ipam' | 'matrix' | 'observatory' | 'db-overview' | 'db-connections' | 'db-diagnostics' | 'db-monitoring' | 'db-schema' | 'db-operations' | 'k8s-clusters' | 'audit-log' | 'mib-browser' | 'cloud-resources' | 'security-resources' | 'cluster-registry' | 'cluster-recommendations' | 'live-topology' | 'agent-catalog' | 'workflow-builder' | 'workflow-runs';
 
 function AppInner() {
   const { addToast } = useToast();
@@ -759,6 +762,10 @@ function AppInner() {
         {viewState === 'agent-matrix' && (
           <AgentMatrixView onGoHome={handleGoHome} />
         )}
+
+        {viewState === 'agent-catalog' && <AgentCatalogView />}
+        {viewState === 'workflow-builder' && <WorkflowBuilderView />}
+        {viewState === 'workflow-runs' && <WorkflowRunsView />}
 
         {viewState === 'network-troubleshooting' && activeSession && (
           <NetworkWarRoom

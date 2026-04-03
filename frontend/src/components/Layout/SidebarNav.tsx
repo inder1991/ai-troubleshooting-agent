@@ -7,7 +7,8 @@ export type NavView = 'home' | 'sessions' | 'app-diagnostics' | 'cluster-diagnos
   | 'k8s-clusters' | 'k8s-diagnostics' | 'cluster-registry' | 'cluster-recommendations'
   | 'db-overview' | 'db-connections' | 'db-diagnostics' | 'db-monitoring' | 'db-schema' | 'db-operations'
   | 'integrations' | 'settings' | 'agent-matrix'
-  | 'audit-log' | 'mib-browser' | 'cloud-resources' | 'security-resources';
+  | 'audit-log' | 'mib-browser' | 'cloud-resources' | 'security-resources'
+  | 'agent-catalog' | 'workflow-builder' | 'workflow-runs';
 
 type NavChild = { id: NavView; label: string; icon: string; badge?: 'NEW' | 'PREVIEW' | 'BETA' };
 type NavLink = { kind: 'link'; id: NavView; label: string; icon: string };
@@ -89,7 +90,17 @@ const navItems: NavItem[] = [
     ],
   },
 
-  // Zone 8: System
+  // Zone 8: Platform
+  {
+    kind: 'group', group: 'Platform', icon: 'hub',
+    children: [
+      { id: 'agent-catalog', label: 'Agent Catalog', icon: 'smart_toy', badge: 'NEW' },
+      { id: 'workflow-builder', label: 'Workflow Builder', icon: 'account_tree', badge: 'NEW' },
+      { id: 'workflow-runs', label: 'Workflow Runs', icon: 'play_circle', badge: 'NEW' },
+    ],
+  },
+
+  // Zone 9: System
   { kind: 'link', id: 'agent-matrix', label: 'Agent Matrix', icon: 'smart_toy' },
   {
     kind: 'group', group: 'Settings', icon: 'settings',
