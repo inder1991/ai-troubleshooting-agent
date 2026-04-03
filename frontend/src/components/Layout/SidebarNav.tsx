@@ -90,7 +90,10 @@ const navItems: NavItem[] = [
     ],
   },
 
-  // Zone 8: Platform
+  // Zone 8: System
+  { kind: 'link', id: 'agent-matrix', label: 'Agent Matrix', icon: 'smart_toy' },
+
+  // Zone 9: Platform
   {
     kind: 'group', group: 'Platform', icon: 'hub',
     children: [
@@ -99,9 +102,6 @@ const navItems: NavItem[] = [
       { id: 'workflow-runs', label: 'Workflow Runs', icon: 'play_circle', badge: 'NEW' },
     ],
   },
-
-  // Zone 9: System
-  { kind: 'link', id: 'agent-matrix', label: 'Agent Matrix', icon: 'smart_toy' },
   {
     kind: 'group', group: 'Settings', icon: 'settings',
     children: [
