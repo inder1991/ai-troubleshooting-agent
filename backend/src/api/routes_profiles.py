@@ -51,6 +51,7 @@ class CreateProfileRequest(BaseModel):
     auth_method: Literal["kubeconfig", "token", "service_account", "none"] = "token"
     auth_data: Optional[str] = None  # plaintext credential (will be encrypted)
     endpoints: Optional[dict] = None
+    role: str = ""   # RBAC role metadata, e.g. "cluster-admin", "view", "edit"
 
 
 class UpdateProfileRequest(BaseModel):
@@ -62,6 +63,7 @@ class UpdateProfileRequest(BaseModel):
     auth_method: Optional[Literal["kubeconfig", "token", "service_account", "none"]] = None
     auth_data: Optional[str] = None
     endpoints: Optional[dict] = None
+    role: Optional[str] = None   # RBAC role metadata, e.g. "cluster-admin", "view", "edit"
 
 
 class TestEndpointRequest(BaseModel):
@@ -84,6 +86,7 @@ async def create_profile(request: CreateProfileRequest):
         cluster_url=request.cluster_url,
         environment=request.environment,
         auth_method=request.auth_method,
+        role=request.role,
     )
 
     # Encrypt credentials if provided (strip whitespace/newlines from pasted tokens)
@@ -146,6 +149,8 @@ async def update_profile(profile_id: str, request: UpdateProfileRequest):
         profile.environment = request.environment
     if request.auth_method is not None:
         profile.auth_method = request.auth_method
+    if request.role is not None:
+        profile.role = request.role
 
     # Re-encrypt if new auth_data provided (strip whitespace/newlines from pasted tokens)
     if request.auth_data:

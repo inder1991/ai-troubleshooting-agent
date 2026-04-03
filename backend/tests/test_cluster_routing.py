@@ -278,6 +278,32 @@ class TestClusterConnectionConfig:
         assert "connection_config" in session
 
 
+class TestProfileRole:
+    def test_create_profile_with_role(self, client):
+        resp = client.post("/api/v5/profiles/", json={
+            "name": "test-cluster-role",
+            "cluster_url": "https://api.example.com:6443",
+            "cluster_type": "openshift",
+            "role": "cluster-admin",
+        })
+        assert resp.status_code == 200
+        assert resp.json()["role"] == "cluster-admin"
+
+    def test_update_profile_role(self, client):
+        # First create a profile
+        create_resp = client.post("/api/v5/profiles/", json={
+            "name": "test-update-role",
+            "cluster_url": "https://api.example.com:6443",
+            "cluster_type": "openshift",
+        })
+        assert create_resp.status_code == 200
+        profile_id = create_resp.json()["id"]
+        # Then update with role
+        resp = client.put(f"/api/v5/profiles/{profile_id}", json={"role": "view"})
+        assert resp.status_code == 200
+        assert resp.json()["role"] == "view"
+
+
 class TestAppChatFindings:
     """Verify app chat includes actual findings in the LLM prompt."""
 
