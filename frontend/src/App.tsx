@@ -492,6 +492,7 @@ function AppInner() {
     'audit-log': 'audit-log', 'mib-browser': 'mib-browser',
     'cloud-resources': 'cloud-resources', 'security-resources': 'security-resources',
     'cluster-registry': 'cluster-registry', 'cluster-recommendations': 'cluster-recommendations',
+    'agent-catalog': 'agent-catalog', 'workflow-builder': 'workflow-builder', 'workflow-runs': 'workflow-runs',
   };
 
   const navView: NavView =
