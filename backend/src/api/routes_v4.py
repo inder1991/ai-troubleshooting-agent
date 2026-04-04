@@ -599,6 +599,7 @@ async def run_cluster_diagnosis(session_id, graph, cluster_client, emitter, scan
             "ranked_hypotheses": [],
             "hypotheses_by_issue": {},
             "hypothesis_selection": {},
+            "_trace": [],
         }
 
         # Pre-flight: detect platform

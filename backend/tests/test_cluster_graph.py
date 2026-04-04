@@ -516,7 +516,6 @@ class TestInitialStateMissingFields:
     def test_initial_state_has_all_required_fields(self):
         """run_cluster_diagnosis must include all State TypedDict fields in initial_state."""
         import asyncio
-        import sys
         from unittest.mock import MagicMock, AsyncMock, patch
 
         captured_state = {}
@@ -557,7 +556,7 @@ class TestInitialStateMissingFields:
             "rbac_check", "rbac_skipped", "normalized_signals", "pattern_matches",
             "temporal_analysis", "diagnostic_graph", "diagnostic_issues",
             "ranked_hypotheses", "hypotheses_by_issue", "hypothesis_selection",
-            "critic_result", "proactive_findings",
+            "critic_result", "proactive_findings", "_trace",
         ]
 
         with patch("src.agents.cluster.prometheus_detector.detect_prometheus_endpoint",
