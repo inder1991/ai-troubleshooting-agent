@@ -37,6 +37,32 @@ const DomainPanel: React.FC<DomainPanelProps> = ({ domain, report, namespaces })
         </span>
       </div>
 
+      {/* Failure reason banner */}
+      {report?.status === 'FAILED' && report.failure_reason && (
+        <div className="mx-4 mt-3 px-3 py-2 rounded border border-red-500/20 bg-red-500/5 text-[11px]">
+          <span className="text-red-400 font-semibold">Agent failed: </span>
+          <span className="text-red-300">{report.failure_reason.replace(/_/g, ' ').toLowerCase()}</span>
+          {report.data_gathered_before_failure && report.data_gathered_before_failure.length > 0 && (
+            <div className="mt-1 text-slate-500">
+              Partial data collected: {report.data_gathered_before_failure.join(', ')}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Partial status info */}
+      {report?.status === 'PARTIAL' && (
+        <div className="mx-4 mt-3 px-3 py-2 rounded border border-amber-500/20 bg-amber-500/5 text-[11px]">
+          <span className="text-amber-400 font-semibold">Partial results — </span>
+          <span className="text-amber-300">{report.failure_reason ? report.failure_reason.replace(/_/g, ' ').toLowerCase() : 'some data missing'}</span>
+          {report.data_gathered_before_failure && report.data_gathered_before_failure.length > 0 && (
+            <div className="mt-1 text-slate-500">
+              Data collected: {report.data_gathered_before_failure.join(', ')}
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="p-4 space-y-4 overflow-y-auto flex-1 custom-scrollbar">
         {namespaces.length === 0 && !report && (
           <div className="text-xs text-slate-600 animate-pulse">Scanning namespaces...</div>
@@ -80,6 +106,20 @@ const DomainPanel: React.FC<DomainPanelProps> = ({ domain, report, namespaces })
             {a.description}
           </div>
         ))}
+
+        {/* Ruled out (healthy checks) */}
+        {report && report.ruled_out.length > 0 && (
+          <div className="mx-4 mt-2 mb-3 px-3 py-2 rounded border border-emerald-500/10 bg-emerald-500/5">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-emerald-600">Ruled Out ({report.ruled_out.length})</span>
+            <div className="mt-1 flex flex-wrap gap-1.5">
+              {report.ruled_out.map((item, i) => (
+                <span key={i} className="text-[10px] text-emerald-500/60 bg-emerald-500/5 px-1.5 py-0.5 rounded font-mono">
+                  {item}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
