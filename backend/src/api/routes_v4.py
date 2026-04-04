@@ -713,10 +713,20 @@ async def run_cluster_diagnosis(session_id, graph, cluster_client, emitter, scan
 
     except asyncio.TimeoutError:
         logger.error("Cluster diagnosis timed out", extra={"session_id": session_id})
-        async with lock:
-            if session_id in sessions:
-                sessions[session_id]["phase"] = "error"
-        await emitter.emit("cluster_supervisor", "error", "Cluster diagnosis timed out after 180s")
+        # Build partial report from whatever state was checkpointed before timeout
+        from src.agents.cluster.graph import _build_partial_health_report
+        partial_state = sessions.get(session_id, {}).get("state") or {}
+        if partial_state.get("domain_reports"):
+            partial_report = _build_partial_health_report(partial_state)
+            async with lock:
+                sessions[session_id]["state"]["health_report"] = partial_report
+                sessions[session_id]["state"]["phase"] = "partial_timeout"
+        await emitter.emit(
+            "cluster_supervisor", "warning",
+            "Diagnosis timed out — partial results available",
+            {"phase": "partial_timeout",
+             "data_completeness": partial_state.get("data_completeness", 0.0)},
+        )
     except asyncio.CancelledError:
         logger.info("Cluster diagnosis cancelled for session %s", session_id)
     except Exception as e:

@@ -37,6 +37,61 @@ GRAPH_TIMEOUT = 180
 ALL_DOMAINS = ["ctrl_plane", "node", "network", "storage", "rbac"]
 
 
+def _build_partial_health_report(state: dict) -> dict:
+    """
+    Build a partial ClusterHealthReport from whatever state was checkpointed before timeout.
+    Called when graph.ainvoke() times out — returns PARTIAL_TIMEOUT status with all
+    anomalies found so far in uncorrelated_findings (no causal chains, no remediation).
+    """
+    domain_reports = state.get("domain_reports") or []
+    proactive_findings = state.get("proactive_findings") or []
+    data_completeness = state.get("data_completeness") or 0.0
+
+    # Derive health from domain statuses
+    statuses = [r.get("status", "PENDING") if isinstance(r, dict) else r.status.value
+                for r in domain_reports]
+    has_failed = any(s in ("FAILED",) for s in statuses)
+    has_anomalies = any(
+        len(r.get("anomalies", []) if isinstance(r, dict) else r.anomalies) > 0
+        for r in domain_reports
+    )
+
+    if has_failed and has_anomalies:
+        overall_status = "CRITICAL"
+    elif has_failed:
+        overall_status = "UNKNOWN"
+    elif has_anomalies:
+        overall_status = "DEGRADED"
+    else:
+        overall_status = "UNKNOWN"  # Can't claim HEALTHY without completed synthesis
+
+    # Collect all anomalies from completed domains as uncorrelated_findings
+    uncorrelated: list[dict] = []
+    for r in domain_reports:
+        anomalies = r.get("anomalies", []) if isinstance(r, dict) else [
+            a.model_dump(mode="json") for a in r.anomalies
+        ]
+        uncorrelated.extend(anomalies)
+
+    return {
+        "status": "PARTIAL_TIMEOUT",
+        "overall_status": overall_status,
+        "data_completeness": data_completeness,
+        "domain_reports": domain_reports,
+        "proactive_findings": proactive_findings,
+        "causal_chains": [],
+        "uncorrelated_findings": uncorrelated,
+        "remediation": {"immediate": [], "long_term": []},
+        "blast_radius": {
+            "summary": f"Diagnosis timed out. {len(uncorrelated)} anomalies found before timeout.",
+            "affected_namespaces": state.get("namespaces", []),
+            "affected_pods": [],
+            "affected_nodes": [],
+        },
+        "note": "Diagnosis timed out before synthesis. Results reflect partial data only.",
+    }
+
+
 class State(TypedDict):
     # Existing fields
     diagnostic_id: str
