@@ -780,3 +780,28 @@ def test_node_os_patch_never_uses_creation_timestamp():
     source = inspect.getsource(proactive_analyzer._check_node_os_patch)
     assert "creation_timestamp" not in source, \
         "_check_node_os_patch must not reference creation_timestamp"
+
+
+def test_quota_pressure_recommendation_names_specific_resource_and_namespace():
+    """quota_pressure recommendation must name the specific resource and namespace."""
+    from src.agents.cluster.proactive_analyzer import _check_quota_pressure
+
+    fake_data = [{
+        "name": "compute-resources",
+        "namespace": "production",
+        "status": {
+            "hard": {"requests.cpu": "20"},
+            "used": {"requests.cpu": "19"},  # 95% usage
+        }
+    }]
+
+    findings = _check_quota_pressure(fake_data)
+    assert findings, "No finding at 95% quota usage"
+
+    rec = findings[0].recommendation or ""
+    commands = findings[0].commands or []
+
+    assert "production" in rec or any("production" in c for c in commands), \
+        f"Namespace 'production' not referenced in recommendation or commands. rec='{rec}' commands={commands}"
+    assert "requests.cpu" in rec or any("requests.cpu" in c for c in commands), \
+        f"Resource name 'requests.cpu' not in recommendation or commands"

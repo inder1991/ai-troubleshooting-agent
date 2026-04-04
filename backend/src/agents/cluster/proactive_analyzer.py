@@ -493,12 +493,17 @@ def _check_quota_pressure(data: list[dict[str, Any]]) -> list[ProactiveFinding]:
                 affected_workloads=[],
                 days_until_impact=days_estimate,
                 recommendation=(
-                    f"Increase the '{resource_name}' limit in quota '{quota_name}' "
-                    f"or reduce usage in namespace '{ns}'."
+                    f"In namespace '{ns}', reduce '{resource_name}' consumption or increase the quota limit. "
+                    f"Run 'kubectl top pods -n {ns}' to identify the highest consumers, "
+                    f"then lower resource requests on over-provisioned deployments "
+                    f"or edit quota '{quota_name}' to raise the '{resource_name}' limit."
                 ),
                 commands=[
                     f"kubectl describe resourcequota {quota_name} -n {ns}",
-                    f"kubectl get pods -n {ns} --sort-by='.spec.containers[0].resources.requests.{resource_name}'",
+                    f"kubectl top pods -n {ns} --sort-by=cpu",
+                    f"kubectl get pods -n {ns} -o=jsonpath="
+                    f"'{{range .items[*]}}{{.metadata.name}}{{\"\\t\"}}"
+                    f"{{.spec.containers[0].resources.requests.{resource_name}}}{{\"\\n\"}}{{end}}'",
                 ],
                 dry_run_command=f"kubectl get resourcequota {quota_name} -n {ns} -o yaml",
                 confidence=0.90,
