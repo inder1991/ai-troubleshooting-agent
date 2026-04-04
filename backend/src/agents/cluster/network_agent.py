@@ -287,20 +287,34 @@ async def network_agent(state: dict, config: dict) -> dict:
     dns_metrics_raw: list = []
     ingress_metrics_raw: list = []
     if prometheus_client:
-        dns_resp = await prometheus_client.query_instant("coredns_dns_requests_total")
-        dns_metrics_raw = dns_resp.get("data", {}).get("result", []) if isinstance(dns_resp, dict) else []
-        ingress_resp = await prometheus_client.query_instant("ingress_5xx_rate")
-        ingress_metrics_raw = ingress_resp.get("data", {}).get("result", []) if isinstance(ingress_resp, dict) else []
+        try:
+            dns_resp = await prometheus_client.query_instant("coredns_dns_requests_total")
+            dns_metrics_raw = dns_resp.get("data", {}).get("result", []) if isinstance(dns_resp, dict) else []
+        except Exception as exc:
+            logger.debug("Prometheus DNS query failed: %s", exc)
+            dns_metrics_raw = []
+        try:
+            ingress_resp = await prometheus_client.query_instant("ingress_5xx_rate")
+            ingress_metrics_raw = ingress_resp.get("data", {}).get("result", []) if isinstance(ingress_resp, dict) else []
+        except Exception as exc:
+            logger.debug("Prometheus ingress query failed: %s", exc)
+            ingress_metrics_raw = []
 
     # Gather logs via ElasticsearchClient if available
     logs_raw: list = []
+    logs_total: int = 0
     if elk_client and elk_index:
-        logs_resp = await elk_client.search(
-            index=elk_index,
-            body={"query": {"query_string": {"query": "coredns OR ingress"}}, "size": 50},
-        )
-        hits = logs_resp.get("hits", {}) if isinstance(logs_resp, dict) else {}
-        logs_raw = hits.get("hits", [])
+        try:
+            logs_resp = await elk_client.search(
+                index=elk_index,
+                body={"query": {"query_string": {"query": "coredns OR ingress"}}, "size": 50},
+            )
+            logs_raw = logs_resp.get("hits", {}).get("hits", [])[:50]
+            logs_total = logs_resp.get("hits", {}).get("total", {}).get("value", 0)
+        except Exception as exc:
+            logger.debug("ELK search failed: %s", exc)
+            logs_raw = []
+            logs_total = 0
 
     # Gather data - services, endpoints, network policies via cluster_client
     services = await client.list_services()
@@ -410,7 +424,7 @@ async def network_agent(state: dict, config: dict) -> dict:
         anomalies=anomalies,
         ruled_out=analysis.get("ruled_out", []),
         evidence_refs=[a.evidence_ref for a in anomalies],
-        truncation_flags=TruncationFlags(log_lines=len(logs_raw) >= 50),
+        truncation_flags=TruncationFlags(log_lines=logs_total > 50),
         duration_ms=elapsed,
     )
 

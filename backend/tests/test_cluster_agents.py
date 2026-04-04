@@ -344,6 +344,68 @@ async def test_network_agent_skips_prometheus_when_none():
 
 
 @pytest.mark.asyncio
+async def test_network_agent_uses_elk_client():
+    """network_agent must call elk_client.search() when elk_client and elk_index are provided."""
+    from src.agents.cluster.network_agent import network_agent
+    from unittest.mock import MagicMock, AsyncMock, patch
+
+    mock_elk = MagicMock()
+    mock_elk.search = AsyncMock(return_value={
+        "hits": {
+            "total": {"value": 3},
+            "hits": [{"_source": {"message": "test"}}],
+        }
+    })
+
+    def _qr(data=None):
+        r = MagicMock()
+        r.data = data if data is not None else []
+        r.permission_denied = False
+        r.truncated = False
+        r.total_available = 0
+        r.returned = 0
+        return r
+
+    mock_cluster = MagicMock()
+    mock_cluster.list_pods = AsyncMock(return_value=_qr())
+    mock_cluster.list_services = AsyncMock(return_value=_qr())
+    mock_cluster.list_events = AsyncMock(return_value=_qr())
+    mock_cluster.list_ingresses = AsyncMock(return_value=_qr())
+    mock_cluster.get_routes = AsyncMock(return_value=_qr())
+    mock_cluster.list_network_policies = AsyncMock(return_value=_qr())
+    mock_cluster.list_endpoints = AsyncMock(return_value=_qr())
+
+    config = {"configurable": {
+        "cluster_client": mock_cluster,
+        "prometheus_client": None,
+        "elk_client": mock_elk,
+        "elk_index": "k8s-logs-*",
+        "emitter": MagicMock(),
+        "budget": MagicMock(should_skip=MagicMock(return_value=False), can_call=MagicMock(return_value=False)),
+        "telemetry": MagicMock(),
+    }}
+    state = {
+        "platform": "kubernetes",
+        "platform_version": "1.28",
+        "namespaces": ["default"],
+        "diagnostic_scope": {},
+        "dispatch_domains": ["network"],
+        "scan_mode": "diagnostic",
+        "cluster_url": "https://api.example.com:6443",
+        "cluster_type": "kubernetes",
+        "cluster_role": "",
+    }
+
+    with patch("src.agents.cluster.network_agent._heuristic_analyze", new_callable=AsyncMock) as mock_h:
+        mock_h.return_value = {"anomalies": [], "ruled_out": [], "confidence": 50}
+        result = await network_agent(state, config)
+
+    assert mock_elk.search.called, \
+        "network_agent must call elk_client.search() when elk_client and elk_index are provided"
+    assert result is not None
+
+
+@pytest.mark.asyncio
 async def test_rbac_checker_openshift_denied_resources_not_in_granted():
     """OpenShift resources that return permission_denied must appear in denied, not granted."""
     from src.agents.cluster.rbac_checker import rbac_preflight
