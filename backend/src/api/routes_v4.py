@@ -211,6 +211,11 @@ async def _session_cleanup_loop():
                     sessions.pop(sid, None)
                     supervisors.pop(sid, None)
                 manager.disconnect(sid)
+                from src.observability.store import get_store
+                try:
+                    await get_store().delete_session(sid)
+                except Exception as e:
+                    logger.warning("Failed to delete session from store: %s", e)
 
             if expired:
                 logger.info(
@@ -305,7 +310,8 @@ async def start_session(request: StartSessionRequest, background_tasks: Backgrou
     except Exception as e:
         logger.warning("Could not resolve profile config: %s", e)
 
-    emitter = EventEmitter(session_id=session_id, websocket_manager=manager)
+    from src.observability.store import get_store as _get_store
+    emitter = EventEmitter(session_id=session_id, websocket_manager=manager, store=_get_store())
 
     # C1: Create per-session lock
     session_locks[session_id] = asyncio.Lock()
@@ -1584,20 +1590,29 @@ async def get_cluster_dossier(session_id: str):
 
 
 @router_v4.get("/session/{session_id}/events")
-async def get_session_events(session_id: str):
-    """Return all stored events for a session — reliable catch-up for WebSocket misses."""
+async def get_session_events(
+    session_id: str,
+    after_sequence: int = 0,
+):
+    """Return session events. Use after_sequence for replay (returns events after that seq)."""
     _validate_session_id(session_id)
-    session = sessions.get(session_id)
-    if not session:
+    if session_id not in sessions:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    emitter = session.get("emitter")
-    if not emitter or not hasattr(emitter, 'get_all_events'):
+    from src.observability.store import get_store
+    store = get_store()
+    try:
+        events = await store.get_events(session_id, after_sequence=after_sequence)
+        return {"events": events}
+    except Exception:
+        # Fallback to in-memory events if store unavailable
+        emitter = sessions[session_id].get("emitter")
+        if emitter:
+            all_events = emitter.get_all_events()
+            event_dicts = [e.model_dump(mode="json") for e in all_events
+                           if (e.sequence_number or 0) > after_sequence]
+            return {"events": event_dicts}
         return {"events": []}
-
-    return {
-        "events": [e.model_dump(mode="json") for e in emitter.get_all_events()]
-    }
 
 
 # ── Campaign (Multi-Repo) Endpoints ──────────────────────────────────

@@ -215,6 +215,15 @@ def create_app() -> FastAPI:
         from .routes_v4 import start_cleanup_task
         start_cleanup_task()
 
+        # Initialize DiagnosticStore
+        try:
+            from src.observability.store import get_store
+            store = get_store()
+            await store.initialize()
+            logger.info("DiagnosticStore initialized")
+        except Exception as e:
+            logger.warning("DiagnosticStore initialization failed: %s", e)
+
         # ── Initialize InfluxDB + NetworkMonitor ──
         from .network_endpoints import _get_topology_store as _net_topo_store, _adapter_registry
         from .network_endpoints import _knowledge_graph as _net_kg

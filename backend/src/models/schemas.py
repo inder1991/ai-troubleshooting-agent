@@ -162,6 +162,7 @@ class TaskEvent(BaseModel):
     message: str
     details: Optional[dict] = None
     session_id: Optional[str] = None
+    sequence_number: Optional[int] = None
 
 
 class LogEvidence(BaseModel):

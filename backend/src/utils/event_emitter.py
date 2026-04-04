@@ -1,4 +1,6 @@
 from datetime import datetime, timezone
+from typing import Optional
+
 from src.models.schemas import TaskEvent
 from src.utils.logger import get_logger
 
@@ -6,11 +8,12 @@ logger = get_logger(__name__)
 
 
 class EventEmitter:
-    """Emits real-time task events via WebSocket and stores them locally."""
+    """Emits real-time task events via WebSocket and persists them to DiagnosticStore."""
 
-    def __init__(self, session_id: str, websocket_manager=None):
+    def __init__(self, session_id: str, websocket_manager=None, store=None):
         self.session_id = session_id
         self._websocket_manager = websocket_manager
+        self._store = store
         self._events: list[TaskEvent] = []
 
     async def emit(
@@ -20,7 +23,7 @@ class EventEmitter:
         message: str,
         details: dict | None = None,
     ) -> TaskEvent:
-        """Emit a task event — sends via WebSocket and stores locally."""
+        """Emit a task event — persists to store, broadcasts via WebSocket."""
         event = TaskEvent(
             timestamp=datetime.now(timezone.utc),
             agent_name=agent_name,
@@ -29,28 +32,42 @@ class EventEmitter:
             details=details,
             session_id=self.session_id,
         )
-        self._events.append(event)
 
-        logger.debug("Event emitted", extra={"session_id": self.session_id, "agent_name": agent_name, "action": event_type, "extra": message})
+        # Persist to store first — assigns sequence_number
+        if self._store is not None:
+            try:
+                seq = await self._store.append_event(
+                    self.session_id, event.model_dump(mode="json")
+                )
+                event.sequence_number = seq
+            except Exception as e:
+                logger.warning("Failed to persist event to store: %s", e,
+                               extra={"session_id": self.session_id})
+
+        self._events.append(event)
+        logger.debug("Event emitted", extra={
+            "session_id": self.session_id, "agent_name": agent_name,
+            "action": event_type, "extra": message,
+        })
 
         if self._websocket_manager:
             try:
                 await self._websocket_manager.send_message(
                     self.session_id,
-                    {
-                        "type": "task_event",
-                        "data": event.model_dump(mode="json"),
-                    },
+                    {"type": "task_event", "data": event.model_dump(mode="json")},
                 )
-                logger.debug("WebSocket broadcast", extra={"session_id": self.session_id, "action": "ws_broadcast", "extra": event_type})
             except Exception as e:
-                # H3: Log at WARNING — event is stored locally; frontend can catch up via GET /events
-                logger.warning("WebSocket broadcast failed (event stored locally)", extra={"session_id": self.session_id, "action": "ws_broadcast_failed", "extra": str(e)})
+                logger.warning(
+                    "WebSocket broadcast failed (event persisted at seq=%s)",
+                    event.sequence_number,
+                    extra={"session_id": self.session_id, "action": "ws_broadcast_failed",
+                           "extra": str(e)},
+                )
 
         return event
 
     def get_all_events(self) -> list[TaskEvent]:
-        """Return all stored events."""
+        """Return all in-memory events for this session."""
         return list(self._events)
 
     def get_events_by_agent(self, agent_name: str) -> list[TaskEvent]:
