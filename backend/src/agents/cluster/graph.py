@@ -60,6 +60,9 @@ class State(TypedDict):
     issue_clusters: list[dict]
     causal_search_space: dict
     scan_mode: str
+    cluster_url: str
+    cluster_type: str
+    cluster_role: str
     previous_scan: Optional[dict]
     guard_scan_result: Optional[dict]
     # Scope-governed diagnostics

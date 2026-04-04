@@ -363,7 +363,8 @@ async def start_session(request: StartSessionRequest, background_tasks: Backgrou
         }
 
         background_tasks.add_task(
-            run_cluster_diagnosis, session_id, graph, cluster_client, emitter, request.scan_mode
+            run_cluster_diagnosis, session_id, graph, cluster_client, emitter, request.scan_mode,
+            connection_config=connection_config
         )
 
         logger.info("Cluster session created", extra={"session_id": session_id, "action": "session_created", "extra": "cluster_diagnostics"})
@@ -539,7 +540,7 @@ async def get_or_create_cluster_client(session_id: str):
     return None
 
 
-async def run_cluster_diagnosis(session_id, graph, cluster_client, emitter, scan_mode="diagnostic"):
+async def run_cluster_diagnosis(session_id, graph, cluster_client, emitter, scan_mode="diagnostic", connection_config=None):
     """Background task: run LangGraph cluster diagnostic."""
     try:
         _diagnosis_tasks[session_id] = asyncio.current_task()
@@ -567,6 +568,9 @@ async def run_cluster_diagnosis(session_id, graph, cluster_client, emitter, scan
             "data_completeness": 0.0,
             "error": None,
             "scan_mode": scan_mode,
+            "cluster_url": getattr(connection_config, "cluster_url", "") if connection_config else "",
+            "cluster_type": getattr(connection_config, "cluster_type", "") if connection_config else "",
+            "cluster_role": getattr(connection_config, "role", "") if connection_config else "",
             "topology_graph": {},
             "topology_freshness": {},
             "issue_clusters": [],

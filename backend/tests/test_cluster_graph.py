@@ -148,3 +148,94 @@ class TestDispatchRouterRBAC:
         result = dispatch_router(state)
         assert "rbac_skipped" in result
         assert any(s["domain"] == "node" for s in result["rbac_skipped"])
+
+
+class TestClusterMetadataInState:
+    def test_initial_state_has_cluster_url(self):
+        """run_cluster_diagnosis should include cluster_url in initial_state."""
+        import asyncio
+        from unittest.mock import MagicMock, AsyncMock
+
+        mock_client = MagicMock()
+        mock_client.detect_platform = AsyncMock(return_value={"platform": "openshift", "version": "4.14"})
+        mock_client.list_namespaces = AsyncMock(return_value=MagicMock(data=["default"]))
+        mock_client.list_nodes = AsyncMock(return_value=MagicMock(data=[]))
+        mock_client.close = AsyncMock()
+
+        captured_state = {}
+        async def mock_graph_invoke(state, config):
+            captured_state.update(state)
+            return {**state, "phase": "complete", "data_completeness": 0.8,
+                    "domain_reports": [], "health_report": None}
+
+        mock_graph = MagicMock()
+        mock_graph.ainvoke = mock_graph_invoke
+
+        from src.api.routes_v4 import run_cluster_diagnosis, sessions
+        from src.integrations.connection_config import ResolvedConnectionConfig
+
+        sid = "test-meta-state-001"
+        cfg = ResolvedConnectionConfig(
+            cluster_url="https://api.cluster.example.com:6443",
+            cluster_type="openshift",
+            role="cluster-admin",
+        )
+        sessions[sid] = {
+            "diagnostic_scope": {},
+            "connection_config": cfg,
+            "elk_index": "",
+        }
+
+        emitter = MagicMock()
+        emitter.emit = AsyncMock()
+
+        asyncio.run(
+            run_cluster_diagnosis(sid, mock_graph, mock_client, emitter, connection_config=cfg)
+        )
+        assert captured_state.get("cluster_url") == "https://api.cluster.example.com:6443"
+        assert captured_state.get("cluster_type") == "openshift"
+        assert captured_state.get("cluster_role") == "cluster-admin"
+
+
+class TestRetryUtility:
+    def test_with_retry_succeeds_on_second_attempt(self):
+        import asyncio
+        from src.agents.cluster.retry_utils import with_retry
+
+        call_count = [0]
+
+        @with_retry(retries=2, backoff=0.01)
+        async def flaky():
+            call_count[0] += 1
+            if call_count[0] < 2:
+                raise ConnectionError("transient error")
+            return "ok"
+
+        result = asyncio.run(flaky())
+        assert result == "ok"
+        assert call_count[0] == 2
+
+    def test_with_retry_raises_after_all_attempts_exhausted(self):
+        import asyncio
+        from src.agents.cluster.retry_utils import with_retry
+
+        @with_retry(retries=2, backoff=0.01)
+        async def always_fails():
+            raise ConnectionError("always fails")
+
+        try:
+            asyncio.run(always_fails())
+            assert False, "Should have raised"
+        except ConnectionError as e:
+            assert str(e) == "always fails"
+
+    def test_with_retry_succeeds_immediately_no_retries(self):
+        import asyncio
+        from src.agents.cluster.retry_utils import with_retry
+
+        @with_retry(retries=2, backoff=0.01)
+        async def always_works():
+            return 42
+
+        result = asyncio.run(always_works())
+        assert result == 42
