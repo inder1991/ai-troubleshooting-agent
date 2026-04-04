@@ -570,63 +570,86 @@ def _label_selector_str(selector: dict[str, Any]) -> str:
     return "app=<unknown>"
 
 
+def _parse_kernel_major_minor(kernel_version: str) -> tuple[int, int] | None:
+    """Parse kernel version string like '5.15.0-78-generic' → (5, 15). Returns None if unparseable."""
+    import re
+    match = re.match(r'^(\d+)\.(\d+)', kernel_version.strip())
+    if not match:
+        return None
+    return (int(match.group(1)), int(match.group(2)))
+
+
+_MIN_KERNEL_BY_OS: dict[str, tuple[int, int]] = {
+    # Ubuntu — minimum supported LTS kernel versions
+    "ubuntu 18": (4, 15),
+    "ubuntu 20": (5, 4),
+    "ubuntu 22": (5, 15),
+    # RHEL/CentOS/Rocky/Alma
+    "rhel 8": (4, 18),
+    "rhel 9": (5, 14),
+    "centos": (3, 10),
+    "rocky": (4, 18),
+    "alma": (4, 18),
+    # CoreOS / Fedora (used by OpenShift)
+    "fedora coreos": (5, 14),
+    "red hat enterprise linux coreos": (5, 14),
+}
+
+
 def _check_node_os_patch(data: list[dict[str, Any]]) -> list[ProactiveFinding]:
-    """Flag nodes with outdated kernel or OS versions."""
+    """Flag nodes running a kernel older than the OS-specific minimum supported version."""
     findings: list[ProactiveFinding] = []
-    now = datetime.now(timezone.utc)
 
     for node in data:
         node_name = node.get("name", "unknown")
         resource_key = f"node/{node_name}"
         kernel_version = node.get("kernel_version", "")
-        os_image = node.get("os_image", "")
-        creation_str = node.get("creation_timestamp", "")
+        os_image = node.get("os_image", "").lower()
 
-        # Estimate kernel age from node creation if no explicit field
-        kernel_age_days = node.get("kernel_age_days")
-        if kernel_age_days is None and creation_str:
-            try:
-                created = datetime.fromisoformat(creation_str.replace("Z", "+00:00"))
-                kernel_age_days = (now - created).days
-            except (ValueError, TypeError):
-                continue
-
-        if kernel_age_days is None:
+        # Skip if kernel version is absent or unparseable
+        parsed = _parse_kernel_major_minor(kernel_version)
+        if parsed is None:
             continue
 
-        if kernel_age_days >= 180:
-            severity = "high"
-        elif kernel_age_days >= 90:
-            severity = "medium"
-        else:
+        # Find minimum kernel for this OS by checking if any known key appears in os_image
+        min_kernel: tuple[int, int] | None = None
+        for os_key, min_ver in _MIN_KERNEL_BY_OS.items():
+            if os_key in os_image:
+                min_kernel = min_ver
+                break
+
+        # Skip nodes with an OS not in our known list — never guess
+        if min_kernel is None:
             continue
 
-        findings.append(ProactiveFinding(
-            finding_id=_fid(),
-            check_type="node_os_patch",
-            severity=severity,
-            lifecycle_state="NEW",
-            title=f"Node '{node_name}' kernel/OS is {kernel_age_days} days old",
-            description=(
-                f"Node {resource_key} is running kernel '{kernel_version}' "
-                f"(OS: {os_image}), approximately {kernel_age_days} days since last update. "
-                f"Security patches may be missing."
-            ),
-            affected_resources=[resource_key],
-            affected_workloads=[],
-            days_until_impact=-1,
-            recommendation=(
-                f"Schedule a maintenance window to patch node '{node_name}'. "
-                f"Cordon, drain, update the OS/kernel, and uncordon."
-            ),
-            commands=[
-                f"kubectl cordon {node_name}",
-                f"kubectl drain {node_name} --ignore-daemonsets --delete-emptydir-data",
-            ],
-            dry_run_command=f"kubectl drain {node_name} --ignore-daemonsets --delete-emptydir-data --dry-run=client",
-            confidence=0.75,
-            source="proactive",
-        ))
+        # Compare (major, minor) tuples lexicographically
+        if parsed < min_kernel:
+            findings.append(ProactiveFinding(
+                finding_id=_fid(),
+                check_type="node_os_patch",
+                severity="high",
+                lifecycle_state="NEW",
+                title=f"Node '{node_name}' kernel {kernel_version} is below minimum for {os_image}",
+                description=(
+                    f"Node {resource_key} is running kernel '{kernel_version}' "
+                    f"(OS: {os_image}). The minimum supported kernel for this OS is "
+                    f"{min_kernel[0]}.{min_kernel[1]}. Security patches may be missing."
+                ),
+                affected_resources=[resource_key],
+                affected_workloads=[],
+                days_until_impact=-1,
+                recommendation=(
+                    f"Schedule a maintenance window to patch node '{node_name}'. "
+                    f"Cordon, drain, update the OS/kernel, and uncordon."
+                ),
+                commands=[
+                    f"kubectl cordon {node_name}",
+                    f"kubectl drain {node_name} --ignore-daemonsets --delete-emptydir-data",
+                ],
+                dry_run_command=f"kubectl drain {node_name} --ignore-daemonsets --delete-emptydir-data --dry-run=client",
+                confidence=0.75,
+                source="proactive",
+            ))
 
     return findings
 

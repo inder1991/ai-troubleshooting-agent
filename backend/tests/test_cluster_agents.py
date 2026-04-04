@@ -729,3 +729,48 @@ async def test_synthesizer_verdict_has_redispatch_domains():
         "Invalid domain must be filtered from re_dispatch_domains"
     assert "node" in result["re_dispatch_domains"], "Valid domain 'node' must be kept"
     assert "network" in result["re_dispatch_domains"], "Valid domain 'network' must be kept"
+
+
+def test_node_os_patch_uses_kernel_version_comparison():
+    """_check_node_os_patch must compare kernel versions, never use creation_timestamp."""
+    from src.agents.cluster.proactive_analyzer import _check_node_os_patch
+
+    # Ubuntu 20.04 node with outdated kernel (5.3 < min 5.4)
+    outdated_node = {
+        "name": "worker-01",
+        "kernel_version": "5.3.0-46-generic",
+        "os_image": "Ubuntu 20.04.6 LTS",
+        "creation_timestamp": "2020-01-01T00:00:00Z",  # must NOT be used
+    }
+
+    result = _check_node_os_patch([outdated_node])
+
+    # Should flag the outdated kernel
+    assert len(result) > 0, "Should return a finding for outdated kernel"
+
+
+def test_node_os_patch_skips_unknown_os():
+    """_check_node_os_patch must skip nodes with unknown OS — never guess."""
+    from src.agents.cluster.proactive_analyzer import _check_node_os_patch
+
+    unknown_os_node = {
+        "name": "mystery-node",
+        "kernel_version": "3.10.0-ancient",
+        "os_image": "Obscure Linux 1.0",  # not in _MIN_KERNEL_BY_OS
+        "creation_timestamp": "2020-01-01T00:00:00Z",
+    }
+
+    result = _check_node_os_patch([unknown_os_node])
+
+    # Should return empty list (skip unknown OS, don't flag)
+    assert len(result) == 0, "Should return no findings for unknown OS — never guess"
+
+
+def test_node_os_patch_never_uses_creation_timestamp():
+    """_check_node_os_patch must not use creation_timestamp as kernel age proxy."""
+    from src.agents.cluster import proactive_analyzer
+    import inspect
+
+    source = inspect.getsource(proactive_analyzer._check_node_os_patch)
+    assert "creation_timestamp" not in source, \
+        "_check_node_os_patch must not reference creation_timestamp"
