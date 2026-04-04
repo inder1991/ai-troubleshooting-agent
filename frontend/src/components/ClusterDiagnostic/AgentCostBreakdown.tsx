@@ -34,6 +34,7 @@ const AgentCostBreakdown: React.FC<AgentCostBreakdownProps> = ({ sessionId, visi
   useEffect(() => {
     if (!visible) return;
     const fetchData = async () => {
+      setError(false);
       try {
         const res = await fetch(`${API_BASE_URL}/api/v4/session/${sessionId}/llm-summary`);
         if (res.ok) {

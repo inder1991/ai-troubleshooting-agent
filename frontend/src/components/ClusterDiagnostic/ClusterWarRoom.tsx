@@ -88,7 +88,7 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
 
   // ── Debounced fetch (throttle WebSocket-triggered rapid fetches) ──
   const lastFetchRef = useRef(0);
-  const debouncedFetch = useCallback(() => {
+  const throttledFetch = useCallback(() => {
     const now = Date.now();
     if (now - lastFetchRef.current < 2000) return;
     lastFetchRef.current = now;
@@ -97,10 +97,10 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
   }, [fetchFindings, fetchBudget]);
 
   useEffect(() => {
-    debouncedFetch();
-    const interval = setInterval(debouncedFetch, 5000);
+    throttledFetch();
+    const interval = setInterval(throttledFetch, 5000);
     return () => clearInterval(interval);
-  }, [debouncedFetch]);
+  }, [throttledFetch]);
 
   // ── Derived Data ──
   const domainReports = useMemo(() => findings?.domain_reports || [], [findings]);
