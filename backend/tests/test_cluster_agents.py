@@ -265,6 +265,10 @@ async def test_rbac_checker_openshift_denied_resources_not_in_granted():
     assert "machineconfigpools" not in rbac["granted"], \
         f"'machineconfigpools' must not appear in granted. granted={rbac['granted']}"
 
+    assert "routes" in rbac["denied"]
+    assert "clusteroperators" in rbac["denied"]
+    assert "machineconfigpools" in rbac["denied"]
+
 
 @pytest.mark.asyncio
 async def test_rbac_checker_resolution_fail_when_critical_denied():
@@ -308,10 +312,9 @@ async def test_rbac_checker_resolution_partial_when_noncritical_denied():
     result = await rbac_preflight(state, config)
     rbac = result["rbac_check"]
 
-    # deployments is non-critical — if it ends up in denied, status must be partial, not fail
-    if "deployments" in rbac["denied"]:
-        assert rbac["status"] == "partial", \
-            f"Status must be 'partial' when only non-critical resources denied. Got: {rbac['status']}"
+    # deployments is non-critical — status must be partial since nodes/pods/events all return True
+    assert rbac["status"] == "partial", \
+        f"Status must be 'partial' when only non-critical resources denied. Got: {rbac['status']}"
     assert rbac["status"] != "fail" or any(
         r in rbac["denied"] for r in ("nodes", "pods", "events")
     ), "Status is 'fail' but no critical resources are denied — that is a bug"

@@ -12,10 +12,6 @@ REQUIRED_RESOURCES = [
     "services", "deployments", "statefulsets", "daemonsets",
 ]
 
-OPENSHIFT_RESOURCES = [
-    "clusteroperators", "routes", "machineconfigpools",
-]
-
 
 @traced_node(timeout_seconds=15)
 async def rbac_preflight(state: dict, config: dict) -> dict:
