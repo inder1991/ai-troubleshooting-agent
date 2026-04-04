@@ -510,3 +510,62 @@ class TestLangGraphClientInjection:
 
         assert captured_config.get("elk_client") is None
         assert captured_config.get("elk_index") == ""
+
+
+class TestInitialStateMissingFields:
+    def test_initial_state_has_all_required_fields(self):
+        """run_cluster_diagnosis must include all State TypedDict fields in initial_state."""
+        import asyncio
+        import sys
+        from unittest.mock import MagicMock, AsyncMock, patch
+
+        captured_state = {}
+
+        async def mock_graph_invoke(state, config):
+            captured_state.update(state)
+            return {**state, "phase": "complete", "data_completeness": 0.8,
+                    "domain_reports": [], "health_report": None}
+
+        mock_graph = MagicMock()
+        mock_graph.ainvoke = mock_graph_invoke
+
+        mock_client = MagicMock()
+        mock_client.detect_platform = AsyncMock(return_value={"platform": "kubernetes", "version": "1.28"})
+        mock_client.list_namespaces = AsyncMock(return_value=MagicMock(data=["default"]))
+        mock_client.list_nodes = AsyncMock(return_value=MagicMock(data=[]))
+        mock_client.close = AsyncMock()
+
+        # Patch CloudStore.__init__ to prevent sqlite3 file-open during import,
+        # in case routes_v4 hasn't been imported yet in this test session.
+        with patch("src.cloud.cloud_store.CloudStore.__init__", return_value=None), \
+             patch("src.cloud.cloud_store.CloudStore._init_schema", return_value=None):
+            from src.api.routes_v4 import run_cluster_diagnosis, sessions
+            from src.integrations.connection_config import ResolvedConnectionConfig
+
+        sid = "test-missing-fields-001"
+        cfg = ResolvedConnectionConfig(cluster_url="https://api.example.com:6443")
+        sessions[sid] = {
+            "diagnostic_scope": {},
+            "connection_config": cfg,
+            "elk_index": "",
+        }
+
+        emitter = MagicMock()
+        emitter.emit = AsyncMock()
+
+        required_fields = [
+            "rbac_check", "rbac_skipped", "normalized_signals", "pattern_matches",
+            "temporal_analysis", "diagnostic_graph", "diagnostic_issues",
+            "ranked_hypotheses", "hypotheses_by_issue", "hypothesis_selection",
+            "critic_result", "proactive_findings",
+        ]
+
+        with patch("src.agents.cluster.prometheus_detector.detect_prometheus_endpoint",
+                   new=AsyncMock(return_value="")):
+            asyncio.run(run_cluster_diagnosis(
+                sid, mock_graph, mock_client, emitter, connection_config=cfg
+            ))
+
+        for field in required_fields:
+            assert field in captured_state, \
+                f"initial_state missing required field: '{field}'"

@@ -585,6 +585,20 @@ async def run_cluster_diagnosis(session_id, graph, cluster_client, emitter, scan
             "dispatch_domains": scope_data.get("domains", ["ctrl_plane", "node", "network", "storage"]),
             "scope_coverage": 1.0,
             "proactive_findings": [],
+            # Pre-flight RBAC check result
+            "rbac_check": {"status": "pass", "granted": [], "denied": [], "warnings": []},
+            "rbac_skipped": [],
+            # Critic validation result
+            "critic_result": {},
+            # Diagnostic intelligence pipeline
+            "normalized_signals": [],
+            "pattern_matches": [],
+            "temporal_analysis": {},
+            "diagnostic_graph": {},
+            "diagnostic_issues": [],
+            "ranked_hypotheses": [],
+            "hypotheses_by_issue": {},
+            "hypothesis_selection": {},
         }
 
         # Pre-flight: detect platform
