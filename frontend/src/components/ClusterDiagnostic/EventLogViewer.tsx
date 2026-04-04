@@ -42,7 +42,7 @@ const EventLogViewer: React.FC<EventLogViewerProps> = ({ events }) => {
   }
 
   return (
-    <div className="bg-wr-inset rounded border border-wr-border-subtle flex flex-col max-h-[300px]">
+    <div className="bg-wr-inset rounded border border-wr-border-subtle flex flex-col max-h-[200px] sm:max-h-[300px]">
       <div className="flex items-center justify-between px-3 py-2 border-b border-wr-border-subtle shrink-0">
         <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Event Log</span>
         <div className="flex items-center gap-2">

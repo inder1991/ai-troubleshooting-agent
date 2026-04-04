@@ -52,7 +52,7 @@ const ClusterHeader: React.FC<ClusterHeaderProps> = ({
       <div className="flex items-center gap-8">
         <div className="flex flex-col items-end">
           <span className="text-[10px] uppercase tracking-tighter text-slate-500">Global Confidence</span>
-          <div className="w-48 h-2 bg-wr-bg border border-wr-border rounded-full mt-1 overflow-hidden">
+          <div className="w-32 sm:w-48 h-2 bg-wr-bg border border-wr-border rounded-full mt-1 overflow-hidden">
             <div
               className="h-full bg-wr-accent transition-all duration-700"
               style={{ width: `${confidence}%`, boxShadow: '0 0 8px var(--wr-accent)' }}

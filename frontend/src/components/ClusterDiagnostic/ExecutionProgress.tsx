@@ -72,7 +72,7 @@ const ExecutionProgress: React.FC<ExecutionProgressProps> = ({ domainReports, ph
   ], [phase, agentsDone, totalAgents, anyRunning, anyFailed]);
 
   return (
-    <div className="bg-wr-inset rounded border border-wr-border-subtle p-3 max-h-[220px] overflow-hidden">
+    <div className="bg-wr-inset rounded border border-wr-border-subtle p-3 max-h-[220px] lg:max-h-[280px] overflow-hidden">
       <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Execution Progress</span>
 
       <div className="mt-3 space-y-3">

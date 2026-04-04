@@ -128,7 +128,7 @@ const IssuePriorityPanel: React.FC<IssuePriorityPanelProps> = ({
   }
 
   return (
-    <div className="overflow-y-auto custom-scrollbar max-h-[600px] space-y-4 pr-1">
+    <div className="overflow-y-auto custom-scrollbar max-h-[400px] lg:max-h-[600px] space-y-4 pr-1">
       {TIER_ORDER.map(state => {
         const bucket = grouped[state];
         if (!bucket || bucket.length === 0) return null;
