@@ -29,6 +29,8 @@ from src.agents.critic_agent import CriticAgent
 from src.models.schemas import EvidencePin
 from src.agents.cluster_client.k8s_client import KubernetesClient
 from src.agents.cluster.prometheus_detector import detect_prometheus_endpoint
+from src.agents.metrics_agent import PrometheusClient
+from src.agents.log_agent import ElasticsearchClient
 
 logger = get_logger(__name__)
 
@@ -615,9 +617,64 @@ async def run_cluster_diagnosis(session_id, graph, cluster_client, emitter, scan
 
         await emitter.emit("cluster_supervisor", "phase_change", "Starting cluster diagnostics", {"phase": "collecting_context"})
 
+        # Resolve ELK index and URL
+        elk_index = sessions.get(session_id, {}).get("elk_index", "")
+        elk_url = getattr(connection_config, "elasticsearch_url", "") if connection_config else ""
+
+        if elk_index and not elk_url:
+            # Try global integrations store
+            try:
+                from src.integrations.profile_store import ProfileStore
+                store = ProfileStore()
+                integrations = getattr(store, "list_global_integrations", lambda: [])()
+                elk_integration = next(
+                    (i for i in integrations if getattr(i, "service_type", "") in ("elk", "elasticsearch")),
+                    None
+                )
+                elk_url = getattr(elk_integration, "url", "") if elk_integration else ""
+            except Exception as exc:
+                logger.warning("Failed to resolve ELK URL from global integrations: %s", exc)
+
+            if not elk_url:
+                logger.info("ELK index provided but no ELK endpoint configured — skipping log analysis")
+                elk_index = ""  # Clear index so elk_client is not created
+
+        # Build prometheus_client and elk_client
+        cluster_token = getattr(connection_config, "cluster_token", "") if connection_config else ""
+        cluster_verify_ssl = getattr(connection_config, "verify_ssl", False) if connection_config else False
+
+        prometheus_client = None
+        if prometheus_url:
+            try:
+                prom_token = getattr(connection_config, "prometheus_credentials", "") if connection_config else ""
+                prometheus_client = PrometheusClient(
+                    url=prometheus_url,
+                    token=prom_token,
+                    verify_ssl=cluster_verify_ssl,
+                )
+            except Exception as exc:
+                logger.warning("Failed to create PrometheusClient: %s", exc)
+
+        elk_client = None
+        if elk_index and elk_url:
+            try:
+                elk_auth = getattr(connection_config, "elasticsearch_auth_method", "none") if connection_config else "none"
+                elk_creds = getattr(connection_config, "elasticsearch_credentials", "") if connection_config else ""
+                elk_client = ElasticsearchClient(
+                    url=elk_url,
+                    auth_method=elk_auth,
+                    credentials=elk_creds,
+                    verify_ssl=cluster_verify_ssl,
+                )
+            except Exception as exc:
+                logger.warning("Failed to create ElasticsearchClient: %s", exc)
+
         config = {
             "configurable": {
                 "cluster_client": cluster_client,
+                "prometheus_client": prometheus_client,
+                "elk_client": elk_client,
+                "elk_index": elk_index,
                 "emitter": emitter,
                 "budget": budget,
                 "telemetry": telemetry,

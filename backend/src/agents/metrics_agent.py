@@ -1032,4 +1032,56 @@ OUTPUT FORMAT — Final answer as JSON:
             "Include both anomalous AND normal baseline metrics in your output."
         )
 
+
+class PrometheusClient:
+    """Lightweight Prometheus HTTP client for injection into LangGraph config.
+
+    Domain agents receive this via config["configurable"]["prometheus_client"] and
+    can call query_instant / query_range without knowing the URL or auth details.
+    """
+
+    def __init__(self, url: str, token: str = "", verify_ssl: bool = False):
+        self.url = url.rstrip("/")
+        self._token = token
+        self._verify_ssl = verify_ssl
+        self._headers: dict = {}
+        if token:
+            self._headers["Authorization"] = f"Bearer {token}"
+
+    async def query_instant(self, promql: str, timeout: int = 15) -> dict:
+        """Execute an instant PromQL query. Returns parsed JSON from Prometheus."""
+        import asyncio
+        import requests as _requests
+
+        def _do():
+            return _requests.get(
+                f"{self.url}/api/v1/query",
+                params={"query": promql},
+                headers=self._headers,
+                timeout=timeout,
+                verify=self._verify_ssl,
+            )
+
+        resp = await asyncio.to_thread(_do)
+        resp.raise_for_status()
+        return resp.json()
+
+    async def query_range(self, promql: str, start: float, end: float, step: str = "60s", timeout: int = 30) -> dict:
+        """Execute a PromQL range query. Returns parsed JSON from Prometheus."""
+        import asyncio
+        import requests as _requests
+
+        def _do():
+            return _requests.get(
+                f"{self.url}/api/v1/query_range",
+                params={"query": promql, "start": start, "end": end, "step": step},
+                headers=self._headers,
+                timeout=timeout,
+                verify=self._verify_ssl,
+            )
+
+        resp = await asyncio.to_thread(_do)
+        resp.raise_for_status()
+        return resp.json()
+
         return "\n".join(parts)

@@ -323,3 +323,96 @@ class TestPrometheusDetector:
 
         url = asyncio.run(detect_prometheus_endpoint(mock_client, "openshift"))
         assert url == ""
+
+
+class TestLangGraphClientInjection:
+    def test_prometheus_client_injected_when_url_available(self):
+        """When prometheus_url is resolved, a PrometheusClient is injected into config."""
+        import asyncio
+        from unittest.mock import MagicMock, AsyncMock, patch
+
+        captured_config = {}
+
+        async def mock_graph_invoke(state, config):
+            captured_config.update(config.get("configurable", {}))
+            return {**state, "phase": "complete", "data_completeness": 0.8,
+                    "domain_reports": [], "health_report": None}
+
+        mock_graph = MagicMock()
+        mock_graph.ainvoke = mock_graph_invoke
+        mock_client = MagicMock()
+        mock_client.detect_platform = AsyncMock(return_value={"platform": "kubernetes", "version": "1.28"})
+        mock_client.list_namespaces = AsyncMock(return_value=MagicMock(data=["default"]))
+        mock_client.list_nodes = AsyncMock(return_value=MagicMock(data=[]))
+        mock_client.close = AsyncMock()
+
+        from src.api.routes_v4 import run_cluster_diagnosis, sessions
+        from src.integrations.connection_config import ResolvedConnectionConfig
+
+        sid = "test-prom-inject-001"
+        cfg = ResolvedConnectionConfig(
+            cluster_url="https://x.com",
+            prometheus_url="http://prom:9090",
+        )
+        sessions[sid] = {
+            "diagnostic_scope": {},
+            "connection_config": cfg,
+            "elk_index": "",
+        }
+
+        emitter = MagicMock()
+        emitter.emit = AsyncMock()
+
+        with patch("src.agents.cluster.prometheus_detector.detect_prometheus_endpoint",
+                   new=AsyncMock(return_value="")):
+            asyncio.run(run_cluster_diagnosis(
+                sid, mock_graph, mock_client, emitter, connection_config=cfg
+            ))
+
+        assert "prometheus_client" in captured_config
+        assert captured_config["prometheus_client"] is not None
+        assert "elk_client" in captured_config
+        assert captured_config["elk_client"] is None  # no elk_index provided
+
+    def test_elk_client_none_when_no_elk_index(self):
+        """When elk_index is empty, elk_client should be None."""
+        import asyncio
+        from unittest.mock import MagicMock, AsyncMock, patch
+
+        captured_config = {}
+
+        async def mock_graph_invoke(state, config):
+            captured_config.update(config.get("configurable", {}))
+            return {**state, "phase": "complete", "data_completeness": 0.8,
+                    "domain_reports": [], "health_report": None}
+
+        mock_graph = MagicMock()
+        mock_graph.ainvoke = mock_graph_invoke
+        mock_client = MagicMock()
+        mock_client.detect_platform = AsyncMock(return_value={"platform": "kubernetes", "version": "1.28"})
+        mock_client.list_namespaces = AsyncMock(return_value=MagicMock(data=[]))
+        mock_client.list_nodes = AsyncMock(return_value=MagicMock(data=[]))
+        mock_client.close = AsyncMock()
+
+        from src.api.routes_v4 import run_cluster_diagnosis, sessions
+        from src.integrations.connection_config import ResolvedConnectionConfig
+
+        sid = "test-elk-none-001"
+        cfg = ResolvedConnectionConfig(cluster_url="https://x.com")
+        sessions[sid] = {
+            "diagnostic_scope": {},
+            "connection_config": cfg,
+            "elk_index": "",  # empty — no ELK
+        }
+
+        emitter = MagicMock()
+        emitter.emit = AsyncMock()
+
+        with patch("src.agents.cluster.prometheus_detector.detect_prometheus_endpoint",
+                   new=AsyncMock(return_value="")):
+            asyncio.run(run_cluster_diagnosis(
+                sid, mock_graph, mock_client, emitter, connection_config=cfg
+            ))
+
+        assert captured_config.get("elk_client") is None
+        assert captured_config.get("elk_index") == ""
