@@ -239,3 +239,87 @@ class TestRetryUtility:
 
         result = asyncio.run(always_works())
         assert result == 42
+
+
+class TestPrometheusDetector:
+    def test_detects_thanos_querier_route_on_openshift(self):
+        import asyncio
+        from unittest.mock import MagicMock, AsyncMock
+        from src.agents.cluster.prometheus_detector import detect_prometheus_endpoint
+
+        mock_client = MagicMock()
+        mock_client.get_routes = AsyncMock(return_value=MagicMock(data=[
+            {
+                "namespace": "openshift-monitoring",
+                "name": "thanos-querier",
+                "host": "thanos.apps.cluster.example.com",
+            },
+        ]))
+
+        url = asyncio.run(detect_prometheus_endpoint(mock_client, "openshift"))
+        assert url == "https://thanos.apps.cluster.example.com"
+
+    def test_detects_prometheus_k8s_route_on_openshift(self):
+        import asyncio
+        from unittest.mock import MagicMock, AsyncMock
+        from src.agents.cluster.prometheus_detector import detect_prometheus_endpoint
+
+        mock_client = MagicMock()
+        mock_client.get_routes = AsyncMock(return_value=MagicMock(data=[
+            {
+                "namespace": "openshift-monitoring",
+                "name": "prometheus-k8s",
+                "host": "prometheus.apps.cluster.example.com",
+            },
+        ]))
+
+        url = asyncio.run(detect_prometheus_endpoint(mock_client, "openshift"))
+        assert url == "https://prometheus.apps.cluster.example.com"
+
+    def test_returns_empty_when_no_routes_found(self):
+        import asyncio
+        from unittest.mock import MagicMock, AsyncMock
+        from src.agents.cluster.prometheus_detector import detect_prometheus_endpoint
+
+        mock_client = MagicMock()
+        mock_client.get_routes = AsyncMock(return_value=MagicMock(data=[]))
+
+        url = asyncio.run(detect_prometheus_endpoint(mock_client, "openshift"))
+        assert url == ""
+
+    def test_detects_prometheus_service_on_kubernetes(self):
+        import asyncio
+        from unittest.mock import MagicMock, AsyncMock
+        from src.agents.cluster.prometheus_detector import detect_prometheus_endpoint
+
+        mock_client = MagicMock()
+        mock_client.list_services = AsyncMock(return_value=MagicMock(data=[
+            {"name": "prometheus-operated", "external_ip": "10.0.0.50", "port": 9090},
+        ]))
+
+        url = asyncio.run(detect_prometheus_endpoint(mock_client, "kubernetes"))
+        assert url == "http://10.0.0.50:9090"
+
+    def test_returns_empty_when_no_prometheus_service_found(self):
+        import asyncio
+        from unittest.mock import MagicMock, AsyncMock
+        from src.agents.cluster.prometheus_detector import detect_prometheus_endpoint
+
+        mock_client = MagicMock()
+        mock_client.list_services = AsyncMock(return_value=MagicMock(data=[
+            {"name": "kube-dns", "external_ip": "10.0.0.10", "port": 53},
+        ]))
+
+        url = asyncio.run(detect_prometheus_endpoint(mock_client, "kubernetes"))
+        assert url == ""
+
+    def test_returns_empty_on_client_exception(self):
+        import asyncio
+        from unittest.mock import MagicMock, AsyncMock
+        from src.agents.cluster.prometheus_detector import detect_prometheus_endpoint
+
+        mock_client = MagicMock()
+        mock_client.get_routes = AsyncMock(side_effect=Exception("connection refused"))
+
+        url = asyncio.run(detect_prometheus_endpoint(mock_client, "openshift"))
+        assert url == ""

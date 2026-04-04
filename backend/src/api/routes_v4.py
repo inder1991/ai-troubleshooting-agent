@@ -28,6 +28,7 @@ from src.tools.tool_registry import TOOL_REGISTRY
 from src.agents.critic_agent import CriticAgent
 from src.models.schemas import EvidencePin
 from src.agents.cluster_client.k8s_client import KubernetesClient
+from src.agents.cluster.prometheus_detector import detect_prometheus_endpoint
 
 logger = get_logger(__name__)
 
@@ -603,6 +604,14 @@ async def run_cluster_diagnosis(session_id, graph, cluster_client, emitter, scan
             "namespaces": len(ns_result.data),
         }
         budget = adapt_budget(budget, cluster_size)
+
+        # Resolve Prometheus URL: profile first, then auto-detect from cluster
+        prometheus_url = getattr(connection_config, "prometheus_url", "") if connection_config else ""
+        if not prometheus_url:
+            prometheus_url = await detect_prometheus_endpoint(cluster_client, initial_state["platform"])
+            if prometheus_url:
+                logger.info("Auto-detected Prometheus at %s", prometheus_url)
+                sessions[session_id]["prometheus_url"] = prometheus_url
 
         await emitter.emit("cluster_supervisor", "phase_change", "Starting cluster diagnostics", {"phase": "collecting_context"})
 
