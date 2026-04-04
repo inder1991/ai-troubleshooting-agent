@@ -595,14 +595,12 @@ async def test_tool_executor_handles_workload_types():
     mock_client.list_jobs = AsyncMock(return_value=_qr())
     mock_client.list_cronjobs = AsyncMock(return_value=_qr())
 
+    import json as _json
     for tool_name in ["list_statefulsets", "list_daemonsets", "list_jobs", "list_cronjobs"]:
         result_str = await execute_tool_call(tool_name, {"namespace": "default"}, mock_client)
-        import json as _json
         result = _json.loads(result_str)
-        # A successful result is a list (data) or a dict without an "Unknown tool" error
-        if isinstance(result, dict):
-            assert result.get("error") != f"Unknown tool: {tool_name}", \
-                f"execute_tool_call returned 'Unknown tool' for {tool_name}: {result}"
+        assert isinstance(result, list), \
+            f"Expected list result for {tool_name}, got: {result}"
 
 
 def test_prometheus_volume_metric_parsing():
