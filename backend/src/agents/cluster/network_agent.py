@@ -224,7 +224,6 @@ async def _tool_calling_loop(system: str, initial_context: str, cluster_client,
             ))
 
         tool_uses = [b for b in response.content if b.type == "tool_use"]
-        text_blocks = [b for b in response.content if b.type == "text"]
 
         if not tool_uses:
             # LLM responded without calling any tool — treat as no findings
@@ -241,7 +240,7 @@ async def _tool_calling_loop(system: str, initial_context: str, cluster_client,
             messages.append({"role": "assistant", "content": response.content})
             messages.append({"role": "user", "content": [
                 {"type": "tool_result", "tool_use_id": tool_uses[0].id,
-                 "content": "Tool budget exhausted. Please submit your findings now using submit_findings."}
+                 "content": "Tool budget exhausted. Please submit your findings now using submit_domain_findings."}
             ]})
             continue
 
