@@ -132,9 +132,13 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
     const warnings: string[] = [];
     for (const report of domainReports) {
       const flags = report.truncation_flags || {};
-      for (const [key, truncated] of Object.entries(flags)) {
-        if (truncated) {
-          warnings.push(`${report.domain}: ${key} data was truncated — analysis may be incomplete`);
+      for (const [key, value] of Object.entries(flags)) {
+        if (!value) continue;
+        const domainLabel = report.domain.replace('_', ' ');
+        if (typeof value === 'number' && value > 0) {
+          warnings.push(`${domainLabel}: ${value} ${key.replace('_dropped', '').replace('_', ' ')} items dropped`);
+        } else if (value === true) {
+          warnings.push(`${domainLabel}: ${key} data was truncated`);
         }
       }
     }

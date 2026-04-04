@@ -657,7 +657,7 @@ export interface ClusterDomainReport {
   anomalies: ClusterDomainAnomaly[];
   ruled_out: string[];
   evidence_refs: string[];
-  truncation_flags: Record<string, boolean>;
+  truncation_flags: Record<string, boolean | number>;
   data_gathered_before_failure?: string[];
   duration_ms: number;
 }
