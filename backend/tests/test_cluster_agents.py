@@ -603,6 +603,26 @@ async def test_tool_executor_handles_workload_types():
             f"Expected list result for {tool_name}, got: {result}"
 
 
+def test_ctrl_plane_prompt_has_evidence_rules():
+    """_ANALYSIS_PROMPT must contain specific evidence-anchored diagnostic rules."""
+    from src.agents.cluster.ctrl_plane_agent import _ANALYSIS_PROMPT
+
+    required_phrases = [
+        "Degraded",
+        "Available",
+        "OOMKill",
+        "NotReady",
+        "MachineConfigPool",
+        "degradedMachineCount",
+        "machineCount",
+        "Warning",
+    ]
+
+    for phrase in required_phrases:
+        assert phrase in _ANALYSIS_PROMPT, \
+            f"_ANALYSIS_PROMPT missing evidence rule for: '{phrase}'"
+
+
 def test_prometheus_volume_metric_parsing():
     """Volume metric parser must extract float(item['value'][1]) from Prometheus response format."""
     # Import the helper — read the file to find its actual name

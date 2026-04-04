@@ -49,7 +49,18 @@ _ANALYSIS_PROMPT = """Analyze this control plane data and produce a JSON respons
   "confidence": 0-100
 }}
 
-Rules:
+DIAGNOSTIC RULES — report an anomaly for each of the following when you find evidence:
+
+1. ClusterOperator Degraded: Any operator with conditions[type=Degraded].status == "True"
+2. ClusterOperator Unavailable: Any operator with conditions[type=Available].status == "False"
+3. API Server unhealthy: API server health returns non-200 or degraded state
+4. Node NotReady: Warning events with reason NodeNotReady, or node conditions showing NotReady
+5. OOMKilling: Any Warning event with reason OOMKilling
+6. High Warning count: Total Warning events > 10 in any namespace indicates system instability
+7. MachineConfigPool degraded (OpenShift): status.degradedMachineCount > 0
+8. MachineConfigPool mismatch (OpenShift): status.machineCount != status.updatedMachineCount
+
+General rules:
 - Only report anomalies you have evidence for
 - Include severity (high/medium/low)
 - Confidence reflects data quality and coverage
