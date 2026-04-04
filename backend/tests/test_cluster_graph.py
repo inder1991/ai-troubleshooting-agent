@@ -568,3 +568,34 @@ class TestInitialStateMissingFields:
         for field in required_fields:
             assert field in captured_state, \
                 f"initial_state missing required field: '{field}'"
+
+
+class TestClusterChatContext:
+    def test_build_chat_context_uses_structured_keys(self):
+        """Chat context must use domain_reports, health_report, proactive_findings — not raw JSON dump."""
+        with patch("src.cloud.cloud_store.CloudStore.__init__", return_value=None), \
+             patch("src.cloud.cloud_store.CloudStore._init_schema", return_value=None):
+            from src.api.routes_v4 import _build_chat_context
+
+        state = {
+            "health_report": {"overall_status": "degraded", "critical_findings": [{"id": "f1"}, {"id": "f2"}]},
+            "domain_reports": [
+                {"domain": "node", "anomalies": [{"description": "disk pressure on worker-01"}], "confidence": 85},
+                {"domain": "network", "anomalies": [], "confidence": 60},
+            ],
+            "proactive_findings": [
+                {"severity": "HIGH", "title": "Certificate expiring in 3 days"},
+            ],
+            "_internal_langgraph_field": "noise_that_should_not_appear",
+        }
+
+        context = _build_chat_context(state)
+
+        assert "degraded" in context, "Overall health status must be in context"
+        assert "node" in context, "Domain 'node' must be in context"
+        assert "disk pressure" in context, "Anomaly description must be in context"
+        assert "Certificate expiring" in context, "Proactive finding title must be in context"
+        assert "_internal_langgraph_field" not in context, \
+            "Internal LangGraph fields must not appear in chat context"
+        assert "noise_that_should_not_appear" not in context, \
+            "Raw internal state values must not appear in chat context"

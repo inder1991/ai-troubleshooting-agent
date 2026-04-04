@@ -771,6 +771,39 @@ async def run_diagnosis(session_id: str, supervisor: SupervisorAgent, initial_in
 CLUSTER_CHAT_HISTORY_CAP = 20
 
 
+def _build_chat_context(state: dict) -> str:
+    """Extract clean, structured context from graph state for LLM chat."""
+    parts = []
+
+    # Health report summary
+    health = state.get("health_report") or {}
+    if health:
+        parts.append(f"Overall Health: {health.get('overall_status', 'unknown')}")
+        if health.get("critical_findings"):
+            parts.append(f"Critical Findings: {len(health['critical_findings'])}")
+
+    # Domain reports summary
+    domain_reports = state.get("domain_reports") or []
+    if domain_reports:
+        parts.append(f"\nDomain Reports ({len(domain_reports)}):")
+        for report in domain_reports:
+            domain = report.get("domain", "unknown")
+            anomalies = report.get("anomalies") or []
+            confidence = report.get("confidence", 0)
+            parts.append(f"  - {domain}: {len(anomalies)} anomalies, confidence={confidence}%")
+            for a in anomalies[:3]:  # top 3
+                parts.append(f"    * {a.get('description', '')[:100]}")
+
+    # Proactive findings
+    proactive = state.get("proactive_findings") or []
+    if proactive:
+        parts.append(f"\nProactive Findings ({len(proactive)}):")
+        for f in proactive[:5]:
+            parts.append(f"  - [{f.get('severity', '')}] {f.get('title', '')[:80]}")
+
+    return "\n".join(parts) if parts else "No diagnostic data available."
+
+
 async def _handle_cluster_chat(session: dict, message: str) -> str:
     """Handle chat for cluster diagnostics sessions using full cluster state as context."""
     state = session.get("state")
@@ -780,9 +813,7 @@ async def _handle_cluster_chat(session: dict, message: str) -> str:
     chat_history = session.setdefault("chat_history", [])
 
     # Build system prompt with cluster state context
-    state_context = json.dumps(state, indent=2, default=str)
-    if len(state_context) > 8000:
-        state_context = state_context[:8000] + "\n... (truncated)"
+    state_context = _build_chat_context(state)
 
     system_prompt = f"""You are a cluster diagnostics assistant for an AI-powered SRE platform.
 You have access to the full diagnostic state below. Use it to answer questions accurately.
