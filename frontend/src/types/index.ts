@@ -534,6 +534,11 @@ export interface StartSessionRequest {
   cluster_url?: string;
   scan_mode?: 'diagnostic' | 'guard';
   scope?: DiagnosticScope;
+  // Ad-hoc cluster auth fields (used when no saved profile / use_temp_cluster)
+  auth_method?: 'token' | 'kubeconfig' | 'service_account';
+  auth_token?: string;
+  kubeconfig_content?: string;
+  role?: string;
   // Database diagnostics fields
   focus?: ('queries' | 'connections' | 'replication' | 'storage' | 'schema')[];
   database_type?: 'postgres' | 'mongodb';
