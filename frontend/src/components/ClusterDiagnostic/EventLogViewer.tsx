@@ -36,7 +36,7 @@ const EventLogViewer: React.FC<EventLogViewerProps> = ({ events }) => {
         <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
           Event Log ({events.length} events)
         </span>
-        <span className="material-symbols-outlined text-[14px] text-slate-600">expand_more</span>
+        <span className="material-symbols-outlined text-[14px] text-slate-400">expand_more</span>
       </button>
     );
   }
@@ -63,7 +63,7 @@ const EventLogViewer: React.FC<EventLogViewerProps> = ({ events }) => {
             <option value="error">Errors</option>
             <option value="info">Info</option>
           </select>
-          <button onClick={() => setExpanded(false)} aria-label="Collapse event log" aria-expanded={true} className="text-slate-600 hover:text-slate-300">
+          <button onClick={() => setExpanded(false)} aria-label="Collapse event log" aria-expanded={true} className="text-slate-400 hover:text-slate-300">
             <span className="material-symbols-outlined text-[14px]">expand_less</span>
           </button>
         </div>
@@ -71,7 +71,7 @@ const EventLogViewer: React.FC<EventLogViewerProps> = ({ events }) => {
       <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-0.5">
         {diagnosticEvents.map((event, i) => (
           <div key={i} className="flex items-start gap-2 px-1 py-0.5 hover:bg-[#1a1814]/50 rounded text-[10px] font-mono">
-            <span className={`shrink-0 ${event.event_type === 'error' ? 'text-red-400' : event.event_type === 'warning' ? 'text-amber-400' : 'text-slate-600'}`}>
+            <span className={`shrink-0 ${event.event_type === 'error' ? 'text-red-400' : event.event_type === 'warning' ? 'text-amber-400' : 'text-slate-400'}`}>
               {event.event_type === 'error' ? '✗' : event.event_type === 'warning' ? '⚠' : '·'}
             </span>
             <span className="text-slate-500 shrink-0 w-20 truncate">{event.agent_name || '—'}</span>
@@ -79,7 +79,7 @@ const EventLogViewer: React.FC<EventLogViewerProps> = ({ events }) => {
           </div>
         ))}
         {diagnosticEvents.length === 0 && (
-          <div className="text-[10px] text-slate-600 text-center py-4">No matching events</div>
+          <div className="text-[10px] text-slate-400 text-center py-4">No matching events</div>
         )}
       </div>
     </div>

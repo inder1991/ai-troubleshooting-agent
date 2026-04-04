@@ -21,7 +21,7 @@ const AgentTimeline: React.FC<AgentTimelineProps> = ({ domainReports, phase }) =
     <div className="bg-[#141210] rounded border border-[#2a2520] p-3">
       <div className="flex items-center justify-between mb-2">
         <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Agent Timeline</span>
-        <span className="text-[10px] text-slate-600">{phase === 'complete' ? 'Complete' : 'Running...'}</span>
+        <span className="text-[10px] text-slate-400">{phase === 'complete' ? 'Complete' : 'Running...'}</span>
       </div>
       <div className="space-y-1.5">
         {domainReports.filter(r => r.status !== 'SKIPPED').map(report => {
@@ -30,7 +30,7 @@ const AgentTimeline: React.FC<AgentTimelineProps> = ({ domainReports, phase }) =
           const isRunning = report.status === 'RUNNING' || report.status === 'PENDING';
           return (
             <div key={report.domain} className="flex items-center gap-2">
-              <span className="text-[9px] text-slate-500 w-16 text-right font-mono truncate">
+              <span className="text-[10px] text-slate-500 w-16 text-right font-mono truncate">
                 {report.domain.replace('_', ' ')}
               </span>
               <div className="flex-1 h-3 bg-[#1a1814] rounded-sm overflow-hidden relative">
@@ -39,10 +39,10 @@ const AgentTimeline: React.FC<AgentTimelineProps> = ({ domainReports, phase }) =
                   style={{ width: `${Math.max(pct, 2)}%`, backgroundColor: color, opacity: report.status === 'FAILED' ? 0.4 : 0.8 }}
                 />
               </div>
-              <span className="text-[9px] text-slate-600 w-12 text-right font-mono">
+              <span className="text-[10px] text-slate-400 w-12 text-right font-mono">
                 {report.duration_ms ? `${(report.duration_ms / 1000).toFixed(1)}s` : '—'}
               </span>
-              <span className="text-[9px] w-4">
+              <span className="text-[10px] w-4">
                 {report.status === 'SUCCESS' ? '✓' : report.status === 'FAILED' ? '✗' : report.status === 'PARTIAL' ? '◐' : '·'}
               </span>
             </div>

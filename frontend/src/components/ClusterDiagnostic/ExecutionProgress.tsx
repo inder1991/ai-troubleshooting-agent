@@ -83,7 +83,7 @@ const ExecutionProgress: React.FC<ExecutionProgressProps> = ({ domainReports, ph
               {/* Phase row */}
               <div className="flex items-center gap-2">
                 {statusIcon(p.status)}
-                <span className={`text-[11px] font-mono flex-1 ${p.status === 'running' ? 'text-amber-400' : p.status === 'complete' ? 'text-slate-300' : 'text-slate-600'}`}>
+                <span className={`text-[11px] font-mono flex-1 ${p.status === 'running' ? 'text-amber-400' : p.status === 'complete' ? 'text-slate-300' : 'text-slate-400'}`}>
                   {p.label}
                 </span>
               </div>
@@ -113,7 +113,7 @@ const ExecutionProgress: React.FC<ExecutionProgressProps> = ({ domainReports, ph
                             }}
                           />
                         </div>
-                        <span className="text-[7px] text-slate-600 font-mono truncate w-full text-center">
+                        <span className="text-[10px] text-slate-400 font-mono truncate w-full text-center">
                           {domain.replace('_', ' ').slice(0, 4)}
                         </span>
                       </div>
