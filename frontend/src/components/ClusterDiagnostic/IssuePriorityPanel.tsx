@@ -56,7 +56,7 @@ function deriveFallbackIssues(
       } else if (symptomIds.has(a.anomaly_id)) {
         state = 'SYMPTOM';
         isSymptom = true;
-      } else if (a.severity === 'high' || a.severity === 'critical') {
+      } else if (a.severity === 'high') {
         state = 'WORSENING';
       }
 

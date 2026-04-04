@@ -646,7 +646,7 @@ export interface ClusterDomainAnomaly {
   anomaly_id: string;
   description: string;
   evidence_ref: string;
-  severity?: string;
+  severity?: 'high' | 'medium' | 'low';
 }
 
 export interface ClusterDomainReport {
@@ -704,7 +704,7 @@ export interface ClusterHealthReport {
   diagnostic_id?: string;
   platform: string;
   platform_version: string;
-  platform_health: 'HEALTHY' | 'DEGRADED' | 'CRITICAL' | 'UNKNOWN' | 'PENDING';
+  platform_health: 'HEALTHY' | 'DEGRADED' | 'CRITICAL' | 'UNKNOWN' | 'PENDING' | 'PARTIAL_TIMEOUT';
   data_completeness: number;
   blast_radius?: ClusterBlastRadius;
   causal_chains?: ClusterCausalChain[];

@@ -19,6 +19,7 @@ const healthToStatus = (health: string): SystemStatus =>
     : health === 'HEALTHY' ? 'healthy'
     : health === 'DEGRADED' ? 'degraded'
     : health === 'CRITICAL' ? 'critical'
+    : health === 'PARTIAL_TIMEOUT' ? 'degraded'
     : 'unknown';
 
 const ClusterHeader: React.FC<ClusterHeaderProps> = ({

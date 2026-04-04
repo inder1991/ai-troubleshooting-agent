@@ -170,7 +170,7 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
       if (!nsMap.has(ns)) {
         nsMap.set(ns, {
           namespace: ns,
-          status: anomaly.severity === 'critical' ? 'Critical' : anomaly.severity === 'warning' ? 'Degraded' : 'Healthy',
+          status: anomaly.severity === 'high' ? 'Critical' : anomaly.severity === 'medium' ? 'Degraded' : 'Healthy',
           replica_status: '',
           last_deploy: '—',
           workloads: [],
@@ -182,18 +182,18 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
         nsEntry.workloads.push({
           name: resourceName,
           kind: 'Pod',
-          status: anomaly.description.includes('CrashLoop') ? 'CrashLoopBackOff' : anomaly.severity === 'critical' ? 'Failed' : 'Pending',
+          status: anomaly.description.includes('CrashLoop') ? 'CrashLoopBackOff' : anomaly.severity === 'high' ? 'Failed' : 'Pending',
           restarts: 0,
           cpu_usage: '',
           memory_usage: '',
-          is_trigger: anomaly.severity === 'critical',
+          is_trigger: anomaly.severity === 'high',
           age: '',
         });
       }
 
       // Escalate namespace status if this anomaly is worse
-      if (anomaly.severity === 'critical') nsEntry.status = 'Critical';
-      else if (anomaly.severity === 'warning' && nsEntry.status !== 'Critical') nsEntry.status = 'Degraded';
+      if (anomaly.severity === 'high') nsEntry.status = 'Critical';
+      else if (anomaly.severity === 'medium' && nsEntry.status !== 'Critical') nsEntry.status = 'Degraded';
     }
 
     return Array.from(nsMap.values());
@@ -219,13 +219,13 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
       if (!nodeMap.has(nodeName)) {
         nodeMap.set(nodeName, {
           name: nodeName,
-          status: anomaly.severity === 'critical' ? 'critical' : 'healthy',
+          status: anomaly.severity === 'high' ? 'critical' : 'healthy',
           cpu_pct: 50,
           disk_pressure: anomaly.description.toLowerCase().includes('disk'),
         });
       } else {
         const node = nodeMap.get(nodeName)!;
-        if (anomaly.severity === 'critical') node.status = 'critical';
+        if (anomaly.severity === 'high') node.status = 'critical';
         if (anomaly.description.toLowerCase().includes('disk')) node.disk_pressure = true;
       }
     }
@@ -268,7 +268,7 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
       if (!nsMap.has(ns)) {
         nsMap.set(ns, {
           namespace: ns,
-          status: anomaly.severity === 'critical' ? 'Critical' : anomaly.severity === 'warning' ? 'Degraded' : 'Healthy',
+          status: anomaly.severity === 'high' ? 'Critical' : anomaly.severity === 'medium' ? 'Degraded' : 'Healthy',
           replica_status: '',
           last_deploy: '—',
           workloads: [],
@@ -279,16 +279,16 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
         nsEntry.workloads.push({
           name: resourceName,
           kind: 'Pod',
-          status: anomaly.severity === 'critical' ? 'Failed' : 'Pending',
+          status: anomaly.severity === 'high' ? 'Failed' : 'Pending',
           restarts: 0,
           cpu_usage: '',
           memory_usage: '',
-          is_trigger: anomaly.severity === 'critical',
+          is_trigger: anomaly.severity === 'high',
           age: '',
         });
       }
-      if (anomaly.severity === 'critical') nsEntry.status = 'Critical';
-      else if (anomaly.severity === 'warning' && nsEntry.status !== 'Critical') nsEntry.status = 'Degraded';
+      if (anomaly.severity === 'high') nsEntry.status = 'Critical';
+      else if (anomaly.severity === 'medium' && nsEntry.status !== 'Critical') nsEntry.status = 'Degraded';
     }
     return Array.from(nsMap.values());
   }, [centerView, centerDomainReport]);
