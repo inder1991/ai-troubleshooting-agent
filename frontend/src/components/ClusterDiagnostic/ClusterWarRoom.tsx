@@ -20,6 +20,7 @@ import HypothesisCard from './HypothesisCard';
 import RemediationCard from './RemediationCard';
 import EventLogViewer from './EventLogViewer';
 import ScanDiff from './ScanDiff';
+import UncorrelatedFindings from './UncorrelatedFindings';
 
 interface ClusterWarRoomProps {
   session: V4Session;
@@ -108,6 +109,14 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
   );
   const immediateSteps = useMemo(
     () => findings?.remediation?.immediate || [],
+    [findings]
+  );
+  const uncorrelatedFindings = useMemo(
+    () => findings?.uncorrelated_findings || [],
+    [findings]
+  );
+  const longTermSteps = useMemo(
+    () => findings?.remediation?.long_term || [],
     [findings]
   );
   const diagnosticIssues = useMemo(
@@ -429,6 +438,20 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
                 confidence={confidence}
               />
               <RemediationCard steps={immediateSteps} blastRadius={findings?.blast_radius} />
+              {longTermSteps.length > 0 && (
+                <div className="bg-[#141210] rounded border border-[#2a2520] p-3">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Long-Term Recommendations</span>
+                  <div className="mt-2 space-y-2">
+                    {longTermSteps.map((step, i) => (
+                      <div key={i} className="text-[11px] text-slate-400">
+                        <p>{step.description}</p>
+                        {step.command && <code className="text-[10px] text-[#e09f3e] block mt-1 font-mono">$ {step.command}</code>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <UncorrelatedFindings findings={uncorrelatedFindings} />
               {scanDelta && <ScanDiff delta={scanDelta} />}
             </section>
           </>
