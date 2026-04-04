@@ -266,7 +266,44 @@ async def storage_agent(state: dict, config: dict) -> dict:
         )
     else:
         pvcs = await client.list_pvcs()
-    volume_metrics = await client.query_prometheus("kubelet_volume_stats_used_bytes")
+
+    # Enrich with Prometheus volume utilization metrics if client is available
+    prometheus_client = config.get("configurable", {}).get("prometheus_client")
+    volume_metrics_raw: list = []
+    if prometheus_client:
+        try:
+            used_result = await prometheus_client.query_instant(
+                "kubelet_volume_stats_used_bytes"
+            )
+            for item in used_result.get("data", {}).get("result", []):
+                pvc_name = item["metric"].get("persistentvolumeclaim", "unknown")
+                namespace = item["metric"].get("namespace", "default")
+                try:
+                    used_bytes = float(item["value"][1])
+                except (IndexError, TypeError, ValueError):
+                    used_bytes = 0.0
+                volume_metrics_raw.append({
+                    "pvc": pvc_name,
+                    "namespace": namespace,
+                    "used_bytes": used_bytes,
+                })
+        except Exception as exc:
+            logger.debug("Prometheus volume used bytes query failed: %s", exc)
+        try:
+            capacity_result = await prometheus_client.query_instant(
+                "kubelet_volume_stats_capacity_bytes"
+            )
+            capacity_map: dict = {}
+            for item in capacity_result.get("data", {}).get("result", []):
+                pvc_name = item["metric"].get("persistentvolumeclaim", "unknown")
+                try:
+                    capacity_map[pvc_name] = float(item["value"][1])
+                except (IndexError, TypeError, ValueError):
+                    capacity_map[pvc_name] = 0.0
+            for entry in volume_metrics_raw:
+                entry["capacity_bytes"] = capacity_map.get(entry["pvc"], 0.0)
+        except Exception as exc:
+            logger.debug("Prometheus volume capacity bytes query failed: %s", exc)
 
     # Check for RBAC permission denials
     rbac_anomalies = []
@@ -292,7 +329,7 @@ async def storage_agent(state: dict, config: dict) -> dict:
 
     data_payload = {
         "pvcs": pvcs.data,
-        "volume_metrics": volume_metrics.data,
+        "volume_metrics": volume_metrics_raw,
     }
 
     version_context = get_version_context(platform_version)
