@@ -136,6 +136,11 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
     [findings]
   );
 
+  const allAgentsFailed = useMemo(() => {
+    if (domainReports.length === 0) return false;
+    return domainReports.every(r => r.status === 'FAILED' || r.status === 'SKIPPED');
+  }, [domainReports]);
+
   // ── Truncation warnings ──
   const truncationWarnings = useMemo(() => {
     const warnings: string[] = [];
@@ -323,6 +328,7 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
           diagnosticIssues={diagnosticIssues}
           domainReports={domainReports}
           dataCompleteness={findings.data_completeness}
+          scopeCoverage={findings.scope_coverage}
           phase={phase || 'pre_flight'}
         />
       )}
@@ -393,7 +399,23 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
 
             {/* ── CENTER COLUMN (col-5) ── */}
             <section className="col-span-5 flex h-full bg-[#1a1814] overflow-hidden relative border-r border-[#1f3b42]">
-              {centerView === 'priority' ? (
+              {allAgentsFailed && (
+                <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+                  <span className="material-symbols-outlined text-4xl text-red-500/40 mb-3">error_outline</span>
+                  <h3 className="text-sm font-bold text-red-400 mb-2">All Domain Agents Failed</h3>
+                  <p className="text-[11px] text-slate-500 max-w-xs">
+                    No diagnostic data could be collected. Check cluster connectivity, RBAC permissions, and API server health.
+                  </p>
+                  <div className="mt-4 space-y-1 text-left">
+                    {domainReports.filter(r => r.failure_reason).map(r => (
+                      <div key={r.domain} className="text-[10px] text-red-400/60">
+                        <span className="font-mono text-slate-600">{r.domain}:</span> {r.failure_reason?.replace(/_/g, ' ')}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {!allAgentsFailed && (centerView === 'priority' ? (
                 <div className="flex-1 overflow-y-auto">
                   <IssuePriorityPanel
                     diagnosticIssues={diagnosticIssues}
@@ -409,7 +431,7 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
                   report={centerDomainReport}
                   namespaces={centerNamespaceWorkloads}
                 />
-              )}
+              ))}
               <div className="w-[40px] flex flex-col bg-[#152a2f] border-l border-[#1f3b42] shrink-0 z-10">
                 <VerticalRibbon
                   domain={'node' as ClusterDomainKey}

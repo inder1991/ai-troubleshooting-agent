@@ -5,6 +5,7 @@ interface LifecycleSummaryStripProps {
   diagnosticIssues?: DiagnosticIssue[];
   domainReports: ClusterDomainReport[];
   dataCompleteness?: number;
+  scopeCoverage?: number;
   phase: string;
 }
 
@@ -26,6 +27,7 @@ const LifecycleSummaryStrip: React.FC<LifecycleSummaryStripProps> = ({
   diagnosticIssues,
   domainReports,
   dataCompleteness,
+  scopeCoverage,
   phase,
 }) => {
   const stateCounts = useMemo(() => {
@@ -78,6 +80,15 @@ const LifecycleSummaryStrip: React.FC<LifecycleSummaryStripProps> = ({
         <>
           <span className="w-px h-3 bg-[#2a2520] shrink-0" />
           <span className="text-[10px] text-slate-500 font-mono shrink-0">{completePct}% complete</span>
+        </>
+      )}
+
+      {scopeCoverage != null && scopeCoverage < 1 && (
+        <>
+          <div className="w-px h-3 bg-[#2a2520]" />
+          <span className="text-[10px] text-amber-400 font-mono">
+            Scope: {Math.round(scopeCoverage * 100)}%
+          </span>
         </>
       )}
     </div>
