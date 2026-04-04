@@ -39,6 +39,7 @@ cryptography>=41.0.0
 redis[hiredis]>=5.0
 motor>=3.3.0
 # sqlalchemy==2.0.25
+aiosqlite>=0.20.0
 
 # Testing
 pytest==7.4.4
