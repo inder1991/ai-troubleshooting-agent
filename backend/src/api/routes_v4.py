@@ -700,6 +700,7 @@ async def run_cluster_diagnosis(session_id, graph, cluster_client, emitter, scan
                 "emitter": emitter,
                 "budget": budget,
                 "telemetry": telemetry,
+                "store": _get_store(),
             }
         }
 
@@ -1613,6 +1614,16 @@ async def get_session_events(
                            if (e.sequence_number or 0) > after_sequence]
             return {"events": event_dicts}
         return {"events": []}
+
+
+@router_v4.get("/session/{session_id}/llm-calls")
+async def get_session_llm_calls(session_id: str):
+    """Return LLM call metadata for a session. For debugging wrong causal chains."""
+    if session_id not in sessions:
+        raise HTTPException(status_code=404, detail="Session not found")
+    from src.observability.store import get_store
+    calls = await get_store().get_llm_calls(session_id)
+    return {"llm_calls": calls}
 
 
 # ── Campaign (Multi-Repo) Endpoints ──────────────────────────────────

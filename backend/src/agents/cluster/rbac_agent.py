@@ -154,7 +154,7 @@ async def _heuristic_analyze(data_payload: dict, domain: str = "rbac") -> dict:
 
 
 async def _tool_calling_loop(system: str, initial_context: str, cluster_client,
-                              budget=None, telemetry=None) -> dict | None:
+                              budget=None, telemetry=None, store=None, session_id: str = "") -> dict | None:
     """ReAct tool-calling loop for rbac agent. Returns parsed findings dict or None."""
     if not os.environ.get("ANTHROPIC_API_KEY"):
         return None
@@ -217,6 +217,25 @@ async def _tool_calling_loop(system: str, initial_context: str, cluster_client,
                 call_type="tool_calling", input_tokens=in_tok, output_tokens=out_tok,
                 latency_ms=latency_ms, success=True,
             ))
+
+        # Log to DiagnosticStore (fire-and-forget)
+        if store is not None and session_id:
+            import asyncio as _asyncio
+            import time as _time
+            _asyncio.ensure_future(store.log_llm_call({
+                "session_id": session_id,
+                "agent_name": "cluster_rbac",
+                "model": "claude-haiku-4-5-20251001",
+                "call_type": "tool_calling",
+                "input_tokens": in_tok,
+                "output_tokens": out_tok,
+                "latency_ms": latency_ms,
+                "success": True,
+                "error": None,
+                "fallback_used": False,
+                "response_json": {},
+                "created_at": _time.time(),
+            }))
 
         tool_uses = [b for b in response.content if b.type == "tool_use"]
 
@@ -320,9 +339,11 @@ async def rbac_agent(state: dict, config: dict) -> dict:
         truncation_note="",
     )
 
-    # Extract budget and telemetry from config
+    # Extract budget, telemetry, store, and session_id from config
     budget = config.get("configurable", {}).get("budget")
     telemetry = config.get("configurable", {}).get("telemetry")
+    store = config.get("configurable", {}).get("store")
+    diagnostic_id = state.get("diagnostic_id", "")
 
     # Check budget before attempting LLM
     analysis = None
@@ -334,6 +355,23 @@ async def rbac_agent(state: dict, config: dict) -> dict:
                 agent_name="cluster_rbac", call_type="heuristic",
                 fallback_used=True, success=True,
             ))
+        if store is not None and diagnostic_id:
+            import asyncio as _asyncio
+            import time as _time
+            _asyncio.ensure_future(store.log_llm_call({
+                "session_id": diagnostic_id,
+                "agent_name": "cluster_rbac",
+                "model": "heuristic",
+                "call_type": "heuristic",
+                "input_tokens": 0,
+                "output_tokens": 0,
+                "latency_ms": 0,
+                "success": True,
+                "error": None,
+                "fallback_used": True,
+                "response_json": analysis,
+                "created_at": _time.time(),
+            }))
     else:
         # Try tool-calling ReAct loop first, fall back to heuristic single-pass
         try:
@@ -345,7 +383,8 @@ async def rbac_agent(state: dict, config: dict) -> dict:
             )
             analysis = await asyncio.wait_for(
                 _tool_calling_loop(system, initial_context, client,
-                                   budget=budget, telemetry=telemetry),
+                                   budget=budget, telemetry=telemetry,
+                                   store=store, session_id=diagnostic_id),
                 timeout=TOOL_CALL_TIMEOUT,
             )
         except Exception as e:
@@ -359,6 +398,23 @@ async def rbac_agent(state: dict, config: dict) -> dict:
                         agent_name="cluster_rbac", call_type="heuristic",
                         fallback_used=True, success=True,
                     ))
+                if store is not None and diagnostic_id:
+                    import asyncio as _asyncio
+                    import time as _time
+                    _asyncio.ensure_future(store.log_llm_call({
+                        "session_id": diagnostic_id,
+                        "agent_name": "cluster_rbac",
+                        "model": "heuristic",
+                        "call_type": "heuristic",
+                        "input_tokens": 0,
+                        "output_tokens": 0,
+                        "latency_ms": 0,
+                        "success": True,
+                        "error": None,
+                        "fallback_used": True,
+                        "response_json": analysis,
+                        "created_at": _time.time(),
+                    }))
             else:
                 analysis = await _llm_analyze(system, prompt)
 

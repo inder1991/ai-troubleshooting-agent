@@ -203,6 +203,8 @@ async def _llm_causal_reasoning(
     platform: str = "",
     namespace: str = "",
     cluster_url: str = "",
+    store=None,
+    session_id: str = "",
     **kwargs,
 ) -> dict:
     """Stage 2: LLM identifies cross-domain causal chains."""
@@ -266,6 +268,25 @@ async def _llm_causal_reasoning(
             latency_ms=latency_ms, success=True,
         ))
 
+    # Log to DiagnosticStore (fire-and-forget)
+    if store is not None and session_id:
+        import asyncio as _asyncio
+        import time as _time
+        _asyncio.ensure_future(store.log_llm_call({
+            "session_id": session_id,
+            "agent_name": "cluster_synthesizer",
+            "model": used_model,
+            "call_type": "synthesis_causal",
+            "input_tokens": in_tok,
+            "output_tokens": out_tok,
+            "latency_ms": latency_ms,
+            "success": True,
+            "error": None,
+            "fallback_used": False,
+            "response_json": {},
+            "created_at": _time.time(),
+        }))
+
     for block in response.content:
         if getattr(block, "type", None) == "tool_use" and block.name == "submit_causal_analysis":
             return block.input
@@ -280,6 +301,8 @@ async def _llm_verdict(
     data_completeness: float,
     budget=None,
     telemetry=None,
+    store=None,
+    session_id: str = "",
 ) -> dict:
     """Stage 3: LLM produces verdict and remediation."""
     from src.agents.cluster.output_schemas import SUBMIT_VERDICT_TOOL
@@ -346,6 +369,25 @@ Note: re_dispatch_domains valid values are: ctrl_plane, node, network, storage, 
             call_type="synthesis_verdict", input_tokens=in_tok, output_tokens=out_tok,
             latency_ms=latency_ms, success=True,
         ))
+
+    # Log to DiagnosticStore (fire-and-forget)
+    if store is not None and session_id:
+        import asyncio as _asyncio
+        import time as _time
+        _asyncio.ensure_future(store.log_llm_call({
+            "session_id": session_id,
+            "agent_name": "cluster_synthesizer",
+            "model": used_model,
+            "call_type": "synthesis_verdict",
+            "input_tokens": in_tok,
+            "output_tokens": out_tok,
+            "latency_ms": latency_ms,
+            "success": True,
+            "error": None,
+            "fallback_used": False,
+            "response_json": {},
+            "created_at": _time.time(),
+        }))
 
     for block in response.content:
         if getattr(block, "type", None) == "tool_use" and block.name == "submit_verdict":
@@ -426,9 +468,10 @@ async def synthesize(state: dict, config: dict) -> dict:
     if issue_clusters_summary:
         search_space_for_llm["issue_clusters_summary"] = issue_clusters_summary
 
-    # Extract budget and telemetry from config
+    # Extract budget, telemetry, store, and session_id from config
     budget = config.get("configurable", {}).get("budget")
     telemetry = config.get("configurable", {}).get("telemetry")
+    store = config.get("configurable", {}).get("store")
 
     # Stage 2: Causal Reasoning (skip if no anomalies)
     _ns_list = state.get("namespaces") or []
@@ -446,12 +489,15 @@ async def synthesize(state: dict, config: dict) -> dict:
             platform=state.get("platform", ""),
             namespace=_ns_list[0] if _ns_list else "",
             cluster_url=state.get("cluster_url", ""),
+            store=store,
+            session_id=diagnostic_id,
         )
 
     # Stage 3: Verdict
     verdict = await _llm_verdict(
         causal_result.get("causal_chains", []), reports, data_completeness,
         budget=budget, telemetry=telemetry,
+        store=store, session_id=diagnostic_id,
     )
 
     # Post-process remediation commands: validate, add dry-run, auto-fix namespace, generate rollback
