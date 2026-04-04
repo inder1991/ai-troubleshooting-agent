@@ -22,6 +22,18 @@ router = APIRouter(prefix="/api/v5/alerts", tags=["alerts"])
 _active_alert_sessions: dict[tuple[str, str], tuple[str, float]] = {}
 _DEDUP_WINDOW_SECONDS = 1800  # 30 minutes
 
+# Hold references to background tasks to prevent GC before completion
+_background_tasks: set = set()
+
+
+def _prune_expired_sessions() -> None:
+    """Remove dedup entries older than the dedup window."""
+    now = time.time()
+    expired = [k for k, (_, created_at) in _active_alert_sessions.items()
+               if now - created_at >= _DEDUP_WINDOW_SECONDS]
+    for k in expired:
+        del _active_alert_sessions[k]
+
 ALERT_DIAGNOSTIC_DELAY_SECONDS = int(os.getenv("ALERT_DIAGNOSTIC_DELAY_SECONDS", "120"))
 
 
@@ -55,7 +67,7 @@ def _derive_scope(merged_labels: dict[str, str]) -> tuple[dict, str]:
         scope = {
             "level": "workload",
             "namespaces": [namespace],
-            "workload_key": workload,
+            "workload_key": None,
             "domains": ["node", "network"],
             "include_control_plane": include_cp,
         }
@@ -87,7 +99,7 @@ async def alertmanager_webhook(payload: AlertmanagerPayload):
     # Only process firing alerts
     firing = [a for a in payload.alerts if a.status == "firing"]
     if not firing:
-        return {"status": "ignored", "reason": "status=resolved"}
+        return {"status": "ignored", "reason": "no firing alerts"}
 
     # Merge labels: commonLabels wins over groupLabels
     merged = {**payload.groupLabels, **payload.commonLabels}
@@ -119,17 +131,21 @@ async def alertmanager_webhook(payload: AlertmanagerPayload):
     service_name = f"{alertname}-{namespace}" if namespace else alertname
     incident_id = f"ALERT-{session_id[:8].upper()}"
 
+    _prune_expired_sessions()
     _active_alert_sessions[dedup_key] = (session_id, time.time())
 
-    # Schedule delayed diagnostic (fire-and-forget)
-    asyncio.create_task(_run_delayed_diagnostic(
+    # Schedule delayed diagnostic (keep task reference to prevent GC)
+    task = asyncio.create_task(_run_delayed_diagnostic(
         session_id=session_id,
         service_name=service_name,
         incident_id=incident_id,
         scope=scope,
         scan_mode=scan_mode,
         delay=ALERT_DIAGNOSTIC_DELAY_SECONDS,
+        dedup_key=dedup_key,
     ))
+    _background_tasks.add(task)
+    task.add_done_callback(_background_tasks.discard)
 
     logger.info(
         "Alertmanager webhook: scheduled diagnostic",
@@ -154,6 +170,7 @@ async def _run_delayed_diagnostic(
     scope: dict,
     scan_mode: str,
     delay: int,
+    dedup_key: tuple[str, str] = ("", ""),
 ) -> None:
     """Wait delay seconds then trigger cluster diagnostic (runs as background task).
 
@@ -180,7 +197,7 @@ async def _run_delayed_diagnostic(
         sessions[session_id] = {
             "service_name": service_name,
             "incident_id": incident_id,
-            "created_at": datetime.datetime.utcnow().isoformat(),
+            "created_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
             "emitter": emitter,
             "state": {},
             "diagnostic_scope": scope,
@@ -199,3 +216,4 @@ async def _run_delayed_diagnostic(
             "Alert-triggered diagnostic session registration failed: %s", exc,
             extra={"session_id": session_id},
         )
+        _active_alert_sessions.pop(dedup_key, None)

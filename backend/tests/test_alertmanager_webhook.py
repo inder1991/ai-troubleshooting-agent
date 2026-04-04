@@ -89,3 +89,33 @@ def test_scope_derivation_cluster_level():
     from src.api.routes_alerts import _derive_scope
     scope, scan_mode = _derive_scope({"severity": "critical"})
     assert scope["level"] == "cluster"
+
+
+@pytest.mark.asyncio
+async def test_webhook_deduplicates_same_target():
+    """Second firing alert for same target within dedup window returns deduplicated."""
+    import time
+    from src.api.routes_alerts import _active_alert_sessions
+    from src.api.main import app
+
+    # Clear any existing state
+    _active_alert_sessions.clear()
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        payload = {
+            "alerts": [{"status": "firing",
+                         "labels": {"namespace": "dedup-test", "workload": "dedup-svc",
+                                    "severity": "warning", "alertname": "TestAlert"},
+                         "annotations": {}}],
+            "groupLabels": {},
+            "commonLabels": {"namespace": "dedup-test", "workload": "dedup-svc", "severity": "warning"},
+            "commonAnnotations": {},
+        }
+        resp1 = await client.post("/api/v5/alerts/webhook", json=payload)
+        resp2 = await client.post("/api/v5/alerts/webhook", json=payload)
+
+    assert resp1.status_code == 200
+    assert resp1.json()["status"] == "scheduled"
+    assert resp2.status_code == 200
+    assert resp2.json()["status"] == "deduplicated"
+    assert resp2.json()["session_id"] == resp1.json()["session_id"]
