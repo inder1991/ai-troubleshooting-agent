@@ -69,7 +69,7 @@ const VerticalRibbon: React.FC<VerticalRibbonProps> = ({ domain, report, onClick
         {meta.icon}
       </span>
 
-      <svg className="w-full h-12 fill-none" preserveAspectRatio="none" viewBox="0 0 40 100" style={{ stroke: isActive ? '#e09f3e' : iconColor }}>
+      <svg aria-hidden="true" className="w-full h-12 fill-none" preserveAspectRatio="none" viewBox="0 0 40 100" style={{ stroke: isActive ? '#e09f3e' : iconColor }}>
         <path d="M20 100 L20 60 L35 50 L5 40 L20 30 L20 0" strokeWidth="1.5" />
       </svg>
 

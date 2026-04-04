@@ -7,6 +7,7 @@ interface NeuralPulseSVGProps {
 const NeuralPulseSVG: React.FC<NeuralPulseSVGProps> = ({ hasRootCause }) => {
   return (
     <svg
+      aria-hidden="true"
       className="absolute inset-0 w-full h-full pointer-events-none z-20"
       style={{ mixBlendMode: 'screen' }}
     >

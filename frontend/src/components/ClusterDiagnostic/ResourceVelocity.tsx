@@ -8,7 +8,7 @@ const ResourceVelocity: React.FC<ResourceVelocityProps> = ({ label = 'Resource V
   return (
     <div className="h-40 bg-[#152a2f]/40 rounded border border-[#1f3b42] p-3">
       <h3 className="text-[10px] uppercase font-bold tracking-widest text-slate-500 mb-2">{label}</h3>
-      <svg className="w-full h-full" viewBox="0 0 200 80" preserveAspectRatio="none">
+      <svg aria-hidden="true" className="w-full h-full" viewBox="0 0 200 80" preserveAspectRatio="none">
         <path d="M0 40 L200 40" stroke="#1f3b42" strokeDasharray="2" strokeWidth="1" />
         <text x="5" y="35" fill="#1f3b42" fontFamily="monospace" fontSize="6">REQUEST_LIMIT</text>
         <path

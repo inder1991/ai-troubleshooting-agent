@@ -23,6 +23,15 @@ const AgentCostBreakdown: React.FC<AgentCostBreakdownProps> = ({ sessionId, visi
 
   useEffect(() => {
     if (!visible) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [visible, onClose]);
+
+  useEffect(() => {
+    if (!visible) return;
     const fetchData = async () => {
       try {
         const res = await fetch(`${API_BASE_URL}/api/v4/session/${sessionId}/llm-summary`);
