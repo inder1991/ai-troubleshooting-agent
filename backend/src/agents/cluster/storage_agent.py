@@ -101,7 +101,7 @@ async def _heuristic_analyze(data_payload: dict, domain: str = "storage") -> dic
     for metric in data_payload.get("volume_metrics", []):
         pvc_name = metric.get("pvc", metric.get("persistentvolumeclaim", "unknown"))
         ns = metric.get("namespace", "default")
-        used = metric.get("value", metric.get("used_bytes", 0))
+        used = metric.get("used_bytes", 0)
         capacity = metric.get("capacity_bytes", 0)
         if capacity > 0:
             usage_pct = (used / capacity) * 100
@@ -296,12 +296,13 @@ async def storage_agent(state: dict, config: dict) -> dict:
             capacity_map: dict = {}
             for item in capacity_result.get("data", {}).get("result", []):
                 pvc_name = item["metric"].get("persistentvolumeclaim", "unknown")
+                namespace = item["metric"].get("namespace", "default")
                 try:
-                    capacity_map[pvc_name] = float(item["value"][1])
+                    capacity_map[(pvc_name, namespace)] = float(item["value"][1])
                 except (IndexError, TypeError, ValueError):
-                    capacity_map[pvc_name] = 0.0
+                    capacity_map[(pvc_name, namespace)] = 0.0
             for entry in volume_metrics_raw:
-                entry["capacity_bytes"] = capacity_map.get(entry["pvc"], 0.0)
+                entry["capacity_bytes"] = capacity_map.get((entry["pvc"], entry["namespace"]), 0.0)
         except Exception as exc:
             logger.debug("Prometheus volume capacity bytes query failed: %s", exc)
 
