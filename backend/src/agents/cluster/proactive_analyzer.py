@@ -585,8 +585,8 @@ _MIN_KERNEL_BY_OS: dict[str, tuple[int, int]] = {
     "ubuntu 20": (5, 4),
     "ubuntu 22": (5, 15),
     # RHEL/CentOS/Rocky/Alma
-    "rhel 8": (4, 18),
-    "rhel 9": (5, 14),
+    "red hat enterprise linux 8": (4, 18),
+    "red hat enterprise linux 9": (5, 14),
     "centos": (3, 10),
     "rocky": (4, 18),
     "alma": (4, 18),
