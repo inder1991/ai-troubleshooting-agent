@@ -14,6 +14,35 @@ logger = get_logger(__name__)
 MAX_RESULT_SIZE = 8000
 
 
+def _serialize_with_envelope(data: Any) -> str:
+    """Serialize data into a TruncatedResult envelope. Always returns valid JSON."""
+    if not isinstance(data, list):
+        # Non-list results: serialize directly with size cap
+        raw = json.dumps(data, default=str)
+        if len(raw) > MAX_RESULT_SIZE:
+            raw = raw[:MAX_RESULT_SIZE]  # truncate scalar/dict (rare case)
+        return raw
+
+    # Item-aware slicing for list results
+    items: list = []
+    total_size = 0
+    for item in data:
+        item_str = json.dumps(item, default=str)
+        if total_size + len(item_str) > MAX_RESULT_SIZE:
+            break
+        items.append(item)
+        total_size += len(item_str)
+
+    truncated = len(items) < len(data)
+    return json.dumps({
+        "data": items,
+        "total_available": len(data),
+        "returned": len(items),
+        "truncated": truncated,
+        "truncation_reason": "SIZE_LIMIT" if truncated else None,
+    }, default=str)
+
+
 async def execute_tool_call(tool_name: str, tool_input: dict, cluster_client, tool_call_count: int = 0) -> str:
     """Execute a single tool call and return the result as a JSON string."""
     try:
@@ -94,10 +123,7 @@ async def execute_tool_call(tool_name: str, tool_input: dict, cluster_client, to
         else:
             return json.dumps({"error": f"Unknown tool: {tool_name}"})
 
-        result_str = json.dumps(data, default=str)
-        if len(result_str) > MAX_RESULT_SIZE:
-            result_str = result_str[:MAX_RESULT_SIZE] + '..."truncated"'
-        return result_str
+        return _serialize_with_envelope(data)
 
     except Exception as e:
         logger.error("Tool execution failed: %s(%s): %s", tool_name, tool_input, e)

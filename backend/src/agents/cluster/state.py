@@ -26,11 +26,17 @@ class DomainStatus(str, Enum):
 
 class TruncationFlags(BaseModel):
     events: bool = False
+    events_dropped: int = 0
     pods: bool = False
+    pods_dropped: int = 0
     log_lines: bool = False
+    log_lines_dropped: int = 0
     metric_points: bool = False
+    metric_points_dropped: int = 0
     nodes: bool = False
+    nodes_dropped: int = 0
     pvcs: bool = False
+    pvcs_dropped: int = 0
 
 
 class EvidenceSource(BaseModel):

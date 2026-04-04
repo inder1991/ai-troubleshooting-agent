@@ -599,8 +599,13 @@ async def test_tool_executor_handles_workload_types():
     for tool_name in ["list_statefulsets", "list_daemonsets", "list_jobs", "list_cronjobs"]:
         result_str = await execute_tool_call(tool_name, {"namespace": "default"}, mock_client)
         result = _json.loads(result_str)
-        assert isinstance(result, list), \
-            f"Expected list result for {tool_name}, got: {result}"
+        # Results are now wrapped in an envelope dict with a "data" list
+        assert "error" not in result, \
+            f"Expected valid result for {tool_name}, got error: {result}"
+        assert "data" in result, \
+            f"Expected envelope with 'data' key for {tool_name}, got: {result}"
+        assert isinstance(result["data"], list), \
+            f"Expected 'data' to be a list for {tool_name}, got: {result['data']}"
 
 
 def test_ctrl_plane_prompt_has_evidence_rules():
