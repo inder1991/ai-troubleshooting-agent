@@ -54,7 +54,8 @@ from .websocket import manager
 from src.cloud.api.router import create_cloud_router
 from src.cloud.cloud_store import CloudStore
 from src.network.prometheus_exporter import MetricsCollector
-from src.config import APP_MODE
+from pathlib import Path
+from src.config import APP_MODE, is_production_mode
 from src.utils.logger import get_logger
 
 logger = get_logger("main")
@@ -264,6 +265,21 @@ def create_app() -> FastAPI:
             logger.info("EventStore initialized")
         except Exception as e:
             logger.warning("Event bus init failed: %s", e)
+
+        # ── Production mode: clear leftover demo data from previous runs ──
+        if is_production_mode():
+            try:
+                topo_store = _net_topo_store()
+                removed = topo_store.clear_all_devices()
+                if removed:
+                    logger.info("Production mode: cleared %d demo devices from topology store", removed)
+                # Clear stale metrics so alert engine doesn't fire on old demo data
+                metrics_db = Path(__file__).parent.parent / "data" / "metrics.db"
+                if metrics_db.exists():
+                    metrics_db.unlink()
+                    logger.info("Production mode: cleared stale metrics.db")
+            except Exception as e:
+                logger.warning("Production mode cleanup failed: %s", e)
 
         # ── Load enterprise network fixtures into topology store ──
         try:

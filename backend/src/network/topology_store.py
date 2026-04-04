@@ -754,6 +754,13 @@ class TopologyStore:
             conn.close()
         self._invalidate_cache("list_devices", f"list_interfaces:{device_id}", "list_device_statuses")
 
+    def clear_all_devices(self) -> int:
+        """Remove all devices and cascading data. Returns count of devices removed."""
+        devices = self.list_devices()
+        for d in devices:
+            self.delete_device(d.id)
+        return len(devices)
+
     def update_device(self, device_id: str, **kwargs) -> Optional[Device]:
         """Update specific fields on a device. Returns updated device or None."""
         conn = self._conn()
