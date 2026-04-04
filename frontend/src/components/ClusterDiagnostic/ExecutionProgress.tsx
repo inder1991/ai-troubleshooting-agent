@@ -31,7 +31,7 @@ function statusIcon(status: PhaseStatus): React.ReactNode {
     case 'failed':
       return <span className="text-red-500 text-[11px]">&#10007;</span>;
     case 'running':
-      return <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse inline-block" />;
+      return <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse inline-block" />;
     default:
       return <span className="w-1.5 h-1.5 rounded-full bg-slate-600 inline-block" />;
   }

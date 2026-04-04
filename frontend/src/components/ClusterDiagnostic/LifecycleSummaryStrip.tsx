@@ -59,7 +59,7 @@ const LifecycleSummaryStrip: React.FC<LifecycleSummaryStripProps> = ({
         return (
           <span key={state} className="flex items-center gap-1 shrink-0">
             <span
-              className={`inline-block w-[6px] h-[6px] rounded-full ${isScanning ? 'animate-pulse' : ''}`}
+              className={`inline-block w-2 h-2 rounded-full ${isScanning ? 'animate-pulse' : ''}`}
               style={{ backgroundColor: color }}
             />
             <span className="text-[10px] font-mono text-slate-400">{count}</span>
