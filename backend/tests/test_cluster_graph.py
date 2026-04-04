@@ -100,3 +100,51 @@ async def test_graph_runs_with_mocks():
     assert isinstance(result.get("causal_search_space"), dict)
 
     _topology_cache.clear()
+
+
+class TestDispatchRouterRBAC:
+    def test_skips_node_domain_when_nodes_denied(self):
+        from src.agents.cluster.graph import dispatch_router
+        state = {
+            "diagnostic_scope": None,
+            "rbac_check": {"granted": ["pods", "events"], "denied": ["nodes"]},
+        }
+        result = dispatch_router(state)
+        assert "node" not in result["dispatch_domains"]
+
+    def test_skips_storage_when_pvc_denied(self):
+        from src.agents.cluster.graph import dispatch_router
+        state = {
+            "diagnostic_scope": None,
+            "rbac_check": {"granted": ["nodes", "pods"], "denied": ["persistentvolumeclaims"]},
+        }
+        result = dispatch_router(state)
+        assert "storage" not in result["dispatch_domains"]
+
+    def test_skips_ctrl_plane_and_node_when_pods_denied(self):
+        from src.agents.cluster.graph import dispatch_router
+        state = {
+            "diagnostic_scope": None,
+            "rbac_check": {"granted": ["nodes"], "denied": ["pods"]},
+        }
+        result = dispatch_router(state)
+        assert "ctrl_plane" not in result["dispatch_domains"]
+        assert "node" not in result["dispatch_domains"]
+
+    def test_no_rbac_check_runs_all_domains(self):
+        from src.agents.cluster.graph import dispatch_router
+        state = {"diagnostic_scope": None, "rbac_check": None}
+        result = dispatch_router(state)
+        assert "node" in result["dispatch_domains"]
+        assert "storage" in result["dispatch_domains"]
+        assert "ctrl_plane" in result["dispatch_domains"]
+
+    def test_rbac_skips_recorded_in_result(self):
+        from src.agents.cluster.graph import dispatch_router
+        state = {
+            "diagnostic_scope": None,
+            "rbac_check": {"granted": [], "denied": ["nodes"]},
+        }
+        result = dispatch_router(state)
+        assert "rbac_skipped" in result
+        assert any(s["domain"] == "node" for s in result["rbac_skipped"])
