@@ -123,7 +123,7 @@ const CapabilityForm: React.FC<CapabilityFormProps> = ({ capability, onBack, onS
         }
         const hasUrl = cd.cluster_url.trim().length > 0 && /^https?:\/\/.+/.test(cd.cluster_url.trim());
         const hasAuth = !!cd.auth_token;
-        const hasName = !(cd.save_cluster ?? true) || !!cd.cluster_name?.trim();
+        const hasName = !(cd.save_cluster ?? false) || !!cd.cluster_name?.trim();
         return hasUrl && hasAuth && hasName;
       }
       case 'network_troubleshooting': {
