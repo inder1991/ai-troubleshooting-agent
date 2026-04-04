@@ -584,6 +584,7 @@ async def run_cluster_diagnosis(session_id, graph, cluster_client, emitter, scan
             "scoped_topology_graph": None,
             "dispatch_domains": scope_data.get("domains", ["ctrl_plane", "node", "network", "storage"]),
             "scope_coverage": 1.0,
+            "proactive_findings": [],
         }
 
         # Pre-flight: detect platform

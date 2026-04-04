@@ -203,13 +203,12 @@ async def _proactive_analysis_node(state: dict, config: dict | None = None) -> d
     try:
         results = await run_proactive_analysis(client=cluster_client)
         findings = [
-            f.__dict__ if hasattr(f, "__dict__") else dict(f)
+            f.model_dump() if hasattr(f, "model_dump") else dict(f)
             for f in results
         ]
         return {"proactive_findings": findings}
     except Exception as exc:
-        import logging
-        logging.getLogger(__name__).warning("Proactive analysis failed: %s", exc)
+        logger.warning("Proactive analysis failed: %s", exc)
         return {"proactive_findings": []}
 
 

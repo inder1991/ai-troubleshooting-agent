@@ -271,6 +271,70 @@ class TestProactiveGraphWiring:
             f"Graph must contain proactive_analysis node. Found: {node_names}"
 
 
+class TestProactiveFindingSerialization:
+    def test_proactive_analysis_node_returns_model_dump_dicts(self):
+        """_proactive_analysis_node must return proactive_findings as plain dicts via model_dump()."""
+        import asyncio
+        import sys
+        import types
+        from unittest.mock import AsyncMock
+        from src.agents.cluster.graph import _proactive_analysis_node
+        from src.agents.cluster.state import ProactiveFinding
+
+        mock_finding = ProactiveFinding(
+            finding_id="pf-001",
+            check_type="cert_expiry",
+            severity="critical",
+            lifecycle_state="NEW",
+            title="TLS cert expiring soon",
+            description="Certificate for api.example.com expires in 7 days.",
+            affected_resources=["secret/production/api-tls"],
+            affected_workloads=["deployment/production/api-gateway"],
+            days_until_impact=7,
+            estimated_savings_usd=0.0,
+            recommendation="Renew the TLS certificate before expiry.",
+            commands=["kubectl create secret tls api-tls --cert=... --key=..."],
+            dry_run_command="",
+            rollback_command="",
+            confidence=0.95,
+            source="proactive",
+            cloud_provider="",
+        )
+
+        async def mock_run_proactive_analysis(client):
+            return [mock_finding]
+
+        # Inject a fake proactive_analyzer module so the lazy import inside
+        # _proactive_analysis_node (`from .proactive_analyzer import run_proactive_analysis`)
+        # resolves to our mock without needing the real module on disk.
+        module_key = "src.agents.cluster.proactive_analyzer"
+        fake_mod = types.ModuleType(module_key)
+        fake_mod.run_proactive_analysis = mock_run_proactive_analysis
+        sys.modules[module_key] = fake_mod
+
+        try:
+            state = {}
+            config = {"configurable": {"cluster_client": object()}}
+            result = asyncio.run(_proactive_analysis_node(state, config))
+        finally:
+            sys.modules.pop(module_key, None)
+
+        assert "proactive_findings" in result
+        findings = result["proactive_findings"]
+        assert isinstance(findings, list)
+        assert len(findings) == 1
+
+        f = findings[0]
+        assert isinstance(f, dict), "Finding must be a plain dict, not a Pydantic model"
+        assert f["finding_id"] == "pf-001"
+        assert f["check_type"] == "cert_expiry"
+        assert f["severity"] == "critical"
+        assert f["title"] == "TLS cert expiring soon"
+        assert f["days_until_impact"] == 7
+        assert f["confidence"] == 0.95
+        assert f["source"] == "proactive"
+
+
 class TestPrometheusDetector:
     def test_detects_thanos_querier_route_on_openshift(self):
         import asyncio
