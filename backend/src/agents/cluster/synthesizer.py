@@ -166,12 +166,16 @@ def _build_bounded_causal_prompt(
 {json.dumps(issue_clusters_summary, indent=2)}
 
 ## Root Cause Hypothesis Seeds
+These are pre-identified root cause candidates from cluster correlation. do NOT invent new root causes \
+outside this list unless there is strong direct evidence.
 {json.dumps(root_cands, indent=2)}
 
 ## Annotated Links
+Links below have low confidence scores and should be treated as weak hints only.
 {json.dumps(annotated_links, indent=2)}
 
-## Blocked Links: {blocked_count} excluded
+## Blocked Links: {blocked_count} causal links were blocked by the firewall; do NOT propose these \
+as causal relationships.
 """
 
     hyp_section = ""
@@ -217,10 +221,15 @@ async def _llm_causal_reasoning(
         logger.info("Budget low (%.0f%% remaining), using Haiku for causal reasoning", budget.remaining_budget_pct() * 100)
     client = AnthropicClient(agent_name="cluster_synthesizer", model=model) if model else AnthropicClient(agent_name="cluster_synthesizer")
 
+    # Merge root_candidates into search_space so the prompt builder can see them
+    effective_search_space = dict(search_space) if search_space else {}
+    if root_candidates:
+        effective_search_space.setdefault("root_candidates", root_candidates)
+
     bounded_prompt = _build_bounded_causal_prompt(
         anomalies=[a.model_dump(mode="json") if hasattr(a, "model_dump") else a for a in anomalies],
         reports=reports,
-        search_space=search_space or {},
+        search_space=effective_search_space,
         hypotheses=kwargs.get("hypotheses", []),
         selection=kwargs.get("hypothesis_selection", {}),
     )

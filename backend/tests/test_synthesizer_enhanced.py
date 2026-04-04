@@ -23,11 +23,17 @@ def _make_mock_client(causal_json: dict | None = None, verdict_json: dict | None
 
     mock_client = MagicMock()
 
-    # Each call returns a new response; first call is causal, second is verdict
-    causal_response = MagicMock()
-    causal_response.text = json.dumps(causal_json)
+    # Build a tool_use block response that matches what chat_with_tools returns
+    tool_use_block = MagicMock()
+    tool_use_block.type = "tool_use"
+    tool_use_block.name = "submit_causal_analysis"
+    tool_use_block.input = causal_json
 
-    mock_client.chat = AsyncMock(return_value=causal_response)
+    causal_response = MagicMock()
+    causal_response.content = [tool_use_block]
+    causal_response.usage = None
+
+    mock_client.chat_with_tools = AsyncMock(return_value=causal_response)
     return mock_client
 
 
@@ -77,7 +83,7 @@ async def test_root_candidates_in_prompt(mock_client_cls):
         root_candidates=root_candidates,
     )
 
-    prompt = mock_client.chat.call_args.kwargs["prompt"]
+    prompt = mock_client.chat_with_tools.call_args.kwargs["messages"][0]["content"]
     assert "Root Cause Hypothesis Seeds" in prompt
     assert "node/worker-1" in prompt
     assert "Node NotReady" in prompt
@@ -116,7 +122,7 @@ async def test_annotated_links_in_prompt(mock_client_cls):
         search_space=search_space,
     )
 
-    prompt = mock_client.chat.call_args.kwargs["prompt"]
+    prompt = mock_client.chat_with_tools.call_args.kwargs["messages"][0]["content"]
     assert "Annotated Links" in prompt
     assert "low confidence" in prompt.lower() or "low confidence" in prompt
     assert "node/worker-1" in prompt
@@ -152,7 +158,7 @@ async def test_blocked_links_excluded_from_prompt(mock_client_cls):
         root_candidates=root_candidates,
     )
 
-    prompt = mock_client.chat.call_args.kwargs["prompt"]
+    prompt = mock_client.chat_with_tools.call_args.kwargs["messages"][0]["content"]
     # The blocked count should appear
     assert "5 causal links were blocked" in prompt
     assert "do NOT propose these" in prompt.upper() or "do NOT propose these" in prompt
@@ -330,7 +336,7 @@ async def test_no_cluster_data_prompt_unchanged(mock_client_cls):
         _sample_reports(),
     )
 
-    prompt = mock_client.chat.call_args.kwargs["prompt"]
+    prompt = mock_client.chat_with_tools.call_args.kwargs["messages"][0]["content"]
     # Without cluster data, none of the new sections should appear
     assert "Root Cause Hypothesis Seeds" not in prompt
     assert "Annotated Links" not in prompt
@@ -373,7 +379,7 @@ async def test_issue_clusters_summary_in_prompt(mock_client_cls):
         root_candidates=root_candidates,
     )
 
-    prompt = mock_client.chat.call_args.kwargs["prompt"]
+    prompt = mock_client.chat_with_tools.call_args.kwargs["messages"][0]["content"]
     assert "Pre-Correlated Issue Clusters" in prompt
     assert "ic-001" in prompt
     assert "temporal" in prompt
