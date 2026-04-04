@@ -83,6 +83,9 @@ async def _llm_causal_reasoning(
     root_candidates: list[dict] | None = None,
     budget=None,
     telemetry=None,
+    platform: str = "",
+    namespace: str = "",
+    cluster_url: str = "",
     **kwargs,
 ) -> dict:
     """Stage 2: LLM identifies cross-domain causal chains."""
@@ -176,10 +179,20 @@ Your job is to:
 
     call_start = time.monotonic()
     try:
+        cluster_context = (
+            f"Cluster Context:\n"
+            f"- Platform: {platform}\n"
+            f"- Namespace: {namespace or 'all namespaces'}\n"
+            f"- Cluster: {cluster_url or 'unknown'}\n\n"
+        )
+        system_prompt = (
+            cluster_context
+            + "You are a causal reasoning engine for cluster diagnostics. Be precise and evidence-based."
+        )
         response = await asyncio.wait_for(
             client.chat(
                 prompt=prompt,
-                system="You are a causal reasoning engine for cluster diagnostics. Be precise and evidence-based.",
+                system=system_prompt,
                 max_tokens=3000,
                 temperature=0.1,
             ),
@@ -403,6 +416,9 @@ async def synthesize(state: dict, config: dict) -> dict:
             telemetry=telemetry,
             hypotheses=valid_hypotheses,
             hypothesis_selection=hypothesis_selection,
+            platform=state.get("platform", ""),
+            namespace=state.get("namespaces", [""])[0] if state.get("namespaces") else "",
+            cluster_url=state.get("cluster_url", ""),
         )
 
     # Stage 3: Verdict

@@ -646,3 +646,55 @@ def test_prometheus_volume_metric_parsing():
 
     assert parsed["data-pvc"] == 85.5
     assert parsed["logs-pvc"] == 92.1
+
+
+@pytest.mark.asyncio
+async def test_synthesizer_injects_cluster_context():
+    """_llm_causal_reasoning must include platform, namespace, cluster_url in the system prompt."""
+    from src.agents.cluster.synthesizer import _llm_causal_reasoning
+    from unittest.mock import patch, MagicMock, AsyncMock
+
+    captured_calls = {}
+
+    class FakeResponse:
+        text = '{"causal_chains": [], "uncorrelated_findings": []}'
+        usage = None
+
+    async def fake_chat(prompt, system="", max_tokens=3000, temperature=0.1):
+        captured_calls["system"] = system
+        captured_calls["prompt"] = prompt
+        return FakeResponse()
+
+    mock_client = MagicMock()
+    mock_client.chat = fake_chat
+
+    with patch("src.agents.cluster.synthesizer.AnthropicClient", return_value=mock_client):
+        from src.agents.cluster.state import DomainAnomaly, DomainReport, DomainStatus
+        anomaly = DomainAnomaly(
+            domain="node",
+            anomaly_id="node-001",
+            description="disk pressure",
+            evidence_ref="ev-001",
+        )
+        report = DomainReport(
+            domain="node",
+            status=DomainStatus.SUCCESS,
+            anomalies=[anomaly],
+            ruled_out=[],
+            confidence=80,
+        )
+        await _llm_causal_reasoning(
+            anomalies=[anomaly],
+            reports=[report],
+            platform="openshift",
+            namespace="production",
+            cluster_url="https://api.example.com:6443",
+        )
+
+    system_prompt = captured_calls.get("system", "")
+    assert "openshift" in system_prompt.lower(), \
+        f"Platform 'openshift' not found in system prompt: {system_prompt!r}"
+    assert "production" in system_prompt, \
+        f"Namespace 'production' not found in system prompt: {system_prompt!r}"
+    assert "api.example.com" in system_prompt, \
+        f"Cluster URL not found in system prompt: {system_prompt!r}"
