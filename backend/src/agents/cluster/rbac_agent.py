@@ -63,22 +63,21 @@ Rules:
 
 
 async def _llm_analyze(system: str, prompt: str) -> dict:
-    """Heuristic single-pass LLM call (fallback). Returns parsed JSON dict."""
+    """Single-pass LLM call using structured tool output. Returns findings dict."""
+    from src.agents.cluster.output_schemas import SUBMIT_DOMAIN_FINDINGS_TOOL
     client = AnthropicClient(agent_name="cluster_rbac")
-    response = await client.chat(
-        prompt=prompt,
+    response = await client.chat_with_tools(
         system=system,
+        messages=[{"role": "user", "content": prompt}],
+        tools=[SUBMIT_DOMAIN_FINDINGS_TOOL],
         max_tokens=2000,
         temperature=0.1,
     )
-    text = response.text
-    try:
-        start = text.index("{")
-        end = text.rindex("}") + 1
-        return json.loads(text[start:end])
-    except (ValueError, json.JSONDecodeError):
-        logger.warning("Failed to parse LLM response as JSON", extra={"action": "parse_error"})
-        return {"anomalies": [], "ruled_out": [], "confidence": 0}
+    for block in response.content:
+        if getattr(block, "type", None) == "tool_use" and block.name == "submit_domain_findings":
+            return block.input
+    logger.warning("LLM did not call submit_domain_findings tool", extra={"action": "parse_error"})
+    return {"anomalies": [], "ruled_out": [], "confidence": 0}
 
 
 async def _heuristic_analyze(data_payload: dict, domain: str = "rbac") -> dict:
@@ -161,7 +160,11 @@ async def _tool_calling_loop(system: str, initial_context: str, cluster_client,
         return None
 
     llm = AnthropicClient(agent_name="cluster_rbac", model="claude-haiku-4-5-20251001")
-    tools = get_tools_for_agent("rbac")
+    from src.agents.cluster.output_schemas import SUBMIT_DOMAIN_FINDINGS_TOOL
+    base_tools = get_tools_for_agent("rbac")
+    # Replace unschema'd submit_findings with SUBMIT_DOMAIN_FINDINGS_TOOL (schema-enforced)
+    tools = [t for t in base_tools if t.get("name") != "submit_findings"]
+    tools.append(SUBMIT_DOMAIN_FINDINGS_TOOL)
 
     messages = [{"role": "user", "content": initial_context}]
     tool_call_count = 0
@@ -219,21 +222,14 @@ async def _tool_calling_loop(system: str, initial_context: str, cluster_client,
         text_blocks = [b for b in response.content if b.type == "text"]
 
         if not tool_uses:
-            text = "".join(b.text for b in text_blocks)
-            try:
-                start = text.index("{")
-                end = text.rindex("}") + 1
-                return json.loads(text[start:end])
-            except (ValueError, json.JSONDecodeError):
-                if telemetry:
-                    telemetry.record_call(LLMCallRecord(
-                        agent_name="cluster_rbac", call_type="tool_calling",
-                        error="parse_error", success=False,
-                    ))
-                return None
+            # LLM responded without calling any tool — treat as no findings
+            logger.warning("LLM iteration produced no tool calls — falling back",
+                           extra={"action": "no_tool_call", "iteration": iteration})
+            return None
 
+        # Check for submit_domain_findings tool
         for tu in tool_uses:
-            if tu.name == "submit_findings":
+            if tu.name == "submit_domain_findings":
                 return tu.input
 
         if tool_call_count >= MAX_TOOL_CALLS:
