@@ -434,7 +434,7 @@ async def start_session(request: StartSessionRequest, background_tasks: Backgrou
         "session_id": session_id,
         "incident_id": incident_id,
         "service_name": request.serviceName,
-        "elk_index": request.elkIndex,
+        "elk_index": request.elkIndex or "",
         "time_start": f"now-{request.timeframe}",
         "time_end": "now",
         "trace_id": request.traceId,
