@@ -87,9 +87,9 @@ class CausalChain(BaseModel):
 
 class BlastRadius(BaseModel):
     summary: str = ""
-    affected_namespaces: int = 0
-    affected_pods: int = 0
-    affected_nodes: int = 0
+    affected_namespaces: list[str] = Field(default_factory=list)
+    affected_pods: list[str] = Field(default_factory=list)
+    affected_nodes: list[str] = Field(default_factory=list)
 
 
 class RemediationStep(BaseModel):

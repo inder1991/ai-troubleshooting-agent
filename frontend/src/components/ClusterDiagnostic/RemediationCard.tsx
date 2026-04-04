@@ -122,10 +122,18 @@ const RemediationCard: React.FC<RemediationCardProps> = ({ steps, blastRadius })
       )}
 
       {blastRadius && (
-        <div className="text-[10px] text-slate-500 mb-4 leading-relaxed">
+        <div className="text-[11px] text-slate-500 mb-4 leading-relaxed">
           <span className="text-amber-500 font-bold">Risk Assessment:</span>{' '}
-          {blastRadius.affected_pods} pods affected across {blastRadius.affected_namespaces} namespace(s) on {blastRadius.affected_nodes} node(s).
+          {blastRadius.affected_pods.length} pod{blastRadius.affected_pods.length !== 1 ? 's' : ''} affected
+          across {blastRadius.affected_namespaces.length} namespace{blastRadius.affected_namespaces.length !== 1 ? 's' : ''}
+          on {blastRadius.affected_nodes.length} node{blastRadius.affected_nodes.length !== 1 ? 's' : ''}.
           {blastRadius.summary && <span className="text-white ml-1">{blastRadius.summary}</span>}
+          {blastRadius.affected_pods.length > 0 && (
+            <div className="mt-1 font-mono text-[10px] text-slate-600">
+              {blastRadius.affected_pods.slice(0, 5).join(', ')}
+              {blastRadius.affected_pods.length > 5 && ` +${blastRadius.affected_pods.length - 5} more`}
+            </div>
+          )}
         </div>
       )}
 

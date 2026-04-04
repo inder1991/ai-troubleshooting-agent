@@ -680,9 +680,9 @@ export interface ClusterCausalChain {
 
 export interface ClusterBlastRadius {
   summary: string;
-  affected_namespaces: number;
-  affected_pods: number;
-  affected_nodes: number;
+  affected_namespaces: string[];
+  affected_pods: string[];
+  affected_nodes: string[];
 }
 
 export interface ClusterRemediationStep {

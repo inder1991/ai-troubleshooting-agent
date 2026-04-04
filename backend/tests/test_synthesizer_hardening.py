@@ -107,3 +107,17 @@ def test_truncation_warning_included_when_flags_set():
     assert "DATA COMPLETENESS WARNING" in prompt
     assert "node" in prompt
     assert "events" in prompt.lower() or "truncated" in prompt.lower()
+
+
+def test_blast_radius_accepts_string_arrays():
+    """BlastRadius must accept arrays of resource names from LLM tool output."""
+    from src.agents.cluster.state import BlastRadius
+    br = BlastRadius(
+        summary="Pod crashloop",
+        affected_namespaces=["production", "staging"],
+        affected_pods=["order-svc-abc", "order-svc-def"],
+        affected_nodes=["node-1"],
+    )
+    assert br.affected_namespaces == ["production", "staging"]
+    assert br.affected_pods == ["order-svc-abc", "order-svc-def"]
+    assert br.affected_nodes == ["node-1"]
