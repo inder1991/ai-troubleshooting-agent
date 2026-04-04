@@ -545,3 +545,59 @@ class TestTestConnectionEndpoint:
         assert resp.json()["status"] == "connected"
         # KubernetesClient was called with kubeconfig_path (not api_url + token)
         assert "kubeconfig_path" in received_kwargs
+
+
+class TestClusterClientLifecycle:
+    def test_cluster_client_stored_in_session(self, client, monkeypatch):
+        """After start_session, cluster_client should be stored in the session dict."""
+        from unittest.mock import MagicMock, AsyncMock
+        import asyncio
+
+        mock_k8s = MagicMock()
+        mock_k8s.detect_platform = AsyncMock(return_value={"platform": "openshift", "version": "4.14"})
+        mock_k8s.list_namespaces = AsyncMock(return_value=MagicMock(data=["default"]))
+        mock_k8s.list_nodes = AsyncMock(return_value=MagicMock(data=[]))
+        mock_k8s.close = AsyncMock()
+
+        monkeypatch.setattr(
+            "src.api.routes_v4.KubernetesClient",
+            lambda **kwargs: mock_k8s
+        )
+
+        # Patch graph.ainvoke to avoid running actual LangGraph
+        from src.agents.cluster.graph import build_cluster_diagnostic_graph
+        mock_graph = MagicMock()
+        mock_graph.ainvoke = AsyncMock(return_value={"phase": "complete", "data_completeness": 0.8,
+                                                      "domain_reports": [], "health_report": None})
+        monkeypatch.setattr("src.api.routes_v4.build_cluster_diagnostic_graph", lambda: mock_graph)
+
+        resp = client.post("/api/v4/session/start", json={
+            "capability": "cluster_diagnostics",
+            "cluster_url": "https://api.example.com:6443",
+            "auth_token": "mytoken",
+        })
+        assert resp.status_code in (200, 201)
+        sid = resp.json()["session_id"]
+
+        # Wait for background task to store client
+        import time
+        for _ in range(20):
+            from src.api.routes_v4 import sessions
+            if sessions.get(sid, {}).get("cluster_client") is not None:
+                break
+            time.sleep(0.1)
+
+        from src.api.routes_v4 import sessions
+        assert sessions.get(sid, {}).get("cluster_client") is not None
+
+    def test_get_or_create_cluster_client_returns_cached(self, client, monkeypatch):
+        """get_or_create_cluster_client returns the cached client if already in session."""
+        import asyncio
+        from src.api.routes_v4 import get_or_create_cluster_client, sessions
+
+        mock_client = object()
+        sid = "test-cached-session"
+        sessions[sid] = {"cluster_client": mock_client, "connection_config": None}
+
+        result = asyncio.run(get_or_create_cluster_client(sid))
+        assert result is mock_client

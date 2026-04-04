@@ -523,6 +523,22 @@ def _push_to_v5(session_id: str, state):
         logger.error("Failed to push V5 governance data for session %s: %s", session_id, e, exc_info=True)
 
 
+async def get_or_create_cluster_client(session_id: str):
+    """Return cached cluster client from session, or create a new one from stored config."""
+    session = sessions.get(session_id, {})
+    client = session.get("cluster_client")
+    if client is not None:
+        return client
+    connection_config = session.get("connection_config")
+    if connection_config:
+        new_client, temp_path = create_cluster_client(connection_config)
+        sessions[session_id]["cluster_client"] = new_client
+        if temp_path:
+            sessions[session_id]["kubeconfig_temp_path"] = temp_path
+        return new_client
+    return None
+
+
 async def run_cluster_diagnosis(session_id, graph, cluster_client, emitter, scan_mode="diagnostic"):
     """Background task: run LangGraph cluster diagnostic."""
     try:
@@ -532,6 +548,7 @@ async def run_cluster_diagnosis(session_id, graph, cluster_client, emitter, scan
 
     lock = session_locks.get(session_id, asyncio.Lock())
     try:
+        sessions[session_id]["cluster_client"] = cluster_client
         scope_data = sessions[session_id].get("diagnostic_scope", {})
 
         initial_state = {
@@ -624,11 +641,6 @@ async def run_cluster_diagnosis(session_id, graph, cluster_client, emitter, scan
         await emitter.emit("cluster_supervisor", "error", f"Cluster diagnosis failed: {str(e)}")
     finally:
         _diagnosis_tasks.pop(session_id, None)
-        await cluster_client.close()
-        temp_path = sessions.get(session_id, {}).pop("kubeconfig_temp_path", None)
-        if temp_path:
-            from pathlib import Path
-            Path(temp_path).unlink(missing_ok=True)
 
 
 async def run_diagnosis(session_id: str, supervisor: SupervisorAgent, initial_input: dict, emitter: EventEmitter):
@@ -802,6 +814,29 @@ async def cancel_session(session_id: str):
     if emitter and hasattr(emitter, 'emit'):
         asyncio.create_task(emitter.emit("supervisor", "warning", "Investigation cancelled by user"))
     return {"status": "cancelled"}
+
+
+@router_v4.delete("/session/{session_id}")
+async def delete_session(session_id: str):
+    _validate_session_id(session_id)
+    if session_id not in sessions:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    # Clean up cluster client and temp kubeconfig
+    client = sessions[session_id].get("cluster_client")
+    if client:
+        try:
+            await client.close()
+        except Exception:
+            pass
+    temp_path = sessions[session_id].get("kubeconfig_temp_path")
+    if temp_path:
+        from pathlib import Path
+        Path(temp_path).unlink(missing_ok=True)
+
+    sessions.pop(session_id, None)
+    session_locks.pop(session_id, None)
+    return {"status": "deleted", "session_id": session_id}
 
 
 @router_v4.get("/session/{session_id}/status")
