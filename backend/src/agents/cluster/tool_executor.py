@@ -17,11 +17,8 @@ MAX_RESULT_SIZE = 8000
 def _serialize_with_envelope(data: Any) -> str:
     """Serialize data into a TruncatedResult envelope. Always returns valid JSON."""
     if not isinstance(data, list):
-        # Non-list results: serialize directly with size cap
-        raw = json.dumps(data, default=str)
-        if len(raw) > MAX_RESULT_SIZE:
-            raw = raw[:MAX_RESULT_SIZE]  # truncate scalar/dict (rare case)
-        return raw
+        # Non-list results (dicts/scalars): data is pre-capped at call site
+        return json.dumps(data, default=str)
 
     # Item-aware slicing for list results
     items: list = []
@@ -62,7 +59,7 @@ async def execute_tool_call(tool_name: str, tool_input: dict, cluster_client, to
                 namespace=ns,
                 field_selector=f"involvedObject.name={name}"
             )
-            data = {"pod": data[0], "events": events.data[:20]}
+            data = {"pod": data[0], "events": events.data[:10]}
         elif tool_name == "list_deployments":
             result = await cluster_client.list_deployments(namespace=tool_input.get("namespace", ""))
             data = result.data
@@ -104,7 +101,11 @@ async def execute_tool_call(tool_name: str, tool_input: dict, cluster_client, to
             roles = await cluster_client.list_roles(namespace=ns)
             bindings = await cluster_client.list_role_bindings(namespace=ns)
             sas = await cluster_client.list_service_accounts(namespace=ns)
-            data = {"roles": roles.data, "role_bindings": bindings.data, "service_accounts": sas.data}
+            data = {
+                "roles": roles.data[:50],
+                "role_bindings": bindings.data[:50],
+                "service_accounts": sas.data[:50],
+            }
         elif tool_name == "list_statefulsets":
             result = await cluster_client.list_statefulsets(namespace=tool_input.get("namespace", ""))
             data = result.data

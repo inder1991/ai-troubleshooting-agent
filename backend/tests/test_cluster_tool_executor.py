@@ -65,9 +65,9 @@ async def test_truncated_flag_set_when_data_dropped():
     result_str = await execute_tool_call("list_pods", {"namespace": "default"}, client)
     parsed = json.loads(result_str)
 
-    if parsed["truncated"]:
-        assert parsed["returned"] < parsed["total_available"]
-        assert parsed["truncation_reason"] == "SIZE_LIMIT"
+    assert parsed["truncated"] is True, "Expected truncation with 50 large items"
+    assert parsed["returned"] < parsed["total_available"]
+    assert parsed["truncation_reason"] == "SIZE_LIMIT"
 
 
 def test_truncation_flags_have_drop_counts():
