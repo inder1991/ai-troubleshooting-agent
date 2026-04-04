@@ -66,7 +66,7 @@ class StartSessionRequest(BaseModel):
     model_config = {"populate_by_name": True}
 
     serviceName: str = Field(alias="service_name", default="unknown")
-    elkIndex: str = Field(default="app-logs-*", alias="elk_index")
+    elkIndex: Optional[str] = Field(default=None, alias="elk_index")
     timeframe: str = Field(default="1h", alias="time_window")
     traceId: Optional[str] = Field(default=None, alias="trace_id")
     namespace: Optional[str] = None
@@ -76,6 +76,8 @@ class StartSessionRequest(BaseModel):
     capability: str = "troubleshoot_app"
     authToken: Optional[str] = Field(default=None, alias="auth_token")
     authMethod: Optional[str] = Field(default=None, alias="auth_method")
+    kubeconfig_content: Optional[str] = Field(default=None, alias="kubeconfig_content")
+    role: Optional[str] = Field(default=None, alias="role")
     scan_mode: str = Field(default="diagnostic", alias="scanMode")
     scope: Optional[dict] = None       # DiagnosticScope dict from frontend
     resource_type: Optional[str] = None

@@ -316,9 +316,12 @@ async def start_session(request: StartSessionRequest, background_tasks: Backgrou
             try:
                 from src.integrations.connection_config import ResolvedConnectionConfig
                 connection_config = ResolvedConnectionConfig(
-                    cluster_url=request.clusterUrl,
+                    cluster_url=request.clusterUrl or "",
                     cluster_token=request.authToken or "",
-                    cluster_type="kubernetes",
+                    auth_method=request.authMethod or "token",
+                    kubeconfig_content=request.kubeconfig_content or "",
+                    role=request.role or "",
+                    verify_ssl=False,
                 )
             except Exception as e:
                 logger.warning("Could not build ad-hoc connection config: %s", e)
@@ -356,6 +359,7 @@ async def start_session(request: StartSessionRequest, background_tasks: Backgrou
             "scan_mode": request.scan_mode,
             "diagnostic_scope": scope.model_dump(mode="json"),
             "kubeconfig_temp_path": kubeconfig_temp_path,
+            "elk_index": request.elkIndex or "",
         }
 
         background_tasks.add_task(

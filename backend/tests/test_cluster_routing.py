@@ -407,3 +407,62 @@ class TestAppChatFindings:
         assert resp.status_code == 200
         assert resp.json()["response"] == "Findings-based answer"
         mock_supervisor.handle_user_message.assert_called_once()
+
+
+class TestStartSessionNewFields:
+    @patch("src.api.routes_v4.run_cluster_diagnosis", new_callable=AsyncMock)
+    @patch("src.api.routes_v4.build_cluster_diagnostic_graph")
+    def test_start_session_accepts_kubeconfig_content(self, mock_build, mock_run, client):
+        mock_build.return_value = MagicMock()
+        resp = client.post("/api/v4/session/start", json={
+            "capability": "cluster_diagnostics",
+            "cluster_url": "https://api.example.com:6443",
+            "auth_method": "kubeconfig",
+            "kubeconfig_content": "apiVersion: v1\nkind: Config\n",
+        })
+        # Session should be created (200 or 201)
+        assert resp.status_code in (200, 201)
+        sid = resp.json().get("session_id")
+        assert sid
+
+    @patch("src.api.routes_v4.run_cluster_diagnosis", new_callable=AsyncMock)
+    @patch("src.api.routes_v4.build_cluster_diagnostic_graph")
+    def test_start_session_accepts_role(self, mock_build, mock_run, client):
+        mock_build.return_value = MagicMock()
+        resp = client.post("/api/v4/session/start", json={
+            "capability": "cluster_diagnostics",
+            "cluster_url": "https://api.example.com:6443",
+            "auth_token": "mytoken",
+            "role": "cluster-admin",
+        })
+        assert resp.status_code in (200, 201)
+
+    @patch("src.api.routes_v4.run_cluster_diagnosis", new_callable=AsyncMock)
+    @patch("src.api.routes_v4.build_cluster_diagnostic_graph")
+    def test_start_session_stores_elk_index(self, mock_build, mock_run, client):
+        mock_build.return_value = MagicMock()
+        resp = client.post("/api/v4/session/start", json={
+            "capability": "cluster_diagnostics",
+            "cluster_url": "https://api.example.com:6443",
+            "auth_token": "tok",
+            "elk_index": "cluster-logs-*",
+        })
+        assert resp.status_code in (200, 201)
+        sid = resp.json()["session_id"]
+        from src.api.routes_v4 import sessions
+        assert sessions.get(sid, {}).get("elk_index") == "cluster-logs-*"
+
+    @patch("src.api.routes_v4.run_cluster_diagnosis", new_callable=AsyncMock)
+    @patch("src.api.routes_v4.build_cluster_diagnostic_graph")
+    def test_elk_index_defaults_to_empty_for_cluster_diagnostics(self, mock_build, mock_run, client):
+        mock_build.return_value = MagicMock()
+        resp = client.post("/api/v4/session/start", json={
+            "capability": "cluster_diagnostics",
+            "cluster_url": "https://api.example.com:6443",
+            "auth_token": "tok",
+        })
+        assert resp.status_code in (200, 201)
+        sid = resp.json()["session_id"]
+        from src.api.routes_v4 import sessions
+        # elk_index should be "" not "app-logs-*"
+        assert sessions.get(sid, {}).get("elk_index", "") == ""
