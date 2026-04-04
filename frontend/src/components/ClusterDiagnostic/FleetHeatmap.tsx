@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import type { FleetNode } from '../../types';
 
 interface FleetHeatmapProps {
@@ -19,20 +19,16 @@ const statusColor = (status: FleetNode['status']) => {
 const FleetHeatmap: React.FC<FleetHeatmapProps> = ({ nodes, selectedNode, onSelectNode }) => {
   const nodeCount = nodes.length || 0;
 
-  const displayNodes = useMemo(() => {
-    return nodes;
-  }, [nodes]);
-
   return (
     <div className="bg-[#152a2f]/40 rounded border border-[#1f3b42] p-3">
       <h3 className="text-[10px] uppercase font-bold tracking-widest text-slate-500 mb-3 flex justify-between">
         Fleet Heatmap <span>{nodeCount} Nodes</span>
       </h3>
-      {displayNodes.length === 0 && (
+      {nodes.length === 0 && (
         <div className="text-[10px] text-slate-600 text-center py-4">Waiting for node data...</div>
       )}
       <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-12 gap-1 min-h-[80px]">
-        {displayNodes.map((node, i) => {
+        {nodes.map((node, i) => {
           const isCritical = node.status === 'critical';
           const isSelected = node.name === selectedNode;
           return (

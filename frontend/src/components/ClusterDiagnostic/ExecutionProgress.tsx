@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import type { ClusterDomainReport } from '../../types';
 
 interface ExecutionProgressProps {
@@ -46,7 +46,7 @@ const ExecutionProgress: React.FC<ExecutionProgressProps> = ({ domainReports, ph
   const totalAgents = Math.max(domainReports.filter(r => r.status !== 'SKIPPED').length, ALL_DOMAINS.length);
   const maxDuration = Math.max(...domainReports.map(r => r.duration_ms || 0), 1);
 
-  const phases: PhaseInfo[] = [
+  const phases: PhaseInfo[] = useMemo(() => [
     {
       label: 'Pre-processing',
       status: phase === 'pre_flight' ? 'running' : 'complete',
@@ -69,7 +69,7 @@ const ExecutionProgress: React.FC<ExecutionProgressProps> = ({ domainReports, ph
             ? 'running'
             : 'pending',
     },
-  ];
+  ], [phase, agentsDone, totalAgents, anyRunning, anyFailed]);
 
   return (
     <div className="bg-[#141210] rounded border border-[#2a2520] p-3 max-h-[220px] overflow-hidden">

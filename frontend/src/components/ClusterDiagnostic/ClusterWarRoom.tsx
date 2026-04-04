@@ -86,12 +86,21 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
     } catch { /* ignore */ }
   }, [session.session_id]);
 
-  useEffect(() => {
+  // ── Debounced fetch (throttle WebSocket-triggered rapid fetches) ──
+  const lastFetchRef = useRef(0);
+  const debouncedFetch = useCallback(() => {
+    const now = Date.now();
+    if (now - lastFetchRef.current < 2000) return;
+    lastFetchRef.current = now;
     fetchFindings();
     fetchBudget();
-    const interval = setInterval(() => { fetchFindings(); fetchBudget(); }, 5000);
-    return () => clearInterval(interval);
   }, [fetchFindings, fetchBudget]);
+
+  useEffect(() => {
+    debouncedFetch();
+    const interval = setInterval(debouncedFetch, 5000);
+    return () => clearInterval(interval);
+  }, [debouncedFetch]);
 
   // ── Derived Data ──
   const domainReports = useMemo(() => findings?.domain_reports || [], [findings]);

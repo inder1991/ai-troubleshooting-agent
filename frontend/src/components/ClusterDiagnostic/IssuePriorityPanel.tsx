@@ -167,7 +167,7 @@ interface IssueRowProps {
   symptomMap?: Record<string, string>;
 }
 
-const IssueRow: React.FC<IssueRowProps> = ({ issue, state, symptomMap }) => {
+const IssueRow: React.FC<IssueRowProps> = React.memo(({ issue, state, symptomMap }) => {
   const cfg = STATE_CONFIG[state];
 
   if (state === 'ACTIVE_DISRUPTION') {
@@ -230,6 +230,8 @@ const IssueRow: React.FC<IssueRowProps> = ({ issue, state, symptomMap }) => {
       )}
     </div>
   );
-};
+});
+
+IssueRow.displayName = 'IssueRow';
 
 export default IssuePriorityPanel;
