@@ -40,7 +40,7 @@ const RootCauseCard: React.FC<RootCauseCardProps> = ({ chain, confidence }) => {
       <h2 className="text-xl font-bold text-white mb-4 leading-tight">
         {chain.root_cause.description}
       </h2>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="p-2 bg-[#1a1814]/40 border border-[#1f3b42] rounded flex flex-col justify-between">
           <div className="text-[8px] uppercase text-slate-500">Confidence</div>
           <div className="text-lg font-mono" style={{ color: badgeColor }}>

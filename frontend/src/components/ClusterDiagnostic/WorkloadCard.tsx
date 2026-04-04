@@ -47,7 +47,7 @@ const WorkloadCard: React.FC<WorkloadCardProps> = ({ workload, domainColor }) =>
       </div>
 
       {(workload.cpu_usage || workload.memory_usage || workload.restarts != null) && (
-        <div className="mt-3 grid grid-cols-3 gap-2">
+        <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
           {workload.cpu_usage && (
             <div className="bg-[#1a1814] p-2 rounded border border-[#1f3b42]/30">
               <div className="text-[9px] text-slate-500 uppercase">CPU Usage</div>
