@@ -76,6 +76,18 @@ async def execute_tool_call(tool_name: str, tool_input: dict, cluster_client, to
             bindings = await cluster_client.list_role_bindings(namespace=ns)
             sas = await cluster_client.list_service_accounts(namespace=ns)
             data = {"roles": roles.data, "role_bindings": bindings.data, "service_accounts": sas.data}
+        elif tool_name == "list_statefulsets":
+            result = await cluster_client.list_statefulsets(namespace=tool_input.get("namespace", ""))
+            data = result.data
+        elif tool_name == "list_daemonsets":
+            result = await cluster_client.list_daemonsets(namespace=tool_input.get("namespace", ""))
+            data = result.data
+        elif tool_name == "list_jobs":
+            result = await cluster_client.list_jobs(namespace=tool_input.get("namespace", ""))
+            data = result.data
+        elif tool_name == "list_cronjobs":
+            result = await cluster_client.list_cronjobs(namespace=tool_input.get("namespace", ""))
+            data = result.data
         elif tool_name == "submit_findings":
             # This is handled by the agent loop, not executed against cluster
             return json.dumps({"status": "findings_submitted"})

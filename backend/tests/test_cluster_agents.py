@@ -554,6 +554,57 @@ async def test_storage_agent_uses_prometheus_client():
     assert result is not None
 
 
+@pytest.mark.asyncio
+async def test_node_agent_has_workload_tools():
+    """node_agent must be able to call list_statefulsets, list_daemonsets, list_jobs, list_cronjobs."""
+    from src.agents.cluster.tools import NODE_TOOLS, get_tools_for_agent
+
+    # NODE_TOOLS is a list of tool name strings; get_tools_for_agent returns full schemas
+    assert "list_statefulsets" in NODE_TOOLS, "NODE_TOOLS missing list_statefulsets"
+    assert "list_daemonsets" in NODE_TOOLS, "NODE_TOOLS missing list_daemonsets"
+    assert "list_jobs" in NODE_TOOLS, "NODE_TOOLS missing list_jobs"
+    assert "list_cronjobs" in NODE_TOOLS, "NODE_TOOLS missing list_cronjobs"
+
+    # Verify get_tools_for_agent returns schema dicts for these tools
+    node_schemas = get_tools_for_agent("node")
+    schema_names = {t["name"] for t in node_schemas}
+    assert "list_statefulsets" in schema_names, "get_tools_for_agent('node') missing list_statefulsets schema"
+    assert "list_daemonsets" in schema_names, "get_tools_for_agent('node') missing list_daemonsets schema"
+    assert "list_jobs" in schema_names, "get_tools_for_agent('node') missing list_jobs schema"
+    assert "list_cronjobs" in schema_names, "get_tools_for_agent('node') missing list_cronjobs schema"
+
+
+@pytest.mark.asyncio
+async def test_tool_executor_handles_workload_types():
+    """tool_executor must not return Unknown tool for the 4 workload types."""
+    from src.agents.cluster.tool_executor import execute_tool_call
+    from unittest.mock import MagicMock, AsyncMock
+
+    def _qr(data=None):
+        r = MagicMock()
+        r.data = data if data is not None else []
+        r.permission_denied = False
+        r.truncated = False
+        r.total_available = 0
+        r.returned = 0
+        return r
+
+    mock_client = MagicMock()
+    mock_client.list_statefulsets = AsyncMock(return_value=_qr())
+    mock_client.list_daemonsets = AsyncMock(return_value=_qr())
+    mock_client.list_jobs = AsyncMock(return_value=_qr())
+    mock_client.list_cronjobs = AsyncMock(return_value=_qr())
+
+    for tool_name in ["list_statefulsets", "list_daemonsets", "list_jobs", "list_cronjobs"]:
+        result_str = await execute_tool_call(tool_name, {"namespace": "default"}, mock_client)
+        import json as _json
+        result = _json.loads(result_str)
+        # A successful result is a list (data) or a dict without an "Unknown tool" error
+        if isinstance(result, dict):
+            assert result.get("error") != f"Unknown tool: {tool_name}", \
+                f"execute_tool_call returned 'Unknown tool' for {tool_name}: {result}"
+
+
 def test_prometheus_volume_metric_parsing():
     """Volume metric parser must extract float(item['value'][1]) from Prometheus response format."""
     # Import the helper — read the file to find its actual name

@@ -137,6 +137,50 @@ CLUSTER_TOOLS = [
         }
     },
     {
+        "name": "list_statefulsets",
+        "description": "List StatefulSets with replica status and ordered pod failure conditions",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "namespace": {"type": "string", "description": "Namespace to query. Empty string for all namespaces."}
+            },
+            "required": []
+        }
+    },
+    {
+        "name": "list_daemonsets",
+        "description": "List DaemonSets with desired/ready/unavailable counts across nodes",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "namespace": {"type": "string", "description": "Namespace to query. Empty string for all namespaces."}
+            },
+            "required": []
+        }
+    },
+    {
+        "name": "list_jobs",
+        "description": "List Jobs with completion status, failure counts, and backoff limit",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "namespace": {"type": "string", "description": "Namespace to query. Empty string for all namespaces."}
+            },
+            "required": []
+        }
+    },
+    {
+        "name": "list_cronjobs",
+        "description": "List CronJobs with schedule, suspend status, and last successful run time",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "namespace": {"type": "string", "description": "Namespace to query. Empty string for all namespaces."}
+            },
+            "required": []
+        }
+    },
+    {
         "name": "submit_findings",
         "description": "Submit your diagnostic findings. Call this when analysis is complete.",
         "input_schema": {
@@ -166,7 +210,7 @@ CLUSTER_TOOLS = [
 
 # Per-agent tool subsets
 CTRL_PLANE_TOOLS = ["list_nodes", "list_events", "query_prometheus", "submit_findings"]
-NODE_TOOLS = ["list_pods", "list_nodes", "list_deployments", "list_events", "list_hpas", "list_pvcs", "query_prometheus", "get_pod_logs", "submit_findings"]
+NODE_TOOLS = ["list_pods", "list_nodes", "list_deployments", "list_statefulsets", "list_daemonsets", "list_jobs", "list_cronjobs", "list_events", "list_hpas", "list_pvcs", "query_prometheus", "get_pod_logs", "submit_findings"]
 NETWORK_TOOLS = ["list_services", "list_pods", "list_events", "list_network_policies", "query_prometheus", "get_pod_logs", "submit_findings"]
 STORAGE_TOOLS = ["list_pvcs", "list_pods", "list_events", "query_prometheus", "submit_findings"]
 RBAC_TOOLS = ["list_rbac", "list_pods", "list_events", "submit_findings"]
