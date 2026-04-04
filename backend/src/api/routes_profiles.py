@@ -1,7 +1,10 @@
 """Profile CRUD API endpoints."""
 
 import os
+import time
+import tempfile
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Optional, Literal
 
 from fastapi import APIRouter, HTTPException
@@ -370,10 +373,6 @@ async def probe_profile(profile_id: str):
 @router.post("/test-connection", response_model=TestConnectionResponse)
 async def test_connection(body: TestConnectionRequest):
     """Test cluster connectivity without creating a profile."""
-    import time
-    import tempfile
-    from pathlib import Path
-
     temp_path = None
     start = time.monotonic()
     client = None
