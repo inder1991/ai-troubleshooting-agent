@@ -84,6 +84,8 @@ export const useWebSocketV4 = (
   const sessionIdRef = useRef(sessionId);
   sessionIdRef.current = sessionId;
   const receivedEventCountRef = useRef(0);
+  // GAP-12: Track highest sequence_number seen for efficient reconnection replay
+  const lastSequenceRef = useRef<number | undefined>(undefined);
 
   // C4: Track whether we're replaying events to prevent duplicates
   const replayingRef = useRef(false);
@@ -102,18 +104,18 @@ export const useWebSocketV4 = (
       const wasReconnect = reconnectAttemptsRef.current > 0;
       reconnectAttemptsRef.current = 0;
       handlersRef.current.onConnect?.();
-      // C4: Replay only truly missed events after reconnection
+      // C4 + GAP-12: Replay only truly missed events after reconnection
+      // Uses after_sequence to fetch only events the client hasn't seen
       if (wasReconnect) {
-        const alreadySeen = receivedEventCountRef.current;
         replayingRef.current = true;
-        getEvents(currentSessionId).then((events) => {
-          // Only replay events we haven't seen — account for events received
-          // via live WS between reconnect and replay response
-          const currentCount = receivedEventCountRef.current;
-          const missed = events.slice(alreadySeen);
-          const trulyMissed = missed.slice(0, Math.max(0, missed.length - (currentCount - alreadySeen)));
-          trulyMissed.forEach((ev) => handlersRef.current.onTaskEvent?.(ev));
-          receivedEventCountRef.current = Math.max(currentCount, events.length);
+        getEvents(currentSessionId, lastSequenceRef.current).then((events) => {
+          events.forEach((ev) => {
+            handlersRef.current.onTaskEvent?.(ev);
+            if (ev.sequence_number != null) {
+              lastSequenceRef.current = Math.max(lastSequenceRef.current ?? 0, ev.sequence_number);
+            }
+          });
+          receivedEventCountRef.current += events.length;
           replayingRef.current = false;
         }).catch(() => { replayingRef.current = false; });
       }
@@ -134,6 +136,10 @@ export const useWebSocketV4 = (
                 session_id: data.session_id || currentSessionId,
               };
               receivedEventCountRef.current += 1;
+              // GAP-12: Track highest sequence_number for reconnection replay
+              if (taskEvent.sequence_number != null) {
+                lastSequenceRef.current = Math.max(lastSequenceRef.current ?? 0, taskEvent.sequence_number);
+              }
               handlersRef.current.onTaskEvent?.(taskEvent);
             }
             break;
@@ -219,6 +225,7 @@ export const useWebSocketV4 = (
 
     reconnectAttemptsRef.current = 0;
     receivedEventCountRef.current = 0;
+    lastSequenceRef.current = undefined;
 
     if (sessionId) {
       connect();

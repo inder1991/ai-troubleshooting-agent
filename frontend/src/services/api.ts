@@ -190,8 +190,11 @@ export const getSessionDossier = async (sessionId: string): Promise<{ dossier: a
   return response.json();
 };
 
-export const getEvents = async (sessionId: string): Promise<TaskEvent[]> => {
-  const response = await fetch(`${API_BASE_URL}/api/v4/session/${sessionId}/events`);
+export const getEvents = async (sessionId: string, afterSequence?: number): Promise<TaskEvent[]> => {
+  const url = afterSequence != null
+    ? `${API_BASE_URL}/api/v4/session/${sessionId}/events?after_sequence=${afterSequence}`
+    : `${API_BASE_URL}/api/v4/session/${sessionId}/events`;
+  const response = await fetch(url);
   if (!response.ok) {
     throw new Error(await extractErrorDetail(response, 'Failed to get events'));
   }

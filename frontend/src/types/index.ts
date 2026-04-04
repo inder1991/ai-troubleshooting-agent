@@ -302,6 +302,7 @@ export interface TaskEvent {
   event_type: 'started' | 'progress' | 'success' | 'warning' | 'error' | 'tool_call' | 'phase_change' | 'finding' | 'summary' | 'attestation_required' | 'fix_proposal' | 'fix_approved' | 'waiting_for_input' | 'reasoning';
   message: string;
   timestamp: string;
+  sequence_number?: number;
   details?: Record<string, unknown>;
 }
 
