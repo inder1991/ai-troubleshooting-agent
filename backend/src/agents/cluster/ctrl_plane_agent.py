@@ -53,8 +53,8 @@ DIAGNOSTIC RULES — report an anomaly for each of the following when you find e
 
 1. ClusterOperator Degraded: Any operator with conditions[type=Degraded].status == "True"
 2. ClusterOperator Unavailable: Any operator with conditions[type=Available].status == "False"
-3. API Server unhealthy: API server health returns non-200 or degraded state
-4. Node NotReady: Warning events with reason NodeNotReady, or node conditions showing NotReady
+3. API Server unhealthy: `api_health.status` is not 'ok' or 'healthy', or HTTP response is non-200
+4. Node NotReady: Warning events with reason NodeNotReady
 5. OOMKilling: Any Warning event with reason OOMKilling
 6. High Warning count: Total Warning events > 10 in any namespace indicates system instability
 7. MachineConfigPool degraded (OpenShift): status.degradedMachineCount > 0

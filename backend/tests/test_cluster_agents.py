@@ -615,6 +615,7 @@ def test_ctrl_plane_prompt_has_evidence_rules():
         "MachineConfigPool",
         "degradedMachineCount",
         "machineCount",
+        "updatedMachineCount",
         "Warning",
     ]
 
