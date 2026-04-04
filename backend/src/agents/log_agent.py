@@ -2273,7 +2273,13 @@ class ElasticsearchClient:
             import base64
             self._headers["Authorization"] = f"Basic {base64.b64encode(credentials.encode()).decode()}"
 
-    def search(self, index: str, body: dict, timeout: int = 30) -> dict:
+    async def search(self, index: str, body: dict, timeout: int = 30) -> dict:
+        """Execute an Elasticsearch search asynchronously. Returns parsed JSON."""
+        import asyncio
+        import functools
+        return await asyncio.to_thread(self._search_sync, index, body, timeout)
+
+    def _search_sync(self, index: str, body: dict, timeout: int = 30) -> dict:
         """Execute a synchronous Elasticsearch search. Returns parsed JSON."""
         resp = requests.post(
             f"{self.url}/{index}/_search",

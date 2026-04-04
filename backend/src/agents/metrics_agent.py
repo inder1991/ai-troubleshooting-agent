@@ -1083,5 +1083,3 @@ class PrometheusClient:
         resp = await asyncio.to_thread(_do)
         resp.raise_for_status()
         return resp.json()
-
-        return "\n".join(parts)
