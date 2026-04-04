@@ -501,9 +501,7 @@ def _check_quota_pressure(data: list[dict[str, Any]]) -> list[ProactiveFinding]:
                 commands=[
                     f"kubectl describe resourcequota {quota_name} -n {ns}",
                     f"kubectl top pods -n {ns} --sort-by=cpu",
-                    f"kubectl get pods -n {ns} -o=jsonpath="
-                    f"'{{range .items[*]}}{{.metadata.name}}{{\"\\t\"}}"
-                    f"{{.spec.containers[0].resources.requests.{resource_name}}}{{\"\\n\"}}{{end}}'",
+                    f"kubectl get pods -n {ns} --sort-by='.metadata.creationTimestamp'",
                 ],
                 dry_run_command=f"kubectl get resourcequota {quota_name} -n {ns} -o yaml",
                 confidence=0.90,
