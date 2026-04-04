@@ -394,6 +394,26 @@ async def node_agent(state: dict, config: dict) -> dict:
         "pending_pod_metrics": pending_metrics.data,
     }
 
+    # Enrich with Prometheus utilization metrics if client is available
+    prometheus_client = config.get("configurable", {}).get("prometheus_client")
+    if prometheus_client:
+        try:
+            cpu_result = await prometheus_client.query_instant(
+                'sum by (node) (rate(node_cpu_seconds_total{mode!="idle"}[5m])) / '
+                'sum by (node) (machine_cpu_cores) * 100'
+            )
+            data_payload["prometheus_node_cpu"] = cpu_result.get("data", {}).get("result", [])
+        except Exception as exc:
+            logger.debug("Prometheus node CPU query failed: %s", exc)
+        try:
+            mem_result = await prometheus_client.query_instant(
+                '(node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / '
+                'node_memory_MemTotal_bytes * 100'
+            )
+            data_payload["prometheus_node_memory"] = mem_result.get("data", {}).get("result", [])
+        except Exception as exc:
+            logger.debug("Prometheus node memory query failed: %s", exc)
+
     # OpenShift-specific data
     if platform == "openshift":
         build_configs = await client.get_build_configs()
