@@ -641,6 +641,12 @@ async def run_cluster_diagnosis(session_id, graph, cluster_client, emitter, scan
         await emitter.emit("cluster_supervisor", "error", f"Cluster diagnosis failed: {str(e)}")
     finally:
         _diagnosis_tasks.pop(session_id, None)
+        # Clean up temp kubeconfig file if present (safety net — DELETE endpoint also cleans up)
+        temp_path = sessions.get(session_id, {}).get("kubeconfig_temp_path")
+        if temp_path:
+            from pathlib import Path
+            Path(temp_path).unlink(missing_ok=True)
+            sessions.get(session_id, {}).pop("kubeconfig_temp_path", None)
 
 
 async def run_diagnosis(session_id: str, supervisor: SupervisorAgent, initial_input: dict, emitter: EventEmitter):
