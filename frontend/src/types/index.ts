@@ -600,7 +600,11 @@ export interface ClusterDiagnosticsForm {
   namespace?: string;
   symptoms?: string;
   auth_token?: string;
-  auth_method?: 'token' | 'kubeconfig';
+  auth_method?: 'token' | 'kubeconfig' | 'service_account';
+  kubeconfig_content?: string;   // for temporary cluster only
+  role?: string;                 // RBAC role metadata for temp cluster
+  elk_index?: string;            // optional ELK log index
+  use_temp_cluster?: boolean;    // true when user chose "Use a different cluster"
   resource_type?: string;
   workload?: string;
   include_control_plane?: boolean;

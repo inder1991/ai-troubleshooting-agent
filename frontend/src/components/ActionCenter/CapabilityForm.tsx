@@ -111,6 +111,16 @@ const CapabilityForm: React.FC<CapabilityFormProps> = ({ capability, onBack, onS
         const hasProfile = !!cd.profile_id;
         // When a saved profile is selected, cluster_url and auth come from the profile
         if (hasProfile) return true;
+        // When using a temporary cluster, require a successful Test Connection
+        // (signalled by cluster_url being populated AND use_temp_cluster=true with auth set)
+        if (cd.use_temp_cluster) {
+          return (
+            cd.cluster_url.trim().length > 0 &&
+            (!!cd.auth_token || !!cd.kubeconfig_content) &&
+            // use_temp_cluster is only true once test passes and onChange is called with cluster_url
+            cd.cluster_url.trim().length > 0
+          );
+        }
         const hasUrl = cd.cluster_url.trim().length > 0 && /^https?:\/\/.+/.test(cd.cluster_url.trim());
         const hasAuth = !!cd.auth_token;
         const hasName = !(cd.save_cluster ?? true) || !!cd.cluster_name?.trim();
