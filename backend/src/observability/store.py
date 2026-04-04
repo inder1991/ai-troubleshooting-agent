@@ -161,11 +161,16 @@ class RedisDiagnosticStore(DiagnosticStore):
         self._url = url
         self._redis = None
 
+    def _check_initialized(self) -> None:
+        if self._redis is None:
+            raise RuntimeError("RedisDiagnosticStore not initialized — call await initialize() first")
+
     async def initialize(self) -> None:
         import redis.asyncio as aioredis
         self._redis = aioredis.from_url(self._url, decode_responses=True)
 
     async def append_event(self, session_id: str, event: dict) -> int:
+        self._check_initialized()
         key = f"diag:events:{session_id}"
         serialized = json.dumps(event, default=str)
         await self._redis.rpush(key, serialized)
@@ -173,6 +178,7 @@ class RedisDiagnosticStore(DiagnosticStore):
         return seq  # 1-based length = sequence_number
 
     async def get_events(self, session_id: str, after_sequence: int = 0) -> list[dict]:
+        self._check_initialized()
         key = f"diag:events:{session_id}"
         raw = await self._redis.lrange(key, after_sequence, -1)
         result = []
@@ -182,14 +188,16 @@ class RedisDiagnosticStore(DiagnosticStore):
                 evt["sequence_number"] = after_sequence + i + 1
                 result.append(evt)
             except json.JSONDecodeError:
-                pass
+                logger.warning("Corrupt entry in Redis for session %s", session_id)
         return result
 
     async def log_llm_call(self, record: dict) -> None:
+        self._check_initialized()
         key = f"diag:llm:{record.get('session_id', '')}"
         await self._redis.rpush(key, json.dumps(record, default=str))
 
     async def get_llm_calls(self, session_id: str) -> list[dict]:
+        self._check_initialized()
         key = f"diag:llm:{session_id}"
         raw = await self._redis.lrange(key, 0, -1)
         result = []
@@ -197,10 +205,11 @@ class RedisDiagnosticStore(DiagnosticStore):
             try:
                 result.append(json.loads(item))
             except json.JSONDecodeError:
-                pass
+                logger.warning("Corrupt entry in Redis for session %s", session_id)
         return result
 
     async def delete_session(self, session_id: str) -> None:
+        self._check_initialized()
         await self._redis.delete(
             f"diag:events:{session_id}",
             f"diag:llm:{session_id}",

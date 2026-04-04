@@ -32,6 +32,10 @@ async def test_sqlite_append_and_get_events():
         assert events_after[0]["message"] == "world"
     finally:
         os.unlink(db_path)
+        os.environ.pop("DIAGNOSTIC_STORE_BACKEND", None)
+        os.environ.pop("DIAGNOSTIC_DB_PATH", None)
+        import src.observability.store as store_module
+        store_module._store = None
 
 
 async def test_sqlite_log_and_get_llm_calls():
@@ -68,6 +72,10 @@ async def test_sqlite_log_and_get_llm_calls():
         assert calls[0]["success"] is True
     finally:
         os.unlink(db_path)
+        os.environ.pop("DIAGNOSTIC_STORE_BACKEND", None)
+        os.environ.pop("DIAGNOSTIC_DB_PATH", None)
+        import src.observability.store as store_module
+        store_module._store = None
 
 
 async def test_sqlite_delete_session():
@@ -96,6 +104,10 @@ async def test_sqlite_delete_session():
         assert calls == []
     finally:
         os.unlink(db_path)
+        os.environ.pop("DIAGNOSTIC_STORE_BACKEND", None)
+        os.environ.pop("DIAGNOSTIC_DB_PATH", None)
+        import src.observability.store as store_module
+        store_module._store = None
 
 
 async def test_factory_returns_sqlite_by_default():
@@ -111,3 +123,7 @@ async def test_factory_returns_sqlite_by_default():
         assert "SQLite" in type(store).__name__
     finally:
         os.unlink(db_path)
+        os.environ.pop("DIAGNOSTIC_STORE_BACKEND", None)
+        os.environ.pop("DIAGNOSTIC_DB_PATH", None)
+        import src.observability.store as store_module
+        store_module._store = None
