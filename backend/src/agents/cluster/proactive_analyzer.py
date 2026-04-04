@@ -10,6 +10,7 @@ No other changes needed.
 from __future__ import annotations
 
 import logging
+import re
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -572,7 +573,6 @@ def _label_selector_str(selector: dict[str, Any]) -> str:
 
 def _parse_kernel_major_minor(kernel_version: str) -> tuple[int, int] | None:
     """Parse kernel version string like '5.15.0-78-generic' → (5, 15). Returns None if unparseable."""
-    import re
     match = re.match(r'^(\d+)\.(\d+)', kernel_version.strip())
     if not match:
         return None

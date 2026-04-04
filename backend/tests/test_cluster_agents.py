@@ -735,19 +735,7 @@ def test_node_os_patch_does_not_use_creation_timestamp_fallback():
     """_check_node_os_patch must generate a finding for old RHEL8 kernel regardless of recent creation_timestamp."""
     from src.agents.cluster.proactive_analyzer import _check_node_os_patch
 
-    # RHEL 8 node with an old kernel (4.18 matches min — but the full kernel string is below min for RHEL8)
-    # kernel 4.18.0-372 is *equal* to the (4,18) minimum, so we need something clearly below: use 4.17
-    rhel8_node = {
-        "name": "worker-rhel8",
-        "kernel_version": "4.18.0-372.9.1.el8.x86_64",
-        "os_image": "Red Hat Enterprise Linux 8.6",
-        "creation_timestamp": "2026-04-03T10:00:00Z",  # recent — must NOT suppress the finding
-    }
-
-    # 4.18 is not < (4, 18) — the spec says kernel 4.18.0-372 is "old RHEL8 kernel" and a finding IS generated.
-    # However (4,18) == (4,18) so parsed < min_kernel is False. Per the spec the finding should be generated
-    # for an old RHEL8 kernel, meaning the check also catches == case OR we use a kernel below 4.18.
-    # Use kernel 4.17.x which is clearly below the (4,18) minimum.
+    # Use kernel 4.17.x which is clearly below the (4,18) minimum for RHEL8.
     rhel8_node_below_min = {
         "name": "worker-rhel8",
         "kernel_version": "4.17.0-372.9.1.el8.x86_64",
