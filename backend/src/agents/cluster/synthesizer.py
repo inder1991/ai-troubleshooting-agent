@@ -280,8 +280,11 @@ async def _llm_verdict(
     }}],
     "long_term": [{{"description": "...", "effort_estimate": "..."}}]
   }},
-  "re_dispatch_needed": false
-}}"""
+  "re_dispatch_needed": false,
+  "re_dispatch_domains": []
+}}
+
+Note: re_dispatch_domains valid values are: ctrl_plane, node, network, storage, rbac"""
 
     call_start = time.monotonic()
     try:
@@ -303,6 +306,7 @@ async def _llm_verdict(
             "blast_radius": {"summary": "Unable to determine", "affected_namespaces": 0, "affected_pods": 0, "affected_nodes": 0},
             "remediation": {"immediate": [], "long_term": []},
             "re_dispatch_needed": False,
+            "re_dispatch_domains": [],
         }
     latency_ms = int((time.monotonic() - call_start) * 1000)
     usage = getattr(response, "usage", None)
@@ -319,11 +323,16 @@ async def _llm_verdict(
             latency_ms=latency_ms, success=True,
         ))
 
+    _VALID_DOMAINS = {"ctrl_plane", "node", "network", "storage", "rbac"}
+
     text = response.text
     try:
         start = text.index("{")
         end = text.rindex("}") + 1
-        return json.loads(text[start:end])
+        parsed = json.loads(text[start:end])
+        raw_domains = parsed.get("re_dispatch_domains", [])
+        parsed["re_dispatch_domains"] = [d for d in raw_domains if d in _VALID_DOMAINS]
+        return parsed
     except (ValueError, json.JSONDecodeError):
         if telemetry:
             telemetry.record_call(LLMCallRecord(
@@ -335,6 +344,7 @@ async def _llm_verdict(
             "blast_radius": {"summary": "Unable to determine", "affected_namespaces": 0, "affected_pods": 0, "affected_nodes": 0},
             "remediation": {"immediate": [], "long_term": []},
             "re_dispatch_needed": False,
+            "re_dispatch_domains": [],
         }
 
 

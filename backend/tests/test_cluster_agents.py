@@ -698,3 +698,34 @@ async def test_synthesizer_injects_cluster_context():
         f"Namespace 'production' not found in system prompt: {system_prompt!r}"
     assert "api.example.com" in system_prompt, \
         f"Cluster URL not found in system prompt: {system_prompt!r}"
+
+
+@pytest.mark.asyncio
+async def test_synthesizer_verdict_has_redispatch_domains():
+    """_llm_verdict must return re_dispatch_domains and validate against known domain set."""
+    from src.agents.cluster.synthesizer import _llm_verdict
+    from unittest.mock import patch, MagicMock
+
+    class FakeResponse:
+        text = '{"platform_health": "DEGRADED", "blast_radius": {"summary": "test", "affected_namespaces": 1, "affected_pods": 2, "affected_nodes": 1}, "remediation": {"immediate": [], "long_term": []}, "re_dispatch_needed": true, "re_dispatch_domains": ["node", "network", "invalid_domain"]}'
+        usage = None
+
+    async def fake_chat(prompt, system="", max_tokens=2000, temperature=0.1):
+        return FakeResponse()
+
+    mock_client = MagicMock()
+    mock_client.chat = fake_chat
+
+    with patch("src.agents.cluster.synthesizer.AnthropicClient", return_value=mock_client):
+        result = await _llm_verdict(
+            causal_chains=[],
+            reports=[],
+            data_completeness=1.0,
+        )
+
+    assert "re_dispatch_domains" in result, "Verdict must include re_dispatch_domains"
+    # "invalid_domain" must be filtered out, valid ones kept
+    assert "invalid_domain" not in result["re_dispatch_domains"], \
+        "Invalid domain must be filtered from re_dispatch_domains"
+    assert "node" in result["re_dispatch_domains"], "Valid domain 'node' must be kept"
+    assert "network" in result["re_dispatch_domains"], "Valid domain 'network' must be kept"
