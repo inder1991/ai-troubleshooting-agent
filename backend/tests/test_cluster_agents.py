@@ -229,3 +229,89 @@ class TestNodeAgentPrometheus:
             # Should not raise
             result = asyncio.run(node_agent(state, config))
         assert result is not None
+
+
+@pytest.mark.asyncio
+async def test_rbac_checker_openshift_denied_resources_not_in_granted():
+    """OpenShift resources that return permission_denied must appear in denied, not granted."""
+    from src.agents.cluster.rbac_checker import rbac_preflight
+
+    mock_client = MagicMock()
+    # OpenShift Routes: permission denied
+    routes_result = MagicMock()
+    routes_result.permission_denied = True
+    mock_client.get_routes = AsyncMock(return_value=routes_result)
+
+    # OpenShift ClusterOperators: permission denied
+    operators_result = MagicMock()
+    operators_result.permission_denied = True
+    mock_client.get_cluster_operators = AsyncMock(return_value=operators_result)
+
+    # MachineConfigPools: permission denied
+    mcp_result = MagicMock()
+    mcp_result.permission_denied = True
+    mock_client.list_machine_config_pools = AsyncMock(return_value=mcp_result)
+
+    state = {"platform": "openshift"}
+    config = {"configurable": {"cluster_client": mock_client}}
+
+    result = await rbac_preflight(state, config)
+    rbac = result["rbac_check"]
+
+    assert "routes" not in rbac["granted"], \
+        f"'routes' must not appear in granted when permission_denied=True. granted={rbac['granted']}"
+    assert "clusteroperators" not in rbac["granted"], \
+        f"'clusteroperators' must not appear in granted. granted={rbac['granted']}"
+    assert "machineconfigpools" not in rbac["granted"], \
+        f"'machineconfigpools' must not appear in granted. granted={rbac['granted']}"
+
+
+@pytest.mark.asyncio
+async def test_rbac_checker_resolution_fail_when_critical_denied():
+    """Status must be 'fail' when nodes/pods/events are denied (critical_denied non-empty)."""
+    from src.agents.cluster.rbac_checker import rbac_preflight
+
+    mock_client = MagicMock()
+    # Make the _check_access_nodes method return False (denied)
+    mock_client._check_access_nodes = AsyncMock(return_value=False)
+    mock_client._check_access_pods = AsyncMock(return_value=False)
+    mock_client._check_access_events = AsyncMock(return_value=False)
+
+    state = {"platform": "kubernetes"}
+    config = {"configurable": {"cluster_client": mock_client}}
+
+    result = await rbac_preflight(state, config)
+    rbac = result["rbac_check"]
+
+    assert rbac["status"] == "fail", \
+        f"Status must be 'fail' when critical resources (nodes/pods/events) are denied. Got: {rbac['status']}"
+    assert "nodes" in rbac["denied"] or "pods" in rbac["denied"] or "events" in rbac["denied"], \
+        f"At least one critical resource must be in denied. denied={rbac['denied']}"
+
+
+@pytest.mark.asyncio
+async def test_rbac_checker_resolution_partial_when_noncritical_denied():
+    """Status must be 'partial' when only non-critical resources are denied."""
+    from src.agents.cluster.rbac_checker import rbac_preflight
+
+    mock_client = MagicMock()
+    # Critical resources granted
+    mock_client._check_access_nodes = AsyncMock(return_value=True)
+    mock_client._check_access_pods = AsyncMock(return_value=True)
+    mock_client._check_access_events = AsyncMock(return_value=True)
+    # Non-critical resource denied
+    mock_client._check_access_deployments = AsyncMock(return_value=False)
+
+    state = {"platform": "kubernetes"}
+    config = {"configurable": {"cluster_client": mock_client}}
+
+    result = await rbac_preflight(state, config)
+    rbac = result["rbac_check"]
+
+    # deployments is non-critical — if it ends up in denied, status must be partial, not fail
+    if "deployments" in rbac["denied"]:
+        assert rbac["status"] == "partial", \
+            f"Status must be 'partial' when only non-critical resources denied. Got: {rbac['status']}"
+    assert rbac["status"] != "fail" or any(
+        r in rbac["denied"] for r in ("nodes", "pods", "events")
+    ), "Status is 'fail' but no critical resources are denied — that is a bug"

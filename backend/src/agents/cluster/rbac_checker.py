@@ -50,19 +50,38 @@ async def rbac_preflight(state: dict, config: dict) -> dict:
 
     platform = state.get("platform", "kubernetes")
     if platform == "openshift":
-        for resource in OPENSHIFT_RESOURCES:
+        # Probe cluster-scoped resources (no namespace) and namespace-scoped routes
+        # ClusterClient signals denial via result.permission_denied, not via exceptions
+        openshift_probes = [
+            ("clusteroperators", "get_cluster_operators"),
+            ("machineconfigpools", "list_machine_config_pools"),
+            ("routes", "get_routes"),
+        ]
+        for resource, method_name in openshift_probes:
+            probe_fn = getattr(client, method_name, None)
+            if probe_fn is None:
+                logger.debug("RBAC probe: method %s not found on client, skipping", method_name)
+                continue
             try:
-                granted.append(resource)
-            except Exception:
+                result = await probe_fn()
+                if getattr(result, "permission_denied", False):
+                    denied.append(resource)
+                    warnings.append(f"OpenShift resource '{resource}' access denied")
+                else:
+                    granted.append(resource)
+            except Exception as exc:
+                logger.debug("RBAC probe for %s failed: %s — marking denied", resource, exc)
                 denied.append(resource)
-                warnings.append(f"OpenShift resource '{resource}' not accessible")
+                warnings.append(f"OpenShift resource '{resource}' probe failed")
 
     critical_denied = [r for r in denied if r in ("nodes", "pods", "events")]
     if critical_denied:
-        warnings.append(f"Critical permissions denied: {', '.join(critical_denied)}. Analysis will be incomplete.")
+        warnings.append(
+            f"Critical permissions denied: {', '.join(critical_denied)}. Analysis will be incomplete."
+        )
 
     rbac_check = {
-        "status": "pass" if not critical_denied else "partial" if denied else "pass",
+        "status": "fail" if critical_denied else "partial" if denied else "pass",
         "granted": granted,
         "denied": denied,
         "warnings": warnings,
