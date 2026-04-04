@@ -661,17 +661,30 @@ async def test_synthesizer_injects_cluster_context():
 
     captured_calls = {}
 
-    class FakeResponse:
-        text = '{"causal_chains": [], "uncorrelated_findings": []}'
-        usage = None
+    # Build a tool_use block mock that submit_causal_analysis returns
+    block = MagicMock()
+    block.type = "tool_use"
+    block.name = "submit_causal_analysis"
+    block.input = {"causal_chains": [], "uncorrelated_findings": []}
 
-    async def fake_chat(prompt, system="", max_tokens=3000, temperature=0.1):
-        captured_calls["system"] = system
-        captured_calls["prompt"] = prompt
-        return FakeResponse()
+    response = MagicMock()
+    response.content = [block]
+    response.usage = MagicMock()
+    response.usage.input_tokens = 100
+    response.usage.output_tokens = 200
 
     mock_client = MagicMock()
-    mock_client.chat = fake_chat
+    mock_client.chat_with_tools = AsyncMock(return_value=response)
+
+    # Capture the system kwarg passed to chat_with_tools
+    original_chat_with_tools = mock_client.chat_with_tools
+
+    async def capturing_chat_with_tools(**kwargs):
+        captured_calls["system"] = kwargs.get("system", "")
+        captured_calls["messages"] = kwargs.get("messages", [])
+        return response
+
+    mock_client.chat_with_tools = capturing_chat_with_tools
 
     with patch("src.agents.cluster.synthesizer.AnthropicClient", return_value=mock_client):
         from src.agents.cluster.state import DomainAnomaly, DomainReport, DomainStatus
@@ -709,17 +722,33 @@ async def test_synthesizer_injects_cluster_context():
 async def test_synthesizer_verdict_has_redispatch_domains():
     """_llm_verdict must return re_dispatch_domains and validate against known domain set."""
     from src.agents.cluster.synthesizer import _llm_verdict
-    from unittest.mock import patch, MagicMock
+    from unittest.mock import patch, MagicMock, AsyncMock
 
-    class FakeResponse:
-        text = '{"platform_health": "DEGRADED", "blast_radius": {"summary": "test", "affected_namespaces": 1, "affected_pods": 2, "affected_nodes": 1}, "remediation": {"immediate": [], "long_term": []}, "re_dispatch_needed": true, "re_dispatch_domains": ["node", "network", "invalid_domain"]}'
-        usage = None
+    # Build a tool_use block mock that submit_verdict returns
+    block = MagicMock()
+    block.type = "tool_use"
+    block.name = "submit_verdict"
+    block.input = {
+        "platform_health": "DEGRADED",
+        "blast_radius": {
+            "summary": "test",
+            "affected_namespaces": 1,
+            "affected_pods": 2,
+            "affected_nodes": 1,
+        },
+        "remediation": {"immediate": [], "long_term": []},
+        "re_dispatch_needed": True,
+        "re_dispatch_domains": ["node", "network", "invalid_domain"],
+    }
 
-    async def fake_chat(prompt, system="", max_tokens=2000, temperature=0.1):
-        return FakeResponse()
+    response = MagicMock()
+    response.content = [block]
+    response.usage = MagicMock()
+    response.usage.input_tokens = 100
+    response.usage.output_tokens = 200
 
     mock_client = MagicMock()
-    mock_client.chat = fake_chat
+    mock_client.chat_with_tools = AsyncMock(return_value=response)
 
     with patch("src.agents.cluster.synthesizer.AnthropicClient", return_value=mock_client):
         result = await _llm_verdict(

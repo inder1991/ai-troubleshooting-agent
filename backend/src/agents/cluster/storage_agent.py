@@ -194,9 +194,7 @@ async def _tool_calling_loop(system: str, initial_context: str, cluster_client,
 
         # Log to DiagnosticStore (fire-and-forget)
         if store is not None and session_id:
-            import asyncio as _asyncio
-            import time as _time
-            _asyncio.ensure_future(store.log_llm_call({
+            asyncio.ensure_future(store.log_llm_call({
                 "session_id": session_id,
                 "agent_name": "cluster_storage",
                 "model": "claude-haiku-4-5-20251001",
@@ -208,7 +206,7 @@ async def _tool_calling_loop(system: str, initial_context: str, cluster_client,
                 "error": None,
                 "fallback_used": False,
                 "response_json": {},
-                "created_at": _time.time(),
+                "created_at": time.time(),
             }))
 
         tool_uses = [b for b in response.content if b.type == "tool_use"]
@@ -380,9 +378,7 @@ async def storage_agent(state: dict, config: dict) -> dict:
                 fallback_used=True, success=True,
             ))
         if store is not None and diagnostic_id:
-            import asyncio as _asyncio
-            import time as _time
-            _asyncio.ensure_future(store.log_llm_call({
+            asyncio.ensure_future(store.log_llm_call({
                 "session_id": diagnostic_id,
                 "agent_name": "cluster_storage",
                 "model": "heuristic",
@@ -394,7 +390,7 @@ async def storage_agent(state: dict, config: dict) -> dict:
                 "error": None,
                 "fallback_used": True,
                 "response_json": analysis,
-                "created_at": _time.time(),
+                "created_at": time.time(),
             }))
     else:
         # Try tool-calling ReAct loop first, fall back to heuristic single-pass
@@ -422,9 +418,7 @@ async def storage_agent(state: dict, config: dict) -> dict:
                         fallback_used=True, success=True,
                     ))
                 if store is not None and diagnostic_id:
-                    import asyncio as _asyncio
-                    import time as _time
-                    _asyncio.ensure_future(store.log_llm_call({
+                    asyncio.ensure_future(store.log_llm_call({
                         "session_id": diagnostic_id,
                         "agent_name": "cluster_storage",
                         "model": "heuristic",
@@ -436,7 +430,7 @@ async def storage_agent(state: dict, config: dict) -> dict:
                         "error": None,
                         "fallback_used": True,
                         "response_json": analysis,
-                        "created_at": _time.time(),
+                        "created_at": time.time(),
                     }))
             else:
                 analysis = await _llm_analyze(system, prompt)

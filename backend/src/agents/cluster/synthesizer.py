@@ -270,9 +270,7 @@ async def _llm_causal_reasoning(
 
     # Log to DiagnosticStore (fire-and-forget)
     if store is not None and session_id:
-        import asyncio as _asyncio
-        import time as _time
-        _asyncio.ensure_future(store.log_llm_call({
+        asyncio.ensure_future(store.log_llm_call({
             "session_id": session_id,
             "agent_name": "cluster_synthesizer",
             "model": used_model,
@@ -284,7 +282,7 @@ async def _llm_causal_reasoning(
             "error": None,
             "fallback_used": False,
             "response_json": {},
-            "created_at": _time.time(),
+            "created_at": time.time(),
         }))
 
     for block in response.content:
@@ -372,9 +370,7 @@ Note: re_dispatch_domains valid values are: ctrl_plane, node, network, storage, 
 
     # Log to DiagnosticStore (fire-and-forget)
     if store is not None and session_id:
-        import asyncio as _asyncio
-        import time as _time
-        _asyncio.ensure_future(store.log_llm_call({
+        asyncio.ensure_future(store.log_llm_call({
             "session_id": session_id,
             "agent_name": "cluster_synthesizer",
             "model": used_model,
@@ -386,7 +382,7 @@ Note: re_dispatch_domains valid values are: ctrl_plane, node, network, storage, 
             "error": None,
             "fallback_used": False,
             "response_json": {},
-            "created_at": _time.time(),
+            "created_at": time.time(),
         }))
 
     for block in response.content:
