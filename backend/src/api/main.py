@@ -47,6 +47,7 @@ from .network_drift_endpoints import router as drift_router, init_drift
 from .network_event_endpoints import router as event_router, init_events
 from .network_alert_endpoints import router as alert_rules_router, init_alerts
 from .topology_v5 import router as topology_v5_router
+from .routes_alerts import router as alerts_router
 from .websocket import manager
 
 # Cloud integration (multi-provider inventory)
@@ -199,6 +200,7 @@ def create_app() -> FastAPI:
     app.include_router(event_router)
     app.include_router(alert_rules_router)
     app.include_router(topology_v5_router)
+    app.include_router(alerts_router)
 
     # Cloud integration router (multi-provider inventory)
     _cloud_store = CloudStore()
