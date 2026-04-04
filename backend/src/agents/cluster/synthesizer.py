@@ -76,6 +76,123 @@ def _merge_reports(reports: list[DomainReport]) -> dict:
     }
 
 
+_TOKEN_BUDGET = 60_000  # Conservative estimate; leaves room for system prompt + response
+
+
+def _build_bounded_causal_prompt(
+    anomalies: list,
+    reports: list,
+    search_space: dict,
+    hypotheses: list,
+    selection: dict | None = None,
+) -> str:
+    """Build causal reasoning prompt within token budget. Drops low-priority anomalies if needed."""
+    import json as _json
+
+    TOKEN_BUDGET_CHARS = _TOKEN_BUDGET * 4  # 1 token ≈ 4 chars
+
+    # Build truncation warning from domain reports
+    truncation_warning = ""
+    truncated_domains = []
+    for r in reports:
+        if hasattr(r, "truncation_flags"):
+            tf = r.truncation_flags
+            dropped = []
+            if getattr(tf, "events", False):
+                dropped.append(f"events (~{getattr(tf, 'events_dropped', '?')} items dropped)")
+            if getattr(tf, "pods", False):
+                dropped.append(f"pods (~{getattr(tf, 'pods_dropped', '?')} items dropped)")
+            if getattr(tf, "nodes", False):
+                dropped.append(f"nodes (~{getattr(tf, 'nodes_dropped', '?')} items dropped)")
+            if dropped:
+                truncated_domains.append(f"- {r.domain} domain: {', '.join(dropped)}")
+
+    if truncated_domains:
+        truncation_warning = (
+            "\n⚠️  DATA COMPLETENESS WARNING:\n"
+            "The following data sources were truncated before analysis:\n"
+            + "\n".join(truncated_domains)
+            + "\nRule: Do not assign confidence > 60% to findings that depend solely on "
+              "truncated data sources. State the data gap explicitly in your reasoning.\n"
+        )
+
+    # Sort anomalies by priority: high → medium → low
+    severity_order = {"high": 0, "medium": 1, "low": 2}
+    sorted_anomalies = sorted(
+        anomalies,
+        key=lambda a: (severity_order.get(a.get("severity", "low") if isinstance(a, dict)
+                        else getattr(a, "severity", "low"), 2)),
+    )
+
+    # Include anomalies up to budget
+    included = []
+    omitted = 0
+    running_chars = len(truncation_warning)
+    for anomaly in sorted_anomalies:
+        item_str = _json.dumps(anomaly if isinstance(anomaly, dict) else anomaly.model_dump(mode="json"),
+                               indent=2)
+        if running_chars + len(item_str) > TOKEN_BUDGET_CHARS:
+            omitted += 1
+        else:
+            included.append(anomaly if isinstance(anomaly, dict) else anomaly.model_dump(mode="json"))
+            running_chars += len(item_str)
+
+    omitted_note = ""
+    if omitted:
+        omitted_note = (
+            f"\nNOTE: {omitted} lower-priority anomalies omitted (context limit reached). "
+            "Do not claim exhaustive analysis.\n"
+        )
+
+    report_summaries = [
+        {"domain": r.domain if hasattr(r, "domain") else r.get("domain"),
+         "status": (r.status.value if hasattr(r.status, "value") else r.get("status"))
+                   if hasattr(r, "status") else r.get("status"),
+         "confidence": r.confidence if hasattr(r, "confidence") else r.get("confidence"),
+         "anomaly_count": len(r.anomalies) if hasattr(r, "anomalies") else r.get("anomaly_count", 0)}
+        for r in reports
+    ]
+
+    # Build search space sections
+    issue_clusters_summary = search_space.get("issue_clusters_summary", []) if search_space else []
+    annotated_links = search_space.get("annotated_links", []) if search_space else []
+    blocked_count = search_space.get("total_blocked", 0) if search_space else 0
+    root_cands = search_space.get("root_candidates", []) if search_space else []
+
+    cluster_section = ""
+    if root_cands or annotated_links or blocked_count:
+        cluster_section = f"""
+## Pre-Correlated Issue Clusters
+{_json.dumps(issue_clusters_summary, indent=2)}
+
+## Root Cause Hypothesis Seeds
+{_json.dumps(root_cands, indent=2)}
+
+## Annotated Links
+{_json.dumps(annotated_links, indent=2)}
+
+## Blocked Links: {blocked_count} excluded
+"""
+
+    hyp_section = ""
+    if hypotheses:
+        hyp_section = f"""
+## Pre-Ranked Hypotheses
+{_json.dumps(hypotheses[:10], indent=2)}
+{_json.dumps(selection or {}, indent=2)}
+"""
+
+    return (
+        f"{truncation_warning}"
+        f"Analyze these cross-domain anomalies and identify causal chains.\n\n"
+        f"## Anomalies Found\n{_json.dumps(included, indent=2)}\n"
+        f"{omitted_note}"
+        f"## Domain Report Summaries\n{_json.dumps(report_summaries, indent=2)}\n"
+        f"{cluster_section}"
+        f"{hyp_section}"
+    )
+
+
 async def _llm_causal_reasoning(
     anomalies: list[DomainAnomaly],
     reports: list[DomainReport],
@@ -89,6 +206,8 @@ async def _llm_causal_reasoning(
     **kwargs,
 ) -> dict:
     """Stage 2: LLM identifies cross-domain causal chains."""
+    from src.agents.cluster.output_schemas import SUBMIT_CAUSAL_ANALYSIS_TOOL
+
     # Downgrade model when budget is low
     model = None
     if budget and budget.remaining_budget_pct() < 0.3:
@@ -96,103 +215,33 @@ async def _llm_causal_reasoning(
         logger.info("Budget low (%.0f%% remaining), using Haiku for causal reasoning", budget.remaining_budget_pct() * 100)
     client = AnthropicClient(agent_name="cluster_synthesizer", model=model) if model else AnthropicClient(agent_name="cluster_synthesizer")
 
-    anomaly_data = [a.model_dump(mode="json") for a in anomalies]
-    report_summaries = [
-        {"domain": r.domain, "status": r.status.value, "confidence": r.confidence, "anomaly_count": len(r.anomalies)}
-        for r in reports
-    ]
+    bounded_prompt = _build_bounded_causal_prompt(
+        anomalies=[a.model_dump(mode="json") if hasattr(a, "model_dump") else a for a in anomalies],
+        reports=reports,
+        search_space=search_space or {},
+        hypotheses=kwargs.get("hypotheses", []),
+        selection=kwargs.get("hypothesis_selection", {}),
+    )
 
-    # Build cluster-aware sections
-    issue_clusters_summary = search_space.get("issue_clusters_summary", []) if search_space else []
-    annotated_links = search_space.get("annotated_links", []) if search_space else []
-    blocked_count = search_space.get("total_blocked", 0) if search_space else 0
-    root_cands = root_candidates or []
-
-    cluster_section = ""
-    if root_cands or annotated_links or blocked_count:
-        cluster_section = f"""
-## Pre-Correlated Issue Clusters
-{json.dumps(issue_clusters_summary, indent=2)}
-
-## Root Cause Hypothesis Seeds (from deterministic correlator)
-{json.dumps(root_cands, indent=2)}
-Use these as starting anchors. Refine or adjust confidence, but do NOT invent new root causes unless evidence strongly supports it.
-
-## Annotated Links (low confidence — investigate carefully)
-{json.dumps(annotated_links, indent=2)}
-These links passed structural validation but have low confidence based on observed evidence. Weight them accordingly.
-
-## Blocked Links (excluded — do NOT propose these)
-{blocked_count} causal links were blocked by structural invariants and excluded from your input.
-"""
-
-    # Include pre-ranked hypotheses if available
-    hypotheses = kwargs.get("hypotheses", [])
-    selection = kwargs.get("hypothesis_selection", {})
-    hypotheses_section = ""
-    if hypotheses:
-        hypotheses_section = f"""
-## Pre-Ranked Root Cause Hypotheses (from deterministic engine)
-{json.dumps(hypotheses[:10], indent=2)}
-
-## Hypothesis Selection
-{json.dumps(selection, indent=2)}
-
-The deterministic analysis engine has identified and ranked these root cause hypotheses.
-Your job is to:
-1. Explain the top hypothesis in clear natural language for an SRE
-2. If selection_method is 'ambiguous_needs_llm', choose between the close candidates
-3. Generate remediation for the top 3 root causes
-4. Flag anything the engine may have missed (low confidence addendum)
-"""
-
-    prompt = f"""Analyze these cross-domain anomalies and identify causal chains.
-
-## Anomalies Found
-{json.dumps(anomaly_data, indent=2)}
-
-## Domain Report Summaries
-{json.dumps(report_summaries, indent=2)}
-{cluster_section}
-{hypotheses_section}
-## Allowed Link Types
-{json.dumps(CONSTRAINED_LINK_TYPES)}
-
-{CAUSAL_RULES}
-
-## Required JSON Response
-{{
-  "causal_chains": [
-    {{
-      "chain_id": "cc-NNN",
-      "confidence": 0.0-1.0,
-      "root_cause": {{"domain": "...", "anomaly_id": "...", "description": "...", "evidence_ref": "..."}},
-      "cascading_effects": [
-        {{"order": 1, "domain": "...", "anomaly_id": "...", "description": "...", "link_type": "...", "evidence_ref": "..."}}
-      ]
-    }}
-  ],
-  "uncorrelated_findings": [
-    {{"domain": "...", "anomaly_id": "...", "description": "...", "evidence_ref": "...", "severity": "..."}}
-  ]
-}}"""
+    cluster_context = (
+        f"Cluster Context:\n"
+        f"- Platform: {platform}\n"
+        f"- Namespace: {namespace or 'all namespaces'}\n"
+        f"- Cluster: {cluster_url or 'unknown'}\n\n"
+    )
+    system_prompt = (
+        cluster_context
+        + "You are a causal reasoning engine for cluster diagnostics. Be precise and evidence-based. "
+          "You MUST call submit_causal_analysis to return your analysis."
+    )
 
     call_start = time.monotonic()
     try:
-        cluster_context = (
-            f"Cluster Context:\n"
-            f"- Platform: {platform}\n"
-            f"- Namespace: {namespace or 'all namespaces'}\n"
-            f"- Cluster: {cluster_url or 'unknown'}\n\n"
-        )
-        system_prompt = (
-            cluster_context
-            + "You are a causal reasoning engine for cluster diagnostics. Be precise and evidence-based."
-        )
         response = await asyncio.wait_for(
-            client.chat(
-                prompt=prompt,
+            client.chat_with_tools(
                 system=system_prompt,
+                messages=[{"role": "user", "content": bounded_prompt}],
+                tools=[SUBMIT_CAUSAL_ANALYSIS_TOOL],
                 max_tokens=3000,
                 temperature=0.1,
             ),
@@ -200,7 +249,8 @@ Your job is to:
         )
     except asyncio.TimeoutError:
         logger.warning("LLM causal reasoning timed out after 30s")
-        return {"causal_chains": [], "uncorrelated_findings": []}
+        return {"causal_chains": [], "uncorrelated_findings": [a.model_dump(mode="json") if hasattr(a, "model_dump") else a for a in anomalies]}
+
     latency_ms = int((time.monotonic() - call_start) * 1000)
     usage = getattr(response, "usage", None)
     in_tok = usage.input_tokens if usage else 0
@@ -216,18 +266,12 @@ Your job is to:
             latency_ms=latency_ms, success=True,
         ))
 
-    text = response.text
-    try:
-        start = text.index("{")
-        end = text.rindex("}") + 1
-        return json.loads(text[start:end])
-    except (ValueError, json.JSONDecodeError):
-        if telemetry:
-            telemetry.record_call(LLMCallRecord(
-                agent_name="cluster_synthesizer", call_type="synthesis_causal",
-                error="parse_error", success=False,
-            ))
-        return {"causal_chains": [], "uncorrelated_findings": []}
+    for block in response.content:
+        if getattr(block, "type", None) == "tool_use" and block.name == "submit_causal_analysis":
+            return block.input
+
+    logger.warning("Synthesizer causal reasoning: LLM did not call submit_causal_analysis")
+    return {"causal_chains": [], "uncorrelated_findings": [a.model_dump(mode="json") if hasattr(a, "model_dump") else a for a in anomalies]}
 
 
 async def _llm_verdict(
@@ -238,6 +282,8 @@ async def _llm_verdict(
     telemetry=None,
 ) -> dict:
     """Stage 3: LLM produces verdict and remediation."""
+    from src.agents.cluster.output_schemas import SUBMIT_VERDICT_TOOL
+
     model = None
     if budget and budget.remaining_budget_pct() < 0.3:
         model = "claude-haiku-4-5-20251001"
@@ -259,42 +305,19 @@ async def _llm_verdict(
 ## Domain Report Statuses
 {report_summaries}
 
-## Required JSON Response
-{{
-  "platform_health": "HEALTHY|DEGRADED|CRITICAL",
-  "blast_radius": {{
-    "summary": "...",
-    "affected_namespaces": 0,
-    "affected_pods": 0,
-    "affected_nodes": 0
-  }},
-  "remediation": {{
-    "immediate": [{{
-      "command": "kubectl ...",
-      "description": "...",
-      "risk_level": "low|medium|high",
-      "rollback": "kubectl ... (command to undo this action)",
-      "pre_check": "kubectl ... (command to run before executing)",
-      "verify": "kubectl ... (command to confirm fix worked)",
-      "expected_output": "description of what verify should show"
-    }}],
-    "long_term": [{{"description": "...", "effort_estimate": "..."}}]
-  }},
-  "re_dispatch_needed": false,
-  "re_dispatch_domains": []
-}}
-
 Note: re_dispatch_domains valid values are: ctrl_plane, node, network, storage, rbac"""
 
     call_start = time.monotonic()
     try:
         response = await asyncio.wait_for(
-            client.chat(
-                prompt=prompt,
+            client.chat_with_tools(
                 system="You are a cluster health verdict engine. Be actionable and precise. "
                        "ALWAYS include -n <namespace> in kubectl commands for namespaced resources. "
-                       "Never use default namespace implicitly.",
-                max_tokens=2000,
+                       "Never use default namespace implicitly. "
+                       "You MUST call submit_verdict to return your verdict.",
+                messages=[{"role": "user", "content": prompt}],
+                tools=[SUBMIT_VERDICT_TOOL],
+                max_tokens=3000,
                 temperature=0.1,
             ),
             timeout=30,
@@ -308,6 +331,7 @@ Note: re_dispatch_domains valid values are: ctrl_plane, node, network, storage, 
             "re_dispatch_needed": False,
             "re_dispatch_domains": [],
         }
+
     latency_ms = int((time.monotonic() - call_start) * 1000)
     usage = getattr(response, "usage", None)
     in_tok = usage.input_tokens if usage else 0
@@ -325,27 +349,21 @@ Note: re_dispatch_domains valid values are: ctrl_plane, node, network, storage, 
 
     _VALID_DOMAINS = {"ctrl_plane", "node", "network", "storage", "rbac"}
 
-    text = response.text
-    try:
-        start = text.index("{")
-        end = text.rindex("}") + 1
-        parsed = json.loads(text[start:end])
-        raw_domains = parsed.get("re_dispatch_domains", [])
-        parsed["re_dispatch_domains"] = [d for d in raw_domains if d in _VALID_DOMAINS]
-        return parsed
-    except (ValueError, json.JSONDecodeError):
-        if telemetry:
-            telemetry.record_call(LLMCallRecord(
-                agent_name="cluster_synthesizer", call_type="synthesis_verdict",
-                error="parse_error", success=False,
-            ))
-        return {
-            "platform_health": "UNKNOWN",
-            "blast_radius": {"summary": "Unable to determine", "affected_namespaces": 0, "affected_pods": 0, "affected_nodes": 0},
-            "remediation": {"immediate": [], "long_term": []},
-            "re_dispatch_needed": False,
-            "re_dispatch_domains": [],
-        }
+    for block in response.content:
+        if getattr(block, "type", None) == "tool_use" and block.name == "submit_verdict":
+            parsed = block.input
+            raw_domains = parsed.get("re_dispatch_domains", [])
+            parsed["re_dispatch_domains"] = [d for d in raw_domains if d in _VALID_DOMAINS]
+            return parsed
+
+    logger.warning("Synthesizer verdict: LLM did not call submit_verdict")
+    return {
+        "platform_health": "UNKNOWN",
+        "blast_radius": {"summary": "Unable to determine", "affected_namespaces": 0, "affected_pods": 0, "affected_nodes": 0},
+        "remediation": {"immediate": [], "long_term": []},
+        "re_dispatch_needed": False,
+        "re_dispatch_domains": [],
+    }
 
 
 @traced_node(timeout_seconds=60)
