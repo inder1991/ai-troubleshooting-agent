@@ -15,13 +15,17 @@ const VerticalRibbon: React.FC<VerticalRibbonProps> = ({ domain, report, onClick
   // Priority tab at position 0
   if (isPriority) {
     return (
-      <div
+      <button
+        type="button"
         className={`
           flex-1 border-b border-[#1f3b42] last:border-b-0 relative group cursor-pointer
           hover:bg-[#152a2f]/80 transition-colors flex flex-col items-center py-2 gap-2 overflow-hidden
           ${isActive ? 'bg-[#e09f3e]/10 border-l-2 border-l-[#e09f3e]' : ''}
+          focus:outline-none focus:ring-1 focus:ring-inset focus:ring-[#e09f3e]
         `}
         onClick={onPriorityClick || onClick}
+        aria-label="Priority findings tab"
+        aria-pressed={isActive}
       >
         <span
           className="material-symbols-outlined text-sm"
@@ -35,7 +39,7 @@ const VerticalRibbon: React.FC<VerticalRibbonProps> = ({ domain, report, onClick
         >
           PRIORITY
         </div>
-      </div>
+      </button>
     );
   }
 
@@ -45,14 +49,18 @@ const VerticalRibbon: React.FC<VerticalRibbonProps> = ({ domain, report, onClick
   const iconColor = hasAnomaly ? '#f59e0b' : report?.status === 'SUCCESS' ? '#10b981' : '#64748b';
 
   return (
-    <div
+    <button
+      type="button"
       className={`
         flex-1 border-b border-[#1f3b42] last:border-b-0 relative group cursor-pointer
         hover:bg-[#152a2f]/80 transition-colors flex flex-col items-center py-2 gap-2 overflow-hidden
         ${hasAnomaly ? 'bg-amber-500/5' : ''}
         ${isActive ? 'bg-[#e09f3e]/10 border-l-2 border-l-[#e09f3e]' : ''}
+        focus:outline-none focus:ring-1 focus:ring-inset focus:ring-[#e09f3e]
       `}
       onClick={onClick}
+      aria-label={`${meta.label} domain tab`}
+      aria-pressed={isActive}
     >
       <span
         className={`material-symbols-outlined text-sm ${isRunning ? 'animate-pulse' : ''}`}
@@ -70,7 +78,7 @@ const VerticalRibbon: React.FC<VerticalRibbonProps> = ({ domain, report, onClick
       >
         {meta.label}
       </div>
-    </div>
+    </button>
   );
 };
 
