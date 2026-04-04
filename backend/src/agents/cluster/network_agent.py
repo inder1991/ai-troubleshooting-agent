@@ -279,20 +279,39 @@ async def network_agent(state: dict, config: dict) -> dict:
     platform = state.get("platform", "kubernetes")
     platform_version = state.get("platform_version", "")
 
-    # Gather data - DNS pods, ingress, metrics, logs, services, endpoints, network policies
-    dns_metrics = await client.query_prometheus("coredns_dns_requests_total")
-    ingress_metrics = await client.query_prometheus("ingress_5xx_rate")
-    logs = await client.query_logs("cluster-logs", {"query": "coredns OR ingress"})
+    prometheus_client = config.get("configurable", {}).get("prometheus_client")
+    elk_client = config.get("configurable", {}).get("elk_client")
+    elk_index = config.get("configurable", {}).get("elk_index", "")
+
+    # Gather Prometheus metrics via PrometheusClient if available
+    dns_metrics_raw: list = []
+    ingress_metrics_raw: list = []
+    if prometheus_client:
+        dns_resp = await prometheus_client.query_instant("coredns_dns_requests_total")
+        dns_metrics_raw = dns_resp.get("data", {}).get("result", []) if isinstance(dns_resp, dict) else []
+        ingress_resp = await prometheus_client.query_instant("ingress_5xx_rate")
+        ingress_metrics_raw = ingress_resp.get("data", {}).get("result", []) if isinstance(ingress_resp, dict) else []
+
+    # Gather logs via ElasticsearchClient if available
+    logs_raw: list = []
+    if elk_client and elk_index:
+        logs_resp = await elk_client.search(
+            index=elk_index,
+            body={"query": {"query_string": {"query": "coredns OR ingress"}}, "size": 50},
+        )
+        hits = logs_resp.get("hits", {}) if isinstance(logs_resp, dict) else {}
+        logs_raw = hits.get("hits", [])
+
+    # Gather data - services, endpoints, network policies via cluster_client
     services = await client.list_services()
     endpoints = await client.list_endpoints()
     network_policies = await client.list_network_policies()
 
-    # Check for RBAC permission denials
+    # Check for RBAC permission denials — only on cluster_client QueryResult objects
     rbac_anomalies = []
     rbac_denied = False
     rbac_counter = 0
     for result, resource_name in [
-        (dns_metrics, "services"), (ingress_metrics, "pods"), (logs, "events"),
         (services, "services"), (endpoints, "endpoints"), (network_policies, "networkpolicies"),
     ]:
         if result.permission_denied:
@@ -313,9 +332,9 @@ async def network_agent(state: dict, config: dict) -> dict:
     )
 
     data_payload = {
-        "dns_metrics": dns_metrics.data,
-        "ingress_metrics": ingress_metrics.data,
-        "logs": logs.data[:50],
+        "dns_metrics": dns_metrics_raw,
+        "ingress_metrics": ingress_metrics_raw,
+        "logs": logs_raw[:50],
         "services": services.data,
         "endpoints": endpoints.data,
         "network_policies": network_policies.data,
@@ -323,8 +342,6 @@ async def network_agent(state: dict, config: dict) -> dict:
 
     version_context = get_version_context(platform_version)
     truncation_note = ""
-    if logs.truncated:
-        truncation_note += f"\nNOTE: Logs truncated — {logs.total_available} total, {logs.returned} analyzed."
 
     system = _SYSTEM_PROMPT.format(
         platform=platform,
