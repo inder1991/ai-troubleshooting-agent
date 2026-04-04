@@ -16,7 +16,7 @@ const UncorrelatedFindings: React.FC<UncorrelatedFindingsProps> = ({ findings })
   if (findings.length === 0) return null;
 
   return (
-    <div className="bg-[#141210] rounded border border-[#2a2520] p-3">
+    <div className="bg-wr-inset rounded border border-wr-border-subtle p-3">
       <button
         onClick={() => setExpanded(!expanded)}
         className="w-full flex items-center justify-between text-left"

@@ -7,18 +7,18 @@ interface AgentTimelineProps {
 }
 
 const DOMAIN_COLORS: Record<string, string> = {
-  ctrl_plane: '#f59e0b',
-  node: '#e09f3e',
-  network: '#10b981',
-  storage: '#8b5cf6',
-  rbac: '#ef4444',
+  ctrl_plane: 'var(--wr-domain-ctrl-plane)',
+  node: 'var(--wr-domain-node)',
+  network: 'var(--wr-domain-network)',
+  storage: 'var(--wr-domain-storage)',
+  rbac: 'var(--wr-domain-rbac)',
 };
 
 const AgentTimeline: React.FC<AgentTimelineProps> = ({ domainReports, phase }) => {
   const maxDuration = Math.max(...domainReports.map(r => r.duration_ms || 0), 1);
 
   return (
-    <div className="bg-[#141210] rounded border border-[#2a2520] p-3">
+    <div className="bg-wr-inset rounded border border-wr-border-subtle p-3">
       <div className="flex items-center justify-between mb-2">
         <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Agent Timeline</span>
         <span className="text-[10px] text-slate-400">{phase === 'complete' ? 'Complete' : 'Running...'}</span>
@@ -33,7 +33,7 @@ const AgentTimeline: React.FC<AgentTimelineProps> = ({ domainReports, phase }) =
               <span className="text-[10px] text-slate-500 w-16 text-right font-mono truncate">
                 {report.domain.replace('_', ' ')}
               </span>
-              <div className="flex-1 h-3 bg-[#1a1814] rounded-sm overflow-hidden relative">
+              <div className="flex-1 h-3 bg-wr-bg rounded-sm overflow-hidden relative">
                 <div
                   className={`h-full rounded-sm transition-all duration-500 ${isRunning ? 'animate-pulse' : ''}`}
                   style={{ width: `${Math.max(pct, 2)}%`, backgroundColor: color, opacity: report.status === 'FAILED' ? 0.4 : 0.8 }}

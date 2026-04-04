@@ -7,9 +7,9 @@ interface VerdictStackProps {
 
 const severityColor = (severity: VerdictEvent['severity']) => {
   switch (severity) {
-    case 'FATAL': return '#ef4444';
-    case 'WARN': return '#f59e0b';
-    case 'INFO': return '#e09f3e';
+    case 'FATAL': return 'var(--wr-severity-high)';
+    case 'WARN': return 'var(--wr-severity-medium)';
+    case 'INFO': return 'var(--wr-accent)';
   }
 };
 
@@ -22,13 +22,13 @@ const VerdictStack: React.FC<VerdictStackProps> = ({ events }) => {
         <p className="text-xs text-slate-600 animate-pulse px-4">Correlating events...</p>
       )}
 
-      <div className="relative flex-1 px-4 border-l border-[#1f3b42] ml-2 space-y-6 pt-2 overflow-y-auto custom-scrollbar">
+      <div className="relative flex-1 px-4 border-l border-wr-border ml-2 space-y-6 pt-2 overflow-y-auto custom-scrollbar">
         {events.map((evt, i) => {
           const color = severityColor(evt.severity);
           return (
             <div key={i} className="relative group">
               <div
-                className="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full ring-4 ring-[#1a1814] group-hover:ring-opacity-50 transition-all"
+                className="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full ring-4 ring-wr-bg group-hover:ring-opacity-50 transition-all"
                 style={{ backgroundColor: color }}
               />
               <div className="text-xs font-mono" style={{ color }}>
@@ -40,7 +40,7 @@ const VerdictStack: React.FC<VerdictStackProps> = ({ events }) => {
         })}
 
         <svg className="absolute left-[-16px] top-0 w-2 h-full pointer-events-none -z-10">
-          <line x1="0" y1="0" x2="0" y2="100%" stroke="#1f3b42" strokeDasharray="4 4" />
+          <line x1="0" y1="0" x2="0" y2="100%" stroke="var(--wr-border)" strokeDasharray="4 4" />
         </svg>
       </div>
     </div>

@@ -59,7 +59,7 @@ const AgentCostBreakdown: React.FC<AgentCostBreakdownProps> = ({ sessionId, visi
   const agentList = Object.values(agents).sort((a, b) => b.cost_usd - a.cost_usd);
 
   return (
-    <div className="absolute top-full right-0 mt-1 z-50 bg-[#141210] border border-[#2a2520] rounded-lg shadow-xl w-[min(480px,calc(100vw-2rem))] p-3">
+    <div className="absolute top-full right-0 mt-1 z-50 bg-wr-inset border border-wr-border-subtle rounded-lg shadow-xl w-[min(480px,calc(100vw-2rem))] p-3">
       <div className="flex items-center justify-between mb-2">
         <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">LLM Cost Breakdown</span>
         <button onClick={onClose} aria-label="Close cost breakdown" onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }} className="text-slate-600 hover:text-slate-300">
@@ -69,7 +69,7 @@ const AgentCostBreakdown: React.FC<AgentCostBreakdownProps> = ({ sessionId, visi
 
       <table className="w-full text-[10px] font-mono">
         <thead>
-          <tr className="text-slate-500 border-b border-[#2a2520]">
+          <tr className="text-slate-500 border-b border-wr-border-subtle">
             <th className="text-left py-1 pr-2">Agent</th>
             <th className="text-right py-1 px-1">Calls</th>
             <th className="text-right py-1 px-1">Tokens</th>
@@ -80,11 +80,11 @@ const AgentCostBreakdown: React.FC<AgentCostBreakdownProps> = ({ sessionId, visi
         </thead>
         <tbody>
           {agentList.map(agent => (
-            <tr key={agent.agent_name} className="text-slate-300 border-b border-[#2a2520]/50 hover:bg-[#1a1814]">
+            <tr key={agent.agent_name} className="text-slate-300 border-b border-wr-border-subtle/50 hover:bg-wr-bg">
               <td className="py-1.5 pr-2 truncate max-w-[100px]">{agent.agent_name.replace('cluster_', '')}</td>
               <td className="text-right py-1.5 px-1">{agent.calls}</td>
               <td className="text-right py-1.5 px-1 text-slate-500">{agent.tokens}</td>
-              <td className="text-right py-1.5 px-1 text-[#e09f3e]">${agent.cost_usd.toFixed(3)}</td>
+              <td className="text-right py-1.5 px-1 text-wr-accent">${agent.cost_usd.toFixed(3)}</td>
               <td className="text-right py-1.5 px-1">{(agent.latency_ms / 1000).toFixed(1)}s</td>
               <td className="text-right py-1.5 pl-1">
                 {agent.source === 'heuristic' ? (
@@ -100,11 +100,11 @@ const AgentCostBreakdown: React.FC<AgentCostBreakdownProps> = ({ sessionId, visi
           ))}
         </tbody>
         <tfoot>
-          <tr className="text-slate-400 border-t border-[#2a2520] font-semibold">
+          <tr className="text-slate-400 border-t border-wr-border-subtle font-semibold">
             <td className="py-1.5 pr-2">Total</td>
             <td className="text-right py-1.5 px-1">{totals.calls}</td>
             <td className="text-right py-1.5 px-1 text-slate-500">{Math.round(totals.inputTokens/1000)}K/{Math.round(totals.outputTokens/1000)}K</td>
-            <td className="text-right py-1.5 px-1 text-[#e09f3e]">${totals.cost.toFixed(3)}</td>
+            <td className="text-right py-1.5 px-1 text-wr-accent">${totals.cost.toFixed(3)}</td>
             <td className="text-right py-1.5 px-1">{(totals.latency / 1000).toFixed(1)}s</td>
             <td></td>
           </tr>

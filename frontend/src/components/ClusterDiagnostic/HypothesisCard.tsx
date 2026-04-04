@@ -17,7 +17,7 @@ const ConfidenceBar: React.FC<{ value: number }> = ({ value }) => {
           <span
             key={i}
             className="inline-block w-[5px] h-[10px] mr-px rounded-[1px]"
-            style={{ backgroundColor: i < blocks ? '#e09f3e' : '#1a1814' }}
+            style={{ backgroundColor: i < blocks ? 'var(--wr-accent)' : 'var(--wr-bg-primary)' }}
           />
         ))}
       </span>
@@ -33,7 +33,7 @@ const HypothesisCard: React.FC<HypothesisCardProps> = ({ hypotheses, primaryChai
   // Fallback: no hypotheses and no chain
   if (!hasHypotheses && !primaryChain) {
     return (
-      <div className="border border-[#2a2520] rounded bg-[#141210] p-4">
+      <div className="border border-wr-border-subtle rounded bg-wr-inset p-4">
         <h3 className="text-[10px] uppercase font-bold tracking-widest text-slate-500 mb-1 flex items-center gap-2">
           <span className="material-symbols-outlined text-sm">search</span>
           Root Cause Analysis
@@ -49,7 +49,7 @@ const HypothesisCard: React.FC<HypothesisCardProps> = ({ hypotheses, primaryChai
     const effects = topHypothesis.causal_chain.slice(1);
 
     return (
-      <div className="border border-[#2a2520] rounded bg-[#141210]">
+      <div className="border border-wr-border-subtle rounded bg-wr-inset">
         <div className="px-4 pt-4 pb-2">
           <h3 className="text-[10px] uppercase font-bold tracking-widest text-slate-500 mb-3 flex items-center gap-2">
             <span className="material-symbols-outlined text-sm">psychology</span>
@@ -62,7 +62,7 @@ const HypothesisCard: React.FC<HypothesisCardProps> = ({ hypotheses, primaryChai
               return (
                 <div
                   key={h.hypothesis_id}
-                  className={`py-2 px-3 rounded ${isTop ? 'border-l-2 border-l-[#e09f3e] bg-[#1a1814]' : ''}`}
+                  className={`py-2 px-3 rounded ${isTop ? 'border-l-2 border-l-wr-accent bg-wr-bg' : ''}`}
                 >
                   <div className="flex items-start gap-2">
                     <span className="text-[10px] font-mono text-slate-600 mt-0.5 shrink-0">#{idx + 1}</span>
@@ -92,7 +92,7 @@ const HypothesisCard: React.FC<HypothesisCardProps> = ({ hypotheses, primaryChai
 
         {/* Cascading Effects (expandable) */}
         {effects.length > 0 && (
-          <div className="border-t border-[#2a2520]">
+          <div className="border-t border-wr-border-subtle">
             <button
               onClick={() => setExpanded(!expanded)}
               aria-label={expanded ? 'Collapse effects' : 'Show cascading effects'}
@@ -123,7 +123,7 @@ const HypothesisCard: React.FC<HypothesisCardProps> = ({ hypotheses, primaryChai
   // Fallback: show primaryChain (legacy RootCauseCard style)
   const chain = primaryChain!;
   const isConfident = confidence >= 50;
-  const badgeColor = isConfident ? '#ef4444' : '#f59e0b';
+  const badgeColor = isConfident ? 'var(--wr-severity-high)' : 'var(--wr-severity-medium)';
   const badgeText = isConfident ? 'Identified Root Cause' : 'Suspected Root Cause';
 
   return (
@@ -140,18 +140,18 @@ const HypothesisCard: React.FC<HypothesisCardProps> = ({ hypotheses, primaryChai
       </h3>
       <p className="text-lg font-bold text-white mb-3 leading-tight">{chain.root_cause.description}</p>
       <div className="flex gap-4">
-        <div className="p-2 bg-[#1a1814]/60 border border-[#2a2520] rounded">
+        <div className="p-2 bg-wr-bg/60 border border-wr-border-subtle rounded">
           <div className="text-[8px] uppercase text-slate-500">Confidence</div>
           <div className="text-base font-mono" style={{ color: badgeColor }}>{Math.round(chain.confidence * 100)}%</div>
         </div>
-        <div className="p-2 bg-[#1a1814]/60 border border-[#2a2520] rounded">
+        <div className="p-2 bg-wr-bg/60 border border-wr-border-subtle rounded">
           <div className="text-[8px] uppercase text-slate-500">Cascading Effects</div>
           <div className="text-base font-mono text-amber-500">{chain.cascading_effects.length}</div>
         </div>
       </div>
 
       {chain.cascading_effects.length > 0 && (
-        <div className="border-t border-[#2a2520] mt-3 pt-2">
+        <div className="border-t border-wr-border-subtle mt-3 pt-2">
           <button
             onClick={() => setExpanded(!expanded)}
             aria-label={expanded ? 'Collapse effects' : 'Show cascading effects'}

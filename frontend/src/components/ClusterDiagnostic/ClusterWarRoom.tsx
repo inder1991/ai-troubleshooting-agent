@@ -321,7 +321,7 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
   }, [centerView, centerDomainReport]);
 
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-[#1a1814] relative font-sans text-slate-300">
+    <div className="flex flex-col h-full overflow-hidden bg-wr-bg relative font-sans text-slate-300">
       <ClusterHeader
         sessionId={session.session_id}
         confidence={confidence}
@@ -377,13 +377,13 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
         {loading && !findings && !error && (
           <>
             {/* Left column skeleton */}
-            <section className="col-span-3 border-r border-[#1f3b42] p-4 flex flex-col gap-4">
+            <section className="col-span-3 border-r border-wr-border p-4 flex flex-col gap-4">
               <SkeletonLoader type="card" height="h-48" />
               <SkeletonLoader type="card" height="h-28" />
               <SkeletonLoader type="card" height="h-24" />
             </section>
             {/* Center column skeleton */}
-            <section className="col-span-5 border-r border-[#1f3b42] p-4 flex flex-col gap-3">
+            <section className="col-span-5 border-r border-wr-border p-4 flex flex-col gap-3">
               <SkeletonLoader type="row" />
               <SkeletonLoader type="card" height="h-64" />
               <SkeletonLoader type="row" />
@@ -401,13 +401,13 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
         {(!loading || findings) && (
           <>
             {/* ── LEFT COLUMN (col-3) ── */}
-            <section className="col-span-3 border-r border-[#1f3b42] bg-[#1a1814]/50 p-4 flex flex-col gap-4 overflow-hidden z-10">
+            <section className="col-span-3 border-r border-wr-border bg-wr-bg/50 p-4 flex flex-col gap-4 overflow-hidden z-10">
               <ExecutionProgress domainReports={domainReports} phase={phase || 'pre_flight'} />
               <FleetHeatmap nodes={fleetNodes} selectedNode={selectedNode} onSelectNode={setSelectedNode} />
             </section>
 
             {/* ── CENTER COLUMN (col-5) ── */}
-            <section className="col-span-5 flex h-full bg-[#1a1814] overflow-hidden relative border-r border-[#1f3b42]">
+            <section className="col-span-5 flex h-full bg-wr-bg overflow-hidden relative border-r border-wr-border">
               {allAgentsFailed && (
                 <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
                   <span className="material-symbols-outlined text-4xl text-red-500/40 mb-3">error_outline</span>
@@ -441,7 +441,7 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
                   namespaces={centerNamespaceWorkloads}
                 />
               ))}
-              <div className="w-[40px] flex flex-col bg-[#152a2f] border-l border-[#1f3b42] shrink-0 z-10">
+              <div className="w-[40px] flex flex-col bg-wr-surface border-l border-wr-border shrink-0 z-10">
                 <VerticalRibbon
                   domain={'node' as ClusterDomainKey}
                   isPriority
@@ -462,7 +462,7 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
             </section>
 
             {/* ── RIGHT COLUMN (col-4) ── */}
-            <section className="col-span-4 bg-[#1a1814]/50 p-4 flex flex-col gap-4 overflow-y-auto relative z-10">
+            <section className="col-span-4 bg-wr-bg/50 p-4 flex flex-col gap-4 overflow-y-auto relative z-10">
               <HypothesisCard
                 hypotheses={rankedHypotheses}
                 primaryChain={primaryChain}
@@ -470,13 +470,13 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
               />
               <RemediationCard steps={immediateSteps} blastRadius={findings?.blast_radius} />
               {longTermSteps.length > 0 && (
-                <div className="bg-[#141210] rounded border border-[#2a2520] p-3">
+                <div className="bg-wr-inset rounded border border-wr-border-subtle p-3">
                   <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Long-Term Recommendations</span>
                   <div className="mt-2 space-y-2">
                     {longTermSteps.map((step, i) => (
                       <div key={i} className="text-[11px] text-slate-400">
                         <p>{step.description}</p>
-                        {step.command && <code className="text-[10px] text-[#e09f3e] block mt-1 font-mono">$ {step.command}</code>}
+                        {step.command && <code className="text-[10px] text-wr-accent block mt-1 font-mono">$ {step.command}</code>}
                       </div>
                     ))}
                   </div>

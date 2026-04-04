@@ -7,11 +7,11 @@ interface ExecutionProgressProps {
 }
 
 const DOMAIN_COLORS: Record<string, string> = {
-  ctrl_plane: '#f59e0b',
-  node:       '#e09f3e',
-  network:    '#10b981',
-  storage:    '#8b5cf6',
-  rbac:       '#ef4444',
+  ctrl_plane: 'var(--wr-domain-ctrl-plane)',
+  node:       'var(--wr-domain-node)',
+  network:    'var(--wr-domain-network)',
+  storage:    'var(--wr-domain-storage)',
+  rbac:       'var(--wr-domain-rbac)',
 };
 
 const ALL_DOMAINS = ['ctrl_plane', 'node', 'network', 'storage', 'rbac'];
@@ -72,7 +72,7 @@ const ExecutionProgress: React.FC<ExecutionProgressProps> = ({ domainReports, ph
   ], [phase, agentsDone, totalAgents, anyRunning, anyFailed]);
 
   return (
-    <div className="bg-[#141210] rounded border border-[#2a2520] p-3 max-h-[220px] overflow-hidden">
+    <div className="bg-wr-inset rounded border border-wr-border-subtle p-3 max-h-[220px] overflow-hidden">
       <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Execution Progress</span>
 
       <div className="mt-3 space-y-3">
@@ -103,7 +103,7 @@ const ExecutionProgress: React.FC<ExecutionProgressProps> = ({ domainReports, ph
 
                     return (
                       <div key={domain} className="flex flex-col items-center gap-0.5" style={{ width: '16%' }}>
-                        <div className="w-full h-[28px] bg-[#1a1814] rounded-sm relative overflow-hidden">
+                        <div className="w-full h-[28px] bg-wr-bg rounded-sm relative overflow-hidden">
                           <div
                             className={`absolute bottom-0 left-0 right-0 rounded-sm transition-all duration-500 ${isRunning ? 'animate-pulse' : ''}`}
                             style={{
@@ -124,7 +124,7 @@ const ExecutionProgress: React.FC<ExecutionProgressProps> = ({ domainReports, ph
 
               {/* Connector line between phases */}
               {idx < phases.length - 1 && (
-                <div className="ml-[3px] h-2 border-l border-dashed border-[#2a2520]" />
+                <div className="ml-[3px] h-2 border-l border-dashed border-wr-border-subtle" />
               )}
             </div>
           );

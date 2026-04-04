@@ -21,9 +21,9 @@ const CommandBar: React.FC = () => {
   }, [handleSubmit]);
 
   return (
-    <footer className="h-12 bg-[#152a2f] border-t border-[#1f3b42] sticky bottom-0 z-50 flex items-center px-4 shrink-0">
+    <footer className="h-12 bg-wr-surface border-t border-wr-border sticky bottom-0 z-50 flex items-center px-4 shrink-0">
       <div className="flex items-center gap-3 w-full max-w-4xl mx-auto">
-        <span className="text-[#e09f3e] font-mono text-sm font-bold">$</span>
+        <span className="text-wr-accent font-mono text-sm font-bold">$</span>
         <input
           className="bg-transparent border-none text-sm font-mono text-white w-full placeholder-slate-600 focus:outline-none focus:ring-0"
           placeholder="Type tactical command (e.g., /cordon --node=3) or press 'K' for quick search..."
@@ -33,8 +33,8 @@ const CommandBar: React.FC = () => {
           onKeyDown={handleKeyDown}
         />
         <div className="flex gap-2 shrink-0">
-          <kbd className="px-2 py-0.5 bg-[#1a1814] border border-[#1f3b42] rounded text-[10px] font-mono text-slate-400 uppercase">Shift</kbd>
-          <kbd className="px-2 py-0.5 bg-[#1a1814] border border-[#1f3b42] rounded text-[10px] font-mono text-slate-400 uppercase">Enter</kbd>
+          <kbd className="px-2 py-0.5 bg-wr-bg border border-wr-border rounded text-[10px] font-mono text-slate-400 uppercase">Shift</kbd>
+          <kbd className="px-2 py-0.5 bg-wr-bg border border-wr-border rounded text-[10px] font-mono text-slate-400 uppercase">Enter</kbd>
         </div>
       </div>
     </footer>

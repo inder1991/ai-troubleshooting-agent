@@ -9,7 +9,7 @@ interface RootCauseCardProps {
 const RootCauseCard: React.FC<RootCauseCardProps> = ({ chain, confidence }) => {
   if (!chain) {
     return (
-      <div className="border border-[#1f3b42] rounded-lg bg-[#152a2f]/40 p-5">
+      <div className="border border-wr-border rounded-lg bg-wr-surface/40 p-5">
         <h3 className="text-[10px] uppercase font-bold tracking-widest text-slate-500 mb-1 flex items-center gap-2">
           <span className="material-symbols-outlined text-sm">search</span>
           Root Cause Analysis
@@ -21,7 +21,7 @@ const RootCauseCard: React.FC<RootCauseCardProps> = ({ chain, confidence }) => {
 
   const isConfident = confidence >= 50;
   const badgeText = isConfident ? 'Identified Root Cause' : 'Suspected Root Cause';
-  const badgeColor = isConfident ? '#ef4444' : '#f59e0b';
+  const badgeColor = isConfident ? 'var(--wr-severity-high)' : 'var(--wr-severity-medium)';
 
   return (
     <div
@@ -41,13 +41,13 @@ const RootCauseCard: React.FC<RootCauseCardProps> = ({ chain, confidence }) => {
         {chain.root_cause.description}
       </h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="p-2 bg-[#1a1814]/40 border border-[#1f3b42] rounded flex flex-col justify-between">
+        <div className="p-2 bg-wr-bg/40 border border-wr-border rounded flex flex-col justify-between">
           <div className="text-[8px] uppercase text-slate-500">Confidence</div>
           <div className="text-lg font-mono" style={{ color: badgeColor }}>
             {Math.round(chain.confidence * 100)}%
           </div>
         </div>
-        <div className="p-2 bg-[#1a1814]/40 border border-[#1f3b42] rounded flex flex-col justify-between">
+        <div className="p-2 bg-wr-bg/40 border border-wr-border rounded flex flex-col justify-between">
           <div className="text-[8px] uppercase text-slate-500">Cascading Effects</div>
           <div className="text-lg font-mono text-amber-500">
             {chain.cascading_effects.length}

@@ -12,7 +12,7 @@ interface DomainPanelProps {
 const statusBadge = (status?: string) => {
   switch (status) {
     case 'SUCCESS': return { text: 'HEALTHY', cls: 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20' };
-    case 'RUNNING': return { text: 'ACTIVE_TRACING', cls: 'text-[#e09f3e] bg-[#e09f3e]/10 border-[#e09f3e]/20' };
+    case 'RUNNING': return { text: 'ACTIVE_TRACING', cls: 'text-wr-accent bg-wr-accent/10 border-wr-accent/20' };
     case 'PARTIAL': return { text: 'PARTIAL', cls: 'text-amber-400 bg-amber-400/10 border-amber-400/20' };
     case 'FAILED': return { text: 'FAILED', cls: 'text-red-400 bg-red-400/10 border-red-400/20' };
     default: return { text: 'PENDING', cls: 'text-slate-400 bg-slate-400/10 border-slate-400/20' };
@@ -24,8 +24,8 @@ const DomainPanel: React.FC<DomainPanelProps> = ({ domain, report, namespaces })
   const badge = statusBadge(report?.status);
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-[#152a2f]/20 transition-transform duration-300 hover:scale-[1.005] origin-center z-10 shadow-2xl">
-      <div className="px-4 py-3 bg-[#152a2f] border-b border-[#1f3b42] flex items-center justify-between shrink-0">
+    <div className="flex-1 flex flex-col h-full bg-wr-surface/20 transition-transform duration-300 hover:scale-[1.005] origin-center z-10 shadow-2xl">
+      <div className="px-4 py-3 bg-wr-surface border-b border-wr-border flex items-center justify-between shrink-0">
         <h2 className="font-bold text-sm tracking-wide flex items-center gap-2">
           <span className="material-symbols-outlined text-base" style={{ color: meta.color }}>
             {meta.icon}
@@ -77,11 +77,11 @@ const DomainPanel: React.FC<DomainPanelProps> = ({ domain, report, namespaces })
               key={ns.namespace}
               className={`border-l-2 pl-4 py-2 ${
                 hasTrigger
-                  ? `border-[#e09f3e] bg-[#152a2f]/40 rounded-r border-y border-r border-[#1f3b42]/50`
-                  : `border-[#1f3b42] ${isHealthy ? 'opacity-40 hover:opacity-80 transition-opacity' : ''}`
+                  ? `border-wr-accent bg-wr-surface/40 rounded-r border-y border-r border-wr-border/50`
+                  : `border-wr-border ${isHealthy ? 'opacity-40 hover:opacity-80 transition-opacity' : ''}`
               }`}
             >
-              <h4 className={`text-xs font-mono flex items-center gap-2 ${hasTrigger ? 'text-[#e09f3e]' : 'text-slate-500'}`}>
+              <h4 className={`text-xs font-mono flex items-center gap-2 ${hasTrigger ? 'text-wr-accent' : 'text-slate-500'}`}>
                 <span className="material-symbols-outlined text-[14px]">grid_view</span>
                 namespace: {ns.namespace}
               </h4>
@@ -93,7 +93,7 @@ const DomainPanel: React.FC<DomainPanelProps> = ({ domain, report, namespaces })
               ))}
 
               {!hasTrigger && (
-                <div className="mt-2 bg-[#1a1814]/30 p-2 rounded text-[10px] text-slate-600 font-mono">
+                <div className="mt-2 bg-wr-bg/30 p-2 rounded text-[10px] text-slate-600 font-mono">
                   Status: {ns.status} | {ns.replica_status || '—'} | Last Deploy: {ns.last_deploy || '—'}
                 </div>
               )}

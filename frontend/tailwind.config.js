@@ -13,6 +13,14 @@ export default {
         'background-dark': '#1a1814',
         'neutral-slate': '#252118',
         'neutral-border': '#3d3528',
+        wr: {
+          bg: 'var(--wr-bg-primary)',
+          surface: 'var(--wr-bg-surface)',
+          inset: 'var(--wr-bg-inset)',
+          border: 'var(--wr-border)',
+          'border-subtle': 'var(--wr-border-subtle)',
+          accent: 'var(--wr-accent)',
+        },
         duck: {
           bg:      '#1a1814',
           card:    '#252118',

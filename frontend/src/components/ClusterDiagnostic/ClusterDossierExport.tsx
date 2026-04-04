@@ -54,7 +54,7 @@ const ClusterDossierExport: React.FC<ClusterDossierExportProps> = ({ sessionId, 
       <button
         onClick={() => exportDossier('text')}
         disabled={exporting || platformHealth === 'PENDING'}
-        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded border border-[#e09f3e]/30 text-[#e09f3e] hover:bg-[#e09f3e]/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded border border-wr-accent/30 text-wr-accent hover:bg-wr-accent/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
       >
         <span className="material-symbols-outlined text-[14px]">description</span>
         {exporting ? 'Exporting...' : 'Export Report'}

@@ -10,10 +10,10 @@ interface LifecycleSummaryStripProps {
 }
 
 const DOT_COLORS: Partial<Record<IssueLifecycleState, string>> = {
-  ACTIVE_DISRUPTION: '#ef4444',
-  WORSENING: '#f59e0b',
-  NEW: '#e09f3e',
-  EXISTING: '#64748b',
+  ACTIVE_DISRUPTION: 'var(--wr-severity-high)',
+  WORSENING: 'var(--wr-severity-medium)',
+  NEW: 'var(--wr-accent)',
+  EXISTING: 'var(--wr-text-muted)',
   LONG_STANDING: '#475569',
   INTERMITTENT: '#6366f1',
   SYMPTOM: '#94a3b8',
@@ -50,7 +50,7 @@ const LifecycleSummaryStrip: React.FC<LifecycleSummaryStripProps> = ({
   const isScanning = phase !== 'complete';
 
   return (
-    <div className="h-9 flex items-center gap-3 px-3 border-b border-[#2a2520] select-none overflow-x-auto">
+    <div className="h-9 flex items-center gap-3 px-3 border-b border-wr-border-subtle select-none overflow-x-auto">
       {/* State dots */}
       {STATE_ORDER.map(state => {
         const count = stateCounts[state];
@@ -69,7 +69,7 @@ const LifecycleSummaryStrip: React.FC<LifecycleSummaryStripProps> = ({
 
       {/* Separator */}
       {Object.keys(stateCounts).length > 0 && (
-        <span className="w-px h-3 bg-[#2a2520] shrink-0" />
+        <span className="w-px h-3 bg-wr-border-subtle shrink-0" />
       )}
 
       {/* Domain count */}
@@ -78,14 +78,14 @@ const LifecycleSummaryStrip: React.FC<LifecycleSummaryStripProps> = ({
       {/* Completeness */}
       {completePct !== null && (
         <>
-          <span className="w-px h-3 bg-[#2a2520] shrink-0" />
+          <span className="w-px h-3 bg-wr-border-subtle shrink-0" />
           <span className="text-[10px] text-slate-500 font-mono shrink-0">{completePct}% complete</span>
         </>
       )}
 
       {scopeCoverage != null && scopeCoverage < 1 && (
         <>
-          <div className="w-px h-3 bg-[#2a2520]" />
+          <div className="w-px h-3 bg-wr-border-subtle" />
           <span className="text-[10px] text-amber-400 font-mono">
             Scope: {Math.round(scopeCoverage * 100)}%
           </span>

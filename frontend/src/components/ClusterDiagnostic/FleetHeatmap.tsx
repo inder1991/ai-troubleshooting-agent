@@ -11,7 +11,7 @@ const statusColor = (status: FleetNode['status']) => {
   switch (status) {
     case 'critical': return 'bg-red-500';
     case 'warning': return 'bg-amber-500';
-    case 'healthy': return 'bg-[#1f3b42]';
+    case 'healthy': return 'bg-wr-border';
     default: return 'bg-slate-700';
   }
 };
@@ -20,7 +20,7 @@ const FleetHeatmap: React.FC<FleetHeatmapProps> = ({ nodes, selectedNode, onSele
   const nodeCount = nodes.length || 0;
 
   return (
-    <div className="bg-[#152a2f]/40 rounded border border-[#1f3b42] p-3">
+    <div className="bg-wr-surface/40 rounded border border-wr-border p-3">
       <h3 className="text-[10px] uppercase font-bold tracking-widest text-slate-500 mb-3 flex justify-between">
         Fleet Heatmap <span>{nodeCount} Nodes</span>
       </h3>
@@ -38,9 +38,9 @@ const FleetHeatmap: React.FC<FleetHeatmapProps> = ({ nodes, selectedNode, onSele
               className={`
                 aspect-square rounded-[1px] transition-all duration-500 cursor-pointer
                 ${statusColor(node.status)}
-                ${isCritical ? 'animate-pulse opacity-100 z-10 shadow-[0_0_12px_#ef4444]' : 'opacity-20 hover:opacity-60'}
-                ${isSelected ? 'ring-2 ring-[#e09f3e] ring-offset-1 ring-offset-[#1a1814] z-20' : ''}
-                focus:outline-none focus:ring-1 focus:ring-[#e09f3e]
+                ${isCritical ? 'animate-pulse opacity-100 z-10 shadow-[0_0_12px_var(--wr-severity-high)]' : 'opacity-20 hover:opacity-60'}
+                ${isSelected ? 'ring-2 ring-wr-accent ring-offset-1 ring-offset-wr-bg z-20' : ''}
+                focus:outline-none focus:ring-1 focus:ring-wr-accent
               `}
               onClick={() => onSelectNode?.(node.name)}
               aria-label={`Node ${node.name}: ${node.status}, CPU ${Math.round(node.cpu_pct)}%${node.disk_pressure ? ', disk pressure' : ''}`}

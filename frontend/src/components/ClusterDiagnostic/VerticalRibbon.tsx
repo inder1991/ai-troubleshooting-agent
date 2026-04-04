@@ -18,10 +18,10 @@ const VerticalRibbon: React.FC<VerticalRibbonProps> = ({ domain, report, onClick
       <button
         type="button"
         className={`
-          flex-1 border-b border-[#1f3b42] last:border-b-0 relative group cursor-pointer
-          hover:bg-[#152a2f]/80 transition-colors flex flex-col items-center py-2 gap-2 overflow-hidden
-          ${isActive ? 'bg-[#e09f3e]/10 border-l-2 border-l-[#e09f3e]' : ''}
-          focus:outline-none focus:ring-1 focus:ring-inset focus:ring-[#e09f3e]
+          flex-1 border-b border-wr-border last:border-b-0 relative group cursor-pointer
+          hover:bg-wr-surface/80 transition-colors flex flex-col items-center py-2 gap-2 overflow-hidden
+          ${isActive ? 'bg-wr-accent/10 border-l-2 border-l-wr-accent' : ''}
+          focus:outline-none focus:ring-1 focus:ring-inset focus:ring-wr-accent
         `}
         onClick={onPriorityClick || onClick}
         aria-label="Priority findings tab"
@@ -29,13 +29,13 @@ const VerticalRibbon: React.FC<VerticalRibbonProps> = ({ domain, report, onClick
       >
         <span
           className="material-symbols-outlined text-sm"
-          style={{ color: isActive ? '#e09f3e' : '#64748b' }}
+          style={{ color: isActive ? 'var(--wr-accent)' : 'var(--wr-text-muted)' }}
         >
           priority_high
         </span>
 
         <div className="vertical-label text-[10px] font-bold tracking-widest whitespace-nowrap py-2 flex-1 text-center"
-          style={{ color: isActive ? '#e09f3e' : '#64748b' }}
+          style={{ color: isActive ? 'var(--wr-accent)' : 'var(--wr-text-muted)' }}
         >
           PRIORITY
         </div>
@@ -46,17 +46,17 @@ const VerticalRibbon: React.FC<VerticalRibbonProps> = ({ domain, report, onClick
   const meta = DOMAIN_META[domain];
   const hasAnomaly = report && report.anomalies.length > 0;
   const isRunning = report?.status === 'RUNNING';
-  const iconColor = hasAnomaly ? '#f59e0b' : report?.status === 'SUCCESS' ? '#10b981' : '#64748b';
+  const iconColor = hasAnomaly ? 'var(--wr-severity-medium)' : report?.status === 'SUCCESS' ? 'var(--wr-status-success)' : 'var(--wr-text-muted)';
 
   return (
     <button
       type="button"
       className={`
-        flex-1 border-b border-[#1f3b42] last:border-b-0 relative group cursor-pointer
-        hover:bg-[#152a2f]/80 transition-colors flex flex-col items-center py-2 gap-2 overflow-hidden
+        flex-1 border-b border-wr-border last:border-b-0 relative group cursor-pointer
+        hover:bg-wr-surface/80 transition-colors flex flex-col items-center py-2 gap-2 overflow-hidden
         ${hasAnomaly ? 'bg-amber-500/5' : ''}
-        ${isActive ? 'bg-[#e09f3e]/10 border-l-2 border-l-[#e09f3e]' : ''}
-        focus:outline-none focus:ring-1 focus:ring-inset focus:ring-[#e09f3e]
+        ${isActive ? 'bg-wr-accent/10 border-l-2 border-l-wr-accent' : ''}
+        focus:outline-none focus:ring-1 focus:ring-inset focus:ring-wr-accent
       `}
       onClick={onClick}
       aria-label={`${meta.label} domain tab`}
@@ -64,17 +64,17 @@ const VerticalRibbon: React.FC<VerticalRibbonProps> = ({ domain, report, onClick
     >
       <span
         className={`material-symbols-outlined text-sm ${isRunning ? 'animate-pulse' : ''}`}
-        style={{ color: isActive ? '#e09f3e' : iconColor }}
+        style={{ color: isActive ? 'var(--wr-accent)' : iconColor }}
       >
         {meta.icon}
       </span>
 
-      <svg aria-hidden="true" className="w-full h-12 fill-none" preserveAspectRatio="none" viewBox="0 0 40 100" style={{ stroke: isActive ? '#e09f3e' : iconColor }}>
+      <svg aria-hidden="true" className="w-full h-12 fill-none" preserveAspectRatio="none" viewBox="0 0 40 100" style={{ stroke: isActive ? 'var(--wr-accent)' : iconColor }}>
         <path d="M20 100 L20 60 L35 50 L5 40 L20 30 L20 0" strokeWidth="1.5" />
       </svg>
 
       <div className="vertical-label text-[10px] font-bold tracking-widest text-slate-400 whitespace-nowrap py-2 flex-1 text-center"
-        style={{ color: isActive ? '#e09f3e' : undefined }}
+        style={{ color: isActive ? 'var(--wr-accent)' : undefined }}
       >
         {meta.label}
       </div>

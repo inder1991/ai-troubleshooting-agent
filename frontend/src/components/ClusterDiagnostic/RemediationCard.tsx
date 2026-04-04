@@ -57,14 +57,14 @@ const RemediationCard: React.FC<RemediationCardProps> = ({ steps, blastRadius })
   const primaryStep = steps[0];
 
   return (
-    <div className="bg-[#152a2f] border border-[#1f3b42] rounded-lg p-4 shadow-lg">
+    <div className="bg-wr-surface border border-wr-border rounded-lg p-4 shadow-lg">
       <h3 className="text-[10px] uppercase font-bold tracking-widest text-slate-500 mb-3">Proposed Remediation</h3>
 
       {/* Pre-check command */}
       {primaryStep.pre_check && (
         <div className="mb-3">
           <span className="text-[9px] uppercase font-semibold text-slate-500 tracking-wider">Pre-check</span>
-          <div className="bg-black/40 rounded p-2 font-mono text-[10px] text-blue-400 mt-1 border border-[#1f3b42]/30 flex items-center justify-between gap-2">
+          <div className="bg-black/40 rounded p-2 font-mono text-[10px] text-blue-400 mt-1 border border-wr-border/30 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
               <span className="text-slate-500 shrink-0">$</span>
               <span className="truncate">{primaryStep.pre_check}</span>
@@ -83,7 +83,7 @@ const RemediationCard: React.FC<RemediationCardProps> = ({ steps, blastRadius })
       {primaryStep.dry_run && (
         <div className="mb-3">
           <span className="text-[9px] uppercase font-semibold text-slate-500 tracking-wider">Dry Run</span>
-          <div className="bg-black/40 rounded p-2 font-mono text-[10px] text-amber-400 mt-1 border border-[#1f3b42]/30 flex items-center justify-between gap-2">
+          <div className="bg-black/40 rounded p-2 font-mono text-[10px] text-amber-400 mt-1 border border-wr-border/30 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
               <span className="text-slate-500 shrink-0">$</span>
               <span className="truncate">{primaryStep.dry_run}</span>
@@ -105,7 +105,7 @@ const RemediationCard: React.FC<RemediationCardProps> = ({ steps, blastRadius })
 
       {/* Main command */}
       {primaryStep.command && (
-        <div className="bg-black/40 rounded p-3 font-mono text-xs text-emerald-400 mb-3 border border-[#1f3b42]/30 flex items-center gap-2">
+        <div className="bg-black/40 rounded p-3 font-mono text-xs text-emerald-400 mb-3 border border-wr-border/30 flex items-center gap-2">
           <span className="text-slate-500">$</span>
           {primaryStep.command}
         </div>
@@ -139,12 +139,12 @@ const RemediationCard: React.FC<RemediationCardProps> = ({ steps, blastRadius })
 
       {/* Simulation preview */}
       {primaryStep.validation?.simulation && (
-        <div className="mb-3 px-3 py-2 rounded border border-[#1f3b42] bg-[#1a1814]/40">
+        <div className="mb-3 px-3 py-2 rounded border border-wr-border bg-wr-bg/40">
           <span className="text-[9px] uppercase font-bold tracking-wider text-slate-500">Impact Simulation</span>
           <div className="mt-1.5 space-y-1 text-[10px]">
             <div className="text-slate-400">
               <span className="text-slate-500">Action:</span>{' '}
-              <span className="text-[#e09f3e] font-mono">{primaryStep.validation.simulation.action}</span>{' '}
+              <span className="text-wr-accent font-mono">{primaryStep.validation.simulation.action}</span>{' '}
               <span className="text-slate-300 font-mono">{primaryStep.validation.simulation.target}</span>
             </div>
             <div className="text-slate-400">
@@ -176,10 +176,10 @@ const RemediationCard: React.FC<RemediationCardProps> = ({ steps, blastRadius })
             className="w-2 h-2 rounded-full"
             style={{
               backgroundColor:
-                primaryStep.validation.remediation_confidence >= 0.8 ? '#10b981' :
-                primaryStep.validation.remediation_confidence >= 0.5 ? '#e09f3e' :
-                primaryStep.validation.remediation_confidence >= 0.3 ? '#64748b' :
-                '#ef4444',
+                primaryStep.validation.remediation_confidence >= 0.8 ? 'var(--wr-status-success)' :
+                primaryStep.validation.remediation_confidence >= 0.5 ? 'var(--wr-accent)' :
+                primaryStep.validation.remediation_confidence >= 0.3 ? 'var(--wr-text-muted)' :
+                'var(--wr-severity-high)',
             }}
           />
         </div>
@@ -208,7 +208,7 @@ const RemediationCard: React.FC<RemediationCardProps> = ({ steps, blastRadius })
 
       {primaryStep.command && !primaryStep.validation?.blocked && (
         <button
-          className="w-full bg-[#e09f3e]/10 border border-[#e09f3e] rounded h-12 flex items-center justify-between px-4 relative overflow-hidden cursor-pointer select-none transition-colors"
+          className="w-full bg-wr-accent/10 border border-wr-accent rounded h-12 flex items-center justify-between px-4 relative overflow-hidden cursor-pointer select-none transition-colors"
           onMouseDown={() => startHold(0, primaryStep.command!)}
           onMouseUp={cancelHold}
           onMouseLeave={cancelHold}
@@ -220,7 +220,7 @@ const RemediationCard: React.FC<RemediationCardProps> = ({ steps, blastRadius })
             style={{ width: holdingIndex === 0 ? `${holdProgress * 100}%` : '0%' }}
           />
           <span className={`font-bold tracking-widest text-xs uppercase z-10 transition-colors ${
-            holdingIndex === 0 ? 'text-white' : 'text-[#e09f3e]'
+            holdingIndex === 0 ? 'text-white' : 'text-wr-accent'
           }`}>
             Confirm {primaryStep.description || 'Action'}
           </span>
@@ -229,20 +229,20 @@ const RemediationCard: React.FC<RemediationCardProps> = ({ steps, blastRadius })
               <path
                 d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                 fill="none"
-                stroke={holdingIndex === 0 ? '#ffffff30' : '#e09f3e30'}
+                stroke={holdingIndex === 0 ? '#ffffff30' : 'var(--wr-accent-glow)'}
                 strokeWidth="3"
               />
               <path
                 d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                 fill="none"
-                stroke={holdingIndex === 0 ? '#fff' : '#e09f3e'}
+                stroke={holdingIndex === 0 ? '#fff' : 'var(--wr-accent)'}
                 strokeWidth="3"
                 strokeDasharray={`${(holdingIndex === 0 ? holdProgress : 0) * 100}, 100`}
                 style={{ filter: 'drop-shadow(0 0 2px rgba(224,159,62,0.8))' }}
               />
             </svg>
             <div className={`absolute inset-0 flex items-center justify-center text-[8px] font-mono font-bold transition-colors ${
-              holdingIndex === 0 ? 'text-white' : 'text-[#e09f3e]'
+              holdingIndex === 0 ? 'text-white' : 'text-wr-accent'
             }`}>
               HOLD
             </div>
@@ -301,7 +301,7 @@ const RemediationCard: React.FC<RemediationCardProps> = ({ steps, blastRadius })
                 </div>
               )}
               {step.command && (
-                <code className="text-[10px] text-[#e09f3e] block mt-1 font-mono">$ {step.command}</code>
+                <code className="text-[10px] text-wr-accent block mt-1 font-mono">$ {step.command}</code>
               )}
               {step.rollback && (
                 <code className="text-[10px] text-red-400/50 block mt-0.5 font-mono">rollback: {step.rollback}</code>

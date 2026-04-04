@@ -16,10 +16,10 @@ interface IssuePriorityPanelProps {
 }
 
 const STATE_CONFIG: Record<string, { label: string; color: string; dotColor: string; borderClass: string }> = {
-  ACTIVE_DISRUPTION: { label: 'Active Disruptions', color: '#ef4444', dotColor: 'bg-red-500', borderClass: 'border-l-red-500' },
-  WORSENING:         { label: 'Escalating', color: '#f59e0b', dotColor: 'bg-amber-500', borderClass: 'border-l-amber-500' },
-  NEW:               { label: 'New Issues', color: '#e09f3e', dotColor: 'bg-[#e09f3e]', borderClass: 'border-l-[#e09f3e]' },
-  EXISTING:          { label: 'Known Issues', color: '#64748b', dotColor: 'bg-slate-500', borderClass: 'border-l-slate-600' },
+  ACTIVE_DISRUPTION: { label: 'Active Disruptions', color: 'var(--wr-severity-high)', dotColor: 'bg-red-500', borderClass: 'border-l-red-500' },
+  WORSENING:         { label: 'Escalating', color: 'var(--wr-severity-medium)', dotColor: 'bg-amber-500', borderClass: 'border-l-amber-500' },
+  NEW:               { label: 'New Issues', color: 'var(--wr-accent)', dotColor: 'bg-wr-accent', borderClass: 'border-l-wr-accent' },
+  EXISTING:          { label: 'Known Issues', color: 'var(--wr-text-muted)', dotColor: 'bg-slate-500', borderClass: 'border-l-slate-600' },
   LONG_STANDING:     { label: 'Long-Standing', color: '#475569', dotColor: 'bg-slate-600', borderClass: 'border-l-slate-700' },
   INTERMITTENT:      { label: 'Intermittent', color: '#6366f1', dotColor: 'bg-indigo-500', borderClass: 'border-l-indigo-500' },
   SYMPTOM:           { label: 'Symptoms', color: '#94a3b8', dotColor: 'bg-slate-400', borderClass: 'border-l-slate-400' },
@@ -172,7 +172,7 @@ const IssueRow: React.FC<IssueRowProps> = React.memo(({ issue, state, symptomMap
 
   if (state === 'ACTIVE_DISRUPTION') {
     return (
-      <div className={`border-l-2 ${cfg?.borderClass ?? ''} pl-3 py-2 bg-[#1a1814]/60 rounded-r`}>
+      <div className={`border-l-2 ${cfg?.borderClass ?? ''} pl-3 py-2 bg-wr-bg/60 rounded-r`}>
         <p className="text-[13px] font-semibold text-slate-200 leading-snug">{issue.description}</p>
         <div className="flex items-center gap-3 mt-1">
           {issue.blast_radius > 0 && (
@@ -193,7 +193,7 @@ const IssueRow: React.FC<IssueRowProps> = React.memo(({ issue, state, symptomMap
 
   if (state === 'WORSENING') {
     return (
-      <div className={`border-l-2 ${cfg?.borderClass ?? ''} pl-3 py-1.5 bg-[#1a1814]/40 rounded-r`}>
+      <div className={`border-l-2 ${cfg?.borderClass ?? ''} pl-3 py-1.5 bg-wr-bg/40 rounded-r`}>
         <p className="text-[12px] text-slate-300 leading-snug">{issue.description}</p>
         <div className="flex items-center gap-3 mt-0.5">
           {issue.first_seen && (

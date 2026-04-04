@@ -504,6 +504,32 @@ a:focus-visible,
   .dossier-section { border-color: #ccc !important; }
 }
 
+/* ── Cluster War Room Design Tokens ──────────────────────────── */
+:root {
+  --wr-bg-primary: #1a1814;
+  --wr-bg-surface: #152a2f;
+  --wr-bg-inset: #141210;
+  --wr-border: #1f3b42;
+  --wr-border-subtle: #2a2520;
+  --wr-accent: #e09f3e;
+  --wr-accent-glow: rgba(224, 159, 62, 0.3);
+  --wr-text-primary: #e2e8f0;
+  --wr-text-secondary: #94a3b8;
+  --wr-text-muted: #64748b;
+  --wr-severity-high: #ef4444;
+  --wr-severity-medium: #f59e0b;
+  --wr-severity-low: #94a3b8;
+  --wr-status-success: #10b981;
+  --wr-status-warning: #f59e0b;
+  --wr-status-error: #ef4444;
+  --wr-status-pending: #64748b;
+  --wr-domain-ctrl-plane: #f59e0b;
+  --wr-domain-node: #e09f3e;
+  --wr-domain-network: #10b981;
+  --wr-domain-storage: #8b5cf6;
+  --wr-domain-rbac: #ef4444;
+}
+
 /* ── Cluster War Room ─────────────────────────── */
 
 /* CRT scan-lines overlay */
