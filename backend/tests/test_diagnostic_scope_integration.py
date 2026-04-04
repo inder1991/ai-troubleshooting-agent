@@ -258,7 +258,7 @@ def test_workload_scoped_diagnosis():
     dispatch_result = dispatch_router(state)
     # Workload with include_control_plane=False: only node + network
     assert set(dispatch_result["dispatch_domains"]) == {"node", "network"}
-    assert dispatch_result["scope_coverage"] == pytest.approx(2 / 4)
+    assert dispatch_result["scope_coverage"] == pytest.approx(2 / len(ALL_DOMAINS))
     assert dispatch_result["scope_coverage"] < 1.0
 
     # -- Verify wrapper would skip ctrl_plane and storage --
@@ -300,7 +300,7 @@ def test_component_scoped_diagnosis():
     state = {"diagnostic_scope": scope.model_dump(mode="json")}
     dispatch_result = dispatch_router(state)
     assert dispatch_result["dispatch_domains"] == ["network"]
-    assert dispatch_result["scope_coverage"] == pytest.approx(1 / 4)
+    assert dispatch_result["scope_coverage"] == pytest.approx(1 / len(ALL_DOMAINS))
 
 
 # ===========================================================================
@@ -507,8 +507,8 @@ async def test_scope_coverage_in_findings():
     dispatch_result = dispatch_router({"diagnostic_scope": scope.model_dump(mode="json")})
     coverage = dispatch_result["scope_coverage"]
     assert isinstance(coverage, float)
-    assert 0.0 < coverage < 1.0  # 2 of 4 domains = 0.5
-    assert coverage == pytest.approx(0.5)
+    assert 0.0 < coverage < 1.0  # 2 of N domains
+    assert coverage == pytest.approx(2 / len(ALL_DOMAINS))
 
     # Step 2: verify data_completeness respects SKIPPED for scoped runs
     reports = [
@@ -550,7 +550,7 @@ async def test_scope_coverage_in_findings():
         }
 
         findings = await get_findings(sid)
-        assert findings["scope_coverage"] == pytest.approx(0.5)
+        assert findings["scope_coverage"] == pytest.approx(2 / len(ALL_DOMAINS))
         assert isinstance(findings["scope_coverage"], float)
     finally:
         sessions.pop(sid, None)

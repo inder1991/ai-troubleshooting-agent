@@ -172,6 +172,9 @@ class TestKnowledgeGraphPaths:
         """Exported React Flow dict should contain nodes and edges lists."""
         self._seed_linear(store)
         graph.load_from_store()
+        # Add a direct device-to-device edge so the export has at least one visual edge.
+        # Route edges require build_route_edges(); here we seed an explicit link.
+        graph.add_edge("r1", "fw1", EdgeMetadata(confidence=0.9, source=EdgeSource.MANUAL, edge_type="connected_to"))
 
         rf = graph.export_react_flow_graph()
         assert "nodes" in rf
