@@ -294,7 +294,7 @@ function AppInner() {
           let profileId = clusterData.profile_id;
 
           // Inline profile creation if "Save this cluster" is checked and no profile selected
-          if (!profileId && (clusterData.save_cluster ?? true) && clusterData.cluster_url) {
+          if (!profileId && (clusterData.save_cluster ?? false) && clusterData.cluster_url) {
             try {
               const { createProfile } = await import('./services/profileApi');
               const newProfile = await createProfile({
