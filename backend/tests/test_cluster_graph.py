@@ -241,6 +241,36 @@ class TestRetryUtility:
         assert result == 42
 
 
+class TestProactiveGraphWiring:
+    def test_proactive_findings_in_state_typeddict(self):
+        """proactive_findings must be in the State TypedDict as an Annotated list."""
+        from src.agents.cluster.graph import State
+        import typing
+
+        hints = typing.get_type_hints(State, include_extras=True)
+        assert "proactive_findings" in hints, \
+            "State TypedDict must have proactive_findings field"
+
+    def test_proactive_analysis_node_is_module_level(self):
+        """_proactive_analysis_node must be a module-level function (not nested)."""
+        import src.agents.cluster.graph as graph_module
+        import inspect
+
+        assert hasattr(graph_module, "_proactive_analysis_node"), \
+            "_proactive_analysis_node must be defined at module level in graph.py"
+        assert inspect.isfunction(graph_module._proactive_analysis_node) or \
+               inspect.iscoroutinefunction(graph_module._proactive_analysis_node), \
+            "_proactive_analysis_node must be a function"
+
+    def test_graph_includes_proactive_analysis_node(self):
+        """The compiled graph must include a proactive_analysis node."""
+        from src.agents.cluster.graph import build_cluster_diagnostic_graph
+        graph = build_cluster_diagnostic_graph()
+        node_names = set(graph.nodes.keys()) if hasattr(graph, 'nodes') else set()
+        assert "proactive_analysis" in node_names, \
+            f"Graph must contain proactive_analysis node. Found: {node_names}"
+
+
 class TestPrometheusDetector:
     def test_detects_thanos_querier_route_on_openshift(self):
         import asyncio

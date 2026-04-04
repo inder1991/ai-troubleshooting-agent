@@ -75,6 +75,8 @@ class State(TypedDict):
     rbac_skipped: Annotated[list[dict], operator.add]
     # Critic validation result
     critic_result: Optional[dict]
+    # Proactive analysis findings (fan-out merge)
+    proactive_findings: Annotated[list[dict], operator.add]
     # Diagnostic intelligence pipeline
     normalized_signals: list[dict]
     pattern_matches: list[dict]
@@ -189,6 +191,28 @@ def _should_redispatch(state: dict) -> list[str]:
     return ["to_guard_formatter"]
 
 
+async def _proactive_analysis_node(state: dict, config: dict | None = None) -> dict:
+    """Run proactive checks and return findings as graph state update."""
+    from .proactive_analyzer import run_proactive_analysis
+
+    cluster_client = (config or {}).get("configurable", {}).get("cluster_client")
+
+    if cluster_client is None:
+        return {"proactive_findings": []}
+
+    try:
+        results = await run_proactive_analysis(client=cluster_client)
+        findings = [
+            f.__dict__ if hasattr(f, "__dict__") else dict(f)
+            for f in results
+        ]
+        return {"proactive_findings": findings}
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).warning("Proactive analysis failed: %s", exc)
+        return {"proactive_findings": []}
+
+
 def build_cluster_diagnostic_graph():
     """Build and compile the cluster diagnostic LangGraph."""
 
@@ -215,6 +239,7 @@ def build_cluster_diagnostic_graph():
     graph.add_node("signal_normalizer", signal_normalizer)
     graph.add_node("failure_pattern_matcher", failure_pattern_matcher)
     graph.add_node("temporal_analyzer", temporal_analyzer)
+    graph.add_node("proactive_analysis", _proactive_analysis_node)
     graph.add_node("diagnostic_graph_builder", diagnostic_graph_builder)
     graph.add_node("issue_lifecycle_classifier", issue_lifecycle_classifier)
     graph.add_node("hypothesis_engine", hypothesis_engine)
@@ -247,7 +272,8 @@ def build_cluster_diagnostic_graph():
     # Sequential intelligence pipeline
     graph.add_edge("signal_normalizer", "failure_pattern_matcher")
     graph.add_edge("failure_pattern_matcher", "temporal_analyzer")
-    graph.add_edge("temporal_analyzer", "diagnostic_graph_builder")
+    graph.add_edge("temporal_analyzer", "proactive_analysis")
+    graph.add_edge("proactive_analysis", "diagnostic_graph_builder")
     graph.add_edge("diagnostic_graph_builder", "issue_lifecycle_classifier")
     graph.add_edge("issue_lifecycle_classifier", "hypothesis_engine")
     graph.add_edge("hypothesis_engine", "critic_validator")
