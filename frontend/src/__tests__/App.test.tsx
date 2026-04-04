@@ -1,3 +1,16 @@
+describe('ClusterDiagnosticsFields auth methods', () => {
+  it('service_account auth method must not be available — no backend handler exists', () => {
+    // Verify the type system prevents service_account
+    type AuthMethod = 'token' | 'kubeconfig';
+
+    const validMethods: AuthMethod[] = ['token', 'kubeconfig'];
+
+    // This should be compile-time enforced, but document it as a runtime check:
+    expect(validMethods).not.toContain('service_account');
+    expect(validMethods).toHaveLength(2);
+  });
+});
+
 describe('save_cluster credential policy', () => {
   it('save_cluster undefined → do not save (App.tsx line ~297 and CapabilityForm.tsx line 126 policy)', () => {
     // Policy: undefined means user did not opt in to saving

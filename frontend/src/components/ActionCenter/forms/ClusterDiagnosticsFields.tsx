@@ -50,7 +50,7 @@ const ClusterDiagnosticsFields: React.FC<ClusterDiagnosticsFieldsProps> = ({ dat
 
   const [tempCluster, setTempCluster] = useState({
     cluster_url: '',
-    auth_method: 'token' as 'token' | 'kubeconfig' | 'service_account',
+    auth_method: 'token' as 'token' | 'kubeconfig',
     credential: '',
     role: '',
   });
@@ -186,7 +186,7 @@ const ClusterDiagnosticsFields: React.FC<ClusterDiagnosticsFieldsProps> = ({ dat
           <div style={fieldStyle}>
             <label style={labelStyle}>Auth Method</label>
             <div style={{ display: 'flex', gap: 6 }}>
-              {(['token', 'kubeconfig', 'service_account'] as const).map(method => {
+              {(['token', 'kubeconfig'] as const).map(method => {
                 const active = tempCluster.auth_method === method;
                 return (
                   <button
@@ -206,7 +206,7 @@ const ClusterDiagnosticsFields: React.FC<ClusterDiagnosticsFieldsProps> = ({ dat
                       transition: 'all 0.15s',
                     }}
                   >
-                    {method === 'token' ? 'Token' : method === 'kubeconfig' ? 'Kubeconfig' : 'Service Acct'}
+                    {method === 'token' ? 'Token' : 'Kubeconfig'}
                   </button>
                 );
               })}
@@ -216,22 +216,14 @@ const ClusterDiagnosticsFields: React.FC<ClusterDiagnosticsFieldsProps> = ({ dat
           {/* Credentials */}
           <div style={fieldStyle}>
             <label style={labelStyle}>
-              {tempCluster.auth_method === 'token'
-                ? 'Bearer Token'
-                : tempCluster.auth_method === 'kubeconfig'
-                ? 'Kubeconfig YAML'
-                : 'Service Account Token'}
+              {tempCluster.auth_method === 'token' ? 'Bearer Token' : 'Kubeconfig YAML'}
             </label>
             <textarea
               value={tempCluster.credential}
               onChange={e => setTempCluster(prev => ({ ...prev, credential: e.target.value }))}
               rows={3}
               placeholder={
-                tempCluster.auth_method === 'token'
-                  ? 'eyJhbGciOi...'
-                  : tempCluster.auth_method === 'kubeconfig'
-                  ? 'Paste kubeconfig YAML...'
-                  : 'Paste service account token...'
+                tempCluster.auth_method === 'token' ? 'eyJhbGciOi...' : 'Paste kubeconfig YAML...'
               }
               style={{ ...inputStyle, fontFamily: 'monospace', resize: 'none' }}
             />
