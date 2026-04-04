@@ -410,7 +410,7 @@ async def network_agent(state: dict, config: dict) -> dict:
         anomalies=anomalies,
         ruled_out=analysis.get("ruled_out", []),
         evidence_refs=[a.evidence_ref for a in anomalies],
-        truncation_flags=TruncationFlags(log_lines=logs.truncated),
+        truncation_flags=TruncationFlags(log_lines=len(logs_raw) >= 50),
         duration_ms=elapsed,
     )
 
