@@ -53,7 +53,7 @@ const AgentCostBreakdown: React.FC<AgentCostBreakdownProps> = ({ sessionId, visi
     <div className="absolute top-full right-0 mt-1 z-50 bg-[#141210] border border-[#2a2520] rounded-lg shadow-xl w-[480px] p-3">
       <div className="flex items-center justify-between mb-2">
         <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">LLM Cost Breakdown</span>
-        <button onClick={onClose} className="text-slate-600 hover:text-slate-300">
+        <button onClick={onClose} aria-label="Close cost breakdown" onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }} className="text-slate-600 hover:text-slate-300">
           <span className="material-symbols-outlined text-[14px]">close</span>
         </button>
       </div>

@@ -27,6 +27,7 @@ const CommandBar: React.FC = () => {
         <input
           className="bg-transparent border-none text-sm font-mono text-white w-full placeholder-slate-600 focus:outline-none focus:ring-0"
           placeholder="Type tactical command (e.g., /cordon --node=3) or press 'K' for quick search..."
+          aria-label="Tactical command input"
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={handleKeyDown}

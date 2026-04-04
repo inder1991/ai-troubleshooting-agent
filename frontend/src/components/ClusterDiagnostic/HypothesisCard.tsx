@@ -95,6 +95,8 @@ const HypothesisCard: React.FC<HypothesisCardProps> = ({ hypotheses, primaryChai
           <div className="border-t border-[#2a2520]">
             <button
               onClick={() => setExpanded(!expanded)}
+              aria-label={expanded ? 'Collapse effects' : 'Show cascading effects'}
+              aria-expanded={expanded}
               className="w-full px-4 py-2 flex items-center gap-2 text-[10px] text-slate-500 hover:text-slate-400 transition-colors"
             >
               <span className="material-symbols-outlined text-xs" style={{ transform: expanded ? 'rotate(90deg)' : 'none', transition: 'transform 150ms' }}>
@@ -152,6 +154,8 @@ const HypothesisCard: React.FC<HypothesisCardProps> = ({ hypotheses, primaryChai
         <div className="border-t border-[#2a2520] mt-3 pt-2">
           <button
             onClick={() => setExpanded(!expanded)}
+            aria-label={expanded ? 'Collapse effects' : 'Show cascading effects'}
+            aria-expanded={expanded}
             className="flex items-center gap-1 text-[10px] text-slate-500 hover:text-slate-400 transition-colors"
           >
             <span className="material-symbols-outlined text-xs" style={{ transform: expanded ? 'rotate(90deg)' : 'none', transition: 'transform 150ms' }}>

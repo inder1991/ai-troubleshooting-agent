@@ -29,6 +29,8 @@ const EventLogViewer: React.FC<EventLogViewerProps> = ({ events }) => {
     return (
       <button
         onClick={() => setExpanded(true)}
+        aria-label="Expand event log"
+        aria-expanded={false}
         className="w-full flex items-center justify-between px-3 py-2 bg-[#141210] rounded border border-[#2a2520] hover:border-[#e09f3e]/30 transition-colors"
       >
         <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
@@ -48,18 +50,20 @@ const EventLogViewer: React.FC<EventLogViewerProps> = ({ events }) => {
             value={filter}
             onChange={e => setFilter(e.target.value)}
             placeholder="Search..."
+            aria-label="Filter events by text"
             className="bg-[#1a1814] text-[10px] text-slate-300 px-2 py-0.5 rounded border border-[#2a2520] w-32 outline-none focus:border-[#e09f3e]/30"
           />
           <select
             value={severityFilter}
             onChange={e => setSeverityFilter(e.target.value)}
+            aria-label="Filter by severity"
             className="bg-[#1a1814] text-[10px] text-slate-300 px-1 py-0.5 rounded border border-[#2a2520] outline-none"
           >
             <option value="all">All</option>
             <option value="error">Errors</option>
             <option value="info">Info</option>
           </select>
-          <button onClick={() => setExpanded(false)} className="text-slate-600 hover:text-slate-300">
+          <button onClick={() => setExpanded(false)} aria-label="Collapse event log" aria-expanded={true} className="text-slate-600 hover:text-slate-300">
             <span className="material-symbols-outlined text-[14px]">expand_less</span>
           </button>
         </div>
