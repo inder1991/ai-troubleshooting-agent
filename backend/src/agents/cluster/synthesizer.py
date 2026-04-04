@@ -405,6 +405,7 @@ async def synthesize(state: dict, config: dict) -> dict:
     telemetry = config.get("configurable", {}).get("telemetry")
 
     # Stage 2: Causal Reasoning (skip if no anomalies)
+    _ns_list = state.get("namespaces") or []
     causal_result: dict = {"causal_chains": [], "uncorrelated_findings": []}
     if merged["all_anomalies"]:
         causal_result = await _llm_causal_reasoning(
@@ -417,7 +418,7 @@ async def synthesize(state: dict, config: dict) -> dict:
             hypotheses=valid_hypotheses,
             hypothesis_selection=hypothesis_selection,
             platform=state.get("platform", ""),
-            namespace=state.get("namespaces", [""])[0] if state.get("namespaces") else "",
+            namespace=_ns_list[0] if _ns_list else "",
             cluster_url=state.get("cluster_url", ""),
         )
 
