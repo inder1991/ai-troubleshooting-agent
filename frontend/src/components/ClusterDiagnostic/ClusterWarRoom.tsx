@@ -60,8 +60,8 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
         return;
       }
       const data = await res.json();
-      // Show data as soon as it's available (including partial/PENDING)
-      if (data.platform_health) {
+      // Show data as soon as domain agents produce data, not just after synthesis
+      if (data.platform_health || data.domain_reports?.length > 0 || data.diagnostic_issues?.length > 0) {
         setFindings(data as ClusterHealthReport);
         setError(null);
       }
