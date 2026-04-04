@@ -46,6 +46,8 @@ Six Causal Reasoning Rules:
 6. OBSERVABILITY CONFIRMATION: For cross-domain causality, require evidence in effect domain referencing cause resource.
 """
 
+_VALID_DOMAINS = {"ctrl_plane", "node", "network", "storage", "rbac"}
+
 
 def _compute_data_completeness(reports: list[DomainReport]) -> float:
     """Fraction of active (non-SKIPPED) domains that returned SUCCESS or PARTIAL."""
@@ -87,8 +89,6 @@ def _build_bounded_causal_prompt(
     selection: dict | None = None,
 ) -> str:
     """Build causal reasoning prompt within token budget. Drops low-priority anomalies if needed."""
-    import json as _json
-
     TOKEN_BUDGET_CHARS = _TOKEN_BUDGET * 4  # 1 token ≈ 4 chars
 
     # Build truncation warning from domain reports
@@ -129,7 +129,7 @@ def _build_bounded_causal_prompt(
     omitted = 0
     running_chars = len(truncation_warning)
     for anomaly in sorted_anomalies:
-        item_str = _json.dumps(anomaly if isinstance(anomaly, dict) else anomaly.model_dump(mode="json"),
+        item_str = json.dumps(anomaly if isinstance(anomaly, dict) else anomaly.model_dump(mode="json"),
                                indent=2)
         if running_chars + len(item_str) > TOKEN_BUDGET_CHARS:
             omitted += 1
@@ -163,13 +163,13 @@ def _build_bounded_causal_prompt(
     if root_cands or annotated_links or blocked_count:
         cluster_section = f"""
 ## Pre-Correlated Issue Clusters
-{_json.dumps(issue_clusters_summary, indent=2)}
+{json.dumps(issue_clusters_summary, indent=2)}
 
 ## Root Cause Hypothesis Seeds
-{_json.dumps(root_cands, indent=2)}
+{json.dumps(root_cands, indent=2)}
 
 ## Annotated Links
-{_json.dumps(annotated_links, indent=2)}
+{json.dumps(annotated_links, indent=2)}
 
 ## Blocked Links: {blocked_count} excluded
 """
@@ -178,16 +178,16 @@ def _build_bounded_causal_prompt(
     if hypotheses:
         hyp_section = f"""
 ## Pre-Ranked Hypotheses
-{_json.dumps(hypotheses[:10], indent=2)}
-{_json.dumps(selection or {}, indent=2)}
+{json.dumps(hypotheses[:10], indent=2)}
+{json.dumps(selection or {}, indent=2)}
 """
 
     return (
         f"{truncation_warning}"
         f"Analyze these cross-domain anomalies and identify causal chains.\n\n"
-        f"## Anomalies Found\n{_json.dumps(included, indent=2)}\n"
+        f"## Anomalies Found\n{json.dumps(included, indent=2)}\n"
         f"{omitted_note}"
-        f"## Domain Report Summaries\n{_json.dumps(report_summaries, indent=2)}\n"
+        f"## Domain Report Summaries\n{json.dumps(report_summaries, indent=2)}\n"
         f"{cluster_section}"
         f"{hyp_section}"
     )
@@ -346,8 +346,6 @@ Note: re_dispatch_domains valid values are: ctrl_plane, node, network, storage, 
             call_type="synthesis_verdict", input_tokens=in_tok, output_tokens=out_tok,
             latency_ms=latency_ms, success=True,
         ))
-
-    _VALID_DOMAINS = {"ctrl_plane", "node", "network", "storage", "rbac"}
 
     for block in response.content:
         if getattr(block, "type", None) == "tool_use" and block.name == "submit_verdict":
