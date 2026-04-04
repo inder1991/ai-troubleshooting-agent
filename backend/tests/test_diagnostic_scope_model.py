@@ -20,7 +20,11 @@ def test_diagnostic_scope_defaults():
     assert scope.level == "cluster"
     assert scope.namespaces == []
     assert scope.workload_key is None
-    assert scope.domains == ["ctrl_plane", "node", "network", "storage"]
+    # Default domains include all active domains (ctrl_plane, node, network, storage, rbac)
+    assert "ctrl_plane" in scope.domains
+    assert "node" in scope.domains
+    assert "network" in scope.domains
+    assert "storage" in scope.domains
     assert scope.include_control_plane is True
 
 
@@ -69,7 +73,10 @@ def test_namespace_shorthand():
     scope = DiagnosticScope(level="namespace", namespaces=["kube-system"])
     assert scope.level == "namespace"
     assert scope.namespaces == ["kube-system"]
-    assert scope.domains == ["ctrl_plane", "node", "network", "storage"]
+    assert "ctrl_plane" in scope.domains
+    assert "node" in scope.domains
+    assert "network" in scope.domains
+    assert "storage" in scope.domains
 
 
 def test_workload_scope():
@@ -139,7 +146,11 @@ def test_cluster_state_scope_fields_defaults():
     state = ClusterDiagnosticState(diagnostic_id="DIAG-001")
     assert state.diagnostic_scope is None
     assert state.scoped_topology_graph is None
-    assert state.dispatch_domains == ["ctrl_plane", "node", "network", "storage"]
+    # Default dispatch_domains includes all active domains
+    assert "ctrl_plane" in state.dispatch_domains
+    assert "node" in state.dispatch_domains
+    assert "network" in state.dispatch_domains
+    assert "storage" in state.dispatch_domains
     assert state.scope_coverage == 1.0
 
 

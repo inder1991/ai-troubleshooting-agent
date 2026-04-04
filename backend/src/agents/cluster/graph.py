@@ -60,6 +60,9 @@ class State(TypedDict):
     issue_clusters: list[dict]
     causal_search_space: dict
     scan_mode: str
+    cluster_url: str
+    cluster_type: str
+    cluster_role: str
     previous_scan: Optional[dict]
     guard_scan_result: Optional[dict]
     # Scope-governed diagnostics
@@ -69,6 +72,7 @@ class State(TypedDict):
     scope_coverage: float
     # Pre-flight RBAC check result
     rbac_check: Optional[dict]
+    rbac_skipped: Annotated[list[dict], operator.add]
     # Critic validation result
     critic_result: Optional[dict]
     # Diagnostic intelligence pipeline
@@ -86,35 +90,55 @@ class State(TypedDict):
 # Dispatch Router: determines which domain agents run based on scope
 # ---------------------------------------------------------------------------
 
+# Mapping: denied resource name → domains that require that resource
+_RBAC_DOMAIN_GATES = {
+    "nodes": ["node"],
+    "pods": ["ctrl_plane", "node"],
+    "routes": ["network"],
+    "persistentvolumeclaims": ["storage"],
+}
+
 
 def dispatch_router(state: dict) -> dict:
-    """Determine which domain agents should run based on DiagnosticScope."""
+    """Determine which domain agents should run based on DiagnosticScope and RBAC."""
     scope_data = state.get("diagnostic_scope")
+    rbac_check = state.get("rbac_check") or {}
+    denied_resources = set(rbac_check.get("denied", []))
+
+    # Determine base domains from scope
     if not scope_data:
-        # No scope — run all domains
-        return {"dispatch_domains": list(ALL_DOMAINS), "scope_coverage": 1.0}
-
-    scope = DiagnosticScope(**scope_data)
-
-    if scope.level == "cluster":
-        domains = list(scope.domains)
-    elif scope.level == "namespace":
-        domains = list(scope.domains)
-        if not scope.include_control_plane:
-            domains = [d for d in domains if d != "ctrl_plane"]
-    elif scope.level == "workload":
-        # Workload: relevant domains only
-        domains = [d for d in scope.domains if d in ("node", "network")]
-        if scope.include_control_plane:
-            domains.append("ctrl_plane")
-    elif scope.level == "component":
-        # Component = only the specified domains
-        domains = list(scope.domains)
-    else:
         domains = list(ALL_DOMAINS)
+    else:
+        scope = DiagnosticScope(**scope_data)
+        if scope.level == "cluster":
+            domains = list(scope.domains)
+        elif scope.level == "namespace":
+            domains = list(scope.domains)
+            if not scope.include_control_plane:
+                domains = [d for d in domains if d != "ctrl_plane"]
+        elif scope.level == "workload":
+            domains = [d for d in scope.domains if d in ("node", "network")]
+            if scope.include_control_plane:
+                domains.append("ctrl_plane")
+        elif scope.level == "component":
+            domains = list(scope.domains)
+        else:
+            domains = list(ALL_DOMAINS)
+
+    # Gate domains based on RBAC denials
+    rbac_skipped = []
+    for resource, gated_domains in _RBAC_DOMAIN_GATES.items():
+        if resource in denied_resources:
+            for d in gated_domains:
+                if d in domains:
+                    domains.remove(d)
+                    rbac_skipped.append({"domain": d, "reason": f"{resource} permission denied"})
 
     scope_coverage = len(domains) / len(ALL_DOMAINS) if ALL_DOMAINS else 1.0
-    return {"dispatch_domains": domains, "scope_coverage": scope_coverage}
+    result: dict = {"dispatch_domains": domains, "scope_coverage": scope_coverage}
+    if rbac_skipped:
+        result["rbac_skipped"] = rbac_skipped
+    return result
 
 
 # ---------------------------------------------------------------------------

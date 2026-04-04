@@ -278,6 +278,110 @@ class TestClusterConnectionConfig:
         assert "connection_config" in session
 
 
+class TestProfileRole:
+    def test_create_profile_with_role(self, client):
+        resp = client.post("/api/v5/profiles/", json={
+            "name": "test-cluster-role",
+            "cluster_url": "https://api.example.com:6443",
+            "cluster_type": "openshift",
+            "role": "cluster-admin",
+        })
+        assert resp.status_code == 200
+        assert resp.json()["role"] == "cluster-admin"
+
+    def test_update_profile_role(self, client):
+        # First create a profile
+        create_resp = client.post("/api/v5/profiles/", json={
+            "name": "test-update-role",
+            "cluster_url": "https://api.example.com:6443",
+            "cluster_type": "openshift",
+        })
+        assert create_resp.status_code == 200
+        profile_id = create_resp.json()["id"]
+        # Then update with role
+        resp = client.put(f"/api/v5/profiles/{profile_id}", json={"role": "view"})
+        assert resp.status_code == 200
+        assert resp.json()["role"] == "view"
+
+
+class TestResolvedConnectionConfig:
+    def test_has_auth_method_field(self):
+        from src.integrations.connection_config import ResolvedConnectionConfig
+        cfg = ResolvedConnectionConfig(
+            cluster_url="https://x.com",
+            cluster_token="tok",
+            auth_method="token",
+        )
+        assert cfg.auth_method == "token"
+        assert cfg.kubeconfig_content == ""
+        assert cfg.role == ""
+
+    def test_kubeconfig_content_field(self):
+        from src.integrations.connection_config import ResolvedConnectionConfig
+        cfg = ResolvedConnectionConfig(
+            auth_method="kubeconfig",
+            kubeconfig_content="apiVersion: v1\nkind: Config\n",
+        )
+        assert cfg.auth_method == "kubeconfig"
+        assert cfg.kubeconfig_content == "apiVersion: v1\nkind: Config\n"
+
+    def test_role_field_default_empty(self):
+        from src.integrations.connection_config import ResolvedConnectionConfig
+        cfg = ResolvedConnectionConfig()
+        assert cfg.role == ""
+
+    def test_config_from_env_reads_auth_method(self, monkeypatch):
+        monkeypatch.setenv("K8S_AUTH_METHOD", "kubeconfig")
+        monkeypatch.setenv("KUBECONFIG_CONTENT", "apiVersion: v1")
+        from src.integrations import connection_config
+        import importlib
+        importlib.reload(connection_config)
+        cfg = connection_config._config_from_env()
+        assert cfg.auth_method == "kubeconfig"
+        assert cfg.kubeconfig_content == "apiVersion: v1"
+
+
+class TestCreateClusterClient:
+    def test_returns_tuple(self, monkeypatch):
+        """create_cluster_client always returns (client, temp_path_or_None)."""
+        from src.api.routes_v4 import create_cluster_client
+        from src.integrations.connection_config import ResolvedConnectionConfig
+
+        # Patch KubernetesClient to avoid real network calls
+        monkeypatch.setattr(
+            "src.api.routes_v4.KubernetesClient",
+            lambda **kwargs: object()
+        )
+        cfg = ResolvedConnectionConfig(cluster_url="https://api.example.com:6443", cluster_token="tok")
+        result = create_cluster_client(cfg)
+        assert isinstance(result, tuple)
+        assert len(result) == 2
+        client, temp_path = result
+        assert client is not None
+        assert temp_path is None  # no temp file for bearer token auth
+
+    def test_kubeconfig_content_creates_temp_file(self, monkeypatch, tmp_path):
+        """When auth_method=kubeconfig and kubeconfig_content set, a temp file is created."""
+        import os
+        from src.api.routes_v4 import create_cluster_client
+        from src.integrations.connection_config import ResolvedConnectionConfig
+
+        monkeypatch.setattr(
+            "src.api.routes_v4.KubernetesClient",
+            lambda **kwargs: type("C", (), {"kubeconfig_path": kwargs.get("kubeconfig_path")})()
+        )
+        cfg = ResolvedConnectionConfig(
+            auth_method="kubeconfig",
+            kubeconfig_content="apiVersion: v1\nkind: Config\n",
+        )
+        client, temp_path = create_cluster_client(cfg)
+        assert temp_path is not None
+        assert os.path.exists(temp_path)
+        assert open(temp_path).read() == "apiVersion: v1\nkind: Config\n"
+        # Cleanup
+        os.unlink(temp_path)
+
+
 class TestAppChatFindings:
     """Verify app chat includes actual findings in the LLM prompt."""
 
@@ -303,3 +407,197 @@ class TestAppChatFindings:
         assert resp.status_code == 200
         assert resp.json()["response"] == "Findings-based answer"
         mock_supervisor.handle_user_message.assert_called_once()
+
+
+class TestStartSessionNewFields:
+    @patch("src.api.routes_v4.run_cluster_diagnosis", new_callable=AsyncMock)
+    @patch("src.api.routes_v4.build_cluster_diagnostic_graph")
+    def test_start_session_accepts_kubeconfig_content(self, mock_build, mock_run, client):
+        mock_build.return_value = MagicMock()
+        resp = client.post("/api/v4/session/start", json={
+            "capability": "cluster_diagnostics",
+            "cluster_url": "https://api.example.com:6443",
+            "auth_method": "kubeconfig",
+            "kubeconfig_content": "apiVersion: v1\nkind: Config\n",
+        })
+        # Session should be created (200 or 201)
+        assert resp.status_code in (200, 201)
+        sid = resp.json().get("session_id")
+        assert sid
+
+    @patch("src.api.routes_v4.run_cluster_diagnosis", new_callable=AsyncMock)
+    @patch("src.api.routes_v4.build_cluster_diagnostic_graph")
+    def test_start_session_accepts_role(self, mock_build, mock_run, client):
+        mock_build.return_value = MagicMock()
+        resp = client.post("/api/v4/session/start", json={
+            "capability": "cluster_diagnostics",
+            "cluster_url": "https://api.example.com:6443",
+            "auth_token": "mytoken",
+            "role": "cluster-admin",
+        })
+        assert resp.status_code in (200, 201)
+
+    @patch("src.api.routes_v4.run_cluster_diagnosis", new_callable=AsyncMock)
+    @patch("src.api.routes_v4.build_cluster_diagnostic_graph")
+    def test_start_session_stores_elk_index(self, mock_build, mock_run, client):
+        mock_build.return_value = MagicMock()
+        resp = client.post("/api/v4/session/start", json={
+            "capability": "cluster_diagnostics",
+            "cluster_url": "https://api.example.com:6443",
+            "auth_token": "tok",
+            "elk_index": "cluster-logs-*",
+        })
+        assert resp.status_code in (200, 201)
+        sid = resp.json()["session_id"]
+        from src.api.routes_v4 import sessions
+        assert sessions.get(sid, {}).get("elk_index") == "cluster-logs-*"
+
+    @patch("src.api.routes_v4.run_cluster_diagnosis", new_callable=AsyncMock)
+    @patch("src.api.routes_v4.build_cluster_diagnostic_graph")
+    def test_elk_index_defaults_to_empty_for_cluster_diagnostics(self, mock_build, mock_run, client):
+        mock_build.return_value = MagicMock()
+        resp = client.post("/api/v4/session/start", json={
+            "capability": "cluster_diagnostics",
+            "cluster_url": "https://api.example.com:6443",
+            "auth_token": "tok",
+        })
+        assert resp.status_code in (200, 201)
+        sid = resp.json()["session_id"]
+        from src.api.routes_v4 import sessions
+        # elk_index should be "" not "app-logs-*"
+        assert sessions.get(sid, {}).get("elk_index", "") == ""
+
+
+class TestTestConnectionEndpoint:
+    def test_returns_connected_status(self, client, monkeypatch):
+        """POST /api/v5/profiles/test-connection returns status=connected on success."""
+        from unittest.mock import AsyncMock, MagicMock
+
+        mock_client_instance = MagicMock()
+        mock_client_instance.detect_platform = AsyncMock(
+            return_value={"platform": "openshift", "version": "4.14.0"}
+        )
+        mock_client_instance.close = AsyncMock()
+
+        def mock_k8s_constructor(**kwargs):
+            return mock_client_instance
+
+        monkeypatch.setattr(
+            "src.api.routes_profiles.KubernetesClient",
+            mock_k8s_constructor
+        )
+
+        resp = client.post("/api/v5/profiles/test-connection", json={
+            "cluster_url": "https://api.example.com:6443",
+            "auth_method": "token",
+            "credential": "mytoken",
+            "verify_ssl": False,
+        })
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["status"] == "connected"
+        assert body["platform"] == "openshift"
+        assert body["version"] == "4.14.0"
+        assert body["latency_ms"] >= 0
+        assert body.get("error") is None
+
+    def test_returns_auth_failed_on_401(self, client, monkeypatch):
+        """POST /api/v5/profiles/test-connection returns status=auth_failed on 401 error."""
+        from unittest.mock import AsyncMock, MagicMock
+
+        def mock_k8s_constructor(**kwargs):
+            instance = MagicMock()
+            instance.detect_platform = AsyncMock(side_effect=Exception("401 Unauthorized"))
+            instance.close = AsyncMock()
+            return instance
+
+        monkeypatch.setattr("src.api.routes_profiles.KubernetesClient", mock_k8s_constructor)
+
+        resp = client.post("/api/v5/profiles/test-connection", json={
+            "cluster_url": "https://api.example.com:6443",
+            "auth_method": "token",
+            "credential": "badtoken",
+        })
+        assert resp.status_code == 200
+        assert resp.json()["status"] == "auth_failed"
+
+    def test_kubeconfig_auth_method(self, client, monkeypatch, tmp_path):
+        """Kubeconfig auth method writes temp file and passes path to KubernetesClient."""
+        from unittest.mock import AsyncMock, MagicMock
+
+        received_kwargs = {}
+
+        def mock_k8s_constructor(**kwargs):
+            received_kwargs.update(kwargs)
+            instance = MagicMock()
+            instance.detect_platform = AsyncMock(return_value={"platform": "kubernetes", "version": "1.28"})
+            instance.close = AsyncMock()
+            return instance
+
+        monkeypatch.setattr("src.api.routes_profiles.KubernetesClient", mock_k8s_constructor)
+
+        resp = client.post("/api/v5/profiles/test-connection", json={
+            "cluster_url": "https://api.example.com:6443",
+            "auth_method": "kubeconfig",
+            "credential": "apiVersion: v1\nkind: Config\n",
+        })
+        assert resp.status_code == 200
+        assert resp.json()["status"] == "connected"
+        # KubernetesClient was called with kubeconfig_path (not api_url + token)
+        assert "kubeconfig_path" in received_kwargs
+
+
+class TestClusterClientLifecycle:
+    def test_cluster_client_stored_in_session(self, client, monkeypatch):
+        """After start_session, cluster_client should be stored in the session dict."""
+        from unittest.mock import MagicMock, AsyncMock
+        import asyncio
+
+        mock_k8s = MagicMock()
+        mock_k8s.detect_platform = AsyncMock(return_value={"platform": "openshift", "version": "4.14"})
+        mock_k8s.list_namespaces = AsyncMock(return_value=MagicMock(data=["default"]))
+        mock_k8s.list_nodes = AsyncMock(return_value=MagicMock(data=[]))
+        mock_k8s.close = AsyncMock()
+
+        monkeypatch.setattr(
+            "src.api.routes_v4.KubernetesClient",
+            lambda **kwargs: mock_k8s
+        )
+
+        # Patch graph.ainvoke to avoid running actual LangGraph
+        from src.agents.cluster.graph import build_cluster_diagnostic_graph
+        mock_graph = MagicMock()
+        mock_graph.ainvoke = AsyncMock(return_value={"phase": "complete", "data_completeness": 0.8,
+                                                      "domain_reports": [], "health_report": None})
+        monkeypatch.setattr("src.api.routes_v4.build_cluster_diagnostic_graph", lambda: mock_graph)
+
+        resp = client.post("/api/v4/session/start", json={
+            "capability": "cluster_diagnostics",
+            "cluster_url": "https://api.example.com:6443",
+            "auth_token": "mytoken",
+        })
+        assert resp.status_code in (200, 201)
+        sid = resp.json()["session_id"]
+
+        # Wait for background task to store client
+        import time
+        for _ in range(20):
+            from src.api.routes_v4 import sessions
+            if sessions.get(sid, {}).get("cluster_client") is not None:
+                break
+            time.sleep(0.1)
+
+        from src.api.routes_v4 import sessions
+        assert sessions.get(sid, {}).get("cluster_client") is not None
+
+    def test_get_or_create_cluster_client_returns_cached(self, client, monkeypatch):
+        """get_or_create_cluster_client returns the cached client if already in session."""
+        import asyncio
+        from src.api.routes_v4 import get_or_create_cluster_client, sessions
+
+        mock_client = object()
+        sid = "test-cached-session"
+        sessions[sid] = {"cluster_client": mock_client, "connection_config": None}
+
+        result = asyncio.run(get_or_create_cluster_client(sid))
+        assert result is mock_client

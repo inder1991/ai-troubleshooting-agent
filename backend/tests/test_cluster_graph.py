@@ -100,3 +100,319 @@ async def test_graph_runs_with_mocks():
     assert isinstance(result.get("causal_search_space"), dict)
 
     _topology_cache.clear()
+
+
+class TestDispatchRouterRBAC:
+    def test_skips_node_domain_when_nodes_denied(self):
+        from src.agents.cluster.graph import dispatch_router
+        state = {
+            "diagnostic_scope": None,
+            "rbac_check": {"granted": ["pods", "events"], "denied": ["nodes"]},
+        }
+        result = dispatch_router(state)
+        assert "node" not in result["dispatch_domains"]
+
+    def test_skips_storage_when_pvc_denied(self):
+        from src.agents.cluster.graph import dispatch_router
+        state = {
+            "diagnostic_scope": None,
+            "rbac_check": {"granted": ["nodes", "pods"], "denied": ["persistentvolumeclaims"]},
+        }
+        result = dispatch_router(state)
+        assert "storage" not in result["dispatch_domains"]
+
+    def test_skips_ctrl_plane_and_node_when_pods_denied(self):
+        from src.agents.cluster.graph import dispatch_router
+        state = {
+            "diagnostic_scope": None,
+            "rbac_check": {"granted": ["nodes"], "denied": ["pods"]},
+        }
+        result = dispatch_router(state)
+        assert "ctrl_plane" not in result["dispatch_domains"]
+        assert "node" not in result["dispatch_domains"]
+
+    def test_no_rbac_check_runs_all_domains(self):
+        from src.agents.cluster.graph import dispatch_router
+        state = {"diagnostic_scope": None, "rbac_check": None}
+        result = dispatch_router(state)
+        assert "node" in result["dispatch_domains"]
+        assert "storage" in result["dispatch_domains"]
+        assert "ctrl_plane" in result["dispatch_domains"]
+
+    def test_rbac_skips_recorded_in_result(self):
+        from src.agents.cluster.graph import dispatch_router
+        state = {
+            "diagnostic_scope": None,
+            "rbac_check": {"granted": [], "denied": ["nodes"]},
+        }
+        result = dispatch_router(state)
+        assert "rbac_skipped" in result
+        assert any(s["domain"] == "node" for s in result["rbac_skipped"])
+
+
+class TestClusterMetadataInState:
+    def test_initial_state_has_cluster_url(self):
+        """run_cluster_diagnosis should include cluster_url in initial_state."""
+        import asyncio
+        from unittest.mock import MagicMock, AsyncMock
+
+        mock_client = MagicMock()
+        mock_client.detect_platform = AsyncMock(return_value={"platform": "openshift", "version": "4.14"})
+        mock_client.list_namespaces = AsyncMock(return_value=MagicMock(data=["default"]))
+        mock_client.list_nodes = AsyncMock(return_value=MagicMock(data=[]))
+        mock_client.close = AsyncMock()
+
+        captured_state = {}
+        async def mock_graph_invoke(state, config):
+            captured_state.update(state)
+            return {**state, "phase": "complete", "data_completeness": 0.8,
+                    "domain_reports": [], "health_report": None}
+
+        mock_graph = MagicMock()
+        mock_graph.ainvoke = mock_graph_invoke
+
+        from src.api.routes_v4 import run_cluster_diagnosis, sessions
+        from src.integrations.connection_config import ResolvedConnectionConfig
+
+        sid = "test-meta-state-001"
+        cfg = ResolvedConnectionConfig(
+            cluster_url="https://api.cluster.example.com:6443",
+            cluster_type="openshift",
+            role="cluster-admin",
+        )
+        sessions[sid] = {
+            "diagnostic_scope": {},
+            "connection_config": cfg,
+            "elk_index": "",
+        }
+
+        emitter = MagicMock()
+        emitter.emit = AsyncMock()
+
+        asyncio.run(
+            run_cluster_diagnosis(sid, mock_graph, mock_client, emitter, connection_config=cfg)
+        )
+        assert captured_state.get("cluster_url") == "https://api.cluster.example.com:6443"
+        assert captured_state.get("cluster_type") == "openshift"
+        assert captured_state.get("cluster_role") == "cluster-admin"
+
+
+class TestRetryUtility:
+    def test_with_retry_succeeds_on_second_attempt(self):
+        import asyncio
+        from src.agents.cluster.retry_utils import with_retry
+
+        call_count = [0]
+
+        @with_retry(retries=2, backoff=0.01)
+        async def flaky():
+            call_count[0] += 1
+            if call_count[0] < 2:
+                raise ConnectionError("transient error")
+            return "ok"
+
+        result = asyncio.run(flaky())
+        assert result == "ok"
+        assert call_count[0] == 2
+
+    def test_with_retry_raises_after_all_attempts_exhausted(self):
+        import asyncio
+        from src.agents.cluster.retry_utils import with_retry
+
+        @with_retry(retries=2, backoff=0.01)
+        async def always_fails():
+            raise ConnectionError("always fails")
+
+        try:
+            asyncio.run(always_fails())
+            assert False, "Should have raised"
+        except ConnectionError as e:
+            assert str(e) == "always fails"
+
+    def test_with_retry_succeeds_immediately_no_retries(self):
+        import asyncio
+        from src.agents.cluster.retry_utils import with_retry
+
+        @with_retry(retries=2, backoff=0.01)
+        async def always_works():
+            return 42
+
+        result = asyncio.run(always_works())
+        assert result == 42
+
+
+class TestPrometheusDetector:
+    def test_detects_thanos_querier_route_on_openshift(self):
+        import asyncio
+        from unittest.mock import MagicMock, AsyncMock
+        from src.agents.cluster.prometheus_detector import detect_prometheus_endpoint
+
+        mock_client = MagicMock()
+        mock_client.get_routes = AsyncMock(return_value=MagicMock(data=[
+            {
+                "namespace": "openshift-monitoring",
+                "name": "thanos-querier",
+                "host": "thanos.apps.cluster.example.com",
+            },
+        ]))
+
+        url = asyncio.run(detect_prometheus_endpoint(mock_client, "openshift"))
+        assert url == "https://thanos.apps.cluster.example.com"
+
+    def test_detects_prometheus_k8s_route_on_openshift(self):
+        import asyncio
+        from unittest.mock import MagicMock, AsyncMock
+        from src.agents.cluster.prometheus_detector import detect_prometheus_endpoint
+
+        mock_client = MagicMock()
+        mock_client.get_routes = AsyncMock(return_value=MagicMock(data=[
+            {
+                "namespace": "openshift-monitoring",
+                "name": "prometheus-k8s",
+                "host": "prometheus.apps.cluster.example.com",
+            },
+        ]))
+
+        url = asyncio.run(detect_prometheus_endpoint(mock_client, "openshift"))
+        assert url == "https://prometheus.apps.cluster.example.com"
+
+    def test_returns_empty_when_no_routes_found(self):
+        import asyncio
+        from unittest.mock import MagicMock, AsyncMock
+        from src.agents.cluster.prometheus_detector import detect_prometheus_endpoint
+
+        mock_client = MagicMock()
+        mock_client.get_routes = AsyncMock(return_value=MagicMock(data=[]))
+
+        url = asyncio.run(detect_prometheus_endpoint(mock_client, "openshift"))
+        assert url == ""
+
+    def test_detects_prometheus_service_on_kubernetes(self):
+        import asyncio
+        from unittest.mock import MagicMock, AsyncMock
+        from src.agents.cluster.prometheus_detector import detect_prometheus_endpoint
+
+        mock_client = MagicMock()
+        mock_client.list_services = AsyncMock(return_value=MagicMock(data=[
+            {"name": "prometheus-operated", "external_ip": "10.0.0.50", "port": 9090},
+        ]))
+
+        url = asyncio.run(detect_prometheus_endpoint(mock_client, "kubernetes"))
+        assert url == "http://10.0.0.50:9090"
+
+    def test_returns_empty_when_no_prometheus_service_found(self):
+        import asyncio
+        from unittest.mock import MagicMock, AsyncMock
+        from src.agents.cluster.prometheus_detector import detect_prometheus_endpoint
+
+        mock_client = MagicMock()
+        mock_client.list_services = AsyncMock(return_value=MagicMock(data=[
+            {"name": "kube-dns", "external_ip": "10.0.0.10", "port": 53},
+        ]))
+
+        url = asyncio.run(detect_prometheus_endpoint(mock_client, "kubernetes"))
+        assert url == ""
+
+    def test_returns_empty_on_client_exception(self):
+        import asyncio
+        from unittest.mock import MagicMock, AsyncMock
+        from src.agents.cluster.prometheus_detector import detect_prometheus_endpoint
+
+        mock_client = MagicMock()
+        mock_client.get_routes = AsyncMock(side_effect=Exception("connection refused"))
+
+        url = asyncio.run(detect_prometheus_endpoint(mock_client, "openshift"))
+        assert url == ""
+
+
+class TestLangGraphClientInjection:
+    def test_prometheus_client_injected_when_url_available(self):
+        """When prometheus_url is resolved, a PrometheusClient is injected into config."""
+        import asyncio
+        from unittest.mock import MagicMock, AsyncMock, patch
+
+        captured_config = {}
+
+        async def mock_graph_invoke(state, config):
+            captured_config.update(config.get("configurable", {}))
+            return {**state, "phase": "complete", "data_completeness": 0.8,
+                    "domain_reports": [], "health_report": None}
+
+        mock_graph = MagicMock()
+        mock_graph.ainvoke = mock_graph_invoke
+        mock_client = MagicMock()
+        mock_client.detect_platform = AsyncMock(return_value={"platform": "kubernetes", "version": "1.28"})
+        mock_client.list_namespaces = AsyncMock(return_value=MagicMock(data=["default"]))
+        mock_client.list_nodes = AsyncMock(return_value=MagicMock(data=[]))
+        mock_client.close = AsyncMock()
+
+        from src.api.routes_v4 import run_cluster_diagnosis, sessions
+        from src.integrations.connection_config import ResolvedConnectionConfig
+
+        sid = "test-prom-inject-001"
+        cfg = ResolvedConnectionConfig(
+            cluster_url="https://x.com",
+            prometheus_url="http://prom:9090",
+        )
+        sessions[sid] = {
+            "diagnostic_scope": {},
+            "connection_config": cfg,
+            "elk_index": "",
+        }
+
+        emitter = MagicMock()
+        emitter.emit = AsyncMock()
+
+        with patch("src.agents.cluster.prometheus_detector.detect_prometheus_endpoint",
+                   new=AsyncMock(return_value="")):
+            asyncio.run(run_cluster_diagnosis(
+                sid, mock_graph, mock_client, emitter, connection_config=cfg
+            ))
+
+        assert "prometheus_client" in captured_config
+        assert captured_config["prometheus_client"] is not None
+        assert "elk_client" in captured_config
+        assert captured_config["elk_client"] is None  # no elk_index provided
+
+    def test_elk_client_none_when_no_elk_index(self):
+        """When elk_index is empty, elk_client should be None."""
+        import asyncio
+        from unittest.mock import MagicMock, AsyncMock, patch
+
+        captured_config = {}
+
+        async def mock_graph_invoke(state, config):
+            captured_config.update(config.get("configurable", {}))
+            return {**state, "phase": "complete", "data_completeness": 0.8,
+                    "domain_reports": [], "health_report": None}
+
+        mock_graph = MagicMock()
+        mock_graph.ainvoke = mock_graph_invoke
+        mock_client = MagicMock()
+        mock_client.detect_platform = AsyncMock(return_value={"platform": "kubernetes", "version": "1.28"})
+        mock_client.list_namespaces = AsyncMock(return_value=MagicMock(data=[]))
+        mock_client.list_nodes = AsyncMock(return_value=MagicMock(data=[]))
+        mock_client.close = AsyncMock()
+
+        from src.api.routes_v4 import run_cluster_diagnosis, sessions
+        from src.integrations.connection_config import ResolvedConnectionConfig
+
+        sid = "test-elk-none-001"
+        cfg = ResolvedConnectionConfig(cluster_url="https://x.com")
+        sessions[sid] = {
+            "diagnostic_scope": {},
+            "connection_config": cfg,
+            "elk_index": "",  # empty — no ELK
+        }
+
+        emitter = MagicMock()
+        emitter.emit = AsyncMock()
+
+        with patch("src.agents.cluster.prometheus_detector.detect_prometheus_endpoint",
+                   new=AsyncMock(return_value="")):
+            asyncio.run(run_cluster_diagnosis(
+                sid, mock_graph, mock_client, emitter, connection_config=cfg
+            ))
+
+        assert captured_config.get("elk_client") is None
+        assert captured_config.get("elk_index") == ""

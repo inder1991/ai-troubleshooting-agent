@@ -26,19 +26,18 @@ class TestV5LayoutIntegration:
             assert "x" in node["position"]
             assert "y" in node["position"]
 
-    def test_nodes_have_parent_id(self, repo_with_devices):
+    def test_nodes_are_top_level(self, repo_with_devices):
+        """Devices have no parentId — they're top-level for free edge rendering."""
         result = build_topology_export(repo_with_devices)
         device_nodes = [n for n in result["nodes"] if n.get("type") == "device"]
         for node in device_nodes:
-            assert "parentId" in node, f"Node {node['id']} missing parentId"
+            assert "parentId" not in node, f"Node {node['id']} should not have parentId"
 
-    def test_group_containers_present(self, repo_with_devices):
+    def test_env_labels_present_for_groups(self, repo_with_devices):
+        """Force-directed layout uses labels only, no background rectangles."""
         result = build_topology_export(repo_with_devices)
-        group_nodes = [n for n in result["nodes"] if n.get("type") == "group"]
-        assert len(group_nodes) >= 1
-        for gn in group_nodes:
-            assert "style" in gn
-            assert "width" in gn["style"]
+        env_nodes = [n for n in result["nodes"] if n.get("type") == "envLabel"]
+        assert len(env_nodes) >= 1
 
     def test_env_labels_present(self, repo_with_devices):
         result = build_topology_export(repo_with_devices)
@@ -46,13 +45,13 @@ class TestV5LayoutIntegration:
         assert len(env_nodes) >= 1
         assert env_nodes[0]["data"]["label"] is not None
 
-    def test_groups_before_devices_in_array(self, repo_with_devices):
-        """ReactFlow requires parent nodes to appear before children."""
+    def test_env_labels_before_devices_in_array(self, repo_with_devices):
+        """Env labels should appear before device nodes."""
         result = build_topology_export(repo_with_devices)
-        group_indices = [i for i, n in enumerate(result["nodes"]) if n.get("type") == "group"]
+        label_indices = [i for i, n in enumerate(result["nodes"]) if n.get("type") == "envLabel"]
         device_indices = [i for i, n in enumerate(result["nodes"]) if n.get("type") == "device"]
-        if group_indices and device_indices:
-            assert max(group_indices) < min(device_indices)
+        if label_indices and device_indices:
+            assert max(label_indices) < min(device_indices)
 
     def test_device_count_excludes_groups(self, repo_with_devices):
         result = build_topology_export(repo_with_devices)

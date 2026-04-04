@@ -7,7 +7,8 @@ export type NavView = 'home' | 'sessions' | 'app-diagnostics' | 'cluster-diagnos
   | 'k8s-clusters' | 'k8s-diagnostics' | 'cluster-registry' | 'cluster-recommendations'
   | 'db-overview' | 'db-connections' | 'db-diagnostics' | 'db-monitoring' | 'db-schema' | 'db-operations'
   | 'integrations' | 'settings' | 'agent-matrix'
-  | 'audit-log' | 'mib-browser' | 'cloud-resources' | 'security-resources';
+  | 'audit-log' | 'mib-browser' | 'cloud-resources' | 'security-resources'
+  | 'agent-catalog' | 'workflow-builder' | 'workflow-runs';
 
 type NavChild = { id: NavView; label: string; icon: string; badge?: 'NEW' | 'PREVIEW' | 'BETA' };
 type NavLink = { kind: 'link'; id: NavView; label: string; icon: string };
@@ -91,6 +92,15 @@ const navItems: NavItem[] = [
 
   // Zone 8: System
   { kind: 'link', id: 'agent-matrix', label: 'Agent Matrix', icon: 'smart_toy' },
+
+  // Zone 9: Platform
+  {
+    kind: 'group', group: 'Platform', icon: 'hub',
+    children: [
+      { id: 'workflow-builder', label: 'Workflow Builder', icon: 'account_tree', badge: 'NEW' },
+      { id: 'workflow-runs', label: 'Workflow Runs', icon: 'play_circle', badge: 'NEW' },
+    ],
+  },
   {
     kind: 'group', group: 'Settings', icon: 'settings',
     children: [

@@ -2246,3 +2246,47 @@ Respond with JSON only. No markdown fences."""
                 if len(raw) > 100:
                     return raw[:2000]
         return ""
+
+
+class ElasticsearchClient:
+    """Lightweight Elasticsearch HTTP client for injection into LangGraph config.
+
+    Domain agents receive this via config["configurable"]["elk_client"] and
+    can call search without knowing the URL or auth details.
+    """
+
+    def __init__(
+        self,
+        url: str,
+        auth_method: str = "none",
+        credentials: str = "",
+        verify_ssl: bool = False,
+    ):
+        self.url = url.rstrip("/")
+        self._verify_ssl = verify_ssl
+        self._headers = {"Content-Type": "application/json"}
+        if auth_method in ("token", "bearer_token", "api_token") and credentials:
+            self._headers["Authorization"] = f"Bearer {credentials}"
+        elif auth_method == "api_key" and credentials:
+            self._headers["Authorization"] = f"ApiKey {credentials}"
+        elif auth_method in ("basic", "basic_auth") and credentials:
+            import base64
+            self._headers["Authorization"] = f"Basic {base64.b64encode(credentials.encode()).decode()}"
+
+    async def search(self, index: str, body: dict, timeout: int = 30) -> dict:
+        """Execute an Elasticsearch search asynchronously. Returns parsed JSON."""
+        import asyncio
+        import functools
+        return await asyncio.to_thread(self._search_sync, index, body, timeout)
+
+    def _search_sync(self, index: str, body: dict, timeout: int = 30) -> dict:
+        """Execute a synchronous Elasticsearch search. Returns parsed JSON."""
+        resp = requests.post(
+            f"{self.url}/{index}/_search",
+            json=body,
+            headers=self._headers,
+            timeout=timeout,
+            verify=self._verify_ssl,
+        )
+        resp.raise_for_status()
+        return resp.json()

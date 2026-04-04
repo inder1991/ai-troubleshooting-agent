@@ -102,3 +102,130 @@ async def test_storage_agent_mock():
     assert "domain_reports" in result
     report = result["domain_reports"][0]
     assert report["domain"] == "storage"
+
+
+class TestNodeAgentPrometheus:
+    def test_node_agent_queries_prometheus_when_client_available(self):
+        """node_agent should call prometheus_client.query_instant() when injected."""
+        import asyncio
+        from unittest.mock import MagicMock, AsyncMock, patch
+
+        mock_prom = MagicMock()
+        mock_prom.query_instant = AsyncMock(return_value={
+            "data": {"resultType": "vector", "result": []}
+        })
+
+        def _make_query_result(data=None):
+            r = MagicMock()
+            r.data = data if data is not None else []
+            r.permission_denied = False
+            r.truncated = False
+            r.total_available = 0
+            r.returned = 0
+            return r
+
+        mock_cluster = MagicMock()
+        mock_cluster.list_nodes = AsyncMock(return_value=_make_query_result())
+        mock_cluster.list_pods = AsyncMock(return_value=_make_query_result())
+        mock_cluster.list_events = AsyncMock(return_value=_make_query_result())
+        mock_cluster.list_deployments = AsyncMock(return_value=_make_query_result())
+        mock_cluster.list_statefulsets = AsyncMock(return_value=_make_query_result())
+        mock_cluster.list_daemonsets = AsyncMock(return_value=_make_query_result())
+        mock_cluster.list_hpas = AsyncMock(return_value=_make_query_result())
+        mock_cluster.list_pdbs = AsyncMock(return_value=_make_query_result())
+        mock_cluster.list_jobs = AsyncMock(return_value=_make_query_result())
+        mock_cluster.list_cronjobs = AsyncMock(return_value=_make_query_result())
+        mock_cluster.query_prometheus = AsyncMock(return_value=_make_query_result())
+
+        config = {"configurable": {
+            "cluster_client": mock_cluster,
+            "prometheus_client": mock_prom,
+            "elk_client": None,
+            "elk_index": "",
+            "emitter": MagicMock(),
+            "budget": MagicMock(should_skip=MagicMock(return_value=False), can_call=MagicMock(return_value=False)),
+            "telemetry": MagicMock(),
+        }}
+        state = {
+            "platform": "kubernetes",
+            "platform_version": "1.28",
+            "namespaces": ["default"],
+            "diagnostic_scope": {},
+            "dispatch_domains": ["node"],
+            "scan_mode": "diagnostic",
+            "cluster_url": "https://api.example.com:6443",
+            "cluster_type": "kubernetes",
+            "cluster_role": "",
+        }
+
+        with patch("src.agents.cluster.node_agent._heuristic_analyze", new_callable=AsyncMock) as mock_heuristic:
+
+            mock_heuristic.return_value = {
+                "anomalies": [],
+                "ruled_out": [],
+                "confidence": 50,
+            }
+            from src.agents.cluster.node_agent import node_agent
+            asyncio.run(node_agent(state, config))
+
+        # prometheus_client.query_instant should have been called
+        assert mock_prom.query_instant.called
+
+    def test_node_agent_skips_prometheus_when_client_is_none(self):
+        """node_agent should not fail when prometheus_client is None."""
+        import asyncio
+        from unittest.mock import MagicMock, AsyncMock, patch
+
+        def _make_query_result(data=None):
+            r = MagicMock()
+            r.data = data if data is not None else []
+            r.permission_denied = False
+            r.truncated = False
+            r.total_available = 0
+            r.returned = 0
+            return r
+
+        mock_cluster = MagicMock()
+        mock_cluster.list_nodes = AsyncMock(return_value=_make_query_result())
+        mock_cluster.list_pods = AsyncMock(return_value=_make_query_result())
+        mock_cluster.list_events = AsyncMock(return_value=_make_query_result())
+        mock_cluster.list_deployments = AsyncMock(return_value=_make_query_result())
+        mock_cluster.list_statefulsets = AsyncMock(return_value=_make_query_result())
+        mock_cluster.list_daemonsets = AsyncMock(return_value=_make_query_result())
+        mock_cluster.list_hpas = AsyncMock(return_value=_make_query_result())
+        mock_cluster.list_pdbs = AsyncMock(return_value=_make_query_result())
+        mock_cluster.list_jobs = AsyncMock(return_value=_make_query_result())
+        mock_cluster.list_cronjobs = AsyncMock(return_value=_make_query_result())
+        mock_cluster.query_prometheus = AsyncMock(return_value=_make_query_result())
+
+        config = {"configurable": {
+            "cluster_client": mock_cluster,
+            "prometheus_client": None,  # No Prometheus
+            "elk_client": None,
+            "elk_index": "",
+            "emitter": MagicMock(),
+            "budget": MagicMock(should_skip=MagicMock(return_value=False), can_call=MagicMock(return_value=False)),
+            "telemetry": MagicMock(),
+        }}
+        state = {
+            "platform": "kubernetes",
+            "platform_version": "1.28",
+            "namespaces": ["default"],
+            "diagnostic_scope": {},
+            "dispatch_domains": ["node"],
+            "scan_mode": "diagnostic",
+            "cluster_url": "",
+            "cluster_type": "",
+            "cluster_role": "",
+        }
+
+        with patch("src.agents.cluster.node_agent._heuristic_analyze", new_callable=AsyncMock) as mock_heuristic:
+            mock_heuristic.return_value = {
+                "anomalies": [],
+                "ruled_out": [],
+                "confidence": 50,
+            }
+            from src.agents.cluster.node_agent import node_agent
+            # Should not raise
+            result = asyncio.run(node_agent(state, config))
+        assert result is not None

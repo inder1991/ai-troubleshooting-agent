@@ -1,0 +1,98 @@
+[
+  {
+    "name": "Internet to On-Prem Web App",
+    "description": "External user hitting the public VIP — DNAT through Checkpoint, F5 load balances to pool members",
+    "src_ip": "198.51.100.50",
+    "dst_ip": "203.0.113.5",
+    "dst_port": 443,
+    "protocol": "TCP",
+    "expected_path": ["cp-perim-fw-01", "pa-core-fw-01", "f5-lb-01", "10.1.10.50"],
+    "nat_translations": [
+      {"device": "cp-perim-fw-01", "type": "DNAT", "from": "203.0.113.5:443", "to": "10.1.30.100:443"},
+      {"device": "f5-lb-01", "type": "SNAT", "from": "client-ip", "to": "10.1.10.100"}
+    ],
+    "tags": ["internet-ingress", "https", "load-balanced"]
+  },
+  {
+    "name": "On-Prem User to AWS Application",
+    "description": "Corporate user in VLAN 20 accessing AWS-hosted app via DirectConnect + GRE tunnel",
+    "src_ip": "10.1.20.50",
+    "dst_ip": "10.10.1.50",
+    "dst_port": 443,
+    "protocol": "TCP",
+    "expected_path": [
+      "rtr-core-01", "pa-core-fw-01", "rtr-dc-edge-01",
+      "Tunnel100", "csr-aws-01", "tgw-hub-01",
+      "gwlb-inspection-01", "pa-aws-fw-01", "vpc-production"
+    ],
+    "nat_translations": [],
+    "tags": ["on-prem-to-cloud", "directconnect", "gre-tunnel", "aws"]
+  },
+  {
+    "name": "AWS to Azure via On-Prem Hairpin",
+    "description": "Cross-cloud traffic hairpinned through on-prem DC because no direct peering exists",
+    "src_ip": "10.10.1.50",
+    "dst_ip": "10.20.1.50",
+    "dst_port": 443,
+    "protocol": "TCP",
+    "expected_path": [
+      "tgw-hub-01", "csr-aws-01", "Tunnel100",
+      "rtr-dc-edge-01", "rtr-core-01", "rtr-dc-edge-02",
+      "er-circuit-01", "vwan-hub-01", "vnet-production"
+    ],
+    "nat_translations": [],
+    "tags": ["cross-cloud", "hairpin", "aws-to-azure", "expressroute"]
+  },
+  {
+    "name": "On-Prem User to Internet via Zscaler",
+    "description": "Corporate laptop in VLAN 20 browsing the internet — forced through Zscaler proxy for inspection",
+    "src_ip": "10.1.20.50",
+    "dst_ip": "8.8.8.8",
+    "dst_port": 443,
+    "protocol": "TCP",
+    "expected_path": ["rtr-core-01", "zs-proxy-01", "cp-perim-fw-01", "ISP-Primary"],
+    "nat_translations": [
+      {"device": "cp-perim-fw-01", "type": "SNAT", "from": "10.0.0.0/8", "to": "203.0.113.4"}
+    ],
+    "tags": ["internet-egress", "zscaler", "proxy", "snat"]
+  },
+  {
+    "name": "AWS East-West via Inspection VPC",
+    "description": "Production VPC to Staging VPC traffic routed through inspection VPC with GWLB + PA firewall",
+    "src_ip": "10.10.1.50",
+    "dst_ip": "10.11.1.50",
+    "dst_port": 5432,
+    "protocol": "TCP",
+    "expected_path": [
+      "tgw-hub-01", "gwlb-inspection-01", "pa-aws-fw-01",
+      "gwlb-inspection-01", "tgw-hub-01", "vpc-staging"
+    ],
+    "nat_translations": [],
+    "tags": ["aws-east-west", "inspection", "gwlb", "postgres"]
+  },
+  {
+    "name": "Branch Office to Data Center",
+    "description": "Branch NY user accessing production app server over MPLS WAN circuit",
+    "src_ip": "172.16.1.50",
+    "dst_ip": "10.1.10.50",
+    "dst_port": 443,
+    "protocol": "TCP",
+    "expected_path": ["MPLS-PE", "rtr-core-01", "pa-core-fw-01", "sw-access-01"],
+    "nat_translations": [],
+    "tags": ["branch", "mpls", "wan"]
+  },
+  {
+    "name": "On-Prem to OCI Database",
+    "description": "Production app server connecting to Oracle Autonomous Database over FastConnect",
+    "src_ip": "10.1.10.50",
+    "dst_ip": "10.30.1.50",
+    "dst_port": 1521,
+    "protocol": "TCP",
+    "expected_path": [
+      "rtr-core-01", "rtr-dc-edge-01",
+      "fc-circuit-01", "drg-01", "vcn-production"
+    ],
+    "nat_translations": [],
+    "tags": ["on-prem-to-oci", "fastconnect", "oracle", "database"]
+  }
+]

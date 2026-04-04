@@ -59,6 +59,7 @@ class ClusterProfile(BaseModel):
 
     # Environment
     environment: Literal["prod", "staging", "dev"] = "dev"
+    role: str = ""   # RBAC role metadata, e.g. "cluster-admin", "view", "edit"
 
     # Auth (cluster-level)
     auth_method: Literal[

@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import type { ClusterDiagnosticsForm } from '../../../types';
 import type { ClusterProfile } from '../../../types/profiles';
 import { listProfiles } from '../../../services/profileApi';
+import { ClusterProfileSelector } from './ClusterProfileSelector';
+import { t } from '../../../styles/tokens';
 
 interface ClusterDiagnosticsFieldsProps {
   data: ClusterDiagnosticsForm;
@@ -11,295 +13,387 @@ interface ClusterDiagnosticsFieldsProps {
 const namespaces = ['default', 'kube-system', 'monitoring', 'production', 'staging'];
 const resourceTypes = ['All Resources', 'Pods', 'Deployments', 'Services', 'StatefulSets', 'DaemonSets', 'Nodes'];
 
-const envBadge: Record<string, string> = {
-  prod: 'text-red-400',
-  staging: 'text-[#e09f3e]',
-  dev: 'text-emerald-400',
+// Shared input style (inline, uses t. tokens)
+const inputStyle: React.CSSProperties = {
+  background: t.bgDeep,
+  border: `1px solid ${t.borderDefault}`,
+  borderRadius: 6,
+  color: t.textPrimary,
+  padding: '8px 10px',
+  fontSize: 13,
+  width: '100%',
+  boxSizing: 'border-box',
 };
 
-const statusDot: Record<string, string> = {
-  connected: 'bg-green-500',
-  warning: 'bg-amber-500',
-  unreachable: 'bg-red-500',
-  pending_setup: 'bg-gray-500',
+const labelStyle: React.CSSProperties = {
+  fontSize: 11,
+  fontWeight: 600,
+  color: t.textSecondary,
+  textTransform: 'uppercase',
+  letterSpacing: '0.05em',
 };
 
-const ClusterDiagnosticsFields: React.FC<ClusterDiagnosticsFieldsProps> = ({ data, onChange }) => {
+const fieldStyle: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 6,
+};
+
+const ClusterDiagnosticsFields: React.FC<ClusterDiagnosticsFieldsProps> = ({ data: formData, onChange }) => {
   const [profiles, setProfiles] = useState<ClusterProfile[]>([]);
-  const [selectedProfile, setSelectedProfile] = useState<string>(data.profile_id || '');
-  const [overrideAuth, setOverrideAuth] = useState(false);
+
+  // selectedId: real profile id OR null (= temp cluster)
+  // Start with the current profile_id from formData, or null if use_temp_cluster is set
+  const [selectedId, setSelectedId] = useState<string | null>(
+    formData.use_temp_cluster ? null : (formData.profile_id ?? (profiles.length > 0 ? profiles[0].id : null))
+  );
+
+  const [tempCluster, setTempCluster] = useState({
+    cluster_url: '',
+    auth_method: 'token' as 'token' | 'kubeconfig' | 'service_account',
+    credential: '',
+    role: '',
+  });
+  const [testResult, setTestResult] = useState<{ status: string; platform: string; version: string } | null>(null);
+  const [testing, setTesting] = useState(false);
+  const [elkIndex, setElkIndex] = useState(formData.elk_index ?? '');
 
   useEffect(() => {
     listProfiles()
-      .then(setProfiles)
+      .then(loaded => {
+        setProfiles(loaded);
+        // If no profile_id set yet and not using temp cluster, auto-select first
+        if (!formData.profile_id && !formData.use_temp_cluster && loaded.length > 0) {
+          setSelectedId(loaded[0].id);
+        }
+      })
       .catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const activeProfile = profiles.find((p) => p.id === selectedProfile);
-  const hasStoredCreds = activeProfile?.has_cluster_credentials ?? false;
-  const showAuthSection = !selectedProfile || overrideAuth || !hasStoredCreds;
+  const update = (field: Partial<ClusterDiagnosticsForm>) => {
+    onChange({ ...formData, ...field });
+  };
 
-  const handleProfileSelect = (profileId: string) => {
-    setSelectedProfile(profileId);
-    setOverrideAuth(false);
-    if (profileId) {
-      const profile = profiles.find((p) => p.id === profileId);
-      if (profile) {
-        onChange({
-          ...data,
-          profile_id: profileId,
-          cluster_url: profile.cluster_url,
-          auth_method: 'token',
-          auth_token: undefined,
-        });
-      }
+  const handleProfileSelect = (profileId: string | null) => {
+    setSelectedId(profileId);
+    setTestResult(null);
+
+    if (profileId !== null) {
+      // Selected a real profile
+      const profile = profiles.find(p => p.id === profileId);
+      onChange({
+        ...formData,
+        profile_id: profileId,
+        cluster_url: profile?.cluster_url ?? formData.cluster_url,
+        auth_method: 'token',
+        auth_token: undefined,
+        use_temp_cluster: undefined,
+        kubeconfig_content: undefined,
+        role: undefined,
+      });
     } else {
-      onChange({ ...data, profile_id: undefined });
+      // Selected "Use a different cluster"
+      onChange({
+        ...formData,
+        profile_id: undefined,
+        use_temp_cluster: true,
+        auth_token: undefined,
+        kubeconfig_content: undefined,
+      });
     }
   };
 
-  const update = (field: Partial<ClusterDiagnosticsForm>) => {
-    onChange({ ...data, ...field });
+  const handleTestConnection = async () => {
+    setTesting(true);
+    setTestResult(null);
+    try {
+      const resp = await fetch('/api/v5/profiles/test-connection', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cluster_url: tempCluster.cluster_url,
+          auth_method: tempCluster.auth_method,
+          credential: tempCluster.credential,
+          verify_ssl: false,
+        }),
+      });
+      const data = await resp.json();
+      setTestResult(data);
+      if (data.status === 'connected') {
+        const updatedData: ClusterDiagnosticsForm = {
+          ...formData,
+          cluster_url: tempCluster.cluster_url,
+          auth_method: tempCluster.auth_method,
+          auth_token: tempCluster.auth_method === 'token' ? tempCluster.credential : undefined,
+          kubeconfig_content: tempCluster.auth_method === 'kubeconfig' ? tempCluster.credential : undefined,
+          role: tempCluster.role,
+          use_temp_cluster: true,
+          profile_id: undefined,
+        };
+        onChange(updatedData);
+      }
+    } catch {
+      setTestResult({ status: 'unreachable', platform: '', version: '' });
+    } finally {
+      setTesting(false);
+    }
   };
+
+  const showTempPanel = formData.use_temp_cluster === true || selectedId === null;
 
   return (
     <div className="space-y-4">
-      {/* Select Cluster Profile */}
-      {profiles.length > 0 && (
-        <div>
-          <label className="block text-xs text-gray-400 mb-1.5 font-medium">Select Cluster Profile</label>
-          <select
-            value={selectedProfile}
-            onChange={(e) => handleProfileSelect(e.target.value)}
-            className="w-full px-3 py-2.5 bg-[#1a1814] border border-[#3d3528] rounded-lg text-sm text-white focus:border-[#e09f3e] focus:outline-none focus:ring-1 focus:ring-[#e09f3e]/30 transition-colors"
-          >
-            <option value="">-- Manual Entry --</option>
-            {profiles.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name} [{p.environment}] {p.status === 'connected' ? '' : `(${p.status})`}
-              </option>
-            ))}
-          </select>
-          {selectedProfile && activeProfile && (
-            <div className="flex items-center gap-2 mt-1.5 text-[10px]">
-              <span className={`w-1.5 h-1.5 rounded-full ${statusDot[activeProfile.status] || 'bg-gray-500'}`} />
-              <span className={envBadge[activeProfile.environment] || 'text-gray-400'}>{activeProfile.environment}</span>
-              <span className="text-gray-600 font-mono">{activeProfile.cluster_url}</span>
-              {hasStoredCreds && !overrideAuth && (
-                <>
-                  <span className="material-symbols-outlined text-green-500 text-[12px]">shield</span>
-                  <span className="text-green-500">Credentials stored</span>
-                  <button
-                    type="button"
-                    onClick={() => setOverrideAuth(true)}
-                    className="text-[#e09f3e] hover:underline ml-1"
-                  >
-                    Override
-                  </button>
-                </>
-              )}
-              {overrideAuth && (
-                <>
-                  <span className="text-amber-400">Using manual credentials</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setOverrideAuth(false);
-                      update({ auth_token: undefined });
-                    }}
-                    className="text-[#e09f3e] hover:underline ml-1"
-                  >
-                    Use stored
-                  </button>
-                </>
-              )}
-            </div>
-          )}
-        </div>
-      )}
 
-      {/* Auth Section — hidden when profile has stored credentials (unless override) */}
-      {showAuthSection && (
-        <>
+      {/* Cluster Profile Selector */}
+      <ClusterProfileSelector
+        profiles={profiles}
+        selectedId={selectedId}
+        onSelect={handleProfileSelect}
+        loading={false}
+      />
+
+      {/* Temporary cluster inline panel */}
+      {showTempPanel && (
+        <div style={{
+          border: `1px solid ${t.borderDefault}`,
+          borderRadius: 8,
+          padding: 14,
+          background: t.bgSurface,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 12,
+        }}>
+          <span style={{ fontSize: 11, fontWeight: 600, color: t.textSecondary, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            One-time cluster credentials (not saved)
+          </span>
+
           {/* Cluster API URL */}
-          {!selectedProfile && (
-            <div>
-              <label className="block text-xs text-gray-400 mb-1.5 font-medium">
-                Cluster API URL <span className="text-red-400">*</span>
-              </label>
-              <input
-                type="text"
-                value={data.cluster_url}
-                onChange={(e) => update({ cluster_url: e.target.value })}
-                className="w-full px-3 py-2.5 bg-[#1a1814] border border-[#3d3528] rounded-lg text-sm text-white placeholder-gray-600 focus:border-[#e09f3e] focus:outline-none focus:ring-1 focus:ring-[#e09f3e]/30 transition-colors"
-                placeholder="https://api.cluster.example.com:6443"
-                required
-              />
-            </div>
-          )}
+          <div style={fieldStyle}>
+            <label style={labelStyle}>
+              Cluster API URL <span style={{ color: t.red }}>*</span>
+            </label>
+            <input
+              type="text"
+              value={tempCluster.cluster_url}
+              onChange={e => setTempCluster(prev => ({ ...prev, cluster_url: e.target.value }))}
+              placeholder="https://api.cluster.example.com:6443"
+              style={inputStyle}
+            />
+          </div>
 
-          {/* Auth Method Toggle */}
-          <div>
-            <label className="block text-xs text-gray-400 mb-2 font-medium">Auth Method</label>
-            <div className="grid grid-cols-2 gap-2">
-              {(['token', 'kubeconfig'] as const).map((method) => {
-                const active = (data.auth_method || 'token') === method;
+          {/* Auth Method */}
+          <div style={fieldStyle}>
+            <label style={labelStyle}>Auth Method</label>
+            <div style={{ display: 'flex', gap: 6 }}>
+              {(['token', 'kubeconfig', 'service_account'] as const).map(method => {
+                const active = tempCluster.auth_method === method;
                 return (
                   <button
                     key={method}
                     type="button"
-                    onClick={() => update({ auth_method: method })}
-                    className={`px-3 py-2 rounded-lg border text-xs font-medium transition-all ${
-                      active
-                        ? 'bg-[#e09f3e]/10 border-[#e09f3e]/30 text-[#e09f3e]'
-                        : 'bg-[#1a1814] border-[#3d3528] text-gray-400 hover:text-gray-300'
-                    }`}
+                    onClick={() => setTempCluster(prev => ({ ...prev, auth_method: method, credential: '' }))}
+                    style={{
+                      flex: 1,
+                      padding: '6px 8px',
+                      borderRadius: 6,
+                      border: `1px solid ${active ? t.cyanBorder : t.borderDefault}`,
+                      background: active ? t.cyanBg : t.bgDeep,
+                      color: active ? t.cyan : t.textSecondary,
+                      fontSize: 11,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      transition: 'all 0.15s',
+                    }}
                   >
-                    {method === 'token' ? 'Auth Token' : 'Kubeconfig'}
+                    {method === 'token' ? 'Token' : method === 'kubeconfig' ? 'Kubeconfig' : 'Service Acct'}
                   </button>
                 );
               })}
             </div>
           </div>
 
-          {/* Auth Token / Kubeconfig */}
-          <div>
-            <label className="block text-xs text-gray-400 mb-1.5 font-medium">
-              {(data.auth_method || 'token') === 'token' ? 'Bearer Token' : 'Kubeconfig Contents'}
+          {/* Credentials */}
+          <div style={fieldStyle}>
+            <label style={labelStyle}>
+              {tempCluster.auth_method === 'token'
+                ? 'Bearer Token'
+                : tempCluster.auth_method === 'kubeconfig'
+                ? 'Kubeconfig YAML'
+                : 'Service Account Token'}
             </label>
             <textarea
-              value={data.auth_token || ''}
-              onChange={(e) => update({ auth_token: e.target.value || undefined })}
+              value={tempCluster.credential}
+              onChange={e => setTempCluster(prev => ({ ...prev, credential: e.target.value }))}
               rows={3}
-              className="w-full px-3 py-2.5 bg-[#1a1814] border border-[#3d3528] rounded-lg text-sm text-white placeholder-gray-600 focus:border-[#e09f3e] focus:outline-none focus:ring-1 focus:ring-[#e09f3e]/30 transition-colors font-mono resize-none"
               placeholder={
-                (data.auth_method || 'token') === 'token'
+                tempCluster.auth_method === 'token'
                   ? 'eyJhbGciOi...'
-                  : 'Paste kubeconfig YAML...'
+                  : tempCluster.auth_method === 'kubeconfig'
+                  ? 'Paste kubeconfig YAML...'
+                  : 'Paste service account token...'
               }
+              style={{ ...inputStyle, fontFamily: 'monospace', resize: 'none' }}
             />
-            {/* Kubeconfig file upload */}
-            {(data.auth_method || 'token') === 'kubeconfig' && (
-              <label className="flex items-center gap-1.5 mt-1.5 cursor-pointer text-[10px] text-[#e09f3e] hover:text-[#e09f3e]/80 transition-colors">
-                <span className="material-symbols-outlined text-[14px]">upload_file</span>
-                <span>Upload .kubeconfig</span>
-                <input
-                  type="file"
-                  accept=".yaml,.yml,.kubeconfig"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      const reader = new FileReader();
-                      reader.onload = (ev) => {
-                        const contents = ev.target?.result as string;
-                        if (contents) update({ auth_token: contents });
-                      };
-                      reader.readAsText(file);
-                    }
-                    e.target.value = '';
-                  }}
-                />
-              </label>
-            )}
           </div>
-        </>
-      )}
 
-      {/* Save This Cluster — only shown in manual entry mode (no profile selected) */}
-      {!selectedProfile && (
-        <div className="border border-[#3d3528] rounded-lg p-3 bg-[#1a1814]/50">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={data.save_cluster ?? true}
-              onChange={(e) => update({ save_cluster: e.target.checked })}
-              className="w-3.5 h-3.5 rounded border-[#3d3528] bg-[#1a1814] text-[#e09f3e] focus:ring-[#e09f3e]/30"
-            />
-            <span className="text-xs text-gray-300">Save this cluster for future diagnostics</span>
-          </label>
-          {(data.save_cluster ?? true) && (
+          {/* Role */}
+          <div style={fieldStyle}>
+            <label style={labelStyle}>
+              Role <span style={{ color: t.textMuted, fontWeight: 400 }}>(optional)</span>
+            </label>
             <input
               type="text"
-              value={data.cluster_name || ''}
-              onChange={(e) => update({ cluster_name: e.target.value })}
-              className="w-full mt-2 px-3 py-2 bg-[#1a1814] border border-[#3d3528] rounded-lg text-sm text-white placeholder-gray-600 focus:border-[#e09f3e] focus:outline-none focus:ring-1 focus:ring-[#e09f3e]/30 transition-colors"
-              placeholder="Cluster name (e.g. prod-east-1)"
+              value={tempCluster.role}
+              onChange={e => setTempCluster(prev => ({ ...prev, role: e.target.value }))}
+              placeholder="e.g. cluster-admin, view, edit"
+              style={inputStyle}
             />
+          </div>
+
+          {/* Test Connection button */}
+          <button
+            type="button"
+            onClick={handleTestConnection}
+            disabled={testing || !tempCluster.cluster_url || !tempCluster.credential}
+            style={{
+              padding: '8px 14px',
+              borderRadius: 6,
+              border: `1px solid ${t.cyanBorder}`,
+              background: t.cyanBg,
+              color: t.cyan,
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: testing || !tempCluster.cluster_url || !tempCluster.credential ? 'not-allowed' : 'pointer',
+              opacity: testing || !tempCluster.cluster_url || !tempCluster.credential ? 0.5 : 1,
+              transition: 'all 0.15s',
+              alignSelf: 'flex-start',
+            }}
+          >
+            {testing ? 'Testing…' : 'Test Connection'}
+          </button>
+
+          {/* Test result status */}
+          {testResult && (
+            <div style={{
+              fontSize: 12,
+              fontWeight: 500,
+              color: testResult.status === 'connected' ? t.green : t.red,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+            }}>
+              {testResult.status === 'connected'
+                ? `✓ Connected${testResult.platform ? ` to ${testResult.platform}` : ''}${testResult.version ? ` ${testResult.version}` : ''}`
+                : `✗ ${testResult.status === 'unreachable' ? 'Unreachable — check URL and credentials' : testResult.status}`}
+            </div>
           )}
         </div>
       )}
 
       {/* Target Namespace */}
-      <div>
-        <label className="block text-xs text-gray-400 mb-1.5 font-medium">Target Namespace</label>
+      <div style={fieldStyle}>
+        <label style={labelStyle}>Target Namespace</label>
         <select
-          value={data.namespace || ''}
-          onChange={(e) => update({ namespace: e.target.value || undefined })}
-          className="w-full px-3 py-2.5 bg-[#1a1814] border border-[#3d3528] rounded-lg text-sm text-white focus:border-[#e09f3e] focus:outline-none focus:ring-1 focus:ring-[#e09f3e]/30 transition-colors"
+          value={formData.namespace || ''}
+          onChange={e => update({ namespace: e.target.value || undefined })}
+          style={inputStyle}
         >
           <option value="">All Namespaces</option>
-          {namespaces.map((ns) => (
-            <option key={ns} value={ns}>
-              {ns}
-            </option>
+          {namespaces.map(ns => (
+            <option key={ns} value={ns}>{ns}</option>
           ))}
         </select>
       </div>
 
+      {/* ELK Log Index (optional) */}
+      <div style={fieldStyle}>
+        <label style={labelStyle}>
+          ELK Log Index <span style={{ color: t.textMuted, fontWeight: 400 }}>(optional)</span>
+        </label>
+        <input
+          type="text"
+          value={elkIndex}
+          onChange={e => {
+            setElkIndex(e.target.value);
+            onChange({ ...formData, elk_index: e.target.value || undefined });
+          }}
+          placeholder="e.g. cluster-logs-* or leave blank to skip log analysis"
+          style={inputStyle}
+        />
+      </div>
+
       {/* Resource Type */}
-      <div>
-        <label className="block text-xs text-gray-400 mb-1.5 font-medium">Resource Type</label>
+      <div style={fieldStyle}>
+        <label style={labelStyle}>Resource Type</label>
         <select
-          value={data.resource_type || ''}
-          onChange={(e) => update({ resource_type: e.target.value || undefined, workload: undefined })}
-          className="w-full px-3 py-2.5 bg-[#1a1814] border border-[#3d3528] rounded-lg text-sm text-white focus:border-[#e09f3e] focus:outline-none focus:ring-1 focus:ring-[#e09f3e]/30 transition-colors"
+          value={formData.resource_type || ''}
+          onChange={e => update({ resource_type: e.target.value || undefined, workload: undefined })}
+          style={inputStyle}
         >
           <option value="">All Resources</option>
-          {resourceTypes.filter((r) => r !== 'All Resources').map((rt) => (
-            <option key={rt} value={rt.toLowerCase()}>
-              {rt}
-            </option>
+          {resourceTypes.filter(r => r !== 'All Resources').map(rt => (
+            <option key={rt} value={rt.toLowerCase()}>{rt}</option>
           ))}
         </select>
       </div>
 
       {/* Workload Name — visible when a specific resource type is selected */}
-      {data.resource_type && (
-        <div>
-          <label className="block text-xs text-gray-400 mb-1.5 font-medium">Workload Name</label>
+      {formData.resource_type && (
+        <div style={fieldStyle}>
+          <label style={labelStyle}>Workload Name</label>
           <input
             type="text"
-            value={data.workload || ''}
-            onChange={(e) => update({ workload: e.target.value || undefined })}
-            className="w-full px-3 py-2.5 bg-[#1a1814] border border-[#3d3528] rounded-lg text-sm text-white placeholder-gray-600 focus:border-[#e09f3e] focus:outline-none focus:ring-1 focus:ring-[#e09f3e]/30 transition-colors"
-            placeholder={`e.g. my-${data.resource_type === 'pods' ? 'pod' : 'app'}-name`}
+            value={formData.workload || ''}
+            onChange={e => update({ workload: e.target.value || undefined })}
+            placeholder={`e.g. my-${formData.resource_type === 'pods' ? 'pod' : 'app'}-name`}
+            style={inputStyle}
           />
         </div>
       )}
 
       {/* Include Control Plane */}
-      <div className="flex items-center gap-2">
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <input
           type="checkbox"
-          checked={data.include_control_plane ?? true}
-          onChange={(e) => update({ include_control_plane: e.target.checked })}
-          className="w-3.5 h-3.5 rounded border-[#3d3528] bg-[#1a1814] text-[#e09f3e] focus:ring-[#e09f3e]/30"
+          id="include_control_plane"
+          checked={formData.include_control_plane ?? true}
+          onChange={e => update({ include_control_plane: e.target.checked })}
+          style={{ width: 14, height: 14, accentColor: t.cyan, cursor: 'pointer' }}
         />
-        <label className="text-xs text-gray-300">Include control plane diagnostics</label>
+        <label htmlFor="include_control_plane" style={{ fontSize: 12, color: t.textSecondary, cursor: 'pointer' }}>
+          Include control plane diagnostics
+        </label>
       </div>
 
       {/* Symptoms */}
-      <div>
-        <label className="block text-xs text-gray-400 mb-1.5 font-medium">Symptoms Description</label>
+      <div style={fieldStyle}>
+        <label style={labelStyle}>Symptoms Description</label>
         <textarea
-          value={data.symptoms || ''}
-          onChange={(e) => update({ symptoms: e.target.value || undefined })}
+          value={formData.symptoms || ''}
+          onChange={e => update({ symptoms: e.target.value || undefined })}
           rows={2}
-          className="w-full px-3 py-2.5 bg-[#1a1814] border border-[#3d3528] rounded-lg text-sm text-white placeholder-gray-600 focus:border-[#e09f3e] focus:outline-none focus:ring-1 focus:ring-[#e09f3e]/30 transition-colors resize-none"
           placeholder="Describe the observed symptoms..."
+          style={{ ...inputStyle, resize: 'none' }}
         />
       </div>
+
+      {/* Validation warning: temp cluster not tested */}
+      {formData.use_temp_cluster && testResult?.status !== 'connected' && (
+        <div style={{
+          fontSize: 11,
+          color: t.amber,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          padding: '6px 10px',
+          borderRadius: 6,
+          border: `1px solid ${t.amberBorder}`,
+          background: t.amberBg,
+        }}>
+          ⚠ Test the connection before starting diagnostics
+        </div>
+      )}
     </div>
   );
 };

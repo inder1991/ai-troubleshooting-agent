@@ -60,9 +60,12 @@ import SecurityResourcesView from './components/Security/SecurityResourcesView';
 import ClusterRegistryPage from './components/ClusterRegistry/ClusterRegistryPage';
 import ClusterRecommendationsPage from './components/ClusterRegistry/ClusterRecommendationsPage';
 import { Breadcrumbs } from './components/shared';
+import AgentCatalogView from './components/Platform/AgentCatalog/AgentCatalogView';
+import WorkflowBuilderView from './components/Platform/WorkflowBuilder/WorkflowBuilderView';
+import WorkflowRunsView from './components/Platform/WorkflowRuns/WorkflowRunsView';
 
 
-type ViewState = 'home' | 'form' | 'investigation' | 'sessions' | 'integrations' | 'settings' | 'dossier' | 'cluster-diagnostics' | 'agent-matrix' | 'network-troubleshooting' | 'network-topology' | 'network-adapters' | 'device-monitoring' | 'ipam' | 'matrix' | 'observatory' | 'db-overview' | 'db-connections' | 'db-diagnostics' | 'db-monitoring' | 'db-schema' | 'db-operations' | 'k8s-clusters' | 'audit-log' | 'mib-browser' | 'cloud-resources' | 'security-resources' | 'cluster-registry' | 'cluster-recommendations' | 'live-topology';
+type ViewState = 'home' | 'form' | 'investigation' | 'sessions' | 'integrations' | 'settings' | 'dossier' | 'cluster-diagnostics' | 'agent-matrix' | 'network-troubleshooting' | 'network-topology' | 'network-adapters' | 'device-monitoring' | 'ipam' | 'matrix' | 'observatory' | 'db-overview' | 'db-connections' | 'db-diagnostics' | 'db-monitoring' | 'db-schema' | 'db-operations' | 'k8s-clusters' | 'audit-log' | 'mib-browser' | 'cloud-resources' | 'security-resources' | 'cluster-registry' | 'cluster-recommendations' | 'live-topology' | 'agent-catalog' | 'workflow-builder' | 'workflow-runs';
 
 function AppInner() {
   const { addToast } = useToast();
@@ -328,15 +331,20 @@ function AppInner() {
             service_name: 'Cluster Diagnostics',
             time_window: '1h',
             namespace: clusterData.namespace || '',
-            cluster_url: clusterData.cluster_url,
             capability: 'cluster_diagnostics',
-            profile_id: profileId,
-            scope,
-            // Ad-hoc auth fields (used when no profile)
-            ...((!profileId && clusterData.auth_token) ? {
-              auth_token: clusterData.auth_token,
+            // Profile-based auth: just pass profile_id, server resolves credentials
+            profile_id: profileId || undefined,
+            // Ad-hoc auth: only when using temp cluster (no saved profile)
+            ...(clusterData.use_temp_cluster ? {
+              cluster_url: clusterData.cluster_url,
               auth_method: clusterData.auth_method || 'token',
+              auth_token: clusterData.auth_method !== 'kubeconfig' ? (clusterData.auth_token || undefined) : undefined,
+              kubeconfig_content: clusterData.auth_method === 'kubeconfig' ? (clusterData.kubeconfig_content || undefined) : undefined,
+              role: clusterData.role || undefined,
             } : {}),
+            // ELK index (always pass, backend skips if empty string)
+            elk_index: clusterData.elk_index || '',
+            scope,
           });
           const clusterSession = { ...session, capability: 'cluster_diagnostics' as const };
           setSessions((prev) => [clusterSession, ...prev]);
@@ -489,6 +497,7 @@ function AppInner() {
     'audit-log': 'audit-log', 'mib-browser': 'mib-browser',
     'cloud-resources': 'cloud-resources', 'security-resources': 'security-resources',
     'cluster-registry': 'cluster-registry', 'cluster-recommendations': 'cluster-recommendations',
+    'agent-catalog': 'agent-catalog', 'workflow-builder': 'workflow-builder', 'workflow-runs': 'workflow-runs',
   };
 
   const navView: NavView =
@@ -759,6 +768,10 @@ function AppInner() {
         {viewState === 'agent-matrix' && (
           <AgentMatrixView onGoHome={handleGoHome} />
         )}
+
+        {viewState === 'agent-catalog' && <AgentCatalogView />}
+        {viewState === 'workflow-builder' && <WorkflowBuilderView />}
+        {viewState === 'workflow-runs' && <WorkflowRunsView onNavigate={(v) => setViewState(v as ViewState)} />}
 
         {viewState === 'network-troubleshooting' && activeSession && (
           <NetworkWarRoom

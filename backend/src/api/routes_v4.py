@@ -27,6 +27,10 @@ from src.tools.router_models import InvestigateRequest, InvestigateResponse
 from src.tools.tool_registry import TOOL_REGISTRY
 from src.agents.critic_agent import CriticAgent
 from src.models.schemas import EvidencePin
+from src.agents.cluster_client.k8s_client import KubernetesClient
+from src.agents.cluster.prometheus_detector import detect_prometheus_endpoint
+from src.agents.metrics_agent import PrometheusClient
+from src.agents.log_agent import ElasticsearchClient
 
 logger = get_logger(__name__)
 
@@ -223,9 +227,66 @@ def start_cleanup_task():
 
 
 def create_cluster_client(connection_config=None):
-    """Factory for cluster client. Returns MockClusterClient for now; swappable for real client."""
+    """
+    Create a cluster client from connection config.
+    Returns (client, temp_kubeconfig_path_or_None).
+
+    Resolution order:
+    1. bearer token (cluster_url + cluster_token)
+    2. kubeconfig content written to temp file
+    3. KUBECONFIG env var or ~/.kube/config
+    4. MockClusterClient fallback
+    """
+    import tempfile
+    from pathlib import Path
     from src.agents.cluster_client.mock_client import MockClusterClient
-    return MockClusterClient(platform="openshift")
+
+    temp_path = None
+    cluster_url = getattr(connection_config, "cluster_url", "") if connection_config else ""
+    cluster_token = getattr(connection_config, "cluster_token", "") if connection_config else ""
+    auth_method = getattr(connection_config, "auth_method", "token") if connection_config else "token"
+    kubeconfig_content = getattr(connection_config, "kubeconfig_content", "") if connection_config else ""
+    verify_ssl = getattr(connection_config, "verify_ssl", False) if connection_config else False
+
+    # 1. Bearer token
+    if cluster_url or cluster_token:
+        try:
+            return KubernetesClient(
+                api_url=cluster_url or None,
+                token=cluster_token or None,
+                verify_ssl=verify_ssl,
+            ), None
+        except Exception as e:
+            logger.warning("Failed to create KubernetesClient with bearer token: %s", e)
+
+    # 2. Kubeconfig content (temp file)
+    if auth_method == "kubeconfig" and kubeconfig_content:
+        try:
+            with tempfile.NamedTemporaryFile(
+                mode="w", suffix=".yaml", delete=False
+            ) as f:
+                f.write(kubeconfig_content)
+                temp_path = f.name
+            return KubernetesClient(kubeconfig_path=temp_path), temp_path
+        except Exception as e:
+            logger.warning("Failed to create KubernetesClient from kubeconfig content: %s", e)
+            if temp_path:
+                Path(temp_path).unlink(missing_ok=True)
+                temp_path = None
+
+    # 3. KUBECONFIG env var or ~/.kube/config
+    kubeconfig_env = os.environ.get("KUBECONFIG", "")
+    default_kubeconfig = Path.home() / ".kube" / "config"
+    if kubeconfig_env or default_kubeconfig.exists():
+        try:
+            kubeconfig_path = kubeconfig_env or str(default_kubeconfig)
+            return KubernetesClient(kubeconfig_path=kubeconfig_path), None
+        except Exception as e:
+            logger.warning("Failed to create KubernetesClient from kubeconfig file: %s", e)
+
+    # 4. Mock fallback
+    logger.info("No cluster credentials found, using MockClusterClient")
+    return MockClusterClient(platform="openshift"), None
 
 
 @router_v4.post("/session/start", response_model=StartSessionResponse)
@@ -258,14 +319,17 @@ async def start_session(request: StartSessionRequest, background_tasks: Backgrou
             try:
                 from src.integrations.connection_config import ResolvedConnectionConfig
                 connection_config = ResolvedConnectionConfig(
-                    cluster_url=request.clusterUrl,
+                    cluster_url=request.clusterUrl or "",
                     cluster_token=request.authToken or "",
-                    cluster_type="kubernetes",
+                    auth_method=request.authMethod or "token",
+                    kubeconfig_content=request.kubeconfig_content or "",
+                    role=request.role or "",
+                    verify_ssl=False,
                 )
             except Exception as e:
                 logger.warning("Could not build ad-hoc connection config: %s", e)
 
-        cluster_client = create_cluster_client(connection_config)
+        cluster_client, kubeconfig_temp_path = create_cluster_client(connection_config)
         graph = build_cluster_diagnostic_graph()
 
         # Build diagnostic scope from request
@@ -297,10 +361,13 @@ async def start_session(request: StartSessionRequest, background_tasks: Backgrou
             "connection_config": connection_config,
             "scan_mode": request.scan_mode,
             "diagnostic_scope": scope.model_dump(mode="json"),
+            "kubeconfig_temp_path": kubeconfig_temp_path,
+            "elk_index": request.elkIndex or "",
         }
 
         background_tasks.add_task(
-            run_cluster_diagnosis, session_id, graph, cluster_client, emitter, request.scan_mode
+            run_cluster_diagnosis, session_id, graph, cluster_client, emitter, request.scan_mode,
+            connection_config=connection_config
         )
 
         logger.info("Cluster session created", extra={"session_id": session_id, "action": "session_created", "extra": "cluster_diagnostics"})
@@ -371,7 +438,7 @@ async def start_session(request: StartSessionRequest, background_tasks: Backgrou
         "session_id": session_id,
         "incident_id": incident_id,
         "service_name": request.serviceName,
-        "elk_index": request.elkIndex,
+        "elk_index": request.elkIndex or "",
         "time_start": f"now-{request.timeframe}",
         "time_end": "now",
         "trace_id": request.traceId,
@@ -460,7 +527,23 @@ def _push_to_v5(session_id: str, state):
         logger.error("Failed to push V5 governance data for session %s: %s", session_id, e, exc_info=True)
 
 
-async def run_cluster_diagnosis(session_id, graph, cluster_client, emitter, scan_mode="diagnostic"):
+async def get_or_create_cluster_client(session_id: str):
+    """Return cached cluster client from session, or create a new one from stored config."""
+    session = sessions.get(session_id, {})
+    client = session.get("cluster_client")
+    if client is not None:
+        return client
+    connection_config = session.get("connection_config")
+    if connection_config:
+        new_client, temp_path = create_cluster_client(connection_config)
+        sessions[session_id]["cluster_client"] = new_client
+        if temp_path:
+            sessions[session_id]["kubeconfig_temp_path"] = temp_path
+        return new_client
+    return None
+
+
+async def run_cluster_diagnosis(session_id, graph, cluster_client, emitter, scan_mode="diagnostic", connection_config=None):
     """Background task: run LangGraph cluster diagnostic."""
     try:
         _diagnosis_tasks[session_id] = asyncio.current_task()
@@ -469,6 +552,7 @@ async def run_cluster_diagnosis(session_id, graph, cluster_client, emitter, scan
 
     lock = session_locks.get(session_id, asyncio.Lock())
     try:
+        sessions[session_id]["cluster_client"] = cluster_client
         scope_data = sessions[session_id].get("diagnostic_scope", {})
 
         initial_state = {
@@ -487,6 +571,9 @@ async def run_cluster_diagnosis(session_id, graph, cluster_client, emitter, scan
             "data_completeness": 0.0,
             "error": None,
             "scan_mode": scan_mode,
+            "cluster_url": getattr(connection_config, "cluster_url", "") if connection_config else "",
+            "cluster_type": getattr(connection_config, "cluster_type", "") if connection_config else "",
+            "cluster_role": getattr(connection_config, "role", "") if connection_config else "",
             "topology_graph": {},
             "topology_freshness": {},
             "issue_clusters": [],
@@ -520,11 +607,74 @@ async def run_cluster_diagnosis(session_id, graph, cluster_client, emitter, scan
         }
         budget = adapt_budget(budget, cluster_size)
 
+        # Resolve Prometheus URL: profile first, then auto-detect from cluster
+        prometheus_url = getattr(connection_config, "prometheus_url", "") if connection_config else ""
+        if not prometheus_url:
+            prometheus_url = await detect_prometheus_endpoint(cluster_client, initial_state["platform"])
+            if prometheus_url:
+                logger.info("Auto-detected Prometheus at %s", prometheus_url)
+                sessions[session_id]["prometheus_url"] = prometheus_url
+
         await emitter.emit("cluster_supervisor", "phase_change", "Starting cluster diagnostics", {"phase": "collecting_context"})
+
+        # Resolve ELK index and URL
+        elk_index = sessions.get(session_id, {}).get("elk_index", "")
+        elk_url = getattr(connection_config, "elasticsearch_url", "") if connection_config else ""
+
+        if elk_index and not elk_url:
+            # Try global integrations store
+            try:
+                from src.integrations.profile_store import ProfileStore
+                store = ProfileStore()
+                integrations = getattr(store, "list_global_integrations", lambda: [])()
+                elk_integration = next(
+                    (i for i in integrations if getattr(i, "service_type", "") in ("elk", "elasticsearch")),
+                    None
+                )
+                elk_url = getattr(elk_integration, "url", "") if elk_integration else ""
+            except Exception as exc:
+                logger.warning("Failed to resolve ELK URL from global integrations: %s", exc)
+
+            if not elk_url:
+                logger.info("ELK index provided but no ELK endpoint configured — skipping log analysis")
+                elk_index = ""  # Clear index so elk_client is not created
+
+        # Build prometheus_client and elk_client
+        cluster_token = getattr(connection_config, "cluster_token", "") if connection_config else ""
+        cluster_verify_ssl = getattr(connection_config, "verify_ssl", False) if connection_config else False
+
+        prometheus_client = None
+        if prometheus_url:
+            try:
+                prom_token = getattr(connection_config, "prometheus_credentials", "") if connection_config else ""
+                prometheus_client = PrometheusClient(
+                    url=prometheus_url,
+                    token=prom_token,
+                    verify_ssl=cluster_verify_ssl,
+                )
+            except Exception as exc:
+                logger.warning("Failed to create PrometheusClient: %s", exc)
+
+        elk_client = None
+        if elk_index and elk_url:
+            try:
+                elk_auth = getattr(connection_config, "elasticsearch_auth_method", "none") if connection_config else "none"
+                elk_creds = getattr(connection_config, "elasticsearch_credentials", "") if connection_config else ""
+                elk_client = ElasticsearchClient(
+                    url=elk_url,
+                    auth_method=elk_auth,
+                    credentials=elk_creds,
+                    verify_ssl=cluster_verify_ssl,
+                )
+            except Exception as exc:
+                logger.warning("Failed to create ElasticsearchClient: %s", exc)
 
         config = {
             "configurable": {
                 "cluster_client": cluster_client,
+                "prometheus_client": prometheus_client,
+                "elk_client": elk_client,
+                "elk_index": elk_index,
                 "emitter": emitter,
                 "budget": budget,
                 "telemetry": telemetry,
@@ -561,7 +711,12 @@ async def run_cluster_diagnosis(session_id, graph, cluster_client, emitter, scan
         await emitter.emit("cluster_supervisor", "error", f"Cluster diagnosis failed: {str(e)}")
     finally:
         _diagnosis_tasks.pop(session_id, None)
-        await cluster_client.close()
+        # Clean up temp kubeconfig file if present (safety net — DELETE endpoint also cleans up)
+        temp_path = sessions.get(session_id, {}).get("kubeconfig_temp_path")
+        if temp_path:
+            from pathlib import Path
+            Path(temp_path).unlink(missing_ok=True)
+            sessions.get(session_id, {}).pop("kubeconfig_temp_path", None)
 
 
 async def run_diagnosis(session_id: str, supervisor: SupervisorAgent, initial_input: dict, emitter: EventEmitter):
@@ -735,6 +890,29 @@ async def cancel_session(session_id: str):
     if emitter and hasattr(emitter, 'emit'):
         asyncio.create_task(emitter.emit("supervisor", "warning", "Investigation cancelled by user"))
     return {"status": "cancelled"}
+
+
+@router_v4.delete("/session/{session_id}")
+async def delete_session(session_id: str):
+    _validate_session_id(session_id)
+    if session_id not in sessions:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    # Clean up cluster client and temp kubeconfig
+    client = sessions[session_id].get("cluster_client")
+    if client:
+        try:
+            await client.close()
+        except Exception:
+            pass
+    temp_path = sessions[session_id].get("kubeconfig_temp_path")
+    if temp_path:
+        from pathlib import Path
+        Path(temp_path).unlink(missing_ok=True)
+
+    sessions.pop(session_id, None)
+    session_locks.pop(session_id, None)
+    return {"status": "deleted", "session_id": session_id}
 
 
 @router_v4.get("/session/{session_id}/status")

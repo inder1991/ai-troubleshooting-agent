@@ -50,10 +50,13 @@ async def test_graph_works_with_mongo_adapter():
     mock_adapter.health_check = AsyncMock(return_value=MagicMock(
         status="healthy", latency_ms=5.0, version="MongoDB 7.0.4"
     ))
+    mock_adapter.check_permissions = AsyncMock(return_value={"serverStatus": True, "currentOp": True})
     mock_adapter.get_active_queries = AsyncMock(return_value=[
         MagicMock(pid=100, query="testdb.orders: {'find': 'orders'}", duration_ms=8000,
                   state="query", user="app", database="testdb", waiting=False),
     ])
+    mock_adapter.get_slow_queries_from_stats = AsyncMock(return_value=[])
+    mock_adapter.explain_query = AsyncMock(return_value={})
     mock_adapter.get_connection_pool = AsyncMock(return_value=MagicMock(
         active=10, idle=5, waiting=0, max_connections=100
     ))
@@ -61,6 +64,7 @@ async def test_graph_works_with_mongo_adapter():
         connections_active=10, connections_idle=5, connections_max=100,
         cache_hit_ratio=0.92, transactions_per_sec=500.0, deadlocks=0, uptime_seconds=3600,
     ))
+    mock_adapter.get_schema_snapshot = AsyncMock(return_value=MagicMock(tables=[]))
 
     initial_state: DBDiagnosticStateV2 = {
         "run_id": "R-mongo-1",

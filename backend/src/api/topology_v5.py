@@ -45,14 +45,26 @@ def classify_group(device_data: dict) -> str:
     region = (device_data.get("region") or "").lower()
     combined = f"{site_id} {hostname} {location} {region}"
 
-    # AWS
-    if cloud == "aws" or "aws" in combined or "vpc-" in hostname or "tgw-" in hostname or "natgw-" in hostname or "igw-" in hostname or "csr-aws" in hostname:
+    # AWS — cloud_provider, name patterns, AWS region patterns
+    aws_regions = ("us-east-", "us-west-", "eu-west-", "eu-central-", "ap-southeast-", "ap-northeast-", "sa-east-", "ca-central-")
+    if (cloud == "aws" or "aws" in combined
+            or any(hostname.startswith(p) for p in ("vpc-", "tgw-", "natgw-", "igw-", "gwlb-", "csr-aws", "pa-aws", "f5-aws"))
+            or any(r in location for r in aws_regions)
+            or any(r in region for r in aws_regions)):
         return "aws"
-    # Azure
-    if cloud == "azure" or "azure" in combined or "vwan-" in hostname or "vnet-" in hostname or "nva-azure" in hostname or "er-gw" in hostname:
+    # Azure — cloud_provider, name patterns, Azure region patterns
+    azure_regions = ("westeurope", "eastus", "northeurope", "westus", "centralus", "uksouth")
+    if (cloud == "azure" or "azure" in combined
+            or any(hostname.startswith(p) for p in ("vwan-", "vnet-", "nva-azure", "er-gw"))
+            or any(r in location for r in azure_regions)
+            or any(r in region for r in azure_regions)):
         return "azure"
-    # OCI
-    if cloud == "oci" or "oci" in combined or "oracle" in combined or "vcn-" in hostname or "drg-" in hostname:
+    # OCI — cloud_provider, name patterns, OCI region patterns
+    oci_regions = ("us-ashburn", "us-phoenix", "eu-frankfurt-oci", "uk-london-oci", "ap-mumbai-oci")
+    if (cloud == "oci" or "oci" in combined or "oracle" in combined
+            or any(hostname.startswith(p) for p in ("vcn-", "drg-", "oci-"))
+            or any(r in location for r in oci_regions)
+            or any(r in region for r in oci_regions)):
         return "oci"
     # GCP
     if cloud == "gcp" or "gcp" in combined:
@@ -100,7 +112,12 @@ def _compute_topology_version(node_ids: list[str], edge_ids: list[str]) -> str:
     return hashlib.sha256(payload.encode()).hexdigest()[:16]
 
 
-def build_topology_export(repo: SQLiteRepository, site_id: str | None = None, kg=None) -> dict:
+def build_topology_export(
+    repo: SQLiteRepository,
+    site_id: str | None = None,
+    kg=None,
+    group: str | None = None,
+) -> dict:
     """Build the full v5 topology export from a repository instance.
 
     Returns a dict with nodes, edges, groups, layout_hints, and summary counts.
@@ -110,6 +127,9 @@ def build_topology_export(repo: SQLiteRepository, site_id: str | None = None, kg
     If *kg* (NetworkKnowledgeGraph) is provided, edges are read from the
     knowledge graph (which has L2, L3, HA, tunnel, route, MPLS edges).
     Otherwise falls back to neighbor_links table.
+
+    If *group* is provided, only devices belonging to that group are included.
+    Cross-group links are excluded from edges but surfaced in ``wan_exits``.
     """
     # Access the underlying TopologyStore for Pydantic models (which have
     # role, cloud_provider, location, region, ha_role — fields absent from
@@ -143,7 +163,7 @@ def build_topology_export(repo: SQLiteRepository, site_id: str | None = None, kg
             "location": pdev.location or "",
             "region": pdev.region or "",
         }
-        group = classify_group(device_data)
+        dev_group = classify_group(device_data)
         rank = compute_rank(dt_val, pdev.role or "")
 
         # Interfaces from store
@@ -168,7 +188,7 @@ def build_topology_export(repo: SQLiteRepository, site_id: str | None = None, kg
             "ip": pdev.management_ip or "",
             "vendor": pdev.vendor or "",
             "role": pdev.role or "",
-            "group": group,
+            "group": dev_group,
             "status": "initializing",
             "haRole": pdev.ha_role or "",
             "location": pdev.location or "",
@@ -232,7 +252,16 @@ def build_topology_export(repo: SQLiteRepository, site_id: str | None = None, kg
         }
         nodes.append(node)
         node_ids.append(pdev.id)
-        group_counts[group] = group_counts.get(group, 0) + 1
+        group_counts[dev_group] = group_counts.get(dev_group, 0) + 1
+
+    # ── Group filter: keep only devices in the requested group ────────────
+    # Build a device_id -> classified group map for edge filtering later.
+    device_group_map: dict[str, str] = {n["id"]: n["data"]["group"] for n in nodes}
+
+    if group is not None:
+        nodes = [n for n in nodes if n["data"]["group"] == group]
+        node_ids = [n["id"] for n in nodes]
+        group_counts = {k: v for k, v in group_counts.items() if k == group}
 
     # ── Edge style constants ──────────────────────────────────────────────
     EDGE_STYLES = {
@@ -295,9 +324,32 @@ def build_topology_export(repo: SQLiteRepository, site_id: str | None = None, kg
     edges: list[dict] = []
     edge_ids: list[str] = []
     seen_edges: set[str] = set()
+    wan_exits: list[dict] = []
+    seen_wan_exits: set[str] = set()
 
     for link in all_neighbor_links:
         if link.device_id not in node_id_set or link.remote_device not in node_id_set:
+            # When group filter is active, track cross-group links as wan_exits
+            if group is not None:
+                src_in = link.device_id in node_id_set
+                tgt_in = link.remote_device in node_id_set
+                if src_in != tgt_in:
+                    # One end is in our group, the other is not
+                    local_dev = link.device_id if src_in else link.remote_device
+                    remote_dev = link.remote_device if src_in else link.device_id
+                    remote_grp = device_group_map.get(remote_dev, "unknown")
+                    exit_key = f"{local_dev}--{remote_dev}--{link.protocol}"
+                    if exit_key not in seen_wan_exits:
+                        seen_wan_exits.add(exit_key)
+                        remote_meta = GROUP_META.get(remote_grp, {"label": remote_grp.title(), "accent": "#6b7280"})
+                        wan_exits.append({
+                            "source_device": local_dev,
+                            "target_device": remote_dev,
+                            "target_group": remote_grp,
+                            "target_group_label": remote_meta["label"],
+                            "target_group_accent": remote_meta["accent"],
+                            "connection_type": link.protocol,
+                        })
             continue
 
         pair = tuple(sorted([link.device_id, link.remote_device]))
@@ -379,17 +431,16 @@ def build_topology_export(repo: SQLiteRepository, site_id: str | None = None, kg
             "label": d.get("label", node["id"]),
         })
 
-    # Compute layout
-    layout = compute_radial_layout(layout_devices)
+    # Compute layout — pass edges so force-directed layout uses connectivity
+    layout = compute_radial_layout(layout_devices, edges=all_neighbor_links)
 
-    # Apply positions and parentId to device nodes
-    device_nodes = nodes  # alias for clarity
+    # Apply positions to device nodes (NO parentId — devices are top-level
+    # so cross-group edges render freely without clipping)
+    device_nodes = nodes
     for node in device_nodes:
         pos_info = layout["device_positions"].get(node["id"])
         if pos_info:
             node["position"] = {"x": pos_info["x"], "y": pos_info["y"]}
-            if "parentId" in pos_info:
-                node["parentId"] = pos_info["parentId"]
         else:
             node["position"] = {"x": 0, "y": 0}
 
@@ -399,7 +450,7 @@ def build_topology_export(repo: SQLiteRepository, site_id: str | None = None, kg
 
     topology_version = _compute_topology_version(node_ids, edge_ids)
 
-    return {
+    result = {
         "nodes": all_nodes,
         "edges": edges,
         "groups": groups,
@@ -410,6 +461,88 @@ def build_topology_export(repo: SQLiteRepository, site_id: str | None = None, kg
         "topology_version": topology_version,
         "device_count": len(device_nodes),
         "edge_count": len(edges),
+    }
+    if group is not None:
+        result["wan_exits"] = wan_exits
+    return result
+
+
+def build_topology_overview(repo: SQLiteRepository) -> dict:
+    """Build a high-level topology overview grouped by environment.
+
+    Returns a dict with:
+    - ``environments``: list of environment summaries (id, label, accent,
+      device_count, health_summary)
+    - ``wan_connections``: list of cross-environment links (source, target,
+      connection_types, link_count, status)
+    """
+    store: TopologyStore = repo._store
+    pydantic_devices = store.list_devices()
+
+    # Map device_id -> group
+    device_group: dict[str, str] = {}
+    group_counts: dict[str, int] = {}
+    for pdev in pydantic_devices:
+        dt_val = pdev.device_type.value if hasattr(pdev.device_type, "value") else str(pdev.device_type)
+        device_data = {
+            "site_id": getattr(pdev, "site_id", "") or "",
+            "hostname": pdev.name or "",
+            "cloud_provider": getattr(pdev, "cloud_provider", "") or "",
+            "location": getattr(pdev, "location", "") or "",
+            "region": getattr(pdev, "region", "") or "",
+        }
+        group = classify_group(device_data)
+        device_group[pdev.id] = group
+        group_counts[group] = group_counts.get(group, 0) + 1
+
+    # Build environment summaries
+    environments: list[dict] = []
+    for group_id in sorted(group_counts.keys()):
+        meta = GROUP_META.get(group_id, {"label": group_id.title(), "accent": "#6b7280"})
+        environments.append({
+            "id": group_id,
+            "label": meta["label"],
+            "accent": meta["accent"],
+            "device_count": group_counts[group_id],
+            "health_summary": "healthy",
+        })
+
+    # Detect WAN connections between environments
+    all_links = store.list_neighbor_links()
+    wan_seen: dict[str, dict] = {}  # key: "src--tgt" -> aggregated info
+    for link in all_links:
+        src_group = device_group.get(link["device_id"])
+        tgt_group = device_group.get(link["remote_device"])
+        if src_group is None or tgt_group is None or src_group == tgt_group:
+            continue
+        # Normalise direction so A--B and B--A collapse to the same key
+        pair = tuple(sorted([src_group, tgt_group]))
+        key = f"{pair[0]}--{pair[1]}"
+        proto = link.get("protocol", "unknown")
+        if key not in wan_seen:
+            wan_seen[key] = {
+                "source": pair[0],
+                "target": pair[1],
+                "connection_types": set(),
+                "link_count": 0,
+                "status": "up",
+            }
+        wan_seen[key]["connection_types"].add(proto)
+        wan_seen[key]["link_count"] += 1
+
+    wan_connections = []
+    for entry in wan_seen.values():
+        wan_connections.append({
+            "source": entry["source"],
+            "target": entry["target"],
+            "connection_types": sorted(entry["connection_types"]),
+            "link_count": entry["link_count"],
+            "status": entry["status"],
+        })
+
+    return {
+        "environments": environments,
+        "wan_connections": wan_connections,
     }
 
 

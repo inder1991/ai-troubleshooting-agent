@@ -135,6 +135,30 @@ const NOCWallTab: React.FC<Props> = ({ devices, drifts, onSelectDevice }) => {
 
       {/* Device Cards Grid */}
       <div className="flex-1 overflow-auto px-6 pb-4">
+        {devices.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full py-16 gap-6">
+            <span className="material-symbols-outlined text-5xl" style={{ color: '#3d3528' }}>sensors</span>
+            <div className="text-center space-y-1">
+              <div className="text-sm font-mono font-bold" style={{ color: '#e8e0d4' }}>Device Health Monitoring</div>
+              <div className="text-xs font-mono" style={{ color: '#64748b' }}>Connect SNMP or API adapters to enable live device monitoring</div>
+            </div>
+            <div className="text-xs font-mono space-y-1 text-left" style={{ color: '#7a7060' }}>
+              <div>• Cisco IOS-XE — SNMP v2c/v3</div>
+              <div>• Palo Alto PAN-OS — REST API via Panorama</div>
+              <div>• F5 BIG-IP — iControl REST</div>
+              <div>• Checkpoint — HTTPS Management API</div>
+              <div>• Any vendor — Ping probes (auto-configured)</div>
+            </div>
+            <div className="flex gap-3">
+              <a href="/network/adapters" className="px-3 py-1.5 rounded text-xs font-mono border" style={{ borderColor: '#07b6d5', color: '#07b6d5' }}>
+                Configure Adapters →
+              </a>
+              <a href="/network/topology" className="px-3 py-1.5 rounded text-xs font-mono border" style={{ borderColor: '#3d3528', color: '#7a7060' }}>
+                View Topology →
+              </a>
+            </div>
+          </div>
+        ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
           {filtered.map((d) => {
             const m = deviceMetrics[d.device_id];
@@ -211,6 +235,7 @@ const NOCWallTab: React.FC<Props> = ({ devices, drifts, onSelectDevice }) => {
             );
           })}
         </div>
+        )}
       </div>
 
       {/* Footer summary */}

@@ -555,3 +555,59 @@ class MongoAdapter(DatabaseAdapter):
             ],
             "estimated_downtime": "10-30 seconds (election time)",
         }
+
+    async def check_permissions(self) -> dict:
+        """Check diagnostic read permissions on MongoDB.
+
+        Returns a dict of {view_name: bool} indicating whether the connected
+        user can read key diagnostic collections/commands.
+        """
+        results: dict[str, bool] = {}
+        db_name = self._database
+        try:
+            db = self._client[db_name]
+            # Verify serverStatus is readable (requires clusterMonitor or root)
+            await db.command("serverStatus")
+            results["serverStatus"] = True
+        except Exception:
+            results["serverStatus"] = False
+        try:
+            db = self._client[db_name]
+            # Verify currentOp is readable
+            await db.command("currentOp")
+            results["currentOp"] = True
+        except Exception:
+            results["currentOp"] = False
+        try:
+            db = self._client[db_name]
+            # Verify replSetGetStatus
+            await self._client.admin.command("replSetGetStatus")
+            results["replSetGetStatus"] = True
+        except Exception:
+            results["replSetGetStatus"] = False
+        return results
+
+    async def get_slow_queries_from_stats(self) -> list[dict]:
+        """Return historically slow operations from the MongoDB system.profile collection.
+
+        Requires profiling to be enabled (db.setProfilingLevel(1, {slowms: 100})).
+        Returns an empty list if profiling is not enabled or no slow ops are found.
+        """
+        slow: list[dict] = []
+        try:
+            db = self._client[self._database]
+            cursor = db["system.profile"].find(
+                {"millis": {"$gt": 100}},
+                {"op": 1, "ns": 1, "millis": 1, "ts": 1, "command": 1},
+            ).sort("millis", -1).limit(20)
+            async for doc in cursor:
+                slow.append({
+                    "operation": doc.get("op", "unknown"),
+                    "namespace": doc.get("ns", ""),
+                    "duration_ms": doc.get("millis", 0),
+                    "timestamp": str(doc.get("ts", "")),
+                    "query": str(doc.get("command", {}))[:200],
+                })
+        except Exception:
+            pass
+        return slow

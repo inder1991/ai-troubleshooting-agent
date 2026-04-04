@@ -111,8 +111,16 @@ const TrafficFlowsTab: React.FC<Props> = ({ links }) => {
                 ))}
               </div>
             ) : (
-              <div className="text-xs font-mono py-4 text-center" style={{ color: '#64748b' }}>
-                No flow data yet. Configure devices to export NetFlow/sFlow.
+              <div className="flex flex-col items-center py-8 gap-3">
+                <span className="material-symbols-outlined text-3xl" style={{ color: '#3d3528' }}>network_node</span>
+                <div className="text-xs font-mono text-center space-y-1">
+                  <div style={{ color: '#e8e0d4' }}>No flow data yet</div>
+                  <div style={{ color: '#64748b' }}>Configure NetFlow v5/v9 or IPFIX export on your routers</div>
+                  <div style={{ color: '#64748b' }}>Collector listening on <span style={{ color: '#07b6d5' }}>UDP 2055</span></div>
+                </div>
+                <div className="text-[10px] font-mono mt-1" style={{ color: '#7a7060' }}>
+                  Path diagnosis is still available using topology + firewall policy data
+                </div>
               </div>
             )}
           </div>

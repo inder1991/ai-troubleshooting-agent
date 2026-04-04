@@ -26,6 +26,9 @@ class ResolvedConnectionConfig:
     cluster_type: str = "openshift"
     namespace: str = "default"
     verify_ssl: bool = False
+    auth_method: str = "token"          # "token" | "kubeconfig" | "service_account"
+    kubeconfig_content: str = ""        # raw kubeconfig YAML when auth_method == "kubeconfig"
+    role: str = ""                      # RBAC role metadata
 
     # Prometheus
     prometheus_url: str = ""
@@ -61,6 +64,7 @@ class ResolvedConnectionConfig:
 
     # Known service topology (manually configured or from prior analysis)
     known_dependencies: tuple = ()  # Tuple of (source, target, relationship) triples
+
 
 
 def resolve_active_profile(profile_id: Optional[str] = None) -> ResolvedConnectionConfig:
@@ -231,6 +235,8 @@ def resolve_active_profile(profile_id: Optional[str] = None) -> ResolvedConnecti
         cluster_type=profile.cluster_type,
         namespace=os.getenv("K8S_NAMESPACE", "default"),
         verify_ssl=False,
+        auth_method=profile.auth_method,
+        role=getattr(profile, "role", ""),
         prometheus_url=prom_url or os.getenv("PROMETHEUS_URL", ""),
         prometheus_auth_method=prom_auth,
         prometheus_credentials=prom_creds,
@@ -350,6 +356,9 @@ def _config_from_env() -> ResolvedConnectionConfig:
         cluster_type="openshift",
         namespace=os.getenv("K8S_NAMESPACE", "default"),
         verify_ssl=os.getenv("K8S_VERIFY_SSL", "false").lower() == "true",
+        # auth_method and kubeconfig_content from env; role is a profile concept (not set from env)
+        auth_method=os.getenv("K8S_AUTH_METHOD", "token"),
+        kubeconfig_content=os.getenv("KUBECONFIG_CONTENT", ""),
         prometheus_url=os.getenv("PROMETHEUS_URL", "http://localhost:9090"),
         elasticsearch_url=elk_url,
         elasticsearch_auth_method=elk_auth,

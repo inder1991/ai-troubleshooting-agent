@@ -498,6 +498,12 @@ class FlowAggregator:
         batch = self._buffer[:]
         self._buffer.clear()
 
+        # Reset per-flush window aggregates so get_conversations() / get_applications()
+        # reflect only the current flush interval (not a cumulative historical total).
+        self._conversations.clear()
+        self._applications.clear()
+        self._asn_stats.clear()
+
         # Apply sampling rate compensation
         for flow in batch:
             if flow.sampling_interval > 1:
