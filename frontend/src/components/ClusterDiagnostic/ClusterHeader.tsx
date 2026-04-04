@@ -77,8 +77,8 @@ const ClusterHeader: React.FC<ClusterHeaderProps> = ({
 
         <StatusBadge
           status={healthToStatus(platformHealth)}
-          label={platformHealth || 'ANALYZING'}
-          pulse={platformHealth === 'CRITICAL' || platformHealth === 'DEGRADED'}
+          label={platformHealth === 'PARTIAL_TIMEOUT' ? 'PARTIAL TIMEOUT' : platformHealth || 'ANALYZING'}
+          pulse={platformHealth === 'CRITICAL' || platformHealth === 'DEGRADED' || platformHealth === 'PARTIAL_TIMEOUT'}
         />
       </div>
     </header>
