@@ -14,6 +14,7 @@ from src.integrations.audit_store import AuditLogger
 from src.integrations.probe import ClusterProbe, EndpointProbeResult
 from src.api.websocket import manager
 from src.utils.logger import get_logger
+from src.agents.cluster_client.k8s_client import KubernetesClient
 
 logger = get_logger("routes_profiles")
 
@@ -69,6 +70,21 @@ class UpdateProfileRequest(BaseModel):
 class TestEndpointRequest(BaseModel):
     endpoint_name: str  # openshift_api, prometheus, jaeger
     url: Optional[str] = None  # Override URL to test (uses unsaved input value)
+
+
+class TestConnectionRequest(BaseModel):
+    cluster_url: str
+    auth_method: str = "token"
+    credential: str = ""       # token string or kubeconfig YAML content
+    verify_ssl: bool = False
+
+
+class TestConnectionResponse(BaseModel):
+    status: str                # "connected" | "unreachable" | "auth_failed" | "permission_denied"
+    platform: str = ""
+    version: str = ""
+    latency_ms: int = 0
+    error: Optional[str] = None
 
 
 # --- Routes ---
@@ -349,6 +365,59 @@ async def probe_profile(profile_id: str):
     get_audit().log("cluster_profile", profile_id, "probed", f"Full probe, reachable={result.reachable}")
 
     return result.model_dump()
+
+
+@router.post("/test-connection", response_model=TestConnectionResponse)
+async def test_connection(body: TestConnectionRequest):
+    """Test cluster connectivity without creating a profile."""
+    import time
+    import tempfile
+    from pathlib import Path
+
+    temp_path = None
+    start = time.monotonic()
+    client = None
+    try:
+        if body.auth_method == "kubeconfig" and body.credential:
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+                f.write(body.credential)
+                temp_path = f.name
+            client = KubernetesClient(kubeconfig_path=temp_path)
+        else:
+            client = KubernetesClient(
+                api_url=body.cluster_url or None,
+                token=body.credential or None,
+                verify_ssl=body.verify_ssl,
+            )
+
+        platform_info = await client.detect_platform()
+        latency_ms = int((time.monotonic() - start) * 1000)
+        await client.close()
+        return TestConnectionResponse(
+            status="connected",
+            platform=platform_info.get("platform", ""),
+            version=platform_info.get("version", ""),
+            latency_ms=latency_ms,
+        )
+
+    except Exception as e:
+        latency_ms = int((time.monotonic() - start) * 1000)
+        err_str = str(e).lower()
+        if "401" in err_str or "unauthorized" in err_str:
+            status = "auth_failed"
+        elif "403" in err_str or "forbidden" in err_str:
+            status = "permission_denied"
+        else:
+            status = "unreachable"
+        if client:
+            try:
+                await client.close()
+            except Exception:
+                pass
+        return TestConnectionResponse(status=status, latency_ms=latency_ms, error=str(e))
+    finally:
+        if temp_path:
+            Path(temp_path).unlink(missing_ok=True)
 
 
 # --- Helpers ---

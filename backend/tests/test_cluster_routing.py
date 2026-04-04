@@ -466,3 +466,82 @@ class TestStartSessionNewFields:
         from src.api.routes_v4 import sessions
         # elk_index should be "" not "app-logs-*"
         assert sessions.get(sid, {}).get("elk_index", "") == ""
+
+
+class TestTestConnectionEndpoint:
+    def test_returns_connected_status(self, client, monkeypatch):
+        """POST /api/v5/profiles/test-connection returns status=connected on success."""
+        from unittest.mock import AsyncMock, MagicMock
+
+        mock_client_instance = MagicMock()
+        mock_client_instance.detect_platform = AsyncMock(
+            return_value={"platform": "openshift", "version": "4.14.0"}
+        )
+        mock_client_instance.close = AsyncMock()
+
+        def mock_k8s_constructor(**kwargs):
+            return mock_client_instance
+
+        monkeypatch.setattr(
+            "src.api.routes_profiles.KubernetesClient",
+            mock_k8s_constructor
+        )
+
+        resp = client.post("/api/v5/profiles/test-connection", json={
+            "cluster_url": "https://api.example.com:6443",
+            "auth_method": "token",
+            "credential": "mytoken",
+            "verify_ssl": False,
+        })
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["status"] == "connected"
+        assert body["platform"] == "openshift"
+        assert body["version"] == "4.14.0"
+        assert body["latency_ms"] >= 0
+        assert body.get("error") is None
+
+    def test_returns_auth_failed_on_401(self, client, monkeypatch):
+        """POST /api/v5/profiles/test-connection returns status=auth_failed on 401 error."""
+        from unittest.mock import AsyncMock, MagicMock
+
+        def mock_k8s_constructor(**kwargs):
+            instance = MagicMock()
+            instance.detect_platform = AsyncMock(side_effect=Exception("401 Unauthorized"))
+            instance.close = AsyncMock()
+            return instance
+
+        monkeypatch.setattr("src.api.routes_profiles.KubernetesClient", mock_k8s_constructor)
+
+        resp = client.post("/api/v5/profiles/test-connection", json={
+            "cluster_url": "https://api.example.com:6443",
+            "auth_method": "token",
+            "credential": "badtoken",
+        })
+        assert resp.status_code == 200
+        assert resp.json()["status"] == "auth_failed"
+
+    def test_kubeconfig_auth_method(self, client, monkeypatch, tmp_path):
+        """Kubeconfig auth method writes temp file and passes path to KubernetesClient."""
+        from unittest.mock import AsyncMock, MagicMock
+
+        received_kwargs = {}
+
+        def mock_k8s_constructor(**kwargs):
+            received_kwargs.update(kwargs)
+            instance = MagicMock()
+            instance.detect_platform = AsyncMock(return_value={"platform": "kubernetes", "version": "1.28"})
+            instance.close = AsyncMock()
+            return instance
+
+        monkeypatch.setattr("src.api.routes_profiles.KubernetesClient", mock_k8s_constructor)
+
+        resp = client.post("/api/v5/profiles/test-connection", json={
+            "cluster_url": "https://api.example.com:6443",
+            "auth_method": "kubeconfig",
+            "credential": "apiVersion: v1\nkind: Config\n",
+        })
+        assert resp.status_code == 200
+        assert resp.json()["status"] == "connected"
+        # KubernetesClient was called with kubeconfig_path (not api_url + token)
+        assert "kubeconfig_path" in received_kwargs
