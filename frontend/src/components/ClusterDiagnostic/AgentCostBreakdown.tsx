@@ -20,6 +20,7 @@ interface AgentCostBreakdownProps {
 const AgentCostBreakdown: React.FC<AgentCostBreakdownProps> = ({ sessionId, visible, onClose }) => {
   const [agents, setAgents] = useState<Record<string, AgentStats>>({});
   const [totals, setTotals] = useState({ calls: 0, cost: 0, latency: 0, inputTokens: 0, outputTokens: 0 });
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     if (!visible) return;
@@ -49,7 +50,7 @@ const AgentCostBreakdown: React.FC<AgentCostBreakdownProps> = ({ sessionId, visi
             });
           }
         }
-      } catch { /* ignore */ }
+      } catch { setError(true); }
     };
     fetchData();
   }, [sessionId, visible]);
@@ -67,7 +68,11 @@ const AgentCostBreakdown: React.FC<AgentCostBreakdownProps> = ({ sessionId, visi
         </button>
       </div>
 
-      <table className="w-full text-[10px] font-mono">
+      {error && (
+        <p className="text-[11px] text-red-400 py-4 text-center">Failed to load cost data</p>
+      )}
+
+      {!error && <table className="w-full text-[10px] font-mono">
         <thead>
           <tr className="text-slate-500 border-b border-wr-border-subtle">
             <th className="text-left py-1 pr-2">Agent</th>
@@ -109,7 +114,7 @@ const AgentCostBreakdown: React.FC<AgentCostBreakdownProps> = ({ sessionId, visi
             <td></td>
           </tr>
         </tfoot>
-      </table>
+      </table>}
     </div>
   );
 };

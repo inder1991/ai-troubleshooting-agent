@@ -37,6 +37,7 @@ interface LLMCostBadgeProps {
 
 const LLMCostBadge: React.FC<LLMCostBadgeProps> = ({ sessionId, phase, onToggleBreakdown }) => {
   const [summary, setSummary] = useState<LLMSummary | null>(null);
+  const [error, setError] = useState(false);
 
   const fetchSummary = useCallback(async () => {
     try {
@@ -45,7 +46,7 @@ const LLMCostBadge: React.FC<LLMCostBadgeProps> = ({ sessionId, phase, onToggleB
         const data = await res.json();
         if (data.llm_summary) setSummary(data.llm_summary);
       }
-    } catch { /* ignore */ }
+    } catch { setError(true); }
   }, [sessionId]);
 
   useEffect(() => {
@@ -54,7 +55,7 @@ const LLMCostBadge: React.FC<LLMCostBadgeProps> = ({ sessionId, phase, onToggleB
     return () => clearInterval(interval);
   }, [fetchSummary]);
 
-  if (!summary) return null;
+  if (error || !summary) return null;
 
   const budgetPct = Math.round(summary.budget_used_pct * 100);
   const isWarning = budgetPct > 80;
