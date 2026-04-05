@@ -748,6 +748,12 @@ async def hypothesis_engine(state: dict, config: dict) -> dict:
     # --- Filter and cap ---
     ranked = filter_and_cap(deduped)
 
+    logger.info(
+        "Hypothesis engine: %d hypotheses ranked",
+        len(ranked),
+        extra={"action": "hypotheses_ranked"},
+    )
+
     # --- Group by issue ---
     hypotheses_by_issue: dict[str, list[Hypothesis]] = defaultdict(list)
     for h in ranked:

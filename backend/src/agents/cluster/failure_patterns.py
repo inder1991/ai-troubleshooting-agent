@@ -235,4 +235,9 @@ async def failure_pattern_matcher(state: dict, config: dict) -> dict:
     signals = state.get("normalized_signals", [])
     matches = match_patterns([], signals)
     matches = resolve_priority_conflicts(matches)
+    logger.info(
+        "Pattern matcher: %d matches from %d signals",
+        len(matches), len(signals),
+        extra={"action": "patterns_matched"},
+    )
     return {"pattern_matches": [m.model_dump(mode="json") for m in matches]}

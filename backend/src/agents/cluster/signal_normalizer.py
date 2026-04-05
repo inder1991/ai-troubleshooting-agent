@@ -171,4 +171,9 @@ async def signal_normalizer(state: dict, config: dict) -> dict:
     """Extract canonical signals from domain reports. Deterministic, zero LLM cost."""
     reports = state.get("domain_reports", [])
     signals = extract_signals(reports)
+    logger.info(
+        "Signal normalizer: extracted %d signals from %d reports",
+        len(signals), len(reports),
+        extra={"action": "signals_extracted", "extra": {"count": len(signals)}},
+    )
     return {"normalized_signals": [s.model_dump(mode="json") for s in signals]}

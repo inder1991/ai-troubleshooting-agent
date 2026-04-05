@@ -347,6 +347,12 @@ async def critic_validator(state: dict, config: dict) -> dict:
             len(dropped),
             extra={"action": "critic_validation"},
         )
+    else:
+        logger.info(
+            "Critic validated %d hypotheses: all passed",
+            len(hypotheses),
+            extra={"action": "critic_validation"},
+        )
 
     return {
         "critic_result": {
