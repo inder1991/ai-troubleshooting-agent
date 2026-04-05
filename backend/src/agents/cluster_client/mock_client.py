@@ -763,6 +763,48 @@ class MockClusterClient(ClusterClient):
         ]
         return QueryResult(data=data, total_available=len(data), returned=len(data))
 
+    async def list_routes(self) -> QueryResult:
+        data = [
+            {
+                "name": "app-route",
+                "namespace": "production",
+                "host": "app.example.com",
+                "tls_termination": "edge",
+                "backend_service": "app-svc",
+                "admitted": True,
+            },
+            {
+                "name": "api-route-broken",
+                "namespace": "production",
+                "host": "api.example.com",
+                "tls_termination": "passthrough",
+                "backend_service": "missing-svc",
+                "admitted": False,
+            },
+        ]
+        return QueryResult(data=data, total_available=len(data), returned=len(data))
+
+    async def list_ingresses(self) -> QueryResult:
+        data = [
+            {
+                "name": "web-ingress",
+                "namespace": "production",
+                "hosts": ["web.example.com"],
+                "tls_secrets": ["web-tls"],
+                "backend_services": ["web-svc"],
+                "ingress_class": "nginx",
+            },
+            {
+                "name": "api-ingress-no-class",
+                "namespace": "staging",
+                "hosts": ["api.staging.example.com"],
+                "tls_secrets": [],
+                "backend_services": ["api-svc"],
+                "ingress_class": None,
+            },
+        ]
+        return QueryResult(data=data, total_available=len(data), returned=len(data))
+
     async def build_topology_snapshot(self) -> "TopologySnapshot":
         from src.agents.cluster.state import TopologySnapshot, TopologyNode, TopologyEdge
         nodes_result = await self.list_nodes()

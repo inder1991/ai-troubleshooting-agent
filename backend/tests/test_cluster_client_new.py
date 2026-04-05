@@ -16,3 +16,31 @@ async def test_list_webhooks_returns_query_result():
     assert "failure_policy" in webhook
     assert "timeout_seconds" in webhook
     assert "client_config" in webhook
+
+
+@pytest.mark.asyncio
+async def test_list_routes_returns_query_result():
+    client = MockClusterClient(platform="openshift")
+    result = await client.list_routes()
+    assert hasattr(result, "data")
+    assert isinstance(result.data, list)
+    assert len(result.data) > 0
+    route = result.data[0]
+    assert "name" in route
+    assert "host" in route
+    assert "backend_service" in route
+    assert "admitted" in route
+
+
+@pytest.mark.asyncio
+async def test_list_ingresses_returns_query_result():
+    client = MockClusterClient(platform="openshift")
+    result = await client.list_ingresses()
+    assert hasattr(result, "data")
+    assert isinstance(result.data, list)
+    assert len(result.data) > 0
+    ingress = result.data[0]
+    assert "name" in ingress
+    assert "hosts" in ingress
+    assert "backend_services" in ingress
+    assert "ingress_class" in ingress
