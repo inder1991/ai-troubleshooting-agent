@@ -167,6 +167,45 @@ PROACTIVE_CHECKS: list[CheckDefinition] = [
             SeverityRule(field="replicas_desired", op="==", value=1, severity="high"),
         ),
     ),
+    CheckDefinition(
+        check_id="cluster_version_check",
+        name="ClusterVersion Upgrade Status",
+        category="lifecycle",
+        data_source="get_cluster_version",
+        severity_rules=(
+            SeverityRule(field="failing", op="==", value=True, severity="critical"),
+            SeverityRule(field="progressing", op="==", value=True, severity="high"),
+        ),
+    ),
+    CheckDefinition(
+        check_id="olm_subscription_health",
+        name="OLM Subscription Health",
+        category="lifecycle",
+        data_source="list_subscriptions",
+        severity_rules=(
+            SeverityRule(field="state", op="==", value="UpgradeFailed", severity="critical"),
+            SeverityRule(field="csv_mismatch", op="==", value=True, severity="high"),
+        ),
+    ),
+    CheckDefinition(
+        check_id="machine_health",
+        name="Machine Health",
+        category="reliability",
+        data_source="list_machines",
+        severity_rules=(
+            SeverityRule(field="phase", op="==", value="Failed", severity="critical"),
+        ),
+    ),
+    CheckDefinition(
+        check_id="proxy_config_check",
+        name="Proxy Configuration",
+        category="reliability",
+        data_source="get_proxy_config",
+        severity_rules=(
+            SeverityRule(field="no_proxy_empty", op="==", value=True, severity="medium"),
+            SeverityRule(field="no_trusted_ca", op="==", value=True, severity="high"),
+        ),
+    ),
 ]
 
 
@@ -941,6 +980,150 @@ def _check_ingress_spof(data: list[dict[str, Any]]) -> list[ProactiveFinding]:
     return findings
 
 
+def _check_cluster_version(data: list[dict[str, Any]]) -> list[ProactiveFinding]:
+    """Flag ClusterVersion upgrade issues."""
+    findings: list[ProactiveFinding] = []
+    for cv in data:
+        version = cv.get("version", "unknown")
+        desired = cv.get("desired", version)
+        conditions = cv.get("conditions", [])
+        for cond in conditions:
+            cond_type = cond.get("type", "")
+            cond_status = cond.get("status", "")
+            cond_msg = cond.get("message", "")
+            if cond_type == "Failing" and cond_status == "True":
+                findings.append(ProactiveFinding(
+                    finding_id=_fid(), check_type="cluster_version_check", severity="critical",
+                    lifecycle_state="NEW",
+                    title=f"ClusterVersion upgrade failing: {version} → {desired}",
+                    description=f"ClusterVersion upgrade is failing: {cond_msg}. The cluster may be in a degraded state.",
+                    affected_resources=["clusterversion/version"], affected_workloads=[],
+                    days_until_impact=-1,
+                    recommendation="Check ClusterVersion conditions and degraded operators. Run 'oc adm upgrade' for status.",
+                    commands=["oc get clusterversion", "oc adm upgrade"],
+                    dry_run_command="oc get clusterversion -o yaml", confidence=0.95, source="proactive",
+                ))
+            elif cond_type == "Progressing" and cond_status == "True" and version != desired:
+                findings.append(ProactiveFinding(
+                    finding_id=_fid(), check_type="cluster_version_check", severity="high",
+                    lifecycle_state="NEW",
+                    title=f"ClusterVersion upgrade in progress: {version} → {desired}",
+                    description=f"Cluster is upgrading from {version} to {desired}. Monitor for stuck operators.",
+                    affected_resources=["clusterversion/version"], affected_workloads=[],
+                    days_until_impact=-1,
+                    recommendation="Monitor upgrade progress. Check for degraded operators that may block completion.",
+                    commands=["oc get clusterversion", "oc get co | grep -v Available"],
+                    dry_run_command="oc get clusterversion -o yaml", confidence=0.90, source="proactive",
+                ))
+    return findings
+
+
+def _check_olm_subscription_health(data: list[dict[str, Any]]) -> list[ProactiveFinding]:
+    """Flag OLM Subscriptions with upgrade issues."""
+    findings: list[ProactiveFinding] = []
+    for sub in data:
+        sub_name = sub.get("name", "unknown")
+        ns = sub.get("namespace", "")
+        state = sub.get("state", "")
+        current_csv = sub.get("currentCSV", "")
+        installed_csv = sub.get("installedCSV", "")
+        resource_key = f"subscription/{ns}/{sub_name}"
+        if state == "UpgradeFailed":
+            findings.append(ProactiveFinding(
+                finding_id=_fid(), check_type="olm_subscription_health", severity="critical",
+                lifecycle_state="NEW",
+                title=f"OLM Subscription '{sub_name}' upgrade failed",
+                description=f"Subscription {resource_key} state is {state}. Current: {current_csv}, Installed: {installed_csv}.",
+                affected_resources=[resource_key], affected_workloads=[],
+                days_until_impact=-1,
+                recommendation=f"Check CSV status in namespace '{ns}'. Delete and recreate Subscription if needed.",
+                commands=[f"oc get subscription {sub_name} -n {ns} -o yaml", f"oc get csv -n {ns}"],
+                dry_run_command=f"oc get subscription {sub_name} -n {ns} -o yaml", confidence=0.90, source="proactive",
+            ))
+        elif current_csv and installed_csv and current_csv != installed_csv:
+            findings.append(ProactiveFinding(
+                finding_id=_fid(), check_type="olm_subscription_health", severity="high",
+                lifecycle_state="NEW",
+                title=f"OLM Subscription '{sub_name}' has pending upgrade",
+                description=f"Subscription {resource_key}: currentCSV ({current_csv}) differs from installedCSV ({installed_csv}). State: {state}.",
+                affected_resources=[resource_key], affected_workloads=[],
+                days_until_impact=-1,
+                recommendation=f"Check InstallPlan approval status. Approve or investigate blocking issue.",
+                commands=[f"oc get installplan -n {ns}", f"oc get csv -n {ns}"],
+                dry_run_command=f"oc get subscription {sub_name} -n {ns} -o yaml", confidence=0.85, source="proactive",
+            ))
+    return findings
+
+
+def _check_machine_health(data: list[dict[str, Any]]) -> list[ProactiveFinding]:
+    """Flag Machines not in Running phase."""
+    findings: list[ProactiveFinding] = []
+    for machine in data:
+        m_name = machine.get("name", "unknown")
+        phase = machine.get("phase", "")
+        resource_key = f"machine/{m_name}"
+        if phase == "Failed":
+            findings.append(ProactiveFinding(
+                finding_id=_fid(), check_type="machine_health", severity="critical",
+                lifecycle_state="NEW",
+                title=f"Machine '{m_name}' is in Failed phase",
+                description=f"Machine {resource_key} has failed. This node will not join the cluster.",
+                affected_resources=[resource_key], affected_workloads=[],
+                days_until_impact=-1,
+                recommendation="Delete the failed Machine to trigger MachineSet replacement, or investigate cloud provider.",
+                commands=[f"oc get machine {m_name} -n openshift-machine-api -o yaml", f"oc delete machine {m_name} -n openshift-machine-api"],
+                dry_run_command=f"oc get machine {m_name} -n openshift-machine-api -o yaml", confidence=0.90, source="proactive",
+            ))
+        elif phase and phase != "Running":
+            findings.append(ProactiveFinding(
+                finding_id=_fid(), check_type="machine_health", severity="high",
+                lifecycle_state="NEW",
+                title=f"Machine '{m_name}' is in {phase} phase",
+                description=f"Machine {resource_key} is not Running (phase: {phase}). It may be stuck.",
+                affected_resources=[resource_key], affected_workloads=[],
+                days_until_impact=-1,
+                recommendation=f"Check Machine conditions and cloud provider status for '{m_name}'.",
+                commands=[f"oc get machine {m_name} -n openshift-machine-api -o yaml"],
+                dry_run_command=f"oc get machine {m_name} -n openshift-machine-api -o yaml", confidence=0.85, source="proactive",
+            ))
+    return findings
+
+
+def _check_proxy_config(data: list[dict[str, Any]]) -> list[ProactiveFinding]:
+    """Flag proxy misconfigurations."""
+    findings: list[ProactiveFinding] = []
+    for proxy in data:
+        http_proxy = proxy.get("httpProxy", "")
+        https_proxy = proxy.get("httpsProxy", "")
+        no_proxy = proxy.get("noProxy", "")
+        trusted_ca = proxy.get("trustedCA", "")
+        if http_proxy and not no_proxy:
+            findings.append(ProactiveFinding(
+                finding_id=_fid(), check_type="proxy_config_check", severity="medium",
+                lifecycle_state="NEW",
+                title="Proxy configured but noProxy is empty",
+                description=f"HTTP proxy ({http_proxy}) is set but noProxy is empty. Cluster-internal traffic may be incorrectly routed through the proxy.",
+                affected_resources=["proxy/cluster"], affected_workloads=[],
+                days_until_impact=-1,
+                recommendation="Set noProxy to include .cluster.local, .svc, pod CIDR, and service CIDR.",
+                commands=["oc get proxy cluster -o yaml"],
+                dry_run_command="oc get proxy cluster -o yaml", confidence=0.85, source="proactive",
+            ))
+        if https_proxy and not trusted_ca:
+            findings.append(ProactiveFinding(
+                finding_id=_fid(), check_type="proxy_config_check", severity="high",
+                lifecycle_state="NEW",
+                title="HTTPS proxy configured without trustedCA",
+                description=f"HTTPS proxy ({https_proxy}) is configured but no trustedCA bundle is set. TLS interception may cause certificate verification failures.",
+                affected_resources=["proxy/cluster"], affected_workloads=[],
+                days_until_impact=-1,
+                recommendation="Configure trustedCA with the proxy's CA certificate bundle.",
+                commands=["oc get proxy cluster -o yaml", "oc get configmap user-ca-bundle -n openshift-config -o yaml"],
+                dry_run_command="oc get proxy cluster -o yaml", confidence=0.80, source="proactive",
+            ))
+    return findings
+
+
 # ---------------------------------------------------------------------------
 # Evaluator registry — maps check_id -> evaluator function
 # ---------------------------------------------------------------------------
@@ -958,6 +1141,10 @@ _EVALUATORS: dict[str, Callable[[list[dict[str, Any]]], list[ProactiveFinding]]]
     "webhook_risk": _check_webhook_risk,
     "pv_reclaim_delete": _check_pv_reclaim_delete,
     "ingress_spof": _check_ingress_spof,
+    "cluster_version_check": _check_cluster_version,
+    "olm_subscription_health": _check_olm_subscription_health,
+    "machine_health": _check_machine_health,
+    "proxy_config_check": _check_proxy_config,
 }
 
 
