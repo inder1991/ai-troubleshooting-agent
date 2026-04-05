@@ -63,11 +63,18 @@ def traced_node(timeout_seconds: float = 60):
             is_agent_node = node_name in _AGENT_NODE_NAMES
             start = time.monotonic()
             trace = NodeExecution(node_name=node_name, status="RUNNING")
+            logger.debug("Node %s starting (timeout=%ss)", node_name, timeout_seconds,
+                         extra={"action": "node_start", "extra": {"node": node_name}})
+
             try:
                 result = await asyncio.wait_for(func(state, config or {}), timeout=timeout_seconds)
                 elapsed = int((time.monotonic() - start) * 1000)
                 trace.status = "SUCCESS"
                 trace.duration_ms = elapsed
+
+                logger.info("Node %s completed successfully in %dms", node_name, elapsed,
+                            extra={"action": "node_success", "duration_ms": elapsed, "extra": {"node": node_name}})
+
                 if isinstance(result, dict):
                     result["_trace"] = [trace.model_dump(mode="json")]
                 return result
