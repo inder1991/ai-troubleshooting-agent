@@ -4,13 +4,17 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime, timezone
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from src.agents.cluster.state import (
     GuardScanResult, CurrentRisk, PredictiveRisk, ScanDelta, DomainReport, DomainStatus,
 )
 from src.agents.cluster.traced_node import traced_node
 from src.utils.logger import get_logger
+
+if TYPE_CHECKING:
+    from langchain_core.runnables import RunnableConfig
+
 
 logger = get_logger(__name__)
 
@@ -126,7 +130,7 @@ def _compute_risk_score(current: list[CurrentRisk], predictive: list[PredictiveR
 
 
 @traced_node(timeout_seconds=15)
-async def guard_formatter(state: dict, config: dict) -> dict:
+async def guard_formatter(state: dict, config: RunnableConfig) -> dict:
     """LangGraph node: format output for Guard Mode (skip in diagnostic mode)."""
     scan_mode = state.get("scan_mode", "diagnostic")
 

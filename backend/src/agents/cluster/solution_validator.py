@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from src.agents.cluster.command_validator import (
     validate_kubectl_command,
     check_forbidden,
@@ -14,6 +16,10 @@ from src.agents.cluster.command_validator import (
 )
 from src.agents.cluster.traced_node import traced_node
 from src.utils.logger import get_logger
+
+if TYPE_CHECKING:
+    from langchain_core.runnables import RunnableConfig
+
 
 logger = get_logger(__name__)
 
@@ -99,7 +105,7 @@ def validate_solution_step(
 
 
 @traced_node(timeout_seconds=8)
-async def solution_validator(state: dict, config: dict) -> dict:
+async def solution_validator(state: dict, config: RunnableConfig) -> dict:
     """Validate remediation steps for safety and effectiveness. Deterministic."""
     health_report = state.get("health_report", {})
     if not health_report:

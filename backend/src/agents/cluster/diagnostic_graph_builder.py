@@ -1,12 +1,18 @@
 """Diagnostic evidence graph builder."""
 
 from __future__ import annotations
+
+from typing import TYPE_CHECKING
 import uuid
 from collections import defaultdict
 from src.agents.cluster.state import DiagnosticNode, DiagnosticEdge, DiagnosticGraph, NormalizedSignal
 from src.agents.cluster.graph_utils import bfs_reachable, graph_has_path
 from src.agents.cluster.traced_node import traced_node
 from src.utils.logger import get_logger
+
+if TYPE_CHECKING:
+    from langchain_core.runnables import RunnableConfig
+
 
 logger = get_logger(__name__)
 
@@ -161,7 +167,7 @@ def build_diagnostic_graph(
 
 
 @traced_node(timeout_seconds=5)
-async def diagnostic_graph_builder(state: dict, config: dict) -> dict:
+async def diagnostic_graph_builder(state: dict, config: RunnableConfig) -> dict:
     """Build cross-domain diagnostic evidence graph. Deterministic, zero LLM cost."""
     signals = state.get("normalized_signals", [])
     topology = state.get("scoped_topology_graph") or state.get("topology_graph", {})

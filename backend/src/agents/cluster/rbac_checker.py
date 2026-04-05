@@ -1,9 +1,15 @@
 """Pre-flight RBAC permission checker for cluster diagnostics."""
 
 from __future__ import annotations
+
+from typing import TYPE_CHECKING
 import logging
 from src.agents.cluster.traced_node import traced_node
 from src.utils.logger import get_logger
+
+if TYPE_CHECKING:
+    from langchain_core.runnables import RunnableConfig
+
 
 logger = get_logger(__name__)
 
@@ -14,7 +20,7 @@ REQUIRED_RESOURCES = [
 
 
 @traced_node(timeout_seconds=15)
-async def rbac_preflight(state: dict, config: dict) -> dict:
+async def rbac_preflight(state: dict, config: RunnableConfig) -> dict:
     """Check RBAC permissions before running diagnostics."""
     client = config.get("configurable", {}).get("cluster_client")
     if not client:

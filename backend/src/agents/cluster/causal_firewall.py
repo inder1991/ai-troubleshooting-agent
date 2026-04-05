@@ -3,12 +3,16 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from src.agents.cluster.causal_invariants import check_hard_block, SOFT_RULES
 from src.agents.cluster.state import BlockedLink, CausalAnnotation, CausalSearchSpace
 from src.agents.cluster.traced_node import traced_node
 from src.utils.logger import get_logger
+
+if TYPE_CHECKING:
+    from langchain_core.runnables import RunnableConfig
+
 
 logger = get_logger(__name__)
 
@@ -78,7 +82,7 @@ def _check_soft_rules(from_key: str, to_key: str, state: dict) -> CausalAnnotati
 
 
 @traced_node(timeout_seconds=10)
-async def causal_firewall(state: dict, config: dict) -> dict:
+async def causal_firewall(state: dict, config: RunnableConfig) -> dict:
     """LangGraph node: two-tier causal link filtering."""
     clusters = state.get("issue_clusters", [])
     topo_edges = (state.get("scoped_topology_graph") or state.get("topology_graph", {})).get("edges", [])

@@ -5,7 +5,10 @@ from __future__ import annotations
 import asyncio
 import time
 import functools
-from typing import Any, Callable, Optional
+from typing import TYPE_CHECKING, Any, Callable, Optional
+
+if TYPE_CHECKING:
+    from langchain_core.runnables import RunnableConfig
 
 from pydantic import BaseModel, Field
 from src.agents.cluster.state import FailureReason
@@ -58,7 +61,7 @@ _AGENT_NODE_NAMES = frozenset({"node_agent", "ctrl_plane_agent", "network_agent"
 def traced_node(timeout_seconds: float = 60):
     def decorator(func: Callable) -> Callable:
         @functools.wraps(func)
-        async def wrapper(state: dict, config: dict | None = None) -> dict:
+        async def wrapper(state: dict, config: RunnableConfig | None = None) -> dict:
             node_name = func.__name__
             is_agent_node = node_name in _AGENT_NODE_NAMES
             start = time.monotonic()

@@ -6,7 +6,7 @@ import asyncio
 import json
 import os
 import time
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from anthropic import RateLimitError, APITimeoutError
 
@@ -18,6 +18,9 @@ from src.agents.cluster_client.base import QueryResult
 from src.utils.llm_client import AnthropicClient
 from src.utils.llm_telemetry import LLMCallRecord
 from src.utils.logger import get_logger
+
+if TYPE_CHECKING:
+    from langchain_core.runnables import RunnableConfig
 
 logger = get_logger(__name__)
 
@@ -178,6 +181,7 @@ async def _tool_calling_loop(system: str, initial_context: str, cluster_client,
 
     llm = AnthropicClient(agent_name="cluster_network", model="claude-haiku-4-5-20251001", session_id=session_id)
     from src.agents.cluster.output_schemas import SUBMIT_DOMAIN_FINDINGS_TOOL
+
     base_tools = get_tools_for_agent("network")
     # Replace unschema'd submit_findings with SUBMIT_DOMAIN_FINDINGS_TOOL (schema-enforced)
     tools = [t for t in base_tools if t.get("name") != "submit_findings"]
@@ -291,7 +295,7 @@ async def _tool_calling_loop(system: str, initial_context: str, cluster_client,
 
 
 @traced_node(timeout_seconds=60)
-async def network_agent(state: dict, config: dict) -> dict:
+async def network_agent(state: dict, config: RunnableConfig) -> dict:
     """LangGraph node: Network & Ingress diagnostics."""
     start_ms = time.monotonic()
     client = config.get("configurable", {}).get("cluster_client")

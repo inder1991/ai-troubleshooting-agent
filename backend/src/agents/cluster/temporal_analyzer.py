@@ -4,11 +4,15 @@ from __future__ import annotations
 
 import re
 from datetime import datetime, timezone, timedelta
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from src.agents.cluster.state import NormalizedSignal
 from src.agents.cluster.traced_node import traced_node
 from src.utils.logger import get_logger
+
+if TYPE_CHECKING:
+    from langchain_core.runnables import RunnableConfig
+
 
 logger = get_logger(__name__)
 
@@ -161,7 +165,7 @@ def detect_flapping(resource_temporal: dict, thresholds: dict | None = None) -> 
 
 
 @traced_node(timeout_seconds=3)
-async def temporal_analyzer(state: dict, config: dict) -> dict:
+async def temporal_analyzer(state: dict, config: RunnableConfig) -> dict:
     """Compute issue age, recency, restart velocity. Deterministic, zero LLM cost."""
     signals = state.get("normalized_signals", [])
     reports = state.get("domain_reports", [])

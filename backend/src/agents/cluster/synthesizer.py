@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import time
 
@@ -17,6 +17,9 @@ from src.agents.cluster.traced_node import traced_node
 from src.utils.llm_client import AnthropicClient
 from src.utils.llm_telemetry import LLMCallRecord
 from src.utils.logger import get_logger
+
+if TYPE_CHECKING:
+    from langchain_core.runnables import RunnableConfig
 
 logger = get_logger(__name__)
 
@@ -490,7 +493,7 @@ Note: re_dispatch_domains valid values are: ctrl_plane, node, network, storage, 
 
 
 @traced_node(timeout_seconds=60)
-async def synthesize(state: dict, config: dict) -> dict:
+async def synthesize(state: dict, config: RunnableConfig) -> dict:
     """LangGraph node: 3-stage synthesis pipeline."""
     diagnostic_id = state.get("diagnostic_id", "")
     platform = state.get("platform", "")

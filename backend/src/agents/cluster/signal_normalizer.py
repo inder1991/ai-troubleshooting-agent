@@ -4,11 +4,15 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime, timezone
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from src.agents.cluster.state import NormalizedSignal
 from src.agents.cluster.traced_node import traced_node
 from src.utils.logger import get_logger
+
+if TYPE_CHECKING:
+    from langchain_core.runnables import RunnableConfig
+
 
 logger = get_logger(__name__)
 
@@ -167,7 +171,7 @@ def extract_signals(reports: list[dict]) -> list[NormalizedSignal]:
 
 
 @traced_node(timeout_seconds=3)
-async def signal_normalizer(state: dict, config: dict) -> dict:
+async def signal_normalizer(state: dict, config: RunnableConfig) -> dict:
     """Extract canonical signals from domain reports. Deterministic, zero LLM cost."""
     reports = state.get("domain_reports", [])
     signals = extract_signals(reports)

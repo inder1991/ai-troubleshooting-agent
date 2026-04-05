@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from collections import defaultdict, deque
 from datetime import datetime
 
@@ -9,6 +11,10 @@ from src.agents.cluster.graph_utils import bfs_reachable
 from src.agents.cluster.state import DiagnosticGraph, Hypothesis, NormalizedSignal
 from src.agents.cluster.traced_node import traced_node
 from src.utils.logger import get_logger
+
+if TYPE_CHECKING:
+    from langchain_core.runnables import RunnableConfig
+
 
 logger = get_logger(__name__)
 
@@ -250,7 +256,7 @@ def _check_graph_reachability(
 # ---------------------------------------------------------------------------
 
 @traced_node(timeout_seconds=8)
-async def critic_validator(state: dict, config: dict) -> dict:
+async def critic_validator(state: dict, config: RunnableConfig) -> dict:
     """Validate hypotheses with 6-layer checks. Deterministic, no LLM."""
     hypotheses = state.get("ranked_hypotheses", [])
     if not hypotheses:

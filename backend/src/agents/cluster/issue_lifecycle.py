@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from collections import defaultdict
 from datetime import datetime, timezone
 
@@ -12,6 +14,10 @@ from src.agents.cluster.state import (
 from src.agents.cluster.temporal_analyzer import detect_worsening, detect_flapping
 from src.agents.cluster.traced_node import traced_node
 from src.utils.logger import get_logger
+
+if TYPE_CHECKING:
+    from langchain_core.runnables import RunnableConfig
+
 
 logger = get_logger(__name__)
 
@@ -219,7 +225,7 @@ def build_diagnostic_issues(
 
 
 @traced_node(timeout_seconds=5)
-async def issue_lifecycle_classifier(state: dict, config: dict) -> dict:
+async def issue_lifecycle_classifier(state: dict, config: RunnableConfig) -> dict:
     """Classify issues into lifecycle states. Deterministic, zero LLM cost."""
     diagnostic_graph = state.get("diagnostic_graph", {})
     signals = state.get("normalized_signals", [])

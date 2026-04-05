@@ -4,13 +4,17 @@ from __future__ import annotations
 
 from collections import defaultdict, deque
 from datetime import datetime, timezone
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from src.agents.cluster.state import (
     ClusterAlert, IssueCluster, RootCandidate,
 )
 from src.agents.cluster.traced_node import traced_node
 from src.utils.logger import get_logger
+
+if TYPE_CHECKING:
+    from langchain_core.runnables import RunnableConfig
+
 
 logger = get_logger(__name__)
 
@@ -97,7 +101,7 @@ def _pick_root_candidate(cluster_alerts: list[ClusterAlert], adj: dict[str, set[
 
 
 @traced_node(timeout_seconds=15)
-async def alert_correlator(state: dict, config: dict) -> dict:
+async def alert_correlator(state: dict, config: RunnableConfig) -> dict:
     """LangGraph node: correlate alerts into IssueCluster groups."""
     topo = state.get("scoped_topology_graph") or state.get("topology_graph", {})
     edges = topo.get("edges", [])

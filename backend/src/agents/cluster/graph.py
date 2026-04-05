@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import operator
-from typing import Any, Annotated, Optional, TypedDict
+from typing import TYPE_CHECKING, Any, Annotated, Optional, TypedDict
 
 from langgraph.graph import StateGraph, START, END
 
@@ -28,6 +28,9 @@ from src.agents.cluster.solution_validator import solution_validator
 from src.agents.cluster.rbac_checker import rbac_preflight
 from src.agents.cluster.state import DiagnosticScope
 from src.utils.logger import get_logger
+
+if TYPE_CHECKING:
+    from langchain_core.runnables import RunnableConfig
 
 logger = get_logger(__name__)
 
@@ -212,7 +215,7 @@ def dispatch_router(state: dict) -> dict:
 
 def _wrap_domain_agent(domain: str, agent_fn):
     """Wrap a domain agent to return SKIPPED if not in dispatch_domains."""
-    async def wrapped(state: dict, config: dict | None = None) -> dict:
+    async def wrapped(state: dict, config: RunnableConfig | None = None) -> dict:
         dispatch = state.get("dispatch_domains", list(ALL_DOMAINS))
         if domain not in dispatch:
             return {"domain_reports": [{
@@ -259,7 +262,7 @@ def _should_redispatch(state: dict) -> list[str]:
     return ["to_guard_formatter"]
 
 
-async def _proactive_analysis_node(state: dict, config: dict | None = None) -> dict:
+async def _proactive_analysis_node(state: dict, config: RunnableConfig | None = None) -> dict:
     """Run proactive checks and return findings as graph state update."""
     from .proactive_analyzer import run_proactive_analysis
 

@@ -6,6 +6,8 @@ from pattern matches, the diagnostic evidence graph, and correlated signals.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import math
 import uuid
 from collections import defaultdict
@@ -24,6 +26,10 @@ from src.agents.cluster.state import (
 from src.agents.cluster.graph_utils import bfs_reachable, graph_has_path
 from src.agents.cluster.traced_node import traced_node
 from src.utils.logger import get_logger
+
+if TYPE_CHECKING:
+    from langchain_core.runnables import RunnableConfig
+
 
 logger = get_logger(__name__)
 
@@ -664,7 +670,7 @@ def determine_root_causes(ranked: list[Hypothesis]) -> dict:
 
 
 @traced_node(timeout_seconds=10)
-async def hypothesis_engine(state: dict, config: dict) -> dict:
+async def hypothesis_engine(state: dict, config: RunnableConfig) -> dict:
     """Multi-hypothesis root cause engine. Generates, scores, deduplicates,
     and ranks competing root-cause hypotheses."""
 

@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from src.agents.cluster.state import FailurePattern, PatternMatch, NormalizedSignal
 from src.agents.cluster.traced_node import traced_node
 from src.utils.logger import get_logger
+
+if TYPE_CHECKING:
+    from langchain_core.runnables import RunnableConfig
+
 
 logger = get_logger(__name__)
 
@@ -230,7 +234,7 @@ def resolve_priority_conflicts(matches: list[PatternMatch]) -> list[PatternMatch
 
 
 @traced_node(timeout_seconds=5)
-async def failure_pattern_matcher(state: dict, config: dict) -> dict:
+async def failure_pattern_matcher(state: dict, config: RunnableConfig) -> dict:
     """Match normalized signals against known failure patterns. Zero LLM cost."""
     signals = state.get("normalized_signals", [])
     matches = match_patterns([], signals)
