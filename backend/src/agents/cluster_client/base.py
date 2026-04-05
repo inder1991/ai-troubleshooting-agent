@@ -133,6 +133,18 @@ class ClusterClient(ABC):
         """OpenShift Machines (machine.openshift.io/v1beta1)."""
         return QueryResult()
 
+    async def list_subscriptions(self, namespace: str = "") -> QueryResult:
+        """OLM Subscriptions (operators.coreos.com/v1alpha1)."""
+        return QueryResult()
+
+    async def list_csvs(self, namespace: str = "") -> QueryResult:
+        """OLM ClusterServiceVersions (operators.coreos.com/v1alpha1)."""
+        return QueryResult()
+
+    async def list_install_plans(self, namespace: str = "") -> QueryResult:
+        """OLM InstallPlans (operators.coreos.com/v1alpha1)."""
+        return QueryResult()
+
     # RBAC resources — non-abstract, not all agents need these
     async def list_roles(self, namespace: str = "") -> QueryResult:
         """List Roles. Returns empty by default."""

@@ -588,6 +588,81 @@ class MockClusterClient(ClusterClient):
         ]
         return QueryResult(data=machines, total_available=len(machines), returned=len(machines))
 
+    async def list_subscriptions(self, namespace: str = "") -> QueryResult:
+        if self._platform != "openshift":
+            return QueryResult()
+        subs = [
+            {
+                "name": "elasticsearch-operator",
+                "namespace": "openshift-operators-redhat",
+                "package": "elasticsearch-operator",
+                "channel": "stable-5.8",
+                "currentCSV": "elasticsearch-operator.v5.8.1",
+                "installedCSV": "elasticsearch-operator.v5.8.1",
+                "state": "AtLatestKnown",
+            },
+            {
+                "name": "jaeger-operator",
+                "namespace": "openshift-operators",
+                "package": "jaeger-product",
+                "channel": "stable",
+                "currentCSV": "jaeger-operator.v1.51.0",
+                "installedCSV": "jaeger-operator.v1.47.0",
+                "state": "UpgradePending",
+            },
+        ]
+        if namespace:
+            subs = [s for s in subs if s["namespace"] == namespace]
+        return QueryResult(data=subs, total_available=len(subs), returned=len(subs))
+
+    async def list_csvs(self, namespace: str = "") -> QueryResult:
+        if self._platform != "openshift":
+            return QueryResult()
+        csvs = [
+            {
+                "name": "elasticsearch-operator.v5.8.1",
+                "namespace": "openshift-operators-redhat",
+                "phase": "Succeeded",
+                "reason": "InstallSucceeded",
+                "message": "install strategy completed with no errors",
+            },
+            {
+                "name": "jaeger-operator.v1.51.0",
+                "namespace": "openshift-operators",
+                "phase": "Failed",
+                "reason": "ComponentFailed",
+                "message": "install strategy failed: Deployment not ready",
+            },
+        ]
+        if namespace:
+            csvs = [c for c in csvs if c["namespace"] == namespace]
+        return QueryResult(data=csvs, total_available=len(csvs), returned=len(csvs))
+
+    async def list_install_plans(self, namespace: str = "") -> QueryResult:
+        if self._platform != "openshift":
+            return QueryResult()
+        plans = [
+            {
+                "name": "install-abc12",
+                "namespace": "openshift-operators",
+                "approval": "Manual",
+                "approved": False,
+                "phase": "RequiresApproval",
+                "csv_names": ["jaeger-operator.v1.51.0"],
+            },
+            {
+                "name": "install-def34",
+                "namespace": "openshift-operators-redhat",
+                "approval": "Automatic",
+                "approved": True,
+                "phase": "Complete",
+                "csv_names": ["elasticsearch-operator.v5.8.1"],
+            },
+        ]
+        if namespace:
+            plans = [p for p in plans if p["namespace"] == namespace]
+        return QueryResult(data=plans, total_available=len(plans), returned=len(plans))
+
     async def list_roles(self, namespace: str = "") -> QueryResult:
         roles = [
             {

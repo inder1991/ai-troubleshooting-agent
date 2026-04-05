@@ -45,3 +45,42 @@ async def test_list_machines_returns_data(client):
 async def test_list_machines_empty_on_k8s(k8s_client):
     result = await k8s_client.list_machines()
     assert result.data == []
+
+
+@pytest.mark.asyncio
+async def test_list_subscriptions_returns_data(client):
+    result = await client.list_subscriptions()
+    assert len(result.data) >= 2
+    sub = result.data[0]
+    assert "name" in sub
+    assert "package" in sub
+    assert "state" in sub
+    assert "currentCSV" in sub
+    assert "installedCSV" in sub
+
+
+@pytest.mark.asyncio
+async def test_list_csvs_returns_data(client):
+    result = await client.list_csvs()
+    assert len(result.data) >= 2
+    csv = result.data[0]
+    assert "name" in csv
+    assert "phase" in csv
+
+
+@pytest.mark.asyncio
+async def test_list_install_plans_returns_data(client):
+    result = await client.list_install_plans()
+    assert len(result.data) >= 1
+    ip = result.data[0]
+    assert "name" in ip
+    assert "approval" in ip
+    assert "phase" in ip
+    assert "csv_names" in ip
+
+
+@pytest.mark.asyncio
+async def test_olm_methods_empty_on_k8s(k8s_client):
+    for method_name in ("list_subscriptions", "list_csvs", "list_install_plans"):
+        result = await getattr(k8s_client, method_name)()
+        assert result.data == [], f"{method_name} should be empty on k8s"
