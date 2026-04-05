@@ -1,10 +1,9 @@
 """LangGraph StateGraph for cluster diagnostics with fan-out/fan-in."""
 
-from __future__ import annotations
-
 import operator
-from typing import TYPE_CHECKING, Any, Annotated, Optional, TypedDict
+from typing import Any, Annotated, Optional, TypedDict
 
+from langchain_core.runnables import RunnableConfig
 from langgraph.graph import StateGraph, START, END
 
 from src.agents.cluster.topology_resolver import topology_snapshot_resolver
@@ -29,8 +28,6 @@ from src.agents.cluster.rbac_checker import rbac_preflight
 from src.agents.cluster.state import DiagnosticScope
 from src.utils.logger import get_logger
 
-if TYPE_CHECKING:
-    from langchain_core.runnables import RunnableConfig
 
 logger = get_logger(__name__)
 

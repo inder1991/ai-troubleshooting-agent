@@ -35,7 +35,9 @@ def _version_json(git_version: str, openshift_version: str = "") -> str:
 
 def test_get_cli_tool():
     probe = ClusterProbe()
-    assert probe.get_cli_tool("openshift") == "oc"
+    # OpenShift returns "oc" if available, else falls back to "kubectl"
+    result = probe.get_cli_tool("openshift")
+    assert result in ("oc", "kubectl")
     assert probe.get_cli_tool("kubernetes") == "kubectl"
 
 
