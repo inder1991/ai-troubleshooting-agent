@@ -61,7 +61,9 @@ _ANALYSIS_PROMPT = """Analyze this network and ingress data and produce a JSON r
 
 Rules:
 - Only report anomalies you have evidence for
-- DNS failures above 10% are high severity
+- DNS failure events: check Warning events for CoreDNS pods. If multiple DNS resolution failures appear
+  in events, cross-reference with coredns_dns_requests_total (a counter — rising errors indicate ongoing failures).
+  Severity: high if >10 DNS failure events in the data, medium if 1-10.
 - Correlate CoreDNS pod status with DNS resolution metrics
 - Service with 0 ready endpoints = no backends, traffic will fail (high severity)
 - Service selector matching no pods = orphaned service (medium severity)
