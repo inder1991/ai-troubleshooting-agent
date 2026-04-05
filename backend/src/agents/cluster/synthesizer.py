@@ -20,6 +20,16 @@ from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
+def _safe_store_write(store, record: dict) -> None:
+    """Fire-and-forget store write with error logging."""
+    if store is None:
+        return
+    task = asyncio.ensure_future(store.log_llm_call(record))
+    task.add_done_callback(
+        lambda t: logger.warning("Store write failed: %s", t.exception()) if t.exception() else None
+    )
+
+
 CONSTRAINED_LINK_TYPES = [
     "resource_exhaustion -> pod_eviction",
     "resource_exhaustion -> throttling",
@@ -301,7 +311,7 @@ async def _llm_causal_reasoning(
 
     # Log to DiagnosticStore (fire-and-forget)
     if store is not None and session_id:
-        asyncio.ensure_future(store.log_llm_call({
+        _safe_store_write(store, {
             "session_id": session_id,
             "agent_name": "cluster_synthesizer",
             "model": used_model,
@@ -314,7 +324,7 @@ async def _llm_causal_reasoning(
             "fallback_used": False,
             "response_json": json.dumps([{"type": getattr(b, "type", "unknown"), **({"text": b.text} if hasattr(b, "text") else {"name": b.name, "input": b.input} if hasattr(b, "name") else {})} for b in response.content], default=str)[:2000],
             "created_at": time.time(),
-        }))
+        })
 
     for block in response.content:
         if getattr(block, "type", None) == "tool_use" and block.name == "submit_causal_analysis":
@@ -414,7 +424,7 @@ Note: re_dispatch_domains valid values are: ctrl_plane, node, network, storage, 
 
     # Log to DiagnosticStore (fire-and-forget)
     if store is not None and session_id:
-        asyncio.ensure_future(store.log_llm_call({
+        _safe_store_write(store, {
             "session_id": session_id,
             "agent_name": "cluster_synthesizer",
             "model": used_model,
@@ -427,7 +437,7 @@ Note: re_dispatch_domains valid values are: ctrl_plane, node, network, storage, 
             "fallback_used": False,
             "response_json": json.dumps([{"type": getattr(b, "type", "unknown"), **({"text": b.text} if hasattr(b, "text") else {"name": b.name, "input": b.input} if hasattr(b, "name") else {})} for b in response.content], default=str)[:2000],
             "created_at": time.time(),
-        }))
+        })
 
     for block in response.content:
         if getattr(block, "type", None) == "tool_use" and block.name == "submit_verdict":
