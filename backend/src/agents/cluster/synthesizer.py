@@ -46,6 +46,10 @@ CONSTRAINED_LINK_TYPES = [
     "api_latency -> timeout_cascade",
     "quota_exceeded -> scheduling_failure",
     "image_pull_failure -> pod_pending",
+    "operator_degraded -> workload_rescheduling",
+    "webhook_failure -> pod_creation_blocked",
+    "mount_failure -> container_crash",
+    "probe_failure -> service_degradation",
     "unknown",
 ]
 
