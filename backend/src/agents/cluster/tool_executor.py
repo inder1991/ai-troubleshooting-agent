@@ -58,6 +58,10 @@ async def execute_tool_call(tool_name: str, tool_input: dict, cluster_client, to
     start = time.monotonic()
     logger.debug("Tool call: %s(%s)", tool_name, tool_input,
                  extra={"action": "tool_call_start", "extra": {"tool": tool_name}})
+    if not isinstance(tool_input, dict):
+        logger.warning("Invalid tool_input type: %s for %s", type(tool_input).__name__, tool_name,
+                        extra={"action": "tool_input_invalid"})
+        return json.dumps({"error": f"Invalid tool input type: expected dict, got {type(tool_input).__name__}"})
     try:
         if tool_name == "list_pods":
             result = await cluster_client.list_pods(namespace=tool_input.get("namespace", ""))

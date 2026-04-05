@@ -194,6 +194,12 @@ def dispatch_router(state: dict) -> dict:
 
     scope_coverage = len(domains) / len(ALL_DOMAINS) if ALL_DOMAINS else 1.0
 
+    if not domains:
+        logger.warning(
+            "All domains denied by RBAC — no agents will run",
+            extra={"action": "all_domains_denied", "extra": {"denied": list(denied_resources)}},
+        )
+
     logger.info(
         "Dispatch router: domains=%s, scope=%s",
         domains, scope_data.get("level", "cluster") if scope_data else "cluster",

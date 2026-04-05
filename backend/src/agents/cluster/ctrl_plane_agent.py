@@ -187,7 +187,7 @@ async def _tool_calling_loop(system: str, initial_context: str, cluster_client,
     tool_call_count = 0
     retry_count = 0
 
-    for iteration in range(MAX_TOOL_CALLS + 1):
+    for iteration in range(MAX_TOOL_CALLS):
         call_start = time.monotonic()
         try:
             response = await asyncio.wait_for(
@@ -222,9 +222,9 @@ async def _tool_calling_loop(system: str, initial_context: str, cluster_client,
             return None  # Triggers heuristic fallback
 
         latency_ms = int((time.monotonic() - call_start) * 1000)
-        input_tokens = getattr(response, "usage", None)
-        in_tok = input_tokens.input_tokens if input_tokens else 0
-        out_tok = input_tokens.output_tokens if input_tokens else 0
+        usage = getattr(response, "usage", None)
+        in_tok = usage.input_tokens if usage else 0
+        out_tok = usage.output_tokens if usage else 0
 
         if budget:
             budget.record(input_tokens=in_tok, output_tokens=out_tok, latency_ms=latency_ms)

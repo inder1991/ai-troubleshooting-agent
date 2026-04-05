@@ -227,7 +227,7 @@ async def _tool_calling_loop(system: str, initial_context: str, cluster_client,
     tool_call_count = 0
     retry_count = 0
 
-    for iteration in range(MAX_TOOL_CALLS + 1):
+    for iteration in range(MAX_TOOL_CALLS):
         call_start = time.monotonic()
         try:
             response = await asyncio.wait_for(
