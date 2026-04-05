@@ -1,14 +1,11 @@
 """@traced_node decorator: timeout enforcement, failure classification, execution tracing."""
 
-from __future__ import annotations
-
 import asyncio
 import time
 import functools
-from typing import TYPE_CHECKING, Any, Callable, Optional
+from typing import Any, Callable, Optional
 
-if TYPE_CHECKING:
-    from langchain_core.runnables import RunnableConfig
+from langchain_core.runnables import RunnableConfig
 
 from pydantic import BaseModel, Field
 from src.agents.cluster.state import FailureReason
