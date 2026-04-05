@@ -25,7 +25,8 @@ MAX_TOOL_CALLS = 5
 TOOL_CALL_TIMEOUT = 60  # seconds
 
 _SYSTEM_PROMPT = """You are the Control Plane & Etcd diagnostic agent for DebugDuck.
-You analyze: degraded operators, API server latency, etcd sync/health, certificate expiry, leader election.
+You analyze: degraded operators, API server latency, etcd sync/health, and leader election.
+For certificate expiry and etcd health, infer from warning events and operator conditions (no direct tools).
 For OpenShift clusters, you also analyze MachineConfigPool health, SCC restrictions, and operator lifecycle.
 
 Platform: {platform} {platform_version}

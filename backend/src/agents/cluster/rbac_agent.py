@@ -23,6 +23,7 @@ logger = get_logger(__name__)
 
 MAX_TOOL_CALLS = 5
 TOOL_CALL_TIMEOUT = 60  # seconds
+_MAX_RBAC_ITEMS = 100
 
 _SYSTEM_PROMPT = """You are the RBAC & Security diagnostic agent for DebugDuck.
 You analyze: ServiceAccount misconfigs, role binding issues, pods running as default ServiceAccount,
@@ -318,11 +319,24 @@ async def rbac_agent(state: dict, config: dict) -> dict:
     )
 
     data_payload = {
-        "roles": roles.data,
-        "role_bindings": role_bindings.data,
-        "cluster_roles": cluster_roles.data,
-        "service_accounts": service_accounts.data,
+        "roles": roles.data[:_MAX_RBAC_ITEMS],
+        "role_bindings": role_bindings.data[:_MAX_RBAC_ITEMS],
+        "cluster_roles": cluster_roles.data[:_MAX_RBAC_ITEMS],
+        "service_accounts": service_accounts.data[:_MAX_RBAC_ITEMS],
     }
+
+    truncation_note = ""
+    capped_sources = []
+    if len(roles.data) > _MAX_RBAC_ITEMS:
+        capped_sources.append(f"roles ({len(roles.data)} \u2192 {_MAX_RBAC_ITEMS})")
+    if len(role_bindings.data) > _MAX_RBAC_ITEMS:
+        capped_sources.append(f"role_bindings ({len(role_bindings.data)} \u2192 {_MAX_RBAC_ITEMS})")
+    if len(cluster_roles.data) > _MAX_RBAC_ITEMS:
+        capped_sources.append(f"cluster_roles ({len(cluster_roles.data)} \u2192 {_MAX_RBAC_ITEMS})")
+    if len(service_accounts.data) > _MAX_RBAC_ITEMS:
+        capped_sources.append(f"service_accounts ({len(service_accounts.data)} \u2192 {_MAX_RBAC_ITEMS})")
+    if capped_sources:
+        truncation_note = "\u26a0\ufe0f Data truncation: " + "; ".join(capped_sources)
 
     version_context = get_version_context(platform_version)
 
@@ -334,7 +348,7 @@ async def rbac_agent(state: dict, config: dict) -> dict:
     )
     prompt = _ANALYSIS_PROMPT.format(
         data_json=json.dumps(data_payload, indent=2, default=str),
-        truncation_note="",
+        truncation_note=truncation_note,
     )
 
     # Extract budget, telemetry, store, and session_id from config

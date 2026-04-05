@@ -368,6 +368,17 @@ async def network_agent(state: dict, config: dict) -> dict:
 
     version_context = get_version_context(platform_version)
     truncation_note = ""
+    truncation_parts = []
+    if logs_total > 50:
+        truncation_parts.append(f"logs truncated to 50 of {logs_total} entries")
+    if len(services.data) > 100:
+        truncation_parts.append(f"services truncated to 100 of {len(services.data)}")
+    if len(endpoints.data) > 100:
+        truncation_parts.append(f"endpoints truncated to 100 of {len(endpoints.data)}")
+    if len(network_policies.data) > 100:
+        truncation_parts.append(f"network_policies truncated to 100 of {len(network_policies.data)}")
+    if truncation_parts:
+        truncation_note = "\u26a0\ufe0f Data truncation: " + "; ".join(truncation_parts)
 
     system = _SYSTEM_PROMPT.format(
         platform=platform,

@@ -25,8 +25,9 @@ MAX_TOOL_CALLS = 5
 TOOL_CALL_TIMEOUT = 60  # seconds
 
 _SYSTEM_PROMPT = """You are the Storage & Persistence diagnostic agent for DebugDuck.
-You analyze: PVC capacity and usage, CSI driver health, storage class configuration,
-volume attach/detach latency, IOPS throttling, and stuck volumes.
+You analyze: PVC capacity and usage, storage class configuration,
+volume attach/detach latency, and stuck volumes.
+For CSI driver health and IOPS metrics, analyze if available in the provided data.
 
 Platform: {platform} {platform_version}
 {platform_capabilities}
