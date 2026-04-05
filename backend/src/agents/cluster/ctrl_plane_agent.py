@@ -84,18 +84,21 @@ General rules:
 async def _llm_analyze(system: str, prompt: str, session_id: str = "") -> dict:
     """Single-pass LLM call using structured tool output. Returns findings dict."""
     from src.agents.cluster.output_schemas import SUBMIT_DOMAIN_FINDINGS_TOOL
-    client = AnthropicClient(agent_name="cluster_ctrl_plane", session_id=session_id)
-    response = await client.chat_with_tools(
-        system=system,
-        messages=[{"role": "user", "content": prompt}],
-        tools=[SUBMIT_DOMAIN_FINDINGS_TOOL],
-        max_tokens=2000,
-        temperature=0.1,
-    )
-    for block in response.content:
-        if getattr(block, "type", None) == "tool_use" and block.name == "submit_domain_findings":
-            return block.input
-    logger.warning("LLM did not call submit_domain_findings tool", extra={"action": "parse_error"})
+    try:
+        client = AnthropicClient(agent_name="cluster_ctrl_plane", session_id=session_id)
+        response = await client.chat_with_tools(
+            system=system,
+            messages=[{"role": "user", "content": prompt}],
+            tools=[SUBMIT_DOMAIN_FINDINGS_TOOL],
+            max_tokens=2000,
+            temperature=0.1,
+        )
+        for block in response.content:
+            if getattr(block, "type", None) == "tool_use" and block.name == "submit_domain_findings":
+                return block.input
+        logger.warning("LLM did not call submit_domain_findings tool", extra={"action": "parse_error"})
+    except Exception as e:
+        logger.error("_llm_analyze failed: %s", e, extra={"action": "llm_analyze_error", "extra": str(e)})
     return {"anomalies": [], "ruled_out": [], "confidence": 0}
 
 
@@ -277,7 +280,12 @@ async def _tool_calling_loop(system: str, initial_context: str, cluster_client,
         messages.append({"role": "assistant", "content": response.content})
         tool_results = []
         for tu in tool_uses:
-            result_str = await execute_tool_call(tu.name, tu.input, cluster_client, tool_call_count)
+            try:
+                result_str = await execute_tool_call(tu.name, tu.input, cluster_client, tool_call_count)
+            except Exception as e:
+                logger.error("Tool call %s failed: %s", tu.name, e,
+                             extra={"action": "tool_call_error", "extra": str(e)})
+                result_str = json.dumps({"error": f"Tool execution failed: {e}"})
             tool_results.append({
                 "type": "tool_result",
                 "tool_use_id": tu.id,
