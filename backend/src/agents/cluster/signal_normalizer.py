@@ -157,6 +157,38 @@ def extract_signals(reports: list[dict]) -> list[NormalizedSignal]:
             if "rbac" in desc or "permission" in desc or "forbidden" in desc:
                 signals.append(_make_signal("RBAC_PERMISSION_DENIED", ref, domain, "k8s_event_warning", namespace=ns))
 
+            # Operator degraded/unavailable
+            if "operator" in desc and ("unavailable" in desc or "degraded" in desc):
+                signals.append(_make_signal("OPERATOR_DEGRADED", ref, domain, "deployment_status", namespace=ns))
+
+            # Operator progressing
+            if "operator" in desc and "progressing" in desc:
+                signals.append(_make_signal("OPERATOR_PROGRESSING", ref, domain, "deployment_status", namespace=ns))
+
+            # Init container stuck
+            if "init container" in desc and ("stuck" in desc or "waiting" in desc or "crash" in desc):
+                signals.append(_make_signal("INIT_CONTAINER_STUCK", ref, domain, "pod_phase", namespace=ns))
+
+            # Webhook failure
+            if "webhook" in desc and ("fail" in desc or "timeout" in desc or "blocked" in desc):
+                signals.append(_make_signal("WEBHOOK_FAILURE", ref, domain, "k8s_event_warning", namespace=ns))
+
+            # Mount failure
+            if ("mount" in desc and ("fail" in desc or "error" in desc)) or "failedmount" in desc:
+                signals.append(_make_signal("MOUNT_FAILURE", ref, domain, "k8s_event_warning", namespace=ns))
+
+            # PDB blocking
+            if "pdb" in desc and ("block" in desc or "disruptionsallowed" in desc):
+                signals.append(_make_signal("PDB_BLOCKING", ref, domain, "k8s_event_warning", namespace=ns))
+
+            # Quota exceeded
+            if "quota" in desc and ("exceeded" in desc or "blocked" in desc):
+                signals.append(_make_signal("QUOTA_EXCEEDED", ref, domain, "k8s_event_warning", namespace=ns))
+
+            # Probe misconfigured
+            if "probe" in desc and ("fail" in desc or "unhealthy" in desc or "not ready" in desc):
+                signals.append(_make_signal("PROBE_MISCONFIGURED", ref, domain, "pod_phase", namespace=ns))
+
     # Deduplicate by (signal_type, resource_key)
     seen = set()
     deduped = []
