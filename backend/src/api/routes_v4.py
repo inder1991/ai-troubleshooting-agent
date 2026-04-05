@@ -962,6 +962,12 @@ async def delete_session(session_id: str):
     if session_id not in sessions:
         raise HTTPException(status_code=404, detail="Session not found")
 
+    # Cancel running diagnosis task
+    task = _diagnosis_tasks.pop(session_id, None)
+    if task and not task.done():
+        task.cancel()
+        logger.info("Cancelled diagnosis task for deleted session", extra={"session_id": session_id, "action": "diagnosis_cancelled"})
+
     # Clean up cluster client and temp kubeconfig
     client = sessions[session_id].get("cluster_client")
     if client:

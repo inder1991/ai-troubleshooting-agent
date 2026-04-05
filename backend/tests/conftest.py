@@ -16,6 +16,12 @@ if "src" not in sys.modules:
     src_mod.__package__ = "src"
     sys.modules["src"] = src_mod
 
+if "src.api" not in sys.modules:
+    api_mod = types.ModuleType("src.api")
+    api_mod.__path__ = [os.path.join(backend_dir, "src", "api")]
+    api_mod.__package__ = "src.api"
+    sys.modules["src.api"] = api_mod
+
 if "src.models" not in sys.modules:
     models_mod = types.ModuleType("src.models")
     models_mod.__path__ = [os.path.join(backend_dir, "src", "models")]
