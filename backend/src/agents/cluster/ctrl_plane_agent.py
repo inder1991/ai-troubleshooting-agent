@@ -165,6 +165,95 @@ async def _heuristic_analyze(data_payload: dict, domain: str = "ctrl_plane") -> 
                 "severity": "high",
             })
 
+    # Check operator progressing
+    for op in data_payload.get("cluster_operators", []):
+        op_name = op.get("name", "unknown")
+        if op.get("progressing"):
+            anomalies.append({
+                "domain": domain,
+                "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                "description": f"Operator {op_name} is progressing (upgrade in progress)",
+                "evidence_ref": f"operator/{op_name}",
+                "severity": "medium",
+            })
+
+    # Check SCC with allowPrivilegedContainer for non-system namespaces
+    system_prefixes = ("openshift-", "kube-", "default")
+    for scc in data_payload.get("security_context_constraints", []):
+        scc_name = scc.get("name", "unknown")
+        if scc.get("allowPrivilegedContainer"):
+            users = scc.get("users", [])
+            non_system = [u for u in users if not any(u.startswith(f"system:serviceaccount:{p}") for p in system_prefixes)]
+            if non_system:
+                anomalies.append({
+                    "domain": domain,
+                    "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                    "description": f"SCC {scc_name} allows privileged containers for non-system users: {', '.join(non_system[:3])}",
+                    "evidence_ref": f"scc/{scc_name}",
+                    "severity": "medium",
+                })
+
+    # Check MCP machine count mismatch (update in progress)
+    for mcp in data_payload.get("machine_config_pools", []):
+        mcp_name = mcp.get("name", "unknown")
+        machine_count = mcp.get("machineCount", 0)
+        updated_count = mcp.get("updatedMachineCount", 0)
+        if machine_count and machine_count != updated_count and not mcp.get("degraded"):
+            anomalies.append({
+                "domain": domain,
+                "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                "description": f"MachineConfigPool {mcp_name} updating: {updated_count}/{machine_count} machines updated (mismatch)",
+                "evidence_ref": f"mcp/{mcp_name}",
+                "severity": "medium",
+            })
+
+    # Check etcd pods
+    for pod in data_payload.get("etcd_pods", []):
+        pod_name = pod.get("name", "unknown")
+        status = pod.get("status", "")
+        restarts = pod.get("restarts", 0)
+        if status not in ("Running",):
+            anomalies.append({
+                "domain": domain,
+                "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                "description": f"Etcd pod {pod_name} is not running (status: {status})",
+                "evidence_ref": f"pod/openshift-etcd/{pod_name}",
+                "severity": "critical",
+            })
+        elif restarts and restarts > 3:
+            anomalies.append({
+                "domain": domain,
+                "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                "description": f"Etcd pod {pod_name} has high restart count ({restarts})",
+                "evidence_ref": f"pod/openshift-etcd/{pod_name}",
+                "severity": "high",
+            })
+
+    # Check webhooks
+    for wh in data_payload.get("webhooks", []):
+        wh_name = wh.get("name", "unknown")
+        failure_policy = wh.get("failure_policy", "Ignore")
+        timeout = wh.get("timeout_seconds", 10)
+        client_config = wh.get("client_config", {})
+        is_external = "url" in client_config
+
+        if failure_policy == "Fail" and is_external:
+            anomalies.append({
+                "domain": domain,
+                "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                "description": f"Webhook {wh_name} has failurePolicy=Fail with external URL — can block API operations if external service is down",
+                "evidence_ref": f"webhook/{wh_name}",
+                "severity": "high",
+            })
+        if timeout and timeout > 10:
+            anomalies.append({
+                "domain": domain,
+                "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                "description": f"Webhook {wh_name} has high timeout ({timeout}s > 10s) — can cause API latency",
+                "evidence_ref": f"webhook/{wh_name}",
+                "severity": "medium",
+            })
+
     confidence = 50 if anomalies else 70
     return {"anomalies": anomalies, "ruled_out": ruled_out, "confidence": confidence}
 
