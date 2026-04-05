@@ -742,6 +742,27 @@ class MockClusterClient(ClusterClient):
         ]
         return QueryResult(data=deprecated, total_available=len(deprecated), returned=len(deprecated))
 
+    async def list_webhooks(self) -> QueryResult:
+        data = [
+            {
+                "name": "validation.example.com",
+                "kind": "ValidatingWebhookConfiguration",
+                "failure_policy": "Fail",
+                "timeout_seconds": 30,
+                "client_config": {"url": "https://external-webhook.example.com/validate"},
+                "rules": [{"apiGroups": [""], "resources": ["pods"], "operations": ["CREATE"]}],
+            },
+            {
+                "name": "mutation.internal.svc",
+                "kind": "MutatingWebhookConfiguration",
+                "failure_policy": "Ignore",
+                "timeout_seconds": 5,
+                "client_config": {"service": {"name": "webhook-svc", "namespace": "webhook-system"}},
+                "rules": [{"apiGroups": ["apps"], "resources": ["deployments"], "operations": ["CREATE", "UPDATE"]}],
+            },
+        ]
+        return QueryResult(data=data, total_available=len(data), returned=len(data))
+
     async def build_topology_snapshot(self) -> "TopologySnapshot":
         from src.agents.cluster.state import TopologySnapshot, TopologyNode, TopologyEdge
         nodes_result = await self.list_nodes()

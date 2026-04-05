@@ -187,6 +187,10 @@ class ClusterClient(ABC):
         """Scan common resources for apiVersion usage to detect deprecations."""
         return QueryResult()
 
+    async def list_webhooks(self) -> QueryResult:
+        """List ValidatingWebhookConfiguration + MutatingWebhookConfiguration."""
+        return QueryResult()
+
     async def build_topology_snapshot(self) -> "TopologySnapshot":
         """Build resource dependency graph from cluster state."""
         from src.agents.cluster.state import TopologySnapshot
