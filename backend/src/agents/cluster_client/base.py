@@ -145,6 +145,10 @@ class ClusterClient(ABC):
         """OLM InstallPlans (operators.coreos.com/v1alpha1)."""
         return QueryResult()
 
+    async def get_proxy_config(self) -> QueryResult:
+        """OpenShift cluster-wide Proxy config (config.openshift.io/v1)."""
+        return QueryResult()
+
     # RBAC resources — non-abstract, not all agents need these
     async def list_roles(self, namespace: str = "") -> QueryResult:
         """List Roles. Returns empty by default."""

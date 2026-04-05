@@ -638,6 +638,17 @@ class MockClusterClient(ClusterClient):
             csvs = [c for c in csvs if c["namespace"] == namespace]
         return QueryResult(data=csvs, total_available=len(csvs), returned=len(csvs))
 
+    async def get_proxy_config(self) -> QueryResult:
+        if self._platform != "openshift":
+            return QueryResult()
+        proxy = {
+            "httpProxy": "http://proxy.corp.example.com:3128",
+            "httpsProxy": "http://proxy.corp.example.com:3128",
+            "noProxy": ".cluster.local,.svc,10.128.0.0/14,172.30.0.0/16,localhost",
+            "trustedCA": "user-ca-bundle",
+        }
+        return QueryResult(data=[proxy], total_available=1, returned=1)
+
     async def list_install_plans(self, namespace: str = "") -> QueryResult:
         if self._platform != "openshift":
             return QueryResult()

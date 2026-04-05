@@ -84,3 +84,19 @@ async def test_olm_methods_empty_on_k8s(k8s_client):
     for method_name in ("list_subscriptions", "list_csvs", "list_install_plans"):
         result = await getattr(k8s_client, method_name)()
         assert result.data == [], f"{method_name} should be empty on k8s"
+
+
+@pytest.mark.asyncio
+async def test_get_proxy_config_returns_data(client):
+    result = await client.get_proxy_config()
+    assert result.data
+    proxy = result.data[0]
+    assert "httpProxy" in proxy
+    assert "httpsProxy" in proxy
+    assert "noProxy" in proxy
+
+
+@pytest.mark.asyncio
+async def test_get_proxy_config_empty_on_k8s(k8s_client):
+    result = await k8s_client.get_proxy_config()
+    assert result.data == []
