@@ -539,6 +539,55 @@ class MockClusterClient(ClusterClient):
         ]
         return QueryResult(data=pools, total_available=len(pools), returned=len(pools))
 
+    async def get_cluster_version(self) -> QueryResult:
+        if self._platform != "openshift":
+            return QueryResult()
+        cv = {
+            "version": "4.14.2",
+            "desired": "4.14.3",
+            "conditions": [
+                {"type": "Available", "status": "True", "message": "Done applying 4.14.2"},
+                {"type": "Progressing", "status": "True", "message": "Working towards 4.14.3"},
+                {"type": "Failing", "status": "False", "message": ""},
+            ],
+            "history": [
+                {"version": "4.14.2", "state": "Completed"},
+                {"version": "4.14.1", "state": "Completed"},
+            ],
+        }
+        return QueryResult(data=[cv], total_available=1, returned=1)
+
+    async def list_machines(self) -> QueryResult:
+        if self._platform != "openshift":
+            return QueryResult()
+        machines = [
+            {
+                "name": "master-0",
+                "phase": "Running",
+                "provider_id": "aws:///us-east-1a/i-abc123",
+                "node_ref": "master-0.internal",
+                "conditions": [],
+                "creation_timestamp": "2026-01-10T08:00:00Z",
+            },
+            {
+                "name": "worker-0",
+                "phase": "Running",
+                "provider_id": "aws:///us-east-1a/i-def456",
+                "node_ref": "worker-0.internal",
+                "conditions": [],
+                "creation_timestamp": "2026-01-10T08:00:00Z",
+            },
+            {
+                "name": "worker-2",
+                "phase": "Failed",
+                "provider_id": "",
+                "node_ref": "",
+                "conditions": [{"type": "MachineCreation", "status": "False", "reason": "CreateError", "message": "Failed to create instance"}],
+                "creation_timestamp": "2026-03-15T10:00:00Z",
+            },
+        ]
+        return QueryResult(data=machines, total_available=len(machines), returned=len(machines))
+
     async def list_roles(self, namespace: str = "") -> QueryResult:
         roles = [
             {

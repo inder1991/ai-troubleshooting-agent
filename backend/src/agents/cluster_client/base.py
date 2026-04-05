@@ -125,6 +125,14 @@ class ClusterClient(ABC):
         """OpenShift MachineConfigPools."""
         return QueryResult()
 
+    async def get_cluster_version(self) -> QueryResult:
+        """OpenShift ClusterVersion object."""
+        return QueryResult()
+
+    async def list_machines(self) -> QueryResult:
+        """OpenShift Machines (machine.openshift.io/v1beta1)."""
+        return QueryResult()
+
     # RBAC resources — non-abstract, not all agents need these
     async def list_roles(self, namespace: str = "") -> QueryResult:
         """List Roles. Returns empty by default."""
