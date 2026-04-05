@@ -262,6 +262,12 @@ async def _llm_causal_reasoning(
         selection=kwargs.get("hypothesis_selection", {}),
     )
 
+    logger.debug(
+        "Synthesizer causal reasoning prompt (%d chars)",
+        len(bounded_prompt),
+        extra={"action": "synth_causal_prompt", "extra": {"prompt_chars": len(bounded_prompt)}},
+    )
+
     cluster_context = (
         f"Cluster Context:\n"
         f"- Platform: {platform}\n"
@@ -328,9 +334,20 @@ async def _llm_causal_reasoning(
 
     for block in response.content:
         if getattr(block, "type", None) == "tool_use" and block.name == "submit_causal_analysis":
-            return block.input
+            parsed = block.input
+            logger.debug(
+                "Synthesizer causal reasoning result: %d chains",
+                len(parsed.get("causal_chains", [])),
+                extra={"action": "synth_causal_result"},
+            )
+            return parsed
 
-    logger.warning("Synthesizer causal reasoning: LLM did not call submit_causal_analysis")
+    response_text = " ".join(getattr(b, "text", "") for b in response.content if hasattr(b, "text"))
+    logger.warning(
+        "Synthesizer causal reasoning: LLM did not call submit_causal_analysis. Response: %s",
+        response_text[:500],
+        extra={"action": "synth_causal_no_tool"},
+    )
     return {"causal_chains": [], "uncorrelated_findings": [a.model_dump(mode="json") if hasattr(a, "model_dump") else a for a in anomalies]}
 
 
@@ -377,6 +394,12 @@ async def _llm_verdict(
 {report_summaries}
 {hypothesis_context}
 Note: re_dispatch_domains valid values are: ctrl_plane, node, network, storage, rbac"""
+
+    logger.debug(
+        "Synthesizer verdict prompt (%d chars)",
+        len(prompt),
+        extra={"action": "synth_verdict_prompt", "extra": {"prompt_chars": len(prompt)}},
+    )
 
     system_prompt = (
         f"Platform: {platform}\nNamespace: {namespace or 'all'}\nCluster: {cluster_url or 'unknown'}\n\n"
@@ -444,9 +467,19 @@ Note: re_dispatch_domains valid values are: ctrl_plane, node, network, storage, 
             parsed = block.input
             raw_domains = parsed.get("re_dispatch_domains", [])
             parsed["re_dispatch_domains"] = [d for d in raw_domains if d in _VALID_DOMAINS]
+            logger.debug(
+                "Synthesizer verdict result: health=%s",
+                parsed.get("platform_health", "UNKNOWN"),
+                extra={"action": "synth_verdict_result"},
+            )
             return parsed
 
-    logger.warning("Synthesizer verdict: LLM did not call submit_verdict")
+    response_text = " ".join(getattr(b, "text", "") for b in response.content if hasattr(b, "text"))
+    logger.warning(
+        "Synthesizer verdict: LLM did not call submit_verdict. Response: %s",
+        response_text[:500],
+        extra={"action": "synth_verdict_no_tool"},
+    )
     return {
         "platform_health": "UNKNOWN",
         "blast_radius": {"summary": "Unable to determine", "affected_namespaces": 0, "affected_pods": 0, "affected_nodes": 0},
