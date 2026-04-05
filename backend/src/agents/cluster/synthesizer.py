@@ -302,6 +302,9 @@ async def _llm_causal_reasoning(
     except asyncio.TimeoutError:
         logger.warning("LLM causal reasoning timed out after 30s")
         return {"causal_chains": [], "uncorrelated_findings": [a.model_dump(mode="json") if hasattr(a, "model_dump") else a for a in anomalies]}
+    except Exception as e:
+        logger.error("LLM causal reasoning failed: %s", e, extra={"action": "synth_causal_error", "extra": str(e)})
+        return {"causal_chains": [], "uncorrelated_findings": [a.model_dump(mode="json") if hasattr(a, "model_dump") else a for a in anomalies]}
 
     latency_ms = int((time.monotonic() - call_start) * 1000)
     usage = getattr(response, "usage", None)
@@ -425,6 +428,15 @@ Note: re_dispatch_domains valid values are: ctrl_plane, node, network, storage, 
         )
     except asyncio.TimeoutError:
         logger.warning("LLM verdict timed out after 30s")
+        return {
+            "platform_health": "UNKNOWN",
+            "blast_radius": {"summary": "Unable to determine", "affected_namespaces": [], "affected_pods": [], "affected_nodes": []},
+            "remediation": {"immediate": [], "long_term": []},
+            "re_dispatch_needed": False,
+            "re_dispatch_domains": [],
+        }
+    except Exception as e:
+        logger.error("LLM verdict failed: %s", e, extra={"action": "synth_verdict_error", "extra": str(e)})
         return {
             "platform_health": "UNKNOWN",
             "blast_radius": {"summary": "Unable to determine", "affected_namespaces": [], "affected_pods": [], "affected_nodes": []},
