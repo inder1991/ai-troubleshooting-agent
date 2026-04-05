@@ -58,10 +58,10 @@ Rules:
 - Confidence reflects data quality and coverage"""
 
 
-async def _llm_analyze(system: str, prompt: str) -> dict:
+async def _llm_analyze(system: str, prompt: str, session_id: str = "") -> dict:
     """Single-pass LLM call using structured tool output. Returns findings dict."""
     from src.agents.cluster.output_schemas import SUBMIT_DOMAIN_FINDINGS_TOOL
-    client = AnthropicClient(agent_name="cluster_storage")
+    client = AnthropicClient(agent_name="cluster_storage", session_id=session_id)
     response = await client.chat_with_tools(
         system=system,
         messages=[{"role": "user", "content": prompt}],
@@ -134,7 +134,7 @@ async def _tool_calling_loop(system: str, initial_context: str, cluster_client,
     if not os.environ.get("ANTHROPIC_API_KEY"):
         return None
 
-    llm = AnthropicClient(agent_name="cluster_storage", model="claude-haiku-4-5-20251001")
+    llm = AnthropicClient(agent_name="cluster_storage", model="claude-haiku-4-5-20251001", session_id=session_id)
     from src.agents.cluster.output_schemas import SUBMIT_DOMAIN_FINDINGS_TOOL
     base_tools = get_tools_for_agent("storage")
     # Replace unschema'd submit_findings with SUBMIT_DOMAIN_FINDINGS_TOOL (schema-enforced)
@@ -434,7 +434,7 @@ async def storage_agent(state: dict, config: dict) -> dict:
                         "created_at": time.time(),
                     }))
             else:
-                analysis = await _llm_analyze(system, prompt)
+                analysis = await _llm_analyze(system, prompt, session_id=diagnostic_id)
 
     anomalies = [
         DomainAnomaly(**a) for a in analysis.get("anomalies", [])

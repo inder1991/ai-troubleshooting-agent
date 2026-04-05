@@ -237,7 +237,7 @@ async def _llm_causal_reasoning(
     if budget and budget.remaining_budget_pct() < 0.3:
         model = "claude-haiku-4-5-20251001"
         logger.info("Budget low (%.0f%% remaining), using Haiku for causal reasoning", budget.remaining_budget_pct() * 100)
-    client = AnthropicClient(agent_name="cluster_synthesizer", model=model) if model else AnthropicClient(agent_name="cluster_synthesizer")
+    client = AnthropicClient(agent_name="cluster_synthesizer", model=model, session_id=session_id) if model else AnthropicClient(agent_name="cluster_synthesizer", session_id=session_id)
 
     # Merge root_candidates into search_space so the prompt builder can see them
     effective_search_space = dict(search_space) if search_space else {}
@@ -344,7 +344,7 @@ async def _llm_verdict(
     if budget and budget.remaining_budget_pct() < 0.3:
         model = "claude-haiku-4-5-20251001"
         logger.info("Budget low (%.0f%% remaining), using Haiku for verdict", budget.remaining_budget_pct() * 100)
-    client = AnthropicClient(agent_name="cluster_synthesizer", model=model) if model else AnthropicClient(agent_name="cluster_synthesizer")
+    client = AnthropicClient(agent_name="cluster_synthesizer", model=model, session_id=session_id) if model else AnthropicClient(agent_name="cluster_synthesizer", session_id=session_id)
 
     report_summaries = json.dumps([
         {"domain": r.domain, "status": r.status.value, "confidence": r.confidence}
