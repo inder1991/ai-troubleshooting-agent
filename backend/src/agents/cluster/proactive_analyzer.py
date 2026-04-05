@@ -130,6 +130,43 @@ PROACTIVE_CHECKS: list[CheckDefinition] = [
             SeverityRule(field="vpa_ignored", op="==", value=True, severity="medium"),
         ),
     ),
+    CheckDefinition(
+        check_id="dns_replica_check",
+        name="DNS Deployment Replica Check",
+        category="reliability",
+        data_source="list_deployments",
+        severity_rules=(
+            SeverityRule(field="replicas_ready", op="==", value=0, severity="critical"),
+            SeverityRule(field="replicas_ready", op="<=", value=1, severity="high"),
+        ),
+    ),
+    CheckDefinition(
+        check_id="webhook_risk",
+        name="Webhook Risk Assessment",
+        category="reliability",
+        data_source="list_webhooks",
+        severity_rules=(
+            SeverityRule(field="failure_policy", op="==", value="Fail", severity="high"),
+        ),
+    ),
+    CheckDefinition(
+        check_id="pv_reclaim_delete",
+        name="PV Reclaim Policy Risk",
+        category="reliability",
+        data_source="list_pvcs",
+        severity_rules=(
+            SeverityRule(field="reclaim_policy", op="==", value="Delete", severity="medium"),
+        ),
+    ),
+    CheckDefinition(
+        check_id="ingress_spof",
+        name="Ingress Controller SPOF",
+        category="reliability",
+        data_source="list_deployments",
+        severity_rules=(
+            SeverityRule(field="replicas_desired", op="==", value=1, severity="high"),
+        ),
+    ),
 ]
 
 
@@ -739,6 +776,171 @@ def _check_hpa_vpa_limits(data: list[dict[str, Any]]) -> list[ProactiveFinding]:
     return findings
 
 
+def _check_dns_replica(data: list[dict[str, Any]]) -> list[ProactiveFinding]:
+    """Flag DNS deployments with < 2 ready replicas."""
+    findings: list[ProactiveFinding] = []
+
+    for dep in data:
+        dep_name = dep.get("name", "unknown")
+        ns = dep.get("namespace", "")
+        desired = dep.get("replicas_desired", 0)
+        ready = dep.get("replicas_ready", 0)
+        resource_key = f"deployment/{ns}/{dep_name}"
+
+        if ready == 0:
+            severity = "critical"
+            title = f"DNS deployment '{dep_name}' has 0 ready replicas — cluster DNS is down"
+        elif ready < 2:
+            severity = "high"
+            title = f"DNS deployment '{dep_name}' has only {ready} replica — single point of failure"
+        else:
+            continue
+
+        findings.append(ProactiveFinding(
+            finding_id=_fid(),
+            check_type="dns_replica_check",
+            severity=severity,
+            lifecycle_state="NEW",
+            title=title,
+            description=(
+                f"DNS deployment {resource_key} has {ready}/{desired} ready replicas. "
+                f"DNS is critical infrastructure — loss affects all service discovery."
+            ),
+            affected_resources=[resource_key],
+            affected_workloads=[],
+            days_until_impact=-1,
+            recommendation=f"Scale DNS deployment '{dep_name}' to at least 2 replicas for redundancy.",
+            commands=[
+                f"kubectl get deployment {dep_name} -n {ns}",
+                f"kubectl scale deployment {dep_name} -n {ns} --replicas=2",
+            ],
+            dry_run_command=f"kubectl scale deployment {dep_name} -n {ns} --replicas=2 --dry-run=client",
+            confidence=0.95,
+            source="proactive",
+        ))
+
+    return findings
+
+
+def _check_webhook_risk(data: list[dict[str, Any]]) -> list[ProactiveFinding]:
+    """Flag webhooks with failurePolicy=Fail and external URLs."""
+    findings: list[ProactiveFinding] = []
+
+    for wh in data:
+        wh_name = wh.get("name", "unknown")
+        failure_policy = wh.get("failure_policy", "Ignore")
+        client_config = wh.get("client_config", {})
+        is_external = "url" in client_config
+
+        if failure_policy == "Fail" and is_external:
+            findings.append(ProactiveFinding(
+                finding_id=_fid(),
+                check_type="webhook_risk",
+                severity="high",
+                lifecycle_state="NEW",
+                title=f"Webhook '{wh_name}' has failurePolicy=Fail with external URL",
+                description=(
+                    f"Webhook {wh_name} uses failurePolicy=Fail and calls an external URL "
+                    f"({client_config.get('url', 'unknown')}). If the external service is "
+                    f"unreachable, all matching API operations will be blocked."
+                ),
+                affected_resources=[f"webhook/{wh_name}"],
+                affected_workloads=[],
+                days_until_impact=-1,
+                recommendation=(
+                    f"Consider changing failurePolicy to 'Ignore' or moving the webhook "
+                    f"service in-cluster for reliability."
+                ),
+                commands=[
+                    f"kubectl get validatingwebhookconfigurations {wh_name} -o yaml",
+                    f"kubectl get mutatingwebhookconfigurations {wh_name} -o yaml",
+                ],
+                dry_run_command=f"kubectl get validatingwebhookconfigurations {wh_name} -o yaml",
+                confidence=0.90,
+                source="proactive",
+            ))
+
+    return findings
+
+
+def _check_pv_reclaim_delete(data: list[dict[str, Any]]) -> list[ProactiveFinding]:
+    """Flag PVCs with reclaimPolicy=Delete on stateful workloads."""
+    findings: list[ProactiveFinding] = []
+    stateful_kinds = {"StatefulSet", "statefulset"}
+
+    for pvc in data:
+        pvc_name = pvc.get("name", "unknown")
+        ns = pvc.get("namespace", "default")
+        reclaim_policy = pvc.get("reclaim_policy", "")
+        owner_kind = pvc.get("owner_kind", "")
+        resource_key = f"pvc/{ns}/{pvc_name}"
+
+        if reclaim_policy == "Delete" and owner_kind in stateful_kinds:
+            findings.append(ProactiveFinding(
+                finding_id=_fid(),
+                check_type="pv_reclaim_delete",
+                severity="medium",
+                lifecycle_state="NEW",
+                title=f"PVC '{pvc_name}' uses reclaimPolicy=Delete on stateful workload",
+                description=(
+                    f"PVC {resource_key} bound to a {owner_kind} uses reclaimPolicy=Delete. "
+                    f"Deleting the PVC will permanently destroy the underlying data volume."
+                ),
+                affected_resources=[resource_key],
+                affected_workloads=[f"{owner_kind}/{ns}/{pvc_name}"],
+                days_until_impact=-1,
+                recommendation=(
+                    f"Change the reclaimPolicy to 'Retain' on the underlying PV to prevent "
+                    f"accidental data loss."
+                ),
+                commands=[
+                    f"kubectl get pvc {pvc_name} -n {ns} -o jsonpath='{{{{.spec.volumeName}}}}'",
+                ],
+                dry_run_command=f"kubectl get pvc {pvc_name} -n {ns} -o yaml",
+                confidence=0.85,
+                source="proactive",
+            ))
+
+    return findings
+
+
+def _check_ingress_spof(data: list[dict[str, Any]]) -> list[ProactiveFinding]:
+    """Flag ingress controller deployments with single replica."""
+    findings: list[ProactiveFinding] = []
+
+    for dep in data:
+        dep_name = dep.get("name", "unknown")
+        ns = dep.get("namespace", "")
+        desired = dep.get("replicas_desired", 0)
+        resource_key = f"deployment/{ns}/{dep_name}"
+
+        if desired == 1:
+            findings.append(ProactiveFinding(
+                finding_id=_fid(),
+                check_type="ingress_spof",
+                severity="high",
+                lifecycle_state="NEW",
+                title=f"Ingress controller '{dep_name}' has single replica — SPOF",
+                description=(
+                    f"Ingress controller {resource_key} has only 1 replica. "
+                    f"If it fails, all ingress traffic will be interrupted."
+                ),
+                affected_resources=[resource_key],
+                affected_workloads=[],
+                days_until_impact=-1,
+                recommendation=f"Scale ingress controller '{dep_name}' to at least 2 replicas for HA.",
+                commands=[
+                    f"kubectl get deployment {dep_name} -n {ns}",
+                    f"kubectl scale deployment {dep_name} -n {ns} --replicas=2",
+                ],
+                dry_run_command=f"kubectl scale deployment {dep_name} -n {ns} --replicas=2 --dry-run=client",
+                confidence=0.90,
+                source="proactive",
+            ))
+
+    return findings
+
+
 # ---------------------------------------------------------------------------
 # Evaluator registry — maps check_id -> evaluator function
 # ---------------------------------------------------------------------------
@@ -752,6 +954,10 @@ _EVALUATORS: dict[str, Callable[[list[dict[str, Any]]], list[ProactiveFinding]]]
     "pdb_blocking": _check_pdb_blocking,
     "node_os_patch": _check_node_os_patch,
     "hpa_vpa_limits": _check_hpa_vpa_limits,
+    "dns_replica_check": _check_dns_replica,
+    "webhook_risk": _check_webhook_risk,
+    "pv_reclaim_delete": _check_pv_reclaim_delete,
+    "ingress_spof": _check_ingress_spof,
 }
 
 
