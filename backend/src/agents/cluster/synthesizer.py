@@ -312,7 +312,7 @@ async def _llm_causal_reasoning(
             "success": True,
             "error": None,
             "fallback_used": False,
-            "response_json": {},
+            "response_json": json.dumps([{"type": getattr(b, "type", "unknown"), **({"text": b.text} if hasattr(b, "text") else {"name": b.name, "input": b.input} if hasattr(b, "name") else {})} for b in response.content], default=str)[:2000],
             "created_at": time.time(),
         }))
 
@@ -425,7 +425,7 @@ Note: re_dispatch_domains valid values are: ctrl_plane, node, network, storage, 
             "success": True,
             "error": None,
             "fallback_used": False,
-            "response_json": {},
+            "response_json": json.dumps([{"type": getattr(b, "type", "unknown"), **({"text": b.text} if hasattr(b, "text") else {"name": b.name, "input": b.input} if hasattr(b, "name") else {})} for b in response.content], default=str)[:2000],
             "created_at": time.time(),
         }))
 

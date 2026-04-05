@@ -231,7 +231,7 @@ async def _tool_calling_loop(system: str, initial_context: str, cluster_client,
                 "success": True,
                 "error": None,
                 "fallback_used": False,
-                "response_json": {},
+                "response_json": json.dumps([{"type": getattr(b, "type", "unknown"), **({"text": b.text} if hasattr(b, "text") else {"name": b.name, "input": b.input} if hasattr(b, "name") else {})} for b in response.content], default=str)[:2000],
                 "created_at": time.time(),
             }))
 
