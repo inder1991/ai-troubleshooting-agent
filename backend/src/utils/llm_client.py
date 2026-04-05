@@ -18,9 +18,10 @@ class LLMResponse:
 class AnthropicClient:
     """Anthropic API client with cumulative token tracking."""
 
-    def __init__(self, agent_name: str = "unknown", model: str = "claude-sonnet-4-20250514"):
+    def __init__(self, agent_name: str = "unknown", model: str = "claude-sonnet-4-20250514", session_id: str = ""):
         self.agent_name = agent_name
         self.model = model  # Caller handles resolution
+        self.session_id = session_id
         self._client = AsyncAnthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
         self._total_input_tokens = 0
         self._total_output_tokens = 0
@@ -48,6 +49,7 @@ class AnthropicClient:
 
         logger.info("LLM call", extra={
             "agent_name": self.agent_name,
+            "session_id": self.session_id,
             "action": "llm_call",
             "tool": self.model,
             "tokens": {"max_tokens": max_tokens},
@@ -65,7 +67,7 @@ class AnthropicClient:
         try:
             response = await self._client.messages.create(**kwargs)
         except Exception as e:
-            logger.error("LLM call failed", extra={"agent_name": self.agent_name, "action": "llm_error", "extra": str(e)})
+            logger.error("LLM call failed", extra={"agent_name": self.agent_name, "session_id": self.session_id, "action": "llm_error", "extra": str(e)})
             raise
 
         elapsed_ms = round((time.monotonic() - start) * 1000)
@@ -78,6 +80,7 @@ class AnthropicClient:
 
         logger.info("LLM response", extra={
             "agent_name": self.agent_name,
+            "session_id": self.session_id,
             "action": "llm_response",
             "tokens": {"input": input_tokens, "output": output_tokens},
             "duration_ms": elapsed_ms,
@@ -120,6 +123,7 @@ class AnthropicClient:
 
         logger.info("LLM stream call", extra={
             "agent_name": self.agent_name,
+            "session_id": self.session_id,
             "action": "llm_stream_call",
             "tool": self.model,
         })
@@ -140,13 +144,14 @@ class AnthropicClient:
 
                 logger.info("LLM stream complete", extra={
                     "agent_name": self.agent_name,
+                    "session_id": self.session_id,
                     "action": "llm_stream_response",
                     "tokens": {"input": input_tokens, "output": output_tokens},
                     "duration_ms": elapsed_ms,
                 })
         except Exception as e:
             logger.error("LLM stream failed", extra={
-                "agent_name": self.agent_name, "action": "llm_stream_error", "extra": str(e),
+                "agent_name": self.agent_name, "session_id": self.session_id, "action": "llm_stream_error", "extra": str(e),
             })
             raise
 
@@ -171,6 +176,7 @@ class AnthropicClient:
 
         logger.info("LLM call", extra={
             "agent_name": self.agent_name,
+            "session_id": self.session_id,
             "action": "llm_call",
             "tool": self.model,
             "extra": {
@@ -185,7 +191,7 @@ class AnthropicClient:
             response = await self._client.messages.create(**kwargs)
         except Exception as e:
             logger.error("LLM call failed", extra={
-                "agent_name": self.agent_name, "action": "llm_error", "extra": str(e)
+                "agent_name": self.agent_name, "session_id": self.session_id, "action": "llm_error", "extra": str(e)
             })
             raise
 
@@ -202,6 +208,7 @@ class AnthropicClient:
 
         logger.info("LLM response", extra={
             "agent_name": self.agent_name,
+            "session_id": self.session_id,
             "action": "llm_response",
             "tokens": {"input": response.usage.input_tokens, "output": response.usage.output_tokens},
             "duration_ms": elapsed_ms,
