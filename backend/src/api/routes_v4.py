@@ -558,7 +558,7 @@ async def run_cluster_diagnosis(session_id, graph, cluster_client, emitter, scan
     except RuntimeError:
         pass
 
-    lock = session_locks.get(session_id, asyncio.Lock())
+    lock = session_locks.setdefault(session_id, asyncio.Lock())
     try:
         sessions[session_id]["cluster_client"] = cluster_client
         scope_data = sessions[session_id].get("diagnostic_scope", {})
@@ -761,7 +761,7 @@ async def run_diagnosis(session_id: str, supervisor: SupervisorAgent, initial_in
     except RuntimeError:
         pass
 
-    lock = session_locks.get(session_id, asyncio.Lock())
+    lock = session_locks.setdefault(session_id, asyncio.Lock())
     try:
         state = await supervisor.run(initial_input, emitter)
         # C1: Acquire lock for state mutation
@@ -970,6 +970,15 @@ async def delete_session(session_id: str):
         task.cancel()
         logger.info("Cancelled diagnosis task for deleted session", extra={"session_id": session_id, "action": "diagnosis_cancelled"})
 
+    # Cancel critic delta tasks
+    critic_tasks = _critic_delta_tasks.pop(session_id, [])
+    for ct in critic_tasks:
+        if not ct.done():
+            ct.cancel()
+
+    # Remove investigation router
+    _investigation_routers.pop(session_id, None)
+
     # Clean up cluster client and temp kubeconfig
     client = sessions[session_id].get("cluster_client")
     if client:
@@ -981,6 +990,23 @@ async def delete_session(session_id: str):
     if temp_path:
         from pathlib import Path
         Path(temp_path).unlink(missing_ok=True)
+
+    # Clear topology cache
+    try:
+        from src.agents.cluster.topology_resolver import clear_topology_cache
+        clear_topology_cache(session_id)
+    except Exception:
+        pass
+
+    # Disconnect SSE
+    manager.disconnect(session_id)
+
+    # Delete from diagnostic store
+    try:
+        from src.observability.store import get_store
+        await get_store().delete_session(session_id)
+    except Exception as e:
+        logger.warning("Failed to delete session from store: %s", e)
 
     sessions.pop(session_id, None)
     session_locks.pop(session_id, None)

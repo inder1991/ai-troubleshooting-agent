@@ -1,9 +1,9 @@
-"""Tests for session cleanup loop: router cleanup (B2) and critic task cancellation (B3)."""
+"""Tests for session cleanup loop, session lock, and delete_session resource cleanup."""
 
 import asyncio
 import pytest
 from datetime import datetime, timezone, timedelta
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from src.api.routes_v4 import (
     _session_cleanup_loop,
@@ -199,3 +199,49 @@ async def test_cleanup_handles_session_without_router():
     # Session should still be cleaned up without error
     assert sid not in sessions
     assert sid not in _investigation_routers
+
+
+def test_session_lock_setdefault():
+    """run_cluster_diagnosis must use setdefault, not get with default."""
+    import inspect
+    from src.api.routes_v4 import run_cluster_diagnosis
+    source = inspect.getsource(run_cluster_diagnosis)
+    assert "session_locks.setdefault(" in source, "Must use setdefault to store the lock"
+    assert "session_locks.get(session_id, asyncio.Lock())" not in source, "Must not use get with default Lock()"
+
+
+@pytest.mark.asyncio
+async def test_delete_session_cleans_all_resources():
+    """delete_session must clean up critic tasks, investigation router, topology cache, SSE, store."""
+    from src.api.routes_v4 import (
+        sessions, session_locks, _diagnosis_tasks, _critic_delta_tasks,
+        _investigation_routers, delete_session,
+    )
+
+    sid = "12345678-1234-4234-8234-123456789abc"
+
+    # Set up all resources
+    sessions[sid] = {"service_name": "test", "phase": "done", "confidence": 0, "created_at": "2026-01-01T00:00:00Z"}
+    session_locks[sid] = asyncio.Lock()
+    mock_task = MagicMock()
+    mock_task.done.return_value = False
+    mock_task.cancel = MagicMock()
+    _critic_delta_tasks[sid] = [mock_task]
+    _investigation_routers[sid] = MagicMock()
+
+    # Create a mock store module to handle the lazy import inside delete_session
+    mock_store_mod = MagicMock()
+    mock_store_instance = AsyncMock()
+    mock_store_mod.get_store.return_value = mock_store_instance
+
+    with patch("src.api.routes_v4.manager") as mock_manager, \
+         patch("src.agents.cluster.topology_resolver.clear_topology_cache", create=True), \
+         patch.dict("sys.modules", {"src.observability.store": mock_store_mod}):
+        result = await delete_session(sid)
+
+    assert result["status"] == "deleted"
+    assert sid not in sessions
+    assert sid not in session_locks
+    assert sid not in _critic_delta_tasks
+    assert sid not in _investigation_routers
+    mock_task.cancel.assert_called_once()
