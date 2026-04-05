@@ -212,6 +212,66 @@ CLUSTER_TOOLS = [
         }
     },
     {
+        "name": "get_cluster_version",
+        "description": "Get OpenShift ClusterVersion with upgrade status, conditions, and history",
+        "input_schema": {
+            "type": "object",
+            "properties": {},
+            "required": []
+        }
+    },
+    {
+        "name": "list_subscriptions",
+        "description": "List OLM Subscriptions with package, channel, CSV version, and state",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "namespace": {"type": "string", "description": "Namespace to query"}
+            },
+            "required": []
+        }
+    },
+    {
+        "name": "list_csvs",
+        "description": "List OLM ClusterServiceVersions with phase, reason, and message",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "namespace": {"type": "string", "description": "Namespace to query"}
+            },
+            "required": []
+        }
+    },
+    {
+        "name": "list_install_plans",
+        "description": "List OLM InstallPlans with approval status, phase, and CSV names",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "namespace": {"type": "string", "description": "Namespace to query"}
+            },
+            "required": []
+        }
+    },
+    {
+        "name": "list_machines",
+        "description": "List OpenShift Machines with phase, provider ID, node reference, and conditions",
+        "input_schema": {
+            "type": "object",
+            "properties": {},
+            "required": []
+        }
+    },
+    {
+        "name": "get_proxy_config",
+        "description": "Get OpenShift cluster-wide proxy configuration (httpProxy, httpsProxy, noProxy, trustedCA)",
+        "input_schema": {
+            "type": "object",
+            "properties": {},
+            "required": []
+        }
+    },
+    {
         "name": "submit_findings",
         "description": "Submit your diagnostic findings. Call this when analysis is complete.",
         "input_schema": {
@@ -240,7 +300,7 @@ CLUSTER_TOOLS = [
 ]
 
 # Per-agent tool subsets
-CTRL_PLANE_TOOLS = ["list_nodes", "list_pods", "list_deployments", "list_events", "query_prometheus", "submit_findings"]
+CTRL_PLANE_TOOLS = ["list_nodes", "list_pods", "list_deployments", "list_events", "query_prometheus", "get_cluster_version", "list_subscriptions", "list_csvs", "list_install_plans", "list_machines", "get_proxy_config", "submit_findings"]
 NODE_TOOLS = ["list_pods", "list_nodes", "list_deployments", "list_statefulsets", "list_daemonsets", "list_jobs", "list_cronjobs", "list_events", "list_hpas", "list_pvcs", "query_prometheus", "get_pod_logs", "submit_findings"]
 NETWORK_TOOLS = ["list_services", "list_pods", "list_events", "list_network_policies", "list_routes", "list_ingresses", "query_prometheus", "get_pod_logs", "submit_findings"]
 STORAGE_TOOLS = ["list_pvcs", "list_pods", "list_events", "query_prometheus", "submit_findings"]
