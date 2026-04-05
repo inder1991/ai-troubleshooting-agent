@@ -95,3 +95,44 @@ async def test_olm_install_plan_requires_approval():
     assert any("installplan" in d or "install plan" in d for d in descs)
     plan_anomalies = [a for a in result["anomalies"] if "installplan" in a["description"].lower() or "install plan" in a["description"].lower()]
     assert all(a["severity"] == "low" for a in plan_anomalies)
+
+
+@pytest.mark.asyncio
+async def test_machine_not_running():
+    data = {
+        "machines": [
+            {"name": "worker-2", "phase": "Failed", "node_ref": "", "conditions": []},
+        ],
+    }
+    result = await _heuristic_analyze(data)
+    descs = [a["description"].lower() for a in result["anomalies"]]
+    assert any("machine" in d and "worker-2" in d for d in descs)
+    assert result["anomalies"][0]["severity"] == "high"
+
+
+@pytest.mark.asyncio
+async def test_machine_provisioned_no_node_ref():
+    data = {
+        "machines": [
+            {"name": "worker-3", "phase": "Provisioned", "node_ref": "", "conditions": []},
+        ],
+    }
+    result = await _heuristic_analyze(data)
+    descs = [a["description"].lower() for a in result["anomalies"]]
+    assert any("machine" in d and "node" in d for d in descs)
+    assert result["anomalies"][0]["severity"] == "medium"
+
+
+@pytest.mark.asyncio
+async def test_proxy_misconfigured_no_noproxy():
+    data = {
+        "proxy_config": {
+            "httpProxy": "http://proxy.corp:3128",
+            "httpsProxy": "http://proxy.corp:3128",
+            "noProxy": "",
+            "trustedCA": "",
+        },
+    }
+    result = await _heuristic_analyze(data)
+    descs = [a["description"].lower() for a in result["anomalies"]]
+    assert any("proxy" in d for d in descs)

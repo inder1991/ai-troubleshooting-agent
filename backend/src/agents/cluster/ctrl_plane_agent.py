@@ -338,6 +338,55 @@ async def _heuristic_analyze(data_payload: dict, domain: str = "ctrl_plane") -> 
                 "severity": "medium",
             })
 
+    # Check Machines
+    for machine in data_payload.get("machines", []):
+        m_name = machine.get("name", "unknown")
+        phase = machine.get("phase", "")
+        node_ref = machine.get("node_ref", "")
+
+        if phase and phase != "Running":
+            if phase == "Provisioned" and not node_ref:
+                anomalies.append({
+                    "domain": domain,
+                    "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                    "description": f"Machine {m_name} is Provisioned but has no node reference — may be stuck joining cluster",
+                    "evidence_ref": f"machine/{m_name}",
+                    "severity": "medium",
+                })
+            elif phase in ("Failed", "Deleting", "Provisioning"):
+                anomalies.append({
+                    "domain": domain,
+                    "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                    "description": f"Machine {m_name} is not Running (phase: {phase})",
+                    "evidence_ref": f"machine/{m_name}",
+                    "severity": "high",
+                })
+
+    # Check Proxy config
+    proxy = data_payload.get("proxy_config")
+    if proxy and isinstance(proxy, dict):
+        http_proxy = proxy.get("httpProxy", "")
+        no_proxy = proxy.get("noProxy", "")
+        trusted_ca = proxy.get("trustedCA", "")
+        https_proxy = proxy.get("httpsProxy", "")
+
+        if http_proxy and not no_proxy:
+            anomalies.append({
+                "domain": domain,
+                "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                "description": f"Proxy configured (httpProxy={http_proxy}) but noProxy is empty — cluster-internal traffic may be routed through proxy",
+                "evidence_ref": "proxy/cluster",
+                "severity": "medium",
+            })
+        if https_proxy and not trusted_ca:
+            anomalies.append({
+                "domain": domain,
+                "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                "description": f"HTTPS proxy configured but no trustedCA bundle — TLS interception may fail",
+                "evidence_ref": "proxy/cluster",
+                "severity": "medium",
+            })
+
     confidence = 50 if anomalies else 70
     return {"anomalies": anomalies, "ruled_out": ruled_out, "confidence": confidence}
 
