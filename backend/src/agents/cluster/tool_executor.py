@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import time
 from typing import Any
 
 from src.utils.logger import get_logger
@@ -42,6 +43,9 @@ def _serialize_with_envelope(data: Any) -> str:
 
 async def execute_tool_call(tool_name: str, tool_input: dict, cluster_client, tool_call_count: int = 0) -> str:
     """Execute a single tool call and return the result as a JSON string."""
+    start = time.monotonic()
+    logger.debug("Tool call: %s(%s)", tool_name, tool_input,
+                 extra={"action": "tool_call_start", "extra": {"tool": tool_name}})
     try:
         if tool_name == "list_pods":
             result = await cluster_client.list_pods(namespace=tool_input.get("namespace", ""))
@@ -124,8 +128,27 @@ async def execute_tool_call(tool_name: str, tool_input: dict, cluster_client, to
         else:
             return json.dumps({"error": f"Unknown tool: {tool_name}"})
 
-        return _serialize_with_envelope(data)
+        result_str = _serialize_with_envelope(data)
+        elapsed_ms = int((time.monotonic() - start) * 1000)
+
+        if isinstance(data, list):
+            envelope = json.loads(result_str)
+            if envelope.get("truncated"):
+                logger.info("Tool %s result truncated: %d/%d items returned",
+                            tool_name, envelope["returned"], envelope["total_available"],
+                            extra={"action": "tool_truncated", "duration_ms": elapsed_ms})
+            else:
+                logger.debug("Tool %s returned %d items in %dms",
+                             tool_name, len(data), elapsed_ms,
+                             extra={"action": "tool_call_done", "duration_ms": elapsed_ms})
+        else:
+            logger.debug("Tool %s returned dict in %dms",
+                         tool_name, elapsed_ms,
+                         extra={"action": "tool_call_done", "duration_ms": elapsed_ms})
+
+        return result_str
 
     except Exception as e:
-        logger.error("Tool execution failed: %s(%s): %s", tool_name, tool_input, e)
+        elapsed_ms = int((time.monotonic() - start) * 1000)
+        logger.error("Tool execution failed: %s(%s): %s (took %dms)", tool_name, tool_input, e, elapsed_ms)
         return json.dumps({"error": str(e)})
