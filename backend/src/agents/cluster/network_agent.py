@@ -172,6 +172,80 @@ async def _heuristic_analyze(data_payload: dict, domain: str = "network") -> dic
                 "severity": "high",
             })
 
+    # Check endpoints with not_ready_addresses
+    for ep in data_payload.get("endpoints", []):
+        ep_name = ep.get("name", "unknown")
+        ns = ep.get("namespace", "default")
+        not_ready = ep.get("not_ready_addresses", 0)
+        if not_ready and not_ready > 0:
+            anomalies.append({
+                "domain": domain,
+                "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                "description": f"Endpoints {ns}/{ep_name} has {not_ready} not_ready addresses",
+                "evidence_ref": f"endpoints/{ns}/{ep_name}",
+                "severity": "medium",
+            })
+
+    # Check Routes (OpenShift)
+    for route in data_payload.get("routes", []):
+        route_name = route.get("name", "unknown")
+        ns = route.get("namespace", "default")
+        backend_ep = route.get("backend_endpoints", -1)
+        if backend_ep == 0:
+            anomalies.append({
+                "domain": domain,
+                "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                "description": f"Route {ns}/{route_name} backend has 0 endpoints — traffic will fail",
+                "evidence_ref": f"route/{ns}/{route_name}",
+                "severity": "high",
+            })
+
+    # Check Ingresses
+    for ing in data_payload.get("ingresses", []):
+        ing_name = ing.get("name", "unknown")
+        ns = ing.get("namespace", "default")
+        missing_backends = ing.get("missing_backends", [])
+        ingress_class = ing.get("ingress_class")
+        if missing_backends:
+            anomalies.append({
+                "domain": domain,
+                "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                "description": f"Ingress {ns}/{ing_name} has missing backend services: {', '.join(missing_backends)}",
+                "evidence_ref": f"ingress/{ns}/{ing_name}",
+                "severity": "high",
+            })
+        if ingress_class is None:
+            anomalies.append({
+                "domain": domain,
+                "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                "description": f"Ingress {ns}/{ing_name} has no ingress class — may not be picked up by any controller",
+                "evidence_ref": f"ingress/{ns}/{ing_name}",
+                "severity": "medium",
+            })
+
+    # Check DNS deployment replicas
+    for dns_dep in data_payload.get("dns_deployments", []):
+        dep_name = dns_dep.get("name", "unknown")
+        ns = dns_dep.get("namespace", "")
+        desired = dns_dep.get("replicas_desired", 0)
+        ready = dns_dep.get("replicas_ready", 0)
+        if desired and ready == 0:
+            anomalies.append({
+                "domain": domain,
+                "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                "description": f"DNS deployment {ns}/{dep_name} has 0 ready replicas — cluster DNS is down",
+                "evidence_ref": f"deployment/{ns}/{dep_name}",
+                "severity": "critical",
+            })
+        elif desired and ready < desired:
+            anomalies.append({
+                "domain": domain,
+                "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                "description": f"DNS deployment {ns}/{dep_name} has {ready}/{desired} replicas ready — DNS capacity reduced",
+                "evidence_ref": f"deployment/{ns}/{dep_name}",
+                "severity": "high",
+            })
+
     confidence = 50 if anomalies else 70
     return {"anomalies": anomalies, "ruled_out": ruled_out, "confidence": confidence}
 
