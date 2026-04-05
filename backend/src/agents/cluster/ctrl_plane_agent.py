@@ -597,6 +597,25 @@ async def ctrl_plane_agent(state: dict, config: RunnableConfig) -> dict:
             data_payload["machine_config_pools"] = machine_config_pools.data
         if sccs.data:
             data_payload["security_context_constraints"] = sccs.data
+        # Platform-layer pre-fetch
+        cluster_version = await client.get_cluster_version()
+        if cluster_version.data:
+            data_payload["cluster_version"] = cluster_version.data[0]
+        subscriptions = await client.list_subscriptions()
+        if subscriptions.data:
+            data_payload["subscriptions"] = subscriptions.data
+        csvs = await client.list_csvs()
+        if csvs.data:
+            data_payload["csvs"] = csvs.data
+        install_plans = await client.list_install_plans()
+        if install_plans.data:
+            data_payload["install_plans"] = install_plans.data
+        machines = await client.list_machines()
+        if machines.data:
+            data_payload["machines"] = machines.data
+        proxy_config = await client.get_proxy_config()
+        if proxy_config.data:
+            data_payload["proxy_config"] = proxy_config.data[0]
 
     version_context = get_version_context(platform_version)
     truncation_parts = []
