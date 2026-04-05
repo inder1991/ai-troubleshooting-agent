@@ -149,7 +149,8 @@ def _build_bounded_causal_prompt(
          "status": (r.status.value if hasattr(r.status, "value") else r.get("status"))
                    if hasattr(r, "status") else r.get("status"),
          "confidence": r.confidence if hasattr(r, "confidence") else r.get("confidence"),
-         "anomaly_count": len(r.anomalies) if hasattr(r, "anomalies") else r.get("anomaly_count", 0)}
+         "anomaly_count": len(r.anomalies) if hasattr(r, "anomalies") else r.get("anomaly_count", 0),
+         "ruled_out": (r.ruled_out if hasattr(r, "ruled_out") else r.get("ruled_out", []))}
         for r in reports
     ]
 
@@ -242,8 +243,12 @@ async def _llm_causal_reasoning(
     )
     system_prompt = (
         cluster_context
-        + "You are a causal reasoning engine for cluster diagnostics. Be precise and evidence-based. "
-          "You MUST call submit_causal_analysis to return your analysis."
+        + "You are a causal reasoning engine for cluster diagnostics. Be precise and evidence-based.\n\n"
+        + CAUSAL_RULES + "\n"
+        + "## Allowed Link Types\n"
+        + "Use ONLY these link_type values in causal chains:\n"
+        + "\n".join(f"- {lt}" for lt in CONSTRAINED_LINK_TYPES)
+        + "\n\nYou MUST call submit_causal_analysis to return your analysis."
     )
 
     call_start = time.monotonic()
