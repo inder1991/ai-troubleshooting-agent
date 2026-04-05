@@ -18,8 +18,20 @@ MAX_RESULT_SIZE = 8000
 def _serialize_with_envelope(data: Any) -> str:
     """Serialize data into a TruncatedResult envelope. Always returns valid JSON."""
     if not isinstance(data, list):
-        # Non-list results (dicts/scalars): data is pre-capped at call site
-        return json.dumps(data, default=str)
+        result = json.dumps(data, default=str)
+        if len(result) > MAX_RESULT_SIZE:
+            logger.info(
+                "Dict result truncated: %d chars -> %d chars",
+                len(result), MAX_RESULT_SIZE,
+                extra={"action": "dict_truncated"},
+            )
+            return json.dumps({
+                "data": str(data)[:MAX_RESULT_SIZE],
+                "truncated": True,
+                "truncation_reason": "DICT_SIZE_LIMIT",
+                "original_size_chars": len(result),
+            }, default=str)
+        return result
 
     # Item-aware slicing for list results
     items: list = []
