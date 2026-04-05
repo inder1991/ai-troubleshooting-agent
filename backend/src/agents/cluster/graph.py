@@ -192,6 +192,13 @@ def dispatch_router(state: dict) -> dict:
                     rbac_skipped.append({"domain": d, "reason": f"{resource} permission denied"})
 
     scope_coverage = len(domains) / len(ALL_DOMAINS) if ALL_DOMAINS else 1.0
+
+    logger.info(
+        "Dispatch router: domains=%s, scope=%s",
+        domains, scope_data.get("level", "cluster") if scope_data else "cluster",
+        extra={"action": "dispatch_router", "extra": {"selected_domains": domains}},
+    )
+
     result: dict = {"dispatch_domains": domains, "scope_coverage": scope_coverage}
     if rbac_skipped:
         result["rbac_skipped"] = rbac_skipped
@@ -228,6 +235,12 @@ def _should_redispatch(state: dict) -> list[str]:
     re_dispatch = state.get("re_dispatch_domains", [])
     count = state.get("re_dispatch_count", 0)
     dispatch_domains = state.get("dispatch_domains", list(ALL_DOMAINS))
+    logger.info(
+        "Re-dispatch decision: domains=%s, count=%d",
+        re_dispatch, count,
+        extra={"action": "redispatch_decision"},
+    )
+
     if re_dispatch and count < 1:
         # Only re-dispatch domains that are in the active dispatch set
         domain_to_node = {
