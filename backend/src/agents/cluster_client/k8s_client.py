@@ -710,6 +710,23 @@ class KubernetesClient(ClusterClient):
         # Elasticsearch logs are accessed via a separate client
         return QueryResult()
 
+    async def get_pod_logs(self, name: str, namespace: str, tail_lines: int = 100) -> QueryResult:
+        """Fetch pod logs via the K8s API."""
+        self._ensure_client()
+        try:
+            core = CoreV1Api(self._api_client)
+            logs = await self._run_sync(
+                core.read_namespaced_pod_log,
+                name=name,
+                namespace=namespace,
+                tail_lines=tail_lines,
+            )
+            lines = logs.split("\n") if logs else []
+            return QueryResult(data=lines)
+        except Exception as e:
+            logger.warning("Failed to get logs for %s/%s: %s", namespace, name, e)
+            return QueryResult(data=[f"Error fetching logs: {e}"])
+
     async def get_cluster_operators(self) -> QueryResult:
         """OpenShift-specific: list ClusterOperators."""
         if self._platform != "openshift":

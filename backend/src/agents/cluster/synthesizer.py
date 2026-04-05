@@ -424,7 +424,7 @@ Note: re_dispatch_domains valid values are: ctrl_plane, node, network, storage, 
         logger.warning("LLM verdict timed out after 30s")
         return {
             "platform_health": "UNKNOWN",
-            "blast_radius": {"summary": "Unable to determine", "affected_namespaces": 0, "affected_pods": 0, "affected_nodes": 0},
+            "blast_radius": {"summary": "Unable to determine", "affected_namespaces": [], "affected_pods": [], "affected_nodes": []},
             "remediation": {"immediate": [], "long_term": []},
             "re_dispatch_needed": False,
             "re_dispatch_domains": [],
@@ -482,7 +482,7 @@ Note: re_dispatch_domains valid values are: ctrl_plane, node, network, storage, 
     )
     return {
         "platform_health": "UNKNOWN",
-        "blast_radius": {"summary": "Unable to determine", "affected_namespaces": 0, "affected_pods": 0, "affected_nodes": 0},
+        "blast_radius": {"summary": "Unable to determine", "affected_namespaces": [], "affected_pods": [], "affected_nodes": []},
         "remediation": {"immediate": [], "long_term": []},
         "re_dispatch_needed": False,
         "re_dispatch_domains": [],
@@ -510,17 +510,6 @@ async def synthesize(state: dict, config: dict) -> dict:
     # Filter out rejected hypotheses
     dropped = set(critic_result.get("dropped_hypotheses", []))
     valid_hypotheses = [h for h in ranked_hypotheses if h.get("hypothesis_id") not in dropped]
-
-    if critic_result:
-        dropped_ids = set(critic_result.get("dropped_anomaly_ids", []))
-        downgraded_ids = set(critic_result.get("downgraded_anomaly_ids", []))
-        for report in reports:
-            report.anomalies = [
-                a for a in report.anomalies if a.anomaly_id not in dropped_ids
-            ]
-            for a in report.anomalies:
-                if a.anomaly_id in downgraded_ids:
-                    a.severity = "medium"
 
     # Stage 1: Merge
     merged = _merge_reports(reports)

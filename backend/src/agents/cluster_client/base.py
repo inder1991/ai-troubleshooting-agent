@@ -73,6 +73,10 @@ class ClusterClient(ABC):
     async def query_logs(self, index: str, query: dict, max_lines: int = 2000) -> QueryResult:
         ...
 
+    async def get_pod_logs(self, name: str, namespace: str, tail_lines: int = 100) -> QueryResult:
+        """Fetch pod logs. Default returns empty; K8s client overrides."""
+        return QueryResult()
+
     # Workload queries (Deployments, StatefulSets, DaemonSets)
     @abstractmethod
     async def list_deployments(self, namespace: str = "") -> QueryResult:

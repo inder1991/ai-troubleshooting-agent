@@ -551,6 +551,8 @@ async def get_or_create_cluster_client(session_id: str):
 
 async def run_cluster_diagnosis(session_id, graph, cluster_client, emitter, scan_mode="diagnostic", connection_config=None):
     """Background task: run LangGraph cluster diagnostic."""
+    from src.observability.store import get_store as _obs_store
+
     try:
         _diagnosis_tasks[session_id] = asyncio.current_task()
     except RuntimeError:
@@ -588,7 +590,7 @@ async def run_cluster_diagnosis(session_id, graph, cluster_client, emitter, scan
             "previous_scan": None,
             "diagnostic_scope": scope_data,
             "scoped_topology_graph": None,
-            "dispatch_domains": scope_data.get("domains", ["ctrl_plane", "node", "network", "storage"]),
+            "dispatch_domains": scope_data.get("domains", ["ctrl_plane", "node", "network", "storage", "rbac"]),
             "scope_coverage": 1.0,
             "proactive_findings": [],
             # Pre-flight RBAC check result
@@ -700,7 +702,7 @@ async def run_cluster_diagnosis(session_id, graph, cluster_client, emitter, scan
                 "emitter": emitter,
                 "budget": budget,
                 "telemetry": telemetry,
-                "store": _get_store(),
+                "store": _obs_store(),
             }
         }
 
@@ -1081,9 +1083,9 @@ async def get_findings(session_id: str):
                 "blast_radius": health_report.get("blast_radius") if health_report else None,
                 "remediation": health_report.get("remediation", {}) if health_report else {},
                 "execution_metadata": health_report.get("execution_metadata", {}) if health_report else {},
-                "diagnostic_issues": health_report.get("diagnostic_issues", []) if health_report else [],
-                "issue_lifecycle_summary": health_report.get("issue_lifecycle_summary", {}) if health_report else {},
-                "ranked_hypotheses": health_report.get("ranked_hypotheses", []) if health_report else [],
+                "diagnostic_issues": state.get("diagnostic_issues", []),
+                "issue_lifecycle_summary": state.get("issue_lifecycle_summary", {}),
+                "ranked_hypotheses": state.get("ranked_hypotheses", []),
                 "critical_incidents": health_report.get("critical_incidents", []) if health_report else [],
                 "other_findings": health_report.get("other_findings", []) if health_report else [],
                 "symptom_map": health_report.get("symptom_map", {}) if health_report else {},
@@ -1533,7 +1535,6 @@ async def get_session_dossier(session_id: str):
 @router_v4.get("/session/{session_id}/cluster-dossier")
 async def get_cluster_dossier(session_id: str):
     """Return a formatted cluster diagnostic dossier for export."""
-    from src.api.main import sessions
     session = sessions.get(session_id)
     if not session:
         raise HTTPException(404, "Session not found")
@@ -2003,7 +2004,6 @@ async def update_triage_status(session_id: str, tree_id: str, update: TriageStat
 @router_v4.get("/session/{session_id}/llm-summary")
 async def get_llm_summary(session_id: str):
     """Return LLM usage summary for a session."""
-    from src.api.main import sessions
     session = sessions.get(session_id)
     if not session:
         raise HTTPException(404, "Session not found")
@@ -2042,8 +2042,6 @@ _recommendation_snapshots: Dict[str, Any] = {}
 @router_v4.get("/clusters")
 async def list_clusters():
     """List all connected clusters with health and recommendation summaries."""
-    from src.api.main import sessions
-
     clusters = []
     # Derive from integration profiles and recent sessions
     seen_clusters: dict[str, dict] = {}

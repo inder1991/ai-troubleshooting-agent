@@ -263,8 +263,9 @@ async def _tool_calling_loop(system: str, initial_context: str, cluster_client,
         if tool_call_count >= MAX_TOOL_CALLS:
             messages.append({"role": "assistant", "content": response.content})
             messages.append({"role": "user", "content": [
-                {"type": "tool_result", "tool_use_id": tool_uses[0].id,
+                {"type": "tool_result", "tool_use_id": tu.id,
                  "content": "Tool budget exhausted. Please submit your findings now using submit_domain_findings."}
+                for tu in tool_uses
             ]})
             continue
 

@@ -1,10 +1,14 @@
 import asyncio
+import logging
 import os
 import shlex
+import shutil
 import tempfile
 from typing import Optional, Tuple
 from pydantic import BaseModel, Field
 from .models import IntegrationConfig
+
+logger = logging.getLogger(__name__)
 
 
 class EndpointProbeResult(BaseModel):
@@ -51,7 +55,12 @@ def _build_auth_args(server: str, auth_method: str, auth_data: str, kubeconfig_p
 
 class ClusterProbe:
     def get_cli_tool(self, cluster_type: str) -> str:
-        return "oc" if cluster_type == "openshift" else "kubectl"
+        if cluster_type == "openshift":
+            if shutil.which("oc"):
+                return "oc"
+            logger.warning("oc CLI not found, falling back to kubectl for OpenShift cluster")
+            return "kubectl"
+        return "kubectl"
 
     async def probe(self, config: IntegrationConfig) -> ProbeResult:
         result = ProbeResult()

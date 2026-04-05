@@ -101,7 +101,7 @@ async def execute_tool_call(tool_name: str, tool_input: dict, cluster_client, to
             ns = tool_input.get("namespace", "")
             name = tool_input.get("name", "")
             tail = tool_input.get("tail_lines", 100)
-            result = await cluster_client.query_logs("pod-logs", {"pod": name, "namespace": ns}, max_lines=tail)
+            result = await cluster_client.get_pod_logs(name=name, namespace=ns, tail_lines=tail)
             data = result.data
         elif tool_name == "query_prometheus":
             result = await cluster_client.query_prometheus(

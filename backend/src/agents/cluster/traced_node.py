@@ -48,7 +48,7 @@ _NODE_DEFAULT_OUTPUTS = {
     "diagnostic_graph_builder": {"diagnostic_graph": {"nodes": {}, "edges": []}},
     "issue_lifecycle_classifier": {"diagnostic_issues": []},
     "hypothesis_engine": {"ranked_hypotheses": [], "hypotheses_by_issue": {}, "hypothesis_selection": {"root_causes": [], "selection_method": "timeout", "llm_reasoning_needed": False}},
-    "enhanced_critic": {"critic_result": {"validations": [], "dropped_hypotheses": [], "weakened_hypotheses": [], "warnings": []}},
+    "critic_validator": {"critic_result": {"validations": [], "dropped_hypotheses": [], "weakened_hypotheses": [], "warnings": []}},
     "solution_validator": {},
 }
 
