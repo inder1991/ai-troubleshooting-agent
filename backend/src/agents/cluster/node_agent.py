@@ -511,11 +511,25 @@ async def node_agent(state: dict, config: dict) -> dict:
     else:
         # Try tool-calling ReAct loop first, fall back to heuristic single-pass
         try:
+            prefetch_summary = (
+                f"Here is data already collected for your analysis:\n\n"
+                f"## Pre-Fetched Data Summary\n"
+                f"- Nodes: {len(nodes.data)} nodes\n"
+                f"- Pods: {len(pods.data)} pods\n"
+                f"- Events: {len(events.data)} events\n"
+                f"- Deployments: {len(deployments.data)}, StatefulSets: {len(statefulsets.data)}, "
+                f"DaemonSets: {len(daemonsets.data)}\n"
+                f"- HPAs: {len(hpas.data)}, PDBs: {len(pdbs.data)}\n"
+                f"- Jobs: {len(jobs.data)}, CronJobs: {len(cronjobs.data)}\n"
+                f"{truncation_note}\n\n"
+                f"Use tools to investigate specific anomalies in depth. "
+                f"Do NOT re-fetch data that is already provided above.\n"
+                f"Start by examining the most critical anomalies and call submit_domain_findings when done."
+            )
             initial_context = (
-                "Analyze this Kubernetes cluster for node and capacity issues. "
-                "Start by examining nodes, pods, deployments, and HPAs for resource pressure, "
-                "scheduling failures, and workload health.\n\n"
-                f"Platform: {platform} {platform_version}"
+                f"Analyze this Kubernetes cluster for node and capacity issues.\n\n"
+                f"Platform: {platform} {platform_version}\n\n"
+                f"{prefetch_summary}"
             )
             analysis = await asyncio.wait_for(
                 _tool_calling_loop(system, initial_context, client,

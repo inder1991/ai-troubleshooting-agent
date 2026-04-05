@@ -418,10 +418,21 @@ async def ctrl_plane_agent(state: dict, config: dict) -> dict:
     else:
         # Try tool-calling ReAct loop first, fall back to heuristic single-pass
         try:
+            prefetch_summary = (
+                f"Here is data already collected for your analysis:\n\n"
+                f"## Pre-Fetched Data Summary\n"
+                f"- ClusterOperators: {len(operators.data)} found\n"
+                f"- Events: {len(events.data)} warning/node events\n"
+                f"- API Health: {api_health.get('status', 'unknown') if isinstance(api_health, dict) else 'fetched'}\n"
+                f"{truncation_note}\n\n"
+                f"Use tools to investigate specific anomalies in depth. "
+                f"Do NOT re-fetch data that is already provided above.\n"
+                f"Start by examining the most critical anomalies and call submit_domain_findings when done."
+            )
             initial_context = (
-                "Analyze this Kubernetes cluster for control plane issues. "
-                "Start by examining nodes and events for API server, etcd, and operator health.\n\n"
-                f"Platform: {platform} {platform_version}"
+                f"Analyze this Kubernetes cluster for control plane issues.\n\n"
+                f"Platform: {platform} {platform_version}\n\n"
+                f"{prefetch_summary}"
             )
             analysis = await asyncio.wait_for(
                 _tool_calling_loop(system, initial_context, client,
