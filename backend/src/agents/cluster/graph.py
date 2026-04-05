@@ -25,6 +25,7 @@ from src.agents.cluster.issue_lifecycle import issue_lifecycle_classifier
 from src.agents.cluster.hypothesis_engine import hypothesis_engine
 from src.agents.cluster.solution_validator import solution_validator
 from src.agents.cluster.rbac_checker import rbac_preflight
+from src.agents.cluster.traced_node import traced_node
 from src.agents.cluster.state import DiagnosticScope
 from src.utils.logger import get_logger
 
@@ -259,6 +260,7 @@ def _should_redispatch(state: dict) -> list[str]:
     return ["to_guard_formatter"]
 
 
+@traced_node(timeout_seconds=15)
 async def _proactive_analysis_node(state: dict, config: RunnableConfig | None = None) -> dict:
     """Run proactive checks and return findings as graph state update."""
     from .proactive_analyzer import run_proactive_analysis

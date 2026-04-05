@@ -30,3 +30,11 @@ def test_node_has_default_output(node_name):
 def test_agent_nodes_not_in_defaults():
     for name in _AGENT_NODE_NAMES:
         assert name not in _NODE_DEFAULT_OUTPUTS
+
+
+def test_proactive_analysis_is_traced():
+    """_proactive_analysis_node must be wrapped with @traced_node."""
+    from src.agents.cluster.graph import _proactive_analysis_node
+    assert hasattr(_proactive_analysis_node, "__wrapped__"), (
+        "_proactive_analysis_node is not decorated with @traced_node"
+    )

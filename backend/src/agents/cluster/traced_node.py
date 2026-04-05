@@ -56,6 +56,7 @@ _NODE_DEFAULT_OUTPUTS = {
     "topology_snapshot_resolver": {"topology_graph": {"nodes": {}, "edges": []}, "scoped_topology_graph": {"nodes": {}, "edges": []}, "topology_freshness": {"stale": True}},
     "synthesize": {"health_report": None, "causal_chains": [], "uncorrelated_findings": [], "data_completeness": 0.0, "phase": "timeout", "re_dispatch_domains": [], "re_dispatch_count": 0},
     "guard_formatter": {"guard_scan_result": None},
+    "_proactive_analysis_node": {"proactive_findings": []},
 }
 
 _AGENT_NODE_NAMES = frozenset({"node_agent", "ctrl_plane_agent", "network_agent", "storage_agent", "rbac_agent"})
