@@ -50,6 +50,10 @@ CONSTRAINED_LINK_TYPES = [
     "webhook_failure -> pod_creation_blocked",
     "mount_failure -> container_crash",
     "probe_failure -> service_degradation",
+    "cluster_upgrade_stuck -> operator_degraded",
+    "olm_failure -> operator_degraded",
+    "machine_failure -> node_not_ready",
+    "proxy_misconfigured -> image_pull_failure",
     "unknown",
 ]
 
