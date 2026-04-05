@@ -335,10 +335,13 @@ async def ctrl_plane_agent(state: dict, config: dict) -> dict:
         else "Standard K8s only. No Routes, SCCs, ClusterOperators."
     )
 
+    events_total = len(events.data)
+    events_capped = events.data[:100]
+
     data_payload = {
         "api_health": api_health,
         "cluster_operators": operators.data,
-        "events": events.data[:100],
+        "events": events_capped,
     }
 
     # OpenShift-specific data
@@ -351,9 +354,14 @@ async def ctrl_plane_agent(state: dict, config: dict) -> dict:
             data_payload["security_context_constraints"] = sccs.data
 
     version_context = get_version_context(platform_version)
-    truncation_note = ""
+    truncation_parts = []
+    if events_total > 100:
+        truncation_parts.append(f"events truncated to 100 of {events_total}")
     if events.truncated:
-        truncation_note += f"\nNOTE: Events truncated — {events.total_available} total, {events.returned} analyzed."
+        truncation_parts.append(f"events pre-truncated by API ({events.total_available} total, {events.returned} returned)")
+    truncation_note = ""
+    if truncation_parts:
+        truncation_note = "\n⚠️ Data truncation: " + "; ".join(truncation_parts)
 
     system = _SYSTEM_PROMPT.format(
         platform=platform,

@@ -391,10 +391,15 @@ async def node_agent(state: dict, config: dict) -> dict:
     autoscaler_pods = [p for p in pods.data if "autoscaler" in p.get("name", "")]
     pending_metrics = await client.query_prometheus("kube_pod_status_phase{phase='Pending'}")
 
+    events_total = len(events.data)
+    events_capped = events.data[:100]
+    pods_total = len(pods.data)
+    pods_capped = pods.data[:50]
+
     data_payload = {
         "nodes": nodes.data,
-        "events": events.data[:100],
-        "top_pods": pods.data[:50],
+        "events": events_capped,
+        "top_pods": pods_capped,
         "deployments": deployments.data,
         "statefulsets": statefulsets.data,
         "daemonsets": daemonsets.data,
@@ -436,13 +441,20 @@ async def node_agent(state: dict, config: dict) -> dict:
             data_payload["image_streams"] = image_streams.data
 
     version_context = get_version_context(platform_version)
-    truncation_note = ""
+    truncation_parts = []
+    if events_total > 100:
+        truncation_parts.append(f"events truncated to 100 of {events_total}")
     if events.truncated:
-        truncation_note += f"\nNOTE: Events truncated — {events.total_available} total, {events.returned} analyzed."
+        truncation_parts.append(f"events pre-truncated by API ({events.total_available} total, {events.returned} returned)")
+    if pods_total > 50:
+        truncation_parts.append(f"pods truncated to 50 of {pods_total}")
     if pods.truncated:
-        truncation_note += f"\nNOTE: Pods truncated — {pods.total_available} total, {pods.returned} analyzed."
+        truncation_parts.append(f"pods pre-truncated by API ({pods.total_available} total, {pods.returned} returned)")
     if nodes.truncated:
-        truncation_note += f"\nNOTE: Nodes truncated — {nodes.total_available} total, {nodes.returned} analyzed."
+        truncation_parts.append(f"nodes pre-truncated by API ({nodes.total_available} total, {nodes.returned} returned)")
+    truncation_note = ""
+    if truncation_parts:
+        truncation_note = "\n⚠️ Data truncation: " + "; ".join(truncation_parts)
 
     system = _SYSTEM_PROMPT.format(
         platform=platform,
