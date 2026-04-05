@@ -254,6 +254,90 @@ async def _heuristic_analyze(data_payload: dict, domain: str = "ctrl_plane") -> 
                 "severity": "medium",
             })
 
+    # Check ClusterVersion
+    cv = data_payload.get("cluster_version")
+    if cv and isinstance(cv, dict):
+        conditions = cv.get("conditions", [])
+        cv_version = cv.get("version", "unknown")
+        cv_desired = cv.get("desired", cv_version)
+
+        for cond in conditions:
+            cond_type = cond.get("type", "")
+            cond_status = cond.get("status", "")
+            cond_msg = cond.get("message", "")
+
+            if cond_type == "Failing" and cond_status == "True":
+                anomalies.append({
+                    "domain": domain,
+                    "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                    "description": f"ClusterVersion upgrade failing: {cond_msg or 'upgrade to ' + cv_desired + ' is failing'}",
+                    "evidence_ref": "clusterversion/version",
+                    "severity": "critical",
+                })
+            elif cond_type == "Available" and cond_status == "False":
+                anomalies.append({
+                    "domain": domain,
+                    "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                    "description": f"ClusterVersion not available: {cond_msg or 'cluster version ' + cv_version + ' is not available'}",
+                    "evidence_ref": "clusterversion/version",
+                    "severity": "critical",
+                })
+            elif cond_type == "Progressing" and cond_status == "True" and cv_version != cv_desired:
+                anomalies.append({
+                    "domain": domain,
+                    "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                    "description": f"ClusterVersion upgrade progressing: {cv_version} → {cv_desired}",
+                    "evidence_ref": "clusterversion/version",
+                    "severity": "high",
+                })
+
+    # Check OLM Subscriptions
+    for sub in data_payload.get("subscriptions", []):
+        sub_name = sub.get("name", "unknown")
+        state = sub.get("state", "")
+        if state and state != "AtLatestKnown":
+            anomalies.append({
+                "domain": domain,
+                "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                "description": f"OLM Subscription {sub_name} state is {state} (currentCSV: {sub.get('currentCSV', '?')}, installedCSV: {sub.get('installedCSV', '?')})",
+                "evidence_ref": f"subscription/{sub.get('namespace', '')}/{sub_name}",
+                "severity": "high",
+            })
+
+    # Check OLM CSVs
+    failed_phases = ("Failed", "Unknown", "Replacing")
+    for csv in data_payload.get("csvs", []):
+        csv_name = csv.get("name", "unknown")
+        phase = csv.get("phase", "")
+        if phase in failed_phases:
+            anomalies.append({
+                "domain": domain,
+                "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                "description": f"ClusterServiceVersion {csv_name} phase is {phase}: {csv.get('message', '')}",
+                "evidence_ref": f"csv/{csv.get('namespace', '')}/{csv_name}",
+                "severity": "high",
+            })
+
+    # Check OLM InstallPlans
+    for ip in data_payload.get("install_plans", []):
+        ip_name = ip.get("name", "unknown")
+        if ip.get("approval") == "Manual" and not ip.get("approved"):
+            anomalies.append({
+                "domain": domain,
+                "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                "description": f"InstallPlan {ip_name} requires manual approval for {', '.join(ip.get('csv_names', []))}",
+                "evidence_ref": f"installplan/{ip.get('namespace', '')}/{ip_name}",
+                "severity": "low",
+            })
+        elif ip.get("phase") == "Installing":
+            anomalies.append({
+                "domain": domain,
+                "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                "description": f"InstallPlan {ip_name} stuck in Installing phase",
+                "evidence_ref": f"installplan/{ip.get('namespace', '')}/{ip_name}",
+                "severity": "medium",
+            })
+
     confidence = 50 if anomalies else 70
     return {"anomalies": anomalies, "ruled_out": ruled_out, "confidence": confidence}
 
