@@ -46,6 +46,23 @@ Six Causal Reasoning Rules:
 6. OBSERVABILITY CONFIRMATION: For cross-domain causality, require evidence in effect domain referencing cause resource.
 """
 
+_VERDICT_SEVERITY_GUIDE = """
+## Platform Health Classification
+- CRITICAL: Any of: node NotReady, control plane operator unavailable, >50% pods in CrashLoopBackOff,
+  data plane loss (zero service endpoints for critical services), etcd quorum loss
+- DEGRADED: Any of: operator degraded, HPA at max with unmet targets, >20% pod restarts,
+  PVC >90% capacity, partial scheduling failures, certificate expiring within 7 days
+- HEALTHY: All operators available, all nodes Ready, workloads running at desired replicas,
+  no high-severity anomalies
+- UNKNOWN: Insufficient data to determine (>50% of domains FAILED or SKIPPED)
+
+## Remediation Safety Rules
+- ALWAYS include -n <namespace> in kubectl commands
+- For destructive commands (delete, drain, scale-down), include --dry-run=client variant
+- Mark risk_level: "high" for drain/delete/cordon, "medium" for scale/rollout, "safe" for get/describe
+- Include rollback command for every non-read-only remediation step
+"""
+
 _VALID_DOMAINS = {"ctrl_plane", "node", "network", "storage", "rbac"}
 
 
@@ -315,6 +332,10 @@ async def _llm_verdict(
     telemetry=None,
     store=None,
     session_id: str = "",
+    platform: str = "",
+    namespace: str = "",
+    cluster_url: str = "",
+    **kwargs,
 ) -> dict:
     """Stage 3: LLM produces verdict and remediation."""
     from src.agents.cluster.output_schemas import SUBMIT_VERDICT_TOOL
@@ -330,6 +351,11 @@ async def _llm_verdict(
         for r in reports
     ], indent=2)
 
+    hypothesis_context = ""
+    if kwargs.get("ranked_hypotheses"):
+        top_hyps = kwargs["ranked_hypotheses"][:5]
+        hypothesis_context = f"\n## Pre-Ranked Root Cause Hypotheses\n{json.dumps(top_hyps, indent=2)}\n"
+
     prompt = f"""Based on the causal analysis, produce a cluster health verdict.
 
 ## Causal Chains
@@ -339,17 +365,21 @@ async def _llm_verdict(
 
 ## Domain Report Statuses
 {report_summaries}
-
+{hypothesis_context}
 Note: re_dispatch_domains valid values are: ctrl_plane, node, network, storage, rbac"""
+
+    system_prompt = (
+        f"Platform: {platform}\nNamespace: {namespace or 'all'}\nCluster: {cluster_url or 'unknown'}\n\n"
+        + _VERDICT_SEVERITY_GUIDE
+        + "\nYou are a cluster health verdict engine. Issue a definitive verdict with remediation.\n"
+          "You MUST call submit_verdict to return your verdict."
+    )
 
     call_start = time.monotonic()
     try:
         response = await asyncio.wait_for(
             client.chat_with_tools(
-                system="You are a cluster health verdict engine. Be actionable and precise. "
-                       "ALWAYS include -n <namespace> in kubectl commands for namespaced resources. "
-                       "Never use default namespace implicitly. "
-                       "You MUST call submit_verdict to return your verdict.",
+                system=system_prompt,
                 messages=[{"role": "user", "content": prompt}],
                 tools=[SUBMIT_VERDICT_TOOL],
                 max_tokens=3000,
@@ -508,6 +538,10 @@ async def synthesize(state: dict, config: dict) -> dict:
         causal_result.get("causal_chains", []), reports, data_completeness,
         budget=budget, telemetry=telemetry,
         store=store, session_id=diagnostic_id,
+        platform=state.get("platform", ""),
+        namespace=_ns_list[0] if _ns_list else "",
+        cluster_url=state.get("cluster_url", ""),
+        ranked_hypotheses=valid_hypotheses,
     )
 
     # Post-process remediation commands: validate, add dry-run, auto-fix namespace, generate rollback
