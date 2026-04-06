@@ -247,17 +247,18 @@ def create_cluster_client(connection_config=None):
     from pathlib import Path
     from src.agents.cluster_client.mock_client import MockClusterClient
 
-    # 0. Demo mode — always use mock client
-    if os.environ.get("DEBUGDUCK_MODE", "demo").lower() == "demo":
-        logger.info("DEBUGDUCK_MODE=demo — using MockClusterClient")
-        return MockClusterClient(platform="openshift"), None
-
     temp_path = None
     cluster_url = getattr(connection_config, "cluster_url", "") if connection_config else ""
     cluster_token = getattr(connection_config, "cluster_token", "") if connection_config else ""
     auth_method = getattr(connection_config, "auth_method", "token") if connection_config else "token"
     kubeconfig_content = getattr(connection_config, "kubeconfig_content", "") if connection_config else ""
     verify_ssl = getattr(connection_config, "verify_ssl", False) if connection_config else False
+
+    # If no explicit credentials provided, use mock client directly
+    has_explicit_creds = bool(cluster_url or cluster_token or kubeconfig_content)
+    if not has_explicit_creds:
+        logger.info("No explicit cluster credentials provided, using MockClusterClient")
+        return MockClusterClient(platform="openshift"), None
 
     # 1. Bearer token
     if cluster_url or cluster_token:
@@ -285,17 +286,7 @@ def create_cluster_client(connection_config=None):
                 Path(temp_path).unlink(missing_ok=True)
                 temp_path = None
 
-    # 3. KUBECONFIG env var or ~/.kube/config
-    kubeconfig_env = os.environ.get("KUBECONFIG", "")
-    default_kubeconfig = Path.home() / ".kube" / "config"
-    if kubeconfig_env or default_kubeconfig.exists():
-        try:
-            kubeconfig_path = kubeconfig_env or str(default_kubeconfig)
-            return KubernetesClient(kubeconfig_path=kubeconfig_path), None
-        except Exception as e:
-            logger.warning("Failed to create KubernetesClient from kubeconfig file: %s", e)
-
-    # 4. Mock fallback
+    # 3. Mock fallback
     logger.info("No cluster credentials found, using MockClusterClient")
     return MockClusterClient(platform="openshift"), None
 
