@@ -237,6 +237,7 @@ def create_cluster_client(connection_config=None):
     Returns (client, temp_kubeconfig_path_or_None).
 
     Resolution order:
+    0. DEBUGDUCK_MODE=demo → MockClusterClient (skip real cluster)
     1. bearer token (cluster_url + cluster_token)
     2. kubeconfig content written to temp file
     3. KUBECONFIG env var or ~/.kube/config
@@ -245,6 +246,11 @@ def create_cluster_client(connection_config=None):
     import tempfile
     from pathlib import Path
     from src.agents.cluster_client.mock_client import MockClusterClient
+
+    # 0. Demo mode — always use mock client
+    if os.environ.get("DEBUGDUCK_MODE", "demo").lower() == "demo":
+        logger.info("DEBUGDUCK_MODE=demo — using MockClusterClient")
+        return MockClusterClient(platform="openshift"), None
 
     temp_path = None
     cluster_url = getattr(connection_config, "cluster_url", "") if connection_config else ""
@@ -626,7 +632,6 @@ async def run_cluster_diagnosis(session_id, graph, cluster_client, emitter, scan
         nodes_result = await cluster_client.list_nodes()
         cluster_size = {
             "nodes": len(nodes_result.data),
-            "pods": 0,
             "namespaces": len(ns_result.data),
         }
         budget = adapt_budget(budget, cluster_size)
@@ -763,7 +768,12 @@ async def run_diagnosis(session_id: str, supervisor: SupervisorAgent, initial_in
 
     lock = session_locks.setdefault(session_id, asyncio.Lock())
     try:
-        state = await supervisor.run(initial_input, emitter)
+        state = await supervisor.run(
+            initial_input, emitter,
+            # Callback to expose state immediately after creation so the
+            # findings endpoint can read partial results mid-investigation.
+            on_state_created=lambda s: sessions[session_id].__setitem__("state", s),
+        )
         # C1: Acquire lock for state mutation
         async with lock:
             if session_id in sessions:
