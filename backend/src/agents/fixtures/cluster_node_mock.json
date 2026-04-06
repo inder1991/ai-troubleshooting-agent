@@ -1,99 +1,453 @@
 {
   "nodes": [
     {
-      "name": "master-01",
+      "name": "master-1.prod-east.internal",
       "status": "Ready",
-      "roles": [
-        "control-plane"
-      ],
-      "cpu_pct": 34,
-      "memory_pct": 52,
-      "disk_pct": 41
+      "roles": ["control-plane", "master"],
+      "cpu_pct": 42,
+      "memory_pct": 58,
+      "disk_pct": 44,
+      "kernel_version": "5.14.0-284.30.1.el9_2.x86_64",
+      "container_runtime": "cri-o://1.27.1",
+      "kubelet_version": "v1.27.8+4fab27b",
+      "conditions": ["Ready"]
     },
     {
-      "name": "master-02",
+      "name": "master-2.prod-east.internal",
       "status": "Ready",
-      "roles": [
-        "control-plane"
-      ],
-      "cpu_pct": 28,
-      "memory_pct": 48,
-      "disk_pct": 38
+      "roles": ["control-plane", "master"],
+      "cpu_pct": 38,
+      "memory_pct": 54,
+      "disk_pct": 41,
+      "kernel_version": "5.14.0-284.30.1.el9_2.x86_64",
+      "container_runtime": "cri-o://1.27.1",
+      "kubelet_version": "v1.27.8+4fab27b",
+      "conditions": ["Ready"]
     },
     {
-      "name": "master-03",
+      "name": "master-3.prod-east.internal",
       "status": "Ready",
-      "roles": [
-        "control-plane"
-      ],
-      "cpu_pct": 31,
-      "memory_pct": 50,
-      "disk_pct": 40
-    },
-    {
-      "name": "worker-01",
-      "status": "Ready",
-      "roles": [
-        "worker"
-      ],
-      "cpu_pct": 72,
-      "memory_pct": 68,
-      "disk_pct": 55
-    },
-    {
-      "name": "worker-02",
-      "status": "Ready",
-      "roles": [
-        "worker"
-      ],
-      "cpu_pct": 65,
-      "memory_pct": 71,
-      "disk_pct": 48
-    },
-    {
-      "name": "infra-node-03",
-      "status": "Ready,DiskPressure",
-      "roles": [
-        "infra"
-      ],
+      "roles": ["control-plane", "master"],
       "cpu_pct": 45,
-      "memory_pct": 62,
-      "disk_pct": 97
+      "memory_pct": 61,
+      "disk_pct": 43,
+      "kernel_version": "5.14.0-284.30.1.el9_2.x86_64",
+      "container_runtime": "cri-o://1.27.1",
+      "kubelet_version": "v1.27.8+4fab27b",
+      "conditions": ["Ready"]
+    },
+    {
+      "name": "worker-1.prod-east.internal",
+      "status": "Ready",
+      "roles": ["worker"],
+      "cpu_pct": 71,
+      "memory_pct": 74,
+      "disk_pct": 52,
+      "kernel_version": "5.14.0-284.30.1.el9_2.x86_64",
+      "container_runtime": "cri-o://1.27.1",
+      "kubelet_version": "v1.27.8+4fab27b",
+      "conditions": ["Ready"]
+    },
+    {
+      "name": "worker-2.prod-east.internal",
+      "status": "Ready",
+      "roles": ["worker"],
+      "cpu_pct": 68,
+      "memory_pct": 69,
+      "disk_pct": 48,
+      "kernel_version": "5.14.0-284.30.1.el9_2.x86_64",
+      "container_runtime": "cri-o://1.27.1",
+      "kubelet_version": "v1.27.8+4fab27b",
+      "conditions": ["Ready"]
+    },
+    {
+      "name": "worker-3.prod-east.internal",
+      "status": "NotReady,DiskPressure",
+      "roles": ["worker"],
+      "cpu_pct": 89,
+      "memory_pct": 82,
+      "disk_pct": 93,
+      "kernel_version": "5.14.0-284.30.1.el9_2.x86_64",
+      "container_runtime": "cri-o://1.27.1",
+      "kubelet_version": "v1.27.8+4fab27b",
+      "conditions": ["DiskPressure", "NotReady"],
+      "taints": ["node.kubernetes.io/not-ready", "node.kubernetes.io/disk-pressure"]
     }
   ],
   "events": [
     {
       "type": "Warning",
       "reason": "Evicted",
-      "object": "pod/coredns-abc123",
-      "message": "The node had condition: [DiskPressure]",
-      "node": "infra-node-03",
-      "timestamp": "2026-02-27T10:24:30Z"
+      "object": "pod/order-service-5c7d8-r4k2m",
+      "message": "The node had condition: [DiskPressure]. Pod order-service-5c7d8-r4k2m evicted.",
+      "node": "worker-3.prod-east.internal",
+      "namespace": "ecommerce-prod",
+      "timestamp": "2026-04-06T06:12:01Z",
+      "count": 1
     },
     {
       "type": "Warning",
       "reason": "Evicted",
-      "object": "pod/router-xyz789",
-      "message": "The node had condition: [DiskPressure]",
-      "node": "infra-node-03",
-      "timestamp": "2026-02-27T10:24:32Z"
+      "object": "pod/order-service-5c7d8-t8n5p",
+      "message": "The node had condition: [DiskPressure]. Pod order-service-5c7d8-t8n5p evicted.",
+      "node": "worker-3.prod-east.internal",
+      "namespace": "ecommerce-prod",
+      "timestamp": "2026-04-06T06:12:02Z",
+      "count": 1
+    },
+    {
+      "type": "Warning",
+      "reason": "Evicted",
+      "object": "pod/catalog-service-8a3f1-j7h2v",
+      "message": "The node had condition: [DiskPressure].",
+      "node": "worker-3.prod-east.internal",
+      "namespace": "ecommerce-prod",
+      "timestamp": "2026-04-06T06:12:04Z",
+      "count": 1
+    },
+    {
+      "type": "Warning",
+      "reason": "Evicted",
+      "object": "pod/payment-gateway-2d9e6-w3x8z",
+      "message": "The node had condition: [DiskPressure].",
+      "node": "worker-3.prod-east.internal",
+      "namespace": "ecommerce-prod",
+      "timestamp": "2026-04-06T06:12:05Z",
+      "count": 1
+    },
+    {
+      "type": "Warning",
+      "reason": "Evicted",
+      "object": "pod/fluentd-logging-mk4r2",
+      "message": "The node had condition: [DiskPressure]. DaemonSet pod evicted.",
+      "node": "worker-3.prod-east.internal",
+      "namespace": "kube-system",
+      "timestamp": "2026-04-06T06:12:06Z",
+      "count": 1
+    },
+    {
+      "type": "Warning",
+      "reason": "Evicted",
+      "object": "pod/node-exporter-qr7z9",
+      "message": "The node had condition: [DiskPressure].",
+      "node": "worker-3.prod-east.internal",
+      "namespace": "monitoring",
+      "timestamp": "2026-04-06T06:12:07Z",
+      "count": 1
+    },
+    {
+      "type": "Warning",
+      "reason": "Evicted",
+      "object": "pod/prometheus-adapter-6d8c4-zmq9",
+      "message": "The node had condition: [DiskPressure].",
+      "node": "worker-3.prod-east.internal",
+      "namespace": "openshift-monitoring",
+      "timestamp": "2026-04-06T06:12:08Z",
+      "count": 1
+    },
+    {
+      "type": "Warning",
+      "reason": "Evicted",
+      "object": "pod/router-default-7b9f4-kx2m1",
+      "message": "The node had condition: [DiskPressure]. Ingress controller pod evicted.",
+      "node": "worker-3.prod-east.internal",
+      "namespace": "openshift-ingress",
+      "timestamp": "2026-04-06T06:12:09Z",
+      "count": 1
+    },
+    {
+      "type": "Warning",
+      "reason": "Evicted",
+      "object": "pod/coredns-worker3-8f4a2",
+      "message": "The node had condition: [DiskPressure]. CoreDNS pod evicted.",
+      "node": "worker-3.prod-east.internal",
+      "namespace": "openshift-dns",
+      "timestamp": "2026-04-06T06:12:10Z",
+      "count": 1
+    },
+    {
+      "type": "Warning",
+      "reason": "Evicted",
+      "object": "pod/search-indexer-4b6c9-p2q1r",
+      "message": "The node had condition: [DiskPressure].",
+      "node": "worker-3.prod-east.internal",
+      "namespace": "ecommerce-prod",
+      "timestamp": "2026-04-06T06:12:12Z",
+      "count": 1
+    },
+    {
+      "type": "Warning",
+      "reason": "Evicted",
+      "object": "pod/recommendation-engine-7e2d3-s5t4u",
+      "message": "The node had condition: [DiskPressure].",
+      "node": "worker-3.prod-east.internal",
+      "namespace": "ecommerce-prod",
+      "timestamp": "2026-04-06T06:12:13Z",
+      "count": 1
+    },
+    {
+      "type": "Warning",
+      "reason": "Evicted",
+      "object": "pod/notification-service-1a8b5-v6w3x",
+      "message": "The node had condition: [DiskPressure].",
+      "node": "worker-3.prod-east.internal",
+      "namespace": "ecommerce-prod",
+      "timestamp": "2026-04-06T06:12:14Z",
+      "count": 1
     },
     {
       "type": "Warning",
       "reason": "FailedScheduling",
-      "object": "pod/coredns-def456",
-      "message": "0/6 nodes available: 1 node had disk pressure, 3 were control-plane",
-      "timestamp": "2026-02-27T10:25:00Z"
+      "object": "pod/order-service-5c7d8-new1",
+      "message": "0/6 nodes are available: 1 node(s) had disk pressure, 3 node(s) had untolerated taint {node-role.kubernetes.io/master: }, 2 node(s) didn't have free ports for the requested pod ports.",
+      "namespace": "ecommerce-prod",
+      "timestamp": "2026-04-06T06:14:30Z",
+      "count": 4
+    },
+    {
+      "type": "Warning",
+      "reason": "FailedMount",
+      "object": "pod/order-service-5c7d8-new2",
+      "message": "Unable to attach or mount volumes: unmounted volumes=[order-data], unattached volumes=[order-data kube-api-access-7x2r4]: timed out waiting for the condition",
+      "namespace": "ecommerce-prod",
+      "timestamp": "2026-04-06T06:18:45Z",
+      "count": 2
+    },
+    {
+      "type": "Warning",
+      "reason": "Unhealthy",
+      "object": "pod/catalog-service-8a3f1-rescheduled",
+      "message": "Readiness probe failed: HTTP probe failed with statuscode: 503",
+      "namespace": "ecommerce-prod",
+      "timestamp": "2026-04-06T06:22:10Z",
+      "count": 8
+    },
+    {
+      "type": "Warning",
+      "reason": "Unhealthy",
+      "object": "pod/payment-gateway-2d9e6-rescheduled",
+      "message": "Liveness probe failed: connection refused (dial tcp 10.128.4.72:8080: connect: connection refused)",
+      "namespace": "ecommerce-prod",
+      "timestamp": "2026-04-06T06:25:33Z",
+      "count": 5
+    },
+    {
+      "type": "Warning",
+      "reason": "BackOff",
+      "object": "pod/payment-gateway-2d9e6-rescheduled",
+      "message": "Back-off restarting failed container payment-gateway in pod payment-gateway-2d9e6-rescheduled_ecommerce-prod",
+      "namespace": "ecommerce-prod",
+      "timestamp": "2026-04-06T06:30:15Z",
+      "count": 3
+    },
+    {
+      "type": "Warning",
+      "reason": "ExceededGracePeriod",
+      "object": "pod/search-indexer-4b6c9-p2q1r",
+      "message": "Container runtime did not kill the pod within specified grace period.",
+      "node": "worker-3.prod-east.internal",
+      "namespace": "ecommerce-prod",
+      "timestamp": "2026-04-06T06:12:42Z",
+      "count": 1
+    },
+    {
+      "type": "Normal",
+      "reason": "NodeNotReady",
+      "object": "node/worker-3.prod-east.internal",
+      "message": "Node worker-3.prod-east.internal status is now: NodeNotReady",
+      "timestamp": "2026-04-06T06:35:00Z",
+      "count": 1
     }
   ],
-  "resource_quotas": [],
   "top_pods": [
     {
-      "namespace": "production",
-      "name": "access-log-collector-0",
+      "namespace": "ecommerce-prod",
+      "name": "order-service-5c7d8-a1b2c",
+      "status": "Running",
+      "cpu_m": 280,
+      "memory_mi": 512,
+      "node": "worker-1.prod-east.internal",
+      "restarts": 0,
+      "ready": true
+    },
+    {
+      "namespace": "ecommerce-prod",
+      "name": "order-service-5c7d8-d3e4f",
+      "status": "Running",
+      "cpu_m": 310,
+      "memory_mi": 540,
+      "node": "worker-2.prod-east.internal",
+      "restarts": 0,
+      "ready": true
+    },
+    {
+      "namespace": "ecommerce-prod",
+      "name": "order-service-5c7d8-new1",
+      "status": "Pending",
+      "cpu_m": 0,
+      "memory_mi": 0,
+      "node": "",
+      "restarts": 0,
+      "ready": false,
+      "reason": "FailedScheduling"
+    },
+    {
+      "namespace": "ecommerce-prod",
+      "name": "order-service-5c7d8-new2",
+      "status": "ContainerCreating",
+      "cpu_m": 0,
+      "memory_mi": 0,
+      "node": "worker-1.prod-east.internal",
+      "restarts": 0,
+      "ready": false,
+      "reason": "FailedMount"
+    },
+    {
+      "namespace": "ecommerce-prod",
+      "name": "catalog-service-8a3f1-h5g6i",
+      "status": "Running",
+      "cpu_m": 190,
+      "memory_mi": 384,
+      "node": "worker-1.prod-east.internal",
+      "restarts": 0,
+      "ready": true
+    },
+    {
+      "namespace": "ecommerce-prod",
+      "name": "catalog-service-8a3f1-rescheduled",
+      "status": "Running",
+      "cpu_m": 95,
+      "memory_mi": 256,
+      "node": "worker-2.prod-east.internal",
+      "restarts": 2,
+      "ready": false,
+      "reason": "ReadinessProbe failed"
+    },
+    {
+      "namespace": "ecommerce-prod",
+      "name": "payment-gateway-2d9e6-k7l8m",
+      "status": "Running",
       "cpu_m": 150,
-      "memory_mi": 4200,
-      "node": "infra-node-03"
+      "memory_mi": 320,
+      "node": "worker-1.prod-east.internal",
+      "restarts": 0,
+      "ready": true
+    },
+    {
+      "namespace": "ecommerce-prod",
+      "name": "payment-gateway-2d9e6-rescheduled",
+      "status": "CrashLoopBackOff",
+      "cpu_m": 0,
+      "memory_mi": 0,
+      "node": "worker-2.prod-east.internal",
+      "restarts": 7,
+      "ready": false,
+      "reason": "CrashLoopBackOff"
+    },
+    {
+      "namespace": "ecommerce-prod",
+      "name": "cart-service-3f9a2-n9o1p",
+      "status": "Running",
+      "cpu_m": 120,
+      "memory_mi": 256,
+      "node": "worker-1.prod-east.internal",
+      "restarts": 0,
+      "ready": true
+    },
+    {
+      "namespace": "ecommerce-prod",
+      "name": "user-auth-service-6b4e8-q2r3s",
+      "status": "Running",
+      "cpu_m": 85,
+      "memory_mi": 192,
+      "node": "worker-2.prod-east.internal",
+      "restarts": 0,
+      "ready": true
+    },
+    {
+      "namespace": "ecommerce-prod",
+      "name": "search-indexer-4b6c9-rescheduled",
+      "status": "Running",
+      "cpu_m": 340,
+      "memory_mi": 1024,
+      "node": "worker-1.prod-east.internal",
+      "restarts": 1,
+      "ready": true
+    },
+    {
+      "namespace": "ecommerce-prod",
+      "name": "notification-service-1a8b5-rescheduled",
+      "status": "Running",
+      "cpu_m": 60,
+      "memory_mi": 128,
+      "node": "worker-2.prod-east.internal",
+      "restarts": 0,
+      "ready": true
+    },
+    {
+      "namespace": "ecommerce-prod",
+      "name": "recommendation-engine-7e2d3-rescheduled",
+      "status": "Running",
+      "cpu_m": 420,
+      "memory_mi": 1536,
+      "node": "worker-1.prod-east.internal",
+      "restarts": 1,
+      "ready": true
+    },
+    {
+      "namespace": "ecommerce-prod",
+      "name": "api-gateway-9c1d7-t4u5v",
+      "status": "Running",
+      "cpu_m": 200,
+      "memory_mi": 384,
+      "node": "worker-1.prod-east.internal",
+      "restarts": 0,
+      "ready": true
+    },
+    {
+      "namespace": "ecommerce-prod",
+      "name": "api-gateway-9c1d7-w6x7y",
+      "status": "Running",
+      "cpu_m": 210,
+      "memory_mi": 400,
+      "node": "worker-2.prod-east.internal",
+      "restarts": 0,
+      "ready": true
+    },
+    {
+      "namespace": "ecommerce-prod",
+      "name": "api-gateway-9c1d7-z8a9b",
+      "status": "Running",
+      "cpu_m": 195,
+      "memory_mi": 370,
+      "node": "worker-2.prod-east.internal",
+      "restarts": 0,
+      "ready": true
     }
-  ]
+  ],
+  "resource_quotas": [
+    {
+      "namespace": "ecommerce-prod",
+      "name": "compute-quota",
+      "hard": {"requests.cpu": "16", "requests.memory": "32Gi", "limits.cpu": "32", "limits.memory": "64Gi"},
+      "used": {"requests.cpu": "15200m", "requests.memory": "30Gi", "limits.cpu": "28800m", "limits.memory": "58Gi"},
+      "exceeded": false,
+      "near_limit": true,
+      "usage_pct": {"requests.cpu": 95, "requests.memory": 93.75, "limits.cpu": 90, "limits.memory": 90.6}
+    }
+  ],
+  "prometheus_metrics": {
+    "node_disk_usage": [
+      {"node": "worker-3.prod-east.internal", "filesystem": "/dev/sda1", "usage_pct": 93.2, "available_gi": 4.8},
+      {"node": "worker-1.prod-east.internal", "filesystem": "/dev/sda1", "usage_pct": 52.1, "available_gi": 33.6},
+      {"node": "worker-2.prod-east.internal", "filesystem": "/dev/sda1", "usage_pct": 48.4, "available_gi": 36.1}
+    ],
+    "container_restarts_15m": [
+      {"pod": "payment-gateway-2d9e6-rescheduled", "namespace": "ecommerce-prod", "restarts": 4},
+      {"pod": "catalog-service-8a3f1-rescheduled", "namespace": "ecommerce-prod", "restarts": 2}
+    ],
+    "kubelet_runtime_errors": [
+      {"node": "worker-3.prod-east.internal", "errors_per_min": 14.2, "type": "container_log_write_failed"}
+    ]
+  }
 }
