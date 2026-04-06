@@ -1,53 +1,193 @@
 {
   "dns_pods": [
     {
-      "name": "coredns-abc123",
-      "status": "Evicted",
-      "node": "infra-node-03",
-      "restarts": 0
+      "name": "dns-default-g8h9i",
+      "status": "Running",
+      "node": "worker-1.prod-east.internal",
+      "restarts": 0,
+      "ready": true
     },
     {
-      "name": "coredns-def456",
+      "name": "dns-default-j1k2l",
+      "status": "Running",
+      "node": "worker-2.prod-east.internal",
+      "restarts": 0,
+      "ready": true
+    },
+    {
+      "name": "dns-default-worker3-evicted",
+      "status": "Evicted",
+      "node": "worker-3.prod-east.internal",
+      "restarts": 0,
+      "ready": false
+    },
+    {
+      "name": "dns-default-pending-reschedule",
       "status": "Pending",
       "node": "",
-      "restarts": 0
-    },
-    {
-      "name": "coredns-ghi789",
-      "status": "Running",
-      "node": "worker-01",
-      "restarts": 0
+      "restarts": 0,
+      "ready": false
     }
   ],
   "ingress_controllers": [
     {
       "name": "default",
+      "namespace": "openshift-ingress",
       "replicas": 3,
       "available": 1,
-      "status": "Degraded"
+      "unavailable": 2,
+      "status": "Degraded",
+      "message": "2 router pods unavailable — router-default-7b9f4-kx2m1 evicted from worker-3 (DiskPressure), router-default-7b9f4-m3n4o CrashLoopBackOff on worker-2"
     }
   ],
-  "network_policies": [],
+  "routes": [
+    {
+      "name": "ecommerce-storefront",
+      "namespace": "ecommerce-prod",
+      "host": "shop.prodeast.example.com",
+      "status": "Admitted",
+      "backend_service": "api-gateway",
+      "tls_termination": "edge",
+      "http_status": 200
+    },
+    {
+      "name": "order-api",
+      "namespace": "ecommerce-prod",
+      "host": "orders-api.prodeast.example.com",
+      "status": "Admitted",
+      "backend_service": "order-service",
+      "tls_termination": "edge",
+      "http_status": 503,
+      "error": "No healthy upstream — order-service only 2/4 pods ready"
+    },
+    {
+      "name": "payment-webhook",
+      "namespace": "ecommerce-prod",
+      "host": "pay.prodeast.example.com",
+      "status": "Admitted",
+      "backend_service": "payment-gateway",
+      "tls_termination": "reencrypt",
+      "http_status": 503,
+      "error": "All backend pods in CrashLoopBackOff or evicted"
+    },
+    {
+      "name": "grafana-dashboard",
+      "namespace": "monitoring",
+      "host": "grafana.prodeast.example.com",
+      "status": "Admitted",
+      "backend_service": "grafana",
+      "tls_termination": "edge",
+      "http_status": 503,
+      "error": "NetworkPolicy deny-monitoring-ingress blocking ingress traffic"
+    }
+  ],
+  "network_policies": [
+    {
+      "name": "default-deny-ecommerce",
+      "namespace": "ecommerce-prod",
+      "pod_selector": {},
+      "policy_types": ["Ingress", "Egress"],
+      "ingress_rules_count": 3,
+      "egress_rules_count": 2,
+      "has_empty_ingress": false,
+      "has_empty_egress": false
+    },
+    {
+      "name": "deny-monitoring-ingress",
+      "namespace": "monitoring",
+      "pod_selector": {},
+      "policy_types": ["Ingress"],
+      "ingress_rules_count": 0,
+      "egress_rules_count": 0,
+      "has_empty_ingress": true,
+      "has_empty_egress": false,
+      "warning": "Blocks ALL ingress to monitoring namespace — prevents cross-namespace scraping and dashboard access"
+    },
+    {
+      "name": "allow-dns-egress",
+      "namespace": "ecommerce-prod",
+      "pod_selector": {},
+      "policy_types": ["Egress"],
+      "ingress_rules_count": 0,
+      "egress_rules_count": 1,
+      "has_empty_ingress": false,
+      "has_empty_egress": false
+    }
+  ],
+  "services_with_issues": [
+    {
+      "name": "payment-gateway",
+      "namespace": "ecommerce-prod",
+      "type": "ClusterIP",
+      "ready_endpoints": 0,
+      "total_endpoints": 2,
+      "warning": "Service has 0 ready endpoints — all backend pods are CrashLoopBackOff or evicted"
+    },
+    {
+      "name": "order-service",
+      "namespace": "ecommerce-prod",
+      "type": "ClusterIP",
+      "ready_endpoints": 2,
+      "total_endpoints": 4,
+      "warning": "Service has only 2 of 4 endpoints ready — 2 pods evicted from worker-3"
+    }
+  ],
   "dns_metrics": {
-    "resolution_failures_pct": 40.2,
-    "avg_latency_ms": 2450,
-    "queries_per_sec": 1200
+    "resolution_failures_pct": 38.7,
+    "avg_latency_ms": 1850,
+    "queries_per_sec": 2400,
+    "servfail_domains": [
+      "payment-gateway.ecommerce-prod.svc.cluster.local",
+      "order-service.ecommerce-prod.svc.cluster.local",
+      "prometheus-k8s.openshift-monitoring.svc.cluster.local"
+    ]
   },
   "ingress_metrics": {
-    "5xx_rate_pct": 12.5,
-    "request_rate": 3400,
-    "p99_latency_ms": 8200
+    "5xx_rate_pct": 23.4,
+    "request_rate": 4200,
+    "p99_latency_ms": 12800,
+    "error_breakdown": {
+      "503": 18.1,
+      "502": 3.8,
+      "504": 1.5
+    }
   },
   "logs": [
     {
-      "timestamp": "2026-02-27T10:25:10Z",
+      "timestamp": "2026-04-06T06:15:22Z",
       "source": "coredns",
-      "message": "SERVFAIL for api.internal.svc.cluster.local: context deadline exceeded"
+      "message": "SERVFAIL for payment-gateway.ecommerce-prod.svc.cluster.local IN A: read udp 10.128.0.12:53: i/o timeout",
+      "severity": "error"
     },
     {
-      "timestamp": "2026-02-27T10:25:12Z",
+      "timestamp": "2026-04-06T06:15:24Z",
       "source": "coredns",
-      "message": "SERVFAIL for payment.production.svc.cluster.local: i/o timeout"
+      "message": "SERVFAIL for order-service.ecommerce-prod.svc.cluster.local IN A: context deadline exceeded",
+      "severity": "error"
+    },
+    {
+      "timestamp": "2026-04-06T06:18:01Z",
+      "source": "haproxy-router",
+      "message": "[WARNING] 096/061801 (1) : Server ecommerce-prod_payment-gateway/pod:payment-gateway-2d9e6-rescheduled:8080 is DOWN, reason: Layer4 connection problem, info: Connection refused",
+      "severity": "warning"
+    },
+    {
+      "timestamp": "2026-04-06T06:18:03Z",
+      "source": "haproxy-router",
+      "message": "[ALERT] 096/061803 (1) : backend ecommerce-prod_payment-gateway has no server available!",
+      "severity": "critical"
+    },
+    {
+      "timestamp": "2026-04-06T06:22:15Z",
+      "source": "haproxy-router",
+      "message": "[WARNING] 096/062215 (1) : Server ecommerce-prod_order-service/pod:order-service-5c7d8-new1 is DOWN, reason: Layer4 timeout",
+      "severity": "warning"
+    },
+    {
+      "timestamp": "2026-04-06T07:45:00Z",
+      "source": "network-policy-controller",
+      "message": "NetworkPolicy deny-monitoring-ingress in namespace monitoring: blocking all ingress traffic including Prometheus scrape targets",
+      "severity": "warning"
     }
   ]
 }
