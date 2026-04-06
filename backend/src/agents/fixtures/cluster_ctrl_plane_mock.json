@@ -1,67 +1,130 @@
 {
   "api_health": {
-    "status": "ok",
-    "latency_ms": 45
+    "status": "degraded",
+    "latency_ms": 4200,
+    "error_rate_pct": 8.3,
+    "audit_log_backlog": 12400
   },
   "cluster_operators": [
-    {
-      "name": "dns",
-      "available": false,
-      "degraded": true,
-      "message": "CoreDNS pods unavailable on infra-node-03"
-    },
     {
       "name": "ingress",
       "available": true,
       "degraded": true,
-      "message": "2 of 3 router pods degraded"
+      "progressing": false,
+      "message": "IngressController \"default\" degraded: 1 of 3 router pods are unavailable (pod router-default-7b9f4-kx2m1 evicted from worker-3.prod-east.internal due to DiskPressure)"
     },
     {
       "name": "monitoring",
       "available": true,
+      "degraded": true,
+      "progressing": false,
+      "message": "Prometheus adapter pod CrashLoopBackOff — prometheus-adapter-6d8c4-zmq9 on worker-3 evicted, replacement pending scheduling"
+    },
+    {
+      "name": "dns",
+      "available": true,
       "degraded": false,
+      "progressing": false,
       "message": ""
     },
     {
       "name": "authentication",
       "available": true,
       "degraded": false,
+      "progressing": false,
       "message": ""
+    },
+    {
+      "name": "machine-config",
+      "available": true,
+      "degraded": true,
+      "progressing": true,
+      "message": "MachineConfigPool worker: 2 nodes are reporting Degraded — rendered-worker-9f8a2b failed to apply 99-worker-kernel-params (kernel.pid_max=131072): error writing sysctl: permission denied"
     }
   ],
   "etcd_members": [
     {
-      "name": "etcd-master-01",
+      "name": "etcd-master-1.prod-east.internal",
       "status": "healthy",
-      "db_size_mb": 245
+      "db_size_mb": 387,
+      "leader": false,
+      "leader_changes_last_hour": 4,
+      "raft_term": 892,
+      "applied_index_lag": 12
     },
     {
-      "name": "etcd-master-02",
+      "name": "etcd-master-2.prod-east.internal",
       "status": "healthy",
-      "db_size_mb": 243
+      "db_size_mb": 391,
+      "leader": true,
+      "leader_changes_last_hour": 4,
+      "raft_term": 892,
+      "applied_index_lag": 0
     },
     {
-      "name": "etcd-master-03",
-      "status": "healthy",
-      "db_size_mb": 247
+      "name": "etcd-master-3.prod-east.internal",
+      "status": "slow",
+      "db_size_mb": 394,
+      "leader": false,
+      "leader_changes_last_hour": 4,
+      "raft_term": 892,
+      "applied_index_lag": 45,
+      "warning": "apply duration exceeded 100ms threshold (avg 187ms over last 15m)"
     }
   ],
   "api_audit_logs": [
     {
-      "timestamp": "2026-02-27T10:25:00Z",
+      "timestamp": "2026-04-06T06:12:00Z",
       "verb": "delete",
       "resource": "pods",
-      "namespace": "production",
-      "user": "system:node:infra-node-03",
-      "reason": "eviction"
+      "namespace": "ecommerce-prod",
+      "user": "system:node:worker-3.prod-east.internal",
+      "reason": "eviction",
+      "count": 12
     },
     {
-      "timestamp": "2026-02-27T10:25:01Z",
+      "timestamp": "2026-04-06T06:14:22Z",
+      "verb": "create",
+      "resource": "events",
+      "namespace": "openshift-machine-config-operator",
+      "user": "system:serviceaccount:openshift-machine-config-operator:machine-config-daemon",
+      "reason": "MachineConfigDaemon failed to apply config rendered-worker-9f8a2b"
+    },
+    {
+      "timestamp": "2026-04-06T06:15:01Z",
+      "verb": "update",
+      "resource": "nodes/status",
+      "namespace": "",
+      "user": "system:node:worker-3.prod-east.internal",
+      "reason": "NodeCondition DiskPressure changed to True"
+    },
+    {
+      "timestamp": "2026-04-06T07:45:30Z",
       "verb": "delete",
       "resource": "pods",
-      "namespace": "production",
-      "user": "system:node:infra-node-03",
+      "namespace": "openshift-monitoring",
+      "user": "system:node:worker-3.prod-east.internal",
       "reason": "eviction"
     }
-  ]
+  ],
+  "webhooks": [
+    {
+      "name": "validator.openshift.io",
+      "type": "ValidatingWebhookConfiguration",
+      "timeout_seconds": 10,
+      "failure_policy": "Fail",
+      "rules_count": 3,
+      "warning": "3 timeout events in last hour — pod creation delayed by webhook latency"
+    }
+  ],
+  "cluster_version": {
+    "version": "4.14.12",
+    "desired": "4.14.12",
+    "channel": "stable-4.14",
+    "conditions": [
+      {"type": "Available", "status": "True", "message": "Done applying 4.14.12"},
+      {"type": "Progressing", "status": "False", "message": ""},
+      {"type": "Failing", "status": "False", "message": ""}
+    ]
+  }
 }
