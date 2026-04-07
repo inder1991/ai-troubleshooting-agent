@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { motion } from 'framer-motion';
 import type { WorkflowConfig } from './workflowConfigs';
 import type { NodeStatus } from './AnimationNode';
 import type { EdgeStatus } from './AnimationEdge';
@@ -210,6 +211,11 @@ const WorkflowAnimation: React.FC<WorkflowAnimationProps> = ({ config }) => {
                 <feMergeNode in="SourceGraphic" />
               </feMerge>
             </filter>
+            <linearGradient id="completion-gradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#07b6d5" stopOpacity="0" />
+              <stop offset="50%" stopColor="#07b6d5" stopOpacity="0.6" />
+              <stop offset="100%" stopColor="#07b6d5" stopOpacity="0" />
+            </linearGradient>
           </defs>
 
           {/* Render edges first (behind nodes) */}
@@ -249,6 +255,21 @@ const WorkflowAnimation: React.FC<WorkflowAnimationProps> = ({ config }) => {
               />
             );
           })}
+
+          {/* Completion pulse — subtle top-to-bottom glow when done */}
+          {elapsed >= config.totalDuration && (
+            <motion.rect
+              x={0}
+              y={0}
+              width="100%"
+              height="4"
+              fill="url(#completion-gradient)"
+              initial={{ y: config.nodes[0].y - 50 }}
+              animate={{ y: config.nodes[config.nodes.length - 1].y + 60 }}
+              transition={{ duration: 2, ease: 'easeInOut' }}
+              opacity={0.3}
+            />
+          )}
         </svg>
       </div>
 

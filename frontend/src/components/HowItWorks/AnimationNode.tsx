@@ -163,6 +163,21 @@ const AnimationNode: React.FC<AnimationNodeProps> = ({
           </text>
         </motion.g>
       )}
+
+      {/* Burst effect for report/final nodes */}
+      {status === 'complete' && id.includes('report') && (
+        <motion.circle
+          cx={x}
+          cy={y}
+          r={NODE_WIDTH / 2}
+          fill="none"
+          stroke="#07b6d5"
+          strokeWidth={2}
+          initial={{ r: 10, opacity: 0.8 }}
+          animate={{ r: NODE_WIDTH, opacity: 0 }}
+          transition={{ duration: 1.5, ease: 'easeOut' }}
+        />
+      )}
     </motion.g>
   );
 };
