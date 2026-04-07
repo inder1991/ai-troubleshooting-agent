@@ -422,9 +422,11 @@ const WorkflowAnimation: React.FC<WorkflowAnimationProps> = ({ config }) => {
               })}
 
               {/* Nodes */}
-              {config.nodes.map((node) => {
+              {config.nodes.map((node, idx) => {
                 const ns = nodeStatuses[node.id] || { status: 'pending' as const, progress: 0 };
                 const isDimmed = isFinale && !node.id.includes('report');
+                // Stagger dimming left-to-right by x-position (100ms per step)
+                const dimDelay = isDimmed ? (node.x / config.viewBoxWidth) * (config.nodes.length * 0.1) : 0;
                 return (
                   <AnimationNode
                     key={node.id}
@@ -439,6 +441,7 @@ const WorkflowAnimation: React.FC<WorkflowAnimationProps> = ({ config }) => {
                     badge={node.badge}
                     accentColor={node.accentColor}
                     dimmed={isDimmed}
+                    dimDelay={dimDelay}
                   />
                 );
               })}

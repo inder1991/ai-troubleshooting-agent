@@ -20,8 +20,8 @@ interface AnimationEdgeProps {
 const AnimationEdge: React.FC<AnimationEdgeProps> = ({
   fromX, fromY, toX, toY, status,
   color = WF_COLORS.amber,
-  fromWidth = 140, fromHeight = 52,
-  toWidth = 140, toHeight = 52,
+  fromWidth = 150, fromHeight = 56,
+  toWidth = 150, toHeight = 56,
 }) => {
   const id = useId();
 

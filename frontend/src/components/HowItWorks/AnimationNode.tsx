@@ -20,6 +20,7 @@ interface AnimationNodeProps {
   badge?: string;
   accentColor?: string;
   dimmed?: boolean;
+  dimDelay?: number; // seconds, for staggered left-to-right dimming
 }
 
 const TIER_SIZES = {
@@ -37,7 +38,7 @@ const STATUS_COLORS = {
 const RING_RADIUS = 14;
 
 const AnimationNode: React.FC<AnimationNodeProps> = ({
-  id, label, duck, x, y, tier, status, progress = 0, subtitle, badge, accentColor, dimmed,
+  id, label, duck, x, y, tier, status, progress = 0, subtitle, badge, accentColor, dimmed, dimDelay = 0,
 }) => {
   const colors = STATUS_COLORS[status];
   const size = TIER_SIZES[tier];
@@ -54,7 +55,7 @@ const AnimationNode: React.FC<AnimationNodeProps> = ({
     <motion.g
       initial={{ opacity: 0, scale: 0.8 }}
       animate={{ opacity: dimmed ? 0.4 : 1, scale: 1 }}
-      transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+      transition={{ type: 'spring', stiffness: 200, damping: 20, delay: dimmed ? dimDelay : 0 }}
     >
       {/* Glow */}
       {status !== 'pending' && !dimmed && (
