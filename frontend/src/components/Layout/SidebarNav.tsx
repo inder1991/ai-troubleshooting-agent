@@ -8,7 +8,7 @@ export type NavView = 'home' | 'sessions' | 'app-diagnostics' | 'cluster-diagnos
   | 'db-overview' | 'db-connections' | 'db-diagnostics' | 'db-monitoring' | 'db-schema' | 'db-operations'
   | 'integrations' | 'settings' | 'agent-matrix'
   | 'audit-log' | 'mib-browser' | 'cloud-resources' | 'security-resources'
-  | 'agent-catalog' | 'workflow-builder' | 'workflow-runs';
+  | 'agent-catalog' | 'workflow-builder' | 'workflow-runs' | 'how-it-works';
 
 type NavChild = { id: NavView; label: string; icon: string; badge?: 'NEW' | 'PREVIEW' | 'BETA' };
 type NavLink = { kind: 'link'; id: NavView; label: string; icon: string };
@@ -360,7 +360,7 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ activeView, onNavigate, onNewMi
               {/* Help & Feedback */}
               <button
                 className="w-full flex items-center gap-2.5 px-3 py-2 text-slate-400 hover:text-slate-200 hover:bg-white/[0.04] transition-colors text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-duck-accent"
-                onClick={() => window.open('https://docs.debugduck.dev', '_blank')}
+                onClick={() => onNavigate('how-it-works')}
                 aria-label="Help and documentation"
               >
                 <span className="material-symbols-outlined text-[18px]" aria-hidden="true">help</span>
@@ -383,7 +383,7 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ activeView, onNavigate, onNewMi
           {collapsed && (
             <div className="flex flex-col items-center gap-2 py-2">
               <button
-                onClick={() => window.open('https://docs.debugduck.dev', '_blank')}
+                onClick={() => onNavigate('how-it-works')}
                 className="text-slate-500 hover:text-slate-200 transition-colors"
                 aria-label="Help"
                 title="Help & Docs"

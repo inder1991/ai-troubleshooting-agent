@@ -63,9 +63,10 @@ import { Breadcrumbs } from './components/shared';
 import AgentCatalogView from './components/Platform/AgentCatalog/AgentCatalogView';
 import WorkflowBuilderView from './components/Platform/WorkflowBuilder/WorkflowBuilderView';
 import WorkflowRunsView from './components/Platform/WorkflowRuns/WorkflowRunsView';
+import HowItWorksView from './components/HowItWorks/HowItWorksView';
 
 
-type ViewState = 'home' | 'form' | 'investigation' | 'sessions' | 'integrations' | 'settings' | 'dossier' | 'cluster-diagnostics' | 'agent-matrix' | 'network-troubleshooting' | 'network-topology' | 'network-adapters' | 'device-monitoring' | 'ipam' | 'matrix' | 'observatory' | 'db-overview' | 'db-connections' | 'db-diagnostics' | 'db-monitoring' | 'db-schema' | 'db-operations' | 'k8s-clusters' | 'audit-log' | 'mib-browser' | 'cloud-resources' | 'security-resources' | 'cluster-registry' | 'cluster-recommendations' | 'live-topology' | 'agent-catalog' | 'workflow-builder' | 'workflow-runs';
+type ViewState = 'home' | 'form' | 'investigation' | 'sessions' | 'integrations' | 'settings' | 'dossier' | 'cluster-diagnostics' | 'agent-matrix' | 'network-troubleshooting' | 'network-topology' | 'network-adapters' | 'device-monitoring' | 'ipam' | 'matrix' | 'observatory' | 'db-overview' | 'db-connections' | 'db-diagnostics' | 'db-monitoring' | 'db-schema' | 'db-operations' | 'k8s-clusters' | 'audit-log' | 'mib-browser' | 'cloud-resources' | 'security-resources' | 'cluster-registry' | 'cluster-recommendations' | 'live-topology' | 'agent-catalog' | 'workflow-builder' | 'workflow-runs' | 'how-it-works';
 
 function AppInner() {
   const { addToast } = useToast();
@@ -218,6 +219,8 @@ function AppInner() {
     } else if (view === 'github-issue-fix') {
       setSelectedCapability('github_issue_fix');
       setViewState('form');
+    } else if (view === 'how-it-works') {
+      setViewState('how-it-works');
     } else {
       setViewState(view as ViewState);
     }
@@ -498,6 +501,7 @@ function AppInner() {
     'cloud-resources': 'cloud-resources', 'security-resources': 'security-resources',
     'cluster-registry': 'cluster-registry', 'cluster-recommendations': 'cluster-recommendations',
     'agent-catalog': 'agent-catalog', 'workflow-builder': 'workflow-builder', 'workflow-runs': 'workflow-runs',
+    'how-it-works': 'how-it-works' as NavView,
   };
 
   const navView: NavView =
@@ -772,6 +776,10 @@ function AppInner() {
         {viewState === 'agent-catalog' && <AgentCatalogView />}
         {viewState === 'workflow-builder' && <WorkflowBuilderView />}
         {viewState === 'workflow-runs' && <WorkflowRunsView onNavigate={(v) => setViewState(v as ViewState)} />}
+
+        {viewState === 'how-it-works' && (
+          <HowItWorksView onGoHome={handleGoHome} />
+        )}
 
         {viewState === 'network-troubleshooting' && activeSession && (
           <NetworkWarRoom
