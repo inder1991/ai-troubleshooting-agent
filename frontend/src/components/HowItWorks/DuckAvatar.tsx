@@ -35,12 +35,12 @@ function Accessory({ variant }: { variant: DuckVariant }) {
     case 'supervisor':
       // Headset: arc over head + small mic
       return (
-        <g stroke="#07b6d5" strokeWidth="1" fill="none">
+        <g stroke="#e09f3e" strokeWidth="1" fill="none">
           <path d="M8 5.5 Q8 2 12 2 Q16 2 16 5.5" />
-          <circle cx="7.5" cy="5.5" r="1.2" fill="#07b6d5" />
-          <circle cx="16.5" cy="5.5" r="1.2" fill="#07b6d5" />
+          <circle cx="7.5" cy="5.5" r="1.2" fill="#e09f3e" />
+          <circle cx="16.5" cy="5.5" r="1.2" fill="#e09f3e" />
           <line x1="7.5" y1="6.7" x2="7.5" y2="8.5" />
-          <circle cx="7.5" cy="9" r="0.6" fill="#07b6d5" />
+          <circle cx="7.5" cy="9" r="0.6" fill="#e09f3e" />
         </g>
       );
     case 'log':
@@ -71,9 +71,9 @@ function Accessory({ variant }: { variant: DuckVariant }) {
     case 'network':
       // Antenna on head
       return (
-        <g stroke="#07b6d5" strokeWidth="0.8">
+        <g stroke="#e09f3e" strokeWidth="0.8">
           <line x1="12" y1="4" x2="12" y2="0.5" />
-          <circle cx="12" cy="0" r="1" fill="#07b6d5" />
+          <circle cx="12" cy="0" r="1" fill="#e09f3e" />
           <path d="M9.5 1.5 Q12 -0.5 14.5 1.5" fill="none" strokeWidth="0.6" opacity="0.5" />
           <path d="M8 2.5 Q12 -1.5 16 2.5" fill="none" strokeWidth="0.5" opacity="0.3" />
         </g>
@@ -199,6 +199,31 @@ const DuckAvatar: React.FC<DuckAvatarProps> = ({ variant, state, size = 24 }) =>
         </motion.g>
       )}
     </motion.svg>
+  );
+};
+
+/**
+ * Pure SVG content — no <svg> wrapper.
+ * Renders in a 24x24 coordinate system.
+ * Parent must provide transform for positioning and scaling.
+ */
+export const DuckSVGContent: React.FC<{ variant: DuckVariant; state: DuckState }> = ({ variant, state }) => {
+  const bodyFill = state === 'done' ? '#10b981' : state === 'working' ? '#fbbf24' : '#475569';
+  const bodyStroke = state === 'done' ? '#059669' : state === 'working' ? '#d97706' : '#334155';
+
+  return (
+    <g>
+      <path d={DUCK_BODY} fill={bodyFill} stroke={bodyStroke} strokeWidth="0.5" />
+      <path d={DUCK_BEAK} fill="#f59e0b" />
+      <circle cx={DUCK_EYE.cx} cy={DUCK_EYE.cy} r={DUCK_EYE.r} fill="white" />
+      <Accessory variant={variant} />
+      {state === 'done' && (
+        <g>
+          <circle cx="19" cy="16" r="3.5" fill="#059669" />
+          <path d="M17.5 16l1 1 2-2.5" stroke="white" strokeWidth="1" fill="none" strokeLinecap="round" />
+        </g>
+      )}
+    </g>
   );
 };
 
