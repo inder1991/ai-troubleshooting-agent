@@ -26,7 +26,7 @@ const AnimationEdge: React.FC<AnimationEdgeProps> = ({
   // Bezier curve for smooth path
   const pathD = `M ${fromX} ${startY} C ${fromX} ${midY}, ${toX} ${midY}, ${toX} ${endY}`;
 
-  const strokeColor = status === 'pending' ? '#1e293b' : status === 'complete' ? color : color;
+  const strokeColor = status === 'pending' ? '#1e293b' : color;
   const strokeOpacity = status === 'pending' ? 0.3 : 0.6;
 
   return (

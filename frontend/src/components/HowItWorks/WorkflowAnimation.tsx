@@ -16,6 +16,7 @@ const WorkflowAnimation: React.FC<WorkflowAnimationProps> = ({ config }) => {
   const [isPlaying, setIsPlaying] = useState(true);
   const rafRef = useRef<number | null>(null);
   const lastTickRef = useRef<number | null>(null);
+  const doneRef = useRef(false);
 
   // Animation loop
   useEffect(() => {
@@ -34,13 +35,16 @@ const WorkflowAnimation: React.FC<WorkflowAnimationProps> = ({ config }) => {
       setElapsed((prev) => {
         const next = prev + delta;
         if (next >= config.totalDuration) {
+          doneRef.current = true;
           setIsPlaying(false);
           return config.totalDuration;
         }
         return next;
       });
 
-      rafRef.current = requestAnimationFrame(tick);
+      if (!doneRef.current) {
+        rafRef.current = requestAnimationFrame(tick);
+      }
     };
 
     rafRef.current = requestAnimationFrame(tick);
@@ -53,6 +57,7 @@ const WorkflowAnimation: React.FC<WorkflowAnimationProps> = ({ config }) => {
     if (elapsed >= config.totalDuration) {
       // Reset and play
       setElapsed(0);
+      doneRef.current = false;
       setIsPlaying(true);
     } else {
       setIsPlaying((p) => !p);
@@ -63,6 +68,7 @@ const WorkflowAnimation: React.FC<WorkflowAnimationProps> = ({ config }) => {
     setElapsed(0);
     setIsPlaying(false);
     lastTickRef.current = null;
+    doneRef.current = false;
   }, []);
 
   const handleSeek = useCallback((time: number) => {
@@ -257,19 +263,22 @@ const WorkflowAnimation: React.FC<WorkflowAnimationProps> = ({ config }) => {
           })}
 
           {/* Completion pulse — subtle top-to-bottom glow when done */}
-          {elapsed >= config.totalDuration && (
-            <motion.rect
-              x={0}
-              y={0}
-              width="100%"
-              height="4"
-              fill="url(#completion-gradient)"
-              initial={{ y: config.nodes[0].y - 50 }}
-              animate={{ y: config.nodes[config.nodes.length - 1].y + 60 }}
-              transition={{ duration: 2, ease: 'easeInOut' }}
-              opacity={0.3}
-            />
-          )}
+          {elapsed >= config.totalDuration && (() => {
+            const [vbMinX, , vbWidth] = viewBox.split(' ').map(Number);
+            return (
+              <motion.rect
+                x={vbMinX}
+                y={0}
+                width={vbWidth}
+                height={4}
+                fill="url(#completion-gradient)"
+                initial={{ y: config.nodes[0].y - 50 }}
+                animate={{ y: config.nodes[config.nodes.length - 1].y + 60 }}
+                transition={{ duration: 2, ease: 'easeInOut' }}
+                opacity={0.3}
+              />
+            );
+          })()}
         </svg>
       </div>
 

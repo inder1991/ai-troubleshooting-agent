@@ -164,9 +164,10 @@ const AnimationNode: React.FC<AnimationNodeProps> = ({
         </motion.g>
       )}
 
-      {/* Burst effect for report/final nodes */}
+      {/* Burst effect for report/final nodes — key ensures one-shot animation */}
       {status === 'complete' && id.includes('report') && (
         <motion.circle
+          key={`${id}-burst`}
           cx={x}
           cy={y}
           r={NODE_WIDTH / 2}
