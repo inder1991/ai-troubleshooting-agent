@@ -1,5 +1,6 @@
 import React, { useId } from 'react';
 import { motion } from 'framer-motion';
+import { WF_COLORS } from './workflowConfigs';
 
 export type EdgeStatus = 'pending' | 'active' | 'complete';
 
@@ -10,28 +11,50 @@ interface AnimationEdgeProps {
   toY: number;
   status: EdgeStatus;
   color?: string;
-  nodeHeight?: number; // to offset from node bottom to next node top
+  fromWidth?: number;
+  fromHeight?: number;
+  toWidth?: number;
+  toHeight?: number;
 }
 
 const AnimationEdge: React.FC<AnimationEdgeProps> = ({
-  fromX, fromY, toX, toY, status, color = '#07b6d5', nodeHeight = 52,
+  fromX, fromY, toX, toY, status,
+  color = WF_COLORS.amber,
+  fromWidth = 140, fromHeight = 52,
+  toWidth = 140, toHeight = 52,
 }) => {
   const id = useId();
 
-  // Start from bottom of source node, end at top of target node
-  const startY = fromY + nodeHeight / 2;
-  const endY = toY - nodeHeight / 2;
-  const midY = (startY + endY) / 2;
+  // Determine if edge is primarily horizontal or vertical
+  const dx = Math.abs(toX - fromX);
+  const dy = Math.abs(toY - fromY);
+  const horizontal = dx > dy;
 
-  // Bezier curve for smooth path
-  const pathD = `M ${fromX} ${startY} C ${fromX} ${midY}, ${toX} ${midY}, ${toX} ${endY}`;
+  let pathD: string;
 
-  const strokeColor = status === 'pending' ? '#1e293b' : color;
+  if (horizontal) {
+    // Horizontal: exit right side of source, enter left side of target
+    const startX = fromX + fromWidth / 2;
+    const startY = fromY;
+    const endX = toX - toWidth / 2;
+    const endY = toY;
+    const cpOffset = (endX - startX) * 0.4;
+    pathD = `M ${startX} ${startY} C ${startX + cpOffset} ${startY}, ${endX - cpOffset} ${endY}, ${endX} ${endY}`;
+  } else {
+    // Vertical: exit bottom of source, enter top of target
+    const startX = fromX;
+    const startY = fromY + fromHeight / 2;
+    const endX = toX;
+    const endY = toY - toHeight / 2;
+    const cpOffset = (endY - startY) * 0.4;
+    pathD = `M ${startX} ${startY} C ${startX} ${startY + cpOffset}, ${endX} ${endY - cpOffset}, ${endX} ${endY}`;
+  }
+
+  const strokeColor = status === 'pending' ? WF_COLORS.pendingStroke : color;
   const strokeOpacity = status === 'pending' ? 0.3 : 0.6;
 
   return (
     <g>
-      {/* Background path */}
       <path
         d={pathD}
         fill="none"
@@ -40,43 +63,26 @@ const AnimationEdge: React.FC<AnimationEdgeProps> = ({
         strokeOpacity={strokeOpacity}
       />
 
-      {/* Animated particle (active only) */}
       {status === 'active' && (
         <>
-          {/* Glow particle */}
           <motion.circle
             r={3}
             fill={color}
             filter={`url(#particle-glow-${id})`}
             initial={{ offsetDistance: '0%' }}
             animate={{ offsetDistance: '100%' }}
-            transition={{
-              duration: 1.2,
-              repeat: Infinity,
-              ease: 'linear',
-            }}
-            style={{
-              offsetPath: `path("${pathD}")`,
-            }}
+            transition={{ duration: 1.2, repeat: Infinity, ease: 'linear' }}
+            style={{ offsetPath: `path("${pathD}")` }}
           />
-          {/* Trail particle (slightly behind) */}
           <motion.circle
             r={2}
             fill={color}
             opacity={0.5}
             initial={{ offsetDistance: '0%' }}
             animate={{ offsetDistance: '100%' }}
-            transition={{
-              duration: 1.2,
-              repeat: Infinity,
-              ease: 'linear',
-              delay: 0.2,
-            }}
-            style={{
-              offsetPath: `path("${pathD}")`,
-            }}
+            transition={{ duration: 1.2, repeat: Infinity, ease: 'linear', delay: 0.2 }}
+            style={{ offsetPath: `path("${pathD}")` }}
           />
-          {/* SVG filter for particle glow */}
           <defs>
             <filter id={`particle-glow-${id}`} x="-50%" y="-50%" width="200%" height="200%">
               <feGaussianBlur in="SourceGraphic" stdDeviation="2" result="blur" />
@@ -89,7 +95,6 @@ const AnimationEdge: React.FC<AnimationEdgeProps> = ({
         </>
       )}
 
-      {/* Completion pulse (one-shot when transitioning to complete) */}
       {status === 'complete' && (
         <motion.path
           d={pathD}
