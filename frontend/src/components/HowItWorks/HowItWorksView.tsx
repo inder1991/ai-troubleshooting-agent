@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
 import WorkflowAnimation from './WorkflowAnimation';
 import { clusterConfig, appConfig, WF_COLORS } from './workflowConfigs';
+import DemoScenarioTab from './DemoScenarioTab';
 
 interface HowItWorksViewProps {
   onGoHome: () => void;
 }
 
-type Tab = 'cluster' | 'app';
+type Tab = 'cluster' | 'app' | 'demo';
 
 const TABS: { id: Tab; label: string; icon: string }[] = [
   { id: 'cluster', label: 'Cluster Diagnostics', icon: 'deployed_code' },
   { id: 'app',     label: 'App Diagnostics',     icon: 'bug_report' },
+  { id: 'demo',    label: 'Demo Scenario',      icon: 'play_lesson' },
 ];
 
 const HowItWorksView: React.FC<HowItWorksViewProps> = ({ onGoHome }) => {
@@ -68,6 +70,7 @@ const HowItWorksView: React.FC<HowItWorksViewProps> = ({ onGoHome }) => {
       <div className="flex-1 overflow-hidden">
         {activeTab === 'cluster' && <WorkflowAnimation key="cluster" config={clusterConfig} />}
         {activeTab === 'app' && <WorkflowAnimation key="app" config={appConfig} />}
+        {activeTab === 'demo' && <DemoScenarioTab />}
       </div>
     </div>
   );
