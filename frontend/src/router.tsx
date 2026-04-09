@@ -3,7 +3,8 @@ import AppLayout from './layouts/AppLayout';
 import NotFound from './pages/NotFound';
 import InvestigationRoute, { DossierRoute } from './pages/InvestigationRoute';
 import type { CapabilityType, CapabilityFormData } from './types';
-import { startSessionV4 } from './services/api';
+import { startSessionV4, API_BASE_URL } from './services/api';
+import { useQuery } from '@tanstack/react-query';
 import CapabilityForm from './components/ActionCenter/CapabilityForm';
 
 // Existing page components
@@ -60,9 +61,18 @@ function HowItWorksRoute() {
 
 function SessionsRoute() {
   const navigate = useNavigate();
+  const { data: sessions = [] } = useQuery({
+    queryKey: ['sessions'],
+    queryFn: async () => {
+      const response = await fetch(`${API_BASE_URL}/api/v4/sessions`);
+      if (!response.ok) throw new Error('Failed to fetch sessions');
+      return response.json();
+    },
+  });
+
   return (
     <SessionManagerView
-      sessions={[]}
+      sessions={sessions}
       onSessionsChange={() => {}}
       onSelectSession={(session) => navigate(`/investigations/${session.session_id}`)}
     />
