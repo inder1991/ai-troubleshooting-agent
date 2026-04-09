@@ -16,6 +16,61 @@ from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
+LANGUAGE_CONFIG = {
+    "python": {
+        "extensions": [".py"],
+        "syntax_cmd": None,  # uses in-process ast.parse()
+        "lint_cmd": ["ruff", "check", "--output-format=json"],
+        "lint_parse_json": True,
+    },
+    "go": {
+        "extensions": [".go"],
+        "syntax_cmd": ["go", "vet"],
+        "lint_cmd": ["golangci-lint", "run", "--out-format=json"],
+        "lint_parse_json": True,
+        "lint_fallback_cmd": ["go", "vet"],
+    },
+    "javascript": {
+        "extensions": [".js", ".jsx", ".mjs"],
+        "syntax_cmd": ["node", "--check"],
+        "lint_cmd": ["eslint", "--format=json"],
+        "lint_parse_json": True,
+    },
+    "typescript": {
+        "extensions": [".ts", ".tsx"],
+        "syntax_cmd": ["npx", "tsc", "--noEmit", "--allowJs"],
+        "lint_cmd": ["eslint", "--format=json"],
+        "lint_parse_json": True,
+    },
+    "kotlin": {
+        "extensions": [".kt", ".kts"],
+        "syntax_cmd": ["kotlinc", "-script"],
+        "lint_cmd": ["ktlint"],
+        "lint_parse_json": False,
+    },
+    "java": {
+        "extensions": [".java"],
+        "syntax_cmd": ["javac", "-d", "/tmp"],
+        "lint_cmd": ["checkstyle", "-c", "/google_checks.xml"],
+        "lint_parse_json": False,
+    },
+}
+
+# Build reverse lookup: extension → language name
+_EXT_TO_LANG: dict[str, str] = {}
+for _lang, _cfg in LANGUAGE_CONFIG.items():
+    for _ext in _cfg["extensions"]:
+        _EXT_TO_LANG[_ext] = _lang
+
+
+def detect_language(file_path: str) -> str | None:
+    """Detect programming language from file extension.
+
+    Returns language key from LANGUAGE_CONFIG, or None if unknown.
+    """
+    ext = Path(file_path).suffix.lower()
+    return _EXT_TO_LANG.get(ext)
+
 
 class StaticValidator:
     """Validates generated code without executing it"""
