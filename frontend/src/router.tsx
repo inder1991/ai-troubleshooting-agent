@@ -1,6 +1,7 @@
 import { createBrowserRouter, useNavigate, useSearchParams } from 'react-router-dom';
 import AppLayout from './layouts/AppLayout';
 import NotFound from './pages/NotFound';
+import InvestigationRoute, { DossierRoute } from './pages/InvestigationRoute';
 import type { CapabilityType, CapabilityFormData } from './types';
 import { startSessionV4 } from './services/api';
 import CapabilityForm from './components/ActionCenter/CapabilityForm';
@@ -161,6 +162,8 @@ export const router = createBrowserRouter([
       // Investigations
       { path: 'investigations', element: <SessionsRoute /> },
       { path: 'investigations/new', element: <CapabilityFormRoute /> },
+      { path: 'investigations/:sessionId', element: <InvestigationRoute /> },
+      { path: 'investigations/:sessionId/dossier', element: <DossierRoute /> },
 
       // Network section
       { path: 'network/topology', element: <TopologyEditorView /> },
