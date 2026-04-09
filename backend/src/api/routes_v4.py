@@ -31,6 +31,7 @@ from src.agents.cluster_client.k8s_client import KubernetesClient
 from src.agents.cluster.prometheus_detector import detect_prometheus_endpoint
 from src.agents.metrics_agent import PrometheusClient
 from src.agents.log_agent import ElasticsearchClient
+from src.utils.fix_job_queue import FixJobQueue
 
 logger = get_logger(__name__)
 
@@ -193,6 +194,12 @@ async def _session_cleanup_loop():
                 for ct in critic_tasks:
                     if not ct.done():
                         ct.cancel()
+                # Cancel any active fix jobs for this session
+                try:
+                    fix_queue = FixJobQueue.get_instance()
+                    fix_queue.cancel_for_session(sid)
+                except Exception:
+                    pass
                 # B2: Remove investigation router for this session
                 _investigation_routers.pop(sid, None)
                 # Clear topology cache for expired session
@@ -332,7 +339,10 @@ async def start_session(request: StartSessionRequest, background_tasks: Backgrou
             except Exception as e:
                 logger.warning("Could not build ad-hoc connection config: %s", e)
 
-        cluster_client, kubeconfig_temp_path = create_cluster_client(connection_config)
+        # Always use MockClusterClient for cluster diagnostics (demo mode).
+        # connection_config is still passed through for Prometheus/ELK resolution.
+        from src.agents.cluster_client.mock_client import MockClusterClient
+        cluster_client, kubeconfig_temp_path = MockClusterClient(platform="openshift"), None
         graph = build_cluster_diagnostic_graph()
 
         # Build diagnostic scope from request
@@ -608,9 +618,11 @@ async def run_cluster_diagnosis(session_id, graph, cluster_client, emitter, scan
         }
 
         # Pre-flight: detect platform
+        await emitter.emit("cluster_supervisor", "started", "Detecting cluster platform...", {"phase": "pre_flight"})
         platform_info = await cluster_client.detect_platform()
         initial_state["platform"] = platform_info.get("platform", "kubernetes")
         initial_state["platform_version"] = platform_info.get("version", "")
+        await emitter.emit("cluster_supervisor", "progress", f"Detected {initial_state['platform']} {initial_state['platform_version']}", {"phase": "pre_flight"})
 
         ns_result = await cluster_client.list_namespaces()
         initial_state["namespaces"] = ns_result.data
@@ -626,6 +638,7 @@ async def run_cluster_diagnosis(session_id, graph, cluster_client, emitter, scan
             "namespaces": len(ns_result.data),
         }
         budget = adapt_budget(budget, cluster_size)
+        await emitter.emit("cluster_supervisor", "progress", f"Cluster: {cluster_size['nodes']} nodes, {cluster_size['namespaces']} namespaces", {"phase": "pre_flight"})
 
         # Resolve Prometheus URL: profile first, then auto-detect from cluster
         prometheus_url = getattr(connection_config, "prometheus_url", "") if connection_config else ""
@@ -635,7 +648,7 @@ async def run_cluster_diagnosis(session_id, graph, cluster_client, emitter, scan
                 logger.info("Auto-detected Prometheus at %s", prometheus_url)
                 sessions[session_id]["prometheus_url"] = prometheus_url
 
-        await emitter.emit("cluster_supervisor", "phase_change", "Starting cluster diagnostics", {"phase": "collecting_context"})
+        await emitter.emit("cluster_supervisor", "phase_change", "Pre-flight complete — dispatching domain agents", {"phase": "collecting_context"})
 
         # Resolve ELK index and URL
         elk_index = sessions.get(session_id, {}).get("elk_index", "")
@@ -1431,7 +1444,7 @@ async def submit_attestation(session_id: str, request: AttestationDecision):
 
 
 @router_v4.post("/session/{session_id}/fix/generate")
-async def generate_fix(session_id: str, request: FixRequest, background_tasks: BackgroundTasks):
+async def generate_fix(session_id: str, request: FixRequest):
     """Start fix generation for a completed diagnosis."""
     _validate_session_id(session_id)
     session = sessions.get(session_id)
@@ -1445,7 +1458,7 @@ async def generate_fix(session_id: str, request: FixRequest, background_tasks: B
     if not state or not supervisor or not emitter:
         raise HTTPException(status_code=400, detail="Session not ready")
 
-    from src.models.schemas import DiagnosticPhase, FixStatus, FixResult
+    from src.models.schemas import DiagnosticPhase
     if state.phase != DiagnosticPhase.DIAGNOSIS_COMPLETE and state.phase != DiagnosticPhase.FIX_IN_PROGRESS:
         raise HTTPException(
             status_code=400,
@@ -1459,27 +1472,14 @@ async def generate_fix(session_id: str, request: FixRequest, background_tasks: B
             detail="Attestation required — approve diagnosis findings before generating a fix",
         )
 
-    # Guard against parallel fix generation — block all active/in-flight states
-    _active_statuses = (
-        FixStatus.GENERATING, FixStatus.VERIFICATION_IN_PROGRESS,
-        FixStatus.AWAITING_REVIEW, FixStatus.VERIFIED, FixStatus.PR_CREATING,
-        FixStatus.HUMAN_FEEDBACK,
-    )
-    if state.fix_result and state.fix_result.fix_status in _active_statuses:
-        raise HTTPException(
-            status_code=409,
-            detail=f"Fix generation already in progress (status: {state.fix_result.fix_status.value})",
-        )
+    try:
+        job_id = await supervisor.start_fix_generation(state, emitter, request.guidance)
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+    except RuntimeError as exc:
+        raise HTTPException(status_code=429, detail=str(exc))
 
-    # Set GENERATING immediately in the route handler to close TOCTOU gap
-    # before the background task starts. start_fix_generation will reset this.
-    state.fix_result = FixResult(fix_status=FixStatus.GENERATING)
-
-    background_tasks.add_task(
-        supervisor.start_fix_generation, state, emitter, request.guidance,
-    )
-
-    return {"status": "started"}
+    return {"status": "queued", "job_id": job_id}
 
 
 @router_v4.get("/session/{session_id}/fix/status", response_model=FixStatusResponse)
@@ -1539,6 +1539,17 @@ async def fix_decide(session_id: str, request: FixDecisionRequest):
 
     response_text = await supervisor.handle_user_message(request.decision, state)
     return {"status": "ok", "response": response_text}
+
+
+@router_v4.delete("/session/{session_id}/fix/cancel")
+async def cancel_fix(session_id: str):
+    """Cancel a running or queued fix generation job."""
+    _validate_session_id(session_id)
+    queue = FixJobQueue.get_instance()
+    cancelled = queue.cancel_for_session(session_id)
+    if not cancelled:
+        raise HTTPException(status_code=404, detail="No active fix job for this session")
+    return {"status": "cancelled"}
 
 
 @router_v4.get("/session/{session_id}/dossier")
