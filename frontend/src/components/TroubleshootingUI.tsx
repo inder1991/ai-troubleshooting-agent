@@ -690,7 +690,7 @@ const TroubleshootingChatbot: React.FC = () => {
           ...prev[activeSessionId],
           messages: [...prev[activeSessionId].messages, {
             role: 'assistant',
-            content: '❌ Connection error. Please ensure backend is running at http://localhost:8000',
+            content: '❌ Connection error. Please ensure the backend is running.',
             timestamp: new Date().toISOString()
           }]
         }

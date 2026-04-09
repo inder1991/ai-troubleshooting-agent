@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
 import type { RemediationCampaign, TelescopeData } from '../types/campaign';
 
-const API_BASE = 'http://localhost:8000';
+const API_BASE = '';
 
 interface CampaignState {
   campaign: RemediationCampaign | null;
