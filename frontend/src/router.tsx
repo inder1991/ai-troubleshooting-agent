@@ -1,5 +1,11 @@
 import { createBrowserRouter, useNavigate, useSearchParams } from 'react-router-dom';
 import AppLayout from './layouts/AppLayout';
+import NetworkLayout from './layouts/NetworkLayout';
+import DatabaseLayout from './layouts/DatabaseLayout';
+import ClustersLayout from './layouts/ClustersLayout';
+import AgentsLayout from './layouts/AgentsLayout';
+import WorkflowsLayout from './layouts/WorkflowsLayout';
+import SettingsLayout from './layouts/SettingsLayout';
 import NotFound from './pages/NotFound';
 import InvestigationRoute, { DossierRoute } from './pages/InvestigationRoute';
 import type { CapabilityType, CapabilityFormData } from './types';
@@ -176,41 +182,78 @@ export const router = createBrowserRouter([
       { path: 'investigations/:sessionId/dossier', element: <DossierRoute /> },
 
       // Network section
-      { path: 'network/topology', element: <TopologyEditorView /> },
-      { path: 'network/adapters', element: <NetworkAdaptersView /> },
-      { path: 'network/monitoring', element: <DeviceMonitoring /> },
-      { path: 'network/ipam', element: <IPAMDashboard /> },
-      { path: 'network/flows', element: <ReachabilityMatrix /> },
-      { path: 'network/observatory', element: <ObservatoryRoute /> },
+      {
+        path: 'network',
+        element: <NetworkLayout />,
+        children: [
+          { path: 'topology', element: <TopologyEditorView /> },
+          { path: 'adapters', element: <NetworkAdaptersView /> },
+          { path: 'monitoring', element: <DeviceMonitoring /> },
+          { path: 'ipam', element: <IPAMDashboard /> },
+          { path: 'flows', element: <ReachabilityMatrix /> },
+          { path: 'observatory', element: <ObservatoryRoute /> },
+          { path: 'mib-browser', element: <MIBBrowserView /> },
+          { path: 'cloud', element: <CloudResourcesView /> },
+          { path: 'security', element: <SecurityResourcesView /> },
+        ],
+      },
+      // Keep live-topology OUTSIDE NetworkLayout (it's full-screen, no sub-nav)
       { path: 'network/live-topology', element: <LiveTopologyRoute /> },
-      { path: 'network/mib-browser', element: <MIBBrowserView /> },
-      { path: 'network/cloud', element: <CloudResourcesView /> },
-      { path: 'network/security', element: <SecurityResourcesView /> },
 
       // Database section
-      { path: 'database', element: <DBOverview /> },
-      { path: 'database/connections', element: <DBConnections /> },
-      { path: 'database/diagnostics', element: <DBDiagnosticsPage /> },
-      { path: 'database/monitoring', element: <DBMonitoring /> },
-      { path: 'database/schema', element: <DBSchema /> },
-      { path: 'database/operations', element: <DBOperations /> },
+      {
+        path: 'database',
+        element: <DatabaseLayout />,
+        children: [
+          { index: true, element: <DBOverview /> },
+          { path: 'connections', element: <DBConnections /> },
+          { path: 'diagnostics', element: <DBDiagnosticsPage /> },
+          { path: 'monitoring', element: <DBMonitoring /> },
+          { path: 'schema', element: <DBSchema /> },
+          { path: 'operations', element: <DBOperations /> },
+        ],
+      },
 
       // Clusters section
-      { path: 'clusters', element: <KubernetesClusters /> },
-      { path: 'clusters/registry', element: <ClusterRegistryRoute /> },
-      { path: 'clusters/recommendations', element: <ClusterRecommendationsRoute /> },
+      {
+        path: 'clusters',
+        element: <ClustersLayout />,
+        children: [
+          { index: true, element: <KubernetesClusters /> },
+          { path: 'registry', element: <ClusterRegistryRoute /> },
+          { path: 'recommendations', element: <ClusterRecommendationsRoute /> },
+        ],
+      },
 
       // Agents section
-      { path: 'agents', element: <AgentCatalogView /> },
-      { path: 'agents/matrix', element: <AgentMatrixRoute /> },
+      {
+        path: 'agents',
+        element: <AgentsLayout />,
+        children: [
+          { index: true, element: <AgentCatalogView /> },
+          { path: 'matrix', element: <AgentMatrixRoute /> },
+        ],
+      },
 
       // Workflows section
-      { path: 'workflows', element: <WorkflowBuilderView /> },
-      { path: 'workflows/runs', element: <WorkflowRunsRoute /> },
+      {
+        path: 'workflows',
+        element: <WorkflowsLayout />,
+        children: [
+          { index: true, element: <WorkflowBuilderView /> },
+          { path: 'runs', element: <WorkflowRunsRoute /> },
+        ],
+      },
 
       // Settings section
-      { path: 'settings', element: <SettingsView /> },
-      { path: 'settings/integrations', element: <IntegrationsRoute /> },
+      {
+        path: 'settings',
+        element: <SettingsLayout />,
+        children: [
+          { index: true, element: <SettingsView /> },
+          { path: 'integrations', element: <IntegrationsRoute /> },
+        ],
+      },
 
       // Audit
       { path: 'audit', element: <AuditLogView /> },
