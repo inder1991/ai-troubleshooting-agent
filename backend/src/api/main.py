@@ -3,8 +3,9 @@ FastAPI Main Application
 Entry point for the API server
 """
 
+from pathlib import Path as _P
 from dotenv import load_dotenv
-load_dotenv()
+load_dotenv(_P(__file__).resolve().parent.parent.parent / ".env")
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -15,6 +16,7 @@ from slowapi.errors import RateLimitExceeded
 from .pr_endpoints import router as pr_router
 from datetime import datetime
 
+from src.utils.fix_job_queue import FixJobQueue
 from .routes_v4 import router_v4
 from . import db_session_endpoints as _db_session_endpoints  # noqa: F401 — ensure module is loaded
 from .agent_endpoints import agent_router
@@ -211,7 +213,8 @@ def create_app() -> FastAPI:
     @app.on_event("startup")
     async def startup():
         import os
-        logger.info("DebugDuck starting in %s mode", APP_MODE.upper())
+        _mode = "PRODUCTION" if is_production_mode() else "DEMO"
+        logger.info("DebugDuck starting in %s mode (DEBUGDUCK_MODE=%s)", _mode, os.environ.get("DEBUGDUCK_MODE", "<unset>"))
         _init_stores()
         _reload_adapter_instances()
         # Start session TTL cleanup loop
@@ -270,9 +273,9 @@ def create_app() -> FastAPI:
         if is_production_mode():
             try:
                 topo_store = _net_topo_store()
-                removed = topo_store.clear_all_devices()
+                removed = topo_store.clear_all_fixtures()
                 if removed:
-                    logger.info("Production mode: cleared %d demo devices from topology store", removed)
+                    logger.info("Production mode: cleared %d demo rows from topology store", removed)
                 # Clear stale metrics so alert engine doesn't fire on old demo data
                 metrics_db = Path(__file__).parent.parent / "data" / "metrics.db"
                 if metrics_db.exists():
@@ -412,7 +415,7 @@ def create_app() -> FastAPI:
         except Exception as e:
             logger.warning("Search endpoints init failed: %s", e)
 
-        # ── Initialize SQLite Metrics Store + SNMP Scheduler ──
+        # ── Initialize SQLite Metrics Store + Schedulers ──
         try:
             import asyncio as _asyncio
             from src.network.sqlite_metrics_store import SQLiteMetricsStore
@@ -421,19 +424,23 @@ def create_app() -> FastAPI:
             _sqlite_metrics = SQLiteMetricsStore()
             _snmp_sched = SNMPPollingScheduler(_sqlite_metrics, interval_seconds=60)
 
-            # Build device list from topology store
+            # Build device list from topology store — demo mode only
             _device_list = []
-            try:
-                topo_store = _net_topo_store()
-                devices = topo_store.list_devices()
-                if devices:
-                    _device_list = [
-                        {"id": d.id, "name": d.name, "vendor": d.vendor, "management_ip": d.management_ip, "ha_role": getattr(d, 'ha_role', '')}
-                        for d in devices if d.management_ip
-                    ]
-                    _snmp_sched.set_devices(_device_list)
-            except Exception:
-                pass
+            _is_prod = is_production_mode()
+            if _is_prod:
+                logger.info("Production mode: skipping fixture device loading for schedulers")
+            else:
+                try:
+                    topo_store = _net_topo_store()
+                    devices = topo_store.list_devices()
+                    if devices:
+                        _device_list = [
+                            {"id": d.id, "name": d.name, "vendor": d.vendor, "management_ip": d.management_ip, "ha_role": getattr(d, 'ha_role', '')}
+                            for d in devices if d.management_ip
+                        ]
+                        _snmp_sched.set_devices(_device_list)
+                except Exception:
+                    pass
 
             # ── SQLite Alert Engine ──
             _sqlite_alert_engine = None
@@ -467,19 +474,23 @@ def create_app() -> FastAPI:
             import src.api.network_endpoints as _net_ep
             _net_ep._sqlite_metrics_store = _sqlite_metrics
 
-            _asyncio.create_task(_snmp_sched.start())
-            logger.info("SQLite MetricsStore + SNMP scheduler started")
+            if not _is_prod:
+                _asyncio.create_task(_snmp_sched.start())
+                logger.info("SQLite MetricsStore + SNMP scheduler started")
+            else:
+                logger.info("SQLite MetricsStore initialized (SNMP scheduler disabled in production)")
 
             # ── Discovery Scheduler ──
-            try:
-                from src.network.discovery_scheduler import DiscoveryScheduler
-                _discovery_sched = DiscoveryScheduler(interval_seconds=300)
-                _discovery_sched.set_devices(_device_list)
-                init_autodiscovery(_discovery_sched)
-                _asyncio.create_task(_discovery_sched.start())
-                logger.info("DiscoveryScheduler started (%d devices)", len(_device_list))
-            except Exception as e:
-                logger.warning("DiscoveryScheduler startup failed: %s", e)
+            if not _is_prod:
+                try:
+                    from src.network.discovery_scheduler import DiscoveryScheduler
+                    _discovery_sched = DiscoveryScheduler(interval_seconds=300)
+                    _discovery_sched.set_devices(_device_list)
+                    init_autodiscovery(_discovery_sched)
+                    _asyncio.create_task(_discovery_sched.start())
+                    logger.info("DiscoveryScheduler started (%d devices)", len(_device_list))
+                except Exception as e:
+                    logger.warning("DiscoveryScheduler startup failed: %s", e)
 
             # ── Config Drift Engine ──
             try:
@@ -499,40 +510,49 @@ def create_app() -> FastAPI:
             except Exception as e:
                 logger.warning("FlowStore init failed: %s", e)
 
-            # ── Mock Event Generator (syslog/trap demo data) ──
-            try:
-                from src.network.event_generator import MockEventGenerator
-                _event_gen = MockEventGenerator(_sqlite_metrics)
-                _asyncio.create_task(_event_gen.start())
-                logger.info("MockEventGenerator started")
-            except Exception as e:
-                logger.warning("MockEventGenerator startup failed: %s", e)
+            # ── Mock Event Generator (syslog/trap demo data — demo only) ──
+            if not _is_prod:
+                try:
+                    from src.network.event_generator import MockEventGenerator
+                    _event_gen = MockEventGenerator(_sqlite_metrics)
+                    _asyncio.create_task(_event_gen.start())
+                    logger.info("MockEventGenerator started")
+                except Exception as e:
+                    logger.warning("MockEventGenerator startup failed: %s", e)
 
             # ── Ping Probe Scheduler ──
-            try:
-                from src.network.ping_scheduler import PingProbeScheduler
-                _ping_sched = PingProbeScheduler(_sqlite_metrics, interval_seconds=30)
-                init_probes(_sqlite_metrics, _ping_sched)
-
-                # Load probe targets from topology store devices
+            if not _is_prod:
                 try:
-                    topo_store = _net_topo_store()
-                    devices = topo_store.list_devices()
-                    if devices:
-                        _ping_sched.set_targets([
-                            {"ip": d.management_ip, "name": d.id}
-                            for d in devices if d.management_ip
-                        ])
-                except Exception:
-                    pass
+                    from src.network.ping_scheduler import PingProbeScheduler
+                    _ping_sched = PingProbeScheduler(_sqlite_metrics, interval_seconds=30)
+                    init_probes(_sqlite_metrics, _ping_sched)
 
-                _asyncio.create_task(_ping_sched.start())
-                logger.info("PingProbeScheduler started")
-            except Exception as e:
-                logger.warning("PingProbeScheduler startup failed: %s", e)
+                    # Load probe targets from topology store devices
+                    try:
+                        topo_store = _net_topo_store()
+                        devices = topo_store.list_devices()
+                        if devices:
+                            _ping_sched.set_targets([
+                                {"ip": d.management_ip, "name": d.id}
+                                for d in devices if d.management_ip
+                            ])
+                    except Exception:
+                        pass
+
+                    _asyncio.create_task(_ping_sched.start())
+                    logger.info("PingProbeScheduler started")
+                except Exception as e:
+                    logger.warning("PingProbeScheduler startup failed: %s", e)
 
         except Exception as e:
             logger.warning("SQLite metrics / SNMP scheduler startup failed: %s", e)
+
+        # ── Start Fix Job Queue ──
+        try:
+            await FixJobQueue.get_instance().start()
+            logger.info("FixJobQueue started")
+        except Exception as e:
+            logger.warning("FixJobQueue startup failed: %s", e)
 
         # ── Initialize DB Monitor ──
         try:
@@ -592,6 +612,13 @@ def create_app() -> FastAPI:
 
     @app.on_event("shutdown")
     async def shutdown():
+        # ── Shutdown Fix Job Queue ──
+        try:
+            await FixJobQueue.get_instance().shutdown()
+            logger.info("FixJobQueue shut down")
+        except Exception as e:
+            logger.warning("FixJobQueue shutdown failed: %s", e)
+
         import src.api.monitor_endpoints as mon_ep
         if mon_ep._monitor:
             # Event bus cleanup is handled by monitor.stop()
