@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { V4Findings, DiagnosticPhase, FixStatus, FixVerificationResult } from '../../types';
-import { decideOnFix, submitAttestation } from '../../services/api';
+import { decideOnFix, submitAttestation, cancelFix } from '../../services/api';
 import { useChatUI } from '../../contexts/ChatContext';
 import { useCampaignContext } from '../../contexts/CampaignContext';
 import AgentFindingCard from './cards/AgentFindingCard';
@@ -19,7 +19,9 @@ interface FixPipelinePanelProps {
 
 const statusConfig: Record<FixStatus, { label: string; color: string }> = {
   not_started: { label: 'NOT STARTED', color: 'text-slate-400 bg-slate-500/10 border-slate-500/20' },
+  queued: { label: 'QUEUED', color: 'text-blue-400 bg-blue-500/10 border-blue-500/20' },
   generating: { label: 'GENERATING', color: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
+  retrying: { label: 'RETRYING', color: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
   awaiting_review: { label: 'AWAITING REVIEW', color: 'text-violet-400 bg-violet-500/10 border-violet-500/20' },
   human_feedback: { label: 'PROCESSING FEEDBACK', color: 'text-blue-400 bg-blue-500/10 border-blue-500/20' },
   verification_in_progress: { label: 'VERIFYING', color: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
@@ -114,7 +116,7 @@ const DiffViewer: React.FC<{ diff: string }> = ({ diff }) => {
       {sections.map((s, i) => (
         <details key={i} open={i === 0}>
           <summary className="cursor-pointer flex items-center gap-2 text-[10px] font-mono text-blue-400 hover:text-blue-300 py-1">
-            <span className="material-symbols-outlined text-[11px]">
+            <span className="material-symbols-outlined text-[11px]" style={{ fontFamily: 'Material Symbols Outlined' }}>
               description
             </span>
             {s.file}
@@ -225,6 +227,19 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
     }
   };
 
+  const handleCancel = async () => {
+    setLoading('cancelling');
+    setError(null);
+    try {
+      await cancelFix(sessionId);
+      onRefresh();
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to cancel fix');
+    } finally {
+      setLoading(null);
+    }
+  };
+
   // ── Render Helpers ───────────────────────────────────────────────────
 
   const renderAttemptCounter = () => {
@@ -241,7 +256,7 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
     return (
       <div className="rounded-lg bg-slate-800/30 border border-slate-700/50 p-3 space-y-2">
         <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-sm">
+          <span className="material-symbols-outlined text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>
             {cfg.icon}
           </span>
           <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${cfg.color}`}>
@@ -285,7 +300,7 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
             <span className="text-[9px] font-bold text-amber-400 uppercase tracking-wider">Suggestions</span>
             {vr.suggestions.map((s, i) => (
               <div key={i} className="flex items-start gap-1.5 text-[10px] text-amber-300">
-                <span className="text-amber-500 shrink-0 mt-0.5">&#x2022;</span>
+                <span className="text-cyan-500 shrink-0 mt-0.5">&#x2022;</span>
                 <span>{s}</span>
               </div>
             ))}
@@ -317,7 +332,7 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
         {loading === 'generating' ? (
           <div className="w-3 h-3 border-2 border-emerald-400/30 border-t-emerald-400 rounded-full animate-spin" />
         ) : (
-          <span className="material-symbols-outlined text-xs">
+          <span className="material-symbols-outlined text-xs" style={{ fontFamily: 'Material Symbols Outlined' }}>
             auto_fix_high
           </span>
         )}
@@ -327,22 +342,33 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
   );
 
   const renderProgressSection = () => (
-    <div className="flex items-center gap-3 py-2">
-      <div className="w-5 h-5 border-2 border-slate-700 border-t-emerald-500 rounded-full animate-spin" />
-      <div>
-        <div className="text-[11px] text-slate-300">
-          {fixStatus === 'generating' && 'Generating fix...'}
-          {fixStatus === 'verification_in_progress' && 'Verifying generated fix...'}
-          {fixStatus === 'pr_creating' && 'Creating pull request...'}
-          {fixStatus === 'human_feedback' && 'Processing your feedback...'}
-        </div>
-        {fixData?.fixed_files && fixData.fixed_files.length > 1 ? (
-          <div className="text-[10px] font-mono text-slate-500 mt-0.5">
-            {fixData.fixed_files.length} files: {fixData.fixed_files.map(f => f.file_path.split('/').pop()).join(', ')}
+    <div className="space-y-2">
+      <div className="flex items-center gap-3 py-2">
+        <div className="w-5 h-5 border-2 border-slate-700 border-t-emerald-500 rounded-full animate-spin" />
+        <div className="flex-1">
+          <div className="text-[11px] text-slate-300">
+            {fixStatus === 'queued' && 'Fix job queued — waiting for available worker...'}
+            {fixStatus === 'generating' && 'Generating fix...'}
+            {fixStatus === 'retrying' && 'Retrying fix generation...'}
+            {fixStatus === 'verification_in_progress' && 'Verifying generated fix...'}
+            {fixStatus === 'pr_creating' && 'Creating pull request...'}
+            {fixStatus === 'human_feedback' && 'Processing your feedback...'}
           </div>
-        ) : fixData?.target_file ? (
-          <div className="text-[10px] font-mono text-slate-500 mt-0.5">{fixData.target_file}</div>
-        ) : null}
+          {fixData?.fixed_files && fixData.fixed_files.length > 1 ? (
+            <div className="text-[10px] font-mono text-slate-500 mt-0.5">
+              {fixData.fixed_files.length} files: {fixData.fixed_files.map(f => f.file_path.split('/').pop()).join(', ')}
+            </div>
+          ) : fixData?.target_file ? (
+            <div className="text-[10px] font-mono text-slate-500 mt-0.5">{fixData.target_file}</div>
+          ) : null}
+        </div>
+        <button
+          onClick={handleCancel}
+          disabled={loading === 'cancelling'}
+          className="text-[9px] font-bold px-2 py-1 rounded bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 disabled:opacity-50"
+        >
+          {loading === 'cancelling' ? 'Cancelling...' : 'Cancel'}
+        </button>
       </div>
     </div>
   );
@@ -354,7 +380,7 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
         <div className="space-y-1">
           {fixData.fixed_files.map((ff, i) => (
             <div key={i} className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-xs text-slate-500">
+              <span className="material-symbols-outlined text-xs text-slate-500" style={{ fontFamily: 'Material Symbols Outlined' }}>
                 description
               </span>
               <span className="text-[11px] font-mono text-blue-400">{ff.file_path}</span>
@@ -363,7 +389,7 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
         </div>
       ) : fixData?.target_file ? (
         <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-xs text-slate-500">
+          <span className="material-symbols-outlined text-xs text-slate-500" style={{ fontFamily: 'Material Symbols Outlined' }}>
             description
           </span>
           <span className="text-[11px] font-mono text-blue-400">{fixData.target_file}</span>
@@ -388,6 +414,7 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
             >
               <span
                 className={`material-symbols-outlined text-xs transition-transform duration-200 ${showDiff ? 'rotate-90' : ''}`}
+                style={{ fontFamily: 'Material Symbols Outlined' }}
               >
                 chevron_right
               </span>
@@ -441,7 +468,7 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
               {loading === 'rejecting' ? (
                 <div className="w-3 h-3 border-2 border-red-400/30 border-t-red-400 rounded-full animate-spin" />
               ) : (
-                <span className="material-symbols-outlined text-xs">
+                <span className="material-symbols-outlined text-xs" style={{ fontFamily: 'Material Symbols Outlined' }}>
                   cancel
                 </span>
               )}
@@ -475,7 +502,7 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
     return (
       <div className="space-y-3">
         <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-emerald-400 text-base">
+          <span className="material-symbols-outlined text-emerald-400 text-base" style={{ fontFamily: 'Material Symbols Outlined' }}>
             check_circle
           </span>
           <span className="text-[11px] font-bold text-emerald-400">Pull Request Created Successfully</span>
@@ -528,6 +555,7 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
             >
               <span
                 className={`material-symbols-outlined text-xs transition-transform ${showDiff ? 'rotate-90' : ''}`}
+                style={{ fontFamily: 'Material Symbols Outlined' }}
               >
                 chevron_right
               </span>
@@ -545,7 +573,7 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
     return (
       <div className="space-y-3">
         <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-red-400 text-base">
+          <span className="material-symbols-outlined text-red-400 text-base" style={{ fontFamily: 'Material Symbols Outlined' }}>
             {fixStatus === 'rejected' ? 'block' : 'error'}
           </span>
           <span className="text-[11px] font-bold text-red-400">
@@ -563,7 +591,7 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
             disabled={loading === 'generating'}
             className="text-[10px] font-bold px-3 py-1.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:saturate-0 flex items-center gap-2"
           >
-            <span className="material-symbols-outlined text-xs">
+            <span className="material-symbols-outlined text-xs" style={{ fontFamily: 'Material Symbols Outlined' }}>
               refresh
             </span>
             {loading === 'generating' ? 'Starting...' : 'Retry Fix Generation'}
@@ -579,7 +607,7 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
         <div className="space-y-1">
           {fixData.fixed_files.map((ff, i) => (
             <div key={i} className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-xs text-slate-500">
+              <span className="material-symbols-outlined text-xs text-slate-500" style={{ fontFamily: 'Material Symbols Outlined' }}>
                 description
               </span>
               <span className="text-[11px] font-mono text-blue-400">{ff.file_path}</span>
@@ -588,7 +616,7 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
         </div>
       ) : fixData?.target_file ? (
         <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-xs text-slate-500">
+          <span className="material-symbols-outlined text-xs text-slate-500" style={{ fontFamily: 'Material Symbols Outlined' }}>
             description
           </span>
           <span className="text-[11px] font-mono text-blue-400">{fixData.target_file}</span>
@@ -609,6 +637,7 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
             >
               <span
                 className={`material-symbols-outlined text-xs transition-transform duration-200 ${showDiff ? 'rotate-90' : ''}`}
+                style={{ fontFamily: 'Material Symbols Outlined' }}
               >
                 chevron_right
               </span>
@@ -638,7 +667,9 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
     switch (fixStatus) {
       case 'not_started':
         return renderGenerateSection();
+      case 'queued':
       case 'generating':
+      case 'retrying':
       case 'verification_in_progress':
       case 'pr_creating':
       case 'human_feedback':
@@ -664,7 +695,7 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
     <AgentFindingCard agent="D" title="Fix Pipeline">
       {/* Header row: status badge + attempt counter */}
       <div className="flex items-center gap-2 mb-3">
-        <span className="material-symbols-outlined text-emerald-400 text-sm">
+        <span className="material-symbols-outlined text-emerald-400 text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>
           build_circle
         </span>
         <FixStatusBadge status={fixStatus} />

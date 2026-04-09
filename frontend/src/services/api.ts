@@ -269,6 +269,18 @@ export const decideOnFix = async (
   return response.json();
 };
 
+export const cancelFix = async (
+  sessionId: string
+): Promise<{ status: string }> => {
+  const response = await fetch(`${API_BASE_URL}/api/v4/session/${sessionId}/fix/cancel`, {
+    method: 'DELETE',
+  });
+  if (!response.ok) {
+    throw new Error(await extractErrorDetail(response, 'Failed to cancel fix'));
+  }
+  return response.json();
+};
+
 // ===== V4 PromQL Proxy =====
 
 export const runPromQLQuery = async (

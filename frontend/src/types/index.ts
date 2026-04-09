@@ -299,7 +299,7 @@ export interface TokenUsage {
 export interface TaskEvent {
   session_id: string;
   agent_name: string;
-  event_type: 'started' | 'progress' | 'success' | 'warning' | 'error' | 'tool_call' | 'phase_change' | 'finding' | 'summary' | 'attestation_required' | 'fix_proposal' | 'fix_approved' | 'waiting_for_input' | 'reasoning';
+  event_type: 'started' | 'progress' | 'success' | 'warning' | 'error' | 'tool_call' | 'phase_change' | 'finding' | 'summary' | 'attestation_required' | 'fix_proposal' | 'fix_approved' | 'waiting_for_input' | 'reasoning' | 'thinking';
   message: string;
   timestamp: string;
   sequence_number?: number;
@@ -428,7 +428,7 @@ export interface V4Findings {
 }
 
 export type FixStatus =
-  | 'not_started' | 'generating' | 'awaiting_review'
+  | 'not_started' | 'queued' | 'generating' | 'retrying' | 'awaiting_review'
   | 'human_feedback' | 'verification_in_progress'
   | 'verified' | 'verification_failed'
   | 'approved' | 'rejected'
