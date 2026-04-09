@@ -174,3 +174,14 @@ class TestValidateAll:
         result = self.validator.validate_all("README.md", "# Hello\n")
         assert result["passed"] is True
         assert result["language"] is None
+
+
+class TestSelfCorrectionLanguage:
+    """Verify _self_correct accepts file_path for language detection."""
+
+    def test_self_correct_has_file_path_param(self):
+        from src.agents.agent3.fix_generator import Agent3FixGenerator
+        import inspect
+        sig = inspect.signature(Agent3FixGenerator._self_correct)
+        params = list(sig.parameters.keys())
+        assert "file_path" in params, "_self_correct must accept file_path parameter"

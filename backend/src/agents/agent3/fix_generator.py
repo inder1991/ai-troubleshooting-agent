@@ -160,7 +160,7 @@ class Agent3FixGenerator:
             validation = self.validator.validate_all(fp, code)
             if not validation["passed"]:
                 logger.info("Validation failed for %s, attempting self-correction...", fp)
-                code = await self._self_correct(code, validation)
+                code = await self._self_correct(code, validation, fp)
                 fixes[fp] = code
                 validation = self.validator.validate_all(fp, code)
                 if not validation["passed"]:
@@ -960,12 +960,14 @@ class Agent3FixGenerator:
         return {"html_url": pr_data["html_url"], "number": pr_data["number"]}
 
     async def _self_correct(
-        self, code: str, validation: Dict[str, Any]
+        self, code: str, validation: Dict[str, Any], file_path: str = ""
     ) -> str:
-        """
-        Attempt to auto-correct validation issues using AnthropicClient.
-        """
+        """Attempt to auto-correct validation issues using AnthropicClient."""
+        from .validators import detect_language
+
         logger.info("\nSelf-correcting validation issues...")
+
+        lang = detect_language(file_path) or "python"
 
         errors = []
         if not validation["syntax"]["valid"]:
@@ -976,12 +978,12 @@ class Agent3FixGenerator:
                 errors.append(f"Linting error: {error}")
 
         system_prompt = (
-            "You are a code fixer. Fix ONLY the syntax/linting errors. "
+            f"You are a code fixer. Fix ONLY the syntax/linting errors in this {lang} code. "
             "Output ONLY the corrected code, no explanation."
         )
 
         user_prompt = (
-            f"Code with errors:\n```python\n{code}\n```\n\n"
+            f"Code with errors:\n```{lang}\n{code}\n```\n\n"
             f"Errors to fix:\n{chr(10).join(errors)}\n\n"
             f"Output corrected code:"
         )
@@ -1006,7 +1008,7 @@ class Agent3FixGenerator:
                     content = content[first_nl + 1:]
                 corrected = content
 
-        logger.info("   Self-correction attempted")
+        logger.info("   Self-correction attempted (%s)", lang)
         return corrected.strip()
 
     async def _emit_progress(self, stage: str, message: str) -> None:
