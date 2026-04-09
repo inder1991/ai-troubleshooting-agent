@@ -22,6 +22,7 @@ from .stagers import PRStager
 
 from src.utils.llm_client import AnthropicClient
 from src.utils.event_emitter import EventEmitter
+from src.utils.fix_job_queue import RetryableFixError
 from src.models.schemas import DiagnosticState
 from src.utils.logger import get_logger
 
@@ -481,11 +482,18 @@ class Agent3FixGenerator:
                 details={"stage": "generating", "file_count": len(resolved_targets)},
             )
 
-        response = await self.llm_client.chat(
-            prompt=user_prompt,
-            system=system_prompt,
-            max_tokens=16384 if is_multi else 8192,
-        )
+        try:
+            response = await self.llm_client.chat(
+                prompt=user_prompt,
+                system=system_prompt,
+                max_tokens=16384 if is_multi else 8192,
+            )
+        except Exception as e:
+            raise RetryableFixError(
+                f"LLM call failed: {e}",
+                stage="generating",
+                suggestion="The AI model timed out or is overloaded. Will retry automatically.",
+            ) from e
 
         raw_output = response.text
 
