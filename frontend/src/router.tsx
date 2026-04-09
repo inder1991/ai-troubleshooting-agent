@@ -1,4 +1,4 @@
-import { createBrowserRouter } from 'react-router-dom';
+import { createBrowserRouter, useNavigate } from 'react-router-dom';
 import AppLayout from './layouts/AppLayout';
 import NotFound from './pages/NotFound';
 
@@ -34,36 +34,87 @@ import SettingsView from './components/Settings/SettingsView';
 import AuditLogView from './components/AuditLog/AuditLogView';
 
 /**
- * Temporary wrapper components that adapt existing components to work as route elements.
- * These pass stub callbacks — Task 9 will wire them with useNavigate().
+ * Route wrapper components that adapt existing components to work as route elements.
+ * Each wrapper uses useNavigate() to wire navigation callbacks.
  */
 
 function HomeRoute() {
-  return <HomePage onSelectCapability={() => {}} onSelectSession={() => {}} wsConnected={false} />;
+  const navigate = useNavigate();
+  return (
+    <HomePage
+      onSelectCapability={(cap) => navigate(`/investigations/new?capability=${cap}`)}
+      onSelectSession={(session) => navigate(`/investigations/${session.session_id}`)}
+      wsConnected={false}
+    />
+  );
 }
 
 function HowItWorksRoute() {
-  return <HowItWorksView onGoHome={() => {}} />;
+  const navigate = useNavigate();
+  return <HowItWorksView onGoHome={() => navigate('/')} />;
 }
 
 function SessionsRoute() {
-  return <SessionManagerView sessions={[]} onSessionsChange={() => {}} onSelectSession={() => {}} />;
+  const navigate = useNavigate();
+  return (
+    <SessionManagerView
+      sessions={[]}
+      onSessionsChange={() => {}}
+      onSelectSession={(session) => navigate(`/investigations/${session.session_id}`)}
+    />
+  );
 }
 
 function ObservatoryRoute() {
-  return <ObservatoryView onOpenEditor={() => {}} onOpenTopology={() => {}} />;
+  const navigate = useNavigate();
+  return (
+    <ObservatoryView
+      onOpenEditor={() => navigate('/network/topology')}
+      onOpenTopology={() => navigate('/network/live-topology')}
+    />
+  );
 }
 
 function LiveTopologyRoute() {
-  return <FullScreenTopology onGoBack={() => {}} />;
+  const navigate = useNavigate();
+  return <FullScreenTopology onGoBack={() => navigate('/network/observatory')} />;
 }
 
 function AgentMatrixRoute() {
-  return <AgentMatrixView onGoHome={() => {}} />;
+  const navigate = useNavigate();
+  return <AgentMatrixView onGoHome={() => navigate('/')} />;
 }
 
 function IntegrationsRoute() {
-  return <IntegrationSettings onBack={() => {}} />;
+  const navigate = useNavigate();
+  return <IntegrationSettings onBack={() => navigate('/')} />;
+}
+
+function ClusterRegistryRoute() {
+  const navigate = useNavigate();
+  return (
+    <ClusterRegistryPage
+      onViewRecommendations={(id) => navigate(`/clusters/recommendations?clusterId=${id}`)}
+      onRunScan={() => {}}
+    />
+  );
+}
+
+function ClusterRecommendationsRoute() {
+  const navigate = useNavigate();
+  const params = new URLSearchParams(window.location.search);
+  const clusterId = params.get('clusterId') || '';
+  return (
+    <ClusterRecommendationsPage
+      clusterId={clusterId}
+      onBack={() => navigate('/clusters/registry')}
+    />
+  );
+}
+
+function WorkflowRunsRoute() {
+  const navigate = useNavigate();
+  return <WorkflowRunsView onNavigate={() => navigate('/workflows')} />;
 }
 
 export const router = createBrowserRouter([
@@ -98,8 +149,8 @@ export const router = createBrowserRouter([
 
       // Clusters section
       { path: 'clusters', element: <KubernetesClusters /> },
-      { path: 'clusters/registry', element: <ClusterRegistryPage onViewRecommendations={() => {}} onRunScan={() => {}} /> },
-      { path: 'clusters/recommendations', element: <ClusterRecommendationsPage clusterId="" onBack={() => {}} /> },
+      { path: 'clusters/registry', element: <ClusterRegistryRoute /> },
+      { path: 'clusters/recommendations', element: <ClusterRecommendationsRoute /> },
 
       // Agents section
       { path: 'agents', element: <AgentCatalogView /> },
@@ -107,7 +158,7 @@ export const router = createBrowserRouter([
 
       // Workflows section
       { path: 'workflows', element: <WorkflowBuilderView /> },
-      { path: 'workflows/runs', element: <WorkflowRunsView onNavigate={() => {}} /> },
+      { path: 'workflows/runs', element: <WorkflowRunsRoute /> },
 
       // Settings section
       { path: 'settings', element: <SettingsView /> },
