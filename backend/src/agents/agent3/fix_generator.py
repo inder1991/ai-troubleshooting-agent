@@ -84,6 +84,29 @@ class Agent3FixGenerator:
 
         logger.info(f"Agent 3 initialized (repo: {repo_path})")
 
+    # ── Static helpers ────────────────────────────────────────────────────
+
+    @staticmethod
+    def _collect_fix_targets_static(state) -> list[str]:
+        """Collect fix target file paths from diagnostic state without needing a repo clone.
+
+        Used before cloning to enable sparse checkout — only the files we
+        actually intend to fix are materialized on disk.
+        """
+        targets: list[str] = []
+        if state.code_analysis:
+            if state.code_analysis.root_cause_location and state.code_analysis.root_cause_location.file_path:
+                targets.append(state.code_analysis.root_cause_location.file_path)
+            for fa in (state.code_analysis.suggested_fix_areas or []):
+                if fa.file_path and fa.file_path not in targets:
+                    targets.append(fa.file_path)
+            for imp in (state.code_analysis.impacted_files or []):
+                fp = imp.file_path if hasattr(imp, 'file_path') else (imp.get('file_path') if isinstance(imp, dict) else None)
+                fix_needed = imp.must_fix if hasattr(imp, 'must_fix') else (imp.get('must_fix', False) if isinstance(imp, dict) else False)
+                if fp and fix_needed and fp not in targets:
+                    targets.append(fp)
+        return targets
+
     # =========================================================================
     # PHASE 1: VERIFICATION (Automatic)
     # =========================================================================

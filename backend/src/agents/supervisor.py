@@ -29,9 +29,6 @@ from src.agents.impact_analyzer import ImpactAnalyzer
 from src.utils.llm_client import AnthropicClient
 from src.utils.event_emitter import EventEmitter
 from src.utils.logger import get_logger
-from src.prompts.rules import GROUNDING_RULES
-from src.prompts.chat_prompts import CHAT_RULES
-from src.utils.token_budget import enforce_budget
 
 logger = get_logger(__name__)
 
@@ -89,167 +86,6 @@ def generate_incident_id() -> str:
     return f"INC-{date_part}-{rand_part}"
 
 
-# ── Chat tool definitions (Anthropic tool_use format) ──────────────────────
-
-_CHAT_TOOLS: list[dict] = [
-    {
-        "name": "get_findings",
-        "description": (
-            "Retrieve all diagnostic findings from the current investigation session. "
-            "Returns a list of findings sorted by severity (critical first), each with "
-            "finding_id, agent_name, category, severity, confidence_score, and summary."
-        ),
-        "input_schema": {
-            "type": "object",
-            "properties": {},
-            "required": [],
-        },
-    },
-    {
-        "name": "get_finding_detail",
-        "description": (
-            "Retrieve full details for a specific finding by its ID. "
-            "Returns the finding's summary, severity, confidence, breadcrumbs (evidence trail), "
-            "negative findings (things ruled out), critic verdict, and resource references."
-        ),
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "finding_id": {
-                    "type": "string",
-                    "description": "The unique ID of the finding to retrieve.",
-                },
-            },
-            "required": ["finding_id"],
-        },
-    },
-    {
-        "name": "get_session_summary",
-        "description": (
-            "Get a summary of the current diagnostic session including phase, service name, "
-            "incident ID, agents that have completed, overall confidence score, reasoning chain, "
-            "and timeline of key events."
-        ),
-        "input_schema": {
-            "type": "object",
-            "properties": {},
-            "required": [],
-        },
-    },
-]
-
-
-def _execute_chat_tool(tool_name: str, tool_input: dict, state: DiagnosticState) -> str:
-    """Execute a chat tool against the current diagnostic state and return a JSON string."""
-    try:
-        if tool_name == "get_findings":
-            return _tool_get_findings(state)
-        elif tool_name == "get_finding_detail":
-            return _tool_get_finding_detail(state, tool_input.get("finding_id", ""))
-        elif tool_name == "get_session_summary":
-            return _tool_get_session_summary(state)
-        else:
-            return json.dumps({"error": f"Unknown tool: {tool_name}"})
-    except Exception as e:
-        logger.warning("Chat tool execution failed: %s(%s) — %s", tool_name, tool_input, e)
-        return json.dumps({"error": str(e)})
-
-
-def _tool_get_findings(state: DiagnosticState) -> str:
-    """Return all findings sorted by severity."""
-    severity_order = {"critical": 0, "high": 1, "medium": 2, "low": 3}
-    sorted_findings = sorted(
-        state.all_findings,
-        key=lambda f: severity_order.get(f.severity, 3),
-    )
-    findings_out = []
-    for f in sorted_findings:
-        findings_out.append({
-            "finding_id": f.finding_id,
-            "agent_name": f.agent_name,
-            "category": f.category,
-            "severity": f.severity,
-            "confidence_score": f.confidence_score,
-            "summary": f.summary,
-        })
-    return json.dumps({"count": len(findings_out), "findings": findings_out})
-
-
-def _tool_get_finding_detail(state: DiagnosticState, finding_id: str) -> str:
-    """Return detailed info for a single finding by ID."""
-    for f in state.all_findings:
-        if f.finding_id == finding_id:
-            detail = {
-                "finding_id": f.finding_id,
-                "agent_name": f.agent_name,
-                "category": f.category,
-                "severity": f.severity,
-                "confidence_score": f.confidence_score,
-                "summary": f.summary,
-                "breadcrumbs": [
-                    {
-                        "source_type": b.source_type,
-                        "action": b.action,
-                        "raw_evidence": b.raw_evidence[:500] if b.raw_evidence else "",
-                    }
-                    for b in (f.breadcrumbs or [])
-                ],
-                "negative_findings": [
-                    {"what_was_checked": nf.what_was_checked, "result": nf.result}
-                    for nf in (f.negative_findings or [])
-                ],
-                "critic_verdict": None,
-                "resource_refs": [
-                    {"ref_type": r.ref_type, "ref_id": r.ref_id}
-                    for r in (f.resource_refs or [])
-                ] if f.resource_refs else [],
-            }
-            if f.critic_verdict:
-                detail["critic_verdict"] = {
-                    "plausibility": f.critic_verdict.plausibility,
-                    "confidence_in_verdict": f.critic_verdict.confidence_in_verdict,
-                    "recommendation": f.critic_verdict.recommendation,
-                }
-            return json.dumps(detail)
-    return json.dumps({"error": f"Finding '{finding_id}' not found. Use get_findings to list available IDs."})
-
-
-def _tool_get_session_summary(state: DiagnosticState) -> str:
-    """Return a session-level summary."""
-    summary = {
-        "session_id": state.session_id,
-        "incident_id": state.incident_id,
-        "service_name": state.service_name,
-        "phase": state.phase.value,
-        "overall_confidence": state.overall_confidence,
-        "agents_completed": state.agents_completed,
-        "agents_pending": state.agents_pending,
-        "findings_count": len(state.all_findings),
-        "reasoning_chain": [],
-        "timeline_events": [],
-    }
-    # Reasoning chain
-    for step in (state.reasoning_chain or [])[:10]:
-        if isinstance(step, dict):
-            summary["reasoning_chain"].append(step.get("summary", str(step)))
-        else:
-            summary["reasoning_chain"].append(getattr(step, "summary", str(step)))
-
-    # Task events as timeline
-    for evt in (state.task_events or [])[:15]:
-        if isinstance(evt, dict):
-            summary["timeline_events"].append(evt)
-        else:
-            summary["timeline_events"].append({
-                "timestamp": evt.timestamp.isoformat() if hasattr(evt, "timestamp") else "",
-                "agent_name": getattr(evt, "agent_name", ""),
-                "event_type": getattr(evt, "event_type", ""),
-                "message": getattr(evt, "message", str(evt)),
-            })
-
-    return json.dumps(summary, default=str)
-
-
 class SupervisorAgent:
     """State machine orchestrator that routes work to specialized agents."""
 
@@ -292,7 +128,7 @@ class SupervisorAgent:
             "metrics_agent": MetricsAgent,
             "k8s_agent": K8sAgent,
             "change_agent": ChangeAgent,
-            "tracing_agent": TracingAgent,
+            # "tracing_agent": TracingAgent,
             "code_agent": CodeNavigatorAgent,
         }
         self._critic = CriticAgent()
@@ -433,13 +269,11 @@ class SupervisorAgent:
                     logger.error("Agent raised exception", extra={"agent_name": agent_name, "extra": str(agent_result)})
                     # C2: Mark failed agent as completed to prevent infinite re-dispatch
                     state.agents_completed.append(agent_name)
-                    state.agents_failed = getattr(state, "agents_failed", 0) + 1
                     if event_emitter:
                         await event_emitter.emit(agent_name, "error", f"Agent failed: {str(agent_result)}")
                     continue
                 if agent_result:
                     await self._update_state_with_result(state, agent_name, agent_result, event_emitter)
-                    await self._ingest_into_graph(state, agent_name, agent_result)
                     state.agents_completed.append(agent_name)
 
                     # Emit agent summary
@@ -1604,43 +1438,6 @@ class SupervisorAgent:
             f"Round: {agent_name} completed with confidence {confidence}"
         )
 
-    @staticmethod
-    def _finding_to_node_type(agent_name: str, finding: dict) -> str:
-        mapping = {
-            "log_agent": "error_event",
-            "metrics_agent": "metric_anomaly",
-            "k8s_agent": "k8s_event",
-            "tracing_agent": "trace_span",
-            "code_agent": "code_location",
-            "change_agent": "code_change",
-        }
-        return mapping.get(agent_name, "error_event")
-
-    async def _ingest_into_graph(self, state, agent_name: str, result: dict):
-        """Additive layer: reads from state findings, writes to state.evidence_graph."""
-        from src.agents.incident_graph import IncidentGraphBuilder
-
-        if not hasattr(state, '_incident_graph_builder') or state._incident_graph_builder is None:
-            state._incident_graph_builder = IncidentGraphBuilder(state.session_id)
-
-        builder = state._incident_graph_builder
-        new_findings = result.get("findings", [])
-        for finding in new_findings:
-            builder.add_node(
-                node_type=self._finding_to_node_type(agent_name, finding),
-                data=finding,
-                timestamp=finding.get("timestamp", 0),
-                confidence=finding.get("confidence", finding.get("confidence_score", 0.5)),
-                severity=finding.get("severity", "medium"),
-                agent_source=agent_name,
-            )
-
-        builder.create_tentative_edges()
-        builder.enforce_temporal_consistency()
-        builder.break_cycles()
-        builder.rank_root_causes()
-        state.evidence_graph = builder.to_serializable()
-
     def _update_phase(self, state: DiagnosticState, event_emitter: Optional[EventEmitter] = None) -> None:
         """Update diagnostic phase based on completed agents."""
         old_phase = state.phase
@@ -2462,114 +2259,28 @@ Respond ONLY with a JSON array:
                     return "Starting fix generation using findings from all diagnostic agents. I'll present the proposed fix for your review shortly."
                 return "Fix generation is not available — event emitter not initialized."
 
-        # ── Serialize findings context for the LLM ──
-        findings_context = self._serialize_findings_for_chat(state)
-
-        # ── Build conversation history ──
-        session = None
-        try:
-            from src.api.routes_v4 import sessions
-            for sid, s in sessions.items():
-                if s.get("state") is state:
-                    session = s
-                    break
-        except ImportError:
-            pass
-
-        chat_history = session.get("chat_history", []) if session else []
-
-        # Build messages with history
-        history_messages = [{"role": m["role"], "content": m["content"]} for m in chat_history]
-        history_messages.append({"role": "user", "content": message})
-
-        system_text = f"""{CHAT_RULES}
-
-{GROUNDING_RULES}
-
-## Current Diagnostic State
+        # Stream LLM response — emit chat_chunk messages via WebSocket for live typing
+        prompt_text = f"""Current diagnostic state:
 - Phase: {state.phase.value}
 - Service: {state.service_name}
-- Agents completed: {', '.join(state.agents_completed) if state.agents_completed else 'none yet'}
+- Agents completed: {state.agents_completed}
 - Overall confidence: {state.overall_confidence}%
+- Findings so far: {len(state.all_findings)}
 
-## Diagnostic Findings
-{findings_context}
+User message: {message}
 
-## Tools
-You have access to tools that let you query live investigation data.
-Use them when the user asks for specific findings, details, or a summary
-that goes beyond what is already in the Diagnostic Findings above.
-Do NOT call tools if you can answer from the context already provided."""
-
-        # Enforce token budget to prevent context overflow
-        system_text, history_messages, _ = enforce_budget(
-            system_text, history_messages, "", model_max=200_000
-        )
+Respond helpfully. If they're asking for status, give a brief update. If they're providing additional context, acknowledge it."""
+        system_text = "You are an AI SRE assistant. Respond concisely to user messages during an active diagnosis."
 
         ws_mgr = self._event_emitter._websocket_manager if self._event_emitter else None
-
-        # ── Tool-calling loop (max 3 rounds to prevent runaway) ──
-        MAX_TOOL_ROUNDS = 3
-        messages_for_llm = list(history_messages)
         full_response = ""
-
-        for _tool_round in range(MAX_TOOL_ROUNDS + 1):
-            response = await self.llm_client.chat_with_tools(
-                system=system_text,
-                messages=messages_for_llm,
-                tools=_CHAT_TOOLS,
-                max_tokens=4096,
-            )
-
-            # Separate text blocks from tool_use blocks
-            text_blocks = [b for b in response.content if b.type == "text"]
-            tool_use_blocks = [b for b in response.content if b.type == "tool_use"]
-
-            if not tool_use_blocks:
-                # No tool calls — extract final text response
-                full_response = text_blocks[0].text if text_blocks else ""
-                break
-
-            # Notify client that tool calls are in progress
+        async for chunk in self.llm_client.chat_stream(prompt=prompt_text, system=system_text):
+            full_response += chunk
             if ws_mgr:
-                tool_names = [b.name for b in tool_use_blocks]
                 await ws_mgr.send_message(
                     state.session_id,
-                    {"type": "chat_chunk", "data": {
-                        "content": "",
-                        "done": False,
-                        "tool_calls": tool_names,
-                    }},
+                    {"type": "chat_chunk", "data": {"content": chunk, "done": False}},
                 )
-
-            # Append assistant message (contains both text + tool_use blocks)
-            messages_for_llm.append({"role": "assistant", "content": response.content})
-
-            # Execute each tool and collect results
-            tool_results = []
-            for tool_block in tool_use_blocks:
-                result_str = _execute_chat_tool(tool_block.name, tool_block.input, state)
-                tool_results.append({
-                    "type": "tool_result",
-                    "tool_use_id": tool_block.id,
-                    "content": result_str,
-                })
-
-            messages_for_llm.append({"role": "user", "content": tool_results})
-        else:
-            # Exhausted tool rounds — grab whatever text we have
-            if text_blocks:
-                full_response = text_blocks[0].text
-            else:
-                full_response = "I ran into a limit while looking up data. Here is what I found so far."
-
-        # ── Stream final text to WebSocket ──
-        if ws_mgr and full_response:
-            # Send the full response as a single chunk (tool-calling path is non-streaming)
-            await ws_mgr.send_message(
-                state.session_id,
-                {"type": "chat_chunk", "data": {"content": full_response, "done": False}},
-            )
 
         # Send final chat_chunk with done=True and full_response
         if ws_mgr:
@@ -2587,80 +2298,7 @@ Do NOT call tools if you can answer from the context already provided."""
                 },
             )
 
-        # Store conversation history (only user message + final assistant text)
-        if session is not None:
-            chat_history.append({"role": "user", "content": message})
-            chat_history.append({"role": "assistant", "content": full_response})
-            if len(chat_history) > 20:
-                session["chat_history"] = chat_history[-20:]
-
         return full_response
-
-    def _serialize_findings_for_chat(self, state) -> str:
-        """Serialize diagnostic findings into a concise text block for chat LLM context."""
-        sections = []
-
-        # Top findings sorted by severity
-        if state.all_findings:
-            severity_order = {"critical": 0, "high": 1, "medium": 2, "low": 3}
-            sorted_findings = sorted(
-                state.all_findings,
-                key=lambda f: severity_order.get(f.severity, 3),
-            )
-            findings_lines = []
-            for f in sorted_findings[:10]:
-                findings_lines.append(
-                    f"- [{f.severity.upper()}] ({f.agent_name}, {f.confidence_score}% conf) {f.summary}"
-                )
-            if findings_lines:
-                sections.append("### Top Findings\n" + "\n".join(findings_lines))
-
-        # Metrics analysis
-        if state.metrics_analysis:
-            ma = state.metrics_analysis
-            anomalies = getattr(ma, "anomalies", []) or []
-            if anomalies:
-                metrics_lines = []
-                for a in anomalies[:5]:
-                    name = getattr(a, "metric_name", str(a))
-                    severity = getattr(a, "severity", "unknown")
-                    peak = getattr(a, "peak_value", "N/A")
-                    metrics_lines.append(f"- {name}: peak={peak}, severity={severity}")
-                sections.append("### Metrics Anomalies\n" + "\n".join(metrics_lines))
-
-        # K8s analysis
-        if state.k8s_analysis:
-            ka = state.k8s_analysis
-            issues = getattr(ka, "issues", []) or getattr(ka, "pod_issues", []) or []
-            if issues:
-                k8s_lines = [f"- {issue}" for issue in issues[:5]]
-                sections.append("### K8s Issues\n" + "\n".join(k8s_lines))
-
-        # Code analysis
-        if state.code_analysis:
-            ca = state.code_analysis
-            root_cause = getattr(ca, "root_cause_location", None) or getattr(ca, "summary", None)
-            if root_cause:
-                sections.append(f"### Code Analysis\nRoot cause: {root_cause}")
-
-        # Reasoning chain
-        if state.reasoning_chain:
-            chain_lines = []
-            for step in state.reasoning_chain[:5]:
-                if isinstance(step, dict):
-                    chain_lines.append(f"- {step.get('summary', str(step))}")
-                else:
-                    summary = getattr(step, "summary", str(step))
-                    chain_lines.append(f"- {summary}")
-            if chain_lines:
-                sections.append("### Reasoning Chain\n" + "\n".join(chain_lines))
-
-        result = "\n\n".join(sections) if sections else "No findings yet."
-
-        if len(result) > 8000:
-            result = result[:8000] + "\n... (truncated)"
-
-        return result
 
     async def _process_repo_confirmation(self, message: str) -> str:
         """Parse user's repo confirmation response and signal the waiting coroutine."""
@@ -2851,10 +2489,37 @@ Examples:
         state: DiagnosticState,
         event_emitter: EventEmitter,
         human_guidance: str = "",
+    ) -> str:
+        """Submit fix generation to the job queue. Returns job_id."""
+        from src.utils.fix_job_queue import FixJobQueue
+
+        queue = FixJobQueue.get_instance()
+
+        async def executor():
+            await self._execute_fix_generation(state, event_emitter, human_guidance)
+
+        job = await queue.submit(session_id=state.session_id, executor=executor)
+        return job.id
+
+    async def _execute_fix_generation(
+        self,
+        state: DiagnosticState,
+        event_emitter: EventEmitter,
+        human_guidance: str = "",
     ) -> None:
-        """Orchestrate fix generation with human-in-the-loop approval."""
+        """Execute fix generation with human-in-the-loop approval.
+
+        This contains the full orchestration logic: clone, generate, verify,
+        stage, and wait for human approval.  It is called by the FixJobQueue
+        worker so that retries/cancellation are handled centrally.
+        """
         import tempfile
         import os
+        from src.utils.fix_job_queue import FixJobQueue, RetryableFixError
+
+        queue = FixJobQueue.get_instance()
+        # Resolve the active job so we can update current_stage
+        job = queue.get_active_job(state.session_id)
 
         tmp_path = ""
         try:
@@ -2863,6 +2528,10 @@ Examples:
             # parallel generation (HTTP 409), so no duplicate guard needed here.
             state.fix_result = FixResult(fix_status=FixStatus.GENERATING)
             await event_emitter.emit("fix_generator", "started", "Fix generation started")
+
+            # ── Stage: cloning ───────────────────────────────────────────
+            if job:
+                job.current_stage = "cloning"
 
             # Resolve github token
             token = ""
@@ -2885,14 +2554,23 @@ Examples:
                 await event_emitter.emit("fix_generator", "error", "Cannot generate fix — no valid repository URL")
                 return
 
-            # Clone repo (full clone for branching)
+            # Clone repo (shallow clone — unshallow later if needed for branching)
             from src.utils.repo_manager import RepoManager
             tmp_path = tempfile.mkdtemp(prefix="fix_")
-            clone_result = RepoManager.clone_repo(owner_repo, tmp_path, shallow=False, token=token)
+            queue.track_temp_dir(tmp_path)
+            clone_result = RepoManager.clone_repo(owner_repo, tmp_path, shallow=True, token=token)
             if not clone_result["success"]:
-                state.fix_result.fix_status = FixStatus.FAILED
-                await event_emitter.emit("fix_generator", "error", f"Clone failed: {clone_result.get('error', 'unknown')}")
-                return
+                raise RetryableFixError(
+                    f"Clone failed: {clone_result.get('error', 'unknown')}",
+                    stage="cloning",
+                    suggestion="Check network connectivity and repository access",
+                )
+
+            # Apply sparse checkout for target files (best-effort)
+            from src.agents.agent3.fix_generator import Agent3FixGenerator
+            target_files = Agent3FixGenerator._collect_fix_targets_static(state)
+            if target_files:
+                RepoManager.apply_sparse_checkout(tmp_path, target_files)
 
             # Verify clone contents
             import glob as _glob
@@ -2902,8 +2580,11 @@ Examples:
                           "files": [f for f in cloned_files[:20] if not "/.git/" in f]}
             })
 
+            # ── Stage: generating ────────────────────────────────────────
+            if job:
+                job.current_stage = "generating"
+
             # Create Agent 3 instance
-            from src.agents.agent3.fix_generator import Agent3FixGenerator
             agent3 = Agent3FixGenerator(
                 repo_path=tmp_path,
                 llm_client=self.llm_client,
@@ -2915,6 +2596,8 @@ Examples:
             while True:
                 # Generate fix (returns dict[file_path → fixed_code])
                 state.fix_result.fix_status = FixStatus.GENERATING
+                if job:
+                    job.current_stage = "generating"
                 generated_fixes = await agent3.generate_fix(state, current_guidance, event_emitter)
 
                 # Store results in state — build FixedFile entries for all files
@@ -2945,12 +2628,18 @@ Examples:
                 state.fix_result.fixed_files = fixed_files
                 state.fix_result.fix_explanation = self._build_fix_explanation(state, target_file, diff)
 
-                # Verify with code_agent
+                # ── Stage: verifying ─────────────────────────────────────
+                if job:
+                    job.current_stage = "verifying"
                 state.fix_result.fix_status = FixStatus.VERIFICATION_IN_PROGRESS
                 await event_emitter.emit("fix_generator", "progress", "Verifying fix with code agent...")
                 await self._verify_fix_with_code_agent(state, event_emitter)
 
                 verification_failed = (state.fix_result.fix_status == FixStatus.VERIFICATION_FAILED)
+
+                # ── Stage: staging ───────────────────────────────────────
+                if job:
+                    job.current_stage = "staging"
 
                 # Run Agent 3 Phase 1 (validation + staging; review/impact from code_agent above)
                 code_agent_vr = state.fix_result.verification_result if state.fix_result else None
@@ -2960,6 +2649,9 @@ Examples:
                 pr_data = await agent3.run_verification_phase(state, generated_fixes, verification_result=code_agent_vr)
                 state.fix_result.pr_data = pr_data
 
+                # ── Stage: awaiting_review ───────────────────────────────
+                if job:
+                    job.current_stage = "awaiting_review"
                 state.fix_result.fix_status = FixStatus.AWAITING_REVIEW
                 state.fix_result.attempt_count += 1
 
@@ -3074,15 +2766,25 @@ Examples:
                     current_guidance = decision
                     # Continue loop
 
+        except RetryableFixError:
+            # Let the job queue handle retry logic
+            raise
         except Exception as e:
             logger.error("Fix generation failed: %s", e, exc_info=True)
             if state.fix_result:
                 state.fix_result.fix_status = FixStatus.FAILED
-            await event_emitter.emit("fix_generator", "error", f"Fix generation failed: {str(e)}")
+            stage = job.current_stage if job else "unknown"
+            attempt = job.attempt if job else 0
+            await event_emitter.emit(
+                "fix_generator", "error",
+                f"Fix generation failed: {str(e)}",
+                details={"stage": stage, "attempt": attempt, "retrying": False},
+            )
         finally:
             # Cleanup cloned repo
             if tmp_path:
                 from src.utils.repo_manager import RepoManager
+                queue.untrack_temp_dir(tmp_path)
                 RepoManager.cleanup_repo(tmp_path)
 
     # ── Campaign (Multi-Repo) Fix Generation ──────────────────────────────
