@@ -1,6 +1,9 @@
-import { createBrowserRouter, useNavigate } from 'react-router-dom';
+import { createBrowserRouter, useNavigate, useSearchParams } from 'react-router-dom';
 import AppLayout from './layouts/AppLayout';
 import NotFound from './pages/NotFound';
+import type { CapabilityType, CapabilityFormData } from './types';
+import { startSessionV4 } from './services/api';
+import CapabilityForm from './components/ActionCenter/CapabilityForm';
 
 // Existing page components
 import HomePage from './components/Home/HomePage';
@@ -117,6 +120,37 @@ function WorkflowRunsRoute() {
   return <WorkflowRunsView onNavigate={() => navigate('/workflows')} />;
 }
 
+function CapabilityFormRoute() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const capability = searchParams.get('capability') as CapabilityType | null;
+
+  if (!capability) {
+    return <NotFound />;
+  }
+
+  const handleSubmit = async (data: CapabilityFormData) => {
+    try {
+      const session = await startSessionV4({
+        service_name: (data as any).service_name || capability,
+        time_window: (data as any).time_window || '1h',
+        capability,
+      });
+      navigate(`/investigations/${session.session_id}`);
+    } catch (err) {
+      console.error('Failed to start session:', err);
+    }
+  };
+
+  return (
+    <CapabilityForm
+      capability={capability}
+      onBack={() => navigate('/')}
+      onSubmit={handleSubmit}
+    />
+  );
+}
+
 export const router = createBrowserRouter([
   {
     element: <AppLayout />,
@@ -126,6 +160,7 @@ export const router = createBrowserRouter([
 
       // Investigations
       { path: 'investigations', element: <SessionsRoute /> },
+      { path: 'investigations/new', element: <CapabilityFormRoute /> },
 
       // Network section
       { path: 'network/topology', element: <TopologyEditorView /> },
