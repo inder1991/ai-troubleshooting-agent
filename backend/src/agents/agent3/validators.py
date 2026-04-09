@@ -85,33 +85,85 @@ class StaticValidator:
         self.repo_path = Path(repo_path)
     
     def validate_syntax(self, file_path: str, code: str) -> Tuple[bool, str]:
+        """Validate syntax for the detected language.
+
+        Python uses in-process ast.parse(). All other languages write code to
+        a temp file and run the configured syntax_cmd. If the tool is not
+        installed, validation passes with a warning (best-effort).
         """
-        Validate Python syntax using AST parser
-        
-        Args:
-            file_path: Path to file being validated
-            code: Code to validate
-        
-        Returns:
-            (is_valid, error_message)
-        """
-        logger.info("\n🔍 Static Validation: Syntax Check")
-        
+        import tempfile
+
+        lang = detect_language(file_path)
+        logger.info("\n🔍 Static Validation: Syntax Check (%s)", lang or "unknown")
+
+        if lang is None:
+            logger.info("   ⚠️  Unknown language, skipping syntax check")
+            return True, "Unknown language — skipped"
+
+        config = LANGUAGE_CONFIG[lang]
+
+        # Python: in-process AST parsing
+        if config["syntax_cmd"] is None:
+            return self._validate_python_syntax(code)
+
+        # All other languages: write temp file, run external tool
+        suffix = Path(file_path).suffix
         try:
-            # Parse code to AST
+            with tempfile.NamedTemporaryFile(
+                mode="w", suffix=suffix, delete=False
+            ) as tmp:
+                tmp.write(code)
+                tmp_path = tmp.name
+        except Exception as e:
+            logger.info("   ⚠️  Syntax: Could not write temp file — %s", e)
+            return True, f"Temp file error: {e}"
+
+        try:
+            cmd = list(config["syntax_cmd"]) + [tmp_path]
+            result = subprocess.run(
+                cmd, capture_output=True, text=True, timeout=30
+            )
+            if result.returncode == 0:
+                logger.info("   ✅ Syntax: Valid %s code", lang)
+                return True, "Syntax valid"
+            else:
+                error_output = (result.stderr or result.stdout or "").strip()
+                error_msg = f"Syntax check failed: {error_output[:500]}"
+                logger.info("   ❌ Syntax: %s", error_msg)
+                return False, error_msg
+
+        except FileNotFoundError:
+            tool = config["syntax_cmd"][0]
+            logger.info("   ⚠️  Syntax: %s not installed (skipping)", tool)
+            return True, f"{tool} not available — skipped"
+
+        except subprocess.TimeoutExpired:
+            logger.info("   ⚠️  Syntax: Timeout (skipping)")
+            return True, "Syntax check timeout — skipped"
+
+        except Exception as e:
+            logger.info("   ⚠️  Syntax: Error — %s", e)
+            return True, f"Syntax check error: {e}"
+
+        finally:
+            try:
+                Path(tmp_path).unlink(missing_ok=True)
+            except Exception:
+                pass
+
+    def _validate_python_syntax(self, code: str) -> Tuple[bool, str]:
+        """Python-specific syntax validation using ast.parse()."""
+        try:
             ast.parse(code)
-            
             logger.info("   ✅ Syntax: Valid Python code")
             return True, "Syntax valid"
-        
         except SyntaxError as e:
             error_msg = f"Syntax error at line {e.lineno}: {e.msg}"
-            logger.info(f"   ❌ Syntax: {error_msg}")
+            logger.info("   ❌ Syntax: %s", error_msg)
             return False, error_msg
-        
         except Exception as e:
-            error_msg = f"AST parsing failed: {str(e)}"
-            logger.info(f"   ❌ Syntax: {error_msg}")
+            error_msg = f"AST parsing failed: {e}"
+            logger.info("   ❌ Syntax: %s", error_msg)
             return False, error_msg
     
     def run_linting(self, file_path: str, code: str = "") -> Tuple[bool, Dict[str, Any]]:
