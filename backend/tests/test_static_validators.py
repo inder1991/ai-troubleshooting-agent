@@ -89,3 +89,47 @@ class TestValidateSyntax:
     def test_unknown_language_passes(self):
         valid, msg = self.validator.validate_syntax("README.md", "# Hello\n")
         assert valid is True
+
+
+class TestRunLinting:
+    """Test linting dispatch across languages."""
+
+    def setup_method(self):
+        self.validator = StaticValidator("/tmp/fake-repo")
+
+    @patch("subprocess.run")
+    def test_go_lint_with_golangci(self, mock_run):
+        mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
+        passed, issues = self.validator.run_linting("main.go", "package main\n")
+        assert passed is True
+        cmd = mock_run.call_args[0][0]
+        assert "golangci-lint" in cmd[0]
+
+    @patch("subprocess.run")
+    def test_go_lint_fallback_to_go_vet(self, mock_run):
+        """When golangci-lint is not installed, fall back to go vet."""
+        def side_effect(cmd, **kwargs):
+            if cmd[0] == "golangci-lint":
+                raise FileNotFoundError("golangci-lint not found")
+            return MagicMock(returncode=0, stdout="", stderr="")
+        mock_run.side_effect = side_effect
+        passed, issues = self.validator.run_linting("main.go", "package main\n")
+        assert passed is True
+
+    @patch("subprocess.run")
+    def test_js_lint_with_eslint(self, mock_run):
+        mock_run.return_value = MagicMock(returncode=0, stdout="[]", stderr="")
+        passed, issues = self.validator.run_linting("index.js", "const x = 1;\n")
+        assert passed is True
+
+    @patch("subprocess.run")
+    def test_lint_tool_not_installed_passes(self, mock_run):
+        mock_run.side_effect = FileNotFoundError("eslint not found")
+        passed, issues = self.validator.run_linting("index.ts", "const x: number = 1;\n")
+        assert passed is True
+        assert any("not available" in str(w).lower()
+                    for w in issues.get("warnings", []))
+
+    def test_unknown_language_passes(self):
+        passed, issues = self.validator.run_linting("README.md", "# Hello\n")
+        assert passed is True

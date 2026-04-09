@@ -167,87 +167,137 @@ class StaticValidator:
             return False, error_msg
     
     def run_linting(self, file_path: str, code: str = "") -> Tuple[bool, Dict[str, Any]]:
-        """
-        Run static analysis with ruff on the generated code.
+        """Run language-appropriate linter on generated code.
 
-        Args:
-            file_path: Path to file to lint (used for context)
-            code: Generated code to lint. If empty, lints the file on disk.
-
-        Returns:
-            (passed, issues_dict)
+        Writes code to a temp file and runs the configured lint_cmd. If the
+        primary linter is not installed, tries lint_fallback_cmd (if configured).
+        If no linter is available, passes with a warning.
         """
         import tempfile
-        logger.info("\n🔍 Static Validation: Linting (ruff)")
+        import json
 
-        # If code provided, write to temp file and lint that instead of the original on disk
+        lang = detect_language(file_path)
+        logger.info("\n🔍 Static Validation: Linting (%s)", lang or "unknown")
+
+        if lang is None:
+            logger.info("   ⚠️  Unknown language, skipping lint")
+            return True, {"warnings": ["Unknown language — lint skipped"]}
+
+        config = LANGUAGE_CONFIG[lang]
+
+        # Write code to temp file
         if code:
+            suffix = Path(file_path).suffix or ".py"
             try:
-                suffix = Path(file_path).suffix or ".py"
-                with tempfile.NamedTemporaryFile(mode='w', suffix=suffix, delete=False) as tmp:
+                with tempfile.NamedTemporaryFile(
+                    mode="w", suffix=suffix, delete=False
+                ) as tmp:
                     tmp.write(code)
                     lint_path = tmp.name
             except Exception as e:
-                logger.info(f"   ⚠️  Linting: Could not write temp file — {e}")
-                return True, {"warnings": [f"Temp file error: {str(e)}"]}
+                logger.info("   ⚠️  Linting: Could not write temp file — %s", e)
+                return True, {"warnings": [f"Temp file error: {e}"]}
         else:
-            # Normalize path and lint original file
-            normalized_path = file_path.lstrip('/')
-            for prefix in ['app/', '/app/', 'usr/src/app/', '/usr/src/app/']:
+            normalized_path = file_path.lstrip("/")
+            for prefix in ["app/", "/app/", "usr/src/app/", "/usr/src/app/"]:
                 if normalized_path.startswith(prefix):
                     normalized_path = normalized_path[len(prefix):]
             lint_path = str(self.repo_path / normalized_path)
             if not Path(lint_path).exists():
-                logger.info(f"   ⚠️  File not found: {file_path}")
+                logger.info("   ⚠️  File not found: %s", file_path)
                 return True, {"warnings": ["File not yet created - will lint after staging"]}
 
         try:
-            # Run ruff with JSON output
+            return self._run_lint_cmd(config, lint_path, lang)
+
+        finally:
+            if code:
+                try:
+                    Path(lint_path).unlink(missing_ok=True)
+                except Exception:
+                    pass
+
+    def _run_lint_cmd(
+        self, config: dict, lint_path: str, lang: str
+    ) -> Tuple[bool, Dict[str, Any]]:
+        """Execute lint command with fallback support."""
+        import json
+
+        lint_cmd = list(config["lint_cmd"]) + [lint_path]
+        parse_json = config.get("lint_parse_json", False)
+
+        try:
             result = subprocess.run(
-                ['ruff', 'check', '--output-format=json', lint_path],
-                capture_output=True,
-                text=True,
-                timeout=10
+                lint_cmd, capture_output=True, text=True, timeout=30
             )
 
             if result.returncode == 0:
                 logger.info("   ✅ Linting: No issues found")
                 return True, {"errors": [], "warnings": []}
 
-            # Parse issues
-            import json
-            issues = json.loads(result.stdout) if result.stdout else []
+            # Try to parse structured output
+            if parse_json and result.stdout:
+                try:
+                    issues = json.loads(result.stdout)
+                    if isinstance(issues, list):
+                        errors = [i for i in issues if i.get("type") == "error" or i.get("severity", 0) == 2]
+                        warnings = [i for i in issues if i not in errors]
+                    else:
+                        errors = []
+                        warnings = [result.stdout[:500]]
+                except json.JSONDecodeError:
+                    errors = []
+                    warnings = [result.stdout[:500]]
+            else:
+                # Plain text output — treat non-zero exit as warning
+                output = (result.stderr or result.stdout or "").strip()
+                errors = []
+                warnings = [output[:500]] if output else []
 
-            errors = [i for i in issues if i.get('type') == 'error']
-            warnings = [i for i in issues if i.get('type') == 'warning']
+            logger.info("   ⚠️  Linting: %d errors, %d warnings", len(errors), len(warnings))
+            return len(errors) == 0, {"errors": errors, "warnings": warnings}
 
-            logger.info(f"   ⚠️  Linting: {len(errors)} errors, {len(warnings)} warnings")
-
-            # Only fail on errors, not warnings
-            return len(errors) == 0, {
-                "errors": errors,
-                "warnings": warnings
-            }
+        except FileNotFoundError:
+            # Primary linter not installed — try fallback
+            fallback_cmd = config.get("lint_fallback_cmd")
+            if fallback_cmd:
+                return self._run_fallback_lint(fallback_cmd, lint_path, lang)
+            tool = config["lint_cmd"][0]
+            logger.info("   ⚠️  Linting: %s not installed (skipping)", tool)
+            return True, {"warnings": [f"{tool} not available — lint skipped"]}
 
         except subprocess.TimeoutExpired:
             logger.info("   ⚠️  Linting: Timeout (skipping)")
-            return True, {"warnings": ["Linting timeout - review manually"]}
-
-        except FileNotFoundError:
-            logger.info("   ⚠️  Linting: ruff not installed (skipping)")
-            return True, {"warnings": ["ruff not installed"]}
+            return True, {"warnings": ["Linting timeout — review manually"]}
 
         except Exception as e:
-            logger.info(f"   ⚠️  Linting: Error - {e}")
-            return True, {"warnings": [f"Linting error: {str(e)}"]}
+            logger.info("   ⚠️  Linting: Error — %s", e)
+            return True, {"warnings": [f"Linting error: {e}"]}
 
-        finally:
-            # Clean up temp file if we created one
-            if code:
-                try:
-                    Path(lint_path).unlink(missing_ok=True)
-                except Exception:
-                    pass
+    def _run_fallback_lint(
+        self, fallback_cmd: list[str], lint_path: str, lang: str
+    ) -> Tuple[bool, Dict[str, Any]]:
+        """Run fallback linter when primary is not available."""
+        try:
+            cmd = list(fallback_cmd) + [lint_path]
+            result = subprocess.run(
+                cmd, capture_output=True, text=True, timeout=30
+            )
+            if result.returncode == 0:
+                logger.info("   ✅ Linting (fallback): No issues found")
+                return True, {"errors": [], "warnings": []}
+            output = (result.stderr or result.stdout or "").strip()
+            logger.info("   ⚠️  Linting (fallback): Issues found")
+            return False, {"errors": [output[:500]], "warnings": []}
+
+        except FileNotFoundError:
+            tool = fallback_cmd[0]
+            logger.info("   ⚠️  Linting: %s not installed (skipping)", tool)
+            return True, {"warnings": [f"{tool} not available — lint skipped"]}
+
+        except Exception as e:
+            logger.info("   ⚠️  Linting fallback error: %s", e)
+            return True, {"warnings": [f"Lint fallback error: {e}"]}
     
     def check_imports(self, code: str) -> Tuple[bool, List[str]]:
         """
