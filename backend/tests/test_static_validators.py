@@ -133,3 +133,44 @@ class TestRunLinting:
     def test_unknown_language_passes(self):
         passed, issues = self.validator.run_linting("README.md", "# Hello\n")
         assert passed is True
+
+
+class TestCheckImports:
+    def setup_method(self):
+        self.validator = StaticValidator("/tmp/fake-repo")
+
+    def test_python_imports_checked(self):
+        code = "import os\nimport json\n"
+        valid, missing = self.validator.check_imports("main.py", code)
+        assert valid is True
+
+    def test_non_python_skips_import_check(self):
+        valid, missing = self.validator.check_imports("main.go", "package main\n")
+        assert valid is True
+        assert missing == []
+
+
+class TestValidateAll:
+    def setup_method(self):
+        self.validator = StaticValidator("/tmp/fake-repo")
+
+    def test_python_runs_all_three_checks(self):
+        code = "import os\nx = 1\n"
+        result = self.validator.validate_all("main.py", code)
+        assert "syntax" in result
+        assert "linting" in result
+        assert "imports" in result
+        assert "language" in result
+        assert result["language"] == "python"
+
+    @patch("subprocess.run")
+    def test_go_runs_syntax_and_lint(self, mock_run):
+        mock_run.return_value = MagicMock(returncode=0, stderr="", stdout="")
+        result = self.validator.validate_all("main.go", "package main\n")
+        assert result["language"] == "go"
+        assert result["imports"]["valid"] is True  # skipped for Go
+
+    def test_unknown_language_passes(self):
+        result = self.validator.validate_all("README.md", "# Hello\n")
+        assert result["passed"] is True
+        assert result["language"] is None

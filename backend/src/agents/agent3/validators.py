@@ -299,16 +299,22 @@ class StaticValidator:
             logger.info("   ⚠️  Linting fallback error: %s", e)
             return True, {"warnings": [f"Lint fallback error: {e}"]}
     
-    def check_imports(self, code: str) -> Tuple[bool, List[str]]:
+    def check_imports(self, file_path: str, code: str) -> Tuple[bool, List[str]]:
         """
         Check if all imports are available
-        
+
         Args:
+            file_path: Path to file being validated
             code: Code to check
-        
+
         Returns:
             (all_available, missing_imports)
         """
+        lang = detect_language(file_path)
+        if lang != "python":
+            logger.info("\n🔍 Static Validation: Import Check (skipped for %s)", lang or "unknown")
+            return True, []
+
         logger.info("\n🔍 Static Validation: Import Check")
         
         try:
@@ -367,62 +373,50 @@ class StaticValidator:
             return True, []  # Don't fail on check error
     
     def validate_all(self, file_path: str, code: str) -> Dict[str, Any]:
-        """
-        Run all validation checks
-        
-        Args:
-            file_path: Path to file being validated
-            code: Code to validate
-        
-        Returns:
-            {
-                "passed": bool,
-                "syntax": {"valid": bool, "error": str},
-                "linting": {"passed": bool, "issues": dict},
-                "imports": {"valid": bool, "missing": list}
-            }
-        """
-        logger.info("\n" + "="*80)
-        logger.info("🛡️  STATIC VALIDATION SUITE")
-        logger.info("="*80)
-        
+        """Run all validation checks appropriate for the detected language."""
+        lang = detect_language(file_path)
+
+        logger.info("\n" + "=" * 80)
+        logger.info("🛡️  STATIC VALIDATION SUITE (%s)", lang or "unknown")
+        logger.info("=" * 80)
+
         # 1. Syntax check
         syntax_valid, syntax_error = self.validate_syntax(file_path, code)
-        
-        # 2. Linting (only if syntax is valid) — lint the generated code, not the original
+
+        # 2. Linting (only if syntax is valid)
         if syntax_valid:
             linting_passed, linting_issues = self.run_linting(file_path, code)
         else:
             linting_passed = False
             linting_issues = {"error": "Skipped due to syntax errors"}
-        
-        # 3. Import check
-        import_valid, missing_imports = self.check_imports(code)
-        
-        # Overall result
+
+        # 3. Import check (Python only, others skip)
+        import_valid, missing_imports = self.check_imports(file_path, code)
+
         all_passed = syntax_valid and linting_passed and import_valid
-        
+
         result = {
             "passed": all_passed,
+            "language": lang,
             "syntax": {
                 "valid": syntax_valid,
-                "error": syntax_error if not syntax_valid else None
+                "error": syntax_error if not syntax_valid else None,
             },
             "linting": {
                 "passed": linting_passed,
-                "issues": linting_issues
+                "issues": linting_issues,
             },
             "imports": {
                 "valid": import_valid,
-                "missing": missing_imports
-            }
+                "missing": missing_imports,
+            },
         }
-        
-        logger.info("\n" + "="*80)
+
+        logger.info("\n" + "=" * 80)
         if all_passed:
-            logger.info("✅ VALIDATION PASSED - Code is syntactically correct")
+            logger.info("✅ VALIDATION PASSED — %s code is valid", lang or "unknown")
         else:
-            logger.info("❌ VALIDATION FAILED - Code needs corrections")
-        logger.info("="*80 + "\n")
-        
+            logger.info("❌ VALIDATION FAILED — code needs corrections")
+        logger.info("=" * 80 + "\n")
+
         return result
