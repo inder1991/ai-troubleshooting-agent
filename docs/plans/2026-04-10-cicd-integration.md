@@ -1528,5 +1528,967 @@ git commit -m "feat(cicd): resolver with auto-discovery and failure isolation"
 
 ---
 
-<!-- REMAINING TASKS: 10–27 — appended next -->
+## Task 10: Register jenkins/argocd service types
+
+**Files:**
+- Modify: `backend/src/integrations/store.py`
+- Modify: `backend/src/integrations/models.py` (if service_type enum lives there)
+- Create: `backend/tests/integrations/test_cicd_service_types.py`
+
+**Context:** The existing integrations store exposes `gi_store.get_by_service_type(kind)`. Confirm the current enum/list of supported service types and add `"jenkins"` and `"argocd"` following the exact pattern used for `"elk"` / `"github"`.
+
+**Step 1: Write the failing test**
+
+```python
+# backend/tests/integrations/test_cicd_service_types.py
+from __future__ import annotations
+
+from backend.src.integrations.store import SUPPORTED_SERVICE_TYPES
+
+
+def test_jenkins_is_registered_service_type():
+    assert "jenkins" in SUPPORTED_SERVICE_TYPES
+
+
+def test_argocd_is_registered_service_type():
+    assert "argocd" in SUPPORTED_SERVICE_TYPES
+```
+
+**Step 2: Run test to verify it fails**
+
+Run: `pytest backend/tests/integrations/test_cicd_service_types.py -v`
+Expected: FAIL — `AssertionError` (or `ImportError` if constant doesn't exist yet; if it doesn't, expose it as part of this task).
+
+**Step 3: Write minimal implementation**
+
+Edit `backend/src/integrations/store.py` — locate the existing enum/tuple/set of allowed service types and add the two new entries. If no public constant exists, add one:
+
+```python
+SUPPORTED_SERVICE_TYPES = {
+    "jira", "confluence", "github", "elk", "remedy",
+    "prometheus", "jenkins", "argocd",
+}
+```
+
+**Step 4: Run test to verify it passes**
+
+Run: `pytest backend/tests/integrations/test_cicd_service_types.py -v`
+Expected: PASS (2 tests)
+
+Also run: `pytest backend/tests/integrations/ -v` to make sure existing integration tests didn't regress.
+
+**Step 5: Commit**
+
+```bash
+git add backend/src/integrations/store.py backend/tests/integrations/test_cicd_service_types.py
+git commit -m "feat(integrations): register jenkins and argocd as service types"
+```
+
+---
+
+## Task 11: Probe endpoints for Jenkins + ArgoCD
+
+**Files:**
+- Modify: `backend/src/integrations/probe.py`
+- Create: `backend/tests/integrations/test_cicd_probe.py`
+
+**Step 1: Write the failing test**
+
+```python
+# backend/tests/integrations/test_cicd_probe.py
+from __future__ import annotations
+
+from unittest.mock import AsyncMock, patch
+
+import pytest
+
+from backend.src.integrations.probe import probe_integration
+
+
+@pytest.mark.asyncio
+async def test_probe_jenkins_returns_ok_on_success():
+    with patch("backend.src.integrations.probe.JenkinsClient") as JC:
+        instance = JC.return_value
+        instance.health_check = AsyncMock(return_value=True)
+        result = await probe_integration(
+            service_type="jenkins",
+            url="https://j.example",
+            credentials={"username": "u", "api_token": "t"},
+        )
+    assert result.ok is True
+
+
+@pytest.mark.asyncio
+async def test_probe_jenkins_returns_error_on_auth_failure():
+    from backend.src.integrations.cicd.base import CICDClientError
+    with patch("backend.src.integrations.probe.JenkinsClient") as JC:
+        instance = JC.return_value
+        instance.health_check = AsyncMock(side_effect=CICDClientError(
+            source="jenkins", instance="probe", kind="auth", message="401",
+        ))
+        result = await probe_integration(
+            service_type="jenkins",
+            url="https://j.example",
+            credentials={"username": "u", "api_token": "bad"},
+        )
+    assert result.ok is False
+    assert "401" in (result.error or "")
+
+
+@pytest.mark.asyncio
+async def test_probe_argocd_rest_returns_ok():
+    with patch("backend.src.integrations.probe.ArgoCDClient") as AC:
+        instance = AC.from_rest.return_value
+        instance.health_check = AsyncMock(return_value=True)
+        result = await probe_integration(
+            service_type="argocd",
+            url="https://argo.example",
+            credentials={"token": "t"},
+        )
+    assert result.ok is True
+```
+
+**Step 2: Run test to verify it fails**
+
+Run: `pytest backend/tests/integrations/test_cicd_probe.py -v`
+Expected: FAIL — existing probe doesn't know `jenkins` / `argocd` types.
+
+**Step 3: Write minimal implementation**
+
+Add two branches to `probe.py`:
+
+```python
+from backend.src.integrations.cicd.base import CICDClientError
+from backend.src.integrations.cicd.jenkins_client import JenkinsClient
+from backend.src.integrations.cicd.argocd_client import ArgoCDClient
+
+
+async def _probe_jenkins(url, credentials):
+    try:
+        client = JenkinsClient(
+            base_url=url,
+            username=credentials.get("username", ""),
+            api_token=credentials.get("api_token", ""),
+            instance_name="probe",
+        )
+        ok = await client.health_check()
+        return ProbeResult(ok=ok, error=None if ok else "health check failed")
+    except CICDClientError as e:
+        return ProbeResult(ok=False, error=str(e))
+
+
+async def _probe_argocd(url, credentials):
+    try:
+        client = ArgoCDClient.from_rest(
+            base_url=url,
+            token=credentials.get("token", ""),
+            instance_name="probe",
+        )
+        ok = await client.health_check()
+        return ProbeResult(ok=ok, error=None if ok else "health check failed")
+    except CICDClientError as e:
+        return ProbeResult(ok=False, error=str(e))
+```
+
+Wire them into the dispatch in `probe_integration`:
+
+```python
+    if service_type == "jenkins":
+        return await _probe_jenkins(url, credentials)
+    if service_type == "argocd":
+        return await _probe_argocd(url, credentials)
+```
+
+**Step 4: Run test to verify it passes**
+
+Run: `pytest backend/tests/integrations/test_cicd_probe.py -v`
+Expected: PASS (3 tests)
+
+**Step 5: Commit**
+
+```bash
+git add backend/src/integrations/probe.py backend/tests/integrations/test_cicd_probe.py
+git commit -m "feat(integrations): probe endpoints for jenkins and argocd"
+```
+
+---
+
+## Task 12: Audit hook for CICDClient reads
+
+**Files:**
+- Modify: `backend/src/integrations/cicd/jenkins_client.py`
+- Modify: `backend/src/integrations/cicd/argocd_client.py`
+- Create: `backend/tests/integrations/cicd/test_audit_hook.py`
+
+**Goal:** Every `list_deploy_events` / `get_build_artifacts` / `health_check` records an audit event `{action: "read", source, instance, method, caller}` via the existing `integrations/audit_store.py`. Landing this now so Phase B write actions plug into the same store without refactor.
+
+**Step 1: Write the failing test**
+
+```python
+# backend/tests/integrations/cicd/test_audit_hook.py
+from __future__ import annotations
+
+from datetime import datetime, timezone
+from unittest.mock import AsyncMock, patch
+
+import pytest
+
+from backend.src.integrations.cicd.jenkins_client import JenkinsClient
+
+
+@pytest.mark.asyncio
+async def test_jenkins_list_emits_audit_read_record():
+    client = JenkinsClient("https://j", "u", "t", "prod")
+    client._get_json = AsyncMock(return_value={"jobs": []})
+    with patch("backend.src.integrations.cicd.jenkins_client.audit_store") as a:
+        await client.list_deploy_events(
+            datetime(2026, 4, 10, tzinfo=timezone.utc),
+            datetime(2026, 4, 11, tzinfo=timezone.utc),
+        )
+        a.record.assert_called_once()
+        call = a.record.call_args.kwargs
+        assert call["action"] == "read"
+        assert call["source"] == "jenkins"
+        assert call["instance"] == "prod"
+        assert call["method"] == "list_deploy_events"
+```
+
+**Step 2: Run test to verify it fails**
+
+Run: `pytest backend/tests/integrations/cicd/test_audit_hook.py -v`
+Expected: FAIL — `ImportError: cannot import name 'audit_store'`
+
+**Step 3: Write minimal implementation**
+
+At top of `jenkins_client.py`:
+
+```python
+from backend.src.integrations import audit_store  # type: ignore
+```
+
+Wrap `list_deploy_events` body entry:
+
+```python
+    async def list_deploy_events(self, since, until, target_filter=None):
+        audit_store.record(
+            action="read", source="jenkins", instance=self.name,
+            method="list_deploy_events", caller=None,
+        )
+        # ... existing body
+```
+
+Do the same in `get_build_artifacts` and `health_check`. Mirror in `argocd_client.py`.
+
+If `audit_store.record` does not exist yet, add a minimal function in the existing `audit_store` module:
+
+```python
+def record(*, action, source, instance, method, caller=None, severity="info"):
+    logger.info(
+        "integration_audit",
+        extra={"action": action, "source": source, "instance": instance,
+               "method": method, "caller": caller, "severity": severity},
+    )
+```
+
+**Step 4: Run test to verify it passes**
+
+Run: `pytest backend/tests/integrations/cicd/test_audit_hook.py -v`
+Expected: PASS
+
+Also re-run: `pytest backend/tests/integrations/cicd/ -v`
+Expected: All previous tests still green.
+
+**Step 5: Commit**
+
+```bash
+git add backend/src/integrations/cicd/jenkins_client.py backend/src/integrations/cicd/argocd_client.py backend/src/integrations/audit_store.py backend/tests/integrations/cicd/test_audit_hook.py
+git commit -m "feat(cicd): audit hook for all CICDClient read operations"
+```
+
+---
+
+## Task 13: ChangeAgent pre-fetch enrichment
+
+**Files:**
+- Modify: `backend/src/agents/change_agent.py`
+- Create: `backend/tests/test_change_agent_cicd_enrichment.py`
+
+**Goal:** Phase 0 pre-fetch fans out to `resolve_cicd_clients` and appends a `ci_cd_events` context block for the triage prompt. When the resolver returns no clients, the block is omitted entirely (no confusing empty section for the LLM).
+
+**Step 1: Write the failing test**
+
+```python
+# backend/tests/test_change_agent_cicd_enrichment.py
+from __future__ import annotations
+
+from datetime import datetime, timedelta, timezone
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+
+from backend.src.integrations.cicd.base import DeployEvent, ResolveResult
+
+
+def _event(name="checkout-api", status="failed"):
+    return DeployEvent(
+        source="jenkins",
+        source_id=f"{name}#1",
+        name=name,
+        status=status,
+        started_at=datetime(2026, 4, 10, 14, 0, tzinfo=timezone.utc),
+        url="https://j/x/1/",
+    )
+
+
+@pytest.mark.asyncio
+async def test_change_agent_prefetch_includes_cicd_events():
+    fake_client = MagicMock()
+    fake_client.list_deploy_events = AsyncMock(return_value=[_event()])
+    with patch(
+        "backend.src.agents.change_agent.resolve_cicd_clients",
+        AsyncMock(return_value=ResolveResult(clients=[fake_client], errors=[])),
+    ):
+        from backend.src.agents.change_agent import _prefetch_cicd_events
+        events = await _prefetch_cicd_events(
+            ctx={},
+            incident_start=datetime(2026, 4, 10, 14, 0, tzinfo=timezone.utc),
+            namespace="prod",
+        )
+    assert len(events) == 1
+    assert events[0].name == "checkout-api"
+
+
+@pytest.mark.asyncio
+async def test_change_agent_prefetch_returns_empty_when_no_clients():
+    with patch(
+        "backend.src.agents.change_agent.resolve_cicd_clients",
+        AsyncMock(return_value=ResolveResult(clients=[], errors=[])),
+    ):
+        from backend.src.agents.change_agent import _prefetch_cicd_events
+        events = await _prefetch_cicd_events(
+            ctx={},
+            incident_start=datetime(2026, 4, 10, 14, 0, tzinfo=timezone.utc),
+            namespace="prod",
+        )
+    assert events == []
+
+
+@pytest.mark.asyncio
+async def test_change_agent_prefetch_tolerates_one_client_failing():
+    good = MagicMock()
+    good.list_deploy_events = AsyncMock(return_value=[_event("svc-a")])
+    bad = MagicMock()
+    bad.list_deploy_events = AsyncMock(side_effect=RuntimeError("boom"))
+    with patch(
+        "backend.src.agents.change_agent.resolve_cicd_clients",
+        AsyncMock(return_value=ResolveResult(clients=[good, bad], errors=[])),
+    ):
+        from backend.src.agents.change_agent import _prefetch_cicd_events
+        events = await _prefetch_cicd_events(
+            ctx={},
+            incident_start=datetime(2026, 4, 10, 14, 0, tzinfo=timezone.utc),
+            namespace="prod",
+        )
+    assert len(events) == 1
+    assert events[0].name == "svc-a"
+```
+
+**Step 2: Run test to verify it fails**
+
+Run: `pytest backend/tests/test_change_agent_cicd_enrichment.py -v`
+Expected: FAIL — `ImportError: cannot import name '_prefetch_cicd_events'`
+
+**Step 3: Write minimal implementation**
+
+Add to `change_agent.py`:
+
+```python
+from datetime import timedelta
+
+from backend.src.integrations.cicd.resolver import resolve_cicd_clients
+
+
+async def _prefetch_cicd_events(ctx, incident_start, namespace):
+    """Fan out to all resolved CI/CD clients. Per-client failures are swallowed."""
+    result = await resolve_cicd_clients(ctx)
+    if not result.clients:
+        return []
+    since = incident_start - timedelta(hours=2)
+    until = incident_start + timedelta(minutes=30)
+    import asyncio
+    coros = [
+        c.list_deploy_events(since, until, target_filter=namespace)
+        for c in result.clients
+    ]
+    outputs = await asyncio.gather(*coros, return_exceptions=True)
+    events = []
+    for out in outputs:
+        if isinstance(out, Exception):
+            continue
+        events.extend(out)
+    return events
+```
+
+Then wire it into the existing Phase 0 pre-fetch block: call `_prefetch_cicd_events` in parallel with existing GitHub/k8s pre-fetch (`asyncio.gather`) and, when non-empty, include the result as `ci_cd_events` in the triage context dict. Keep the key absent when the list is empty.
+
+**Step 4: Run test to verify it passes**
+
+Run: `pytest backend/tests/test_change_agent_cicd_enrichment.py -v`
+Expected: PASS (3 tests)
+
+Run existing ChangeAgent tests to confirm no regression:
+Run: `pytest backend/tests/ -k change_agent -v`
+
+**Step 5: Commit**
+
+```bash
+git add backend/src/agents/change_agent.py backend/tests/test_change_agent_cicd_enrichment.py
+git commit -m "feat(change-agent): pre-fetch CI/CD events for triage context"
+```
+
+---
+
+## Task 14: PipelineAgent implementation
+
+**Files:**
+- Create: `backend/src/agents/pipeline_agent.py`
+- Create: `backend/tests/agents/test_pipeline_agent.py`
+
+**Goal:** Thin `ReActAgent` with three tools: `list_recent_deploys`, `get_deploy_details`, `search_logs`. Max 4 iterations. Returns a finding with deeplink chips.
+
+**Step 1: Write the failing test**
+
+```python
+# backend/tests/agents/test_pipeline_agent.py
+from __future__ import annotations
+
+from datetime import datetime, timezone
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+
+from backend.src.integrations.cicd.base import Build, DeployEvent, ResolveResult
+
+
+def _event():
+    return DeployEvent(
+        source="jenkins", source_id="svc#1", name="svc",
+        status="failed",
+        started_at=datetime(2026, 4, 10, 14, tzinfo=timezone.utc),
+        url="https://j/svc/1",
+    )
+
+
+@pytest.mark.asyncio
+async def test_pipeline_agent_produces_finding_from_deploy_event():
+    from backend.src.agents.pipeline_agent import PipelineAgent
+
+    fake_client = MagicMock()
+    fake_client.source = "jenkins"
+    fake_client.name = "prod"
+    fake_client.list_deploy_events = AsyncMock(return_value=[_event()])
+    fake_client.get_build_artifacts = AsyncMock(return_value=Build(
+        event=_event(), parameters={}, log_tail="error: boom",
+        failed_stage="deploy",
+    ))
+
+    with patch(
+        "backend.src.agents.pipeline_agent.resolve_cicd_clients",
+        AsyncMock(return_value=ResolveResult(clients=[fake_client], errors=[])),
+    ):
+        agent = PipelineAgent(llm=AsyncMock())
+        agent.llm.invoke = AsyncMock(side_effect=[
+            {"action": "list_recent_deploys", "args": {"hours": 2}},
+            {"action": "get_deploy_details", "args": {"event_id": "svc#1"}},
+            {"action": "finish",
+             "args": {"finding": "Deploy svc#1 failed at stage 'deploy'",
+                      "root_cause": "error: boom"}},
+        ])
+        finding = await agent.run(inputs={
+            "instance": "prod", "name": "svc", "window_hours": 2,
+        })
+
+    assert "svc#1" in finding["finding"]
+    assert finding["root_cause"]
+
+
+@pytest.mark.asyncio
+async def test_pipeline_agent_stops_after_max_iterations():
+    from backend.src.agents.pipeline_agent import PipelineAgent
+
+    with patch(
+        "backend.src.agents.pipeline_agent.resolve_cicd_clients",
+        AsyncMock(return_value=ResolveResult(clients=[], errors=[])),
+    ):
+        agent = PipelineAgent(llm=AsyncMock(), max_iterations=4)
+        agent.llm.invoke = AsyncMock(return_value={
+            "action": "list_recent_deploys", "args": {"hours": 1},
+        })
+        finding = await agent.run(inputs={
+            "instance": "prod", "name": "svc", "window_hours": 1,
+        })
+    assert finding["terminated_reason"] == "max_iterations"
+```
+
+**Step 2: Run test to verify it fails**
+
+Run: `pytest backend/tests/agents/test_pipeline_agent.py -v`
+Expected: FAIL — `ModuleNotFoundError`
+
+**Step 3: Write minimal implementation**
+
+```python
+# backend/src/agents/pipeline_agent.py
+from __future__ import annotations
+
+from datetime import datetime, timedelta, timezone
+from typing import Any
+
+from backend.src.integrations.cicd.resolver import resolve_cicd_clients
+
+
+class PipelineAgent:
+    """Minimal ReAct agent with three CI/CD tools."""
+
+    def __init__(self, llm: Any, max_iterations: int = 4) -> None:
+        self.llm = llm
+        self.max_iterations = max_iterations
+
+    async def run(self, inputs: dict[str, Any]) -> dict[str, Any]:
+        ctx: dict[str, Any] = {"inputs": inputs, "observations": []}
+        for _ in range(self.max_iterations):
+            step = await self.llm.invoke(ctx)
+            action = step.get("action")
+            args = step.get("args", {})
+            if action == "finish":
+                return {
+                    "finding": args.get("finding", ""),
+                    "root_cause": args.get("root_cause"),
+                    "terminated_reason": "finished",
+                }
+            obs = await self._run_tool(action, args, inputs)
+            ctx["observations"].append({"action": action, "args": args, "obs": obs})
+        return {
+            "finding": "Unable to conclude within iteration budget.",
+            "root_cause": None,
+            "terminated_reason": "max_iterations",
+        }
+
+    async def _run_tool(self, action: str, args: dict, inputs: dict) -> Any:
+        result = await resolve_cicd_clients(ctx=None)
+        clients = [
+            c for c in result.clients if c.name == inputs.get("instance")
+        ] or result.clients
+        if action == "list_recent_deploys":
+            hours = int(args.get("hours", 2))
+            until = datetime.now(tz=timezone.utc)
+            since = until - timedelta(hours=hours)
+            out: list[dict] = []
+            for c in clients:
+                try:
+                    evs = await c.list_deploy_events(since, until)
+                    out.extend(e.model_dump() for e in evs)
+                except Exception:
+                    continue
+            return out
+        if action == "get_deploy_details":
+            event_id = args.get("event_id", "")
+            for c in clients:
+                try:
+                    evs = await c.list_deploy_events(
+                        datetime.now(tz=timezone.utc) - timedelta(hours=24),
+                        datetime.now(tz=timezone.utc),
+                    )
+                    match = next((e for e in evs if e.source_id == event_id), None)
+                    if match is None:
+                        continue
+                    art = await c.get_build_artifacts(match)
+                    return art.model_dump()
+                except Exception:
+                    continue
+            return None
+        if action == "search_logs":
+            return {"error": "search_logs not wired to live source in Phase A"}
+        return {"error": f"unknown action {action}"}
+```
+
+**Step 4: Run test to verify it passes**
+
+Run: `pytest backend/tests/agents/test_pipeline_agent.py -v`
+Expected: PASS (2 tests)
+
+**Step 5: Commit**
+
+```bash
+git add backend/src/agents/pipeline_agent.py backend/tests/agents/test_pipeline_agent.py
+git commit -m "feat(agents): PipelineAgent ReAct loop with 3 CI/CD tools"
+```
+
+---
+
+## Task 15: Supervisor + schema wiring for troubleshoot_pipeline
+
+**Files:**
+- Modify: `backend/src/agents/supervisor.py`
+- Modify: `backend/src/models/schemas.py`
+- Create: `backend/tests/test_supervisor_pipeline_capability.py`
+
+**Step 1: Write the failing test**
+
+```python
+# backend/tests/test_supervisor_pipeline_capability.py
+from __future__ import annotations
+
+from unittest.mock import AsyncMock, patch
+
+import pytest
+
+
+def test_capability_enum_includes_troubleshoot_pipeline():
+    from backend.src.models.schemas import CapabilityType
+    assert "troubleshoot_pipeline" in {c.value for c in CapabilityType}
+
+
+@pytest.mark.asyncio
+async def test_supervisor_routes_troubleshoot_pipeline_to_pipeline_agent():
+    from backend.src.agents import supervisor
+
+    with patch.object(supervisor, "PipelineAgent") as PA:
+        instance = PA.return_value
+        instance.run = AsyncMock(return_value={"finding": "ok"})
+        result = await supervisor.dispatch(
+            capability="troubleshoot_pipeline",
+            inputs={"instance": "prod", "name": "svc", "window_hours": 2},
+        )
+    assert result["finding"] == "ok"
+    PA.assert_called_once()
+```
+
+**Step 2: Run test to verify it fails**
+
+Run: `pytest backend/tests/test_supervisor_pipeline_capability.py -v`
+Expected: FAIL — unknown capability / enum missing.
+
+**Step 3: Write minimal implementation**
+
+- In `schemas.py`, add `TROUBLESHOOT_PIPELINE = "troubleshoot_pipeline"` to the `CapabilityType` enum.
+- In `supervisor.py`, add route:
+
+```python
+from backend.src.agents.pipeline_agent import PipelineAgent
+
+async def dispatch(capability: str, inputs: dict):
+    if capability == "troubleshoot_pipeline":
+        agent = PipelineAgent(llm=get_llm())
+        return await agent.run(inputs)
+    # ... existing routing
+```
+
+(If `dispatch` is not the existing entry point, wire it into the existing one — route by the new capability string.)
+
+**Step 4: Run test to verify it passes**
+
+Run: `pytest backend/tests/test_supervisor_pipeline_capability.py -v`
+Expected: PASS (2 tests)
+
+Run full supervisor tests for regression check.
+
+**Step 5: Commit**
+
+```bash
+git add backend/src/agents/supervisor.py backend/src/models/schemas.py backend/tests/test_supervisor_pipeline_capability.py
+git commit -m "feat(supervisor): route troubleshoot_pipeline capability to PipelineAgent"
+```
+
+---
+
+## Task 16: GET /api/v4/cicd/stream endpoint
+
+**Files:**
+- Modify: `backend/src/api/routes_v4.py`
+- Create: `backend/tests/integrations/cicd/test_stream_endpoint.py`
+
+**Step 1: Write the failing test**
+
+```python
+# backend/tests/integrations/cicd/test_stream_endpoint.py
+from __future__ import annotations
+
+from datetime import datetime, timezone
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+from fastapi.testclient import TestClient
+
+from backend.src.integrations.cicd.base import DeployEvent, ResolveResult
+
+
+def _event(name="svc-a", ts=datetime(2026, 4, 10, 14, 0, tzinfo=timezone.utc)):
+    return DeployEvent(
+        source="jenkins", source_id=f"{name}#1", name=name,
+        status="success", started_at=ts, url="https://j/x/1/",
+    )
+
+
+@pytest.fixture
+def client():
+    from backend.src.api.main import app  # adjust if actual app object path differs
+    return TestClient(app)
+
+
+def test_stream_endpoint_merges_sources_sorted_desc(client):
+    old = _event("svc-a", datetime(2026, 4, 10, 13, 0, tzinfo=timezone.utc))
+    new = _event("svc-b", datetime(2026, 4, 10, 14, 0, tzinfo=timezone.utc))
+    fake = MagicMock()
+    fake.source = "jenkins"
+    fake.name = "prod"
+    fake.list_deploy_events = AsyncMock(return_value=[old, new])
+    with patch(
+        "backend.src.api.routes_v4.resolve_cicd_clients",
+        AsyncMock(return_value=ResolveResult(clients=[fake], errors=[])),
+    ), patch(
+        "backend.src.api.routes_v4.list_recent_github_commits",
+        AsyncMock(return_value=[]),
+    ):
+        resp = client.get("/api/v4/cicd/stream?since=2026-04-10T12:00:00Z")
+    assert resp.status_code == 200
+    items = resp.json()["items"]
+    assert [i["id"] for i in items] == ["svc-b#1", "svc-a#1"]
+
+
+def test_stream_endpoint_returns_partial_on_source_failure(client):
+    good = MagicMock(); good.source = "jenkins"; good.name = "g"
+    good.list_deploy_events = AsyncMock(return_value=[_event()])
+    bad = MagicMock(); bad.source = "argocd"; bad.name = "b"
+    bad.list_deploy_events = AsyncMock(side_effect=RuntimeError("boom"))
+    with patch(
+        "backend.src.api.routes_v4.resolve_cicd_clients",
+        AsyncMock(return_value=ResolveResult(clients=[good, bad], errors=[])),
+    ), patch(
+        "backend.src.api.routes_v4.list_recent_github_commits",
+        AsyncMock(return_value=[]),
+    ):
+        resp = client.get("/api/v4/cicd/stream?since=2026-04-10T12:00:00Z")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert len(body["items"]) == 1
+    assert len(body["source_errors"]) == 1
+
+
+def test_stream_endpoint_empty_when_nothing_configured(client):
+    with patch(
+        "backend.src.api.routes_v4.resolve_cicd_clients",
+        AsyncMock(return_value=ResolveResult(clients=[], errors=[])),
+    ), patch(
+        "backend.src.api.routes_v4.list_recent_github_commits",
+        AsyncMock(return_value=[]),
+    ):
+        resp = client.get("/api/v4/cicd/stream?since=2026-04-10T12:00:00Z")
+    assert resp.status_code == 200
+    assert resp.json()["items"] == []
+```
+
+**Step 2: Run test to verify it fails**
+
+Run: `pytest backend/tests/integrations/cicd/test_stream_endpoint.py -v`
+Expected: FAIL — `/api/v4/cicd/stream` not registered.
+
+**Step 3: Write minimal implementation**
+
+Add to `routes_v4.py`:
+
+```python
+import asyncio
+from datetime import datetime
+
+from fastapi import Query
+
+from backend.src.integrations.cicd.resolver import resolve_cicd_clients
+from backend.src.integrations.cicd.base import DeliveryItem
+from backend.src.integrations.github_client import list_recent_github_commits  # existing
+
+
+def _event_to_delivery_item(ev, source_instance: str) -> DeliveryItem:
+    kind = "sync" if ev.source == "argocd" else "build"
+    duration = None
+    if ev.finished_at:
+        duration = int((ev.finished_at - ev.started_at).total_seconds())
+    return DeliveryItem(
+        kind=kind, id=ev.source_id, title=ev.name,
+        source=ev.source, source_instance=source_instance,
+        status=ev.status, author=ev.triggered_by,
+        git_sha=ev.git_sha, git_repo=ev.git_repo,
+        target=ev.target, timestamp=ev.started_at,
+        duration_s=duration, url=ev.url,
+    )
+
+
+def _commit_to_delivery_item(c) -> DeliveryItem:
+    return DeliveryItem(
+        kind="commit", id=c.sha, title=c.message_first_line,
+        source="github", source_instance=c.repo,
+        status="committed", author=c.author,
+        git_sha=c.sha, git_repo=c.repo, target=c.branch,
+        timestamp=c.timestamp, duration_s=None, url=c.url,
+    )
+
+
+@router.get("/cicd/stream")
+async def cicd_stream(since: datetime = Query(...), limit: int = 100):
+    until = datetime.now(tz=since.tzinfo or timezone.utc)
+    resolved = await resolve_cicd_clients(ctx=None)
+
+    async def safe_list(client):
+        try:
+            return ("ok", client.name, await client.list_deploy_events(since, until))
+        except Exception as e:
+            return ("err", client.name, str(e))
+
+    deploy_results = await asyncio.gather(
+        *[safe_list(c) for c in resolved.clients]
+    )
+    commits = []
+    try:
+        commits = await list_recent_github_commits(since=since, limit=50)
+    except Exception:
+        pass
+
+    items: list[DeliveryItem] = []
+    source_errors = [
+        {"instance": e.instance, "kind": e.kind, "message": e.message}
+        for e in resolved.errors
+    ]
+    for status, instance, data in deploy_results:
+        if status == "err":
+            source_errors.append(
+                {"instance": instance, "kind": "runtime", "message": data}
+            )
+            continue
+        for ev in data:
+            items.append(_event_to_delivery_item(ev, instance))
+    for c in commits:
+        items.append(_commit_to_delivery_item(c))
+
+    items.sort(key=lambda i: i.timestamp, reverse=True)
+    return {
+        "items": [i.model_dump() for i in items[:limit]],
+        "source_errors": source_errors,
+        "server_ts": datetime.now(tz=timezone.utc).isoformat(),
+    }
+```
+
+**Step 4: Run test to verify it passes**
+
+Run: `pytest backend/tests/integrations/cicd/test_stream_endpoint.py -v`
+Expected: PASS (3 tests)
+
+**Step 5: Commit**
+
+```bash
+git add backend/src/api/routes_v4.py backend/tests/integrations/cicd/test_stream_endpoint.py
+git commit -m "feat(api): GET /api/v4/cicd/stream unified deploy+commit feed"
+```
+
+---
+
+## Task 17: GET /api/v4/cicd/commit/{owner}/{repo}/{sha}
+
+**Files:**
+- Modify: `backend/src/api/routes_v4.py`
+- Create: `backend/tests/integrations/cicd/test_commit_endpoint.py`
+
+**Step 1: Write the failing test**
+
+```python
+# backend/tests/integrations/cicd/test_commit_endpoint.py
+from __future__ import annotations
+
+from unittest.mock import AsyncMock, patch
+
+import pytest
+from fastapi.testclient import TestClient
+
+
+@pytest.fixture
+def client():
+    from backend.src.api.main import app
+    return TestClient(app)
+
+
+def test_commit_detail_endpoint_returns_commit_and_files(client):
+    fake = {
+        "sha": "abc123",
+        "message": "fix: null guard",
+        "author": "gunjan",
+        "timestamp": "2026-04-10T14:00:00Z",
+        "files": [
+            {"filename": "src/cart.ts", "status": "modified",
+             "additions": 4, "deletions": 1, "patch": "@@ ... @@"},
+        ],
+        "url": "https://github.com/acme/checkout-api/commit/abc123",
+    }
+    with patch(
+        "backend.src.api.routes_v4.get_github_commit_detail",
+        AsyncMock(return_value=fake),
+    ):
+        resp = client.get("/api/v4/cicd/commit/acme/checkout-api/abc123")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["sha"] == "abc123"
+    assert len(body["files"]) == 1
+
+
+def test_commit_detail_endpoint_returns_429_on_rate_limit(client):
+    with patch(
+        "backend.src.api.routes_v4.get_github_commit_detail",
+        AsyncMock(side_effect=Exception("API rate limit exceeded")),
+    ):
+        resp = client.get("/api/v4/cicd/commit/acme/checkout-api/abc123")
+    assert resp.status_code in (429, 502)
+```
+
+**Step 2: Run test to verify it fails**
+
+Run: `pytest backend/tests/integrations/cicd/test_commit_endpoint.py -v`
+Expected: FAIL — endpoint missing.
+
+**Step 3: Write minimal implementation**
+
+Add to `routes_v4.py`:
+
+```python
+from fastapi import HTTPException
+
+from backend.src.integrations.github_client import get_github_commit_detail  # existing
+
+
+@router.get("/cicd/commit/{owner}/{repo}/{sha}")
+async def cicd_commit_detail(owner: str, repo: str, sha: str):
+    try:
+        return await get_github_commit_detail(owner=owner, repo=repo, sha=sha)
+    except Exception as e:
+        msg = str(e)
+        if "rate limit" in msg.lower():
+            raise HTTPException(status_code=429, detail="GitHub rate limit reached")
+        raise HTTPException(status_code=502, detail=msg)
+```
+
+If `get_github_commit_detail` does not yet exist in the codebase, add a minimal wrapper using the existing GitHub integration token path.
+
+**Step 4: Run test to verify it passes**
+
+Run: `pytest backend/tests/integrations/cicd/test_commit_endpoint.py -v`
+Expected: PASS (2 tests)
+
+**Step 5: Commit**
+
+```bash
+git add backend/src/api/routes_v4.py backend/tests/integrations/cicd/test_commit_endpoint.py
+git commit -m "feat(api): GET /api/v4/cicd/commit/{owner}/{repo}/{sha} commit detail"
+```
+
+---
+
+<!-- REMAINING TASKS: 18–27 (frontend + settings + smoke) appended next -->
+
 
