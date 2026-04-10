@@ -14,6 +14,124 @@
 
 ---
 
+## Plan Amendments (READ BEFORE ANY TASK)
+
+These amendments override any contradictory text in the per-task sections below. They were added after a codebase audit revealed API assumptions that did not match reality, and after the user clarified the multi-instance / cluster linkage requirements.
+
+### A1. Multi-instance + cluster linkage
+- **Many Jenkins + many ArgoCD instances** are supported. One physical Jenkins that serves N clusters = **one row** (not N).
+- CI/CD instances are stored in `GlobalIntegrationStore` alongside github/jira/etc.
+- Linkage to clusters uses the existing `config: dict` field with a new convention:
+  - `config.cluster_ids: list[str]` — list of `ClusterProfile.id` values this instance serves.
+  - Empty list / missing = global (applies to all clusters).
+- Do **not** add a new store, table, or model class for CI/CD. Reuse `GlobalIntegration`.
+
+### A2. Extend `GlobalIntegration.service_type` Literal
+- Edit `backend/src/integrations/profile_models.py`: add `"jenkins"` and `"argocd"` to the `service_type: Literal[...]` union.
+- Add to the `auth_method` Literal if not already present: `"basic_auth"`, `"api_token"`, `"bearer_token"`, `"kubeconfig"` (kubeconfig may need adding).
+
+### A3. Store API — add `list_by_service_type`
+- Existing `GlobalIntegrationStore.get_by_service_type(type) -> Optional[GlobalIntegration]` returns a **single** entry. Keep it unchanged for github/elk/jira/confluence/remedy/cloud (those remain single-instance).
+- Add new method: `list_by_service_type(service_type: str) -> list[GlobalIntegration]`. The CI/CD resolver uses this.
+
+### A4. Resolver — cluster-scoped filtering
+- `resolve_cicd_clients(active_cluster_id: str | None)` in `backend/src/integrations/cicd/resolver.py`:
+  ```python
+  def resolve_cicd_clients(active_cluster_id: str | None) -> ResolveResult:
+      jenkins_clients: list[JenkinsClient] = []
+      argocd_clients: list[ArgoCDClient] = []
+      errors: list[InstanceError] = []
+      gi_store = GlobalIntegrationStore()
+
+      for gi in gi_store.list_by_service_type("jenkins"):
+          cluster_ids = gi.config.get("cluster_ids", []) or []
+          if cluster_ids and active_cluster_id and active_cluster_id not in cluster_ids:
+              continue  # not linked to active cluster
+          try:
+              creds = _resolve_creds(gi)
+              jenkins_clients.append(JenkinsClient(name=gi.name, base_url=gi.url, **creds))
+          except Exception as exc:
+              errors.append(InstanceError(name=gi.name, source="jenkins", message=str(exc)))
+
+      # same loop for argocd
+      ...
+      return ResolveResult(jenkins=jenkins_clients, argocd=argocd_clients, errors=errors)
+  ```
+- A CI/CD instance with empty `cluster_ids` is global — included for every active cluster.
+- Keep failure isolation: one broken instance never blocks the others.
+
+### A5. Credential resolution — use `credential_resolver`, not raw dict
+- `GlobalIntegration` does **not** have a `credentials: dict` field. It has `auth_credential_handle: Optional[str]`.
+- Resolve via the existing pattern:
+  ```python
+  from backend.src.integrations.credential_resolver import credential_resolver
+  token = credential_resolver.resolve(gi.id, "credential", gi.auth_credential_handle)
+  ```
+- `JenkinsClient.__init__` and `ArgoCDClient.__init__` take the already-resolved credential string(s), not a handle.
+- For ArgoCD kubeconfig mode, the "credential" is the kubeconfig YAML string.
+
+### A6. Audit hook — `AuditLogger.log`, not `audit_store.record`
+- There is no module-level `audit_store.record()` function. Use the `AuditLogger` class from `backend/src/integrations/audit_store.py`:
+  ```python
+  from backend.src.integrations.audit_store import AuditLogger
+  AuditLogger().log(
+      entity_type="integration_cicd",
+      entity_id=instance_name,           # e.g. "prod-jenkins"
+      action="read",                      # or "list_deploy_events", "get_build_artifacts"
+      details=f"source={source} items={n}",
+      actor="system",
+  )
+  ```
+- The audit hook wraps every CICDClient read method in the resolver / client base.
+
+### A7. Probe wiring — extend `GlobalProbe.test_connection`
+- There is no `probe_integration()` function. The real API is `GlobalProbe.test_connection(service_type, url, auth_method, credentials)` in `backend/src/integrations/probe.py`.
+- **Task 11** (probe endpoints) must:
+  1. Add `"jenkins"` and `"argocd"` branches to `GlobalProbe._get_test_path` (or equivalent dispatch).
+  2. For Jenkins: hit `/api/json` with the resolved user/token.
+  3. For ArgoCD REST: hit `/api/version` with the resolved bearer token.
+  4. For ArgoCD kubeconfig: attempt CRD list via the kubeconfig; wire to `ArgoCDClient.probe_crds`.
+
+### A8. GitHub helpers — extract `backend/src/integrations/github_client.py`
+- The plan (Task 13 and Task 17) assumes an existing `github_client.py` module. It does **not** exist yet. The current code has ad-hoc GitHub HTTP in `change_agent.py` (`_get_github_commits`, `_get_commit_diff`).
+- **New sub-task (13a, before 13 uses it):** Extract those two methods into `backend/src/integrations/github_client.py` as an async helper class `GitHubClient` with:
+  - `async def get_commits(owner, repo, since, until) -> list[dict]`
+  - `async def get_commit_diff(owner, repo, sha) -> dict`
+  - Takes a resolved `github_token: str` in the constructor (resolve via `credential_resolver` using the `github` GlobalIntegration handle, with `os.getenv("GITHUB_TOKEN")` fallback).
+  - Update `change_agent.py` to import and use `GitHubClient`. Delete the inlined helpers.
+  - Add a small pytest with a mocked aiohttp session.
+
+### A9. Pipeline capability form — **cluster-first**, not instance-first
+- **Task 14** (`PipelineAgent`) and **Task 18** (frontend types) must reflect that the user picks a **cluster first**, then the backend resolves all CI/CD instances linked to that cluster.
+- Capability input shape:
+  ```python
+  class PipelineCapabilityInput(BaseModel):
+      cluster_id: str                    # active cluster profile id
+      time_window_minutes: int = 60
+      git_repo: Optional[str] = None     # filter hint
+      service_hint: Optional[str] = None
+  ```
+- The agent calls `resolve_cicd_clients(cluster_id)` at the start and fans out across all returned instances.
+- The `/diagnostics/pipeline` frontend form renders a **cluster dropdown** (populated from `/api/v4/clusters` or whatever the existing cluster list endpoint is — discover at task time), **not** a CI/CD instance dropdown. Below the cluster picker, show a read-only summary "Resolved: 2 Jenkins, 1 ArgoCD linked to this cluster".
+
+### A10. API endpoints accept `cluster_id`
+- **Task 16** (`GET /api/v4/cicd/stream`): accept required query param `cluster_id: str`. Pass to `resolve_cicd_clients(cluster_id)`. Return `errors` array in the response body so the UI can show "1 instance unreachable" banners.
+- **Task 17** (`GET /api/v4/cicd/commit/{owner}/{repo}/{sha}`): unchanged — commit lookups are not cluster-scoped, they hit GitHub directly.
+- **Live Board frontend (Task 24)**: the page reads the active cluster from the existing cluster context/store (discover at task time — likely `useActiveCluster` or similar) and includes it in the query.
+
+### A11. Settings UI — multi-instance CRUD
+- **Task 26** (Settings forms) is no longer "a single Jenkins form + a single ArgoCD form". It is a multi-instance CRUD section:
+  - Two sub-sections: **Jenkins Instances** and **ArgoCD Instances**.
+  - Each shows a list of existing instances (name, URL, linked clusters, status) with **Edit** and **Delete** buttons per row, plus an **Add Jenkins** / **Add ArgoCD** button at the top.
+  - The Add/Edit form includes: name, URL, auth method, credentials, and a **multi-select of cluster profiles** (populated from the existing cluster list). Empty selection = global.
+  - Reuse any existing pattern from the current `IntegrationSettings` component if one exists for multi-instance (discover at task time); otherwise build it following the existing single-form styling.
+  - Persistence: POST/PUT to whatever CRUD endpoints the existing `GlobalIntegrationStore` exposes. If no multi-row endpoints exist, add minimal ones in a small sub-task.
+
+### A12. Extra reality check — before each task
+- Before writing code for any task that touches a file the plan claims exists, **open the file first and confirm the referenced symbols are real**. If the plan and reality disagree, follow reality and note the discrepancy in the commit message. Amendments A5–A8 exist because this check was skipped during plan writing.
+
+---
+
 ## Task Map
 
 **Backend — CICD package (Tasks 1–9)**
