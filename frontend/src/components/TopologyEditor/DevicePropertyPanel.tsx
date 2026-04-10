@@ -917,7 +917,7 @@ const DevicePropertyPanel: React.FC<DevicePropertyPanelProps> = ({
                 onClick={async () => {
                   if (!ip || !vendor) return;
                   try {
-                    const resp = await fetch('http://localhost:8000/api/v4/network/adapters/test', {
+                    const resp = await fetch('/api/v4/network/adapters/test', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({

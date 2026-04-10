@@ -15,7 +15,8 @@ export const useWebSocket = (
   useEffect(() => {
     if (!sessionId) return;
 
-    const ws = new WebSocket(`ws://localhost:8000/ws/troubleshoot/${sessionId}`);
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const ws = new WebSocket(`${wsProtocol}//${window.location.host}/ws/troubleshoot/${sessionId}`);
 
     ws.onopen = () => {
       console.log('WebSocket connected (v3)');
@@ -97,7 +98,8 @@ export const useWebSocketV4 = (
     if (wsRef.current && (wsRef.current.readyState === WebSocket.OPEN || wsRef.current.readyState === WebSocket.CONNECTING)) return;
 
     const currentSessionId = sessionIdRef.current;
-    const ws = new WebSocket(`ws://localhost:8000/ws/troubleshoot/${currentSessionId}`);
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const ws = new WebSocket(`${wsProtocol}//${window.location.host}/ws/troubleshoot/${currentSessionId}`);
 
     ws.onopen = () => {
       console.log(`[WS] Connected to session ${currentSessionId}`);
