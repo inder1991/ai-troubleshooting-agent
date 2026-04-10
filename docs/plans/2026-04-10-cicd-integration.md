@@ -2489,6 +2489,1152 @@ git commit -m "feat(api): GET /api/v4/cicd/commit/{owner}/{repo}/{sha} commit de
 
 ---
 
-<!-- REMAINING TASKS: 18–27 (frontend + settings + smoke) appended next -->
+## Task 18: Frontend shared types
+
+**Files:**
+- Modify: `frontend/src/types/index.ts`
+
+**Step 1: Write the failing test**
+
+```typescript
+// frontend/src/types/__tests__/cicd-types.test.ts
+import type { DeliveryItem, CICDStreamResponse, CapabilityType } from "../index";
+
+test("DeliveryItem type accepts commit kind", () => {
+  const item: DeliveryItem = {
+    kind: "commit",
+    id: "abc",
+    title: "fix: null guard",
+    source: "github",
+    source_instance: "acme",
+    status: "committed",
+    author: "gunjan",
+    git_sha: "abc",
+    git_repo: "acme/checkout-api",
+    target: "main",
+    timestamp: "2026-04-10T14:00:00Z",
+    duration_s: null,
+    url: "https://github.com/acme/checkout-api/commit/abc",
+  };
+  expect(item.kind).toBe("commit");
+});
+
+test("CapabilityType includes troubleshoot_pipeline", () => {
+  const cap: CapabilityType = "troubleshoot_pipeline";
+  expect(cap).toBe("troubleshoot_pipeline");
+});
+
+test("CICDStreamResponse shape", () => {
+  const r: CICDStreamResponse = {
+    items: [],
+    source_errors: [],
+    server_ts: "2026-04-10T14:00:00Z",
+  };
+  expect(r.items).toEqual([]);
+});
+```
+
+**Step 2: Run test to verify it fails**
+
+Run: `cd frontend && npm test -- cicd-types`
+Expected: FAIL — missing exports.
+
+**Step 3: Write minimal implementation**
+
+Append to `frontend/src/types/index.ts`:
+
+```typescript
+export type DeliveryKind = "commit" | "build" | "sync";
+export type DeliverySource = "github" | "jenkins" | "argocd";
+
+export interface DeliveryItem {
+  kind: DeliveryKind;
+  id: string;
+  title: string;
+  source: DeliverySource;
+  source_instance: string;
+  status: string;
+  author: string | null;
+  git_sha: string | null;
+  git_repo: string | null;
+  target: string | null;
+  timestamp: string;      // ISO
+  duration_s: number | null;
+  url: string;
+}
+
+export interface SourceError {
+  instance: string;
+  kind: string;
+  message?: string;
+}
+
+export interface CICDStreamResponse {
+  items: DeliveryItem[];
+  source_errors: SourceError[];
+  server_ts: string;
+}
+
+export interface CommitDetail {
+  sha: string;
+  message: string;
+  author: string;
+  timestamp: string;
+  files: CommitFile[];
+  url: string;
+}
+
+export interface CommitFile {
+  filename: string;
+  status: "added" | "modified" | "removed" | "renamed";
+  additions: number;
+  deletions: number;
+  patch: string;
+}
+```
+
+Extend the existing `CapabilityType` union to include `"troubleshoot_pipeline"`.
+
+**Step 4: Run test to verify it passes**
+
+Run: `cd frontend && npm test -- cicd-types`
+Expected: PASS (3 tests)
+
+**Step 5: Commit**
+
+```bash
+git add frontend/src/types/index.ts frontend/src/types/__tests__/cicd-types.test.ts
+git commit -m "feat(types): DeliveryItem, CICDStreamResponse, troubleshoot_pipeline capability"
+```
+
+---
+
+## Task 19: Router entries + sidebar "Delivery" + "Pipeline"
+
+**Files:**
+- Modify: `frontend/src/router.tsx`
+- Modify: `frontend/src/contexts/NavigationContext.tsx`
+- Modify: `frontend/src/components/Layout/SidebarNav.tsx`
+- Create: `frontend/src/pages/CICDPage.tsx` (placeholder — Task 24 fills it)
+
+**Step 1: Write the failing test**
+
+```typescript
+// frontend/src/router/__tests__/cicd-route.test.tsx
+import { render, screen } from "@testing-library/react";
+import { MemoryRouter, RouterProvider, createMemoryRouter } from "react-router-dom";
+import { routes } from "../../router";
+
+test("router has /cicd route", () => {
+  const flat = JSON.stringify(routes);
+  expect(flat).toContain("/cicd");
+});
+
+test("sidebar includes Delivery entry", async () => {
+  const { SidebarNav } = await import("../../components/Layout/SidebarNav");
+  render(
+    <MemoryRouter>
+      <SidebarNav />
+    </MemoryRouter>
+  );
+  expect(screen.getByText(/Delivery/i)).toBeInTheDocument();
+});
+```
+
+**Step 2: Run test to verify it fails**
+
+Run: `cd frontend && npm test -- cicd-route`
+Expected: FAIL — no `/cicd` route, no `Delivery` in sidebar.
+
+**Step 3: Write minimal implementation**
+
+Create placeholder page:
+
+```tsx
+// frontend/src/pages/CICDPage.tsx
+export default function CICDPage() {
+  return <div data-testid="cicd-page">Delivery Live Board</div>;
+}
+```
+
+Add to `router.tsx` (inside existing routes array):
+
+```tsx
+{
+  path: "/cicd",
+  lazy: async () => ({
+    Component: (await import("./pages/CICDPage")).default,
+  }),
+},
+{
+  path: "/diagnostics/pipeline",
+  lazy: async () => ({
+    Component: (await import("./pages/InvestigationRoute")).default,
+  }),
+},
+```
+
+Update `NavigationContext.tsx` nav entries list to include `{ id: "delivery", label: "Delivery", path: "/cicd", icon: "rocket_launch" }` between Sessions and Diagnostics, and add `{ id: "pipeline", label: "Pipeline", path: "/diagnostics/pipeline" }` under the Diagnostics children.
+
+Update `SidebarNav.tsx` to render the new top-level entry (should be automatic if it reads from context).
+
+**Step 4: Run test to verify it passes**
+
+Run: `cd frontend && npm test -- cicd-route`
+Expected: PASS (2 tests)
+
+**Step 5: Commit**
+
+```bash
+git add frontend/src/router.tsx frontend/src/contexts/NavigationContext.tsx frontend/src/components/Layout/SidebarNav.tsx frontend/src/pages/CICDPage.tsx frontend/src/router/__tests__/cicd-route.test.tsx
+git commit -m "feat(routing): /cicd route + Delivery sidebar entry + Pipeline capability"
+```
+
+---
+
+## Task 20: SplitFlapCell component
+
+**Files:**
+- Create: `frontend/src/components/CICD/SplitFlapCell.tsx`
+- Create: `frontend/src/components/CICD/__tests__/SplitFlapCell.test.tsx`
+
+**Step 1: Write the failing test**
+
+```tsx
+import { render, screen } from "@testing-library/react";
+import { SplitFlapCell } from "../SplitFlapCell";
+
+test("renders the current value", () => {
+  render(<SplitFlapCell value="SUCCESS" />);
+  expect(screen.getByText("SUCCESS")).toBeInTheDocument();
+});
+
+test("applies flipping class when value changes", () => {
+  const { rerender, container } = render(<SplitFlapCell value="RUNNING" />);
+  rerender(<SplitFlapCell value="SUCCESS" />);
+  const el = container.querySelector("[data-testid='split-flap']");
+  expect(el?.className).toMatch(/flipping|animate/);
+});
+
+test("applies status color class", () => {
+  render(<SplitFlapCell value="FAILED" status="failed" />);
+  const el = screen.getByText("FAILED");
+  expect(el.className).toMatch(/red|danger|failed/i);
+});
+```
+
+**Step 2: Run test to verify it fails**
+
+Run: `cd frontend && npm test -- SplitFlapCell`
+Expected: FAIL — missing component.
+
+**Step 3: Write minimal implementation**
+
+```tsx
+// frontend/src/components/CICD/SplitFlapCell.tsx
+import { useEffect, useRef, useState } from "react";
+
+type Props = {
+  value: string;
+  status?: "success" | "failed" | "in_progress" | "unknown" | string;
+};
+
+const STATUS_CLASSES: Record<string, string> = {
+  success: "text-emerald-400",
+  failed: "text-red-400",
+  in_progress: "text-amber-400",
+  healthy: "text-emerald-400",
+  degraded: "text-red-400",
+  progressing: "text-amber-400",
+};
+
+export function SplitFlapCell({ value, status }: Props) {
+  const prev = useRef(value);
+  const [flipping, setFlipping] = useState(false);
+
+  useEffect(() => {
+    if (prev.current !== value) {
+      setFlipping(true);
+      prev.current = value;
+      const t = setTimeout(() => setFlipping(false), 400);
+      return () => clearTimeout(t);
+    }
+  }, [value]);
+
+  const colorClass = status ? STATUS_CLASSES[status] ?? "text-slate-300" : "text-slate-300";
+
+  return (
+    <span
+      data-testid="split-flap"
+      className={`inline-block font-mono tracking-wider ${colorClass} ${
+        flipping ? "animate-flip" : ""
+      }`}
+    >
+      {value}
+    </span>
+  );
+}
+```
+
+Add keyframes in `index.css`:
+
+```css
+@keyframes flip {
+  0% { transform: rotateX(0); }
+  50% { transform: rotateX(-90deg); opacity: 0.2; }
+  100% { transform: rotateX(0); }
+}
+.animate-flip { animation: flip 400ms ease-out; }
+```
+
+**Step 4: Run test to verify it passes**
+
+Run: `cd frontend && npm test -- SplitFlapCell`
+Expected: PASS (3 tests)
+
+**Step 5: Commit**
+
+```bash
+git add frontend/src/components/CICD/SplitFlapCell.tsx frontend/src/components/CICD/__tests__/SplitFlapCell.test.tsx frontend/src/index.css
+git commit -m "feat(cicd-ui): SplitFlapCell with flip animation on value change"
+```
+
+---
+
+## Task 21: DeliveryRow component
+
+**Files:**
+- Create: `frontend/src/components/CICD/DeliveryRow.tsx`
+- Create: `frontend/src/components/CICD/__tests__/DeliveryRow.test.tsx`
+
+**Step 1: Write the failing test**
+
+```tsx
+import { render, screen, fireEvent } from "@testing-library/react";
+import { DeliveryRow } from "../DeliveryRow";
+import type { DeliveryItem } from "../../../types";
+
+const base: DeliveryItem = {
+  kind: "build", id: "svc#1", title: "checkout-api #1847",
+  source: "jenkins", source_instance: "prod", status: "success",
+  author: "ci-bot", git_sha: "abc", git_repo: "acme/checkout-api",
+  target: "build", timestamp: "2026-04-10T14:01:44Z", duration_s: 60,
+  url: "https://j/x/1",
+};
+
+test("renders kind pill with correct color class for BUILD", () => {
+  render(<DeliveryRow item={base} onClick={() => {}} />);
+  const pill = screen.getByText(/BUILD/);
+  expect(pill.className).toMatch(/amber|yellow/);
+});
+
+test("COMMIT pill uses slate", () => {
+  render(<DeliveryRow item={{ ...base, kind: "commit" }} onClick={() => {}} />);
+  expect(screen.getByText(/COMMIT/).className).toMatch(/slate|gray/);
+});
+
+test("SYNC pill uses cyan", () => {
+  render(<DeliveryRow item={{ ...base, kind: "sync" }} onClick={() => {}} />);
+  expect(screen.getByText(/SYNC/).className).toMatch(/cyan|sky/);
+});
+
+test("clicking row fires onClick with item", () => {
+  const spy = vi.fn();
+  render(<DeliveryRow item={base} onClick={spy} />);
+  fireEvent.click(screen.getByRole("row"));
+  expect(spy).toHaveBeenCalledWith(base);
+});
+
+test("FAILED row renders Investigate button", () => {
+  render(<DeliveryRow item={{ ...base, status: "failed" }} onClick={() => {}} />);
+  expect(screen.getByRole("button", { name: /investigate/i })).toBeInTheDocument();
+});
+```
+
+**Step 2: Run test to verify it fails**
+
+Run: `cd frontend && npm test -- DeliveryRow`
+Expected: FAIL — component missing.
+
+**Step 3: Write minimal implementation**
+
+```tsx
+// frontend/src/components/CICD/DeliveryRow.tsx
+import { Link } from "react-router-dom";
+import type { DeliveryItem } from "../../types";
+import { SplitFlapCell } from "./SplitFlapCell";
+
+const KIND_PILL: Record<DeliveryItem["kind"], string> = {
+  commit: "bg-slate-700 text-slate-100",
+  build: "bg-amber-600/20 text-amber-300",
+  sync: "bg-cyan-600/20 text-cyan-300",
+};
+
+type Props = { item: DeliveryItem; onClick: (item: DeliveryItem) => void };
+
+export function DeliveryRow({ item, onClick }: Props) {
+  const failed = item.status === "failed" || item.status === "degraded";
+  const investigateHref = failed
+    ? `/investigations/new?capability=troubleshoot_app&name=${encodeURIComponent(item.title)}&target=${item.target ?? ""}`
+    : null;
+
+  return (
+    <div
+      role="row"
+      onClick={() => onClick(item)}
+      className="grid grid-cols-[80px_1fr_100px_120px_140px_120px_100px_120px] gap-2 items-center px-3 py-2 hover:bg-slate-800/60 cursor-pointer border-b border-slate-800"
+    >
+      <span className={`px-2 py-0.5 rounded text-xs font-semibold tracking-wider ${KIND_PILL[item.kind]}`}>
+        {item.kind.toUpperCase()}
+      </span>
+      <span className="truncate text-slate-100">{item.title}</span>
+      <span className="text-slate-400 text-xs uppercase">{item.source}</span>
+      <span className="text-slate-400 text-xs">{item.target ?? "—"}</span>
+      <SplitFlapCell value={item.status.toUpperCase()} status={item.status} />
+      <span className="text-slate-400 text-xs">{item.author ?? "—"}</span>
+      <span className="text-slate-500 text-xs font-mono">
+        {new Date(item.timestamp).toLocaleTimeString()}
+      </span>
+      <span>
+        {investigateHref && (
+          <Link
+            to={investigateHref}
+            role="button"
+            className="text-cyan-400 text-xs hover:underline"
+            onClick={(e) => e.stopPropagation()}
+          >
+            Investigate ↗
+          </Link>
+        )}
+      </span>
+    </div>
+  );
+}
+```
+
+**Step 4: Run test to verify it passes**
+
+Run: `cd frontend && npm test -- DeliveryRow`
+Expected: PASS (5 tests)
+
+**Step 5: Commit**
+
+```bash
+git add frontend/src/components/CICD/DeliveryRow.tsx frontend/src/components/CICD/__tests__/DeliveryRow.test.tsx
+git commit -m "feat(cicd-ui): DeliveryRow with kind pills and Investigate link"
+```
+
+---
+
+## Task 22: DeliveryFilters component
+
+**Files:**
+- Create: `frontend/src/components/CICD/DeliveryFilters.tsx`
+- Create: `frontend/src/components/CICD/__tests__/DeliveryFilters.test.tsx`
+
+**Step 1: Write the failing test**
+
+```tsx
+import { render, screen, fireEvent } from "@testing-library/react";
+import { DeliveryFilters } from "../DeliveryFilters";
+
+test("renders default All filters", () => {
+  render(<DeliveryFilters value={{ kind: "all", status: "all" }} onChange={() => {}} />);
+  expect(screen.getByRole("button", { name: /all/i })).toBeInTheDocument();
+});
+
+test("clicking Failed emits new filter", () => {
+  const spy = vi.fn();
+  render(<DeliveryFilters value={{ kind: "all", status: "all" }} onChange={spy} />);
+  fireEvent.click(screen.getByRole("button", { name: /failed/i }));
+  expect(spy).toHaveBeenCalledWith(expect.objectContaining({ status: "failed" }));
+});
+```
+
+**Step 2: Run test to verify it fails**
+
+Run: `cd frontend && npm test -- DeliveryFilters`
+Expected: FAIL.
+
+**Step 3: Write minimal implementation**
+
+```tsx
+// frontend/src/components/CICD/DeliveryFilters.tsx
+export type FilterValue = {
+  kind: "all" | "deploys" | "commits";
+  status: "all" | "failed" | "in_progress" | "success";
+};
+
+type Props = { value: FilterValue; onChange: (v: FilterValue) => void };
+
+const KIND_OPTS: FilterValue["kind"][] = ["all", "deploys", "commits"];
+const STATUS_OPTS: FilterValue["status"][] = ["all", "failed", "in_progress", "success"];
+
+export function DeliveryFilters({ value, onChange }: Props) {
+  return (
+    <div className="flex gap-4 items-center px-3 py-2 border-b border-slate-800">
+      <div className="flex gap-1">
+        {KIND_OPTS.map((k) => (
+          <button
+            key={k}
+            onClick={() => onChange({ ...value, kind: k })}
+            className={`px-2 py-1 text-xs rounded ${value.kind === k ? "bg-cyan-600 text-white" : "text-slate-400 hover:bg-slate-800"}`}
+          >
+            {k[0].toUpperCase() + k.slice(1)}
+          </button>
+        ))}
+      </div>
+      <div className="flex gap-1">
+        {STATUS_OPTS.map((s) => (
+          <button
+            key={s}
+            onClick={() => onChange({ ...value, status: s })}
+            className={`px-2 py-1 text-xs rounded ${value.status === s ? "bg-cyan-600 text-white" : "text-slate-400 hover:bg-slate-800"}`}
+          >
+            {s.replace("_", " ")}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+```
+
+**Step 4: Run test to verify it passes**
+
+Run: `cd frontend && npm test -- DeliveryFilters`
+Expected: PASS (2 tests)
+
+**Step 5: Commit**
+
+```bash
+git add frontend/src/components/CICD/DeliveryFilters.tsx frontend/src/components/CICD/__tests__/DeliveryFilters.test.tsx
+git commit -m "feat(cicd-ui): DeliveryFilters kind/status chips"
+```
+
+---
+
+## Task 23: DeliveryDrawer component
+
+**Files:**
+- Create: `frontend/src/components/CICD/DeliveryDrawer.tsx`
+- Create: `frontend/src/components/CICD/__tests__/DeliveryDrawer.test.tsx`
+
+**Step 1: Write the failing test**
+
+```tsx
+import { render, screen, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { DeliveryDrawer } from "../DeliveryDrawer";
+import type { DeliveryItem } from "../../../types";
+
+const item: DeliveryItem = {
+  kind: "build", id: "svc#1", title: "svc",
+  source: "jenkins", source_instance: "prod", status: "failed",
+  author: "ci-bot", git_sha: "abc123", git_repo: "acme/checkout-api",
+  target: "prod", timestamp: "2026-04-10T14:00:00Z", duration_s: 60,
+  url: "https://j/x/1",
+};
+
+function renderWithClient(ui: React.ReactNode) {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(<QueryClientProvider client={client}>{ui}</QueryClientProvider>);
+}
+
+test("drawer fetches commit detail on open", async () => {
+  global.fetch = vi.fn().mockResolvedValue({
+    ok: true,
+    json: async () => ({
+      sha: "abc123", message: "fix: null guard", author: "gunjan",
+      timestamp: "2026-04-10T14:00:00Z", url: "https://x", files: [],
+    }),
+  }) as any;
+
+  renderWithClient(<DeliveryDrawer item={item} allItems={[item]} onClose={() => {}} />);
+  await waitFor(() => {
+    expect(screen.getByText(/fix: null guard/)).toBeInTheDocument();
+  });
+  expect(global.fetch).toHaveBeenCalledWith(
+    expect.stringContaining("/api/v4/cicd/commit/acme/checkout-api/abc123"),
+  );
+});
+
+test("Related tab lists items matching git_sha from current feed", async () => {
+  global.fetch = vi.fn().mockResolvedValue({
+    ok: true,
+    json: async () => ({
+      sha: "abc123", message: "fix", author: "g",
+      timestamp: "2026-04-10T14:00:00Z", url: "https://x", files: [],
+    }),
+  }) as any;
+
+  const other: DeliveryItem = { ...item, id: "svc#2", kind: "sync", source: "argocd" };
+  renderWithClient(<DeliveryDrawer item={item} allItems={[item, other]} onClose={() => {}} />);
+  await waitFor(() => screen.getByText(/fix/));
+  screen.getByRole("tab", { name: /related/i }).click();
+  await waitFor(() => expect(screen.getAllByText(/svc/)).not.toHaveLength(0));
+});
+```
+
+**Step 2: Run test to verify it fails**
+
+Run: `cd frontend && npm test -- DeliveryDrawer`
+Expected: FAIL.
+
+**Step 3: Write minimal implementation**
+
+```tsx
+// frontend/src/components/CICD/DeliveryDrawer.tsx
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import type { DeliveryItem, CommitDetail } from "../../types";
+
+type Props = {
+  item: DeliveryItem;
+  allItems: DeliveryItem[];
+  onClose: () => void;
+};
+
+type Tab = "commit" | "diff" | "related";
+
+export function DeliveryDrawer({ item, allItems, onClose }: Props) {
+  const [tab, setTab] = useState<Tab>("commit");
+  const commitKey = item.git_repo && item.git_sha
+    ? `/api/v4/cicd/commit/${item.git_repo}/${item.git_sha}`
+    : null;
+
+  const { data: commit, isLoading, error } = useQuery<CommitDetail>({
+    queryKey: ["commit", commitKey],
+    queryFn: async () => {
+      const res = await fetch(commitKey!);
+      if (!res.ok) throw new Error(`${res.status}`);
+      return res.json();
+    },
+    enabled: !!commitKey,
+  });
+
+  const related = item.git_sha
+    ? allItems.filter((i) => i.git_sha === item.git_sha && i.id !== item.id)
+    : [];
+
+  return (
+    <aside className="fixed right-0 top-0 h-screen w-[480px] bg-slate-900 border-l border-slate-700 shadow-xl flex flex-col">
+      <header className="p-4 border-b border-slate-800 flex items-center justify-between">
+        <h2 className="text-slate-100 font-semibold truncate">{item.title}</h2>
+        <button onClick={onClose} className="text-slate-400 hover:text-white">×</button>
+      </header>
+      <nav className="flex border-b border-slate-800">
+        {(["commit", "diff", "related"] as Tab[]).map((t) => (
+          <button
+            key={t}
+            role="tab"
+            onClick={() => setTab(t)}
+            className={`flex-1 px-3 py-2 text-sm ${tab === t ? "text-cyan-400 border-b-2 border-cyan-400" : "text-slate-400"}`}
+          >
+            {t[0].toUpperCase() + t.slice(1)}
+          </button>
+        ))}
+      </nav>
+      <div className="flex-1 overflow-y-auto p-4 text-sm">
+        {tab === "commit" && (
+          isLoading ? <p className="text-slate-400">Loading…</p>
+          : error ? <p className="text-red-400">Failed to load commit</p>
+          : commit ? (
+            <div>
+              <p className="text-slate-100 font-semibold">{commit.message}</p>
+              <p className="text-slate-400 text-xs mt-1">
+                {commit.author} · {new Date(commit.timestamp).toLocaleString()}
+              </p>
+              <a href={commit.url} className="text-cyan-400 text-xs mt-2 inline-block"
+                 target="_blank" rel="noopener noreferrer">Open on GitHub ↗</a>
+            </div>
+          ) : <p className="text-slate-500">No commit linked.</p>
+        )}
+        {tab === "diff" && (
+          commit?.files?.length ? (
+            <div className="space-y-3">
+              {commit.files.map((f) => (
+                <div key={f.filename}>
+                  <div className="text-slate-300 text-xs font-mono">
+                    {f.filename} <span className="text-emerald-400">+{f.additions}</span>{" "}
+                    <span className="text-red-400">-{f.deletions}</span>
+                  </div>
+                  <pre className="text-[10px] bg-slate-950 p-2 rounded mt-1 overflow-x-auto">{f.patch}</pre>
+                </div>
+              ))}
+            </div>
+          ) : <p className="text-slate-500">No file changes to show.</p>
+        )}
+        {tab === "related" && (
+          related.length ? (
+            <ul className="space-y-1">
+              {related.map((r) => (
+                <li key={r.id} className="text-slate-300 text-xs">
+                  <span className="uppercase text-slate-500 mr-2">{r.kind}</span>
+                  {r.title} <span className="text-slate-500">· {r.status}</span>
+                </li>
+              ))}
+            </ul>
+          ) : <p className="text-slate-500">No related items in the current feed.</p>
+        )}
+      </div>
+    </aside>
+  );
+}
+```
+
+**Step 4: Run test to verify it passes**
+
+Run: `cd frontend && npm test -- DeliveryDrawer`
+Expected: PASS (2 tests)
+
+**Step 5: Commit**
+
+```bash
+git add frontend/src/components/CICD/DeliveryDrawer.tsx frontend/src/components/CICD/__tests__/DeliveryDrawer.test.tsx
+git commit -m "feat(cicd-ui): DeliveryDrawer with Commit/Diff/Related tabs"
+```
+
+---
+
+## Task 24: CICDLiveBoard page with polling
+
+**Files:**
+- Modify: `frontend/src/pages/CICDPage.tsx`
+- Create: `frontend/src/components/CICD/CICDLiveBoard.tsx`
+- Create: `frontend/src/components/CICD/__tests__/CICDLiveBoard.test.tsx`
+
+**Step 1: Write the failing test**
+
+```tsx
+import { render, screen, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MemoryRouter } from "react-router-dom";
+import { CICDLiveBoard } from "../CICDLiveBoard";
+
+const payload = {
+  items: [
+    { kind: "sync", id: "a", title: "svc-a", source: "argocd", source_instance: "p",
+      status: "healthy", author: null, git_sha: "abc", git_repo: "acme/x",
+      target: "prod", timestamp: "2026-04-10T14:02:11Z", duration_s: null, url: "" },
+    { kind: "build", id: "b", title: "svc-b #1", source: "jenkins", source_instance: "p",
+      status: "success", author: "ci-bot", git_sha: "abc", git_repo: "acme/x",
+      target: "build", timestamp: "2026-04-10T14:01:44Z", duration_s: 60, url: "" },
+  ],
+  source_errors: [],
+  server_ts: "2026-04-10T14:02:12Z",
+};
+
+function wrap(ui: React.ReactNode) {
+  const q = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(
+    <QueryClientProvider client={q}>
+      <MemoryRouter>{ui}</MemoryRouter>
+    </QueryClientProvider>,
+  );
+}
+
+test("renders rows sorted newest first", async () => {
+  global.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => payload }) as any;
+  wrap(<CICDLiveBoard />);
+  await waitFor(() => expect(screen.getByText("svc-a")).toBeInTheDocument());
+  const rows = screen.getAllByRole("row");
+  expect(rows[0].textContent).toContain("svc-a");
+  expect(rows[1].textContent).toContain("svc-b");
+});
+
+test("renders source_errors warning chip when present", async () => {
+  global.fetch = vi.fn().mockResolvedValue({
+    ok: true,
+    json: async () => ({ ...payload, source_errors: [{ instance: "bad", kind: "auth" }] }),
+  }) as any;
+  wrap(<CICDLiveBoard />);
+  await waitFor(() => expect(screen.getByText(/source issues/i)).toBeInTheDocument());
+});
+
+test("renders empty state when no items and no sources configured", async () => {
+  global.fetch = vi.fn().mockResolvedValue({
+    ok: true,
+    json: async () => ({ items: [], source_errors: [], server_ts: "" }),
+  }) as any;
+  wrap(<CICDLiveBoard />);
+  await waitFor(() =>
+    expect(screen.getByText(/no deploys or commits/i)).toBeInTheDocument()
+  );
+});
+```
+
+**Step 2: Run test to verify it fails**
+
+Run: `cd frontend && npm test -- CICDLiveBoard`
+Expected: FAIL.
+
+**Step 3: Write minimal implementation**
+
+```tsx
+// frontend/src/components/CICD/CICDLiveBoard.tsx
+import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import type { CICDStreamResponse, DeliveryItem } from "../../types";
+import { DeliveryRow } from "./DeliveryRow";
+import { DeliveryFilters, type FilterValue } from "./DeliveryFilters";
+import { DeliveryDrawer } from "./DeliveryDrawer";
+
+export function CICDLiveBoard() {
+  const [filter, setFilter] = useState<FilterValue>({ kind: "all", status: "all" });
+  const [selected, setSelected] = useState<DeliveryItem | null>(null);
+
+  const since = useMemo(
+    () => new Date(Date.now() - 24 * 3600 * 1000).toISOString(),
+    [],
+  );
+
+  const { data, isLoading } = useQuery<CICDStreamResponse>({
+    queryKey: ["cicd-stream", since],
+    queryFn: async () => {
+      const res = await fetch(`/api/v4/cicd/stream?since=${since}&limit=100`);
+      if (!res.ok) throw new Error(String(res.status));
+      return res.json();
+    },
+    refetchInterval: 10_000,
+    refetchIntervalInBackground: false,
+  });
+
+  const items = data?.items ?? [];
+  const filtered = items.filter((i) => {
+    if (filter.kind === "deploys" && !(i.kind === "build" || i.kind === "sync")) return false;
+    if (filter.kind === "commits" && i.kind !== "commit") return false;
+    if (filter.status !== "all" && i.status !== filter.status) return false;
+    return true;
+  });
+
+  return (
+    <div className="h-full flex flex-col bg-slate-950">
+      <header className="flex items-center justify-between px-4 py-3 border-b border-slate-800">
+        <h1 className="text-slate-100 text-lg font-semibold">Delivery</h1>
+        {data?.source_errors?.length ? (
+          <span className="text-amber-400 text-xs">
+            ⚠ {data.source_errors.length} source issues
+          </span>
+        ) : null}
+      </header>
+      <DeliveryFilters value={filter} onChange={setFilter} />
+      <div className="flex-1 overflow-y-auto">
+        {isLoading ? (
+          <p className="text-slate-500 p-4">Loading…</p>
+        ) : filtered.length === 0 ? (
+          <p className="text-slate-500 p-4">No deploys or commits in the last 24 hours.</p>
+        ) : (
+          filtered.map((i) => (
+            <DeliveryRow key={i.id} item={i} onClick={setSelected} />
+          ))
+        )}
+      </div>
+      {selected && (
+        <DeliveryDrawer
+          item={selected}
+          allItems={items}
+          onClose={() => setSelected(null)}
+        />
+      )}
+    </div>
+  );
+}
+```
+
+Update `CICDPage.tsx`:
+
+```tsx
+import { CICDLiveBoard } from "../components/CICD/CICDLiveBoard";
+export default function CICDPage() {
+  return <CICDLiveBoard />;
+}
+```
+
+**Step 4: Run test to verify it passes**
+
+Run: `cd frontend && npm test -- CICDLiveBoard`
+Expected: PASS (3 tests)
+
+**Step 5: Commit**
+
+```bash
+git add frontend/src/components/CICD/CICDLiveBoard.tsx frontend/src/components/CICD/__tests__/CICDLiveBoard.test.tsx frontend/src/pages/CICDPage.tsx
+git commit -m "feat(cicd-ui): CICDLiveBoard with 10s polling, filter, drawer"
+```
+
+---
+
+## Task 25: Home page compact widget (top 8 rows)
+
+**Files:**
+- Modify: `frontend/src/components/Home/HomePage.tsx`
+- Create: `frontend/src/components/CICD/CICDHomeWidget.tsx`
+- Create: `frontend/src/components/CICD/__tests__/CICDHomeWidget.test.tsx`
+
+**Step 1: Write the failing test**
+
+```tsx
+import { render, screen, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MemoryRouter } from "react-router-dom";
+import { CICDHomeWidget } from "../CICDHomeWidget";
+
+function wrap(ui: React.ReactNode) {
+  const q = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(
+    <QueryClientProvider client={q}>
+      <MemoryRouter>{ui}</MemoryRouter>
+    </QueryClientProvider>,
+  );
+}
+
+test("shows at most 8 rows", async () => {
+  const items = Array.from({ length: 20 }, (_, i) => ({
+    kind: "build", id: `b${i}`, title: `svc-${i}`,
+    source: "jenkins", source_instance: "p", status: "success",
+    author: null, git_sha: null, git_repo: null, target: null,
+    timestamp: `2026-04-10T14:${String(i).padStart(2, "0")}:00Z`,
+    duration_s: null, url: "",
+  }));
+  global.fetch = vi.fn().mockResolvedValue({
+    ok: true,
+    json: async () => ({ items, source_errors: [], server_ts: "" }),
+  }) as any;
+  wrap(<CICDHomeWidget />);
+  await waitFor(() => expect(screen.getByText(/svc-19/)).toBeInTheDocument());
+  expect(screen.queryByText(/svc-11/)).not.toBeInTheDocument();
+});
+
+test("links to /cicd when user clicks See all", async () => {
+  global.fetch = vi.fn().mockResolvedValue({
+    ok: true,
+    json: async () => ({ items: [], source_errors: [], server_ts: "" }),
+  }) as any;
+  wrap(<CICDHomeWidget />);
+  const link = await screen.findByRole("link", { name: /see all/i });
+  expect(link).toHaveAttribute("href", "/cicd");
+});
+```
+
+**Step 2: Run test to verify it fails**
+
+Run: `cd frontend && npm test -- CICDHomeWidget`
+Expected: FAIL.
+
+**Step 3: Write minimal implementation**
+
+```tsx
+// frontend/src/components/CICD/CICDHomeWidget.tsx
+import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import type { CICDStreamResponse } from "../../types";
+import { DeliveryRow } from "./DeliveryRow";
+
+export function CICDHomeWidget() {
+  const since = new Date(Date.now() - 6 * 3600 * 1000).toISOString();
+  const { data } = useQuery<CICDStreamResponse>({
+    queryKey: ["cicd-home", since],
+    queryFn: async () => {
+      const res = await fetch(`/api/v4/cicd/stream?since=${since}&limit=8`);
+      if (!res.ok) throw new Error(String(res.status));
+      return res.json();
+    },
+    refetchInterval: 10_000,
+    refetchIntervalInBackground: false,
+  });
+
+  const items = (data?.items ?? []).slice(0, 8);
+
+  return (
+    <section className="border border-slate-800 rounded-lg overflow-hidden">
+      <header className="flex items-center justify-between px-3 py-2 border-b border-slate-800">
+        <h3 className="text-slate-100 text-sm font-semibold">Delivery — last 6h</h3>
+        <Link to="/cicd" className="text-cyan-400 text-xs hover:underline">See all ↗</Link>
+      </header>
+      <div className="max-h-72 overflow-y-auto">
+        {items.length === 0 ? (
+          <p className="text-slate-500 text-xs p-3">No recent delivery activity.</p>
+        ) : (
+          items.map((i) => <DeliveryRow key={i.id} item={i} onClick={() => {}} />)
+        )}
+      </div>
+    </section>
+  );
+}
+```
+
+Import and place `<CICDHomeWidget />` in `HomePage.tsx` in the existing home grid.
+
+**Step 4: Run test to verify it passes**
+
+Run: `cd frontend && npm test -- CICDHomeWidget`
+Expected: PASS (2 tests)
+
+**Step 5: Commit**
+
+```bash
+git add frontend/src/components/CICD/CICDHomeWidget.tsx frontend/src/components/CICD/__tests__/CICDHomeWidget.test.tsx frontend/src/components/Home/HomePage.tsx
+git commit -m "feat(cicd-ui): Home page compact delivery widget (top 8 rows)"
+```
+
+---
+
+## Task 26: Jenkins + ArgoCD forms in IntegrationSettings
+
+**Files:**
+- Modify: `frontend/src/components/Settings/IntegrationSettings.tsx`
+- Create: `frontend/src/components/Settings/__tests__/cicd-forms.test.tsx`
+
+**Step 1: Write the failing test**
+
+```tsx
+import { render, screen, fireEvent } from "@testing-library/react";
+import { IntegrationSettings } from "../IntegrationSettings";
+
+test("renders Jenkins form fields", () => {
+  render(<IntegrationSettings />);
+  fireEvent.click(screen.getByRole("button", { name: /add jenkins/i }));
+  expect(screen.getByLabelText(/base url/i)).toBeInTheDocument();
+  expect(screen.getByLabelText(/username/i)).toBeInTheDocument();
+  expect(screen.getByLabelText(/api token/i)).toBeInTheDocument();
+});
+
+test("renders ArgoCD form fields", () => {
+  render(<IntegrationSettings />);
+  fireEvent.click(screen.getByRole("button", { name: /add argocd/i }));
+  expect(screen.getByLabelText(/base url/i)).toBeInTheDocument();
+  expect(screen.getByLabelText(/token/i)).toBeInTheDocument();
+});
+
+test("Test Connection calls probe endpoint", async () => {
+  global.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ ok: true }) }) as any;
+  render(<IntegrationSettings />);
+  fireEvent.click(screen.getByRole("button", { name: /add jenkins/i }));
+  fireEvent.change(screen.getByLabelText(/base url/i), { target: { value: "https://j" } });
+  fireEvent.change(screen.getByLabelText(/username/i), { target: { value: "u" } });
+  fireEvent.change(screen.getByLabelText(/api token/i), { target: { value: "t" } });
+  fireEvent.click(screen.getByRole("button", { name: /test connection/i }));
+  expect(global.fetch).toHaveBeenCalledWith(
+    expect.stringContaining("/api/v4/integrations/probe"),
+    expect.objectContaining({ method: "POST" }),
+  );
+});
+```
+
+**Step 2: Run test to verify it fails**
+
+Run: `cd frontend && npm test -- cicd-forms`
+Expected: FAIL.
+
+**Step 3: Write minimal implementation**
+
+Add two form variants to `IntegrationSettings.tsx` following the existing pattern used for `github`/`elk` forms. Use the existing probe POST path. Ensure each form has:
+
+- Jenkins: `base_url`, `username`, `api_token`
+- ArgoCD: `base_url`, `token`
+- "Test Connection" → `POST /api/v4/integrations/probe { service_type, url, credentials }`
+- "Save" → POST to the existing integrations save endpoint
+
+**Step 4: Run test to verify it passes**
+
+Run: `cd frontend && npm test -- cicd-forms`
+Expected: PASS (3 tests)
+
+**Step 5: Commit**
+
+```bash
+git add frontend/src/components/Settings/IntegrationSettings.tsx frontend/src/components/Settings/__tests__/cicd-forms.test.tsx
+git commit -m "feat(settings): Jenkins and ArgoCD integration forms"
+```
+
+---
+
+## Task 27: Manual verification checklist
+
+**Files:**
+- Create: `docs/plans/2026-04-10-cicd-integration-smoke.md`
+
+This task has no automated tests — it is the final human-in-the-loop gate before handoff.
+
+**Step 1: Write the checklist**
+
+```markdown
+# CI/CD Phase A — Smoke Verification
+
+Run these before declaring Phase A complete.
+
+## Prerequisites
+- [ ] Backend: `pytest backend/tests/integrations/cicd/ backend/tests/test_change_agent_cicd_enrichment.py backend/tests/agents/test_pipeline_agent.py backend/tests/integrations/test_cicd_*.py -v` — all green
+- [ ] Frontend: `cd frontend && npm test -- CICD DeliveryRow DeliveryFilters DeliveryDrawer SplitFlapCell cicd-forms cicd-route cicd-types` — all green
+- [ ] `npm run build` — clean
+
+## Configured sources path
+- [ ] Settings → Integrations → Add Jenkins → real URL/username/token → "Test Connection" returns OK → Save
+- [ ] Settings → Integrations → Add ArgoCD (REST) → real URL/token → Test Connection OK → Save
+- [ ] Navigate to `/cicd` → board renders with live rows from both sources, newest first
+- [ ] Status cell animates on first load AND on an in-progress → terminal transition
+- [ ] Kind filter: "Deploys" hides COMMIT rows; "Commits" hides BUILD/SYNC rows
+- [ ] Status filter: "Failed" leaves only failed rows
+- [ ] Click a BUILD row → drawer opens with Commit tab populated from the GitHub commit detail endpoint
+- [ ] Diff tab shows file patches
+- [ ] Related tab shows any other rows with the same `git_sha`
+
+## Auto-discovery path
+- [ ] On a k8s cluster where ArgoCD is installed and the kube context has read access to `applications.argoproj.io` CRDs AND no ArgoCD is manually configured:
+  - [ ] `/cicd` shows ArgoCD sync rows
+  - [ ] Configuring ArgoCD manually in Settings replaces auto-discovered instance (auto-discovery is skipped)
+
+## Failure isolation
+- [ ] Misconfigure Jenkins credentials → `/cicd` still shows ArgoCD rows + warning chip "⚠ N source issues" in header
+- [ ] Everything unconfigured → empty state links to Settings → Integrations
+
+## ChangeAgent enrichment
+- [ ] Start a `troubleshoot_app` session against a namespace with a recent failed Jenkins build
+- [ ] WarRoom shows an AgentFindingCard from ChangeAgent that references the build with a deeplink chip
+
+## Pipeline capability
+- [ ] Sidebar Diagnostics → Pipeline → form asks for instance, name, window
+- [ ] Submit → PipelineAgent produces a finding in WarRoom within ≤4 iterations
+
+## Home widget
+- [ ] Home page shows top-8 Delivery widget
+- [ ] "See all ↗" navigates to `/cicd`
+```
+
+**Step 2: Commit**
+
+```bash
+git add docs/plans/2026-04-10-cicd-integration-smoke.md
+git commit -m "docs(cicd): Phase A smoke verification checklist"
+```
+
+---
+
+## Completion
+
+After Task 27 passes, announce:
+
+> "I'm using the finishing-a-development-branch skill to complete this work."
+
+Then use superpowers:finishing-a-development-branch to present the 4 merge/PR/keep/discard options.
+
+---
+
+## Plan Summary
+
+**27 tasks covering Phase A end-to-end:**
+- Tasks 1–9 — `backend/src/integrations/cicd/` package (models, clients, resolver)
+- Tasks 10–12 — integrations framework wiring (store, probe, audit)
+- Tasks 13–15 — agent layer (ChangeAgent enrichment, PipelineAgent, supervisor routing)
+- Tasks 16–17 — API endpoints (`/cicd/stream`, `/cicd/commit/...`)
+- Tasks 18–25 — frontend (types, routing, SplitFlapCell, row, filters, drawer, board, home widget)
+- Task 26 — Settings forms
+- Task 27 — manual verification
+
+Every task is TDD: failing test → minimal code → green → commit. No batching.
+
+Phase B (remediation write-path + webhooks) is explicitly out of scope; the `trigger_action` method stub and audit hook are in place so Phase B is purely additive.
+
 
 
