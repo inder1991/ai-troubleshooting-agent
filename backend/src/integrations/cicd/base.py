@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 DeployStatus = Literal["success", "failed", "in_progress", "aborted", "unknown"]
 SyncHealth = Literal[
@@ -30,7 +30,7 @@ class DeployEvent(BaseModel):
 class Build(BaseModel):
     """Detailed Jenkins build state."""
     event: DeployEvent
-    parameters: dict[str, str] = {}
+    parameters: dict[str, str] = Field(default_factory=dict)
     log_tail: str = ""
     failed_stage: str | None = None
 
@@ -39,7 +39,7 @@ class SyncDiff(BaseModel):
     """ArgoCD sync diff."""
     event: DeployEvent
     health: SyncHealth
-    out_of_sync_resources: list[dict] = []
+    out_of_sync_resources: list[dict] = Field(default_factory=list)
     manifest_diff: str = ""
 
 

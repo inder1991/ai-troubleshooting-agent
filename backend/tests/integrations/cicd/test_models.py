@@ -1,7 +1,7 @@
 from __future__ import annotations
 from datetime import datetime, timezone
 
-from backend.src.integrations.cicd.base import (
+from src.integrations.cicd.base import (
     DeployEvent, Build, SyncDiff, DeliveryItem,
 )
 
