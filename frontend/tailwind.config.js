@@ -69,8 +69,8 @@ export default {
         'display-lg': ['64px', { lineHeight: '68px', letterSpacing: '-0.035em', fontWeight: '700' }],
       },
       fontFamily: {
-        display: ['"DM Sans"', 'Inter', 'sans-serif'],
-        sans: ['Inter', 'system-ui', 'Avenir', 'Helvetica', 'Arial', 'sans-serif'],
+        display: ['Fraunces', 'ui-serif', 'Georgia', 'serif'],
+        sans: ['"Inter Tight"', 'Inter', 'system-ui', 'Avenir', 'Helvetica', 'Arial', 'sans-serif'],
         mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'monospace'],
       },
       borderRadius: {

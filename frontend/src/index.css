@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 :root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: 'Inter Tight', 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
@@ -22,7 +22,7 @@ body {
   min-width: 320px;
   min-height: 100vh;
   background-color: #1a1814;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter Tight', 'Inter', sans-serif;
   overflow: hidden;
 }
 
@@ -575,7 +575,7 @@ a:focus-visible,
   overflow: hidden;
   background-color: var(--wr-bg-primary);
   color: var(--wr-text-primary);
-  font-family: 'Inter', 'Inter Tight', system-ui, sans-serif;
+  font-family: 'Inter Tight', 'Inter', system-ui, sans-serif;
   position: relative;
 }
 
@@ -788,5 +788,49 @@ a:focus-visible,
   transform-origin: center;
   display: inline-block;
   backface-visibility: hidden;
+}
+
+/* ─── Phase 5 — additive polish ──────────────────────────────────────── */
+/* Additive only: zero steady-state pixel drift on the app diagnostic     */
+/* page. Entrance + hover are layered on existing surfaces.               */
+
+@keyframes warroom-column-enter {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+.warroom-shell .warroom-column,
+.warroom-shell > .grid > * {
+  animation: warroom-column-enter 600ms var(--ease-soft, cubic-bezier(0.22, 1, 0.36, 1)) both;
+}
+.warroom-shell .warroom-column:nth-child(2),
+.warroom-shell > .grid > *:nth-child(2) { animation-delay: 80ms;  }
+.warroom-shell .warroom-column:nth-child(3),
+.warroom-shell > .grid > *:nth-child(3) { animation-delay: 160ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .warroom-shell .warroom-column,
+  .warroom-shell > .grid > * { animation: none; }
+}
+
+/* Hover depth + subtle noise texture on surface panels.                  */
+/* Texture: radial micro-dots at 0.015 alpha — imperceptible but present. */
+.surface-panel {
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.015) 1px, transparent 0),
+    linear-gradient(180deg, rgba(30, 27, 21, 0.6) 0%, rgba(18, 17, 14, 0.6) 100%);
+  background-size: 3px 3px, 100% 100%;
+  transition:
+    transform 200ms var(--ease-soft, cubic-bezier(0.22, 1, 0.36, 1)),
+    box-shadow 200ms var(--ease-soft, cubic-bezier(0.22, 1, 0.36, 1)),
+    border-color 200ms var(--ease-soft, cubic-bezier(0.22, 1, 0.36, 1));
+}
+.surface-panel:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px -12px rgba(224, 159, 62, 0.22);
+  border-color: var(--wr-border-strong);
+}
+@media (prefers-reduced-motion: reduce) {
+  .surface-panel { transition: none; }
+  .surface-panel:hover { transform: none; }
 }
 
