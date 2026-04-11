@@ -321,7 +321,7 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
   }, [centerView, centerDomainReport]);
 
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-wr-bg relative font-sans text-slate-300">
+    <div className="warroom-shell font-sans text-slate-300">
       <ClusterHeader
         sessionId={session.session_id}
         confidence={confidence}
@@ -373,7 +373,7 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
       )}
 
       {/* Main War Room Grid */}
-      <main className="flex-1 grid grid-cols-12 overflow-hidden relative">
+      <main className="warroom-main grid-cols-12">
         {loading && !findings && !error && (
           <>
             {/* Left column skeleton */}
