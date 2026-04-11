@@ -85,12 +85,10 @@ const NetworkWarRoom: React.FC<NetworkWarRoomProps> = ({ session, onGoHome }) =>
   const isRunning = phase === 'running' || phase === 'queued' || phase === 'initial' || phase === '';
 
   return (
-    <div className="flex-1 flex flex-col h-full overflow-hidden" style={{ backgroundColor: '#0a0f13' }}>
+    <div className="warroom-shell">
       {/* Header */}
-      <div
-        className="flex items-center justify-between px-6 py-3 flex-shrink-0"
-        style={{ borderBottom: '1px solid #3d3528' }}
-      >
+      <div className="warroom-header justify-between">
+        {/* legacy: border-bottom + background now come from .warroom-header */}
         <div className="flex items-center gap-3">
           <span className="material-symbols-outlined text-lg" style={{ color: '#f59e0b' }}>
             cable

@@ -218,9 +218,9 @@ const DatabaseWarRoom: React.FC<DatabaseWarRoomProps> = ({
   }, [ps]);
 
   return (
-    <div className={`flex flex-col h-full overflow-hidden bg-duck-bg ${phase === 'complete' ? 'ring-1 ring-duck-accent/20' : ''}`}>
+    <div className={`warroom-shell ${phase === 'complete' ? 'ring-1 ring-duck-accent/20' : ''}`}>
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-duck-border bg-duck-panel/50 shrink-0">
+      <div className="warroom-header justify-between !py-2">
         <div className="flex items-center gap-3">
           <span className="material-symbols-outlined text-violet-400 text-xl">database</span>
           <div>
