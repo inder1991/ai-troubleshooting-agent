@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import re
 from datetime import datetime, timezone
 from typing import Any, Literal
@@ -10,6 +11,10 @@ import aiohttp
 from src.integrations.cicd.base import (
     Build, CICDClientError, DeployEvent, DeployStatus, SyncDiff,
 )
+
+logger = logging.getLogger(__name__)
+
+_MAX_BUILDS_PER_JOB = 50  # bound per-job work; newest-first, break on age
 
 _STATUS_MAP: dict[str | None, DeployStatus] = {
     "SUCCESS": "success",
@@ -30,6 +35,13 @@ def _normalize_repo(url: str | None) -> str | None:
 
 
 class JenkinsClient:
+    """Jenkins CI/CD client (Phase A — read-path).
+
+    NOTE: currently opens a fresh aiohttp.ClientSession per request.
+    This is intentional for Phase A simplicity. A shared-session refactor
+    is planned before Phase B, tracked as part of the resolver wiring.
+    """
+
     source: Literal["jenkins"] = "jenkins"
 
     def __init__(
@@ -93,19 +105,30 @@ class JenkinsClient:
                     f"/job/{job_name}/api/json?tree=builds[number,url]"
                 )
                 events: list[DeployEvent] = []
-                for b in job_payload.get("builds", [])[:20]:
+                for b in job_payload.get("builds", [])[:_MAX_BUILDS_PER_JOB]:
                     detail = await self._get_json(
                         f"/job/{job_name}/{b['number']}/api/json"
                     )
                     ev = self._parse_build(job_name, detail)
-                    if since <= ev.started_at <= until:
+                    if ev.started_at < since:
+                        break  # newest-first — all remaining builds are older than window
+                    if ev.started_at <= until:
                         events.append(ev)
                 return events
 
         results = await asyncio.gather(
-            *[fetch_job(j) for j in jobs], return_exceptions=False
+            *[fetch_job(j) for j in jobs], return_exceptions=True
         )
-        return [ev for sub in results for ev in sub]
+        events: list[DeployEvent] = []
+        for job, result in zip(jobs, results):
+            if isinstance(result, Exception):
+                logger.warning(
+                    "jenkins list_deploy_events: job %s failed: %s",
+                    job.get("name"), result,
+                )
+                continue
+            events.extend(result)
+        return events
 
     def _parse_build(self, job_name: str, detail: dict[str, Any]) -> DeployEvent:
         ts = datetime.fromtimestamp(detail["timestamp"] / 1000, tz=timezone.utc)
@@ -120,16 +143,19 @@ class JenkinsClient:
         git_sha: str | None = None
         git_repo: str | None = None
         triggered_by: str | None = None
-        for action in detail.get("actions", []):
-            rev = action.get("lastBuiltRevision") if isinstance(action, dict) else None
-            if rev:
+        for action in detail.get("actions") or []:
+            if not isinstance(action, dict):
+                continue
+            rev = action.get("lastBuiltRevision")
+            if rev and git_sha is None:
                 git_sha = rev.get("SHA1")
-            remotes = action.get("remoteUrls") if isinstance(action, dict) else None
-            if remotes:
+            remotes = action.get("remoteUrls")
+            if remotes and git_repo is None:
                 git_repo = _normalize_repo(remotes[0])
-            causes = action.get("causes") if isinstance(action, dict) else None
-            if causes and isinstance(causes, list):
-                triggered_by = causes[0].get("userName") or causes[0].get("userId")
+            causes = action.get("causes")
+            if causes and isinstance(causes, list) and triggered_by is None:
+                first_cause = causes[0] if isinstance(causes[0], dict) else {}
+                triggered_by = first_cause.get("userName") or first_cause.get("userId")
         return DeployEvent(
             source="jenkins",
             source_id=f"{job_name}#{detail['number']}",

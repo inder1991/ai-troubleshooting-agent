@@ -91,3 +91,61 @@ async def test_list_deploy_events_raises_auth_error_on_401():
             datetime(2026, 4, 11, tzinfo=timezone.utc),
         )
     assert exc_info.value.kind == "auth"
+
+
+@pytest.mark.asyncio
+async def test_list_deploy_events_isolates_per_job_failures():
+    """One failing job must not take down the whole sync."""
+    good_job = {"name": "checkout-api", "url": "https://j.example/job/checkout-api/"}
+    bad_job = {"name": "bad", "url": "https://j.example/job/bad/"}
+
+    call_log: list[str] = []
+
+    async def fake_get(path: str):
+        call_log.append(path)
+        if "/api/json?tree=jobs" in path:
+            return {"jobs": [good_job, bad_job]}
+        if path.startswith("/job/checkout-api/api"):
+            return JOB_PAYLOAD
+        if path.startswith("/job/checkout-api/1847"):
+            return BUILD_PAYLOAD
+        if path.startswith("/job/bad"):
+            raise CICDClientError(
+                source="jenkins", instance="prod",
+                kind="network", message="500",
+            )
+        raise AssertionError(f"unexpected path: {path}")
+
+    client = _mk_client(AsyncMock(side_effect=fake_get))
+    events = await client.list_deploy_events(
+        datetime(2026, 4, 10, 13, 0, tzinfo=timezone.utc),
+        datetime(2026, 4, 10, 15, 0, tzinfo=timezone.utc),
+    )
+    assert len(events) == 1
+    assert events[0].name == "checkout-api"
+
+
+@pytest.mark.asyncio
+async def test_parse_build_uses_first_match_for_git_metadata():
+    """Multi-SCM jobs emit multiple BuildData actions — first wins."""
+    multi_scm_build = {
+        **BUILD_PAYLOAD,
+        "actions": [
+            {"_class": "hudson.plugins.git.util.BuildData",
+             "lastBuiltRevision": {"SHA1": "first-sha"},
+             "remoteUrls": ["https://github.com/acme/first.git"]},
+            {"_class": "hudson.plugins.git.util.BuildData",
+             "lastBuiltRevision": {"SHA1": "second-sha"},
+             "remoteUrls": ["https://github.com/acme/second.git"]},
+            {"_class": "hudson.model.CauseAction",
+             "causes": [{"userName": "ci-bot"}]},
+        ],
+    }
+    mock_get = AsyncMock(side_effect=[JOBS_PAYLOAD, JOB_PAYLOAD, multi_scm_build])
+    client = _mk_client(mock_get)
+    events = await client.list_deploy_events(
+        datetime(2026, 4, 10, 13, 0, tzinfo=timezone.utc),
+        datetime(2026, 4, 10, 15, 0, tzinfo=timezone.utc),
+    )
+    assert events[0].git_sha == "first-sha"
+    assert events[0].git_repo == "acme/first"
