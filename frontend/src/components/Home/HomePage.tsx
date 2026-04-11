@@ -9,6 +9,7 @@ import { EnvironmentHealth } from './EnvironmentHealth';
 import { RecentAlerts } from './RecentAlerts';
 import { RecentFindings } from './RecentFindings';
 import { WeeklyStats } from './WeeklyStats';
+import DeliveryPulse from './DeliveryPulse';
 import { CompactAgentFleet } from './CompactAgentFleet';
 import AssistantDock from '../Assistant/AssistantDock';
 import LiveIntelligenceFeed from './LiveIntelligenceFeed';
@@ -166,6 +167,11 @@ const HomePage: React.FC<HomePageProps> = ({
             {/* Recent Findings */}
             <div style={{ animation: 'fadeSlideLeft 350ms cubic-bezier(0.25, 1, 0.5, 1) 360ms both' }} className="surface-panel p-2.5 overflow-hidden">
               <RecentFindings />
+            </div>
+
+            {/* Delivery Pulse */}
+            <div style={{ animation: 'fadeSlideLeft 350ms cubic-bezier(0.25, 1, 0.5, 1) 400ms both' }}>
+              <DeliveryPulse />
             </div>
 
             {/* Weekly Stats */}

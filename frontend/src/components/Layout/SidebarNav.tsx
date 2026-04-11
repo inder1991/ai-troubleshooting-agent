@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Badge } from '../ui/Badge';
 
-export type NavView = 'home' | 'sessions' | 'app-diagnostics' | 'cluster-diagnostics'
+export type NavView = 'home' | 'sessions' | 'cicd' | 'app-diagnostics' | 'cluster-diagnostics'
   | 'network-troubleshooting' | 'pr-review' | 'github-issue-fix'
   | 'network-topology' | 'network-adapters' | 'device-monitoring' | 'ipam' | 'matrix' | 'observatory'
   | 'k8s-clusters' | 'k8s-diagnostics' | 'cluster-registry' | 'cluster-recommendations'
@@ -25,6 +25,7 @@ const navItems: NavItem[] = [
   // Zone 1: Entry
   { kind: 'link', id: 'home', label: 'Dashboard', icon: 'space_dashboard' },
   { kind: 'link', id: 'sessions', label: 'Sessions', icon: 'history' },
+  { kind: 'link', id: 'cicd', label: 'Delivery', icon: 'rocket_launch' },
 
   // Zone 2: Diagnostics (merged — all troubleshooting in one group)
   {

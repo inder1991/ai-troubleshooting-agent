@@ -32,6 +32,9 @@ from src.agents.cluster.prometheus_detector import detect_prometheus_endpoint
 from src.agents.metrics_agent import PrometheusClient
 from src.agents.log_agent import ElasticsearchClient
 from src.utils.fix_job_queue import FixJobQueue
+from src.integrations.cicd.base import DeliveryItem
+from src.integrations.cicd.resolver import resolve_cicd_clients
+from src.integrations.github_client import GitHubClient, GitHubClientError
 
 logger = get_logger(__name__)
 
@@ -421,6 +424,30 @@ async def start_session(request: StartSessionRequest, background_tasks: Backgrou
     if capability == "database_diagnostics":
         from src.api.db_session_endpoints import create_db_session
         return await create_db_session(session_id, request, incident_id, emitter, background_tasks)
+
+    # ── Pipeline Troubleshooting capability ──
+    if capability == "troubleshoot_pipeline":
+        sessions[session_id] = {
+            "service_name": request.serviceName or "Pipeline Troubleshooting",
+            "incident_id": incident_id,
+            "phase": "initial",
+            "confidence": 0,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "emitter": emitter,
+            "state": None,
+            "profile_id": profile_id,
+            "capability": "troubleshoot_pipeline",
+            "chat_history": [],
+        }
+        logger.info("Pipeline session created", extra={"session_id": session_id, "action": "session_created", "extra": "troubleshoot_pipeline"})
+        return StartSessionResponse(
+            session_id=session_id,
+            incident_id=incident_id,
+            status="started",
+            message="Pipeline troubleshooting session created — use /api/v4/cicd/stream for live analysis",
+            service_name=request.serviceName or "Pipeline Troubleshooting",
+            created_at=sessions[session_id]["created_at"],
+        )
 
     # ── Default: troubleshoot_app capability ──
     supervisor = SupervisorAgent(connection_config=connection_config)
@@ -2180,3 +2207,133 @@ async def get_cluster_cost(cluster_id: str):
     if not snapshot:
         return {"cost_summary": None}
     return {"cost_summary": snapshot.get("cost_summary")}
+
+
+# ---------------------------------------------------------------------------
+# CI/CD unified stream endpoint (Task 16)
+# ---------------------------------------------------------------------------
+
+
+def _event_to_delivery_item(ev, source_instance: str) -> DeliveryItem:
+    kind = "sync" if ev.source == "argocd" else "build"
+    duration = None
+    if ev.finished_at:
+        duration = int((ev.finished_at - ev.started_at).total_seconds())
+    return DeliveryItem(
+        kind=kind,
+        id=ev.source_id,
+        title=ev.name,
+        source=ev.source,
+        source_instance=source_instance,
+        status=ev.status,
+        author=ev.triggered_by,
+        git_sha=ev.git_sha,
+        git_repo=ev.git_repo,
+        target=ev.target,
+        timestamp=ev.started_at,
+        duration_s=duration,
+        url=ev.url,
+    )
+
+
+def _commit_to_delivery_item(commit: dict, repo: str) -> DeliveryItem:
+    ts_raw = commit.get("date") or ""
+    try:
+        ts = datetime.fromisoformat(ts_raw.replace("Z", "+00:00"))
+    except ValueError:
+        ts = datetime.now(tz=timezone.utc)
+    sha = commit.get("sha", "")
+    msg_raw = commit.get("message") or ""
+    msg = msg_raw.splitlines()[0] if msg_raw else ""
+    return DeliveryItem(
+        kind="commit",
+        id=sha,
+        title=msg or sha,
+        source="github",
+        source_instance=repo,
+        status="committed",
+        author=commit.get("author"),
+        git_sha=sha,
+        git_repo=repo,
+        target=None,
+        timestamp=ts,
+        duration_s=None,
+        url=f"https://github.com/{repo}/commit/{sha}",
+    )
+
+
+@router_v4.get("/cicd/stream")
+async def cicd_stream(
+    cluster_id: str,
+    since: datetime,
+    git_repo: str | None = None,
+    limit: int = 100,
+):
+    """Unified deploy + commit feed for the Live Board.
+
+    cluster_id is required — resolves all linked Jenkins/ArgoCD instances.
+    git_repo (owner/repo) optionally mixes recent commits from GitHub.
+    """
+    tz = since.tzinfo or timezone.utc
+    until = datetime.now(tz=tz)
+
+    resolved = await resolve_cicd_clients(cluster_id)
+    all_clients = list(resolved.jenkins) + list(resolved.argocd)
+
+    async def safe_list(client):
+        try:
+            evs = await client.list_deploy_events(since, until)
+            return {"ok": True, "name": client.name, "source": client.source, "events": evs}
+        except Exception as exc:
+            return {"ok": False, "name": client.name, "source": client.source, "error": str(exc)}
+
+    deploy_results = await asyncio.gather(*[safe_list(c) for c in all_clients])
+
+    commits: list[dict] = []
+    if git_repo:
+        try:
+            since_hours = max(1, int((until - since).total_seconds() / 3600))
+            commits = await GitHubClient().get_commits(git_repo, since_hours=since_hours)
+        except GitHubClientError as exc:
+            logger.warning("cicd_stream: github commits fetch failed: %s", exc)
+
+    items: list[DeliveryItem] = []
+    source_errors: list[dict] = [
+        {"name": e.name, "source": e.source, "message": e.message}
+        for e in resolved.errors
+    ]
+    for r in deploy_results:
+        if not r["ok"]:
+            source_errors.append({
+                "name": r["name"], "source": r["source"], "message": r["error"],
+            })
+            continue
+        for ev in r["events"]:
+            items.append(_event_to_delivery_item(ev, r["name"]))
+
+    if git_repo:
+        for c in commits:
+            items.append(_commit_to_delivery_item(c, git_repo))
+
+    items.sort(key=lambda i: i.timestamp, reverse=True)
+    return {
+        "items": [i.model_dump(mode="json") for i in items[:limit]],
+        "source_errors": source_errors,
+        "server_ts": datetime.now(tz=timezone.utc).isoformat(),
+    }
+
+
+@router_v4.get("/cicd/commit/{owner}/{repo}/{sha}")
+async def cicd_commit_detail(owner: str, repo: str, sha: str):
+    """Fetch full commit detail + file diffs for the Live Board drawer."""
+    try:
+        return await GitHubClient().get_commit_diff(f"{owner}/{repo}", sha)
+    except GitHubClientError as exc:
+        msg = str(exc).lower()
+        if "rate limit" in msg:
+            raise HTTPException(status_code=429, detail="GitHub rate limit reached")
+        if "not found" in msg:
+            raise HTTPException(status_code=404, detail=str(exc))
+        if "authentication" in msg or "401" in msg:
+            raise HTTPException(status_code=401, detail=str(exc))
+        raise HTTPException(status_code=502, detail=str(exc))

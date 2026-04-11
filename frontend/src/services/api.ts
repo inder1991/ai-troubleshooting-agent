@@ -20,6 +20,8 @@ import type {
   ClusterRegistryEntry,
   ClusterRecommendationSnapshotDTO,
   ClusterCostSummaryDTO,
+  CICDStreamResponse,
+  CommitDetail,
 } from '../types';
 
 export const API_BASE_URL = '';
@@ -2494,3 +2496,25 @@ export async function fetchBlastRadius(deviceId: string): Promise<{ affected: { 
   if (!res.ok) return { affected: [], count: 0 };
   return res.json();
 }
+
+// ── CICD API ──
+
+export const getCICDStream = async (params: {
+  clusterId: string;
+  since: string; // ISO
+  gitRepo?: string;
+  limit?: number;
+}): Promise<CICDStreamResponse> => {
+  const qs = new URLSearchParams({ cluster_id: params.clusterId, since: params.since });
+  if (params.gitRepo) qs.set('git_repo', params.gitRepo);
+  if (params.limit != null) qs.set('limit', String(params.limit));
+  const res = await fetch(`${API_BASE_URL}/api/v4/cicd/stream?${qs}`);
+  if (!res.ok) throw new Error(await extractErrorDetail(res, 'Failed to load delivery stream'));
+  return res.json();
+};
+
+export const getCICDCommitDetail = async (owner: string, repo: string, sha: string): Promise<CommitDetail> => {
+  const res = await fetch(`${API_BASE_URL}/api/v4/cicd/commit/${owner}/${repo}/${sha}`);
+  if (!res.ok) throw new Error(await extractErrorDetail(res, 'Failed to load commit detail'));
+  return res.json();
+};

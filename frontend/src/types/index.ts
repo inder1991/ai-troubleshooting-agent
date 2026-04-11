@@ -571,7 +571,8 @@ export type CapabilityType =
   | 'github_issue_fix'
   | 'cluster_diagnostics'
   | 'network_troubleshooting'
-  | 'database_diagnostics';
+  | 'database_diagnostics'
+  | 'troubleshoot_pipeline';
 
 export interface TroubleshootAppForm {
   capability: 'troubleshoot_app';
@@ -901,7 +902,8 @@ export type CapabilityFormData =
   | GithubIssueFixForm
   | ClusterDiagnosticsForm
   | NetworkTroubleshootingForm
-  | DatabaseDiagnosticsForm;
+  | DatabaseDiagnosticsForm
+  | PipelineCapabilityForm;
 
 // ===== V5 Integration Types =====
 export interface Integration {
@@ -2412,4 +2414,62 @@ export interface ClusterRecommendationSnapshotDTO {
   critical_count: number;
   optimization_count: number;
   security_count: number;
+}
+
+// ===== CI/CD Live Board Types =====
+
+export type DeliveryKind = 'commit' | 'build' | 'sync';
+export type DeliverySource = 'github' | 'jenkins' | 'argocd';
+export type CICDInstanceSource = 'jenkins' | 'argocd';
+
+export interface DeliveryItem {
+  kind: DeliveryKind;
+  id: string;
+  title: string;
+  source: DeliverySource;
+  source_instance: string;
+  status: string;
+  author: string | null;
+  git_sha: string | null;
+  git_repo: string | null;
+  target: string | null;
+  timestamp: string;          // ISO-8601
+  duration_s: number | null;
+  url: string;
+}
+
+export interface SourceError {
+  name: string;
+  source: CICDInstanceSource | string;
+  message: string;
+}
+
+export interface CICDStreamResponse {
+  items: DeliveryItem[];
+  source_errors: SourceError[];
+  server_ts: string;
+}
+
+export interface CommitFileDetail {
+  filename: string;
+  status: string;             // "added" | "modified" | "removed" | "renamed"
+  additions: number;
+  deletions: number;
+  patch: string;
+}
+
+export interface CommitDetail {
+  commit_sha: string;
+  message: string;
+  author: string;
+  files: CommitFileDetail[];
+}
+
+export interface PipelineCapabilityForm {
+  capability: 'troubleshoot_pipeline';
+  cluster_id: string;
+  time_window_minutes: number;
+  git_repo?: string;
+  service_hint?: string;
+  profile_id?: string;
 }

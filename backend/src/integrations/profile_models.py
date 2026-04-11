@@ -92,7 +92,8 @@ class GlobalIntegration(BaseModel):
     """A global ecosystem integration (ELK, Jira, Confluence, Remedy)."""
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     service_type: Literal["elk", "jira", "confluence", "remedy", "github",
-                           "aws", "azure", "oracle", "gcp"]
+                           "aws", "azure", "oracle", "gcp",
+                           "jenkins", "argocd"]
     name: str
     category: str = ""
     url: str = ""
@@ -100,6 +101,7 @@ class GlobalIntegration(BaseModel):
         "basic_auth", "bearer_token", "api_key", "cloud_id",
         "api_token", "oauth2", "certificate", "none",
         "iam_role", "azure_sp", "oci_config", "gcp_sa",
+        "kubeconfig",
     ] = "none"
     auth_credential_handle: Optional[str] = None
     config: dict = Field(default_factory=dict)  # Service-specific settings, e.g. {"orgs": ["org-a"]}

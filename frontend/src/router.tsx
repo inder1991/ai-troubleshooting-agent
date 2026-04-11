@@ -8,6 +8,7 @@ import WorkflowsLayout from './layouts/WorkflowsLayout';
 import SettingsLayout from './layouts/SettingsLayout';
 import NotFound from './pages/NotFound';
 import InvestigationRoute, { DossierRoute } from './pages/InvestigationRoute';
+import CICDPage from './pages/CICDPage';
 import type { CapabilityType, CapabilityFormData } from './types';
 import { startSessionV4, API_BASE_URL } from './services/api';
 import { useQuery } from '@tanstack/react-query';
@@ -254,6 +255,9 @@ export const router = createBrowserRouter([
           { path: 'integrations', element: <IntegrationsRoute /> },
         ],
       },
+
+      // Delivery (CI/CD Live Board)
+      { path: 'cicd', element: <CICDPage /> },
 
       // Audit
       { path: 'audit', element: <AuditLogView /> },

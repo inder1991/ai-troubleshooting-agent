@@ -9,6 +9,7 @@ import type { NavView } from '../components/Layout/SidebarNav';
 const NAV_VIEW_TO_PATH: Record<string, string> = {
   home: '/',
   sessions: '/investigations',
+  cicd: '/cicd',
   'how-it-works': '/how-it-works',
   // Diagnostics — form-triggering views
   'app-diagnostics': '/investigations/new?capability=troubleshoot_app',
