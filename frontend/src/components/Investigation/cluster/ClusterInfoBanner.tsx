@@ -14,7 +14,7 @@ export default function ClusterInfoBanner({ platform, platformVersion, namespace
   const showScope = scope && scope.level !== 'cluster';
 
   return (
-    <div className="bg-slate-900/60 border border-slate-700/40 rounded-lg p-3 mb-3">
+    <div className="bg-wr-bg/60 border border-wr-border-strong/40 rounded-lg p-3 mb-3">
       <div className="flex items-center gap-2 mb-2">
         <span className="material-symbols-outlined text-amber-400 text-lg">deployed_code_account</span>
         <span className="text-sm font-semibold text-slate-200">
@@ -22,8 +22,8 @@ export default function ClusterInfoBanner({ platform, platformVersion, namespace
         </span>
         <span className={`ml-auto px-2 py-0.5 text-body-xs font-mono uppercase tracking-wider rounded-full border ${
           scanMode === 'guard'
-            ? 'text-amber-400 border-amber-500/40 bg-amber-500/10'
-            : 'text-amber-400 border-amber-500/40 bg-amber-500/10'
+            ? 'text-amber-400 border-amber-500/40 bg-wr-severity-medium/10'
+            : 'text-amber-400 border-amber-500/40 bg-wr-severity-medium/10'
         }`}>
           {scanMode}
         </span>

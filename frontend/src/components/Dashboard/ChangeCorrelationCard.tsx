@@ -27,7 +27,7 @@ function riskLabel(score: number): string {
 }
 
 function riskBgClass(score: number): string {
-  if (score > 0.7) return 'bg-red-500/20 text-red-400';
+  if (score > 0.7) return 'bg-wr-severity-high/20 text-red-400';
   if (score >= 0.4) return 'bg-yellow-500/20 text-yellow-400';
   return 'bg-green-500/20 text-green-400';
 }
@@ -70,7 +70,7 @@ const ChangeCorrelationCard: React.FC<ChangeCorrelationCardProps> = ({ changes }
                 </div>
                 {change.risk_score > 0.7 && (
                   <button
-                    className="flex items-center gap-1 text-body-xs px-2 py-1 rounded border border-red-500/40 bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors cursor-pointer"
+                    className="flex items-center gap-1 text-body-xs px-2 py-1 rounded border border-red-500/40 bg-wr-severity-high/10 text-red-400 hover:bg-wr-severity-high/20 transition-colors cursor-pointer"
                     onClick={() => {}}
                     title="Rollback this change (not yet functional)"
                   >

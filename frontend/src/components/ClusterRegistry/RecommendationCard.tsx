@@ -15,8 +15,8 @@ const severityDot: Record<string, string> = {
 
 const riskBg: Record<string, string> = {
   safe: 'bg-green-500/15 text-green-400 border-green-500/30',
-  caution: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
-  destructive: 'bg-red-500/15 text-red-400 border-red-500/30',
+  caution: 'bg-amber-500/15 text-amber-400 border-wr-severity-medium/30',
+  destructive: 'bg-red-500/15 text-red-400 border-wr-severity-high/30',
 };
 
 const RecommendationCard: React.FC<RecommendationCardProps> = ({ rec }) => {
@@ -48,7 +48,7 @@ const RecommendationCard: React.FC<RecommendationCardProps> = ({ rec }) => {
             </span>
           )}
           {rec.days_until_impact > 0 && rec.days_until_impact < 30 && (
-            <span className="text-body-xs font-medium bg-red-500/15 text-red-400 border border-red-500/30 px-2 py-0.5 rounded">
+            <span className="text-body-xs font-medium bg-red-500/15 text-red-400 border border-wr-severity-high/30 px-2 py-0.5 rounded">
               {rec.days_until_impact}d
             </span>
           )}
@@ -134,7 +134,7 @@ const RecommendationCard: React.FC<RecommendationCardProps> = ({ rec }) => {
                 {rec.rollback_command && (
                   <button
                     onClick={() => copyText(rec.rollback_command, 'rollback')}
-                    className="px-2.5 py-1 text-body-xs font-medium bg-red-500/15 text-red-400 border border-red-500/30 rounded hover:bg-red-500/25 transition-colors"
+                    className="px-2.5 py-1 text-body-xs font-medium bg-red-500/15 text-red-400 border border-wr-severity-high/30 rounded hover:bg-red-500/25 transition-colors"
                   >
                     {copied === 'rollback' ? 'Copied!' : 'Rollback'}
                   </button>

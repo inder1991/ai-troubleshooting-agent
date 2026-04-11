@@ -39,7 +39,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
       return (
         <div className="flex items-center justify-center h-full min-h-[400px]" style={{ backgroundColor: '#0f2023' }}>
           <div className="max-w-md text-center p-8">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-wr-severity-high/10 border border-red-500/20 flex items-center justify-center">
               <span
                 className="material-symbols-outlined text-red-400 text-3xl"
                 style={{ fontFamily: 'Material Symbols Outlined' }}
@@ -59,7 +59,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
             <div className="flex items-center justify-center gap-3 mt-4">
               <button
                 onClick={this.handleRecover}
-                className="text-xs font-bold px-4 py-2 rounded-lg bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 transition-colors"
+                className="text-xs font-bold px-4 py-2 rounded-lg bg-wr-surface text-slate-300 border border-wr-border-strong hover:bg-wr-inset transition-colors"
               >
                 Try to Recover
               </button>

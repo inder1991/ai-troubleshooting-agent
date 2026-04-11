@@ -19,7 +19,7 @@ const DB_SECTIONS = [
 
 function severityBadge(severity: string) {
   const colors: Record<string, string> = {
-    critical: 'text-red-400 bg-red-500/10',
+    critical: 'text-red-400 bg-wr-severity-high/10',
     high: 'text-orange-400 bg-orange-500/10',
     medium: 'text-yellow-400 bg-yellow-500/10',
     low: 'text-emerald-400 bg-emerald-500/10',
@@ -42,7 +42,7 @@ const DossierSection: React.FC<{
     transition={{ delay: 0.1 + index * 0.08 }}
     className="mb-10"
   >
-    <div className="flex items-center gap-3 mb-4 border-b border-slate-800 pb-2">
+    <div className="flex items-center gap-3 mb-4 border-b border-wr-border pb-2">
       <div className="w-1 h-6 bg-violet-500 shadow-[0_0_10px_rgba(139,92,246,0.5)]" />
       <span className="material-symbols-outlined text-violet-400">
         {icon}

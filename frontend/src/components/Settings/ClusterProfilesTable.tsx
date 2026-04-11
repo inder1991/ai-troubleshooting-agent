@@ -163,7 +163,7 @@ const ClusterProfilesTable: React.FC<ClusterProfilesTableProps> = ({
                         </button>
                         <button
                           onClick={() => onDelete(profile.id)}
-                          className="p-1.5 hover:bg-red-500/20 text-[#8fc3cc] hover:text-red-400 rounded transition-colors"
+                          className="p-1.5 hover:bg-wr-severity-high/20 text-[#8fc3cc] hover:text-red-400 rounded transition-colors"
                           title="Delete"
                         >
                           <span

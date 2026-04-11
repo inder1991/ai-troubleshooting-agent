@@ -12,7 +12,7 @@ interface AISupervisorProps {
 
 // Severity colors for finding cards
 const severityStyles: Record<string, { border: string; bg: string; text: string; icon: string }> = {
-  critical: { border: 'border-red-500/40', bg: 'bg-red-500/10', text: 'text-red-400', icon: 'error' },
+  critical: { border: 'border-red-500/40', bg: 'bg-wr-severity-high/10', text: 'text-red-400', icon: 'error' },
   high: { border: 'border-orange-500/40', bg: 'bg-orange-500/10', text: 'text-orange-400', icon: 'warning' },
   medium: { border: 'border-yellow-500/40', bg: 'bg-yellow-500/10', text: 'text-yellow-400', icon: 'info' },
   low: { border: 'border-blue-500/40', bg: 'bg-blue-500/10', text: 'text-blue-400', icon: 'help' },
@@ -140,7 +140,7 @@ const AISupervisor: React.FC<AISupervisorProps> = ({
   const toolCallCount = events.filter((e) => e.event_type === 'tool_call').length;
 
   return (
-    <div className="flex flex-col h-full bg-slate-900/20 border-r border-[#e09f3e]/10">
+    <div className="flex flex-col h-full bg-wr-bg/20 border-r border-[#e09f3e]/10">
       {/* Header */}
       <div className="p-4 border-b border-primary/10 flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -153,7 +153,7 @@ const AISupervisor: React.FC<AISupervisorProps> = ({
             className={`text-body-xs px-2 py-0.5 rounded border font-mono transition-colors ${
               showToolCalls
                 ? 'bg-purple-500/20 text-purple-400 border-purple-500/30'
-                : 'bg-slate-800/50 text-slate-400 border-slate-700'
+                : 'bg-wr-surface/50 text-slate-400 border-wr-border-strong'
             }`}
           >
             {showToolCalls ? 'TOOLS ON' : 'TOOLS OFF'}
@@ -201,7 +201,7 @@ const AISupervisor: React.FC<AISupervisorProps> = ({
       </div>
 
       {/* Chat Input */}
-      <div className="p-4 border-t border-primary/10 bg-slate-900/40">
+      <div className="p-4 border-t border-primary/10 bg-wr-bg/40">
         <form onSubmit={handleSend} className="relative">
           <textarea
             ref={inputRef}
@@ -215,7 +215,7 @@ const AISupervisor: React.FC<AISupervisorProps> = ({
             }}
             placeholder="Ask supervisor for data analysis..."
             disabled={sending}
-            className="w-full bg-slate-800/50 border border-slate-700 rounded-lg py-2 px-3 text-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none resize-none h-20 placeholder:text-slate-500 disabled:opacity-50 text-white custom-scrollbar"
+            className="w-full bg-wr-surface/50 border border-wr-border-strong rounded-lg py-2 px-3 text-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none resize-none h-20 placeholder:text-slate-500 disabled:opacity-50 text-white custom-scrollbar"
           />
           <button
             type="submit"
@@ -414,7 +414,7 @@ const AlertCard: React.FC<{ event: TaskEvent; variant: 'warning' | 'error' }> = 
   const isError = variant === 'error';
   return (
     <div className={`border rounded-lg px-3 py-2 ${
-      isError ? 'border-red-500/30 bg-red-500/10' : 'border-amber-500/30 bg-amber-500/10'
+      isError ? 'border-wr-severity-high/30 bg-wr-severity-high/10' : 'border-wr-severity-medium/30 bg-wr-severity-medium/10'
     }`}>
       <div className="flex items-center gap-2">
         <span
@@ -456,11 +456,11 @@ const ToolCallGroupCard: React.FC<{ group: ToolCallGroup }> = ({ group }) => {
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className="border border-slate-800/50 rounded-lg overflow-hidden">
+    <div className="border border-wr-border/50 rounded-lg overflow-hidden">
       <button
         onClick={() => setExpanded(!expanded)}
         aria-expanded={expanded}
-        className="w-full flex items-center gap-2 px-3 py-1.5 text-left hover:bg-slate-800/30 transition-colors"
+        className="w-full flex items-center gap-2 px-3 py-1.5 text-left hover:bg-wr-surface/30 transition-colors"
       >
         <span
           className={`material-symbols-outlined text-xs text-purple-400 transition-transform ${expanded ? 'rotate-90' : ''}`}
@@ -476,7 +476,7 @@ const ToolCallGroupCard: React.FC<{ group: ToolCallGroup }> = ({ group }) => {
         </span>
       </button>
       {expanded && (
-        <div className="px-3 py-2 border-t border-slate-800/30 space-y-1 bg-slate-900/20">
+        <div className="px-3 py-2 border-t border-wr-border/30 space-y-1 bg-wr-bg/20">
           {group.events.map((ev, i) => (
             <div key={i} className="flex items-start gap-2 font-mono text-body-xs">
               <span className="text-slate-500 shrink-0 w-[60px]">
@@ -500,7 +500,7 @@ const AttestationRequiredCard: React.FC<{ event: TaskEvent }> = ({ event }) => {
   const proposedAction = String(event.details?.proposed_action || 'Proceed to remediation');
 
   return (
-    <div className="border-2 border-amber-500/40 bg-amber-500/10 rounded-lg overflow-hidden">
+    <div className="border-2 border-amber-500/40 bg-wr-severity-medium/10 rounded-lg overflow-hidden">
       <button
         onClick={() => setExpanded(!expanded)}
         className="w-full px-3 py-2.5 text-left flex items-center gap-2"
@@ -558,7 +558,7 @@ const ChatBubble: React.FC<{ message: ChatMessageType }> = ({ message }) => {
   if (message.role === 'user') {
     return (
       <div className="flex justify-end">
-        <div className="max-w-[85%] bg-slate-800/60 border border-slate-700 rounded-xl px-3 py-2">
+        <div className="max-w-[85%] bg-wr-surface/60 border border-wr-border-strong rounded-xl px-3 py-2">
           <p className="text-sm text-slate-200 whitespace-pre-wrap">{message.content}</p>
           <p className="text-body-xs text-slate-500 mt-1 text-right">
             {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -590,7 +590,7 @@ const ChatBubble: React.FC<{ message: ChatMessageType }> = ({ message }) => {
 // ─── Patient Zero Card ────────────────────────────────────────────────────
 
 const PatientZeroCard: React.FC<{ patientZero: PatientZero }> = ({ patientZero }) => (
-  <div className="border-2 border-red-500/30 bg-red-500/5 rounded-lg p-3">
+  <div className="border-2 border-wr-severity-high/30 bg-red-500/5 rounded-lg p-3">
     <div className="flex items-center gap-2 mb-2">
       <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
       <span className="text-body-xs font-bold uppercase tracking-wider text-red-400">Patient Zero</span>
@@ -639,8 +639,8 @@ const InferredDependenciesCard: React.FC<{ deps: InferredDependency[]; targetSer
   const normalizedTarget = targetService?.toLowerCase() ?? '';
   const isTarget = (name: string) => normalizedTarget !== '' && name.toLowerCase() === normalizedTarget;
   return (
-    <div className="bg-slate-900/40 border border-slate-800 rounded-lg overflow-hidden">
-      <div className="px-3 py-2 border-b border-slate-800 flex items-center gap-2 bg-slate-900/60">
+    <div className="bg-wr-bg/40 border border-wr-border rounded-lg overflow-hidden">
+      <div className="px-3 py-2 border-b border-wr-border flex items-center gap-2 bg-wr-bg/60">
         <span className="material-symbols-outlined text-violet-400 text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>hub</span>
         <span className="text-body-xs font-bold uppercase tracking-wider">Inferred Dependencies</span>
       </div>

@@ -30,7 +30,7 @@ const AssemblyWorkbench: React.FC<AssemblyWorkbenchProps> = ({
   if (pinnedItems.length === 0) return null;
 
   return (
-    <div className="sticky bottom-4 mx-6 z-50 bg-slate-950/80 backdrop-blur-2xl border border-amber-500/30 rounded-2xl shadow-[0_-20px_50px_rgba(0,0,0,0.5)] overflow-hidden">
+    <div className="sticky bottom-4 mx-6 z-50 bg-slate-950/80 backdrop-blur-2xl border border-wr-severity-medium/30 rounded-2xl shadow-[0_-20px_50px_rgba(0,0,0,0.5)] overflow-hidden">
       {/* Status bar */}
       <div className="px-4 py-2 bg-amber-500/5 border-b border-amber-500/20 flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -63,7 +63,7 @@ const AssemblyWorkbench: React.FC<AssemblyWorkbenchProps> = ({
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.8 }}
-                className="relative w-32 shrink-0 bg-slate-900/60 border border-slate-700/50 rounded-lg p-2.5 group/pin"
+                className="relative w-32 shrink-0 bg-wr-bg/60 border border-wr-border-strong/50 rounded-lg p-2.5 group/pin"
               >
                 <div className="flex items-center gap-1.5 mb-1.5">
                   <div
@@ -80,7 +80,7 @@ const AssemblyWorkbench: React.FC<AssemblyWorkbenchProps> = ({
                 {/* Unpin button */}
                 <button
                   onClick={() => onUnpin(item.id)}
-                  className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center opacity-50 group-hover/pin:opacity-100 transition-opacity hover:bg-red-500/20 hover:border-red-500/50"
+                  className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-wr-surface border border-wr-border-strong flex items-center justify-center opacity-50 group-hover/pin:opacity-100 transition-opacity hover:bg-wr-severity-high/20 hover:border-red-500/50"
                   aria-label="Remove from dock"
                 >
                   <X className="w-2.5 h-2.5 text-slate-400" />
@@ -92,13 +92,13 @@ const AssemblyWorkbench: React.FC<AssemblyWorkbenchProps> = ({
       </div>
 
       {/* Action footer */}
-      <div className="px-4 py-2 border-t border-slate-800/50 flex justify-end">
+      <div className="px-4 py-2 border-t border-wr-border/50 flex justify-end">
         <button
           disabled={!fixReady}
           className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-body-xs font-bold uppercase tracking-wider transition-all ${
             fixReady
               ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30'
-              : 'bg-slate-800/50 text-slate-500 border border-slate-700/50 cursor-not-allowed'
+              : 'bg-wr-surface/50 text-slate-500 border border-wr-border-strong/50 cursor-not-allowed'
           }`}
         >
           <FileCheck className="w-3 h-3" />

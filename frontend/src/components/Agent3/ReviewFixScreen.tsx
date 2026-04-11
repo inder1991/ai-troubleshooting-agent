@@ -69,7 +69,7 @@ export const ReviewFixScreen: React.FC<ReviewFixProps> = ({
       </div>
 
       {/* Branch Info Card */}
-      <div className="border border-slate-800 rounded bg-slate-950/40 p-4 space-y-3">
+      <div className="border border-wr-border rounded bg-slate-950/40 p-4 space-y-3">
         <div className="flex items-center gap-2">
           <GitBranch size={12} className="text-slate-400" />
           <span className="text-body-xs text-slate-400 uppercase font-bold">Branch Information</span>
@@ -88,7 +88,7 @@ export const ReviewFixScreen: React.FC<ReviewFixProps> = ({
       </div>
 
       {/* Validation Status Card */}
-      <div className="border border-slate-800 rounded bg-slate-950/40 p-4 space-y-3">
+      <div className="border border-wr-border rounded bg-slate-950/40 p-4 space-y-3">
         <div className="flex items-center gap-2">
           <CheckCircle size={12} className="text-slate-400" />
           <span className="text-body-xs text-slate-400 uppercase font-bold">Validation Results</span>
@@ -116,7 +116,7 @@ export const ReviewFixScreen: React.FC<ReviewFixProps> = ({
             </span>
           </div>
           
-          <div className="border-t border-slate-800 pt-2 mt-2">
+          <div className="border-t border-wr-border pt-2 mt-2">
             <div className="flex justify-between items-center">
               <span className="text-body-xs text-slate-500">Overall Confidence:</span>
               <span className={`text-body-xs font-bold ${getConfidenceColor(95)}`}>
@@ -128,7 +128,7 @@ export const ReviewFixScreen: React.FC<ReviewFixProps> = ({
       </div>
 
       {/* Code Diff Preview */}
-      <div className="border border-slate-800 rounded bg-slate-950/40 p-4 space-y-3">
+      <div className="border border-wr-border rounded bg-slate-950/40 p-4 space-y-3">
         <div className="flex items-center gap-2">
           <Code size={12} className="text-slate-400" />
           <span className="text-body-xs text-slate-400 uppercase font-bold">Changes Preview</span>
@@ -142,11 +142,11 @@ export const ReviewFixScreen: React.FC<ReviewFixProps> = ({
       </div>
 
       {/* Action Buttons */}
-      <div className="flex gap-3 pt-4 border-t border-slate-800">
+      <div className="flex gap-3 pt-4 border-t border-wr-border">
         <button
           onClick={onCreatePR}
           disabled={isCreatingPR}
-          className="flex-1 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-800 disabled:cursor-not-allowed py-3 rounded text-body-xs font-bold uppercase tracking-widest text-white transition-all shadow-lg hover:shadow-emerald-500/50 flex items-center justify-center gap-2"
+          className="flex-1 bg-emerald-600 hover:bg-emerald-700 disabled:bg-wr-surface disabled:cursor-not-allowed py-3 rounded text-body-xs font-bold uppercase tracking-widest text-white transition-all shadow-lg hover:shadow-emerald-500/50 flex items-center justify-center gap-2"
         >
           {isCreatingPR ? (
             <>
@@ -164,7 +164,7 @@ export const ReviewFixScreen: React.FC<ReviewFixProps> = ({
         <button
           onClick={onReject}
           disabled={isCreatingPR}
-          className="flex-1 bg-slate-800 hover:bg-slate-700 disabled:cursor-not-allowed py-3 rounded text-body-xs font-bold uppercase tracking-widest text-slate-400 transition-all border border-slate-700"
+          className="flex-1 bg-wr-surface hover:bg-wr-inset disabled:cursor-not-allowed py-3 rounded text-body-xs font-bold uppercase tracking-widest text-slate-400 transition-all border border-wr-border-strong"
         >
           Reject Fix
         </button>

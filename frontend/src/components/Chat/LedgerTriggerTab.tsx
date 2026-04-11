@@ -44,7 +44,7 @@ const LedgerTriggerTab: React.FC = () => {
           className={`fixed right-0 top-1/2 -translate-y-1/2 z-[60] flex flex-col items-center gap-2 py-3 px-1.5 rounded-l-lg border-r-0 cursor-pointer ${
             isWaiting
               ? 'bg-amber-950/30 border border-r-0 border-amber-500/50 shadow-[inset_-2px_0_12px_rgba(245,158,11,0.2)]'
-              : 'bg-slate-900/80 border border-r-0 border-cyan-500/30'
+              : 'bg-wr-bg/80 border border-r-0 border-cyan-500/30'
           }`}
           style={{
             boxShadow: isWaiting

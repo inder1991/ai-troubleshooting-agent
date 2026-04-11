@@ -53,7 +53,7 @@ const CausalTreeCard: React.FC<CausalTreeCardProps> = ({ tree, sessionId, onTria
     : 0;
 
   return (
-    <div className={`rounded-lg border border-slate-800/50 border-l-[3px] ${SEVERITY_BORDER[tree.severity]} bg-slate-900/30`}>
+    <div className={`rounded-lg border border-wr-border/50 border-l-[3px] ${SEVERITY_BORDER[tree.severity]} bg-wr-bg/30`}>
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 cursor-pointer" onClick={() => setExpanded(!expanded)}>
         <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -89,7 +89,7 @@ const CausalTreeCard: React.FC<CausalTreeCardProps> = ({ tree, sessionId, onTria
             <div className="space-y-1">
               <span className="text-body-xs font-bold text-slate-400 uppercase tracking-wider">Cascading Symptoms</span>
               {tree.cascading_symptoms.map((s, i) => (
-                <div key={i} className="flex items-start gap-2 pl-3 border-l border-slate-700/40">
+                <div key={i} className="flex items-start gap-2 pl-3 border-l border-wr-border-strong/40">
                   <CausalRoleBadge role="cascading_failure" />
                   <span className="text-body-xs text-slate-400">
                     {parseResourceEntities(s.summary, handleEntityClick)}

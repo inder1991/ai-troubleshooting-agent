@@ -16,10 +16,10 @@ interface EndpointSectionProps {
 const statusBadge: Record<EndpointStatus, { text: string; icon: string; classes: string }> = {
   unknown: { text: 'Not Tested', icon: 'help_outline', classes: 'text-gray-500 bg-gray-500/10 border-gray-500/20' },
   healthy: { text: 'Verified', icon: 'check_circle', classes: 'text-green-500 bg-green-500/10 border-green-500/20' },
-  testing: { text: 'Testing...', icon: 'pending', classes: 'text-amber-500 bg-amber-500/10 border-amber-500/20' },
-  degraded: { text: 'Degraded', icon: 'warning', classes: 'text-amber-500 bg-amber-500/10 border-amber-500/20' },
-  unreachable: { text: 'Unreachable', icon: 'cloud_off', classes: 'text-red-500 bg-red-500/10 border-red-500/20' },
-  connection_failed: { text: 'Connection Failed', icon: 'error', classes: 'text-red-500 bg-red-500/10 border-red-500/20' },
+  testing: { text: 'Testing...', icon: 'pending', classes: 'text-amber-500 bg-wr-severity-medium/10 border-amber-500/20' },
+  degraded: { text: 'Degraded', icon: 'warning', classes: 'text-amber-500 bg-wr-severity-medium/10 border-amber-500/20' },
+  unreachable: { text: 'Unreachable', icon: 'cloud_off', classes: 'text-red-500 bg-wr-severity-high/10 border-red-500/20' },
+  connection_failed: { text: 'Connection Failed', icon: 'error', classes: 'text-red-500 bg-wr-severity-high/10 border-red-500/20' },
 };
 
 const EndpointSection: React.FC<EndpointSectionProps> = ({
@@ -178,7 +178,7 @@ const EndpointSection: React.FC<EndpointSectionProps> = ({
         <div className={`mt-3 px-3 py-1.5 rounded-lg text-body-xs font-medium ${
           testResult.reachable
             ? 'bg-green-500/10 border border-green-500/20 text-green-400'
-            : 'bg-red-500/10 border border-red-500/20 text-red-400'
+            : 'bg-wr-severity-high/10 border border-red-500/20 text-red-400'
         }`}>
           {testResult.reachable
             ? `Reachable - ${testResult.latency_ms}ms latency`

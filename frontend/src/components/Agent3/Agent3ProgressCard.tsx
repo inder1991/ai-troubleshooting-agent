@@ -46,12 +46,12 @@ export const Agent3ProgressCard: React.FC<Agent3ProgressProps> = ({
       case 'error':
         return <AlertCircle size={12} className="text-red-400" />;
       default:
-        return <div className="w-3 h-3 rounded-full border-2 border-slate-700" />;
+        return <div className="w-3 h-3 rounded-full border-2 border-wr-border-strong" />;
     }
   };
 
   return (
-    <div className="border border-slate-800 rounded bg-slate-950/40 p-4 space-y-4">
+    <div className="border border-wr-border rounded bg-slate-950/40 p-4 space-y-4">
       {/* Header */}
       <div className="flex items-center gap-2">
         <Loader2 size={14} className="text-purple-400 animate-spin" />
@@ -103,14 +103,14 @@ export const Agent3ProgressCard: React.FC<Agent3ProgressProps> = ({
       </div>
 
       {/* Progress Bar */}
-      <div className="pt-3 border-t border-slate-800">
+      <div className="pt-3 border-t border-wr-border">
         <div className="flex justify-between items-center mb-2">
           <span className="text-chrome text-slate-500 uppercase">Progress</span>
           <span className="text-chrome text-slate-400">
             {stages.filter(s => s.status === 'complete').length} / {Object.keys(STAGE_LABELS).length}
           </span>
         </div>
-        <div className="h-1 bg-slate-900 rounded-full overflow-hidden">
+        <div className="h-1 bg-wr-bg rounded-full overflow-hidden">
           <div
             className="h-full bg-gradient-to-r from-purple-600 to-blue-600 transition-all duration-500"
             style={{

@@ -56,7 +56,7 @@ const ContextScope: React.FC<ContextScopeProps> = ({ session, events = [] }) => 
   const agentStatuses = buildAgentStatuses(status, events);
 
   return (
-    <div className="flex flex-col h-full bg-slate-900/20 border-l border-[#e09f3e]/10">
+    <div className="flex flex-col h-full bg-wr-bg/20 border-l border-[#e09f3e]/10">
       {/* Header */}
       <div className="p-4 border-b border-[#e09f3e]/10 flex items-center gap-2">
         <span className="material-symbols-outlined text-slate-400 text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>info</span>
@@ -89,7 +89,7 @@ const ContextScope: React.FC<ContextScopeProps> = ({ session, events = [] }) => 
         {/* Agent Status */}
         <section>
           <h3 className="text-body-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Agent Status</h3>
-          <div className="bg-slate-800/30 rounded-lg p-3 border border-slate-800 space-y-3">
+          <div className="bg-wr-surface/30 rounded-lg p-3 border border-wr-border space-y-3">
             {agentStatuses.map((agent, i) => (
               <div key={i} className="flex items-center gap-3">
                 <div className={`w-1.5 h-1.5 rounded-full ${
@@ -114,7 +114,7 @@ const ContextScope: React.FC<ContextScopeProps> = ({ session, events = [] }) => 
               </div>
             ))}
             {totalTokens > 0 && (
-              <div className="border-t border-slate-700 pt-2 flex justify-between">
+              <div className="border-t border-wr-border-strong pt-2 flex justify-between">
                 <span className="text-body-xs text-slate-400">Total tokens</span>
                 <span className="text-body-xs font-mono text-slate-400">{totalTokens.toLocaleString()}</span>
               </div>
@@ -129,16 +129,16 @@ const ContextScope: React.FC<ContextScopeProps> = ({ session, events = [] }) => 
         <section>
           <h3 className="text-body-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Labels</h3>
           <div className="flex flex-wrap gap-2">
-            <span className="bg-slate-800 px-2 py-1 rounded text-body-xs text-slate-400 border border-slate-700">
+            <span className="bg-wr-surface px-2 py-1 rounded text-body-xs text-slate-400 border border-wr-border-strong">
               svc:{session.service_name}
             </span>
-            <span className="bg-slate-800 px-2 py-1 rounded text-body-xs text-slate-400 border border-slate-700">
+            <span className="bg-wr-surface px-2 py-1 rounded text-body-xs text-slate-400 border border-wr-border-strong">
               ns:{namespace}
             </span>
-            <span className="bg-slate-800 px-2 py-1 rounded text-body-xs text-slate-400 border border-slate-700">
+            <span className="bg-wr-surface px-2 py-1 rounded text-body-xs text-slate-400 border border-wr-border-strong">
               phase:{phase}
             </span>
-            <span className="bg-slate-800 px-2 py-1 rounded text-body-xs text-slate-400 border border-slate-700">
+            <span className="bg-wr-surface px-2 py-1 rounded text-body-xs text-slate-400 border border-wr-border-strong">
               confidence:{confidencePercent}%
             </span>
           </div>
@@ -147,7 +147,7 @@ const ContextScope: React.FC<ContextScopeProps> = ({ session, events = [] }) => 
 
       {/* Footer action */}
       <div className="p-4 border-t border-[#e09f3e]/10">
-        <button className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-xs font-bold transition-colors border border-slate-700 flex items-center justify-center gap-2">
+        <button className="w-full py-2 bg-wr-surface hover:bg-wr-inset text-slate-300 rounded text-xs font-bold transition-colors border border-wr-border-strong flex items-center justify-center gap-2">
           <span className="material-symbols-outlined text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>history</span>
           View Previous Incidents
         </button>
@@ -165,7 +165,7 @@ const InfoRow: React.FC<{
   bold?: boolean;
   title?: string;
 }> = ({ label, value, valueColor = 'text-slate-200', bold, title }) => (
-  <div className="flex justify-between items-center border-b border-slate-800/50 pb-2">
+  <div className="flex justify-between items-center border-b border-wr-border/50 pb-2">
     <span className="text-body-xs text-slate-400">{label}</span>
     <span className={`text-body-xs font-mono ${valueColor} ${bold ? 'font-bold' : ''}`} title={title}>
       {value}
@@ -249,11 +249,11 @@ const KnownPlaybooksSection: React.FC<{ incidents: PastIncidentMatch[] }> = ({ i
   return (
     <section>
       <h3 className="text-body-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Known Playbooks</h3>
-      <div className="bg-slate-800/30 rounded-lg border border-slate-800">
+      <div className="bg-wr-surface/30 rounded-lg border border-wr-border">
         <button
           onClick={() => setExpanded(!expanded)}
           aria-expanded={expanded}
-          className="w-full px-3 py-2.5 flex items-center gap-2 text-left hover:bg-slate-800/50 transition-colors rounded-lg"
+          className="w-full px-3 py-2.5 flex items-center gap-2 text-left hover:bg-wr-surface/50 transition-colors rounded-lg"
         >
           <span
             className="material-symbols-outlined text-xs text-slate-400 transition-transform"
@@ -293,11 +293,11 @@ const PlaybookRow: React.FC<{ incident: PastIncidentMatch }> = ({ incident }) =>
   const score = Math.round(incident.similarity_score * 100);
 
   return (
-    <div className="bg-slate-900/50 rounded border border-slate-700/50">
+    <div className="bg-wr-bg/50 rounded border border-wr-border-strong/50">
       <button
         onClick={() => setExpanded(!expanded)}
         aria-expanded={expanded}
-        className="w-full px-2.5 py-2 flex items-center gap-2 text-left hover:bg-slate-800/30 transition-colors rounded"
+        className="w-full px-2.5 py-2 flex items-center gap-2 text-left hover:bg-wr-surface/30 transition-colors rounded"
       >
         <span
           className="material-symbols-outlined text-xs text-slate-400 transition-transform"
@@ -314,7 +314,7 @@ const PlaybookRow: React.FC<{ incident: PastIncidentMatch }> = ({ incident }) =>
       </button>
 
       {expanded && (
-        <div className="px-2.5 pb-2.5 space-y-2 border-t border-slate-700/30 pt-2">
+        <div className="px-2.5 pb-2.5 space-y-2 border-t border-wr-border-strong/30 pt-2">
           {incident.resolution_steps.length > 0 && (
             <div>
               <span className="text-body-xs text-slate-400 uppercase tracking-wide">Resolution</span>
@@ -331,7 +331,7 @@ const PlaybookRow: React.FC<{ incident: PastIncidentMatch }> = ({ incident }) =>
           {incident.affected_services.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {incident.affected_services.map((svc) => (
-                <span key={svc} className="text-body-xs bg-slate-800 px-1.5 py-0.5 rounded text-slate-400 border border-slate-700">
+                <span key={svc} className="text-body-xs bg-wr-surface px-1.5 py-0.5 rounded text-slate-400 border border-wr-border-strong">
                   {svc}
                 </span>
               ))}

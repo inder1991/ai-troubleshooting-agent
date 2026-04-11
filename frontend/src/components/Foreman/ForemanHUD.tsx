@@ -123,7 +123,7 @@ const ForemanHUD: React.FC<ForemanHUDProps> = ({
         </span>
       </button>
 
-      <div className="h-6 w-px bg-slate-700" />
+      <div className="h-6 w-px bg-wr-inset" />
 
       {/* Investigation ID */}
       <div className="flex flex-col shrink-0">
@@ -131,14 +131,14 @@ const ForemanHUD: React.FC<ForemanHUDProps> = ({
         <span className="text-body-xs font-mono text-amber-400">{sessionId.substring(0, 8).toUpperCase()}</span>
       </div>
 
-      <div className="h-6 w-px bg-slate-700" />
+      <div className="h-6 w-px bg-wr-inset" />
 
       {/* Avatar Cell */}
       <div className="relative w-12 h-12 shrink-0">
         <motion.div
           variants={avatarVariants}
           animate={foremanState}
-          className="w-12 h-12 rounded-xl bg-slate-800/80 border border-amber-500/30 flex items-center justify-center overflow-hidden relative"
+          className="w-12 h-12 rounded-xl bg-wr-surface/80 border border-wr-severity-medium/30 flex items-center justify-center overflow-hidden relative"
         >
           {/* Blueprint SVG Foreman */}
           <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -171,7 +171,7 @@ const ForemanHUD: React.FC<ForemanHUDProps> = ({
         </AnimatePresence>
         <div className="flex items-center gap-3">
           <span className="text-body-xs text-amber-400 font-bold">{confidence}%</span>
-          <div className="flex-1 h-1 bg-slate-800 rounded-full overflow-hidden">
+          <div className="flex-1 h-1 bg-wr-surface rounded-full overflow-hidden">
             <motion.div
               className="h-full bg-amber-500 rounded-full"
               animate={{ width: `${confidence}%` }}
@@ -218,8 +218,8 @@ const ForemanHUD: React.FC<ForemanHUDProps> = ({
           onClick={() => setAutopilot((p) => !p)}
           className={`text-body-xs font-bold uppercase tracking-wider px-2 py-1 rounded-md border transition-colors ${
             autopilot
-              ? 'bg-amber-500/15 border-amber-500/30 text-amber-400'
-              : 'bg-slate-800 border-slate-700 text-slate-400'
+              ? 'bg-amber-500/15 border-wr-severity-medium/30 text-amber-400'
+              : 'bg-wr-surface border-wr-border-strong text-slate-400'
           }`}
         >
           {autopilot ? 'Auto' : 'Manual'}
@@ -233,11 +233,11 @@ const ForemanHUD: React.FC<ForemanHUDProps> = ({
           </span>
         </div>
 
-        <div className="h-6 w-px bg-slate-700" />
+        <div className="h-6 w-px bg-wr-inset" />
 
         {/* Phase pill */}
         {phase && (
-          <div className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-800/80 border border-slate-700 rounded-full">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 bg-wr-surface/80 border border-wr-border-strong rounded-full">
             <span className={`w-1.5 h-1.5 rounded-full ${
               phase === 'complete' || phase === 'diagnosis_complete' ? 'bg-emerald-400' :
               phase === 'error' ? 'bg-red-500' : 'bg-amber-400 animate-pulse'

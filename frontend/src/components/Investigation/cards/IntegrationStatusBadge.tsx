@@ -27,7 +27,7 @@ const IntegrationStatusBadge: React.FC<IntegrationStatusBadgeProps> = ({ integra
 
   if (integration.configured && integration.status === 'conn_error') {
     return (
-      <span className="inline-flex items-center gap-1 text-body-xs px-1.5 py-0.5 rounded-full bg-red-500/10 text-red-400 border border-red-500/20">
+      <span className="inline-flex items-center gap-1 text-body-xs px-1.5 py-0.5 rounded-full bg-wr-severity-high/10 text-red-400 border border-red-500/20">
         <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
         Error
       </span>

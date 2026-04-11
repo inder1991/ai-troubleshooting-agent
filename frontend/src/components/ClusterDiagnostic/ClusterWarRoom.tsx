@@ -344,9 +344,9 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
 
       {/* Error banner */}
       {error && (
-        <div className="mx-6 mt-2 p-3 rounded-lg border border-red-500/30 bg-red-500/10 flex items-center justify-between">
+        <div className="mx-6 mt-2 p-3 rounded-lg border border-wr-severity-high/30 bg-wr-severity-high/10 flex items-center justify-between">
           <span className="text-sm text-red-400">{error}</span>
-          <button onClick={fetchFindings} className="text-xs text-red-300 hover:text-white px-3 py-1 rounded border border-red-500/30 hover:bg-red-500/20 transition-colors">
+          <button onClick={fetchFindings} className="text-xs text-red-300 hover:text-white px-3 py-1 rounded border border-wr-severity-high/30 hover:bg-wr-severity-high/20 transition-colors">
             Retry
           </button>
         </div>
@@ -354,7 +354,7 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
 
       {/* Truncation warning banner */}
       {truncationWarnings.length > 0 && (
-        <div className="mx-6 mt-2 px-3 py-2 rounded border border-amber-500/30 bg-amber-500/5 flex items-center gap-2">
+        <div className="mx-6 mt-2 px-3 py-2 rounded border border-wr-severity-medium/30 bg-amber-500/5 flex items-center gap-2">
           <span className="material-symbols-outlined text-amber-500 text-[16px]">warning</span>
           <span className="text-xs text-amber-400">
             Analysis may be incomplete: {truncationWarnings.join('. ')}
@@ -364,7 +364,7 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
 
       {/* LLM budget warning banner */}
       {budgetPct !== null && budgetPct > 80 && (
-        <div className="mx-6 mt-2 px-3 py-2 rounded border border-amber-500/30 bg-amber-500/10 flex items-center gap-2">
+        <div className="mx-6 mt-2 px-3 py-2 rounded border border-wr-severity-medium/30 bg-wr-severity-medium/10 flex items-center gap-2">
           <span className="material-symbols-outlined text-amber-500 text-[16px]">warning</span>
           <span className="text-xs text-amber-400">
             LLM budget {budgetPct}% consumed — remaining agents using heuristic analysis

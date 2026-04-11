@@ -51,7 +51,7 @@ const SlashCommandMenu: React.FC<SlashCommandMenuProps> = ({
   return (
     <div
       ref={menuRef}
-      className="absolute bottom-full left-0 right-0 z-[70] mb-1 max-h-[200px] overflow-y-auto rounded-lg border border-slate-700/50 bg-slate-900/95 backdrop-blur-lg shadow-xl"
+      className="absolute bottom-full left-0 right-0 z-[70] mb-1 max-h-[200px] overflow-y-auto rounded-lg border border-wr-border-strong/50 bg-wr-bg/95 backdrop-blur-lg shadow-xl"
     >
       {filtered.map((cmd, i) => (
         <button
@@ -59,7 +59,7 @@ const SlashCommandMenu: React.FC<SlashCommandMenuProps> = ({
           className={`flex items-center gap-3 w-full px-3 py-2 text-left text-sm transition-colors ${
             i === selectedIndex
               ? 'bg-cyan-500/15 text-cyan-300'
-              : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
+              : 'text-slate-400 hover:bg-wr-surface/50 hover:text-slate-200'
           }`}
           onClick={() => onSelect(cmd.cmd)}
           onMouseDown={(e) => e.preventDefault()}

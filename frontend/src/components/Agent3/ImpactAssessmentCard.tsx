@@ -33,7 +33,7 @@ export const ImpactAssessmentCard: React.FC<ImpactAssessmentProps> = ({ data }) 
   };
 
   return (
-    <div className="border border-slate-800 rounded bg-slate-950/40 p-4 space-y-4">
+    <div className="border border-wr-border rounded bg-slate-950/40 p-4 space-y-4">
       {/* Header */}
       <div className="flex items-center gap-2">
         <TrendingUp size={14} className="text-purple-400" />
@@ -126,7 +126,7 @@ export const ImpactAssessmentCard: React.FC<ImpactAssessmentProps> = ({ data }) 
       </div>
 
       {/* Code Change Stats */}
-      <div className="pt-3 border-t border-slate-800">
+      <div className="pt-3 border-t border-wr-border">
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-slate-950 border border-slate-900 rounded p-3 text-center">
             <div className="text-chrome text-slate-500 uppercase mb-1">Diff Size</div>

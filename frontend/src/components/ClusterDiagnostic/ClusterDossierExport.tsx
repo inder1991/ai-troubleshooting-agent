@@ -62,7 +62,7 @@ const ClusterDossierExport: React.FC<ClusterDossierExportProps> = ({ sessionId, 
       <button
         onClick={() => exportDossier('json')}
         disabled={exporting || platformHealth === 'PENDING'}
-        className="flex items-center gap-1.5 px-2 py-1.5 text-xs rounded border border-slate-600/30 text-slate-400 hover:bg-slate-600/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        className="flex items-center gap-1.5 px-2 py-1.5 text-xs rounded border border-wr-border-strong/30 text-slate-400 hover:bg-slate-600/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         title="Export as JSON"
       >
         <span className="material-symbols-outlined text-[14px]">data_object</span>

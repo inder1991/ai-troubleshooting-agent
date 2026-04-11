@@ -142,7 +142,7 @@ const DBConnections: React.FC = () => {
       ) : (
         <div className="space-y-2">
           {profiles.map((p) => (
-            <div key={p.id} className="flex items-center justify-between px-4 py-3 rounded-lg border border-slate-700/50 bg-[#0d2328] hover:border-slate-600/50 transition-colors">
+            <div key={p.id} className="flex items-center justify-between px-4 py-3 rounded-lg border border-wr-border-strong/50 bg-[#0d2328] hover:border-wr-border-strong/50 transition-colors">
               <div className="flex items-center gap-3">
                 <span className="material-symbols-outlined text-amber-400">storage</span>
                 <div>
@@ -156,7 +156,7 @@ const DBConnections: React.FC = () => {
                   <span className={`text-xs px-2 py-0.5 rounded ${
                     testResults[p.id].status === 'healthy'
                       ? 'bg-emerald-500/20 text-emerald-400'
-                      : 'bg-red-500/20 text-red-400'
+                      : 'bg-wr-severity-high/20 text-red-400'
                   }`}>
                     {testResults[p.id].status === 'healthy'
                       ? `OK ${testResults[p.id].latency_ms}ms`
@@ -196,19 +196,19 @@ const DBConnections: React.FC = () => {
       {/* Create/Edit modal */}
       {showForm && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => setShowForm(false)}>
-          <div className="bg-[#0d2328] border border-slate-700/50 rounded-xl w-full max-w-md p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-[#0d2328] border border-wr-border-strong/50 rounded-xl w-full max-w-md p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-base font-semibold text-slate-100">
               {editingId ? 'Edit Connection' : 'New Connection'}
             </h3>
 
-            {error && <p className="text-xs text-red-400 bg-red-500/10 rounded px-2 py-1">{error}</p>}
+            {error && <p className="text-xs text-red-400 bg-wr-severity-high/10 rounded px-2 py-1">{error}</p>}
 
             <div className="space-y-3">
               <div>
                 <label className="block text-xs text-slate-400 mb-1">Name</label>
                 <input
                   value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-amber-500 outline-none"
+                  className="w-full px-3 py-2 rounded-lg bg-wr-surface border border-wr-border-strong text-sm text-slate-100 focus:border-amber-500 outline-none"
                   placeholder={form.engine === 'mongodb' ? 'My MongoDB' : 'My PostgreSQL'}
                 />
               </div>
@@ -221,7 +221,7 @@ const DBConnections: React.FC = () => {
                     setForm({ ...form, engine, port, connection_uri: '' });
                     setShowAdvanced(engine !== 'mongodb');
                   }}
-                  className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-amber-500 outline-none"
+                  className="w-full px-3 py-2 rounded-lg bg-wr-surface border border-wr-border-strong text-sm text-slate-100 focus:border-amber-500 outline-none"
                 >
                   <option value="postgresql">PostgreSQL</option>
                   <option value="mongodb">MongoDB</option>
@@ -236,7 +236,7 @@ const DBConnections: React.FC = () => {
                   <input
                     value={form.connection_uri}
                     onChange={(e) => setForm({ ...form, connection_uri: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-amber-500 outline-none"
+                    className="w-full px-3 py-2 rounded-lg bg-wr-surface border border-wr-border-strong text-sm text-slate-100 focus:border-amber-500 outline-none"
                     placeholder="mongodb+srv://user:pass@cluster0.example.net/mydb"
                   />
                   <p className="text-body-xs text-slate-400 mt-1">
@@ -267,7 +267,7 @@ const DBConnections: React.FC = () => {
                       <label className="block text-xs text-slate-400 mb-1">Host</label>
                       <input
                         value={form.host} onChange={(e) => setForm({ ...form, host: e.target.value })}
-                        className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-amber-500 outline-none"
+                        className="w-full px-3 py-2 rounded-lg bg-wr-surface border border-wr-border-strong text-sm text-slate-100 focus:border-amber-500 outline-none"
                         placeholder="localhost"
                       />
                     </div>
@@ -276,7 +276,7 @@ const DBConnections: React.FC = () => {
                       <input
                         type="number" value={form.port}
                         onChange={(e) => setForm({ ...form, port: parseInt(e.target.value) || (form.engine === 'mongodb' ? 27017 : 5432) })}
-                        className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-amber-500 outline-none"
+                        className="w-full px-3 py-2 rounded-lg bg-wr-surface border border-wr-border-strong text-sm text-slate-100 focus:border-amber-500 outline-none"
                       />
                     </div>
                   </div>
@@ -284,7 +284,7 @@ const DBConnections: React.FC = () => {
                     <label className="block text-xs text-slate-400 mb-1">Database</label>
                     <input
                       value={form.database} onChange={(e) => setForm({ ...form, database: e.target.value })}
-                      className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-amber-500 outline-none"
+                      className="w-full px-3 py-2 rounded-lg bg-wr-surface border border-wr-border-strong text-sm text-slate-100 focus:border-amber-500 outline-none"
                       placeholder="mydb"
                     />
                   </div>
@@ -293,7 +293,7 @@ const DBConnections: React.FC = () => {
                       <label className="block text-xs text-slate-400 mb-1">Username</label>
                       <input
                         value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })}
-                        className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-amber-500 outline-none"
+                        className="w-full px-3 py-2 rounded-lg bg-wr-surface border border-wr-border-strong text-sm text-slate-100 focus:border-amber-500 outline-none"
                       />
                     </div>
                     <div>
@@ -301,7 +301,7 @@ const DBConnections: React.FC = () => {
                       <input
                         type="password" value={form.password}
                         onChange={(e) => setForm({ ...form, password: e.target.value })}
-                        className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-amber-500 outline-none"
+                        className="w-full px-3 py-2 rounded-lg bg-wr-surface border border-wr-border-strong text-sm text-slate-100 focus:border-amber-500 outline-none"
                       />
                     </div>
                   </div>

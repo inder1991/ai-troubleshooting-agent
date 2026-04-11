@@ -108,7 +108,7 @@ export default function IPAMSubnetsTable({ subnets, onSelectSubnet, selectedSubn
                   <td className="py-2 px-3 text-slate-400">{s.vlan_id || '-'}</td>
                   <td className="py-2 px-3">
                     <div className="flex items-center gap-2">
-                      <div className="w-20 h-2 bg-slate-700 rounded-full overflow-hidden">
+                      <div className="w-20 h-2 bg-wr-inset rounded-full overflow-hidden">
                         <div
                           className={`h-full rounded-full ${barColor}`}
                           style={{ width: `${Math.min(pct, 100)}%` }}

@@ -151,7 +151,7 @@ const InvestigationView: React.FC<InvestigationViewProps> = ({
         <TopologySelectionProvider>
           <div className="grid grid-cols-12 flex-1 overflow-hidden">
             {/* Left: The Investigator (AI reasoning only — no chat) */}
-            <div className="col-span-3 border-r border-slate-800 overflow-hidden">
+            <div className="col-span-3 border-r border-wr-border overflow-hidden">
               <Investigator
                 sessionId={session.session_id}
                 events={events}
@@ -168,7 +168,7 @@ const InvestigationView: React.FC<InvestigationViewProps> = ({
             </div>
 
             {/* Right: The Navigator */}
-            <div className="col-span-4 border-l border-slate-800 overflow-hidden">
+            <div className="col-span-4 border-l border-wr-border overflow-hidden">
               <Navigator findings={findings} status={sessionStatus} events={events} />
             </div>
           </div>

@@ -53,12 +53,12 @@ const RemediationPacketCard: React.FC<RemediationPacketCardProps> = ({ message }
       onMouseEnter={() => setHoveredRepo(serviceName)}
       onMouseLeave={() => setHoveredRepo(null)}
       className={`
-        rounded-lg border bg-slate-900/70 backdrop-blur-sm overflow-hidden
-        ${isApproved ? 'border-emerald-600/50' : isRejected ? 'border-red-600/50' : 'border-slate-700/50'}
+        rounded-lg border bg-wr-bg/70 backdrop-blur-sm overflow-hidden
+        ${isApproved ? 'border-emerald-600/50' : isRejected ? 'border-red-600/50' : 'border-wr-border-strong/50'}
       `}
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-slate-800/50">
+      <div className="flex items-center justify-between px-3 py-2 border-b border-wr-border/50">
         <div className="flex items-center gap-2">
           <span className="material-symbols-outlined text-[14px] text-cyan-400">build</span>
           <span className="text-body-xs font-bold text-slate-200">{serviceName}</span>
@@ -79,12 +79,12 @@ const RemediationPacketCard: React.FC<RemediationPacketCardProps> = ({ message }
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-2 px-3 py-2 border-t border-slate-800/50">
+      <div className="flex items-center gap-2 px-3 py-2 border-t border-wr-border/50">
         {!isApproved && !isRejected && (
           <>
             <button
               onClick={() => openTelescope(repoUrl)}
-              className="px-3 py-1 rounded bg-slate-800/80 border border-slate-700 hover:bg-slate-700 text-body-xs text-cyan-400 font-bold tracking-wider transition-colors"
+              className="px-3 py-1 rounded bg-wr-surface/80 border border-wr-border-strong hover:bg-wr-inset text-body-xs text-cyan-400 font-bold tracking-wider transition-colors"
             >
               View Diff
             </button>

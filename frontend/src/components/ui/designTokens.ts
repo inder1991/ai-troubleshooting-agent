@@ -2,7 +2,7 @@
 
 export const tokens = {
   /** Card container styles */
-  card: 'bg-slate-900/40 border border-slate-800 rounded-xl',
+  card: 'bg-wr-bg/40 border border-wr-border rounded-xl',
 
   /** Badge styles — text-body-xs font-bold px-1.5 py-0.5 rounded border */
   badge: 'text-body-xs font-bold px-1.5 py-0.5 rounded border',
@@ -16,8 +16,8 @@ export const tokens = {
 
   /** Status color maps (background + border + text) */
   status: {
-    error: 'bg-red-500/10 border-red-500/20 text-red-400',
-    warning: 'bg-amber-500/10 border-amber-500/20 text-amber-400',
+    error: 'bg-wr-severity-high/10 border-red-500/20 text-red-400',
+    warning: 'bg-wr-severity-medium/10 border-amber-500/20 text-amber-400',
     success: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400',
     info: 'bg-cyan-500/10 border-cyan-500/20 text-cyan-400',
   },
@@ -32,5 +32,5 @@ export const tokens = {
   transition: 'transition-colors duration-150',
 
   /** Hover effect for clickable cards */
-  hoverCard: 'hover:bg-slate-800/40 transition-colors duration-150 cursor-pointer',
+  hoverCard: 'hover:bg-wr-surface/40 transition-colors duration-150 cursor-pointer',
 } as const;

@@ -654,7 +654,7 @@ export default function IPAMDashboard() {
                   >
                     <div className="flex-1 min-w-0">
                       <div className="font-mono text-xs text-slate-300 truncate">{s.cidr}</div>
-                      <div className="w-full h-1.5 bg-slate-700 rounded-full overflow-hidden mt-0.5">
+                      <div className="w-full h-1.5 bg-wr-inset rounded-full overflow-hidden mt-0.5">
                         <div className={`h-full rounded-full ${color}`} style={{ width: `${Math.min(pct, 100)}%` }} />
                       </div>
                     </div>

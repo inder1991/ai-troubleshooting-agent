@@ -251,7 +251,7 @@ const DatabaseWarRoom: React.FC<DatabaseWarRoomProps> = ({
       </div>
 
       {pollFailCount >= 3 && (
-        <div className="px-4 py-2 bg-red-500/10 border-b border-red-500/20 flex items-center gap-2 shrink-0">
+        <div className="px-4 py-2 bg-wr-severity-high/10 border-b border-red-500/20 flex items-center gap-2 shrink-0">
           <span className="material-symbols-outlined text-red-400 text-sm" aria-hidden="true">wifi_off</span>
           <span className="text-body-xs text-red-400">Connection lost — retrying automatically</span>
         </div>

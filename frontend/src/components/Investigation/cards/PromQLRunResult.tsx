@@ -18,8 +18,8 @@ const PromQLRunResult: React.FC<PromQLRunResultProps> = ({
   if (loading) {
     return (
       <div className="mt-2 space-y-1.5">
-        <div className="h-2 w-3/4 bg-amber-500/20 rounded animate-pulse" />
-        <div className="h-2 w-1/2 bg-amber-500/10 rounded animate-pulse" />
+        <div className="h-2 w-3/4 bg-wr-severity-medium/20 rounded animate-pulse" />
+        <div className="h-2 w-1/2 bg-wr-severity-medium/10 rounded animate-pulse" />
       </div>
     );
   }

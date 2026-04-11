@@ -53,7 +53,7 @@ const TableBloatHeatmap: React.FC<TableBloatHeatmapProps> = ({ tables }) => {
   return (
     <div className="bg-duck-card/30 border border-duck-border rounded-lg p-3">
       {/* Header */}
-      <div className="flex items-center gap-2 mb-2 pb-2 border-b border-slate-800">
+      <div className="flex items-center gap-2 mb-2 pb-2 border-b border-wr-border">
         <span className="material-symbols-outlined text-amber-400 text-sm">grid_view</span>
         <span className="text-body-xs font-bold text-slate-400 uppercase tracking-wider">Table Bloat Heatmap</span>
         <span className="text-body-xs text-slate-400 ml-auto font-mono">{tables.length} tables</span>
@@ -92,7 +92,7 @@ const TableBloatHeatmap: React.FC<TableBloatHeatmapProps> = ({ tables }) => {
               onClick={() => setExpandedTable(isExpanded ? null : table.name)}
               aria-label={`${table.name}: ${(table.bloat_ratio * 100).toFixed(1)}% bloat`}
               aria-expanded={isExpanded}
-              className="group relative rounded border p-2 text-left transition-colors hover:border-slate-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-duck-accent"
+              className="group relative rounded border p-2 text-left transition-colors hover:border-wr-border-strong focus-visible:outline focus-visible:outline-2 focus-visible:outline-duck-accent"
               style={{
                 backgroundColor: `${color}${Math.round(opacity * 25).toString(16).padStart(2, '0')}`,
                 borderColor: `${color}30`,
@@ -100,7 +100,7 @@ const TableBloatHeatmap: React.FC<TableBloatHeatmapProps> = ({ tables }) => {
             >
               {/* Tooltip (visible on hover or when expanded) */}
               <div className={`absolute left-1/2 -translate-x-1/2 bottom-full mb-1 z-10 ${isExpanded ? 'block' : 'hidden group-hover:block'}`}>
-                <div className="bg-slate-900 border border-slate-700 rounded px-2 py-1 shadow-lg whitespace-nowrap">
+                <div className="bg-wr-bg border border-wr-border-strong rounded px-2 py-1 shadow-lg whitespace-nowrap">
                   <p className="text-body-xs text-white font-mono">{table.name}</p>
                   <p className="text-body-xs text-slate-400">
                     Bloat: {(table.bloat_ratio * 100).toFixed(1)}% | Dead: {formatTuples(table.dead_tuples)} | Size: {formatSize(table.size_mb)}

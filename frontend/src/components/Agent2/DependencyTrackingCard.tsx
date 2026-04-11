@@ -36,9 +36,9 @@ export const DependencyTrackingCard: React.FC<DependencyTrackingProps> = ({ data
         )}
       </div>
       
-      <div className="min-h-[100px] border border-dashed border-slate-800 rounded bg-slate-950/40 p-3">
+      <div className="min-h-[100px] border border-dashed border-wr-border rounded bg-slate-950/40 p-3">
         {/* Tab Toggle */}
-        <div className="flex gap-1 mb-3 bg-slate-900 p-0.5 rounded">
+        <div className="flex gap-1 mb-3 bg-wr-bg p-0.5 rounded">
           <button
             onClick={() => setActiveTab('external')}
             className={`flex-1 text-chrome font-bold py-1 rounded transition-colors ${
@@ -81,7 +81,7 @@ export const DependencyTrackingCard: React.FC<DependencyTrackingProps> = ({ data
                 {data.externalDependencies.slice(0, 20).map((dep, idx) => (
                   <span
                     key={idx}
-                    className="text-chrome bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded font-mono"
+                    className="text-chrome bg-wr-surface text-slate-400 px-1.5 py-0.5 rounded font-mono"
                   >
                     {dep}
                   </span>
@@ -107,7 +107,7 @@ export const DependencyTrackingCard: React.FC<DependencyTrackingProps> = ({ data
               data.internalDependencies.map((dep, idx) => (
                 <div
                   key={idx}
-                  className="flex items-center gap-2 p-1.5 bg-slate-900/40 border border-slate-800 rounded"
+                  className="flex items-center gap-2 p-1.5 bg-wr-bg/40 border border-wr-border rounded"
                 >
                   <Package size={10} className="text-blue-500" />
                   <span className="text-body-xs text-slate-400 font-mono">{dep}</span>

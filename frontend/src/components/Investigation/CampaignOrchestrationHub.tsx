@@ -26,7 +26,7 @@ const CampaignOrchestrationHub: React.FC<CampaignOrchestrationHubProps> = ({ cam
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800/50">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-wr-border/50">
         <div className="flex items-center gap-2">
           <span className="material-symbols-outlined text-cyan-400 text-[18px]">hub</span>
           <span className="text-body-xs font-black text-slate-300 tracking-[0.15em] uppercase">
@@ -37,7 +37,7 @@ const CampaignOrchestrationHub: React.FC<CampaignOrchestrationHubProps> = ({ cam
           <span className="text-body-xs font-mono text-slate-400">
             {campaign.approved_count}/{campaign.total_count} approved
           </span>
-          <div className="w-16 h-1.5 rounded-full bg-slate-800 overflow-hidden">
+          <div className="w-16 h-1.5 rounded-full bg-wr-surface overflow-hidden">
             <div
               className="h-full rounded-full bg-emerald-500 transition-all duration-500"
               style={{ width: `${campaign.total_count ? (campaign.approved_count / campaign.total_count) * 100 : 0}%` }}
@@ -60,7 +60,7 @@ const CampaignOrchestrationHub: React.FC<CampaignOrchestrationHubProps> = ({ cam
                       ? 'bg-red-950/30 text-red-400 border border-red-700/40'
                       : repo.status === 'error'
                         ? 'bg-red-950/30 text-red-500 border border-red-700/40'
-                        : 'bg-slate-900/60 text-slate-400 border border-slate-700/40'}
+                        : 'bg-wr-bg/60 text-slate-400 border border-wr-border-strong/40'}
                 `}
               >
                 {repo.service_name}
@@ -91,7 +91,7 @@ const CampaignOrchestrationHub: React.FC<CampaignOrchestrationHubProps> = ({ cam
       </div>
 
       {/* Campaign Readiness Footer */}
-      <div className="px-4 py-3 border-t border-slate-800/50">
+      <div className="px-4 py-3 border-t border-wr-border/50">
         <div className="flex items-center justify-between mb-3">
           <span className="text-body-xs text-slate-400 uppercase tracking-widest">Campaign Readiness</span>
           <span className="text-xs font-mono font-bold text-slate-300">
@@ -119,7 +119,7 @@ const CampaignOrchestrationHub: React.FC<CampaignOrchestrationHubProps> = ({ cam
               key="waiting"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="w-full py-3 rounded-lg bg-slate-900/50 border border-slate-800 text-slate-500 font-bold text-body-xs tracking-widest uppercase text-center flex items-center justify-center gap-2"
+              className="w-full py-3 rounded-lg bg-wr-bg/50 border border-wr-border text-slate-500 font-bold text-body-xs tracking-widest uppercase text-center flex items-center justify-center gap-2"
             >
               <span className="material-symbols-outlined text-sm animate-spin">sync</span>
               Awaiting Local Attestations...

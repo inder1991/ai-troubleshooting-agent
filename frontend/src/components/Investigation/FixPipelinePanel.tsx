@@ -20,18 +20,18 @@ interface FixPipelinePanelProps {
 const statusConfig: Record<FixStatus, { label: string; color: string }> = {
   not_started: { label: 'NOT STARTED', color: 'text-slate-400 bg-slate-500/10 border-slate-500/20' },
   queued: { label: 'QUEUED', color: 'text-blue-400 bg-blue-500/10 border-blue-500/20' },
-  generating: { label: 'GENERATING', color: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
-  retrying: { label: 'RETRYING', color: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
+  generating: { label: 'GENERATING', color: 'text-amber-400 bg-wr-severity-medium/10 border-amber-500/20' },
+  retrying: { label: 'RETRYING', color: 'text-amber-400 bg-wr-severity-medium/10 border-amber-500/20' },
   awaiting_review: { label: 'AWAITING REVIEW', color: 'text-violet-400 bg-violet-500/10 border-violet-500/20' },
   human_feedback: { label: 'PROCESSING FEEDBACK', color: 'text-blue-400 bg-blue-500/10 border-blue-500/20' },
-  verification_in_progress: { label: 'VERIFYING', color: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
+  verification_in_progress: { label: 'VERIFYING', color: 'text-amber-400 bg-wr-severity-medium/10 border-amber-500/20' },
   verified: { label: 'VERIFIED', color: 'text-green-400 bg-green-500/10 border-green-500/20' },
-  verification_failed: { label: 'VERIFICATION FAILED', color: 'text-red-400 bg-red-500/10 border-red-500/20' },
+  verification_failed: { label: 'VERIFICATION FAILED', color: 'text-red-400 bg-wr-severity-high/10 border-red-500/20' },
   approved: { label: 'APPROVED', color: 'text-green-400 bg-green-500/10 border-green-500/20' },
-  rejected: { label: 'REJECTED', color: 'text-red-400 bg-red-500/10 border-red-500/20' },
+  rejected: { label: 'REJECTED', color: 'text-red-400 bg-wr-severity-high/10 border-red-500/20' },
   pr_creating: { label: 'CREATING PR', color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' },
   pr_created: { label: 'PR CREATED', color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' },
-  failed: { label: 'FAILED', color: 'text-red-400 bg-red-500/10 border-red-500/20' },
+  failed: { label: 'FAILED', color: 'text-red-400 bg-wr-severity-high/10 border-red-500/20' },
 };
 
 const FixStatusBadge: React.FC<{ status: FixStatus }> = ({ status }) => {
@@ -47,8 +47,8 @@ const FixStatusBadge: React.FC<{ status: FixStatus }> = ({ status }) => {
 
 const verdictConfig: Record<string, { icon: string; color: string }> = {
   approve: { icon: 'check_circle', color: 'text-green-400 bg-green-500/10 border-green-500/20' },
-  reject: { icon: 'cancel', color: 'text-red-400 bg-red-500/10 border-red-500/20' },
-  needs_changes: { icon: 'edit_note', color: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
+  reject: { icon: 'cancel', color: 'text-red-400 bg-wr-severity-high/10 border-red-500/20' },
+  needs_changes: { icon: 'edit_note', color: 'text-amber-400 bg-wr-severity-medium/10 border-amber-500/20' },
 };
 
 // ─── Diff Viewer ──────────────────────────────────────────────────────────
@@ -105,7 +105,7 @@ const DiffViewer: React.FC<{ diff: string }> = ({ diff }) => {
 
   if (!isMultiFile) {
     return (
-      <pre className="text-body-xs font-mono bg-slate-900/60 rounded p-3 max-h-[300px] overflow-y-auto overflow-x-auto custom-scrollbar whitespace-pre">
+      <pre className="text-body-xs font-mono bg-wr-bg/60 rounded p-3 max-h-[300px] overflow-y-auto overflow-x-auto custom-scrollbar whitespace-pre">
         <DiffLines text={diff} />
       </pre>
     );
@@ -126,7 +126,7 @@ const DiffViewer: React.FC<{ diff: string }> = ({ diff }) => {
               -{(s.content.match(/^-[^-]/gm) || []).length}
             </span>
           </summary>
-          <pre className="text-body-xs font-mono bg-slate-900/60 rounded p-3 max-h-[250px] overflow-y-auto overflow-x-auto custom-scrollbar whitespace-pre mt-1">
+          <pre className="text-body-xs font-mono bg-wr-bg/60 rounded p-3 max-h-[250px] overflow-y-auto overflow-x-auto custom-scrollbar whitespace-pre mt-1">
             <DiffLines text={s.content} />
           </pre>
         </details>
@@ -254,7 +254,7 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
   const renderVerificationResult = (vr: FixVerificationResult) => {
     const cfg = verdictConfig[vr.verdict] || verdictConfig.needs_changes;
     return (
-      <div className="rounded-lg bg-slate-800/30 border border-slate-700/50 p-3 space-y-2">
+      <div className="rounded-lg bg-wr-surface/30 border border-wr-border-strong/50 p-3 space-y-2">
         <div className="flex items-center gap-2">
           <span className="material-symbols-outlined text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>
             {cfg.icon}
@@ -322,7 +322,7 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
         value={guidance}
         onChange={(e) => setGuidance(e.target.value)}
         rows={2}
-        className="w-full text-body-xs bg-slate-800/60 border border-slate-700/50 rounded px-3 py-2 text-slate-200 placeholder-slate-600 font-mono focus:outline-none focus:border-emerald-500/50 resize-none"
+        className="w-full text-body-xs bg-wr-surface/60 border border-wr-border-strong/50 rounded px-3 py-2 text-slate-200 placeholder-slate-600 font-mono focus:outline-none focus:border-emerald-500/50 resize-none"
       />
       <button
         onClick={handleGenerateFix}
@@ -344,7 +344,7 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
   const renderProgressSection = () => (
     <div className="space-y-2">
       <div className="flex items-center gap-3 py-2">
-        <div className="w-5 h-5 border-2 border-slate-700 border-t-emerald-500 rounded-full animate-spin" />
+        <div className="w-5 h-5 border-2 border-wr-border-strong border-t-emerald-500 rounded-full animate-spin" />
         <div className="flex-1">
           <div className="text-body-xs text-slate-300">
             {fixStatus === 'queued' && 'Fix job queued — waiting for available worker...'}
@@ -365,7 +365,7 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
         <button
           onClick={handleCancel}
           disabled={loading === 'cancelling'}
-          className="text-body-xs font-bold px-2 py-1 rounded bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 disabled:opacity-50"
+          className="text-body-xs font-bold px-2 py-1 rounded bg-wr-severity-high/10 text-red-400 border border-red-500/20 hover:bg-wr-severity-high/20 disabled:opacity-50"
         >
           {loading === 'cancelling' ? 'Cancelling...' : 'Cancel'}
         </button>
@@ -431,7 +431,7 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
         <div className="space-y-1.5">
           <span className="text-body-xs font-bold text-slate-400 uppercase tracking-wider">Previous Feedback</span>
           {fixData!.human_feedback.map((fb, i) => (
-            <div key={i} className="text-body-xs text-slate-400 bg-slate-800/30 rounded px-2.5 py-1.5 border border-slate-700/30 font-mono">
+            <div key={i} className="text-body-xs text-slate-400 bg-wr-surface/30 rounded px-2.5 py-1.5 border border-wr-border-strong/30 font-mono">
               {fb}
             </div>
           ))}
@@ -440,7 +440,7 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
 
       {/* Action Buttons — only when awaiting_review */}
       {fixStatus === 'awaiting_review' && (
-        <div className="space-y-2 pt-1 border-t border-slate-800/50">
+        <div className="space-y-2 pt-1 border-t border-wr-border/50">
           <div className="flex items-center gap-2">
             {loading === 'approving' ? (
               <button
@@ -463,7 +463,7 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
             <button
               onClick={handleReject}
               disabled={!!loading}
-              className="text-body-xs font-bold px-3 py-1.5 rounded bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:saturate-0 flex items-center gap-1.5"
+              className="text-body-xs font-bold px-3 py-1.5 rounded bg-wr-severity-high/20 text-red-400 border border-wr-severity-high/30 hover:bg-wr-severity-high/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:saturate-0 flex items-center gap-1.5"
             >
               {loading === 'rejecting' ? (
                 <div className="w-3 h-3 border-2 border-red-400/30 border-t-red-400 rounded-full animate-spin" />
@@ -482,7 +482,7 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
               value={feedbackText}
               onChange={(e) => setFeedbackText(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleFeedback()}
-              className="flex-1 text-body-xs bg-slate-800/60 border border-slate-700/50 rounded px-2.5 py-1.5 text-slate-200 placeholder-slate-600 font-mono focus:outline-none focus:border-violet-500/50"
+              className="flex-1 text-body-xs bg-wr-surface/60 border border-wr-border-strong/50 rounded px-2.5 py-1.5 text-slate-200 placeholder-slate-600 font-mono focus:outline-none focus:border-violet-500/50"
             />
             <button
               onClick={handleFeedback}
@@ -521,25 +521,25 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
 
         <div className="grid grid-cols-2 gap-2 text-body-xs">
           {fixData?.pr_number && (
-            <div className="bg-slate-800/40 rounded px-2.5 py-1.5 border border-slate-700/30">
+            <div className="bg-wr-surface/40 rounded px-2.5 py-1.5 border border-wr-border-strong/30">
               <span className="text-slate-400">PR #</span>
               <span className="text-slate-200 font-mono ml-1">{fixData.pr_number}</span>
             </div>
           )}
           {prData?.branch_name && (
-            <div className="bg-slate-800/40 rounded px-2.5 py-1.5 border border-slate-700/30">
+            <div className="bg-wr-surface/40 rounded px-2.5 py-1.5 border border-wr-border-strong/30">
               <span className="text-slate-400">Branch</span>
               <span className="text-slate-200 font-mono ml-1 truncate">{prData.branch_name}</span>
             </div>
           )}
           {prData?.commit_sha && (
-            <div className="bg-slate-800/40 rounded px-2.5 py-1.5 border border-slate-700/30">
+            <div className="bg-wr-surface/40 rounded px-2.5 py-1.5 border border-wr-border-strong/30">
               <span className="text-slate-400">Commit</span>
               <span className="text-slate-200 font-mono ml-1">{prData.commit_sha.slice(0, 8)}</span>
             </div>
           )}
           {prData?.pr_title && (
-            <div className="bg-slate-800/40 rounded px-2.5 py-1.5 border border-slate-700/30 col-span-2">
+            <div className="bg-wr-surface/40 rounded px-2.5 py-1.5 border border-wr-border-strong/30 col-span-2">
               <span className="text-slate-400">Title</span>
               <span className="text-slate-200 ml-1">{prData.pr_title}</span>
             </div>
@@ -658,7 +658,7 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
     if (!fixData && phase === 'fix_in_progress') {
       return (
         <div className="flex items-center gap-3 py-2">
-          <div className="w-5 h-5 border-2 border-slate-700 border-t-emerald-500 rounded-full animate-spin" />
+          <div className="w-5 h-5 border-2 border-wr-border-strong border-t-emerald-500 rounded-full animate-spin" />
           <span className="text-body-xs text-slate-300">Fix pipeline initializing...</span>
         </div>
       );
@@ -704,7 +704,7 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
 
       {/* Error banner */}
       {error && (
-        <div className="text-body-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded px-3 py-1.5 mb-3">
+        <div className="text-body-xs text-red-400 bg-wr-severity-high/10 border border-red-500/20 rounded px-3 py-1.5 mb-3">
           {error}
         </div>
       )}

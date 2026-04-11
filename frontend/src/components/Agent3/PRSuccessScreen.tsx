@@ -44,7 +44,7 @@ export const PRSuccessScreen: React.FC<PRSuccessProps> = ({ data }) => {
       </div>
 
       {/* PR Details */}
-      <div className="border border-slate-800 rounded bg-slate-950/40 p-4 space-y-3">
+      <div className="border border-wr-border rounded bg-slate-950/40 p-4 space-y-3">
         <div className="flex items-center gap-2 mb-2">
           <GitPullRequest size={12} className="text-slate-400" />
           <span className="text-body-xs text-slate-400 uppercase font-bold">PR Details</span>
@@ -63,7 +63,7 @@ export const PRSuccessScreen: React.FC<PRSuccessProps> = ({ data }) => {
             </div>
           )}
 
-          <div className="pt-2 border-t border-slate-800">
+          <div className="pt-2 border-t border-wr-border">
             <div className="text-body-xs text-slate-500 mb-2">PR URL:</div>
             <div className="flex items-center gap-2 bg-slate-950 border border-slate-900 rounded p-2">
               <span className="text-chrome font-mono text-slate-400 flex-1 truncate">
@@ -97,7 +97,7 @@ export const PRSuccessScreen: React.FC<PRSuccessProps> = ({ data }) => {
       </div>
 
       {/* Next Steps */}
-      <div className="border border-slate-800 rounded bg-slate-950/40 p-3 space-y-2">
+      <div className="border border-wr-border rounded bg-slate-950/40 p-3 space-y-2">
         <div className="text-body-xs font-bold text-slate-400 uppercase">Next Steps:</div>
         <ul className="space-y-1.5 text-chrome text-slate-500">
           <li className="flex items-start gap-2">

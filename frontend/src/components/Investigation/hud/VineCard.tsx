@@ -43,7 +43,7 @@ const VineCard: React.FC<VineCardProps> = ({
         className={`rounded-xl border backdrop-blur-sm transition-all duration-300 ${
           isRootCause
             ? 'border-red-500/50 bg-red-500/5 scale-[1.02] z-10'
-            : 'border-slate-800 bg-slate-900/40 hover:border-slate-700'
+            : 'border-wr-border bg-wr-bg/40 hover:border-wr-border-strong'
         } ${isNew ? 'animate-highlight' : ''}`}
       >
         {/* Hover action menu */}
@@ -53,8 +53,8 @@ const VineCard: React.FC<VineCardProps> = ({
               onClick={onPin}
               className={`p-1 rounded-md transition-colors ${
                 isPinned
-                  ? 'bg-amber-500/20 text-amber-400'
-                  : 'bg-slate-800/80 text-slate-400 hover:text-amber-400'
+                  ? 'bg-wr-severity-medium/20 text-amber-400'
+                  : 'bg-wr-surface/80 text-slate-400 hover:text-amber-400'
               }`}
               aria-label={isPinned ? 'Unpin evidence' : 'Pin evidence'}
             >
@@ -62,7 +62,7 @@ const VineCard: React.FC<VineCardProps> = ({
             </button>
           )}
           <button
-            className="p-1 rounded-md bg-slate-800/80 text-slate-400 hover:text-slate-300 transition-colors"
+            className="p-1 rounded-md bg-wr-surface/80 text-slate-400 hover:text-slate-300 transition-colors"
             aria-label="More info"
           >
             <Info className="w-3 h-3" />

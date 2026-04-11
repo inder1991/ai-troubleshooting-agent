@@ -15,8 +15,8 @@ const SEVERITY_DOT: Record<string, string> = {
 };
 
 const BASIS_STYLE: Record<string, string> = {
-  topology: 'text-amber-400 border-amber-500/40 bg-amber-500/10',
-  temporal: 'text-amber-400 border-amber-500/40 bg-amber-500/10',
+  topology: 'text-amber-400 border-amber-500/40 bg-wr-severity-medium/10',
+  temporal: 'text-amber-400 border-amber-500/40 bg-wr-severity-medium/10',
   namespace: 'text-emerald-400 border-emerald-500/40 bg-emerald-500/10',
   node_affinity: 'text-blue-400 border-blue-500/40 bg-blue-500/10',
   control_plane_fan_out: 'text-purple-400 border-purple-500/40 bg-purple-500/10',
@@ -40,17 +40,17 @@ export default function IssueClusterView({ clusters }: IssueClusterViewProps) {
         return (
           <div
             key={cluster.cluster_id}
-            className="bg-slate-900/40 border border-slate-700/30 rounded-lg overflow-hidden"
+            className="bg-wr-bg/40 border border-wr-border-strong/30 rounded-lg overflow-hidden"
           >
             {/* Header */}
             <button
               onClick={() => setExpandedId(isExpanded ? null : cluster.cluster_id)}
-              className="w-full px-3 py-2 flex items-center gap-2 hover:bg-slate-800/30 transition-colors"
+              className="w-full px-3 py-2 flex items-center gap-2 hover:bg-wr-surface/30 transition-colors"
             >
               <span className="text-body-xs font-mono text-amber-400">{cluster.cluster_id}</span>
 
               {/* Confidence bar */}
-              <div className="w-12 h-1 bg-slate-800 rounded-full overflow-hidden">
+              <div className="w-12 h-1 bg-wr-surface rounded-full overflow-hidden">
                 <div
                   className="h-full bg-amber-500 rounded-full"
                   style={{ width: `${Math.round(cluster.confidence * 100)}%` }}
@@ -80,7 +80,7 @@ export default function IssueClusterView({ clusters }: IssueClusterViewProps) {
             </button>
 
             {isExpanded && (
-              <div className="border-t border-slate-700/30 px-3 py-2 space-y-3">
+              <div className="border-t border-wr-border-strong/30 px-3 py-2 space-y-3">
                 {/* Root Candidates */}
                 {cluster.root_candidates.length > 0 && (
                   <div>
@@ -96,7 +96,7 @@ export default function IssueClusterView({ clusters }: IssueClusterViewProps) {
                           {rc.supporting_signals.length > 0 && (
                             <div className="flex flex-wrap gap-1 mt-1">
                               {rc.supporting_signals.map((s, j) => (
-                                <span key={j} className="text-chrome font-mono px-1 py-0.5 bg-slate-800/60 text-slate-400 rounded">
+                                <span key={j} className="text-chrome font-mono px-1 py-0.5 bg-wr-surface/60 text-slate-400 rounded">
                                   {s}
                                 </span>
                               ))}

@@ -47,7 +47,7 @@ function agentCodeFromName(name: string): AgentCode {
 
 function severityColor(sev?: string): string {
   switch (sev) {
-    case 'P1': return 'text-red-400 bg-red-500/20 border-red-500/30';
+    case 'P1': return 'text-red-400 bg-wr-severity-high/20 border-wr-severity-high/30';
     case 'P2': return 'text-orange-400 bg-orange-500/20 border-orange-500/30';
     case 'P3': return 'text-yellow-400 bg-yellow-500/20 border-yellow-500/30';
     case 'P4': return 'text-green-400 bg-green-500/20 border-green-500/30';
@@ -73,7 +73,7 @@ const DossierSection: React.FC<{
     transition={{ delay: 0.1 + index * 0.08 }}
     className="mb-12 group dossier-section"
   >
-    <div className="flex items-center gap-3 mb-4 border-b border-slate-800 pb-2">
+    <div className="flex items-center gap-3 mb-4 border-b border-wr-border pb-2">
       <div className="w-1 h-6 bg-[#e09f3e] shadow-[0_0_10px_rgba(7,182,213,0.5)]" />
       <span className="material-symbols-outlined text-cyan-500" style={{ fontFamily: 'Material Symbols Outlined' }}>
         {icon}
@@ -90,7 +90,7 @@ const AttestationBadge: React.FC<{ humanVerified: boolean }> = ({ humanVerified 
   <span
     className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-body-xs font-bold uppercase tracking-wider border ${
       humanVerified
-        ? 'bg-amber-500/10 border-amber-500/20 text-amber-400'
+        ? 'bg-wr-severity-medium/10 border-amber-500/20 text-amber-400'
         : 'bg-violet-500/10 border-violet-500/20 text-violet-400'
     }`}
   >
@@ -312,7 +312,7 @@ const PostMortemDossierView: React.FC<PostMortemDossierViewProps> = ({
   return (
     <div className="flex-1 flex flex-col bg-[#1a1814] overflow-hidden h-full">
       {/* Header bar */}
-      <div className="flex items-center justify-between px-6 py-3 border-b border-slate-800 bg-slate-900/60 shrink-0">
+      <div className="flex items-center justify-between px-6 py-3 border-b border-wr-border bg-wr-bg/60 shrink-0">
         <button
           onClick={onBack}
           className="dossier-back-button flex items-center gap-2 text-sm text-slate-400 hover:text-white transition-colors"
@@ -329,7 +329,7 @@ const PostMortemDossierView: React.FC<PostMortemDossierViewProps> = ({
       {/* Main content area */}
       <div className="flex-1 flex overflow-hidden">
         {/* Sticky sidebar ToC */}
-        <nav className="dossier-nav-sidebar w-56 shrink-0 border-r border-slate-800 bg-slate-900/40 overflow-y-auto py-6 px-4">
+        <nav className="dossier-nav-sidebar w-56 shrink-0 border-r border-wr-border bg-wr-bg/40 overflow-y-auto py-6 px-4">
           <div className="text-body-xs font-bold uppercase tracking-[0.2em] text-slate-500 mb-4 px-2">
             Contents
           </div>
@@ -342,7 +342,7 @@ const PostMortemDossierView: React.FC<PostMortemDossierViewProps> = ({
                 className={`w-full text-left px-3 py-2 rounded-r text-body-xs transition-all flex items-center gap-2 mb-0.5 ${
                   isActive
                     ? 'border-l-2 border-[#e09f3e] text-white bg-amber-500/5'
-                    : 'border-l-2 border-transparent text-slate-400 hover:text-slate-300 hover:bg-slate-800/50'
+                    : 'border-l-2 border-transparent text-slate-400 hover:text-slate-300 hover:bg-wr-surface/50'
                 }`}
               >
                 <span className="text-body-xs text-slate-500 font-mono w-4">{i + 1}</span>
@@ -357,7 +357,7 @@ const PostMortemDossierView: React.FC<PostMortemDossierViewProps> = ({
           <div className="max-w-4xl mx-auto relative">
             <ResolvedStamp />
             {error && (
-              <div className="mb-4 text-body-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded px-3 py-2">
+              <div className="mb-4 text-body-xs text-red-400 bg-wr-severity-high/10 border border-red-500/20 rounded px-3 py-2">
                 {error}
               </div>
             )}
@@ -418,11 +418,11 @@ const PostMortemDossierView: React.FC<PostMortemDossierViewProps> = ({
                     value={execSummary}
                     onChange={(e) => setExecSummary(e.target.value)}
                     rows={4}
-                    className="w-full bg-slate-800/60 border border-slate-700/50 rounded-lg p-3 text-[12px] text-slate-200 focus:outline-none focus:border-amber-500/50 resize-none"
+                    className="w-full bg-wr-surface/60 border border-wr-border-strong/50 rounded-lg p-3 text-[12px] text-slate-200 focus:outline-none focus:border-amber-500/50 resize-none"
                   />
                   <button
                     onClick={handleSaveExec}
-                    className="text-body-xs font-bold px-3 py-1.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30 hover:bg-amber-500/30"
+                    className="text-body-xs font-bold px-3 py-1.5 rounded bg-wr-severity-medium/20 text-amber-400 border border-wr-severity-medium/30 hover:bg-amber-500/30"
                   >
                     Done
                   </button>
@@ -454,11 +454,11 @@ const PostMortemDossierView: React.FC<PostMortemDossierViewProps> = ({
                     value={impactStmt}
                     onChange={(e) => setImpactStmt(e.target.value)}
                     rows={4}
-                    className="w-full bg-slate-800/60 border border-slate-700/50 rounded-lg p-3 text-[12px] text-slate-200 focus:outline-none focus:border-amber-500/50 resize-none"
+                    className="w-full bg-wr-surface/60 border border-wr-border-strong/50 rounded-lg p-3 text-[12px] text-slate-200 focus:outline-none focus:border-amber-500/50 resize-none"
                   />
                   <button
                     onClick={handleSaveImpact}
-                    className="text-body-xs font-bold px-3 py-1.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30 hover:bg-amber-500/30"
+                    className="text-body-xs font-bold px-3 py-1.5 rounded bg-wr-severity-medium/20 text-amber-400 border border-wr-severity-medium/30 hover:bg-amber-500/30"
                   >
                     Done
                   </button>
@@ -472,7 +472,7 @@ const PostMortemDossierView: React.FC<PostMortemDossierViewProps> = ({
 
             {/* Section 4: Visual Topology */}
             <DossierSection id="visual-topology" title="Visual Topology" icon="hub" index={3} sectionRef={setSectionRef('visual-topology')}>
-              <div className="dossier-mermaid-section bg-slate-900/60 border border-slate-800 rounded-lg p-4 min-h-[200px]">
+              <div className="dossier-mermaid-section bg-wr-bg/60 border border-wr-border rounded-lg p-4 min-h-[200px]">
                 {findings?.code_mermaid_diagram ? (
                   <MermaidChart chart={findings.code_mermaid_diagram} />
                 ) : (
@@ -494,7 +494,7 @@ const PostMortemDossierView: React.FC<PostMortemDossierViewProps> = ({
                 </div>
               ) : (
                 <div className="relative pl-6">
-                  <div className="absolute left-2 top-0 bottom-0 w-px bg-slate-700" />
+                  <div className="absolute left-2 top-0 bottom-0 w-px bg-wr-inset" />
 
                   {/* Patient zero event */}
                   {findings?.patient_zero && (
@@ -536,7 +536,7 @@ const PostMortemDossierView: React.FC<PostMortemDossierViewProps> = ({
                 {sortedPatterns.length > 0 ? (
                   <table className="w-full text-body-xs">
                     <thead>
-                      <tr className="text-left text-body-xs text-slate-400 uppercase tracking-wider border-b border-slate-800">
+                      <tr className="text-left text-body-xs text-slate-400 uppercase tracking-wider border-b border-wr-border">
                         <th className="py-2 pr-3">Pattern</th>
                         <th className="py-2 pr-3">Freq</th>
                         <th className="py-2 pr-3">Severity</th>
@@ -546,14 +546,14 @@ const PostMortemDossierView: React.FC<PostMortemDossierViewProps> = ({
                     </thead>
                     <tbody>
                       {sortedPatterns.map((p: ErrorPattern, i: number) => (
-                        <tr key={p.pattern_id || i} className="border-b border-slate-800/50 hover:bg-slate-800/30">
+                        <tr key={p.pattern_id || i} className="border-b border-wr-border/50 hover:bg-wr-surface/30">
                           <td className="py-2 pr-3 text-slate-200 font-mono max-w-[300px] truncate">
                             {p.exception_type}
                           </td>
                           <td className="py-2 pr-3 text-slate-400">{p.frequency}</td>
                           <td className="py-2 pr-3">
                             <span className={`px-1.5 py-0.5 rounded text-body-xs font-bold uppercase ${
-                              p.severity === 'critical' ? 'text-red-400 bg-red-500/20' :
+                              p.severity === 'critical' ? 'text-red-400 bg-wr-severity-high/20' :
                               p.severity === 'high' ? 'text-orange-400 bg-orange-500/20' :
                               p.severity === 'medium' ? 'text-yellow-400 bg-yellow-500/20' :
                               'text-slate-400 bg-slate-500/20'
@@ -646,7 +646,7 @@ const PostMortemDossierView: React.FC<PostMortemDossierViewProps> = ({
                       <summary className="text-body-xs text-cyan-500 cursor-pointer hover:text-amber-300">
                         View Diff
                       </summary>
-                      <pre className="mt-2 text-body-xs text-slate-300 bg-slate-900/80 border border-slate-800 rounded-lg p-3 overflow-x-auto max-h-[400px] overflow-y-auto font-mono whitespace-pre">
+                      <pre className="mt-2 text-body-xs text-slate-300 bg-wr-bg/80 border border-wr-border rounded-lg p-3 overflow-x-auto max-h-[400px] overflow-y-auto font-mono whitespace-pre">
                         {findings.fix_data.diff.slice(0, 3000)}
                       </pre>
                     </details>
@@ -669,7 +669,7 @@ const PostMortemDossierView: React.FC<PostMortemDossierViewProps> = ({
                     <h3 className="text-body-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Alerting Recommendations</h3>
                     <div className="space-y-2">
                       {findings.suggested_promql_queries.map((q, i) => (
-                        <div key={i} className="bg-slate-800/40 border border-slate-700/50 rounded-lg p-3">
+                        <div key={i} className="bg-wr-surface/40 border border-wr-border-strong/50 rounded-lg p-3">
                           <div className="text-body-xs text-slate-300 font-medium">{q.metric}</div>
                           <code className="block text-body-xs text-amber-400 font-mono mt-1">{q.query}</code>
                           <div className="text-body-xs text-slate-400 mt-1">{q.rationale}</div>
@@ -747,7 +747,7 @@ const PostMortemDossierView: React.FC<PostMortemDossierViewProps> = ({
                       type="text"
                       value={spaceKey}
                       onChange={(e) => setSpaceKey(e.target.value)}
-                      className="text-[12px] bg-slate-800/60 border border-slate-700/50 rounded px-3 py-2 text-slate-200 placeholder-slate-600 w-full font-mono focus:outline-none focus:border-amber-500/50"
+                      className="text-[12px] bg-wr-surface/60 border border-wr-border-strong/50 rounded px-3 py-2 text-slate-200 placeholder-slate-600 w-full font-mono focus:outline-none focus:border-amber-500/50"
                     />
                   </div>
                   <div>
@@ -758,7 +758,7 @@ const PostMortemDossierView: React.FC<PostMortemDossierViewProps> = ({
                       type="text"
                       value={publishTitle}
                       onChange={(e) => setPublishTitle(e.target.value)}
-                      className="text-[12px] bg-slate-800/60 border border-slate-700/50 rounded px-3 py-2 text-slate-200 placeholder-slate-600 w-full focus:outline-none focus:border-amber-500/50"
+                      className="text-[12px] bg-wr-surface/60 border border-wr-border-strong/50 rounded px-3 py-2 text-slate-200 placeholder-slate-600 w-full focus:outline-none focus:border-amber-500/50"
                     />
                   </div>
                 </div>
@@ -854,7 +854,7 @@ const TimelineEvent: React.FC<{
       )}
       <div className="flex-1">
         <span className="text-body-xs text-slate-300">{description}</span>
-        <span className="text-body-xs ml-2 px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700/50">
+        <span className="text-body-xs ml-2 px-1.5 py-0.5 rounded bg-wr-surface text-slate-400 border border-wr-border-strong/50">
           {source}
         </span>
       </div>

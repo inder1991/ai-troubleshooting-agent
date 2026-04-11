@@ -145,7 +145,7 @@ export const MermaidChart: React.FC<{ chart: string }> = ({ chart }) => {
                   <span className="material-symbols-outlined text-[12px]">warning</span>
                   Diagram rendered as text (parse error)
                 </div>
-                <pre className="text-body-xs text-slate-400 font-mono whitespace-pre-wrap leading-relaxed bg-slate-900/60 rounded-lg p-3 border border-slate-800">
+                <pre className="text-body-xs text-slate-400 font-mono whitespace-pre-wrap leading-relaxed bg-wr-bg/60 rounded-lg p-3 border border-wr-border">
                   {rawFallback}
                 </pre>
               </div>
@@ -179,19 +179,19 @@ export const MermaidChart: React.FC<{ chart: string }> = ({ chart }) => {
                   <div className="absolute top-2 right-2 z-10 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                     <button
                       onClick={() => zoomIn()}
-                      className="p-1.5 rounded-md bg-slate-800/80 backdrop-blur border border-slate-700/50 text-slate-300 hover:text-white hover:bg-slate-700/80 transition-colors"
+                      className="p-1.5 rounded-md bg-wr-surface/80 backdrop-blur border border-wr-border-strong/50 text-slate-300 hover:text-white hover:bg-wr-inset/80 transition-colors"
                     >
                       <ZoomIn size={14} />
                     </button>
                     <button
                       onClick={() => zoomOut()}
-                      className="p-1.5 rounded-md bg-slate-800/80 backdrop-blur border border-slate-700/50 text-slate-300 hover:text-white hover:bg-slate-700/80 transition-colors"
+                      className="p-1.5 rounded-md bg-wr-surface/80 backdrop-blur border border-wr-border-strong/50 text-slate-300 hover:text-white hover:bg-wr-inset/80 transition-colors"
                     >
                       <ZoomOut size={14} />
                     </button>
                     <button
                       onClick={() => resetTransform()}
-                      className="p-1.5 rounded-md bg-slate-800/80 backdrop-blur border border-slate-700/50 text-slate-300 hover:text-white hover:bg-slate-700/80 transition-colors"
+                      className="p-1.5 rounded-md bg-wr-surface/80 backdrop-blur border border-wr-border-strong/50 text-slate-300 hover:text-white hover:bg-wr-inset/80 transition-colors"
                     >
                       <RotateCcw size={14} />
                     </button>

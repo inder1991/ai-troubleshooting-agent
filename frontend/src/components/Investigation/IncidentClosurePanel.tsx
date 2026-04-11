@@ -125,9 +125,9 @@ const IncidentClosurePanel: React.FC<IncidentClosurePanelProps> = ({
 
   return (
     <>
-      <div className="bg-slate-900/40 border border-slate-800 rounded-xl overflow-hidden">
+      <div className="bg-wr-bg/40 border border-wr-border rounded-xl overflow-hidden">
         {/* Header */}
-        <div className="px-4 py-2.5 border-b border-slate-800 bg-slate-900/60 flex items-center gap-2">
+        <div className="px-4 py-2.5 border-b border-wr-border bg-wr-bg/60 flex items-center gap-2">
           <span className="material-symbols-outlined text-violet-400 text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>
             verified_user
           </span>
@@ -141,14 +141,14 @@ const IncidentClosurePanel: React.FC<IncidentClosurePanelProps> = ({
 
         <div className="p-4 space-y-3">
           {error && (
-            <div className="text-body-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded px-3 py-1.5">
+            <div className="text-body-xs text-red-400 bg-wr-severity-high/10 border border-red-500/20 rounded px-3 py-1.5">
               {error}
             </div>
           )}
 
           {/* Phase gate warning — investigation may still be in progress */}
           {phase && !['diagnosis_complete', 'fix_in_progress', 'fix_complete', 'closed'].includes(phase) && (
-            <div className="text-body-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded px-3 py-1.5 flex items-center gap-2">
+            <div className="text-body-xs text-amber-400 bg-wr-severity-medium/10 border border-amber-500/20 rounded px-3 py-1.5 flex items-center gap-2">
               <span className="material-symbols-outlined text-[12px]" style={{ fontFamily: 'Material Symbols Outlined' }}>warning</span>
               Investigation still in progress — dossier data may be incomplete.
             </div>
@@ -223,7 +223,7 @@ const IncidentClosurePanel: React.FC<IncidentClosurePanelProps> = ({
                           placeholder="Project key (e.g. OPS)"
                           value={jiraProjectKey}
                           onChange={(e) => setJiraProjectKey(e.target.value)}
-                          className="text-body-xs bg-slate-800/60 border border-slate-700/50 rounded px-2 py-1 text-slate-200 placeholder-slate-600 w-36 font-mono focus:outline-none focus:border-violet-500/50"
+                          className="text-body-xs bg-wr-surface/60 border border-wr-border-strong/50 rounded px-2 py-1 text-slate-200 placeholder-slate-600 w-36 font-mono focus:outline-none focus:border-violet-500/50"
                         />
                         <button
                           onClick={handleCreateJira}
@@ -246,7 +246,7 @@ const IncidentClosurePanel: React.FC<IncidentClosurePanelProps> = ({
                           placeholder="Issue key (e.g. OPS-123)"
                           value={linkIssueKey}
                           onChange={(e) => setLinkIssueKey(e.target.value)}
-                          className="text-body-xs bg-slate-800/60 border border-slate-700/50 rounded px-2 py-1 text-slate-200 placeholder-slate-600 w-36 font-mono focus:outline-none focus:border-violet-500/50"
+                          className="text-body-xs bg-wr-surface/60 border border-wr-border-strong/50 rounded px-2 py-1 text-slate-200 placeholder-slate-600 w-36 font-mono focus:outline-none focus:border-violet-500/50"
                         />
                         <button
                           onClick={handleLinkJira}

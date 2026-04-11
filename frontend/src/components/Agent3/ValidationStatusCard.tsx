@@ -33,7 +33,7 @@ export const ValidationStatusCard: React.FC<ValidationStatusProps> = ({ data }) 
   };
 
   return (
-    <div className="border border-slate-800 rounded bg-slate-950/40 p-4 space-y-4">
+    <div className="border border-wr-border rounded bg-slate-950/40 p-4 space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -54,7 +54,7 @@ export const ValidationStatusCard: React.FC<ValidationStatusProps> = ({ data }) 
           <span className="text-body-xs font-mono text-slate-400">Syntax Validation</span>
         </div>
         {!data.syntax.valid && data.syntax.error && (
-          <div className="ml-5 pl-3 border-l-2 border-red-500/30">
+          <div className="ml-5 pl-3 border-l-2 border-wr-severity-high/30">
             <div className="text-chrome text-red-400 bg-red-950/20 border border-red-900/30 rounded p-2">
               {data.syntax.error}
             </div>
@@ -70,7 +70,7 @@ export const ValidationStatusCard: React.FC<ValidationStatusProps> = ({ data }) 
         </div>
         
         {data.linting.issues.errors && data.linting.issues.errors.length > 0 && (
-          <div className="ml-5 pl-3 border-l-2 border-red-500/30 space-y-1">
+          <div className="ml-5 pl-3 border-l-2 border-wr-severity-high/30 space-y-1">
             <div className="text-chrome text-slate-500 uppercase font-bold">Errors:</div>
             {data.linting.issues.errors.slice(0, 3).map((error: any, idx: number) => (
               <div key={idx} className="text-chrome text-red-400 bg-red-950/20 border border-red-900/30 rounded p-2">
@@ -121,7 +121,7 @@ export const ValidationStatusCard: React.FC<ValidationStatusProps> = ({ data }) 
 
       {/* Agent 2 Review */}
       {typeof data.agent2_approved !== 'undefined' && (
-        <div className="pt-3 border-t border-slate-800 space-y-2">
+        <div className="pt-3 border-t border-wr-border space-y-2">
           <div className="flex items-center gap-2">
             {renderCheckIcon(data.agent2_approved)}
             <span className="text-body-xs font-mono text-slate-400">Agent 2 Peer Review</span>
@@ -130,7 +130,7 @@ export const ValidationStatusCard: React.FC<ValidationStatusProps> = ({ data }) 
           {typeof data.agent2_confidence !== 'undefined' && (
             <div className="ml-5 flex items-center gap-2">
               <span className="text-chrome text-slate-500">Confidence:</span>
-              <div className="flex-1 h-1.5 bg-slate-900 rounded-full overflow-hidden">
+              <div className="flex-1 h-1.5 bg-wr-bg rounded-full overflow-hidden">
                 <div
                   className={`h-full transition-all ${
                     data.agent2_confidence >= 0.8 ? 'bg-emerald-500' :

@@ -12,8 +12,8 @@ type DrawerTab = 'commit' | 'diff' | 'related';
 
 const FILE_STATUS_CLASSES: Record<string, string> = {
   added: 'bg-emerald-500/20 text-emerald-200 border-emerald-500/40',
-  modified: 'bg-amber-500/20 text-amber-200 border-amber-500/40',
-  removed: 'bg-red-500/20 text-red-200 border-red-500/40',
+  modified: 'bg-wr-severity-medium/20 text-amber-200 border-amber-500/40',
+  removed: 'bg-wr-severity-high/20 text-red-200 border-red-500/40',
   renamed: 'bg-sky-500/20 text-sky-200 border-sky-500/40',
 };
 

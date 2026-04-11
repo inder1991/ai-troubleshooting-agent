@@ -38,9 +38,9 @@ export const ContextRetrievalCard: React.FC<ContextRetrievalProps> = ({ data }) 
         </span>
       </div>
       
-      <div className="min-h-[100px] border border-dashed border-slate-800 rounded bg-slate-950/40 p-3">
+      <div className="min-h-[100px] border border-dashed border-wr-border rounded bg-slate-950/40 p-3">
         {/* Tab Toggle */}
-        <div className="flex gap-1 mb-3 bg-slate-900 p-0.5 rounded">
+        <div className="flex gap-1 mb-3 bg-wr-bg p-0.5 rounded">
           <button
             onClick={() => setActiveTab('functions')}
             className={`flex-1 text-chrome font-bold py-1 rounded transition-colors ${
@@ -70,7 +70,7 @@ export const ContextRetrievalCard: React.FC<ContextRetrievalProps> = ({ data }) 
           <div className="space-y-2">
             {data.functionDefinitions && data.functionDefinitions.length > 0 ? (
               data.functionDefinitions.map((func, idx) => (
-                <div key={idx} className="border border-slate-800 rounded p-2 bg-slate-900/40">
+                <div key={idx} className="border border-wr-border rounded p-2 bg-wr-bg/40">
                   <code className="text-body-xs text-blue-400 block mb-1">
                     {func.signature}
                   </code>
@@ -105,7 +105,7 @@ export const ContextRetrievalCard: React.FC<ContextRetrievalProps> = ({ data }) 
                       className={`w-full text-left p-2 rounded text-body-xs font-mono transition-colors ${
                         selectedSnippet === idx
                           ? 'bg-blue-900/30 border border-blue-800'
-                          : 'bg-slate-900/40 border border-slate-800 hover:border-slate-700'
+                          : 'bg-wr-bg/40 border border-wr-border hover:border-wr-border-strong'
                       }`}
                     >
                       {snippet.location}
@@ -114,7 +114,7 @@ export const ContextRetrievalCard: React.FC<ContextRetrievalProps> = ({ data }) 
                 </div>
                 
                 {data.codeSnippets[selectedSnippet] && (
-                  <pre className="bg-slate-950 border border-slate-800 rounded p-2 overflow-x-auto text-chrome text-slate-400">
+                  <pre className="bg-slate-950 border border-wr-border rounded p-2 overflow-x-auto text-chrome text-slate-400">
                     <code>{data.codeSnippets[selectedSnippet].preview}</code>
                   </pre>
                 )}

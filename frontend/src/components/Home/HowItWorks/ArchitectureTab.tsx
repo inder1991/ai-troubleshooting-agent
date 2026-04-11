@@ -192,7 +192,7 @@ const ArchitectureTab: React.FC = () => {
           <Arrow />
 
           {/* Agent cluster */}
-          <span className="flex items-center gap-1.5 px-2 py-1 rounded border border-[#3d3528] bg-slate-900/50">
+          <span className="flex items-center gap-1.5 px-2 py-1 rounded border border-[#3d3528] bg-wr-bg/50">
             {agentCluster.map((a) => (
               <span
                 key={a.label}
@@ -233,7 +233,7 @@ const ArchitectureTab: React.FC = () => {
           {agents.map((agent) => (
             <div
               key={agent.num}
-              className="rounded-lg p-3.5 bg-slate-900/50 border border-[#3d3528]"
+              className="rounded-lg p-3.5 bg-wr-bg/50 border border-[#3d3528]"
               style={{ borderTopWidth: 3, borderTopColor: agent.color }}
             >
               <div className="flex items-center gap-2.5 mb-2">
@@ -268,7 +268,7 @@ const ArchitectureTab: React.FC = () => {
             return (
               <div
                 key={phase.num}
-                className={`flex items-center gap-2 px-3 py-2 bg-slate-900/50 border border-[#3d3528] ${
+                className={`flex items-center gap-2 px-3 py-2 bg-wr-bg/50 border border-[#3d3528] ${
                   isFirst ? 'rounded-l-lg' : ''
                 } ${isLast ? 'rounded-r-lg' : ''}`}
                 style={{ borderLeftWidth: isFirst ? 1 : 0 }}
@@ -311,10 +311,10 @@ const ArchitectureTab: React.FC = () => {
                 <div
                   className={`px-3 py-2 rounded border text-center ${
                     isNoLlm
-                      ? 'border-slate-600 bg-slate-800/60'
+                      ? 'border-wr-border-strong bg-wr-surface/60'
                       : isHuman
                         ? 'border-yellow-700 bg-yellow-950/30'
-                        : 'bg-slate-900/50 border-[#3d3528]'
+                        : 'bg-wr-bg/50 border-[#3d3528]'
                   }`}
                   style={{
                     borderColor: isNoLlm ? undefined : step.color,
@@ -347,7 +347,7 @@ const ArchitectureTab: React.FC = () => {
           {gates.map((gate, i) => (
             <div
               key={gate.name}
-              className="bg-slate-900/50 border border-[#3d3528] rounded-lg p-3"
+              className="bg-wr-bg/50 border border-[#3d3528] rounded-lg p-3"
               style={{ borderTopWidth: 3, borderTopColor: C.yellow }}
             >
               <div className="flex items-center gap-2 mb-2">
@@ -393,7 +393,7 @@ const ArchitectureTab: React.FC = () => {
               {components.map((c) => (
                 <tr
                   key={c.num}
-                  className={c.num % 2 === 0 ? 'bg-slate-900/60' : 'bg-slate-900/30'}
+                  className={c.num % 2 === 0 ? 'bg-wr-bg/60' : 'bg-wr-bg/30'}
                 >
                   <td className="px-3 py-2 text-slate-400 font-mono">{c.num}</td>
                   <td className="px-3 py-2 text-slate-200 font-semibold">{c.name}</td>
@@ -425,7 +425,7 @@ const ArchitectureTab: React.FC = () => {
           {stack.map((s) => (
             <div
               key={s.label}
-              className="bg-slate-900/50 border border-[#3d3528] rounded-lg p-3"
+              className="bg-wr-bg/50 border border-[#3d3528] rounded-lg p-3"
             >
               <span className="text-xs font-bold text-white block mb-1">{s.label}</span>
               <span className="text-xs text-slate-400">{s.items}</span>

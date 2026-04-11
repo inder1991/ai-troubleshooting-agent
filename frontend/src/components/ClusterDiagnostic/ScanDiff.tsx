@@ -39,7 +39,7 @@ const ScanDiff: React.FC<ScanDiffProps> = ({ delta }) => {
         <div>
           <span className="text-body-xs font-semibold text-red-400 uppercase">New Risks ({new_risks.length})</span>
           {new_risks.map((r, i) => (
-            <div key={i} className="text-body-xs text-red-300 pl-2 py-0.5 border-l-2 border-red-500/30 mt-1">{r}</div>
+            <div key={i} className="text-body-xs text-red-300 pl-2 py-0.5 border-l-2 border-wr-severity-high/30 mt-1">{r}</div>
           ))}
         </div>
       )}
@@ -57,7 +57,7 @@ const ScanDiff: React.FC<ScanDiffProps> = ({ delta }) => {
         <div>
           <span className="text-body-xs font-semibold text-amber-400 uppercase">Worsened ({worsened.length})</span>
           {worsened.map((r, i) => (
-            <div key={i} className="text-body-xs text-amber-300 pl-2 py-0.5 border-l-2 border-amber-500/30 mt-1">{r}</div>
+            <div key={i} className="text-body-xs text-amber-300 pl-2 py-0.5 border-l-2 border-wr-severity-medium/30 mt-1">{r}</div>
           ))}
         </div>
       )}

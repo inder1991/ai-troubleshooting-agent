@@ -62,7 +62,7 @@ const ReplicationTopologySVG: React.FC<ReplicationTopologySVGProps> = ({
   return (
     <div className="bg-duck-card/30 border border-duck-border rounded-lg p-3 overflow-x-auto">
       {/* Header */}
-      <div className="flex items-center gap-2 mb-2 pb-2 border-b border-slate-800">
+      <div className="flex items-center gap-2 mb-2 pb-2 border-b border-wr-border">
         <span className="material-symbols-outlined text-amber-400 text-sm">share</span>
         <span className="text-body-xs font-bold text-slate-400 uppercase tracking-wider">Replication Topology</span>
         <span className="text-body-xs text-slate-400 ml-auto font-mono">

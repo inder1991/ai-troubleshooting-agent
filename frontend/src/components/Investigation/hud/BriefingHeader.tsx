@@ -37,11 +37,11 @@ const BriefingHeader: React.FC<BriefingHeaderProps> = ({
     return controls.stop;
   }, [latestEventText, count, isStreaming]);
 
-  const sevColor = severity === 'P1' ? 'text-red-400 bg-red-500/10 border-red-500/30'
-    : 'text-amber-400 bg-amber-500/10 border-amber-500/30';
+  const sevColor = severity === 'P1' ? 'text-red-400 bg-wr-severity-high/10 border-wr-severity-high/30'
+    : 'text-amber-400 bg-wr-severity-medium/10 border-wr-severity-medium/30';
 
   return (
-    <div className="sticky top-0 z-[60] h-14 bg-slate-900/60 backdrop-blur-xl border-b border-slate-800/50 flex items-center px-4 gap-3">
+    <div className="sticky top-0 z-[60] h-14 bg-wr-bg/60 backdrop-blur-xl border-b border-wr-border/50 flex items-center px-4 gap-3">
       {/* Worker persona */}
       <div className="relative shrink-0">
         <motion.div
@@ -73,7 +73,7 @@ const BriefingHeader: React.FC<BriefingHeaderProps> = ({
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 8 }}
           transition={{ duration: 0.2 }}
-          className="text-body-xs font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full shrink-0"
+          className="text-body-xs font-bold text-amber-400 bg-wr-severity-medium/10 border border-amber-500/20 px-2 py-0.5 rounded-full shrink-0"
         >
           {agentName}
         </motion.span>

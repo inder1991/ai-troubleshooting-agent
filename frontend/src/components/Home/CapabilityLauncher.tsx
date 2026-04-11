@@ -41,7 +41,7 @@ const capabilities: {
     title: 'Issue Fixer',
     description: 'Generate and apply automated patches to known vulnerabilities.',
     icon: 'auto_fix_high',
-    iconClasses: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
+    iconClasses: 'text-amber-400 bg-wr-severity-medium/10 border-amber-500/20',
     ctaText: 'Generate Patch',
     ctaClasses: 'text-amber-400',
   },

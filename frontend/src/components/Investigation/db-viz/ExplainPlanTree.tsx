@@ -107,7 +107,7 @@ const ExplainPlanNode: React.FC<ExplainPlanTreeProps> = ({ plan, depth = 0 }) =>
 
       {/* Children */}
       {expanded && hasChildren && (
-        <div className="border-l border-slate-800 ml-2">
+        <div className="border-l border-wr-border ml-2">
           {plan.Plans!.map((child, i) => (
             <ExplainPlanNode key={i} plan={child} depth={depth + 1} />
           ))}

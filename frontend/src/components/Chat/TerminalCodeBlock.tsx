@@ -41,9 +41,9 @@ const TerminalCodeBlock: React.FC<TerminalCodeBlockProps> = ({ children, classNa
 
   // Fenced code block
   return (
-    <div className="my-2 rounded-lg border border-slate-700/50 overflow-hidden">
+    <div className="my-2 rounded-lg border border-wr-border-strong/50 overflow-hidden">
       {/* Header bar */}
-      <div className="flex items-center justify-between px-3 py-1.5 bg-slate-800/80 border-b border-slate-700/30">
+      <div className="flex items-center justify-between px-3 py-1.5 bg-wr-surface/80 border-b border-wr-border-strong/30">
         <span className="text-body-xs font-mono text-slate-400 uppercase tracking-wider">
           {language || 'code'}
         </span>

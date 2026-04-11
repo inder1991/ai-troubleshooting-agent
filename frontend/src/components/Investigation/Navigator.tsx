@@ -22,9 +22,9 @@ const Navigator: React.FC<NavigatorProps> = ({ findings, status, events }) => {
   const totalTokens = status?.token_usage?.reduce((sum, t) => sum + t.total_tokens, 0) ?? 0;
 
   return (
-    <div className="flex flex-col h-full bg-slate-900/20 overflow-y-auto custom-scrollbar">
+    <div className="flex flex-col h-full bg-wr-bg/20 overflow-y-auto custom-scrollbar">
       {/* Header */}
-      <div className="p-4 border-b border-slate-800 flex items-center gap-2 sticky top-0 z-10 bg-slate-900/90 backdrop-blur">
+      <div className="p-4 border-b border-wr-border flex items-center gap-2 sticky top-0 z-10 bg-wr-bg/90 backdrop-blur">
         <span className="material-symbols-outlined text-slate-400 text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>explore</span>
         <h2 className="text-xs font-bold uppercase tracking-widest text-slate-400">Navigator</h2>
       </div>
@@ -43,7 +43,7 @@ const Navigator: React.FC<NavigatorProps> = ({ findings, status, events }) => {
         {/* Service Topology */}
         <section>
           <h3 className="text-body-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Service Topology</h3>
-          <div className="bg-slate-900/40 border border-slate-800 rounded-lg p-3">
+          <div className="bg-wr-bg/40 border border-wr-border rounded-lg p-3">
             {findings ? (
               <InteractiveTopology
                 findings={findings}
@@ -66,12 +66,12 @@ const Navigator: React.FC<NavigatorProps> = ({ findings, status, events }) => {
         {/* Agent Status Matrix */}
         <section>
           <h3 className="text-body-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Agent Status</h3>
-          <div className="bg-slate-900/40 border border-slate-800 rounded-lg p-3 space-y-2">
+          <div className="bg-wr-bg/40 border border-wr-border rounded-lg p-3 space-y-2">
             {agentStatuses.map((agent, i) => (
               <div key={i} className="flex items-center gap-2">
                 <span className={`w-5 h-5 rounded-full flex items-center justify-center text-body-xs font-bold ${
-                  agent.code === 'L' ? 'bg-red-500/20 text-red-400' :
-                  agent.code === 'M' ? 'bg-amber-500/20 text-amber-400' :
+                  agent.code === 'L' ? 'bg-wr-severity-high/20 text-red-400' :
+                  agent.code === 'M' ? 'bg-wr-severity-medium/20 text-amber-400' :
                   agent.code === 'K' ? 'bg-orange-500/20 text-orange-400' :
                   agent.code === 'C' ? 'bg-emerald-500/20 text-emerald-400' :
                   'bg-slate-500/20 text-slate-400'
@@ -90,7 +90,7 @@ const Navigator: React.FC<NavigatorProps> = ({ findings, status, events }) => {
               </div>
             ))}
             {totalTokens > 0 && (
-              <div className="border-t border-slate-700 pt-2 flex justify-between">
+              <div className="border-t border-wr-border-strong pt-2 flex justify-between">
                 <span className="text-body-xs text-slate-400">Total</span>
                 <span className="text-body-xs font-mono text-slate-400">{totalTokens.toLocaleString()} tokens</span>
               </div>
@@ -157,13 +157,13 @@ const MetricsValidationDock: React.FC<{ queries: SuggestedPromQLQuery[] }> = ({ 
       <h3 className="text-body-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Metrics Validation</h3>
       <div className="space-y-2">
         {queries.map((q, i) => (
-          <div key={i} className="bg-slate-900/40 border border-slate-800 rounded-lg p-3">
+          <div key={i} className="bg-wr-bg/40 border border-wr-border rounded-lg p-3">
             <div className="flex items-center justify-between mb-1.5">
               <span className="text-body-xs font-bold text-amber-400 uppercase">{q.metric}</span>
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => handleCopy(q.query, i)}
-                  className="p-1 rounded hover:bg-slate-700/50 transition-colors"
+                  className="p-1 rounded hover:bg-wr-inset/50 transition-colors"
                   title="Copy query"
                   aria-label="Copy query"
                 >
@@ -176,7 +176,7 @@ const MetricsValidationDock: React.FC<{ queries: SuggestedPromQLQuery[] }> = ({ 
                 <button
                   onClick={() => handleRun(q.query, i)}
                   disabled={runResults[i]?.loading}
-                  className="flex items-center gap-1 text-body-xs px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:saturate-0"
+                  className="flex items-center gap-1 text-body-xs px-2 py-0.5 rounded bg-wr-severity-medium/10 text-amber-400 border border-amber-500/20 hover:bg-wr-severity-medium/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:saturate-0"
                   title="Execute query"
                   aria-label="Execute query"
                 >
@@ -220,7 +220,7 @@ const InfraHealthCards: React.FC<{ findings: V4Findings | null }> = ({ findings 
   return (
     <section>
       <h3 className="text-body-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Infrastructure Health</h3>
-      <div className="bg-slate-900/40 border border-slate-800 rounded-lg p-3">
+      <div className="bg-wr-bg/40 border border-wr-border rounded-lg p-3">
         <div className="grid grid-cols-2 gap-3 mb-3">
           <div>
             <div className="text-body-xs text-slate-400">Pods</div>
@@ -238,12 +238,12 @@ const InfraHealthCards: React.FC<{ findings: V4Findings | null }> = ({ findings 
         )}
         <div className="flex gap-1.5 flex-wrap">
           {oomCount > 0 && (
-            <span className="text-body-xs px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30">
+            <span className="text-body-xs px-1.5 py-0.5 rounded bg-wr-severity-high/20 text-red-400 border border-wr-severity-high/30">
               {oomCount} OOM
             </span>
           )}
           {crashLoopCount > 0 && (
-            <span className="text-body-xs px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30">
+            <span className="text-body-xs px-1.5 py-0.5 rounded bg-wr-severity-high/20 text-red-400 border border-wr-severity-high/30">
               {crashLoopCount} CrashLoop
             </span>
           )}

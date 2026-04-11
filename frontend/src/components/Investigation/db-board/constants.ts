@@ -68,9 +68,9 @@ export const SEVERITY_TEXT: Record<string, string> = {
 };
 
 export const SEVERITY_BADGE: Record<string, string> = {
-  critical: 'bg-red-500/10 text-red-400 border-red-500/30',
+  critical: 'bg-wr-severity-high/10 text-red-400 border-wr-severity-high/30',
   high: 'bg-orange-500/10 text-orange-400 border-orange-500/30',
-  medium: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
+  medium: 'bg-wr-severity-medium/10 text-amber-400 border-wr-severity-medium/30',
   low: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
 };
 
@@ -92,9 +92,9 @@ export const SEV_DOT: Record<string, string> = {
 };
 
 export const SEV_BADGE: Record<string, string> = {
-  critical: 'bg-red-500/10 text-red-400 border-red-500/30',
+  critical: 'bg-wr-severity-high/10 text-red-400 border-wr-severity-high/30',
   high: 'bg-orange-500/10 text-orange-400 border-orange-500/30',
-  medium: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
+  medium: 'bg-wr-severity-medium/10 text-amber-400 border-wr-severity-medium/30',
   low: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
 };
 

@@ -45,7 +45,7 @@ interface EvidenceFindingsProps {
 }
 
 const severityColor: Record<Severity, string> = {
-  critical: 'bg-red-500/20 text-red-300 border-red-500/30',
+  critical: 'bg-wr-severity-high/20 text-red-300 border-wr-severity-high/30',
   high: 'bg-orange-500/20 text-orange-300 border-orange-500/30',
   medium: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30',
   low: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
@@ -54,12 +54,12 @@ const severityColor: Record<Severity, string> = {
 
 const verdictColor: Record<CriticVerdict['verdict'], string> = {
   validated: 'bg-green-500/20 text-green-300',
-  challenged: 'bg-red-500/20 text-red-300',
+  challenged: 'bg-wr-severity-high/20 text-red-300',
   insufficient_data: 'bg-yellow-500/20 text-yellow-300',
 };
 
 const severityPriorityColor: Record<string, { border: string; bg: string; text: string }> = {
-  P1: { border: 'border-red-500/40', bg: 'bg-red-500/10', text: 'text-red-400' },
+  P1: { border: 'border-red-500/40', bg: 'bg-wr-severity-high/10', text: 'text-red-400' },
   P2: { border: 'border-orange-500/40', bg: 'bg-orange-500/10', text: 'text-orange-400' },
   P3: { border: 'border-yellow-500/40', bg: 'bg-yellow-500/10', text: 'text-yellow-400' },
   P4: { border: 'border-blue-500/40', bg: 'bg-blue-500/10', text: 'text-blue-400' },
@@ -235,7 +235,7 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                   initial="hidden"
                   animate="visible"
                   exit="exit"
-                  className="mb-4 flex items-center justify-between px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20"
+                  className="mb-4 flex items-center justify-between px-3 py-2 rounded-lg bg-wr-severity-medium/10 border border-amber-500/20"
                 >
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-amber-400" />
@@ -245,7 +245,7 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                   </div>
                   <button
                     onClick={clearSelection}
-                    className="text-body-xs text-slate-400 hover:text-white px-2 py-0.5 rounded bg-slate-700/50 hover:bg-slate-600/50 transition-colors"
+                    className="text-body-xs text-slate-400 hover:text-white px-2 py-0.5 rounded bg-wr-inset/50 hover:bg-slate-600/50 transition-colors"
                   >
                     Clear filter
                   </button>
@@ -254,9 +254,9 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
             </AnimatePresence>
             {/* Evidence Anchor Bar - prevents infinite scroll doom */}
             {findings && hasContent && (
-              <div className="sticky top-0 z-50 bg-slate-950/90 backdrop-blur border-b border-slate-800 flex gap-1.5 p-2 mb-4 rounded-lg overflow-x-auto scrollbar-hide">
+              <div className="sticky top-0 z-50 bg-slate-950/90 backdrop-blur border-b border-wr-border flex gap-1.5 p-2 mb-4 rounded-lg overflow-x-auto scrollbar-hide">
                 {rootCausePatterns.length > 0 && (
-                  <a href="#section-root-cause" className="text-body-xs uppercase font-bold text-red-400 bg-red-500/10 px-2 py-1 rounded whitespace-nowrap hover:bg-red-500/20 transition-colors">
+                  <a href="#section-root-cause" className="text-body-xs uppercase font-bold text-red-400 bg-wr-severity-high/10 px-2 py-1 rounded whitespace-nowrap hover:bg-wr-severity-high/20 transition-colors">
                     Root Cause ({rootCausePatterns.length})
                   </a>
                 )}
@@ -266,12 +266,12 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                   </a>
                 )}
                 {filteredFindings.length > 0 && (
-                  <a href="#section-findings" className="text-body-xs uppercase font-bold text-amber-400 bg-amber-500/10 px-2 py-1 rounded whitespace-nowrap hover:bg-amber-500/20 transition-colors">
+                  <a href="#section-findings" className="text-body-xs uppercase font-bold text-amber-400 bg-wr-severity-medium/10 px-2 py-1 rounded whitespace-nowrap hover:bg-wr-severity-medium/20 transition-colors">
                     Findings ({filteredFindings.length})
                   </a>
                 )}
                 {filteredMetrics.length > 0 && (
-                  <a href="#section-metrics" className="text-body-xs uppercase font-bold text-amber-400 bg-amber-500/10 px-2 py-1 rounded whitespace-nowrap hover:bg-amber-500/20 transition-colors">
+                  <a href="#section-metrics" className="text-body-xs uppercase font-bold text-amber-400 bg-wr-severity-medium/10 px-2 py-1 rounded whitespace-nowrap hover:bg-wr-severity-medium/20 transition-colors">
                     Metrics ({filteredMetrics.length})
                   </a>
                 )}
@@ -429,7 +429,7 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                                 )}
                               </div>
                               {verdict && (verdict.reasoning || verdict.recommendation) && (
-                                <div className="mt-2 bg-slate-800/30 rounded-lg border border-slate-700/30 p-2 space-y-1">
+                                <div className="mt-2 bg-wr-surface/30 rounded-lg border border-wr-border-strong/30 p-2 space-y-1">
                                   {verdict.reasoning && (
                                     <p className="text-body-xs text-slate-400">{verdict.reasoning}</p>
                                   )}
@@ -620,7 +620,7 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                           <span className="text-body-xs font-bold font-display text-slate-400">Code Navigator</span>
                           <span className={`text-body-xs px-2 py-0.5 rounded-full font-bold ${
                             conf >= 80 ? 'text-green-400 bg-green-500/10 border border-green-500/20' :
-                            conf >= 50 ? 'text-amber-400 bg-amber-500/10 border border-amber-500/20' :
+                            conf >= 50 ? 'text-amber-400 bg-wr-severity-medium/10 border border-amber-500/20' :
                             'text-blue-400 bg-blue-500/10 border border-blue-500/20'
                           }`}>
                             {conf}% confidence
@@ -635,10 +635,10 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                             <div className="flex items-center gap-2">
                               <span className={`text-body-xs font-bold px-1.5 py-0.5 rounded border ${
                                 findings.root_cause_location.fix_relevance === 'must_fix'
-                                  ? 'text-red-300 bg-red-500/20 border-red-500/30'
-                                  : 'text-amber-300 bg-amber-500/20 border-amber-500/30'
+                                  ? 'text-red-300 bg-wr-severity-high/20 border-wr-severity-high/30'
+                                  : 'text-amber-300 bg-wr-severity-medium/20 border-wr-severity-medium/30'
                               }`}>{findings.root_cause_location.fix_relevance.replace(/_/g, ' ').toUpperCase()}</span>
-                              <span className="text-body-xs px-1.5 py-0.5 rounded bg-slate-700/50 text-slate-300 font-mono">
+                              <span className="text-body-xs px-1.5 py-0.5 rounded bg-wr-inset/50 text-slate-300 font-mono">
                                 {findings.root_cause_location.impact_type.replace(/_/g, ' ')}
                               </span>
                             </div>
@@ -650,7 +650,7 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                             )}
                             <p className="text-body-xs text-slate-400">{findings.root_cause_location.relationship}</p>
                             {findings.root_cause_location.code_snippet && (
-                              <pre className="text-body-xs font-mono bg-slate-900/60 rounded p-2 text-green-400 overflow-x-auto whitespace-pre-wrap max-h-[200px] overflow-y-auto">
+                              <pre className="text-body-xs font-mono bg-wr-bg/60 rounded p-2 text-green-400 overflow-x-auto whitespace-pre-wrap max-h-[200px] overflow-y-auto">
                                 {findings.root_cause_location.code_snippet}
                               </pre>
                             )}
@@ -666,7 +666,7 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                                 <div className="flex flex-col items-center w-4">
                                   <div className="w-2 h-2 rounded-full bg-blue-500" />
                                   {i < (findings?.code_call_chain?.length ?? 0) - 1 && (
-                                    <div className="w-px h-4 bg-slate-700" />
+                                    <div className="w-px h-4 bg-wr-inset" />
                                   )}
                                 </div>
                                 <span className="text-body-xs font-mono text-slate-300">{step}</span>
@@ -682,8 +682,8 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                             {(findings?.impacted_files || []).map((file, i) => (
                               <div key={i} className="flex items-center gap-2 text-body-xs">
                                 <span className={`px-1 py-0.5 rounded border text-body-xs font-bold ${
-                                  file.fix_relevance === 'must_fix' ? 'text-red-300 bg-red-500/20 border-red-500/30' :
-                                  file.fix_relevance === 'should_review' ? 'text-amber-300 bg-amber-500/20 border-amber-500/30' :
+                                  file.fix_relevance === 'must_fix' ? 'text-red-300 bg-wr-severity-high/20 border-wr-severity-high/30' :
+                                  file.fix_relevance === 'should_review' ? 'text-amber-300 bg-wr-severity-medium/20 border-wr-severity-medium/30' :
                                   'text-slate-400 bg-slate-500/20 border-slate-500/30'
                                 }`}>{file.fix_relevance.replace(/_/g, ' ').toUpperCase()}</span>
                                 <span className="font-mono text-blue-400 truncate" title={file.file_path}>{file.file_path}</span>
@@ -710,7 +710,7 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                         <AgentFindingCard agent="D" title="Cross-Repo Findings">
                           <div className="space-y-2">
                             {(findings?.code_cross_repo_findings || []).map((crf: CrossRepoFinding, i: number) => (
-                              <div key={i} className="bg-slate-800/30 rounded-lg border border-slate-700/50 px-3 py-2">
+                              <div key={i} className="bg-wr-surface/30 rounded-lg border border-wr-border-strong/50 px-3 py-2">
                                 <div className="flex items-center gap-2 mb-1">
                                   <span className="text-body-xs font-mono text-violet-400">{crf.repo}</span>
                                   <span className="text-body-xs px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-400 border border-violet-500/20 font-bold uppercase">
@@ -727,7 +727,7 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                       {findings?.code_mermaid_diagram && (
                         <AgentFindingCard agent="D" title="Service Flow Diagram">
                           {/* h-80 = strict 320px height for pan/zoom engine to anchor against */}
-                          <div className="rounded-xl overflow-hidden w-full h-80 border border-slate-700/50 relative">
+                          <div className="rounded-xl overflow-hidden w-full h-80 border border-wr-border-strong/50 relative">
                             <MermaidChart chart={findings.code_mermaid_diagram} />
                           </div>
                         </AgentFindingCard>
@@ -827,8 +827,8 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                 {/* Activity Feed fallback */}
                 {errorPatterns.length === 0 && (findings?.findings?.length ?? 0) === 0 && events.length > 0 && (
                   <VineCard index={vineIndex++} sectionId="activity-feed">
-                    <div className="bg-slate-900/40 border border-slate-800 rounded-xl overflow-hidden">
-                      <div className="px-4 py-2 border-b border-slate-800 bg-slate-900/60">
+                    <div className="bg-wr-bg/40 border border-wr-border rounded-xl overflow-hidden">
+                      <div className="px-4 py-2 border-b border-wr-border bg-wr-bg/60">
                         <span className="text-body-xs font-bold font-display">Agent Activity Feed</span>
                       </div>
                       <div className="p-4 font-mono text-body-xs space-y-1 text-slate-400 max-h-[300px] overflow-y-auto custom-scrollbar">
@@ -903,7 +903,7 @@ function getSaturationMetrics(anomalies: MetricAnomaly[]): MetricAnomaly[] {
 }
 
 const StatBox: React.FC<{ label: string; value: number; color?: string }> = ({ label, value, color = 'text-white' }) => (
-  <div className="bg-slate-800/50 p-2 rounded border border-slate-700/50">
+  <div className="bg-wr-surface/50 p-2 rounded border border-wr-border-strong/50">
     <div className="text-body-xs text-slate-400">{label}</div>
     <div className={`text-lg font-bold font-mono ${color}`}>{value}</div>
   </div>
@@ -931,7 +931,7 @@ const ErrorPatternContent: React.FC<{ pattern: ErrorPattern; rank: number }> = (
     {pattern.affected_components?.length > 0 && (
       <div className="flex flex-wrap gap-1">
         {pattern.affected_components.map((svc, i) => (
-          <span key={i} className="text-body-xs font-mono px-2 py-0.5 rounded bg-slate-800/60 text-slate-300 border border-slate-700/50">{svc}</span>
+          <span key={i} className="text-body-xs font-mono px-2 py-0.5 rounded bg-wr-surface/60 text-slate-300 border border-wr-border-strong/50">{svc}</span>
         ))}
       </div>
     )}
@@ -949,9 +949,9 @@ const ErrorPatternContent: React.FC<{ pattern: ErrorPattern; rank: number }> = (
 const ErrorPatternCluster: React.FC<{ pattern: ErrorPattern; rank: number }> = ({ pattern, rank }) => {
   const [expanded, setExpanded] = useState(rank === 1);
   const sevColor = pattern.severity === 'critical' || pattern.severity === 'high'
-    ? 'border-red-500/30 bg-red-500/10'
+    ? 'border-wr-severity-high/30 bg-wr-severity-high/10'
     : pattern.severity === 'medium'
-    ? 'border-amber-500/30 bg-amber-500/10'
+    ? 'border-wr-severity-medium/30 bg-wr-severity-medium/10'
     : 'border-blue-500/30 bg-blue-500/10';
 
   return (
@@ -999,9 +999,9 @@ const BlastRadiusCard: React.FC<{ blast: BlastRadiusData | null; severity: Sever
           {/* Visual service bubbles */}
           <div className="flex flex-wrap gap-2">
             {blast.upstream_affected?.map((svc) => (
-              <span key={`up-${svc}`} className="text-body-xs font-mono px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30">{svc} ↑</span>
+              <span key={`up-${svc}`} className="text-body-xs font-mono px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-400 border border-wr-severity-medium/30">{svc} ↑</span>
             ))}
-            <span className="text-body-xs font-mono px-2.5 py-1 rounded-full bg-red-500/15 text-red-400 border border-red-500/30 font-bold">{blast.primary_service}</span>
+            <span className="text-body-xs font-mono px-2.5 py-1 rounded-full bg-red-500/15 text-red-400 border border-wr-severity-high/30 font-bold">{blast.primary_service}</span>
             {blast.downstream_affected?.map((svc) => (
               <span key={`dn-${svc}`} className="text-body-xs font-mono px-2.5 py-1 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/30">{svc} ↓</span>
             ))}
@@ -1014,7 +1014,7 @@ const BlastRadiusCard: React.FC<{ blast: BlastRadiusData | null; severity: Sever
             </div>
           )}
           {severity?.factors && Object.keys(severity.factors).length > 0 && (
-            <div className="space-y-1 pt-1 border-t border-slate-800">
+            <div className="space-y-1 pt-1 border-t border-wr-border">
               <span className="text-body-xs font-bold text-slate-400 uppercase tracking-wider">Severity Factors</span>
               {Object.entries(severity.factors).map(([key, value]) => (
                 <div key={key} className="flex items-start gap-2 text-body-xs">
@@ -1025,7 +1025,7 @@ const BlastRadiusCard: React.FC<{ blast: BlastRadiusData | null; severity: Sever
             </div>
           )}
           {blast.estimated_user_impact && (
-            <div className="text-body-xs text-slate-400 pt-1 border-t border-slate-800">
+            <div className="text-body-xs text-slate-400 pt-1 border-t border-wr-border">
               Est. User Impact: {blast.estimated_user_impact}
             </div>
           )}
@@ -1064,8 +1064,8 @@ const TemporalFlowTimeline: React.FC<{
   })();
 
   return (
-    <div className="bg-slate-900/40 border border-slate-800 rounded-xl overflow-hidden">
-      <div className="px-4 py-2 border-b border-slate-800 flex items-center justify-between bg-slate-900/60">
+    <div className="bg-wr-bg/40 border border-wr-border rounded-xl overflow-hidden">
+      <div className="px-4 py-2 border-b border-wr-border flex items-center justify-between bg-wr-bg/60">
         <div className="flex items-center gap-2">
           <span className="material-symbols-outlined text-violet-400 text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>timeline</span>
           <span className="text-body-xs font-bold font-display">Temporal Flow</span>
@@ -1076,7 +1076,7 @@ const TemporalFlowTimeline: React.FC<{
         </div>
       </div>
       <div className="p-4 relative">
-        <div className="absolute left-[31px] top-4 bottom-4 border-l border-dashed border-slate-700" />
+        <div className="absolute left-[31px] top-4 bottom-4 border-l border-dashed border-wr-border-strong" />
         <div className="space-y-3">
           {steps.map((step, i) => {
             const isPatientZero = patientZero?.service?.toLowerCase() === step.service.toLowerCase();
@@ -1089,23 +1089,23 @@ const TemporalFlowTimeline: React.FC<{
                       : nodeColor(step.status, i === lastErrorIdx)
                   }`} />
                 </div>
-                <button onClick={() => setExpandedIdx(expandedIdx === i ? null : i)} className="flex-1 bg-slate-800/30 p-2 rounded-lg border border-slate-700/50 text-left hover:border-slate-600/50 transition-colors">
+                <button onClick={() => setExpandedIdx(expandedIdx === i ? null : i)} className="flex-1 bg-wr-surface/30 p-2 rounded-lg border border-wr-border-strong/50 text-left hover:border-wr-border-strong/50 transition-colors">
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 min-w-0">
                       <span className="text-body-xs font-bold text-slate-400 uppercase tracking-tight shrink-0">{step.service}</span>
-                      {isPatientZero && <span className="text-chrome px-1 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30">ORIGIN</span>}
+                      {isPatientZero && <span className="text-chrome px-1 py-0.5 rounded bg-wr-severity-high/20 text-red-400 border border-wr-severity-high/30">ORIGIN</span>}
                       <span className="text-body-xs font-mono text-slate-300 truncate">{step.operation}</span>
                     </div>
                     <span className={`text-body-xs font-mono font-bold px-1.5 py-0.5 rounded border ${
                       step.status === 'ok' ? 'text-green-400 border-green-500/30 bg-green-500/10' :
-                      step.status === 'error' ? 'text-red-400 border-red-500/30 bg-red-500/10' :
+                      step.status === 'error' ? 'text-red-400 border-wr-severity-high/30 bg-wr-severity-high/10' :
                       'text-orange-400 border-orange-500/30 bg-orange-500/10'
                     }`}>
                       {step.status_detail || step.status.toUpperCase()}
                     </span>
                   </div>
                   {expandedIdx === i && (
-                    <div className="mt-2 pt-2 border-t border-slate-700/50 space-y-1">
+                    <div className="mt-2 pt-2 border-t border-wr-border-strong/50 space-y-1">
                       {step.timestamp && <div className="text-body-xs text-slate-400 font-mono">{safeDate(step.timestamp)}</div>}
                       {step.message && <div className="text-body-xs text-slate-400 font-mono break-all">{step.message}</div>}
                     </div>
@@ -1194,7 +1194,7 @@ const CausalityChainCard: React.FC<{ findings: V4Findings | null }> = ({ finding
 
       {/* Gap 2: Top Suspects — High Priority Files */}
       {highPriorityFiles.length > 0 && (
-        <div className="rounded-lg bg-slate-900/40 border border-slate-700/50 px-4 py-2.5">
+        <div className="rounded-lg bg-wr-bg/40 border border-wr-border-strong/50 px-4 py-2.5">
           <div className="flex items-center gap-1.5 mb-2">
             <span className="material-symbols-outlined text-amber-400 text-xs"
                   style={{ fontFamily: 'Material Symbols Outlined' }}>target</span>
@@ -1204,7 +1204,7 @@ const CausalityChainCard: React.FC<{ findings: V4Findings | null }> = ({ finding
           <div className="flex flex-wrap gap-1.5">
             {highPriorityFiles.map((hpf, i) => (
               <span key={i}
-                    className="group relative text-body-xs font-mono px-2 py-1 rounded-md bg-amber-500/10 text-amber-300 border border-amber-500/25 cursor-default"
+                    className="group relative text-body-xs font-mono px-2 py-1 rounded-md bg-wr-severity-medium/10 text-amber-300 border border-amber-500/25 cursor-default"
                     title={`Risk: ${Math.round(hpf.risk_score * 100)}% | ${hpf.description}`}>
                 {hpf.file_path.split('/').pop()}
                 <span className="ml-1.5 text-body-xs text-amber-500 font-bold">{Math.round(hpf.risk_score * 100)}%</span>
@@ -1238,7 +1238,7 @@ const CausalityChainCard: React.FC<{ findings: V4Findings | null }> = ({ finding
 
       {/* Gap 4: Ruled Out — Dead Ends */}
       {changeNegatives.length > 0 && (
-        <div className="rounded-lg bg-slate-900/20 border border-slate-800/50">
+        <div className="rounded-lg bg-wr-bg/20 border border-wr-border/50">
           <button onClick={() => setRuledOutOpen(!ruledOutOpen)}
                   className="w-full text-left px-4 py-2 flex items-center gap-2"
                   aria-expanded={ruledOutOpen}
@@ -1273,12 +1273,12 @@ const CausalityLinkCard: React.FC<{ link: CausalityLink }> = ({ link }) => {
   const riskColor = riskPct >= 80 ? 'text-red-400' : riskPct >= 50 ? 'text-amber-400' : 'text-blue-400';
   const hasLikelyCause = link.diffs.some(d => d.verdict === 'likely_cause');
   const temporalPct = Math.round((link.correlation.temporal_correlation ?? 0) * 100);
-  const temporalColor = temporalPct >= 80 ? 'text-red-400 bg-red-500/10 border-red-500/20'
-    : temporalPct >= 50 ? 'text-amber-400 bg-amber-500/10 border-amber-500/20'
+  const temporalColor = temporalPct >= 80 ? 'text-red-400 bg-wr-severity-high/10 border-red-500/20'
+    : temporalPct >= 50 ? 'text-amber-400 bg-wr-severity-medium/10 border-amber-500/20'
     : 'text-blue-400 bg-blue-500/10 border-blue-500/20';
 
   return (
-    <div className="rounded-lg overflow-hidden bg-slate-900/40 border border-slate-700/50"
+    <div className="rounded-lg overflow-hidden bg-wr-bg/40 border border-wr-border-strong/50"
          style={{ borderLeft: '3px solid', borderImage: 'linear-gradient(to bottom, #10b981, #3b82f6, #8b5cf6) 1' }}>
 
       {/* Top: Change Agent - Who/When */}
@@ -1297,14 +1297,14 @@ const CausalityLinkCard: React.FC<{ link: CausalityLink }> = ({ link }) => {
         )}
         <span className={`text-body-xs font-bold ${riskColor}`}>{riskPct}%</span>
         {hasLikelyCause && (
-          <span className="text-body-xs px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30">LIKELY CAUSE</span>
+          <span className="text-body-xs px-1.5 py-0.5 rounded bg-wr-severity-high/20 text-red-400 border border-wr-severity-high/30">LIKELY CAUSE</span>
         )}
       </button>
 
       {expanded && (
-        <div className="border-t border-slate-800/50">
+        <div className="border-t border-wr-border/50">
           {/* Meta row */}
-          <div className="px-4 py-1.5 flex flex-wrap gap-x-4 gap-y-1 text-body-xs text-slate-400 bg-slate-800/20">
+          <div className="px-4 py-1.5 flex flex-wrap gap-x-4 gap-y-1 text-body-xs text-slate-400 bg-wr-surface/20">
             <span>Author: {link.correlation.author}</span>
             <span>Type: {(link.correlation.change_type || 'code_deploy').replace(/_/g, ' ')}</span>
             {link.correlation.timestamp && <span>{safeDate(link.correlation.timestamp)}</span>}
@@ -1319,7 +1319,7 @@ const CausalityLinkCard: React.FC<{ link: CausalityLink }> = ({ link }) => {
 
           {/* Middle: Diff Analysis */}
           {link.diffs.length > 0 && (
-            <div className="px-4 py-2 border-t border-slate-800/30">
+            <div className="px-4 py-2 border-t border-wr-border/30">
               <div className="flex items-center gap-1.5 mb-1.5">
                 <span className="w-4 h-4 rounded-full flex items-center justify-center text-chrome font-bold bg-blue-500 text-white">D</span>
                 <span className="text-body-xs text-slate-400 uppercase tracking-wider">Diff Analysis</span>
@@ -1342,14 +1342,14 @@ const CausalityLinkCard: React.FC<{ link: CausalityLink }> = ({ link }) => {
 
           {/* Files changed fallback */}
           {link.diffs.length === 0 && (link.correlation.files_changed?.length ?? 0) > 0 && (
-            <div className="px-4 py-2 border-t border-slate-800/30 text-body-xs text-slate-400">
+            <div className="px-4 py-2 border-t border-wr-border/30 text-body-xs text-slate-400">
               Files: {link.correlation.files_changed.join(', ')}
             </div>
           )}
 
           {/* Bottom: Suggested Fix */}
           {link.fixes.length > 0 && (
-            <div className="px-4 py-2 border-t border-slate-800/30">
+            <div className="px-4 py-2 border-t border-wr-border/30">
               <div className="flex items-center gap-1.5 mb-1.5">
                 <span className="material-symbols-outlined text-green-400 text-xs" style={{ fontFamily: 'Material Symbols Outlined' }}>build</span>
                 <span className="text-body-xs text-slate-400 uppercase tracking-wider">Suggested Fix</span>
@@ -1365,7 +1365,7 @@ const CausalityLinkCard: React.FC<{ link: CausalityLink }> = ({ link }) => {
 
           {/* Reasoning */}
           {link.correlation.reasoning && (
-            <div className="px-4 py-2 border-t border-slate-800/30 text-body-xs text-slate-400 italic">
+            <div className="px-4 py-2 border-t border-wr-border/30 text-body-xs text-slate-400 italic">
               {link.correlation.reasoning}
             </div>
           )}
@@ -1400,7 +1400,7 @@ const ChangeRow: React.FC<{ correlation: ChangeCorrelation }> = ({ correlation }
   const riskColor = riskPct >= 80 ? 'text-red-400' : riskPct >= 50 ? 'text-amber-400' : 'text-blue-400';
 
   return (
-    <div className="bg-slate-800/30 rounded-lg border border-slate-700/50">
+    <div className="bg-wr-surface/30 rounded-lg border border-wr-border-strong/50">
       <button onClick={() => setExpanded(!expanded)} className="w-full text-left px-3 py-2 flex items-center gap-2" aria-expanded={expanded}>
         <span className={`material-symbols-outlined text-xs text-slate-400 transition-transform ${expanded ? 'rotate-90' : ''}`} style={{ fontFamily: 'Material Symbols Outlined' }}>chevron_right</span>
         <span className="text-body-xs font-mono text-violet-400">{correlation.change_id?.slice(0, 8) || '—'}</span>
@@ -1422,8 +1422,8 @@ const ChangeRow: React.FC<{ correlation: ChangeCorrelation }> = ({ correlation }
 // ─── Legacy: Diff Analysis Section (kept for reference + DiffRow reused) ──
 
 const verdictStyle: Record<DiffAnalysisItem['verdict'], { text: string; bg: string; border: string }> = {
-  likely_cause: { text: 'text-red-300', bg: 'bg-red-500/20', border: 'border-red-500/30' },
-  contributing: { text: 'text-amber-300', bg: 'bg-amber-500/20', border: 'border-amber-500/30' },
+  likely_cause: { text: 'text-red-300', bg: 'bg-wr-severity-high/20', border: 'border-wr-severity-high/30' },
+  contributing: { text: 'text-amber-300', bg: 'bg-wr-severity-medium/20', border: 'border-wr-severity-medium/30' },
   unrelated: { text: 'text-slate-400', bg: 'bg-slate-500/20', border: 'border-slate-500/30' },
 };
 
@@ -1454,7 +1454,7 @@ const DiffRow: React.FC<{ item: DiffAnalysisItem }> = ({ item }) => {
   const style = verdictStyle[item.verdict];
 
   return (
-    <div className="bg-slate-800/30 rounded-lg border border-slate-700/50">
+    <div className="bg-wr-surface/30 rounded-lg border border-wr-border-strong/50">
       <button onClick={() => setExpanded(!expanded)} className="w-full text-left px-3 py-2 flex items-center gap-2" aria-expanded={expanded}>
         <span className={`material-symbols-outlined text-xs text-slate-400 transition-transform ${expanded ? 'rotate-90' : ''}`} style={{ fontFamily: 'Material Symbols Outlined' }}>chevron_right</span>
         <span className={`text-body-xs font-bold px-1.5 py-0.5 rounded border ${style.text} ${style.bg} ${style.border}`}>
@@ -1495,7 +1495,7 @@ const FixRow: React.FC<{ fix: SuggestedFixArea }> = ({ fix }) => {
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className="bg-slate-800/30 rounded-lg border border-slate-700/50">
+    <div className="bg-wr-surface/30 rounded-lg border border-wr-border-strong/50">
       <button onClick={() => setExpanded(!expanded)} className="w-full text-left px-3 py-2 flex items-center gap-2" aria-expanded={expanded}>
         <span className={`material-symbols-outlined text-xs text-slate-400 transition-transform ${expanded ? 'rotate-90' : ''}`} style={{ fontFamily: 'Material Symbols Outlined' }}>chevron_right</span>
         <span className="text-body-xs font-mono text-blue-400 truncate" title={fix.file_path}>{fix.file_path}</span>
@@ -1503,7 +1503,7 @@ const FixRow: React.FC<{ fix: SuggestedFixArea }> = ({ fix }) => {
       </button>
       {expanded && fix.suggested_change && (
         <div className="px-3 pb-2.5">
-          <pre className="text-body-xs text-green-400 font-mono bg-slate-900/60 rounded p-2 overflow-x-auto whitespace-pre-wrap">{fix.suggested_change}</pre>
+          <pre className="text-body-xs text-green-400 font-mono bg-wr-bg/60 rounded p-2 overflow-x-auto whitespace-pre-wrap">{fix.suggested_change}</pre>
         </div>
       )}
     </div>
@@ -1533,7 +1533,7 @@ const TraceWaterfall: React.FC<{ spans: SpanInfo[] }> = ({ spans }) => {
   spans.forEach(computeDepth);
 
   return (
-    <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-4 space-y-3">
+    <div className="bg-wr-bg/40 border border-wr-border rounded-xl p-4 space-y-3">
       <div className="flex items-center gap-2">
         <span className="material-symbols-outlined text-amber-400 text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>stacked_bar_chart</span>
         <span className="text-body-xs font-bold font-display">Trace Waterfall</span>
@@ -1552,12 +1552,12 @@ const TraceWaterfall: React.FC<{ spans: SpanInfo[] }> = ({ spans }) => {
             <div key={i}>
               <button
                 onClick={() => hasDetail ? setExpandedSpan(isExpanded ? null : i) : undefined}
-                className={`flex items-center gap-2 py-0.5 w-full text-left ${hasDetail ? 'cursor-pointer hover:bg-slate-800/30 rounded' : 'cursor-default'}`}
+                className={`flex items-center gap-2 py-0.5 w-full text-left ${hasDetail ? 'cursor-pointer hover:bg-wr-surface/30 rounded' : 'cursor-default'}`}
                 style={{ paddingLeft: `${depth * 16}px` }}
               >
                 <span className="text-body-xs font-mono text-[#07b6d5] w-20 shrink-0 truncate">{span.service}</span>
                 <span className="text-body-xs text-slate-400 w-28 shrink-0 truncate">{span.operation}</span>
-                <div className="flex-1 h-3 bg-slate-800/50 rounded overflow-hidden">
+                <div className="flex-1 h-3 bg-wr-surface/50 rounded overflow-hidden">
                   <div className={`h-full rounded ${barColor}`} style={{ width: `${widthPct}%` }} />
                 </div>
                 <span className={`text-body-xs font-mono w-14 text-right shrink-0 ${isError ? 'text-red-400' : 'text-slate-400'}`}>
@@ -1565,14 +1565,14 @@ const TraceWaterfall: React.FC<{ spans: SpanInfo[] }> = ({ spans }) => {
                 </span>
               </button>
               {isExpanded && (
-                <div className="ml-6 mt-1 mb-2 bg-slate-800/30 rounded-lg border border-slate-700/30 p-2 space-y-1" style={{ marginLeft: `${depth * 16 + 24}px` }}>
+                <div className="ml-6 mt-1 mb-2 bg-wr-surface/30 rounded-lg border border-wr-border-strong/30 p-2 space-y-1" style={{ marginLeft: `${depth * 16 + 24}px` }}>
                   {span.error_message && (
                     <p className="text-body-xs text-red-400 font-mono break-all">{span.error_message}</p>
                   )}
                   {span.tags && Object.keys(span.tags).length > 0 && (
                     <div className="flex flex-wrap gap-1.5">
                       {Object.entries(span.tags).map(([k, v]) => (
-                        <span key={k} className="text-body-xs font-mono px-1.5 py-0.5 rounded bg-slate-700/50 text-slate-400">
+                        <span key={k} className="text-body-xs font-mono px-1.5 py-0.5 rounded bg-wr-inset/50 text-slate-400">
                           {k}={v}
                         </span>
                       ))}
@@ -1606,16 +1606,16 @@ const PodDetailsList: React.FC<{ pods: PodHealthStatus[] }> = ({ pods }) => {
       {displayPods.map((pod) => {
         const isExpanded = expandedPod === pod.pod_name;
         return (
-          <div key={pod.pod_name} className="bg-slate-800/30 rounded-lg border border-slate-700/30 overflow-hidden">
+          <div key={pod.pod_name} className="bg-wr-surface/30 rounded-lg border border-wr-border-strong/30 overflow-hidden">
             <div className="flex items-center">
               <button
                 onClick={() => setExpandedPod(isExpanded ? null : pod.pod_name)}
-                className="flex-1 text-left px-2.5 py-1.5 flex items-center gap-2 hover:bg-slate-800/50 transition-colors"
+                className="flex-1 text-left px-2.5 py-1.5 flex items-center gap-2 hover:bg-wr-surface/50 transition-colors"
               >
                 <span className={`w-2 h-2 rounded-full shrink-0 ${pod.ready ? 'bg-green-500' : 'bg-red-500 animate-pulse'}`} />
                 <span className="text-body-xs font-mono text-slate-300 truncate flex-1">{pod.pod_name}</span>
-                {pod.oom_killed && <span className="text-body-xs px-1 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30">OOM</span>}
-                {pod.crash_loop && <span className="text-body-xs px-1 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30">CRASH</span>}
+                {pod.oom_killed && <span className="text-body-xs px-1 py-0.5 rounded bg-wr-severity-high/20 text-red-400 border border-wr-severity-high/30">OOM</span>}
+                {pod.crash_loop && <span className="text-body-xs px-1 py-0.5 rounded bg-wr-severity-high/20 text-red-400 border border-wr-severity-high/30">CRASH</span>}
                 {pod.restart_count > 0 && <span className="text-body-xs text-amber-400 font-mono">{pod.restart_count}x</span>}
                 <span className={`material-symbols-outlined text-xs text-slate-500 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
                       style={{ fontFamily: 'Material Symbols Outlined' }}>chevron_right</span>
@@ -1629,7 +1629,7 @@ const PodDetailsList: React.FC<{ pods: PodHealthStatus[] }> = ({ pods }) => {
               </button>
             </div>
             {isExpanded && (
-              <div className="px-2.5 pb-2 pt-1 border-t border-slate-700/30 space-y-1 text-body-xs">
+              <div className="px-2.5 pb-2 pt-1 border-t border-wr-border-strong/30 space-y-1 text-body-xs">
                 <div className="flex gap-4 text-slate-400">
                   <span>Status: <span className="text-slate-300">{pod.status}</span></span>
                   {pod.namespace && <span>NS: <span className="text-slate-300">{pod.namespace}</span></span>}
@@ -1640,7 +1640,7 @@ const PodDetailsList: React.FC<{ pods: PodHealthStatus[] }> = ({ pods }) => {
                 {pod.conditions && pod.conditions.length > 0 && (
                   <div className="flex flex-wrap gap-1">
                     {pod.conditions.map((c, i) => (
-                      <span key={i} className="text-body-xs font-mono px-1.5 py-0.5 rounded bg-slate-700/50 text-slate-400">{c}</span>
+                      <span key={i} className="text-body-xs font-mono px-1.5 py-0.5 rounded bg-wr-inset/50 text-slate-400">{c}</span>
                     ))}
                   </div>
                 )}
@@ -1689,8 +1689,8 @@ const EventMarkerTimeline: React.FC<{ markers: EventMarker[] }> = ({ markers }) 
   const sorted = [...markers].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
   return (
-    <div className="bg-slate-900/40 border border-slate-800 rounded-xl overflow-hidden">
-      <div className="px-4 py-2 border-b border-slate-800 bg-slate-900/60 flex items-center gap-2">
+    <div className="bg-wr-bg/40 border border-wr-border rounded-xl overflow-hidden">
+      <div className="px-4 py-2 border-b border-wr-border bg-wr-bg/60 flex items-center gap-2">
         <span className="material-symbols-outlined text-amber-400 text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>flag</span>
         <span className="text-body-xs font-bold font-display">Event Markers</span>
         <span className="text-body-xs text-slate-400 ml-auto">{markers.length} events</span>
@@ -1717,8 +1717,8 @@ const PastIncidentsSection: React.FC<{ incidents: PastIncidentMatch[] }> = ({ in
   const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
 
   return (
-    <div className="bg-slate-900/40 border border-slate-800 rounded-xl overflow-hidden">
-      <div className="px-4 py-2 border-b border-slate-800 bg-slate-900/60 flex items-center gap-2">
+    <div className="bg-wr-bg/40 border border-wr-border rounded-xl overflow-hidden">
+      <div className="px-4 py-2 border-b border-wr-border bg-wr-bg/60 flex items-center gap-2">
         <span className="material-symbols-outlined text-violet-400 text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>history</span>
         <span className="text-body-xs font-bold font-display text-violet-400">Similar Past Incidents</span>
         <span className="text-body-xs text-slate-400 ml-auto">{incidents.length} match{incidents.length !== 1 ? 'es' : ''}</span>
@@ -1732,10 +1732,10 @@ const PastIncidentsSection: React.FC<{ incidents: PastIncidentMatch[] }> = ({ in
           const simColor = similarity >= 80 ? 'text-red-400' : similarity >= 50 ? 'text-amber-400' : 'text-blue-400';
 
           return (
-            <div key={inc.fingerprint_id || i} className="bg-slate-800/30 rounded-lg border border-slate-700/50 overflow-hidden">
+            <div key={inc.fingerprint_id || i} className="bg-wr-surface/30 rounded-lg border border-wr-border-strong/50 overflow-hidden">
               <button
                 onClick={() => setExpandedIdx(isExpanded ? null : i)}
-                className="w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-slate-800/50 transition-colors"
+                className="w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-wr-surface/50 transition-colors"
               >
                 <span className={`material-symbols-outlined text-xs text-slate-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
                       style={{ fontFamily: 'Material Symbols Outlined' }}>chevron_right</span>
@@ -1750,13 +1750,13 @@ const PastIncidentsSection: React.FC<{ incidents: PastIncidentMatch[] }> = ({ in
                 )}
               </button>
               {isExpanded && (
-                <div className="px-3 pb-3 border-t border-slate-700/30 pt-2 space-y-2">
+                <div className="px-3 pb-3 border-t border-wr-border-strong/30 pt-2 space-y-2">
                   {(inc.error_patterns?.length ?? 0) > 0 && (
                     <div>
                       <span className="text-body-xs font-bold text-slate-400 uppercase tracking-wider">Error Patterns</span>
                       <div className="flex flex-wrap gap-1 mt-1">
                         {inc.error_patterns?.map((ep, j) => (
-                          <span key={j} className="text-body-xs font-mono px-1.5 py-0.5 rounded bg-red-500/10 text-red-400 border border-red-500/20">{ep}</span>
+                          <span key={j} className="text-body-xs font-mono px-1.5 py-0.5 rounded bg-wr-severity-high/10 text-red-400 border border-red-500/20">{ep}</span>
                         ))}
                       </div>
                     </div>
@@ -1766,7 +1766,7 @@ const PastIncidentsSection: React.FC<{ incidents: PastIncidentMatch[] }> = ({ in
                       <span className="text-body-xs font-bold text-slate-400 uppercase tracking-wider">Affected Services</span>
                       <div className="flex flex-wrap gap-1 mt-1">
                         {inc.affected_services?.map((svc, j) => (
-                          <span key={j} className="text-body-xs font-mono px-1.5 py-0.5 rounded bg-slate-700/50 text-slate-300">{svc}</span>
+                          <span key={j} className="text-body-xs font-mono px-1.5 py-0.5 rounded bg-wr-inset/50 text-slate-300">{svc}</span>
                         ))}
                       </div>
                     </div>
@@ -1814,7 +1814,7 @@ const PhaseAwareEmptyState: React.FC<{ phase: DiagnosticPhase | null }> = ({ pha
     <div className="flex items-center justify-center h-full min-h-[200px] text-slate-400">
       <div className="text-center">
         {!isComplete && (
-          <div className="w-8 h-8 border-2 border-slate-800 border-t-[#07b6d5] rounded-full animate-spin mx-auto mb-3" />
+          <div className="w-8 h-8 border-2 border-wr-border border-t-[#07b6d5] rounded-full animate-spin mx-auto mb-3" />
         )}
         <span
           className="material-symbols-outlined text-2xl text-slate-400 mb-2 block"

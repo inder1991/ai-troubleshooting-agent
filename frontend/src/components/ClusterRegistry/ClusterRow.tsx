@@ -32,7 +32,7 @@ const providerLabel: Record<string, string> = {
 const providerBg: Record<string, string> = {
   aws: 'bg-orange-500/15 text-orange-400 border-orange-500/30',
   azure: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
-  gcp: 'bg-red-500/15 text-red-400 border-red-500/30',
+  gcp: 'bg-red-500/15 text-red-400 border-wr-severity-high/30',
   oci: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
   onprem: 'bg-slate-500/15 text-slate-400 border-slate-500/30',
 };
@@ -110,7 +110,7 @@ const ClusterRow: React.FC<ClusterRowProps> = ({ cluster, onViewRecommendations,
           <div className="flex items-center justify-center gap-1">
             <span className="text-xs text-slate-300">{cluster.recommendation_count}</span>
             {cluster.critical_count > 0 && (
-              <span className="text-body-xs bg-red-500/20 text-red-400 px-1 rounded">{cluster.critical_count}!</span>
+              <span className="text-body-xs bg-wr-severity-high/20 text-red-400 px-1 rounded">{cluster.critical_count}!</span>
             )}
           </div>
         ) : (

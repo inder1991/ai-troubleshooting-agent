@@ -23,7 +23,7 @@ const WorkloadCard: React.FC<WorkloadCardProps> = ({ workload, domainColor }) =>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className={`w-10 h-10 rounded border flex items-center justify-center ${
-            isCrashing ? 'border-red-500 bg-red-500/10 text-red-500' : `border-wr-border text-slate-400`
+            isCrashing ? 'border-red-500 bg-wr-severity-high/10 text-red-500' : `border-wr-border text-slate-400`
           }`}>
             <span
               className={`material-symbols-outlined ${isCrashing ? 'animate-pulse' : ''}`}
@@ -40,7 +40,7 @@ const WorkloadCard: React.FC<WorkloadCardProps> = ({ workload, domainColor }) =>
         </div>
         {isTrigger && (
           <div className="flex flex-col items-end gap-1">
-            <span className="px-2 py-1 bg-red-500/20 text-red-500 text-body-xs font-bold border border-red-500 rounded tracking-tighter">TRIGGER</span>
+            <span className="px-2 py-1 bg-wr-severity-high/20 text-red-500 text-body-xs font-bold border border-red-500 rounded tracking-tighter">TRIGGER</span>
             {workload.age && <span className="text-body-xs text-slate-400 font-mono">{workload.age}</span>}
           </div>
         )}

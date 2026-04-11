@@ -93,7 +93,7 @@ const InvestigationFlowTab: React.FC = () => {
         <span className="text-sm font-bold text-white">
           Live Investigation: Checkout Failure
         </span>
-        <span className="bg-red-500/20 text-red-400 text-body-xs font-bold uppercase px-2 py-0.5 rounded">
+        <span className="bg-wr-severity-high/20 text-red-400 text-body-xs font-bold uppercase px-2 py-0.5 rounded">
           SEV-1
         </span>
       </div>
@@ -254,7 +254,7 @@ const InvestigationFlowTab: React.FC = () => {
               className={`px-2.5 py-1 rounded text-xs font-mono transition-colors ${
                 speed === s
                   ? 'bg-[#e09f3e]/20 text-[#e09f3e] border border-[#e09f3e]/30'
-                  : 'bg-slate-900/50 text-slate-400 border border-[#3d3528] hover:text-slate-300'
+                  : 'bg-wr-bg/50 text-slate-400 border border-[#3d3528] hover:text-slate-300'
               }`}
             >
               {s}x
@@ -267,7 +267,7 @@ const InvestigationFlowTab: React.FC = () => {
           {(isRunning || progressPercent > 0) && (
             <button
               onClick={resetAnimation}
-              className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-bold transition-colors border border-[#3d3528]"
+              className="px-4 py-2 rounded-lg bg-wr-surface hover:bg-wr-inset text-slate-300 text-sm font-bold transition-colors border border-[#3d3528]"
             >
               Reset
             </button>

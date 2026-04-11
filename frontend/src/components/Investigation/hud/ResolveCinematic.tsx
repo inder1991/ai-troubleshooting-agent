@@ -45,7 +45,7 @@ const ResolveCinematic: React.FC<ResolveCinematicProps> = ({ findings, onDismiss
         initial={{ scale: 0.9, y: 40, opacity: 0 }}
         animate={{ scale: 1, y: 0, opacity: 1 }}
         transition={{ delay: 0.4, type: 'spring', stiffness: 200, damping: 20 }}
-        className="relative bg-slate-900/90 border border-emerald-500/30 rounded-2xl p-8 max-w-md w-full mx-4 shadow-[0_0_60px_rgba(16,185,129,0.15)]"
+        className="relative bg-wr-bg/90 border border-emerald-500/30 rounded-2xl p-8 max-w-md w-full mx-4 shadow-[0_0_60px_rgba(16,185,129,0.15)]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Shield icon */}
@@ -76,7 +76,7 @@ const ResolveCinematic: React.FC<ResolveCinematicProps> = ({ findings, onDismiss
           </button>
           <button
             onClick={onDismiss}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800/50 text-slate-400 border border-slate-700/50 hover:bg-slate-800 transition-colors text-sm"
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-wr-surface/50 text-slate-400 border border-wr-border-strong/50 hover:bg-wr-surface transition-colors text-sm"
           >
             Return to Dashboard
             <ArrowRight className="w-4 h-4" />
@@ -84,7 +84,7 @@ const ResolveCinematic: React.FC<ResolveCinematicProps> = ({ findings, onDismiss
         </div>
 
         {/* Worker's Salute */}
-        <div className="mt-6 pt-4 border-t border-slate-800/50 flex items-center justify-center gap-2">
+        <div className="mt-6 pt-4 border-t border-wr-border/50 flex items-center justify-center gap-2">
           <Zap className="w-3 h-3 text-amber-400" />
           <span className="text-body-xs text-slate-400 italic">
             All systems nominal. Excellent work, Engineer.
@@ -96,7 +96,7 @@ const ResolveCinematic: React.FC<ResolveCinematicProps> = ({ findings, onDismiss
 };
 
 const StatCell: React.FC<{ label: string; value: string }> = ({ label, value }) => (
-  <div className="bg-slate-800/30 rounded-lg border border-slate-700/30 p-3">
+  <div className="bg-wr-surface/30 rounded-lg border border-wr-border-strong/30 p-3">
     <div className="text-body-xs text-slate-400 uppercase tracking-wider mb-1">{label}</div>
     <div className="text-sm font-bold font-mono text-slate-200">{value}</div>
   </div>

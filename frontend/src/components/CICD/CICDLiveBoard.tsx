@@ -81,7 +81,7 @@ export function CICDLiveBoard() {
       <DeliveryFilters value={filters} onChange={setFilters} />
 
       {data?.source_errors && data.source_errors.length > 0 && (
-        <div className="px-4 py-2 text-xs text-amber-300 bg-amber-500/10 border-b border-amber-500/30">
+        <div className="px-4 py-2 text-xs text-amber-300 bg-wr-severity-medium/10 border-b border-wr-severity-medium/30">
           {data.source_errors
             .map((err) => `${err.source}/${err.name}: ${err.message}`)
             .join(' • ')}

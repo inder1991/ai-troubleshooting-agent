@@ -5,7 +5,7 @@ const LogicVineContainer: React.FC<{ children: React.ReactNode }> = ({ children 
   return (
     <div className="relative">
       {/* The Base Track */}
-      <div className="absolute left-[16px] top-0 bottom-0 w-px bg-amber-500/10" />
+      <div className="absolute left-[16px] top-0 bottom-0 w-px bg-wr-severity-medium/10" />
 
       {/* The Data Pulse - Infinite Flowing Gradient */}
       <div className="absolute left-[16px] top-0 bottom-0 w-px overflow-hidden">

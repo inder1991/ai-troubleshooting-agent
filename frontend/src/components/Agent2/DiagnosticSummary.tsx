@@ -46,14 +46,14 @@ const MarkdownRenderer = ({ content }: { content: string }) => {
 
           if (isInline) {
             return (
-              <code className="bg-slate-800 text-emerald-400 px-1 py-0.5 rounded text-body-xs">
+              <code className="bg-wr-surface text-emerald-400 px-1 py-0.5 rounded text-body-xs">
                 {children}
               </code>
             );
           }
 
           return (
-            <pre className="rounded-md bg-[#020617] border border-slate-800 p-4 overflow-x-auto text-body-xs leading-relaxed">
+            <pre className="rounded-md bg-[#020617] border border-wr-border p-4 overflow-x-auto text-body-xs leading-relaxed">
               <code className={className} {...props}>
                 {children}
               </code>
@@ -89,7 +89,7 @@ export const Agent2DiagnosticDashboard: React.FC<DiagnosticDashboardProps> = ({
             <p className="text-body-xs text-slate-400">Trace ID: {data.root_cause_location}</p>
           </div>
         </div>
-        <div className="text-xs text-slate-200 leading-relaxed bg-slate-950/50 p-3 rounded border border-slate-800/50">
+        <div className="text-xs text-slate-200 leading-relaxed bg-slate-950/50 p-3 rounded border border-wr-border/50">
           <span className="text-red-400 font-bold mr-1">Race Condition Detected:</span>
           {data.diagnosticSummary}
         </div>
@@ -97,18 +97,18 @@ export const Agent2DiagnosticDashboard: React.FC<DiagnosticDashboardProps> = ({
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* 2. LOGIC FLOW (MERMAID) */}
-        <div className="bg-slate-900/40 border border-slate-800 rounded-lg p-4 flex flex-col">
+        <div className="bg-wr-bg/40 border border-wr-border rounded-lg p-4 flex flex-col">
           <div className="flex items-center gap-2 mb-4">
             <Activity size={14} className="text-slate-400" />
             <span className="text-body-xs font-bold text-slate-400 uppercase">Concurrency Logic Path</span>
           </div>
-          <div className="flex-1 flex items-center justify-center bg-slate-950/40 rounded border border-slate-800/50 p-2">
+          <div className="flex-1 flex items-center justify-center bg-slate-950/40 rounded border border-wr-border/50 p-2">
             <Mermaid chart={data.flowchart} />
           </div>
           <div className="mt-3 text-body-xs text-slate-400 italic">
             Visualizing lost updates: concurrent threads reading shared state without locks.
           </div>
-          <div className="p-3 border-b border-slate-800 flex items-center justify-between">
+          <div className="p-3 border-b border-wr-border flex items-center justify-between">
         <span className="text-xs font-bold text-slate-300">
             Concurrency Logic Path
         </span>
@@ -122,9 +122,9 @@ export const Agent2DiagnosticDashboard: React.FC<DiagnosticDashboardProps> = ({
         </div>
                 {mermaidExpanded && (
         <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center">
-            <div className="bg-[#020617] w-[90vw] h-[90vh] rounded-xl border border-slate-800 flex flex-col">
+            <div className="bg-[#020617] w-[90vw] h-[90vh] rounded-xl border border-wr-border flex flex-col">
             
-            <div className="p-3 border-b border-slate-800 flex justify-between items-center">
+            <div className="p-3 border-b border-wr-border flex justify-between items-center">
                 <span className="text-xs font-bold text-slate-200">
                 Concurrency Logic Path (Expanded)
                 </span>
@@ -161,7 +161,7 @@ export const Agent2DiagnosticDashboard: React.FC<DiagnosticDashboardProps> = ({
       {/* 4. RELEVANT FILES CLOUD */}
       <div className="flex flex-wrap gap-2">
         {data.relevant_files?.map((file, idx) => (
-          <div key={idx} className="flex items-center gap-1.5 px-2 py-1 bg-slate-900 border border-slate-800 rounded text-body-xs text-slate-400 hover:text-blue-400 hover:border-blue-500/50 cursor-pointer transition-colors">
+          <div key={idx} className="flex items-center gap-1.5 px-2 py-1 bg-wr-bg border border-wr-border rounded text-body-xs text-slate-400 hover:text-blue-400 hover:border-blue-500/50 cursor-pointer transition-colors">
             <Layers size={10} />
             {file}
           </div>

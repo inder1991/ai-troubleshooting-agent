@@ -21,13 +21,13 @@ const agentSignatures: Record<string, { label: string; color: string; icon: stri
 };
 
 const colorMap: Record<string, { bg: string; border: string; text: string; badge: string }> = {
-  red:     { bg: 'bg-red-500/10',     border: 'border-l-red-400',     text: 'text-red-400',     badge: 'bg-red-500/20' },
+  red:     { bg: 'bg-wr-severity-high/10',     border: 'border-l-red-400',     text: 'text-red-400',     badge: 'bg-wr-severity-high/20' },
   cyan:    { bg: 'bg-cyan-500/10',    border: 'border-l-cyan-400',    text: 'text-cyan-400',    badge: 'bg-cyan-500/20' },
   orange:  { bg: 'bg-orange-500/10',  border: 'border-l-orange-400',  text: 'text-orange-400',  badge: 'bg-orange-500/20' },
   violet:  { bg: 'bg-violet-500/10',  border: 'border-l-violet-400',  text: 'text-violet-400',  badge: 'bg-violet-500/20' },
   blue:    { bg: 'bg-blue-500/10',    border: 'border-l-blue-400',    text: 'text-blue-400',    badge: 'bg-blue-500/20' },
   emerald: { bg: 'bg-emerald-500/10', border: 'border-l-emerald-400', text: 'text-emerald-400', badge: 'bg-emerald-500/20' },
-  amber:   { bg: 'bg-amber-500/10',   border: 'border-l-amber-400',   text: 'text-amber-400',   badge: 'bg-amber-500/20' },
+  amber:   { bg: 'bg-wr-severity-medium/10',   border: 'border-l-amber-400',   text: 'text-amber-400',   badge: 'bg-wr-severity-medium/20' },
   pink:    { bg: 'bg-pink-500/10',    border: 'border-l-pink-400',    text: 'text-pink-400',    badge: 'bg-pink-500/20' },
 };
 

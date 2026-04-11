@@ -195,12 +195,12 @@ const ChatDrawer: React.FC = () => {
             initial="hidden"
             animate="visible"
             exit="exit"
-            className={`fixed top-16 right-0 bottom-0 z-[70] w-full sm:w-[420px] max-w-[100vw] flex flex-col bg-slate-900/95 backdrop-blur-xl border-l-2 ${
+            className={`fixed top-16 right-0 bottom-0 z-[70] w-full sm:w-[420px] max-w-[100vw] flex flex-col bg-wr-bg/95 backdrop-blur-xl border-l-2 ${
               isWaiting ? 'border-amber-500/40' : 'border-amber-500/20'
             }`}
           >
             {/* Header */}
-            <div className="shrink-0 flex items-center gap-2 px-4 py-3 border-b border-slate-800/50">
+            <div className="shrink-0 flex items-center gap-2 px-4 py-3 border-b border-wr-border/50">
               <span
                 className="material-symbols-outlined text-amber-400 text-[18px]"
               >
@@ -210,7 +210,7 @@ const ChatDrawer: React.FC = () => {
               <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
               <button
                 onClick={closeDrawer}
-                className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-slate-300 transition-colors"
+                className="p-1 rounded hover:bg-wr-surface text-slate-400 hover:text-slate-300 transition-colors"
                 title="Close"
               >
                 <span
@@ -223,7 +223,7 @@ const ChatDrawer: React.FC = () => {
 
             {/* Waiting Banner */}
             {isWaiting && (
-              <div className="shrink-0 flex items-center gap-2 px-4 py-2 bg-amber-500/10 border-b border-amber-500/20">
+              <div className="shrink-0 flex items-center gap-2 px-4 py-2 bg-wr-severity-medium/10 border-b border-amber-500/20">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
                 <span className="text-body-xs text-amber-400 font-mono">Foreman awaiting operator input</span>
               </div>
@@ -302,7 +302,7 @@ const ChatDrawer: React.FC = () => {
 
             {/* Action Chips Ribbon */}
             {actionChips.length > 0 && !isSending && (
-              <div className="shrink-0 flex flex-wrap gap-2 px-3 py-2 border-t border-slate-800/50">
+              <div className="shrink-0 flex flex-wrap gap-2 px-3 py-2 border-t border-wr-border/50">
                 {actionChips.map((chip) => (
                   <ActionChip
                     key={chip.action}

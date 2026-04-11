@@ -41,9 +41,9 @@ export const AgentCapsule: React.FC<AgentCapsuleProps> = ({ capsule, filterMode,
   const showRaw = filterMode === 'all' || filterMode === 'raw';
 
   return (
-    <div className="relative bg-slate-800/20 border border-slate-700/30 rounded-lg overflow-hidden">
+    <div className="relative bg-wr-surface/20 border border-wr-border-strong/30 rounded-lg overflow-hidden">
       {/* Agent Header */}
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-800/30">
+      <div className="flex items-center gap-2 px-3 py-2 border-b border-wr-border/30">
         <div className={`flex items-center gap-1.5 px-1.5 py-0.5 rounded-sm ${barColor}/20 border ${barColor.replace('bg-', 'border-')}/40`}>
           <span
             className="material-symbols-outlined text-body-xs"
@@ -98,7 +98,7 @@ export const AgentCapsule: React.FC<AgentCapsuleProps> = ({ capsule, filterMode,
                       animate="visible"
                       className={`border-l-4 ${
                         severity === 'critical' ? 'border-red-500 finding-glow-red' : 'border-red-500'
-                      } bg-slate-800/40 p-3 rounded-lg mb-1.5`}
+                      } bg-wr-surface/40 p-3 rounded-lg mb-1.5`}
                     >
                       <div className="flex items-center gap-2 text-body-xs mb-1">
                         <span
@@ -143,10 +143,10 @@ export const AgentCapsule: React.FC<AgentCapsuleProps> = ({ capsule, filterMode,
               const isError = ev.event_type === 'error';
               const isGovernance = ev.event_type === 'fix_proposal' || ev.event_type === 'fix_approved' || ev.event_type === 'attestation_required';
               const colorClass = isError
-                ? 'bg-red-500/10 border border-red-500/20 text-red-400'
+                ? 'bg-wr-severity-high/10 border border-red-500/20 text-red-400'
                 : isGovernance
-                  ? 'bg-amber-500/10 border border-amber-500/20 text-amber-400'
-                  : 'bg-amber-500/10 border border-amber-500/20 text-amber-400';
+                  ? 'bg-wr-severity-medium/10 border border-amber-500/20 text-amber-400'
+                  : 'bg-wr-severity-medium/10 border border-amber-500/20 text-amber-400';
               const iconName = isError ? 'error' : isGovernance ? 'verified_user' : 'warning';
               return (
                 <div
@@ -187,7 +187,7 @@ export const AgentCapsule: React.FC<AgentCapsuleProps> = ({ capsule, filterMode,
 
 const FindingRibbon: React.FC<{ event: import('../../types').TaskEvent; severity: string }> = ({ event, severity }) => {
   const [expanded, setExpanded] = useState(false);
-  const sevColor = severity === 'medium' ? 'text-amber-400 border-amber-500/30' : 'text-blue-400 border-blue-500/30';
+  const sevColor = severity === 'medium' ? 'text-amber-400 border-wr-severity-medium/30' : 'text-blue-400 border-blue-500/30';
 
   return (
     <motion.div

@@ -796,8 +796,8 @@ const TroubleshootingChatbot: React.FC = () => {
     <div className="flex h-screen bg-[#020617] text-slate-300 font-sans overflow-hidden">
       
       {/* LEFT: SESSION HISTORY */}
-      <nav className="w-64 bg-[#0f172a] border-r border-slate-800 flex flex-col">
-        <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/40">
+      <nav className="w-64 bg-[#0f172a] border-r border-wr-border flex flex-col">
+        <div className="p-4 border-b border-wr-border flex justify-between items-center bg-wr-bg/40">
           <div className="flex items-center gap-2">
             <Terminal size={16} className="text-blue-500" />
             <span className="font-bold text-body-xs uppercase tracking-widest text-white">SRE_CMD</span>
@@ -820,7 +820,7 @@ const TroubleshootingChatbot: React.FC = () => {
               className={`group flex items-center justify-between p-2.5 rounded border cursor-pointer transition-all ${
                 activeSessionId === s.id 
                 ? 'bg-blue-600/10 border-blue-500/40 text-blue-100' 
-                : 'border-transparent text-slate-400 hover:bg-slate-800'
+                : 'border-transparent text-slate-400 hover:bg-wr-surface'
               }`}
             >
               <div className="flex items-center gap-3 overflow-hidden">
@@ -833,7 +833,7 @@ const TroubleshootingChatbot: React.FC = () => {
               {s.id !== 'SESS-DEFAULT' && (
                 <button
                   onClick={(e) => handleDeleteSession(s.id, e)}
-                  className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-500/20 text-red-400 rounded transition-all"
+                  className="opacity-0 group-hover:opacity-100 p-1 hover:bg-wr-severity-high/20 text-red-400 rounded transition-all"
                   type="button"
                   title="Delete Session"
                 >
@@ -848,7 +848,7 @@ const TroubleshootingChatbot: React.FC = () => {
       {/* CENTER: CHAT */}
       
       <main className="flex-1 flex flex-col relative bg-[#020617]">
-        <header className="h-14 border-b border-slate-800 bg-[#0f172a] flex items-center justify-between px-6">
+        <header className="h-14 border-b border-wr-border bg-[#0f172a] flex items-center justify-between px-6">
           <div className="flex items-center gap-3">
             <Activity size={14} className="text-blue-500" />
             <span className="text-body-xs font-bold text-white uppercase tracking-widest">
@@ -875,7 +875,7 @@ const TroubleshootingChatbot: React.FC = () => {
             )}
             
             {/* Progress Bar */}
-            <div className="h-1 w-24 bg-slate-800 rounded-full overflow-hidden">
+            <div className="h-1 w-24 bg-wr-surface rounded-full overflow-hidden">
               <div 
                 className="h-full bg-blue-500 transition-all duration-700" 
                 style={{width: `${currentSession?.progress || 0}%`}} 
@@ -896,14 +896,14 @@ const TroubleshootingChatbot: React.FC = () => {
             return (
               <div key={i} className={`flex gap-4 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 {m.role !== 'user' && (
-                  <div className="w-8 h-8 rounded bg-slate-800 border border-slate-700 flex items-center justify-center flex-shrink-0">
+                  <div className="w-8 h-8 rounded bg-wr-surface border border-wr-border-strong flex items-center justify-center flex-shrink-0">
                     <Cpu size={16} className="text-blue-500"/>
                   </div>
                 )}
                 <div className={`p-4 rounded border ${
                   m.role === 'user' 
                     ? 'bg-blue-600/10 border-blue-500/20 max-w-[70%]' 
-                    : 'bg-slate-900/50 border-slate-800 max-w-[85%]'
+                    : 'bg-wr-bg/50 border-wr-border max-w-[85%]'
                 }`}>
                   {/* Conditional Rendering logic */}
                   {isAgent1Summary && hasAgentData ? (
@@ -924,7 +924,7 @@ const TroubleshootingChatbot: React.FC = () => {
                         <button 
                           key={a.id} 
                           onClick={() => setActiveFormType('troubleshoot')} 
-                          className="flex items-center gap-2 px-3 py-1.5 bg-slate-950 border border-slate-800 rounded text-body-xs uppercase font-bold text-slate-400 hover:text-white transition-all"
+                          className="flex items-center gap-2 px-3 py-1.5 bg-slate-950 border border-wr-border rounded text-body-xs uppercase font-bold text-slate-400 hover:text-white transition-all"
                           type="button"
                         >
                           <a.icon size={12}/> {a.label}
@@ -993,7 +993,7 @@ const TroubleshootingChatbot: React.FC = () => {
                   {/* 2. THE THINKING DOTS (Always at the bottom of the list) */}
           {isTyping && (
             <div className="flex justify-start mb-4 animate-in fade-in duration-300">
-              <div className="bg-slate-900 border border-slate-800 rounded-lg p-3">
+              <div className="bg-wr-bg border border-wr-border rounded-lg p-3">
                 <div className="flex gap-1">
                   <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce" />
                   <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce [animation-delay:0.2s]" />
@@ -1006,14 +1006,14 @@ const TroubleshootingChatbot: React.FC = () => {
           <div ref={messagesEndRef} />
         </div>
 
-        <footer className="p-4 border-t border-slate-800 bg-[#0f172a]">
+        <footer className="p-4 border-t border-wr-border bg-[#0f172a]">
           <form onSubmit={handleSendMessage} className="relative max-w-4xl mx-auto">
             <Terminal size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-700" />
             <input 
               value={input}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInput(e.target.value)}
               disabled={currentSession?.isProcessing}
-              className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-12 pr-4 py-3 text-sm font-mono text-blue-100 outline-none focus:border-blue-500/30 transition-all placeholder:text-slate-800 disabled:opacity-50"
+              className="w-full bg-slate-950 border border-wr-border rounded-lg pl-12 pr-4 py-3 text-sm font-mono text-blue-100 outline-none focus:border-blue-500/30 transition-all placeholder:text-slate-800 disabled:opacity-50"
               placeholder="Enter CLI command..."
               type="text"
             />
@@ -1032,8 +1032,8 @@ const TroubleshootingChatbot: React.FC = () => {
       </main>
 
       {/* RIGHT: INSPECTOR - NOW ALWAYS VISIBLE */}
-      <aside className="w-[400px] bg-[#0f172a] border-l border-slate-800 flex flex-col">
-        <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
+      <aside className="w-[400px] bg-[#0f172a] border-l border-wr-border flex flex-col">
+        <div className="p-4 border-b border-wr-border flex justify-between items-center bg-wr-bg/50">
           <span className="text-body-xs font-bold uppercase tracking-widest text-slate-500">
             Context_Inspector
           </span>
@@ -1153,7 +1153,7 @@ const DiagnosticForm: React.FC<DiagnosticFormProps> = ({ onSubmit, onCancel }) =
 
   return (
     <div className="w-full max-w-md bg-[#0f172a] border border-blue-500/30 rounded-lg shadow-2xl overflow-hidden animate-in zoom-in-95">
-      <div className="bg-slate-800/50 p-4 border-b border-slate-800 flex justify-between items-center">
+      <div className="bg-wr-surface/50 p-4 border-b border-wr-border flex justify-between items-center">
         <span className="text-body-xs font-bold uppercase tracking-widest text-white">
           Setup_Analysis
         </span>
@@ -1167,7 +1167,7 @@ const DiagnosticForm: React.FC<DiagnosticFormProps> = ({ onSubmit, onCancel }) =
       </div>
       <div className="p-6 space-y-5">
         {/* Target Type Toggle */}
-        <div className="flex p-1 bg-slate-950 border border-slate-800 rounded">
+        <div className="flex p-1 bg-slate-950 border border-wr-border rounded">
             <button 
               onClick={() => setData({...data, targetType: 'application'})} 
               className={`flex-1 py-2 text-body-xs font-bold rounded ${
@@ -1200,7 +1200,7 @@ const DiagnosticForm: React.FC<DiagnosticFormProps> = ({ onSubmit, onCancel }) =
                 repo: data.targetType === 'application' ? e.target.value : data.repo,
                 namespace: data.targetType === 'infrastructure' ? e.target.value : data.namespace
               })} 
-              className="w-full bg-slate-950 border border-slate-800 rounded p-2 text-xs font-mono text-blue-400 outline-none focus:border-blue-500/50" 
+              className="w-full bg-slate-950 border border-wr-border rounded p-2 text-xs font-mono text-blue-400 outline-none focus:border-blue-500/50" 
               placeholder={data.targetType === 'application' ? "org/repo" : "openshift-project"}
               type="text"
             />
@@ -1212,7 +1212,7 @@ const DiagnosticForm: React.FC<DiagnosticFormProps> = ({ onSubmit, onCancel }) =
           <input 
             value={data.elkIndex}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setData({...data, elkIndex: e.target.value})} 
-            className="w-full bg-slate-950 border border-slate-800 rounded p-2 text-xs font-mono text-blue-400 outline-none focus:border-blue-500/50" 
+            className="w-full bg-slate-950 border border-wr-border rounded p-2 text-xs font-mono text-blue-400 outline-none focus:border-blue-500/50" 
             placeholder="logs-production-*"
             type="text"
           />
@@ -1225,7 +1225,7 @@ const DiagnosticForm: React.FC<DiagnosticFormProps> = ({ onSubmit, onCancel }) =
             <select
               value={data.timeframe}
               onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setData({...data, timeframe: e.target.value})}
-              className="w-full bg-slate-950 border border-slate-800 rounded p-2 text-xs font-mono text-blue-400 outline-none focus:border-blue-500/50"
+              className="w-full bg-slate-950 border border-wr-border rounded p-2 text-xs font-mono text-blue-400 outline-none focus:border-blue-500/50"
             >
               <option value="15m">15 minutes</option>
               <option value="1h">1 hour</option>
@@ -1238,7 +1238,7 @@ const DiagnosticForm: React.FC<DiagnosticFormProps> = ({ onSubmit, onCancel }) =
             <input 
               value={data.errorMessage}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setData({...data, errorMessage: e.target.value})}
-              className="w-full bg-slate-950 border border-slate-800 rounded p-2 text-xs font-mono text-slate-400 outline-none focus:border-blue-500/50" 
+              className="w-full bg-slate-950 border border-wr-border rounded p-2 text-xs font-mono text-slate-400 outline-none focus:border-blue-500/50" 
               placeholder="Optional"
               type="text"
             />
@@ -1250,7 +1250,7 @@ const DiagnosticForm: React.FC<DiagnosticFormProps> = ({ onSubmit, onCancel }) =
           value={data.rawLogs}
           onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setData({...data, rawLogs: e.target.value})} 
           rows={3} 
-          className="w-full bg-slate-950 border border-slate-800 rounded p-2 text-xs font-mono text-slate-400 outline-none focus:border-blue-500/50" 
+          className="w-full bg-slate-950 border border-wr-border rounded p-2 text-xs font-mono text-slate-400 outline-none focus:border-blue-500/50" 
           placeholder="Paste raw logs (optional)..." 
         />
         
@@ -1286,7 +1286,7 @@ const InspectorCard: React.FC<InspectorCardProps> = ({
             </span>
           </div>
           <div className={`min-h-[80px] border border-dashed rounded p-4 transition-colors ${
-            isThisAgentThinking ? 'border-blue-500/50 bg-blue-500/5' : 'border-slate-800 bg-slate-950/40'
+            isThisAgentThinking ? 'border-blue-500/50 bg-blue-500/5' : 'border-wr-border bg-slate-950/40'
           }`}>
             {data ? (
               children

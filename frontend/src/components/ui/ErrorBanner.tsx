@@ -15,8 +15,8 @@ const ErrorBanner: React.FC<ErrorBannerProps> = ({
 }) => {
   const isError = severity === 'error';
   const bgClass = isError
-    ? 'bg-red-500/10 border-red-500/20'
-    : 'bg-amber-500/10 border-amber-500/20';
+    ? 'bg-wr-severity-high/10 border-red-500/20'
+    : 'bg-wr-severity-medium/10 border-amber-500/20';
   const textClass = isError ? 'text-red-400' : 'text-amber-400';
   const icon = isError ? 'error' : 'warning';
 
@@ -34,8 +34,8 @@ const ErrorBanner: React.FC<ErrorBannerProps> = ({
           onClick={onRetry}
           className={`text-body-xs font-bold px-2.5 py-1 rounded border ${
             isError
-              ? 'bg-red-500/20 text-red-400 border-red-500/30 hover:bg-red-500/30'
-              : 'bg-amber-500/20 text-amber-400 border-amber-500/30 hover:bg-amber-500/30'
+              ? 'bg-wr-severity-high/20 text-red-400 border-wr-severity-high/30 hover:bg-wr-severity-high/30'
+              : 'bg-wr-severity-medium/20 text-amber-400 border-wr-severity-medium/30 hover:bg-amber-500/30'
           } transition-colors`}
           aria-label="Retry"
         >

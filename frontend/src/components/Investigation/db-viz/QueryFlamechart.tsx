@@ -86,7 +86,7 @@ const FlameBar: React.FC<{
 
         {/* Tooltip */}
         <div className="absolute left-0 bottom-full mb-1 hidden group-hover:block z-10">
-          <div className="bg-slate-900 border border-slate-700 rounded px-2 py-1 shadow-lg whitespace-nowrap">
+          <div className="bg-wr-bg border border-wr-border-strong rounded px-2 py-1 shadow-lg whitespace-nowrap">
             <p className="text-body-xs text-white font-mono">{step.label}</p>
             <p className="text-body-xs text-slate-400">
               {step.time_ms.toFixed(2)}ms
@@ -97,7 +97,7 @@ const FlameBar: React.FC<{
       </button>
 
       {expanded && hasChildren && (
-        <div className="border-l border-slate-800 ml-1">
+        <div className="border-l border-wr-border ml-1">
           {step.children!.map((child, i) => (
             <FlameBar
               key={i}
@@ -129,7 +129,7 @@ const QueryFlamechart: React.FC<QueryFlamechartProps> = ({ planSteps }) => {
   return (
     <div className="bg-duck-card/30 border border-duck-border rounded-lg p-3 overflow-x-auto">
       {/* Header */}
-      <div className="flex items-center gap-2 mb-2 pb-2 border-b border-slate-800">
+      <div className="flex items-center gap-2 mb-2 pb-2 border-b border-wr-border">
         <span className="material-symbols-outlined text-orange-400 text-sm">local_fire_department</span>
         <span className="text-body-xs font-bold text-slate-400 uppercase tracking-wider">Query Flamechart</span>
         <span className="text-body-xs text-slate-400 ml-auto font-mono">total {totalTime.toFixed(1)}ms</span>

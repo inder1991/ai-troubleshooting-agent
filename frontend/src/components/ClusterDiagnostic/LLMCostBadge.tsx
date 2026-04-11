@@ -72,7 +72,7 @@ const LLMCostBadge: React.FC<LLMCostBadgeProps> = ({ sessionId, phase, onToggleB
       aria-label="Toggle LLM cost breakdown"
       className={`flex items-center gap-2 px-2.5 py-1 rounded text-body-xs font-mono border transition-colors ${
         isWarning
-          ? 'border-amber-500/40 bg-amber-500/10 text-amber-400'
+          ? 'border-amber-500/40 bg-wr-severity-medium/10 text-amber-400'
           : 'border-wr-border-subtle bg-wr-inset text-slate-400 hover:border-wr-accent/30'
       }`}
       title="Click for per-agent breakdown"

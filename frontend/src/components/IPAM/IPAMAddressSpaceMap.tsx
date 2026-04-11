@@ -75,7 +75,7 @@ export default function IPAMAddressSpaceMap({ blockId }: Props) {
         })}
         {freePct > 0.5 && (
           <div
-            className="bg-slate-800 flex items-center justify-center text-xs text-slate-400"
+            className="bg-wr-surface flex items-center justify-center text-xs text-slate-400"
             style={{ width: `${freePct}%` }}
           >
             {freePct > 10 ? 'Free' : ''}
@@ -100,7 +100,7 @@ export default function IPAMAddressSpaceMap({ blockId }: Props) {
             <div className={`w-3 h-3 rounded-sm ${utilizationGradient(seg.utilization_pct)}`} />
             <span className="font-mono text-slate-300 w-32">{seg.cidr}</span>
             <span className="text-slate-400 flex-1 truncate">{seg.name || '-'}</span>
-            <div className="w-16 h-1.5 bg-slate-700 rounded-full overflow-hidden">
+            <div className="w-16 h-1.5 bg-wr-inset rounded-full overflow-hidden">
               <div
                 className={`h-full rounded-full ${utilizationGradient(seg.utilization_pct)}`}
                 style={{ width: `${Math.min(seg.utilization_pct, 100)}%` }}

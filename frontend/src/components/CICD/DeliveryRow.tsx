@@ -10,7 +10,7 @@ interface DeliveryRowProps {
 
 const KIND_PILL_CLASSES: Record<string, string> = {
   commit: 'bg-violet-500/20 text-violet-200 border-violet-500/40',
-  build: 'bg-amber-500/20 text-amber-200 border-amber-500/40',
+  build: 'bg-wr-severity-medium/20 text-amber-200 border-amber-500/40',
   sync: 'bg-sky-500/20 text-sky-200 border-sky-500/40',
 };
 

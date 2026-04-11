@@ -5,7 +5,7 @@ type CausalRole = 'root_cause' | 'cascading_failure' | 'correlated_anomaly';
 const roleStyles: Record<CausalRole, { label: string; className: string }> = {
   root_cause: {
     label: 'ROOT CAUSE',
-    className: 'bg-red-500/20 text-red-400 border border-red-500/40',
+    className: 'bg-wr-severity-high/20 text-red-400 border border-red-500/40',
   },
   cascading_failure: {
     label: 'CASCADING SYMPTOM',

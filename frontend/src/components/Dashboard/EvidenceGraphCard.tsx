@@ -16,7 +16,7 @@ const nodeTypeColor: Record<string, string> = {
 
 const nodeTypeBg: Record<string, string> = {
   cause: 'bg-orange-500/10 border-orange-500/40',
-  symptom: 'bg-red-500/10 border-red-500/40',
+  symptom: 'bg-wr-severity-high/10 border-red-500/40',
   contributing_factor: 'bg-yellow-500/10 border-yellow-500/40',
   context: 'bg-gray-500/10 border-gray-500/40',
 };

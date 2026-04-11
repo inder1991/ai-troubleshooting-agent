@@ -20,7 +20,7 @@ const WorkerSignature: React.FC<WorkerSignatureProps> = ({ confidence, agentCode
   const agent = agentMap[agentCode] || agentMap.C;
 
   return (
-    <div className="mt-4 pt-3 border-t border-slate-800/50">
+    <div className="mt-4 pt-3 border-t border-wr-border/50">
       <div className="flex items-center justify-between">
         {/* Left: Agent dot + verified by */}
         <div className="flex items-center gap-2">
@@ -43,7 +43,7 @@ const WorkerSignature: React.FC<WorkerSignatureProps> = ({ confidence, agentCode
       </div>
 
       {/* Animated confidence bar */}
-      <div className="mt-1.5 h-0.5 bg-slate-800/50 rounded-full overflow-hidden">
+      <div className="mt-1.5 h-0.5 bg-wr-surface/50 rounded-full overflow-hidden">
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: `${confidence}%` }}

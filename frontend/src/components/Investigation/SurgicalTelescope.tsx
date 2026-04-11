@@ -49,10 +49,10 @@ const SurgicalTelescope: React.FC = () => {
         {/* Content panel */}
         <motion.div
           variants={telescopeVariants}
-          className="relative mt-12 mx-4 w-full max-w-[95vw] max-h-[calc(100vh-6rem)] flex flex-col bg-[#0a1a1f] border border-slate-700/50 rounded-xl shadow-2xl overflow-hidden"
+          className="relative mt-12 mx-4 w-full max-w-[95vw] max-h-[calc(100vh-6rem)] flex flex-col bg-[#0a1a1f] border border-wr-border-strong/50 rounded-xl shadow-2xl overflow-hidden"
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-5 py-3 border-b border-slate-800/50 bg-slate-900/50">
+          <div className="flex items-center justify-between px-5 py-3 border-b border-wr-border/50 bg-wr-bg/50">
             <div className="flex items-center gap-3">
               <span className="material-symbols-outlined text-cyan-400 text-[20px]">biotech</span>
               <span className="text-[12px] font-black text-slate-200 tracking-[0.1em] uppercase">
@@ -65,7 +65,7 @@ const SurgicalTelescope: React.FC = () => {
             </div>
             <button
               onClick={closeTelescope}
-              className="p-1 rounded hover:bg-slate-800 transition-colors"
+              className="p-1 rounded hover:bg-wr-surface transition-colors"
             >
               <span className="material-symbols-outlined text-slate-400 text-[20px]">close</span>
             </button>
@@ -73,7 +73,7 @@ const SurgicalTelescope: React.FC = () => {
 
           {/* File tabs */}
           {files.length > 1 && (
-            <div className="flex items-center gap-1 px-5 py-2 border-b border-slate-800/30 overflow-x-auto">
+            <div className="flex items-center gap-1 px-5 py-2 border-b border-wr-border/30 overflow-x-auto">
               {files.map((f, i) => (
                 <button
                   key={f.file_path}
@@ -81,7 +81,7 @@ const SurgicalTelescope: React.FC = () => {
                   className={`px-3 py-1 rounded text-body-xs font-mono whitespace-nowrap transition-colors
                     ${i === activeFileIdx
                       ? 'bg-cyan-950/40 text-cyan-400 border border-cyan-700/40'
-                      : 'text-slate-400 hover:text-slate-300 hover:bg-slate-800/40'}
+                      : 'text-slate-400 hover:text-slate-300 hover:bg-wr-surface/40'}
                   `}
                 >
                   {f.file_path.split('/').pop()}
@@ -102,7 +102,7 @@ const SurgicalTelescope: React.FC = () => {
           </div>
 
           {/* Footer actions */}
-          <div className="flex items-center justify-between px-5 py-3 border-t border-slate-800/50 bg-slate-900/30">
+          <div className="flex items-center justify-between px-5 py-3 border-t border-wr-border/50 bg-wr-bg/30">
             <div className="flex items-center gap-2">
               {files.map((f) => (
                 <VSCodeLink key={f.file_path} filePath={f.file_path} repoName={serviceName} />
@@ -174,8 +174,8 @@ const DiffSplitView: React.FC<DiffSplitViewProps> = ({ originalCode, fixedCode, 
   return (
     <div className="flex min-h-0">
       {/* Original */}
-      <div className="flex-1 border-r border-slate-800/50 overflow-auto">
-        <div className="sticky top-0 z-10 px-3 py-1.5 bg-red-950/20 border-b border-slate-800/30">
+      <div className="flex-1 border-r border-wr-border/50 overflow-auto">
+        <div className="sticky top-0 z-10 px-3 py-1.5 bg-red-950/20 border-b border-wr-border/30">
           <span className="text-body-xs font-bold text-red-400 tracking-wider uppercase">Original</span>
         </div>
         <pre className="text-body-xs font-mono leading-5">
@@ -195,7 +195,7 @@ const DiffSplitView: React.FC<DiffSplitViewProps> = ({ originalCode, fixedCode, 
 
       {/* Fixed */}
       <div className="flex-1 overflow-auto">
-        <div className="sticky top-0 z-10 px-3 py-1.5 bg-emerald-950/20 border-b border-slate-800/30">
+        <div className="sticky top-0 z-10 px-3 py-1.5 bg-emerald-950/20 border-b border-wr-border/30">
           <span className="text-body-xs font-bold text-emerald-400 tracking-wider uppercase">Fixed</span>
         </div>
         <pre className="text-body-xs font-mono leading-5">

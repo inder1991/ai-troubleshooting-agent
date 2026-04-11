@@ -270,7 +270,7 @@ const ClusterConnectionForm: React.FC<ClusterConnectionFormProps> = ({
                   ? 'text-green-500 bg-green-500/10 border-green-500/20'
                   : openshiftStatus === 'unreachable' ||
                       openshiftStatus === 'connection_failed'
-                    ? 'text-red-500 bg-red-500/10 border-red-500/20'
+                    ? 'text-red-500 bg-wr-severity-high/10 border-red-500/20'
                     : 'text-gray-500 bg-gray-500/10 border-gray-500/20'
               }`}
             >
@@ -347,7 +347,7 @@ const ClusterConnectionForm: React.FC<ClusterConnectionFormProps> = ({
           </div>
         )}
         {probeError && (
-          <div className="mt-3 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-body-xs font-medium flex items-center gap-1.5">
+          <div className="mt-3 px-3 py-2 rounded-lg bg-wr-severity-high/10 border border-red-500/20 text-red-400 text-body-xs font-medium flex items-center gap-1.5">
             <span className="material-symbols-outlined text-sm">error</span>
             {probeError}
           </div>
@@ -356,7 +356,7 @@ const ClusterConnectionForm: React.FC<ClusterConnectionFormProps> = ({
 
       {/* Unsaved warning for endpoint tests */}
       {unsavedTestWarning && (
-        <div className="px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 text-body-xs font-medium">
+        <div className="px-3 py-2 rounded-lg bg-wr-severity-medium/10 border border-amber-500/20 text-amber-400 text-body-xs font-medium">
           {unsavedTestWarning}
         </div>
       )}

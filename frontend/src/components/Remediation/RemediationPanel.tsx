@@ -112,7 +112,7 @@ const RemediationPanel: React.FC<RemediationPanelProps> = ({
                 {decision.action_type}
               </span>
               {decision.is_destructive && (
-                <span className="text-xs px-1.5 py-0.5 rounded bg-red-500/20 text-red-400">
+                <span className="text-xs px-1.5 py-0.5 rounded bg-wr-severity-high/20 text-red-400">
                   Destructive
                 </span>
               )}

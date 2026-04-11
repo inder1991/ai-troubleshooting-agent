@@ -13,10 +13,10 @@ export default function FirewallAuditBadge({ searchSpace }: FirewallAuditBadgePr
   const { total_evaluated, total_blocked, total_annotated, blocked_links } = searchSpace;
 
   return (
-    <div className="bg-slate-900/40 border border-slate-700/30 rounded-lg overflow-hidden">
+    <div className="bg-wr-bg/40 border border-wr-border-strong/30 rounded-lg overflow-hidden">
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full px-3 py-2 flex items-center gap-2 text-left hover:bg-slate-800/30 transition-colors"
+        className="w-full px-3 py-2 flex items-center gap-2 text-left hover:bg-wr-surface/30 transition-colors"
       >
         <span className="material-symbols-outlined text-amber-400 text-base">shield</span>
         <span className="text-xs text-slate-300">Causal Firewall</span>
@@ -30,7 +30,7 @@ export default function FirewallAuditBadge({ searchSpace }: FirewallAuditBadgePr
         </span>
       </button>
       {expanded && blocked_links.length > 0 && (
-        <div className="border-t border-slate-700/30 px-3 py-2 space-y-1.5">
+        <div className="border-t border-wr-border-strong/30 px-3 py-2 space-y-1.5">
           {blocked_links.map((link, i) => (
             <div key={i} className="flex items-start gap-2 text-body-xs">
               <span className="text-red-400 font-mono shrink-0">{link.invariant_id}</span>

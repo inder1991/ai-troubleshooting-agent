@@ -90,13 +90,13 @@ const RemediationCard: React.FC<RemediationCardProps> = ({ steps, blastRadius })
             </div>
             <button
               onClick={() => runQuickAction(primaryStep.dry_run!)}
-              className="shrink-0 text-body-xs px-2 py-0.5 rounded border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 transition-colors"
+              className="shrink-0 text-body-xs px-2 py-0.5 rounded border border-wr-severity-medium/30 text-amber-400 hover:bg-wr-severity-medium/10 transition-colors"
             >
               Preview
             </button>
           </div>
           {primaryStep.expected_output && (
-            <div className="text-body-xs text-slate-500 mt-1 pl-2 border-l border-slate-700">
+            <div className="text-body-xs text-slate-500 mt-1 pl-2 border-l border-wr-border-strong">
               Expected: {primaryStep.expected_output}
             </div>
           )}
@@ -264,7 +264,7 @@ const RemediationCard: React.FC<RemediationCardProps> = ({ steps, blastRadius })
           {primaryStep.rollback && (
             <button
               onClick={() => runQuickAction(primaryStep.rollback!)}
-              className="flex-1 text-body-xs px-3 py-1.5 rounded border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors font-semibold uppercase tracking-wider"
+              className="flex-1 text-body-xs px-3 py-1.5 rounded border border-wr-severity-high/30 text-red-400 hover:bg-wr-severity-high/10 transition-colors font-semibold uppercase tracking-wider"
             >
               Rollback
             </button>

@@ -239,13 +239,13 @@ function buildStructuredTimeline(
 
 // Agent badge colors
 const agentColor: Record<string, string> = {
-  log_agent: 'bg-red-500/20 text-red-400 border-red-500/30',
-  metrics_agent: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+  log_agent: 'bg-wr-severity-high/20 text-red-400 border-wr-severity-high/30',
+  metrics_agent: 'bg-wr-severity-medium/20 text-amber-400 border-wr-severity-medium/30',
   k8s_agent: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
   tracing_agent: 'bg-violet-500/20 text-violet-400 border-violet-500/30',
   code_agent: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
   change_agent: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
-  critic: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+  critic: 'bg-wr-severity-medium/20 text-amber-400 border-wr-severity-medium/30',
   fix_generator: 'bg-pink-500/20 text-pink-400 border-pink-500/30',
 };
 
@@ -370,10 +370,10 @@ const Investigator: React.FC<InvestigatorProps> = ({
     c >= 70 ? 'bg-emerald-500' : c >= 40 ? 'bg-amber-500' : 'bg-red-500';
 
   return (
-    <div className="flex flex-col h-full bg-slate-900/20">
+    <div className="flex flex-col h-full bg-wr-bg/20">
       {/* Patient Zero Banner (sticky) */}
       {findings?.patient_zero && (
-        <div className="sticky top-0 z-10 bg-gradient-to-r from-red-950/80 to-red-900/40 border-b border-red-500/30 px-4 py-3 animate-pulse-red">
+        <div className="sticky top-0 z-10 bg-gradient-to-r from-red-950/80 to-red-900/40 border-b border-wr-severity-high/30 px-4 py-3 animate-pulse-red">
           <div className="flex items-center gap-2 mb-1">
             <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
             <span className="text-body-xs font-bold uppercase tracking-wider text-red-400">Patient Zero</span>
@@ -384,7 +384,7 @@ const Investigator: React.FC<InvestigatorProps> = ({
           <div className="flex items-center gap-2">
             <span className="text-sm font-mono text-red-200 font-bold">{findings.patient_zero.service}</span>
             {repoMismatch && (
-              <span className="inline-flex items-center gap-1 text-body-xs font-bold uppercase px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30">
+              <span className="inline-flex items-center gap-1 text-body-xs font-bold uppercase px-1.5 py-0.5 rounded bg-wr-severity-medium/20 text-amber-400 border border-wr-severity-medium/30">
                 <span className="material-symbols-outlined" style={{ fontFamily: 'Material Symbols Outlined', fontSize: '12px' }}>warning</span>
                 Repo Mismatch
               </span>
@@ -398,7 +398,7 @@ const Investigator: React.FC<InvestigatorProps> = ({
               </p>
               <button
                 onClick={onAttachRepo}
-                className="text-body-xs font-bold uppercase px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30 transition-colors flex items-center gap-1"
+                className="text-body-xs font-bold uppercase px-2 py-0.5 rounded bg-wr-severity-medium/20 text-amber-300 border border-wr-severity-medium/30 hover:bg-amber-500/30 transition-colors flex items-center gap-1"
               >
                 <span className="material-symbols-outlined" style={{ fontFamily: 'Material Symbols Outlined', fontSize: '11px' }}>link</span>
                 Attach Repo
@@ -410,14 +410,14 @@ const Investigator: React.FC<InvestigatorProps> = ({
 
       {/* Agent Pulse Indicator */}
       {activeAgents.length > 0 && (
-        <div className="px-4 py-2 border-b border-slate-800/50 flex items-center gap-2 flex-wrap">
+        <div className="px-4 py-2 border-b border-wr-border/50 flex items-center gap-2 flex-wrap">
           {activeAgents.map((a) => (
             <span
               key={a.name}
               className={`text-body-xs px-2 py-0.5 rounded-full border font-bold uppercase ${
                 a.active
                   ? (agentColor[a.name] || 'bg-slate-500/20 text-slate-400 border-slate-500/30') + ' animate-pulse'
-                  : 'bg-slate-800/50 text-slate-400 border-slate-700'
+                  : 'bg-wr-surface/50 text-slate-400 border-wr-border-strong'
               }`}
             >
               {a.name.replace(/_/g, ' ')}
@@ -427,7 +427,7 @@ const Investigator: React.FC<InvestigatorProps> = ({
       )}
 
       {/* Header */}
-      <div className="px-4 py-3 border-b border-slate-800/50 bg-slate-900/90 backdrop-blur z-20 shrink-0 flex items-center justify-between gap-4">
+      <div className="px-4 py-3 border-b border-wr-border/50 bg-wr-bg/90 backdrop-blur z-20 shrink-0 flex items-center justify-between gap-4">
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <span className="material-symbols-outlined text-primary text-sm shrink-0" style={{ fontFamily: 'Material Symbols Outlined' }}>psychology</span>
           <h2 className="text-xs font-bold uppercase tracking-widest text-slate-400 truncate">AI Investigation Log</h2>
@@ -455,7 +455,7 @@ const Investigator: React.FC<InvestigatorProps> = ({
 
             <div className="pl-6">
               {/* Vertical connecting line */}
-              <div className="absolute left-3 top-10 bottom-2 w-px bg-slate-700" />
+              <div className="absolute left-3 top-10 bottom-2 w-px bg-wr-inset" />
 
               {/* Preamble events */}
               {structuredTimeline.preamble.length > 0 && (
@@ -519,7 +519,7 @@ const Investigator: React.FC<InvestigatorProps> = ({
 
       {/* Current Best Guess (sticky footer) */}
       {bestGuess && (
-        <div className="flex-shrink-0 border-t border-slate-800/50 bg-slate-900/60 px-4 py-3">
+        <div className="flex-shrink-0 border-t border-wr-border/50 bg-wr-bg/60 px-4 py-3">
           <div className="flex items-center gap-2 mb-1.5">
             <span className="material-symbols-outlined text-[#07b6d5] text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>neurology</span>
             <span className="text-body-xs font-bold uppercase tracking-widest text-slate-400">Current Best Guess</span>
@@ -529,7 +529,7 @@ const Investigator: React.FC<InvestigatorProps> = ({
           </div>
           <p className="text-body-xs text-slate-300 leading-relaxed line-clamp-2">{bestGuess.text}</p>
           {/* Confidence bar */}
-          <div className="mt-2 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+          <div className="mt-2 h-1.5 bg-wr-surface rounded-full overflow-hidden">
             <motion.div
               className={`h-full rounded-full ${confidenceColor(bestGuess.confidence)}`}
               initial={{ width: 0 }}
@@ -570,7 +570,7 @@ const EventNode: React.FC<{ event: TaskEvent; breadcrumbs?: Breadcrumb[] }> = ({
     return (
       <div className="relative">
         <div className={`absolute left-[-18px] w-2.5 h-2.5 rounded-full ${severity === 'critical' || severity === 'high' ? 'bg-red-500' : 'bg-amber-500'} border-2 border-slate-900`} />
-        <div className="bg-slate-800/30 border border-slate-700/50 rounded-lg px-3 py-2">
+        <div className="bg-wr-surface/30 border border-wr-border-strong/50 rounded-lg px-3 py-2">
           <div className="flex items-center gap-2 text-body-xs">
             <span className="material-symbols-outlined text-sm" style={{ fontFamily: 'Material Symbols Outlined', color: severity === 'critical' || severity === 'high' ? '#f87171' : '#fbbf24' }}>lightbulb</span>
             <span className={`font-bold uppercase ${sevColor}`}>{severity}</span>
@@ -621,7 +621,7 @@ const EventNode: React.FC<{ event: TaskEvent; breadcrumbs?: Breadcrumb[] }> = ({
     return (
       <div className="relative">
         <div className={`absolute left-[-18px] w-2.5 h-2.5 rounded-full ${isError ? 'bg-red-500' : 'bg-amber-500'} border-2 border-slate-900`} />
-        <div className={`border rounded-lg px-3 py-2 ${isError ? 'border-red-500/30 bg-red-500/10' : 'border-amber-500/30 bg-amber-500/10'}`}>
+        <div className={`border rounded-lg px-3 py-2 ${isError ? 'border-wr-severity-high/30 bg-wr-severity-high/10' : 'border-wr-severity-medium/30 bg-wr-severity-medium/10'}`}>
           <div className="flex items-center gap-2 text-body-xs">
             <span className={`font-bold uppercase ${isError ? 'text-red-400' : 'text-amber-400'}`}>{event.agent_name.replace(/_/g, ' ')}</span>
           </div>
@@ -651,7 +651,7 @@ const ToolCallGroupNode: React.FC<{ group: ToolCallGroup }> = ({ group }) => {
   return (
     <div className="relative">
       <div className="absolute left-[-18px] w-2.5 h-2.5 rounded-full bg-purple-500 border-2 border-slate-900" />
-      <button onClick={() => setExpanded(!expanded)} className="w-full text-left flex items-center gap-2 text-body-xs hover:bg-slate-800/30 rounded px-2 py-1 transition-colors" aria-expanded={expanded}>
+      <button onClick={() => setExpanded(!expanded)} className="w-full text-left flex items-center gap-2 text-body-xs hover:bg-wr-surface/30 rounded px-2 py-1 transition-colors" aria-expanded={expanded}>
         <span className={`material-symbols-outlined text-xs text-purple-400 transition-transform ${expanded ? 'rotate-90' : ''}`} style={{ fontFamily: 'Material Symbols Outlined' }}>chevron_right</span>
         <span className="font-bold text-purple-400 uppercase">{group.agent.replace(/_/g, ' ')}</span>
         <span className="text-slate-400">{group.events.length} tool calls</span>
@@ -786,7 +786,7 @@ const EvidenceTrail: React.FC<{ breadcrumbs: Breadcrumb[]; agentName: string }> 
   const colorClass = agentColor[agentName] || 'bg-slate-500/20 text-slate-400 border-slate-500/30';
 
   return (
-    <div className="mt-2 pt-2 border-t border-slate-800/50">
+    <div className="mt-2 pt-2 border-t border-wr-border/50">
       <button
         onClick={() => setExpanded(!expanded)}
         className="flex items-center gap-1.5 text-body-xs text-slate-400 hover:text-slate-300 transition-colors"

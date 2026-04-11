@@ -306,7 +306,7 @@ export default function IPAMSubnetDetail({ subnet, onUtilizationChange, addToast
       </div>
 
       {/* Utilization bar */}
-      <div className="w-full h-4 bg-slate-700/50 rounded-full overflow-hidden">
+      <div className="w-full h-4 bg-wr-inset/50 rounded-full overflow-hidden">
         <div
           className={`h-full rounded-full transition-all ${barColor}`}
           style={{ width: `${Math.min(utilPct, 100)}%` }}

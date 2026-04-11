@@ -59,7 +59,7 @@ const IndexUsageMatrix: React.FC<IndexUsageMatrixProps> = ({ indexes }) => {
   return (
     <div className="bg-duck-card/30 border border-duck-border rounded-lg p-3">
       {/* Header */}
-      <div className="flex items-center gap-2 mb-2 pb-2 border-b border-slate-800">
+      <div className="flex items-center gap-2 mb-2 pb-2 border-b border-wr-border">
         <span className="material-symbols-outlined text-emerald-400 text-sm">list_alt</span>
         <span className="text-body-xs font-bold text-slate-400 uppercase tracking-wider">Index Usage Matrix</span>
         <span className="text-body-xs text-slate-400 ml-auto font-mono">{indexes.length} indexes</span>
@@ -85,7 +85,7 @@ const IndexUsageMatrix: React.FC<IndexUsageMatrixProps> = ({ indexes }) => {
       <div className="overflow-x-auto">
         <table className="w-full text-left">
           <thead>
-            <tr className="border-b border-slate-800">
+            <tr className="border-b border-wr-border">
               {['Index', 'Table', 'Scans', 'Size', 'Status'].map((h) => (
                 <th
                   key={h}
@@ -102,7 +102,7 @@ const IndexUsageMatrix: React.FC<IndexUsageMatrixProps> = ({ indexes }) => {
               return (
                 <tr
                   key={idx.name}
-                  className="border-b border-slate-800/50 hover:bg-duck-card/20 transition-colors"
+                  className="border-b border-wr-border/50 hover:bg-duck-card/20 transition-colors"
                   style={
                     idx.unused
                       ? { backgroundColor: '#ef444408' }

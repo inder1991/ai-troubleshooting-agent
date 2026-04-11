@@ -42,7 +42,7 @@ export const CallChainAnalysisCard: React.FC<CallChainAnalysisProps> = ({ data }
         </span>
       </div>
       
-      <div className="min-h-[100px] border border-dashed border-slate-800 rounded bg-slate-950/40 p-3">
+      <div className="min-h-[100px] border border-dashed border-wr-border rounded bg-slate-950/40 p-3">
         <div className="space-y-4"> {/* Increased spacing */}
           
           {/* NEW: Mermaid Logic Diagram */}

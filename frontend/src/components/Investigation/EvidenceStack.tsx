@@ -10,7 +10,7 @@ interface EvidenceStackProps {
 type TabId = 'evidence' | 'timeline' | 'findings' | 'metrics' | 'changes' | 'traces';
 
 const severityColor: Record<Severity, string> = {
-  critical: 'bg-red-500/20 text-red-300 border-red-500/30',
+  critical: 'bg-wr-severity-high/20 text-red-300 border-wr-severity-high/30',
   high: 'bg-orange-500/20 text-orange-300 border-orange-500/30',
   medium: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30',
   low: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
@@ -19,12 +19,12 @@ const severityColor: Record<Severity, string> = {
 
 const verdictColor: Record<CriticVerdict['verdict'], string> = {
   validated: 'bg-green-500/20 text-green-300',
-  challenged: 'bg-red-500/20 text-red-300',
+  challenged: 'bg-wr-severity-high/20 text-red-300',
   insufficient_data: 'bg-yellow-500/20 text-yellow-300',
 };
 
 const severityPriorityColor: Record<string, { border: string; bg: string; text: string }> = {
-  P1: { border: 'border-red-500/40', bg: 'bg-red-500/10', text: 'text-red-400' },
+  P1: { border: 'border-red-500/40', bg: 'bg-wr-severity-high/10', text: 'text-red-400' },
   P2: { border: 'border-orange-500/40', bg: 'bg-orange-500/10', text: 'text-orange-400' },
   P3: { border: 'border-yellow-500/40', bg: 'bg-yellow-500/10', text: 'text-yellow-400' },
   P4: { border: 'border-blue-500/40', bg: 'bg-blue-500/10', text: 'text-blue-400' },
@@ -75,7 +75,7 @@ const EvidenceStack: React.FC<EvidenceStackProps> = ({ sessionId, events }) => {
   return (
     <div className="flex flex-col h-full bg-[#1a1814]">
       {/* Header bar */}
-      <div className="h-12 border-b border-[#e09f3e]/5 flex items-center justify-between px-6 bg-slate-900/10">
+      <div className="h-12 border-b border-[#e09f3e]/5 flex items-center justify-between px-6 bg-wr-bg/10">
         <div className="flex items-center gap-2">
           <span className="material-symbols-outlined text-slate-400 text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>inventory_2</span>
           <h2 className="text-xs font-bold uppercase tracking-widest text-slate-400">Dynamic Evidence Stack</h2>
@@ -90,7 +90,7 @@ const EvidenceStack: React.FC<EvidenceStackProps> = ({ sessionId, events }) => {
       </div>
 
       {/* Tab bar */}
-      <div className="flex border-b border-slate-800/50 bg-slate-900/20 px-4">
+      <div className="flex border-b border-wr-border/50 bg-wr-bg/20 px-4">
         {tabs.map((tab) => (
           <button
             key={tab.id}
@@ -212,7 +212,7 @@ const EvidenceTab: React.FC<{ findings: V4Findings | null; events: TaskEvent[] }
       {(findings?.metric_anomalies?.length ?? 0) > 0 && (
         <div className="grid grid-cols-2 gap-4">
           {findings!.metric_anomalies.slice(0, 4).map((ma, i) => (
-            <div key={i} className="bg-slate-900/40 border border-slate-800 rounded-xl p-4">
+            <div key={i} className="bg-wr-bg/40 border border-wr-border rounded-xl p-4">
               <div className="flex items-center justify-between mb-4">
                 <span className="text-body-xs font-bold uppercase tracking-wider text-slate-400">{ma.metric_name}</span>
                 <span className={`text-xs font-bold ${
@@ -249,8 +249,8 @@ const EvidenceTab: React.FC<{ findings: V4Findings | null; events: TaskEvent[] }
 
       {/* K8s Health Grid - matches reference */}
       {k8sEvents.length > 0 && (
-        <div className="bg-slate-900/40 border border-slate-800 rounded-xl overflow-hidden">
-          <div className="px-4 py-2 border-b border-slate-800 bg-slate-900/60">
+        <div className="bg-wr-bg/40 border border-wr-border rounded-xl overflow-hidden">
+          <div className="px-4 py-2 border-b border-wr-border bg-wr-bg/60">
             <span className="text-body-xs font-bold uppercase tracking-wider">K8s Events</span>
           </div>
           <div className="p-4 space-y-2">
@@ -295,8 +295,8 @@ const EvidenceTab: React.FC<{ findings: V4Findings | null; events: TaskEvent[] }
 
       {/* Recent events feed if no other data yet */}
       {errorPatterns.length === 0 && evidenceItems.length === 0 && events.length > 0 && (
-        <div className="bg-slate-900/40 border border-slate-800 rounded-xl overflow-hidden">
-          <div className="px-4 py-2 border-b border-slate-800 bg-slate-900/60">
+        <div className="bg-wr-bg/40 border border-wr-border rounded-xl overflow-hidden">
+          <div className="px-4 py-2 border-b border-wr-border bg-wr-bg/60">
             <span className="text-body-xs font-bold uppercase tracking-wider">Agent Activity Feed</span>
           </div>
           <div className="p-4 font-mono text-body-xs space-y-1 text-slate-400 max-h-[300px] overflow-y-auto custom-scrollbar">
@@ -358,7 +358,7 @@ const TimelineTab: React.FC<{
 
   return (
     <div className="relative pl-6">
-      <div className="absolute left-2 top-0 bottom-0 w-px bg-slate-800" />
+      <div className="absolute left-2 top-0 bottom-0 w-px bg-wr-surface" />
       <div className="space-y-3">
         {timelineItems.map((item, i) => (
           <div key={i} className="relative">
@@ -367,7 +367,7 @@ const TimelineTab: React.FC<{
                 dotColor[item.type] || 'bg-slate-400'
               }`}
             />
-            <div className="bg-slate-900/40 border border-slate-800 rounded-lg px-3 py-2">
+            <div className="bg-wr-bg/40 border border-wr-border rounded-lg px-3 py-2">
               <div className="flex items-center gap-2 text-xs mb-1">
                 <span className="text-slate-400 font-mono">
                   {new Date(item.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
@@ -394,7 +394,7 @@ const FindingsTab: React.FC<{ findings: V4Findings | null }> = ({ findings }) =>
       {findings.findings.map((finding, i) => {
         const verdict = findings.critic_verdicts?.find((v) => v.finding_index === i);
         return (
-          <div key={i} className="bg-slate-900/40 border border-slate-800 rounded-xl p-4">
+          <div key={i} className="bg-wr-bg/40 border border-wr-border rounded-xl p-4">
             <div className="flex items-center gap-2 mb-2">
               <h4 className="text-sm font-medium text-white flex-1">{finding.title}</h4>
               <span className={`text-body-xs px-2 py-0.5 rounded-full ${severityColor[finding.severity]}`}>
@@ -415,7 +415,7 @@ const FindingsTab: React.FC<{ findings: V4Findings | null }> = ({ findings }) =>
               )}
             </div>
             {verdict && (
-              <p className="text-xs text-slate-400 mt-2 italic border-t border-slate-800 pt-2">
+              <p className="text-xs text-slate-400 mt-2 italic border-t border-wr-border pt-2">
                 Critic: {verdict.reasoning}
               </p>
             )}
@@ -427,7 +427,7 @@ const FindingsTab: React.FC<{ findings: V4Findings | null }> = ({ findings }) =>
         <div className="mt-4">
           <h4 className="text-xs text-slate-400 uppercase tracking-wider mb-2">Ruled Out</h4>
           {findings.negative_findings.map((nf, i) => (
-            <div key={i} className="bg-slate-800/30 border border-slate-800/50 rounded-lg px-3 py-2 mb-1">
+            <div key={i} className="bg-wr-surface/30 border border-wr-border/50 rounded-lg px-3 py-2 mb-1">
               <div className="flex items-center gap-2">
                 <span className="text-xs text-slate-400">{nf.agent}</span>
                 <span className="text-xs text-slate-400">{nf.description}</span>
@@ -447,15 +447,15 @@ const MetricsTab: React.FC<{ findings: V4Findings | null }> = ({ findings }) => 
   }
 
   const anomalySeverityColor: Record<string, { border: string; bg: string; text: string }> = {
-    critical: { border: 'border-red-500/30', bg: 'bg-red-500/10', text: 'text-red-400' },
+    critical: { border: 'border-wr-severity-high/30', bg: 'bg-wr-severity-high/10', text: 'text-red-400' },
     high: { border: 'border-orange-500/30', bg: 'bg-orange-500/10', text: 'text-orange-400' },
     medium: { border: 'border-yellow-500/30', bg: 'bg-yellow-500/10', text: 'text-yellow-400' },
     low: { border: 'border-blue-500/30', bg: 'bg-blue-500/10', text: 'text-blue-400' },
-    info: { border: 'border-slate-700', bg: 'bg-slate-900/40', text: 'text-slate-400' },
+    info: { border: 'border-wr-border-strong', bg: 'bg-wr-bg/40', text: 'text-slate-400' },
   };
 
   const signalTypeStyle: Record<string, string> = {
-    RED: 'bg-red-500/20 text-red-400 border-red-500/30',
+    RED: 'bg-wr-severity-high/20 text-red-400 border-wr-severity-high/30',
     USE: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
   };
 
@@ -483,7 +483,7 @@ const MetricsTab: React.FC<{ findings: V4Findings | null }> = ({ findings }) => 
         <div className="space-y-3">
           <div className="text-body-xs font-bold uppercase tracking-wider text-slate-400">Golden Signal Correlations</div>
           {findings!.correlated_signals.map((cs, i) => (
-            <div key={i} className="bg-slate-900/40 border border-slate-800 rounded-xl p-4">
+            <div key={i} className="bg-wr-bg/40 border border-wr-border rounded-xl p-4">
               <div className="flex items-center gap-2 mb-2">
                 <span className={`text-body-xs px-2 py-0.5 rounded-full font-bold border ${signalTypeStyle[cs.signal_type] || signalTypeStyle.RED}`}>
                   {cs.signal_type}
@@ -493,7 +493,7 @@ const MetricsTab: React.FC<{ findings: V4Findings | null }> = ({ findings }) => 
               <p className="text-xs text-slate-400 mb-2">{cs.narrative}</p>
               <div className="flex flex-wrap gap-1.5">
                 {cs.metrics.map((m, j) => (
-                  <span key={j} className="text-body-xs font-mono px-2 py-0.5 rounded bg-slate-800/60 text-slate-300 border border-slate-700/50">
+                  <span key={j} className="text-body-xs font-mono px-2 py-0.5 rounded bg-wr-surface/60 text-slate-300 border border-wr-border-strong/50">
                     {m}
                   </span>
                 ))}
@@ -505,11 +505,11 @@ const MetricsTab: React.FC<{ findings: V4Findings | null }> = ({ findings }) => 
 
       {/* Event Markers Timeline */}
       {(findings?.event_markers?.length ?? 0) > 0 && (
-        <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-4">
+        <div className="bg-wr-bg/40 border border-wr-border rounded-xl p-4">
           <div className="text-body-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
             Log Events on Timeline
           </div>
-          <div className="relative h-8 bg-slate-800/50 rounded-lg overflow-visible">
+          <div className="relative h-8 bg-wr-surface/50 rounded-lg overflow-visible">
             {findings!.event_markers.map((marker, i) => (
               <div
                 key={i}
@@ -579,35 +579,35 @@ const MetricsTab: React.FC<{ findings: V4Findings | null }> = ({ findings }) => 
 
       {/* Pod statuses */}
       {(findings.pod_statuses?.length ?? 0) > 0 && (
-        <div className="bg-slate-900/40 border border-slate-800 rounded-xl overflow-hidden">
-          <div className="px-4 py-2 border-b border-slate-800 bg-slate-900/60">
+        <div className="bg-wr-bg/40 border border-wr-border rounded-xl overflow-hidden">
+          <div className="px-4 py-2 border-b border-wr-border bg-wr-bg/60">
             <span className="text-body-xs font-bold uppercase tracking-wider">K8s Pod Status</span>
           </div>
           <div className="p-4 grid grid-cols-4 gap-4">
-            <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-700">
+            <div className="bg-wr-surface/50 p-3 rounded-lg border border-wr-border-strong">
               <div className="text-body-xs text-slate-400 mb-1">Total Pods</div>
               <div className="text-lg font-bold font-mono">{findings.pod_statuses.length}</div>
             </div>
-            <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-700">
+            <div className="bg-wr-surface/50 p-3 rounded-lg border border-wr-border-strong">
               <div className="text-body-xs text-slate-400 mb-1">Restarts</div>
               <div className="text-lg font-bold font-mono text-amber-500">
                 {findings.pod_statuses.reduce((s, p) => s + p.restart_count, 0)}
               </div>
             </div>
-            <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-700">
+            <div className="bg-wr-surface/50 p-3 rounded-lg border border-wr-border-strong">
               <div className="text-body-xs text-slate-400 mb-1">Healthy</div>
               <div className="text-lg font-bold font-mono text-green-500">
                 {findings.pod_statuses.filter((p) => p.ready).length}
               </div>
             </div>
-            <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-700">
+            <div className="bg-wr-surface/50 p-3 rounded-lg border border-wr-border-strong">
               <div className="text-body-xs text-slate-400 mb-1">Unhealthy</div>
               <div className="text-lg font-bold font-mono text-red-500">
                 {findings.pod_statuses.filter((p) => !p.ready).length}
               </div>
             </div>
           </div>
-          <div className="px-4 py-3 bg-slate-800/20 border-t border-slate-800">
+          <div className="px-4 py-3 bg-wr-surface/20 border-t border-wr-border">
             <div className="flex items-center gap-4 overflow-x-auto pb-1 custom-scrollbar">
               {findings.pod_statuses.map((pod, i) => (
                 <div key={i} className="flex items-center gap-2 shrink-0">
@@ -629,8 +629,8 @@ const PodHealthSection: React.FC<{ findings: V4Findings | null }> = ({ findings 
   if (pods.length === 0) return null;
 
   return (
-    <div className="bg-slate-900/40 border border-slate-800 rounded-xl overflow-hidden">
-      <div className="px-4 py-2 border-b border-slate-800 flex items-center justify-between bg-slate-900/60">
+    <div className="bg-wr-bg/40 border border-wr-border rounded-xl overflow-hidden">
+      <div className="px-4 py-2 border-b border-wr-border flex items-center justify-between bg-wr-bg/60">
         <div className="flex items-center gap-2">
           <span className="material-symbols-outlined text-blue-400 text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>dns</span>
           <span className="text-body-xs font-bold uppercase tracking-wider">Pod Health</span>
@@ -647,10 +647,10 @@ const PodHealthSection: React.FC<{ findings: V4Findings | null }> = ({ findings 
               <span className="text-amber-400 font-bold">{pod.restart_count} restarts</span>
             )}
             {pod.oom_killed && (
-              <span className="text-body-xs px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30">OOM</span>
+              <span className="text-body-xs px-1.5 py-0.5 rounded bg-wr-severity-high/20 text-red-400 border border-wr-severity-high/30">OOM</span>
             )}
             {pod.crash_loop && (
-              <span className="text-body-xs px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30">CrashLoop</span>
+              <span className="text-body-xs px-1.5 py-0.5 rounded bg-wr-severity-high/20 text-red-400 border border-wr-severity-high/30">CrashLoop</span>
             )}
           </div>
         ))}
@@ -680,7 +680,7 @@ const TopologySection: React.FC<{ findings: V4Findings | null }> = ({ findings }
   const hasData = services.size > 0 || impactedFiles.length > 0;
 
   return (
-    <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-4">
+    <div className="bg-wr-bg/40 border border-wr-border rounded-xl p-4">
       <div className="flex items-center justify-between mb-4">
         <span className="text-body-xs font-bold uppercase tracking-wider">Topology</span>
         {hasData && (
@@ -699,7 +699,7 @@ const TopologySection: React.FC<{ findings: V4Findings | null }> = ({ findings }
                     key={svc}
                     className={`px-3 py-1.5 rounded-lg border text-body-xs font-mono ${
                       hasError
-                        ? 'bg-red-500/10 border-red-500/30 text-red-400'
+                        ? 'bg-wr-severity-high/10 border-wr-severity-high/30 text-red-400'
                         : 'bg-[#e09f3e]/10 border-[#e09f3e]/30 text-[#e09f3e]'
                     }`}
                   >
@@ -724,7 +724,7 @@ const TopologySection: React.FC<{ findings: V4Findings | null }> = ({ findings }
           )}
           {/* Impacted files */}
           {impactedFiles.length > 0 && (
-            <div className="border-t border-slate-800 pt-3">
+            <div className="border-t border-wr-border pt-3">
               <span className="text-body-xs text-slate-400 uppercase tracking-wider">Impacted Files</span>
               <div className="mt-2 space-y-1">
                 {impactedFiles.map((f, i) => (
@@ -817,7 +817,7 @@ const BlastRadiusCard: React.FC<{ findings: V4Findings | null }> = ({ findings }
             ))}
           </div>
           {blast.estimated_user_impact && (
-            <div className="text-body-xs text-slate-400 pt-1 border-t border-slate-800">
+            <div className="text-body-xs text-slate-400 pt-1 border-t border-wr-border">
               Est. User Impact: {blast.estimated_user_impact}
             </div>
           )}
@@ -836,7 +836,7 @@ const ChangeCorrelationsSection: React.FC<{ findings: V4Findings | null }> = ({ 
   if (correlations.length === 0) return null;
 
   return (
-    <div className="bg-slate-900/40 border border-slate-800 rounded-xl overflow-hidden">
+    <div className="bg-wr-bg/40 border border-wr-border rounded-xl overflow-hidden">
       <button
         onClick={() => setExpanded(!expanded)}
         className="w-full px-4 py-3 text-left flex items-center gap-3"
@@ -855,7 +855,7 @@ const ChangeCorrelationsSection: React.FC<{ findings: V4Findings | null }> = ({ 
         <span className="text-body-xs text-slate-400 ml-auto">{correlations.length} changes</span>
       </button>
       {expanded && (
-        <div className="border-t border-slate-800 divide-y divide-slate-800/50">
+        <div className="border-t border-wr-border divide-y divide-slate-800/50">
           {correlations.map((corr, i) => (
             <ChangeCorrelationRow key={i} correlation={corr} />
           ))}
@@ -948,7 +948,7 @@ const TemporalFlowTimeline: React.FC<{
   const statusBadge = (status: ServiceFlowStep['status'], detail: string) => {
     const colors: Record<string, string> = {
       ok: 'text-green-400 border-green-500/30 bg-green-500/10',
-      error: 'text-red-400 border-red-500/30 bg-red-500/10',
+      error: 'text-red-400 border-wr-severity-high/30 bg-wr-severity-high/10',
       timeout: 'text-orange-400 border-orange-500/30 bg-orange-500/10',
     };
     return (
@@ -967,9 +967,9 @@ const TemporalFlowTimeline: React.FC<{
   })();
 
   return (
-    <div className="bg-slate-900/40 border border-slate-800 rounded-xl overflow-hidden">
+    <div className="bg-wr-bg/40 border border-wr-border rounded-xl overflow-hidden">
       {/* Header */}
-      <div className="px-4 py-2 border-b border-slate-800 flex items-center justify-between bg-slate-900/60">
+      <div className="px-4 py-2 border-b border-wr-border flex items-center justify-between bg-wr-bg/60">
         <div className="flex items-center gap-2">
           <span className="material-symbols-outlined text-violet-400 text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>
             timeline
@@ -989,7 +989,7 @@ const TemporalFlowTimeline: React.FC<{
       {/* Timeline */}
       <div className="p-4 relative">
         {/* Vertical dashed line */}
-        <div className="absolute left-[31px] top-4 bottom-4 border-l border-dashed border-slate-700" />
+        <div className="absolute left-[31px] top-4 bottom-4 border-l border-dashed border-wr-border-strong" />
 
         <div className="space-y-3">
           {steps.map((step, i) => {
@@ -1010,7 +1010,7 @@ const TemporalFlowTimeline: React.FC<{
               {/* Service card */}
               <button
                 onClick={() => setExpandedIdx(expandedIdx === i ? null : i)}
-                className="flex-1 bg-slate-800/30 p-2 rounded-lg border border-slate-700/50 text-left hover:border-slate-600/50 transition-colors"
+                className="flex-1 bg-wr-surface/30 p-2 rounded-lg border border-wr-border-strong/50 text-left hover:border-wr-border-strong/50 transition-colors"
               >
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0">
@@ -1018,7 +1018,7 @@ const TemporalFlowTimeline: React.FC<{
                       {step.service}
                     </span>
                     {isPatientZero && (
-                      <span className="text-chrome px-1 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30">
+                      <span className="text-chrome px-1 py-0.5 rounded bg-wr-severity-high/20 text-red-400 border border-wr-severity-high/30">
                         ORIGIN
                       </span>
                     )}
@@ -1031,7 +1031,7 @@ const TemporalFlowTimeline: React.FC<{
 
                 {/* L3: Expanded details */}
                 {expandedIdx === i && (
-                  <div className="mt-2 pt-2 border-t border-slate-700/50 space-y-1">
+                  <div className="mt-2 pt-2 border-t border-wr-border-strong/50 space-y-1">
                     {step.timestamp && (
                       <div className="text-body-xs text-slate-400 font-mono">
                         {new Date(step.timestamp).toLocaleString()}
@@ -1163,7 +1163,7 @@ const TraceSpanRow: React.FC<{ span: SpanInfo; totalDuration: number; depth: num
     <div>
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full text-left flex items-center gap-2 py-1 hover:bg-slate-800/30 rounded transition-colors"
+        className="w-full text-left flex items-center gap-2 py-1 hover:bg-wr-surface/30 rounded transition-colors"
         aria-expanded={expanded}
         style={{ paddingLeft: `${depth * 16 + 4}px` }}
       >
@@ -1175,7 +1175,7 @@ const TraceSpanRow: React.FC<{ span: SpanInfo; totalDuration: number; depth: num
         </span>
         <span className="text-body-xs font-mono text-[#e09f3e] w-20 shrink-0 truncate">{span.service}</span>
         <span className="text-body-xs text-slate-400 w-28 shrink-0 truncate">{span.operation}</span>
-        <div className="flex-1 h-4 bg-slate-800/50 rounded overflow-hidden relative">
+        <div className="flex-1 h-4 bg-wr-surface/50 rounded overflow-hidden relative">
           <div
             className={`h-full rounded ${barColor}`}
             style={{ width: `${widthPct}%` }}
@@ -1190,7 +1190,7 @@ const TraceSpanRow: React.FC<{ span: SpanInfo; totalDuration: number; depth: num
       </button>
       {/* L3: Expanded span details */}
       {expanded && (
-        <div className="ml-8 pl-4 border-l border-slate-800 py-2 space-y-1 text-body-xs text-slate-400" style={{ marginLeft: `${depth * 16 + 24}px` }}>
+        <div className="ml-8 pl-4 border-l border-wr-border py-2 space-y-1 text-body-xs text-slate-400" style={{ marginLeft: `${depth * 16 + 24}px` }}>
           <div>Span ID: <span className="font-mono">{span.span_id}</span></div>
           {span.parent_span_id && <div>Parent: <span className="font-mono">{span.parent_span_id}</span></div>}
           <div>Status: <span className={isError ? 'text-red-400 font-bold' : 'text-green-400'}>{span.status}</span></div>
@@ -1205,9 +1205,9 @@ const TraceSpanRow: React.FC<{ span: SpanInfo; totalDuration: number; depth: num
 const ErrorPatternCluster: React.FC<{ pattern: ErrorPattern; rank: number }> = ({ pattern, rank }) => {
   const [expanded, setExpanded] = useState(rank === 1);
   const sevColor = pattern.severity === 'critical' || pattern.severity === 'high'
-    ? 'border-red-500/30 bg-red-500/10'
+    ? 'border-wr-severity-high/30 bg-wr-severity-high/10'
     : pattern.severity === 'medium'
-    ? 'border-amber-500/30 bg-amber-500/10'
+    ? 'border-wr-severity-medium/30 bg-wr-severity-medium/10'
     : 'border-blue-500/30 bg-blue-500/10';
 
   const sevTextColor = pattern.severity === 'critical' || pattern.severity === 'high'
@@ -1232,7 +1232,7 @@ const ErrorPatternCluster: React.FC<{ pattern: ErrorPattern; rank: number }> = (
         <span className={`text-body-xs font-bold uppercase ${sevTextColor}`}>{pattern.severity}</span>
         {pattern.causal_role && (
           <span className={`text-body-xs px-1.5 py-0.5 rounded font-medium ${
-            pattern.causal_role === 'root_cause' ? 'bg-red-500/20 text-red-400 border border-red-500/30' :
+            pattern.causal_role === 'root_cause' ? 'bg-wr-severity-high/20 text-red-400 border border-wr-severity-high/30' :
             pattern.causal_role === 'cascading_failure' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' :
             'bg-slate-500/20 text-slate-400 border border-slate-500/30'
           }`}>
@@ -1262,7 +1262,7 @@ const ErrorPatternCluster: React.FC<{ pattern: ErrorPattern; rank: number }> = (
           {pattern.affected_components?.length > 0 && (
             <div className="flex flex-wrap gap-1">
               {pattern.affected_components.map((svc, i) => (
-                <span key={i} className="text-body-xs font-mono px-2 py-0.5 rounded bg-slate-800/60 text-slate-300 border border-slate-700/50">
+                <span key={i} className="text-body-xs font-mono px-2 py-0.5 rounded bg-wr-surface/60 text-slate-300 border border-wr-border-strong/50">
                   {svc}
                 </span>
               ))}
@@ -1315,7 +1315,7 @@ const StackTraceSection: React.FC<{ traces: string[] }> = ({ traces }) => {
 const EmptyState: React.FC<{ message: string }> = ({ message }) => (
   <div className="flex items-center justify-center h-full min-h-[200px] text-slate-400">
     <div className="text-center">
-      <div className="w-8 h-8 border-2 border-slate-800 border-t-[#e09f3e] rounded-full animate-spin mx-auto mb-3" />
+      <div className="w-8 h-8 border-2 border-wr-border border-t-[#e09f3e] rounded-full animate-spin mx-auto mb-3" />
       <p className="text-sm">{message}</p>
     </div>
   </div>

@@ -12,7 +12,7 @@ const statusColor = (status: FleetNode['status']) => {
     case 'critical': return 'bg-red-500';
     case 'warning': return 'bg-amber-500';
     case 'healthy': return 'bg-wr-border';
-    default: return 'bg-slate-700';
+    default: return 'bg-wr-inset';
   }
 };
 

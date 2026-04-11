@@ -20,7 +20,7 @@ const CopyButton: React.FC<CopyButtonProps> = ({ text, className = '', size = 12
   return (
     <button
       onClick={handleCopy}
-      className={`p-1 rounded hover:bg-slate-700/50 transition-colors ${className}`}
+      className={`p-1 rounded hover:bg-wr-inset/50 transition-colors ${className}`}
       aria-label={copied ? 'Copied' : 'Copy to clipboard'}
       title={copied ? 'Copied!' : 'Copy'}
     >

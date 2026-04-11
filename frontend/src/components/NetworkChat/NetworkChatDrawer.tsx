@@ -95,7 +95,7 @@ const NetworkChatDrawer: React.FC<NetworkChatDrawerProps> = ({
               animate={{ x: 0 }}
               exit={{ x: 420 }}
               transition={{ type: 'spring', stiffness: 400, damping: 40 }}
-              className="fixed right-0 top-0 bottom-0 w-full sm:w-[420px] z-[70] bg-slate-900/95 backdrop-blur-xl border-l border-white/5 flex flex-col shadow-2xl"
+              className="fixed right-0 top-0 bottom-0 w-full sm:w-[420px] z-[70] bg-wr-bg/95 backdrop-blur-xl border-l border-white/5 flex flex-col shadow-2xl"
             >
               {/* Header */}
               <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 flex-shrink-0">
@@ -222,7 +222,7 @@ const MessageBubble: React.FC<{ message: NetworkChatMessage }> = ({ message }) =
               <span
                 key={i}
                 className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-body-xs ${
-                  tc.blocked ? 'bg-red-500/10 text-red-400' : 'bg-amber-400/10 text-amber-400'
+                  tc.blocked ? 'bg-wr-severity-high/10 text-red-400' : 'bg-amber-400/10 text-amber-400'
                 }`}
               >
                 <span className="material-symbols-outlined text-body-xs">build</span>

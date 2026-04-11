@@ -23,7 +23,7 @@ const ClosureStepCard: React.FC<ClosureStepCardProps> = ({
         ? 'border-l-green-500 bg-green-500/5 border border-l-0 border-green-500/20'
         : active
         ? 'border-l-violet-500 bg-violet-500/5 border border-l-0 border-violet-500/20'
-        : 'border-l-slate-600 bg-slate-900/40 border border-l-0 border-slate-700/50'
+        : 'border-l-slate-600 bg-wr-bg/40 border border-l-0 border-wr-border-strong/50'
     }`}>
       <div className="px-4 py-2.5 flex items-center gap-2">
         {completed ? (
@@ -32,7 +32,7 @@ const ClosureStepCard: React.FC<ClosureStepCardProps> = ({
           </span>
         ) : (
           <span className={`w-6 h-6 rounded-full flex items-center justify-center text-body-xs font-bold shrink-0 ${
-            active ? 'bg-violet-500 text-white' : 'bg-slate-700 text-slate-400'
+            active ? 'bg-violet-500 text-white' : 'bg-wr-inset text-slate-400'
           }`}>
             {stepNumber}
           </span>

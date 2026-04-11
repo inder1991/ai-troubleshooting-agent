@@ -121,7 +121,7 @@ function TreeNode({
         </span>
         {/* Child count badge for non-subnet nodes */}
         {childCount > 0 && !isSubnet && (
-          <span className="px-1.5 py-0.5 rounded-full bg-slate-700 text-body-xs text-slate-400 flex-shrink-0">
+          <span className="px-1.5 py-0.5 rounded-full bg-wr-inset text-body-xs text-slate-400 flex-shrink-0">
             {childCount}
           </span>
         )}
@@ -131,7 +131,7 @@ function TreeNode({
         )}
         {showUtilBar && node.utilization_pct !== undefined && (
           <div className="flex items-center gap-1 ml-1 flex-shrink-0">
-            <div className="w-10 h-1.5 bg-slate-700 rounded-full overflow-hidden">
+            <div className="w-10 h-1.5 bg-wr-inset rounded-full overflow-hidden">
               <div
                 className={`h-full rounded-full ${utilizationColor(node.utilization_pct)}`}
                 style={{ width: `${Math.min(node.utilization_pct, 100)}%` }}

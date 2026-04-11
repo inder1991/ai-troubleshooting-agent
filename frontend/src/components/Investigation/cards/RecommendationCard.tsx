@@ -4,7 +4,7 @@ import type { OperationalRecommendation, CommandStep } from '../../../types';
 const URGENCY_STYLES: Record<string, { label: string; className: string }> = {
   immediate: { label: 'IMMEDIATE', className: 'text-red-400 bg-red-950/30 border-red-500/40' },
   short_term: { label: 'SHORT TERM', className: 'text-amber-400 bg-amber-950/30 border-amber-500/40' },
-  preventive: { label: 'PREVENTIVE', className: 'text-slate-400 bg-slate-800/30 border-slate-500/40' },
+  preventive: { label: 'PREVENTIVE', className: 'text-slate-400 bg-wr-surface/30 border-slate-500/40' },
 };
 
 const RISK_STYLES: Record<string, { label: string; className: string }> = {
@@ -64,13 +64,13 @@ const CommandBlock: React.FC<CommandBlockProps> = ({ step, showDryRun }) => {
     <div className="space-y-1">
       <div className="text-body-xs text-slate-400">{step.order}. {step.description}</div>
       <div className="relative group">
-        <pre className="text-body-xs font-mono bg-slate-950/60 border border-slate-800/50 rounded px-3 py-2 text-slate-300 overflow-x-auto whitespace-pre-wrap">
+        <pre className="text-body-xs font-mono bg-slate-950/60 border border-wr-border/50 rounded px-3 py-2 text-slate-300 overflow-x-auto whitespace-pre-wrap">
           <span className="text-slate-500 mr-2">$</span>
           {renderCommand(command)}
         </pre>
         <button
           onClick={handleCopy}
-          className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition-opacity px-1.5 py-0.5 rounded text-body-xs bg-slate-800 text-slate-400 hover:text-amber-400"
+          className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition-opacity px-1.5 py-0.5 rounded text-body-xs bg-wr-surface text-slate-400 hover:text-amber-400"
         >
           {copied ? 'Copied!' : 'Copy'}
         </button>
@@ -99,7 +99,7 @@ const RecommendationCard: React.FC<RecommendationCardProps> = ({ recommendation:
   const commandsHavePlaceholders = rec.commands.some(c => hasPlaceholder(c.command));
 
   return (
-    <div className="rounded border border-slate-800/40 bg-slate-900/20 p-3 space-y-3">
+    <div className="rounded border border-wr-border/40 bg-wr-bg/20 p-3 space-y-3">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -170,7 +170,7 @@ const RecommendationCard: React.FC<RecommendationCardProps> = ({ recommendation:
             Rollback Commands ({rec.rollback_commands.length})
           </button>
           {showRollback && (
-            <div className="mt-2 space-y-2 border-l-2 border-red-500/30 pl-3">
+            <div className="mt-2 space-y-2 border-l-2 border-wr-severity-high/30 pl-3">
               {rec.rollback_commands.map(step => (
                 <CommandBlock key={step.order} step={step} showDryRun={false} />
               ))}

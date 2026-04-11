@@ -44,11 +44,11 @@ export const CodebaseMappingCard: React.FC<CodebaseMappingProps> = ({ data }) =>
         </span>
       </div>
       
-      <div className="min-h-[100px] border border-dashed border-slate-800 rounded bg-slate-950/40 p-3">
+      <div className="min-h-[100px] border border-dashed border-wr-border rounded bg-slate-950/40 p-3">
         <div className="space-y-2">
           {data.mappedLocations && data.mappedLocations.length > 0 ? (
             data.mappedLocations.map((loc, idx) => (
-              <div key={idx} className="border border-slate-800 rounded p-2 bg-slate-900/40">
+              <div key={idx} className="border border-wr-border rounded p-2 bg-wr-bg/40">
                 <div className="flex items-start justify-between mb-1">
                   <div className="flex items-center gap-2 flex-1 min-w-0">
                     {loc.mapped ? (

@@ -18,13 +18,13 @@ const variantStyles: Record<ActionChipProps['variant'], { bg: string; border: st
   },
   warning: {
     bg: 'bg-amber-500/15',
-    border: 'border-amber-500/30',
+    border: 'border-wr-severity-medium/30',
     text: 'text-amber-400',
     hoverBg: 'hover:bg-amber-500/25',
   },
   danger: {
     bg: 'bg-red-500/15',
-    border: 'border-red-500/30',
+    border: 'border-wr-severity-high/30',
     text: 'text-red-400',
     hoverBg: 'hover:bg-red-500/25',
   },

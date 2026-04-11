@@ -8,14 +8,14 @@ interface ImpactCardProps {
 }
 
 const severityConfig: Record<string, { bg: string; text: string; border: string; glow: string }> = {
-  P1: { bg: 'bg-red-500/20', text: 'text-red-400', border: 'border-red-500/50', glow: 'shadow-red-500/20' },
+  P1: { bg: 'bg-wr-severity-high/20', text: 'text-red-400', border: 'border-red-500/50', glow: 'shadow-red-500/20' },
   P2: { bg: 'bg-orange-500/20', text: 'text-orange-400', border: 'border-orange-500/50', glow: 'shadow-orange-500/20' },
   P3: { bg: 'bg-yellow-500/20', text: 'text-yellow-400', border: 'border-yellow-500/50', glow: 'shadow-yellow-500/20' },
   P4: { bg: 'bg-green-500/20', text: 'text-green-400', border: 'border-green-500/50', glow: 'shadow-green-500/20' },
 };
 
 const riskConfig: Record<string, { bg: string; text: string }> = {
-  critical: { bg: 'bg-red-500/20', text: 'text-red-400' },
+  critical: { bg: 'bg-wr-severity-high/20', text: 'text-red-400' },
   high: { bg: 'bg-orange-500/20', text: 'text-orange-400' },
   medium: { bg: 'bg-yellow-500/20', text: 'text-yellow-400' },
   low: { bg: 'bg-green-500/20', text: 'text-green-400' },

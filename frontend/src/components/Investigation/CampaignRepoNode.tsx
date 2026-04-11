@@ -56,9 +56,9 @@ const CampaignRepoNode: React.FC<CampaignRepoNodeProps> = ({
       onMouseLeave={() => onHover(null)}
       onClick={onSelect}
       className={`
-        relative border-l-4 ${borderClass} rounded-lg bg-slate-900/60 border border-slate-800/50
-        cursor-pointer transition-all hover:bg-slate-800/40
-        ${isSelected ? 'ring-1 ring-cyan-500/40 bg-slate-800/50' : ''}
+        relative border-l-4 ${borderClass} rounded-lg bg-wr-bg/60 border border-wr-border/50
+        cursor-pointer transition-all hover:bg-wr-surface/40
+        ${isSelected ? 'ring-1 ring-cyan-500/40 bg-wr-surface/50' : ''}
         ${repoFix.status === 'generating' ? 'campaign-node-generating' : ''}
       `}
     >
@@ -99,7 +99,7 @@ const CampaignRepoNode: React.FC<CampaignRepoNodeProps> = ({
         <motion.div
           initial={{ height: 0, opacity: 0 }}
           animate={{ height: 'auto', opacity: 1 }}
-          className="border-t border-slate-800/50 p-3"
+          className="border-t border-wr-border/50 p-3"
         >
           {repoFix.fix_explanation && (
             <p className="text-body-xs text-slate-400 mb-2">{repoFix.fix_explanation}</p>
@@ -131,7 +131,7 @@ const CampaignRepoNode: React.FC<CampaignRepoNodeProps> = ({
             <div className="flex items-center gap-2">
               <button
                 onClick={e => { e.stopPropagation(); onTelescope(); }}
-                className="flex-1 py-1.5 rounded bg-slate-800/80 border border-slate-700 hover:bg-slate-700 text-body-xs text-cyan-400 font-bold tracking-wider"
+                className="flex-1 py-1.5 rounded bg-wr-surface/80 border border-wr-border-strong hover:bg-wr-inset text-body-xs text-cyan-400 font-bold tracking-wider"
               >
                 VIEW DIFF
               </button>

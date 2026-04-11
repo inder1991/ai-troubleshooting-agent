@@ -3,8 +3,8 @@ import React from 'react';
 type AgentCode = 'L' | 'M' | 'K' | 'C' | 'D';
 
 const agentStyles: Record<AgentCode, { border: string; bg: string; label: string }> = {
-  L: { border: 'card-border-L', bg: 'bg-red-500/10', label: 'Log Analyzer' },
-  M: { border: 'card-border-M', bg: 'bg-amber-500/10', label: 'Metric Scanner' },
+  L: { border: 'card-border-L', bg: 'bg-wr-severity-high/10', label: 'Log Analyzer' },
+  M: { border: 'card-border-M', bg: 'bg-wr-severity-medium/10', label: 'Metric Scanner' },
   K: { border: 'card-border-K', bg: 'bg-orange-500/10', label: 'K8s Probe' },
   C: { border: 'card-border-C', bg: 'bg-emerald-500/10', label: 'Change Intel' },
   D: { border: 'card-border-D', bg: 'bg-blue-500/10', label: 'Code Navigator' },
