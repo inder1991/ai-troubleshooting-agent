@@ -183,11 +183,105 @@ async def test_get_build_artifacts_returns_log_tail_and_failed_stage():
     client._get_text = fake_log  # type: ignore[assignment]
 
     build = await client.get_build_artifacts(event)
+    from src.integrations.cicd.jenkins_client import _LOG_TAIL_LINES
+
     assert build.event.source_id == "checkout-api#1847"
     assert build.parameters == {"ENV": "prod"}
     assert "line 249" in build.log_tail
-    assert build.log_tail.count("\n") <= 210  # bounded
+    # bounded by _LOG_TAIL_LINES (N lines → N-1 newlines between them)
+    assert build.log_tail.count("\n") <= _LOG_TAIL_LINES
     assert build.failed_stage == "deploy"
+
+
+@pytest.mark.asyncio
+async def test_get_build_artifacts_no_failed_marker_returns_none():
+    from src.integrations.cicd.base import DeployEvent
+
+    event = DeployEvent(
+        source="jenkins",
+        source_id="checkout-api#1847",
+        name="checkout-api",
+        status="failed",
+        started_at=datetime(2026, 4, 10, 14, 0, tzinfo=timezone.utc),
+        url="https://j.example/job/checkout-api/1847/",
+    )
+    detail = {**BUILD_PAYLOAD, "result": "FAILURE", "actions": []}
+    mock_get = AsyncMock(side_effect=[detail])
+    client = _mk_client(mock_get)
+
+    async def fake_log(path: str) -> str:
+        return "some ordinary log line\nanother one\nno markers here"
+
+    client._get_text = fake_log  # type: ignore[assignment]
+    build = await client.get_build_artifacts(event)
+    assert build.failed_stage is None
+
+
+@pytest.mark.asyncio
+async def test_get_build_artifacts_empty_log_and_missing_actions():
+    from src.integrations.cicd.base import DeployEvent
+
+    event = DeployEvent(
+        source="jenkins",
+        source_id="checkout-api#1847",
+        name="checkout-api",
+        status="failed",
+        started_at=datetime(2026, 4, 10, 14, 0, tzinfo=timezone.utc),
+        url="https://j.example/job/checkout-api/1847/",
+    )
+    detail = {**BUILD_PAYLOAD, "actions": None}
+    mock_get = AsyncMock(side_effect=[detail])
+    client = _mk_client(mock_get)
+
+    async def fake_log(path: str) -> str:
+        return ""
+
+    client._get_text = fake_log  # type: ignore[assignment]
+    build = await client.get_build_artifacts(event)
+    assert build.parameters == {}
+    assert build.log_tail == ""
+    assert build.failed_stage is None
+
+
+@pytest.mark.asyncio
+async def test_get_build_artifacts_rejects_malformed_source_id():
+    from src.integrations.cicd.base import DeployEvent
+
+    event = DeployEvent(
+        source="jenkins",
+        source_id="nohash",
+        name="nohash",
+        status="failed",
+        started_at=datetime(2026, 4, 10, 14, 0, tzinfo=timezone.utc),
+        url="https://j.example/job/nohash/",
+    )
+    # _get_json / _get_text must never be reached — fail fast before the call.
+    client = _mk_client(AsyncMock(side_effect=AssertionError("should not call")))
+    client._get_text = AsyncMock(side_effect=AssertionError("should not call"))  # type: ignore[assignment]
+
+    with pytest.raises(CICDClientError) as exc_info:
+        await client.get_build_artifacts(event)
+    assert exc_info.value.kind == "unknown"
+
+
+@pytest.mark.asyncio
+async def test_health_check_returns_false_on_timeout():
+    async def fail(*a, **kw):
+        raise CICDClientError(
+            source="jenkins", instance="prod", kind="timeout", message="timeout",
+        )
+    client = _mk_client(AsyncMock(side_effect=fail))
+    assert await client.health_check() is False
+
+
+@pytest.mark.asyncio
+async def test_health_check_returns_false_on_network_error():
+    async def fail(*a, **kw):
+        raise CICDClientError(
+            source="jenkins", instance="prod", kind="network", message="500",
+        )
+    client = _mk_client(AsyncMock(side_effect=fail))
+    assert await client.health_check() is False
 
 
 @pytest.mark.asyncio

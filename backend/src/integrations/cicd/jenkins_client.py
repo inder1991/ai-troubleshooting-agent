@@ -5,6 +5,7 @@ import logging
 import re
 from datetime import datetime, timezone
 from typing import Any, Literal
+from urllib.parse import quote
 
 import aiohttp
 
@@ -15,6 +16,7 @@ from src.integrations.cicd.base import (
 logger = logging.getLogger(__name__)
 
 _MAX_BUILDS_PER_JOB = 50  # bound per-job work; newest-first, break on age
+_LOG_TAIL_LINES = 200  # console log tail size for Build.log_tail
 
 _STATUS_MAP: dict[str | None, DeployStatus] = {
     "SUCCESS": "success",
@@ -128,6 +130,8 @@ class JenkinsClient:
         jobs_payload = await self._get_json("/api/json?tree=jobs[name,url]")
         jobs = jobs_payload.get("jobs", [])
 
+        # TODO(phase-b): URL-encode job_name here too (see get_build_artifacts);
+        # keeping as-is in this commit to scope the review fix narrowly.
         async def fetch_job(job: dict[str, Any]) -> list[DeployEvent]:
             async with self._sem:
                 job_name = job["name"]
@@ -202,9 +206,27 @@ class JenkinsClient:
         )
 
     async def get_build_artifacts(self, event: DeployEvent) -> Build | SyncDiff:
-        job_name, _, num = event.source_id.partition("#")
-        detail = await self._get_json(f"/job/{job_name}/{num}/api/json")
-        log = await self._get_text(f"/job/{job_name}/{num}/consoleText")
+        """Fetch build detail + console log tail for a given DeployEvent.
+
+        `failed_stage` is extracted by regex matching on
+        ``[Pipeline] stage '<name>' FAILED`` markers in the log tail. This is
+        an intentional convention: teams are expected to emit these markers
+        from a shared Jenkins pipeline library step on stage failure. We do
+        NOT attempt to parse raw Jenkins console output — if the marker is
+        absent, ``failed_stage`` will be ``None``.
+        """
+        job_name, sep, num = event.source_id.partition("#")
+        if not sep or not num:
+            raise CICDClientError(
+                source="jenkins",
+                instance=self.name,
+                kind="unknown",
+                message=f"invalid source_id {event.source_id!r}: expected 'job#build'",
+            )
+        # Preserve '/' for folder-plugin nested job paths (e.g. folder/subjob).
+        encoded_job = quote(job_name, safe="/")
+        detail = await self._get_json(f"/job/{encoded_job}/{num}/api/json")
+        log = await self._get_text(f"/job/{encoded_job}/{num}/consoleText")
         params: dict[str, str] = {}
         for action in detail.get("actions") or []:
             if not isinstance(action, dict):
@@ -212,7 +234,7 @@ class JenkinsClient:
             for p in action.get("parameters") or []:
                 if isinstance(p, dict) and "name" in p:
                     params[p["name"]] = str(p.get("value", ""))
-        tail_lines = log.splitlines()[-200:]
+        tail_lines = log.splitlines()[-_LOG_TAIL_LINES:]
         log_tail = "\n".join(tail_lines)
         failed_stage: str | None = None
         m = re.search(r"\[Pipeline\] stage ['\"]?([^'\"]+)['\"]? FAILED", log_tail)
