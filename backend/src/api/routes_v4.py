@@ -2321,3 +2321,19 @@ async def cicd_stream(
         "source_errors": source_errors,
         "server_ts": datetime.now(tz=timezone.utc).isoformat(),
     }
+
+
+@router_v4.get("/cicd/commit/{owner}/{repo}/{sha}")
+async def cicd_commit_detail(owner: str, repo: str, sha: str):
+    """Fetch full commit detail + file diffs for the Live Board drawer."""
+    try:
+        return await GitHubClient().get_commit_diff(f"{owner}/{repo}", sha)
+    except GitHubClientError as exc:
+        msg = str(exc).lower()
+        if "rate limit" in msg:
+            raise HTTPException(status_code=429, detail="GitHub rate limit reached")
+        if "not found" in msg:
+            raise HTTPException(status_code=404, detail=str(exc))
+        if "authentication" in msg or "401" in msg:
+            raise HTTPException(status_code=401, detail=str(exc))
+        raise HTTPException(status_code=502, detail=str(exc))
