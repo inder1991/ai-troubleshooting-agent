@@ -89,6 +89,36 @@ class JenkinsClient:
                 kind="network", message=str(e),
             ) from e
 
+    async def _get_text(self, path: str) -> str:
+        url = f"{self.base_url}{path}"
+        try:
+            async with aiohttp.ClientSession(
+                auth=self._auth, timeout=self._timeout
+            ) as s:
+                async with s.get(url) as resp:
+                    if resp.status in (401, 403):
+                        raise CICDClientError(
+                            source="jenkins", instance=self.name,
+                            kind="auth", message=f"{resp.status}",
+                        )
+                    if resp.status >= 500:
+                        raise CICDClientError(
+                            source="jenkins", instance=self.name,
+                            kind="network", message=f"{resp.status}",
+                        )
+                    resp.raise_for_status()
+                    return await resp.text()
+        except asyncio.TimeoutError as e:
+            raise CICDClientError(
+                source="jenkins", instance=self.name,
+                kind="timeout", message=str(e),
+            ) from e
+        except aiohttp.ClientError as e:
+            raise CICDClientError(
+                source="jenkins", instance=self.name,
+                kind="network", message=str(e),
+            ) from e
+
     async def list_deploy_events(
         self,
         since: datetime,
@@ -172,7 +202,30 @@ class JenkinsClient:
         )
 
     async def get_build_artifacts(self, event: DeployEvent) -> Build | SyncDiff:
-        raise NotImplementedError  # Task 6
+        job_name, _, num = event.source_id.partition("#")
+        detail = await self._get_json(f"/job/{job_name}/{num}/api/json")
+        log = await self._get_text(f"/job/{job_name}/{num}/consoleText")
+        params: dict[str, str] = {}
+        for action in detail.get("actions") or []:
+            if not isinstance(action, dict):
+                continue
+            for p in action.get("parameters") or []:
+                if isinstance(p, dict) and "name" in p:
+                    params[p["name"]] = str(p.get("value", ""))
+        tail_lines = log.splitlines()[-200:]
+        log_tail = "\n".join(tail_lines)
+        failed_stage: str | None = None
+        m = re.search(r"\[Pipeline\] stage ['\"]?([^'\"]+)['\"]? FAILED", log_tail)
+        if m:
+            failed_stage = m.group(1)
+        return Build(
+            event=event, parameters=params, log_tail=log_tail,
+            failed_stage=failed_stage,
+        )
 
     async def health_check(self) -> bool:
-        raise NotImplementedError  # Task 6
+        try:
+            await self._get_json("/api/json?tree=mode")
+            return True
+        except CICDClientError:
+            return False

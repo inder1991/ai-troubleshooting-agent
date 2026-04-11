@@ -149,3 +149,59 @@ async def test_parse_build_uses_first_match_for_git_metadata():
     )
     assert events[0].git_sha == "first-sha"
     assert events[0].git_repo == "acme/first"
+
+
+@pytest.mark.asyncio
+async def test_get_build_artifacts_returns_log_tail_and_failed_stage():
+    from src.integrations.cicd.base import DeployEvent
+
+    event = DeployEvent(
+        source="jenkins",
+        source_id="checkout-api#1847",
+        name="checkout-api",
+        status="failed",
+        started_at=datetime(2026, 4, 10, 14, 0, tzinfo=timezone.utc),
+        url="https://j.example/job/checkout-api/1847/",
+    )
+
+    detail = {
+        **BUILD_PAYLOAD,
+        "result": "FAILURE",
+        "actions": [
+            {"parameters": [{"name": "ENV", "value": "prod"}]},
+        ],
+    }
+    log_text = "\n".join(f"line {i}" for i in range(250)) + "\n[Pipeline] stage 'deploy' FAILED"
+
+    mock_get = AsyncMock(side_effect=[detail])
+    client = _mk_client(mock_get)
+
+    async def fake_log(path: str) -> str:
+        assert path.endswith("/consoleText")
+        return log_text
+
+    client._get_text = fake_log  # type: ignore[assignment]
+
+    build = await client.get_build_artifacts(event)
+    assert build.event.source_id == "checkout-api#1847"
+    assert build.parameters == {"ENV": "prod"}
+    assert "line 249" in build.log_tail
+    assert build.log_tail.count("\n") <= 210  # bounded
+    assert build.failed_stage == "deploy"
+
+
+@pytest.mark.asyncio
+async def test_health_check_returns_true_on_200():
+    mock_get = AsyncMock(return_value={"mode": "NORMAL"})
+    client = _mk_client(mock_get)
+    assert await client.health_check() is True
+
+
+@pytest.mark.asyncio
+async def test_health_check_returns_false_on_auth_error():
+    async def fail(*a, **kw):
+        raise CICDClientError(
+            source="jenkins", instance="prod", kind="auth", message="401",
+        )
+    client = _mk_client(AsyncMock(side_effect=fail))
+    assert await client.health_check() is False
