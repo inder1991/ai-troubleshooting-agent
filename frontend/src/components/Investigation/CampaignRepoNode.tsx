@@ -18,7 +18,7 @@ const causalRoleToBadge: Record<string, 'root_cause' | 'cascading_failure' | 'co
 };
 
 const statusIcon: Record<string, { icon: string; className: string }> = {
-  pending: { icon: 'schedule', className: 'text-slate-500' },
+  pending: { icon: 'schedule', className: 'text-slate-400' },
   cloning: { icon: 'cloud_download', className: 'text-cyan-400 animate-pulse' },
   generating: { icon: 'auto_fix_high', className: 'text-cyan-400 campaign-node-generating' },
   awaiting_review: { icon: 'visibility', className: 'text-amber-400' },
@@ -110,7 +110,7 @@ const CampaignRepoNode: React.FC<CampaignRepoNodeProps> = ({
             <div className="mb-3 space-y-1">
               {repoFix.fixed_files.map((f) => (
                 <div key={f.file_path} className="flex items-center gap-2">
-                  <span className="text-body-xs font-mono text-slate-500 truncate flex-1">
+                  <span className="text-body-xs font-mono text-slate-400 truncate flex-1">
                     {f.file_path}
                   </span>
                   <VSCodeLink filePath={f.file_path} repoName={repoFix.service_name} />
@@ -121,7 +121,7 @@ const CampaignRepoNode: React.FC<CampaignRepoNodeProps> = ({
 
           {/* Diff preview */}
           {repoFix.diff && (
-            <pre className="text-body-xs font-mono text-slate-500 bg-black/30 rounded p-2 max-h-24 overflow-auto mb-3">
+            <pre className="text-body-xs font-mono text-slate-400 bg-black/30 rounded p-2 max-h-24 overflow-auto mb-3">
               {repoFix.diff.slice(0, 500)}
             </pre>
           )}

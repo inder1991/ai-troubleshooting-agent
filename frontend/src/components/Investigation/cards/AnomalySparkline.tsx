@@ -129,7 +129,7 @@ const SyntheticSparkline: React.FC<{
         <line x1={PAD_X} y1={bY} x2={WIDTH - PAD_X} y2={bY} stroke="#475569" strokeWidth="1" strokeDasharray="4 3" />
         <polyline points={points} fill="none" stroke="#07b6d5" strokeWidth="1.5" strokeDasharray="6 3" strokeLinejoin="round" />
       </svg>
-      <span className="absolute top-0 right-1 text-chrome text-slate-600 italic">estimated</span>
+      <span className="absolute top-0 right-1 text-chrome text-slate-500 italic">estimated</span>
     </div>
   );
 };

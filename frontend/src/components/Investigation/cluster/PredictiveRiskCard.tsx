@@ -16,7 +16,7 @@ export default function PredictiveRiskCard({ risk }: PredictiveRiskCardProps) {
       </div>
       <p className="text-body-xs text-slate-400">{risk.description}</p>
       <p className="text-body-xs text-amber-400/70 mt-1">{risk.predicted_impact}</p>
-      <div className="text-body-xs text-slate-500 font-mono mt-1">{risk.resource}</div>
+      <div className="text-body-xs text-slate-400 font-mono mt-1">{risk.resource}</div>
     </div>
   );
 }

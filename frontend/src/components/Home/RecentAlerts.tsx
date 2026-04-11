@@ -96,7 +96,7 @@ export const RecentAlerts: React.FC = () => {
                   {sev.icon}
                 </span>
                 <span className="text-body-xs text-slate-300 flex-1">{alert.message}</span>
-                <span className="text-body-xs text-slate-500 shrink-0">{alert.age}</span>
+                <span className="text-body-xs text-slate-400 shrink-0">{alert.age}</span>
               </div>
             );
           })}

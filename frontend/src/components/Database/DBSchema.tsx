@@ -148,18 +148,18 @@ const DBSchema: React.FC = () => {
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
             placeholder="Filter tables..."
-            className="w-full px-2 py-1.5 rounded-lg bg-slate-800 border border-slate-600 text-xs text-slate-100 focus:border-amber-500 outline-none placeholder:text-slate-600"
+            className="w-full px-2 py-1.5 rounded-lg bg-slate-800 border border-slate-600 text-xs text-slate-100 focus:border-amber-500 outline-none placeholder:text-slate-500"
           />
         </div>
 
         {/* Tree */}
         <div className="flex-1 overflow-auto p-2">
           {loading ? (
-            <div className="flex items-center justify-center py-8 text-slate-500">
+            <div className="flex items-center justify-center py-8 text-slate-400">
               <span className="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>
             </div>
           ) : !schema ? (
-            <p className="text-xs text-slate-600 text-center py-8">Select a profile to browse schema</p>
+            <p className="text-xs text-slate-500 text-center py-8">Select a profile to browse schema</p>
           ) : (
             <>
               {/* Tables group */}
@@ -173,7 +173,7 @@ const DBSchema: React.FC = () => {
                   </span>
                   <span className="material-symbols-outlined text-[14px] text-amber-400">table_chart</span>
                   Tables
-                  <span className="ml-auto text-slate-600">{filteredTables.length}</span>
+                  <span className="ml-auto text-slate-500">{filteredTables.length}</span>
                 </button>
                 {expandedGroups.has('Tables') && (
                   <div className="ml-4 space-y-0.5">
@@ -188,10 +188,10 @@ const DBSchema: React.FC = () => {
                         <span className="truncate">{t.name}</span>
                         <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
                           {t.row_estimate !== undefined && (
-                            <span className="text-body-xs text-slate-600">{t.row_estimate.toLocaleString()} rows</span>
+                            <span className="text-body-xs text-slate-500">{t.row_estimate.toLocaleString()} rows</span>
                           )}
                           {t.total_size_bytes !== undefined && t.total_size_bytes > 0 && (
-                            <span className="text-body-xs bg-slate-700/50 rounded px-1 py-0.5 text-slate-500">{formatBytes(t.total_size_bytes)}</span>
+                            <span className="text-body-xs bg-slate-700/50 rounded px-1 py-0.5 text-slate-400">{formatBytes(t.total_size_bytes)}</span>
                           )}
                         </div>
                       </button>
@@ -212,12 +212,12 @@ const DBSchema: React.FC = () => {
                     </span>
                     <span className="material-symbols-outlined text-[14px] text-amber-400">visibility</span>
                     Views
-                    <span className="ml-auto text-slate-600">{schema.views.length}</span>
+                    <span className="ml-auto text-slate-500">{schema.views.length}</span>
                   </button>
                   {expandedGroups.has('Views') && (
                     <div className="ml-4 space-y-0.5">
                       {schema.views.map((v) => (
-                        <div key={v} className="px-2 py-1 text-xs text-slate-500">{v}</div>
+                        <div key={v} className="px-2 py-1 text-xs text-slate-400">{v}</div>
                       ))}
                     </div>
                   )}
@@ -236,12 +236,12 @@ const DBSchema: React.FC = () => {
                     </span>
                     <span className="material-symbols-outlined text-[14px] text-emerald-400">function</span>
                     Functions
-                    <span className="ml-auto text-slate-600">{schema.functions.length}</span>
+                    <span className="ml-auto text-slate-500">{schema.functions.length}</span>
                   </button>
                   {expandedGroups.has('Functions') && (
                     <div className="ml-4 space-y-0.5">
                       {schema.functions.map((f) => (
-                        <div key={f} className="px-2 py-1 text-xs text-slate-500">{f}</div>
+                        <div key={f} className="px-2 py-1 text-xs text-slate-400">{f}</div>
                       ))}
                     </div>
                   )}
@@ -251,7 +251,7 @@ const DBSchema: React.FC = () => {
               {/* Total size */}
               {schema.total_size_bytes > 0 && (
                 <div className="mt-4 pt-2 border-t border-slate-700/30 px-2">
-                  <span className="text-body-xs text-slate-600">Total: {formatBytes(schema.total_size_bytes)}</span>
+                  <span className="text-body-xs text-slate-500">Total: {formatBytes(schema.total_size_bytes)}</span>
                 </div>
               )}
             </>
@@ -262,12 +262,12 @@ const DBSchema: React.FC = () => {
       {/* Right panel — detail */}
       <div className="flex-1 overflow-auto">
         {detailLoading ? (
-          <div className="flex items-center justify-center h-full text-slate-500">
+          <div className="flex items-center justify-center h-full text-slate-400">
             <span className="material-symbols-outlined animate-spin mr-2">progress_activity</span>
             Loading table detail...
           </div>
         ) : !tableDetail ? (
-          <div className="flex flex-col items-center justify-center h-full text-slate-500 gap-2">
+          <div className="flex flex-col items-center justify-center h-full text-slate-400 gap-2">
             <span className="material-symbols-outlined text-3xl">table_chart</span>
             <p className="text-sm">Select a table to view details</p>
           </div>
@@ -295,7 +295,7 @@ const DBSchema: React.FC = () => {
               <div className="rounded-xl border border-slate-700/50 bg-[#0d2328] overflow-hidden">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-slate-700/50 text-xs text-slate-500">
+                    <tr className="border-b border-slate-700/50 text-xs text-slate-400">
                       <th className="text-left px-4 py-2 font-medium">Name</th>
                       <th className="text-left px-4 py-2 font-medium">Type</th>
                       <th className="text-center px-4 py-2 font-medium">Nullable</th>
@@ -308,8 +308,8 @@ const DBSchema: React.FC = () => {
                       <tr key={c.name} className="border-b border-slate-700/30 last:border-0 hover:bg-slate-800/30">
                         <td className="px-4 py-1.5 font-mono text-xs text-slate-200">{c.name}</td>
                         <td className="px-4 py-1.5 font-mono text-xs text-amber-400/80">{c.data_type}</td>
-                        <td className="px-4 py-1.5 text-center text-xs text-slate-500">{c.nullable ? 'YES' : 'NO'}</td>
-                        <td className="px-4 py-1.5 font-mono text-xs text-slate-500">{c.default || '-'}</td>
+                        <td className="px-4 py-1.5 text-center text-xs text-slate-400">{c.nullable ? 'YES' : 'NO'}</td>
+                        <td className="px-4 py-1.5 font-mono text-xs text-slate-400">{c.default || '-'}</td>
                         <td className="px-4 py-1.5 text-center">
                           {c.is_pk && <span className="material-symbols-outlined text-[14px] text-amber-400">key</span>}
                         </td>
@@ -327,7 +327,7 @@ const DBSchema: React.FC = () => {
                 <div className="rounded-xl border border-slate-700/50 bg-[#0d2328] overflow-hidden">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="border-b border-slate-700/50 text-xs text-slate-500">
+                      <tr className="border-b border-slate-700/50 text-xs text-slate-400">
                         <th className="text-left px-4 py-2 font-medium">Name</th>
                         <th className="text-left px-4 py-2 font-medium">Columns</th>
                         <th className="text-center px-4 py-2 font-medium">Unique</th>
@@ -342,7 +342,7 @@ const DBSchema: React.FC = () => {
                           <td className="px-4 py-1.5 text-center">
                             {idx.unique && <span className="text-xs bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded">UNIQUE</span>}
                           </td>
-                          <td className="px-4 py-1.5 text-right text-xs text-slate-500">{formatBytes(idx.size_bytes)}</td>
+                          <td className="px-4 py-1.5 text-right text-xs text-slate-400">{formatBytes(idx.size_bytes)}</td>
                         </tr>
                       ))}
                     </tbody>

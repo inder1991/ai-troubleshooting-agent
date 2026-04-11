@@ -10,7 +10,7 @@ const AgentMatrixHeader: React.FC<AgentMatrixHeaderProps> = ({ onGoHome }) => {
       <span className="material-symbols-outlined text-xl" style={{ color: '#e09f3e' }}>smart_toy</span>
       <div>
         <h1 className="text-lg font-bold text-white">Agent Fleet</h1>
-        <p className="text-body-xs text-slate-500">Status and configuration for all diagnostic agents</p>
+        <p className="text-body-xs text-slate-400">Status and configuration for all diagnostic agents</p>
       </div>
     </header>
   );

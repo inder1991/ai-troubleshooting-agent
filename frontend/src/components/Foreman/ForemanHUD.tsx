@@ -127,7 +127,7 @@ const ForemanHUD: React.FC<ForemanHUDProps> = ({
 
       {/* Investigation ID */}
       <div className="flex flex-col shrink-0">
-        <span className="text-body-xs uppercase tracking-widest text-slate-500 font-bold">Investigation</span>
+        <span className="text-body-xs uppercase tracking-widest text-slate-400 font-bold">Investigation</span>
         <span className="text-body-xs font-mono text-amber-400">{sessionId.substring(0, 8).toUpperCase()}</span>
       </div>
 
@@ -219,7 +219,7 @@ const ForemanHUD: React.FC<ForemanHUDProps> = ({
           className={`text-body-xs font-bold uppercase tracking-wider px-2 py-1 rounded-md border transition-colors ${
             autopilot
               ? 'bg-amber-500/15 border-amber-500/30 text-amber-400'
-              : 'bg-slate-800 border-slate-700 text-slate-500'
+              : 'bg-slate-800 border-slate-700 text-slate-400'
           }`}
         >
           {autopilot ? 'Auto' : 'Manual'}

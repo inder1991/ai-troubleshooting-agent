@@ -200,7 +200,7 @@ const DBDiagnosticsPage: React.FC = () => {
         <div className="flex items-center gap-2.5">
           <span className="material-symbols-outlined text-violet-400 text-xl">database</span>
           <h1 className="text-sm font-display font-bold text-white">DB Diagnostics</h1>
-          <span className="text-body-xs text-slate-500 font-mono">{dbSessions.length} sessions</span>
+          <span className="text-body-xs text-slate-400 font-mono">{dbSessions.length} sessions</span>
         </div>
         <button
           onClick={() => setShowForm((v) => !v)}
@@ -234,7 +234,7 @@ const DBDiagnosticsPage: React.FC = () => {
               <span className="material-symbols-outlined text-[14px]">arrow_back</span>
               All Sessions
             </button>
-            <span className="text-body-xs text-slate-600">/ {selectedSession.service_name}</span>
+            <span className="text-body-xs text-slate-500">/ {selectedSession.service_name}</span>
           </div>
           <div className="flex-1 overflow-hidden">
             <DatabaseWarRoom
@@ -251,7 +251,7 @@ const DBDiagnosticsPage: React.FC = () => {
         <div className="flex-1 overflow-y-auto">
           {dbSessions.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center px-8">
-              <span className="material-symbols-outlined text-4xl text-slate-600 mb-3" aria-hidden="true">database</span>
+              <span className="material-symbols-outlined text-4xl text-slate-500 mb-3" aria-hidden="true">database</span>
               <p className="text-sm text-slate-300 font-display font-bold mb-3">No diagnostics yet</p>
               <button
                 onClick={() => setShowForm(true)}
@@ -280,7 +280,7 @@ const DBDiagnosticsPage: React.FC = () => {
                       <span className="text-sm font-display font-bold text-white block truncate">{s.service_name}</span>
                       <div className="flex items-center gap-2">
                         <span className="text-body-xs text-duck-accent font-mono">{s.incident_id || s.session_id.slice(0, 8)}</span>
-                        <span className="text-body-xs text-slate-500">{dateStr} {timeStr}</span>
+                        <span className="text-body-xs text-slate-400">{dateStr} {timeStr}</span>
                       </div>
                     </div>
                     {isRunning && (
@@ -292,7 +292,7 @@ const DBDiagnosticsPage: React.FC = () => {
                     {s.status === 'error' && (
                       <span className="text-body-xs text-red-400 shrink-0">✗ Error</span>
                     )}
-                    <span className="material-symbols-outlined text-slate-600 text-[16px] shrink-0">chevron_right</span>
+                    <span className="material-symbols-outlined text-slate-500 text-[16px] shrink-0">chevron_right</span>
                   </button>
                 );
               })}

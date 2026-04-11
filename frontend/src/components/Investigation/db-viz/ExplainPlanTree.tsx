@@ -55,7 +55,7 @@ const ExplainPlanNode: React.FC<ExplainPlanTreeProps> = ({ plan, depth = 0 }) =>
       >
         {/* Expand icon */}
         {hasChildren ? (
-          <span className={`material-symbols-outlined text-xs text-slate-500 mt-0.5 transition-transform ${expanded ? 'rotate-90' : ''}`}>
+          <span className={`material-symbols-outlined text-xs text-slate-400 mt-0.5 transition-transform ${expanded ? 'rotate-90' : ''}`}>
             chevron_right
           </span>
         ) : (
@@ -100,7 +100,7 @@ const ExplainPlanNode: React.FC<ExplainPlanTreeProps> = ({ plan, depth = 0 }) =>
 
       {/* Filter line */}
       {expanded && plan['Filter'] && (
-        <div className="ml-8 text-body-xs text-slate-500 font-mono mb-0.5">
+        <div className="ml-8 text-body-xs text-slate-400 font-mono mb-0.5">
           Filter: {plan['Filter']}
         </div>
       )}

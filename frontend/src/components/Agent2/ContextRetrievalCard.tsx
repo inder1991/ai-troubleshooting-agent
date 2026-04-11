@@ -33,7 +33,7 @@ export const ContextRetrievalCard: React.FC<ContextRetrievalProps> = ({ data }) 
   return (
     <div className="transition-all duration-700">
       <div className="flex items-center gap-2 mb-2">
-        <span className="text-body-xs font-bold text-slate-500 uppercase tracking-widest">
+        <span className="text-body-xs font-bold text-slate-400 uppercase tracking-widest">
           2️⃣ Context Retrieval
         </span>
       </div>
@@ -46,7 +46,7 @@ export const ContextRetrievalCard: React.FC<ContextRetrievalProps> = ({ data }) 
             className={`flex-1 text-chrome font-bold py-1 rounded transition-colors ${
               activeTab === 'functions'
                 ? 'bg-blue-600 text-white'
-                : 'text-slate-500 hover:text-slate-400'
+                : 'text-slate-400 hover:text-slate-400'
             }`}
           >
             <Code size={10} className="inline mr-1" />
@@ -57,7 +57,7 @@ export const ContextRetrievalCard: React.FC<ContextRetrievalProps> = ({ data }) 
             className={`flex-1 text-chrome font-bold py-1 rounded transition-colors ${
               activeTab === 'snippets'
                 ? 'bg-blue-600 text-white'
-                : 'text-slate-500 hover:text-slate-400'
+                : 'text-slate-400 hover:text-slate-400'
             }`}
           >
             <FileText size={10} className="inline mr-1" />
@@ -74,11 +74,11 @@ export const ContextRetrievalCard: React.FC<ContextRetrievalProps> = ({ data }) 
                   <code className="text-body-xs text-blue-400 block mb-1">
                     {func.signature}
                   </code>
-                  <div className="text-chrome text-slate-600">
+                  <div className="text-chrome text-slate-500">
                     Lines {func.startLine}-{func.endLine}
                   </div>
                   {func.docstring && (
-                    <div className="text-chrome text-slate-500 mt-1 italic">
+                    <div className="text-chrome text-slate-400 mt-1 italic">
                       {func.docstring}
                     </div>
                   )}

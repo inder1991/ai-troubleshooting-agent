@@ -66,7 +66,7 @@ const ContextScope: React.FC<ContextScopeProps> = ({ session, events = [] }) => 
       <div className="flex-1 overflow-y-auto p-4 space-y-8 custom-scrollbar">
         {/* System Info */}
         <section>
-          <h3 className="text-body-xs font-bold text-slate-500 uppercase tracking-widest mb-3">System Info</h3>
+          <h3 className="text-body-xs font-bold text-slate-400 uppercase tracking-widest mb-3">System Info</h3>
           <div className="space-y-3">
             <InfoRow label="Service" value={session.service_name} />
             <InfoRow label="Namespace" value={namespace} />
@@ -88,7 +88,7 @@ const ContextScope: React.FC<ContextScopeProps> = ({ session, events = [] }) => 
 
         {/* Agent Status */}
         <section>
-          <h3 className="text-body-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Agent Status</h3>
+          <h3 className="text-body-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Agent Status</h3>
           <div className="bg-slate-800/30 rounded-lg p-3 border border-slate-800 space-y-3">
             {agentStatuses.map((agent, i) => (
               <div key={i} className="flex items-center gap-3">
@@ -105,7 +105,7 @@ const ContextScope: React.FC<ContextScopeProps> = ({ session, events = [] }) => 
                 <span className={`ml-auto text-body-xs ${
                   agent.status === 'active' ? 'text-primary' :
                   agent.status === 'complete' ? 'text-green-500' :
-                  agent.status === 'error' ? 'text-red-400' : 'text-slate-500'
+                  agent.status === 'error' ? 'text-red-400' : 'text-slate-400'
                 }`}>
                   {agent.status === 'complete' && agent.tokens ? `${agent.tokens.toLocaleString()} tokens` :
                    agent.status === 'active' ? 'Active' :
@@ -115,7 +115,7 @@ const ContextScope: React.FC<ContextScopeProps> = ({ session, events = [] }) => 
             ))}
             {totalTokens > 0 && (
               <div className="border-t border-slate-700 pt-2 flex justify-between">
-                <span className="text-body-xs text-slate-500">Total tokens</span>
+                <span className="text-body-xs text-slate-400">Total tokens</span>
                 <span className="text-body-xs font-mono text-slate-400">{totalTokens.toLocaleString()}</span>
               </div>
             )}
@@ -127,7 +127,7 @@ const ContextScope: React.FC<ContextScopeProps> = ({ session, events = [] }) => 
 
         {/* Labels */}
         <section>
-          <h3 className="text-body-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Labels</h3>
+          <h3 className="text-body-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Labels</h3>
           <div className="flex flex-wrap gap-2">
             <span className="bg-slate-800 px-2 py-1 rounded text-body-xs text-slate-400 border border-slate-700">
               svc:{session.service_name}
@@ -248,7 +248,7 @@ const KnownPlaybooksSection: React.FC<{ incidents: PastIncidentMatch[] }> = ({ i
 
   return (
     <section>
-      <h3 className="text-body-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Known Playbooks</h3>
+      <h3 className="text-body-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Known Playbooks</h3>
       <div className="bg-slate-800/30 rounded-lg border border-slate-800">
         <button
           onClick={() => setExpanded(!expanded)}
@@ -300,7 +300,7 @@ const PlaybookRow: React.FC<{ incident: PastIncidentMatch }> = ({ incident }) =>
         className="w-full px-2.5 py-2 flex items-center gap-2 text-left hover:bg-slate-800/30 transition-colors rounded"
       >
         <span
-          className="material-symbols-outlined text-xs text-slate-500 transition-transform"
+          className="material-symbols-outlined text-xs text-slate-400 transition-transform"
           style={{ fontFamily: 'Material Symbols Outlined', transform: expanded ? 'rotate(90deg)' : 'none' }}
         >
           chevron_right
@@ -317,11 +317,11 @@ const PlaybookRow: React.FC<{ incident: PastIncidentMatch }> = ({ incident }) =>
         <div className="px-2.5 pb-2.5 space-y-2 border-t border-slate-700/30 pt-2">
           {incident.resolution_steps.length > 0 && (
             <div>
-              <span className="text-body-xs text-slate-500 uppercase tracking-wide">Resolution</span>
+              <span className="text-body-xs text-slate-400 uppercase tracking-wide">Resolution</span>
               <ul className="mt-1 space-y-1">
                 {incident.resolution_steps.map((step, i) => (
                   <li key={i} className="text-body-xs text-slate-300 flex gap-1.5">
-                    <span className="text-slate-500 shrink-0">{i + 1}.</span>
+                    <span className="text-slate-400 shrink-0">{i + 1}.</span>
                     {step}
                   </li>
                 ))}
@@ -338,7 +338,7 @@ const PlaybookRow: React.FC<{ incident: PastIncidentMatch }> = ({ incident }) =>
             </div>
           )}
           {incident.time_to_resolve > 0 && (
-            <div className="text-body-xs text-slate-500">
+            <div className="text-body-xs text-slate-400">
               Resolved in {incident.time_to_resolve < 60
                 ? `${incident.time_to_resolve}m`
                 : `${Math.round(incident.time_to_resolve / 60)}h ${incident.time_to_resolve % 60}m`}

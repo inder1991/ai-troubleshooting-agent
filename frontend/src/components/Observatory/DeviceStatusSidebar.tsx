@@ -35,7 +35,7 @@ const DeviceStatusSidebar: React.FC<Props> = ({ device, onClose }) => {
           />
           <span className="text-white font-bold text-sm">{device.device_id}</span>
         </div>
-        <button onClick={onClose} className="text-slate-500 hover:text-white text-sm">&times;</button>
+        <button onClick={onClose} className="text-slate-400 hover:text-white text-sm">&times;</button>
       </div>
 
       {/* Status details */}

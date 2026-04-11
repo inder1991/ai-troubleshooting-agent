@@ -139,7 +139,7 @@ const OperationFormModal: React.FC<OperationFormModalProps> = ({ onClose, onCrea
             <span className="material-symbols-outlined text-amber-400">build</span>
             <h3 className="text-sm font-semibold text-slate-200">New Operation</h3>
           </div>
-          <button onClick={onClose} className="text-slate-500 hover:text-slate-300 transition-colors">
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-300 transition-colors">
             <span className="material-symbols-outlined text-[20px]">close</span>
           </button>
         </div>

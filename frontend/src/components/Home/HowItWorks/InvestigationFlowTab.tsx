@@ -80,7 +80,7 @@ const InvestigationFlowTab: React.FC = () => {
         return { text: 'complete \u2713', className: 'text-emerald-500' };
       case 'visible':
       default:
-        return { text: 'waiting', className: 'text-slate-500' };
+        return { text: 'waiting', className: 'text-slate-400' };
     }
   };
 
@@ -120,7 +120,7 @@ const InvestigationFlowTab: React.FC = () => {
             textColor = 'text-[#e09f3e] font-bold';
           } else {
             dotColor = 'bg-slate-600';
-            textColor = 'text-slate-600';
+            textColor = 'text-slate-500';
           }
 
           return (
@@ -246,7 +246,7 @@ const InvestigationFlowTab: React.FC = () => {
       <div className="flex items-center justify-between mt-4 pt-4 border-t border-[#3d3528]">
         {/* Speed buttons */}
         <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-500">Speed:</span>
+          <span className="text-xs text-slate-400">Speed:</span>
           {speeds.map((s) => (
             <button
               key={s}
@@ -254,7 +254,7 @@ const InvestigationFlowTab: React.FC = () => {
               className={`px-2.5 py-1 rounded text-xs font-mono transition-colors ${
                 speed === s
                   ? 'bg-[#e09f3e]/20 text-[#e09f3e] border border-[#e09f3e]/30'
-                  : 'bg-slate-900/50 text-slate-500 border border-[#3d3528] hover:text-slate-300'
+                  : 'bg-slate-900/50 text-slate-400 border border-[#3d3528] hover:text-slate-300'
               }`}
             >
               {s}x

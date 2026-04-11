@@ -42,7 +42,7 @@ const Navigator: React.FC<NavigatorProps> = ({ findings, status, events }) => {
 
         {/* Service Topology */}
         <section>
-          <h3 className="text-body-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Service Topology</h3>
+          <h3 className="text-body-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Service Topology</h3>
           <div className="bg-slate-900/40 border border-slate-800 rounded-lg p-3">
             {findings ? (
               <InteractiveTopology
@@ -65,7 +65,7 @@ const Navigator: React.FC<NavigatorProps> = ({ findings, status, events }) => {
 
         {/* Agent Status Matrix */}
         <section>
-          <h3 className="text-body-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Agent Status</h3>
+          <h3 className="text-body-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Agent Status</h3>
           <div className="bg-slate-900/40 border border-slate-800 rounded-lg p-3 space-y-2">
             {agentStatuses.map((agent, i) => (
               <div key={i} className="flex items-center gap-2">
@@ -85,13 +85,13 @@ const Navigator: React.FC<NavigatorProps> = ({ findings, status, events }) => {
                   agent.status === 'error' ? 'bg-red-500' : 'bg-slate-600'
                 }`} />
                 {agent.tokens > 0 && (
-                  <span className="text-body-xs font-mono text-slate-500">{agent.tokens.toLocaleString()}</span>
+                  <span className="text-body-xs font-mono text-slate-400">{agent.tokens.toLocaleString()}</span>
                 )}
               </div>
             ))}
             {totalTokens > 0 && (
               <div className="border-t border-slate-700 pt-2 flex justify-between">
-                <span className="text-body-xs text-slate-500">Total</span>
+                <span className="text-body-xs text-slate-400">Total</span>
                 <span className="text-body-xs font-mono text-slate-400">{totalTokens.toLocaleString()} tokens</span>
               </div>
             )}
@@ -154,7 +154,7 @@ const MetricsValidationDock: React.FC<{ queries: SuggestedPromQLQuery[] }> = ({ 
 
   return (
     <section>
-      <h3 className="text-body-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Metrics Validation</h3>
+      <h3 className="text-body-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Metrics Validation</h3>
       <div className="space-y-2">
         {queries.map((q, i) => (
           <div key={i} className="bg-slate-900/40 border border-slate-800 rounded-lg p-3">
@@ -188,7 +188,7 @@ const MetricsValidationDock: React.FC<{ queries: SuggestedPromQLQuery[] }> = ({ 
             <pre className="text-body-xs font-mono text-slate-300 bg-black/20 rounded p-1.5 overflow-x-auto custom-scrollbar mb-1.5">
               {q.query}
             </pre>
-            <p className="text-body-xs text-slate-500">{q.rationale}</p>
+            <p className="text-body-xs text-slate-400">{q.rationale}</p>
             {runResults[i] && (
               <PromQLRunResult
                 dataPoints={runResults[i].dataPoints}
@@ -219,15 +219,15 @@ const InfraHealthCards: React.FC<{ findings: V4Findings | null }> = ({ findings 
 
   return (
     <section>
-      <h3 className="text-body-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Infrastructure Health</h3>
+      <h3 className="text-body-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Infrastructure Health</h3>
       <div className="bg-slate-900/40 border border-slate-800 rounded-lg p-3">
         <div className="grid grid-cols-2 gap-3 mb-3">
           <div>
-            <div className="text-body-xs text-slate-500">Pods</div>
+            <div className="text-body-xs text-slate-400">Pods</div>
             <div className="text-lg font-bold font-mono text-white">{healthy}/{totalPods}</div>
           </div>
           <div>
-            <div className="text-body-xs text-slate-500">Health</div>
+            <div className="text-body-xs text-slate-400">Health</div>
             <div className={`text-lg font-bold font-mono ${healthPct >= 80 ? 'text-green-400' : healthPct >= 50 ? 'text-amber-400' : 'text-red-400'}`}>
               {healthPct}%
             </div>

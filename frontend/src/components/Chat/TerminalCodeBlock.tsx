@@ -44,12 +44,12 @@ const TerminalCodeBlock: React.FC<TerminalCodeBlockProps> = ({ children, classNa
     <div className="my-2 rounded-lg border border-slate-700/50 overflow-hidden">
       {/* Header bar */}
       <div className="flex items-center justify-between px-3 py-1.5 bg-slate-800/80 border-b border-slate-700/30">
-        <span className="text-body-xs font-mono text-slate-500 uppercase tracking-wider">
+        <span className="text-body-xs font-mono text-slate-400 uppercase tracking-wider">
           {language || 'code'}
         </span>
         <button
           onClick={handleCopy}
-          className="flex items-center gap-1 text-body-xs text-slate-500 hover:text-cyan-400 transition-colors"
+          className="flex items-center gap-1 text-body-xs text-slate-400 hover:text-cyan-400 transition-colors"
           title="Copy to clipboard"
         >
           <span

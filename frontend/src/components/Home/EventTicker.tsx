@@ -200,7 +200,7 @@ export const EventTicker: React.FC = () => {
 
       {/* Counter */}
       {tickerEvents.length > 1 && (
-        <span className="text-body-xs text-slate-500 font-mono shrink-0 tabular-nums">
+        <span className="text-body-xs text-slate-400 font-mono shrink-0 tabular-nums">
           {currentIdx + 1}/{tickerEvents.length}
         </span>
       )}

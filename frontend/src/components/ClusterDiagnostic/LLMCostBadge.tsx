@@ -78,14 +78,14 @@ const LLMCostBadge: React.FC<LLMCostBadgeProps> = ({ sessionId, phase, onToggleB
       title="Click for per-agent breakdown"
     >
       <span className={`w-1.5 h-1.5 rounded-full ${phase === 'complete' ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse'}`} />
-      <span className="text-slate-500 capitalize">{summary.scan_mode}</span>
-      <span className="text-slate-600">|</span>
+      <span className="text-slate-400 capitalize">{summary.scan_mode}</span>
+      <span className="text-slate-500">|</span>
       <span className="text-wr-accent">{costStr}</span>
-      <span className="text-slate-600">|</span>
+      <span className="text-slate-500">|</span>
       <span>{summary.total_calls} calls</span>
-      <span className="text-slate-600">|</span>
+      <span className="text-slate-500">|</span>
       <span>{latencyStr}</span>
-      <span className="text-slate-600">|</span>
+      <span className="text-slate-500">|</span>
       <span className={isWarning ? 'text-amber-400' : ''}>{budgetPct}%</span>
     </button>
   );

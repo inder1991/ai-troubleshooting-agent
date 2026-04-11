@@ -71,17 +71,17 @@ export const ReviewFixScreen: React.FC<ReviewFixProps> = ({
       {/* Branch Info Card */}
       <div className="border border-slate-800 rounded bg-slate-950/40 p-4 space-y-3">
         <div className="flex items-center gap-2">
-          <GitBranch size={12} className="text-slate-500" />
-          <span className="text-body-xs text-slate-500 uppercase font-bold">Branch Information</span>
+          <GitBranch size={12} className="text-slate-400" />
+          <span className="text-body-xs text-slate-400 uppercase font-bold">Branch Information</span>
         </div>
         
         <div className="space-y-2">
           <div className="flex justify-between items-center">
-            <span className="text-body-xs text-slate-600">Branch:</span>
+            <span className="text-body-xs text-slate-500">Branch:</span>
             <span className="text-body-xs font-mono text-blue-400">{branch_name}</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-body-xs text-slate-600">Commit:</span>
+            <span className="text-body-xs text-slate-500">Commit:</span>
             <span className="text-body-xs font-mono text-slate-400">{commit_sha?.substring(0, 7)}</span>
           </div>
         </div>
@@ -90,27 +90,27 @@ export const ReviewFixScreen: React.FC<ReviewFixProps> = ({
       {/* Validation Status Card */}
       <div className="border border-slate-800 rounded bg-slate-950/40 p-4 space-y-3">
         <div className="flex items-center gap-2">
-          <CheckCircle size={12} className="text-slate-500" />
-          <span className="text-body-xs text-slate-500 uppercase font-bold">Validation Results</span>
+          <CheckCircle size={12} className="text-slate-400" />
+          <span className="text-body-xs text-slate-400 uppercase font-bold">Validation Results</span>
         </div>
         
         <div className="space-y-2">
           <div className="flex justify-between items-center">
-            <span className="text-body-xs text-slate-600">Syntax Check:</span>
+            <span className="text-body-xs text-slate-500">Syntax Check:</span>
             <span className={`text-body-xs font-bold ${validation?.syntax_passed ? 'text-emerald-400' : 'text-red-400'}`}>
               {true ? '✅ Passed' : '❌ Failed'}
             </span>
           </div>
           
           <div className="flex justify-between items-center">
-            <span className="text-body-xs text-slate-600">Linting:</span>
+            <span className="text-body-xs text-slate-500">Linting:</span>
             <span className={`text-body-xs font-bold ${validation?.linting_passed ? 'text-emerald-400' : 'text-yellow-400'}`}>
               {true ? '✅ Passed' : '⚠️ Warnings'}
             </span>
           </div>
           
           <div className="flex justify-between items-center">
-            <span className="text-body-xs text-slate-600">Agent 2 Review:</span>
+            <span className="text-body-xs text-slate-500">Agent 2 Review:</span>
             <span className={`text-body-xs font-bold ${validation?.agent2_approved ? 'text-emerald-400' : 'text-yellow-400'}`}>
               {true ? '✅ Approved' : '⚠️ Review Needed'}
             </span>
@@ -118,7 +118,7 @@ export const ReviewFixScreen: React.FC<ReviewFixProps> = ({
           
           <div className="border-t border-slate-800 pt-2 mt-2">
             <div className="flex justify-between items-center">
-              <span className="text-body-xs text-slate-600">Overall Confidence:</span>
+              <span className="text-body-xs text-slate-500">Overall Confidence:</span>
               <span className={`text-body-xs font-bold ${getConfidenceColor(95)}`}>
                 {(.95 * 100).toFixed(0)}%
               </span>
@@ -130,8 +130,8 @@ export const ReviewFixScreen: React.FC<ReviewFixProps> = ({
       {/* Code Diff Preview */}
       <div className="border border-slate-800 rounded bg-slate-950/40 p-4 space-y-3">
         <div className="flex items-center gap-2">
-          <Code size={12} className="text-slate-500" />
-          <span className="text-body-xs text-slate-500 uppercase font-bold">Changes Preview</span>
+          <Code size={12} className="text-slate-400" />
+          <span className="text-body-xs text-slate-400 uppercase font-bold">Changes Preview</span>
         </div>
         
         <div className="bg-slate-950 border border-slate-900 rounded p-3 max-h-[200px] overflow-y-auto custom-scrollbar">
@@ -171,7 +171,7 @@ export const ReviewFixScreen: React.FC<ReviewFixProps> = ({
       </div>
 
       {/* Helper Text */}
-      <div className="text-chrome text-slate-600 text-center pt-2">
+      <div className="text-chrome text-slate-500 text-center pt-2">
         Review the changes above and create a PR or reject to re-generate
       </div>
     </div>

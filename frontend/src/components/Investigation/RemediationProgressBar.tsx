@@ -85,7 +85,7 @@ const RemediationProgressBar: React.FC<RemediationProgressBarProps> = ({
                         ? 'bg-[#e09f3e] ring-4 ring-[#e09f3e]/20'
                         : isActive
                         ? 'bg-[#e09f3e] ring-4 ring-[#e09f3e]/40 animate-pulse'
-                        : 'bg-slate-800 text-slate-500'
+                        : 'bg-slate-800 text-slate-400'
                     }`}
                     aria-label={`${step.label}: ${isComplete ? 'complete' : isActive ? 'in progress' : 'pending'}`}
                     title={`${step.label}: ${isComplete ? 'Complete' : isActive ? 'In Progress' : 'Pending'}`}
@@ -99,7 +99,7 @@ const RemediationProgressBar: React.FC<RemediationProgressBarProps> = ({
                   </div>
                   <span
                     className={`text-body-xs font-bold uppercase tracking-widest ${
-                      isPending ? 'text-slate-500' : 'text-[#e09f3e]'
+                      isPending ? 'text-slate-400' : 'text-[#e09f3e]'
                     }`}
                   >
                     {step.label}
@@ -114,7 +114,7 @@ const RemediationProgressBar: React.FC<RemediationProgressBarProps> = ({
         <div className="shrink-0 flex items-center gap-4 pl-8 border-l border-slate-800">
           {/* Est. Resolution */}
           <div className="text-right">
-            <div className="text-body-xs text-slate-500 font-bold uppercase tracking-widest">Fix Confidence</div>
+            <div className="text-body-xs text-slate-400 font-bold uppercase tracking-widest">Fix Confidence</div>
             <div className="text-sm font-mono text-slate-300">
               {confidence > 0 ? `${Math.round(confidence)}%` : '--'}
             </div>

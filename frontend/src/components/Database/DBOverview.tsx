@@ -119,11 +119,11 @@ const DBOverview: React.FC = () => {
                 </span>
                 <div>
                   <p className="text-sm font-medium text-slate-100">{p.name}</p>
-                  <p className="text-xs text-slate-500">{p.engine} • {p.host}:{p.port}/{p.database}</p>
+                  <p className="text-xs text-slate-400">{p.engine} • {p.host}:{p.port}/{p.database}</p>
                 </div>
               </div>
               {p.latency_ms !== undefined && (
-                <span className="text-xs text-slate-500">{p.latency_ms}ms</span>
+                <span className="text-xs text-slate-400">{p.latency_ms}ms</span>
               )}
             </div>
 
@@ -136,17 +136,17 @@ const DBOverview: React.FC = () => {
             {p.performance && p.connections && (
               <div className="grid grid-cols-3 gap-2 text-center">
                 <div className="rounded-lg bg-slate-800/50 p-2">
-                  <p className="text-xs text-slate-500">Active</p>
+                  <p className="text-xs text-slate-400">Active</p>
                   <p className="text-lg font-semibold text-amber-400">{p.connections.active}</p>
                 </div>
                 <div className="rounded-lg bg-slate-800/50 p-2">
-                  <p className="text-xs text-slate-500">Cache Hit</p>
+                  <p className="text-xs text-slate-400">Cache Hit</p>
                   <p className="text-lg font-semibold text-emerald-400">
                     {(p.performance.cache_hit_ratio * 100).toFixed(1)}%
                   </p>
                 </div>
                 <div className="rounded-lg bg-slate-800/50 p-2">
-                  <p className="text-xs text-slate-500">TPS</p>
+                  <p className="text-xs text-slate-400">TPS</p>
                   <p className="text-lg font-semibold text-amber-400">
                     {p.performance.transactions_per_sec.toFixed(0)}
                   </p>
@@ -157,7 +157,7 @@ const DBOverview: React.FC = () => {
             {/* Connection gauge */}
             {p.connections && p.connections.max_connections > 0 && (
               <div>
-                <div className="flex justify-between text-xs text-slate-500 mb-1">
+                <div className="flex justify-between text-xs text-slate-400 mb-1">
                   <span>Connections</span>
                   <span>{p.connections.active + p.connections.idle}/{p.connections.max_connections}</span>
                 </div>
@@ -176,7 +176,7 @@ const DBOverview: React.FC = () => {
             )}
 
             {p.version && (
-              <p className="text-xs text-slate-600">v{p.version}</p>
+              <p className="text-xs text-slate-500">v{p.version}</p>
             )}
           </div>
         ))}

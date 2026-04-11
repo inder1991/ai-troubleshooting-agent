@@ -48,7 +48,7 @@ const PromQLRunResult: React.FC<PromQLRunResultProps> = ({
         severity="info"
       />
       <div className="flex items-baseline gap-2">
-        <span className="text-body-xs text-slate-500">Current:</span>
+        <span className="text-body-xs text-slate-400">Current:</span>
         <span className={`text-sm font-mono font-bold ${valueColor}`}>
           {formatNumber(currentValue)}
         </span>

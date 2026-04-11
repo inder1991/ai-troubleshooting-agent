@@ -147,7 +147,7 @@ const DBConnections: React.FC = () => {
                 <span className="material-symbols-outlined text-amber-400">storage</span>
                 <div>
                   <p className="text-sm font-medium text-slate-100">{p.name}</p>
-                  <p className="text-xs text-slate-500">{p.engine} • {p.host}:{p.port}/{p.database} • {p.username}</p>
+                  <p className="text-xs text-slate-400">{p.engine} • {p.host}:{p.port}/{p.database} • {p.username}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -239,7 +239,7 @@ const DBConnections: React.FC = () => {
                     className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-amber-500 outline-none"
                     placeholder="mongodb+srv://user:pass@cluster0.example.net/mydb"
                   />
-                  <p className="text-body-xs text-slate-500 mt-1">
+                  <p className="text-body-xs text-slate-400 mt-1">
                     Supports mongodb:// and mongodb+srv:// URIs.
                   </p>
                 </div>

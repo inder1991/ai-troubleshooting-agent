@@ -87,7 +87,7 @@ const BriefingHeader: React.FC<BriefingHeaderProps> = ({
       {/* Live session indicator */}
       <div className="flex items-center gap-1.5 shrink-0">
         <Activity className="w-3 h-3 text-green-500" />
-        <span className="text-body-xs font-mono text-slate-500">LIVE_SESSION_ACTIVE</span>
+        <span className="text-body-xs font-mono text-slate-400">LIVE_SESSION_ACTIVE</span>
       </div>
     </div>
   );

@@ -37,7 +37,7 @@ export const CallChainAnalysisCard: React.FC<CallChainAnalysisProps> = ({ data }
   return (
     <div className="transition-all duration-700">
       <div className="flex items-center gap-2 mb-2">
-        <span className="text-body-xs font-bold text-slate-500 uppercase tracking-widest">
+        <span className="text-body-xs font-bold text-slate-400 uppercase tracking-widest">
           3️⃣ Execution Logic Flow
         </span>
       </div>
@@ -50,7 +50,7 @@ export const CallChainAnalysisCard: React.FC<CallChainAnalysisProps> = ({ data }
             <div className="mb-4">
               <div className="flex items-center gap-1 mb-2">
                 <Activity size={10} className="text-blue-400" />
-                <span className="text-chrome text-slate-500 uppercase font-bold">Logic Diagram</span>
+                <span className="text-chrome text-slate-400 uppercase font-bold">Logic Diagram</span>
               </div>
               <Mermaid chart={data.flowchart} />
             </div>
@@ -59,7 +59,7 @@ export const CallChainAnalysisCard: React.FC<CallChainAnalysisProps> = ({ data }
           {/* Simple Call Chain - existing list view below the diagram */}
           {data.callChain && data.callChain.length > 0 && (
             <div>
-               <div className="text-chrome text-slate-600 uppercase mb-2">Sequence Trace</div>
+               <div className="text-chrome text-slate-500 uppercase mb-2">Sequence Trace</div>
                <div className="flex items-center gap-1 flex-wrap">
                 {data.callChain.map((step, idx) => (
                   <React.Fragment key={idx}>
@@ -85,7 +85,7 @@ export const CallChainAnalysisCard: React.FC<CallChainAnalysisProps> = ({ data }
                 📍 <code>{data.failureAnalysis.location}</code>
               </div>
               
-              <div className="text-chrome text-slate-500">
+              <div className="text-chrome text-slate-400">
                 {data.failureAnalysis.reason}
               </div>
               

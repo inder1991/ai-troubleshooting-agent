@@ -76,7 +76,7 @@ const LiveTopologyTab: React.FC<Props> = ({ devices, links, drifts, candidates, 
           )}
         </div>
         {devices.length === 0 ? (
-          <div className="flex items-center justify-center h-full text-slate-500 text-sm">
+          <div className="flex items-center justify-center h-full text-slate-400 text-sm">
             No devices being monitored. Add devices to the topology to see them here.
           </div>
         ) : (

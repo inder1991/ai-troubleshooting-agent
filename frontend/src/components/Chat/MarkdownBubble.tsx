@@ -97,7 +97,7 @@ const MarkdownBubbleInner: React.FC<MarkdownBubbleProps> = ({ message, isStreami
           </div>
           <p className="text-[13px] text-slate-200 font-mono whitespace-pre-wrap">{message.content}</p>
           <div className="text-right mt-1">
-            <span className="text-body-xs text-slate-600">{formatTime(message.timestamp)}</span>
+            <span className="text-body-xs text-slate-500">{formatTime(message.timestamp)}</span>
           </div>
         </div>
       </motion.div>
@@ -146,7 +146,7 @@ const MarkdownBubbleInner: React.FC<MarkdownBubbleProps> = ({ message, isStreami
 
         {/* Timestamp */}
         <div className="text-right mt-1">
-          <span className="text-body-xs text-slate-600">{formatTime(message.timestamp)}</span>
+          <span className="text-body-xs text-slate-500">{formatTime(message.timestamp)}</span>
         </div>
       </div>
     </motion.div>

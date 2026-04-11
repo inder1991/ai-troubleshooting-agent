@@ -412,13 +412,13 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
                 <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
                   <span className="material-symbols-outlined text-4xl text-red-500/40 mb-3">error_outline</span>
                   <h3 className="text-sm font-bold text-red-400 mb-2">All Domain Agents Failed</h3>
-                  <p className="text-body-xs text-slate-500 max-w-xs">
+                  <p className="text-body-xs text-slate-400 max-w-xs">
                     No diagnostic data could be collected. Check cluster connectivity, RBAC permissions, and API server health.
                   </p>
                   <div className="mt-4 space-y-1 text-left">
                     {domainReports.filter(r => r.failure_reason).map(r => (
                       <div key={r.domain} className="text-body-xs text-red-400/60">
-                        <span className="font-mono text-slate-600">{r.domain}:</span> {r.failure_reason?.replace(/_/g, ' ')}
+                        <span className="font-mono text-slate-500">{r.domain}:</span> {r.failure_reason?.replace(/_/g, ' ')}
                       </div>
                     ))}
                   </div>
@@ -471,7 +471,7 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
               <RemediationCard steps={immediateSteps} blastRadius={findings?.blast_radius} />
               {longTermSteps.length > 0 && (
                 <div className="bg-wr-inset rounded border border-wr-border-subtle p-3">
-                  <span className="text-body-xs font-semibold uppercase tracking-wider text-slate-500">Long-Term Recommendations</span>
+                  <span className="text-body-xs font-semibold uppercase tracking-wider text-slate-400">Long-Term Recommendations</span>
                   <div className="mt-2 space-y-2">
                     {longTermSteps.map((step, i) => (
                       <div key={i} className="text-body-xs text-slate-400">

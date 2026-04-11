@@ -43,7 +43,7 @@ const DomainPanel: React.FC<DomainPanelProps> = ({ domain, report, namespaces })
           <span className="text-red-400 font-semibold">Agent failed: </span>
           <span className="text-red-300">{report.failure_reason.replace(/_/g, ' ').toLowerCase()}</span>
           {report.data_gathered_before_failure && report.data_gathered_before_failure.length > 0 && (
-            <div className="mt-1 text-slate-500">
+            <div className="mt-1 text-slate-400">
               Partial data collected: {report.data_gathered_before_failure.join(', ')}
             </div>
           )}
@@ -56,7 +56,7 @@ const DomainPanel: React.FC<DomainPanelProps> = ({ domain, report, namespaces })
           <span className="text-amber-400 font-semibold">Partial results — </span>
           <span className="text-amber-300">{report.failure_reason ? report.failure_reason.replace(/_/g, ' ').toLowerCase() : 'some data missing'}</span>
           {report.data_gathered_before_failure && report.data_gathered_before_failure.length > 0 && (
-            <div className="mt-1 text-slate-500">
+            <div className="mt-1 text-slate-400">
               Data collected: {report.data_gathered_before_failure.join(', ')}
             </div>
           )}
@@ -65,7 +65,7 @@ const DomainPanel: React.FC<DomainPanelProps> = ({ domain, report, namespaces })
 
       <div className="p-4 space-y-4 overflow-y-auto flex-1 custom-scrollbar">
         {namespaces.length === 0 && !report && (
-          <div className="text-xs text-slate-600 animate-pulse">Scanning namespaces...</div>
+          <div className="text-xs text-slate-500 animate-pulse">Scanning namespaces...</div>
         )}
 
         {namespaces.map(ns => {
@@ -81,7 +81,7 @@ const DomainPanel: React.FC<DomainPanelProps> = ({ domain, report, namespaces })
                   : `border-wr-border ${isHealthy ? 'opacity-40 hover:opacity-80 transition-opacity' : ''}`
               }`}
             >
-              <h4 className={`text-xs font-mono flex items-center gap-2 ${hasTrigger ? 'text-wr-accent' : 'text-slate-500'}`}>
+              <h4 className={`text-xs font-mono flex items-center gap-2 ${hasTrigger ? 'text-wr-accent' : 'text-slate-400'}`}>
                 <span className="material-symbols-outlined text-[14px]">grid_view</span>
                 namespace: {ns.namespace}
               </h4>
@@ -93,7 +93,7 @@ const DomainPanel: React.FC<DomainPanelProps> = ({ domain, report, namespaces })
               ))}
 
               {!hasTrigger && (
-                <div className="mt-2 bg-wr-bg/30 p-2 rounded text-body-xs text-slate-600 font-mono">
+                <div className="mt-2 bg-wr-bg/30 p-2 rounded text-body-xs text-slate-500 font-mono">
                   Status: {ns.status} | {ns.replica_status || '—'} | Last Deploy: {ns.last_deploy || '—'}
                 </div>
               )}

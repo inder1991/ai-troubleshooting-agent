@@ -151,7 +151,7 @@ export const Agent1Report = ({ content, data }: any) => {
             <div className="h-4 w-[1px] bg-slate-800" />
             <div className="flex items-center gap-2">
               <ShieldCheck size={14} className={confidenceScore > 70 ? "text-emerald-400" : "text-yellow-400"} />
-              <span className="text-body-xs font-bold text-slate-500 uppercase tracking-tighter">Confidence:</span>
+              <span className="text-body-xs font-bold text-slate-400 uppercase tracking-tighter">Confidence:</span>
               <div className="w-16 h-1.5 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
                 <div 
                   className={`h-full transition-all duration-1000 ${confidenceScore > 70 ? "bg-emerald-500" : "bg-yellow-500"}`}
@@ -161,7 +161,7 @@ export const Agent1Report = ({ content, data }: any) => {
               <span className="text-body-xs font-mono font-bold text-slate-300">{confidenceScore}%</span>
             </div>
           </div>
-          <span className="text-body-xs font-bold text-slate-600 uppercase tracking-widest font-mono">
+          <span className="text-body-xs font-bold text-slate-500 uppercase tracking-widest font-mono">
             Analysis Node v1
           </span>
         </div>
@@ -206,14 +206,14 @@ export const Agent1Report = ({ content, data }: any) => {
           <div className="bg-slate-900/40 border border-slate-800/50 p-3 rounded-xl flex items-center gap-3">
             <AlertCircle size={16} className="text-red-400" />
             <div className="overflow-hidden">
-              <p className="text-body-xs text-slate-500 uppercase font-bold">Exception</p>
+              <p className="text-body-xs text-slate-400 uppercase font-bold">Exception</p>
               <p className="text-xs font-mono text-slate-300 truncate">{data?.exception_type}</p>
             </div>
           </div>
           <div className="bg-slate-900/40 border border-slate-800/50 p-3 rounded-xl flex items-center gap-3">
             <FileCode size={16} className="text-blue-400" />
             <div className="overflow-hidden">
-              <p className="text-body-xs text-slate-500 uppercase font-bold">Impact Source</p>
+              <p className="text-body-xs text-slate-400 uppercase font-bold">Impact Source</p>
               <p className="text-xs font-mono text-slate-300 truncate">{data?.functionName || 'Unknown'}</p>
             </div>
           </div>
@@ -224,7 +224,7 @@ export const Agent1Report = ({ content, data }: any) => {
           <div className="rounded-xl border border-slate-800 bg-black/40 overflow-hidden w-full">
             <div className="flex items-center gap-2 px-3 py-2 bg-slate-900/50 border-b border-slate-800">
               <Fingerprint size={14} className="text-emerald-500/70" />
-              <span className="text-body-xs font-bold text-slate-500 uppercase font-mono tracking-widest">
+              <span className="text-body-xs font-bold text-slate-400 uppercase font-mono tracking-widest">
                 Sample Trace IDs (Correlation)
               </span>
             </div>
@@ -242,8 +242,8 @@ export const Agent1Report = ({ content, data }: any) => {
         {data?.stacktrace && (
         <div className="rounded-xl border border-slate-800 bg-black/60 w-full overflow-hidden">
             <div className="flex items-center px-3 py-2 bg-slate-900/80 border-b border-slate-800">
-            <Terminal size={14} className="text-slate-500" />
-            <span className="text-body-xs font-bold text-slate-500 uppercase font-mono tracking-widest leading-none">
+            <Terminal size={14} className="text-slate-400" />
+            <span className="text-body-xs font-bold text-slate-400 uppercase font-mono tracking-widest leading-none">
              Stack Trace Evidence
             </span>
             </div>
@@ -295,7 +295,7 @@ export const Agent1Report = ({ content, data }: any) => {
 
                   return (
                     <div key={key} className="border-b border-slate-800/50 pb-2">
-                      <p className="text-body-xs text-slate-500 font-bold uppercase tracking-widest">{formatKey(key)}</p>
+                      <p className="text-body-xs text-slate-400 font-bold uppercase tracking-widest">{formatKey(key)}</p>
                       <p className="text-xs text-slate-200 mt-1 break-all">
                         {Array.isArray(value) ? value.join(', ') : String(value)}
                       </p>
@@ -307,7 +307,7 @@ export const Agent1Report = ({ content, data }: any) => {
               {/* SPECIAL HANDLING FOR LONG FIELDS (Stack Trace) */}
               {pattern.stack_trace_sample && (
                 <div className="mt-6 space-y-2">
-                  <p className="text-body-xs text-slate-500 font-bold uppercase tracking-widest">Representative Trace</p>
+                  <p className="text-body-xs text-slate-400 font-bold uppercase tracking-widest">Representative Trace</p>
                   <pre className="p-4 bg-black rounded-xl text-body-xs text-slate-400 border border-slate-800 overflow-hidden whitespace-pre-wrap leading-relaxed">
                     {pattern.stack_trace_sample}
                   </pre>
@@ -316,7 +316,7 @@ export const Agent1Report = ({ content, data }: any) => {
             </div>
           ))}
           <div className="pt-10 border-t border-slate-900">
-            <p className="text-2xl italic font-serif text-slate-500">"Enough thinking."</p>
+            <p className="text-2xl italic font-serif text-slate-400">"Enough thinking."</p>
           </div>
         </div>
       </div>

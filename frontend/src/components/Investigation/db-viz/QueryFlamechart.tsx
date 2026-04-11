@@ -68,7 +68,7 @@ const FlameBar: React.FC<{
         >
           {hasChildren && (
             <span
-              className={`material-symbols-outlined text-body-xs text-slate-500 transition-transform ${expanded ? 'rotate-90' : ''}`}
+              className={`material-symbols-outlined text-body-xs text-slate-400 transition-transform ${expanded ? 'rotate-90' : ''}`}
             >
               chevron_right
             </span>

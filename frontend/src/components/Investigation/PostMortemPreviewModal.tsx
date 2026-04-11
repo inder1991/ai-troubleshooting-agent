@@ -74,7 +74,7 @@ const PostMortemPreviewModal: React.FC<PostMortemPreviewModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="text-slate-500 hover:text-slate-300 transition-colors"
+            className="text-slate-400 hover:text-slate-300 transition-colors"
           >
             <span className="material-symbols-outlined text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>close</span>
           </button>
@@ -83,7 +83,7 @@ const PostMortemPreviewModal: React.FC<PostMortemPreviewModalProps> = ({
         {/* Form Fields */}
         <div className="px-5 py-3 border-b border-slate-800 space-y-2">
           <div className="flex items-center gap-3">
-            <label className="text-body-xs font-bold text-slate-500 uppercase tracking-wider w-20 shrink-0">Space Key</label>
+            <label className="text-body-xs font-bold text-slate-400 uppercase tracking-wider w-20 shrink-0">Space Key</label>
             <input
               type="text"
               placeholder="e.g. ENG, OPS"
@@ -93,7 +93,7 @@ const PostMortemPreviewModal: React.FC<PostMortemPreviewModalProps> = ({
             />
           </div>
           <div className="flex items-center gap-3">
-            <label className="text-body-xs font-bold text-slate-500 uppercase tracking-wider w-20 shrink-0">Title</label>
+            <label className="text-body-xs font-bold text-slate-400 uppercase tracking-wider w-20 shrink-0">Title</label>
             <input
               type="text"
               value={title}

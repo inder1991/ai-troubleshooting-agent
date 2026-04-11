@@ -63,7 +63,7 @@ const ClusterRow: React.FC<ClusterRowProps> = ({ cluster, onViewRecommendations,
           <span className={`w-2 h-2 rounded-full flex-shrink-0 ${healthDot[cluster.health_status] || healthDot.unknown}`} />
           <span className="text-sm font-medium text-slate-100 truncate">{cluster.cluster_name}</span>
         </div>
-        <span className="text-body-xs text-slate-500">{timeAgo(cluster.last_scan_at)}</span>
+        <span className="text-body-xs text-slate-400">{timeAgo(cluster.last_scan_at)}</span>
       </div>
 
       {/* Provider Badge */}
@@ -74,13 +74,13 @@ const ClusterRow: React.FC<ClusterRowProps> = ({ cluster, onViewRecommendations,
       {/* Nodes */}
       <div className="w-16 text-center">
         <div className="text-xs text-slate-300">{cluster.node_count}</div>
-        <div className="text-body-xs text-slate-500">nodes</div>
+        <div className="text-body-xs text-slate-400">nodes</div>
       </div>
 
       {/* Pods */}
       <div className="w-16 text-center">
         <div className="text-xs text-slate-300">{cluster.pod_count}</div>
-        <div className="text-body-xs text-slate-500">pods</div>
+        <div className="text-body-xs text-slate-400">pods</div>
       </div>
 
       {/* Cost */}
@@ -100,7 +100,7 @@ const ClusterRow: React.FC<ClusterRowProps> = ({ cluster, onViewRecommendations,
             -${cluster.total_savings_usd.toLocaleString(undefined, { maximumFractionDigits: 0 })}
           </span>
         ) : (
-          <span className="text-body-xs text-slate-500">--</span>
+          <span className="text-body-xs text-slate-400">--</span>
         )}
       </div>
 
@@ -114,7 +114,7 @@ const ClusterRow: React.FC<ClusterRowProps> = ({ cluster, onViewRecommendations,
             )}
           </div>
         ) : (
-          <span className="text-body-xs text-slate-500">--</span>
+          <span className="text-body-xs text-slate-400">--</span>
         )}
       </div>
 
@@ -134,7 +134,7 @@ const ClusterRow: React.FC<ClusterRowProps> = ({ cluster, onViewRecommendations,
         </button>
         <button
           onClick={() => onRunScan(cluster.cluster_id)}
-          className="p-1.5 text-slate-500 hover:text-slate-300 transition-colors"
+          className="p-1.5 text-slate-400 hover:text-slate-300 transition-colors"
           title="Refresh"
         >
           <span className="material-symbols-outlined text-[16px]">refresh</span>

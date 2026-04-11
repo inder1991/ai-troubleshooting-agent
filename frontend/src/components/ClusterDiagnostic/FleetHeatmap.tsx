@@ -21,11 +21,11 @@ const FleetHeatmap: React.FC<FleetHeatmapProps> = ({ nodes, selectedNode, onSele
 
   return (
     <div className="bg-wr-surface/40 rounded border border-wr-border p-3">
-      <h3 className="text-body-xs uppercase font-bold tracking-widest text-slate-500 mb-3 flex justify-between">
+      <h3 className="text-body-xs uppercase font-bold tracking-widest text-slate-400 mb-3 flex justify-between">
         Fleet Heatmap <span>{nodeCount} Nodes</span>
       </h3>
       {nodes.length === 0 && (
-        <div className="text-body-xs text-slate-600 text-center py-4">Waiting for node data...</div>
+        <div className="text-body-xs text-slate-500 text-center py-4">Waiting for node data...</div>
       )}
       <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-12 gap-1 min-h-[80px]">
         {nodes.map((node, i) => {

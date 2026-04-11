@@ -34,7 +34,7 @@ const CampaignOrchestrationHub: React.FC<CampaignOrchestrationHubProps> = ({ cam
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-body-xs font-mono text-slate-500">
+          <span className="text-body-xs font-mono text-slate-400">
             {campaign.approved_count}/{campaign.total_count} approved
           </span>
           <div className="w-16 h-1.5 rounded-full bg-slate-800 overflow-hidden">
@@ -93,7 +93,7 @@ const CampaignOrchestrationHub: React.FC<CampaignOrchestrationHubProps> = ({ cam
       {/* Campaign Readiness Footer */}
       <div className="px-4 py-3 border-t border-slate-800/50">
         <div className="flex items-center justify-between mb-3">
-          <span className="text-body-xs text-slate-500 uppercase tracking-widest">Campaign Readiness</span>
+          <span className="text-body-xs text-slate-400 uppercase tracking-widest">Campaign Readiness</span>
           <span className="text-xs font-mono font-bold text-slate-300">
             {campaign.approved_count} / {campaign.total_count} Attested
           </span>
@@ -119,7 +119,7 @@ const CampaignOrchestrationHub: React.FC<CampaignOrchestrationHubProps> = ({ cam
               key="waiting"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="w-full py-3 rounded-lg bg-slate-900/50 border border-slate-800 text-slate-600 font-bold text-body-xs tracking-widest uppercase text-center flex items-center justify-center gap-2"
+              className="w-full py-3 rounded-lg bg-slate-900/50 border border-slate-800 text-slate-500 font-bold text-body-xs tracking-widest uppercase text-center flex items-center justify-center gap-2"
             >
               <span className="material-symbols-outlined text-sm animate-spin">sync</span>
               Awaiting Local Attestations...

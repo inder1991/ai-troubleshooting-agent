@@ -820,7 +820,7 @@ const TroubleshootingChatbot: React.FC = () => {
               className={`group flex items-center justify-between p-2.5 rounded border cursor-pointer transition-all ${
                 activeSessionId === s.id 
                 ? 'bg-blue-600/10 border-blue-500/40 text-blue-100' 
-                : 'border-transparent text-slate-500 hover:bg-slate-800'
+                : 'border-transparent text-slate-400 hover:bg-slate-800'
               }`}
             >
               <div className="flex items-center gap-3 overflow-hidden">
@@ -869,8 +869,8 @@ const TroubleshootingChatbot: React.FC = () => {
               </div>
             ) : (
               <div className="flex items-center gap-1.5">
-                <WifiOff size={12} className="text-slate-600" />
-                <span className="text-body-xs text-slate-600 uppercase font-bold">Idle</span>
+                <WifiOff size={12} className="text-slate-500" />
+                <span className="text-body-xs text-slate-500 uppercase font-bold">Idle</span>
               </div>
             )}
             
@@ -982,7 +982,7 @@ const TroubleshootingChatbot: React.FC = () => {
                 <div className="mt-4 flex justify-center">
                   <button 
                     onClick={handleDownloadReport}
-                    className="flex items-center gap-2 text-body-xs text-slate-500 hover:text-white transition-colors"
+                    className="flex items-center gap-2 text-body-xs text-slate-400 hover:text-white transition-colors"
                   >
                     <FileText size={14} /> Generate Incident Postmortem
                   </button>
@@ -1034,7 +1034,7 @@ const TroubleshootingChatbot: React.FC = () => {
       {/* RIGHT: INSPECTOR - NOW ALWAYS VISIBLE */}
       <aside className="w-[400px] bg-[#0f172a] border-l border-slate-800 flex flex-col">
         <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
-          <span className="text-body-xs font-bold uppercase tracking-widest text-slate-600">
+          <span className="text-body-xs font-bold uppercase tracking-widest text-slate-500">
             Context_Inspector
           </span>
           <ShieldCheck size={14} className="text-emerald-600" />
@@ -1052,10 +1052,10 @@ const TroubleshootingChatbot: React.FC = () => {
                   <div className="text-body-xs font-mono text-blue-400">
                     {currentSession.agentResults.logs.exception_type}
                   </div>
-                  <div className="text-body-xs text-slate-500">
+                  <div className="text-body-xs text-slate-400">
                     {currentSession.agentResults.logs.exception_message}
                   </div>
-                  <div className="text-body-xs text-slate-600 mt-2">
+                  <div className="text-body-xs text-slate-500 mt-2">
                     Error Logs: {currentSession.agentResults.logs.log_count}
                   </div>
                 </div>
@@ -1073,10 +1073,10 @@ const TroubleshootingChatbot: React.FC = () => {
                   <div className="text-body-xs font-mono text-emerald-400">
                     {currentSession.agentResults.trace.root_cause_location}
                   </div>
-                  <div className="text-body-xs text-slate-500">
+                  <div className="text-body-xs text-slate-400">
                     Files: {currentSession.agentResults.trace.relevant_files?.length || 0}
                   </div>
-                  <div className="text-body-xs text-slate-600">
+                  <div className="text-body-xs text-slate-500">
                     Call Chain: {currentSession.agentResults.trace.call_chain?.length || 0}
                   </div>
                 </div>
@@ -1094,10 +1094,10 @@ const TroubleshootingChatbot: React.FC = () => {
                   <div className="text-body-xs font-mono text-purple-400">
                     {currentSession.agentResults.fix.pr_title}
                   </div>
-                  <div className="text-body-xs text-slate-500">
+                  <div className="text-body-xs text-slate-400">
                     Confidence: {(currentSession.agentResults.fix.confidence_score! * 100).toFixed(0)}%
                   </div>
-                  <div className="text-body-xs text-slate-600">
+                  <div className="text-body-xs text-slate-500">
                     Changes: {currentSession.agentResults.fix.changes?.length || 0}
                   </div>
                 </div>
@@ -1171,7 +1171,7 @@ const DiagnosticForm: React.FC<DiagnosticFormProps> = ({ onSubmit, onCancel }) =
             <button 
               onClick={() => setData({...data, targetType: 'application'})} 
               className={`flex-1 py-2 text-body-xs font-bold rounded ${
-                data.targetType === 'application' ? 'bg-blue-600 text-white' : 'text-slate-500'
+                data.targetType === 'application' ? 'bg-blue-600 text-white' : 'text-slate-400'
               }`}
               type="button"
             >
@@ -1180,7 +1180,7 @@ const DiagnosticForm: React.FC<DiagnosticFormProps> = ({ onSubmit, onCancel }) =
             <button 
               onClick={() => setData({...data, targetType: 'infrastructure'})} 
               className={`flex-1 py-2 text-body-xs font-bold rounded ${
-                data.targetType === 'infrastructure' ? 'bg-blue-600 text-white' : 'text-slate-500'
+                data.targetType === 'infrastructure' ? 'bg-blue-600 text-white' : 'text-slate-400'
               }`}
               type="button"
             >
@@ -1190,7 +1190,7 @@ const DiagnosticForm: React.FC<DiagnosticFormProps> = ({ onSubmit, onCancel }) =
         
         {/* Repo/Namespace Field */}
         <div className="space-y-1">
-            <label className="text-body-xs uppercase font-bold text-slate-500">
+            <label className="text-body-xs uppercase font-bold text-slate-400">
               {data.targetType === 'application' ? 'GitHub Repo *' : 'Namespace/Resource *'}
             </label>
             <input 
@@ -1208,7 +1208,7 @@ const DiagnosticForm: React.FC<DiagnosticFormProps> = ({ onSubmit, onCancel }) =
 
         {/* ELK Index */}
         <div className="space-y-1">
-          <label className="text-body-xs uppercase font-bold text-slate-500">ELK Index Pattern</label>
+          <label className="text-body-xs uppercase font-bold text-slate-400">ELK Index Pattern</label>
           <input 
             value={data.elkIndex}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setData({...data, elkIndex: e.target.value})} 
@@ -1221,7 +1221,7 @@ const DiagnosticForm: React.FC<DiagnosticFormProps> = ({ onSubmit, onCancel }) =
         {/* Timeframe and Error Filter */}
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1">
-            <label className="text-body-xs uppercase font-bold text-slate-500">Timeframe</label>
+            <label className="text-body-xs uppercase font-bold text-slate-400">Timeframe</label>
             <select
               value={data.timeframe}
               onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setData({...data, timeframe: e.target.value})}
@@ -1234,7 +1234,7 @@ const DiagnosticForm: React.FC<DiagnosticFormProps> = ({ onSubmit, onCancel }) =
             </select>
           </div>
           <div className="space-y-1">
-            <label className="text-body-xs uppercase font-bold text-slate-500">Error Filter</label>
+            <label className="text-body-xs uppercase font-bold text-slate-400">Error Filter</label>
             <input 
               value={data.errorMessage}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setData({...data, errorMessage: e.target.value})}
@@ -1280,8 +1280,8 @@ const InspectorCard: React.FC<InspectorCardProps> = ({
       return (
         <div className={`transition-all duration-700 ${data || isThisAgentThinking ? 'opacity-100' : 'opacity-20'}`}>
           <div className="flex items-center gap-2 mb-2">
-            <Icon size={14} className={isThisAgentThinking ? "text-blue-500" : "text-slate-600"} />
-            <span className="text-body-xs font-bold text-slate-500 uppercase tracking-widest">
+            <Icon size={14} className={isThisAgentThinking ? "text-blue-500" : "text-slate-500"} />
+            <span className="text-body-xs font-bold text-slate-400 uppercase tracking-widest">
               {title}
             </span>
           </div>

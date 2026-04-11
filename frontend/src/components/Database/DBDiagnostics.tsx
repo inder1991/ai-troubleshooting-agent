@@ -164,13 +164,13 @@ const DBDiagnostics: React.FC = () => {
               </span>
               <div>
                 <p className="text-sm font-medium text-slate-100">Run {activeRun.run_id.slice(0, 8)}</p>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-slate-400">
                   {activeRun.status} • {new Date(activeRun.started_at).toLocaleString()}
                 </p>
               </div>
             </div>
             {activeRun.status === 'completed' && (
-              <span className="text-xs text-slate-500">
+              <span className="text-xs text-slate-400">
                 {activeRun.findings.length} finding(s)
               </span>
             )}
@@ -212,11 +212,11 @@ const DBDiagnostics: React.FC = () => {
       <div>
         <h3 className="text-sm font-medium text-slate-400 mb-2">History</h3>
         {loading ? (
-          <div className="text-center py-8 text-slate-500">
+          <div className="text-center py-8 text-slate-400">
             <span className="material-symbols-outlined animate-spin">progress_activity</span>
           </div>
         ) : runs.length === 0 ? (
-          <p className="text-sm text-slate-500 py-4 text-center">No diagnostic runs yet for this profile.</p>
+          <p className="text-sm text-slate-400 py-4 text-center">No diagnostic runs yet for this profile.</p>
         ) : (
           <div className="space-y-1">
             {runs.map((r) => (
@@ -232,10 +232,10 @@ const DBDiagnostics: React.FC = () => {
                     r.status === 'completed' ? 'bg-emerald-400' : r.status === 'failed' ? 'bg-red-400' : 'bg-amber-400'
                   }`} />
                   <span className="text-sm text-slate-300">{r.run_id.slice(0, 8)}</span>
-                  <span className="text-xs text-slate-500">{new Date(r.started_at).toLocaleString()}</span>
+                  <span className="text-xs text-slate-400">{new Date(r.started_at).toLocaleString()}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-slate-500">{r.findings?.length || 0} findings</span>
+                  <span className="text-xs text-slate-400">{r.findings?.length || 0} findings</span>
                   <span className={`text-xs px-1.5 py-0.5 rounded ${
                     r.status === 'completed' ? 'bg-emerald-500/20 text-emerald-400' : r.status === 'failed' ? 'bg-red-500/20 text-red-400' : 'bg-amber-500/20 text-amber-400'
                   }`}>{r.status}</span>

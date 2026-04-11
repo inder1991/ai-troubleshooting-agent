@@ -34,7 +34,7 @@ const SEVERITY_STYLES: Record<Severity, string> = {
   error: 'bg-red-950/30 border-l-2 border-red-500 text-red-300',
   warn: 'text-amber-300 border-l-2 border-amber-500/40',
   info: 'text-slate-400 border-l-2 border-transparent',
-  debug: 'text-slate-600 border-l-2 border-transparent',
+  debug: 'text-slate-500 border-l-2 border-transparent',
 };
 
 const parseLine = (raw: string): ParsedLine => {
@@ -59,7 +59,7 @@ const LogLine: React.FC<{ line: ParsedLine; lineNumber: number }> = ({ line, lin
   return (
     <div className={`px-3 py-0.5 font-mono text-body-xs leading-5 ${SEVERITY_STYLES[line.severity]}`}>
       <div className="flex items-start gap-2">
-        <span className="text-slate-600 select-none w-8 text-right shrink-0">{lineNumber}</span>
+        <span className="text-slate-500 select-none w-8 text-right shrink-0">{lineNumber}</span>
         {line.isJson && (
           <button
             onClick={() => setExpanded(!expanded)}
@@ -71,7 +71,7 @@ const LogLine: React.FC<{ line: ParsedLine; lineNumber: number }> = ({ line, lin
         <span className="break-all whitespace-pre-wrap">{line.raw}</span>
       </div>
       {expanded && line.jsonParsed && (
-        <pre className="ml-10 mt-1 text-body-xs text-slate-500 bg-slate-950/40 rounded p-2 overflow-x-auto">
+        <pre className="ml-10 mt-1 text-body-xs text-slate-400 bg-slate-950/40 rounded p-2 overflow-x-auto">
           {line.jsonParsed}
         </pre>
       )}
@@ -153,7 +153,7 @@ const LogViewerTab: React.FC<LogViewerTabProps> = ({ namespace, kind, name, sess
   if (loading) {
     return (
       <div className="flex items-center justify-center h-32">
-        <span className="text-body-xs text-slate-500 animate-pulse">Loading logs...</span>
+        <span className="text-body-xs text-slate-400 animate-pulse">Loading logs...</span>
       </div>
     );
   }
@@ -183,7 +183,7 @@ const LogViewerTab: React.FC<LogViewerTabProps> = ({ namespace, kind, name, sess
               severityFilter.has(sev)
                 ? sev === 'error' ? 'bg-red-950/40 text-red-400'
                 : sev === 'warn' ? 'bg-amber-950/40 text-amber-400'
-                : sev === 'debug' ? 'bg-slate-800/40 text-slate-500'
+                : sev === 'debug' ? 'bg-slate-800/40 text-slate-400'
                 : 'bg-amber-950/40 text-amber-400'
                 : 'text-slate-700'
             }`}
@@ -193,7 +193,7 @@ const LogViewerTab: React.FC<LogViewerTabProps> = ({ namespace, kind, name, sess
         ))}
         <button
           onClick={reEnableAutoScroll}
-          className={`text-body-xs ${autoScroll ? 'text-amber-400' : 'text-slate-600'}`}
+          className={`text-body-xs ${autoScroll ? 'text-amber-400' : 'text-slate-500'}`}
           title={autoScroll ? 'Auto-scroll ON' : 'Auto-scroll OFF (scroll detected)'}
         >
           <span className="material-symbols-outlined text-[14px]">vertical_align_bottom</span>
@@ -207,7 +207,7 @@ const LogViewerTab: React.FC<LogViewerTabProps> = ({ namespace, kind, name, sess
         onWheel={handleWheel}
       >
         {filteredLines.length === 0 ? (
-          <div className="p-4 text-body-xs text-slate-500">No log lines match filters</div>
+          <div className="p-4 text-body-xs text-slate-400">No log lines match filters</div>
         ) : (
           filteredLines.map((line, i) => (
             <LogLine key={i} line={line} lineNumber={i + 1} />
@@ -216,7 +216,7 @@ const LogViewerTab: React.FC<LogViewerTabProps> = ({ namespace, kind, name, sess
       </div>
 
       {/* Status bar */}
-      <div className="flex items-center justify-between px-3 py-1 border-t border-slate-800/30 text-body-xs text-slate-600">
+      <div className="flex items-center justify-between px-3 py-1 border-t border-slate-800/30 text-body-xs text-slate-500">
         <span>{filteredLines.length} / {parsedLines.length} lines</span>
         {!autoScroll && <span className="text-amber-500">Manual scroll -- click arrow to re-enable</span>}
       </div>

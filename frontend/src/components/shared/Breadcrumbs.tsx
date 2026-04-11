@@ -17,7 +17,7 @@ export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({ items }) => {
       {items.map((item, i) => (
         <React.Fragment key={i}>
           {i > 0 && (
-            <span className="material-symbols-outlined text-[12px] text-slate-600">
+            <span className="material-symbols-outlined text-[12px] text-slate-500">
               chevron_right
             </span>
           )}

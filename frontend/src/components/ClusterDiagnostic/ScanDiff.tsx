@@ -20,8 +20,8 @@ const ScanDiff: React.FC<ScanDiffProps> = ({ delta }) => {
   if (!hasChanges) {
     return (
       <div className="bg-wr-inset rounded border border-wr-border-subtle p-3">
-        <span className="text-body-xs font-semibold uppercase tracking-wider text-slate-500">Scan Delta</span>
-        <p className="text-xs text-slate-500 mt-2">No changes since previous scan</p>
+        <span className="text-body-xs font-semibold uppercase tracking-wider text-slate-400">Scan Delta</span>
+        <p className="text-xs text-slate-400 mt-2">No changes since previous scan</p>
       </div>
     );
   }
@@ -29,9 +29,9 @@ const ScanDiff: React.FC<ScanDiffProps> = ({ delta }) => {
   return (
     <div className="bg-wr-inset rounded border border-wr-border-subtle p-3 space-y-2">
       <div className="flex items-center justify-between">
-        <span className="text-body-xs font-semibold uppercase tracking-wider text-slate-500">Scan Delta</span>
+        <span className="text-body-xs font-semibold uppercase tracking-wider text-slate-400">Scan Delta</span>
         {delta.previous_scanned_at && (
-          <span className="text-body-xs text-slate-600">vs {delta.previous_scanned_at}</span>
+          <span className="text-body-xs text-slate-500">vs {delta.previous_scanned_at}</span>
         )}
       </div>
 

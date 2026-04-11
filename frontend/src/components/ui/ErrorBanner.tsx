@@ -45,7 +45,7 @@ const ErrorBanner: React.FC<ErrorBannerProps> = ({
       {onDismiss && (
         <button
           onClick={onDismiss}
-          className="text-slate-500 hover:text-slate-300 transition-colors p-0.5"
+          className="text-slate-400 hover:text-slate-300 transition-colors p-0.5"
           aria-label="Dismiss"
         >
           <span

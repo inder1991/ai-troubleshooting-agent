@@ -35,7 +35,7 @@ const IntegrationStatusBadge: React.FC<IntegrationStatusBadgeProps> = ({ integra
   }
 
   return (
-    <span className="inline-flex items-center gap-1 text-body-xs px-1.5 py-0.5 rounded-full bg-slate-500/10 text-slate-500 border border-slate-500/20">
+    <span className="inline-flex items-center gap-1 text-body-xs px-1.5 py-0.5 rounded-full bg-slate-500/10 text-slate-400 border border-slate-500/20">
       <span className="w-1.5 h-1.5 rounded-full bg-slate-500" />
       Not Configured
     </span>

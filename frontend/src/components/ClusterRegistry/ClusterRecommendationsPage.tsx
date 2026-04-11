@@ -120,7 +120,7 @@ const ClusterRecommendationsPage: React.FC<ClusterRecommendationsPageProps> = ({
             </button>
             <div>
               <h1 className="text-lg font-display font-bold text-slate-100">{snapshot.cluster_name}</h1>
-              <div className="flex items-center gap-2 text-body-xs text-slate-500">
+              <div className="flex items-center gap-2 text-body-xs text-slate-400">
                 <span className="uppercase font-medium">{snapshot.provider}</span>
                 <span>&middot;</span>
                 <span>Last scan: {timeAgo(snapshot.scanned_at)}</span>
@@ -181,7 +181,7 @@ const ClusterRecommendationsPage: React.FC<ClusterRecommendationsPageProps> = ({
               style={{ borderLeft: `3px solid ${section.borderColor}` }}
             >
               <h2 className="text-sm font-display font-bold text-slate-200">{section.label}</h2>
-              <span className="text-body-xs text-slate-500">({section.items.length})</span>
+              <span className="text-body-xs text-slate-400">({section.items.length})</span>
             </div>
             <div className={`space-y-2 ${section.key === 'known' ? 'opacity-70' : ''}`}>
               {section.items.map((rec) => (
@@ -196,7 +196,7 @@ const ClusterRecommendationsPage: React.FC<ClusterRecommendationsPageProps> = ({
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <span className="material-symbols-outlined text-green-500 mb-3" style={{ fontSize: 48 }}>check_circle</span>
             <p className="text-sm text-slate-300 mb-1">No recommendations at this time.</p>
-            <p className="text-xs text-slate-500">This cluster looks healthy. Run a fresh scan to check again.</p>
+            <p className="text-xs text-slate-400">This cluster looks healthy. Run a fresh scan to check again.</p>
           </div>
         )}
 

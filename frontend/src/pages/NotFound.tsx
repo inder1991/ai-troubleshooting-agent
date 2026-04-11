@@ -4,7 +4,7 @@ export default function NotFound() {
   return (
     <div className="flex-1 flex flex-col items-center justify-center gap-6 text-slate-300">
       <span
-        className="material-symbols-outlined text-7xl text-slate-500"
+        className="material-symbols-outlined text-7xl text-slate-400"
         aria-hidden="true"
       >
         explore_off

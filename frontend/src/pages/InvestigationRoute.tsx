@@ -194,7 +194,7 @@ export default function InvestigationRoute() {
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <span className="material-symbols-outlined text-4xl text-slate-500 animate-spin">
+        <span className="material-symbols-outlined text-4xl text-slate-400 animate-spin">
           progress_activity
         </span>
       </div>
@@ -205,7 +205,7 @@ export default function InvestigationRoute() {
   if (error || !session) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-4 text-slate-300">
-        <span className="material-symbols-outlined text-5xl text-slate-500">error_outline</span>
+        <span className="material-symbols-outlined text-5xl text-slate-400">error_outline</span>
         <h2 className="text-lg font-display font-bold">Investigation not found</h2>
         <p className="text-sm text-slate-400">
           {error || 'This session does not exist or has expired.'}
@@ -318,7 +318,7 @@ export function DossierRoute() {
   if (!sessionId) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-4 text-slate-300">
-        <span className="material-symbols-outlined text-5xl text-slate-500">error_outline</span>
+        <span className="material-symbols-outlined text-5xl text-slate-400">error_outline</span>
         <h2 className="text-lg font-display font-bold">Dossier not found</h2>
         <button
           onClick={() => navigate('/investigations')}

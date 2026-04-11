@@ -83,7 +83,7 @@ const EvidenceStack: React.FC<EvidenceStackProps> = ({ sessionId, events }) => {
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1">
             <span className="w-2 h-2 rounded-full bg-green-500" />
-            <span className="text-body-xs text-slate-500 font-medium">Real-time Feed</span>
+            <span className="text-body-xs text-slate-400 font-medium">Real-time Feed</span>
           </div>
           <button className="text-xs text-primary font-bold hover:underline">Clear Filter</button>
         </div>
@@ -183,7 +183,7 @@ const EvidenceTab: React.FC<{ findings: V4Findings | null; events: TaskEvent[] }
               <span className="material-symbols-outlined text-amber-500 text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>receipt_long</span>
               <span className="text-body-xs font-bold uppercase tracking-wider">Aggregated Error Clusters</span>
             </div>
-            <span className="text-body-xs font-mono text-slate-500">{errorPatterns.length} patterns</span>
+            <span className="text-body-xs font-mono text-slate-400">{errorPatterns.length} patterns</span>
           </div>
           {causalGroups.length > 0 ? (
             /* Grouped by causal role */
@@ -192,7 +192,7 @@ const EvidenceTab: React.FC<{ findings: V4Findings | null; events: TaskEvent[] }
                 <div className="flex items-center gap-2 pt-1">
                   <span className="material-symbols-outlined text-sm text-slate-400" style={{ fontFamily: 'Material Symbols Outlined' }}>{group.icon}</span>
                   <span className="text-body-xs font-bold uppercase tracking-wider text-slate-400">{group.label}</span>
-                  <span className="text-body-xs text-slate-600">{group.patterns.length}</span>
+                  <span className="text-body-xs text-slate-500">{group.patterns.length}</span>
                 </div>
                 {group.patterns.map((ep, i) => (
                   <ErrorPatternCluster key={ep.pattern_id || i} pattern={ep} rank={i + 1} />
@@ -259,7 +259,7 @@ const EvidenceTab: React.FC<{ findings: V4Findings | null; events: TaskEvent[] }
                 <span className={`w-2 h-2 rounded-full ${ke.type === 'Warning' ? 'bg-red-500 animate-pulse' : 'bg-green-500'}`} />
                 <span className="text-body-xs font-mono text-slate-300">{ke.involved_object}</span>
                 <span className="text-body-xs text-slate-400">{ke.reason}: {ke.message}</span>
-                <span className="text-body-xs text-slate-600 ml-auto">{ke.count}x</span>
+                <span className="text-body-xs text-slate-500 ml-auto">{ke.count}x</span>
               </div>
             ))}
           </div>
@@ -302,13 +302,13 @@ const EvidenceTab: React.FC<{ findings: V4Findings | null; events: TaskEvent[] }
           <div className="p-4 font-mono text-body-xs space-y-1 text-slate-400 max-h-[300px] overflow-y-auto custom-scrollbar">
             {events.slice(-20).map((ev, i) => (
               <div key={i} className="flex gap-3">
-                <span className="text-slate-600 shrink-0">
+                <span className="text-slate-500 shrink-0">
                   {new Date(ev.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                 </span>
                 <span className={`font-bold shrink-0 ${
                   ev.event_type === 'error' ? 'text-red-400' :
                   ev.event_type === 'warning' ? 'text-amber-400' :
-                  ev.event_type === 'success' ? 'text-green-400' : 'text-slate-500'
+                  ev.event_type === 'success' ? 'text-green-400' : 'text-slate-400'
                 }`}>
                   [{ev.event_type.toUpperCase()}]
                 </span>
@@ -369,7 +369,7 @@ const TimelineTab: React.FC<{
             />
             <div className="bg-slate-900/40 border border-slate-800 rounded-lg px-3 py-2">
               <div className="flex items-center gap-2 text-xs mb-1">
-                <span className="text-slate-500 font-mono">
+                <span className="text-slate-400 font-mono">
                   {new Date(item.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                 </span>
                 <span className="text-[#e09f3e] font-medium">{item.agent}</span>
@@ -407,7 +407,7 @@ const FindingsTab: React.FC<{ findings: V4Findings | null }> = ({ findings }) =>
               )}
             </div>
             <p className="text-xs text-slate-400 mb-2">{finding.description}</p>
-            <div className="flex items-center gap-3 text-body-xs text-slate-500">
+            <div className="flex items-center gap-3 text-body-xs text-slate-400">
               <span>Agent: {finding.agent_name}</span>
               <span>Confidence: {Math.round(finding.confidence)}%</span>
               {finding.suggested_fix && (
@@ -415,7 +415,7 @@ const FindingsTab: React.FC<{ findings: V4Findings | null }> = ({ findings }) =>
               )}
             </div>
             {verdict && (
-              <p className="text-xs text-slate-500 mt-2 italic border-t border-slate-800 pt-2">
+              <p className="text-xs text-slate-400 mt-2 italic border-t border-slate-800 pt-2">
                 Critic: {verdict.reasoning}
               </p>
             )}
@@ -425,11 +425,11 @@ const FindingsTab: React.FC<{ findings: V4Findings | null }> = ({ findings }) =>
 
       {(findings.negative_findings?.length ?? 0) > 0 && (
         <div className="mt-4">
-          <h4 className="text-xs text-slate-500 uppercase tracking-wider mb-2">Ruled Out</h4>
+          <h4 className="text-xs text-slate-400 uppercase tracking-wider mb-2">Ruled Out</h4>
           {findings.negative_findings.map((nf, i) => (
             <div key={i} className="bg-slate-800/30 border border-slate-800/50 rounded-lg px-3 py-2 mb-1">
               <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-500">{nf.agent}</span>
+                <span className="text-xs text-slate-400">{nf.agent}</span>
                 <span className="text-xs text-slate-400">{nf.description}</span>
               </div>
             </div>
@@ -543,15 +543,15 @@ const MetricsTab: React.FC<{ findings: V4Findings | null }> = ({ findings }) => 
               </div>
               <div className="flex items-baseline gap-3 mb-3">
                 <div>
-                  <div className="text-body-xs text-slate-500 mb-0.5">Current</div>
+                  <div className="text-body-xs text-slate-400 mb-0.5">Current</div>
                   <div className="text-lg font-bold font-mono text-white">{ma.current_value.toFixed(1)}</div>
                 </div>
                 <div>
-                  <div className="text-body-xs text-slate-500 mb-0.5">Baseline</div>
+                  <div className="text-body-xs text-slate-400 mb-0.5">Baseline</div>
                   <div className="text-sm font-mono text-slate-400">{ma.baseline_value.toFixed(1)}</div>
                 </div>
                 <div className="ml-auto text-right">
-                  <div className="text-body-xs text-slate-500 mb-0.5">Deviation</div>
+                  <div className="text-body-xs text-slate-400 mb-0.5">Deviation</div>
                   <div className={`text-sm font-mono font-bold ${style.text}`}>
                     {ma.direction === 'above' ? '\u25B2' : '\u25BC'} {ma.deviation_percent > 0 ? '+' : ''}{Math.round(ma.deviation_percent)}%
                   </div>
@@ -568,7 +568,7 @@ const MetricsTab: React.FC<{ findings: V4Findings | null }> = ({ findings }) => 
                 />
               </div>
               {ma.confidence_score != null && (
-                <div className="text-body-xs text-slate-500 mt-1.5 text-right">
+                <div className="text-body-xs text-slate-400 mt-1.5 text-right">
                   Confidence: {ma.confidence_score}%
                 </div>
               )}
@@ -585,23 +585,23 @@ const MetricsTab: React.FC<{ findings: V4Findings | null }> = ({ findings }) => 
           </div>
           <div className="p-4 grid grid-cols-4 gap-4">
             <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-700">
-              <div className="text-body-xs text-slate-500 mb-1">Total Pods</div>
+              <div className="text-body-xs text-slate-400 mb-1">Total Pods</div>
               <div className="text-lg font-bold font-mono">{findings.pod_statuses.length}</div>
             </div>
             <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-700">
-              <div className="text-body-xs text-slate-500 mb-1">Restarts</div>
+              <div className="text-body-xs text-slate-400 mb-1">Restarts</div>
               <div className="text-lg font-bold font-mono text-amber-500">
                 {findings.pod_statuses.reduce((s, p) => s + p.restart_count, 0)}
               </div>
             </div>
             <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-700">
-              <div className="text-body-xs text-slate-500 mb-1">Healthy</div>
+              <div className="text-body-xs text-slate-400 mb-1">Healthy</div>
               <div className="text-lg font-bold font-mono text-green-500">
                 {findings.pod_statuses.filter((p) => p.ready).length}
               </div>
             </div>
             <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-700">
-              <div className="text-body-xs text-slate-500 mb-1">Unhealthy</div>
+              <div className="text-body-xs text-slate-400 mb-1">Unhealthy</div>
               <div className="text-lg font-bold font-mono text-red-500">
                 {findings.pod_statuses.filter((p) => !p.ready).length}
               </div>
@@ -635,14 +635,14 @@ const PodHealthSection: React.FC<{ findings: V4Findings | null }> = ({ findings 
           <span className="material-symbols-outlined text-blue-400 text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>dns</span>
           <span className="text-body-xs font-bold uppercase tracking-wider">Pod Health</span>
         </div>
-        <span className="text-body-xs font-mono text-slate-500">{pods.length} pods</span>
+        <span className="text-body-xs font-mono text-slate-400">{pods.length} pods</span>
       </div>
       <div className="p-4 space-y-2">
         {pods.map((pod, i) => (
           <div key={i} className="flex items-center gap-3 text-body-xs">
             <span className={`w-2 h-2 rounded-full ${pod.ready ? 'bg-green-500' : 'bg-red-500 animate-pulse'}`} />
             <span className="font-mono text-slate-300">{pod.pod_name}</span>
-            <span className="text-slate-500">{pod.status}</span>
+            <span className="text-slate-400">{pod.status}</span>
             {pod.restart_count > 0 && (
               <span className="text-amber-400 font-bold">{pod.restart_count} restarts</span>
             )}
@@ -715,7 +715,7 @@ const TopologySection: React.FC<{ findings: V4Findings | null }> = ({ findings }
               {[...new Set(edges.map((e) => `${e.from}→${e.to}`))].map((edge) => {
                 const [from, to] = edge.split('→');
                 return (
-                  <div key={edge} className="text-body-xs text-slate-500 font-mono">
+                  <div key={edge} className="text-body-xs text-slate-400 font-mono">
                     {from} → {to}
                   </div>
                 );
@@ -725,7 +725,7 @@ const TopologySection: React.FC<{ findings: V4Findings | null }> = ({ findings }
           {/* Impacted files */}
           {impactedFiles.length > 0 && (
             <div className="border-t border-slate-800 pt-3">
-              <span className="text-body-xs text-slate-500 uppercase tracking-wider">Impacted Files</span>
+              <span className="text-body-xs text-slate-400 uppercase tracking-wider">Impacted Files</span>
               <div className="mt-2 space-y-1">
                 {impactedFiles.map((f, i) => (
                   <div key={i} className="flex items-center gap-2 text-body-xs">
@@ -733,7 +733,7 @@ const TopologySection: React.FC<{ findings: V4Findings | null }> = ({ findings }
                       f.impact_type === 'direct_error' ? 'bg-red-500' : 'bg-[#e09f3e]'
                     }`} />
                     <span className="font-mono text-slate-300">{f.file_path}</span>
-                    <span className="text-body-xs text-slate-500">{f.impact_type}</span>
+                    <span className="text-body-xs text-slate-400">{f.impact_type}</span>
                   </div>
                 ))}
               </div>
@@ -741,7 +741,7 @@ const TopologySection: React.FC<{ findings: V4Findings | null }> = ({ findings }
           )}
         </div>
       ) : (
-        <div className="h-24 flex items-center justify-center text-body-xs text-slate-600">
+        <div className="h-24 flex items-center justify-center text-body-xs text-slate-500">
           Topology will populate as agents discover dependencies
         </div>
       )}
@@ -798,26 +798,26 @@ const BlastRadiusCard: React.FC<{ findings: V4Findings | null }> = ({ findings }
               <div key={`up-${i}`} className="flex items-center gap-2 text-body-xs">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
                 <span className="font-mono text-slate-300">{svc}</span>
-                <span className="text-body-xs text-slate-500">upstream</span>
+                <span className="text-body-xs text-slate-400">upstream</span>
               </div>
             ))}
             {blast.downstream_affected?.map((svc, i) => (
               <div key={`dn-${i}`} className="flex items-center gap-2 text-body-xs">
                 <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
                 <span className="font-mono text-slate-300">{svc}</span>
-                <span className="text-body-xs text-slate-500">downstream</span>
+                <span className="text-body-xs text-slate-400">downstream</span>
               </div>
             ))}
             {blast.shared_resources?.map((res, i) => (
               <div key={`sh-${i}`} className="flex items-center gap-2 text-body-xs">
                 <span className="w-1.5 h-1.5 rounded-full bg-purple-400" />
                 <span className="font-mono text-slate-300">{res}</span>
-                <span className="text-body-xs text-slate-500">shared</span>
+                <span className="text-body-xs text-slate-400">shared</span>
               </div>
             ))}
           </div>
           {blast.estimated_user_impact && (
-            <div className="text-body-xs text-slate-500 pt-1 border-t border-slate-800">
+            <div className="text-body-xs text-slate-400 pt-1 border-t border-slate-800">
               Est. User Impact: {blast.estimated_user_impact}
             </div>
           )}
@@ -852,7 +852,7 @@ const ChangeCorrelationsSection: React.FC<{ findings: V4Findings | null }> = ({ 
           difference
         </span>
         <span className="text-body-xs font-bold uppercase tracking-wider">Source of Change</span>
-        <span className="text-body-xs text-slate-500 ml-auto">{correlations.length} changes</span>
+        <span className="text-body-xs text-slate-400 ml-auto">{correlations.length} changes</span>
       </button>
       {expanded && (
         <div className="border-t border-slate-800 divide-y divide-slate-800/50">
@@ -879,7 +879,7 @@ const ChangeCorrelationRow: React.FC<{ correlation: ChangeCorrelation }> = ({ co
         aria-expanded={expanded}
       >
         <span
-          className={`material-symbols-outlined text-xs text-slate-500 transition-transform ${expanded ? 'rotate-90' : ''}`}
+          className={`material-symbols-outlined text-xs text-slate-400 transition-transform ${expanded ? 'rotate-90' : ''}`}
           style={{ fontFamily: 'Material Symbols Outlined' }}
         >
           chevron_right
@@ -977,7 +977,7 @@ const TemporalFlowTimeline: React.FC<{
           <span className="text-body-xs font-bold uppercase tracking-wider">Temporal Flow</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-body-xs text-slate-500">
+          <span className="text-body-xs text-slate-400">
             {serviceCount} services, {steps.length} steps
           </span>
           <span className="text-body-xs px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-400 border border-violet-500/20 font-mono">
@@ -1033,7 +1033,7 @@ const TemporalFlowTimeline: React.FC<{
                 {expandedIdx === i && (
                   <div className="mt-2 pt-2 border-t border-slate-700/50 space-y-1">
                     {step.timestamp && (
-                      <div className="text-body-xs text-slate-500 font-mono">
+                      <div className="text-body-xs text-slate-400 font-mono">
                         {new Date(step.timestamp).toLocaleString()}
                       </div>
                     )}
@@ -1096,11 +1096,11 @@ const TraceFallback: React.FC<{ events: TaskEvent[] }> = ({ events }) => {
 
   return (
     <div className="space-y-4">
-      <div className="text-body-xs text-slate-500 uppercase tracking-wider">Reconstructed from Agent Activity</div>
+      <div className="text-body-xs text-slate-400 uppercase tracking-wider">Reconstructed from Agent Activity</div>
       <div className="space-y-1">
         {pseudoSpans.map((ev, i) => (
           <div key={i} className="flex items-center gap-3 text-body-xs">
-            <span className="text-slate-600 w-16 shrink-0 font-mono">
+            <span className="text-slate-500 w-16 shrink-0 font-mono">
               {new Date(ev.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
             </span>
             <span className={`w-2 h-2 rounded-full ${ev.event_type === 'finding' ? 'bg-amber-400' : 'bg-slate-500'}`} />
@@ -1168,7 +1168,7 @@ const TraceSpanRow: React.FC<{ span: SpanInfo; totalDuration: number; depth: num
         style={{ paddingLeft: `${depth * 16 + 4}px` }}
       >
         <span
-          className={`material-symbols-outlined text-body-xs text-slate-500 transition-transform ${expanded ? 'rotate-90' : ''}`}
+          className={`material-symbols-outlined text-body-xs text-slate-400 transition-transform ${expanded ? 'rotate-90' : ''}`}
           style={{ fontFamily: 'Material Symbols Outlined' }}
         >
           chevron_right
@@ -1252,7 +1252,7 @@ const ErrorPatternCluster: React.FC<{ pattern: ErrorPattern; rank: number }> = (
 
           {/* Time range */}
           {pattern.first_seen && (
-            <div className="flex gap-4 text-body-xs text-slate-500">
+            <div className="flex gap-4 text-body-xs text-slate-400">
               <span>First: {new Date(pattern.first_seen).toLocaleString()}</span>
               {pattern.last_seen && <span>Last: {new Date(pattern.last_seen).toLocaleString()}</span>}
             </div>
@@ -1276,7 +1276,7 @@ const ErrorPatternCluster: React.FC<{ pattern: ErrorPattern; rank: number }> = (
 
           {/* Correlation IDs */}
           {(pattern.correlation_ids?.length ?? 0) > 0 && (
-            <div className="text-body-xs text-slate-500">
+            <div className="text-body-xs text-slate-400">
               Trace IDs: {pattern.correlation_ids!.slice(0, 3).join(', ')}
             </div>
           )}
@@ -1313,7 +1313,7 @@ const StackTraceSection: React.FC<{ traces: string[] }> = ({ traces }) => {
 // ─── Empty State ──────────────────────────────────────────────────────────
 
 const EmptyState: React.FC<{ message: string }> = ({ message }) => (
-  <div className="flex items-center justify-center h-full min-h-[200px] text-slate-500">
+  <div className="flex items-center justify-center h-full min-h-[200px] text-slate-400">
     <div className="text-center">
       <div className="w-8 h-8 border-2 border-slate-800 border-t-[#e09f3e] rounded-full animate-spin mx-auto mb-3" />
       <p className="text-sm">{message}</p>

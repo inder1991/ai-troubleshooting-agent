@@ -53,7 +53,7 @@ export const RecentFindings: React.FC = () => {
                     <span className={`text-body-xs font-bold ${sevColor}`}>
                       {critCount > 0 ? `${critCount} crit` : findCount > 0 ? `${findCount} issues` : 'Clean'}
                     </span>
-                    <span className="text-body-xs text-slate-500">{timeAgo(s.updated_at)}</span>
+                    <span className="text-body-xs text-slate-400">{timeAgo(s.updated_at)}</span>
                   </div>
                 </div>
               </div>

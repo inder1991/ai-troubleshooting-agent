@@ -92,7 +92,7 @@ export const Agent3ProgressCard: React.FC<Agent3ProgressProps> = ({
                 </div>
                 
                 {stage?.message && (
-                  <div className="text-chrome text-slate-600">
+                  <div className="text-chrome text-slate-500">
                     {stage.message}
                   </div>
                 )}
@@ -105,8 +105,8 @@ export const Agent3ProgressCard: React.FC<Agent3ProgressProps> = ({
       {/* Progress Bar */}
       <div className="pt-3 border-t border-slate-800">
         <div className="flex justify-between items-center mb-2">
-          <span className="text-chrome text-slate-600 uppercase">Progress</span>
-          <span className="text-chrome text-slate-500">
+          <span className="text-chrome text-slate-500 uppercase">Progress</span>
+          <span className="text-chrome text-slate-400">
             {stages.filter(s => s.status === 'complete').length} / {Object.keys(STAGE_LABELS).length}
           </span>
         </div>

@@ -20,7 +20,7 @@ const AgentTimeline: React.FC<AgentTimelineProps> = ({ domainReports, phase }) =
   return (
     <div className="bg-wr-inset rounded border border-wr-border-subtle p-3">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-body-xs font-semibold uppercase tracking-wider text-slate-500">Agent Timeline</span>
+        <span className="text-body-xs font-semibold uppercase tracking-wider text-slate-400">Agent Timeline</span>
         <span className="text-body-xs text-slate-400">{phase === 'complete' ? 'Complete' : 'Running...'}</span>
       </div>
       <div className="space-y-1.5">
@@ -30,7 +30,7 @@ const AgentTimeline: React.FC<AgentTimelineProps> = ({ domainReports, phase }) =
           const isRunning = report.status === 'RUNNING' || report.status === 'PENDING';
           return (
             <div key={report.domain} className="flex items-center gap-2">
-              <span className="text-body-xs text-slate-500 w-12 sm:w-16 text-right font-mono truncate">
+              <span className="text-body-xs text-slate-400 w-12 sm:w-16 text-right font-mono truncate">
                 {report.domain.replace('_', ' ')}
               </span>
               <div className="flex-1 h-3 bg-wr-bg rounded-sm overflow-hidden relative">

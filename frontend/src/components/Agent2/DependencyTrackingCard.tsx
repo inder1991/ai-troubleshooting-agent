@@ -26,7 +26,7 @@ export const DependencyTrackingCard: React.FC<DependencyTrackingProps> = ({ data
   return (
     <div className="transition-all duration-700">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-body-xs font-bold text-slate-500 uppercase tracking-widest">
+        <span className="text-body-xs font-bold text-slate-400 uppercase tracking-widest">
           4️⃣ Dependency Tracking
         </span>
         {data.hasConflicts && (
@@ -44,7 +44,7 @@ export const DependencyTrackingCard: React.FC<DependencyTrackingProps> = ({ data
             className={`flex-1 text-chrome font-bold py-1 rounded transition-colors ${
               activeTab === 'external'
                 ? 'bg-blue-600 text-white'
-                : 'text-slate-500 hover:text-slate-400'
+                : 'text-slate-400 hover:text-slate-400'
             }`}
           >
             EXTERNAL ({data.totalExternal})
@@ -54,7 +54,7 @@ export const DependencyTrackingCard: React.FC<DependencyTrackingProps> = ({ data
             className={`flex-1 text-chrome font-bold py-1 rounded transition-colors ${
               activeTab === 'internal'
                 ? 'bg-blue-600 text-white'
-                : 'text-slate-500 hover:text-slate-400'
+                : 'text-slate-400 hover:text-slate-400'
             }`}
           >
             INTERNAL ({data.totalInternal})
@@ -87,7 +87,7 @@ export const DependencyTrackingCard: React.FC<DependencyTrackingProps> = ({ data
                   </span>
                 ))}
                 {data.externalDependencies.length > 20 && (
-                  <span className="text-chrome text-slate-600">
+                  <span className="text-chrome text-slate-500">
                     +{data.externalDependencies.length - 20} more
                   </span>
                 )}
@@ -136,7 +136,7 @@ export const DependencyTrackingCard: React.FC<DependencyTrackingProps> = ({ data
                       {conflict.package}
                     </code>
                   </div>
-                  <div className="text-chrome text-slate-500 ml-4">
+                  <div className="text-chrome text-slate-400 ml-4">
                     Versions: {conflict.versions.join(', ')}
                   </div>
                   <div className="text-[7px] text-yellow-400 ml-4 mt-0.5 uppercase">

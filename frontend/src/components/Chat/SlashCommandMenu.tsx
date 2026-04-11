@@ -71,7 +71,7 @@ const SlashCommandMenu: React.FC<SlashCommandMenuProps> = ({
             {cmd.icon}
           </span>
           <span className="font-mono text-[12px]">{cmd.cmd}</span>
-          <span className="text-body-xs text-slate-500 ml-auto">{cmd.label}</span>
+          <span className="text-body-xs text-slate-400 ml-auto">{cmd.label}</span>
         </button>
       ))}
     </div>

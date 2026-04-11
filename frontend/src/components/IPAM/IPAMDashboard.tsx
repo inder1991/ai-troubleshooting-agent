@@ -433,7 +433,7 @@ export default function IPAMDashboard() {
         <div className="flex items-center gap-3">
           <span className="material-symbols-outlined text-2xl text-amber-400">lan</span>
           <h1 className="text-xl font-bold text-slate-100">Manage Subnets & IP Addresses</h1>
-          <span className="text-xs text-slate-500 mt-1">
+          <span className="text-xs text-slate-400 mt-1">
             {stats.total_subnets} subnets &middot; {stats.total_ips.toLocaleString()} IPs
           </span>
         </div>
@@ -441,7 +441,7 @@ export default function IPAMDashboard() {
           {/* Global Search */}
           <div className="relative">
             <div className="flex items-center bg-[#1a1814] border border-[#1e3a40] rounded px-2.5">
-              <span className="material-symbols-outlined text-sm text-slate-500">search</span>
+              <span className="material-symbols-outlined text-sm text-slate-400">search</span>
               <input
                 type="text"
                 placeholder="Search for IP Address..."
@@ -470,8 +470,8 @@ export default function IPAMDashboard() {
                   >
                     <span className="font-mono text-sm text-amber-300">{String(r.address)}</span>
                     <span className="text-xs text-slate-400">{String(r.hostname || '-')}</span>
-                    <span className="text-xs text-slate-500">{String(r.mac_address || '')}</span>
-                    <span className="ml-auto text-body-xs text-slate-500 font-mono">{String(r.subnet_cidr || '')}</span>
+                    <span className="text-xs text-slate-400">{String(r.mac_address || '')}</span>
+                    <span className="ml-auto text-body-xs text-slate-400 font-mono">{String(r.subnet_cidr || '')}</span>
                   </button>
                 ))}
               </div>
@@ -586,7 +586,7 @@ export default function IPAMDashboard() {
           </div>
           <div className="flex-1 overflow-y-auto p-1">
             {loading ? (
-              <div className="text-center text-slate-500 py-8 text-sm">Loading...</div>
+              <div className="text-center text-slate-400 py-8 text-sm">Loading...</div>
             ) : (
               <IPAMHierarchyTree
                 tree={tree}
@@ -623,7 +623,7 @@ export default function IPAMDashboard() {
             ) : selectedBlockId ? (
               <IPAMAddressSpaceMap blockId={selectedBlockId} />
             ) : (
-              <div className="flex flex-col items-center justify-center h-full text-slate-500">
+              <div className="flex flex-col items-center justify-center h-full text-slate-400">
                 <span className="material-symbols-outlined text-4xl mb-2">hub</span>
                 <p className="text-sm">Select a subnet from the hierarchy tree</p>
                 <p className="text-xs mt-1">to view IP addresses and utilization</p>
@@ -665,7 +665,7 @@ export default function IPAMDashboard() {
                 );
               })}
               {top10Subnets.length === 0 && (
-                <div className="text-xs text-slate-500 text-center py-2">No subnets</div>
+                <div className="text-xs text-slate-400 text-center py-2">No subnets</div>
               )}
             </div>
           </div>
@@ -689,7 +689,7 @@ export default function IPAMDashboard() {
                     }`} />
                     <div className="flex-1 min-w-0">
                       <div className="font-mono text-xs text-slate-300 truncate">{f.cidr}</div>
-                      <div className="text-body-xs text-slate-500">
+                      <div className="text-body-xs text-slate-400">
                         {f.utilization_pct}% used
                         {f.days_until_full !== null && ` · ~${f.days_until_full}d to full`}
                       </div>
@@ -745,12 +745,12 @@ export default function IPAMDashboard() {
                       <span className="text-body-xs text-slate-300 truncate">{m.detail}</span>
                     </div>
                     {m.address && (
-                      <span className="font-mono text-body-xs text-slate-500 ml-3">{m.address}</span>
+                      <span className="font-mono text-body-xs text-slate-400 ml-3">{m.address}</span>
                     )}
                   </div>
                 ))}
                 {dnsMismatches.length > 6 && (
-                  <div className="text-body-xs text-slate-500 text-center">
+                  <div className="text-body-xs text-slate-400 text-center">
                     +{dnsMismatches.length - 6} more
                   </div>
                 )}
@@ -774,9 +774,9 @@ export default function IPAMDashboard() {
                   }`} />
                   <div className="min-w-0 flex-1">
                     <span className="font-mono text-slate-300">{e.address}</span>
-                    <span className="text-slate-500 ml-1">{e.action}</span>
+                    <span className="text-slate-400 ml-1">{e.action}</span>
                     {e.timestamp && (
-                      <div className="text-body-xs text-slate-600 truncate">
+                      <div className="text-body-xs text-slate-500 truncate">
                         {new Date(e.timestamp).toLocaleString()}
                       </div>
                     )}
@@ -784,7 +784,7 @@ export default function IPAMDashboard() {
                 </div>
               ))}
               {events.length === 0 && (
-                <div className="text-xs text-slate-500 text-center py-2">No events yet</div>
+                <div className="text-xs text-slate-400 text-center py-2">No events yet</div>
               )}
             </div>
           </div>
@@ -1042,7 +1042,7 @@ function ImportDialog({
             onChange={(e) => setFile(e.target.files?.[0] || null)}
             className="text-sm text-slate-300"
           />
-          <p className="text-xs text-slate-500 mt-2">
+          <p className="text-xs text-slate-400 mt-2">
             CSV with columns: ip, subnet, device, zone, vlan, region, environment
           </p>
         </div>
@@ -1236,19 +1236,19 @@ function CreateSubnetDialog({
             <div className="ml-[108px] p-2.5 bg-[#1a1814] border border-[#1e3a40] rounded text-xs space-y-1">
               <div className="text-slate-400 font-semibold uppercase tracking-wider mb-1">CIDR Info</div>
               <div className="flex justify-between">
-                <span className="text-slate-500">Network:</span>
+                <span className="text-slate-400">Network:</span>
                 <span className="font-mono text-slate-300">{cidrInfo.network}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">Broadcast:</span>
+                <span className="text-slate-400">Broadcast:</span>
                 <span className="font-mono text-slate-300">{cidrInfo.broadcast}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">Usable hosts:</span>
+                <span className="text-slate-400">Usable hosts:</span>
                 <span className="font-mono text-amber-300">{cidrInfo.hosts?.toLocaleString()}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">Prefix:</span>
+                <span className="text-slate-400">Prefix:</span>
                 <span className="font-mono text-slate-300">/{cidrInfo.prefix}</span>
               </div>
             </div>
@@ -1314,11 +1314,11 @@ function SplitSubnetDialog({
           </div>
           <div className="p-3 bg-[#1a1814] rounded border border-[#1e3a40] text-xs space-y-1.5">
             <div className="flex justify-between">
-              <span className="text-slate-500">Subnets created:</span>
+              <span className="text-slate-400">Subnets created:</span>
               <span className="font-mono text-amber-300">{subnetCount}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-500">Hosts per subnet:</span>
+              <span className="text-slate-400">Hosts per subnet:</span>
               <span className="font-mono text-slate-300">{hostsPerSubnet.toLocaleString()}</span>
             </div>
           </div>
@@ -1376,7 +1376,7 @@ function MergeSubnetsDialog({
                 className="accent-amber-500"
               />
               <span className="font-mono text-sm text-amber-300">{s.cidr}</span>
-              <span className="text-xs text-slate-500 ml-auto">{s.region || s.site || ''}</span>
+              <span className="text-xs text-slate-400 ml-auto">{s.region || s.site || ''}</span>
             </label>
           ))}
         </div>
@@ -1700,8 +1700,8 @@ function CreateAddressBlockDialog({
           </div>
           {cidr && cidrInfo && (
             <div className="ml-[92px] p-2 bg-[#1a1814] border border-[#1e3a40] rounded text-xs space-y-1">
-              <div className="flex justify-between"><span className="text-slate-500">Network:</span><span className="font-mono text-slate-300">{cidrInfo.network}</span></div>
-              <div className="flex justify-between"><span className="text-slate-500">Hosts:</span><span className="font-mono text-amber-300">{cidrInfo.hosts?.toLocaleString()}</span></div>
+              <div className="flex justify-between"><span className="text-slate-400">Network:</span><span className="font-mono text-slate-300">{cidrInfo.network}</span></div>
+              <div className="flex justify-between"><span className="text-slate-400">Hosts:</span><span className="font-mono text-amber-300">{cidrInfo.hosts?.toLocaleString()}</span></div>
             </div>
           )}
           {cidr && !cidrInfo && (

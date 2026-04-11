@@ -31,13 +31,13 @@ const WorkerSignature: React.FC<WorkerSignatureProps> = ({ confidence, agentCode
               boxShadow: `0 0 6px ${agent.color}`,
             }}
           />
-          <span className="text-body-xs text-slate-500">
+          <span className="text-body-xs text-slate-400">
             Verified by <span className="font-bold text-slate-400">{agent.name}</span>
           </span>
         </div>
 
         {/* Right: Confidence text */}
-        <span className="text-body-xs font-mono text-slate-500">
+        <span className="text-body-xs font-mono text-slate-400">
           {confidence}% Confidence
         </span>
       </div>

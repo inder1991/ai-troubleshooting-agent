@@ -83,7 +83,7 @@ const SaturationGauge: React.FC<SaturationGaugeProps> = ({
           {displayPct}%
         </text>
       </svg>
-      <span className="text-body-xs text-slate-500 truncate max-w-[120px] text-center mt-0.5">
+      <span className="text-body-xs text-slate-400 truncate max-w-[120px] text-center mt-0.5">
         {label || metricName.split('/').pop()?.replace(/_/g, ' ')}
       </span>
     </div>

@@ -119,7 +119,7 @@ const KubernetesClusters: React.FC = () => {
         <div className="flex items-center gap-3">
           <span className="material-symbols-outlined text-amber-400 text-xl">dns</span>
           <h2 className="text-lg font-bold text-white">Kubernetes Clusters</h2>
-          <span className="text-xs text-slate-500 ml-2">{profiles.length} cluster{profiles.length !== 1 ? 's' : ''}</span>
+          <span className="text-xs text-slate-400 ml-2">{profiles.length} cluster{profiles.length !== 1 ? 's' : ''}</span>
         </div>
         <div className="flex items-center gap-3">
           <div className="relative">

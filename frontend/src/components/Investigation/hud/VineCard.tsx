@@ -54,7 +54,7 @@ const VineCard: React.FC<VineCardProps> = ({
               className={`p-1 rounded-md transition-colors ${
                 isPinned
                   ? 'bg-amber-500/20 text-amber-400'
-                  : 'bg-slate-800/80 text-slate-500 hover:text-amber-400'
+                  : 'bg-slate-800/80 text-slate-400 hover:text-amber-400'
               }`}
               aria-label={isPinned ? 'Unpin evidence' : 'Pin evidence'}
             >
@@ -62,7 +62,7 @@ const VineCard: React.FC<VineCardProps> = ({
             </button>
           )}
           <button
-            className="p-1 rounded-md bg-slate-800/80 text-slate-500 hover:text-slate-300 transition-colors"
+            className="p-1 rounded-md bg-slate-800/80 text-slate-400 hover:text-slate-300 transition-colors"
             aria-label="More info"
           >
             <Info className="w-3 h-3" />

@@ -61,7 +61,7 @@ const CaseFile: React.FC<CaseFileProps> = ({ serviceName, sessionId, incidentId,
                   <span className="text-body-xs text-slate-400">{agent.events.length}</span>
                 )}
                 <span
-                  className={`material-symbols-outlined text-[12px] text-slate-500 transition-transform duration-200 ${isCollapsed ? '' : 'rotate-90'}`}
+                  className={`material-symbols-outlined text-[12px] text-slate-400 transition-transform duration-200 ${isCollapsed ? '' : 'rotate-90'}`}
                 >
                   chevron_right
                 </span>
@@ -81,7 +81,7 @@ const CaseFile: React.FC<CaseFileProps> = ({ serviceName, sessionId, incidentId,
                         const isToolCall = ev.event_type === 'progress';
                         return (
                           <div key={i} className={`flex items-start gap-1.5 ${isReasoning ? 'pl-2' : ''}`}>
-                            <span className={`shrink-0 mt-1.5 ${isToolCall ? 'material-symbols-outlined text-body-xs text-slate-500' : `w-1 h-1 rounded-full ${EVENT_DOT_COLOR[ev.event_type] || 'bg-slate-500'}`}`}
+                            <span className={`shrink-0 mt-1.5 ${isToolCall ? 'material-symbols-outlined text-body-xs text-slate-400' : `w-1 h-1 rounded-full ${EVENT_DOT_COLOR[ev.event_type] || 'bg-slate-500'}`}`}
                               aria-hidden="true">
                               {isToolCall ? 'build' : ''}
                             </span>

@@ -48,7 +48,7 @@ const TelescopeDrawerV2: React.FC = () => {
           )}
           {breadcrumbs.map((bc, i) => (
             <React.Fragment key={i}>
-              {i > 0 && <span className="text-slate-600">/</span>}
+              {i > 0 && <span className="text-slate-500">/</span>}
               <span className={i === breadcrumbs.length - 1 ? 'text-amber-400 font-medium' : ''}>
                 {bc.namespace}/{bc.kind}/{bc.name}
               </span>
@@ -66,7 +66,7 @@ const TelescopeDrawerV2: React.FC = () => {
             className={`px-3 py-1 rounded text-body-xs font-bold tracking-wider uppercase transition-colors
               ${activeTab === tab
                 ? 'bg-amber-950/40 text-amber-400 border border-amber-800/40'
-                : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/40'}`}
+                : 'text-slate-400 hover:text-slate-300 hover:bg-slate-800/40'}`}
           >
             {tab}
           </button>
@@ -77,7 +77,7 @@ const TelescopeDrawerV2: React.FC = () => {
       <div className="flex-1 overflow-auto">
         {loading ? (
           <div className="flex items-center justify-center h-32">
-            <span className="text-body-xs text-slate-500 animate-pulse">Loading...</span>
+            <span className="text-body-xs text-slate-400 animate-pulse">Loading...</span>
           </div>
         ) : activeTab === 'yaml' ? (
           <YAMLTab yaml={data?.yaml || ''} />
@@ -97,7 +97,7 @@ const TelescopeDrawerV2: React.FC = () => {
 };
 
 const YAMLTab: React.FC<{ yaml: string }> = ({ yaml }) => {
-  if (!yaml) return <div className="p-4 text-body-xs text-slate-500">No YAML data</div>;
+  if (!yaml) return <div className="p-4 text-body-xs text-slate-400">No YAML data</div>;
   return (
     <pre className="text-body-xs font-mono leading-5 p-4 text-slate-300 overflow-auto whitespace-pre-wrap">
       {yaml}
@@ -106,14 +106,14 @@ const YAMLTab: React.FC<{ yaml: string }> = ({ yaml }) => {
 };
 
 const EventsTab: React.FC<{ events: Array<{ type: string; reason: string; message: string; count: number; last_timestamp: string }> }> = ({ events }) => {
-  if (!events.length) return <div className="p-4 text-body-xs text-slate-500">No events</div>;
+  if (!events.length) return <div className="p-4 text-body-xs text-slate-400">No events</div>;
   return (
     <div className="divide-y divide-slate-800/30">
       {events.map((e, i) => (
         <div key={i} className={`px-4 py-2 ${e.type === 'Warning' ? 'border-l-2 border-amber-500/60' : 'border-l-2 border-slate-700/40'}`}>
           <div className="flex items-center gap-2">
-            <span className={`text-body-xs font-bold ${e.type === 'Warning' ? 'text-amber-400' : 'text-slate-500'}`}>{e.reason}</span>
-            {e.count > 1 && <span className="text-body-xs text-slate-600">x{e.count}</span>}
+            <span className={`text-body-xs font-bold ${e.type === 'Warning' ? 'text-amber-400' : 'text-slate-400'}`}>{e.reason}</span>
+            {e.count > 1 && <span className="text-body-xs text-slate-500">x{e.count}</span>}
           </div>
           <div className="text-body-xs text-slate-400 mt-0.5">{e.message}</div>
         </div>

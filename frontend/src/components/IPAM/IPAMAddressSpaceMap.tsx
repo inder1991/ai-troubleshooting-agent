@@ -32,10 +32,10 @@ export default function IPAMAddressSpaceMap({ blockId }: Props) {
   }, [blockId]);
 
   if (loading) {
-    return <div className="text-center text-slate-500 py-8 text-sm">Loading address space map...</div>;
+    return <div className="text-center text-slate-400 py-8 text-sm">Loading address space map...</div>;
   }
   if (!data) {
-    return <div className="text-center text-slate-500 py-8 text-sm">No data available.</div>;
+    return <div className="text-center text-slate-400 py-8 text-sm">No data available.</div>;
   }
 
   const totalSize = data.total_hosts || 1;
@@ -75,7 +75,7 @@ export default function IPAMAddressSpaceMap({ blockId }: Props) {
         })}
         {freePct > 0.5 && (
           <div
-            className="bg-slate-800 flex items-center justify-center text-xs text-slate-500"
+            className="bg-slate-800 flex items-center justify-center text-xs text-slate-400"
             style={{ width: `${freePct}%` }}
           >
             {freePct > 10 ? 'Free' : ''}
@@ -89,7 +89,7 @@ export default function IPAMAddressSpaceMap({ blockId }: Props) {
           <span className="font-mono text-amber-300">{hovered.cidr}</span>
           <span className="text-slate-400">{hovered.name || 'unnamed'}</span>
           <span className="ml-auto text-slate-300">{hovered.utilization_pct}% utilized</span>
-          <span className="text-slate-500">{hovered.size.toLocaleString()} hosts</span>
+          <span className="text-slate-400">{hovered.size.toLocaleString()} hosts</span>
         </div>
       )}
 
@@ -106,7 +106,7 @@ export default function IPAMAddressSpaceMap({ blockId }: Props) {
                 style={{ width: `${Math.min(seg.utilization_pct, 100)}%` }}
               />
             </div>
-            <span className="text-slate-500 w-8 text-right">{seg.utilization_pct}%</span>
+            <span className="text-slate-400 w-8 text-right">{seg.utilization_pct}%</span>
           </div>
         ))}
       </div>

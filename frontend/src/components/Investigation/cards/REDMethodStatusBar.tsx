@@ -127,7 +127,7 @@ const REDMethodStatusBar: React.FC<REDMethodStatusBarProps> = ({
               <div className="flex items-center gap-1.5 mb-0.5">
                 <span className="text-body-xs font-bold text-amber-400 uppercase">{n.group}</span>
                 {n.metrics?.length > 0 && (
-                  <span className="text-body-xs text-slate-600 font-mono">{n.metrics.length} metrics</span>
+                  <span className="text-body-xs text-slate-500 font-mono">{n.metrics.length} metrics</span>
                 )}
               </div>
               <p className="text-body-xs text-slate-400">{n.narrative}</p>

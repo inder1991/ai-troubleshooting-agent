@@ -38,7 +38,7 @@ export const SparklineWidget: React.FC<SparklineWidgetProps> = ({
   }, [data]);
 
   if (!data || data.length < 2) {
-    return <div className="h-8 text-body-xs text-slate-500">No data</div>;
+    return <div className="h-8 text-body-xs text-slate-400">No data</div>;
   }
 
   return (

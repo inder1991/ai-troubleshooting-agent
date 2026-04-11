@@ -37,7 +37,7 @@ export const PRSuccessScreen: React.FC<PRSuccessProps> = ({ data }) => {
           <h3 className="text-[14px] font-bold text-emerald-400 uppercase tracking-widest mb-1">
             Pull Request Created
           </h3>
-          <p className="text-body-xs text-slate-500">
+          <p className="text-body-xs text-slate-400">
             Your fix has been successfully submitted for review
           </p>
         </div>
@@ -46,32 +46,32 @@ export const PRSuccessScreen: React.FC<PRSuccessProps> = ({ data }) => {
       {/* PR Details */}
       <div className="border border-slate-800 rounded bg-slate-950/40 p-4 space-y-3">
         <div className="flex items-center gap-2 mb-2">
-          <GitPullRequest size={12} className="text-slate-500" />
-          <span className="text-body-xs text-slate-500 uppercase font-bold">PR Details</span>
+          <GitPullRequest size={12} className="text-slate-400" />
+          <span className="text-body-xs text-slate-400 uppercase font-bold">PR Details</span>
         </div>
 
         <div className="space-y-2">
           <div className="flex justify-between items-center">
-            <span className="text-body-xs text-slate-600">PR Number:</span>
+            <span className="text-body-xs text-slate-500">PR Number:</span>
             <span className="text-body-xs font-mono text-emerald-400">#{data.pr_number}</span>
           </div>
 
           {data.branch_name && (
             <div className="flex justify-between items-center">
-              <span className="text-body-xs text-slate-600">Branch:</span>
+              <span className="text-body-xs text-slate-500">Branch:</span>
               <span className="text-body-xs font-mono text-blue-400">{data.branch_name}</span>
             </div>
           )}
 
           <div className="pt-2 border-t border-slate-800">
-            <div className="text-body-xs text-slate-600 mb-2">PR URL:</div>
+            <div className="text-body-xs text-slate-500 mb-2">PR URL:</div>
             <div className="flex items-center gap-2 bg-slate-950 border border-slate-900 rounded p-2">
               <span className="text-chrome font-mono text-slate-400 flex-1 truncate">
                 {data.pr_url}
               </span>
               <button
                 onClick={handleCopyURL}
-                className="text-slate-500 hover:text-blue-400 transition-colors flex-shrink-0"
+                className="text-slate-400 hover:text-blue-400 transition-colors flex-shrink-0"
                 title="Copy URL"
               >
                 {copied ? (
@@ -98,8 +98,8 @@ export const PRSuccessScreen: React.FC<PRSuccessProps> = ({ data }) => {
 
       {/* Next Steps */}
       <div className="border border-slate-800 rounded bg-slate-950/40 p-3 space-y-2">
-        <div className="text-body-xs font-bold text-slate-500 uppercase">Next Steps:</div>
-        <ul className="space-y-1.5 text-chrome text-slate-600">
+        <div className="text-body-xs font-bold text-slate-400 uppercase">Next Steps:</div>
+        <ul className="space-y-1.5 text-chrome text-slate-500">
           <li className="flex items-start gap-2">
             <span className="text-emerald-500">1.</span>
             <span>Review the changes in GitHub</span>

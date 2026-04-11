@@ -33,7 +33,7 @@ const EventLogViewer: React.FC<EventLogViewerProps> = ({ events }) => {
         aria-expanded={false}
         className="w-full flex items-center justify-between px-3 py-2 bg-wr-inset rounded border border-wr-border-subtle hover:border-wr-accent/30 transition-colors"
       >
-        <span className="text-body-xs font-semibold uppercase tracking-wider text-slate-500">
+        <span className="text-body-xs font-semibold uppercase tracking-wider text-slate-400">
           Event Log ({events.length} events)
         </span>
         <span className="material-symbols-outlined text-[14px] text-slate-400">expand_more</span>
@@ -44,7 +44,7 @@ const EventLogViewer: React.FC<EventLogViewerProps> = ({ events }) => {
   return (
     <div className="bg-wr-inset rounded border border-wr-border-subtle flex flex-col max-h-[200px] sm:max-h-[300px]">
       <div className="flex items-center justify-between px-3 py-2 border-b border-wr-border-subtle shrink-0">
-        <span className="text-body-xs font-semibold uppercase tracking-wider text-slate-500">Event Log</span>
+        <span className="text-body-xs font-semibold uppercase tracking-wider text-slate-400">Event Log</span>
         <div className="flex items-center gap-2">
           <input
             value={filter}
@@ -74,7 +74,7 @@ const EventLogViewer: React.FC<EventLogViewerProps> = ({ events }) => {
             <span className={`shrink-0 ${event.event_type === 'error' ? 'text-red-400' : event.event_type === 'warning' ? 'text-amber-400' : 'text-slate-400'}`}>
               {event.event_type === 'error' ? '✗' : event.event_type === 'warning' ? '⚠' : '·'}
             </span>
-            <span className="text-slate-500 shrink-0 w-20 truncate">{event.agent_name || '—'}</span>
+            <span className="text-slate-400 shrink-0 w-20 truncate">{event.agent_name || '—'}</span>
             <span className="text-slate-300 flex-1">{event.message}</span>
           </div>
         ))}

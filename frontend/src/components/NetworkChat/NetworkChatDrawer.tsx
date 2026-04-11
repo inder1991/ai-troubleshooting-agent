@@ -107,14 +107,14 @@ const NetworkChatDrawer: React.FC<NetworkChatDrawerProps> = ({
                   <button
                     onClick={clearThread}
                     title="New thread"
-                    className="p-1.5 rounded text-slate-500 hover:text-slate-300 hover:bg-white/5 transition-colors"
+                    className="p-1.5 rounded text-slate-400 hover:text-slate-300 hover:bg-white/5 transition-colors"
                   >
                     <span className="material-symbols-outlined text-[18px]">restart_alt</span>
                   </button>
                   <button
                     onClick={() => setIsOpen(false)}
                     title="Close"
-                    className="p-1.5 rounded text-slate-500 hover:text-slate-300 hover:bg-white/5 transition-colors"
+                    className="p-1.5 rounded text-slate-400 hover:text-slate-300 hover:bg-white/5 transition-colors"
                   >
                     <span className="material-symbols-outlined text-[18px]">close</span>
                   </button>
@@ -125,8 +125,8 @@ const NetworkChatDrawer: React.FC<NetworkChatDrawerProps> = ({
               <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3 custom-scrollbar">
                 {messages.length === 0 && (
                   <div className="text-center py-8">
-                    <span className="material-symbols-outlined text-[40px] text-slate-600 mb-3 block">chat</span>
-                    <p className="text-xs text-slate-500 mb-4">
+                    <span className="material-symbols-outlined text-[40px] text-slate-500 mb-3 block">chat</span>
+                    <p className="text-xs text-slate-400 mb-4">
                       Ask me about what you see in this view.
                     </p>
                     <div className="flex flex-col gap-2">
@@ -151,7 +151,7 @@ const NetworkChatDrawer: React.FC<NetworkChatDrawerProps> = ({
 
                 {/* Tool call indicators */}
                 {activeToolCalls.length > 0 && (
-                  <div className="flex items-center gap-2 text-xs text-slate-500 px-2">
+                  <div className="flex items-center gap-2 text-xs text-slate-400 px-2">
                     <span className="animate-spin material-symbols-outlined text-[14px]">progress_activity</span>
                     <span>Using: {activeToolCalls.join(', ')}</span>
                   </div>
@@ -159,7 +159,7 @@ const NetworkChatDrawer: React.FC<NetworkChatDrawerProps> = ({
 
                 {/* Sending indicator */}
                 {isSending && activeToolCalls.length === 0 && (
-                  <div className="flex items-center gap-2 text-xs text-slate-500 px-2">
+                  <div className="flex items-center gap-2 text-xs text-slate-400 px-2">
                     <span className="animate-pulse">Thinking...</span>
                   </div>
                 )}

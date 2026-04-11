@@ -77,7 +77,7 @@ const RemediationCard: React.FC<RemediationCardProps> = ({ plan, onApprove, onRe
       {/* Rollback SQL */}
       {plan.rollback_sql && (
         <details className="group">
-          <summary className="text-xs text-slate-500 cursor-pointer hover:text-slate-300 transition-colors">
+          <summary className="text-xs text-slate-400 cursor-pointer hover:text-slate-300 transition-colors">
             <span className="material-symbols-outlined text-[14px] align-middle mr-1">undo</span>
             Rollback SQL
           </summary>
@@ -95,7 +95,7 @@ const RemediationCard: React.FC<RemediationCardProps> = ({ plan, onApprove, onRe
       )}
 
       {/* Timestamps */}
-      <div className="flex flex-wrap gap-3 text-body-xs text-slate-500">
+      <div className="flex flex-wrap gap-3 text-body-xs text-slate-400">
         <span>Created: {new Date(plan.created_at).toLocaleString()}</span>
         {plan.approved_at && <span>Approved: {new Date(plan.approved_at).toLocaleString()}</span>}
         {plan.executed_at && <span>Executed: {new Date(plan.executed_at).toLocaleString()}</span>}

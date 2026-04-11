@@ -134,7 +134,7 @@ const IncidentClosurePanel: React.FC<IncidentClosurePanelProps> = ({
           <span className="text-body-xs font-bold uppercase tracking-wider text-violet-400">
             Incident Closure
           </span>
-          <span className="text-body-xs text-slate-500 italic ml-1">
+          <span className="text-body-xs text-slate-400 italic ml-1">
             Remediate, then document.
           </span>
         </div>
@@ -234,7 +234,7 @@ const IncidentClosurePanel: React.FC<IncidentClosurePanelProps> = ({
                         </button>
                         <button
                           onClick={() => setLinkMode(true)}
-                          className="text-body-xs text-slate-500 hover:text-slate-300"
+                          className="text-body-xs text-slate-400 hover:text-slate-300"
                         >
                           or link existing
                         </button>
@@ -257,7 +257,7 @@ const IncidentClosurePanel: React.FC<IncidentClosurePanelProps> = ({
                         </button>
                         <button
                           onClick={() => setLinkMode(false)}
-                          className="text-body-xs text-slate-500 hover:text-slate-300"
+                          className="text-body-xs text-slate-400 hover:text-slate-300"
                         >
                           or create new
                         </button>

@@ -71,7 +71,7 @@ export const ValidationStatusCard: React.FC<ValidationStatusProps> = ({ data }) 
         
         {data.linting.issues.errors && data.linting.issues.errors.length > 0 && (
           <div className="ml-5 pl-3 border-l-2 border-red-500/30 space-y-1">
-            <div className="text-chrome text-slate-600 uppercase font-bold">Errors:</div>
+            <div className="text-chrome text-slate-500 uppercase font-bold">Errors:</div>
             {data.linting.issues.errors.slice(0, 3).map((error: any, idx: number) => (
               <div key={idx} className="text-chrome text-red-400 bg-red-950/20 border border-red-900/30 rounded p-2">
                 {error.message || JSON.stringify(error)}
@@ -82,7 +82,7 @@ export const ValidationStatusCard: React.FC<ValidationStatusProps> = ({ data }) 
         
         {data.linting.issues.warnings && data.linting.issues.warnings.length > 0 && (
           <div className="ml-5 pl-3 border-l-2 border-yellow-500/30 space-y-1">
-            <div className="text-chrome text-slate-600 uppercase font-bold">
+            <div className="text-chrome text-slate-500 uppercase font-bold">
               Warnings ({data.linting.issues.warnings.length}):
             </div>
             {data.linting.issues.warnings.slice(0, 2).map((warning: any, idx: number) => (
@@ -91,7 +91,7 @@ export const ValidationStatusCard: React.FC<ValidationStatusProps> = ({ data }) 
               </div>
             ))}
             {data.linting.issues.warnings.length > 2 && (
-              <div className="text-[7px] text-slate-600 italic">
+              <div className="text-[7px] text-slate-500 italic">
                 ... and {data.linting.issues.warnings.length - 2} more
               </div>
             )}
@@ -107,7 +107,7 @@ export const ValidationStatusCard: React.FC<ValidationStatusProps> = ({ data }) 
         </div>
         {!data.imports.valid && data.imports.missing && data.imports.missing.length > 0 && (
           <div className="ml-5 pl-3 border-l-2 border-yellow-500/30">
-            <div className="text-chrome text-slate-600 uppercase font-bold mb-1">Missing:</div>
+            <div className="text-chrome text-slate-500 uppercase font-bold mb-1">Missing:</div>
             <div className="space-y-1">
               {data.imports.missing.map((imp, idx) => (
                 <div key={idx} className="text-chrome font-mono text-yellow-400">
@@ -129,7 +129,7 @@ export const ValidationStatusCard: React.FC<ValidationStatusProps> = ({ data }) 
           
           {typeof data.agent2_confidence !== 'undefined' && (
             <div className="ml-5 flex items-center gap-2">
-              <span className="text-chrome text-slate-600">Confidence:</span>
+              <span className="text-chrome text-slate-500">Confidence:</span>
               <div className="flex-1 h-1.5 bg-slate-900 rounded-full overflow-hidden">
                 <div
                   className={`h-full transition-all ${

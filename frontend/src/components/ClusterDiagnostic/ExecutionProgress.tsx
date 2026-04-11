@@ -73,7 +73,7 @@ const ExecutionProgress: React.FC<ExecutionProgressProps> = ({ domainReports, ph
 
   return (
     <div className="bg-wr-inset rounded border border-wr-border-subtle p-3 max-h-[220px] lg:max-h-[280px] overflow-hidden">
-      <span className="text-body-xs font-semibold uppercase tracking-wider text-slate-500">Execution Progress</span>
+      <span className="text-body-xs font-semibold uppercase tracking-wider text-slate-400">Execution Progress</span>
 
       <div className="mt-3 space-y-3">
         {phases.map((p, idx) => {

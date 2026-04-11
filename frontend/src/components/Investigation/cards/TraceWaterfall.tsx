@@ -31,7 +31,7 @@ const TraceWaterfall: React.FC<TraceWaterfallProps> = ({ spans, onSpanClick }) =
       <div className="flex items-center gap-2">
         <span className="material-symbols-outlined text-amber-400 text-sm">stacked_bar_chart</span>
         <span className="text-body-xs font-bold uppercase tracking-wider">Trace Waterfall</span>
-        <span className="text-body-xs text-slate-500 ml-auto">{spans.length} spans, {totalDuration.toFixed(0)}ms</span>
+        <span className="text-body-xs text-slate-400 ml-auto">{spans.length} spans, {totalDuration.toFixed(0)}ms</span>
         {errorCount > 0 && <span className="text-red-400 text-body-xs font-bold">{errorCount} errors</span>}
       </div>
       <div className="space-y-1">

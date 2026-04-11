@@ -39,7 +39,7 @@ export const CodebaseMappingCard: React.FC<CodebaseMappingProps> = ({ data }) =>
   return (
     <div className="transition-all duration-700">
       <div className="flex items-center gap-2 mb-2">
-        <span className="text-body-xs font-bold text-slate-500 uppercase tracking-widest">
+        <span className="text-body-xs font-bold text-slate-400 uppercase tracking-widest">
           1️⃣ Codebase Mapping ({data.successRate})
         </span>
       </div>
@@ -61,11 +61,11 @@ export const CodebaseMappingCard: React.FC<CodebaseMappingProps> = ({ data }) =>
                   {getConfidenceBadge(loc.confidence)}
                 </div>
                 {loc.mapped && (
-                  <div className="ml-4 text-body-xs text-slate-500 mt-1">
+                  <div className="ml-4 text-body-xs text-slate-400 mt-1">
                     → <code className="text-emerald-400">{loc.repoFile}:{loc.line}</code>
                   </div>
                 )}
-                <div className="ml-4 text-chrome text-slate-600 mt-0.5">
+                <div className="ml-4 text-chrome text-slate-500 mt-0.5">
                   in <code>{loc.function}()</code>
                 </div>
               </div>

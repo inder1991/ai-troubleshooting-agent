@@ -65,7 +65,7 @@ const AssistantMessageEntry: React.FC<AssistantMessageProps> = ({ message, onAct
   if (isUser) {
     return (
       <div className="flex items-start gap-2 py-1.5 group">
-        <span className="text-body-xs font-mono text-slate-500 shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity" style={{ fontVariantNumeric: 'tabular-nums' }}>{time}</span>
+        <span className="text-body-xs font-mono text-slate-400 shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity" style={{ fontVariantNumeric: 'tabular-nums' }}>{time}</span>
         <span className="text-duck-accent font-mono text-body-xs shrink-0 mt-0.5">❯</span>
         <span className="text-[13px] font-mono text-white">{message.content}</span>
       </div>

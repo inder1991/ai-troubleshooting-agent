@@ -46,7 +46,7 @@ export const WeeklyStats: React.FC = () => {
       <div className="grid grid-cols-2 gap-x-3 gap-y-1">
         {items.map((item) => (
           <div key={item.label} className="flex items-center justify-between">
-            <span className="text-body-xs text-slate-500">{item.label}</span>
+            <span className="text-body-xs text-slate-400">{item.label}</span>
             <span className={`text-body-xs font-mono font-bold ${item.color}`} style={{ fontVariantNumeric: 'tabular-nums' }}>
               {item.value}
             </span>

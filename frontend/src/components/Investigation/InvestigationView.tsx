@@ -140,7 +140,7 @@ const InvestigationView: React.FC<InvestigationViewProps> = ({
 
       {/* Last updated indicator */}
       {lastFetchTime && (
-        <div className="flex items-center gap-1.5 px-6 py-1 text-body-xs text-slate-500">
+        <div className="flex items-center gap-1.5 px-6 py-1 text-body-xs text-slate-400">
           <span className={`w-1.5 h-1.5 rounded-full ${freshnessColor}`} />
           <span>Updated {lastFetchAgo}s ago</span>
         </div>

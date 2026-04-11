@@ -20,12 +20,12 @@ export default function FirewallAuditBadge({ searchSpace }: FirewallAuditBadgePr
       >
         <span className="material-symbols-outlined text-amber-400 text-base">shield</span>
         <span className="text-xs text-slate-300">Causal Firewall</span>
-        <div className="ml-auto flex items-center gap-2 text-body-xs font-mono text-slate-500">
+        <div className="ml-auto flex items-center gap-2 text-body-xs font-mono text-slate-400">
           <span>{total_evaluated} evaluated</span>
           <span className="text-red-400">{total_blocked} blocked</span>
           <span className="text-amber-400">{total_annotated} annotated</span>
         </div>
-        <span className="material-symbols-outlined text-slate-500 text-sm">
+        <span className="material-symbols-outlined text-slate-400 text-sm">
           {expanded ? 'expand_less' : 'expand_more'}
         </span>
       </button>

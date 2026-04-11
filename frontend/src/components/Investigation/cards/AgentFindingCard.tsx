@@ -32,7 +32,7 @@ const AgentFindingCard: React.FC<AgentFindingCardProps> = ({ agent, title, child
         <span className={`w-6 h-6 rounded-full flex items-center justify-center text-body-xs font-bold ${badgeColor[agent]}`}>
           {agent}
         </span>
-        <span className="text-body-xs text-slate-500 uppercase tracking-wider">{style.label}</span>
+        <span className="text-body-xs text-slate-400 uppercase tracking-wider">{style.label}</span>
         <span className="text-xs font-medium text-slate-200 ml-1">{title}</span>
       </div>
       <div className="px-4 pb-3">

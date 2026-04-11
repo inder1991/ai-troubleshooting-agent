@@ -67,7 +67,7 @@ const StackTraceTelescope: React.FC<StackTraceTelescopeProps> = ({ traces }) => 
                   <>
                     <button
                       onClick={() => setShowFramework(!showFramework)}
-                      className="text-body-xs text-slate-500 hover:text-slate-400"
+                      className="text-body-xs text-slate-400 hover:text-slate-400"
                     >
                       {showFramework ? 'Hide' : `${framework.length} framework frames hidden`}
                     </button>
@@ -80,7 +80,7 @@ const StackTraceTelescope: React.FC<StackTraceTelescopeProps> = ({ traces }) => 
                         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                         className="overflow-hidden"
                       >
-                        <pre className="p-2 bg-black/20 rounded text-body-xs font-mono text-slate-500 overflow-x-auto max-h-32 custom-scrollbar whitespace-pre-wrap">
+                        <pre className="p-2 bg-black/20 rounded text-body-xs font-mono text-slate-400 overflow-x-auto max-h-32 custom-scrollbar whitespace-pre-wrap">
                           {framework.join('\n')}
                         </pre>
                       </motion.div>

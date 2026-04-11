@@ -87,7 +87,7 @@ const DiffLines: React.FC<{ text: string }> = ({ text }) => {
         if (line.startsWith('+') && !line.startsWith('+++')) lineColor = 'text-green-400';
         else if (line.startsWith('-') && !line.startsWith('---')) lineColor = 'text-red-400';
         else if (line.startsWith('@@')) lineColor = 'text-amber-400';
-        else if (line.startsWith('diff') || line.startsWith('index')) lineColor = 'text-slate-500';
+        else if (line.startsWith('diff') || line.startsWith('index')) lineColor = 'text-slate-400';
         return (
           <div key={i} className={lineColor}>
             {line}
@@ -120,7 +120,7 @@ const DiffViewer: React.FC<{ diff: string }> = ({ diff }) => {
               description
             </span>
             {s.file}
-            <span className="text-slate-500 ml-auto">
+            <span className="text-slate-400 ml-auto">
               +{(s.content.match(/^\+[^+]/gm) || []).length}
               &nbsp;
               -{(s.content.match(/^-[^-]/gm) || []).length}
@@ -245,7 +245,7 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
   const renderAttemptCounter = () => {
     if (!fixData || fixData.max_attempts <= 0) return null;
     return (
-      <span className="text-body-xs text-slate-500 font-mono">
+      <span className="text-body-xs text-slate-400 font-mono">
         Attempt {fixData.attempt_count}/{fixData.max_attempts}
       </span>
     );
@@ -355,11 +355,11 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
             {fixStatus === 'human_feedback' && 'Processing your feedback...'}
           </div>
           {fixData?.fixed_files && fixData.fixed_files.length > 1 ? (
-            <div className="text-body-xs font-mono text-slate-500 mt-0.5">
+            <div className="text-body-xs font-mono text-slate-400 mt-0.5">
               {fixData.fixed_files.length} files: {fixData.fixed_files.map(f => f.file_path.split('/').pop()).join(', ')}
             </div>
           ) : fixData?.target_file ? (
-            <div className="text-body-xs font-mono text-slate-500 mt-0.5">{fixData.target_file}</div>
+            <div className="text-body-xs font-mono text-slate-400 mt-0.5">{fixData.target_file}</div>
           ) : null}
         </div>
         <button
@@ -380,7 +380,7 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
         <div className="space-y-1">
           {fixData.fixed_files.map((ff, i) => (
             <div key={i} className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-xs text-slate-500" style={{ fontFamily: 'Material Symbols Outlined' }}>
+              <span className="material-symbols-outlined text-xs text-slate-400" style={{ fontFamily: 'Material Symbols Outlined' }}>
                 description
               </span>
               <span className="text-body-xs font-mono text-blue-400">{ff.file_path}</span>
@@ -389,7 +389,7 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
         </div>
       ) : fixData?.target_file ? (
         <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-xs text-slate-500" style={{ fontFamily: 'Material Symbols Outlined' }}>
+          <span className="material-symbols-outlined text-xs text-slate-400" style={{ fontFamily: 'Material Symbols Outlined' }}>
             description
           </span>
           <span className="text-body-xs font-mono text-blue-400">{fixData.target_file}</span>
@@ -429,7 +429,7 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
       {/* Human Feedback History */}
       {(fixData?.human_feedback?.length ?? 0) > 0 && (
         <div className="space-y-1.5">
-          <span className="text-body-xs font-bold text-slate-500 uppercase tracking-wider">Previous Feedback</span>
+          <span className="text-body-xs font-bold text-slate-400 uppercase tracking-wider">Previous Feedback</span>
           {fixData!.human_feedback.map((fb, i) => (
             <div key={i} className="text-body-xs text-slate-400 bg-slate-800/30 rounded px-2.5 py-1.5 border border-slate-700/30 font-mono">
               {fb}
@@ -522,25 +522,25 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
         <div className="grid grid-cols-2 gap-2 text-body-xs">
           {fixData?.pr_number && (
             <div className="bg-slate-800/40 rounded px-2.5 py-1.5 border border-slate-700/30">
-              <span className="text-slate-500">PR #</span>
+              <span className="text-slate-400">PR #</span>
               <span className="text-slate-200 font-mono ml-1">{fixData.pr_number}</span>
             </div>
           )}
           {prData?.branch_name && (
             <div className="bg-slate-800/40 rounded px-2.5 py-1.5 border border-slate-700/30">
-              <span className="text-slate-500">Branch</span>
+              <span className="text-slate-400">Branch</span>
               <span className="text-slate-200 font-mono ml-1 truncate">{prData.branch_name}</span>
             </div>
           )}
           {prData?.commit_sha && (
             <div className="bg-slate-800/40 rounded px-2.5 py-1.5 border border-slate-700/30">
-              <span className="text-slate-500">Commit</span>
+              <span className="text-slate-400">Commit</span>
               <span className="text-slate-200 font-mono ml-1">{prData.commit_sha.slice(0, 8)}</span>
             </div>
           )}
           {prData?.pr_title && (
             <div className="bg-slate-800/40 rounded px-2.5 py-1.5 border border-slate-700/30 col-span-2">
-              <span className="text-slate-500">Title</span>
+              <span className="text-slate-400">Title</span>
               <span className="text-slate-200 ml-1">{prData.pr_title}</span>
             </div>
           )}
@@ -584,7 +584,7 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
           <p className="text-body-xs text-slate-400">{fixData.fix_explanation}</p>
         )}
         {maxReached ? (
-          <span className="text-body-xs text-slate-500 italic">Max attempts reached ({fixData!.max_attempts}). No further retries available.</span>
+          <span className="text-body-xs text-slate-400 italic">Max attempts reached ({fixData!.max_attempts}). No further retries available.</span>
         ) : (
           <button
             onClick={handleGenerateFix}
@@ -607,7 +607,7 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
         <div className="space-y-1">
           {fixData.fixed_files.map((ff, i) => (
             <div key={i} className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-xs text-slate-500" style={{ fontFamily: 'Material Symbols Outlined' }}>
+              <span className="material-symbols-outlined text-xs text-slate-400" style={{ fontFamily: 'Material Symbols Outlined' }}>
                 description
               </span>
               <span className="text-body-xs font-mono text-blue-400">{ff.file_path}</span>
@@ -616,7 +616,7 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
         </div>
       ) : fixData?.target_file ? (
         <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-xs text-slate-500" style={{ fontFamily: 'Material Symbols Outlined' }}>
+          <span className="material-symbols-outlined text-xs text-slate-400" style={{ fontFamily: 'Material Symbols Outlined' }}>
             description
           </span>
           <span className="text-body-xs font-mono text-blue-400">{fixData.target_file}</span>

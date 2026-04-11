@@ -131,7 +131,7 @@ const LiveIntelligenceFeed: React.FC<LiveIntelligenceFeedProps> = ({
         <div className="flex flex-col items-center justify-center h-64 text-center">
           <span className="material-symbols-outlined text-4xl text-red-500 mb-3" aria-hidden="true">wifi_off</span>
           <p className="text-sm font-semibold text-slate-300 mb-1">Feed Disconnected</p>
-          <p className="text-xs text-slate-500">Failed to sync with the intelligence server. Retrying...</p>
+          <p className="text-xs text-slate-400">Failed to sync with the intelligence server. Retrying...</p>
         </div>
       ) : displaySessions.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-full py-12">
@@ -154,7 +154,7 @@ const LiveIntelligenceFeed: React.FC<LiveIntelligenceFeedProps> = ({
               : 'All systems are being monitored. Launch an investigation when an issue is detected.'}
           </p>
           {!filterActive && (
-            <div className="flex items-center gap-3 text-body-xs text-slate-500">
+            <div className="flex items-center gap-3 text-body-xs text-slate-400">
               <span className="flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/40" aria-hidden="true" />
                 Monitoring

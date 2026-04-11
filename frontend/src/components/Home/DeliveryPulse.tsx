@@ -46,16 +46,16 @@ export const DeliveryPulse: React.FC = () => {
       </header>
 
       {!clusterId && (
-        <div className="text-body-xs text-slate-500 py-2">No active cluster.</div>
+        <div className="text-body-xs text-slate-400 py-2">No active cluster.</div>
       )}
       {clusterId && isLoading && (
-        <div className="text-body-xs text-slate-500 py-2">Loading…</div>
+        <div className="text-body-xs text-slate-400 py-2">Loading…</div>
       )}
       {clusterId && isError && (
         <div className="text-body-xs text-red-400 py-2">Failed to load delivery events</div>
       )}
       {clusterId && !isLoading && !isError && topItems.length === 0 && (
-        <div className="text-body-xs text-slate-500 py-2">No recent activity.</div>
+        <div className="text-body-xs text-slate-400 py-2">No recent activity.</div>
       )}
 
       <ul className="space-y-1">

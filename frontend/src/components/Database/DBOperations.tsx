@@ -366,7 +366,7 @@ const DBOperations: React.FC = () => {
           </div>
           <button
             onClick={loadQueries}
-            className="text-slate-500 hover:text-slate-300 transition-colors"
+            className="text-slate-400 hover:text-slate-300 transition-colors"
           >
             <span className={`material-symbols-outlined text-[16px] ${loadingQueries ? 'animate-spin' : ''}`}>
               {loadingQueries ? 'progress_activity' : 'refresh'}
@@ -376,7 +376,7 @@ const DBOperations: React.FC = () => {
         <div className="overflow-x-auto">
           <table className="w-full text-xs text-slate-300">
             <thead>
-              <tr className="border-b border-slate-700/30 text-slate-500">
+              <tr className="border-b border-slate-700/30 text-slate-400">
                 <th className="px-4 py-2 text-left font-medium">PID</th>
                 <th className="px-4 py-2 text-left font-medium">SQL</th>
                 <th className="px-4 py-2 text-left font-medium">Duration</th>
@@ -389,7 +389,7 @@ const DBOperations: React.FC = () => {
             <tbody>
               {activeQueries.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-6 text-center text-slate-500">
+                  <td colSpan={7} className="px-4 py-6 text-center text-slate-400">
                     No active queries
                   </td>
                 </tr>
@@ -435,7 +435,7 @@ const DBOperations: React.FC = () => {
           </div>
           <button
             onClick={loadPlans}
-            className="text-slate-500 hover:text-slate-300 transition-colors"
+            className="text-slate-400 hover:text-slate-300 transition-colors"
           >
             <span className={`material-symbols-outlined text-[16px] ${loadingPlans ? 'animate-spin' : ''}`}>
               {loadingPlans ? 'progress_activity' : 'refresh'}
@@ -444,7 +444,7 @@ const DBOperations: React.FC = () => {
         </div>
         <div className="p-4 space-y-3">
           {plans.length === 0 ? (
-            <p className="text-xs text-slate-500 text-center py-4">No pending plans</p>
+            <p className="text-xs text-slate-400 text-center py-4">No pending plans</p>
           ) : (
             plans.map((plan) => (
               <RemediationCard
@@ -468,7 +468,7 @@ const DBOperations: React.FC = () => {
           </div>
           <button
             onClick={loadConfig}
-            className="text-slate-500 hover:text-slate-300 transition-colors"
+            className="text-slate-400 hover:text-slate-300 transition-colors"
           >
             <span className={`material-symbols-outlined text-[16px] ${loadingConfig ? 'animate-spin' : ''}`}>
               {loadingConfig ? 'progress_activity' : 'refresh'}
@@ -478,7 +478,7 @@ const DBOperations: React.FC = () => {
         <div className="overflow-x-auto">
           <table className="w-full text-xs text-slate-300">
             <thead>
-              <tr className="border-b border-slate-700/30 text-slate-500">
+              <tr className="border-b border-slate-700/30 text-slate-400">
                 <th className="px-4 py-2 text-left font-medium">Parameter</th>
                 <th className="px-4 py-2 text-left font-medium">Current</th>
                 <th className="px-4 py-2 text-left font-medium">Recommended</th>
@@ -490,7 +490,7 @@ const DBOperations: React.FC = () => {
             <tbody>
               {configRecs.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-6 text-center text-slate-500">
+                  <td colSpan={6} className="px-4 py-6 text-center text-slate-400">
                     No recommendations
                   </td>
                 </tr>
@@ -538,7 +538,7 @@ const DBOperations: React.FC = () => {
           </div>
           <button
             onClick={loadLog}
-            className="text-slate-500 hover:text-slate-300 transition-colors"
+            className="text-slate-400 hover:text-slate-300 transition-colors"
           >
             <span className={`material-symbols-outlined text-[16px] ${loadingLog ? 'animate-spin' : ''}`}>
               {loadingLog ? 'progress_activity' : 'refresh'}
@@ -548,7 +548,7 @@ const DBOperations: React.FC = () => {
         <div className="overflow-x-auto">
           <table className="w-full text-xs text-slate-300">
             <thead>
-              <tr className="border-b border-slate-700/30 text-slate-500">
+              <tr className="border-b border-slate-700/30 text-slate-400">
                 <th className="px-4 py-2 text-left font-medium">Timestamp</th>
                 <th className="px-4 py-2 text-left font-medium">Action</th>
                 <th className="px-4 py-2 text-left font-medium">SQL</th>
@@ -559,7 +559,7 @@ const DBOperations: React.FC = () => {
             <tbody>
               {auditLog.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-6 text-center text-slate-500">
+                  <td colSpan={5} className="px-4 py-6 text-center text-slate-400">
                     No log entries
                   </td>
                 </tr>

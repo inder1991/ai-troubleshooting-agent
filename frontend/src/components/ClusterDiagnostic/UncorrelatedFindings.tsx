@@ -23,10 +23,10 @@ const UncorrelatedFindings: React.FC<UncorrelatedFindingsProps> = ({ findings })
         aria-expanded={expanded}
         aria-label={`${findings.length} uncorrelated findings`}
       >
-        <span className="text-body-xs font-semibold uppercase tracking-wider text-slate-500">
+        <span className="text-body-xs font-semibold uppercase tracking-wider text-slate-400">
           Uncorrelated Findings ({findings.length})
         </span>
-        <span className="material-symbols-outlined text-sm text-slate-600">
+        <span className="material-symbols-outlined text-sm text-slate-500">
           {expanded ? 'expand_less' : 'expand_more'}
         </span>
       </button>
@@ -34,7 +34,7 @@ const UncorrelatedFindings: React.FC<UncorrelatedFindingsProps> = ({ findings })
         <div className="mt-2 space-y-1.5">
           {findings.map((f, i) => (
             <div key={f.anomaly_id || i} className={`text-body-xs pl-3 border-l-2 ${severityColor(f.severity)}`}>
-              <span className="font-mono text-slate-600 mr-1.5">[{f.domain}]</span>
+              <span className="font-mono text-slate-500 mr-1.5">[{f.domain}]</span>
               {f.description}
             </div>
           ))}

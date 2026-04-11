@@ -38,7 +38,7 @@ const FixRecommendations: React.FC<FixRecommendationsProps> = ({ fixes, onExport
     <div>
       <div className="flex items-center justify-between mb-2">
         <h2 className="text-body-xs font-display font-bold text-slate-400">Recommended Fixes</h2>
-        <span className="text-body-xs text-slate-500">{fixes.length}</span>
+        <span className="text-body-xs text-slate-400">{fixes.length}</span>
       </div>
 
       <div className="space-y-0">
@@ -58,7 +58,7 @@ const FixRecommendations: React.FC<FixRecommendationsProps> = ({ fixes, onExport
                 className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-duck-surface/30 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-duck-accent"
                 aria-expanded={isExpanded}
               >
-                <span className="text-body-xs font-bold text-slate-500 w-5 shrink-0">{fix.priority}.</span>
+                <span className="text-body-xs font-bold text-slate-400 w-5 shrink-0">{fix.priority}.</span>
                 <span className={`text-body-xs font-bold ${isCritical ? 'text-white' : 'text-slate-300'}`}>
                   {fix.title}
                 </span>
@@ -115,7 +115,7 @@ const FixRecommendations: React.FC<FixRecommendationsProps> = ({ fixes, onExport
                         </pre>
                       </details>
                     )}
-                    <span className="text-body-xs text-slate-600 mt-1 block">{fix.agent}</span>
+                    <span className="text-body-xs text-slate-500 mt-1 block">{fix.agent}</span>
                   </motion.div>
                 )}
               </AnimatePresence>

@@ -38,10 +38,10 @@ const ClosureStepCard: React.FC<ClosureStepCardProps> = ({
           </span>
         )}
         <span className={`material-symbols-outlined text-sm ${
-          completed ? 'text-green-400' : active ? 'text-violet-400' : 'text-slate-500'
+          completed ? 'text-green-400' : active ? 'text-violet-400' : 'text-slate-400'
         }`} style={{ fontFamily: 'Material Symbols Outlined' }}>{icon}</span>
         <span className={`text-body-xs font-bold uppercase tracking-wider ${
-          completed ? 'text-green-400' : active ? 'text-violet-400' : 'text-slate-500'
+          completed ? 'text-green-400' : active ? 'text-violet-400' : 'text-slate-400'
         }`}>{title}</span>
         {active && (
           <span className="w-2 h-2 rounded-full bg-violet-500 animate-pulse ml-auto" />

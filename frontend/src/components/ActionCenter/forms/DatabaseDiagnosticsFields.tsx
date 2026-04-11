@@ -101,7 +101,7 @@ const DatabaseDiagnosticsFields: React.FC<DatabaseDiagnosticsFieldsProps> = ({
             value={data.connection_uri || ''}
             onChange={(e) => onChange({ ...data, connection_uri: e.target.value || undefined })}
           />
-          <p className="text-body-xs text-slate-500 mt-1">
+          <p className="text-body-xs text-slate-400 mt-1">
             Overrides host/port from profile. Supports mongodb:// and mongodb+srv:// URIs.
           </p>
         </div>
@@ -175,7 +175,7 @@ const DatabaseDiagnosticsFields: React.FC<DatabaseDiagnosticsFieldsProps> = ({
             </button>
           ))}
         </div>
-        <p className="text-body-xs text-slate-500 mt-1">
+        <p className="text-body-xs text-slate-400 mt-1">
           {samplingDescriptions[data.sampling_mode]}
         </p>
       </div>
@@ -232,7 +232,7 @@ const DatabaseDiagnosticsFields: React.FC<DatabaseDiagnosticsFieldsProps> = ({
             })
           }
         />
-        <p className="text-body-xs text-slate-500 mt-1">
+        <p className="text-body-xs text-slate-400 mt-1">
           Link to an app investigation to focus agents on that service's queries and connections.
         </p>
       </div>

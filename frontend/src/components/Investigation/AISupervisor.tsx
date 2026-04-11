@@ -153,7 +153,7 @@ const AISupervisor: React.FC<AISupervisorProps> = ({
             className={`text-body-xs px-2 py-0.5 rounded border font-mono transition-colors ${
               showToolCalls
                 ? 'bg-purple-500/20 text-purple-400 border-purple-500/30'
-                : 'bg-slate-800/50 text-slate-500 border-slate-700'
+                : 'bg-slate-800/50 text-slate-400 border-slate-700'
             }`}
           >
             {showToolCalls ? 'TOOLS ON' : 'TOOLS OFF'}
@@ -167,7 +167,7 @@ const AISupervisor: React.FC<AISupervisorProps> = ({
       {/* Scrollable content */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
         {timeline.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-slate-500">
+          <div className="flex flex-col items-center justify-center h-full text-slate-400">
             <p className="text-sm">Waiting for investigation to begin...</p>
             <p className="text-body-xs mt-1">Agent events will stream here in real-time</p>
           </div>
@@ -215,7 +215,7 @@ const AISupervisor: React.FC<AISupervisorProps> = ({
             }}
             placeholder="Ask supervisor for data analysis..."
             disabled={sending}
-            className="w-full bg-slate-800/50 border border-slate-700 rounded-lg py-2 px-3 text-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none resize-none h-20 placeholder:text-slate-600 disabled:opacity-50 text-white custom-scrollbar"
+            className="w-full bg-slate-800/50 border border-slate-700 rounded-lg py-2 px-3 text-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none resize-none h-20 placeholder:text-slate-500 disabled:opacity-50 text-white custom-scrollbar"
           />
           <button
             type="submit"
@@ -402,7 +402,7 @@ const StartedCard: React.FC<{ event: TaskEvent }> = ({ event }) => (
     </div>
     <span className="text-xs text-blue-400">{event.agent_name}</span>
     <span className="text-xs text-slate-400">{event.message}</span>
-    <span className="text-body-xs text-slate-600 ml-auto">
+    <span className="text-body-xs text-slate-500 ml-auto">
       {new Date(event.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
     </span>
   </div>
@@ -426,7 +426,7 @@ const AlertCard: React.FC<{ event: TaskEvent; variant: 'warning' | 'error' }> = 
         <span className={`text-body-xs font-bold uppercase ${isError ? 'text-red-400' : 'text-amber-400'}`}>
           {event.agent_name}
         </span>
-        <span className="text-body-xs text-slate-600 ml-auto">
+        <span className="text-body-xs text-slate-500 ml-auto">
           {new Date(event.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
         </span>
       </div>
@@ -471,7 +471,7 @@ const ToolCallGroupCard: React.FC<{ group: ToolCallGroup }> = ({ group }) => {
         <span className="text-body-xs font-bold text-purple-400 uppercase">
           {group.agent.replace(/_/g, ' ')}
         </span>
-        <span className="text-body-xs text-slate-500">
+        <span className="text-body-xs text-slate-400">
           — {group.events.length} tool call{group.events.length !== 1 ? 's' : ''}
         </span>
       </button>
@@ -479,7 +479,7 @@ const ToolCallGroupCard: React.FC<{ group: ToolCallGroup }> = ({ group }) => {
         <div className="px-3 py-2 border-t border-slate-800/30 space-y-1 bg-slate-900/20">
           {group.events.map((ev, i) => (
             <div key={i} className="flex items-start gap-2 font-mono text-body-xs">
-              <span className="text-slate-600 shrink-0 w-[60px]">
+              <span className="text-slate-500 shrink-0 w-[60px]">
                 {new Date(ev.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
               </span>
               <span className="text-slate-400">{ev.message}</span>
@@ -525,7 +525,7 @@ const AttestationRequiredCard: React.FC<{ event: TaskEvent }> = ({ event }) => {
             <span>{findingsCount} findings</span>
             <span>Confidence: {confidence}%</span>
           </div>
-          <div className="text-body-xs text-slate-500">
+          <div className="text-body-xs text-slate-400">
             Proposed: {proposedAction}
           </div>
         </div>
@@ -539,12 +539,12 @@ const AttestationRequiredCard: React.FC<{ event: TaskEvent }> = ({ event }) => {
 const GenericLogEntry: React.FC<{ event: TaskEvent }> = ({ event }) => (
   <div className="font-mono text-body-xs flex items-start gap-2 py-0.5">
     <span
-      className="material-symbols-outlined text-[14px] mt-0.5 text-slate-500"
+      className="material-symbols-outlined text-[14px] mt-0.5 text-slate-400"
       style={{ fontFamily: 'Material Symbols Outlined' }}
     >
       search
     </span>
-    <span className="text-slate-600 shrink-0 w-[60px]">
+    <span className="text-slate-500 shrink-0 w-[60px]">
       {new Date(event.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
     </span>
     <span className="text-[#e09f3e] shrink-0">{event.agent_name}</span>
@@ -560,7 +560,7 @@ const ChatBubble: React.FC<{ message: ChatMessageType }> = ({ message }) => {
       <div className="flex justify-end">
         <div className="max-w-[85%] bg-slate-800/60 border border-slate-700 rounded-xl px-3 py-2">
           <p className="text-sm text-slate-200 whitespace-pre-wrap">{message.content}</p>
-          <p className="text-body-xs text-slate-600 mt-1 text-right">
+          <p className="text-body-xs text-slate-500 mt-1 text-right">
             {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </p>
         </div>
@@ -578,7 +578,7 @@ const ChatBubble: React.FC<{ message: ChatMessageType }> = ({ message }) => {
           <div className="bg-[#e09f3e]/5 border border-[#e09f3e]/10 rounded-xl p-3 text-sm leading-relaxed text-slate-300">
             <p className="whitespace-pre-wrap">{message.content}</p>
           </div>
-          <p className="text-body-xs text-slate-600 mt-1">
+          <p className="text-body-xs text-slate-500 mt-1">
             {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
           </p>
         </div>
@@ -598,7 +598,7 @@ const PatientZeroCard: React.FC<{ patientZero: PatientZero }> = ({ patientZero }
     <div className="text-xs font-mono text-red-300 font-bold mb-1">{patientZero.service}</div>
     <p className="text-body-xs text-slate-400">{patientZero.evidence}</p>
     {patientZero.first_error_time && (
-      <div className="text-body-xs text-slate-500 mt-1">
+      <div className="text-body-xs text-slate-400 mt-1">
         First error: {new Date(patientZero.first_error_time).toLocaleString()}
       </div>
     )}
@@ -653,10 +653,10 @@ const InferredDependenciesCard: React.FC<{ deps: InferredDependency[]; targetSer
             {isTarget(dep.source) && (
               <span className="text-chrome px-1 py-0.5 rounded bg-[#e09f3e]/20 text-[#e09f3e] border border-[#e09f3e]/30 font-bold">TARGET</span>
             )}
-            <span className="text-slate-600">{'\u2192'}</span>
+            <span className="text-slate-500">{'\u2192'}</span>
             <span className="font-mono text-slate-300">{dep.target || dep.targets?.join(', ')}</span>
             {dep.evidence && (
-              <span className="text-body-xs text-slate-500 ml-auto truncate max-w-[200px]">{dep.evidence}</span>
+              <span className="text-body-xs text-slate-400 ml-auto truncate max-w-[200px]">{dep.evidence}</span>
             )}
           </div>
         ))}

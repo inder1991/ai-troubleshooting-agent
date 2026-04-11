@@ -25,7 +25,7 @@ export default function CurrentRiskCard({ risk }: CurrentRiskCardProps) {
         )}
       </div>
       <p className="text-body-xs text-slate-400">{risk.description}</p>
-      <div className="flex items-center gap-2 mt-1 text-body-xs text-slate-500">
+      <div className="flex items-center gap-2 mt-1 text-body-xs text-slate-400">
         <span className="font-mono">{risk.resource}</span>
         {risk.issue_cluster_id && (
           <span className="text-amber-500/60 font-mono">{risk.issue_cluster_id}</span>

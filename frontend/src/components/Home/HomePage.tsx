@@ -63,7 +63,7 @@ const HomePage: React.FC<HomePageProps> = ({
         <div className="relative w-56 shrink-0">
           <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]" aria-hidden="true">search</span>
           <input
-            className="w-full rounded-md pl-9 pr-3 py-1.5 text-[13px] font-display text-white placeholder:text-slate-500 outline-none bg-duck-card/30 border border-duck-border/50 focus-visible:border-duck-accent"
+            className="w-full rounded-md pl-9 pr-3 py-1.5 text-[13px] font-display text-white placeholder:text-slate-400 outline-none bg-duck-card/30 border border-duck-border/50 focus-visible:border-duck-accent"
             style={{
               transition: 'border-color 200ms cubic-bezier(0.25, 1, 0.5, 1), box-shadow 200ms cubic-bezier(0.25, 1, 0.5, 1)',
             }}

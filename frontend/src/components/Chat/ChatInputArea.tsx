@@ -126,13 +126,13 @@ const ChatInputArea: React.FC<ChatInputAreaProps> = ({
           placeholder={placeholder}
           disabled={disabled}
           rows={1}
-          className="flex-1 bg-transparent text-sm text-slate-200 font-mono px-3 py-2.5 resize-none outline-none placeholder:text-slate-600 disabled:opacity-50"
+          className="flex-1 bg-transparent text-sm text-slate-200 font-mono px-3 py-2.5 resize-none outline-none placeholder:text-slate-500 disabled:opacity-50"
           style={{ maxHeight: '120px' }}
         />
         <button
           onClick={handleSend}
           disabled={disabled || !input.trim()}
-          className="shrink-0 p-2 mr-1 mb-0.5 rounded-md bg-cyan-600 hover:bg-cyan-500 disabled:bg-slate-700 disabled:text-slate-500 text-white transition-colors"
+          className="shrink-0 p-2 mr-1 mb-0.5 rounded-md bg-cyan-600 hover:bg-cyan-500 disabled:bg-slate-700 disabled:text-slate-400 text-white transition-colors"
           title="Send message"
         >
           <span

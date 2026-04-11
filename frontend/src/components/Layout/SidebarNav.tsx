@@ -245,7 +245,7 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ activeView, onNavigate, onNewMi
           {!collapsed && (
             <button
               onClick={() => setCollapsed(true)}
-              className="text-slate-500 hover:text-slate-300 transition-colors p-1 rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-duck-accent"
+              className="text-slate-400 hover:text-slate-300 transition-colors p-1 rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-duck-accent"
               aria-label="Collapse sidebar"
               title="Collapse sidebar"
             >
@@ -255,7 +255,7 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ activeView, onNavigate, onNewMi
           {collapsed && (
             <button
               onClick={() => setCollapsed(false)}
-              className="text-slate-500 hover:text-slate-300 transition-colors mt-2 p-1 rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-duck-accent"
+              className="text-slate-400 hover:text-slate-300 transition-colors mt-2 p-1 rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-duck-accent"
               aria-label="Expand sidebar"
               title="Expand sidebar"
             >
@@ -385,7 +385,7 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ activeView, onNavigate, onNewMi
             <div className="flex flex-col items-center gap-2 py-2">
               <button
                 onClick={() => onNavigate('how-it-works')}
-                className="text-slate-500 hover:text-slate-200 transition-colors"
+                className="text-slate-400 hover:text-slate-200 transition-colors"
                 aria-label="Help"
                 title="Help & Docs"
               >
@@ -421,7 +421,7 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ activeView, onNavigate, onNewMi
                   title={pinned ? 'Unpin panel' : 'Pin panel open'}
                   aria-label={pinned ? 'Unpin panel' : 'Pin panel open'}
                   className={`p-1 rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-duck-accent ${
-                    pinned ? 'text-duck-accent' : 'text-slate-600 hover:text-slate-400'
+                    pinned ? 'text-duck-accent' : 'text-slate-500 hover:text-slate-400'
                   }`}
                   style={{ transition: 'color 150ms cubic-bezier(0.25, 1, 0.5, 1), transform 100ms cubic-bezier(0.25, 1, 0.5, 1)' }}
                   onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.9)'; }}

@@ -11,7 +11,7 @@ export default function DeltaSection({ delta }: DeltaSectionProps) {
 
   if (!hasChanges) {
     return (
-      <div className="text-xs text-slate-500 italic px-3 py-2">No changes since last scan</div>
+      <div className="text-xs text-slate-400 italic px-3 py-2">No changes since last scan</div>
     );
   }
 
@@ -32,10 +32,10 @@ export default function DeltaSection({ delta }: DeltaSectionProps) {
       )}
       {delta.resolved_risks.length > 0 && (
         <div>
-          <span className="text-body-xs uppercase tracking-wider text-slate-500 font-semibold">Resolved</span>
+          <span className="text-body-xs uppercase tracking-wider text-slate-400 font-semibold">Resolved</span>
           <div className="mt-1 space-y-0.5">
             {delta.resolved_risks.map((r, i) => (
-              <div key={i} className="text-body-xs text-slate-500 line-through">{r}</div>
+              <div key={i} className="text-body-xs text-slate-400 line-through">{r}</div>
             ))}
           </div>
         </div>

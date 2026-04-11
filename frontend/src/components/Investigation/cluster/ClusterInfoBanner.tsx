@@ -32,8 +32,8 @@ export default function ClusterInfoBanner({ platform, platformVersion, namespace
         <span>{namespaceCount} namespaces</span>
       </div>
       {showScope && (
-        <div className="flex items-center gap-1.5 mt-2 text-body-xs text-slate-500 font-mono">
-          <span className="material-symbols-outlined text-[12px] text-slate-600">filter_alt</span>
+        <div className="flex items-center gap-1.5 mt-2 text-body-xs text-slate-400 font-mono">
+          <span className="material-symbols-outlined text-[12px] text-slate-500">filter_alt</span>
           <span>
             Scope: {scope.namespaces.length > 0 ? `Namespace=${scope.namespaces.join(',')}` : 'All'}
             {scope.workload_key ? ` | Workload=${scope.workload_key}` : ''}

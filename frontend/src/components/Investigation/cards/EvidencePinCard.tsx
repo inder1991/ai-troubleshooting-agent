@@ -90,7 +90,7 @@ const EvidencePinCard: React.FC<EvidencePinCardProps> = ({ pin }) => {
           </span>
 
           {/* Triggered by */}
-          <span className="text-body-xs text-slate-500">
+          <span className="text-body-xs text-slate-400">
             via {getTriggeredByLabel(pin.triggered_by)}
           </span>
         </div>
@@ -114,7 +114,7 @@ const EvidencePinCard: React.FC<EvidencePinCardProps> = ({ pin }) => {
       {/* Supporting evidence */}
       {pin.supporting_evidence.length > 0 && (
         <div className="mb-2">
-          <div className="text-body-xs text-slate-500 uppercase tracking-wider mb-1">Evidence</div>
+          <div className="text-body-xs text-slate-400 uppercase tracking-wider mb-1">Evidence</div>
           <ul className="space-y-0.5">
             {pin.supporting_evidence.map((ev, i) => (
               <li key={i} className="text-body-xs text-slate-400 pl-2 border-l border-slate-700">
@@ -126,7 +126,7 @@ const EvidencePinCard: React.FC<EvidencePinCardProps> = ({ pin }) => {
       )}
 
       {/* Metadata row */}
-      <div className="flex items-center gap-3 text-body-xs text-slate-500 mt-2">
+      <div className="flex items-center gap-3 text-body-xs text-slate-400 mt-2">
         {pin.source_agent && (
           <span>Agent: <span className="text-slate-400">{pin.source_agent}</span></span>
         )}
@@ -178,7 +178,7 @@ const EvidencePinCard: React.FC<EvidencePinCardProps> = ({ pin }) => {
         </div>
       )}
       {pin.validation_status === 'rejected' && (
-        <div className="mt-2 flex items-center gap-1.5 text-body-xs text-slate-500">
+        <div className="mt-2 flex items-center gap-1.5 text-body-xs text-slate-400">
           <span
             className="material-symbols-outlined text-[12px]"
           >

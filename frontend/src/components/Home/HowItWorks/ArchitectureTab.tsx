@@ -147,7 +147,7 @@ const stack = [
 /*  Helpers                                                            */
 /* ------------------------------------------------------------------ */
 
-const Arrow = () => <span className="text-slate-500 text-xs font-bold select-none">&rarr;</span>;
+const Arrow = () => <span className="text-slate-400 text-xs font-bold select-none">&rarr;</span>;
 
 const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <h3 className="text-sm font-bold text-slate-300 uppercase tracking-wider mb-3">{children}</h3>
@@ -159,7 +159,7 @@ const FlowBox: React.FC<{ label: string; small: string; color: string }> = ({ la
     style={{ borderColor: color, backgroundColor: `${color}10` }}
   >
     <span className="text-xs font-mono font-bold block" style={{ color }}>{label}</span>
-    <span className="text-body-xs text-slate-500 block leading-tight">{small}</span>
+    <span className="text-body-xs text-slate-400 block leading-tight">{small}</span>
   </div>
 );
 
@@ -281,10 +281,10 @@ const ArchitectureTab: React.FC = () => {
                 </span>
                 <div className="flex flex-col">
                   <span className="text-xs font-bold text-slate-200 leading-tight">{phase.name}</span>
-                  <span className="text-body-xs text-slate-500 leading-tight">{phase.sub}</span>
+                  <span className="text-body-xs text-slate-400 leading-tight">{phase.sub}</span>
                 </div>
                 {!isLast && (
-                  <span className="text-slate-500 text-sm font-bold ml-1 select-none">&rsaquo;</span>
+                  <span className="text-slate-400 text-sm font-bold ml-1 select-none">&rsaquo;</span>
                 )}
               </div>
             );
@@ -326,7 +326,7 @@ const ArchitectureTab: React.FC = () => {
                   >
                     {step.name}
                   </span>
-                  <span className="text-body-xs text-slate-500 block leading-tight">{step.sub}</span>
+                  <span className="text-body-xs text-slate-400 block leading-tight">{step.sub}</span>
                 </div>
               </React.Fragment>
             );
@@ -359,10 +359,10 @@ const ArchitectureTab: React.FC = () => {
                 </span>
                 <span className="text-xs font-bold text-slate-200">{gate.name}</span>
               </div>
-              <p className="text-body-xs text-slate-500 mb-0.5">
+              <p className="text-body-xs text-slate-400 mb-0.5">
                 <span className="font-semibold text-slate-400">When:</span> {gate.when}
               </p>
-              <p className="text-body-xs text-slate-500">
+              <p className="text-body-xs text-slate-400">
                 <span className="font-semibold text-slate-400">Why:</span> {gate.why}
               </p>
             </div>
@@ -395,14 +395,14 @@ const ArchitectureTab: React.FC = () => {
                   key={c.num}
                   className={c.num % 2 === 0 ? 'bg-slate-900/60' : 'bg-slate-900/30'}
                 >
-                  <td className="px-3 py-2 text-slate-500 font-mono">{c.num}</td>
+                  <td className="px-3 py-2 text-slate-400 font-mono">{c.num}</td>
                   <td className="px-3 py-2 text-slate-200 font-semibold">{c.name}</td>
                   <td className="px-3 py-2 text-slate-400 font-mono">{c.pattern}</td>
                   <td className="px-3 py-2">
                     {c.llm.startsWith('Yes') ? (
                       <span className="text-[#e09f3e] font-bold">{c.llm}</span>
                     ) : (
-                      <span className="text-slate-600">{c.llm}</span>
+                      <span className="text-slate-500">{c.llm}</span>
                     )}
                   </td>
                 </tr>

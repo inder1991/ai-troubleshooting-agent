@@ -120,7 +120,7 @@ const IssuePriorityPanel: React.FC<IssuePriorityPanelProps> = ({
   if (issues.length === 0) {
     return (
       <div className="p-4">
-        <p className="text-body-xs text-slate-600 animate-pulse">
+        <p className="text-body-xs text-slate-500 animate-pulse">
           {phase === 'complete' ? 'No issues detected.' : 'Scanning for issues...'}
         </p>
       </div>
@@ -143,7 +143,7 @@ const IssuePriorityPanel: React.FC<IssuePriorityPanelProps> = ({
               <span className="text-body-xs font-semibold uppercase tracking-wider" style={{ color: cfg.color }}>
                 {cfg.label}
               </span>
-              <span className="text-body-xs text-slate-600 font-mono">{bucket.length}</span>
+              <span className="text-body-xs text-slate-500 font-mono">{bucket.length}</span>
             </div>
 
             {/* Issue rows */}
@@ -179,10 +179,10 @@ const IssueRow: React.FC<IssueRowProps> = React.memo(({ issue, state, symptomMap
             <span className="text-body-xs text-red-400 font-mono">blast: {issue.blast_radius}</span>
           )}
           {issue.priority_score > 0 && (
-            <span className="text-body-xs text-slate-500 font-mono">score: {issue.priority_score}</span>
+            <span className="text-body-xs text-slate-400 font-mono">score: {issue.priority_score}</span>
           )}
           {issue.affected_resources.length > 0 && (
-            <span className="text-body-xs text-slate-600 font-mono">
+            <span className="text-body-xs text-slate-500 font-mono">
               {issue.affected_resources.length} resources
             </span>
           )}
@@ -197,7 +197,7 @@ const IssueRow: React.FC<IssueRowProps> = React.memo(({ issue, state, symptomMap
         <p className="text-[12px] text-slate-300 leading-snug">{issue.description}</p>
         <div className="flex items-center gap-3 mt-0.5">
           {issue.first_seen && (
-            <span className="text-body-xs text-slate-600 font-mono">seen: {issue.first_seen}</span>
+            <span className="text-body-xs text-slate-500 font-mono">seen: {issue.first_seen}</span>
           )}
           {issue.restart_velocity > 0 && (
             <span className="text-body-xs text-amber-500/70 font-mono">vel: {issue.restart_velocity}/h</span>
@@ -211,10 +211,10 @@ const IssueRow: React.FC<IssueRowProps> = React.memo(({ issue, state, symptomMap
     const rootDesc = symptomMap?.[issue.issue_id] || issue.root_cause_id || 'unknown';
     return (
       <div className="pl-4 py-1">
-        <p className="text-body-xs italic text-slate-500 leading-snug">
+        <p className="text-body-xs italic text-slate-400 leading-snug">
           {issue.description}
         </p>
-        <p className="text-body-xs text-slate-600 mt-0.5">
+        <p className="text-body-xs text-slate-500 mt-0.5">
           &rarr; caused by {rootDesc}
         </p>
       </div>
@@ -226,7 +226,7 @@ const IssueRow: React.FC<IssueRowProps> = React.memo(({ issue, state, symptomMap
     <div className={`border-l-2 ${cfg?.borderClass ?? ''} pl-3 py-1`}>
       <p className="text-body-xs text-slate-400 leading-snug">{issue.description}</p>
       {issue.state_duration_seconds > 0 && (
-        <span className="text-body-xs text-slate-600 font-mono">age: {formatAge(issue.state_duration_seconds)}</span>
+        <span className="text-body-xs text-slate-500 font-mono">age: {formatAge(issue.state_duration_seconds)}</span>
       )}
     </div>
   );

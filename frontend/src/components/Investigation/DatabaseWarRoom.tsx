@@ -298,7 +298,7 @@ const DatabaseWarRoom: React.FC<DatabaseWarRoomProps> = ({
                 {slowQueries ? <SlowQueryTimeline queries={slowQueries} /> : null}
                 {planSteps ? <QueryFlamechart planSteps={planSteps} /> : null}
                 {!slowQueries && !planSteps && (
-                  <p className="text-body-xs text-slate-500 italic text-center py-4">Awaiting query data...</p>
+                  <p className="text-body-xs text-slate-400 italic text-center py-4">Awaiting query data...</p>
                 )}
               </div>
             </PanelZone>

@@ -101,7 +101,7 @@ function TreeNode({
       >
         {/* Expand/Collapse arrow */}
         {hasChildren && !isSubnet ? (
-          <span className="material-symbols-outlined text-xs text-slate-500 w-4 flex-shrink-0">
+          <span className="material-symbols-outlined text-xs text-slate-400 w-4 flex-shrink-0">
             {expanded ? 'expand_more' : 'chevron_right'}
           </span>
         ) : (
@@ -127,7 +127,7 @@ function TreeNode({
         )}
         {/* CIDR + utilization for subnet & address_block nodes */}
         {showUtilBar && node.cidr && (
-          <span className="font-mono text-body-xs text-slate-500 flex-shrink-0">{node.cidr}</span>
+          <span className="font-mono text-body-xs text-slate-400 flex-shrink-0">{node.cidr}</span>
         )}
         {showUtilBar && node.utilization_pct !== undefined && (
           <div className="flex items-center gap-1 ml-1 flex-shrink-0">
@@ -137,7 +137,7 @@ function TreeNode({
                 style={{ width: `${Math.min(node.utilization_pct, 100)}%` }}
               />
             </div>
-            <span className="text-body-xs text-slate-500 w-7 text-right">
+            <span className="text-body-xs text-slate-400 w-7 text-right">
               {node.utilization_pct}%
             </span>
           </div>
@@ -174,7 +174,7 @@ export default function IPAMHierarchyTree({ tree, selectedSubnetId, onSelectSubn
 
   if (!tree.length) {
     return (
-      <div className="text-center text-slate-500 py-8 text-sm">
+      <div className="text-center text-slate-400 py-8 text-sm">
         No subnets imported yet.
         <br />
         Upload a CSV to get started.
@@ -195,7 +195,7 @@ export default function IPAMHierarchyTree({ tree, selectedSubnetId, onSelectSubn
         />
       </div>
       {/* Tree header */}
-      <div className="px-2 py-1 text-body-xs text-slate-500 uppercase tracking-wider font-semibold">
+      <div className="px-2 py-1 text-body-xs text-slate-400 uppercase tracking-wider font-semibold">
         Display Name
       </div>
       {filteredTree.map((node) => (

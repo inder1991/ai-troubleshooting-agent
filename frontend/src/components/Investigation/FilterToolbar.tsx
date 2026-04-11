@@ -26,7 +26,7 @@ export const FilterToolbar: React.FC<FilterToolbarProps> = ({ mode, onModeChange
             className={`text-body-xs px-2 py-0.5 rounded border font-bold uppercase tracking-wider transition-colors ${
               isActive
                 ? 'bg-[#e09f3e]/20 text-[#e09f3e] border-[#e09f3e]/30'
-                : 'bg-slate-800/50 text-slate-500 border-slate-700 hover:text-slate-400'
+                : 'bg-slate-800/50 text-slate-400 border-slate-700 hover:text-slate-400'
             }`}
             aria-pressed={isActive}
           >

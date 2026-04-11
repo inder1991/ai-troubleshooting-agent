@@ -38,7 +38,7 @@ export default function IPAMVLANTab() {
   };
 
   if (loading) {
-    return <div className="text-center text-slate-500 py-8 text-sm">Loading VLANs...</div>;
+    return <div className="text-center text-slate-400 py-8 text-sm">Loading VLANs...</div>;
   }
 
   return (
@@ -47,7 +47,7 @@ export default function IPAMVLANTab() {
       <div>
         <h3 className="text-sm font-semibold text-slate-200 mb-3">VLANs ({vlans.length})</h3>
         {vlans.length === 0 ? (
-          <div className="text-sm text-slate-500 py-4">No VLANs configured.</div>
+          <div className="text-sm text-slate-400 py-4">No VLANs configured.</div>
         ) : (
           <div className="max-h-[500px] overflow-y-auto space-y-1">
             {vlans.map((vlan) => (
@@ -68,7 +68,7 @@ export default function IPAMVLANTab() {
                   </span>
                 )}
                 {vlan.subnet_ids.length > 0 && (
-                  <span className="text-body-xs text-slate-500">{vlan.subnet_ids.length} subnets</span>
+                  <span className="text-body-xs text-slate-400">{vlan.subnet_ids.length} subnets</span>
                 )}
               </button>
             ))}
@@ -97,7 +97,7 @@ export default function IPAMVLANTab() {
             {/* Linked subnets */}
             {selectedVlan.subnet_ids.length > 0 && (
               <div>
-                <h4 className="text-xs text-slate-500 uppercase tracking-wider mb-1">Linked Subnets</h4>
+                <h4 className="text-xs text-slate-400 uppercase tracking-wider mb-1">Linked Subnets</h4>
                 <div className="space-y-1">
                   {selectedVlan.subnet_ids.map((sid) => (
                     <div key={sid} className="text-xs text-slate-300 px-2 py-1 bg-[#1a1814] rounded">
@@ -110,18 +110,18 @@ export default function IPAMVLANTab() {
 
             {/* Interfaces */}
             <div>
-              <h4 className="text-xs text-slate-500 uppercase tracking-wider mb-1">
+              <h4 className="text-xs text-slate-400 uppercase tracking-wider mb-1">
                 Interfaces ({interfaces.length})
               </h4>
               {ifaceLoading ? (
-                <div className="text-xs text-slate-500 py-2">Loading...</div>
+                <div className="text-xs text-slate-400 py-2">Loading...</div>
               ) : interfaces.length === 0 ? (
-                <div className="text-xs text-slate-500 py-2">No interfaces on this VLAN.</div>
+                <div className="text-xs text-slate-400 py-2">No interfaces on this VLAN.</div>
               ) : (
                 <div className="max-h-[300px] overflow-y-auto">
                   <table className="w-full text-xs">
                     <thead>
-                      <tr className="text-left text-slate-500 uppercase">
+                      <tr className="text-left text-slate-400 uppercase">
                         <th className="py-1 px-2">Name</th>
                         <th className="py-1 px-2">IP</th>
                         <th className="py-1 px-2">Device</th>
@@ -134,7 +134,7 @@ export default function IPAMVLANTab() {
                           <td className="py-1.5 px-2 text-slate-300">{iface.name}</td>
                           <td className="py-1.5 px-2 font-mono text-slate-400">{iface.ip}</td>
                           <td className="py-1.5 px-2 text-slate-400">{iface.device_id}</td>
-                          <td className="py-1.5 px-2 text-slate-500">{iface.zone_id || '-'}</td>
+                          <td className="py-1.5 px-2 text-slate-400">{iface.zone_id || '-'}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -144,7 +144,7 @@ export default function IPAMVLANTab() {
             </div>
           </div>
         ) : (
-          <div className="text-center text-slate-500 py-12 text-sm">
+          <div className="text-center text-slate-400 py-12 text-sm">
             Select a VLAN to view details
           </div>
         )}

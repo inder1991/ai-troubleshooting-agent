@@ -58,7 +58,7 @@ export const AgentCapsule: React.FC<AgentCapsuleProps> = ({ capsule, filterMode,
         <span className="text-body-xs font-bold uppercase tracking-wider text-slate-300">
           {capsule.agent.replace(/_/g, ' ')}
         </span>
-        <span className="text-body-xs text-slate-600 font-mono ml-auto">
+        <span className="text-body-xs text-slate-500 font-mono ml-auto">
           {formatTime(capsule.startedEvent.timestamp)}
         </span>
         {/* Status dot */}
@@ -168,7 +168,7 @@ export const AgentCapsule: React.FC<AgentCapsuleProps> = ({ capsule, filterMode,
 
         {/* Breadcrumbs summary */}
         {capsule.isComplete && capsule.breadcrumbs.length > 0 && (
-          <div className="flex items-center gap-1.5 text-body-xs text-slate-600">
+          <div className="flex items-center gap-1.5 text-body-xs text-slate-500">
             <span
               className="material-symbols-outlined text-xs"
               style={{ fontFamily: 'Material Symbols Outlined' }}

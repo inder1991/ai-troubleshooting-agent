@@ -63,23 +63,23 @@ const RecommendationCard: React.FC<RecommendationCardProps> = ({ rec }) => {
         </span>
 
         {/* Confidence */}
-        <span className="text-body-xs text-slate-500">
+        <span className="text-body-xs text-slate-400">
           {(rec.confidence * 100).toFixed(0)}% confidence
         </span>
 
         {/* Score */}
-        <span className="text-body-xs text-slate-500">
+        <span className="text-body-xs text-slate-400">
           Score: {rec.score.toFixed(1)}
         </span>
 
         {/* Source */}
-        <span className="text-body-xs text-slate-600">{rec.source}</span>
+        <span className="text-body-xs text-slate-500">{rec.source}</span>
       </div>
 
       {/* Affected resources */}
       {rec.affected_resources.length > 0 && (
         <div className="mt-3">
-          <div className="text-body-xs text-slate-500 mb-1">Affected Resources</div>
+          <div className="text-body-xs text-slate-400 mb-1">Affected Resources</div>
           <div className="flex flex-wrap gap-1">
             {rec.affected_resources.slice(0, 5).map((r, i) => (
               <span key={i} className="text-body-xs bg-[#252118] text-slate-400 px-2 py-0.5 rounded font-mono">
@@ -87,7 +87,7 @@ const RecommendationCard: React.FC<RecommendationCardProps> = ({ rec }) => {
               </span>
             ))}
             {rec.affected_resources.length > 5 && (
-              <span className="text-body-xs text-slate-500">+{rec.affected_resources.length - 5} more</span>
+              <span className="text-body-xs text-slate-400">+{rec.affected_resources.length - 5} more</span>
             )}
           </div>
         </div>
@@ -111,7 +111,7 @@ const RecommendationCard: React.FC<RecommendationCardProps> = ({ rec }) => {
                   <code className="text-body-xs text-slate-300 font-mono flex-1 break-all">{cmd}</code>
                   <button
                     onClick={() => copyText(cmd, `cmd-${i}`)}
-                    className="text-slate-500 hover:text-slate-300 transition-colors flex-shrink-0"
+                    className="text-slate-400 hover:text-slate-300 transition-colors flex-shrink-0"
                     title="Copy"
                   >
                     <span className="material-symbols-outlined text-[14px]">

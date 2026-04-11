@@ -72,7 +72,7 @@ const RemediationPacketCard: React.FC<RemediationPacketCardProps> = ({ message }
           <p className="text-body-xs text-slate-400 mb-1.5">{fixExplanation}</p>
         )}
         {fixedFiles.length > 0 && (
-          <p className="text-body-xs text-slate-500 font-mono">
+          <p className="text-body-xs text-slate-400 font-mono">
             Files: {fixedFiles.join(', ')}
           </p>
         )}
@@ -114,7 +114,7 @@ const RemediationPacketCard: React.FC<RemediationPacketCardProps> = ({ message }
             {canRevoke && (
               <button
                 onClick={() => revokeRepo(repoUrl)}
-                className="ml-auto text-body-xs text-slate-500 hover:text-amber-400 transition-colors underline"
+                className="ml-auto text-body-xs text-slate-400 hover:text-amber-400 transition-colors underline"
               >
                 Revoke
               </button>

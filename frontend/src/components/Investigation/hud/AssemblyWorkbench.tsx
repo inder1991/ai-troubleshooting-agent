@@ -38,7 +38,7 @@ const AssemblyWorkbench: React.FC<AssemblyWorkbenchProps> = ({
           <span className="text-body-xs font-bold uppercase tracking-wider text-amber-400">
             Assembly Dock
           </span>
-          <span className="text-body-xs font-mono text-slate-500">
+          <span className="text-body-xs font-mono text-slate-400">
             {pinnedItems.length} Evidence Links
           </span>
         </div>
@@ -70,7 +70,7 @@ const AssemblyWorkbench: React.FC<AssemblyWorkbenchProps> = ({
                     className="w-1.5 h-1.5 rounded-full shrink-0"
                     style={{ backgroundColor: agentColors[item.agentType] || '#64748b' }}
                   />
-                  <span className="text-chrome font-bold text-slate-500 uppercase">
+                  <span className="text-chrome font-bold text-slate-400 uppercase">
                     {item.agentType}
                   </span>
                 </div>
@@ -98,7 +98,7 @@ const AssemblyWorkbench: React.FC<AssemblyWorkbenchProps> = ({
           className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-body-xs font-bold uppercase tracking-wider transition-all ${
             fixReady
               ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30'
-              : 'bg-slate-800/50 text-slate-600 border border-slate-700/50 cursor-not-allowed'
+              : 'bg-slate-800/50 text-slate-500 border border-slate-700/50 cursor-not-allowed'
           }`}
         >
           <FileCheck className="w-3 h-3" />

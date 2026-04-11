@@ -165,7 +165,7 @@ const ServiceNode: React.FC<{ service: Service }> = ({ service }) => (
     <div className="mt-2 space-y-0.5">
       {service.metrics.map((m) => (
         <div key={m.label} className="flex justify-between text-body-xs">
-          <span className="text-slate-500">{m.label}</span>
+          <span className="text-slate-400">{m.label}</span>
           <span style={{ color: STATUS_COLORS[m.status] }}>{m.value}</span>
         </div>
       ))}

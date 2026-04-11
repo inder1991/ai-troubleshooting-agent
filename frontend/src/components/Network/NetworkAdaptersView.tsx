@@ -156,7 +156,7 @@ const NetworkAdaptersView: React.FC = () => {
         <div className="text-center py-12 text-slate-400">Loading adapters...</div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-12">
-          <span className="material-symbols-outlined text-4xl text-slate-600 mb-2 block">
+          <span className="material-symbols-outlined text-4xl text-slate-500 mb-2 block">
             settings_input_component
           </span>
           <p className="text-slate-400 text-sm">
@@ -196,7 +196,7 @@ const NetworkAdaptersView: React.FC = () => {
                       {adapter.api_endpoint ? (
                         <span className="truncate max-w-[200px] inline-block">{adapter.api_endpoint}</span>
                       ) : (
-                        <span className="text-slate-500">—</span>
+                        <span className="text-slate-400">—</span>
                       )}
                     </td>
                     <td className={tdClass}>
@@ -207,12 +207,12 @@ const NetworkAdaptersView: React.FC = () => {
                     <td className={`${tdClass} text-slate-300`}>
                       {adapter.device_groups && adapter.device_groups.length > 0
                         ? adapter.device_groups.join(', ')
-                        : <span className="text-slate-500">—</span>}
+                        : <span className="text-slate-400">—</span>}
                     </td>
                     <td className={`${tdClass} text-slate-400`}>
                       {adapter.last_refresh
                         ? new Date(adapter.last_refresh).toLocaleTimeString()
-                        : <span className="text-slate-500">Never</span>}
+                        : <span className="text-slate-400">Never</span>}
                     </td>
                     <td className={tdClass}>
                       <div className="flex items-center gap-1">

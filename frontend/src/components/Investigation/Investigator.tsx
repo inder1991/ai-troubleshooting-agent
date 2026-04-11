@@ -417,7 +417,7 @@ const Investigator: React.FC<InvestigatorProps> = ({
               className={`text-body-xs px-2 py-0.5 rounded-full border font-bold uppercase ${
                 a.active
                   ? (agentColor[a.name] || 'bg-slate-500/20 text-slate-400 border-slate-500/30') + ' animate-pulse'
-                  : 'bg-slate-800/50 text-slate-500 border-slate-700'
+                  : 'bg-slate-800/50 text-slate-400 border-slate-700'
               }`}
             >
               {a.name.replace(/_/g, ' ')}
@@ -440,8 +440,8 @@ const Investigator: React.FC<InvestigatorProps> = ({
       {/* AI Investigation Timeline */}
       <div ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-y-auto px-4 py-3 custom-scrollbar">
         {events.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-slate-500">
-            <span className="material-symbols-outlined text-3xl text-slate-600 mb-2" style={{ fontFamily: 'Material Symbols Outlined' }}>radar</span>
+          <div className="flex flex-col items-center justify-center h-full text-slate-400">
+            <span className="material-symbols-outlined text-3xl text-slate-500 mb-2" style={{ fontFamily: 'Material Symbols Outlined' }}>radar</span>
             <p className="text-sm">Waiting for investigation to begin...</p>
             <p className="text-body-xs mt-1">Agent events will stream here in real-time</p>
           </div>
@@ -522,7 +522,7 @@ const Investigator: React.FC<InvestigatorProps> = ({
         <div className="flex-shrink-0 border-t border-slate-800/50 bg-slate-900/60 px-4 py-3">
           <div className="flex items-center gap-2 mb-1.5">
             <span className="material-symbols-outlined text-[#07b6d5] text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>neurology</span>
-            <span className="text-body-xs font-bold uppercase tracking-widest text-slate-500">Current Best Guess</span>
+            <span className="text-body-xs font-bold uppercase tracking-widest text-slate-400">Current Best Guess</span>
             <span className={`ml-auto text-sm font-mono font-bold ${bestGuess.confidence >= 70 ? 'text-emerald-400' : bestGuess.confidence >= 40 ? 'text-amber-400' : 'text-red-400'}`}>
               {bestGuess.confidence}%
             </span>
@@ -574,7 +574,7 @@ const EventNode: React.FC<{ event: TaskEvent; breadcrumbs?: Breadcrumb[] }> = ({
           <div className="flex items-center gap-2 text-body-xs">
             <span className="material-symbols-outlined text-sm" style={{ fontFamily: 'Material Symbols Outlined', color: severity === 'critical' || severity === 'high' ? '#f87171' : '#fbbf24' }}>lightbulb</span>
             <span className={`font-bold uppercase ${sevColor}`}>{severity}</span>
-            <span className="text-slate-500">{event.agent_name.replace(/_/g, ' ')}</span>
+            <span className="text-slate-400">{event.agent_name.replace(/_/g, ' ')}</span>
           </div>
           <p className="text-xs text-slate-300 mt-1">{event.message.split(' — ')[0]}</p>
         </div>
@@ -610,8 +610,8 @@ const EventNode: React.FC<{ event: TaskEvent; breadcrumbs?: Breadcrumb[] }> = ({
         <div className="absolute left-[-18px] w-2.5 h-2.5 rounded-full bg-blue-400 border-2 border-slate-900" />
         <span className="material-symbols-outlined text-blue-400 text-xs" style={{ fontFamily: 'Material Symbols Outlined' }}>{icon}</span>
         <span className="text-body-xs text-blue-400 font-bold">{event.agent_name.replace(/_/g, ' ')}</span>
-        <span className="text-body-xs text-slate-500">{event.message}</span>
-        <span className="text-body-xs text-slate-600 ml-auto">{formatTime(event.timestamp)}</span>
+        <span className="text-body-xs text-slate-400">{event.message}</span>
+        <span className="text-body-xs text-slate-500 ml-auto">{formatTime(event.timestamp)}</span>
       </div>
     );
   }
@@ -635,7 +635,7 @@ const EventNode: React.FC<{ event: TaskEvent; breadcrumbs?: Breadcrumb[] }> = ({
   return (
     <div className="relative flex items-start gap-2 py-0.5">
       <div className="absolute left-[-18px] w-2.5 h-2.5 rounded-full bg-slate-600 border-2 border-slate-900" />
-      <span className="text-body-xs text-slate-600 shrink-0">
+      <span className="text-body-xs text-slate-500 shrink-0">
         {formatTime(event.timestamp)}
       </span>
       <span className="text-body-xs text-[#07b6d5]">{event.agent_name}</span>
@@ -654,13 +654,13 @@ const ToolCallGroupNode: React.FC<{ group: ToolCallGroup }> = ({ group }) => {
       <button onClick={() => setExpanded(!expanded)} className="w-full text-left flex items-center gap-2 text-body-xs hover:bg-slate-800/30 rounded px-2 py-1 transition-colors" aria-expanded={expanded}>
         <span className={`material-symbols-outlined text-xs text-purple-400 transition-transform ${expanded ? 'rotate-90' : ''}`} style={{ fontFamily: 'Material Symbols Outlined' }}>chevron_right</span>
         <span className="font-bold text-purple-400 uppercase">{group.agent.replace(/_/g, ' ')}</span>
-        <span className="text-slate-500">{group.events.length} tool calls</span>
+        <span className="text-slate-400">{group.events.length} tool calls</span>
       </button>
       {expanded && (
         <div className="pl-4 mt-1 space-y-0.5 text-body-xs text-slate-400 font-mono">
           {group.events.map((ev, i) => (
             <div key={i} className="flex gap-2">
-              <span className="text-slate-600 shrink-0">{formatTime(ev.timestamp)}</span>
+              <span className="text-slate-500 shrink-0">{formatTime(ev.timestamp)}</span>
               <span className="truncate">{ev.message}</span>
             </div>
           ))}
@@ -696,7 +696,7 @@ const ReasoningStream: React.FC<{ chain: ReasoningChainStep[] }> = ({ chain }) =
           <span className="text-body-xs font-bold uppercase tracking-wider text-[#07b6d5]">
             Neural_Reasoning_Stream
           </span>
-          <span className="text-body-xs font-mono text-slate-500">
+          <span className="text-body-xs font-mono text-slate-400">
             {chain.length} step{chain.length !== 1 ? 's' : ''}
           </span>
         </div>
@@ -755,7 +755,7 @@ const ReasoningStream: React.FC<{ chain: ReasoningChainStep[] }> = ({ chain }) =
                       {step.observation}
                     </p>
                     {step.inference && (
-                      <p className="text-body-xs text-slate-500 italic mt-0.5">
+                      <p className="text-body-xs text-slate-400 italic mt-0.5">
                         {'\u2192'} {step.inference}
                       </p>
                     )}
@@ -789,7 +789,7 @@ const EvidenceTrail: React.FC<{ breadcrumbs: Breadcrumb[]; agentName: string }> 
     <div className="mt-2 pt-2 border-t border-slate-800/50">
       <button
         onClick={() => setExpanded(!expanded)}
-        className="flex items-center gap-1.5 text-body-xs text-slate-500 hover:text-slate-300 transition-colors"
+        className="flex items-center gap-1.5 text-body-xs text-slate-400 hover:text-slate-300 transition-colors"
         aria-expanded={expanded}
         aria-label={`${expanded ? 'Collapse' : 'Expand'} evidence trail`}
       >

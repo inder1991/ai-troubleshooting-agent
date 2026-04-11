@@ -46,15 +46,15 @@ export const ImpactAssessmentCard: React.FC<ImpactAssessmentProps> = ({ data }) 
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Shield size={12} className="text-slate-500" />
-            <span className="text-body-xs text-slate-500 uppercase font-bold">Regression Risk</span>
+            <Shield size={12} className="text-slate-400" />
+            <span className="text-body-xs text-slate-400 uppercase font-bold">Regression Risk</span>
           </div>
           <div className={`text-body-xs font-bold px-2 py-1 rounded border ${getRiskColor(data.regression_risk)}`}>
             {getRiskIcon(data.regression_risk)} {data.regression_risk}
           </div>
         </div>
         
-        <div className="text-chrome text-slate-600 bg-slate-950 border border-slate-900 rounded p-2">
+        <div className="text-chrome text-slate-500 bg-slate-950 border border-slate-900 rounded p-2">
           Based on code complexity, affected functions, and change scope
         </div>
       </div>
@@ -62,8 +62,8 @@ export const ImpactAssessmentCard: React.FC<ImpactAssessmentProps> = ({ data }) 
       {/* Affected Functions */}
       <div className="space-y-2">
         <div className="flex items-center gap-2">
-          <Code size={12} className="text-slate-500" />
-          <span className="text-body-xs text-slate-500 uppercase font-bold">
+          <Code size={12} className="text-slate-400" />
+          <span className="text-body-xs text-slate-400 uppercase font-bold">
             Affected Functions ({data.affected_functions.length})
           </span>
         </div>
@@ -76,13 +76,13 @@ export const ImpactAssessmentCard: React.FC<ImpactAssessmentProps> = ({ data }) 
               </div>
             ))}
             {data.affected_functions.length > 5 && (
-              <div className="text-[7px] text-slate-600 italic pl-2">
+              <div className="text-[7px] text-slate-500 italic pl-2">
                 ... and {data.affected_functions.length - 5} more functions
               </div>
             )}
           </div>
         ) : (
-          <div className="text-chrome text-slate-600 bg-slate-950 border border-slate-900 rounded p-2">
+          <div className="text-chrome text-slate-500 bg-slate-950 border border-slate-900 rounded p-2">
             No specific functions identified
           </div>
         )}
@@ -91,8 +91,8 @@ export const ImpactAssessmentCard: React.FC<ImpactAssessmentProps> = ({ data }) 
       {/* Side Effects */}
       <div className="space-y-2">
         <div className="flex items-center gap-2">
-          <AlertTriangle size={12} className="text-slate-500" />
-          <span className="text-body-xs text-slate-500 uppercase font-bold">
+          <AlertTriangle size={12} className="text-slate-400" />
+          <span className="text-body-xs text-slate-400 uppercase font-bold">
             Potential Side Effects ({data.side_effects.length})
           </span>
         </div>
@@ -116,8 +116,8 @@ export const ImpactAssessmentCard: React.FC<ImpactAssessmentProps> = ({ data }) 
       {/* Security Review */}
       <div className="space-y-2">
         <div className="flex items-center gap-2">
-          <Lock size={12} className="text-slate-500" />
-          <span className="text-body-xs text-slate-500 uppercase font-bold">Security Review</span>
+          <Lock size={12} className="text-slate-400" />
+          <span className="text-body-xs text-slate-400 uppercase font-bold">Security Review</span>
         </div>
         
         <div className="text-chrome text-slate-400 bg-slate-950 border border-slate-900 rounded p-3">
@@ -129,15 +129,15 @@ export const ImpactAssessmentCard: React.FC<ImpactAssessmentProps> = ({ data }) 
       <div className="pt-3 border-t border-slate-800">
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-slate-950 border border-slate-900 rounded p-3 text-center">
-            <div className="text-chrome text-slate-600 uppercase mb-1">Diff Size</div>
+            <div className="text-chrome text-slate-500 uppercase mb-1">Diff Size</div>
             <div className="text-[14px] font-bold text-blue-400">{data.diff_lines}</div>
-            <div className="text-[7px] text-slate-600">lines changed</div>
+            <div className="text-[7px] text-slate-500">lines changed</div>
           </div>
           
           <div className="bg-slate-950 border border-slate-900 rounded p-3 text-center">
-            <div className="text-chrome text-slate-600 uppercase mb-1">Impact Scope</div>
+            <div className="text-chrome text-slate-500 uppercase mb-1">Impact Scope</div>
             <div className="text-[14px] font-bold text-purple-400">{data.affected_functions.length}</div>
-            <div className="text-[7px] text-slate-600">functions</div>
+            <div className="text-[7px] text-slate-500">functions</div>
           </div>
         </div>
       </div>

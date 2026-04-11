@@ -330,7 +330,7 @@ const PostMortemDossierView: React.FC<PostMortemDossierViewProps> = ({
       <div className="flex-1 flex overflow-hidden">
         {/* Sticky sidebar ToC */}
         <nav className="dossier-nav-sidebar w-56 shrink-0 border-r border-slate-800 bg-slate-900/40 overflow-y-auto py-6 px-4">
-          <div className="text-body-xs font-bold uppercase tracking-[0.2em] text-slate-600 mb-4 px-2">
+          <div className="text-body-xs font-bold uppercase tracking-[0.2em] text-slate-500 mb-4 px-2">
             Contents
           </div>
           {SECTIONS.map((section, i) => {
@@ -342,10 +342,10 @@ const PostMortemDossierView: React.FC<PostMortemDossierViewProps> = ({
                 className={`w-full text-left px-3 py-2 rounded-r text-body-xs transition-all flex items-center gap-2 mb-0.5 ${
                   isActive
                     ? 'border-l-2 border-[#e09f3e] text-white bg-amber-500/5'
-                    : 'border-l-2 border-transparent text-slate-500 hover:text-slate-300 hover:bg-slate-800/50'
+                    : 'border-l-2 border-transparent text-slate-400 hover:text-slate-300 hover:bg-slate-800/50'
                 }`}
               >
-                <span className="text-body-xs text-slate-600 font-mono w-4">{i + 1}</span>
+                <span className="text-body-xs text-slate-500 font-mono w-4">{i + 1}</span>
                 {section.title}
               </button>
             );
@@ -368,7 +368,7 @@ const PostMortemDossierView: React.FC<PostMortemDossierViewProps> = ({
                 <InfoRow label="Incident ID" value={findings?.incident_id || findings?.session_id || '—'} />
                 <InfoRow label="Service" value={findings?.target_service || '—'} />
                 <div>
-                  <span className="text-body-xs text-slate-500 uppercase tracking-wider">Severity</span>
+                  <span className="text-body-xs text-slate-400 uppercase tracking-wider">Severity</span>
                   <div className="mt-1">
                     {findings?.severity_recommendation ? (
                       <span className={`inline-flex px-2 py-0.5 rounded border text-body-xs font-bold ${severityColor(findings.severity_recommendation.recommended_severity)}`}>
@@ -405,7 +405,7 @@ const PostMortemDossierView: React.FC<PostMortemDossierViewProps> = ({
                 {!editingExec && (
                   <button
                     onClick={() => setEditingExec(true)}
-                    className="dossier-edit-toggle text-body-xs text-slate-500 hover:text-slate-300 flex items-center gap-1"
+                    className="dossier-edit-toggle text-body-xs text-slate-400 hover:text-slate-300 flex items-center gap-1"
                   >
                     <span className="material-symbols-outlined text-[12px]" style={{ fontFamily: 'Material Symbols Outlined' }}>edit</span>
                     Edit
@@ -441,7 +441,7 @@ const PostMortemDossierView: React.FC<PostMortemDossierViewProps> = ({
                 {!editingImpact && (
                   <button
                     onClick={() => setEditingImpact(true)}
-                    className="dossier-edit-toggle text-body-xs text-slate-500 hover:text-slate-300 flex items-center gap-1"
+                    className="dossier-edit-toggle text-body-xs text-slate-400 hover:text-slate-300 flex items-center gap-1"
                   >
                     <span className="material-symbols-outlined text-[12px]" style={{ fontFamily: 'Material Symbols Outlined' }}>edit</span>
                     Edit
@@ -476,10 +476,10 @@ const PostMortemDossierView: React.FC<PostMortemDossierViewProps> = ({
                 {findings?.code_mermaid_diagram ? (
                   <MermaidChart chart={findings.code_mermaid_diagram} />
                 ) : (
-                  <div className="flex flex-col items-center justify-center h-40 text-slate-500 text-[12px] gap-2">
-                    <span className="material-symbols-outlined text-[20px] text-slate-600" style={{ fontFamily: 'Material Symbols Outlined' }}>account_tree</span>
+                  <div className="flex flex-col items-center justify-center h-40 text-slate-400 text-[12px] gap-2">
+                    <span className="material-symbols-outlined text-[20px] text-slate-500" style={{ fontFamily: 'Material Symbols Outlined' }}>account_tree</span>
                     <span>No topology diagram available.</span>
-                    <span className="text-body-xs text-slate-600">Attach a repository to enable code-level topology mapping.</span>
+                    <span className="text-body-xs text-slate-500">Attach a repository to enable code-level topology mapping.</span>
                   </div>
                 )}
               </div>
@@ -488,8 +488,8 @@ const PostMortemDossierView: React.FC<PostMortemDossierViewProps> = ({
             {/* Section 5: Timeline of Truth */}
             <DossierSection id="timeline" title="Timeline of Truth" icon="timeline" index={4} sectionRef={setSectionRef('timeline')}>
               {!findings?.patient_zero && !findings?.service_flow?.length && !findings?.reasoning_chain?.length ? (
-                <div className="text-[12px] text-slate-500 py-4 flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[14px] text-slate-600" style={{ fontFamily: 'Material Symbols Outlined' }}>hourglass_empty</span>
+                <div className="text-[12px] text-slate-400 py-4 flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[14px] text-slate-500" style={{ fontFamily: 'Material Symbols Outlined' }}>hourglass_empty</span>
                   No timeline events available yet. Events populate as the investigation progresses.
                 </div>
               ) : (
@@ -536,7 +536,7 @@ const PostMortemDossierView: React.FC<PostMortemDossierViewProps> = ({
                 {sortedPatterns.length > 0 ? (
                   <table className="w-full text-body-xs">
                     <thead>
-                      <tr className="text-left text-body-xs text-slate-500 uppercase tracking-wider border-b border-slate-800">
+                      <tr className="text-left text-body-xs text-slate-400 uppercase tracking-wider border-b border-slate-800">
                         <th className="py-2 pr-3">Pattern</th>
                         <th className="py-2 pr-3">Freq</th>
                         <th className="py-2 pr-3">Severity</th>
@@ -570,7 +570,7 @@ const PostMortemDossierView: React.FC<PostMortemDossierViewProps> = ({
                     </tbody>
                   </table>
                 ) : (
-                  <div className="text-[12px] text-slate-500 py-4">No error patterns available</div>
+                  <div className="text-[12px] text-slate-400 py-4">No error patterns available</div>
                 )}
               </div>
             </DossierSection>
@@ -595,11 +595,11 @@ const PostMortemDossierView: React.FC<PostMortemDossierViewProps> = ({
                               'bg-slate-500'
                             }`} />
                             {f.summary}
-                            <span className="text-slate-500 ml-2">({f.confidence_score}%)</span>
+                            <span className="text-slate-400 ml-2">({f.confidence_score}%)</span>
                           </div>
                         ))}
                         {agentFindings.length > 3 && (
-                          <div className="text-body-xs text-slate-500 mt-1">
+                          <div className="text-body-xs text-slate-400 mt-1">
                             +{agentFindings.length - 3} more
                           </div>
                         )}
@@ -607,7 +607,7 @@ const PostMortemDossierView: React.FC<PostMortemDossierViewProps> = ({
                     </AgentFindingCard>
                   ))
                 ) : (
-                  <div className="text-[12px] text-slate-500">No agent findings available</div>
+                  <div className="text-[12px] text-slate-400">No agent findings available</div>
                 )}
               </div>
             </DossierSection>
@@ -618,13 +618,13 @@ const PostMortemDossierView: React.FC<PostMortemDossierViewProps> = ({
                 <div className="space-y-3">
                   {findings.fix_data.fix_explanation && (
                     <div className="text-[12px] text-slate-300">
-                      <span className="text-body-xs text-slate-500 uppercase tracking-wider block mb-1">Fix Explanation</span>
+                      <span className="text-body-xs text-slate-400 uppercase tracking-wider block mb-1">Fix Explanation</span>
                       {findings.fix_data.fix_explanation}
                     </div>
                   )}
                   {findings.fix_data.pr_url && (
                     <div className="text-[12px]">
-                      <span className="text-body-xs text-slate-500 uppercase tracking-wider block mb-1">Pull Request</span>
+                      <span className="text-body-xs text-slate-400 uppercase tracking-wider block mb-1">Pull Request</span>
                       <a
                         href={findings.fix_data.pr_url}
                         target="_blank"
@@ -653,9 +653,9 @@ const PostMortemDossierView: React.FC<PostMortemDossierViewProps> = ({
                   )}
                 </div>
               ) : (
-                <div className="text-[12px] text-slate-500 flex flex-col gap-1">
+                <div className="text-[12px] text-slate-400 flex flex-col gap-1">
                   <span>No automated fix was generated.</span>
-                  <span className="text-body-xs text-slate-600">Attach a repository during session setup to enable automated fix generation.</span>
+                  <span className="text-body-xs text-slate-500">Attach a repository during session setup to enable automated fix generation.</span>
                 </div>
               )}
             </DossierSection>
@@ -672,7 +672,7 @@ const PostMortemDossierView: React.FC<PostMortemDossierViewProps> = ({
                         <div key={i} className="bg-slate-800/40 border border-slate-700/50 rounded-lg p-3">
                           <div className="text-body-xs text-slate-300 font-medium">{q.metric}</div>
                           <code className="block text-body-xs text-amber-400 font-mono mt-1">{q.query}</code>
-                          <div className="text-body-xs text-slate-500 mt-1">{q.rationale}</div>
+                          <div className="text-body-xs text-slate-400 mt-1">{q.rationale}</div>
                         </div>
                       ))}
                     </div>
@@ -688,7 +688,7 @@ const PostMortemDossierView: React.FC<PostMortemDossierViewProps> = ({
                         <div key={i} className="text-body-xs text-slate-400">
                           <span className="text-slate-300">{dep.source}</span>
                           {dep.target && <span> → {dep.target}</span>}
-                          {dep.evidence && <span className="text-slate-500 ml-2">({dep.evidence})</span>}
+                          {dep.evidence && <span className="text-slate-400 ml-2">({dep.evidence})</span>}
                         </div>
                       ))}
                     </div>
@@ -707,7 +707,7 @@ const PostMortemDossierView: React.FC<PostMortemDossierViewProps> = ({
                         </a>
                       </div>
                     ) : (
-                      <div className="text-slate-500">Jira: Not created</div>
+                      <div className="text-slate-400">Jira: Not created</div>
                     )}
                     {findings?.closure_state?.remedy_result?.status === 'success' ? (
                       <div className="flex items-center gap-2">
@@ -717,7 +717,7 @@ const PostMortemDossierView: React.FC<PostMortemDossierViewProps> = ({
                         </a>
                       </div>
                     ) : (
-                      <div className="text-slate-500">Remedy: Not created</div>
+                      <div className="text-slate-400">Remedy: Not created</div>
                     )}
                   </div>
                 </div>
@@ -740,7 +740,7 @@ const PostMortemDossierView: React.FC<PostMortemDossierViewProps> = ({
               <div className="dossier-publish-footer space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-body-xs text-slate-500 uppercase tracking-wider block mb-1">
+                    <label className="text-body-xs text-slate-400 uppercase tracking-wider block mb-1">
                       Confluence Space Key
                     </label>
                     <input
@@ -751,7 +751,7 @@ const PostMortemDossierView: React.FC<PostMortemDossierViewProps> = ({
                     />
                   </div>
                   <div>
-                    <label className="text-body-xs text-slate-500 uppercase tracking-wider block mb-1">
+                    <label className="text-body-xs text-slate-400 uppercase tracking-wider block mb-1">
                       Page Title
                     </label>
                     <input
@@ -776,10 +776,10 @@ const PostMortemDossierView: React.FC<PostMortemDossierViewProps> = ({
                   </button>
 
                   <CopyButton text={fullMarkdown} className="!p-2" size={14} />
-                  <span className="text-body-xs text-slate-600">Copy Markdown</span>
+                  <span className="text-body-xs text-slate-500">Copy Markdown</span>
                 </div>
 
-                <div className="text-body-xs text-slate-600 mt-2">
+                <div className="text-body-xs text-slate-500 mt-2">
                   Generated at {new Date().toISOString().replace('T', ' ').slice(0, 19)} UTC
                 </div>
               </div>
@@ -828,7 +828,7 @@ const PostMortemDossierView: React.FC<PostMortemDossierViewProps> = ({
 
 const InfoRow: React.FC<{ label: string; value: string }> = ({ label, value }) => (
   <div>
-    <span className="text-body-xs text-slate-500 uppercase tracking-wider">{label}</span>
+    <span className="text-body-xs text-slate-400 uppercase tracking-wider">{label}</span>
     <div className="text-[12px] text-slate-200 mt-0.5 font-mono truncate">{value}</div>
   </div>
 );
@@ -848,13 +848,13 @@ const TimelineEvent: React.FC<{
     }`} />
     <div className="flex items-start gap-3">
       {timestamp && (
-        <span className="text-body-xs text-slate-500 font-mono whitespace-nowrap mt-0.5">
+        <span className="text-body-xs text-slate-400 font-mono whitespace-nowrap mt-0.5">
           {timestamp}
         </span>
       )}
       <div className="flex-1">
         <span className="text-body-xs text-slate-300">{description}</span>
-        <span className="text-body-xs ml-2 px-1.5 py-0.5 rounded bg-slate-800 text-slate-500 border border-slate-700/50">
+        <span className="text-body-xs ml-2 px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700/50">
           {source}
         </span>
       </div>

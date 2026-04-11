@@ -53,7 +53,7 @@ const ServiceTopologySVG: React.FC<ServiceTopologySVGProps> = ({
 
   if (nodes.length === 0) {
     return (
-      <div className="h-32 flex items-center justify-center text-body-xs text-slate-600">
+      <div className="h-32 flex items-center justify-center text-body-xs text-slate-500">
         Topology will populate as dependencies are discovered
       </div>
     );

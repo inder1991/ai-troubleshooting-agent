@@ -42,7 +42,7 @@ export default function GuardScanView({ scanResult }: GuardScanViewProps) {
               style={{ width: `${Math.min(scanResult.risk_score * 100, 100)}%` }}
             />
           </div>
-          <span className="text-body-xs font-mono text-slate-500">{Math.round(scanResult.risk_score * 100)}%</span>
+          <span className="text-body-xs font-mono text-slate-400">{Math.round(scanResult.risk_score * 100)}%</span>
         </div>
       </div>
 
@@ -54,15 +54,15 @@ export default function GuardScanView({ scanResult }: GuardScanViewProps) {
         >
           <span className="material-symbols-outlined text-red-400 text-sm">warning</span>
           <span className="text-xs font-semibold text-red-300">Current Risks</span>
-          <span className="text-body-xs font-mono text-slate-500 ml-auto">{scanResult.current_risks.length}</span>
-          <span className="material-symbols-outlined text-slate-500 text-sm">
+          <span className="text-body-xs font-mono text-slate-400 ml-auto">{scanResult.current_risks.length}</span>
+          <span className="material-symbols-outlined text-slate-400 text-sm">
             {sections.current ? 'expand_less' : 'expand_more'}
           </span>
         </button>
         {sections.current && (
           <div className="p-2 space-y-1.5">
             {scanResult.current_risks.length === 0 ? (
-              <p className="text-xs text-slate-500 italic px-1">No current risks detected</p>
+              <p className="text-xs text-slate-400 italic px-1">No current risks detected</p>
             ) : (
               scanResult.current_risks.map((risk, i) => <CurrentRiskCard key={i} risk={risk} />)
             )}
@@ -78,15 +78,15 @@ export default function GuardScanView({ scanResult }: GuardScanViewProps) {
         >
           <span className="material-symbols-outlined text-amber-400 text-sm">trending_up</span>
           <span className="text-xs font-semibold text-amber-300">Predictive Risks</span>
-          <span className="text-body-xs font-mono text-slate-500 ml-auto">{scanResult.predictive_risks.length}</span>
-          <span className="material-symbols-outlined text-slate-500 text-sm">
+          <span className="text-body-xs font-mono text-slate-400 ml-auto">{scanResult.predictive_risks.length}</span>
+          <span className="material-symbols-outlined text-slate-400 text-sm">
             {sections.predictive ? 'expand_less' : 'expand_more'}
           </span>
         </button>
         {sections.predictive && (
           <div className="p-2 space-y-1.5">
             {scanResult.predictive_risks.length === 0 ? (
-              <p className="text-xs text-slate-500 italic px-1">No predictive risks detected</p>
+              <p className="text-xs text-slate-400 italic px-1">No predictive risks detected</p>
             ) : (
               scanResult.predictive_risks.map((risk, i) => <PredictiveRiskCard key={i} risk={risk} />)
             )}
@@ -102,7 +102,7 @@ export default function GuardScanView({ scanResult }: GuardScanViewProps) {
         >
           <span className="material-symbols-outlined text-amber-400 text-sm">compare_arrows</span>
           <span className="text-xs font-semibold text-amber-300">Delta Since Last Scan</span>
-          <span className="material-symbols-outlined text-slate-500 text-sm">
+          <span className="material-symbols-outlined text-slate-400 text-sm">
             {sections.delta ? 'expand_less' : 'expand_more'}
           </span>
         </button>

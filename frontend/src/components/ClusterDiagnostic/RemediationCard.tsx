@@ -58,15 +58,15 @@ const RemediationCard: React.FC<RemediationCardProps> = ({ steps, blastRadius })
 
   return (
     <div className="bg-wr-surface border border-wr-border rounded-lg p-4 shadow-lg">
-      <h3 className="text-body-xs uppercase font-bold tracking-widest text-slate-500 mb-3">Proposed Remediation</h3>
+      <h3 className="text-body-xs uppercase font-bold tracking-widest text-slate-400 mb-3">Proposed Remediation</h3>
 
       {/* Pre-check command */}
       {primaryStep.pre_check && (
         <div className="mb-3">
-          <span className="text-body-xs uppercase font-semibold text-slate-500 tracking-wider">Pre-check</span>
+          <span className="text-body-xs uppercase font-semibold text-slate-400 tracking-wider">Pre-check</span>
           <div className="bg-black/40 rounded p-2 font-mono text-body-xs text-blue-400 mt-1 border border-wr-border/30 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
-              <span className="text-slate-500 shrink-0">$</span>
+              <span className="text-slate-400 shrink-0">$</span>
               <span className="truncate">{primaryStep.pre_check}</span>
             </div>
             <button
@@ -82,10 +82,10 @@ const RemediationCard: React.FC<RemediationCardProps> = ({ steps, blastRadius })
       {/* Dry-run command */}
       {primaryStep.dry_run && (
         <div className="mb-3">
-          <span className="text-body-xs uppercase font-semibold text-slate-500 tracking-wider">Dry Run</span>
+          <span className="text-body-xs uppercase font-semibold text-slate-400 tracking-wider">Dry Run</span>
           <div className="bg-black/40 rounded p-2 font-mono text-body-xs text-amber-400 mt-1 border border-wr-border/30 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
-              <span className="text-slate-500 shrink-0">$</span>
+              <span className="text-slate-400 shrink-0">$</span>
               <span className="truncate">{primaryStep.dry_run}</span>
             </div>
             <button
@@ -96,7 +96,7 @@ const RemediationCard: React.FC<RemediationCardProps> = ({ steps, blastRadius })
             </button>
           </div>
           {primaryStep.expected_output && (
-            <div className="text-body-xs text-slate-600 mt-1 pl-2 border-l border-slate-700">
+            <div className="text-body-xs text-slate-500 mt-1 pl-2 border-l border-slate-700">
               Expected: {primaryStep.expected_output}
             </div>
           )}
@@ -106,7 +106,7 @@ const RemediationCard: React.FC<RemediationCardProps> = ({ steps, blastRadius })
       {/* Main command */}
       {primaryStep.command && (
         <div className="bg-black/40 rounded p-3 font-mono text-xs text-emerald-400 mb-3 border border-wr-border/30 flex items-center gap-2">
-          <span className="text-slate-500">$</span>
+          <span className="text-slate-400">$</span>
           {primaryStep.command}
         </div>
       )}
@@ -122,14 +122,14 @@ const RemediationCard: React.FC<RemediationCardProps> = ({ steps, blastRadius })
       )}
 
       {blastRadius && (
-        <div className="text-body-xs text-slate-500 mb-4 leading-relaxed">
+        <div className="text-body-xs text-slate-400 mb-4 leading-relaxed">
           <span className="text-amber-500 font-bold">Risk Assessment:</span>{' '}
           {blastRadius.affected_pods.length} pod{blastRadius.affected_pods.length !== 1 ? 's' : ''} affected
           across {blastRadius.affected_namespaces.length} namespace{blastRadius.affected_namespaces.length !== 1 ? 's' : ''}
           on {blastRadius.affected_nodes.length} node{blastRadius.affected_nodes.length !== 1 ? 's' : ''}.
           {blastRadius.summary && <span className="text-white ml-1">{blastRadius.summary}</span>}
           {blastRadius.affected_pods.length > 0 && (
-            <div className="mt-1 font-mono text-body-xs text-slate-600">
+            <div className="mt-1 font-mono text-body-xs text-slate-500">
               {blastRadius.affected_pods.slice(0, 5).join(', ')}
               {blastRadius.affected_pods.length > 5 && ` +${blastRadius.affected_pods.length - 5} more`}
             </div>
@@ -140,27 +140,27 @@ const RemediationCard: React.FC<RemediationCardProps> = ({ steps, blastRadius })
       {/* Simulation preview */}
       {primaryStep.validation?.simulation && (
         <div className="mb-3 px-3 py-2 rounded border border-wr-border bg-wr-bg/40">
-          <span className="text-body-xs uppercase font-bold tracking-wider text-slate-500">Impact Simulation</span>
+          <span className="text-body-xs uppercase font-bold tracking-wider text-slate-400">Impact Simulation</span>
           <div className="mt-1.5 space-y-1 text-body-xs">
             <div className="text-slate-400">
-              <span className="text-slate-500">Action:</span>{' '}
+              <span className="text-slate-400">Action:</span>{' '}
               <span className="text-wr-accent font-mono">{primaryStep.validation.simulation.action}</span>{' '}
               <span className="text-slate-300 font-mono">{primaryStep.validation.simulation.target}</span>
             </div>
             <div className="text-slate-400">
-              <span className="text-slate-500">Impact:</span>{' '}
+              <span className="text-slate-400">Impact:</span>{' '}
               {primaryStep.validation.simulation.impact}
             </div>
             {primaryStep.validation.simulation.side_effects && primaryStep.validation.simulation.side_effects.length > 0 && (
               <div>
-                <span className="text-slate-500">Side effects:</span>
+                <span className="text-slate-400">Side effects:</span>
                 {primaryStep.validation.simulation.side_effects.map((se, i) => (
                   <div key={i} className="text-amber-400/70 ml-2">- {se}</div>
                 ))}
               </div>
             )}
             <div className="text-slate-400">
-              <span className="text-slate-500">Recovery:</span>{' '}
+              <span className="text-slate-400">Recovery:</span>{' '}
               {primaryStep.validation.simulation.recovery}
             </div>
           </div>
@@ -170,7 +170,7 @@ const RemediationCard: React.FC<RemediationCardProps> = ({ steps, blastRadius })
       {/* Remediation confidence badge */}
       {primaryStep.validation?.remediation_confidence != null && (
         <div className="mb-3 flex items-center gap-2">
-          <span className="text-body-xs uppercase font-semibold text-slate-500 tracking-wider">Confidence:</span>
+          <span className="text-body-xs uppercase font-semibold text-slate-400 tracking-wider">Confidence:</span>
           <span className="text-body-xs text-slate-400">{primaryStep.validation.confidence_label}</span>
           <span
             className="w-2 h-2 rounded-full"
@@ -274,16 +274,16 @@ const RemediationCard: React.FC<RemediationCardProps> = ({ steps, blastRadius })
 
       {/* Rollback/verify info shown even before execution */}
       {!executedSteps.has(0) && (primaryStep.verify || primaryStep.rollback) && (
-        <div className="mt-2 text-body-xs text-slate-600 space-y-0.5">
+        <div className="mt-2 text-body-xs text-slate-500 space-y-0.5">
           {primaryStep.rollback && (
             <div className="flex items-center gap-1">
-              <span className="text-slate-500">Rollback:</span>
+              <span className="text-slate-400">Rollback:</span>
               <code className="text-red-400/60 font-mono">{primaryStep.rollback}</code>
             </div>
           )}
           {primaryStep.verify && (
             <div className="flex items-center gap-1">
-              <span className="text-slate-500">Verify:</span>
+              <span className="text-slate-400">Verify:</span>
               <code className="text-emerald-400/60 font-mono">{primaryStep.verify}</code>
             </div>
           )}

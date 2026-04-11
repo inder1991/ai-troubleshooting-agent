@@ -73,13 +73,13 @@ const LifecycleSummaryStrip: React.FC<LifecycleSummaryStripProps> = ({
       )}
 
       {/* Domain count */}
-      <span className="text-body-xs text-slate-500 shrink-0">{domainCount} domains scanned</span>
+      <span className="text-body-xs text-slate-400 shrink-0">{domainCount} domains scanned</span>
 
       {/* Completeness */}
       {completePct !== null && (
         <>
           <span className="w-px h-3 bg-wr-border-subtle shrink-0" />
-          <span className="text-body-xs text-slate-500 font-mono shrink-0">{completePct}% complete</span>
+          <span className="text-body-xs text-slate-400 font-mono shrink-0">{completePct}% complete</span>
         </>
       )}
 

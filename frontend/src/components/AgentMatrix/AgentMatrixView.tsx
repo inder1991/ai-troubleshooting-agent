@@ -134,10 +134,10 @@ const AgentMatrixView: React.FC<AgentMatrixViewProps> = ({ onGoHome }) => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search agents by name, description, or tool..."
-                className="flex-1 bg-transparent text-sm text-white placeholder:text-slate-600 outline-none"
+                className="flex-1 bg-transparent text-sm text-white placeholder:text-slate-500 outline-none"
               />
               {searchQuery && (
-                <button onClick={() => setSearchQuery('')} className="text-slate-600 hover:text-slate-300">
+                <button onClick={() => setSearchQuery('')} className="text-slate-500 hover:text-slate-300">
                   <span className="material-symbols-outlined text-sm">close</span>
                 </button>
               )}

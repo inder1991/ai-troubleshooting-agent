@@ -55,7 +55,7 @@ const RootCauseVerdict: React.FC<RootCauseVerdictProps> = ({
         <div className="flex items-center gap-1.5 flex-wrap mt-2 text-body-xs">
           {causalChain.map((step, i) => (
             <React.Fragment key={i}>
-              {i > 0 && <span className="text-slate-500">&rarr;</span>}
+              {i > 0 && <span className="text-slate-400">&rarr;</span>}
               <span className="px-1.5 py-0.5 rounded bg-duck-surface/50 text-slate-300">{step}</span>
             </React.Fragment>
           ))}
@@ -70,7 +70,7 @@ const RootCauseVerdict: React.FC<RootCauseVerdictProps> = ({
 
       {contributingPanels && contributingPanels.length > 0 && (
         <div className="flex items-center gap-1.5 mt-2">
-          <span className="text-body-xs text-slate-500">Evidence:</span>
+          <span className="text-body-xs text-slate-400">Evidence:</span>
           {contributingPanels.map((p, i) => (
             <span key={`${p}-${i}`} className="text-body-xs px-1.5 py-0.5 rounded bg-duck-accent/20 text-duck-accent">
               {p}
@@ -81,7 +81,7 @@ const RootCauseVerdict: React.FC<RootCauseVerdictProps> = ({
 
       {evidenceWeights && Object.keys(evidenceWeights).length > 0 && (
         <div className="mt-2 space-y-1">
-          <span className="text-body-xs text-slate-500">Evidence weights:</span>
+          <span className="text-body-xs text-slate-400">Evidence weights:</span>
           {Object.entries(evidenceWeights).map(([id, { weight, reason }]) => (
             <div key={id} className="flex items-center gap-2">
               <div className="h-1.5 bg-duck-accent/30 rounded-full overflow-hidden" style={{ width: `${weight * 100}%`, minWidth: 8 }}>

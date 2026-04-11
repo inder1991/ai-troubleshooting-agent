@@ -81,7 +81,7 @@ const SurgicalTelescope: React.FC = () => {
                   className={`px-3 py-1 rounded text-body-xs font-mono whitespace-nowrap transition-colors
                     ${i === activeFileIdx
                       ? 'bg-cyan-950/40 text-cyan-400 border border-cyan-700/40'
-                      : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/40'}
+                      : 'text-slate-400 hover:text-slate-300 hover:bg-slate-800/40'}
                   `}
                 >
                   {f.file_path.split('/').pop()}
@@ -184,7 +184,7 @@ const DiffSplitView: React.FC<DiffSplitViewProps> = ({ originalCode, fixedCode, 
               key={i}
               className={`flex px-2 ${changedOriginal.has(i + 1) ? 'bg-red-950/30' : ''}`}
             >
-              <span className="w-10 text-right pr-3 text-slate-600 select-none shrink-0">{i + 1}</span>
+              <span className="w-10 text-right pr-3 text-slate-500 select-none shrink-0">{i + 1}</span>
               <span className={`${changedOriginal.has(i + 1) ? 'text-red-300' : 'text-slate-400'}`}>
                 {line || ' '}
               </span>
@@ -204,7 +204,7 @@ const DiffSplitView: React.FC<DiffSplitViewProps> = ({ originalCode, fixedCode, 
               key={i}
               className={`flex px-2 ${changedFixed.has(i + 1) ? 'bg-emerald-950/30' : ''}`}
             >
-              <span className="w-10 text-right pr-3 text-slate-600 select-none shrink-0">{i + 1}</span>
+              <span className="w-10 text-right pr-3 text-slate-500 select-none shrink-0">{i + 1}</span>
               <span className={`${changedFixed.has(i + 1) ? 'text-emerald-300' : 'text-slate-400'}`}>
                 {line || ' '}
               </span>
