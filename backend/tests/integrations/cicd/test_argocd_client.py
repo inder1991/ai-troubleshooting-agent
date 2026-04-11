@@ -387,3 +387,43 @@ async def test_list_deploy_events_rate_limit_raises_with_kind():
             datetime(2026, 4, 10, 15, 0, tzinfo=timezone.utc),
         )
     assert exc_info.value.kind == "rate_limit"
+
+
+class _FakeCluster:
+    def __init__(self, apps, has_crd=True):
+        self.apps = apps
+        self._has_crd = has_crd
+
+    async def list_custom_resource(self, group, version, plural):
+        assert group == "argoproj.io"
+        assert plural == "applications"
+        return self.apps
+
+    async def has_crd(self, name: str) -> bool:
+        return self._has_crd
+
+
+@pytest.mark.asyncio
+async def test_kubeconfig_mode_reads_applications_from_cluster():
+    cluster = _FakeCluster(apps=APPS_PAYLOAD["items"])
+    client = ArgoCDClient.from_kubeconfig(cluster_client=cluster)
+    events = await client.list_deploy_events(
+        datetime(2026, 4, 10, 13, 0, tzinfo=timezone.utc),
+        datetime(2026, 4, 10, 15, 0, tzinfo=timezone.utc),
+    )
+    assert len(events) == 1
+    assert events[0].source == "argocd"
+
+
+@pytest.mark.asyncio
+async def test_probe_crds_returns_true_when_crd_present():
+    cluster = _FakeCluster(apps=[], has_crd=True)
+    assert await ArgoCDClient.probe_crds(cluster) is True
+
+
+@pytest.mark.asyncio
+async def test_probe_crds_returns_false_on_cluster_exception():
+    class Broken:
+        async def has_crd(self, name):
+            raise RuntimeError("rbac denied")
+    assert await ArgoCDClient.probe_crds(Broken()) is False
