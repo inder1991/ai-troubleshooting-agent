@@ -119,23 +119,21 @@ const HomePage: React.FC<HomePageProps> = ({
               <div className="flex gap-5">
                 <button
                   onClick={() => setFeedTab('global')}
-                  className="text-sm font-display font-bold pb-1"
-                  style={{
-                    color: feedTab === 'global' ? 'white' : '#94a3b8',
-                    borderBottom: feedTab === 'global' ? '2px solid #e09f3e' : '2px solid transparent',
-                    transition: 'color 200ms cubic-bezier(0.25, 1, 0.5, 1), border-color 200ms cubic-bezier(0.25, 1, 0.5, 1)',
-                  }}
+                  className={`text-sm font-display font-bold pb-1 border-b-2 transition-colors duration-200 ${
+                    feedTab === 'global'
+                      ? 'text-wr-text border-wr-accent'
+                      : 'text-wr-text-muted border-transparent hover:text-wr-text-secondary'
+                  }`}
                 >
                   Global Investigations
                 </button>
                 <button
                   onClick={() => setFeedTab('mine')}
-                  className="text-sm font-display font-bold pb-1"
-                  style={{
-                    color: feedTab === 'mine' ? 'white' : '#94a3b8',
-                    borderBottom: feedTab === 'mine' ? '2px solid #e09f3e' : '2px solid transparent',
-                    transition: 'color 200ms cubic-bezier(0.25, 1, 0.5, 1), border-color 200ms cubic-bezier(0.25, 1, 0.5, 1)',
-                  }}
+                  className={`text-sm font-display font-bold pb-1 border-b-2 transition-colors duration-200 ${
+                    feedTab === 'mine'
+                      ? 'text-wr-text border-wr-accent'
+                      : 'text-wr-text-muted border-transparent hover:text-wr-text-secondary'
+                  }`}
                 >
                   My Active ({myActiveCount})
                 </button>
