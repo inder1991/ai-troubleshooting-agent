@@ -111,7 +111,7 @@ const ForemanHUD: React.FC<ForemanHUDProps> = ({
 
   return (
     <header
-      className={`h-16 border-b bg-[#0a1a1d]/80 backdrop-blur-md flex items-center px-4 gap-4 shrink-0 transition-all duration-500 ${borderClass}`}
+      className={`warroom-header h-16 !px-4 !min-h-0 bg-[#0a1a1d]/80 transition-all duration-500 ${borderClass}`}
     >
       {/* Logo / Back */}
       <button onClick={onGoHome} className="flex items-center gap-2 group shrink-0">

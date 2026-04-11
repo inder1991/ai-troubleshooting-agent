@@ -28,7 +28,7 @@ const ClusterHeader: React.FC<ClusterHeaderProps> = ({
   const [showBreakdown, setShowBreakdown] = useState(false);
 
   return (
-    <header className="h-14 border-b border-wr-border bg-wr-surface flex items-center justify-between px-6 z-50 shadow-md shrink-0">
+    <header className="warroom-header h-14 justify-between z-50 shadow-md">
       <div className="flex items-center gap-4">
         <button onClick={onGoHome} aria-label="Return to home" className="text-slate-400 hover:text-white transition-colors">
           <span className="material-symbols-outlined">arrow_back</span>
