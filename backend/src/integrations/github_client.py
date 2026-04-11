@@ -121,6 +121,10 @@ class GitHubClient:
         try:
             async with httpx.AsyncClient(timeout=15.0) as client:
                 resp = await client.get(url, headers=headers)
+                if resp.status_code == 401:
+                    raise GitHubClientError(
+                        "authentication required — set GITHUB_TOKEN"
+                    )
                 if resp.status_code == 404:
                     raise GitHubClientError(
                         f"commit not found: {commit_sha}"

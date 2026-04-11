@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import httpx
 import pytest
 
 from src.integrations.github_client import GitHubClient, GitHubClientError
@@ -109,3 +110,59 @@ async def test_get_commit_diff_truncates_large_patches():
     patch_out = result["files"][0]["patch"]
     assert len(patch_out) <= 1500 + len("\n... (truncated)")
     assert patch_out.endswith("... (truncated)")
+
+
+@pytest.mark.asyncio
+async def test_get_commits_raises_on_401():
+    fake_client = MagicMock()
+    fake_client.get = AsyncMock(return_value=_mock_response(401))
+    fake_ctx = MagicMock()
+    fake_ctx.__aenter__ = AsyncMock(return_value=fake_client)
+    fake_ctx.__aexit__ = AsyncMock(return_value=None)
+
+    with patch("src.integrations.github_client.httpx.AsyncClient", return_value=fake_ctx):
+        client = GitHubClient(token="")
+        with pytest.raises(GitHubClientError, match="authentication required"):
+            await client.get_commits("acme/widgets", since_hours=24)
+
+
+@pytest.mark.asyncio
+async def test_get_commits_raises_on_404():
+    fake_client = MagicMock()
+    fake_client.get = AsyncMock(return_value=_mock_response(404))
+    fake_ctx = MagicMock()
+    fake_ctx.__aenter__ = AsyncMock(return_value=fake_client)
+    fake_ctx.__aexit__ = AsyncMock(return_value=None)
+
+    with patch("src.integrations.github_client.httpx.AsyncClient", return_value=fake_ctx):
+        client = GitHubClient(token="t")
+        with pytest.raises(GitHubClientError, match="not found"):
+            await client.get_commits("acme/widgets", since_hours=24)
+
+
+@pytest.mark.asyncio
+async def test_get_commits_raises_on_connect_error():
+    fake_client = MagicMock()
+    fake_client.get = AsyncMock(side_effect=httpx.ConnectError("boom"))
+    fake_ctx = MagicMock()
+    fake_ctx.__aenter__ = AsyncMock(return_value=fake_client)
+    fake_ctx.__aexit__ = AsyncMock(return_value=None)
+
+    with patch("src.integrations.github_client.httpx.AsyncClient", return_value=fake_ctx):
+        client = GitHubClient(token="t")
+        with pytest.raises(GitHubClientError, match="connection failed"):
+            await client.get_commits("acme/widgets", since_hours=24)
+
+
+@pytest.mark.asyncio
+async def test_get_commit_diff_raises_on_404():
+    fake_client = MagicMock()
+    fake_client.get = AsyncMock(return_value=_mock_response(404))
+    fake_ctx = MagicMock()
+    fake_ctx.__aenter__ = AsyncMock(return_value=fake_client)
+    fake_ctx.__aexit__ = AsyncMock(return_value=None)
+
+    with patch("src.integrations.github_client.httpx.AsyncClient", return_value=fake_ctx):
+        client = GitHubClient(token="t")
+        with pytest.raises(GitHubClientError):
+            await client.get_commit_diff("acme/widgets", "deadbeef")

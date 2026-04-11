@@ -57,19 +57,12 @@ async def _prefetch_cicd_events(
         if isinstance(outcome, BaseException):
             logger.warning(
                 "CI/CD pre-fetch failed for %s/%s: %s",
-                getattr(client, "source", "?"),
-                getattr(client, "name", "?"),
+                client.source,
+                client.name,
                 outcome,
             )
             continue
-        try:
-            events.extend(outcome)
-        except TypeError:
-            logger.warning(
-                "CI/CD pre-fetch returned non-iterable from %s/%s",
-                getattr(client, "source", "?"),
-                getattr(client, "name", "?"),
-            )
+        events.extend(outcome)
     return events
 
 
