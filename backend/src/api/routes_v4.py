@@ -32,6 +32,9 @@ from src.agents.cluster.prometheus_detector import detect_prometheus_endpoint
 from src.agents.metrics_agent import PrometheusClient
 from src.agents.log_agent import ElasticsearchClient
 from src.utils.fix_job_queue import FixJobQueue
+from src.integrations.cicd.base import DeliveryItem
+from src.integrations.cicd.resolver import resolve_cicd_clients
+from src.integrations.github_client import GitHubClient, GitHubClientError
 
 logger = get_logger(__name__)
 
@@ -2204,3 +2207,117 @@ async def get_cluster_cost(cluster_id: str):
     if not snapshot:
         return {"cost_summary": None}
     return {"cost_summary": snapshot.get("cost_summary")}
+
+
+# ---------------------------------------------------------------------------
+# CI/CD unified stream endpoint (Task 16)
+# ---------------------------------------------------------------------------
+
+
+def _event_to_delivery_item(ev, source_instance: str) -> DeliveryItem:
+    kind = "sync" if ev.source == "argocd" else "build"
+    duration = None
+    if ev.finished_at:
+        duration = int((ev.finished_at - ev.started_at).total_seconds())
+    return DeliveryItem(
+        kind=kind,
+        id=ev.source_id,
+        title=ev.name,
+        source=ev.source,
+        source_instance=source_instance,
+        status=ev.status,
+        author=ev.triggered_by,
+        git_sha=ev.git_sha,
+        git_repo=ev.git_repo,
+        target=ev.target,
+        timestamp=ev.started_at,
+        duration_s=duration,
+        url=ev.url,
+    )
+
+
+def _commit_to_delivery_item(commit: dict, repo: str) -> DeliveryItem:
+    ts_raw = commit.get("date") or ""
+    try:
+        ts = datetime.fromisoformat(ts_raw.replace("Z", "+00:00"))
+    except ValueError:
+        ts = datetime.now(tz=timezone.utc)
+    sha = commit.get("sha", "")
+    msg_raw = commit.get("message") or ""
+    msg = msg_raw.splitlines()[0] if msg_raw else ""
+    return DeliveryItem(
+        kind="commit",
+        id=sha,
+        title=msg or sha,
+        source="github",
+        source_instance=repo,
+        status="committed",
+        author=commit.get("author"),
+        git_sha=sha,
+        git_repo=repo,
+        target=None,
+        timestamp=ts,
+        duration_s=None,
+        url=f"https://github.com/{repo}/commit/{sha}",
+    )
+
+
+@router_v4.get("/cicd/stream")
+async def cicd_stream(
+    cluster_id: str,
+    since: datetime,
+    git_repo: str | None = None,
+    limit: int = 100,
+):
+    """Unified deploy + commit feed for the Live Board.
+
+    cluster_id is required — resolves all linked Jenkins/ArgoCD instances.
+    git_repo (owner/repo) optionally mixes recent commits from GitHub.
+    """
+    tz = since.tzinfo or timezone.utc
+    until = datetime.now(tz=tz)
+
+    resolved = await resolve_cicd_clients(cluster_id)
+    all_clients = list(resolved.jenkins) + list(resolved.argocd)
+
+    async def safe_list(client):
+        try:
+            evs = await client.list_deploy_events(since, until)
+            return {"ok": True, "name": client.name, "source": client.source, "events": evs}
+        except Exception as exc:
+            return {"ok": False, "name": client.name, "source": client.source, "error": str(exc)}
+
+    deploy_results = await asyncio.gather(*[safe_list(c) for c in all_clients])
+
+    commits: list[dict] = []
+    if git_repo:
+        try:
+            since_hours = max(1, int((until - since).total_seconds() / 3600))
+            commits = await GitHubClient().get_commits(git_repo, since_hours=since_hours)
+        except GitHubClientError as exc:
+            logger.warning("cicd_stream: github commits fetch failed: %s", exc)
+
+    items: list[DeliveryItem] = []
+    source_errors: list[dict] = [
+        {"name": e.name, "source": e.source, "message": e.message}
+        for e in resolved.errors
+    ]
+    for r in deploy_results:
+        if not r["ok"]:
+            source_errors.append({
+                "name": r["name"], "source": r["source"], "message": r["error"],
+            })
+            continue
+        for ev in r["events"]:
+            items.append(_event_to_delivery_item(ev, r["name"]))
+
+    if git_repo:
+        for c in commits:
+            items.append(_commit_to_delivery_item(c, git_repo))
+
+    items.sort(key=lambda i: i.timestamp, reverse=True)
+    return {
+        "items": [i.model_dump(mode="json") for i in items[:limit]],
+        "source_errors": source_errors,
+        "server_ts": datetime.now(tz=timezone.utc).isoformat(),
+    }
