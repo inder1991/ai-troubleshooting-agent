@@ -125,10 +125,10 @@ const InvestigationView: React.FC<InvestigationViewProps> = ({
   }, [session.session_id, onNewMessage]);
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="warroom-shell flex flex-col h-full">
       {/* Fetch failure banner */}
       {fetchFailCount >= 3 && !fetchErrorDismissed && (
-        <div className="px-4 pt-2">
+        <div className="warroom-banner-strip">
           <ErrorBanner
             message={`Connection issue — data may be stale (${fetchFailCount} failed attempts)`}
             severity="warning"
