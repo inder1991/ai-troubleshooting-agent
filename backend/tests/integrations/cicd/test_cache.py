@@ -50,3 +50,23 @@ async def test_ttl_cache_isolates_keys():
 
     assert await cache.get_or_set("a", load_a) == "A"
     assert await cache.get_or_set("b", load_b) == "B"
+
+
+@pytest.mark.asyncio
+async def test_ttl_cache_single_flight_under_concurrency():
+    cache: TTLCache[str, int] = TTLCache(ttl_seconds=60)
+    calls = {"n": 0}
+    gate = asyncio.Event()
+
+    async def load():
+        calls["n"] += 1
+        await gate.wait()
+        return 7
+
+    tasks = [asyncio.create_task(cache.get_or_set("k", load)) for _ in range(20)]
+    await asyncio.sleep(0)
+    gate.set()
+    results = await asyncio.gather(*tasks)
+
+    assert results == [7] * 20
+    assert calls["n"] == 1
