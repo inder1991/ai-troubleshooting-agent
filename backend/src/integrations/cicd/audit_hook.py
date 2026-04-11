@@ -7,20 +7,17 @@ failures are logged but never raised (must not break read path).
 from __future__ import annotations
 
 import logging
-from typing import Optional
 
 from src.integrations.audit_store import AuditLogger
 
 _logger = logging.getLogger(__name__)
-_audit_logger: Optional[AuditLogger] = None
+_audit_logger: AuditLogger | None = None
 
 
 def _get_logger() -> AuditLogger:
     global _audit_logger
     if _audit_logger is None:
-        al = AuditLogger()
-        al._ensure_tables()
-        _audit_logger = al
+        _audit_logger = AuditLogger()
     return _audit_logger
 
 
@@ -36,5 +33,5 @@ def record_cicd_read(
             details=details or None,
             actor="system",
         )
-    except Exception as exc:  # pragma: no cover — defensive
-        _logger.warning("cicd audit hook failed: %s", exc)
+    except Exception:  # pragma: no cover — defensive
+        _logger.warning("cicd audit hook failed", exc_info=True)

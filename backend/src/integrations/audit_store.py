@@ -23,6 +23,7 @@ class AuditLogger:
     def __init__(self, db_path: str = DEFAULT_DB_PATH):
         self._db_path = db_path
         os.makedirs(os.path.dirname(db_path) if os.path.dirname(db_path) else ".", exist_ok=True)
+        self._ensure_tables()
 
     def _ensure_tables(self):
         conn = sqlite3.connect(self._db_path)

@@ -19,19 +19,6 @@ def _reset_singleton():
     audit_hook._audit_logger = None
 
 
-@pytest.fixture
-def _unmock_hook(monkeypatch):
-    """Undo the autouse conftest patch so we can exercise the real hook."""
-    monkeypatch.setattr(
-        "src.integrations.cicd.jenkins_client.record_cicd_read",
-        record_cicd_read,
-    )
-    monkeypatch.setattr(
-        "src.integrations.cicd.argocd_client.record_cicd_read",
-        record_cicd_read,
-    )
-
-
 # ---------- unit tests for record_cicd_read itself ----------
 
 def test_record_cicd_read_calls_audit_logger_log(
@@ -46,7 +33,6 @@ def test_record_cicd_read_calls_audit_logger_log(
     record_cicd_read("jenkins", "prod", "list_deploy_events")
 
     mock_cls.assert_called_once_with()
-    mock_logger._ensure_tables.assert_called_once_with()
     mock_logger.log.assert_called_once_with(
         entity_type="integration_cicd",
         entity_id="jenkins/prod",
@@ -97,7 +83,6 @@ def test_record_cicd_read_singleton_is_reused(monkeypatch, _reset_singleton):
     record_cicd_read("jenkins", "b", "health_check")
 
     assert mock_cls.call_count == 1
-    assert mock_logger._ensure_tables.call_count == 1
     assert mock_logger.log.call_count == 2
 
 
