@@ -3,8 +3,11 @@ import json
 import os
 import re as _re
 import shlex
+from datetime import datetime, timedelta
 
 from src.agents.react_base import ReActAgent
+from src.integrations.cicd.base import DeployEvent
+from src.integrations.cicd.resolver import resolve_cicd_clients
 from src.integrations.github_client import GitHubClient, GitHubClientError
 from src.utils.event_emitter import EventEmitter
 from src.utils.logger import get_logger
@@ -21,6 +24,53 @@ NOISE_FILE_PATTERN = _re.compile(
     r'tsconfig.*\.json$|jest\.config|webpack\.config|vite\.config)',
     _re.IGNORECASE,
 )
+
+
+async def _prefetch_cicd_events(
+    ctx: dict,
+    incident_start: datetime,
+    namespace: str,
+) -> list[DeployEvent]:
+    """Fan out to every resolved CI/CD client and collect deploy events
+    in a window around ``incident_start``.
+
+    - window: [incident_start - 2h, incident_start + 30m]
+    - per-client failures are swallowed (logged as warnings)
+    - returns [] when no clients are resolved
+    """
+    result = await resolve_cicd_clients(ctx.get("cluster_id"))
+    clients = list(result.jenkins) + list(result.argocd)
+    if not clients:
+        return []
+
+    since = incident_start - timedelta(hours=2)
+    until = incident_start + timedelta(minutes=30)
+
+    tasks = [
+        c.list_deploy_events(since, until, target_filter=namespace)
+        for c in clients
+    ]
+    outcomes = await asyncio.gather(*tasks, return_exceptions=True)
+
+    events: list[DeployEvent] = []
+    for client, outcome in zip(clients, outcomes):
+        if isinstance(outcome, BaseException):
+            logger.warning(
+                "CI/CD pre-fetch failed for %s/%s: %s",
+                getattr(client, "source", "?"),
+                getattr(client, "name", "?"),
+                outcome,
+            )
+            continue
+        try:
+            events.extend(outcome)
+        except TypeError:
+            logger.warning(
+                "CI/CD pre-fetch returned non-iterable from %s/%s",
+                getattr(client, "source", "?"),
+                getattr(client, "name", "?"),
+            )
+    return events
 
 
 class ChangeAgent(ReActAgent):
@@ -194,8 +244,20 @@ class ChangeAgent(ReActAgent):
                 logger.warning("Pre-fetch config diff failed: %s", e)
                 return ""
 
-        commits_raw, deployments, config = await asyncio.gather(
-            _fetch_commits(), _fetch_deployments(), _fetch_config(),
+        async def _fetch_cicd():
+            incident_start = context.get("incident_start")
+            if not isinstance(incident_start, datetime):
+                return []
+            try:
+                return await _prefetch_cicd_events(
+                    context, incident_start, self._namespace
+                )
+            except Exception as e:
+                logger.warning("Pre-fetch CI/CD events failed: %s", e)
+                return []
+
+        commits_raw, deployments, config, cicd_events = await asyncio.gather(
+            _fetch_commits(), _fetch_deployments(), _fetch_config(), _fetch_cicd(),
             return_exceptions=True,
         )
 
@@ -210,6 +272,8 @@ class ChangeAgent(ReActAgent):
             result["deployment_history"] = deployments
         if isinstance(config, str):
             result["config_diff"] = config
+        if isinstance(cicd_events, list) and cicd_events:
+            result["ci_cd_events"] = cicd_events
 
         return result
 
