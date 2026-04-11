@@ -55,7 +55,7 @@ export const Agent3ProgressCard: React.FC<Agent3ProgressProps> = ({
       {/* Header */}
       <div className="flex items-center gap-2">
         <Loader2 size={14} className="text-purple-400 animate-spin" />
-        <span className="text-[10px] font-bold text-purple-400 uppercase tracking-widest">
+        <span className="text-body-xs font-bold text-purple-400 uppercase tracking-widest">
           Agent 3: Phase 1 - Verification
         </span>
       </div>
@@ -81,18 +81,18 @@ export const Agent3ProgressCard: React.FC<Agent3ProgressProps> = ({
               
               <div className="flex-1 space-y-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-[9px] font-mono text-slate-400">
+                  <span className="text-body-xs font-mono text-slate-400">
                     {STAGE_ICONS[key as keyof typeof STAGE_ICONS]} {label}
                   </span>
                   {status === 'in_progress' && (
-                    <span className="text-[8px] text-blue-400 animate-pulse">
+                    <span className="text-chrome text-blue-400 animate-pulse">
                       In Progress...
                     </span>
                   )}
                 </div>
                 
                 {stage?.message && (
-                  <div className="text-[8px] text-slate-600">
+                  <div className="text-chrome text-slate-600">
                     {stage.message}
                   </div>
                 )}
@@ -105,8 +105,8 @@ export const Agent3ProgressCard: React.FC<Agent3ProgressProps> = ({
       {/* Progress Bar */}
       <div className="pt-3 border-t border-slate-800">
         <div className="flex justify-between items-center mb-2">
-          <span className="text-[8px] text-slate-600 uppercase">Progress</span>
-          <span className="text-[8px] text-slate-500">
+          <span className="text-chrome text-slate-600 uppercase">Progress</span>
+          <span className="text-chrome text-slate-500">
             {stages.filter(s => s.status === 'complete').length} / {Object.keys(STAGE_LABELS).length}
           </span>
         </div>

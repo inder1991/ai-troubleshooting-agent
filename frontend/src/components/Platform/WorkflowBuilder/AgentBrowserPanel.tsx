@@ -78,7 +78,7 @@ const AgentBrowserPanel: React.FC<Props> = ({ onInsertAgent }) => {
     <div className="flex flex-col h-full" style={{ background: t.bgBase }}>
       {/* Header */}
       <div className="px-3 py-2 border-b flex-shrink-0" style={{ borderColor: t.borderDefault }}>
-        <div className="text-[10px] font-sans uppercase tracking-widest mb-2" style={{ color: t.textFaint }}>
+        <div className="text-body-xs font-sans uppercase tracking-widest mb-2" style={{ color: t.textFaint }}>
           Agents
         </div>
         <label htmlFor="agent-search" className="sr-only">Search agents</label>
@@ -88,7 +88,7 @@ const AgentBrowserPanel: React.FC<Props> = ({ onInsertAgent }) => {
           placeholder="Search..."
           value={search}
           onChange={e => setSearch(e.target.value)}
-          className="w-full text-[10px] font-mono px-2 py-1.5 rounded"
+          className="w-full text-body-xs font-mono px-2 py-1.5 rounded"
           style={{
             background: t.bgDeep,
             border: `1px solid ${t.borderDefault}`,
@@ -103,18 +103,18 @@ const AgentBrowserPanel: React.FC<Props> = ({ onInsertAgent }) => {
       {/* Agent list */}
       <div className="flex-1 overflow-auto">
         {loading && (
-          <div className="flex items-center justify-center h-16 text-[10px] font-sans" style={{ color: t.textFaint }}>
+          <div className="flex items-center justify-center h-16 text-body-xs font-sans" style={{ color: t.textFaint }}>
             Loading...
           </div>
         )}
         {error && (
           <div className="flex flex-col items-center justify-center h-24 gap-2 px-3">
-            <span className="text-[10px] font-sans text-center" style={{ color: t.textMuted }}>
+            <span className="text-body-xs font-sans text-center" style={{ color: t.textMuted }}>
               Failed to load agents.
             </span>
             <button
               onClick={loadAgents}
-              className="text-[10px] font-sans px-2 py-1 rounded"
+              className="text-body-xs font-sans px-2 py-1 rounded"
               style={{ background: t.cyanBg, border: `1px solid ${t.cyanBorder}`, color: t.cyan }}
             >
               Retry
@@ -122,14 +122,14 @@ const AgentBrowserPanel: React.FC<Props> = ({ onInsertAgent }) => {
           </div>
         )}
         {!loading && !error && filtered.length === 0 && (
-          <div className="flex items-center justify-center h-16 text-[10px] font-sans" style={{ color: t.textFaint }}>
+          <div className="flex items-center justify-center h-16 text-body-xs font-sans" style={{ color: t.textFaint }}>
             No agents found
           </div>
         )}
         {!loading && !error && Object.entries(groups).map(([groupLabel, groupAgents]) => (
           <div key={groupLabel}>
             <div
-              className="px-3 py-1.5 text-[9px] font-sans uppercase tracking-widest sticky top-0"
+              className="px-3 py-1.5 text-body-xs font-sans uppercase tracking-widest sticky top-0"
               style={{ color: t.textFaint, background: t.bgSurface, borderBottom: `1px solid ${t.bgTrack}` }}
             >
               {groupLabel}
@@ -148,7 +148,7 @@ const AgentBrowserPanel: React.FC<Props> = ({ onInsertAgent }) => {
 
       {/* Footer hint */}
       <div className="px-3 py-2 border-t flex-shrink-0" style={{ borderColor: t.borderDefault }}>
-        <p className="text-[9px] font-sans" style={{ color: t.textFaint, lineHeight: 1.4 }}>
+        <p className="text-body-xs font-sans" style={{ color: t.textFaint, lineHeight: 1.4 }}>
           Click to copy <span className="font-mono">agent: id</span> to clipboard
         </p>
       </div>
@@ -181,12 +181,12 @@ const AgentRow: React.FC<AgentRowProps> = ({ agent, copied, onCopy }) => {
         style={{ background: STATUS_COLOR[agent.status] || t.textFaint }}
       />
       <div className="flex-1 min-w-0">
-        <div className="text-[10px] font-mono truncate" style={{ color: t.textPrimary }}>
+        <div className="text-body-xs font-mono truncate" style={{ color: t.textPrimary }}>
           {agent.id}
         </div>
       </div>
       <span
-        className="text-[9px] font-sans flex-shrink-0 transition-opacity"
+        className="text-body-xs font-sans flex-shrink-0 transition-opacity"
         style={{ color: copied ? t.green : t.cyan, opacity: hovered || copied ? 1 : 0 }}
       >
         {copied ? 'copied' : 'copy'}

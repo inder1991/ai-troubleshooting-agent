@@ -80,11 +80,11 @@ export const RecentAlerts: React.FC = () => {
 
   return (
     <div>
-      <h3 className="text-[10px] font-display font-bold text-slate-400 mb-1.5">Recent Alerts</h3>
+      <h3 className="text-body-xs font-display font-bold text-slate-400 mb-1.5">Recent Alerts</h3>
       {alerts.length === 0 ? (
         <div className="flex items-center gap-2 py-1">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/40" aria-hidden="true" />
-          <span className="text-[10px] text-slate-400">All clear — no alerts</span>
+          <span className="text-body-xs text-slate-400">All clear — no alerts</span>
         </div>
       ) : (
         <div className="space-y-1.5">
@@ -95,8 +95,8 @@ export const RecentAlerts: React.FC = () => {
                 <span className={`material-symbols-outlined text-[12px] mt-0.5 shrink-0 ${sev.cls}`} aria-hidden="true">
                   {sev.icon}
                 </span>
-                <span className="text-[10px] text-slate-300 flex-1">{alert.message}</span>
-                <span className="text-[9px] text-slate-500 shrink-0">{alert.age}</span>
+                <span className="text-body-xs text-slate-300 flex-1">{alert.message}</span>
+                <span className="text-body-xs text-slate-500 shrink-0">{alert.age}</span>
               </div>
             );
           })}

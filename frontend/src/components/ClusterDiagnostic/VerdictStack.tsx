@@ -16,7 +16,7 @@ const severityColor = (severity: VerdictEvent['severity']) => {
 const VerdictStack: React.FC<VerdictStackProps> = ({ events }) => {
   return (
     <div className="flex-1 overflow-hidden flex flex-col">
-      <h3 className="text-[10px] uppercase font-bold tracking-widest text-slate-500 mb-4 px-2">Verdict Stack</h3>
+      <h3 className="text-body-xs uppercase font-bold tracking-widest text-slate-500 mb-4 px-2">Verdict Stack</h3>
 
       {events.length === 0 && (
         <p className="text-xs text-slate-600 animate-pulse px-4">Correlating events...</p>
@@ -34,7 +34,7 @@ const VerdictStack: React.FC<VerdictStackProps> = ({ events }) => {
               <div className="text-xs font-mono" style={{ color }}>
                 {evt.timestamp} - {evt.severity}
               </div>
-              <p className="text-[11px] text-slate-400 mt-1 italic">{evt.message}</p>
+              <p className="text-body-xs text-slate-400 mt-1 italic">{evt.message}</p>
             </div>
           );
         })}

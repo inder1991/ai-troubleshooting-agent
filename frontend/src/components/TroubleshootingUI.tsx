@@ -800,7 +800,7 @@ const TroubleshootingChatbot: React.FC = () => {
         <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/40">
           <div className="flex items-center gap-2">
             <Terminal size={16} className="text-blue-500" />
-            <span className="font-bold text-[10px] uppercase tracking-widest text-white">SRE_CMD</span>
+            <span className="font-bold text-body-xs uppercase tracking-widest text-white">SRE_CMD</span>
           </div>
           <button 
             onClick={handleCreateNewSession} 
@@ -826,8 +826,8 @@ const TroubleshootingChatbot: React.FC = () => {
               <div className="flex items-center gap-3 overflow-hidden">
                 <MessageSquare size={14} />
                 <div className="flex flex-col truncate flex-1">
-                  <span className="text-[11px] font-mono truncate">{s.name}</span>
-                  <span className="text-[9px] opacity-40">{s.id}</span>
+                  <span className="text-body-xs font-mono truncate">{s.name}</span>
+                  <span className="text-body-xs opacity-40">{s.id}</span>
                 </div>
               </div>
               {s.id !== 'SESS-DEFAULT' && (
@@ -851,7 +851,7 @@ const TroubleshootingChatbot: React.FC = () => {
         <header className="h-14 border-b border-slate-800 bg-[#0f172a] flex items-center justify-between px-6">
           <div className="flex items-center gap-3">
             <Activity size={14} className="text-blue-500" />
-            <span className="text-[10px] font-bold text-white uppercase tracking-widest">
+            <span className="text-body-xs font-bold text-white uppercase tracking-widest">
               Live_Session: <span className="text-blue-400 font-mono ml-2">{activeSessionId}</span>
             </span>
           </div>
@@ -860,17 +860,17 @@ const TroubleshootingChatbot: React.FC = () => {
             {currentSession?.wsConnected ? (
               <div className="flex items-center gap-1.5">
                 <Wifi size={12} className="text-emerald-500" />
-                <span className="text-[9px] text-emerald-500 uppercase font-bold">Connected</span>
+                <span className="text-body-xs text-emerald-500 uppercase font-bold">Connected</span>
               </div>
             ) : currentSession?.isProcessing ? (
               <div className="flex items-center gap-1.5">
                 <Loader2 size={12} className="animate-spin text-amber-500" />
-                <span className="text-[9px] text-amber-500 uppercase font-bold">Processing</span>
+                <span className="text-body-xs text-amber-500 uppercase font-bold">Processing</span>
               </div>
             ) : (
               <div className="flex items-center gap-1.5">
                 <WifiOff size={12} className="text-slate-600" />
-                <span className="text-[9px] text-slate-600 uppercase font-bold">Idle</span>
+                <span className="text-body-xs text-slate-600 uppercase font-bold">Idle</span>
               </div>
             )}
             
@@ -924,7 +924,7 @@ const TroubleshootingChatbot: React.FC = () => {
                         <button 
                           key={a.id} 
                           onClick={() => setActiveFormType('troubleshoot')} 
-                          className="flex items-center gap-2 px-3 py-1.5 bg-slate-950 border border-slate-800 rounded text-[10px] uppercase font-bold text-slate-400 hover:text-white transition-all"
+                          className="flex items-center gap-2 px-3 py-1.5 bg-slate-950 border border-slate-800 rounded text-body-xs uppercase font-bold text-slate-400 hover:text-white transition-all"
                           type="button"
                         >
                           <a.icon size={12}/> {a.label}
@@ -982,7 +982,7 @@ const TroubleshootingChatbot: React.FC = () => {
                 <div className="mt-4 flex justify-center">
                   <button 
                     onClick={handleDownloadReport}
-                    className="flex items-center gap-2 text-[10px] text-slate-500 hover:text-white transition-colors"
+                    className="flex items-center gap-2 text-body-xs text-slate-500 hover:text-white transition-colors"
                   >
                     <FileText size={14} /> Generate Incident Postmortem
                   </button>
@@ -1034,7 +1034,7 @@ const TroubleshootingChatbot: React.FC = () => {
       {/* RIGHT: INSPECTOR - NOW ALWAYS VISIBLE */}
       <aside className="w-[400px] bg-[#0f172a] border-l border-slate-800 flex flex-col">
         <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-slate-600">
+          <span className="text-body-xs font-bold uppercase tracking-widest text-slate-600">
             Context_Inspector
           </span>
           <ShieldCheck size={14} className="text-emerald-600" />
@@ -1049,13 +1049,13 @@ const TroubleshootingChatbot: React.FC = () => {
            >
               {currentSession?.agentResults?.logs && (
                 <div className="space-y-2">
-                  <div className="text-[11px] font-mono text-blue-400">
+                  <div className="text-body-xs font-mono text-blue-400">
                     {currentSession.agentResults.logs.exception_type}
                   </div>
-                  <div className="text-[9px] text-slate-500">
+                  <div className="text-body-xs text-slate-500">
                     {currentSession.agentResults.logs.exception_message}
                   </div>
-                  <div className="text-[9px] text-slate-600 mt-2">
+                  <div className="text-body-xs text-slate-600 mt-2">
                     Error Logs: {currentSession.agentResults.logs.log_count}
                   </div>
                 </div>
@@ -1070,13 +1070,13 @@ const TroubleshootingChatbot: React.FC = () => {
            >
               {currentSession?.agentResults?.trace && (
                 <div className="space-y-2">
-                  <div className="text-[11px] font-mono text-emerald-400">
+                  <div className="text-body-xs font-mono text-emerald-400">
                     {currentSession.agentResults.trace.root_cause_location}
                   </div>
-                  <div className="text-[9px] text-slate-500">
+                  <div className="text-body-xs text-slate-500">
                     Files: {currentSession.agentResults.trace.relevant_files?.length || 0}
                   </div>
-                  <div className="text-[9px] text-slate-600">
+                  <div className="text-body-xs text-slate-600">
                     Call Chain: {currentSession.agentResults.trace.call_chain?.length || 0}
                   </div>
                 </div>
@@ -1091,13 +1091,13 @@ const TroubleshootingChatbot: React.FC = () => {
            >
               {currentSession?.agentResults?.fix && (
                 <div className="space-y-2">
-                  <div className="text-[11px] font-mono text-purple-400">
+                  <div className="text-body-xs font-mono text-purple-400">
                     {currentSession.agentResults.fix.pr_title}
                   </div>
-                  <div className="text-[9px] text-slate-500">
+                  <div className="text-body-xs text-slate-500">
                     Confidence: {(currentSession.agentResults.fix.confidence_score! * 100).toFixed(0)}%
                   </div>
-                  <div className="text-[9px] text-slate-600">
+                  <div className="text-body-xs text-slate-600">
                     Changes: {currentSession.agentResults.fix.changes?.length || 0}
                   </div>
                 </div>
@@ -1154,7 +1154,7 @@ const DiagnosticForm: React.FC<DiagnosticFormProps> = ({ onSubmit, onCancel }) =
   return (
     <div className="w-full max-w-md bg-[#0f172a] border border-blue-500/30 rounded-lg shadow-2xl overflow-hidden animate-in zoom-in-95">
       <div className="bg-slate-800/50 p-4 border-b border-slate-800 flex justify-between items-center">
-        <span className="text-[10px] font-bold uppercase tracking-widest text-white">
+        <span className="text-body-xs font-bold uppercase tracking-widest text-white">
           Setup_Analysis
         </span>
         <button 
@@ -1170,7 +1170,7 @@ const DiagnosticForm: React.FC<DiagnosticFormProps> = ({ onSubmit, onCancel }) =
         <div className="flex p-1 bg-slate-950 border border-slate-800 rounded">
             <button 
               onClick={() => setData({...data, targetType: 'application'})} 
-              className={`flex-1 py-2 text-[10px] font-bold rounded ${
+              className={`flex-1 py-2 text-body-xs font-bold rounded ${
                 data.targetType === 'application' ? 'bg-blue-600 text-white' : 'text-slate-500'
               }`}
               type="button"
@@ -1179,7 +1179,7 @@ const DiagnosticForm: React.FC<DiagnosticFormProps> = ({ onSubmit, onCancel }) =
             </button>
             <button 
               onClick={() => setData({...data, targetType: 'infrastructure'})} 
-              className={`flex-1 py-2 text-[10px] font-bold rounded ${
+              className={`flex-1 py-2 text-body-xs font-bold rounded ${
                 data.targetType === 'infrastructure' ? 'bg-blue-600 text-white' : 'text-slate-500'
               }`}
               type="button"
@@ -1190,7 +1190,7 @@ const DiagnosticForm: React.FC<DiagnosticFormProps> = ({ onSubmit, onCancel }) =
         
         {/* Repo/Namespace Field */}
         <div className="space-y-1">
-            <label className="text-[9px] uppercase font-bold text-slate-500">
+            <label className="text-body-xs uppercase font-bold text-slate-500">
               {data.targetType === 'application' ? 'GitHub Repo *' : 'Namespace/Resource *'}
             </label>
             <input 
@@ -1208,7 +1208,7 @@ const DiagnosticForm: React.FC<DiagnosticFormProps> = ({ onSubmit, onCancel }) =
 
         {/* ELK Index */}
         <div className="space-y-1">
-          <label className="text-[9px] uppercase font-bold text-slate-500">ELK Index Pattern</label>
+          <label className="text-body-xs uppercase font-bold text-slate-500">ELK Index Pattern</label>
           <input 
             value={data.elkIndex}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setData({...data, elkIndex: e.target.value})} 
@@ -1221,7 +1221,7 @@ const DiagnosticForm: React.FC<DiagnosticFormProps> = ({ onSubmit, onCancel }) =
         {/* Timeframe and Error Filter */}
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1">
-            <label className="text-[9px] uppercase font-bold text-slate-500">Timeframe</label>
+            <label className="text-body-xs uppercase font-bold text-slate-500">Timeframe</label>
             <select
               value={data.timeframe}
               onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setData({...data, timeframe: e.target.value})}
@@ -1234,7 +1234,7 @@ const DiagnosticForm: React.FC<DiagnosticFormProps> = ({ onSubmit, onCancel }) =
             </select>
           </div>
           <div className="space-y-1">
-            <label className="text-[9px] uppercase font-bold text-slate-500">Error Filter</label>
+            <label className="text-body-xs uppercase font-bold text-slate-500">Error Filter</label>
             <input 
               value={data.errorMessage}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setData({...data, errorMessage: e.target.value})}
@@ -1257,7 +1257,7 @@ const DiagnosticForm: React.FC<DiagnosticFormProps> = ({ onSubmit, onCancel }) =
         {/* Submit Button */}
         <button 
           onClick={handleSubmit} 
-          className="w-full bg-blue-600 hover:bg-blue-700 py-3 rounded text-[10px] font-bold uppercase tracking-widest text-white transition-all shadow-lg hover:shadow-blue-500/50"
+          className="w-full bg-blue-600 hover:bg-blue-700 py-3 rounded text-body-xs font-bold uppercase tracking-widest text-white transition-all shadow-lg hover:shadow-blue-500/50"
           type="button"
         >
           Start Pipeline
@@ -1281,7 +1281,7 @@ const InspectorCard: React.FC<InspectorCardProps> = ({
         <div className={`transition-all duration-700 ${data || isThisAgentThinking ? 'opacity-100' : 'opacity-20'}`}>
           <div className="flex items-center gap-2 mb-2">
             <Icon size={14} className={isThisAgentThinking ? "text-blue-500" : "text-slate-600"} />
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+            <span className="text-body-xs font-bold text-slate-500 uppercase tracking-widest">
               {title}
             </span>
           </div>
@@ -1291,7 +1291,7 @@ const InspectorCard: React.FC<InspectorCardProps> = ({
             {data ? (
               children
             ) : (
-              <div className="text-[9px] font-mono flex items-center gap-2">
+              <div className="text-body-xs font-mono flex items-center gap-2">
                 <Loader2 size={10} className={`animate-spin ${isThisAgentThinking ? 'text-blue-500' : 'text-slate-800'}`} /> 
                 {isThisAgentThinking ? (
                   <span className="text-blue-400 animate-pulse tracking-widest">AGENT {activeAgent} ANALYZING...</span>

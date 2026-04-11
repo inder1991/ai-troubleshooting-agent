@@ -180,15 +180,15 @@ export function DeliveryDrawer({ item, onClose }: DeliveryDrawerProps) {
                       <div className="flex items-center gap-2">
                         <span className="text-xs text-zinc-400 font-mono">{file.filename}</span>
                         <span
-                          className={`text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded border ${chipClass}`}
+                          className={`text-body-xs uppercase tracking-wider px-1.5 py-0.5 rounded border ${chipClass}`}
                         >
                           {file.status}
                         </span>
-                        <span className="text-[11px] text-zinc-500">
+                        <span className="text-body-xs text-zinc-500">
                           +{file.additions}/-{file.deletions}
                         </span>
                       </div>
-                      <pre className="text-[11px] text-zinc-400 whitespace-pre-wrap bg-zinc-900/50 p-2 rounded border border-zinc-800 overflow-x-auto">
+                      <pre className="text-body-xs text-zinc-400 whitespace-pre-wrap bg-zinc-900/50 p-2 rounded border border-zinc-800 overflow-x-auto">
                         {file.patch ?? '(no patch)'}
                       </pre>
                     </div>

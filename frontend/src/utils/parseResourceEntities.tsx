@@ -39,12 +39,12 @@ const ResourceEntityInline: React.FC<ResourceEntityInlineProps> = ({ kind, name,
       title={`${kind}: ${namespace ? `${namespace}/` : ''}${name}`}
     >
       <span
-        className="text-[11px] text-amber-500/80"
+        className="text-body-xs text-amber-500/80"
         style={{ fontFamily: 'Material Symbols Outlined' }}
       >
         {icon}
       </span>
-      <span className="text-[11px] font-mono">{name}</span>
+      <span className="text-body-xs font-mono">{name}</span>
     </button>
   );
 };

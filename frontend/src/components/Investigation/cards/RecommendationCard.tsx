@@ -62,21 +62,21 @@ const CommandBlock: React.FC<CommandBlockProps> = ({ step, showDryRun }) => {
 
   return (
     <div className="space-y-1">
-      <div className="text-[9px] text-slate-500">{step.order}. {step.description}</div>
+      <div className="text-body-xs text-slate-500">{step.order}. {step.description}</div>
       <div className="relative group">
-        <pre className="text-[10px] font-mono bg-slate-950/60 border border-slate-800/50 rounded px-3 py-2 text-slate-300 overflow-x-auto whitespace-pre-wrap">
+        <pre className="text-body-xs font-mono bg-slate-950/60 border border-slate-800/50 rounded px-3 py-2 text-slate-300 overflow-x-auto whitespace-pre-wrap">
           <span className="text-slate-600 mr-2">$</span>
           {renderCommand(command)}
         </pre>
         <button
           onClick={handleCopy}
-          className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition-opacity px-1.5 py-0.5 rounded text-[9px] bg-slate-800 text-slate-400 hover:text-amber-400"
+          className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition-opacity px-1.5 py-0.5 rounded text-body-xs bg-slate-800 text-slate-400 hover:text-amber-400"
         >
           {copied ? 'Copied!' : 'Copy'}
         </button>
       </div>
       {step.validation_command && (
-        <div className="text-[9px] text-slate-600 pl-2">
+        <div className="text-body-xs text-slate-600 pl-2">
           Verify: <code className="text-slate-500">{step.validation_command}</code>
         </div>
       )}
@@ -103,17 +103,17 @@ const RecommendationCard: React.FC<RecommendationCardProps> = ({ recommendation:
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded border ${urgency.className}`}>
+          <span className={`text-chrome font-bold px-1.5 py-0.5 rounded border ${urgency.className}`}>
             {urgency.label}
           </span>
-          <span className="text-[10px] text-slate-300 font-medium">{rec.title}</span>
+          <span className="text-body-xs text-slate-300 font-medium">{rec.title}</span>
         </div>
-        <span className={`text-[8px] font-bold ${risk.className}`}>{risk.label}</span>
+        <span className={`text-chrome font-bold ${risk.className}`}>{risk.label}</span>
       </div>
 
       {/* Placeholder warning */}
       {commandsHavePlaceholders && (
-        <div className="flex items-center gap-1.5 text-[9px] text-amber-400 bg-amber-950/20 border border-amber-500/20 rounded px-2 py-1">
+        <div className="flex items-center gap-1.5 text-body-xs text-amber-400 bg-amber-950/20 border border-amber-500/20 rounded px-2 py-1">
           <span className="material-symbols-outlined text-[14px]">warning</span>
           Commands contain placeholders — review before executing
         </div>
@@ -122,9 +122,9 @@ const RecommendationCard: React.FC<RecommendationCardProps> = ({ recommendation:
       {/* Prerequisites */}
       {rec.prerequisites.length > 0 && (
         <div className="space-y-0.5">
-          <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Prerequisites</span>
+          <span className="text-body-xs font-bold text-slate-500 uppercase tracking-wider">Prerequisites</span>
           {rec.prerequisites.map((p, i) => (
-            <div key={i} className="text-[10px] text-slate-400 pl-2">{'\u2022'} {p}</div>
+            <div key={i} className="text-body-xs text-slate-400 pl-2">{'\u2022'} {p}</div>
           ))}
         </div>
       )}
@@ -134,13 +134,13 @@ const RecommendationCard: React.FC<RecommendationCardProps> = ({ recommendation:
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowDryRun(true)}
-            className={`text-[9px] font-bold px-2 py-0.5 rounded transition-colors ${showDryRun ? 'bg-amber-950/40 text-amber-400 border border-amber-800/40' : 'text-slate-500 hover:text-slate-300'}`}
+            className={`text-body-xs font-bold px-2 py-0.5 rounded transition-colors ${showDryRun ? 'bg-amber-950/40 text-amber-400 border border-amber-800/40' : 'text-slate-500 hover:text-slate-300'}`}
           >
             Dry Run
           </button>
           <button
             onClick={() => setShowDryRun(false)}
-            className={`text-[9px] font-bold px-2 py-0.5 rounded transition-colors ${!showDryRun ? 'bg-amber-950/40 text-amber-400 border border-amber-800/40' : 'text-slate-500 hover:text-slate-300'}`}
+            className={`text-body-xs font-bold px-2 py-0.5 rounded transition-colors ${!showDryRun ? 'bg-amber-950/40 text-amber-400 border border-amber-800/40' : 'text-slate-500 hover:text-slate-300'}`}
           >
             Live
           </button>
@@ -155,7 +155,7 @@ const RecommendationCard: React.FC<RecommendationCardProps> = ({ recommendation:
       </div>
 
       {/* Expected outcome */}
-      <div className="text-[9px] text-slate-500">
+      <div className="text-body-xs text-slate-500">
         <span className="font-bold uppercase tracking-wider">Expected outcome:</span> {rec.expected_outcome}
       </div>
 
@@ -164,7 +164,7 @@ const RecommendationCard: React.FC<RecommendationCardProps> = ({ recommendation:
         <div>
           <button
             onClick={() => setShowRollback(!showRollback)}
-            className="flex items-center gap-1 text-[9px] text-slate-500 hover:text-slate-300 transition-colors"
+            className="flex items-center gap-1 text-body-xs text-slate-500 hover:text-slate-300 transition-colors"
           >
             <span className="material-symbols-outlined text-[14px]">{showRollback ? 'expand_more' : 'chevron_right'}</span>
             Rollback Commands ({rec.rollback_commands.length})

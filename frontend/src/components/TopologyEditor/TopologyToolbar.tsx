@@ -23,7 +23,7 @@ interface TopologyToolbarProps {
 
 /* ── shared style tokens ─────────────────────────────────── */
 const BTN =
-  'flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-mono font-medium border transition-colors disabled:opacity-30 disabled:cursor-not-allowed';
+  'flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-body-xs font-mono font-medium border transition-colors disabled:opacity-30 disabled:cursor-not-allowed';
 const BTN_BG = { backgroundColor: '#1e1b15', borderColor: '#3d3528', color: '#e8e0d4' };
 const BTN_HOVER = 'hover:border-[#e09f3e]/40';
 const ICON = 'material-symbols-outlined';

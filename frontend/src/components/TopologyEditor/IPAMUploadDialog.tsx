@@ -154,12 +154,12 @@ const IPAMUploadDialog: React.FC<IPAMUploadDialogProps> = ({ open, onClose, onIm
           </span>
           <button
             onClick={handleDownloadSample}
-            className="text-[10px] font-mono underline underline-offset-2 transition-colors hover:brightness-125"
+            className="text-body-xs font-mono underline underline-offset-2 transition-colors hover:brightness-125"
             style={{ color: '#e09f3e', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
           >
             Download Sample CSV
           </button>
-          <span className="text-[10px] font-mono" style={{ color: '#64748b' }}>
+          <span className="text-body-xs font-mono" style={{ color: '#64748b' }}>
             — see expected format
           </span>
         </div>
@@ -203,7 +203,7 @@ const IPAMUploadDialog: React.FC<IPAMUploadDialogProps> = ({ open, onClose, onIm
                 style={{ width: `${progress}%`, backgroundColor: '#e09f3e' }}
               />
             </div>
-            <p className="text-[10px] font-mono mt-1" style={{ color: '#64748b' }}>
+            <p className="text-body-xs font-mono mt-1" style={{ color: '#64748b' }}>
               Processing... {progress}%
             </p>
           </div>

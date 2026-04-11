@@ -129,14 +129,14 @@ const AlertsTab: React.FC<Props> = ({ alerts, onRefresh }) => {
               }}
             >
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono font-bold uppercase tracking-wider" style={{ color }}>
+                <span className="text-body-xs font-mono font-bold uppercase tracking-wider" style={{ color }}>
                   {severity}
                 </span>
                 <span className="text-lg font-mono font-bold" style={{ color: count > 0 ? color : '#64748b' }}>
                   {count}
                 </span>
               </div>
-              <div className="text-[10px] font-mono mt-1" style={{ color: '#64748b' }}>
+              <div className="text-body-xs font-mono mt-1" style={{ color: '#64748b' }}>
                 {total - count} acknowledged
               </div>
             </div>
@@ -175,7 +175,7 @@ const AlertsTab: React.FC<Props> = ({ alerts, onRefresh }) => {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span
-                    className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded"
+                    className="text-body-xs font-mono font-bold px-1.5 py-0.5 rounded"
                     style={{
                       backgroundColor: (severityColors[alert.severity] || '#3d3528') + '20',
                       color: severityColors[alert.severity] || '#e8e0d4',
@@ -187,7 +187,7 @@ const AlertsTab: React.FC<Props> = ({ alerts, onRefresh }) => {
                     {alert.rule_name}
                   </span>
                   {alert.acknowledged && (
-                    <span className="text-[9px] font-mono px-1.5 py-0.5 rounded"
+                    <span className="text-body-xs font-mono px-1.5 py-0.5 rounded"
                       style={{ backgroundColor: '#22432920', color: '#64748b' }}>
                       ACK
                     </span>
@@ -196,7 +196,7 @@ const AlertsTab: React.FC<Props> = ({ alerts, onRefresh }) => {
                 <div className="text-xs font-mono mt-1" style={{ color: '#64748b' }}>
                   {alert.entity_id} — {alert.metric}: {alert.value.toFixed(1)} ({alert.condition} {alert.threshold})
                 </div>
-                <div className="text-[10px] font-mono mt-0.5" style={{ color: '#4a5568' }}>
+                <div className="text-body-xs font-mono mt-0.5" style={{ color: '#4a5568' }}>
                   {new Date(alert.fired_at * 1000).toLocaleString()}
                 </div>
               </div>
@@ -250,7 +250,7 @@ const AlertsTab: React.FC<Props> = ({ alerts, onRefresh }) => {
           >
             {/* Name */}
             <div>
-              <label className="text-[10px] font-mono font-bold uppercase tracking-wider block mb-1" style={{ color: '#64748b' }}>
+              <label className="text-body-xs font-mono font-bold uppercase tracking-wider block mb-1" style={{ color: '#64748b' }}>
                 Rule Name
               </label>
               <input
@@ -270,7 +270,7 @@ const AlertsTab: React.FC<Props> = ({ alerts, onRefresh }) => {
 
             {/* Operator Toggle */}
             <div>
-              <label className="text-[10px] font-mono font-bold uppercase tracking-wider block mb-1" style={{ color: '#64748b' }}>
+              <label className="text-body-xs font-mono font-bold uppercase tracking-wider block mb-1" style={{ color: '#64748b' }}>
                 Logic Operator
               </label>
               <div className="flex gap-2">
@@ -294,7 +294,7 @@ const AlertsTab: React.FC<Props> = ({ alerts, onRefresh }) => {
             {/* Conditions */}
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="text-[10px] font-mono font-bold uppercase tracking-wider" style={{ color: '#64748b' }}>
+                <label className="text-body-xs font-mono font-bold uppercase tracking-wider" style={{ color: '#64748b' }}>
                   Conditions
                 </label>
                 <button
@@ -304,7 +304,7 @@ const AlertsTab: React.FC<Props> = ({ alerts, onRefresh }) => {
                       conditions: [...prev.conditions, { metric: '', operator: '>', threshold: 0 }],
                     }))
                   }
-                  className="text-[10px] font-mono flex items-center gap-0.5 transition-colors"
+                  className="text-body-xs font-mono flex items-center gap-0.5 transition-colors"
                   style={{ color: '#e09f3e' }}
                 >
                   <span className="material-symbols-outlined" style={{ fontSize: 12 }}>add</span>
@@ -370,7 +370,7 @@ const AlertsTab: React.FC<Props> = ({ alerts, onRefresh }) => {
 
             {/* Duration */}
             <div>
-              <label className="text-[10px] font-mono font-bold uppercase tracking-wider block mb-1" style={{ color: '#64748b' }}>
+              <label className="text-body-xs font-mono font-bold uppercase tracking-wider block mb-1" style={{ color: '#64748b' }}>
                 Duration (seconds)
               </label>
               <input
@@ -429,7 +429,7 @@ const AlertsTab: React.FC<Props> = ({ alerts, onRefresh }) => {
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-sm font-mono font-bold" style={{ color: '#e8e0d4' }}>{rule.name}</span>
                     <span
-                      className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded"
+                      className="text-body-xs font-mono font-bold px-1.5 py-0.5 rounded"
                       style={{
                         backgroundColor: rule.logic === 'AND' ? 'rgba(224,159,62,0.15)' : 'rgba(245,158,11,0.15)',
                         color: rule.logic === 'AND' ? '#e09f3e' : '#f59e0b',
@@ -439,7 +439,7 @@ const AlertsTab: React.FC<Props> = ({ alerts, onRefresh }) => {
                     </span>
                     {rule.severity && (
                       <span
-                        className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded"
+                        className="text-body-xs font-mono font-bold px-1.5 py-0.5 rounded"
                         style={{
                           backgroundColor: (severityColors[rule.severity] || '#3d3528') + '20',
                           color: severityColors[rule.severity] || '#e8e0d4',
@@ -451,7 +451,7 @@ const AlertsTab: React.FC<Props> = ({ alerts, onRefresh }) => {
                   </div>
                   <div className="space-y-0.5">
                     {rule.conditions.map((c, i) => (
-                      <div key={i} className="text-[11px] font-mono" style={{ color: '#8a7e6b' }}>
+                      <div key={i} className="text-body-xs font-mono" style={{ color: '#8a7e6b' }}>
                         <span style={{ color: '#e09f3e' }}>{c.metric}</span>{' '}
                         <span style={{ color: '#64748b' }}>{c.operator}</span>{' '}
                         <span style={{ color: '#e8e0d4' }}>{c.threshold}</span>
@@ -461,7 +461,7 @@ const AlertsTab: React.FC<Props> = ({ alerts, onRefresh }) => {
                       </div>
                     ))}
                   </div>
-                  <div className="text-[10px] font-mono mt-1" style={{ color: '#4a5568' }}>
+                  <div className="text-body-xs font-mono mt-1" style={{ color: '#4a5568' }}>
                     Duration: {rule.duration_seconds}s
                     {rule.created_at && <> &middot; Created {new Date(rule.created_at).toLocaleDateString()}</>}
                   </div>

@@ -47,7 +47,7 @@ const ReplicationTopologySVG: React.FC<ReplicationTopologySVGProps> = ({
     return (
       <div className="text-center py-4">
         <span className="material-symbols-outlined text-2xl text-slate-700 block mb-1">share</span>
-        <p className="text-[10px] text-slate-400">No replication topology data</p>
+        <p className="text-body-xs text-slate-400">No replication topology data</p>
       </div>
     );
   }
@@ -64,8 +64,8 @@ const ReplicationTopologySVG: React.FC<ReplicationTopologySVGProps> = ({
       {/* Header */}
       <div className="flex items-center gap-2 mb-2 pb-2 border-b border-slate-800">
         <span className="material-symbols-outlined text-amber-400 text-sm">share</span>
-        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Replication Topology</span>
-        <span className="text-[9px] text-slate-400 ml-auto font-mono">
+        <span className="text-body-xs font-bold text-slate-400 uppercase tracking-wider">Replication Topology</span>
+        <span className="text-body-xs text-slate-400 ml-auto font-mono">
           {replicas.length} replica{replicas.length !== 1 ? 's' : ''}
         </span>
       </div>
@@ -79,7 +79,7 @@ const ReplicationTopologySVG: React.FC<ReplicationTopologySVGProps> = ({
         ].map(({ label, color }) => (
           <div key={label} className="flex items-center gap-1">
             <span className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
-            <span className="text-[9px] text-slate-400">{label}</span>
+            <span className="text-body-xs text-slate-400">{label}</span>
           </div>
         ))}
       </div>

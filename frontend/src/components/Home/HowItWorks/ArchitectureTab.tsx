@@ -159,7 +159,7 @@ const FlowBox: React.FC<{ label: string; small: string; color: string }> = ({ la
     style={{ borderColor: color, backgroundColor: `${color}10` }}
   >
     <span className="text-xs font-mono font-bold block" style={{ color }}>{label}</span>
-    <span className="text-[10px] text-slate-500 block leading-tight">{small}</span>
+    <span className="text-body-xs text-slate-500 block leading-tight">{small}</span>
   </div>
 );
 
@@ -238,14 +238,14 @@ const ArchitectureTab: React.FC = () => {
             >
               <div className="flex items-center gap-2.5 mb-2">
                 <span
-                  className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0"
+                  className="w-6 h-6 rounded-full flex items-center justify-center text-body-xs font-bold text-white shrink-0"
                   style={{ backgroundColor: agent.color }}
                 >
                   {agent.num}
                 </span>
                 <span className="text-sm font-bold text-white">{agent.name}</span>
               </div>
-              <p className="text-[11px] font-mono text-slate-400 mb-1.5">{agent.pattern}</p>
+              <p className="text-body-xs font-mono text-slate-400 mb-1.5">{agent.pattern}</p>
               <p className="text-xs text-slate-400 leading-relaxed">{agent.desc}</p>
             </div>
           ))}
@@ -274,14 +274,14 @@ const ArchitectureTab: React.FC = () => {
                 style={{ borderLeftWidth: isFirst ? 1 : 0 }}
               >
                 <span
-                  className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0"
+                  className="w-5 h-5 rounded-full flex items-center justify-center text-body-xs font-bold text-white shrink-0"
                   style={{ backgroundColor: phase.color }}
                 >
                   {phase.num}
                 </span>
                 <div className="flex flex-col">
                   <span className="text-xs font-bold text-slate-200 leading-tight">{phase.name}</span>
-                  <span className="text-[10px] text-slate-500 leading-tight">{phase.sub}</span>
+                  <span className="text-body-xs text-slate-500 leading-tight">{phase.sub}</span>
                 </div>
                 {!isLast && (
                   <span className="text-slate-500 text-sm font-bold ml-1 select-none">&rsaquo;</span>
@@ -326,7 +326,7 @@ const ArchitectureTab: React.FC = () => {
                   >
                     {step.name}
                   </span>
-                  <span className="text-[10px] text-slate-500 block leading-tight">{step.sub}</span>
+                  <span className="text-body-xs text-slate-500 block leading-tight">{step.sub}</span>
                 </div>
               </React.Fragment>
             );
@@ -352,17 +352,17 @@ const ArchitectureTab: React.FC = () => {
             >
               <div className="flex items-center gap-2 mb-2">
                 <span
-                  className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0"
+                  className="w-5 h-5 rounded-full flex items-center justify-center text-body-xs font-bold text-white shrink-0"
                   style={{ backgroundColor: C.yellow }}
                 >
                   {i + 1}
                 </span>
                 <span className="text-xs font-bold text-slate-200">{gate.name}</span>
               </div>
-              <p className="text-[10px] text-slate-500 mb-0.5">
+              <p className="text-body-xs text-slate-500 mb-0.5">
                 <span className="font-semibold text-slate-400">When:</span> {gate.when}
               </p>
-              <p className="text-[10px] text-slate-500">
+              <p className="text-body-xs text-slate-500">
                 <span className="font-semibold text-slate-400">Why:</span> {gate.why}
               </p>
             </div>

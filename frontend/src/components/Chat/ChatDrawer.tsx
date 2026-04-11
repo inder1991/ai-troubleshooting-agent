@@ -75,7 +75,7 @@ function deriveActionChips(message: ChatMessage | undefined): DerivedChip[] {
 // ─── ToolCallPill ─────────────────────────────────────────────────────────
 
 const ToolCallPill: React.FC<{ tool: ChatToolCallEvent }> = ({ tool }) => (
-  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono bg-white/5 border border-white/10">
+  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-body-xs font-mono bg-white/5 border border-white/10">
     <span className="material-symbols-outlined text-[14px] text-amber-400">
       {tool.status === 'running' ? 'hourglass_top' : tool.status === 'complete' ? 'check_circle' : 'error'}
     </span>
@@ -225,7 +225,7 @@ const ChatDrawer: React.FC = () => {
             {isWaiting && (
               <div className="shrink-0 flex items-center gap-2 px-4 py-2 bg-amber-500/10 border-b border-amber-500/20">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-                <span className="text-[11px] text-amber-400 font-mono">Foreman awaiting operator input</span>
+                <span className="text-body-xs text-amber-400 font-mono">Foreman awaiting operator input</span>
               </div>
             )}
 
@@ -255,7 +255,7 @@ const ChatDrawer: React.FC = () => {
                     auto_stories
                   </span>
                   <span className="text-sm font-mono">Mission log empty</span>
-                  <span className="text-[11px] text-slate-700">Ask the crew anything to begin</span>
+                  <span className="text-body-xs text-slate-700">Ask the crew anything to begin</span>
                 </div>
               ) : (
                 <>
@@ -291,7 +291,7 @@ const ChatDrawer: React.FC = () => {
 
                   {/* Sending indicator (non-streaming fallback) */}
                   {isSending && !isStreaming && (
-                    <div className="flex items-center gap-2 px-3 py-2 text-[11px] text-amber-500/60">
+                    <div className="flex items-center gap-2 px-3 py-2 text-body-xs text-amber-500/60">
                       <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
                       <span className="font-mono">Processing...</span>
                     </div>

@@ -110,7 +110,7 @@ const InteractiveTopology: React.FC<InteractiveTopologyProps> = ({
       <div
         className="absolute inset-0 pointer-events-none opacity-20"
         style={{
-          backgroundImage: 'radial-gradient(circle, rgba(224,159,62,0.15) 1px, transparent 1px)',
+          backgroundImage: 'radial-gradient(circle, rgba(7,182,213,0.15) 1px, transparent 1px)',
           backgroundSize: '16px 16px',
         }}
       />
@@ -132,7 +132,7 @@ const InteractiveTopology: React.FC<InteractiveTopologyProps> = ({
                 <feMergeNode in="SourceGraphic" />
               </feMerge>
             </filter>
-            <filter id="glow-gold-v2" x="-50%" y="-50%" width="200%" height="200%">
+            <filter id="glow-cyan-v2" x="-50%" y="-50%" width="200%" height="200%">
               <feGaussianBlur stdDeviation="3" result="coloredBlur" />
               <feMerge>
                 <feMergeNode in="coloredBlur" />
@@ -201,9 +201,9 @@ const InteractiveTopology: React.FC<InteractiveTopologyProps> = ({
 
       {/* "Filtering" label when a service is selected */}
       {selectedService && (
-        <div className="absolute bottom-2 left-2 flex items-center gap-1.5 px-2 py-1 rounded bg-amber-500/10 border border-amber-500/20">
-          <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-          <span className="text-[9px] text-amber-400 font-mono">Filtering: {selectedService}</span>
+        <div className="absolute bottom-2 left-2 flex items-center gap-1.5 px-2 py-1 rounded bg-cyan-500/10 border border-amber-500/20">
+          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+          <span className="text-body-xs text-amber-400 font-mono">Filtering: {selectedService}</span>
         </div>
       )}
     </div>
@@ -246,8 +246,8 @@ const DataPacket: React.FC<{
   const isError = edge.type === 'error' || edge.type === 'causal_path';
   const dur = isError ? '1.5s' : '3s';
   const r = isError ? 3 : 2;
-  const fill = isError ? '#ef4444' : '#d4922e';
-  const glowFilter = isError ? 'url(#glow-red-v2)' : 'url(#glow-gold-v2)';
+  const fill = isError ? '#ef4444' : '#06b6d4';
+  const glowFilter = isError ? 'url(#glow-red-v2)' : 'url(#glow-cyan-v2)';
 
   return (
     <circle r={r} fill={fill} opacity={0.8} filter={glowFilter}>
@@ -314,7 +314,7 @@ const TopologyNode: React.FC<{
         <circle
           r={NODE_RADIUS + 5}
           fill="none"
-          stroke="#d4922e"
+          stroke="#06b6d4"
           strokeWidth={2}
           className="topology-select-ring"
         />
@@ -345,7 +345,7 @@ const TopologyNode: React.FC<{
       <text
         textAnchor="middle"
         dy="4"
-        fill={isP0 ? '#ef4444' : '#8a7e6b'}
+        fill={isP0 ? '#ef4444' : '#94a3b8'}
         fontSize={isP0 ? 10 : 8}
         fontWeight={isP0 ? 'bold' : 'normal'}
         fontFamily="monospace"
@@ -358,7 +358,7 @@ const TopologyNode: React.FC<{
       <text
         y={NODE_RADIUS + 14}
         textAnchor="middle"
-        fill="#8a7e6b"
+        fill="#94a3b8"
         fontSize="9"
         fontFamily="monospace"
         style={{ pointerEvents: 'none' }}

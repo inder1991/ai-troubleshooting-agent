@@ -20,7 +20,7 @@ export default function ClusterInfoBanner({ platform, platformVersion, namespace
         <span className="text-sm font-semibold text-slate-200">
           {platform === 'openshift' ? 'OpenShift' : 'Kubernetes'} {platformVersion}
         </span>
-        <span className={`ml-auto px-2 py-0.5 text-[9px] font-mono uppercase tracking-wider rounded-full border ${
+        <span className={`ml-auto px-2 py-0.5 text-body-xs font-mono uppercase tracking-wider rounded-full border ${
           scanMode === 'guard'
             ? 'text-amber-400 border-amber-500/40 bg-amber-500/10'
             : 'text-amber-400 border-amber-500/40 bg-amber-500/10'
@@ -32,7 +32,7 @@ export default function ClusterInfoBanner({ platform, platformVersion, namespace
         <span>{namespaceCount} namespaces</span>
       </div>
       {showScope && (
-        <div className="flex items-center gap-1.5 mt-2 text-[10px] text-slate-500 font-mono">
+        <div className="flex items-center gap-1.5 mt-2 text-body-xs text-slate-500 font-mono">
           <span className="material-symbols-outlined text-[12px] text-slate-600">filter_alt</span>
           <span>
             Scope: {scope.namespaces.length > 0 ? `Namespace=${scope.namespaces.join(',')}` : 'All'}

@@ -29,10 +29,10 @@ const AgentFindingCard: React.FC<AgentFindingCardProps> = ({ agent, title, child
   return (
     <div className={`${style.border} ${style.bg} rounded-lg overflow-hidden`}>
       <div className="px-4 py-2.5 flex items-center gap-2">
-        <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${badgeColor[agent]}`}>
+        <span className={`w-6 h-6 rounded-full flex items-center justify-center text-body-xs font-bold ${badgeColor[agent]}`}>
           {agent}
         </span>
-        <span className="text-[10px] text-slate-500 uppercase tracking-wider">{style.label}</span>
+        <span className="text-body-xs text-slate-500 uppercase tracking-wider">{style.label}</span>
         <span className="text-xs font-medium text-slate-200 ml-1">{title}</span>
       </div>
       <div className="px-4 pb-3">

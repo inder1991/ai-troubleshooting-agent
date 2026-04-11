@@ -112,7 +112,7 @@ const AgentCard: React.FC<AgentCardProps> = ({ agent, onClick, isSelected, enter
             />
           </div>
           <span
-            className="text-[10px] uppercase tracking-widest"
+            className="text-body-xs uppercase tracking-widest"
             style={{ color: '#64748b' }}
           >
             {ROLE_LABELS[agent.role]}
@@ -135,7 +135,7 @@ const AgentCard: React.FC<AgentCardProps> = ({ agent, onClick, isSelected, enter
       </p>
 
       {/* Operational metrics instead of tool pills */}
-      <div className="flex items-center gap-4 text-[10px]" style={{ color: '#64748b' }}>
+      <div className="flex items-center gap-4 text-body-xs" style={{ color: '#64748b' }}>
         <span className="flex items-center gap-1">
           <span className="material-symbols-outlined text-[12px]">schedule</span>
           {agent.recent_executions.length > 0

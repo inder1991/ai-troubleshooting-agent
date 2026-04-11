@@ -24,14 +24,15 @@ const ErrorBanner: React.FC<ErrorBannerProps> = ({
     <div className={`flex items-center gap-2.5 px-4 py-2.5 border rounded-lg ${bgClass}`} role="alert">
       <span
         className={`material-symbols-outlined text-base ${textClass} shrink-0`}
+        style={{ fontFamily: 'Material Symbols Outlined' }}
       >
         {icon}
       </span>
-      <span className={`text-[11px] ${textClass} flex-1`}>{message}</span>
+      <span className={`text-body-xs ${textClass} flex-1`}>{message}</span>
       {onRetry && (
         <button
           onClick={onRetry}
-          className={`text-[10px] font-bold px-2.5 py-1 rounded border ${
+          className={`text-body-xs font-bold px-2.5 py-1 rounded border ${
             isError
               ? 'bg-red-500/20 text-red-400 border-red-500/30 hover:bg-red-500/30'
               : 'bg-amber-500/20 text-amber-400 border-amber-500/30 hover:bg-amber-500/30'
@@ -49,6 +50,7 @@ const ErrorBanner: React.FC<ErrorBannerProps> = ({
         >
           <span
             className="material-symbols-outlined text-sm"
+            style={{ fontFamily: 'Material Symbols Outlined' }}
           >
             close
           </span>

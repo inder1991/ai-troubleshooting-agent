@@ -105,13 +105,13 @@ const AgentDetailView: React.FC<AgentDetailViewProps> = ({ agent, onBack }) => {
           <div className="flex items-center gap-3">
             <h1 className="text-lg font-bold text-white">{formatAgentName(agent.name)}</h1>
             <span
-              className="text-[9px] font-semibold uppercase px-2 py-0.5 rounded-full"
+              className="text-body-xs font-semibold uppercase px-2 py-0.5 rounded-full"
               style={{ backgroundColor: 'rgba(224,159,62,0.15)', color: '#e09f3e' }}
             >
               {agent.workflow.replace(/_/g, ' ')}
             </span>
             <span
-              className="flex items-center gap-1.5 text-[10px] uppercase px-2 py-0.5 rounded-full"
+              className="flex items-center gap-1.5 text-body-xs uppercase px-2 py-0.5 rounded-full"
               style={{
                 backgroundColor: `${statusColor}15`,
                 color: statusColor,
@@ -130,7 +130,7 @@ const AgentDetailView: React.FC<AgentDetailViewProps> = ({ agent, onBack }) => {
         {/* Platform actions */}
         <button
           onClick={handleCopyYaml}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-mono flex-shrink-0 border transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-body-xs font-mono flex-shrink-0 border transition-colors"
           style={{
             borderColor: copied ? 'rgba(34,197,94,0.4)' : '#3d3528',
             color: copied ? '#22c55e' : '#64748b',

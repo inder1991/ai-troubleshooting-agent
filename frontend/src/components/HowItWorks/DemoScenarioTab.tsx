@@ -139,14 +139,14 @@ const ServiceNode: React.FC<{ service: Service }> = ({ service }) => (
       {service.name}
     </p>
     <span
-      className="inline-block mt-1 text-[10px] font-semibold uppercase tracking-wide"
+      className="inline-block mt-1 text-body-xs font-semibold uppercase tracking-wide"
       style={{ color: service.badgeColor }}
     >
       {service.badge}
     </span>
     <div className="mt-2 space-y-0.5">
       {service.metrics.map((m) => (
-        <div key={m.label} className="flex justify-between text-[10px]">
+        <div key={m.label} className="flex justify-between text-body-xs">
           <span style={{ color: WF_COLORS.mutedText }}>{m.label}</span>
           <span style={{ color: STATUS_COLORS[m.status] }}>{m.value}</span>
         </div>
@@ -190,7 +190,7 @@ const DemoScenarioTab: React.FC = () => {
         >
           <div className="flex items-center gap-2">
             <span
-              className="text-[10px] font-bold uppercase px-2 py-0.5 rounded"
+              className="text-body-xs font-bold uppercase px-2 py-0.5 rounded"
               style={{ backgroundColor: 'rgba(239,68,68,0.15)', color: '#ef4444' }}
             >
               SEV-1 &mdash; Critical Incident
@@ -243,7 +243,7 @@ const DemoScenarioTab: React.FC = () => {
               OpenShift Cluster
             </span>
             <span
-              className="text-[10px] px-2 py-0.5 rounded font-semibold"
+              className="text-body-xs px-2 py-0.5 rounded font-semibold"
               style={{
                 backgroundColor: `${WF_COLORS.amber}15`,
                 color: WF_COLORS.amber,

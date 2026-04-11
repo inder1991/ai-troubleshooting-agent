@@ -111,7 +111,7 @@ const AdapterConfigDialog: React.FC<AdapterConfigDialogProps> = ({
               Configure Adapter
             </h3>
             {nodeName && (
-              <p className="text-[10px] font-mono mt-0.5" style={{ color: '#64748b' }}>
+              <p className="text-body-xs font-mono mt-0.5" style={{ color: '#64748b' }}>
                 {nodeName}
               </p>
             )}
@@ -132,7 +132,7 @@ const AdapterConfigDialog: React.FC<AdapterConfigDialogProps> = ({
         <div className="flex flex-col gap-4">
           {/* Vendor */}
           <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#64748b' }}>
+            <label className="text-body-xs font-mono uppercase tracking-wider" style={{ color: '#64748b' }}>
               Vendor
             </label>
             <select
@@ -151,7 +151,7 @@ const AdapterConfigDialog: React.FC<AdapterConfigDialogProps> = ({
 
           {/* API Endpoint */}
           <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#64748b' }}>
+            <label className="text-body-xs font-mono uppercase tracking-wider" style={{ color: '#64748b' }}>
               API Endpoint
             </label>
             <input
@@ -166,7 +166,7 @@ const AdapterConfigDialog: React.FC<AdapterConfigDialogProps> = ({
 
           {/* API Key */}
           <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#64748b' }}>
+            <label className="text-body-xs font-mono uppercase tracking-wider" style={{ color: '#64748b' }}>
               API Key
             </label>
             <input
@@ -181,7 +181,7 @@ const AdapterConfigDialog: React.FC<AdapterConfigDialogProps> = ({
 
           {/* Extra Config */}
           <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-mono uppercase tracking-wider" style={{ color: '#64748b' }}>
+            <label className="text-body-xs font-mono uppercase tracking-wider" style={{ color: '#64748b' }}>
               Extra Config (JSON)
             </label>
             <textarea

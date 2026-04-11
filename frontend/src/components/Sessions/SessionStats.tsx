@@ -43,7 +43,7 @@ const SessionStats: React.FC<SessionStatsProps> = ({ sessions }) => {
           </div>
           <div>
             <div className="text-2xl font-bold" style={{ color: stat.color }}>{stat.value}</div>
-            <div className="text-[10px] text-gray-500">{stat.label}</div>
+            <div className="text-body-xs text-gray-500">{stat.label}</div>
           </div>
         </div>
       ))}

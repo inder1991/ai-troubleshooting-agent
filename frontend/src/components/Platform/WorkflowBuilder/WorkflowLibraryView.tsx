@@ -270,7 +270,7 @@ const HeroTemplateCard: React.FC<{
         {/* Recommended badge */}
         <div className="flex items-center gap-2 mb-2">
           <span
-            className="text-[10px] font-mono font-semibold uppercase tracking-wider px-2 py-0.5 rounded"
+            className="text-body-xs font-mono font-semibold uppercase tracking-wider px-2 py-0.5 rounded"
             style={{
               background: t.amberBg,
               border: `1px solid ${t.amberBorder}`,
@@ -489,7 +489,7 @@ const SavedRow: React.FC<SavedRowProps> = ({ workflow, onOpen, onDelete }) => {
           {workflow.name}
         </div>
         <div
-          className="text-[10px] font-sans mt-0.5"
+          className="text-body-xs font-sans mt-0.5"
           style={{ color: t.textMuted }}
         >
           Modified {timeAgo(workflow.savedAt)}

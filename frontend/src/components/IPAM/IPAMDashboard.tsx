@@ -471,7 +471,7 @@ export default function IPAMDashboard() {
                     <span className="font-mono text-sm text-amber-300">{String(r.address)}</span>
                     <span className="text-xs text-slate-400">{String(r.hostname || '-')}</span>
                     <span className="text-xs text-slate-500">{String(r.mac_address || '')}</span>
-                    <span className="ml-auto text-[10px] text-slate-500 font-mono">{String(r.subnet_cidr || '')}</span>
+                    <span className="ml-auto text-body-xs text-slate-500 font-mono">{String(r.subnet_cidr || '')}</span>
                   </button>
                 ))}
               </div>
@@ -689,12 +689,12 @@ export default function IPAMDashboard() {
                     }`} />
                     <div className="flex-1 min-w-0">
                       <div className="font-mono text-xs text-slate-300 truncate">{f.cidr}</div>
-                      <div className="text-[10px] text-slate-500">
+                      <div className="text-body-xs text-slate-500">
                         {f.utilization_pct}% used
                         {f.days_until_full !== null && ` · ~${f.days_until_full}d to full`}
                       </div>
                     </div>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${
+                    <span className={`text-body-xs px-1.5 py-0.5 rounded font-semibold ${
                       f.risk_level === 'critical'
                         ? 'bg-red-900/30 text-red-400'
                         : 'bg-amber-900/30 text-amber-400'
@@ -716,7 +716,7 @@ export default function IPAMDashboard() {
                 {conflicts.slice(0, 5).map((c, i) => (
                   <div key={i} className="flex items-center gap-2 px-1.5 py-1 bg-red-900/20 border border-red-900/30 rounded">
                     <span className="font-mono text-xs text-red-300">{c.address}</span>
-                    <span className="text-[10px] text-red-400 ml-auto">{c.cnt} subnets</span>
+                    <span className="text-body-xs text-red-400 ml-auto">{c.cnt} subnets</span>
                   </div>
                 ))}
               </div>
@@ -742,15 +742,15 @@ export default function IPAMDashboard() {
                       <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
                         m.type === 'missing_hostname' ? 'bg-orange-400' : 'bg-amber-400'
                       }`} />
-                      <span className="text-[11px] text-slate-300 truncate">{m.detail}</span>
+                      <span className="text-body-xs text-slate-300 truncate">{m.detail}</span>
                     </div>
                     {m.address && (
-                      <span className="font-mono text-[10px] text-slate-500 ml-3">{m.address}</span>
+                      <span className="font-mono text-body-xs text-slate-500 ml-3">{m.address}</span>
                     )}
                   </div>
                 ))}
                 {dnsMismatches.length > 6 && (
-                  <div className="text-[10px] text-slate-500 text-center">
+                  <div className="text-body-xs text-slate-500 text-center">
                     +{dnsMismatches.length - 6} more
                   </div>
                 )}
@@ -765,7 +765,7 @@ export default function IPAMDashboard() {
             </h4>
             <div className="flex-1 overflow-y-auto space-y-1">
               {events.slice(0, 15).map((e, i) => (
-                <div key={i} className="flex items-start gap-2 text-[11px] py-1 border-b border-[#1e3a40]/30">
+                <div key={i} className="flex items-start gap-2 text-body-xs py-1 border-b border-[#1e3a40]/30">
                   <span className={`w-1.5 h-1.5 rounded-full mt-1 flex-shrink-0 ${
                     e.new_status === 'assigned' ? 'bg-amber-400' :
                     e.new_status === 'reserved' ? 'bg-blue-400' :
@@ -776,7 +776,7 @@ export default function IPAMDashboard() {
                     <span className="font-mono text-slate-300">{e.address}</span>
                     <span className="text-slate-500 ml-1">{e.action}</span>
                     {e.timestamp && (
-                      <div className="text-[10px] text-slate-600 truncate">
+                      <div className="text-body-xs text-slate-600 truncate">
                         {new Date(e.timestamp).toLocaleString()}
                       </div>
                     )}

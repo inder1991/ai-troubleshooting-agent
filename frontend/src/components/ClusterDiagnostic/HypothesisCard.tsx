@@ -11,7 +11,7 @@ const ConfidenceBar: React.FC<{ value: number }> = ({ value }) => {
   const pct = Math.round(value * 100);
   const blocks = Math.round(value * 10);
   return (
-    <span className="inline-flex items-center gap-1.5 font-mono text-[11px]">
+    <span className="inline-flex items-center gap-1.5 font-mono text-body-xs">
       <span className="inline-flex">
         {Array.from({ length: 10 }).map((_, i) => (
           <span
@@ -34,11 +34,11 @@ const HypothesisCard: React.FC<HypothesisCardProps> = ({ hypotheses, primaryChai
   if (!hasHypotheses && !primaryChain) {
     return (
       <div className="border border-wr-border-subtle rounded bg-wr-inset p-4">
-        <h3 className="text-[10px] uppercase font-bold tracking-widest text-slate-500 mb-1 flex items-center gap-2">
+        <h3 className="text-body-xs uppercase font-bold tracking-widest text-slate-500 mb-1 flex items-center gap-2">
           <span className="material-symbols-outlined text-sm">search</span>
           Root Cause Analysis
         </h3>
-        <p className="text-[11px] text-slate-600 animate-pulse">Correlating events...</p>
+        <p className="text-body-xs text-slate-600 animate-pulse">Correlating events...</p>
       </div>
     );
   }
@@ -51,7 +51,7 @@ const HypothesisCard: React.FC<HypothesisCardProps> = ({ hypotheses, primaryChai
     return (
       <div className="border border-wr-border-subtle rounded bg-wr-inset">
         <div className="px-4 pt-4 pb-2">
-          <h3 className="text-[10px] uppercase font-bold tracking-widest text-slate-500 mb-3 flex items-center gap-2">
+          <h3 className="text-body-xs uppercase font-bold tracking-widest text-slate-500 mb-3 flex items-center gap-2">
             <span className="material-symbols-outlined text-sm">psychology</span>
             Root Cause Analysis
           </h3>
@@ -65,20 +65,20 @@ const HypothesisCard: React.FC<HypothesisCardProps> = ({ hypotheses, primaryChai
                   className={`py-2 px-3 rounded ${isTop ? 'border-l-2 border-l-wr-accent bg-wr-bg' : ''}`}
                 >
                   <div className="flex items-start gap-2">
-                    <span className="text-[10px] font-mono text-slate-600 mt-0.5 shrink-0">#{idx + 1}</span>
+                    <span className="text-body-xs font-mono text-slate-600 mt-0.5 shrink-0">#{idx + 1}</span>
                     <div className="flex-1 min-w-0">
                       <p className={`leading-snug ${isTop ? 'text-[13px] font-semibold text-slate-200' : 'text-[12px] text-slate-400'}`}>
                         {h.cause}
                       </p>
                       <div className="flex items-center flex-wrap gap-x-3 gap-y-0.5 mt-1">
                         <ConfidenceBar value={h.confidence} />
-                        <span className="text-[10px] text-slate-600">
+                        <span className="text-body-xs text-slate-600">
                           Evidence: {h.supporting_evidence.length} supporting, {h.contradicting_evidence.length} contradicting
                         </span>
-                        <span className="text-[10px] text-slate-600">
+                        <span className="text-body-xs text-slate-600">
                           Chain depth: {h.depth}
                         </span>
-                        <span className="text-[10px] text-slate-600 capitalize">
+                        <span className="text-body-xs text-slate-600 capitalize">
                           Source: {h.source}
                         </span>
                       </div>
@@ -97,7 +97,7 @@ const HypothesisCard: React.FC<HypothesisCardProps> = ({ hypotheses, primaryChai
               onClick={() => setExpanded(!expanded)}
               aria-label={expanded ? 'Collapse effects' : 'Show cascading effects'}
               aria-expanded={expanded}
-              className="w-full px-4 py-2 flex items-center gap-2 text-[10px] text-slate-500 hover:text-slate-400 transition-colors"
+              className="w-full px-4 py-2 flex items-center gap-2 text-body-xs text-slate-500 hover:text-slate-400 transition-colors"
             >
               <span className="material-symbols-outlined text-xs" style={{ transform: expanded ? 'rotate(90deg)' : 'none', transition: 'transform 150ms' }}>
                 chevron_right
@@ -108,8 +108,8 @@ const HypothesisCard: React.FC<HypothesisCardProps> = ({ hypotheses, primaryChai
               <div className="px-4 pb-3 space-y-1">
                 {effects.map((eff, i) => (
                   <div key={i} className="flex items-start gap-2 pl-4">
-                    <span className="text-[10px] text-slate-600 font-mono mt-px shrink-0">{i + 1}.</span>
-                    <span className="text-[11px] text-slate-500">{eff}</span>
+                    <span className="text-body-xs text-slate-600 font-mono mt-px shrink-0">{i + 1}.</span>
+                    <span className="text-body-xs text-slate-500">{eff}</span>
                   </div>
                 ))}
               </div>
@@ -132,7 +132,7 @@ const HypothesisCard: React.FC<HypothesisCardProps> = ({ hypotheses, primaryChai
       style={{ borderColor: badgeColor, backgroundColor: `${badgeColor}08` }}
     >
       <h3
-        className="text-[10px] uppercase font-bold tracking-widest mb-1 flex items-center gap-2"
+        className="text-body-xs uppercase font-bold tracking-widest mb-1 flex items-center gap-2"
         style={{ color: badgeColor }}
       >
         <span className="material-symbols-outlined text-sm">warning</span>
@@ -141,11 +141,11 @@ const HypothesisCard: React.FC<HypothesisCardProps> = ({ hypotheses, primaryChai
       <p className="text-lg font-bold text-white mb-3 leading-tight">{chain.root_cause.description}</p>
       <div className="flex gap-4">
         <div className="p-2 bg-wr-bg/60 border border-wr-border-subtle rounded">
-          <div className="text-[8px] uppercase text-slate-500">Confidence</div>
+          <div className="text-chrome uppercase text-slate-500">Confidence</div>
           <div className="text-base font-mono" style={{ color: badgeColor }}>{Math.round(chain.confidence * 100)}%</div>
         </div>
         <div className="p-2 bg-wr-bg/60 border border-wr-border-subtle rounded">
-          <div className="text-[8px] uppercase text-slate-500">Cascading Effects</div>
+          <div className="text-chrome uppercase text-slate-500">Cascading Effects</div>
           <div className="text-base font-mono text-amber-500">{chain.cascading_effects.length}</div>
         </div>
       </div>
@@ -156,7 +156,7 @@ const HypothesisCard: React.FC<HypothesisCardProps> = ({ hypotheses, primaryChai
             onClick={() => setExpanded(!expanded)}
             aria-label={expanded ? 'Collapse effects' : 'Show cascading effects'}
             aria-expanded={expanded}
-            className="flex items-center gap-1 text-[10px] text-slate-500 hover:text-slate-400 transition-colors"
+            className="flex items-center gap-1 text-body-xs text-slate-500 hover:text-slate-400 transition-colors"
           >
             <span className="material-symbols-outlined text-xs" style={{ transform: expanded ? 'rotate(90deg)' : 'none', transition: 'transform 150ms' }}>
               chevron_right
@@ -167,8 +167,8 @@ const HypothesisCard: React.FC<HypothesisCardProps> = ({ hypotheses, primaryChai
             <div className="mt-2 space-y-1">
               {chain.cascading_effects.map((eff, i) => (
                 <div key={i} className="flex items-start gap-2 pl-4">
-                  <span className="text-[10px] text-slate-600 font-mono mt-px shrink-0">{eff.order}.</span>
-                  <span className="text-[11px] text-slate-500">{eff.description}</span>
+                  <span className="text-body-xs text-slate-600 font-mono mt-px shrink-0">{eff.order}.</span>
+                  <span className="text-body-xs text-slate-500">{eff.description}</span>
                 </div>
               ))}
             </div>

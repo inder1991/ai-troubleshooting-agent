@@ -37,7 +37,7 @@ const NATChainDisplay: React.FC<NATChainDisplayProps> = ({ chain }) => {
               style={{ backgroundColor: '#0a0f13', border: '1px solid #3d3528' }}
             >
               <div
-                className="text-[10px] uppercase tracking-wider mb-0.5"
+                className="text-body-xs uppercase tracking-wider mb-0.5"
                 style={{ color: '#f59e0b' }}
               >
                 {STAGE_LABELS[stage.stage] || stage.stage}
@@ -46,7 +46,7 @@ const NATChainDisplay: React.FC<NATChainDisplayProps> = ({ chain }) => {
                 {stage.ip}:{stage.port}
               </div>
               {stage.device_id && (
-                <div className="text-[10px] mt-0.5" style={{ color: '#64748b' }}>
+                <div className="text-body-xs mt-0.5" style={{ color: '#64748b' }}>
                   {stage.device_id}
                 </div>
               )}

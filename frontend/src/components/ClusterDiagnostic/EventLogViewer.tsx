@@ -33,7 +33,7 @@ const EventLogViewer: React.FC<EventLogViewerProps> = ({ events }) => {
         aria-expanded={false}
         className="w-full flex items-center justify-between px-3 py-2 bg-wr-inset rounded border border-wr-border-subtle hover:border-wr-accent/30 transition-colors"
       >
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+        <span className="text-body-xs font-semibold uppercase tracking-wider text-slate-500">
           Event Log ({events.length} events)
         </span>
         <span className="material-symbols-outlined text-[14px] text-slate-400">expand_more</span>
@@ -44,20 +44,20 @@ const EventLogViewer: React.FC<EventLogViewerProps> = ({ events }) => {
   return (
     <div className="bg-wr-inset rounded border border-wr-border-subtle flex flex-col max-h-[200px] sm:max-h-[300px]">
       <div className="flex items-center justify-between px-3 py-2 border-b border-wr-border-subtle shrink-0">
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Event Log</span>
+        <span className="text-body-xs font-semibold uppercase tracking-wider text-slate-500">Event Log</span>
         <div className="flex items-center gap-2">
           <input
             value={filter}
             onChange={e => setFilter(e.target.value)}
             placeholder="Search..."
             aria-label="Filter events by text"
-            className="bg-wr-bg text-[10px] text-slate-300 px-2 py-0.5 rounded border border-wr-border-subtle w-32 outline-none focus:border-wr-accent/30"
+            className="bg-wr-bg text-body-xs text-slate-300 px-2 py-0.5 rounded border border-wr-border-subtle w-32 outline-none focus:border-wr-accent/30"
           />
           <select
             value={severityFilter}
             onChange={e => setSeverityFilter(e.target.value)}
             aria-label="Filter by severity"
-            className="bg-wr-bg text-[10px] text-slate-300 px-1 py-0.5 rounded border border-wr-border-subtle outline-none"
+            className="bg-wr-bg text-body-xs text-slate-300 px-1 py-0.5 rounded border border-wr-border-subtle outline-none"
           >
             <option value="all">All</option>
             <option value="error">Errors</option>
@@ -70,7 +70,7 @@ const EventLogViewer: React.FC<EventLogViewerProps> = ({ events }) => {
       </div>
       <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-0.5">
         {diagnosticEvents.map((event, i) => (
-          <div key={i} className="flex items-start gap-2 px-1 py-0.5 hover:bg-wr-bg/50 rounded text-[10px] font-mono">
+          <div key={i} className="flex items-start gap-2 px-1 py-0.5 hover:bg-wr-bg/50 rounded text-body-xs font-mono">
             <span className={`shrink-0 ${event.event_type === 'error' ? 'text-red-400' : event.event_type === 'warning' ? 'text-amber-400' : 'text-slate-400'}`}>
               {event.event_type === 'error' ? '✗' : event.event_type === 'warning' ? '⚠' : '·'}
             </span>
@@ -79,7 +79,7 @@ const EventLogViewer: React.FC<EventLogViewerProps> = ({ events }) => {
           </div>
         ))}
         {diagnosticEvents.length === 0 && (
-          <div className="text-[10px] text-slate-400 text-center py-4">No matching events</div>
+          <div className="text-body-xs text-slate-400 text-center py-4">No matching events</div>
         )}
       </div>
     </div>

@@ -23,7 +23,7 @@ export const FilterToolbar: React.FC<FilterToolbarProps> = ({ mode, onModeChange
           <button
             key={f.key}
             onClick={() => onModeChange(f.key)}
-            className={`text-[9px] px-2 py-0.5 rounded border font-bold uppercase tracking-wider transition-colors ${
+            className={`text-body-xs px-2 py-0.5 rounded border font-bold uppercase tracking-wider transition-colors ${
               isActive
                 ? 'bg-[#e09f3e]/20 text-[#e09f3e] border-[#e09f3e]/30'
                 : 'bg-slate-800/50 text-slate-500 border-slate-700 hover:text-slate-400'
@@ -31,7 +31,7 @@ export const FilterToolbar: React.FC<FilterToolbarProps> = ({ mode, onModeChange
             aria-pressed={isActive}
           >
             {f.label}
-            <span className="ml-1 font-mono text-[8px] opacity-80 bg-slate-800 text-slate-300 px-1 rounded">({counts[f.key]})</span>
+            <span className="ml-1 font-mono text-chrome opacity-80 bg-slate-800 text-slate-300 px-1 rounded">({counts[f.key]})</span>
           </button>
         );
       })}

@@ -38,12 +38,12 @@ const ExecutionDAG: React.FC<ExecutionDAGProps> = ({ domainReports, phase }) => 
 
   return (
     <div className="flex-1 min-h-[200px] bg-wr-surface/40 rounded border border-wr-border p-3 flex flex-col">
-      <h3 className="text-[10px] uppercase font-bold tracking-widest text-slate-500 mb-4">Execution DAG</h3>
+      <h3 className="text-body-xs uppercase font-bold tracking-widest text-slate-500 mb-4">Execution DAG</h3>
       <div className="relative flex flex-col items-center gap-6 h-full py-2">
         {dagNodes.map((node, i) => (
           <React.Fragment key={node.label}>
             {i > 0 && <div className="w-px h-6 bg-wr-accent/30" />}
-            <div className={`px-4 py-2 border rounded bg-wr-bg flex items-center justify-center text-[10px] font-mono ${nodeStyle(node.status)}`}>
+            <div className={`px-4 py-2 border rounded bg-wr-bg flex items-center justify-center text-body-xs font-mono ${nodeStyle(node.status)}`}>
               {node.label}
             </div>
           </React.Fragment>

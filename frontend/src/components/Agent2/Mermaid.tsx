@@ -141,11 +141,11 @@ export const MermaidChart: React.FC<{ chart: string }> = ({ chart }) => {
           >
             {rawFallback ? (
               <div>
-                <div className="text-[10px] text-amber-400 mb-2 flex items-center gap-1.5">
+                <div className="text-body-xs text-amber-400 mb-2 flex items-center gap-1.5">
                   <span className="material-symbols-outlined text-[12px]">warning</span>
                   Diagram rendered as text (parse error)
                 </div>
-                <pre className="text-[10px] text-slate-400 font-mono whitespace-pre-wrap leading-relaxed bg-slate-900/60 rounded-lg p-3 border border-slate-800">
+                <pre className="text-body-xs text-slate-400 font-mono whitespace-pre-wrap leading-relaxed bg-slate-900/60 rounded-lg p-3 border border-slate-800">
                   {rawFallback}
                 </pre>
               </div>

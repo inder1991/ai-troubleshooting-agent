@@ -15,7 +15,7 @@ const KIND_OPTIONS: DeliveryKind[] = ['commit', 'build', 'sync'];
 const STATUS_OPTIONS: string[] = ['success', 'failed', 'in_progress', 'healthy', 'degraded'];
 
 const CHIP_BASE =
-  'px-2 py-1 rounded-full text-[10px] uppercase border transition-colors';
+  'px-2 py-1 rounded-full text-body-xs uppercase border transition-colors';
 const CHIP_INACTIVE = 'border-zinc-700 text-zinc-400 hover:text-zinc-200';
 const CHIP_ACTIVE = 'border-cyan-400 text-cyan-200 bg-cyan-500/10';
 

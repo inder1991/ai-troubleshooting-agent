@@ -39,7 +39,7 @@ const WorkflowTabs: React.FC<WorkflowTabsProps> = ({ activeTab, onTabChange, app
             <span className="material-symbols-outlined text-base">{tab.icon}</span>
             <span>{tab.label}</span>
             <span
-              className="text-[10px] font-mono px-1.5 py-0.5 rounded"
+              className="text-body-xs font-mono px-1.5 py-0.5 rounded"
               style={{
                 backgroundColor: isActive ? 'rgba(224,159,62,0.2)' : 'rgba(100,116,139,0.2)',
                 color: isActive ? '#e09f3e' : '#64748b',

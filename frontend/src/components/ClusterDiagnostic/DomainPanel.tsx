@@ -32,14 +32,14 @@ const DomainPanel: React.FC<DomainPanelProps> = ({ domain, report, namespaces })
           </span>
           DOMAIN: {meta.label}
         </h2>
-        <span className={`text-[10px] font-mono px-2 py-0.5 rounded border ${badge.cls}`}>
+        <span className={`text-body-xs font-mono px-2 py-0.5 rounded border ${badge.cls}`}>
           {badge.text}
         </span>
       </div>
 
       {/* Failure reason banner */}
       {report?.status === 'FAILED' && report.failure_reason && (
-        <div className="mx-4 mt-3 px-3 py-2 rounded border border-red-500/20 bg-red-500/5 text-[11px]">
+        <div className="mx-4 mt-3 px-3 py-2 rounded border border-red-500/20 bg-red-500/5 text-body-xs">
           <span className="text-red-400 font-semibold">Agent failed: </span>
           <span className="text-red-300">{report.failure_reason.replace(/_/g, ' ').toLowerCase()}</span>
           {report.data_gathered_before_failure && report.data_gathered_before_failure.length > 0 && (
@@ -52,7 +52,7 @@ const DomainPanel: React.FC<DomainPanelProps> = ({ domain, report, namespaces })
 
       {/* Partial status info */}
       {report?.status === 'PARTIAL' && (
-        <div className="mx-4 mt-3 px-3 py-2 rounded border border-amber-500/20 bg-amber-500/5 text-[11px]">
+        <div className="mx-4 mt-3 px-3 py-2 rounded border border-amber-500/20 bg-amber-500/5 text-body-xs">
           <span className="text-amber-400 font-semibold">Partial results — </span>
           <span className="text-amber-300">{report.failure_reason ? report.failure_reason.replace(/_/g, ' ').toLowerCase() : 'some data missing'}</span>
           {report.data_gathered_before_failure && report.data_gathered_before_failure.length > 0 && (
@@ -93,7 +93,7 @@ const DomainPanel: React.FC<DomainPanelProps> = ({ domain, report, namespaces })
               ))}
 
               {!hasTrigger && (
-                <div className="mt-2 bg-wr-bg/30 p-2 rounded text-[10px] text-slate-600 font-mono">
+                <div className="mt-2 bg-wr-bg/30 p-2 rounded text-body-xs text-slate-600 font-mono">
                   Status: {ns.status} | {ns.replica_status || '—'} | Last Deploy: {ns.last_deploy || '—'}
                 </div>
               )}
@@ -110,10 +110,10 @@ const DomainPanel: React.FC<DomainPanelProps> = ({ domain, report, namespaces })
         {/* Ruled out (healthy checks) */}
         {report && report.ruled_out.length > 0 && (
           <div className="mx-4 mt-2 mb-3 px-3 py-2 rounded border border-emerald-500/10 bg-emerald-500/5">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-emerald-600">Ruled Out ({report.ruled_out.length})</span>
+            <span className="text-body-xs font-semibold uppercase tracking-wider text-emerald-600">Ruled Out ({report.ruled_out.length})</span>
             <div className="mt-1 flex flex-wrap gap-1.5">
               {report.ruled_out.map((item, i) => (
-                <span key={i} className="text-[10px] text-emerald-500/60 bg-emerald-500/5 px-1.5 py-0.5 rounded font-mono">
+                <span key={i} className="text-body-xs text-emerald-500/60 bg-emerald-500/5 px-1.5 py-0.5 rounded font-mono">
                   {item}
                 </span>
               ))}

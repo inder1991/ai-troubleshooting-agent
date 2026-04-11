@@ -34,10 +34,10 @@ export const DeliveryPulse: React.FC = () => {
       <header className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <span className="material-symbols-outlined text-[16px] text-duck-accent" aria-hidden="true">rocket_launch</span>
-          <h3 className="text-[11px] font-display font-bold tracking-wider uppercase text-white">Delivery Pulse</h3>
+          <h3 className="text-body-xs font-display font-bold tracking-wider uppercase text-white">Delivery Pulse</h3>
         </div>
         <button
-          className="text-[10px] text-slate-400 hover:text-duck-accent transition-colors"
+          className="text-body-xs text-slate-400 hover:text-duck-accent transition-colors"
           onClick={() => navigate('/cicd')}
           aria-label="Open delivery board"
         >
@@ -46,16 +46,16 @@ export const DeliveryPulse: React.FC = () => {
       </header>
 
       {!clusterId && (
-        <div className="text-[11px] text-slate-500 py-2">No active cluster.</div>
+        <div className="text-body-xs text-slate-500 py-2">No active cluster.</div>
       )}
       {clusterId && isLoading && (
-        <div className="text-[11px] text-slate-500 py-2">Loading…</div>
+        <div className="text-body-xs text-slate-500 py-2">Loading…</div>
       )}
       {clusterId && isError && (
-        <div className="text-[11px] text-red-400 py-2">Failed to load delivery events</div>
+        <div className="text-body-xs text-red-400 py-2">Failed to load delivery events</div>
       )}
       {clusterId && !isLoading && !isError && topItems.length === 0 && (
-        <div className="text-[11px] text-slate-500 py-2">No recent activity.</div>
+        <div className="text-body-xs text-slate-500 py-2">No recent activity.</div>
       )}
 
       <ul className="space-y-1">
@@ -73,7 +73,7 @@ export const DeliveryPulse: React.FC = () => {
           return (
             <li
               key={`${item.id}-${item.source}-${item.source_instance}`}
-              className="flex items-center gap-2 text-[11px] py-1 px-1 rounded hover:bg-duck-card/30 cursor-pointer"
+              className="flex items-center gap-2 text-body-xs py-1 px-1 rounded hover:bg-duck-card/30 cursor-pointer"
               onClick={() => navigate('/cicd')}
             >
               <span
@@ -83,7 +83,7 @@ export const DeliveryPulse: React.FC = () => {
                 {kindIcon}
               </span>
               <span className="flex-1 truncate text-slate-200">{item.title}</span>
-              <span className={`uppercase text-[9px] tracking-wider ${statusColor}`}>
+              <span className={`uppercase text-body-xs tracking-wider ${statusColor}`}>
                 {item.status}
               </span>
             </li>

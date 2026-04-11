@@ -188,10 +188,10 @@ const DBSchema: React.FC = () => {
                         <span className="truncate">{t.name}</span>
                         <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
                           {t.row_estimate !== undefined && (
-                            <span className="text-[10px] text-slate-600">{t.row_estimate.toLocaleString()} rows</span>
+                            <span className="text-body-xs text-slate-600">{t.row_estimate.toLocaleString()} rows</span>
                           )}
                           {t.total_size_bytes !== undefined && t.total_size_bytes > 0 && (
-                            <span className="text-[10px] bg-slate-700/50 rounded px-1 py-0.5 text-slate-500">{formatBytes(t.total_size_bytes)}</span>
+                            <span className="text-body-xs bg-slate-700/50 rounded px-1 py-0.5 text-slate-500">{formatBytes(t.total_size_bytes)}</span>
                           )}
                         </div>
                       </button>
@@ -251,7 +251,7 @@ const DBSchema: React.FC = () => {
               {/* Total size */}
               {schema.total_size_bytes > 0 && (
                 <div className="mt-4 pt-2 border-t border-slate-700/30 px-2">
-                  <span className="text-[10px] text-slate-600">Total: {formatBytes(schema.total_size_bytes)}</span>
+                  <span className="text-body-xs text-slate-600">Total: {formatBytes(schema.total_size_bytes)}</span>
                 </div>
               )}
             </>

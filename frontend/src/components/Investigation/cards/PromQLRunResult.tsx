@@ -26,7 +26,7 @@ const PromQLRunResult: React.FC<PromQLRunResultProps> = ({
 
   if (error) {
     return (
-      <div className="mt-2 text-[10px] text-red-400 font-mono">
+      <div className="mt-2 text-body-xs text-red-400 font-mono">
         {error}
       </div>
     );
@@ -48,7 +48,7 @@ const PromQLRunResult: React.FC<PromQLRunResultProps> = ({
         severity="info"
       />
       <div className="flex items-baseline gap-2">
-        <span className="text-[10px] text-slate-500">Current:</span>
+        <span className="text-body-xs text-slate-500">Current:</span>
         <span className={`text-sm font-mono font-bold ${valueColor}`}>
           {formatNumber(currentValue)}
         </span>

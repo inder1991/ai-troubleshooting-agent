@@ -239,7 +239,7 @@ const DBConnections: React.FC = () => {
                     className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-amber-500 outline-none"
                     placeholder="mongodb+srv://user:pass@cluster0.example.net/mydb"
                   />
-                  <p className="text-[10px] text-slate-500 mt-1">
+                  <p className="text-body-xs text-slate-500 mt-1">
                     Supports mongodb:// and mongodb+srv:// URIs.
                   </p>
                 </div>

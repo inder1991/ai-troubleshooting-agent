@@ -54,12 +54,12 @@ const RemediationCard: React.FC<RemediationCardProps> = ({ plan, onApprove, onRe
           </span>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
-          <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-700/60 text-slate-400">{source}</span>
-          <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${statusClass}`}>
+          <span className="text-body-xs px-1.5 py-0.5 rounded bg-slate-700/60 text-slate-400">{source}</span>
+          <span className={`text-body-xs px-1.5 py-0.5 rounded font-medium ${statusClass}`}>
             {plan.status.toUpperCase()}
           </span>
           {plan.requires_downtime && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 font-medium">
+            <span className="text-body-xs px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 font-medium">
               DOWNTIME
             </span>
           )}
@@ -95,7 +95,7 @@ const RemediationCard: React.FC<RemediationCardProps> = ({ plan, onApprove, onRe
       )}
 
       {/* Timestamps */}
-      <div className="flex flex-wrap gap-3 text-[10px] text-slate-500">
+      <div className="flex flex-wrap gap-3 text-body-xs text-slate-500">
         <span>Created: {new Date(plan.created_at).toLocaleString()}</span>
         {plan.approved_at && <span>Approved: {new Date(plan.approved_at).toLocaleString()}</span>}
         {plan.executed_at && <span>Executed: {new Date(plan.executed_at).toLocaleString()}</span>}

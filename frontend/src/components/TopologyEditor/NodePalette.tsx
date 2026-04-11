@@ -100,7 +100,7 @@ const NodePalette: React.FC = () => {
       {paletteCategories.map((cat) => (
         <div key={cat.label}>
           <div
-            className="text-[9px] font-mono uppercase tracking-widest px-2 pt-3 pb-1"
+            className="text-body-xs font-mono uppercase tracking-widest px-2 pt-3 pb-1"
             style={{ color: '#64748b' }}
           >
             {cat.label}
@@ -142,7 +142,7 @@ const NodePalette: React.FC = () => {
       ))}
 
       <div className="mt-4 px-2">
-        <p className="text-[10px] font-mono" style={{ color: '#64748b' }}>
+        <p className="text-body-xs font-mono" style={{ color: '#64748b' }}>
           Drag a device onto the canvas to add it to the topology.
         </p>
       </div>

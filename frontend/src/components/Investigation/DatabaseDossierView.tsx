@@ -114,7 +114,7 @@ const DatabaseDossierView: React.FC<DatabaseDossierViewProps> = ({ sessionId, on
             <a
               key={s.id}
               href={`#${s.id}`}
-              className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] text-slate-400 hover:text-white bg-duck-card/30 border border-duck-border hover:border-violet-500/30 transition-colors"
+              className="flex items-center gap-1 px-2 py-1 rounded-md text-body-xs text-slate-400 hover:text-white bg-duck-card/30 border border-duck-border hover:border-violet-500/30 transition-colors"
             >
               <span className="material-symbols-outlined text-xs">{s.icon}</span>
               {s.title}
@@ -150,20 +150,20 @@ const DatabaseDossierView: React.FC<DatabaseDossierViewProps> = ({ sessionId, on
             <div key={label} className="mb-4">
               <h3 className={`text-xs font-bold text-${color}-400 uppercase tracking-wider mb-2`}>{label} ({items.length})</h3>
               {items.length === 0 ? (
-                <p className="text-[11px] text-slate-600 italic">No findings from this agent.</p>
+                <p className="text-body-xs text-slate-600 italic">No findings from this agent.</p>
               ) : (
                 <div className="space-y-2">
                   {items.map((f: any, i: number) => (
                     <div key={i} className="bg-duck-card/30 border border-duck-border rounded-lg p-3">
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-xs font-bold text-white">{f.title}</span>
-                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${severityBadge(f.severity)}`}>
+                        <span className={`text-body-xs font-bold px-1.5 py-0.5 rounded ${severityBadge(f.severity)}`}>
                           {f.severity?.toUpperCase()}
                         </span>
                       </div>
-                      <p className="text-[11px] text-slate-400">{f.detail}</p>
+                      <p className="text-body-xs text-slate-400">{f.detail}</p>
                       {f.recommendation && (
-                        <p className="text-[10px] text-slate-500 mt-1">Recommendation: {f.recommendation}</p>
+                        <p className="text-body-xs text-slate-500 mt-1">Recommendation: {f.recommendation}</p>
                       )}
                     </div>
                   ))}
@@ -181,12 +181,12 @@ const DatabaseDossierView: React.FC<DatabaseDossierViewProps> = ({ sessionId, on
                 <span className="material-symbols-outlined text-violet-400 text-sm mt-0.5">lightbulb</span>
                 <div>
                   <p className="text-xs text-white font-medium">{f.title}</p>
-                  <p className="text-[11px] text-slate-400 mt-0.5">{f.recommendation}</p>
+                  <p className="text-body-xs text-slate-400 mt-0.5">{f.recommendation}</p>
                 </div>
               </div>
             ))}
             {allFindings.filter((f: any) => f.recommendation).length === 0 && (
-              <p className="text-[11px] text-slate-600 italic">No recommendations generated.</p>
+              <p className="text-body-xs text-slate-600 italic">No recommendations generated.</p>
             )}
           </div>
         </DossierSection>
@@ -194,7 +194,7 @@ const DatabaseDossierView: React.FC<DatabaseDossierViewProps> = ({ sessionId, on
         {/* Remediation Plans */}
         <DossierSection id="remediation" title="Remediation Plans" icon="build" index={4}>
           <div className="bg-duck-card/30 border border-duck-border rounded-lg p-4">
-            <p className="text-[11px] text-slate-500 italic">
+            <p className="text-body-xs text-slate-500 italic">
               Remediation plans will be generated when agents identify actionable fixes. Use the Plan → Verify → Approve → Execute workflow.
             </p>
           </div>
@@ -210,7 +210,7 @@ const DatabaseDossierView: React.FC<DatabaseDossierViewProps> = ({ sessionId, on
             ].map(({ label, value, color }) => (
               <div key={label} className="bg-duck-card/30 border border-duck-border rounded-lg p-3 text-center">
                 <p className={`text-2xl font-bold ${color}`}>{value}</p>
-                <p className="text-[10px] text-slate-500 uppercase tracking-wider">{label}</p>
+                <p className="text-body-xs text-slate-500 uppercase tracking-wider">{label}</p>
               </div>
             ))}
           </div>

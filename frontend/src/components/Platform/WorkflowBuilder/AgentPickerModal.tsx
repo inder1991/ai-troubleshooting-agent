@@ -136,7 +136,7 @@ const AgentPickerModal: React.FC<Props> = ({ onSelect, onClose }) => {
           )}
           {!loading && Object.entries(groups).map(([groupLabel, groupAgents]) => (
             <div key={groupLabel}>
-              <div className="px-4 py-1.5 text-[10px] font-sans uppercase tracking-widest sticky top-0"
+              <div className="px-4 py-1.5 text-body-xs font-sans uppercase tracking-widest sticky top-0"
                 style={{ color: t.textFaint, background: t.bgSurface, borderBottom: `1px solid ${t.bgTrack}` }}>
                 {groupLabel}
               </div>
@@ -155,10 +155,10 @@ const AgentPickerModal: React.FC<Props> = ({ onSelect, onClose }) => {
                     style={{ background: STATUS_COLOR[agent.status] || t.textFaint }} />
                   <div className="flex-1 min-w-0">
                     <div className="text-xs font-sans truncate" style={{ color: t.textPrimary }}>{agent.name}</div>
-                    <div className="text-[10px] font-mono truncate mt-0.5" style={{ color: t.textMuted }}>{agent.id}</div>
+                    <div className="text-body-xs font-mono truncate mt-0.5" style={{ color: t.textMuted }}>{agent.id}</div>
                   </div>
                   {agent.status === 'offline' && (
-                    <span className="text-[10px] font-sans flex-shrink-0" style={{ color: t.textFaint }}>offline</span>
+                    <span className="text-body-xs font-sans flex-shrink-0" style={{ color: t.textFaint }}>offline</span>
                   )}
                 </button>
               ))}

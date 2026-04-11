@@ -46,7 +46,7 @@ const ExecutionTracePanel: React.FC<ExecutionTracePanelProps> = ({ trace, isLoad
             <span className="text-xs font-mono uppercase tracking-widest" style={{ color: '#475569' }}>
               Awaiting Dispatch
             </span>
-            <span className="text-[10px] font-mono" style={{ color: '#374151' }}>
+            <span className="text-body-xs font-mono" style={{ color: '#374151' }}>
               No execution trace available
             </span>
           </div>
@@ -60,7 +60,7 @@ const ExecutionTracePanel: React.FC<ExecutionTracePanelProps> = ({ trace, isLoad
               const levelColor = LEVEL_COLORS[entry.level];
 
               return (
-                <div key={i} className="flex gap-2 text-[11px] font-mono leading-relaxed">
+                <div key={i} className="flex gap-2 text-body-xs font-mono leading-relaxed">
                   <span style={{ color: '#475569' }}>{timeStr}</span>
                   <span
                     className="uppercase w-10 text-right flex-shrink-0"

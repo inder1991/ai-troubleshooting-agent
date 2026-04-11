@@ -154,7 +154,7 @@ const LiveIntelligenceFeed: React.FC<LiveIntelligenceFeedProps> = ({
               : 'All systems are being monitored. Launch an investigation when an issue is detected.'}
           </p>
           {!filterActive && (
-            <div className="flex items-center gap-3 text-[10px] text-slate-500">
+            <div className="flex items-center gap-3 text-body-xs text-slate-500">
               <span className="flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/40" aria-hidden="true" />
                 Monitoring

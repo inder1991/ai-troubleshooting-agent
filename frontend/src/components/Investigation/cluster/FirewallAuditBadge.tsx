@@ -20,7 +20,7 @@ export default function FirewallAuditBadge({ searchSpace }: FirewallAuditBadgePr
       >
         <span className="material-symbols-outlined text-amber-400 text-base">shield</span>
         <span className="text-xs text-slate-300">Causal Firewall</span>
-        <div className="ml-auto flex items-center gap-2 text-[10px] font-mono text-slate-500">
+        <div className="ml-auto flex items-center gap-2 text-body-xs font-mono text-slate-500">
           <span>{total_evaluated} evaluated</span>
           <span className="text-red-400">{total_blocked} blocked</span>
           <span className="text-amber-400">{total_annotated} annotated</span>
@@ -32,7 +32,7 @@ export default function FirewallAuditBadge({ searchSpace }: FirewallAuditBadgePr
       {expanded && blocked_links.length > 0 && (
         <div className="border-t border-slate-700/30 px-3 py-2 space-y-1.5">
           {blocked_links.map((link, i) => (
-            <div key={i} className="flex items-start gap-2 text-[10px]">
+            <div key={i} className="flex items-start gap-2 text-body-xs">
               <span className="text-red-400 font-mono shrink-0">{link.invariant_id}</span>
               <span className="text-slate-400">{link.invariant_description}</span>
             </div>

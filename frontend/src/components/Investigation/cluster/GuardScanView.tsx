@@ -30,7 +30,7 @@ export default function GuardScanView({ scanResult }: GuardScanViewProps) {
       <div className="flex items-center gap-3">
         <span className="material-symbols-outlined text-amber-400">health_and_safety</span>
         <span className="text-sm font-semibold text-slate-200">Guard Scan</span>
-        <span className={`px-2 py-0.5 text-[9px] font-mono uppercase tracking-wider rounded-full border ${healthClass}`}>
+        <span className={`px-2 py-0.5 text-body-xs font-mono uppercase tracking-wider rounded-full border ${healthClass}`}>
           {scanResult.overall_health}
         </span>
         <div className="ml-auto flex items-center gap-1">
@@ -42,7 +42,7 @@ export default function GuardScanView({ scanResult }: GuardScanViewProps) {
               style={{ width: `${Math.min(scanResult.risk_score * 100, 100)}%` }}
             />
           </div>
-          <span className="text-[10px] font-mono text-slate-500">{Math.round(scanResult.risk_score * 100)}%</span>
+          <span className="text-body-xs font-mono text-slate-500">{Math.round(scanResult.risk_score * 100)}%</span>
         </div>
       </div>
 
@@ -54,7 +54,7 @@ export default function GuardScanView({ scanResult }: GuardScanViewProps) {
         >
           <span className="material-symbols-outlined text-red-400 text-sm">warning</span>
           <span className="text-xs font-semibold text-red-300">Current Risks</span>
-          <span className="text-[9px] font-mono text-slate-500 ml-auto">{scanResult.current_risks.length}</span>
+          <span className="text-body-xs font-mono text-slate-500 ml-auto">{scanResult.current_risks.length}</span>
           <span className="material-symbols-outlined text-slate-500 text-sm">
             {sections.current ? 'expand_less' : 'expand_more'}
           </span>
@@ -78,7 +78,7 @@ export default function GuardScanView({ scanResult }: GuardScanViewProps) {
         >
           <span className="material-symbols-outlined text-amber-400 text-sm">trending_up</span>
           <span className="text-xs font-semibold text-amber-300">Predictive Risks</span>
-          <span className="text-[9px] font-mono text-slate-500 ml-auto">{scanResult.predictive_risks.length}</span>
+          <span className="text-body-xs font-mono text-slate-500 ml-auto">{scanResult.predictive_risks.length}</span>
           <span className="material-symbols-outlined text-slate-500 text-sm">
             {sections.predictive ? 'expand_less' : 'expand_more'}
           </span>

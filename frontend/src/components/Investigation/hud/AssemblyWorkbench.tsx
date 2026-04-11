@@ -16,7 +16,7 @@ interface AssemblyWorkbenchProps {
 
 const agentColors: Record<string, string> = {
   L: '#ef4444',
-  M: '#d4922e',
+  M: '#06b6d4',
   K: '#f97316',
   D: '#3b82f6',
   C: '#10b981',
@@ -35,10 +35,10 @@ const AssemblyWorkbench: React.FC<AssemblyWorkbenchProps> = ({
       <div className="px-4 py-2 bg-amber-500/5 border-b border-amber-500/20 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Hammer className="w-3.5 h-3.5 text-amber-400 animate-bounce" />
-          <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400">
+          <span className="text-body-xs font-bold uppercase tracking-wider text-amber-400">
             Assembly Dock
           </span>
-          <span className="text-[9px] font-mono text-slate-500">
+          <span className="text-body-xs font-mono text-slate-500">
             {pinnedItems.length} Evidence Links
           </span>
         </div>
@@ -47,7 +47,7 @@ const AssemblyWorkbench: React.FC<AssemblyWorkbenchProps> = ({
         {fixReady && (
           <div className="flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-[9px] font-mono text-emerald-400">RESOLUTION_ENGINE_READY</span>
+            <span className="text-body-xs font-mono text-emerald-400">RESOLUTION_ENGINE_READY</span>
           </div>
         )}
       </div>
@@ -70,11 +70,11 @@ const AssemblyWorkbench: React.FC<AssemblyWorkbenchProps> = ({
                     className="w-1.5 h-1.5 rounded-full shrink-0"
                     style={{ backgroundColor: agentColors[item.agentType] || '#64748b' }}
                   />
-                  <span className="text-[8px] font-bold text-slate-500 uppercase">
+                  <span className="text-chrome font-bold text-slate-500 uppercase">
                     {item.agentType}
                   </span>
                 </div>
-                <p className="text-[9px] text-slate-400 line-clamp-2 italic">
+                <p className="text-body-xs text-slate-400 line-clamp-2 italic">
                   &ldquo;{item.title}&rdquo;
                 </p>
                 {/* Unpin button */}
@@ -95,7 +95,7 @@ const AssemblyWorkbench: React.FC<AssemblyWorkbenchProps> = ({
       <div className="px-4 py-2 border-t border-slate-800/50 flex justify-end">
         <button
           disabled={!fixReady}
-          className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${
+          className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-body-xs font-bold uppercase tracking-wider transition-all ${
             fixReady
               ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30'
               : 'bg-slate-800/50 text-slate-600 border border-slate-700/50 cursor-not-allowed'

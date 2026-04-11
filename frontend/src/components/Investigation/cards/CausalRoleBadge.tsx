@@ -24,7 +24,7 @@ interface CausalRoleBadgeProps {
 const CausalRoleBadge: React.FC<CausalRoleBadgeProps> = ({ role }) => {
   const style = roleStyles[role];
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wider ${style.className}`}>
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-body-xs font-bold tracking-wider ${style.className}`}>
       {style.label}
     </span>
   );

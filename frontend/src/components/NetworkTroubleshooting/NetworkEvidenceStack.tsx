@@ -71,7 +71,7 @@ const NetworkEvidenceStack: React.FC<NetworkEvidenceStackProps> = ({
               >
                 <span className="text-xs font-mono" style={{ color: '#e8e0d4' }}>{v.nacl_name}</span>
                 <span
-                  className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded uppercase"
+                  className="text-body-xs font-mono font-semibold px-2 py-0.5 rounded uppercase"
                   style={{
                     backgroundColor: v.action === 'allow' ? '#052e16' : '#450a0a',
                     color: v.action === 'allow' ? '#22c55e' : '#ef4444',
@@ -141,7 +141,7 @@ const NetworkEvidenceStack: React.FC<NetworkEvidenceStackProps> = ({
                 <div className="flex items-center justify-between mb-1">
                   <span style={{ color: '#e8e0d4' }}>{seg.name}</span>
                   <span
-                    className="text-[10px] px-1.5 py-0.5 rounded uppercase"
+                    className="text-body-xs px-1.5 py-0.5 rounded uppercase"
                     style={{ color: '#f97316', backgroundColor: 'rgba(249,115,22,0.12)' }}
                   >
                     {seg.tunnel_type}
@@ -180,7 +180,7 @@ const NetworkEvidenceStack: React.FC<NetworkEvidenceStackProps> = ({
               >
                 <span style={{ color: '#e8e0d4' }}>{lb.device_name}</span>
                 <span
-                  className="text-[10px] px-1.5 py-0.5 rounded uppercase"
+                  className="text-body-xs px-1.5 py-0.5 rounded uppercase"
                   style={{ color: '#22c55e', backgroundColor: 'rgba(34,197,94,0.12)' }}
                 >
                   {lb.device_type}
@@ -315,7 +315,7 @@ const NetworkEvidenceStack: React.FC<NetworkEvidenceStackProps> = ({
                 style={{ backgroundColor: '#0a0f13' }}
               >
                 <span
-                  className="inline-block px-1.5 py-0.5 rounded mr-2 text-[10px] uppercase"
+                  className="inline-block px-1.5 py-0.5 rounded mr-2 text-body-xs uppercase"
                   style={{ color: '#e09f3e', backgroundColor: 'rgba(224,159,62,0.12)' }}
                 >
                   {e.type}

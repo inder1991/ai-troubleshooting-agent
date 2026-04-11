@@ -39,7 +39,7 @@ const IndexUsageMatrix: React.FC<IndexUsageMatrixProps> = ({ indexes }) => {
     return (
       <div className="text-center py-4">
         <span className="material-symbols-outlined text-2xl text-slate-700 block mb-1">list_alt</span>
-        <p className="text-[10px] text-slate-400">No index usage data</p>
+        <p className="text-body-xs text-slate-400">No index usage data</p>
       </div>
     );
   }
@@ -61,8 +61,8 @@ const IndexUsageMatrix: React.FC<IndexUsageMatrixProps> = ({ indexes }) => {
       {/* Header */}
       <div className="flex items-center gap-2 mb-2 pb-2 border-b border-slate-800">
         <span className="material-symbols-outlined text-emerald-400 text-sm">list_alt</span>
-        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Index Usage Matrix</span>
-        <span className="text-[9px] text-slate-400 ml-auto font-mono">{indexes.length} indexes</span>
+        <span className="text-body-xs font-bold text-slate-400 uppercase tracking-wider">Index Usage Matrix</span>
+        <span className="text-body-xs text-slate-400 ml-auto font-mono">{indexes.length} indexes</span>
       </div>
 
       {/* Legend */}
@@ -76,7 +76,7 @@ const IndexUsageMatrix: React.FC<IndexUsageMatrixProps> = ({ indexes }) => {
         ].map(({ label, color }) => (
           <div key={label} className="flex items-center gap-1">
             <span className="w-2 h-2 rounded-sm" style={{ backgroundColor: color }} />
-            <span className="text-[9px] text-slate-400">{label}</span>
+            <span className="text-body-xs text-slate-400">{label}</span>
           </div>
         ))}
       </div>
@@ -89,7 +89,7 @@ const IndexUsageMatrix: React.FC<IndexUsageMatrixProps> = ({ indexes }) => {
               {['Index', 'Table', 'Scans', 'Size', 'Status'].map((h) => (
                 <th
                   key={h}
-                  className="text-[9px] text-slate-400 uppercase tracking-wider font-medium py-2 md:py-1.5 px-2"
+                  className="text-body-xs text-slate-400 uppercase tracking-wider font-medium py-2 md:py-1.5 px-2"
                 >
                   {h}
                 </th>
@@ -111,17 +111,17 @@ const IndexUsageMatrix: React.FC<IndexUsageMatrixProps> = ({ indexes }) => {
                 >
                   {/* Index name */}
                   <td className="py-1.5 px-2">
-                    <span className="text-[10px] font-mono text-slate-300">{idx.name}</span>
+                    <span className="text-body-xs font-mono text-slate-300">{idx.name}</span>
                   </td>
                   {/* Table */}
                   <td className="py-1.5 px-2">
-                    <span className="text-[10px] font-mono text-slate-400">{idx.table}</span>
+                    <span className="text-body-xs font-mono text-slate-400">{idx.table}</span>
                   </td>
                   {/* Scans with color-coded bar */}
                   <td className="py-1.5 px-2">
                     <div className="flex items-center gap-2">
                       <span
-                        className="text-[10px] font-mono font-bold"
+                        className="text-body-xs font-mono font-bold"
                         style={{ color }}
                       >
                         {formatScans(idx.scans)}
@@ -130,7 +130,7 @@ const IndexUsageMatrix: React.FC<IndexUsageMatrixProps> = ({ indexes }) => {
                   </td>
                   {/* Size */}
                   <td className="py-1.5 px-2">
-                    <span className="text-[10px] font-mono text-slate-400">
+                    <span className="text-body-xs font-mono text-slate-400">
                       {formatSize(idx.size_mb)}
                     </span>
                   </td>
@@ -138,7 +138,7 @@ const IndexUsageMatrix: React.FC<IndexUsageMatrixProps> = ({ indexes }) => {
                   <td className="py-1.5 px-2">
                     {idx.unused ? (
                       <span
-                        className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold"
+                        className="inline-flex items-center px-1.5 py-0.5 rounded text-body-xs font-bold"
                         style={{
                           backgroundColor: '#ef444415',
                           color: '#ef4444',
@@ -149,7 +149,7 @@ const IndexUsageMatrix: React.FC<IndexUsageMatrixProps> = ({ indexes }) => {
                       </span>
                     ) : (
                       <span
-                        className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold"
+                        className="inline-flex items-center px-1.5 py-0.5 rounded text-body-xs font-bold"
                         style={{
                           backgroundColor: `${color}15`,
                           color,
@@ -170,7 +170,7 @@ const IndexUsageMatrix: React.FC<IndexUsageMatrixProps> = ({ indexes }) => {
       {indexes.length > 20 && !showAll && (
         <button
           onClick={() => setShowAll(true)}
-          className="text-[10px] text-duck-accent hover:text-amber-300 mt-2 transition-colors"
+          className="text-body-xs text-duck-accent hover:text-amber-300 mt-2 transition-colors"
         >
           Show all {indexes.length} indexes
         </button>
@@ -178,7 +178,7 @@ const IndexUsageMatrix: React.FC<IndexUsageMatrixProps> = ({ indexes }) => {
 
       {/* Summary */}
       {unusedCount > 0 && (
-        <p className="text-[10px] text-red-400/80 mt-2">
+        <p className="text-body-xs text-red-400/80 mt-2">
           {unusedCount} unused index{unusedCount !== 1 ? 'es' : ''} wasting {formatSize(totalWastedMb)}
         </p>
       )}

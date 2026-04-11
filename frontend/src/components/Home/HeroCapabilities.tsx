@@ -45,7 +45,7 @@ const HeroCapabilities: React.FC<HeroCapabilitiesProps> = ({ onSelectCapability 
             <span className="material-symbols-outlined text-[18px] opacity-70 group-hover:opacity-100 transition-opacity" aria-hidden="true">{cap.icon}</span>
             <span className="text-sm font-display font-bold text-white">{cap.label}</span>
           </div>
-          <span className="text-[10px] text-slate-400 group-hover:text-slate-300 transition-colors leading-tight">{cap.verb}</span>
+          <span className="text-body-xs text-slate-400 group-hover:text-slate-300 transition-colors leading-tight">{cap.verb}</span>
         </button>
       ))}
     </div>

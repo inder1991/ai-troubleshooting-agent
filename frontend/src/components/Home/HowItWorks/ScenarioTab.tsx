@@ -157,14 +157,14 @@ const ServiceNode: React.FC<{ service: Service }> = ({ service }) => (
       {service.name}
     </p>
     <span
-      className="inline-block mt-1 text-[10px] font-semibold uppercase tracking-wide"
+      className="inline-block mt-1 text-body-xs font-semibold uppercase tracking-wide"
       style={{ color: service.badgeColor }}
     >
       {service.badge}
     </span>
     <div className="mt-2 space-y-0.5">
       {service.metrics.map((m) => (
-        <div key={m.label} className="flex justify-between text-[10px]">
+        <div key={m.label} className="flex justify-between text-body-xs">
           <span className="text-slate-500">{m.label}</span>
           <span style={{ color: STATUS_COLORS[m.status] }}>{m.value}</span>
         </div>
@@ -194,7 +194,7 @@ const ScenarioTab: React.FC<ScenarioTabProps> = ({ onSwitchToFlow }) => {
           }}
         >
           <div className="flex items-center gap-2">
-            <span className="bg-red-500/20 text-red-400 text-[10px] font-bold uppercase px-2 py-0.5 rounded">
+            <span className="bg-red-500/20 text-red-400 text-body-xs font-bold uppercase px-2 py-0.5 rounded">
               SEV-1 &mdash; Critical Incident
             </span>
             <span className="material-symbols-outlined text-red-400 text-base">

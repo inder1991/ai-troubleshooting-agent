@@ -32,9 +32,9 @@ const WarRoomTooltip: React.FC<{ active?: boolean; payload?: Array<{ name: strin
   if (!active || !payload?.length) return null;
   return (
     <div className="bg-[#1a1814]/95 backdrop-blur-sm border border-slate-700/50 rounded px-3 py-2 shadow-xl">
-      <div className="text-[9px] text-slate-500 font-mono mb-1">{label}</div>
+      <div className="text-body-xs text-slate-500 font-mono mb-1">{label}</div>
       {payload.map((p, i) => (
-        <div key={i} className="flex items-center gap-2 text-[10px] font-mono">
+        <div key={i} className="flex items-center gap-2 text-body-xs font-mono">
           <span className="w-2 h-2 rounded-full" style={{ backgroundColor: p.color }} />
           <span className="text-slate-400">{p.name}:</span>
           <span className="text-slate-200 font-medium">{typeof p.value === 'number' ? p.value.toFixed(2) : p.value}</span>

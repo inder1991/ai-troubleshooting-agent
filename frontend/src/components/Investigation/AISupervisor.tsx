@@ -144,13 +144,13 @@ const AISupervisor: React.FC<AISupervisorProps> = ({
       {/* Header */}
       <div className="p-4 border-b border-primary/10 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-primary text-sm">psychology</span>
+          <span className="material-symbols-outlined text-primary text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>psychology</span>
           <h2 className="text-xs font-bold uppercase tracking-widest text-slate-400">AI Supervisor</h2>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowToolCalls(!showToolCalls)}
-            className={`text-[10px] px-2 py-0.5 rounded border font-mono transition-colors ${
+            className={`text-body-xs px-2 py-0.5 rounded border font-mono transition-colors ${
               showToolCalls
                 ? 'bg-purple-500/20 text-purple-400 border-purple-500/30'
                 : 'bg-slate-800/50 text-slate-500 border-slate-700'
@@ -158,7 +158,7 @@ const AISupervisor: React.FC<AISupervisorProps> = ({
           >
             {showToolCalls ? 'TOOLS ON' : 'TOOLS OFF'}
             {toolCallCount > 0 && (
-              <span className="ml-1 text-[9px] opacity-60">({toolCallCount})</span>
+              <span className="ml-1 text-body-xs opacity-60">({toolCallCount})</span>
             )}
           </button>
         </div>
@@ -169,7 +169,7 @@ const AISupervisor: React.FC<AISupervisorProps> = ({
         {timeline.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-slate-500">
             <p className="text-sm">Waiting for investigation to begin...</p>
-            <p className="text-[10px] mt-1">Agent events will stream here in real-time</p>
+            <p className="text-body-xs mt-1">Agent events will stream here in real-time</p>
           </div>
         ) : (
           timeline.map((item, idx) => {
@@ -222,7 +222,7 @@ const AISupervisor: React.FC<AISupervisorProps> = ({
             disabled={sending || !input.trim()}
             className="absolute bottom-2 right-2 p-1.5 bg-primary rounded-md text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-primary/80 transition-colors"
           >
-            <span className="material-symbols-outlined text-sm">send</span>
+            <span className="material-symbols-outlined text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>send</span>
           </button>
         </form>
       </div>
@@ -265,7 +265,7 @@ const PhaseChangeCard: React.FC<{ event: TaskEvent }> = ({ event }) => {
   return (
     <div className="flex items-center gap-3 py-2">
       <div className="flex-1 h-px bg-gradient-to-r from-transparent via-[#e09f3e]/40 to-transparent" />
-      <span className="text-[10px] font-bold tracking-[0.2em] text-[#e09f3e]">
+      <span className="text-body-xs font-bold tracking-[0.2em] text-[#e09f3e]">
         {phaseName}
       </span>
       <div className="flex-1 h-px bg-gradient-to-r from-transparent via-[#e09f3e]/40 to-transparent" />
@@ -293,20 +293,22 @@ const FindingCard: React.FC<{ event: TaskEvent }> = ({ event }) => {
       >
         <span
           className={`material-symbols-outlined text-xs text-slate-400 transition-transform ${expanded ? 'rotate-90' : ''}`}
+          style={{ fontFamily: 'Material Symbols Outlined' }}
         >
           chevron_right
         </span>
         <span
           className={`material-symbols-outlined text-sm ${style.text}`}
+          style={{ fontFamily: 'Material Symbols Outlined' }}
         >
           {style.icon}
         </span>
-        <span className={`text-[10px] font-bold uppercase tracking-wider ${style.text}`}>
+        <span className={`text-body-xs font-bold uppercase tracking-wider ${style.text}`}>
           {severity}
         </span>
         <span className="text-xs text-slate-200 truncate flex-1">{event.message.split(' — ')[0]}</span>
         {confidence > 0 && (
-          <span className="text-[10px] text-slate-400 shrink-0">{confidence}%</span>
+          <span className="text-body-xs text-slate-400 shrink-0">{confidence}%</span>
         )}
       </button>
       {/* L2: Expandable details */}
@@ -314,7 +316,7 @@ const FindingCard: React.FC<{ event: TaskEvent }> = ({ event }) => {
         <div className="px-3 pb-3 border-t border-black/10 pt-2">
           <p className="text-sm text-slate-200 leading-snug">{event.message}</p>
           {category && (
-            <span className="text-[10px] font-mono text-slate-400 mt-1 inline-block">{category}</span>
+            <span className="text-body-xs font-mono text-slate-400 mt-1 inline-block">{category}</span>
           )}
           {confidence > 0 && (
             <div className="flex items-center gap-2 mt-2">
@@ -324,7 +326,7 @@ const FindingCard: React.FC<{ event: TaskEvent }> = ({ event }) => {
                   style={{ width: `${confidence}%` }}
                 />
               </div>
-              <span className="text-[10px] text-slate-400">{confidence}%</span>
+              <span className="text-body-xs text-slate-400">{confidence}%</span>
             </div>
           )}
         </div>
@@ -350,24 +352,26 @@ const SummaryCard: React.FC<{ event: TaskEvent }> = ({ event }) => {
       >
         <span
           className={`material-symbols-outlined text-xs text-slate-400 transition-transform ${expanded ? 'rotate-90' : ''}`}
+          style={{ fontFamily: 'Material Symbols Outlined' }}
         >
           chevron_right
         </span>
         <span
           className="material-symbols-outlined text-[#e09f3e] text-sm"
+          style={{ fontFamily: 'Material Symbols Outlined' }}
         >
           check_circle
         </span>
-        <span className="text-[10px] font-bold uppercase tracking-wider text-[#e09f3e]">
+        <span className="text-body-xs font-bold uppercase tracking-wider text-[#e09f3e]">
           {event.agent_name.replace(/_/g, ' ')}
         </span>
         <div className="ml-auto flex items-center gap-2">
           {findingsCount > 0 && (
-            <span className="text-[10px] px-1.5 py-0.5 bg-[#e09f3e]/20 text-[#e09f3e] rounded">
+            <span className="text-body-xs px-1.5 py-0.5 bg-[#e09f3e]/20 text-[#e09f3e] rounded">
               {findingsCount} findings
             </span>
           )}
-          <span className={`text-[10px] font-mono font-bold ${
+          <span className={`text-body-xs font-mono font-bold ${
             confidence >= 70 ? 'text-green-400' : confidence >= 40 ? 'text-amber-400' : 'text-red-400'
           }`}>
             {confidence}%
@@ -391,13 +395,14 @@ const StartedCard: React.FC<{ event: TaskEvent }> = ({ event }) => (
     <div className="w-6 h-6 rounded-md bg-blue-500/20 flex items-center justify-center">
       <span
         className="material-symbols-outlined text-blue-400 text-xs"
+        style={{ fontFamily: 'Material Symbols Outlined' }}
       >
         play_circle
       </span>
     </div>
     <span className="text-xs text-blue-400">{event.agent_name}</span>
     <span className="text-xs text-slate-400">{event.message}</span>
-    <span className="text-[10px] text-slate-600 ml-auto">
+    <span className="text-body-xs text-slate-600 ml-auto">
       {new Date(event.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
     </span>
   </div>
@@ -414,13 +419,14 @@ const AlertCard: React.FC<{ event: TaskEvent; variant: 'warning' | 'error' }> = 
       <div className="flex items-center gap-2">
         <span
           className={`material-symbols-outlined text-sm ${isError ? 'text-red-400' : 'text-amber-400'}`}
+          style={{ fontFamily: 'Material Symbols Outlined' }}
         >
           {isError ? 'error' : 'warning'}
         </span>
-        <span className={`text-[10px] font-bold uppercase ${isError ? 'text-red-400' : 'text-amber-400'}`}>
+        <span className={`text-body-xs font-bold uppercase ${isError ? 'text-red-400' : 'text-amber-400'}`}>
           {event.agent_name}
         </span>
-        <span className="text-[10px] text-slate-600 ml-auto">
+        <span className="text-body-xs text-slate-600 ml-auto">
           {new Date(event.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
         </span>
       </div>
@@ -435,6 +441,7 @@ const SuccessCard: React.FC<{ event: TaskEvent }> = ({ event }) => (
   <div className="flex items-center gap-2 py-1">
     <span
       className="material-symbols-outlined text-green-400 text-sm"
+      style={{ fontFamily: 'Material Symbols Outlined' }}
     >
       check_circle
     </span>
@@ -457,20 +464,21 @@ const ToolCallGroupCard: React.FC<{ group: ToolCallGroup }> = ({ group }) => {
       >
         <span
           className={`material-symbols-outlined text-xs text-purple-400 transition-transform ${expanded ? 'rotate-90' : ''}`}
+          style={{ fontFamily: 'Material Symbols Outlined' }}
         >
           chevron_right
         </span>
-        <span className="text-[10px] font-bold text-purple-400 uppercase">
+        <span className="text-body-xs font-bold text-purple-400 uppercase">
           {group.agent.replace(/_/g, ' ')}
         </span>
-        <span className="text-[10px] text-slate-500">
+        <span className="text-body-xs text-slate-500">
           — {group.events.length} tool call{group.events.length !== 1 ? 's' : ''}
         </span>
       </button>
       {expanded && (
         <div className="px-3 py-2 border-t border-slate-800/30 space-y-1 bg-slate-900/20">
           {group.events.map((ev, i) => (
-            <div key={i} className="flex items-start gap-2 font-mono text-[11px]">
+            <div key={i} className="flex items-start gap-2 font-mono text-body-xs">
               <span className="text-slate-600 shrink-0 w-[60px]">
                 {new Date(ev.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
               </span>
@@ -500,11 +508,12 @@ const AttestationRequiredCard: React.FC<{ event: TaskEvent }> = ({ event }) => {
       >
         <span
           className={`material-symbols-outlined text-xs text-amber-400 transition-transform ${expanded ? 'rotate-90' : ''}`}
+          style={{ fontFamily: 'Material Symbols Outlined' }}
         >
           chevron_right
         </span>
         <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-        <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400">
+        <span className="text-body-xs font-bold uppercase tracking-wider text-amber-400">
           Action Required
         </span>
         <span className="text-xs text-amber-300 ml-1">Human Review Needed</span>
@@ -512,11 +521,11 @@ const AttestationRequiredCard: React.FC<{ event: TaskEvent }> = ({ event }) => {
       {expanded && (
         <div className="px-3 pb-3 border-t border-amber-500/20 pt-2 space-y-2">
           <p className="text-sm text-slate-200">{event.message}</p>
-          <div className="flex items-center gap-4 text-[10px] text-slate-400">
+          <div className="flex items-center gap-4 text-body-xs text-slate-400">
             <span>{findingsCount} findings</span>
             <span>Confidence: {confidence}%</span>
           </div>
-          <div className="text-[10px] text-slate-500">
+          <div className="text-body-xs text-slate-500">
             Proposed: {proposedAction}
           </div>
         </div>
@@ -528,9 +537,10 @@ const AttestationRequiredCard: React.FC<{ event: TaskEvent }> = ({ event }) => {
 // ─── Generic Log Entry (fallback for progress, etc.) ──────────────────────
 
 const GenericLogEntry: React.FC<{ event: TaskEvent }> = ({ event }) => (
-  <div className="font-mono text-[11px] flex items-start gap-2 py-0.5">
+  <div className="font-mono text-body-xs flex items-start gap-2 py-0.5">
     <span
       className="material-symbols-outlined text-[14px] mt-0.5 text-slate-500"
+      style={{ fontFamily: 'Material Symbols Outlined' }}
     >
       search
     </span>
@@ -550,7 +560,7 @@ const ChatBubble: React.FC<{ message: ChatMessageType }> = ({ message }) => {
       <div className="flex justify-end">
         <div className="max-w-[85%] bg-slate-800/60 border border-slate-700 rounded-xl px-3 py-2">
           <p className="text-sm text-slate-200 whitespace-pre-wrap">{message.content}</p>
-          <p className="text-[10px] text-slate-600 mt-1 text-right">
+          <p className="text-body-xs text-slate-600 mt-1 text-right">
             {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </p>
         </div>
@@ -562,13 +572,13 @@ const ChatBubble: React.FC<{ message: ChatMessageType }> = ({ message }) => {
     <div className="space-y-2">
       <div className="flex items-start gap-3">
         <div className="w-8 h-8 rounded-lg bg-[#e09f3e]/20 flex items-center justify-center shrink-0">
-          <span className="material-symbols-outlined text-primary text-sm">smart_toy</span>
+          <span className="material-symbols-outlined text-primary text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>smart_toy</span>
         </div>
         <div className="flex-1">
           <div className="bg-[#e09f3e]/5 border border-[#e09f3e]/10 rounded-xl p-3 text-sm leading-relaxed text-slate-300">
             <p className="whitespace-pre-wrap">{message.content}</p>
           </div>
-          <p className="text-[10px] text-slate-600 mt-1">
+          <p className="text-body-xs text-slate-600 mt-1">
             {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
           </p>
         </div>
@@ -583,12 +593,12 @@ const PatientZeroCard: React.FC<{ patientZero: PatientZero }> = ({ patientZero }
   <div className="border-2 border-red-500/30 bg-red-500/5 rounded-lg p-3">
     <div className="flex items-center gap-2 mb-2">
       <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-      <span className="text-[10px] font-bold uppercase tracking-wider text-red-400">Patient Zero</span>
+      <span className="text-body-xs font-bold uppercase tracking-wider text-red-400">Patient Zero</span>
     </div>
     <div className="text-xs font-mono text-red-300 font-bold mb-1">{patientZero.service}</div>
-    <p className="text-[10px] text-slate-400">{patientZero.evidence}</p>
+    <p className="text-body-xs text-slate-400">{patientZero.evidence}</p>
     {patientZero.first_error_time && (
-      <div className="text-[10px] text-slate-500 mt-1">
+      <div className="text-body-xs text-slate-500 mt-1">
         First error: {new Date(patientZero.first_error_time).toLocaleString()}
       </div>
     )}
@@ -602,18 +612,18 @@ const ReasoningChainCard: React.FC<{ chain: ReasoningChainStep[] }> = ({ chain }
   return (
     <div className="bg-[#e09f3e]/5 border border-[#e09f3e]/15 rounded-lg overflow-hidden">
       <div className="px-3 py-2 border-b border-[#e09f3e]/10 flex items-center gap-2">
-        <span className="material-symbols-outlined text-[#e09f3e] text-sm">psychology</span>
-        <span className="text-[10px] font-bold uppercase tracking-wider text-[#e09f3e]">AI Reasoning Chain</span>
+        <span className="material-symbols-outlined text-[#e09f3e] text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>psychology</span>
+        <span className="text-body-xs font-bold uppercase tracking-wider text-[#e09f3e]">AI Reasoning Chain</span>
       </div>
       <div className="p-3 space-y-2">
         {chain.map((step, i) => (
           <div key={i} className="flex gap-2">
             <div className="w-5 h-5 rounded-full bg-[#e09f3e]/20 flex items-center justify-center shrink-0 mt-0.5">
-              <span className="text-[9px] font-bold text-[#e09f3e]">{step.step}</span>
+              <span className="text-body-xs font-bold text-[#e09f3e]">{step.step}</span>
             </div>
             <div>
-              <p className="text-[11px] text-slate-300">{step.observation}</p>
-              <p className="text-[10px] text-slate-400 italic mt-0.5">{'\u2192'} {step.inference}</p>
+              <p className="text-body-xs text-slate-300">{step.observation}</p>
+              <p className="text-body-xs text-slate-400 italic mt-0.5">{'\u2192'} {step.inference}</p>
             </div>
           </div>
         ))}
@@ -631,22 +641,22 @@ const InferredDependenciesCard: React.FC<{ deps: InferredDependency[]; targetSer
   return (
     <div className="bg-slate-900/40 border border-slate-800 rounded-lg overflow-hidden">
       <div className="px-3 py-2 border-b border-slate-800 flex items-center gap-2 bg-slate-900/60">
-        <span className="material-symbols-outlined text-violet-400 text-sm">hub</span>
-        <span className="text-[10px] font-bold uppercase tracking-wider">Inferred Dependencies</span>
+        <span className="material-symbols-outlined text-violet-400 text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>hub</span>
+        <span className="text-body-xs font-bold uppercase tracking-wider">Inferred Dependencies</span>
       </div>
       <div className="p-3 space-y-1.5">
         {deps.map((dep, i) => (
-          <div key={i} className="flex items-center gap-2 text-[11px]">
+          <div key={i} className="flex items-center gap-2 text-body-xs">
             <span className={`font-mono ${isTarget(dep.source) ? 'text-[#e09f3e] font-bold' : 'text-[#e09f3e]'}`}>
               {dep.source}
             </span>
             {isTarget(dep.source) && (
-              <span className="text-[8px] px-1 py-0.5 rounded bg-[#e09f3e]/20 text-[#e09f3e] border border-[#e09f3e]/30 font-bold">TARGET</span>
+              <span className="text-chrome px-1 py-0.5 rounded bg-[#e09f3e]/20 text-[#e09f3e] border border-[#e09f3e]/30 font-bold">TARGET</span>
             )}
             <span className="text-slate-600">{'\u2192'}</span>
             <span className="font-mono text-slate-300">{dep.target || dep.targets?.join(', ')}</span>
             {dep.evidence && (
-              <span className="text-[9px] text-slate-500 ml-auto truncate max-w-[200px]">{dep.evidence}</span>
+              <span className="text-body-xs text-slate-500 ml-auto truncate max-w-[200px]">{dep.evidence}</span>
             )}
           </div>
         ))}

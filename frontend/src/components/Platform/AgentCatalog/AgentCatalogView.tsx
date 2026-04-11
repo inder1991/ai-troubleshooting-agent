@@ -56,7 +56,7 @@ const AgentCatalogView: React.FC = () => {
               <button
                 key={w}
                 onClick={() => setWorkflowFilter(w)}
-                className="px-2 py-0.5 rounded text-[9px] font-mono transition-colors"
+                className="px-2 py-0.5 rounded text-body-xs font-mono transition-colors"
                 style={{
                   background: workflowFilter === w ? 'rgba(7,182,213,0.15)' : 'transparent',
                   border: `1px solid ${workflowFilter === w ? '#07b6d5' : '#1e2a2e'}`,

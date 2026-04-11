@@ -10,19 +10,19 @@ import TerminalCodeBlock from './TerminalCodeBlock';
 
 const agentSignatures: Record<string, { label: string; color: string; icon: string }> = {
   log_agent:     { label: 'LOG AGENT',      color: 'red',     icon: 'search' },
-  metrics_agent: { label: 'METRICS AGENT',  color: 'gold',    icon: 'bar_chart' },
+  metrics_agent: { label: 'METRICS AGENT',  color: 'cyan',    icon: 'bar_chart' },
   k8s_agent:     { label: 'K8S AGENT',      color: 'orange',  icon: 'dns' },
   tracing_agent: { label: 'TRACING AGENT',  color: 'violet',  icon: 'route' },
   code_agent:    { label: 'CODE AGENT',     color: 'blue',    icon: 'code' },
   change_agent:  { label: 'CHANGE AGENT',   color: 'emerald', icon: 'difference' },
   critic:        { label: 'CRITIC',         color: 'amber',   icon: 'gavel' },
   fix_generator: { label: 'FIX GENERATOR',  color: 'pink',    icon: 'build' },
-  supervisor:    { label: 'SRE FOREMAN',    color: 'gold',    icon: 'psychology' },
+  supervisor:    { label: 'SRE FOREMAN',    color: 'cyan',    icon: 'psychology' },
 };
 
 const colorMap: Record<string, { bg: string; border: string; text: string; badge: string }> = {
   red:     { bg: 'bg-red-500/10',     border: 'border-l-red-400',     text: 'text-red-400',     badge: 'bg-red-500/20' },
-  gold:    { bg: 'bg-amber-500/10',    border: 'border-l-amber-400',    text: 'text-amber-400',    badge: 'bg-amber-500/20' },
+  cyan:    { bg: 'bg-cyan-500/10',    border: 'border-l-cyan-400',    text: 'text-cyan-400',    badge: 'bg-cyan-500/20' },
   orange:  { bg: 'bg-orange-500/10',  border: 'border-l-orange-400',  text: 'text-orange-400',  badge: 'bg-orange-500/20' },
   violet:  { bg: 'bg-violet-500/10',  border: 'border-l-violet-400',  text: 'text-violet-400',  badge: 'bg-violet-500/20' },
   blue:    { bg: 'bg-blue-500/10',    border: 'border-l-blue-400',    text: 'text-blue-400',    badge: 'bg-blue-500/20' },
@@ -91,13 +91,13 @@ const MarkdownBubbleInner: React.FC<MarkdownBubbleProps> = ({ message, isStreami
         animate="visible"
         className="flex justify-end mb-3"
       >
-        <div className="max-w-[85%] bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
+        <div className="max-w-[85%] bg-cyan-500/10 border border-cyan-500/20 rounded-lg px-3 py-2">
           <div className="flex items-center gap-1.5 mb-1">
-            <span className="text-[9px] font-bold text-amber-400/60 tracking-wider">○ OPERATOR</span>
+            <span className="text-body-xs font-bold text-cyan-400/60 tracking-wider">○ OPERATOR</span>
           </div>
           <p className="text-[13px] text-slate-200 font-mono whitespace-pre-wrap">{message.content}</p>
           <div className="text-right mt-1">
-            <span className="text-[9px] text-slate-600">{formatTime(message.timestamp)}</span>
+            <span className="text-body-xs text-slate-600">{formatTime(message.timestamp)}</span>
           </div>
         </div>
       </motion.div>
@@ -106,7 +106,7 @@ const MarkdownBubbleInner: React.FC<MarkdownBubbleProps> = ({ message, isStreami
 
   // Assistant bubble
   const agent = detectAgent(message);
-  const colors = colorMap[agent.color] || colorMap.gold;
+  const colors = colorMap[agent.color] || colorMap.cyan;
 
   return (
     <motion.div
@@ -119,11 +119,12 @@ const MarkdownBubbleInner: React.FC<MarkdownBubbleProps> = ({ message, isStreami
         {/* Agent badge */}
         <div className="flex items-center gap-1.5 mb-1.5">
           <span
-            className={`material-symbols-outlined ${colors.text} text-[14px]`}
+            className={`material-symbols-outlined ${colors.text}`}
+            style={{ fontFamily: 'Material Symbols Outlined', fontSize: '14px' }}
           >
             {agent.icon}
           </span>
-          <span className={`text-[9px] font-bold ${colors.text} tracking-wider`}>
+          <span className={`text-body-xs font-bold ${colors.text} tracking-wider`}>
             ● {agent.label}
           </span>
         </div>
@@ -145,7 +146,7 @@ const MarkdownBubbleInner: React.FC<MarkdownBubbleProps> = ({ message, isStreami
 
         {/* Timestamp */}
         <div className="text-right mt-1">
-          <span className="text-[9px] text-slate-600">{formatTime(message.timestamp)}</span>
+          <span className="text-body-xs text-slate-600">{formatTime(message.timestamp)}</span>
         </div>
       </div>
     </motion.div>

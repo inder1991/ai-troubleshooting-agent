@@ -61,7 +61,7 @@ export const QuickActionToolbar: React.FC<QuickActionToolbarProps> = ({
   return (
     <div role="toolbar" aria-label="Investigation quick actions" className="border-b border-slate-800 p-2 space-y-2">
       <div className="flex items-center justify-between">
-        <span className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">Quick Actions</span>
+        <span className="text-body-xs font-medium text-slate-500 uppercase tracking-wider">Quick Actions</span>
         <button onClick={() => setCollapsed(true)} className="text-slate-600 hover:text-slate-400">
           <span className="material-symbols-outlined text-sm">expand_less</span>
         </button>

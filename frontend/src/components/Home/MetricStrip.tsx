@@ -51,7 +51,7 @@ export const MetricStrip: React.FC = () => {
       {/* Health status (replaces "All Systems Nominal") */}
       <div className={`flex items-center gap-1.5 ${healthColor}`}>
         <span className="material-symbols-outlined text-[14px]" aria-hidden="true">{healthIcon}</span>
-        <span className="text-[11px] font-display font-bold whitespace-nowrap">
+        <span className="text-body-xs font-display font-bold whitespace-nowrap">
           <span className={`font-mono font-bold ${metrics.issueCount > 0 ? 'text-red-400 animate-pulse' : 'text-white'}`}>
             {metrics.issueCount > 0 ? metrics.issueCount : metrics.totalNodes}
           </span>{' '}
@@ -64,7 +64,7 @@ export const MetricStrip: React.FC = () => {
       {/* Metrics */}
       <div className="flex items-center gap-1.5">
         <span className="w-1.5 h-1.5 rounded-full bg-duck-accent" aria-hidden="true" />
-        <span className="text-[11px] text-slate-300 whitespace-nowrap">
+        <span className="text-body-xs text-slate-300 whitespace-nowrap">
           <span className={`font-mono font-bold ${metrics.active > 0 ? 'text-duck-accent' : 'text-white'}`} style={{ fontVariantNumeric: 'tabular-nums' }}>{metrics.active}</span> Active
         </span>
       </div>
@@ -73,7 +73,7 @@ export const MetricStrip: React.FC = () => {
 
       <div className="flex items-center gap-1.5">
         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" aria-hidden="true" />
-        <span className="text-[11px] text-slate-300 whitespace-nowrap">
+        <span className="text-body-xs text-slate-300 whitespace-nowrap">
           <span className="font-mono font-bold text-emerald-400" style={{ fontVariantNumeric: 'tabular-nums' }}>{sessions.length > 0 ? metrics.resolved : '—'}</span> Resolved
         </span>
       </div>
@@ -81,7 +81,7 @@ export const MetricStrip: React.FC = () => {
       <div className="w-px h-4 bg-duck-border/20" />
 
       <div className="flex items-center gap-1.5">
-        <span className="text-[11px] text-slate-300 whitespace-nowrap">
+        <span className="text-body-xs text-slate-300 whitespace-nowrap">
           Conf <span className={`font-mono font-bold ${metrics.avgConf === 0 ? 'text-white' : metrics.avgConf >= 70 ? 'text-white' : metrics.avgConf >= 40 ? 'text-amber-400' : 'text-red-400'}`} style={{ fontVariantNumeric: 'tabular-nums' }}>{sessions.length > 0 ? `${metrics.avgConf}%` : '—'}</span>
         </span>
       </div>
@@ -89,7 +89,7 @@ export const MetricStrip: React.FC = () => {
       <div className="w-px h-4 bg-duck-border/20" />
 
       <div className="flex items-center gap-1.5">
-        <span className="text-[11px] text-slate-300 whitespace-nowrap">
+        <span className="text-body-xs text-slate-300 whitespace-nowrap">
           MTTR <span className={`font-mono font-bold ${metrics.mttr === 0 ? 'text-white' : metrics.mttr < 5 ? 'text-white' : metrics.mttr < 15 ? 'text-amber-400' : 'text-red-400'}`} style={{ fontVariantNumeric: 'tabular-nums' }}>{metrics.mttr > 0 ? `${metrics.mttr.toFixed(1)}m` : '—'}</span>
         </span>
       </div>

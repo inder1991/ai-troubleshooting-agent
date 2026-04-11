@@ -111,12 +111,12 @@ const ForemanHUD: React.FC<ForemanHUDProps> = ({
 
   return (
     <header
-      className={`h-16 border-b bg-[#12110e]/80 backdrop-blur-md flex items-center px-4 gap-4 shrink-0 transition-all duration-500 ${borderClass}`}
+      className={`h-16 border-b bg-[#0a1a1d]/80 backdrop-blur-md flex items-center px-4 gap-4 shrink-0 transition-all duration-500 ${borderClass}`}
     >
       {/* Logo / Back */}
       <button onClick={onGoHome} className="flex items-center gap-2 group shrink-0">
         <div className="w-8 h-8 bg-amber-500 rounded flex items-center justify-center">
-          <span className="material-symbols-outlined text-white text-lg">bug_report</span>
+          <span className="material-symbols-outlined text-white text-lg" style={{ fontFamily: 'Material Symbols Outlined' }}>bug_report</span>
         </div>
         <span className="font-bold tracking-tight text-lg">
           Debug<span className="text-amber-400">Duck</span>
@@ -127,8 +127,8 @@ const ForemanHUD: React.FC<ForemanHUDProps> = ({
 
       {/* Investigation ID */}
       <div className="flex flex-col shrink-0">
-        <span className="text-[9px] text-slate-500 font-bold font-display">Investigation</span>
-        <span className="text-[10px] font-mono text-amber-400">{sessionId.substring(0, 8).toUpperCase()}</span>
+        <span className="text-body-xs uppercase tracking-widest text-slate-500 font-bold">Investigation</span>
+        <span className="text-body-xs font-mono text-amber-400">{sessionId.substring(0, 8).toUpperCase()}</span>
       </div>
 
       <div className="h-6 w-px bg-slate-700" />
@@ -148,7 +148,7 @@ const ForemanHUD: React.FC<ForemanHUDProps> = ({
           </svg>
           {/* Dashed thinking ring */}
           {foremanState === 'drilling' && (
-            <div className="absolute inset-0 rounded-xl border-2 border-dashed border-amber-400/50 animate-thinking-ring" />
+            <div className="absolute inset-0 rounded-xl border-2 border-dashed border-cyan-400/50 animate-thinking-ring" />
           )}
         </motion.div>
         <ForemanHat activeAgent={activeAgent} drilling={foremanState === 'drilling'} />
@@ -163,14 +163,14 @@ const ForemanHUD: React.FC<ForemanHUDProps> = ({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.2 }}
-            className="text-[11px] text-slate-300 font-mono truncate"
+            className="text-body-xs text-slate-300 font-mono truncate"
           >
             {latestEventText}
-            <span className="inline-block w-[2px] h-3 bg-amber-400 ml-1 animate-pulse align-middle" />
+            <span className="inline-block w-[2px] h-3 bg-cyan-400 ml-1 animate-pulse align-middle" />
           </motion.div>
         </AnimatePresence>
         <div className="flex items-center gap-3">
-          <span className="text-[10px] text-amber-400 font-bold">{confidence}%</span>
+          <span className="text-body-xs text-amber-400 font-bold">{confidence}%</span>
           <div className="flex-1 h-1 bg-slate-800 rounded-full overflow-hidden">
             <motion.div
               className="h-full bg-amber-500 rounded-full"
@@ -192,8 +192,8 @@ const ForemanHUD: React.FC<ForemanHUDProps> = ({
             className="flex items-center bg-amber-500 text-slate-950 px-3 py-1.5 rounded-r-lg rounded-tl-lg shadow-lg relative cursor-pointer shrink-0 animate-foreman-ping"
           >
             <div className="absolute left-[-6px] bottom-0 w-0 h-0 border-t-[6px] border-t-transparent border-r-[8px] border-r-amber-500 border-b-[6px] border-b-transparent" />
-            <span className="text-[10px] font-black uppercase tracking-tight mr-2">Input needed</span>
-            <span className="text-[9px] bg-slate-950/20 rounded px-1 animate-pulse">RESPOND</span>
+            <span className="text-body-xs font-black uppercase tracking-tight mr-2">Input needed</span>
+            <span className="text-body-xs bg-slate-950/20 rounded px-1 animate-pulse">RESPOND</span>
           </motion.button>
         )}
       </AnimatePresence>
@@ -216,7 +216,7 @@ const ForemanHUD: React.FC<ForemanHUDProps> = ({
         {/* Autopilot toggle */}
         <button
           onClick={() => setAutopilot((p) => !p)}
-          className={`text-[9px] font-bold px-2 py-1 rounded-md border transition-colors ${
+          className={`text-body-xs font-bold uppercase tracking-wider px-2 py-1 rounded-md border transition-colors ${
             autopilot
               ? 'bg-amber-500/15 border-amber-500/30 text-amber-400'
               : 'bg-slate-800 border-slate-700 text-slate-500'
@@ -227,8 +227,8 @@ const ForemanHUD: React.FC<ForemanHUDProps> = ({
 
         {/* WS indicator */}
         <div className="flex items-center gap-1.5">
-          <span className={`w-2 h-2 rounded-full ${wsConnected ? 'bg-amber-400' : 'bg-red-500'}`} />
-          <span className={`text-[9px] font-bold uppercase tracking-wider ${wsConnected ? 'text-amber-400' : 'text-red-400'}`}>
+          <span className={`w-2 h-2 rounded-full ${wsConnected ? 'bg-cyan-400' : 'bg-red-500'}`} />
+          <span className={`text-body-xs font-bold uppercase tracking-wider ${wsConnected ? 'text-amber-400' : 'text-red-400'}`}>
             {wsConnected ? 'LIVE' : 'OFFLINE'}
           </span>
         </div>
@@ -242,7 +242,7 @@ const ForemanHUD: React.FC<ForemanHUDProps> = ({
               phase === 'complete' || phase === 'diagnosis_complete' ? 'bg-emerald-400' :
               phase === 'error' ? 'bg-red-500' : 'bg-amber-400 animate-pulse'
             }`} />
-            <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
+            <span className="text-body-xs font-bold uppercase tracking-wider text-slate-400">
               {phase.replace(/_/g, ' ')}
             </span>
           </div>

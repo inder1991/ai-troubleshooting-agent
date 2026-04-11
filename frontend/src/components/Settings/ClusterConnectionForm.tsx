@@ -126,7 +126,7 @@ const ClusterConnectionForm: React.FC<ClusterConnectionFormProps> = ({
       {/* Profile identity */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
-          <label className="block text-[10px] text-gray-500 mb-1 uppercase tracking-wider font-medium">
+          <label className="block text-body-xs text-gray-500 mb-1 uppercase tracking-wider font-medium">
             Profile Name <span className="text-red-400">*</span>
           </label>
           <input
@@ -138,7 +138,7 @@ const ClusterConnectionForm: React.FC<ClusterConnectionFormProps> = ({
           />
         </div>
         <div>
-          <label className="block text-[10px] text-gray-500 mb-1 uppercase tracking-wider font-medium">
+          <label className="block text-body-xs text-gray-500 mb-1 uppercase tracking-wider font-medium">
             Cluster Type
           </label>
           <select
@@ -153,7 +153,7 @@ const ClusterConnectionForm: React.FC<ClusterConnectionFormProps> = ({
           </select>
         </div>
         <div>
-          <label className="block text-[10px] text-gray-500 mb-1 uppercase tracking-wider font-medium">
+          <label className="block text-body-xs text-gray-500 mb-1 uppercase tracking-wider font-medium">
             Environment
           </label>
           <select
@@ -172,7 +172,7 @@ const ClusterConnectionForm: React.FC<ClusterConnectionFormProps> = ({
 
       {/* Cluster URL */}
       <div>
-        <label className="block text-[10px] text-gray-500 mb-1 uppercase tracking-wider font-medium">
+        <label className="block text-body-xs text-gray-500 mb-1 uppercase tracking-wider font-medium">
           Cluster API URL <span className="text-red-400">*</span>
         </label>
         <input
@@ -186,7 +186,7 @@ const ClusterConnectionForm: React.FC<ClusterConnectionFormProps> = ({
 
       {/* Cluster auth */}
       <div>
-        <label className="block text-[10px] text-gray-500 mb-1 uppercase tracking-wider font-medium">
+        <label className="block text-body-xs text-gray-500 mb-1 uppercase tracking-wider font-medium">
           Authentication Method
         </label>
         <select
@@ -207,7 +207,7 @@ const ClusterConnectionForm: React.FC<ClusterConnectionFormProps> = ({
       {/* Credential input — varies by auth method */}
       {authMethod === 'kubeconfig' ? (
         <div>
-          <label className="block text-[10px] text-gray-500 mb-1 uppercase tracking-wider font-medium">
+          <label className="block text-body-xs text-gray-500 mb-1 uppercase tracking-wider font-medium">
             Kubeconfig{' '}
             {profile?.has_cluster_credentials && (
               <span className="text-gray-600 normal-case tracking-normal">
@@ -228,7 +228,7 @@ const ClusterConnectionForm: React.FC<ClusterConnectionFormProps> = ({
         </div>
       ) : (
         <div>
-          <label className="block text-[10px] text-gray-500 mb-1 uppercase tracking-wider font-medium">
+          <label className="block text-body-xs text-gray-500 mb-1 uppercase tracking-wider font-medium">
             {authMethod === 'service_account'
               ? 'Service Account Token'
               : 'Bearer Token'}{' '}
@@ -265,7 +265,7 @@ const ClusterConnectionForm: React.FC<ClusterConnectionFormProps> = ({
           </div>
           <div className="flex items-center gap-2">
             <span
-              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border ${
+              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-body-xs font-medium border ${
                 openshiftStatus === 'healthy'
                   ? 'text-green-500 bg-green-500/10 border-green-500/20'
                   : openshiftStatus === 'unreachable' ||
@@ -284,7 +284,7 @@ const ClusterConnectionForm: React.FC<ClusterConnectionFormProps> = ({
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div>
-            <label className="block text-[10px] text-gray-500 mb-1 uppercase tracking-wider">
+            <label className="block text-body-xs text-gray-500 mb-1 uppercase tracking-wider">
               Endpoint
             </label>
             <div className="px-3 py-2 bg-[#1a1814]/50 border border-[#3d3528]/30 rounded-lg text-sm text-gray-400 truncate">
@@ -292,7 +292,7 @@ const ClusterConnectionForm: React.FC<ClusterConnectionFormProps> = ({
             </div>
           </div>
           <div>
-            <label className="block text-[10px] text-gray-500 mb-1 uppercase tracking-wider">
+            <label className="block text-body-xs text-gray-500 mb-1 uppercase tracking-wider">
               Authentication
             </label>
             <div className="px-3 py-2 bg-[#1a1814]/50 border border-[#3d3528]/30 rounded-lg text-sm text-gray-400">
@@ -304,7 +304,7 @@ const ClusterConnectionForm: React.FC<ClusterConnectionFormProps> = ({
             </div>
           </div>
           <div>
-            <label className="block text-[10px] text-gray-500 mb-1 uppercase tracking-wider">
+            <label className="block text-body-xs text-gray-500 mb-1 uppercase tracking-wider">
               &nbsp;
             </label>
             <button
@@ -336,18 +336,18 @@ const ClusterConnectionForm: React.FC<ClusterConnectionFormProps> = ({
           </div>
         </div>
         {!profile?.id && clusterUrl && (
-          <p className="mt-2 text-[10px] text-amber-500/80">
+          <p className="mt-2 text-body-xs text-amber-500/80">
             Save the profile first, then test connection
           </p>
         )}
         {probeSuccess && (
-          <div className="mt-3 px-3 py-2 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 text-[11px] font-medium flex items-center gap-1.5">
+          <div className="mt-3 px-3 py-2 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 text-body-xs font-medium flex items-center gap-1.5">
             <span className="material-symbols-outlined text-sm">check_circle</span>
             Cluster connected successfully
           </div>
         )}
         {probeError && (
-          <div className="mt-3 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-[11px] font-medium flex items-center gap-1.5">
+          <div className="mt-3 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-body-xs font-medium flex items-center gap-1.5">
             <span className="material-symbols-outlined text-sm">error</span>
             {probeError}
           </div>
@@ -356,7 +356,7 @@ const ClusterConnectionForm: React.FC<ClusterConnectionFormProps> = ({
 
       {/* Unsaved warning for endpoint tests */}
       {unsavedTestWarning && (
-        <div className="px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[11px] font-medium">
+        <div className="px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 text-body-xs font-medium">
           {unsavedTestWarning}
         </div>
       )}

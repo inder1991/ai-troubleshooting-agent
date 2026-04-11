@@ -92,12 +92,13 @@ const RemediationProgressBar: React.FC<RemediationProgressBarProps> = ({
                   >
                     <span
                       className="material-symbols-outlined text-sm"
+                      style={{ fontFamily: 'Material Symbols Outlined' }}
                     >
                       {isComplete ? 'check' : step.icon}
                     </span>
                   </div>
                   <span
-                    className={`text-[10px] font-bold ${
+                    className={`text-body-xs font-bold uppercase tracking-widest ${
                       isPending ? 'text-slate-500' : 'text-[#e09f3e]'
                     }`}
                   >
@@ -113,16 +114,17 @@ const RemediationProgressBar: React.FC<RemediationProgressBarProps> = ({
         <div className="shrink-0 flex items-center gap-4 pl-8 border-l border-slate-800">
           {/* Est. Resolution */}
           <div className="text-right">
-            <div className="text-[10px] text-slate-500 font-bold font-display">Fix Confidence</div>
+            <div className="text-body-xs text-slate-500 font-bold uppercase tracking-widest">Fix Confidence</div>
             <div className="text-sm font-mono text-slate-300">
               {confidence > 0 ? `${Math.round(confidence)}%` : '--'}
             </div>
           </div>
 
           {/* Resolve button */}
-          <button className="bg-primary hover:bg-primary/90 text-white px-6 py-2.5 rounded-lg font-bold text-xs flex items-center gap-2 transition-all shadow-lg shadow-primary/20">
+          <button className="bg-primary hover:bg-primary/90 text-white px-6 py-2.5 rounded-lg font-bold text-xs uppercase tracking-wider flex items-center gap-2 transition-all shadow-lg shadow-primary/20">
             <span
               className="material-symbols-outlined text-sm"
+              style={{ fontFamily: 'Material Symbols Outlined' }}
             >
               task_alt
             </span>

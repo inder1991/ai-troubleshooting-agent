@@ -120,7 +120,7 @@ const ClusterRecommendationsPage: React.FC<ClusterRecommendationsPageProps> = ({
             </button>
             <div>
               <h1 className="text-lg font-display font-bold text-slate-100">{snapshot.cluster_name}</h1>
-              <div className="flex items-center gap-2 text-[11px] text-slate-500">
+              <div className="flex items-center gap-2 text-body-xs text-slate-500">
                 <span className="uppercase font-medium">{snapshot.provider}</span>
                 <span>&middot;</span>
                 <span>Last scan: {timeAgo(snapshot.scanned_at)}</span>
@@ -138,7 +138,7 @@ const ClusterRecommendationsPage: React.FC<ClusterRecommendationsPageProps> = ({
             </button>
             <button
               onClick={onBack}
-              className="px-3 py-1.5 text-[11px] font-medium bg-[#252118] text-slate-300 border border-[#3d3528] rounded hover:bg-[#3d3528] transition-colors"
+              className="px-3 py-1.5 text-body-xs font-medium bg-[#252118] text-slate-300 border border-[#3d3528] rounded hover:bg-[#3d3528] transition-colors"
             >
               Back to Fleet
             </button>
@@ -181,7 +181,7 @@ const ClusterRecommendationsPage: React.FC<ClusterRecommendationsPageProps> = ({
               style={{ borderLeft: `3px solid ${section.borderColor}` }}
             >
               <h2 className="text-sm font-display font-bold text-slate-200">{section.label}</h2>
-              <span className="text-[10px] text-slate-500">({section.items.length})</span>
+              <span className="text-body-xs text-slate-500">({section.items.length})</span>
             </div>
             <div className={`space-y-2 ${section.key === 'known' ? 'opacity-70' : ''}`}>
               {section.items.map((rec) => (

@@ -42,7 +42,7 @@ const VPCNode: React.FC<NodeProps<VPCNodeData>> = ({ data, selected }) => {
       {/* Live lock icon */}
       {isLive && (
         <div className="absolute -top-1.5 -left-1.5" style={{ zIndex: 10 }}>
-          <span className="material-symbols-outlined text-[10px]" style={{ color: '#64748b' }}>lock</span>
+          <span className="material-symbols-outlined text-body-xs" style={{ color: '#64748b' }}>lock</span>
         </div>
       )}
 
@@ -55,19 +55,19 @@ const VPCNode: React.FC<NodeProps<VPCNodeData>> = ({ data, selected }) => {
       )}
 
       {/* Provider badge */}
-      <div className="absolute top-0 right-3 -translate-y-1/2 px-2 py-0.5 rounded text-[9px] font-mono font-bold"
+      <div className="absolute top-0 right-3 -translate-y-1/2 px-2 py-0.5 rounded text-body-xs font-mono font-bold"
            style={{ zIndex: 10, backgroundColor: '#1e3a5f', color: '#3b82f6', border: '1px solid #2563eb' }}>
         {providerLabels[data.cloudProvider || ''] || 'Cloud'}
       </div>
 
       {/* CIDR label */}
-      <div className="absolute top-0 left-3 -translate-y-1/2 px-2 py-0.5 rounded text-[10px] font-mono font-semibold"
+      <div className="absolute top-0 left-3 -translate-y-1/2 px-2 py-0.5 rounded text-body-xs font-mono font-semibold"
            style={{ zIndex: 10, backgroundColor: '#1a1814', color: '#3b82f6', border: '1px solid #1e3a5f' }}>
         {data.cidr || data.label}
       </div>
 
       {/* VPC name + region */}
-      <div className="absolute bottom-2 left-3 text-[10px] font-mono" style={{ color: '#64748b' }}>
+      <div className="absolute bottom-2 left-3 text-body-xs font-mono" style={{ color: '#64748b' }}>
         {data.label}{data.region ? ` (${data.region})` : ''}
       </div>
     </div>

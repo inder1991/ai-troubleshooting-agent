@@ -70,19 +70,19 @@ const EvidencePinCard: React.FC<EvidencePinCardProps> = ({ pin }) => {
         <div className="flex items-center gap-2 flex-wrap">
           {/* Severity badge */}
           {pin.severity && (
-            <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border ${severityBadgeClass[pin.severity]}`}>
+            <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-body-xs font-bold uppercase tracking-wider border ${severityBadgeClass[pin.severity]}`}>
               {pin.severity}
             </span>
           )}
 
           {/* Source badge */}
-          <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] ${
+          <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-body-xs ${
             pin.source === 'manual'
               ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30'
               : 'bg-slate-500/15 text-slate-400 border border-slate-600'
           }`}>
             <span
-              className="material-symbols-outlined text-[10px]"
+              className="material-symbols-outlined text-body-xs"
             >
               {pin.source === 'manual' ? 'person' : 'smart_toy'}
             </span>
@@ -90,13 +90,13 @@ const EvidencePinCard: React.FC<EvidencePinCardProps> = ({ pin }) => {
           </span>
 
           {/* Triggered by */}
-          <span className="text-[9px] text-slate-500">
+          <span className="text-body-xs text-slate-500">
             via {getTriggeredByLabel(pin.triggered_by)}
           </span>
         </div>
 
         {/* Domain badge (top-right) */}
-        <span className={`shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wider border ${domainStyle.bg} ${domainStyle.text} ${domainStyle.border}`}>
+        <span className={`shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-body-xs font-semibold uppercase tracking-wider border ${domainStyle.bg} ${domainStyle.text} ${domainStyle.border}`}>
           {pin.domain.replace('_', ' ')}
         </span>
       </div>
@@ -114,10 +114,10 @@ const EvidencePinCard: React.FC<EvidencePinCardProps> = ({ pin }) => {
       {/* Supporting evidence */}
       {pin.supporting_evidence.length > 0 && (
         <div className="mb-2">
-          <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Evidence</div>
+          <div className="text-body-xs text-slate-500 uppercase tracking-wider mb-1">Evidence</div>
           <ul className="space-y-0.5">
             {pin.supporting_evidence.map((ev, i) => (
-              <li key={i} className="text-[11px] text-slate-400 pl-2 border-l border-slate-700">
+              <li key={i} className="text-body-xs text-slate-400 pl-2 border-l border-slate-700">
                 {ev}
               </li>
             ))}
@@ -126,7 +126,7 @@ const EvidencePinCard: React.FC<EvidencePinCardProps> = ({ pin }) => {
       )}
 
       {/* Metadata row */}
-      <div className="flex items-center gap-3 text-[9px] text-slate-500 mt-2">
+      <div className="flex items-center gap-3 text-body-xs text-slate-500 mt-2">
         {pin.source_agent && (
           <span>Agent: <span className="text-slate-400">{pin.source_agent}</span></span>
         )}
@@ -142,7 +142,7 @@ const EvidencePinCard: React.FC<EvidencePinCardProps> = ({ pin }) => {
         <div className="mt-2">
           <button
             onClick={() => setShowRaw(!showRaw)}
-            className="text-[10px] text-amber-500 hover:text-amber-400 transition-colors flex items-center gap-1"
+            className="text-body-xs text-amber-500 hover:text-amber-400 transition-colors flex items-center gap-1"
           >
             <span
               className="material-symbols-outlined text-[12px]"
@@ -153,7 +153,7 @@ const EvidencePinCard: React.FC<EvidencePinCardProps> = ({ pin }) => {
             View Raw
           </button>
           {showRaw && (
-            <pre className="mt-1 p-2 rounded bg-slate-950/70 border border-slate-800 text-[10px] text-slate-400 overflow-x-auto max-h-[200px] font-mono whitespace-pre-wrap">
+            <pre className="mt-1 p-2 rounded bg-slate-950/70 border border-slate-800 text-body-xs text-slate-400 overflow-x-auto max-h-[200px] font-mono whitespace-pre-wrap">
               {pin.raw_output}
             </pre>
           )}
@@ -162,13 +162,13 @@ const EvidencePinCard: React.FC<EvidencePinCardProps> = ({ pin }) => {
 
       {/* Validation status indicator */}
       {pin.validation_status === 'pending_critic' && (
-        <div className="mt-2 flex items-center gap-1.5 text-[9px] text-amber-400">
+        <div className="mt-2 flex items-center gap-1.5 text-body-xs text-amber-400">
           <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
           Awaiting critic validation
         </div>
       )}
       {pin.validation_status === 'validated' && (
-        <div className="mt-2 flex items-center gap-1.5 text-[9px] text-emerald-400">
+        <div className="mt-2 flex items-center gap-1.5 text-body-xs text-emerald-400">
           <span
             className="material-symbols-outlined text-[12px]"
           >
@@ -178,7 +178,7 @@ const EvidencePinCard: React.FC<EvidencePinCardProps> = ({ pin }) => {
         </div>
       )}
       {pin.validation_status === 'rejected' && (
-        <div className="mt-2 flex items-center gap-1.5 text-[9px] text-slate-500">
+        <div className="mt-2 flex items-center gap-1.5 text-body-xs text-slate-500">
           <span
             className="material-symbols-outlined text-[12px]"
           >

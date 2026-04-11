@@ -21,14 +21,14 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, label, count, 
   const s = statusStyles[status] || statusStyles.unknown;
 
   return (
-    <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded border ${s.bg} ${s.text} ${s.border} text-[10px] uppercase tracking-wider`}>
+    <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded border ${s.bg} ${s.text} ${s.border} text-body-xs uppercase tracking-wider`}>
       <span className="relative flex h-1.5 w-1.5">
         {pulse && <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${s.dot}`} />}
         <span className={`relative inline-flex rounded-full h-1.5 w-1.5 ${s.dot}`} />
       </span>
       <span>{label}</span>
       {count !== undefined && (
-        <span className="ml-1 px-1 bg-black/20 rounded-sm text-[9px]">{count}</span>
+        <span className="ml-1 px-1 bg-black/20 rounded-sm text-body-xs">{count}</span>
       )}
     </div>
   );

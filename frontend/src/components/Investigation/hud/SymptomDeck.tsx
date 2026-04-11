@@ -17,7 +17,7 @@ const SymptomDeck: React.FC<SymptomDeckProps> = ({ symptoms, renderSymptom }) =>
       <div className="space-y-3">
         <button
           onClick={() => setExpanded(false)}
-          className="text-[10px] text-amber-400 hover:text-amber-300 font-mono border border-amber-500/30 bg-amber-500/5 rounded-lg px-3 py-1.5 transition-colors"
+          className="text-body-xs text-amber-400 hover:text-amber-300 font-mono border border-amber-500/30 bg-amber-500/5 rounded-lg px-3 py-1.5 transition-colors"
         >
           Collapse Stack
         </button>
@@ -35,7 +35,7 @@ const SymptomDeck: React.FC<SymptomDeckProps> = ({ symptoms, renderSymptom }) =>
           <div className="sticky bottom-2 flex justify-center mt-4">
             <button
               onClick={() => setExpanded(false)}
-              className="text-[10px] text-amber-400 bg-slate-900/90 backdrop-blur border border-amber-500/30 rounded-full px-4 py-1.5 shadow-lg hover:bg-slate-800 transition-colors"
+              className="text-body-xs text-amber-400 bg-slate-900/90 backdrop-blur border border-amber-500/30 rounded-full px-4 py-1.5 shadow-lg hover:bg-slate-800 transition-colors"
             >
               Collapse Stack
             </button>
@@ -62,10 +62,10 @@ const SymptomDeck: React.FC<SymptomDeckProps> = ({ symptoms, renderSymptom }) =>
         {/* Header */}
         <div className="px-4 py-2.5 border-b border-slate-800/50 flex items-center gap-2">
           <Layers className="w-3.5 h-3.5 text-amber-400" />
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+          <span className="text-body-xs font-bold uppercase tracking-wider text-slate-400">
             Symptom Cluster
           </span>
-          <span className="text-[9px] font-mono text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded-full ml-auto">
+          <span className="text-body-xs font-mono text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded-full ml-auto">
             {symptoms.length} EVENTS
           </span>
         </div>
@@ -77,7 +77,7 @@ const SymptomDeck: React.FC<SymptomDeckProps> = ({ symptoms, renderSymptom }) =>
 
         {/* CTA */}
         <div className="px-4 py-2 border-t border-dashed border-amber-500/20">
-          <span className="text-[10px] text-amber-400/70 font-mono">
+          <span className="text-body-xs text-amber-400/70 font-mono">
             Click to Fan Out Stack
           </span>
         </div>

@@ -37,7 +37,7 @@ export const PRSuccessScreen: React.FC<PRSuccessProps> = ({ data }) => {
           <h3 className="text-[14px] font-bold text-emerald-400 uppercase tracking-widest mb-1">
             Pull Request Created
           </h3>
-          <p className="text-[10px] text-slate-500">
+          <p className="text-body-xs text-slate-500">
             Your fix has been successfully submitted for review
           </p>
         </div>
@@ -47,26 +47,26 @@ export const PRSuccessScreen: React.FC<PRSuccessProps> = ({ data }) => {
       <div className="border border-slate-800 rounded bg-slate-950/40 p-4 space-y-3">
         <div className="flex items-center gap-2 mb-2">
           <GitPullRequest size={12} className="text-slate-500" />
-          <span className="text-[9px] text-slate-500 uppercase font-bold">PR Details</span>
+          <span className="text-body-xs text-slate-500 uppercase font-bold">PR Details</span>
         </div>
 
         <div className="space-y-2">
           <div className="flex justify-between items-center">
-            <span className="text-[9px] text-slate-600">PR Number:</span>
-            <span className="text-[10px] font-mono text-emerald-400">#{data.pr_number}</span>
+            <span className="text-body-xs text-slate-600">PR Number:</span>
+            <span className="text-body-xs font-mono text-emerald-400">#{data.pr_number}</span>
           </div>
 
           {data.branch_name && (
             <div className="flex justify-between items-center">
-              <span className="text-[9px] text-slate-600">Branch:</span>
-              <span className="text-[10px] font-mono text-blue-400">{data.branch_name}</span>
+              <span className="text-body-xs text-slate-600">Branch:</span>
+              <span className="text-body-xs font-mono text-blue-400">{data.branch_name}</span>
             </div>
           )}
 
           <div className="pt-2 border-t border-slate-800">
-            <div className="text-[9px] text-slate-600 mb-2">PR URL:</div>
+            <div className="text-body-xs text-slate-600 mb-2">PR URL:</div>
             <div className="flex items-center gap-2 bg-slate-950 border border-slate-900 rounded p-2">
-              <span className="text-[8px] font-mono text-slate-400 flex-1 truncate">
+              <span className="text-chrome font-mono text-slate-400 flex-1 truncate">
                 {data.pr_url}
               </span>
               <button
@@ -89,7 +89,7 @@ export const PRSuccessScreen: React.FC<PRSuccessProps> = ({ data }) => {
       <div className="flex gap-3">
         <button
           onClick={handleOpenPR}
-          className="flex-1 bg-emerald-600 hover:bg-emerald-700 py-3 rounded text-[10px] font-bold uppercase tracking-widest text-white transition-all shadow-lg hover:shadow-emerald-500/50 flex items-center justify-center gap-2"
+          className="flex-1 bg-emerald-600 hover:bg-emerald-700 py-3 rounded text-body-xs font-bold uppercase tracking-widest text-white transition-all shadow-lg hover:shadow-emerald-500/50 flex items-center justify-center gap-2"
         >
           <ExternalLink size={14} />
           View Pull Request
@@ -98,8 +98,8 @@ export const PRSuccessScreen: React.FC<PRSuccessProps> = ({ data }) => {
 
       {/* Next Steps */}
       <div className="border border-slate-800 rounded bg-slate-950/40 p-3 space-y-2">
-        <div className="text-[9px] font-bold text-slate-500 uppercase">Next Steps:</div>
-        <ul className="space-y-1.5 text-[8px] text-slate-600">
+        <div className="text-body-xs font-bold text-slate-500 uppercase">Next Steps:</div>
+        <ul className="space-y-1.5 text-chrome text-slate-600">
           <li className="flex items-start gap-2">
             <span className="text-emerald-500">1.</span>
             <span>Review the changes in GitHub</span>

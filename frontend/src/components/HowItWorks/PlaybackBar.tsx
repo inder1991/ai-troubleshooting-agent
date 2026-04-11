@@ -32,7 +32,7 @@ const PlaybackBar: React.FC<PlaybackBarProps> = ({
       {/* Phase info */}
       <div className="flex items-center gap-3 mb-3">
         <span
-          className="text-[10px] uppercase tracking-widest font-bold"
+          className="text-body-xs uppercase tracking-widest font-bold"
           style={{ color: WF_COLORS.amber, fontFamily: 'DM Sans, system-ui' }}
         >
           {phaseName}

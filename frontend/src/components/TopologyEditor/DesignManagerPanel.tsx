@@ -162,7 +162,7 @@ export default function DesignManagerPanel({ onOpen, onCreateNew, onClose }: Des
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="text-sm text-white font-medium truncate mr-2">{d.name}</span>
                   <span
-                    className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full uppercase tracking-wide shrink-0"
+                    className="text-body-xs font-semibold px-1.5 py-0.5 rounded-full uppercase tracking-wide shrink-0"
                     style={{
                       background: `${STATUS_COLORS[d.status]}20`,
                       color: STATUS_COLORS[d.status],
@@ -175,20 +175,20 @@ export default function DesignManagerPanel({ onOpen, onCreateNew, onClose }: Des
                   <p className="text-xs text-gray-500 mb-2 line-clamp-1">{d.description}</p>
                 )}
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-gray-600">
+                  <span className="text-body-xs text-gray-600">
                     {new Date(d.updated_at).toLocaleDateString()} · v{d.version}
                   </span>
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => onOpen(d.id)}
-                      className="px-2 py-0.5 rounded text-[10px] font-medium transition-colors"
+                      className="px-2 py-0.5 rounded text-body-xs font-medium transition-colors"
                       style={{ background: 'rgba(224,159,62,0.12)', color: '#e09f3e' }}
                     >
                       Open
                     </button>
                     <button
                       onClick={() => handleDelete(d.id, d.name)}
-                      className="px-2 py-0.5 rounded text-[10px] font-medium text-gray-600 hover:text-red-400 transition-colors"
+                      className="px-2 py-0.5 rounded text-body-xs font-medium text-gray-600 hover:text-red-400 transition-colors"
                       style={{ background: 'rgba(100,116,139,0.08)' }}
                     >
                       Delete

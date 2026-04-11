@@ -38,10 +38,10 @@ export default function DomainHealthGrid({ domains }: DomainHealthGridProps) {
           return (
             <div key={d.domain} className="bg-slate-900/40 border border-slate-700/30 rounded px-2 py-1.5 flex items-center gap-2">
               <span className={`w-1.5 h-1.5 rounded-full ${dotClass}`} />
-              <span className="text-[10px] font-mono text-slate-400">{label}</span>
+              <span className="text-body-xs font-mono text-slate-400">{label}</span>
               <div className="ml-auto flex items-center gap-1.5">
                 {d.anomalies.length > 0 && (
-                  <span className="text-[9px] font-mono text-red-400">{d.anomalies.length}</span>
+                  <span className="text-body-xs font-mono text-red-400">{d.anomalies.length}</span>
                 )}
                 <div className="w-8 h-1 bg-slate-800 rounded-full overflow-hidden">
                   <div

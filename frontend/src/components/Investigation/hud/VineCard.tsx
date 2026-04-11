@@ -34,7 +34,7 @@ const VineCard: React.FC<VineCardProps> = ({
         className={`absolute left-[11px] top-8 w-3 h-3 rounded-full border-2 border-slate-950 transition-all ${
           isRootCause
             ? 'bg-red-500 shadow-[0_0_10px_#ef4444]'
-            : 'bg-amber-500/50 shadow-[0_0_5px_rgba(212,146,46,0.5)]'
+            : 'bg-amber-500/50 shadow-[0_0_5px_rgba(6,182,212,0.5)]'
         } ${isNew ? 'animate-vine-connect' : ''}`}
       />
 

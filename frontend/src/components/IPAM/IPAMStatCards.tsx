@@ -33,7 +33,7 @@ export default function IPAMStatCards({ stats }: Props) {
               <span className={`material-symbols-outlined text-lg ${c.color}`}>
                 {c.icon}
               </span>
-              <span className="text-[11px] text-slate-400 uppercase tracking-wider">
+              <span className="text-body-xs text-slate-400 uppercase tracking-wider">
                 {c.label}
               </span>
             </div>

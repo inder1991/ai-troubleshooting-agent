@@ -24,7 +24,7 @@ const DriftEventsList: React.FC<Props> = ({ drifts }) => {
     <div className="rounded-lg border" style={{ backgroundColor: '#0a1a1e', borderColor: '#3d3528' }}>
       <div className="flex items-center justify-between px-3 py-2 border-b" style={{ borderColor: '#3d3528' }}>
         <span className="text-xs font-semibold text-white">Drift Events</span>
-        <div className="flex gap-2 text-[10px] font-mono">
+        <div className="flex gap-2 text-body-xs font-mono">
           {criticalCount > 0 && <span style={{ color: '#ef4444' }}>{criticalCount} critical</span>}
           {warningCount > 0 && <span style={{ color: '#f59e0b' }}>{warningCount} warning</span>}
           {infoCount > 0 && <span style={{ color: '#e09f3e' }}>{infoCount} info</span>}
@@ -48,7 +48,7 @@ const DriftEventsList: React.FC<Props> = ({ drifts }) => {
               <span className="font-mono" style={{ color: '#8a7e6b' }}>{d.field}</span>
             </div>
             {expanded === d.id && (
-              <div className="mt-1 pl-4 text-[11px] font-mono space-y-0.5">
+              <div className="mt-1 pl-4 text-body-xs font-mono space-y-0.5">
                 <div><span style={{ color: '#64748b' }}>Expected: </span><span style={{ color: '#22c55e' }}>{d.expected}</span></div>
                 <div><span style={{ color: '#64748b' }}>Actual: </span><span style={{ color: '#ef4444' }}>{d.actual}</span></div>
                 <div style={{ color: '#64748b' }}>Detected: {new Date(d.detected_at).toLocaleString()}</div>

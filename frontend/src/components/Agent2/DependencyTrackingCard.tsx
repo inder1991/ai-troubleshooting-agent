@@ -26,11 +26,11 @@ export const DependencyTrackingCard: React.FC<DependencyTrackingProps> = ({ data
   return (
     <div className="transition-all duration-700">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+        <span className="text-body-xs font-bold text-slate-500 uppercase tracking-widest">
           4️⃣ Dependency Tracking
         </span>
         {data.hasConflicts && (
-          <span className="text-[8px] px-1.5 py-0.5 rounded bg-red-900/30 text-red-400 border border-red-800">
+          <span className="text-chrome px-1.5 py-0.5 rounded bg-red-900/30 text-red-400 border border-red-800">
             {data.conflicts.length} CONFLICTS
           </span>
         )}
@@ -41,7 +41,7 @@ export const DependencyTrackingCard: React.FC<DependencyTrackingProps> = ({ data
         <div className="flex gap-1 mb-3 bg-slate-900 p-0.5 rounded">
           <button
             onClick={() => setActiveTab('external')}
-            className={`flex-1 text-[8px] font-bold py-1 rounded transition-colors ${
+            className={`flex-1 text-chrome font-bold py-1 rounded transition-colors ${
               activeTab === 'external'
                 ? 'bg-blue-600 text-white'
                 : 'text-slate-500 hover:text-slate-400'
@@ -51,7 +51,7 @@ export const DependencyTrackingCard: React.FC<DependencyTrackingProps> = ({ data
           </button>
           <button
             onClick={() => setActiveTab('internal')}
-            className={`flex-1 text-[8px] font-bold py-1 rounded transition-colors ${
+            className={`flex-1 text-chrome font-bold py-1 rounded transition-colors ${
               activeTab === 'internal'
                 ? 'bg-blue-600 text-white'
                 : 'text-slate-500 hover:text-slate-400'
@@ -62,7 +62,7 @@ export const DependencyTrackingCard: React.FC<DependencyTrackingProps> = ({ data
           {data.hasConflicts && (
             <button
               onClick={() => setActiveTab('conflicts')}
-              className={`flex-1 text-[8px] font-bold py-1 rounded transition-colors ${
+              className={`flex-1 text-chrome font-bold py-1 rounded transition-colors ${
                 activeTab === 'conflicts'
                   ? 'bg-red-600 text-white'
                   : 'text-red-400 hover:text-red-300'
@@ -81,19 +81,19 @@ export const DependencyTrackingCard: React.FC<DependencyTrackingProps> = ({ data
                 {data.externalDependencies.slice(0, 20).map((dep, idx) => (
                   <span
                     key={idx}
-                    className="text-[8px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded font-mono"
+                    className="text-chrome bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded font-mono"
                   >
                     {dep}
                   </span>
                 ))}
                 {data.externalDependencies.length > 20 && (
-                  <span className="text-[8px] text-slate-600">
+                  <span className="text-chrome text-slate-600">
                     +{data.externalDependencies.length - 20} more
                   </span>
                 )}
               </div>
             ) : (
-              <div className="text-[9px] text-slate-700 text-center py-4">
+              <div className="text-body-xs text-slate-700 text-center py-4">
                 No external dependencies found
               </div>
             )}
@@ -110,11 +110,11 @@ export const DependencyTrackingCard: React.FC<DependencyTrackingProps> = ({ data
                   className="flex items-center gap-2 p-1.5 bg-slate-900/40 border border-slate-800 rounded"
                 >
                   <Package size={10} className="text-blue-500" />
-                  <span className="text-[9px] text-slate-400 font-mono">{dep}</span>
+                  <span className="text-body-xs text-slate-400 font-mono">{dep}</span>
                 </div>
               ))
             ) : (
-              <div className="text-[9px] text-slate-700 text-center py-4">
+              <div className="text-body-xs text-slate-700 text-center py-4">
                 No internal dependencies found
               </div>
             )}
@@ -132,11 +132,11 @@ export const DependencyTrackingCard: React.FC<DependencyTrackingProps> = ({ data
                 >
                   <div className="flex items-center gap-1 mb-1">
                     <AlertCircle size={10} className="text-red-500" />
-                    <code className="text-[9px] text-red-400 font-bold">
+                    <code className="text-body-xs text-red-400 font-bold">
                       {conflict.package}
                     </code>
                   </div>
-                  <div className="text-[8px] text-slate-500 ml-4">
+                  <div className="text-chrome text-slate-500 ml-4">
                     Versions: {conflict.versions.join(', ')}
                   </div>
                   <div className="text-[7px] text-yellow-400 ml-4 mt-0.5 uppercase">
@@ -145,7 +145,7 @@ export const DependencyTrackingCard: React.FC<DependencyTrackingProps> = ({ data
                 </div>
               ))
             ) : (
-              <div className="text-[9px] text-green-400 text-center py-4">
+              <div className="text-body-xs text-green-400 text-center py-4">
                 ✅ No conflicts found
               </div>
             )}

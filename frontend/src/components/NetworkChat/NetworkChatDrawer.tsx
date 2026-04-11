@@ -221,11 +221,11 @@ const MessageBubble: React.FC<{ message: NetworkChatMessage }> = ({ message }) =
             {message.tool_calls.map((tc, i) => (
               <span
                 key={i}
-                className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] ${
+                className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-body-xs ${
                   tc.blocked ? 'bg-red-500/10 text-red-400' : 'bg-amber-400/10 text-amber-400'
                 }`}
               >
-                <span className="material-symbols-outlined text-[11px]">build</span>
+                <span className="material-symbols-outlined text-body-xs">build</span>
                 {tc.name}
               </span>
             ))}

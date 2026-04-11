@@ -41,7 +41,7 @@ const TRANSITIONS: Record<DesignStatus, { label: string; next: DesignStatus; ico
 
 /* ── shared style tokens (same as TopologyToolbar) ───────── */
 const BTN =
-  'flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-mono font-medium border transition-colors disabled:opacity-30 disabled:cursor-not-allowed';
+  'flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-body-xs font-mono font-medium border transition-colors disabled:opacity-30 disabled:cursor-not-allowed';
 const ICON = 'material-symbols-outlined';
 const ICON_SIZE = { fontSize: 15 };
 
@@ -95,13 +95,13 @@ export default function DesignLifecycleBar({
           onChange={(e) => setNameInput(e.target.value)}
           onBlur={handleFinishEdit}
           onKeyDown={(e) => e.key === 'Enter' && handleFinishEdit()}
-          className="bg-transparent border border-amber-800 rounded-md px-2 py-0.5 text-[11px] font-mono text-white outline-none"
+          className="bg-transparent border border-amber-800 rounded-md px-2 py-0.5 text-body-xs font-mono text-white outline-none"
           style={{ minWidth: 140 }}
         />
       ) : (
         <button
           onClick={handleStartEdit}
-          className="text-[11px] font-mono font-medium text-white hover:text-amber-300 transition-colors flex items-center gap-1"
+          className="text-body-xs font-mono font-medium text-white hover:text-amber-300 transition-colors flex items-center gap-1"
         >
           <span className={ICON} style={{ ...ICON_SIZE, color: '#e09f3e' }}>edit</span>
           {design.name}
@@ -110,14 +110,14 @@ export default function DesignLifecycleBar({
 
       {/* Status badge */}
       <span
-        className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full uppercase tracking-wide"
+        className="text-body-xs font-mono font-semibold px-2 py-0.5 rounded-full uppercase tracking-wide"
         style={{ background: colors.bg, color: colors.text }}
       >
         {colors.label}
       </span>
 
       {/* Version */}
-      <span className="text-[10px] font-mono text-gray-500">v{design.version}</span>
+      <span className="text-body-xs font-mono text-gray-500">v{design.version}</span>
 
       <div className="flex-1" />
 
@@ -150,7 +150,7 @@ export default function DesignLifecycleBar({
       <ExportMenu onExport={onExport} />
 
       {/* Updated timestamp */}
-      <span className="text-[10px] font-mono text-gray-600">
+      <span className="text-body-xs font-mono text-gray-600">
         {new Date(design.updated_at).toLocaleString()}
       </span>
     </div>

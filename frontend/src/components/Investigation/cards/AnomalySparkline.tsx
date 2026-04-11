@@ -86,7 +86,7 @@ const AnomalySparkline: React.FC<AnomalySparklineProps> = ({
       <polyline
         points={linePoints}
         fill="none"
-        stroke="#e09f3e"
+        stroke="#07b6d5"
         strokeWidth="1.5"
         strokeLinejoin="round"
         strokeLinecap="round"
@@ -127,9 +127,9 @@ const SyntheticSparkline: React.FC<{
       <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="w-full opacity-60" style={{ height: '48px' }} preserveAspectRatio="none">
         <path d={fillPath} fill={deviationColor} />
         <line x1={PAD_X} y1={bY} x2={WIDTH - PAD_X} y2={bY} stroke="#475569" strokeWidth="1" strokeDasharray="4 3" />
-        <polyline points={points} fill="none" stroke="#e09f3e" strokeWidth="1.5" strokeDasharray="6 3" strokeLinejoin="round" />
+        <polyline points={points} fill="none" stroke="#07b6d5" strokeWidth="1.5" strokeDasharray="6 3" strokeLinejoin="round" />
       </svg>
-      <span className="absolute top-0 right-1 text-[8px] text-slate-600 italic">estimated</span>
+      <span className="absolute top-0 right-1 text-chrome text-slate-600 italic">estimated</span>
     </div>
   );
 };

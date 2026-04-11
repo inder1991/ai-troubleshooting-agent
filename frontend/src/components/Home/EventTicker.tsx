@@ -176,7 +176,7 @@ export const EventTicker: React.FC = () => {
       {/* Live indicator */}
       <div className="flex items-center gap-1.5 shrink-0">
         <span className="w-1.5 h-1.5 rounded-full bg-duck-accent animate-pulse" aria-hidden="true" />
-        <span className="text-[9px] font-display font-bold text-slate-400 uppercase tracking-wider">Live</span>
+        <span className="text-body-xs font-display font-bold text-slate-400 uppercase tracking-wider">Live</span>
       </div>
 
       {/* Animated event */}
@@ -200,7 +200,7 @@ export const EventTicker: React.FC = () => {
 
       {/* Counter */}
       {tickerEvents.length > 1 && (
-        <span className="text-[9px] text-slate-500 font-mono shrink-0 tabular-nums">
+        <span className="text-body-xs text-slate-500 font-mono shrink-0 tabular-nums">
           {currentIdx + 1}/{tickerEvents.length}
         </span>
       )}

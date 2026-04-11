@@ -67,7 +67,7 @@ const ClusterDossierExport: React.FC<ClusterDossierExportProps> = ({ sessionId, 
       >
         <span className="material-symbols-outlined text-[14px]">data_object</span>
       </button>
-      {error && <span className="text-[10px] text-red-400">{error}</span>}
+      {error && <span className="text-body-xs text-red-400">{error}</span>}
     </div>
   );
 };

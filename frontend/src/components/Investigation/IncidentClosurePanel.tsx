@@ -128,28 +128,28 @@ const IncidentClosurePanel: React.FC<IncidentClosurePanelProps> = ({
       <div className="bg-slate-900/40 border border-slate-800 rounded-xl overflow-hidden">
         {/* Header */}
         <div className="px-4 py-2.5 border-b border-slate-800 bg-slate-900/60 flex items-center gap-2">
-          <span className="material-symbols-outlined text-violet-400 text-sm">
+          <span className="material-symbols-outlined text-violet-400 text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>
             verified_user
           </span>
-          <span className="text-[11px] font-bold uppercase tracking-wider text-violet-400">
+          <span className="text-body-xs font-bold uppercase tracking-wider text-violet-400">
             Incident Closure
           </span>
-          <span className="text-[10px] text-slate-500 italic ml-1">
+          <span className="text-body-xs text-slate-500 italic ml-1">
             Remediate, then document.
           </span>
         </div>
 
         <div className="p-4 space-y-3">
           {error && (
-            <div className="text-[10px] text-red-400 bg-red-500/10 border border-red-500/20 rounded px-3 py-1.5">
+            <div className="text-body-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded px-3 py-1.5">
               {error}
             </div>
           )}
 
           {/* Phase gate warning — investigation may still be in progress */}
           {phase && !['diagnosis_complete', 'fix_in_progress', 'fix_complete', 'closed'].includes(phase) && (
-            <div className="text-[10px] text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded px-3 py-1.5 flex items-center gap-2">
-              <span className="material-symbols-outlined text-[12px]">warning</span>
+            <div className="text-body-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded px-3 py-1.5 flex items-center gap-2">
+              <span className="material-symbols-outlined text-[12px]" style={{ fontFamily: 'Material Symbols Outlined' }}>warning</span>
               Investigation still in progress — dossier data may be incomplete.
             </div>
           )}
@@ -163,7 +163,7 @@ const IncidentClosurePanel: React.FC<IncidentClosurePanelProps> = ({
             active={!preDone && (phase === 'fix_in_progress' || phase === 'diagnosis_complete')}
           >
             {preDone && findings?.fix_data?.pr_url ? (
-              <div className="flex items-center gap-2 text-[11px]">
+              <div className="flex items-center gap-2 text-body-xs">
                 <span className="text-green-400">PR created</span>
                 <a
                   href={findings.fix_data.pr_url}
@@ -175,9 +175,9 @@ const IncidentClosurePanel: React.FC<IncidentClosurePanelProps> = ({
                 </a>
               </div>
             ) : preDone ? (
-              <span className="text-[11px] text-green-400">Fix generated</span>
+              <span className="text-body-xs text-green-400">Fix generated</span>
             ) : (
-              <span className="text-[11px] text-slate-400">
+              <span className="text-body-xs text-slate-400">
                 {phase === 'fix_in_progress' ? 'Fix generation in progress...' : 'Generate a fix from the diagnosis.'}
               </span>
             )}
@@ -195,11 +195,11 @@ const IncidentClosurePanel: React.FC<IncidentClosurePanelProps> = ({
               {/* Jira */}
               <div className="space-y-1.5">
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wider">Jira</span>
+                  <span className="text-body-xs font-bold text-slate-300 uppercase tracking-wider">Jira</span>
                   <IntegrationStatusBadge integration={jiraIntegration} name="Jira" />
                 </div>
                 {jiraDone ? (
-                  <div className="flex items-center gap-2 text-[11px]">
+                  <div className="flex items-center gap-2 text-body-xs">
                     <span className="text-green-400">
                       {closureState?.jira_result?.issue_key}
                     </span>
@@ -223,18 +223,18 @@ const IncidentClosurePanel: React.FC<IncidentClosurePanelProps> = ({
                           placeholder="Project key (e.g. OPS)"
                           value={jiraProjectKey}
                           onChange={(e) => setJiraProjectKey(e.target.value)}
-                          className="text-[11px] bg-slate-800/60 border border-slate-700/50 rounded px-2 py-1 text-slate-200 placeholder-slate-600 w-36 font-mono focus:outline-none focus:border-violet-500/50"
+                          className="text-body-xs bg-slate-800/60 border border-slate-700/50 rounded px-2 py-1 text-slate-200 placeholder-slate-600 w-36 font-mono focus:outline-none focus:border-violet-500/50"
                         />
                         <button
                           onClick={handleCreateJira}
                           disabled={!jiraProjectKey.trim() || loading === 'jira'}
-                          className="text-[10px] font-bold px-2.5 py-1 rounded bg-violet-500/20 text-violet-400 border border-violet-500/30 hover:bg-violet-500/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:saturate-0"
+                          className="text-body-xs font-bold px-2.5 py-1 rounded bg-violet-500/20 text-violet-400 border border-violet-500/30 hover:bg-violet-500/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:saturate-0"
                         >
                           {loading === 'jira' ? 'Creating...' : 'Create'}
                         </button>
                         <button
                           onClick={() => setLinkMode(true)}
-                          className="text-[10px] text-slate-500 hover:text-slate-300"
+                          className="text-body-xs text-slate-500 hover:text-slate-300"
                         >
                           or link existing
                         </button>
@@ -246,18 +246,18 @@ const IncidentClosurePanel: React.FC<IncidentClosurePanelProps> = ({
                           placeholder="Issue key (e.g. OPS-123)"
                           value={linkIssueKey}
                           onChange={(e) => setLinkIssueKey(e.target.value)}
-                          className="text-[11px] bg-slate-800/60 border border-slate-700/50 rounded px-2 py-1 text-slate-200 placeholder-slate-600 w-36 font-mono focus:outline-none focus:border-violet-500/50"
+                          className="text-body-xs bg-slate-800/60 border border-slate-700/50 rounded px-2 py-1 text-slate-200 placeholder-slate-600 w-36 font-mono focus:outline-none focus:border-violet-500/50"
                         />
                         <button
                           onClick={handleLinkJira}
                           disabled={!linkIssueKey.trim() || loading === 'jira-link'}
-                          className="text-[10px] font-bold px-2.5 py-1 rounded bg-violet-500/20 text-violet-400 border border-violet-500/30 hover:bg-violet-500/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:saturate-0"
+                          className="text-body-xs font-bold px-2.5 py-1 rounded bg-violet-500/20 text-violet-400 border border-violet-500/30 hover:bg-violet-500/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:saturate-0"
                         >
                           {loading === 'jira-link' ? 'Linking...' : 'Link'}
                         </button>
                         <button
                           onClick={() => setLinkMode(false)}
-                          className="text-[10px] text-slate-500 hover:text-slate-300"
+                          className="text-body-xs text-slate-500 hover:text-slate-300"
                         >
                           or create new
                         </button>
@@ -270,11 +270,11 @@ const IncidentClosurePanel: React.FC<IncidentClosurePanelProps> = ({
               {/* Remedy */}
               <div className="space-y-1.5">
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wider">Remedy</span>
+                  <span className="text-body-xs font-bold text-slate-300 uppercase tracking-wider">Remedy</span>
                   <IntegrationStatusBadge integration={remedyIntegration} name="Remedy" />
                 </div>
                 {remedyDone ? (
-                  <div className="flex items-center gap-2 text-[11px]">
+                  <div className="flex items-center gap-2 text-body-xs">
                     <span className="text-green-400">
                       {closureState?.remedy_result?.incident_number}
                     </span>
@@ -293,7 +293,7 @@ const IncidentClosurePanel: React.FC<IncidentClosurePanelProps> = ({
                   <button
                     onClick={handleCreateRemedy}
                     disabled={loading === 'remedy'}
-                    className="text-[10px] font-bold px-2.5 py-1 rounded bg-violet-500/20 text-violet-400 border border-violet-500/30 hover:bg-violet-500/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:saturate-0"
+                    className="text-body-xs font-bold px-2.5 py-1 rounded bg-violet-500/20 text-violet-400 border border-violet-500/30 hover:bg-violet-500/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:saturate-0"
                   >
                     {loading === 'remedy' ? 'Creating...' : 'Create Incident'}
                   </button>
@@ -312,11 +312,11 @@ const IncidentClosurePanel: React.FC<IncidentClosurePanelProps> = ({
           >
             <div className="space-y-1.5">
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wider">Confluence</span>
+                <span className="text-body-xs font-bold text-slate-300 uppercase tracking-wider">Confluence</span>
                 <IntegrationStatusBadge integration={confluenceIntegration} name="Confluence" />
               </div>
               {confluenceDone ? (
-                <div className="flex items-center gap-2 text-[11px]">
+                <div className="flex items-center gap-2 text-body-xs">
                   <span className="text-green-400">Post-mortem published</span>
                   {closureState?.confluence_result?.page_url && (
                     <a
@@ -332,7 +332,7 @@ const IncidentClosurePanel: React.FC<IncidentClosurePanelProps> = ({
               ) : (
                 <button
                   onClick={handleGenerateDossier}
-                  className="text-[10px] font-bold px-2.5 py-1 rounded transition-all flex items-center gap-2 bg-violet-500/20 text-violet-400 border border-violet-500/30 hover:bg-violet-500/30"
+                  className="text-body-xs font-bold px-2.5 py-1 rounded transition-all flex items-center gap-2 bg-violet-500/20 text-violet-400 border border-violet-500/30 hover:bg-violet-500/30"
                 >
                   Generate Dossier
                 </button>

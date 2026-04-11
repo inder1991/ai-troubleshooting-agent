@@ -93,7 +93,7 @@ const InvestigationFlowTab: React.FC = () => {
         <span className="text-sm font-bold text-white">
           Live Investigation: Checkout Failure
         </span>
-        <span className="bg-red-500/20 text-red-400 text-[10px] font-bold uppercase px-2 py-0.5 rounded">
+        <span className="bg-red-500/20 text-red-400 text-body-xs font-bold uppercase px-2 py-0.5 rounded">
           SEV-1
         </span>
       </div>
@@ -126,7 +126,7 @@ const InvestigationFlowTab: React.FC = () => {
           return (
             <div
               key={label}
-              className={`flex items-center gap-1 text-[9px] font-mono uppercase tracking-wider ${textColor}`}
+              className={`flex items-center gap-1 text-body-xs font-mono uppercase tracking-wider ${textColor}`}
             >
               <span
                 className={`inline-block w-1.5 h-1.5 rounded-full ${dotColor}`}
@@ -157,7 +157,7 @@ const InvestigationFlowTab: React.FC = () => {
               }}
             >
               <div
-                className="absolute -top-2.5 left-5 px-2 text-[9px] font-bold tracking-wider uppercase"
+                className="absolute -top-2.5 left-5 px-2 text-body-xs font-bold tracking-wider uppercase"
                 style={{
                   backgroundColor: '#1a1814',
                   color: 'rgba(224,159,62,0.3)',
@@ -213,13 +213,13 @@ const InvestigationFlowTab: React.FC = () => {
                 </div>
 
                 {/* Detail */}
-                <div className="text-[10px] font-mono text-slate-400 whitespace-pre-line">
+                <div className="text-body-xs font-mono text-slate-400 whitespace-pre-line">
                   {node.detail}
                 </div>
 
                 {/* Status */}
                 <div
-                  className={`text-[9px] uppercase font-bold tracking-wider mt-2 ${statusLabel.className}`}
+                  className={`text-body-xs uppercase font-bold tracking-wider mt-2 ${statusLabel.className}`}
                 >
                   {statusLabel.text}
                 </div>
@@ -232,7 +232,7 @@ const InvestigationFlowTab: React.FC = () => {
                       : 'max-h-0 opacity-0 overflow-hidden'
                   }`}
                 >
-                  <div className="text-[10px] font-mono text-slate-300 mt-2 pt-2 border-t border-[#3d3528]">
+                  <div className="text-body-xs font-mono text-slate-300 mt-2 pt-2 border-t border-[#3d3528]">
                     {node.outputText}
                   </div>
                 </div>

@@ -44,7 +44,7 @@ const StackTraceTelescope: React.FC<StackTraceTelescopeProps> = ({ traces }) => 
     <div>
       <button
         onClick={() => setShowTrace(!showTrace)}
-        className="text-[10px] text-purple-400 hover:underline"
+        className="text-body-xs text-purple-400 hover:underline"
       >
         {showTrace ? 'Hide' : 'Show'} stack trace ({traces.length})
       </button>
@@ -59,7 +59,7 @@ const StackTraceTelescope: React.FC<StackTraceTelescopeProps> = ({ traces }) => 
             className="overflow-hidden"
           >
             <div className="mt-1 space-y-1">
-              <pre className="p-2 bg-black/30 rounded text-[10px] font-mono text-slate-300 overflow-x-auto max-h-48 custom-scrollbar whitespace-pre-wrap">
+              <pre className="p-2 bg-black/30 rounded text-body-xs font-mono text-slate-300 overflow-x-auto max-h-48 custom-scrollbar whitespace-pre-wrap">
                 {app.join('\n')}
               </pre>
               <AnimatePresence initial={false}>
@@ -67,7 +67,7 @@ const StackTraceTelescope: React.FC<StackTraceTelescopeProps> = ({ traces }) => 
                   <>
                     <button
                       onClick={() => setShowFramework(!showFramework)}
-                      className="text-[9px] text-slate-500 hover:text-slate-400"
+                      className="text-body-xs text-slate-500 hover:text-slate-400"
                     >
                       {showFramework ? 'Hide' : `${framework.length} framework frames hidden`}
                     </button>
@@ -80,7 +80,7 @@ const StackTraceTelescope: React.FC<StackTraceTelescopeProps> = ({ traces }) => 
                         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                         className="overflow-hidden"
                       >
-                        <pre className="p-2 bg-black/20 rounded text-[10px] font-mono text-slate-500 overflow-x-auto max-h-32 custom-scrollbar whitespace-pre-wrap">
+                        <pre className="p-2 bg-black/20 rounded text-body-xs font-mono text-slate-500 overflow-x-auto max-h-32 custom-scrollbar whitespace-pre-wrap">
                           {framework.join('\n')}
                         </pre>
                       </motion.div>

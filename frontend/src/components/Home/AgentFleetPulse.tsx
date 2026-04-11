@@ -86,7 +86,7 @@ export const AgentFleetPulse: React.FC = () => {
       <div className="flex items-center justify-between px-3 pt-3 pb-2 shrink-0">
         <h3 className="text-xs font-bold text-slate-400 font-display">Agent Fleet</h3>
         {!isLoading && (
-          <div className="flex items-center gap-3 text-[10px] text-slate-400">
+          <div className="flex items-center gap-3 text-body-xs text-slate-400">
             <span className="flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-duck-accent" aria-hidden="true" />
               {analyzingCount}
@@ -123,8 +123,8 @@ export const AgentFleetPulse: React.FC = () => {
                         className="z-50 bg-duck-flyout border border-duck-border rounded px-2.5 py-1.5 shadow-xl"
                         sideOffset={5}
                       >
-                        <p className="text-[10px] font-bold text-white">{agent.name}</p>
-                        <p className="text-[10px] text-slate-400">
+                        <p className="text-body-xs font-bold text-white">{agent.name}</p>
+                        <p className="text-body-xs text-slate-400">
                           {dotLabel[agent.visual]} · {agent.role}
                         </p>
                         <Tooltip.Arrow className="fill-duck-border" />
@@ -143,7 +143,7 @@ export const AgentFleetPulse: React.FC = () => {
       <div className="flex-1 overflow-hidden px-3 py-2">
         {activeOps.length === 0 ? (
           <div className="flex items-center justify-center h-full">
-            <p className="text-[10px] text-duck-muted italic">All agents standing by</p>
+            <p className="text-body-xs text-duck-muted italic">All agents standing by</p>
           </div>
         ) : (
           <AnimatePresence initial={false}>
@@ -159,8 +159,8 @@ export const AgentFleetPulse: React.FC = () => {
                   className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${dotColor[op.status]}`}
                 />
                 <div className="min-w-0">
-                  <span className="text-[10px] font-bold text-duck-accent">{op.agentName}</span>
-                  <span className="text-[10px] text-duck-muted ml-1 truncate">
+                  <span className="text-body-xs font-bold text-duck-accent">{op.agentName}</span>
+                  <span className="text-body-xs text-duck-muted ml-1 truncate">
                     → {op.summary}
                   </span>
                 </div>

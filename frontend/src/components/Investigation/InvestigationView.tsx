@@ -59,20 +59,14 @@ const InvestigationView: React.FC<InvestigationViewProps> = ({
     }
   }, [findings?.campaign, setCampaign]);
 
-  // Sync investigation context (namespace/service/pod/cluster) into ChatContext
+  // Sync investigation context (namespace/service/pod) into ChatContext for QuickActionToolbar
   const { setInvestigationContext } = useInvestigationContext();
   useEffect(() => {
     const namespace = findings?.pod_statuses?.[0]?.namespace ?? null;
     const service = findings?.target_service ?? session.service_name ?? null;
     const pod = findings?.pod_statuses?.[0]?.pod_name ?? null;
-    // cluster is not directly on session/findings — will be null until available
     setInvestigationContext({ namespace, service, pod, cluster: null });
-  }, [
-    findings?.target_service,
-    findings?.pod_statuses,
-    session.service_name,
-    setInvestigationContext,
-  ]);
+  }, [findings?.target_service, findings?.pod_statuses, session.service_name, setInvestigationContext]);
 
   // Tick "last updated X s ago" every second
   useEffect(() => {
@@ -146,13 +140,13 @@ const InvestigationView: React.FC<InvestigationViewProps> = ({
 
       {/* Last updated indicator */}
       {lastFetchTime && (
-        <div className="flex items-center gap-1.5 px-6 py-1 text-[9px] text-slate-500">
+        <div className="flex items-center gap-1.5 px-6 py-1 text-body-xs text-slate-500">
           <span className={`w-1.5 h-1.5 rounded-full ${freshnessColor}`} />
           <span>Updated {lastFetchAgo}s ago</span>
         </div>
       )}
 
-      {/* War Room: 3-column CSS Grid layout — wrapped in TelescopeProvider */}
+      {/* War Room: 3-column CSS Grid layout */}
       <TelescopeProvider>
         <TopologySelectionProvider>
           <div className="grid grid-cols-12 flex-1 overflow-hidden">
@@ -170,44 +164,44 @@ const InvestigationView: React.FC<InvestigationViewProps> = ({
 
             {/* Center: Evidence and Findings (NO TABS) */}
             <div className="col-span-5 overflow-hidden">
-              <EvidenceFindings findings={findings} status={sessionStatus} events={events} sessionId={session.session_id} phase={phase} onRefresh={fetchSharedData} onNavigateToDossier={onNavigateToDossier} manualPins={findings?.evidence_pins} />
+              <EvidenceFindings findings={findings} status={sessionStatus} events={events} sessionId={session.session_id} phase={phase} onRefresh={fetchSharedData} onNavigateToDossier={onNavigateToDossier} />
             </div>
 
             {/* Right: The Navigator */}
             <div className="col-span-4 border-l border-slate-800 overflow-hidden">
-              <Navigator findings={findings} status={sessionStatus} events={events} sessionId={session.session_id} />
+              <Navigator findings={findings} status={sessionStatus} events={events} />
             </div>
           </div>
+
+          {/* K8s Resource Inspector (Telescope V2) */}
+          <TelescopeDrawerV2 />
         </TopologySelectionProvider>
-
-        {/* TelescopeDrawer v2 (slide-out resource inspector) */}
-        <TelescopeDrawerV2 />
-
-        {/* Surgical Telescope overlay (kept for backward compat) */}
-        <SurgicalTelescope />
-
-        {/* Bottom: Remediation Progress Bar */}
-        <RemediationProgressBar
-          phase={phase}
-          confidence={confidence}
-          tokenUsage={tokenUsage}
-          wsConnected={wsConnected}
-        />
-
-        {/* Attestation Gate Modal */}
-        {attestationGate && onAttestationDecision && (
-          <AttestationGateUI
-            gate={attestationGate}
-            evidencePins={[]}
-            onDecision={(decision, _notes) => onAttestationDecision(decision)}
-            onClose={() => onAttestationDecision('dismiss')}
-          />
-        )}
-
-        {/* Chat Drawer + Trigger Tab (self-contained via ChatContext) */}
-        <ChatDrawer />
-        <LedgerTriggerTab />
       </TelescopeProvider>
+
+      {/* Surgical Telescope overlay (rendered outside grid) */}
+      <SurgicalTelescope />
+
+      {/* Bottom: Remediation Progress Bar */}
+      <RemediationProgressBar
+        phase={phase}
+        confidence={confidence}
+        tokenUsage={tokenUsage}
+        wsConnected={wsConnected}
+      />
+
+      {/* Attestation Gate Modal */}
+      {attestationGate && onAttestationDecision && (
+        <AttestationGateUI
+          gate={attestationGate}
+          evidencePins={[]}
+          onDecision={(decision, _notes) => onAttestationDecision(decision)}
+          onClose={() => onAttestationDecision('dismiss')}
+        />
+      )}
+
+      {/* Chat Drawer + Trigger Tab (self-contained via ChatContext) */}
+      <ChatDrawer />
+      <LedgerTriggerTab />
     </div>
   );
 };

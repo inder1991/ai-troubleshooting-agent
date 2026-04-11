@@ -164,7 +164,7 @@ const WorkflowCodeView: React.FC<Props> = ({ yaml, parsed, dirty, onChange }) =>
       >
         {/* Status indicator */}
         <span
-          className="text-[11px] font-sans font-medium"
+          className="text-body-xs font-sans font-medium"
           style={{ color: statusColor, letterSpacing: '0.01em' }}
         >
           {statusLabel}
@@ -271,7 +271,7 @@ const ErrorRow: React.FC<ErrorRowProps> = ({ message }) => {
         error
       </span>
       <span
-        className="text-[11px] font-sans"
+        className="text-body-xs font-sans"
         style={{ color: t.red, lineHeight: 1.5 }}
       >
         {message}

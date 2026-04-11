@@ -20,7 +20,7 @@ const SaturationGauge: React.FC<SaturationGaugeProps> = ({
   const displayPct = Math.round(pct * 100);
 
   // Color thresholds
-  const color = pct > 0.9 ? '#ef4444' : pct > 0.7 ? '#f59e0b' : '#e09f3e';
+  const color = pct > 0.9 ? '#ef4444' : pct > 0.7 ? '#f59e0b' : '#07b6d5';
   const isCritical = pct > threshold;
 
   // Arc geometry: semi-circle from left to right
@@ -83,7 +83,7 @@ const SaturationGauge: React.FC<SaturationGaugeProps> = ({
           {displayPct}%
         </text>
       </svg>
-      <span className="text-[9px] text-slate-500 truncate max-w-[120px] text-center mt-0.5">
+      <span className="text-body-xs text-slate-500 truncate max-w-[120px] text-center mt-0.5">
         {label || metricName.split('/').pop()?.replace(/_/g, ' ')}
       </span>
     </div>

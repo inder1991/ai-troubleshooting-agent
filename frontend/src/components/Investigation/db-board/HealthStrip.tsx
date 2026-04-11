@@ -57,8 +57,8 @@ const HealthStrip: React.FC<HealthStripProps> = ({
       {items.map((item) => (
         <div key={item.label} className="flex items-center gap-1.5" title={item.fullLabel}>
           <span className={`w-1.5 h-1.5 rounded-full ${statusDot(item.ok)}`} aria-hidden="true" />
-          <span className="text-[9px] text-slate-400">{item.label}</span>
-          <span className="text-[10px] font-bold text-slate-300">{item.value}</span>
+          <span className="text-body-xs text-slate-400">{item.label}</span>
+          <span className="text-body-xs font-bold text-slate-300">{item.value}</span>
         </div>
       ))}
     </div>

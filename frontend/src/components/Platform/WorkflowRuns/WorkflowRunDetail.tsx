@@ -86,7 +86,7 @@ const WorkflowRunDetail: React.FC<Props> = ({ run, onClose, onNavigate }) => {
       >
         <div>
           <div className="text-sm font-display font-bold" style={{ color: t.textPrimary }}>{run.service_name}</div>
-          <div className="text-[10px] font-sans mt-0.5" style={{ color: t.textMuted }}>
+          <div className="text-body-xs font-sans mt-0.5" style={{ color: t.textMuted }}>
             {run.workflow_name} · {new Date(run.started_at).toLocaleString()}
           </div>
         </div>
@@ -115,7 +115,7 @@ const WorkflowRunDetail: React.FC<Props> = ({ run, onClose, onNavigate }) => {
       <div className="flex-1 overflow-auto px-5 py-4 space-y-4">
         {/* Steps */}
         <div>
-          <div className="text-[10px] font-sans uppercase tracking-widest mb-2" style={{ color: t.textFaint }}>Steps</div>
+          <div className="text-body-xs font-sans uppercase tracking-widest mb-2" style={{ color: t.textFaint }}>Steps</div>
           <div className="divide-y" style={{ borderColor: t.bgTrack }}>
             {steps.map(step => {
               const cfg = STATUS_CONFIG[step.status];
@@ -127,14 +127,14 @@ const WorkflowRunDetail: React.FC<Props> = ({ run, onClose, onNavigate }) => {
                   <span className="material-symbols-outlined flex-shrink-0 mt-0.5"
                     style={{ fontSize: 14, color: cfg.color }}>{cfg.icon}</span>
                   <div className="flex-1 min-w-0">
-                    <div className="text-[11px] font-mono" style={{ color: t.textPrimary }}>{step.id}</div>
+                    <div className="text-body-xs font-mono" style={{ color: t.textPrimary }}>{step.id}</div>
                     {finding && (
-                      <div className="text-[10px] font-sans mt-0.5 truncate" style={{ color: t.textSecondary }}>
+                      <div className="text-body-xs font-sans mt-0.5 truncate" style={{ color: t.textSecondary }}>
                         {finding.summary || finding.title}
                       </div>
                     )}
                   </div>
-                  <span className="text-[10px] font-sans flex-shrink-0" style={{ color: cfg.color }}>
+                  <span className="text-body-xs font-sans flex-shrink-0" style={{ color: cfg.color }}>
                     {step.status}
                   </span>
                 </div>
@@ -153,7 +153,7 @@ const WorkflowRunDetail: React.FC<Props> = ({ run, onClose, onNavigate }) => {
               <span className="material-symbols-outlined" style={{ fontSize: 16, color: t.amber }}>pending_actions</span>
               <span className="text-xs font-display font-semibold" style={{ color: t.amber }}>Awaiting Approval</span>
             </div>
-            <div className="text-[11px] font-sans mb-3" style={{ color: t.textSecondary }}>
+            <div className="text-body-xs font-sans mb-3" style={{ color: t.textSecondary }}>
               fix_generator has proposed a fix. Review and approve to create a PR.
             </div>
             <div className="flex gap-2">
@@ -192,7 +192,7 @@ const WorkflowRunDetail: React.FC<Props> = ({ run, onClose, onNavigate }) => {
         {/* Confidence bar */}
         {confidence !== undefined && (
           <div className="pt-1">
-            <div className="text-[10px] font-sans uppercase tracking-widest mb-2" style={{ color: t.textFaint }}>
+            <div className="text-body-xs font-sans uppercase tracking-widest mb-2" style={{ color: t.textFaint }}>
               Overall Confidence
             </div>
             <div className="flex items-center gap-3">

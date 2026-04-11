@@ -54,7 +54,7 @@ const AgentGrid: React.FC<AgentGridProps> = ({ agents, onSelectAgent, compact, s
               <h2 className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#8a7e6b' }}>
                 {display.label}
               </h2>
-              <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ backgroundColor: '#1e1b15', color: '#64748b' }}>
+              <span className="text-body-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: '#1e1b15', color: '#64748b' }}>
                 {roleAgents.length}
               </span>
               <div className="flex-1 h-px" style={{ backgroundColor: '#3d3528' }} />

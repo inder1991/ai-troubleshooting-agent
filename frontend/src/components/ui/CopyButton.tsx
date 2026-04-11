@@ -26,7 +26,7 @@ const CopyButton: React.FC<CopyButtonProps> = ({ text, className = '', size = 12
     >
       <span
         className={`material-symbols-outlined ${copied ? 'text-green-400' : 'text-slate-400'}`}
-        style={{ fontSize: `${size}px` }}
+        style={{ fontFamily: 'Material Symbols Outlined', fontSize: `${size}px` }}
       >
         {copied ? 'check' : 'content_copy'}
       </span>

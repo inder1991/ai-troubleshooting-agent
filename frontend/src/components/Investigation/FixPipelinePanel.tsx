@@ -37,7 +37,7 @@ const statusConfig: Record<FixStatus, { label: string; color: string }> = {
 const FixStatusBadge: React.FC<{ status: FixStatus }> = ({ status }) => {
   const cfg = statusConfig[status] || statusConfig.not_started;
   return (
-    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${cfg.color}`}>
+    <span className={`text-body-xs font-bold px-1.5 py-0.5 rounded border ${cfg.color}`}>
       {cfg.label}
     </span>
   );
@@ -105,7 +105,7 @@ const DiffViewer: React.FC<{ diff: string }> = ({ diff }) => {
 
   if (!isMultiFile) {
     return (
-      <pre className="text-[10px] font-mono bg-slate-900/60 rounded p-3 max-h-[300px] overflow-y-auto overflow-x-auto custom-scrollbar whitespace-pre">
+      <pre className="text-body-xs font-mono bg-slate-900/60 rounded p-3 max-h-[300px] overflow-y-auto overflow-x-auto custom-scrollbar whitespace-pre">
         <DiffLines text={diff} />
       </pre>
     );
@@ -115,8 +115,8 @@ const DiffViewer: React.FC<{ diff: string }> = ({ diff }) => {
     <div className="space-y-2">
       {sections.map((s, i) => (
         <details key={i} open={i === 0}>
-          <summary className="cursor-pointer flex items-center gap-2 text-[10px] font-mono text-blue-400 hover:text-blue-300 py-1">
-            <span className="material-symbols-outlined text-[11px]" style={{ fontFamily: 'Material Symbols Outlined' }}>
+          <summary className="cursor-pointer flex items-center gap-2 text-body-xs font-mono text-blue-400 hover:text-blue-300 py-1">
+            <span className="material-symbols-outlined text-body-xs" style={{ fontFamily: 'Material Symbols Outlined' }}>
               description
             </span>
             {s.file}
@@ -126,7 +126,7 @@ const DiffViewer: React.FC<{ diff: string }> = ({ diff }) => {
               -{(s.content.match(/^-[^-]/gm) || []).length}
             </span>
           </summary>
-          <pre className="text-[10px] font-mono bg-slate-900/60 rounded p-3 max-h-[250px] overflow-y-auto overflow-x-auto custom-scrollbar whitespace-pre mt-1">
+          <pre className="text-body-xs font-mono bg-slate-900/60 rounded p-3 max-h-[250px] overflow-y-auto overflow-x-auto custom-scrollbar whitespace-pre mt-1">
             <DiffLines text={s.content} />
           </pre>
         </details>
@@ -245,7 +245,7 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
   const renderAttemptCounter = () => {
     if (!fixData || fixData.max_attempts <= 0) return null;
     return (
-      <span className="text-[9px] text-slate-500 font-mono">
+      <span className="text-body-xs text-slate-500 font-mono">
         Attempt {fixData.attempt_count}/{fixData.max_attempts}
       </span>
     );
@@ -259,23 +259,23 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
           <span className="material-symbols-outlined text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>
             {cfg.icon}
           </span>
-          <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${cfg.color}`}>
+          <span className={`text-body-xs font-bold px-2 py-0.5 rounded border ${cfg.color}`}>
             {vr.verdict.replace(/_/g, ' ').toUpperCase()}
           </span>
-          <span className="text-[10px] font-mono text-slate-400">
+          <span className="text-body-xs font-mono text-slate-400">
             {Math.round(vr.confidence)}% confidence
           </span>
         </div>
 
         {vr.reasoning && (
-          <p className="text-[10px] text-slate-400 leading-relaxed">{vr.reasoning}</p>
+          <p className="text-body-xs text-slate-400 leading-relaxed">{vr.reasoning}</p>
         )}
 
         {vr.issues_found.length > 0 && (
           <div className="space-y-1">
-            <span className="text-[9px] font-bold text-red-400 uppercase tracking-wider">Issues Found</span>
+            <span className="text-body-xs font-bold text-red-400 uppercase tracking-wider">Issues Found</span>
             {vr.issues_found.map((issue, i) => (
-              <div key={i} className="flex items-start gap-1.5 text-[10px] text-red-300">
+              <div key={i} className="flex items-start gap-1.5 text-body-xs text-red-300">
                 <span className="text-red-500 shrink-0 mt-0.5">&#x2022;</span>
                 <span>{issue}</span>
               </div>
@@ -285,9 +285,9 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
 
         {vr.regression_risks.length > 0 && (
           <div className="space-y-1">
-            <span className="text-[9px] font-bold text-amber-400 uppercase tracking-wider">Regression Risks</span>
+            <span className="text-body-xs font-bold text-amber-400 uppercase tracking-wider">Regression Risks</span>
             {vr.regression_risks.map((risk, i) => (
-              <div key={i} className="flex items-start gap-1.5 text-[10px] text-amber-300">
+              <div key={i} className="flex items-start gap-1.5 text-body-xs text-amber-300">
                 <span className="text-amber-500 shrink-0 mt-0.5">&#x2022;</span>
                 <span>{risk}</span>
               </div>
@@ -297,9 +297,9 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
 
         {vr.suggestions.length > 0 && (
           <div className="space-y-1">
-            <span className="text-[9px] font-bold text-amber-400 uppercase tracking-wider">Suggestions</span>
+            <span className="text-body-xs font-bold text-amber-400 uppercase tracking-wider">Suggestions</span>
             {vr.suggestions.map((s, i) => (
-              <div key={i} className="flex items-start gap-1.5 text-[10px] text-amber-300">
+              <div key={i} className="flex items-start gap-1.5 text-body-xs text-amber-300">
                 <span className="text-cyan-500 shrink-0 mt-0.5">&#x2022;</span>
                 <span>{s}</span>
               </div>
@@ -314,7 +314,7 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
 
   const renderGenerateSection = () => (
     <div className="space-y-3">
-      <p className="text-[11px] text-slate-400">
+      <p className="text-body-xs text-slate-400">
         Generate an automated fix based on the diagnosis findings. Optionally provide guidance to steer the fix.
       </p>
       <textarea
@@ -322,12 +322,12 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
         value={guidance}
         onChange={(e) => setGuidance(e.target.value)}
         rows={2}
-        className="w-full text-[11px] bg-slate-800/60 border border-slate-700/50 rounded px-3 py-2 text-slate-200 placeholder-slate-600 font-mono focus:outline-none focus:border-emerald-500/50 resize-none"
+        className="w-full text-body-xs bg-slate-800/60 border border-slate-700/50 rounded px-3 py-2 text-slate-200 placeholder-slate-600 font-mono focus:outline-none focus:border-emerald-500/50 resize-none"
       />
       <button
         onClick={handleGenerateFix}
         disabled={loading === 'generating'}
-        className="text-[10px] font-bold px-4 py-1.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:saturate-0 flex items-center gap-2"
+        className="text-body-xs font-bold px-4 py-1.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:saturate-0 flex items-center gap-2"
       >
         {loading === 'generating' ? (
           <div className="w-3 h-3 border-2 border-emerald-400/30 border-t-emerald-400 rounded-full animate-spin" />
@@ -346,7 +346,7 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
       <div className="flex items-center gap-3 py-2">
         <div className="w-5 h-5 border-2 border-slate-700 border-t-emerald-500 rounded-full animate-spin" />
         <div className="flex-1">
-          <div className="text-[11px] text-slate-300">
+          <div className="text-body-xs text-slate-300">
             {fixStatus === 'queued' && 'Fix job queued — waiting for available worker...'}
             {fixStatus === 'generating' && 'Generating fix...'}
             {fixStatus === 'retrying' && 'Retrying fix generation...'}
@@ -355,17 +355,17 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
             {fixStatus === 'human_feedback' && 'Processing your feedback...'}
           </div>
           {fixData?.fixed_files && fixData.fixed_files.length > 1 ? (
-            <div className="text-[10px] font-mono text-slate-500 mt-0.5">
+            <div className="text-body-xs font-mono text-slate-500 mt-0.5">
               {fixData.fixed_files.length} files: {fixData.fixed_files.map(f => f.file_path.split('/').pop()).join(', ')}
             </div>
           ) : fixData?.target_file ? (
-            <div className="text-[10px] font-mono text-slate-500 mt-0.5">{fixData.target_file}</div>
+            <div className="text-body-xs font-mono text-slate-500 mt-0.5">{fixData.target_file}</div>
           ) : null}
         </div>
         <button
           onClick={handleCancel}
           disabled={loading === 'cancelling'}
-          className="text-[9px] font-bold px-2 py-1 rounded bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 disabled:opacity-50"
+          className="text-body-xs font-bold px-2 py-1 rounded bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 disabled:opacity-50"
         >
           {loading === 'cancelling' ? 'Cancelling...' : 'Cancel'}
         </button>
@@ -383,7 +383,7 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
               <span className="material-symbols-outlined text-xs text-slate-500" style={{ fontFamily: 'Material Symbols Outlined' }}>
                 description
               </span>
-              <span className="text-[11px] font-mono text-blue-400">{ff.file_path}</span>
+              <span className="text-body-xs font-mono text-blue-400">{ff.file_path}</span>
             </div>
           ))}
         </div>
@@ -392,11 +392,11 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
           <span className="material-symbols-outlined text-xs text-slate-500" style={{ fontFamily: 'Material Symbols Outlined' }}>
             description
           </span>
-          <span className="text-[11px] font-mono text-blue-400">{fixData.target_file}</span>
+          <span className="text-body-xs font-mono text-blue-400">{fixData.target_file}</span>
         </div>
       ) : null}
       {fixData?.fix_explanation && (
-        <p className="text-[11px] text-slate-300 leading-relaxed">{fixData.fix_explanation}</p>
+        <p className="text-body-xs text-slate-300 leading-relaxed">{fixData.fix_explanation}</p>
       )}
 
       {/* Verification Result */}
@@ -408,7 +408,7 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
           <div className="flex items-center gap-2 mb-1.5">
             <button
               onClick={() => setShowDiff(!showDiff)}
-              className="flex items-center gap-1.5 text-[10px] text-slate-400 hover:text-slate-300"
+              className="flex items-center gap-1.5 text-body-xs text-slate-400 hover:text-slate-300"
               aria-expanded={showDiff}
               aria-label={`${showDiff ? 'Hide' : 'Show'} diff`}
             >
@@ -429,9 +429,9 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
       {/* Human Feedback History */}
       {(fixData?.human_feedback?.length ?? 0) > 0 && (
         <div className="space-y-1.5">
-          <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Previous Feedback</span>
+          <span className="text-body-xs font-bold text-slate-500 uppercase tracking-wider">Previous Feedback</span>
           {fixData!.human_feedback.map((fb, i) => (
-            <div key={i} className="text-[10px] text-slate-400 bg-slate-800/30 rounded px-2.5 py-1.5 border border-slate-700/30 font-mono">
+            <div key={i} className="text-body-xs text-slate-400 bg-slate-800/30 rounded px-2.5 py-1.5 border border-slate-700/30 font-mono">
               {fb}
             </div>
           ))}
@@ -445,7 +445,7 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
             {loading === 'approving' ? (
               <button
                 disabled
-                className="text-[10px] font-bold px-3 py-1.5 rounded bg-green-500/20 text-green-400 border border-green-500/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:saturate-0 flex items-center gap-1.5"
+                className="text-body-xs font-bold px-3 py-1.5 rounded bg-green-500/20 text-green-400 border border-green-500/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:saturate-0 flex items-center gap-1.5"
               >
                 <div className="w-3 h-3 border-2 border-green-400/30 border-t-green-400 rounded-full animate-spin" />
                 Approving...
@@ -457,13 +457,13 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
                 holdLabel="Hold to confirm..."
                 icon="check_circle"
                 disabled={!!loading}
-                className="text-[10px] font-bold px-3 py-1.5 rounded bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30"
+                className="text-body-xs font-bold px-3 py-1.5 rounded bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30"
               />
             )}
             <button
               onClick={handleReject}
               disabled={!!loading}
-              className="text-[10px] font-bold px-3 py-1.5 rounded bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:saturate-0 flex items-center gap-1.5"
+              className="text-body-xs font-bold px-3 py-1.5 rounded bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:saturate-0 flex items-center gap-1.5"
             >
               {loading === 'rejecting' ? (
                 <div className="w-3 h-3 border-2 border-red-400/30 border-t-red-400 rounded-full animate-spin" />
@@ -482,12 +482,12 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
               value={feedbackText}
               onChange={(e) => setFeedbackText(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleFeedback()}
-              className="flex-1 text-[11px] bg-slate-800/60 border border-slate-700/50 rounded px-2.5 py-1.5 text-slate-200 placeholder-slate-600 font-mono focus:outline-none focus:border-violet-500/50"
+              className="flex-1 text-body-xs bg-slate-800/60 border border-slate-700/50 rounded px-2.5 py-1.5 text-slate-200 placeholder-slate-600 font-mono focus:outline-none focus:border-violet-500/50"
             />
             <button
               onClick={handleFeedback}
               disabled={!feedbackText.trim() || !!loading}
-              className="text-[10px] font-bold px-3 py-1.5 rounded bg-violet-500/20 text-violet-400 border border-violet-500/30 hover:bg-violet-500/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:saturate-0"
+              className="text-body-xs font-bold px-3 py-1.5 rounded bg-violet-500/20 text-violet-400 border border-violet-500/30 hover:bg-violet-500/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:saturate-0"
             >
               {loading === 'feedback' ? 'Sending...' : 'Send Feedback'}
             </button>
@@ -505,7 +505,7 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
           <span className="material-symbols-outlined text-emerald-400 text-base" style={{ fontFamily: 'Material Symbols Outlined' }}>
             check_circle
           </span>
-          <span className="text-[11px] font-bold text-emerald-400">Pull Request Created Successfully</span>
+          <span className="text-body-xs font-bold text-emerald-400">Pull Request Created Successfully</span>
         </div>
 
         {fixData?.pr_url && (
@@ -513,13 +513,13 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
             href={fixData.pr_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[11px] text-[#e09f3e] hover:underline font-mono block"
+            className="text-body-xs text-[#e09f3e] hover:underline font-mono block"
           >
             {fixData.pr_url}
           </a>
         )}
 
-        <div className="grid grid-cols-2 gap-2 text-[10px]">
+        <div className="grid grid-cols-2 gap-2 text-body-xs">
           {fixData?.pr_number && (
             <div className="bg-slate-800/40 rounded px-2.5 py-1.5 border border-slate-700/30">
               <span className="text-slate-500">PR #</span>
@@ -551,7 +551,7 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
           <div>
             <button
               onClick={() => setShowDiff(!showDiff)}
-              className="flex items-center gap-1.5 text-[10px] text-slate-400 hover:text-slate-300 mb-1.5"
+              className="flex items-center gap-1.5 text-body-xs text-slate-400 hover:text-slate-300 mb-1.5"
             >
               <span
                 className={`material-symbols-outlined text-xs transition-transform ${showDiff ? 'rotate-90' : ''}`}
@@ -576,20 +576,20 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
           <span className="material-symbols-outlined text-red-400 text-base" style={{ fontFamily: 'Material Symbols Outlined' }}>
             {fixStatus === 'rejected' ? 'block' : 'error'}
           </span>
-          <span className="text-[11px] font-bold text-red-400">
+          <span className="text-body-xs font-bold text-red-400">
             {fixStatus === 'rejected' ? 'Fix Rejected' : 'Fix Generation Failed'}
           </span>
         </div>
         {fixData?.fix_explanation && (
-          <p className="text-[10px] text-slate-400">{fixData.fix_explanation}</p>
+          <p className="text-body-xs text-slate-400">{fixData.fix_explanation}</p>
         )}
         {maxReached ? (
-          <span className="text-[10px] text-slate-500 italic">Max attempts reached ({fixData!.max_attempts}). No further retries available.</span>
+          <span className="text-body-xs text-slate-500 italic">Max attempts reached ({fixData!.max_attempts}). No further retries available.</span>
         ) : (
           <button
             onClick={handleGenerateFix}
             disabled={loading === 'generating'}
-            className="text-[10px] font-bold px-3 py-1.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:saturate-0 flex items-center gap-2"
+            className="text-body-xs font-bold px-3 py-1.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:saturate-0 flex items-center gap-2"
           >
             <span className="material-symbols-outlined text-xs" style={{ fontFamily: 'Material Symbols Outlined' }}>
               refresh
@@ -610,7 +610,7 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
               <span className="material-symbols-outlined text-xs text-slate-500" style={{ fontFamily: 'Material Symbols Outlined' }}>
                 description
               </span>
-              <span className="text-[11px] font-mono text-blue-400">{ff.file_path}</span>
+              <span className="text-body-xs font-mono text-blue-400">{ff.file_path}</span>
             </div>
           ))}
         </div>
@@ -619,11 +619,11 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
           <span className="material-symbols-outlined text-xs text-slate-500" style={{ fontFamily: 'Material Symbols Outlined' }}>
             description
           </span>
-          <span className="text-[11px] font-mono text-blue-400">{fixData.target_file}</span>
+          <span className="text-body-xs font-mono text-blue-400">{fixData.target_file}</span>
         </div>
       ) : null}
       {fixData?.fix_explanation && (
-        <p className="text-[11px] text-slate-300 leading-relaxed">{fixData.fix_explanation}</p>
+        <p className="text-body-xs text-slate-300 leading-relaxed">{fixData.fix_explanation}</p>
       )}
       {verification && renderVerificationResult(verification)}
       {fixData?.diff && (
@@ -631,7 +631,7 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
           <div className="flex items-center gap-2 mb-1.5">
             <button
               onClick={() => setShowDiff(!showDiff)}
-              className="flex items-center gap-1.5 text-[10px] text-slate-400 hover:text-slate-300"
+              className="flex items-center gap-1.5 text-body-xs text-slate-400 hover:text-slate-300"
               aria-expanded={showDiff}
               aria-label={`${showDiff ? 'Hide' : 'Show'} diff`}
             >
@@ -659,7 +659,7 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
       return (
         <div className="flex items-center gap-3 py-2">
           <div className="w-5 h-5 border-2 border-slate-700 border-t-emerald-500 rounded-full animate-spin" />
-          <span className="text-[11px] text-slate-300">Fix pipeline initializing...</span>
+          <span className="text-body-xs text-slate-300">Fix pipeline initializing...</span>
         </div>
       );
     }
@@ -704,7 +704,7 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
 
       {/* Error banner */}
       {error && (
-        <div className="text-[10px] text-red-400 bg-red-500/10 border border-red-500/20 rounded px-3 py-1.5 mb-3">
+        <div className="text-body-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded px-3 py-1.5 mb-3">
           {error}
         </div>
       )}

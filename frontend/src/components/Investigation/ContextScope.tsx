@@ -59,14 +59,14 @@ const ContextScope: React.FC<ContextScopeProps> = ({ session, events = [] }) => 
     <div className="flex flex-col h-full bg-slate-900/20 border-l border-[#e09f3e]/10">
       {/* Header */}
       <div className="p-4 border-b border-[#e09f3e]/10 flex items-center gap-2">
-        <span className="material-symbols-outlined text-slate-400 text-sm">info</span>
+        <span className="material-symbols-outlined text-slate-400 text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>info</span>
         <h2 className="text-xs font-bold uppercase tracking-widest text-slate-400">Context & Scope</h2>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-8 custom-scrollbar">
         {/* System Info */}
         <section>
-          <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">System Info</h3>
+          <h3 className="text-body-xs font-bold text-slate-500 uppercase tracking-widest mb-3">System Info</h3>
           <div className="space-y-3">
             <InfoRow label="Service" value={session.service_name} />
             <InfoRow label="Namespace" value={namespace} />
@@ -88,7 +88,7 @@ const ContextScope: React.FC<ContextScopeProps> = ({ session, events = [] }) => 
 
         {/* Agent Status */}
         <section>
-          <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">Agent Status</h3>
+          <h3 className="text-body-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Agent Status</h3>
           <div className="bg-slate-800/30 rounded-lg p-3 border border-slate-800 space-y-3">
             {agentStatuses.map((agent, i) => (
               <div key={i} className="flex items-center gap-3">
@@ -97,12 +97,12 @@ const ContextScope: React.FC<ContextScopeProps> = ({ session, events = [] }) => 
                   agent.status === 'complete' ? 'bg-green-500' :
                   agent.status === 'error' ? 'bg-red-500' : 'bg-slate-600'
                 }`} />
-                <span className={`text-[11px] ${
+                <span className={`text-body-xs ${
                   agent.status === 'active' ? 'text-primary font-medium' : 'text-slate-300'
                 }`}>
                   {agent.name}
                 </span>
-                <span className={`ml-auto text-[10px] ${
+                <span className={`ml-auto text-body-xs ${
                   agent.status === 'active' ? 'text-primary' :
                   agent.status === 'complete' ? 'text-green-500' :
                   agent.status === 'error' ? 'text-red-400' : 'text-slate-500'
@@ -115,8 +115,8 @@ const ContextScope: React.FC<ContextScopeProps> = ({ session, events = [] }) => 
             ))}
             {totalTokens > 0 && (
               <div className="border-t border-slate-700 pt-2 flex justify-between">
-                <span className="text-[10px] text-slate-500">Total tokens</span>
-                <span className="text-[10px] font-mono text-slate-400">{totalTokens.toLocaleString()}</span>
+                <span className="text-body-xs text-slate-500">Total tokens</span>
+                <span className="text-body-xs font-mono text-slate-400">{totalTokens.toLocaleString()}</span>
               </div>
             )}
           </div>
@@ -127,18 +127,18 @@ const ContextScope: React.FC<ContextScopeProps> = ({ session, events = [] }) => 
 
         {/* Labels */}
         <section>
-          <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">Labels</h3>
+          <h3 className="text-body-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Labels</h3>
           <div className="flex flex-wrap gap-2">
-            <span className="bg-slate-800 px-2 py-1 rounded text-[10px] text-slate-400 border border-slate-700">
+            <span className="bg-slate-800 px-2 py-1 rounded text-body-xs text-slate-400 border border-slate-700">
               svc:{session.service_name}
             </span>
-            <span className="bg-slate-800 px-2 py-1 rounded text-[10px] text-slate-400 border border-slate-700">
+            <span className="bg-slate-800 px-2 py-1 rounded text-body-xs text-slate-400 border border-slate-700">
               ns:{namespace}
             </span>
-            <span className="bg-slate-800 px-2 py-1 rounded text-[10px] text-slate-400 border border-slate-700">
+            <span className="bg-slate-800 px-2 py-1 rounded text-body-xs text-slate-400 border border-slate-700">
               phase:{phase}
             </span>
-            <span className="bg-slate-800 px-2 py-1 rounded text-[10px] text-slate-400 border border-slate-700">
+            <span className="bg-slate-800 px-2 py-1 rounded text-body-xs text-slate-400 border border-slate-700">
               confidence:{confidencePercent}%
             </span>
           </div>
@@ -148,7 +148,7 @@ const ContextScope: React.FC<ContextScopeProps> = ({ session, events = [] }) => 
       {/* Footer action */}
       <div className="p-4 border-t border-[#e09f3e]/10">
         <button className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-xs font-bold transition-colors border border-slate-700 flex items-center justify-center gap-2">
-          <span className="material-symbols-outlined text-sm">history</span>
+          <span className="material-symbols-outlined text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>history</span>
           View Previous Incidents
         </button>
       </div>
@@ -166,8 +166,8 @@ const InfoRow: React.FC<{
   title?: string;
 }> = ({ label, value, valueColor = 'text-slate-200', bold, title }) => (
   <div className="flex justify-between items-center border-b border-slate-800/50 pb-2">
-    <span className="text-[11px] text-slate-400">{label}</span>
-    <span className={`text-[11px] font-mono ${valueColor} ${bold ? 'font-bold' : ''}`} title={title}>
+    <span className="text-body-xs text-slate-400">{label}</span>
+    <span className={`text-body-xs font-mono ${valueColor} ${bold ? 'font-bold' : ''}`} title={title}>
       {value}
     </span>
   </div>
@@ -248,7 +248,7 @@ const KnownPlaybooksSection: React.FC<{ incidents: PastIncidentMatch[] }> = ({ i
 
   return (
     <section>
-      <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">Known Playbooks</h3>
+      <h3 className="text-body-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Known Playbooks</h3>
       <div className="bg-slate-800/30 rounded-lg border border-slate-800">
         <button
           onClick={() => setExpanded(!expanded)}
@@ -257,20 +257,20 @@ const KnownPlaybooksSection: React.FC<{ incidents: PastIncidentMatch[] }> = ({ i
         >
           <span
             className="material-symbols-outlined text-xs text-slate-400 transition-transform"
-            style={{ transform: expanded ? 'rotate(90deg)' : 'none' }}
+            style={{ fontFamily: 'Material Symbols Outlined', transform: expanded ? 'rotate(90deg)' : 'none' }}
           >
             chevron_right
           </span>
-          <span className="material-symbols-outlined text-sm text-slate-400">
+          <span className="material-symbols-outlined text-sm text-slate-400" style={{ fontFamily: 'Material Symbols Outlined' }}>
             library_books
           </span>
-          <span className="text-[11px] text-slate-300 flex-1">
+          <span className="text-body-xs text-slate-300 flex-1">
             {incidents.length > 0
               ? `${incidents.length} similar incident${incidents.length > 1 ? 's' : ''} found`
               : 'No matches'}
           </span>
           {incidents.length > 0 && (
-            <span className="text-[10px] font-mono text-amber-400">
+            <span className="text-body-xs font-mono text-amber-400">
               {Math.round(topMatch.similarity_score * 100)}%
             </span>
           )}
@@ -301,14 +301,14 @@ const PlaybookRow: React.FC<{ incident: PastIncidentMatch }> = ({ incident }) =>
       >
         <span
           className="material-symbols-outlined text-xs text-slate-500 transition-transform"
-          style={{ transform: expanded ? 'rotate(90deg)' : 'none' }}
+          style={{ fontFamily: 'Material Symbols Outlined', transform: expanded ? 'rotate(90deg)' : 'none' }}
         >
           chevron_right
         </span>
-        <span className="text-[11px] text-slate-200 flex-1 truncate">
+        <span className="text-body-xs text-slate-200 flex-1 truncate">
           {incident.root_cause || 'Unknown root cause'}
         </span>
-        <span className={`text-[10px] font-mono ${score >= 80 ? 'text-green-400' : score >= 60 ? 'text-amber-400' : 'text-slate-400'}`}>
+        <span className={`text-body-xs font-mono ${score >= 80 ? 'text-green-400' : score >= 60 ? 'text-amber-400' : 'text-slate-400'}`}>
           {score}%
         </span>
       </button>
@@ -317,10 +317,10 @@ const PlaybookRow: React.FC<{ incident: PastIncidentMatch }> = ({ incident }) =>
         <div className="px-2.5 pb-2.5 space-y-2 border-t border-slate-700/30 pt-2">
           {incident.resolution_steps.length > 0 && (
             <div>
-              <span className="text-[10px] text-slate-500 uppercase tracking-wide">Resolution</span>
+              <span className="text-body-xs text-slate-500 uppercase tracking-wide">Resolution</span>
               <ul className="mt-1 space-y-1">
                 {incident.resolution_steps.map((step, i) => (
-                  <li key={i} className="text-[11px] text-slate-300 flex gap-1.5">
+                  <li key={i} className="text-body-xs text-slate-300 flex gap-1.5">
                     <span className="text-slate-500 shrink-0">{i + 1}.</span>
                     {step}
                   </li>
@@ -331,14 +331,14 @@ const PlaybookRow: React.FC<{ incident: PastIncidentMatch }> = ({ incident }) =>
           {incident.affected_services.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {incident.affected_services.map((svc) => (
-                <span key={svc} className="text-[10px] bg-slate-800 px-1.5 py-0.5 rounded text-slate-400 border border-slate-700">
+                <span key={svc} className="text-body-xs bg-slate-800 px-1.5 py-0.5 rounded text-slate-400 border border-slate-700">
                   {svc}
                 </span>
               ))}
             </div>
           )}
           {incident.time_to_resolve > 0 && (
-            <div className="text-[10px] text-slate-500">
+            <div className="text-body-xs text-slate-500">
               Resolved in {incident.time_to_resolve < 60
                 ? `${incident.time_to_resolve}m`
                 : `${Math.round(incident.time_to_resolve / 60)}h ${incident.time_to_resolve % 60}m`}

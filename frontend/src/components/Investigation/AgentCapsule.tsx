@@ -46,25 +46,26 @@ export const AgentCapsule: React.FC<AgentCapsuleProps> = ({ capsule, filterMode,
       <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-800/30">
         <div className={`flex items-center gap-1.5 px-1.5 py-0.5 rounded-sm ${barColor}/20 border ${barColor.replace('bg-', 'border-')}/40`}>
           <span
-            className="material-symbols-outlined text-[10px]"
+            className="material-symbols-outlined text-body-xs"
+            style={{ fontFamily: 'Material Symbols Outlined' }}
           >
             {icon}
           </span>
-          <span className={`text-[9px] font-mono font-bold tracking-widest uppercase ${barColor.replace('bg-', 'text-')}`}>
+          <span className={`text-body-xs font-mono font-bold tracking-widest uppercase ${barColor.replace('bg-', 'text-')}`}>
             {capsule.agent.replace('_agent', '').replace('_', '')}
           </span>
         </div>
-        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-300">
+        <span className="text-body-xs font-bold uppercase tracking-wider text-slate-300">
           {capsule.agent.replace(/_/g, ' ')}
         </span>
-        <span className="text-[9px] text-slate-600 font-mono ml-auto">
+        <span className="text-body-xs text-slate-600 font-mono ml-auto">
           {formatTime(capsule.startedEvent.timestamp)}
         </span>
         {/* Status dot */}
         {isActive ? (
           <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
         ) : capsule.isComplete ? (
-          <span className="material-symbols-outlined text-green-500 text-xs">check_circle</span>
+          <span className="material-symbols-outlined text-green-500 text-xs" style={{ fontFamily: 'Material Symbols Outlined' }}>check_circle</span>
         ) : null}
       </div>
 
@@ -73,7 +74,7 @@ export const AgentCapsule: React.FC<AgentCapsuleProps> = ({ capsule, filterMode,
         {capsule.reasoningEvents.length > 0 && (
           <div className={!showReasoning ? 'semantic-dim' : undefined}>
             {capsule.reasoningEvents.map((ev, i) => (
-              <p key={i} className="text-[11px] text-slate-400 italic font-mono leading-relaxed">
+              <p key={i} className="text-body-xs text-slate-400 italic font-mono leading-relaxed">
                 {ev.message}
               </p>
             ))}
@@ -99,9 +100,10 @@ export const AgentCapsule: React.FC<AgentCapsuleProps> = ({ capsule, filterMode,
                         severity === 'critical' ? 'border-red-500 finding-glow-red' : 'border-red-500'
                       } bg-slate-800/40 p-3 rounded-lg mb-1.5`}
                     >
-                      <div className="flex items-center gap-2 text-[10px] mb-1">
+                      <div className="flex items-center gap-2 text-body-xs mb-1">
                         <span
                           className="material-symbols-outlined text-red-400 text-sm"
+                          style={{ fontFamily: 'Material Symbols Outlined' }}
                         >
                           lightbulb
                         </span>
@@ -149,10 +151,11 @@ export const AgentCapsule: React.FC<AgentCapsuleProps> = ({ capsule, filterMode,
               return (
                 <div
                   key={`alert-${i}`}
-                  className={`flex items-center gap-2 text-[10px] px-2 py-1 rounded ${colorClass}`}
+                  className={`flex items-center gap-2 text-body-xs px-2 py-1 rounded ${colorClass}`}
                 >
                   <span
                     className="material-symbols-outlined text-xs"
+                    style={{ fontFamily: 'Material Symbols Outlined' }}
                   >
                     {iconName}
                   </span>
@@ -165,9 +168,10 @@ export const AgentCapsule: React.FC<AgentCapsuleProps> = ({ capsule, filterMode,
 
         {/* Breadcrumbs summary */}
         {capsule.isComplete && capsule.breadcrumbs.length > 0 && (
-          <div className="flex items-center gap-1.5 text-[9px] text-slate-600">
+          <div className="flex items-center gap-1.5 text-body-xs text-slate-600">
             <span
               className="material-symbols-outlined text-xs"
+              style={{ fontFamily: 'Material Symbols Outlined' }}
             >
               attach_file
             </span>
@@ -198,17 +202,18 @@ const FindingRibbon: React.FC<{ event: import('../../types').TaskEvent; severity
         className={`border-l-2 ${severity === 'medium' ? 'border-amber-500 finding-glow-amber' : 'border-blue-500'} rounded cursor-pointer`}
         onClick={() => setExpanded(!expanded)}
       >
-        <div className={`flex items-center gap-2 text-[10px] px-2 py-1 ${sevColor}`}>
+        <div className={`flex items-center gap-2 text-body-xs px-2 py-1 ${sevColor}`}>
           <span className="font-bold uppercase">{severity}</span>
           <span className="text-slate-400 truncate flex-1">{event.message.split(' — ')[0]}</span>
           <span
             className={`material-symbols-outlined text-xs transition-transform ${expanded ? 'rotate-90' : ''}`}
+            style={{ fontFamily: 'Material Symbols Outlined' }}
           >
             chevron_right
           </span>
         </div>
         {expanded && (
-          <p className="text-[11px] text-slate-300 px-2 pb-2 leading-relaxed">
+          <p className="text-body-xs text-slate-300 px-2 pb-2 leading-relaxed">
             {event.message}
           </p>
         )}

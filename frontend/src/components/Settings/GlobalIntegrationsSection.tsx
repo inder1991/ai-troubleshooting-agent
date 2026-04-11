@@ -428,7 +428,7 @@ const GlobalIntegrationsSection: React.FC<GlobalIntegrationsSectionProps> = ({
                   </div>
                   <div>
                     <h4 className="font-bold text-sm text-white">{gi.name || config.displayName}</h4>
-                    <span className="text-[10px] text-[#8fc3cc] uppercase tracking-widest">
+                    <span className="text-body-xs text-[#8fc3cc] uppercase tracking-widest">
                       {gi.category || config.subtitle}
                     </span>
                   </div>
@@ -450,7 +450,7 @@ const GlobalIntegrationsSection: React.FC<GlobalIntegrationsSectionProps> = ({
                         return orgs.length > 0 && (
                           <div className="flex flex-wrap gap-1 mb-1.5">
                             {orgs.map((org) => (
-                              <span key={org} className="inline-flex items-center px-2 py-0.5 rounded bg-slate-600/20 border border-slate-500/20 text-[10px] text-slate-300 font-mono">
+                              <span key={org} className="inline-flex items-center px-2 py-0.5 rounded bg-slate-600/20 border border-slate-500/20 text-body-xs text-slate-300 font-mono">
                                 {org}
                               </span>
                             ))}
@@ -477,7 +477,7 @@ const GlobalIntegrationsSection: React.FC<GlobalIntegrationsSectionProps> = ({
                         return cids.length > 0 && (
                           <div className="flex flex-wrap gap-1 mb-1.5">
                             {cids.map((cid) => (
-                              <span key={cid} className="inline-flex items-center px-2 py-0.5 rounded bg-slate-600/20 border border-slate-500/20 text-[10px] text-slate-300 font-mono">
+                              <span key={cid} className="inline-flex items-center px-2 py-0.5 rounded bg-slate-600/20 border border-slate-500/20 text-body-xs text-slate-300 font-mono">
                                 {cid}
                               </span>
                             ))}
@@ -548,13 +548,13 @@ const GlobalIntegrationsSection: React.FC<GlobalIntegrationsSectionProps> = ({
                     {isTesting ? 'Testing...' : 'Test Connection'}
                   </button>
 
-                  <span className={`text-[10px] font-bold uppercase flex items-center gap-1 ${status.classes}`}>
+                  <span className={`text-body-xs font-bold uppercase flex items-center gap-1 ${status.classes}`}>
                     {status.dot && <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />}
                     {status.text}
                   </span>
 
                   {testResult && (
-                    <span className={`text-[9px] font-mono ${testResult.reachable ? 'text-green-400' : 'text-red-400'}`}>
+                    <span className={`text-body-xs font-mono ${testResult.reachable ? 'text-green-400' : 'text-red-400'}`}>
                       {testResult.reachable
                         ? `${testResult.latency_ms}ms`
                         : testResult.error?.substring(0, 25)}

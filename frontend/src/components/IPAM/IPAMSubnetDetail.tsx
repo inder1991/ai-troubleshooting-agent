@@ -764,7 +764,7 @@ export default function IPAMSubnetDetail({ subnet, onUtilizationChange, addToast
                           <div className="text-xs text-slate-500 mt-0.5">Device: {evt.device_id}</div>
                         )}
                         {evt.timestamp && (
-                          <div className="text-[10px] text-slate-600 mt-1">
+                          <div className="text-body-xs text-slate-600 mt-1">
                             {new Date(evt.timestamp).toLocaleString()}
                           </div>
                         )}

@@ -76,11 +76,11 @@ const RemediationPanel: React.FC<RemediationPanelProps> = ({
           {runbookMatches.map((rb) => (
             <div
               key={rb.runbook_id}
-              className="bg-[#252118]/50 border border-[#3d3528] rounded-lg p-3"
+              className="bg-[#1e2f33]/50 border border-[#224349] rounded-lg p-3"
             >
               <div className="flex items-center justify-between mb-1">
                 <span className="text-sm font-medium text-white">{rb.title}</span>
-                <span className="text-xs text-[#e09f3e] font-mono">
+                <span className="text-xs text-[#07b6d5] font-mono">
                   {Math.round(rb.match_score * 100)}%
                 </span>
               </div>
@@ -103,12 +103,12 @@ const RemediationPanel: React.FC<RemediationPanelProps> = ({
 
       {/* Proposed Action */}
       {decision && (
-        <div className="bg-[#252118]/50 border border-[#3d3528] rounded-lg p-3 space-y-3">
+        <div className="bg-[#1e2f33]/50 border border-[#224349] rounded-lg p-3 space-y-3">
           <div>
             <span className="text-xs text-gray-500 uppercase tracking-wider">Proposed Action</span>
             <p className="text-sm text-white mt-1">{decision.proposed_action}</p>
             <div className="flex items-center gap-2 mt-1">
-              <span className="text-xs px-1.5 py-0.5 rounded bg-[#3d3528] text-gray-300">
+              <span className="text-xs px-1.5 py-0.5 rounded bg-[#224349] text-gray-300">
                 {decision.action_type}
               </span>
               {decision.is_destructive && (
@@ -152,7 +152,7 @@ const RemediationPanel: React.FC<RemediationPanelProps> = ({
               <button
                 onClick={handleDryRun}
                 disabled={loading}
-                className="flex-1 px-3 py-1.5 text-xs font-medium rounded bg-[#3d3528] text-[#e09f3e] hover:bg-[#252118] transition-colors disabled:opacity-50"
+                className="flex-1 px-3 py-1.5 text-xs font-medium rounded bg-[#224349] text-[#07b6d5] hover:bg-[#2a555c] transition-colors disabled:opacity-50"
               >
                 {loading ? '...' : 'Dry Run'}
               </button>
@@ -194,7 +194,7 @@ const RemediationPanel: React.FC<RemediationPanelProps> = ({
                 </button>
                 <button
                   onClick={() => setShowConfirm(false)}
-                  className="px-3 py-1 text-xs rounded bg-[#3d3528] text-gray-400 hover:bg-[#252118]"
+                  className="px-3 py-1 text-xs rounded bg-[#224349] text-gray-400 hover:bg-[#2a555c]"
                 >
                   Cancel
                 </button>
@@ -204,7 +204,7 @@ const RemediationPanel: React.FC<RemediationPanelProps> = ({
 
           {/* Dry Run Output */}
           {dryRunOutput && (
-            <div className="bg-[#161310] border border-[#3d3528] rounded p-2">
+            <div className="bg-[#0a1a1d] border border-[#224349] rounded p-2">
               <span className="text-xs text-gray-500 block mb-1">Dry Run Output</span>
               <pre className="text-xs text-gray-300 whitespace-pre-wrap">{dryRunOutput}</pre>
             </div>
@@ -212,7 +212,7 @@ const RemediationPanel: React.FC<RemediationPanelProps> = ({
 
           {/* Execution Output */}
           {executeOutput && (
-            <div className="bg-[#161310] border border-[#3d3528] rounded p-2">
+            <div className="bg-[#0a1a1d] border border-[#224349] rounded p-2">
               <span className="text-xs text-gray-500 block mb-1">Execution Output</span>
               <pre className="text-xs text-gray-300 whitespace-pre-wrap">{executeOutput}</pre>
             </div>

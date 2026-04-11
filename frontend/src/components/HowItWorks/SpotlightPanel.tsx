@@ -102,7 +102,7 @@ const SpotlightPanel: React.FC<SpotlightPanelProps> = ({ activeAgent, isComplete
             {name}
           </div>
           <div
-            className="text-[11px] mt-1"
+            className="text-body-xs mt-1"
             style={{ color: WF_COLORS.mutedText, fontFamily: 'Inter, system-ui, sans-serif' }}
           >
             {subtitle}

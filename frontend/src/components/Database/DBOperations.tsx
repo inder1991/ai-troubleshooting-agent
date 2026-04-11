@@ -360,7 +360,7 @@ const DBOperations: React.FC = () => {
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-amber-400 text-[18px]">terminal</span>
             <h3 className="text-sm font-semibold text-slate-200">Active Queries</h3>
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-700/60 text-slate-400">
+            <span className="text-body-xs px-1.5 py-0.5 rounded bg-slate-700/60 text-slate-400">
               {activeQueries.length}
             </span>
           </div>
@@ -402,14 +402,14 @@ const DBOperations: React.FC = () => {
                     </td>
                     <td className="px-4 py-2">{q.duration_ms >= 1000 ? `${(q.duration_ms / 1000).toFixed(1)}s` : `${Math.round(q.duration_ms)}ms`}</td>
                     <td className="px-4 py-2">
-                      <span className="px-1.5 py-0.5 rounded bg-slate-700/50 text-[10px]">{q.state}</span>
+                      <span className="px-1.5 py-0.5 rounded bg-slate-700/50 text-body-xs">{q.state}</span>
                     </td>
                     <td className="px-4 py-2">{q.user}</td>
                     <td className="px-4 py-2">{q.database}</td>
                     <td className="px-4 py-2 text-right">
                       <button
                         onClick={() => handleKillQuery(q.pid)}
-                        className="flex items-center gap-1 ml-auto px-2 py-1 text-[10px] rounded bg-red-500/20 hover:bg-red-500/30 text-red-400 transition-colors"
+                        className="flex items-center gap-1 ml-auto px-2 py-1 text-body-xs rounded bg-red-500/20 hover:bg-red-500/30 text-red-400 transition-colors"
                       >
                         <span className="material-symbols-outlined text-[12px]">stop</span>
                         Kill
@@ -429,7 +429,7 @@ const DBOperations: React.FC = () => {
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-amber-400 text-[18px]">pending_actions</span>
             <h3 className="text-sm font-semibold text-slate-200">Pending Plans</h3>
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-700/60 text-slate-400">
+            <span className="text-body-xs px-1.5 py-0.5 rounded bg-slate-700/60 text-slate-400">
               {plans.length}
             </span>
           </div>
@@ -503,11 +503,11 @@ const DBOperations: React.FC = () => {
                     <td className="px-4 py-2 max-w-xs">{rec.reason}</td>
                     <td className="px-4 py-2">
                       {rec.requires_restart ? (
-                        <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 text-[10px] font-medium">
+                        <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 text-body-xs font-medium">
                           RESTART
                         </span>
                       ) : (
-                        <span className="px-1.5 py-0.5 rounded bg-green-500/20 text-green-400 text-[10px] font-medium">
+                        <span className="px-1.5 py-0.5 rounded bg-green-500/20 text-green-400 text-body-xs font-medium">
                           LIVE
                         </span>
                       )}
@@ -515,7 +515,7 @@ const DBOperations: React.FC = () => {
                     <td className="px-4 py-2 text-right">
                       <button
                         onClick={() => handleApplyConfig(rec.param, rec.recommended_value)}
-                        className="flex items-center gap-1 ml-auto px-2 py-1 text-[10px] rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 transition-colors"
+                        className="flex items-center gap-1 ml-auto px-2 py-1 text-body-xs rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 transition-colors"
                       >
                         <span className="material-symbols-outlined text-[12px]">play_arrow</span>
                         Apply

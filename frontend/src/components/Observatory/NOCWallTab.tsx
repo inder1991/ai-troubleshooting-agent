@@ -38,7 +38,7 @@ const CircularGauge: React.FC<{ value: number; label: string; color: string; siz
       <div className="text-center -mt-8">
         <div className="text-xs font-mono font-bold" style={{ color }}>{pct.toFixed(0)}%</div>
       </div>
-      <div className="text-[9px] font-mono mt-3" style={{ color: '#64748b' }}>{label}</div>
+      <div className="text-body-xs font-mono mt-3" style={{ color: '#64748b' }}>{label}</div>
     </div>
   );
 };
@@ -183,7 +183,7 @@ const NOCWallTab: React.FC<Props> = ({ devices, drifts, onSelectDevice }) => {
                     </span>
                   </div>
                   {dc > 0 && (
-                    <span className="text-[9px] font-mono px-1.5 py-0.5 rounded"
+                    <span className="text-body-xs font-mono px-1.5 py-0.5 rounded"
                       style={{ backgroundColor: '#f59e0b20', color: '#f59e0b' }}>
                       {dc} drift
                     </span>
@@ -214,7 +214,7 @@ const NOCWallTab: React.FC<Props> = ({ devices, drifts, onSelectDevice }) => {
                         strokeWidth={1.5}
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-[9px] font-mono" style={{ color: '#3d3528' }}>
+                      <div className="w-full h-full flex items-center justify-center text-body-xs font-mono" style={{ color: '#3d3528' }}>
                         —
                       </div>
                     )}
@@ -222,7 +222,7 @@ const NOCWallTab: React.FC<Props> = ({ devices, drifts, onSelectDevice }) => {
                 </div>
 
                 {/* Footer: latency + packet loss */}
-                <div className="flex justify-between mt-2 text-[10px] font-mono" style={{ color: '#64748b' }}>
+                <div className="flex justify-between mt-2 text-body-xs font-mono" style={{ color: '#64748b' }}>
                   <span>
                     {d.status === 'down' ? '—' : `${d.latency_ms.toFixed(1)}ms`}
                   </span>

@@ -24,12 +24,12 @@ export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({ items }) => {
           {item.onClick ? (
             <button
               onClick={item.onClick}
-              className="text-[11px] font-display text-slate-400 hover:text-[#e09f3e] transition-colors"
+              className="text-body-xs font-display text-slate-400 hover:text-[#e09f3e] transition-colors"
             >
               {item.label}
             </button>
           ) : (
-            <span className="text-[11px] font-display text-slate-300">{item.label}</span>
+            <span className="text-body-xs font-display text-slate-300">{item.label}</span>
           )}
         </React.Fragment>
       ))}

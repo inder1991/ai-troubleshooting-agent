@@ -32,7 +32,7 @@ const SlowQueryTimeline: React.FC<SlowQueryTimelineProps> = ({ queries }) => {
   if (queries.length === 0) {
     return (
       <div className="flex items-center justify-center py-4">
-        <p className="text-[10px] text-slate-400 italic">No slow queries detected</p>
+        <p className="text-body-xs text-slate-400 italic">No slow queries detected</p>
       </div>
     );
   }
@@ -63,8 +63,8 @@ const SlowQueryTimeline: React.FC<SlowQueryTimelineProps> = ({ queries }) => {
               <div className="flex items-center gap-2 mb-1">
                 <span className={`w-2 h-2 rounded-full shrink-0 ${dot}`} aria-hidden="true" />
                 <span className="text-xs font-display font-bold text-white">{formatDuration(q.duration_ms)}</span>
-                <span className={`text-[8px] font-bold px-1 py-0.5 rounded border ${badge}`}>{sev.toUpperCase()}</span>
-                <span className="ml-auto text-[9px] text-slate-400 font-mono">pid:{q.pid}</span>
+                <span className={`text-chrome font-bold px-1 py-0.5 rounded border ${badge}`}>{sev.toUpperCase()}</span>
+                <span className="ml-auto text-body-xs text-slate-400 font-mono">pid:{q.pid}</span>
               </div>
 
               {/* Row 2: Duration bar (proportional) */}
@@ -73,13 +73,13 @@ const SlowQueryTimeline: React.FC<SlowQueryTimelineProps> = ({ queries }) => {
               </div>
 
               {/* Row 3: SQL preview (2 lines, expandable) */}
-              <p className={`text-[10px] sm:text-[11px] font-mono text-slate-400 leading-relaxed ${isExpanded ? 'whitespace-pre-wrap break-all' : 'line-clamp-2'}`}>
+              <p className={`text-body-xs sm:text-body-xs font-mono text-slate-400 leading-relaxed ${isExpanded ? 'whitespace-pre-wrap break-all' : 'line-clamp-2'}`}>
                 {q.query}
               </p>
 
               {/* Expanded: full details */}
               {isExpanded && q.timestamp && (
-                <p className="text-[9px] text-slate-400 mt-1.5 font-mono">
+                <p className="text-body-xs text-slate-400 mt-1.5 font-mono">
                   Timestamp: {q.timestamp}
                 </p>
               )}
@@ -89,7 +89,7 @@ const SlowQueryTimeline: React.FC<SlowQueryTimelineProps> = ({ queries }) => {
       </div>
 
       {/* Summary */}
-      <p className="text-[10px] text-slate-400 mt-2 px-2">
+      <p className="text-body-xs text-slate-400 mt-2 px-2">
         {queries.length} slow {queries.length === 1 ? 'query' : 'queries'} — worst: {formatDuration(worst)}
       </p>
     </div>

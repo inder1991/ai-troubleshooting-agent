@@ -117,7 +117,7 @@ const ChatInputArea: React.FC<ChatInputAreaProps> = ({
       )}
 
       {/* Input area */}
-      <div className="relative flex items-end gap-2 bg-slate-800/50 border border-slate-700/50 rounded-lg focus-within:border-amber-500/50 transition-colors">
+      <div className="relative flex items-end gap-2 bg-slate-800/50 border border-slate-700/50 rounded-lg focus-within:border-cyan-500/50 transition-colors">
         <textarea
           ref={textareaRef}
           value={input}
@@ -132,11 +132,12 @@ const ChatInputArea: React.FC<ChatInputAreaProps> = ({
         <button
           onClick={handleSend}
           disabled={disabled || !input.trim()}
-          className="shrink-0 p-2 mr-1 mb-0.5 rounded-md bg-amber-600 hover:bg-amber-500 disabled:bg-slate-700 disabled:text-slate-500 text-white transition-colors"
+          className="shrink-0 p-2 mr-1 mb-0.5 rounded-md bg-cyan-600 hover:bg-cyan-500 disabled:bg-slate-700 disabled:text-slate-500 text-white transition-colors"
           title="Send message"
         >
           <span
-            className="material-symbols-outlined text-[16px]"
+            className="material-symbols-outlined"
+            style={{ fontFamily: 'Material Symbols Outlined', fontSize: '16px' }}
           >
             send
           </span>

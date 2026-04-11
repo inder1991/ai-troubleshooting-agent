@@ -37,7 +37,7 @@ export const CallChainAnalysisCard: React.FC<CallChainAnalysisProps> = ({ data }
   return (
     <div className="transition-all duration-700">
       <div className="flex items-center gap-2 mb-2">
-        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+        <span className="text-body-xs font-bold text-slate-500 uppercase tracking-widest">
           3️⃣ Execution Logic Flow
         </span>
       </div>
@@ -50,7 +50,7 @@ export const CallChainAnalysisCard: React.FC<CallChainAnalysisProps> = ({ data }
             <div className="mb-4">
               <div className="flex items-center gap-1 mb-2">
                 <Activity size={10} className="text-blue-400" />
-                <span className="text-[8px] text-slate-500 uppercase font-bold">Logic Diagram</span>
+                <span className="text-chrome text-slate-500 uppercase font-bold">Logic Diagram</span>
               </div>
               <Mermaid chart={data.flowchart} />
             </div>
@@ -59,11 +59,11 @@ export const CallChainAnalysisCard: React.FC<CallChainAnalysisProps> = ({ data }
           {/* Simple Call Chain - existing list view below the diagram */}
           {data.callChain && data.callChain.length > 0 && (
             <div>
-               <div className="text-[8px] text-slate-600 uppercase mb-2">Sequence Trace</div>
+               <div className="text-chrome text-slate-600 uppercase mb-2">Sequence Trace</div>
                <div className="flex items-center gap-1 flex-wrap">
                 {data.callChain.map((step, idx) => (
                   <React.Fragment key={idx}>
-                    <code className="text-[9px] text-blue-400">{step}</code>
+                    <code className="text-body-xs text-blue-400">{step}</code>
                     {idx < data.callChain.length - 1 && (
                       <ArrowRight size={8} className="text-slate-700" />
                     )}
@@ -78,25 +78,25 @@ export const CallChainAnalysisCard: React.FC<CallChainAnalysisProps> = ({ data }
             <div className="border border-red-800/50 rounded p-2 bg-red-950/20 mt-2">
               <div className="flex items-center gap-1 mb-1">
                 <AlertTriangle size={10} className="text-red-500" />
-                <span className="text-[9px] text-red-400 font-bold">Failure Point</span>
+                <span className="text-body-xs text-red-400 font-bold">Failure Point</span>
               </div>
               
-              <div className="text-[8px] text-slate-400 mb-1">
+              <div className="text-chrome text-slate-400 mb-1">
                 📍 <code>{data.failureAnalysis.location}</code>
               </div>
               
-              <div className="text-[8px] text-slate-500">
+              <div className="text-chrome text-slate-500">
                 {data.failureAnalysis.reason}
               </div>
               
               {data.failureAnalysis.variable && (
-                <div className="text-[8px] text-yellow-400 mt-1">
+                <div className="text-chrome text-yellow-400 mt-1">
                   Variable: <code>{data.failureAnalysis.variable}</code>
                 </div>
               )}
               
               {data.failureAnalysis.missingCleanup && (
-                <div className="text-[8px] text-yellow-400 mt-1 flex items-start gap-1">
+                <div className="text-chrome text-yellow-400 mt-1 flex items-start gap-1">
                   <span>⚠️</span>
                   <span>{data.failureAnalysis.missingCleanup}</span>
                 </div>

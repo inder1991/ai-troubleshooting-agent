@@ -365,7 +365,7 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ activeView, onNavigate, onNewMi
                 aria-label="Help and documentation"
               >
                 <span className="material-symbols-outlined text-[18px]" aria-hidden="true">help</span>
-                <span className="text-[11px] font-display font-bold">Help & Docs</span>
+                <span className="text-body-xs font-display font-bold">Help & Docs</span>
               </button>
 
               {/* User Profile */}
@@ -374,8 +374,8 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ activeView, onNavigate, onNewMi
                   <span className="material-symbols-outlined text-[14px] text-duck-accent" aria-hidden="true">person</span>
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-[11px] font-display font-bold text-slate-200 truncate">SRE Admin</p>
-                  <p className="text-[9px] text-slate-400 truncate">Acme Corp · Pro Plan</p>
+                  <p className="text-body-xs font-display font-bold text-slate-200 truncate">SRE Admin</p>
+                  <p className="text-body-xs text-slate-400 truncate">Acme Corp · Pro Plan</p>
                 </div>
               </div>
             </>
@@ -413,7 +413,7 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ activeView, onNavigate, onNewMi
             <div className="p-5 flex flex-col">
               {/* Flyout Header */}
               <header className="flex items-center justify-between mb-5 gap-8">
-                <h2 className="text-[10px] font-display font-bold uppercase tracking-wider text-slate-400 whitespace-nowrap">
+                <h2 className="text-body-xs font-display font-bold uppercase tracking-wider text-slate-400 whitespace-nowrap">
                   {displayGroupItem.group}
                 </h2>
                 <button

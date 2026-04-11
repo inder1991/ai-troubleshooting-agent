@@ -51,16 +51,16 @@ const BriefingHeader: React.FC<BriefingHeaderProps> = ({
           <HardHat className="w-5 h-5 text-amber-400" />
         </motion.div>
         {isProcessing && (
-          <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+          <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
         )}
       </div>
 
       {/* Streaming text - uses motion value, zero React re-renders */}
       <div className="flex-1 min-w-0">
-        <p className="text-[11px] text-slate-300 font-mono truncate leading-snug">
+        <p className="text-body-xs text-slate-300 font-mono truncate leading-snug">
           <motion.span>{displayedText}</motion.span>
           {isProcessing && (
-            <span className="inline-block w-1.5 h-3 bg-amber-400 ml-0.5 animate-pulse align-text-bottom" />
+            <span className="inline-block w-1.5 h-3 bg-cyan-400 ml-0.5 animate-pulse align-text-bottom" />
           )}
         </p>
       </div>
@@ -73,21 +73,21 @@ const BriefingHeader: React.FC<BriefingHeaderProps> = ({
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 8 }}
           transition={{ duration: 0.2 }}
-          className="text-[9px] font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full shrink-0"
+          className="text-body-xs font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full shrink-0"
         >
           {agentName}
         </motion.span>
       </AnimatePresence>
 
       {/* Severity label */}
-      <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold border shrink-0 ${sevColor}`}>
+      <span className={`text-body-xs px-2 py-0.5 rounded-full font-bold border shrink-0 ${sevColor}`}>
         {severity}
       </span>
 
       {/* Live session indicator */}
       <div className="flex items-center gap-1.5 shrink-0">
         <Activity className="w-3 h-3 text-green-500" />
-        <span className="text-[9px] font-mono text-slate-500">LIVE_SESSION_ACTIVE</span>
+        <span className="text-body-xs font-mono text-slate-500">LIVE_SESSION_ACTIVE</span>
       </div>
     </div>
   );

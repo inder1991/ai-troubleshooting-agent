@@ -145,7 +145,7 @@ const NetworkCanvas: React.FC<NetworkCanvasProps> = ({ findings, direction }) =>
                   />
                   {isBlocked && (
                     <div
-                      className="flex items-center gap-1 text-[10px] font-mono font-bold px-2 py-0.5 rounded"
+                      className="flex items-center gap-1 text-body-xs font-mono font-bold px-2 py-0.5 rounded"
                       style={{ color: '#ef4444', backgroundColor: 'rgba(239,68,68,0.12)' }}
                     >
                       <span className="material-symbols-outlined text-xs">block</span>
@@ -198,7 +198,7 @@ const NetworkCanvas: React.FC<NetworkCanvasProps> = ({ findings, direction }) =>
                     )}
                     {node.firewallAction && (
                       <span
-                        className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded"
+                        className="text-body-xs font-mono font-bold px-1.5 py-0.5 rounded"
                         style={{
                           color: statusColor,
                           backgroundColor: `${statusColor}1a`,

@@ -84,7 +84,7 @@ export default function IPAMAllocationWizard({ parentSubnetId, parentCidr, onClo
                   />
                 ))}
               </div>
-              <div className="flex justify-between text-[10px] text-gray-600 mt-1">
+              <div className="flex justify-between text-body-xs text-gray-600 mt-1">
                 <span>Available ranges (click to select)</span>
                 <span>{ranges.length} range{ranges.length !== 1 ? 's' : ''}</span>
               </div>

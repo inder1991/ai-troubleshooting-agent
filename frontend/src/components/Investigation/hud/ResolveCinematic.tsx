@@ -86,7 +86,7 @@ const ResolveCinematic: React.FC<ResolveCinematicProps> = ({ findings, onDismiss
         {/* Worker's Salute */}
         <div className="mt-6 pt-4 border-t border-slate-800/50 flex items-center justify-center gap-2">
           <Zap className="w-3 h-3 text-amber-400" />
-          <span className="text-[10px] text-slate-500 italic">
+          <span className="text-body-xs text-slate-500 italic">
             All systems nominal. Excellent work, Engineer.
           </span>
         </div>
@@ -97,7 +97,7 @@ const ResolveCinematic: React.FC<ResolveCinematicProps> = ({ findings, onDismiss
 
 const StatCell: React.FC<{ label: string; value: string }> = ({ label, value }) => (
   <div className="bg-slate-800/30 rounded-lg border border-slate-700/30 p-3">
-    <div className="text-[9px] text-slate-500 uppercase tracking-wider mb-1">{label}</div>
+    <div className="text-body-xs text-slate-500 uppercase tracking-wider mb-1">{label}</div>
     <div className="text-sm font-bold font-mono text-slate-200">{value}</div>
   </div>
 );

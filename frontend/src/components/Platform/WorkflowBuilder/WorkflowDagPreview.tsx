@@ -121,11 +121,11 @@ const WorkflowDagPreview: React.FC<Props> = ({ workflow }) => {
         style={{ background: '#0c1a1f', border: '1px solid #1e2a2e' }}>
         <div className="flex items-center gap-1.5">
           <div className="w-2.5 h-2.5 rounded-sm" style={{ background: 'rgba(7,182,213,0.08)', border: '1px solid #07b6d540' }} />
-          <span className="text-[9px] font-sans" style={{ color: '#3d4a50' }}>Step</span>
+          <span className="text-body-xs font-sans" style={{ color: '#3d4a50' }}>Step</span>
         </div>
         <div className="flex items-center gap-1.5">
           <div className="w-2.5 h-2.5 rounded-sm" style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid #f59e0b40' }} />
-          <span className="text-[9px] font-sans" style={{ color: '#3d4a50' }}>Gate</span>
+          <span className="text-body-xs font-sans" style={{ color: '#3d4a50' }}>Gate</span>
         </div>
       </div>
     </div>

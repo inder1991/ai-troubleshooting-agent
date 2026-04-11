@@ -42,7 +42,7 @@ const TableBloatHeatmap: React.FC<TableBloatHeatmapProps> = ({ tables }) => {
     return (
       <div className="text-center py-4">
         <span className="material-symbols-outlined text-2xl text-slate-700 block mb-1">grid_view</span>
-        <p className="text-[10px] text-slate-400">No table bloat data</p>
+        <p className="text-body-xs text-slate-400">No table bloat data</p>
       </div>
     );
   }
@@ -55,8 +55,8 @@ const TableBloatHeatmap: React.FC<TableBloatHeatmapProps> = ({ tables }) => {
       {/* Header */}
       <div className="flex items-center gap-2 mb-2 pb-2 border-b border-slate-800">
         <span className="material-symbols-outlined text-amber-400 text-sm">grid_view</span>
-        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Table Bloat Heatmap</span>
-        <span className="text-[9px] text-slate-400 ml-auto font-mono">{tables.length} tables</span>
+        <span className="text-body-xs font-bold text-slate-400 uppercase tracking-wider">Table Bloat Heatmap</span>
+        <span className="text-body-xs text-slate-400 ml-auto font-mono">{tables.length} tables</span>
       </div>
 
       {/* Legend */}
@@ -69,7 +69,7 @@ const TableBloatHeatmap: React.FC<TableBloatHeatmapProps> = ({ tables }) => {
         ].map(({ label, color }) => (
           <div key={label} className="flex items-center gap-1">
             <span className="w-2 h-2 rounded-sm" style={{ backgroundColor: color }} />
-            <span className="text-[9px] text-slate-400">{label}</span>
+            <span className="text-body-xs text-slate-400">{label}</span>
           </div>
         ))}
       </div>
@@ -101,18 +101,18 @@ const TableBloatHeatmap: React.FC<TableBloatHeatmapProps> = ({ tables }) => {
               {/* Tooltip (visible on hover or when expanded) */}
               <div className={`absolute left-1/2 -translate-x-1/2 bottom-full mb-1 z-10 ${isExpanded ? 'block' : 'hidden group-hover:block'}`}>
                 <div className="bg-slate-900 border border-slate-700 rounded px-2 py-1 shadow-lg whitespace-nowrap">
-                  <p className="text-[10px] text-white font-mono">{table.name}</p>
-                  <p className="text-[9px] text-slate-400">
+                  <p className="text-body-xs text-white font-mono">{table.name}</p>
+                  <p className="text-body-xs text-slate-400">
                     Bloat: {(table.bloat_ratio * 100).toFixed(1)}% | Dead: {formatTuples(table.dead_tuples)} | Size: {formatSize(table.size_mb)}
                   </p>
                 </div>
               </div>
 
-              <p className="text-[9px] text-slate-300 font-mono truncate">{table.name}</p>
-              <p className="text-[11px] font-bold font-mono" style={{ color }}>
+              <p className="text-body-xs text-slate-300 font-mono truncate">{table.name}</p>
+              <p className="text-body-xs font-bold font-mono" style={{ color }}>
                 {(table.bloat_ratio * 100).toFixed(0)}%
               </p>
-              <p className="text-[8px] text-slate-400">
+              <p className="text-chrome text-slate-400">
                 {formatTuples(table.dead_tuples)} dead
               </p>
             </button>
@@ -123,14 +123,14 @@ const TableBloatHeatmap: React.FC<TableBloatHeatmapProps> = ({ tables }) => {
       {tables.length > 20 && !showAll && (
         <button
           onClick={() => setShowAll(true)}
-          className="text-[10px] text-duck-accent hover:text-amber-300 mt-2 transition-colors"
+          className="text-body-xs text-duck-accent hover:text-amber-300 mt-2 transition-colors"
         >
           Show all {tables.length} tables
         </button>
       )}
 
       {/* Summary */}
-      <p className="text-[10px] text-slate-400 mt-2">
+      <p className="text-body-xs text-slate-400 mt-2">
         {sorted.filter((t) => t.bloat_ratio > 0.4).length} of {sorted.length} tables above 40% bloat
       </p>
     </div>

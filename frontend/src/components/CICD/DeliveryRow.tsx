@@ -54,7 +54,7 @@ export function DeliveryRow({ item, onSelect, onInvestigate }: DeliveryRowProps)
       className="flex items-center gap-3 px-3 py-2 border-b border-zinc-800 hover:bg-zinc-900/40 cursor-pointer transition-colors"
     >
       <span
-        className={`rounded-full px-2 py-0.5 text-[10px] uppercase border ${pillClass}`}
+        className={`rounded-full px-2 py-0.5 text-body-xs uppercase border ${pillClass}`}
       >
         {item.kind}
       </span>

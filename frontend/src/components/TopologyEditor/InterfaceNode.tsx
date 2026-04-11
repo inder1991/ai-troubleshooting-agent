@@ -72,7 +72,7 @@ const InterfaceNode: React.FC<NodeProps<InterfaceNodeData>> = ({ data, selected 
         {/* Name + role inline, IP + parent shown when space allows */}
         <div className="flex flex-col gap-0 min-w-0 overflow-hidden">
           <div className="flex items-center gap-1">
-            <span className="text-[9px] font-mono font-semibold truncate" style={{ color: '#e8e0d4' }}>
+            <span className="text-body-xs font-mono font-semibold truncate" style={{ color: '#e8e0d4' }}>
               {data.name || 'eth0'}
             </span>
             <span

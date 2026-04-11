@@ -76,8 +76,8 @@ const TimelineCard: React.FC<TimelineCardProps> = ({ events }) => {
 
                 {/* Event card */}
                 <div className={`mt-2 border ${borderColor} rounded-md px-3 py-2 bg-gray-900/50 w-36`}>
-                  <div className="text-[10px] text-gray-500 font-mono mb-1">{timeStr}</div>
-                  <span className={`inline-block text-[10px] px-1.5 py-0.5 rounded font-medium bg-gray-700 ${textColor} mb-1`}>
+                  <div className="text-body-xs text-gray-500 font-mono mb-1">{timeStr}</div>
+                  <span className={`inline-block text-body-xs px-1.5 py-0.5 rounded font-medium bg-gray-700 ${textColor} mb-1`}>
                     {event.source}
                   </span>
                   <p className="text-xs text-gray-300 line-clamp-2">{event.description}</p>
@@ -93,7 +93,7 @@ const TimelineCard: React.FC<TimelineCardProps> = ({ events }) => {
         {(['info', 'warning', 'error', 'critical'] as const).map((sev) => (
           <div key={sev} className="flex items-center gap-1">
             <div className={`w-2 h-2 rounded-full ${severityColor[sev]}`} />
-            <span className="text-[10px] text-gray-500 capitalize">{sev}</span>
+            <span className="text-body-xs text-gray-500 capitalize">{sev}</span>
           </div>
         ))}
       </div>

@@ -32,7 +32,7 @@ export default function IssueClusterView({ clusters }: IssueClusterViewProps) {
       <div className="flex items-center gap-2">
         <span className="material-symbols-outlined text-amber-400">hub</span>
         <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Issue Clusters</span>
-        <span className="text-[9px] font-mono text-slate-500">{clusters.length}</span>
+        <span className="text-body-xs font-mono text-slate-500">{clusters.length}</span>
       </div>
 
       {clusters.map(cluster => {
@@ -47,7 +47,7 @@ export default function IssueClusterView({ clusters }: IssueClusterViewProps) {
               onClick={() => setExpandedId(isExpanded ? null : cluster.cluster_id)}
               className="w-full px-3 py-2 flex items-center gap-2 hover:bg-slate-800/30 transition-colors"
             >
-              <span className="text-[10px] font-mono text-amber-400">{cluster.cluster_id}</span>
+              <span className="text-body-xs font-mono text-amber-400">{cluster.cluster_id}</span>
 
               {/* Confidence bar */}
               <div className="w-12 h-1 bg-slate-800 rounded-full overflow-hidden">
@@ -56,14 +56,14 @@ export default function IssueClusterView({ clusters }: IssueClusterViewProps) {
                   style={{ width: `${Math.round(cluster.confidence * 100)}%` }}
                 />
               </div>
-              <span className="text-[9px] font-mono text-slate-500">{Math.round(cluster.confidence * 100)}%</span>
+              <span className="text-body-xs font-mono text-slate-500">{Math.round(cluster.confidence * 100)}%</span>
 
               {/* Correlation basis badges */}
               <div className="flex items-center gap-1 ml-1">
                 {cluster.correlation_basis.map(basis => (
                   <span
                     key={basis}
-                    className={`px-1.5 py-0.5 text-[8px] font-mono rounded border ${BASIS_STYLE[basis] || 'text-slate-400 border-slate-500/40 bg-slate-500/10'}`}
+                    className={`px-1.5 py-0.5 text-chrome font-mono rounded border ${BASIS_STYLE[basis] || 'text-slate-400 border-slate-500/40 bg-slate-500/10'}`}
                   >
                     {basis.replace(/_/g, ' ')}
                   </span>
@@ -71,7 +71,7 @@ export default function IssueClusterView({ clusters }: IssueClusterViewProps) {
               </div>
 
               {/* Affected count */}
-              <span className="ml-auto text-[9px] font-mono text-slate-500">
+              <span className="ml-auto text-body-xs font-mono text-slate-500">
                 {cluster.affected_resources.length} resources
               </span>
               <span className="material-symbols-outlined text-slate-500 text-sm">
@@ -84,19 +84,19 @@ export default function IssueClusterView({ clusters }: IssueClusterViewProps) {
                 {/* Root Candidates */}
                 {cluster.root_candidates.length > 0 && (
                   <div>
-                    <span className="text-[10px] uppercase tracking-wider text-red-400 font-semibold">Root Candidates</span>
+                    <span className="text-body-xs uppercase tracking-wider text-red-400 font-semibold">Root Candidates</span>
                     <div className="mt-1 space-y-1.5">
                       {cluster.root_candidates.map((rc, i) => (
                         <div key={i} className="bg-red-500/5 border border-red-500/20 rounded px-2 py-1.5">
                           <div className="flex items-center justify-between">
-                            <span className="text-[11px] font-mono text-red-300">{rc.resource_key}</span>
-                            <span className="text-[9px] font-mono text-slate-500">{Math.round(rc.confidence * 100)}%</span>
+                            <span className="text-body-xs font-mono text-red-300">{rc.resource_key}</span>
+                            <span className="text-body-xs font-mono text-slate-500">{Math.round(rc.confidence * 100)}%</span>
                           </div>
-                          <p className="text-[10px] text-slate-400 mt-0.5">{rc.hypothesis}</p>
+                          <p className="text-body-xs text-slate-400 mt-0.5">{rc.hypothesis}</p>
                           {rc.supporting_signals.length > 0 && (
                             <div className="flex flex-wrap gap-1 mt-1">
                               {rc.supporting_signals.map((s, j) => (
-                                <span key={j} className="text-[8px] font-mono px-1 py-0.5 bg-slate-800/60 text-slate-500 rounded">
+                                <span key={j} className="text-chrome font-mono px-1 py-0.5 bg-slate-800/60 text-slate-500 rounded">
                                   {s}
                                 </span>
                               ))}
@@ -111,12 +111,12 @@ export default function IssueClusterView({ clusters }: IssueClusterViewProps) {
                 {/* Alerts */}
                 {cluster.alerts.length > 0 && (
                   <div>
-                    <span className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Alerts</span>
+                    <span className="text-body-xs uppercase tracking-wider text-slate-400 font-semibold">Alerts</span>
                     <div className="mt-1 space-y-0.5">
                       {cluster.alerts.map((alert, i) => {
                         const dotClass = SEVERITY_DOT[alert.severity] || SEVERITY_DOT.info;
                         return (
-                          <div key={i} className="flex items-center gap-2 text-[11px]">
+                          <div key={i} className="flex items-center gap-2 text-body-xs">
                             <span className={`w-1.5 h-1.5 rounded-full ${dotClass}`} />
                             <span className="font-mono text-slate-400">{alert.resource_key}</span>
                             <span className="text-slate-500">{alert.alert_type}</span>

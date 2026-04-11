@@ -57,7 +57,7 @@ const LogLine: React.FC<{ line: ParsedLine; lineNumber: number }> = ({ line, lin
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className={`px-3 py-0.5 font-mono text-[10px] leading-5 ${SEVERITY_STYLES[line.severity]}`}>
+    <div className={`px-3 py-0.5 font-mono text-body-xs leading-5 ${SEVERITY_STYLES[line.severity]}`}>
       <div className="flex items-start gap-2">
         <span className="text-slate-600 select-none w-8 text-right shrink-0">{lineNumber}</span>
         {line.isJson && (
@@ -71,7 +71,7 @@ const LogLine: React.FC<{ line: ParsedLine; lineNumber: number }> = ({ line, lin
         <span className="break-all whitespace-pre-wrap">{line.raw}</span>
       </div>
       {expanded && line.jsonParsed && (
-        <pre className="ml-10 mt-1 text-[9px] text-slate-500 bg-slate-950/40 rounded p-2 overflow-x-auto">
+        <pre className="ml-10 mt-1 text-body-xs text-slate-500 bg-slate-950/40 rounded p-2 overflow-x-auto">
           {line.jsonParsed}
         </pre>
       )}
@@ -153,14 +153,14 @@ const LogViewerTab: React.FC<LogViewerTabProps> = ({ namespace, kind, name, sess
   if (loading) {
     return (
       <div className="flex items-center justify-center h-32">
-        <span className="text-[10px] text-slate-500 animate-pulse">Loading logs...</span>
+        <span className="text-body-xs text-slate-500 animate-pulse">Loading logs...</span>
       </div>
     );
   }
 
   if (error && !rawLogs) {
     return (
-      <div className="p-4 text-[10px] text-red-400">{error}</div>
+      <div className="p-4 text-body-xs text-red-400">{error}</div>
     );
   }
 
@@ -173,13 +173,13 @@ const LogViewerTab: React.FC<LogViewerTabProps> = ({ namespace, kind, name, sess
           value={filterText}
           onChange={e => setFilterText(e.target.value)}
           placeholder="Filter (regex)..."
-          className="flex-1 text-[10px] bg-slate-950/60 border border-slate-800/50 rounded px-2 py-1 text-slate-300 placeholder-slate-600 focus:outline-none focus:border-amber-800/40"
+          className="flex-1 text-body-xs bg-slate-950/60 border border-slate-800/50 rounded px-2 py-1 text-slate-300 placeholder-slate-600 focus:outline-none focus:border-amber-800/40"
         />
         {(['error', 'warn', 'info', 'debug'] as Severity[]).map(sev => (
           <button
             key={sev}
             onClick={() => toggleSeverity(sev)}
-            className={`text-[8px] font-bold px-1.5 py-0.5 rounded uppercase ${
+            className={`text-chrome font-bold px-1.5 py-0.5 rounded uppercase ${
               severityFilter.has(sev)
                 ? sev === 'error' ? 'bg-red-950/40 text-red-400'
                 : sev === 'warn' ? 'bg-amber-950/40 text-amber-400'
@@ -193,7 +193,7 @@ const LogViewerTab: React.FC<LogViewerTabProps> = ({ namespace, kind, name, sess
         ))}
         <button
           onClick={reEnableAutoScroll}
-          className={`text-[10px] ${autoScroll ? 'text-amber-400' : 'text-slate-600'}`}
+          className={`text-body-xs ${autoScroll ? 'text-amber-400' : 'text-slate-600'}`}
           title={autoScroll ? 'Auto-scroll ON' : 'Auto-scroll OFF (scroll detected)'}
         >
           <span className="material-symbols-outlined text-[14px]">vertical_align_bottom</span>
@@ -207,7 +207,7 @@ const LogViewerTab: React.FC<LogViewerTabProps> = ({ namespace, kind, name, sess
         onWheel={handleWheel}
       >
         {filteredLines.length === 0 ? (
-          <div className="p-4 text-[10px] text-slate-500">No log lines match filters</div>
+          <div className="p-4 text-body-xs text-slate-500">No log lines match filters</div>
         ) : (
           filteredLines.map((line, i) => (
             <LogLine key={i} line={line} lineNumber={i + 1} />
@@ -216,7 +216,7 @@ const LogViewerTab: React.FC<LogViewerTabProps> = ({ namespace, kind, name, sess
       </div>
 
       {/* Status bar */}
-      <div className="flex items-center justify-between px-3 py-1 border-t border-slate-800/30 text-[9px] text-slate-600">
+      <div className="flex items-center justify-between px-3 py-1 border-t border-slate-800/30 text-body-xs text-slate-600">
         <span>{filteredLines.length} / {parsedLines.length} lines</span>
         {!autoScroll && <span className="text-amber-500">Manual scroll -- click arrow to re-enable</span>}
       </div>

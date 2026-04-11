@@ -150,7 +150,7 @@ const AgentMatrixView: React.FC<AgentMatrixViewProps> = ({ onGoHome }) => {
                   onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.95)'; }}
                   onMouseUp={e => { e.currentTarget.style.transform = 'scale(1)'; }}
                   onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; }}
-                  className="flex items-center gap-1.5 text-[10px] uppercase px-2.5 py-1 rounded"
+                  className="flex items-center gap-1.5 text-body-xs uppercase px-2.5 py-1 rounded"
                   style={{
                     backgroundColor: statusFilter === status ? 'rgba(224,159,62,0.15)' : 'transparent',
                     color: statusFilter === status ? '#e09f3e' : '#64748b',

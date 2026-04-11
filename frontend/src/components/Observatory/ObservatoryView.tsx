@@ -98,7 +98,7 @@ const ObservatoryView: React.FC<ObservatoryViewProps> = ({ onOpenEditor, onOpenT
               >
                 {tab.label}
                 {tab.id === 'alerts' && alertCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center"
+                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-body-xs font-bold flex items-center justify-center"
                     style={{ backgroundColor: '#ef4444', color: 'white' }}>
                     {alertCount > 9 ? '9+' : alertCount}
                   </span>
@@ -116,7 +116,7 @@ const ObservatoryView: React.FC<ObservatoryViewProps> = ({ onOpenEditor, onOpenT
             >
               <span className="material-symbols-outlined text-xl">notifications</span>
               {alertCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center"
+                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full text-body-xs font-bold flex items-center justify-center"
                   style={{ backgroundColor: '#ef4444', color: 'white' }}>
                   {alertCount > 9 ? '9+' : alertCount}
                 </span>

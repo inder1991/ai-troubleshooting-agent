@@ -68,16 +68,16 @@ const FlameBar: React.FC<{
         >
           {hasChildren && (
             <span
-              className={`material-symbols-outlined text-[10px] text-slate-500 transition-transform ${expanded ? 'rotate-90' : ''}`}
+              className={`material-symbols-outlined text-body-xs text-slate-500 transition-transform ${expanded ? 'rotate-90' : ''}`}
             >
               chevron_right
             </span>
           )}
-          <span className="text-[10px] text-slate-200 truncate flex-1 font-mono">
+          <span className="text-body-xs text-slate-200 truncate flex-1 font-mono">
             {step.label}
           </span>
           <span
-            className="text-[9px] font-bold font-mono whitespace-nowrap"
+            className="text-body-xs font-bold font-mono whitespace-nowrap"
             style={{ color }}
           >
             {step.time_ms.toFixed(1)}ms
@@ -87,8 +87,8 @@ const FlameBar: React.FC<{
         {/* Tooltip */}
         <div className="absolute left-0 bottom-full mb-1 hidden group-hover:block z-10">
           <div className="bg-slate-900 border border-slate-700 rounded px-2 py-1 shadow-lg whitespace-nowrap">
-            <p className="text-[10px] text-white font-mono">{step.label}</p>
-            <p className="text-[9px] text-slate-400">
+            <p className="text-body-xs text-white font-mono">{step.label}</p>
+            <p className="text-body-xs text-slate-400">
               {step.time_ms.toFixed(2)}ms
               {rootTotal > 0 && ` (${((step.time_ms / rootTotal) * 100).toFixed(1)}%)`}
             </p>
@@ -118,7 +118,7 @@ const QueryFlamechart: React.FC<QueryFlamechartProps> = ({ planSteps }) => {
     return (
       <div className="text-center py-4">
         <span className="material-symbols-outlined text-2xl text-slate-700 block mb-1">local_fire_department</span>
-        <p className="text-[10px] text-slate-400">No plan steps available</p>
+        <p className="text-body-xs text-slate-400">No plan steps available</p>
       </div>
     );
   }
@@ -131,8 +131,8 @@ const QueryFlamechart: React.FC<QueryFlamechartProps> = ({ planSteps }) => {
       {/* Header */}
       <div className="flex items-center gap-2 mb-2 pb-2 border-b border-slate-800">
         <span className="material-symbols-outlined text-orange-400 text-sm">local_fire_department</span>
-        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Query Flamechart</span>
-        <span className="text-[9px] text-slate-400 ml-auto font-mono">total {totalTime.toFixed(1)}ms</span>
+        <span className="text-body-xs font-bold text-slate-400 uppercase tracking-wider">Query Flamechart</span>
+        <span className="text-body-xs text-slate-400 ml-auto font-mono">total {totalTime.toFixed(1)}ms</span>
       </div>
 
       {/* Legend */}
@@ -145,7 +145,7 @@ const QueryFlamechart: React.FC<QueryFlamechartProps> = ({ planSteps }) => {
         ].map(({ label, color }) => (
           <div key={label} className="flex items-center gap-1">
             <span className="w-2 h-2 rounded-sm" style={{ backgroundColor: color }} />
-            <span className="text-[9px] text-slate-400">{label}</span>
+            <span className="text-body-xs text-slate-400">{label}</span>
           </div>
         ))}
       </div>

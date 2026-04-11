@@ -28,13 +28,13 @@ const CampaignOrchestrationHub: React.FC<CampaignOrchestrationHubProps> = ({ cam
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800/50">
         <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-amber-400 text-[18px]">hub</span>
-          <span className="text-[11px] font-black text-slate-300 tracking-[0.15em] uppercase">
+          <span className="material-symbols-outlined text-cyan-400 text-[18px]">hub</span>
+          <span className="text-body-xs font-black text-slate-300 tracking-[0.15em] uppercase">
             Remediation Campaign
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-[10px] font-mono text-slate-500">
+          <span className="text-body-xs font-mono text-slate-500">
             {campaign.approved_count}/{campaign.total_count} approved
           </span>
           <div className="w-16 h-1.5 rounded-full bg-slate-800 overflow-hidden">
@@ -53,7 +53,7 @@ const CampaignOrchestrationHub: React.FC<CampaignOrchestrationHubProps> = ({ cam
           {sortedRepos.map((repo, i) => (
             <React.Fragment key={repo.repo_url}>
               <div
-                className={`px-2 py-1 rounded text-[9px] font-bold tracking-wider whitespace-nowrap
+                className={`px-2 py-1 rounded text-body-xs font-bold tracking-wider whitespace-nowrap
                   ${repo.status === 'approved' || repo.status === 'pr_created'
                     ? 'bg-emerald-950/40 text-emerald-400 border border-emerald-700/40'
                     : repo.status === 'rejected'
@@ -93,7 +93,7 @@ const CampaignOrchestrationHub: React.FC<CampaignOrchestrationHubProps> = ({ cam
       {/* Campaign Readiness Footer */}
       <div className="px-4 py-3 border-t border-slate-800/50">
         <div className="flex items-center justify-between mb-3">
-          <span className="text-[10px] text-slate-500 uppercase tracking-widest">Campaign Readiness</span>
+          <span className="text-body-xs text-slate-500 uppercase tracking-widest">Campaign Readiness</span>
           <span className="text-xs font-mono font-bold text-slate-300">
             {campaign.approved_count} / {campaign.total_count} Attested
           </span>
@@ -109,7 +109,7 @@ const CampaignOrchestrationHub: React.FC<CampaignOrchestrationHubProps> = ({ cam
               exit="hidden"
               onClick={executeCampaign}
               disabled={globalLoading}
-              className="w-full py-3 rounded-lg bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-black font-black text-[11px] tracking-[0.2em] uppercase shadow-[0_0_15px_rgba(16,185,129,0.3)] flex items-center justify-center gap-2"
+              className="w-full py-3 rounded-lg bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-black font-black text-body-xs tracking-[0.2em] uppercase shadow-[0_0_15px_rgba(16,185,129,0.3)] flex items-center justify-center gap-2"
             >
               <span className="material-symbols-outlined text-sm">rocket_launch</span>
               Execute Coordinated Deployment
@@ -119,7 +119,7 @@ const CampaignOrchestrationHub: React.FC<CampaignOrchestrationHubProps> = ({ cam
               key="waiting"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="w-full py-3 rounded-lg bg-slate-900/50 border border-slate-800 text-slate-600 font-bold text-[10px] tracking-widest uppercase text-center flex items-center justify-center gap-2"
+              className="w-full py-3 rounded-lg bg-slate-900/50 border border-slate-800 text-slate-600 font-bold text-body-xs tracking-widest uppercase text-center flex items-center justify-center gap-2"
             >
               <span className="material-symbols-outlined text-sm animate-spin">sync</span>
               Awaiting Local Attestations...
@@ -134,19 +134,19 @@ const CampaignOrchestrationHub: React.FC<CampaignOrchestrationHubProps> = ({ cam
             animate={{ height: 'auto', opacity: 1 }}
             className="mt-3 p-3 rounded-lg bg-amber-950/30 border border-amber-700/50"
           >
-            <div className="flex items-center gap-2 text-amber-400 text-[11px] font-bold uppercase tracking-wider mb-2">
+            <div className="flex items-center gap-2 text-amber-400 text-body-xs font-bold uppercase tracking-wider mb-2">
               <span className="material-symbols-outlined text-sm">warning</span>
               Partial Deployment — Manual Intervention Required
             </div>
             <div className="space-y-1">
               {sortedRepos.map(repo => (
-                <div key={repo.repo_url} className="flex items-center gap-2 text-[10px]">
+                <div key={repo.repo_url} className="flex items-center gap-2 text-body-xs">
                   {repo.status === 'pr_created' ? (
                     <>
                       <span className="material-symbols-outlined text-[12px] text-emerald-400">check_circle</span>
                       <span className="text-slate-400">{repo.service_name}</span>
                       {repo.pr_url && (
-                        <a href={repo.pr_url} target="_blank" rel="noopener noreferrer" className="text-amber-400 hover:underline">
+                        <a href={repo.pr_url} target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:underline">
                           PR #{repo.pr_number}
                         </a>
                       )}

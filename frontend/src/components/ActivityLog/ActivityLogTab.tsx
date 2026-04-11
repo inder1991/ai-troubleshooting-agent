@@ -23,6 +23,7 @@ const eventTypeColors: Record<TaskEvent['event_type'], string> = {
   fix_approved: 'border-l-green-500 bg-green-900/10',
   waiting_for_input: 'border-l-pink-500 bg-pink-900/10',
   reasoning: 'border-l-amber-500 bg-amber-900/10',
+  thinking: 'border-l-cyan-500 bg-cyan-900/10',
 };
 
 const eventTypeDot: Record<TaskEvent['event_type'], string> = {
@@ -40,6 +41,7 @@ const eventTypeDot: Record<TaskEvent['event_type'], string> = {
   fix_approved: 'bg-green-500',
   waiting_for_input: 'bg-pink-500',
   reasoning: 'bg-amber-500',
+  thinking: 'bg-cyan-500',
 };
 
 const ActivityLogTab: React.FC<ActivityLogTabProps> = ({ sessionId, events: propEvents }) => {

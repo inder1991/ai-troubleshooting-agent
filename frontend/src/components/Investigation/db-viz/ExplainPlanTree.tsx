@@ -64,7 +64,7 @@ const ExplainPlanNode: React.FC<ExplainPlanTreeProps> = ({ plan, depth = 0 }) =>
 
         {/* Node type badge */}
         <span
-          className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold"
+          className="inline-flex items-center px-1.5 py-0.5 rounded text-body-xs font-bold"
           style={{
             backgroundColor: `${color}15`,
             color,
@@ -76,20 +76,20 @@ const ExplainPlanNode: React.FC<ExplainPlanTreeProps> = ({ plan, depth = 0 }) =>
 
         {/* Relation name */}
         {plan['Relation Name'] && (
-          <span className="text-[11px] text-slate-300 font-mono">
+          <span className="text-body-xs text-slate-300 font-mono">
             on {plan['Relation Name']}
           </span>
         )}
 
         {/* Index name */}
         {plan['Index Name'] && (
-          <span className="text-[10px] text-emerald-400/70 font-mono">
+          <span className="text-body-xs text-emerald-400/70 font-mono">
             using {plan['Index Name']}
           </span>
         )}
 
         {/* Cost / Rows */}
-        <span className="text-[9px] text-slate-400 ml-auto flex items-center gap-2">
+        <span className="text-body-xs text-slate-400 ml-auto flex items-center gap-2">
           <span>cost={formatCost(plan['Total Cost'])}</span>
           <span>rows={plan['Plan Rows'] ?? '-'}</span>
           {plan['Actual Total Time'] !== undefined && (
@@ -100,7 +100,7 @@ const ExplainPlanNode: React.FC<ExplainPlanTreeProps> = ({ plan, depth = 0 }) =>
 
       {/* Filter line */}
       {expanded && plan['Filter'] && (
-        <div className="ml-8 text-[9px] text-slate-500 font-mono mb-0.5">
+        <div className="ml-8 text-body-xs text-slate-500 font-mono mb-0.5">
           Filter: {plan['Filter']}
         </div>
       )}
@@ -160,7 +160,7 @@ const ExplainPlanTree: React.FC<{ plan: PlanNode | EnrichedPlan | null }> = ({ p
     return (
       <div className="text-center py-4">
         <span className="material-symbols-outlined text-2xl text-slate-700 block mb-1" aria-hidden="true">account_tree</span>
-        <p className="text-[10px] text-slate-400">No explain plan available</p>
+        <p className="text-body-xs text-slate-400">No explain plan available</p>
       </div>
     );
   }
@@ -182,13 +182,13 @@ const ExplainPlanTree: React.FC<{ plan: PlanNode | EnrichedPlan | null }> = ({ p
         <div className="mb-3 pb-2 border-b border-duck-border/30">
           <div className="flex items-center gap-2 mb-1.5">
             <span className="material-symbols-outlined text-duck-accent text-sm" aria-hidden="true">query_stats</span>
-            <span className="text-[11px] font-display font-bold text-slate-300">
+            <span className="text-body-xs font-display font-bold text-slate-300">
               Query Plan {pid ? `for pid:${pid}` : ''}
               {durationMs ? ` (${formatMs(durationMs)})` : ''}
             </span>
-            {queryUser && <span className="text-[9px] text-slate-400 ml-auto">user: {queryUser}</span>}
+            {queryUser && <span className="text-body-xs text-slate-400 ml-auto">user: {queryUser}</span>}
           </div>
-          <pre className="text-[10px] font-mono text-slate-400 leading-relaxed line-clamp-3 whitespace-pre-wrap break-all bg-duck-bg/50 rounded px-2 py-1.5">
+          <pre className="text-body-xs font-mono text-slate-400 leading-relaxed line-clamp-3 whitespace-pre-wrap break-all bg-duck-bg/50 rounded px-2 py-1.5">
             {query}
           </pre>
         </div>
@@ -203,7 +203,7 @@ const ExplainPlanTree: React.FC<{ plan: PlanNode | EnrichedPlan | null }> = ({ p
           {warnings.map((w, i) => (
             <div key={i} className="flex items-start gap-1.5">
               <span className="material-symbols-outlined text-amber-400 text-[12px] shrink-0 mt-0.5" aria-hidden="true">warning</span>
-              <span className="text-[10px] text-amber-400/80">{w}</span>
+              <span className="text-body-xs text-amber-400/80">{w}</span>
             </div>
           ))}
         </div>

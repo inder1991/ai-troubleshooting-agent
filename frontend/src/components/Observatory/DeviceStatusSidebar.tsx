@@ -79,7 +79,7 @@ const DeviceStatusSidebar: React.FC<Props> = ({ device, onClose }) => {
               <button
                 key={p}
                 onClick={() => setPeriod(p)}
-                className="px-2 py-0.5 rounded text-[10px] font-mono"
+                className="px-2 py-0.5 rounded text-body-xs font-mono"
                 style={period === p
                   ? { backgroundColor: 'rgba(224,159,62,0.15)', color: '#e09f3e' }
                   : { color: '#64748b' }
@@ -100,7 +100,7 @@ const DeviceStatusSidebar: React.FC<Props> = ({ device, onClose }) => {
             />
           </svg>
         ) : (
-          <div className="text-[11px] text-center py-4" style={{ color: '#64748b' }}>No data</div>
+          <div className="text-body-xs text-center py-4" style={{ color: '#64748b' }}>No data</div>
         )}
       </div>
     </div>

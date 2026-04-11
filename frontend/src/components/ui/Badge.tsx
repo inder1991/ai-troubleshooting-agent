@@ -15,7 +15,7 @@ const styleMap: Record<BadgeType, string> = {
 
 export const Badge: React.FC<BadgeProps> = ({ type, className = '' }) => (
   <span
-    className={`inline-flex items-center justify-center px-1 py-[1px] rounded border text-[9px] leading-none font-bold uppercase tracking-wider ${styleMap[type]} ${className}`}
+    className={`inline-flex items-center justify-center px-1 py-[1px] rounded border text-body-xs leading-none font-bold uppercase tracking-wider ${styleMap[type]} ${className}`}
   >
     {type}
   </span>

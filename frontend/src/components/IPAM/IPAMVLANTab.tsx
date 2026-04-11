@@ -63,12 +63,12 @@ export default function IPAMVLANTab() {
                 <span className="font-mono text-amber-300 w-12 text-right">{vlan.vlan_number}</span>
                 <span className="text-slate-300 flex-1 truncate">{vlan.name || '-'}</span>
                 {vlan.vrf_id && vlan.vrf_id !== 'default' && (
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-900/30 text-purple-300">
+                  <span className="text-body-xs px-1.5 py-0.5 rounded bg-purple-900/30 text-purple-300">
                     {vlan.vrf_id}
                   </span>
                 )}
                 {vlan.subnet_ids.length > 0 && (
-                  <span className="text-[10px] text-slate-500">{vlan.subnet_ids.length} subnets</span>
+                  <span className="text-body-xs text-slate-500">{vlan.subnet_ids.length} subnets</span>
                 )}
               </button>
             ))}

@@ -79,6 +79,7 @@ const HoldToConfirm: React.FC<HoldToConfirmProps> = ({
         {icon && (
           <span
             className="material-symbols-outlined text-xs"
+            style={{ fontFamily: 'Material Symbols Outlined' }}
           >
             {icon}
           </span>

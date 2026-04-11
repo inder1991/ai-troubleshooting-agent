@@ -24,7 +24,7 @@ const PipelineTroubleshootingFields: React.FC<Props> = ({ data, onChange }) => {
           className="w-full bg-[#1a1814] border border-[#3d3528] rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#06b6d4]"
           required
         />
-        <p className="mt-1 text-[11px] text-gray-500">
+        <p className="mt-1 text-body-xs text-gray-500">
           Resolves linked Jenkins / ArgoCD instances and recent commits.
         </p>
       </div>

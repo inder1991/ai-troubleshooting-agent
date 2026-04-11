@@ -37,8 +37,8 @@ const FixRecommendations: React.FC<FixRecommendationsProps> = ({ fixes, onExport
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
-        <h2 className="text-[10px] font-display font-bold text-slate-400">Recommended Fixes</h2>
-        <span className="text-[9px] text-slate-500">{fixes.length}</span>
+        <h2 className="text-body-xs font-display font-bold text-slate-400">Recommended Fixes</h2>
+        <span className="text-body-xs text-slate-500">{fixes.length}</span>
       </div>
 
       <div className="space-y-0">
@@ -58,11 +58,11 @@ const FixRecommendations: React.FC<FixRecommendationsProps> = ({ fixes, onExport
                 className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-duck-surface/30 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-duck-accent"
                 aria-expanded={isExpanded}
               >
-                <span className="text-[11px] font-bold text-slate-500 w-5 shrink-0">{fix.priority}.</span>
-                <span className={`text-[10px] font-bold ${isCritical ? 'text-white' : 'text-slate-300'}`}>
+                <span className="text-body-xs font-bold text-slate-500 w-5 shrink-0">{fix.priority}.</span>
+                <span className={`text-body-xs font-bold ${isCritical ? 'text-white' : 'text-slate-300'}`}>
                   {fix.title}
                 </span>
-                <span className={`text-[8px] font-bold px-1 py-0.5 rounded border shrink-0 ${badge}`}>
+                <span className={`text-chrome font-bold px-1 py-0.5 rounded border shrink-0 ${badge}`}>
                   {fix.severity.toUpperCase()}
                 </span>
                 {fix.sql && (
@@ -88,34 +88,34 @@ const FixRecommendations: React.FC<FixRecommendationsProps> = ({ fixes, onExport
                     transition={{ duration: 0.2 }}
                     className="overflow-hidden px-3 pb-2"
                   >
-                    <p className="text-[10px] text-slate-400 mb-2">{fix.recommendation}</p>
+                    <p className="text-body-xs text-slate-400 mb-2">{fix.recommendation}</p>
                     {fix.sql && (
-                      <pre className="text-[10px] font-mono text-amber-300/80 bg-duck-bg/80 rounded px-2 py-1.5 overflow-x-auto whitespace-pre-wrap border border-duck-border/30">
+                      <pre className="text-body-xs font-mono text-amber-300/80 bg-duck-bg/80 rounded px-2 py-1.5 overflow-x-auto whitespace-pre-wrap border border-duck-border/30">
                         {fix.sql}
                       </pre>
                     )}
                     {fix.warning && (
-                      <p className="text-[9px] text-amber-400/70 mt-1.5 flex items-start gap-1">
+                      <p className="text-body-xs text-amber-400/70 mt-1.5 flex items-start gap-1">
                         <span className="material-symbols-outlined text-[12px] shrink-0 mt-px" aria-hidden="true">warning</span>
                         {fix.warning}
                       </p>
                     )}
                     {fix.estimated_impact && (
-                      <p className="text-[9px] text-slate-300 mt-1.5">
+                      <p className="text-body-xs text-slate-300 mt-1.5">
                         <span className="text-slate-400">Impact:</span> {fix.estimated_impact}
                       </p>
                     )}
                     {fix.verification_sql && (
                       <details className="mt-1.5">
-                        <summary className="text-[9px] text-duck-accent cursor-pointer hover:text-amber-300 transition-colors">
+                        <summary className="text-body-xs text-duck-accent cursor-pointer hover:text-amber-300 transition-colors">
                           Verify this fix
                         </summary>
-                        <pre className="text-[9px] font-mono text-slate-400 bg-duck-bg/50 rounded px-2 py-1.5 mt-1 whitespace-pre-wrap overflow-x-auto">
+                        <pre className="text-body-xs font-mono text-slate-400 bg-duck-bg/50 rounded px-2 py-1.5 mt-1 whitespace-pre-wrap overflow-x-auto">
                           {fix.verification_sql}
                         </pre>
                       </details>
                     )}
-                    <span className="text-[9px] text-slate-600 mt-1 block">{fix.agent}</span>
+                    <span className="text-body-xs text-slate-600 mt-1 block">{fix.agent}</span>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -128,7 +128,7 @@ const FixRecommendations: React.FC<FixRecommendationsProps> = ({ fixes, onExport
       {onExportReport && (
         <button
           onClick={onExportReport}
-          className="mt-3 w-full flex items-center justify-center gap-2 py-2 text-[10px] font-display font-bold text-slate-400 border border-duck-border/30 rounded-lg hover:border-duck-accent/30 hover:text-duck-accent transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-duck-accent"
+          className="mt-3 w-full flex items-center justify-center gap-2 py-2 text-body-xs font-display font-bold text-slate-400 border border-duck-border/30 rounded-lg hover:border-duck-accent/30 hover:text-duck-accent transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-duck-accent"
         >
           <span className="material-symbols-outlined text-[14px]">description</span>
           Export Report

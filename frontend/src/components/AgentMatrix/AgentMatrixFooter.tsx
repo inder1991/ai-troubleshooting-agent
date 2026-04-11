@@ -8,7 +8,7 @@ interface AgentMatrixFooterProps {
 const AgentMatrixFooter: React.FC<AgentMatrixFooterProps> = ({ summary }) => {
   return (
     <footer
-      className="flex items-center justify-between px-8 py-2.5 border-t text-[11px]"
+      className="flex items-center justify-between px-8 py-2.5 border-t text-body-xs"
       style={{ borderColor: '#3d3528', backgroundColor: '#13110d' }}
     >
       <div className="flex items-center gap-5">

@@ -33,7 +33,7 @@ export const ContextRetrievalCard: React.FC<ContextRetrievalProps> = ({ data }) 
   return (
     <div className="transition-all duration-700">
       <div className="flex items-center gap-2 mb-2">
-        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+        <span className="text-body-xs font-bold text-slate-500 uppercase tracking-widest">
           2️⃣ Context Retrieval
         </span>
       </div>
@@ -43,7 +43,7 @@ export const ContextRetrievalCard: React.FC<ContextRetrievalProps> = ({ data }) 
         <div className="flex gap-1 mb-3 bg-slate-900 p-0.5 rounded">
           <button
             onClick={() => setActiveTab('functions')}
-            className={`flex-1 text-[8px] font-bold py-1 rounded transition-colors ${
+            className={`flex-1 text-chrome font-bold py-1 rounded transition-colors ${
               activeTab === 'functions'
                 ? 'bg-blue-600 text-white'
                 : 'text-slate-500 hover:text-slate-400'
@@ -54,7 +54,7 @@ export const ContextRetrievalCard: React.FC<ContextRetrievalProps> = ({ data }) 
           </button>
           <button
             onClick={() => setActiveTab('snippets')}
-            className={`flex-1 text-[8px] font-bold py-1 rounded transition-colors ${
+            className={`flex-1 text-chrome font-bold py-1 rounded transition-colors ${
               activeTab === 'snippets'
                 ? 'bg-blue-600 text-white'
                 : 'text-slate-500 hover:text-slate-400'
@@ -71,21 +71,21 @@ export const ContextRetrievalCard: React.FC<ContextRetrievalProps> = ({ data }) 
             {data.functionDefinitions && data.functionDefinitions.length > 0 ? (
               data.functionDefinitions.map((func, idx) => (
                 <div key={idx} className="border border-slate-800 rounded p-2 bg-slate-900/40">
-                  <code className="text-[9px] text-blue-400 block mb-1">
+                  <code className="text-body-xs text-blue-400 block mb-1">
                     {func.signature}
                   </code>
-                  <div className="text-[8px] text-slate-600">
+                  <div className="text-chrome text-slate-600">
                     Lines {func.startLine}-{func.endLine}
                   </div>
                   {func.docstring && (
-                    <div className="text-[8px] text-slate-500 mt-1 italic">
+                    <div className="text-chrome text-slate-500 mt-1 italic">
                       {func.docstring}
                     </div>
                   )}
                 </div>
               ))
             ) : (
-              <div className="text-[9px] text-slate-700 text-center py-4">
+              <div className="text-body-xs text-slate-700 text-center py-4">
                 No functions extracted
               </div>
             )}
@@ -102,7 +102,7 @@ export const ContextRetrievalCard: React.FC<ContextRetrievalProps> = ({ data }) 
                     <button
                       key={idx}
                       onClick={() => setSelectedSnippet(idx)}
-                      className={`w-full text-left p-2 rounded text-[9px] font-mono transition-colors ${
+                      className={`w-full text-left p-2 rounded text-body-xs font-mono transition-colors ${
                         selectedSnippet === idx
                           ? 'bg-blue-900/30 border border-blue-800'
                           : 'bg-slate-900/40 border border-slate-800 hover:border-slate-700'
@@ -114,13 +114,13 @@ export const ContextRetrievalCard: React.FC<ContextRetrievalProps> = ({ data }) 
                 </div>
                 
                 {data.codeSnippets[selectedSnippet] && (
-                  <pre className="bg-slate-950 border border-slate-800 rounded p-2 overflow-x-auto text-[8px] text-slate-400">
+                  <pre className="bg-slate-950 border border-slate-800 rounded p-2 overflow-x-auto text-chrome text-slate-400">
                     <code>{data.codeSnippets[selectedSnippet].preview}</code>
                   </pre>
                 )}
               </>
             ) : (
-              <div className="text-[9px] text-slate-700 text-center py-4">
+              <div className="text-body-xs text-slate-700 text-center py-4">
                 No code snippets available
               </div>
             )}

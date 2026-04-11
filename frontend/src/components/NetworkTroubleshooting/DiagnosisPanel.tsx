@@ -83,7 +83,7 @@ const DiagnosisPanel: React.FC<DiagnosisPanelProps> = ({ findings, direction }) 
             {Object.entries(state.confidence_breakdown)
               .filter(([k]) => !['overall', 'penalties', 'path_source'].includes(k))
               .map(([key, val]) => (
-                <div key={key} className="flex justify-between text-[11px] font-mono">
+                <div key={key} className="flex justify-between text-body-xs font-mono">
                   <span style={{ color: '#64748b' }}>{key.replace(/_/g, ' ')}</span>
                   <span style={{ color: '#8a7e6b' }}>{(Number(val) * 100).toFixed(0)}%</span>
                 </div>
