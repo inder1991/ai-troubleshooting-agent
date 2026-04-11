@@ -46,11 +46,13 @@ export function CICDLiveBoard() {
   );
 
   const handleInvestigate = (item: DeliveryItem) => {
-    window.location.assign(
-      `/action-center?capability=troubleshoot_pipeline&git_repo=${encodeURIComponent(
-        item.git_repo ?? '',
-      )}&target=${encodeURIComponent(item.target ?? '')}`,
-    );
+    const params = new URLSearchParams({
+      capability: 'troubleshoot_pipeline',
+    });
+    if (clusterId) params.set('cluster_id', clusterId);
+    if (item.git_repo) params.set('git_repo', item.git_repo);
+    if (item.target) params.set('target', item.target);
+    window.location.assign(`/investigations/new?${params.toString()}`);
   };
 
   const subtitle =

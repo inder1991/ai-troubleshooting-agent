@@ -143,16 +143,28 @@ function CapabilityFormRoute() {
   const [searchParams] = useSearchParams();
   const capability = searchParams.get('capability') as CapabilityType | null;
 
+  const overrides = {
+    git_repo: searchParams.get('git_repo') ?? undefined,
+    target: searchParams.get('target') ?? undefined,
+    cluster_id: searchParams.get('cluster_id') ?? undefined,
+    service_hint: searchParams.get('service_hint') ?? undefined,
+    profile_id: searchParams.get('profile_id') ?? undefined,
+  };
+
   if (!capability) {
     return <NotFound />;
   }
 
   const handleSubmit = async (data: CapabilityFormData) => {
     try {
+      // Thread every form field through. Backend branches on `capability`
+      // and reads capability-specific fields from request/extra.
+      const anyData = data as any;
       const session = await startSessionV4({
-        service_name: (data as any).service_name || capability,
-        time_window: (data as any).time_window || '1h',
+        service_name: anyData.service_name || anyData.cluster_id || capability,
+        time_window: anyData.time_window || '1h',
         capability,
+        ...anyData,
       });
       navigate(`/investigations/${session.session_id}`);
     } catch (err) {
@@ -165,6 +177,7 @@ function CapabilityFormRoute() {
       capability={capability}
       onBack={() => navigate('/')}
       onSubmit={handleSubmit}
+      overrides={overrides}
     />
   );
 }
