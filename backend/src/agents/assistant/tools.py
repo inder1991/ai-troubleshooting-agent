@@ -162,11 +162,11 @@ ASSISTANT_TOOLS = [
     },
     {
         "name": "start_investigation",
-        "description": "Start a new diagnostic investigation. Capabilities: troubleshoot_app, database_diagnostics, network_troubleshooting, cluster_diagnostics, pr_review, github_issue_fix.",
+        "description": "Start a new diagnostic investigation. Capabilities: troubleshoot_app, database_diagnostics, network_troubleshooting, cluster_diagnostics, pr_review, github_issue_fix, troubleshoot_pipeline.",
         "input_schema": {
             "type": "object",
             "properties": {
-                "capability": {"type": "string", "enum": ["troubleshoot_app", "database_diagnostics", "network_troubleshooting", "cluster_diagnostics", "pr_review", "github_issue_fix"]},
+                "capability": {"type": "string", "enum": ["troubleshoot_app", "database_diagnostics", "network_troubleshooting", "cluster_diagnostics", "pr_review", "github_issue_fix", "troubleshoot_pipeline"]},
                 "service_name": {"type": "string", "description": "Name of the service/database/cluster to investigate"},
                 "profile_id": {"type": "string", "description": "Profile ID for database diagnostics (optional)"},
             },

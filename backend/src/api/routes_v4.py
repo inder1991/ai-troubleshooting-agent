@@ -422,6 +422,30 @@ async def start_session(request: StartSessionRequest, background_tasks: Backgrou
         from src.api.db_session_endpoints import create_db_session
         return await create_db_session(session_id, request, incident_id, emitter, background_tasks)
 
+    # ── Pipeline Troubleshooting capability ──
+    if capability == "troubleshoot_pipeline":
+        sessions[session_id] = {
+            "service_name": request.serviceName or "Pipeline Troubleshooting",
+            "incident_id": incident_id,
+            "phase": "initial",
+            "confidence": 0,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "emitter": emitter,
+            "state": None,
+            "profile_id": profile_id,
+            "capability": "troubleshoot_pipeline",
+            "chat_history": [],
+        }
+        logger.info("Pipeline session created", extra={"session_id": session_id, "action": "session_created", "extra": "troubleshoot_pipeline"})
+        return StartSessionResponse(
+            session_id=session_id,
+            incident_id=incident_id,
+            status="started",
+            message="Pipeline troubleshooting session created — use /api/v4/cicd/stream for live analysis",
+            service_name=request.serviceName or "Pipeline Troubleshooting",
+            created_at=sessions[session_id]["created_at"],
+        )
+
     # ── Default: troubleshoot_app capability ──
     supervisor = SupervisorAgent(connection_config=connection_config)
 
