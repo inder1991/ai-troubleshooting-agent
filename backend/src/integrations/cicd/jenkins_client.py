@@ -9,6 +9,7 @@ from urllib.parse import quote
 
 import aiohttp
 
+from src.integrations.cicd.audit_hook import record_cicd_read
 from src.integrations.cicd.base import (
     Build, CICDClientError, DeployEvent, DeployStatus, SyncDiff,
 )
@@ -127,6 +128,7 @@ class JenkinsClient:
         until: datetime,
         target_filter: str | None = None,
     ) -> list[DeployEvent]:
+        record_cicd_read(self.source, self.name, "list_deploy_events")
         jobs_payload = await self._get_json("/api/json?tree=jobs[name,url]")
         jobs = jobs_payload.get("jobs", [])
 
@@ -215,6 +217,7 @@ class JenkinsClient:
         NOT attempt to parse raw Jenkins console output — if the marker is
         absent, ``failed_stage`` will be ``None``.
         """
+        record_cicd_read(self.source, self.name, "get_build_artifacts")
         job_name, sep, num = event.source_id.partition("#")
         if not sep or not num:
             raise CICDClientError(
@@ -246,6 +249,7 @@ class JenkinsClient:
         )
 
     async def health_check(self) -> bool:
+        record_cicd_read(self.source, self.name, "health_check")
         try:
             await self._get_json("/api/json?tree=mode")
             return True

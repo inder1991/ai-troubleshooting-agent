@@ -7,6 +7,7 @@ from typing import Any, Literal
 
 import aiohttp
 
+from src.integrations.cicd.audit_hook import record_cicd_read
 from src.integrations.cicd.base import (
     CICDClientError,
     DeployEvent,
@@ -185,6 +186,7 @@ class ArgoCDClient:
         until: datetime,
         target_filter: str | None = None,
     ) -> list[DeployEvent]:
+        record_cicd_read(self.source, self.name, "list_deploy_events")
         apps = await self._fetch_apps()
         events: list[DeployEvent] = []
         for app in apps or []:
@@ -235,6 +237,7 @@ class ArgoCDClient:
         return events
 
     async def get_build_artifacts(self, event: DeployEvent) -> SyncDiff:
+        record_cicd_read(self.source, self.name, "get_build_artifacts")
         apps = await self._fetch_apps()
         target: dict[str, Any] | None = None
         for a in apps or []:
@@ -268,6 +271,7 @@ class ArgoCDClient:
         )
 
     async def health_check(self) -> bool:
+        record_cicd_read(self.source, self.name, "health_check")
         try:
             await self._fetch_apps()
             return True
