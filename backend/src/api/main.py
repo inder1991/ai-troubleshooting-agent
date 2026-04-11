@@ -3,6 +3,7 @@ FastAPI Main Application
 Entry point for the API server
 """
 
+from contextlib import asynccontextmanager
 from pathlib import Path as _P
 from dotenv import load_dotenv
 load_dotenv(_P(__file__).resolve().parent.parent.parent / ".env")
@@ -139,12 +140,24 @@ def create_app() -> FastAPI:
     """Create and configure FastAPI application"""
     import os
 
+    # Forward-referenced — the actual functions are defined further down in
+    # this closure. Lifespan only invokes them at serve-time, by which point
+    # they're bound in scope.
+    @asynccontextmanager
+    async def lifespan(_app: FastAPI):
+        await startup()
+        try:
+            yield
+        finally:
+            await shutdown()
+
     app = FastAPI(
         title="AI Multi-Agent Troubleshooting API",
         description="Intelligent troubleshooting with LangGraph orchestration",
         version="3.0.0",
         docs_url="/docs",
-        redoc_url="/redoc"
+        redoc_url="/redoc",
+        lifespan=lifespan,
     )
 
     # Rate limiting
@@ -210,7 +223,6 @@ def create_app() -> FastAPI:
     _cloud_integration_router = create_cloud_router(_cloud_store)
     app.include_router(_cloud_integration_router)
 
-    @app.on_event("startup")
     async def startup():
         import os
         _mode = "PRODUCTION" if is_production_mode() else "DEMO"
@@ -610,7 +622,6 @@ def create_app() -> FastAPI:
         except Exception as e:
             logger.warning("RemediationEngine startup failed: %s", e)
 
-    @app.on_event("shutdown")
     async def shutdown():
         # ── Shutdown Fix Job Queue ──
         try:

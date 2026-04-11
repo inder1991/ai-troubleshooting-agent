@@ -1,7 +1,7 @@
 import pytest
 from src.agents.cluster.state import (
     FailureReason, DomainStatus, DomainAnomaly, TruncationFlags,
-    DomainReport, CausalLink, CausalChain, BlastRadius,
+    DomainReport, CausalLink, CausalChain, ClusterBlastRadius,
     RemediationStep, ClusterHealthReport, ClusterDiagnosticState,
 )
 
@@ -65,9 +65,11 @@ def test_cluster_health_report_serialization():
         platform_version="4.14.2",
         platform_health="DEGRADED",
         data_completeness=0.75,
-        blast_radius=BlastRadius(
+        blast_radius=ClusterBlastRadius(
             summary="14% of nodes under pressure",
-            affected_namespaces=3, affected_pods=47, affected_nodes=2,
+            affected_namespaces=["ns-a", "ns-b", "ns-c"],
+            affected_pods=[f"pod-{i}" for i in range(47)],
+            affected_nodes=["node-1", "node-2"],
         ),
         causal_chains=[],
         uncorrelated_findings=[],
@@ -80,4 +82,4 @@ def test_cluster_health_report_serialization():
     )
     data = report.model_dump(mode="json")
     assert data["platform_health"] == "DEGRADED"
-    assert data["blast_radius"]["affected_pods"] == 47
+    assert len(data["blast_radius"]["affected_pods"]) == 47

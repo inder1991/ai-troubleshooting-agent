@@ -110,9 +110,9 @@ def test_truncation_warning_included_when_flags_set():
 
 
 def test_blast_radius_accepts_string_arrays():
-    """BlastRadius must accept arrays of resource names from LLM tool output."""
-    from src.agents.cluster.state import BlastRadius
-    br = BlastRadius(
+    """ClusterBlastRadius must accept arrays of resource names from LLM tool output."""
+    from src.agents.cluster.state import ClusterBlastRadius
+    br = ClusterBlastRadius(
         summary="Pod crashloop",
         affected_namespaces=["production", "staging"],
         affected_pods=["order-svc-abc", "order-svc-def"],

@@ -10,7 +10,7 @@ import time
 
 from src.agents.cluster.state import (
     DomainReport, DomainStatus, DomainAnomaly, CausalChain, CausalLink,
-    BlastRadius, ClusterHealthReport,
+    ClusterBlastRadius, ClusterHealthReport,
 )
 from src.agents.cluster.command_validator import validate_kubectl_command, add_dry_run, generate_rollback
 from src.agents.cluster.traced_node import traced_node
@@ -618,10 +618,10 @@ async def synthesize(state: dict, config: RunnableConfig) -> dict:
 
     # Build health report with Pydantic validation safety
     try:
-        blast_radius = BlastRadius(**verdict.get("blast_radius", {}))
+        blast_radius = ClusterBlastRadius(**verdict.get("blast_radius", {}))
     except Exception:
         logger.warning("Failed to parse blast_radius from LLM, using defaults")
-        blast_radius = BlastRadius()
+        blast_radius = ClusterBlastRadius()
 
     causal_chains = []
     for c in causal_result.get("causal_chains", []):
