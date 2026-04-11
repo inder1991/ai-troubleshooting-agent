@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Literal
 
 import aiohttp
@@ -51,9 +51,12 @@ def _parse_iso(s: str | None) -> datetime | None:
     if not s:
         return None
     try:
-        return datetime.fromisoformat(s.replace("Z", "+00:00"))
+        dt = datetime.fromisoformat(s.replace("Z", "+00:00"))
     except (ValueError, TypeError):
         return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt
 
 
 class ArgoCDClient:
@@ -123,33 +126,32 @@ class ArgoCDClient:
             {"Authorization": f"Bearer {self._token}"} if self._token else {}
         )
         try:
-            async with self._sem:
-                # TODO(phase-b): share a single ClientSession across calls.
-                async with aiohttp.ClientSession(timeout=self._timeout) as s:
-                    async with s.get(url, headers=headers) as resp:
-                        if resp.status in (401, 403):
-                            raise CICDClientError(
-                                source="argocd",
-                                instance=self.name,
-                                kind="auth",
-                                message=f"{resp.status}",
-                            )
-                        if resp.status == 429:
-                            raise CICDClientError(
-                                source="argocd",
-                                instance=self.name,
-                                kind="rate_limit",
-                                message="429",
-                            )
-                        if resp.status >= 500:
-                            raise CICDClientError(
-                                source="argocd",
-                                instance=self.name,
-                                kind="network",
-                                message=f"{resp.status}",
-                            )
-                        resp.raise_for_status()
-                        return await resp.json()
+            # TODO(phase-b): share a single ClientSession across calls.
+            async with aiohttp.ClientSession(timeout=self._timeout) as s:
+                async with s.get(url, headers=headers) as resp:
+                    if resp.status in (401, 403):
+                        raise CICDClientError(
+                            source="argocd",
+                            instance=self.name,
+                            kind="auth",
+                            message=f"{resp.status}",
+                        )
+                    if resp.status == 429:
+                        raise CICDClientError(
+                            source="argocd",
+                            instance=self.name,
+                            kind="rate_limit",
+                            message="429",
+                        )
+                    if resp.status >= 500:
+                        raise CICDClientError(
+                            source="argocd",
+                            instance=self.name,
+                            kind="network",
+                            message=f"{resp.status}",
+                        )
+                    resp.raise_for_status()
+                    return await resp.json()
         except asyncio.TimeoutError as e:
             raise CICDClientError(
                 source="argocd",
@@ -166,15 +168,16 @@ class ArgoCDClient:
             ) from e
 
     async def _fetch_apps(self) -> list[dict[str, Any]]:
-        if self.mode == "rest":
-            payload = await self._get_json("/api/v1/applications")
-            items = (payload or {}).get("items") or []
-            return items if isinstance(items, list) else []
-        # kubeconfig mode — exercised by Task 8.
-        result = await self._cluster.list_custom_resource(
-            group="argoproj.io", version="v1alpha1", plural="applications",
-        )
-        return result or []
+        async with self._sem:
+            if self.mode == "rest":
+                payload = await self._get_json("/api/v1/applications")
+                items = (payload or {}).get("items") or []
+                return items if isinstance(items, list) else []
+            # kubeconfig mode — exercised by Task 8.
+            result = await self._cluster.list_custom_resource(
+                group="argoproj.io", version="v1alpha1", plural="applications",
+            )
+            return result or []
 
     async def list_deploy_events(
         self,
@@ -212,7 +215,7 @@ class ArgoCDClient:
             events.append(
                 DeployEvent(
                     source="argocd",
-                    source_id=f"{name}@{sync_result.get('revision') or 'unknown'}",
+                    source_id=f"{name}@{revision or 'unknown'}",
                     name=name,
                     status=_PHASE_MAP.get(phase, "unknown"),
                     started_at=started,
@@ -269,6 +272,4 @@ class ArgoCDClient:
             await self._fetch_apps()
             return True
         except CICDClientError:
-            return False
-        except Exception:
             return False
