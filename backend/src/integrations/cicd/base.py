@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Literal
+from typing import Literal, Protocol, runtime_checkable
 
 from pydantic import BaseModel, Field
 
@@ -85,3 +86,38 @@ class CICDClientError(Exception):
             retriable if retriable is not None else kind in _RETRIABLE_KINDS
         )
         super().__init__(f"[{source}/{instance}] {kind}: {message}")
+
+
+@runtime_checkable
+class CICDClient(Protocol):
+    """Duck-typed interface all CI/CD clients satisfy."""
+
+    source: Literal["jenkins", "argocd"]
+    name: str
+
+    async def list_deploy_events(
+        self,
+        since: datetime,
+        until: datetime,
+        target_filter: str | None = None,
+    ) -> list[DeployEvent]: ...
+
+    async def get_build_artifacts(
+        self, event: DeployEvent
+    ) -> Build | SyncDiff: ...
+
+    async def health_check(self) -> bool: ...
+
+
+@dataclass
+class InstanceError:
+    name: str
+    source: Literal["jenkins", "argocd"]
+    message: str = ""
+
+
+@dataclass
+class ResolveResult:
+    jenkins: list[CICDClient] = field(default_factory=list)
+    argocd: list[CICDClient] = field(default_factory=list)
+    errors: list[InstanceError] = field(default_factory=list)
