@@ -73,7 +73,7 @@ export default {
         // labels, tab buttons, sidebar items. Historically DM Sans; after the
         // Phase 5 font swap we keep Inter Tight here so chrome stays sans
         // and matches body without reintroducing a third font.
-        display: ['"Inter Tight"', 'Inter', 'system-ui', 'sans-serif'],
+        display: ['"Inter Tight"', 'Inter', 'system-ui', 'Avenir', 'Helvetica', 'Arial', 'sans-serif'],
         sans: ['"Inter Tight"', 'Inter', 'system-ui', 'Avenir', 'Helvetica', 'Arial', 'sans-serif'],
         // `editorial` is the NEW utility — Fraunces serif for deliberate
         // hero headlines, big numerals, magazine-style moments. Not used
