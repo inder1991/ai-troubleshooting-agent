@@ -163,16 +163,22 @@ export const sendChatMessage = async (
   };
 };
 
-export const getSessionStatus = async (sessionId: string): Promise<V4SessionStatus> => {
-  const response = await fetch(`${API_BASE_URL}/api/v4/session/${sessionId}/status`);
+export const getSessionStatus = async (
+  sessionId: string,
+  opts?: { signal?: AbortSignal },
+): Promise<V4SessionStatus> => {
+  const response = await fetch(`${API_BASE_URL}/api/v4/session/${sessionId}/status`, { signal: opts?.signal });
   if (!response.ok) {
     throw new Error(await extractErrorDetail(response, 'Failed to get session status'));
   }
   return response.json();
 };
 
-export const getFindings = async (sessionId: string): Promise<V4Findings> => {
-  const response = await fetch(`${API_BASE_URL}/api/v4/session/${sessionId}/findings`);
+export const getFindings = async (
+  sessionId: string,
+  opts?: { signal?: AbortSignal },
+): Promise<V4Findings> => {
+  const response = await fetch(`${API_BASE_URL}/api/v4/session/${sessionId}/findings`, { signal: opts?.signal });
   if (!response.ok) {
     throw new Error(await extractErrorDetail(response, 'Failed to get findings'));
   }

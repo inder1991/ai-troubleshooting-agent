@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import type { V4Session, V4Findings, V4SessionStatus, ChatMessage, TaskEvent, DiagnosticPhase, TokenUsage, AttestationGateData } from '../../types';
 import { getFindings, getSessionStatus, sendChatMessage } from '../../services/api';
 import { useChatUI, useInvestigationContext } from '../../contexts/ChatContext';
@@ -15,6 +15,8 @@ import SurgicalTelescope from './SurgicalTelescope';
 import { TopologySelectionProvider } from '../../contexts/TopologySelectionContext';
 import { TelescopeProvider } from '../../contexts/TelescopeContext';
 import TelescopeDrawerV2 from './TelescopeDrawerV2';
+
+const RELEVANT_EVENT_TYPES = new Set<string>(['summary', 'finding', 'phase_change']);
 
 interface InvestigationViewProps {
   session: V4Session;
@@ -52,12 +54,13 @@ const InvestigationView: React.FC<InvestigationViewProps> = ({
   const { addMessage: onNewMessage } = useChatUI();
   const { setCampaign } = useCampaignContext();
 
-  // Sync campaign data from findings into CampaignContext
+  // Sync campaign data from findings into CampaignContext — keyed to avoid object-identity thrash
+  const campaignKey = findings?.campaign
+    ? `${(findings.campaign as { id?: string }).id ?? ''}:${(findings.campaign as { updated_at?: string }).updated_at ?? ''}`
+    : '';
   useEffect(() => {
-    if (findings?.campaign) {
-      setCampaign(findings.campaign);
-    }
-  }, [findings?.campaign, setCampaign]);
+    if (findings?.campaign) setCampaign(findings.campaign);
+  }, [campaignKey, findings?.campaign, setCampaign]);
 
   // Sync investigation context (namespace/service/pod) into ChatContext for QuickActionToolbar
   const { setInvestigationContext } = useInvestigationContext();
@@ -76,40 +79,53 @@ const InvestigationView: React.FC<InvestigationViewProps> = ({
     return () => { if (agoIntervalRef.current) clearInterval(agoIntervalRef.current); };
   }, [lastFetchTime]);
 
+  const abortRef = useRef<AbortController | null>(null);
   const fetchSharedData = useCallback(async () => {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
     try {
       const [f, s] = await Promise.all([
-        getFindings(session.session_id),
-        getSessionStatus(session.session_id),
+        getFindings(session.session_id, { signal: controller.signal }),
+        getSessionStatus(session.session_id, { signal: controller.signal }),
       ]);
+      if (controller.signal.aborted) return;
       setFindings(f);
       setSessionStatus(s);
       setFetchFailCount(0);
       setFetchErrorDismissed(false);
       setLastFetchTime(Date.now());
-    } catch {
+    } catch (err) {
+      if ((err as Error)?.name === 'AbortError') return;
       setFetchFailCount((c) => c + 1);
     }
   }, [session.session_id]);
+  useEffect(() => () => abortRef.current?.abort(), []);
 
-  // Poll every 5s
+  // Backoff poll interval — stretches from 5s to 30s after repeated failures
+  const pollIntervalMs = useMemo(() => {
+    if (fetchFailCount === 0) return 5000;
+    return Math.min(30000, 5000 * 2 ** Math.min(fetchFailCount, 3));
+  }, [fetchFailCount]);
+
   useEffect(() => {
     fetchSharedData();
-    const interval = setInterval(fetchSharedData, 5000);
+    const interval = setInterval(fetchSharedData, pollIntervalMs);
     return () => clearInterval(interval);
-  }, [fetchSharedData]);
+  }, [fetchSharedData, pollIntervalMs]);
 
-  // Also re-fetch on relevant WebSocket events (debounced — only on new events)
-  const relevantEventCount = events.filter(
-    (e) => e.event_type === 'summary' || e.event_type === 'finding' || e.event_type === 'phase_change'
-  ).length;
-  const prevRelevantCountRef = useRef(0);
+  // Re-fetch on relevant WebSocket events — ref-based to avoid derived recompute on every render
+  const seenRelevantRef = useRef(0);
   useEffect(() => {
-    if (relevantEventCount > prevRelevantCountRef.current) {
-      prevRelevantCountRef.current = relevantEventCount;
+    let relevant = 0;
+    for (const e of events) {
+      if (RELEVANT_EVENT_TYPES.has(e.event_type)) relevant++;
+    }
+    if (relevant > seenRelevantRef.current) {
+      seenRelevantRef.current = relevant;
       fetchSharedData();
     }
-  }, [relevantEventCount, fetchSharedData]);
+  }, [events, fetchSharedData]);
 
   // Freshness indicator color
   const freshnessColor = lastFetchAgo <= 10 ? 'bg-green-500' : lastFetchAgo <= 30 ? 'bg-amber-500' : 'bg-red-500';

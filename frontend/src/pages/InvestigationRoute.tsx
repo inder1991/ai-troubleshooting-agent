@@ -7,7 +7,6 @@ import type {
   TokenUsage,
   ChatMessage,
   AttestationGateData,
-  CapabilityType,
 } from '../types';
 import { useWebSocketV4 } from '../hooks/useWebSocket';
 import type { ChatStreamEndPayload } from '../hooks/useWebSocket';
@@ -46,8 +45,6 @@ export default function InvestigationRoute() {
     setLoading(true);
     getSessionStatus(sessionId)
       .then((status) => {
-        // Backend returns capability in status response (not in TS type yet)
-        const capability = (status as unknown as Record<string, unknown>).capability as CapabilityType | undefined;
         setSession({
           session_id: sessionId,
           service_name: status.service_name || 'Investigation',
@@ -56,7 +53,7 @@ export default function InvestigationRoute() {
           created_at: status.created_at,
           updated_at: status.updated_at,
           incident_id: status.incident_id || '',
-          capability: capability || 'troubleshoot_app',
+          capability: status.capability || 'troubleshoot_app',
         });
         setCurrentPhase(status.phase);
         setConfidence(status.confidence);
@@ -260,6 +257,7 @@ export default function InvestigationRoute() {
       onPhaseUpdate={handleChatPhaseUpdate}
     >
       <CampaignProvider sessionId={sessionId ?? null}>
+        <ErrorBoundary>
         <ForemanHUD
           sessionId={session.session_id}
           serviceName={session.service_name}
@@ -282,7 +280,6 @@ export default function InvestigationRoute() {
           </div>
         )}
         <div className="flex-1 overflow-hidden">
-          <ErrorBoundary>
             {session.capability === 'database_diagnostics' ? (
               <DatabaseWarRoom
                 session={session}
@@ -304,8 +301,8 @@ export default function InvestigationRoute() {
                 onNavigateToDossier={handleNavigateToDossier}
               />
             )}
-          </ErrorBoundary>
         </div>
+        </ErrorBoundary>
       </CampaignProvider>
     </ChatProvider>
   );

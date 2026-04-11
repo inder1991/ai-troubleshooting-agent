@@ -351,6 +351,7 @@ export interface V4SessionStatus {
   agents_completed?: string[];
   created_at: string;
   updated_at: string;
+  capability?: CapabilityType;
 }
 
 export interface SuggestedPromQLQuery {
