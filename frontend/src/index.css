@@ -528,6 +528,42 @@ a:focus-visible,
   --wr-domain-network: #10b981;
   --wr-domain-storage: #8b5cf6;
   --wr-domain-rbac: #ef4444;
+
+  /* Expanded text ramp (Phase 3) */
+  --wr-text-subtle: #5a5148;
+
+  /* Expanded surface ramp */
+  --wr-bg-elevated: #1e1b15;
+
+  /* Expanded border ramp */
+  --wr-border-strong: #3d3528;
+
+  /* Secondary accent — cyan for info/selection/link (frees amber to mean one thing) */
+  --wr-accent-2:      #22d3ee;
+  --wr-accent-2-glow: rgba(34, 211, 238, 0.3);
+
+  /* Z-index scale */
+  --z-base:   0;
+  --z-grid:   10;
+  --z-header: 20;
+  --z-dock:   40;
+  --z-drawer: 50;
+  --z-modal:  60;
+  --z-toast:  70;
+
+  /* Motion tokens */
+  --motion-breath: 3s;
+  --motion-pulse:  2s;
+  --motion-alarm:  1s;
+  --motion-flash:  0.6s;
+  --ease-soft:  cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-sharp: cubic-bezier(0.7, 0, 0.3, 1);
+
+  /* Glow intensity tiers */
+  --glow-ambient:   0 0 4px;
+  --glow-attention: 0 0 8px;
+  --glow-critical:  0 0 16px;
+  --glow-hero:      0 0 24px;
 }
 
 /* ─── War Room Shell Classes (shared by all 4 capabilities) ───── */
