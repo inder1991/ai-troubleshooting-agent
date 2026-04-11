@@ -58,3 +58,30 @@ class DeliveryItem(BaseModel):
     timestamp: datetime
     duration_s: int | None = None
     url: str
+
+
+ErrorKind = Literal["auth", "network", "timeout", "rate_limit", "parse", "unknown"]
+
+_RETRIABLE_KINDS = {"network", "timeout", "rate_limit"}
+
+
+class CICDClientError(Exception):
+    """Structured error raised by CICDClient implementations."""
+
+    def __init__(
+        self,
+        *,
+        source: str,
+        instance: str,
+        kind: ErrorKind,
+        message: str,
+        retriable: bool | None = None,
+    ) -> None:
+        self.source = source
+        self.instance = instance
+        self.kind = kind
+        self.message = message
+        self.retriable = (
+            retriable if retriable is not None else kind in _RETRIABLE_KINDS
+        )
+        super().__init__(f"[{source}/{instance}] {kind}: {message}")
