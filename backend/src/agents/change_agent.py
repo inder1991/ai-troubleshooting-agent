@@ -5,6 +5,7 @@ import re as _re
 import shlex
 
 from src.agents.react_base import ReActAgent
+from src.integrations.github_client import GitHubClient, GitHubClientError
 from src.utils.event_emitter import EventEmitter
 from src.utils.logger import get_logger
 
@@ -549,9 +550,6 @@ class ChangeAgent(ReActAgent):
         return f"Unknown tool: {tool_name}"
 
     async def _get_github_commits(self, params: dict) -> str:
-        import httpx
-        from datetime import datetime, timezone, timedelta
-
         repo_url = params.get("repo_url", self._repo_url)
         since_hours = params.get("since_hours", 24)
 
@@ -563,51 +561,16 @@ class ChangeAgent(ReActAgent):
             return f"Could not parse repository URL: {repo_url}"
 
         token = self._github_token or os.getenv("GITHUB_TOKEN", "")
-        headers = {"Accept": "application/vnd.github+json"}
-        if token:
-            headers["Authorization"] = f"Bearer {token}"
-
-        since_iso = (datetime.now(timezone.utc) - timedelta(hours=since_hours)).isoformat()
-        url = f"https://api.github.com/repos/{owner_repo}/commits"
-
+        client = GitHubClient(token=token)
         try:
-            async with httpx.AsyncClient(timeout=15.0) as client:
-                # First try: commits within the time window
-                resp = await client.get(url, headers=headers, params={"per_page": 20, "since": since_iso})
-                if resp.status_code == 401:
-                    return "GitHub API error: authentication required — set GITHUB_TOKEN env var"
-                if resp.status_code == 404:
-                    return f"GitHub API error: repository not found — {owner_repo}"
-                resp.raise_for_status()
-                commits = resp.json()
+            commits = await client.get_commits(owner_repo, since_hours=since_hours)
+        except GitHubClientError as e:
+            return f"GitHub API error: {e}"
 
-                # Fallback: if no commits in time window, fetch last 10 commits
-                if not commits:
-                    resp = await client.get(url, headers=headers, params={"per_page": 10})
-                    resp.raise_for_status()
-                    commits = resp.json()
-                    if commits:
-                        logger.info("No commits in last %dh, falling back to last %d commits", since_hours, len(commits))
-        except httpx.HTTPStatusError as e:
-            return f"GitHub API error: {e.response.status_code} {e.response.text[:200]}"
-        except httpx.ConnectError:
-            return "GitHub API error: connection failed — check network"
-        except httpx.TimeoutException:
-            return "GitHub API error: request timed out"
-
-        def _fmt(c: dict) -> dict:
-            return {
-                "sha": c["sha"][:8],
-                "author": c["commit"]["author"]["name"],
-                "date": c["commit"]["author"]["date"],
-                "message": c["commit"]["message"][:200],
-            }
-
-        result = [_fmt(c) for c in commits]
-        if not result:
+        if not commits:
             return f"No commits found in repository {owner_repo}"
 
-        result_json = json.dumps(result, indent=2)
+        result_json = json.dumps(commits, indent=2)
         self.add_breadcrumb(
             action="fetch_commits",
             source_type="code",
@@ -617,9 +580,7 @@ class ChangeAgent(ReActAgent):
         return result_json
 
     async def _get_commit_diff(self, params: dict) -> str:
-        """Fetch file-level diff for a commit. Ported from code_agent pattern."""
-        import httpx
-
+        """Fetch file-level diff for a commit."""
         repo_url = params.get("repo_url", self._repo_url)
         commit_sha = params.get("commit_sha", "")
         if not commit_sha:
@@ -630,50 +591,18 @@ class ChangeAgent(ReActAgent):
             return f"Could not parse repository URL: {repo_url}"
 
         token = self._github_token or os.getenv("GITHUB_TOKEN", "")
-        headers = {"Accept": "application/vnd.github+json"}
-        if token:
-            headers["Authorization"] = f"Bearer {token}"
-
-        url = f"https://api.github.com/repos/{owner_repo}/commits/{commit_sha}"
+        client = GitHubClient(token=token)
         try:
-            async with httpx.AsyncClient(timeout=15.0) as client:
-                resp = await client.get(url, headers=headers)
-                if resp.status_code == 404:
-                    return f"Commit not found: {commit_sha}"
-                resp.raise_for_status()
-                data = resp.json()
-        except httpx.HTTPStatusError as e:
-            return f"GitHub API error: {e.response.status_code}"
-        except (httpx.ConnectError, httpx.TimeoutException):
-            return "GitHub API error: connection failed or timed out"
+            result = await client.get_commit_diff(owner_repo, commit_sha)
+        except GitHubClientError as e:
+            return f"GitHub API error: {e}"
 
-        files = data.get("files", [])[:15]
-        result_files = []
-        for f in files:
-            patch = f.get("patch", "")
-            if len(patch) > 1500:
-                patch = patch[:1500] + "\n... (truncated)"
-            result_files.append({
-                "filename": f.get("filename", ""),
-                "status": f.get("status", ""),
-                "additions": f.get("additions", 0),
-                "deletions": f.get("deletions", 0),
-                "patch": patch,
-            })
-
-        result = {
-            "commit_sha": commit_sha,
-            "message": data.get("commit", {}).get("message", "")[:200],
-            "author": data.get("commit", {}).get("author", {}).get("name", ""),
-            "files": result_files,
-        }
         result_json = json.dumps(result, indent=2)
-
         self.add_breadcrumb(
             action="fetch_commit_diff",
             source_type="code",
             source_reference=f"{owner_repo}@{commit_sha[:8]}",
-            raw_evidence=f"Diff: {len(result_files)} files changed",
+            raw_evidence=f"Diff: {len(result.get('files', []))} files changed",
         )
         return result_json
 
