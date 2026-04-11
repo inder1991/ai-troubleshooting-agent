@@ -20,12 +20,18 @@ logger = logging.getLogger(__name__)
 
 
 def _linked(gi, active_cluster_id: str | None) -> bool:
-    """True if this GI applies to the active cluster (empty list = global)."""
+    """True if this GI applies to the active cluster.
+
+    - Empty/missing cluster_ids = global (applies to every cluster).
+    - Non-empty cluster_ids = cluster-specific (only when active_cluster_id matches).
+    - active_cluster_id=None + cluster-specific instance = skip (callers that pass
+      None get globals only).
+    """
     cluster_ids = (gi.config or {}).get("cluster_ids") or []
     if not cluster_ids:
         return True  # global
     if active_cluster_id is None:
-        return True  # no active cluster specified => include everything
+        return False  # cluster-specific but no active cluster — skip
     return active_cluster_id in cluster_ids
 
 
@@ -44,8 +50,8 @@ async def resolve_cicd_clients(
     """Resolve all CI/CD clients linked to the active cluster.
 
     Args:
-        active_cluster_id: ClusterProfile.id of the active cluster, or None to
-            include all configured instances.
+        active_cluster_id: ClusterProfile.id of the active cluster, or None
+            returns only globally-scoped instances (empty cluster_ids).
 
     Returns:
         ResolveResult with separate jenkins/argocd lists plus per-instance
@@ -63,7 +69,11 @@ async def resolve_cicd_clients(
         try:
             resolved = _resolve_credential(gi)
             # Jenkins stores "username:api_token" in the credential blob.
-            username, _, api_token = resolved.partition(":")
+            username, sep, api_token = resolved.partition(":")
+            if not sep or not api_token:
+                raise ValueError(
+                    f"jenkins credential for {gi.name} must be formatted 'username:api_token'"
+                )
             client = JenkinsClient(
                 base_url=gi.url,
                 username=username,

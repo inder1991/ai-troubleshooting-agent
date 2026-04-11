@@ -150,3 +150,56 @@ async def test_resolver_isolates_jenkins_and_still_returns_argocd():
     assert len(result.argocd) == 1
     assert len(result.errors) == 1
     assert result.errors[0].source == "jenkins"
+
+
+@pytest.mark.asyncio
+async def test_resolver_skips_cluster_specific_when_no_active_cluster():
+    # Cluster-specific jenkins GI but caller passes active_cluster_id=None:
+    # should be skipped before credential resolution.
+    jenkins_gi = _gi("scoped-jenkins", "jenkins", cluster_ids=["cluster-a"])
+    with patch("src.integrations.cicd.resolver.GlobalIntegrationStore") as Store, \
+         patch("src.integrations.cicd.resolver.get_credential_resolver") as gcr, \
+         patch("src.integrations.cicd.resolver.JenkinsClient") as JC:
+        Store.return_value.list_by_service_type.side_effect = (
+            lambda t: [jenkins_gi] if t == "jenkins" else []
+        )
+        result = await resolve_cicd_clients(active_cluster_id=None)
+    assert result.jenkins == []
+    assert result.errors == []
+    # Prove we skipped before touching credentials.
+    gcr.return_value.resolve.assert_not_called()
+    JC.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_resolver_records_error_when_jenkins_credential_is_malformed():
+    jenkins_gi = _gi("bad-cred-jenkins", "jenkins", cluster_ids=None)
+    with patch("src.integrations.cicd.resolver.GlobalIntegrationStore") as Store, \
+         patch("src.integrations.cicd.resolver.get_credential_resolver") as gcr, \
+         patch("src.integrations.cicd.resolver.JenkinsClient") as JC:
+        Store.return_value.list_by_service_type.side_effect = (
+            lambda t: [jenkins_gi] if t == "jenkins" else []
+        )
+        gcr.return_value.resolve.return_value = "just-a-token"
+        result = await resolve_cicd_clients(active_cluster_id=None)
+    assert result.jenkins == []
+    assert len(result.errors) == 1
+    assert result.errors[0].source == "jenkins"
+    assert "username:api_token" in result.errors[0].message
+    JC.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_resolver_filters_argocd_by_cluster_ids():
+    argo_gi = _gi("scoped-argo", "argocd", cluster_ids=["cluster-b"])
+    with patch("src.integrations.cicd.resolver.GlobalIntegrationStore") as Store, \
+         patch("src.integrations.cicd.resolver.get_credential_resolver") as gcr, \
+         patch("src.integrations.cicd.resolver.ArgoCDClient") as AC:
+        Store.return_value.list_by_service_type.side_effect = (
+            lambda t: [argo_gi] if t == "argocd" else []
+        )
+        result = await resolve_cicd_clients(active_cluster_id="cluster-a")
+    assert result.argocd == []
+    assert result.errors == []
+    gcr.return_value.resolve.assert_not_called()
+    AC.from_rest.assert_not_called()
