@@ -163,6 +163,9 @@ class SupervisorAgent:
         # Redis session store (set via set_session_store())
         self._session_store = None
 
+        # Feedback dedup
+        self._seen_feedback_ids: set[str] = set()
+
         # Human-in-the-loop channel for code_agent questions
         self._code_agent_question: str = ""
         self._code_agent_answer: str = ""
@@ -3082,7 +3085,17 @@ Examples:
             self._fix_human_decision = "reject"
             self._pending_fix_approval = False
         else:
-            self._fix_human_decision = message.strip()  # feedback
+            # Dedup feedback using optional client UUID prefix (feedback:uuid:text)
+            feedback_text = message.strip()
+            if feedback_text.startswith("feedback:"):
+                parts = feedback_text.split(":", 2)
+                if len(parts) == 3:
+                    feedback_id = parts[1]
+                    if feedback_id in self._seen_feedback_ids:
+                        return "Feedback already received."
+                    self._seen_feedback_ids.add(feedback_id)
+                    feedback_text = parts[2]
+            self._fix_human_decision = feedback_text  # feedback
             self._pending_fix_approval = False
 
         if text in ("approve", "yes", "create pr", "lgtm", "ok", "y"):
