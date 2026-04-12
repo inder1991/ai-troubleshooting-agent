@@ -46,5 +46,25 @@ class RedisSessionStore:
     async def extend_ttl(self, session_id: str) -> None:
         await self._redis.expire(self._key(session_id), self._ttl)
 
+    # ── PendingAction helpers ──────────────────────────────────────────
+
+    async def save_pending_action(self, session_id: str, action: "PendingAction") -> None:
+        key = f"pending_action:{session_id}"
+        await self._redis.set(key, json.dumps(action.to_dict()), ex=3600)
+
+    async def load_pending_action(self, session_id: str):
+        from src.models.pending_action import PendingAction
+
+        key = f"pending_action:{session_id}"
+        raw = await self._redis.get(key)
+        if not raw:
+            return None
+        data = json.loads(raw if isinstance(raw, str) else raw.decode())
+        return PendingAction.from_dict(data)
+
+    async def clear_pending_action(self, session_id: str) -> None:
+        key = f"pending_action:{session_id}"
+        await self._redis.delete(key)
+
     def acquire_lock(self, session_id: str, timeout: float = 10.0):
         return self._redis.lock(f"lock:{session_id}", timeout=timeout)

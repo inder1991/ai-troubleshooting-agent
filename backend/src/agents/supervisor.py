@@ -163,6 +163,9 @@ class SupervisorAgent:
         self._attestation_logger: Optional["AttestationLogger"] = None
         self._session_id: str = ""
 
+        # Redis session store (set via set_session_store())
+        self._session_store = None
+
         # Human-in-the-loop channel for code_agent questions
         self._code_agent_question: str = ""
         self._code_agent_answer: str = ""
@@ -172,6 +175,9 @@ class SupervisorAgent:
     def set_attestation_logger(self, logger: "AttestationLogger", session_id: str) -> None:
         self._attestation_logger = logger
         self._session_id = session_id
+
+    def set_session_store(self, store) -> None:
+        self._session_store = store
 
     async def run(
         self,
@@ -256,7 +262,29 @@ class SupervisorAgent:
                             "proposed_action": "Proceed to remediation phase",
                         }
                     )
-                break
+
+                    # Save PendingAction to Redis so the front-end can resume later
+                    from src.models.pending_action import PendingAction
+                    from datetime import timedelta
+
+                    pending = PendingAction(
+                        type="attestation_required",
+                        blocking=True,
+                        actions=["approve", "reject", "details"],
+                        expires_at=datetime.now(timezone.utc) + timedelta(
+                            seconds=int(os.getenv("ATTESTATION_TIMEOUT_S", "600"))
+                        ),
+                        context={
+                            "findings_count": len(state.all_findings),
+                            "confidence": state.overall_confidence,
+                            "proposed_action": "Proceed to remediation phase",
+                        },
+                        version=1,
+                    )
+                    if self._session_store and self._session_id:
+                        await self._session_store.save_pending_action(self._session_id, pending)
+
+                return  # Clean exit — no coroutine held open
 
             state.agents_pending = next_agents
 
