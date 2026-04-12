@@ -1,5 +1,6 @@
 import json
 import asyncio
+import os
 import time
 import secrets
 from pathlib import Path
@@ -151,6 +152,7 @@ class SupervisorAgent:
         self._event_emitter: Optional[EventEmitter] = None
 
         # Human-in-the-loop: discovery attestation
+        self._attestation_event = asyncio.Event()
         self._attestation_acknowledged = False
 
         # Human-in-the-loop channel for code_agent questions
@@ -2981,6 +2983,23 @@ Examples:
         self._fix_human_decision = message.strip()
         self._fix_event.set()
         return "Got it — regenerating fix with your feedback."
+
+    ATTESTATION_TIMEOUT = float(os.getenv("ATTESTATION_TIMEOUT_S", "600"))
+    AUTO_APPROVE_THRESHOLD = float(os.getenv("ATTESTATION_AUTO_APPROVE_THRESHOLD", "0.85"))
+
+    def _should_auto_approve(self, confidence: float, critic_has_challenges: bool) -> bool:
+        threshold = float(os.getenv("ATTESTATION_AUTO_APPROVE_THRESHOLD", "0.85"))
+        return confidence >= threshold and not critic_has_challenges
+
+    async def _wait_for_attestation(self, timeout: float | None = None) -> str:
+        t = timeout or float(os.getenv("ATTESTATION_TIMEOUT_S", "600"))
+        try:
+            await asyncio.wait_for(self._attestation_event.wait(), timeout=t)
+            return "approved" if self._attestation_acknowledged else "rejected"
+        except asyncio.TimeoutError:
+            if self._event_emitter:
+                await self._event_emitter.emit("supervisor", "attestation_expired", {"reason": "no_response"})
+            return "timeout"
 
     def acknowledge_attestation(self, decision: str) -> str:
         """Record that the user has acknowledged the discovery attestation gate."""
