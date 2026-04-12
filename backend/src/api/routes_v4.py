@@ -2402,6 +2402,36 @@ async def cicd_commit_detail(owner: str, repo: str, sha: str):
         raise HTTPException(status_code=502, detail=str(exc))
 
 
+@router_v4.get("/health")
+async def health_check():
+    checks = {}
+    checks["redis"] = await check_redis()
+    checks.update(check_circuit_breakers())
+    statuses = [c.get("status") for c in checks.values()]
+    if all(s == "up" for s in statuses):
+        overall = "healthy"
+    elif any(s == "down" for s in statuses):
+        overall = "unhealthy"
+    else:
+        overall = "degraded"
+    return {"status": overall, "checks": checks}
+
+
+async def check_redis():
+    import time
+    try:
+        from src.api.main import app
+        start = time.monotonic()
+        await app.state.redis.ping()
+        return {"status": "up", "latency_ms": round((time.monotonic() - start) * 1000)}
+    except Exception:
+        return {"status": "down"}
+
+
+def check_circuit_breakers():
+    return {}
+
+
 @router_v4.get("/audit/attestations")
 async def get_attestation_log(request: Request, session_id: str | None = None, decided_by: str | None = None, since: str | None = None):
     attestation_logger = AttestationLogger(request.app.state.redis)
