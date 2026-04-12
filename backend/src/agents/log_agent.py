@@ -19,6 +19,8 @@ import os
 
 logger = get_logger(__name__)
 
+ES_MAX_RESULTS = int(os.getenv("ES_MAX_RESULTS", "5000"))
+
 
 class LogAnalysisAgent:
     """Hybrid log agent: deterministic collection + single LLM analysis call."""
@@ -1248,6 +1250,8 @@ Respond with JSON only. No markdown fences."""
         message_filter = params.get("message_filter", "")
         exclude_noise = params.get("exclude_noise", False)
 
+        size = min(size, ES_MAX_RESULTS)
+
         es_query: dict[str, Any] = {
             "size": size,
             "sort": [{"@timestamp": {"order": "desc"}}],
@@ -1362,12 +1366,16 @@ Respond with JSON only. No markdown fences."""
 
             logger.info("ES search complete", extra={"agent_name": self.agent_name, "action": "es_search", "extra": {"index": index, "hits": len(hits), "level_filter": level_filter}})
 
+            total_hits = data.get("hits", {}).get("total", {}).get("value", len(hits))
             summary = {
                 "total": len(hits),
                 "logs": logs[:50],
                 "truncated": len(hits) > 50,
             }
-            return json.dumps(summary, default=str)
+            result_text = json.dumps(summary, default=str)
+            if total_hits > ES_MAX_RESULTS:
+                result_text += f"\n[Showing newest {ES_MAX_RESULTS} of ~{total_hits} matching logs. Sorted newest-first.]"
+            return result_text
 
         except requests.exceptions.ConnectionError:
             logger.warning("ES connection failed", extra={"agent_name": self.agent_name, "action": "es_error", "extra": f"Cannot connect to {self.es_url}"})
