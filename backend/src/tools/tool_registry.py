@@ -103,6 +103,20 @@ TOOL_REGISTRY = [
         ],
         "requires_context": ["namespace"],
     },
+    {
+        "intent": "analyze_upstream_dependency",
+        "label": "Analyze Upstream Dependency",
+        "icon": "account_tree",
+        "slash_command": "/upstream",
+        "category": "code",
+        "description": "Analyze an upstream service's recent commits for breaking changes that may affect the current service",
+        "params_schema": [
+            {"name": "service_name", "type": "string", "required": True, "description": "Upstream service name from repo_map"},
+            {"name": "dependency_name", "type": "string", "required": True, "description": "Package/module name"},
+            {"name": "time_window_hours", "type": "number", "required": False, "description": "Hours to look back (default 24)"},
+        ],
+        "requires_context": ["repo_map"],
+    },
 ]
 
 # Derived: slash command -> intent mapping

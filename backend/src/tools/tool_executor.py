@@ -235,6 +235,7 @@ class ToolExecutor:
         "check_pod_status": "_check_pod_status",
         "get_events": "_get_events",
         "re_investigate_service": "_re_investigate_service",
+        "analyze_upstream_dependency": "_analyze_upstream_dependency",
     }
 
     # ------------------------------------------------------------------
@@ -873,6 +874,64 @@ class ToolExecutor:
             metadata={
                 "service": params.get("service"),
                 "namespace": params.get("namespace"),
+            },
+        )
+
+    # ------------------------------------------------------------------
+    # analyze_upstream_dependency
+    # ------------------------------------------------------------------
+
+    async def _analyze_upstream_dependency(self, params: dict[str, Any]) -> ToolResult:
+        """Analyze an upstream service for recent breaking changes."""
+        from src.agents.cross_repo_tracer import CrossRepoTracer
+
+        service_name = params.get("service_name", "")
+        dependency_name = params.get("dependency_name", "")
+        time_window = int(params.get("time_window_hours", 24))
+
+        repo_map = params.get("_context", {}).get("repo_map", {})
+        tracer = CrossRepoTracer(repo_map=repo_map)
+
+        window_end = datetime.now(tz=timezone.utc)
+        window_start = window_end - timedelta(hours=time_window)
+
+        findings = await tracer._analyze_upstream(
+            upstream_repo=service_name,
+            downstream_repo="current",
+            dependency={"name": dependency_name},
+            window_start=window_start,
+            window_end=window_end,
+        )
+
+        if not findings:
+            summary = f"No breaking changes found in {service_name} within the last {time_window} hours"
+            return ToolResult(
+                success=True,
+                intent="analyze_upstream_dependency",
+                raw_output=summary,
+                summary=summary,
+                evidence_snippets=[],
+                evidence_type="dependency_analysis",
+                domain="code",
+            )
+
+        lines = [
+            f"- {f.correlation_type}: {f.source_file} ({f.correlation_score:.0%})"
+            for f in findings
+        ]
+        summary = "\n".join(lines)
+        return ToolResult(
+            success=True,
+            intent="analyze_upstream_dependency",
+            raw_output=summary,
+            summary=summary,
+            evidence_snippets=lines,
+            evidence_type="dependency_analysis",
+            domain="code",
+            metadata={
+                "service_name": service_name,
+                "dependency_name": dependency_name,
+                "finding_count": len(findings),
             },
         )
 
