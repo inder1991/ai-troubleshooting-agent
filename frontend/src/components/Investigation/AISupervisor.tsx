@@ -249,7 +249,9 @@ const EventCard: React.FC<{ event: TaskEvent }> = ({ event }) => {
     case 'success':
       return <SuccessCard event={event} />;
     case 'attestation_required':
-      return <AttestationRequiredCard event={event} />;
+      return <AlertCard event={event} variant="warning" />;
+    case 'auto_approved':
+      return <SuccessCard event={event} />;
     default:
       return <GenericLogEntry event={event} />;
   }
@@ -485,49 +487,6 @@ const ToolCallGroupCard: React.FC<{ group: ToolCallGroup }> = ({ group }) => {
               <span className="text-slate-400">{ev.message}</span>
             </div>
           ))}
-        </div>
-      )}
-    </div>
-  );
-};
-
-// ─── Attestation Required Card ───────────────────────────────────────────
-
-const AttestationRequiredCard: React.FC<{ event: TaskEvent }> = ({ event }) => {
-  const [expanded, setExpanded] = useState(true);
-  const findingsCount = Number(event.details?.findings_count || 0);
-  const confidence = Number(event.details?.confidence || 0);
-  const proposedAction = String(event.details?.proposed_action || 'Proceed to remediation');
-
-  return (
-    <div className="border-2 border-amber-500/40 bg-wr-severity-medium/10 rounded-lg overflow-hidden">
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="w-full px-3 py-2.5 text-left flex items-center gap-2"
-        aria-expanded={expanded}
-      >
-        <span
-          className={`material-symbols-outlined text-xs text-amber-400 transition-transform ${expanded ? 'rotate-90' : ''}`}
-          style={{ fontFamily: 'Material Symbols Outlined' }}
-        >
-          chevron_right
-        </span>
-        <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-        <span className="text-body-xs font-bold uppercase tracking-wider text-amber-400">
-          Action Required
-        </span>
-        <span className="text-xs text-amber-300 ml-1">Human Review Needed</span>
-      </button>
-      {expanded && (
-        <div className="px-3 pb-3 border-t border-amber-500/20 pt-2 space-y-2">
-          <p className="text-sm text-slate-200">{event.message}</p>
-          <div className="flex items-center gap-4 text-body-xs text-slate-400">
-            <span>{findingsCount} findings</span>
-            <span>Confidence: {confidence}%</span>
-          </div>
-          <div className="text-body-xs text-slate-400">
-            Proposed: {proposedAction}
-          </div>
         </div>
       )}
     </div>
