@@ -1101,6 +1101,14 @@ async def get_session_status(session_id: str):
         "related_sessions": session.get("related_sessions", []),
     }
 
+    # Load pending action (shared across all capabilities)
+    session_store = _get_session_store()
+    if session_store:
+        pending = await session_store.load_pending_action(session_id)
+        result["pending_action"] = pending.to_dict() if pending else None
+    else:
+        result["pending_action"] = None
+
     # Cluster sessions: state is a plain dict
     if session.get("capability") == "cluster_diagnostics":
         if state and isinstance(state, dict):
