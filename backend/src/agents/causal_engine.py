@@ -3,6 +3,7 @@
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Literal
 from src.models.schemas import (
     EvidencePin,
     EvidenceNode,
@@ -99,6 +100,39 @@ class EvidenceGraphBuilder:
             edge.correlation_score,
             f"Cross-repo: {edge.source_repo} → {edge.target_repo}",
         )
+
+    # Mapping from handoff domain strings to valid EvidencePin evidence_type literals
+    _DOMAIN_TO_EVIDENCE_TYPE: dict[str, Literal["log", "metric", "trace", "k8s_event", "k8s_resource", "code", "change"]] = {
+        "k8s": "k8s_event",
+        "metrics": "metric",
+        "logs": "log",
+        "traces": "trace",
+        "code": "code",
+        "change": "change",
+    }
+
+    def ingest_structured_handoffs(self, handoffs_dict: dict) -> None:
+        """Ingest serialized evidence handoffs into the graph as evidence nodes."""
+        for h in handoffs_dict.get("handoffs", []):
+            domain = h.get("domain", "unknown")
+            evidence_type = self._DOMAIN_TO_EVIDENCE_TYPE.get(domain, "log")
+            ts_raw = h.get("timestamp")
+            if isinstance(ts_raw, str):
+                ts = datetime.fromisoformat(ts_raw)
+            elif isinstance(ts_raw, datetime):
+                ts = ts_raw
+            else:
+                ts = datetime.now()
+            pin = EvidencePin(
+                claim=h["claim"],
+                supporting_evidence=[f"Handoff from {h.get('source_agent', 'unknown')}"],
+                source_agent=h.get("source_agent", "unknown"),
+                source_tool="evidence_handoff",
+                confidence=h.get("confidence", 0.0),
+                timestamp=ts,
+                evidence_type=evidence_type,
+            )
+            self.add_evidence(pin, node_type=f"handoff_{domain}")
 
     def identify_root_causes(self) -> list[str]:
         """Identify root causes: nodes that are sources but never targets, plus isolated nodes."""
