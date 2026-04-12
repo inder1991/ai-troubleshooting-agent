@@ -52,6 +52,18 @@ def _get_session_store():
         return None
 
 
+def _get_attestation_logger():
+    """Get AttestationLogger from app state."""
+    try:
+        from src.api.main import app
+        redis_client = getattr(app.state, 'redis', None)
+        if not redis_client:
+            return None
+        return AttestationLogger(redis_client)
+    except Exception:
+        return None
+
+
 async def _persist_session(session_id: str, data: dict) -> None:
     """Persist serializable session fields to Redis (best-effort)."""
     store = _get_session_store()
@@ -1473,7 +1485,7 @@ async def submit_attestation(session_id: str, request: AttestationDecisionReques
     if not supervisor:
         raise HTTPException(status_code=400, detail="Session not ready")
 
-    response_text = supervisor.acknowledge_attestation(request.decision)
+    response_text = await supervisor.acknowledge_attestation(request.decision, session_id)
     return {"status": "recorded", "response": response_text}
 
 
@@ -1523,7 +1535,7 @@ async def submit_per_finding_attestation(session_id: str, request: AttestationRe
 
     # If any finding is approved, treat overall attestation as acknowledged
     if gate.approved_finding_ids():
-        supervisor.acknowledge_attestation("approve")
+        await supervisor.acknowledge_attestation("approve", session_id)
 
     return {
         "status": gate.status,
@@ -1871,6 +1883,17 @@ async def campaign_repo_decide(session_id: str, repo_url: str, request: Campaign
         await orchestrator.revoke_repo(state.campaign, decoded_repo_url)
     else:
         raise HTTPException(status_code=400, detail=f"Invalid decision: {request.decision}")
+
+    attestation_logger = _get_attestation_logger()
+    if attestation_logger:
+        await attestation_logger.log_decision(
+            session_id=session_id,
+            finding_id=f"campaign_repo:{decoded_repo_url}",
+            decision=request.decision,
+            decided_by="user",
+            confidence=0.0,
+            finding_summary=f"Campaign repo {request.decision}: {decoded_repo_url}",
+        )
 
     return {"status": "ok", "repo_status": state.campaign.repos[decoded_repo_url].status.value}
 

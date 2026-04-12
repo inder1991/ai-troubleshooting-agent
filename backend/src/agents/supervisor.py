@@ -159,11 +159,19 @@ class SupervisorAgent:
         self._attestation_acknowledged = False
         self._per_finding_gate = None  # set when per-finding attestation is used
 
+        # Attestation audit logging
+        self._attestation_logger: Optional["AttestationLogger"] = None
+        self._session_id: str = ""
+
         # Human-in-the-loop channel for code_agent questions
         self._code_agent_question: str = ""
         self._code_agent_answer: str = ""
         self._code_agent_event = asyncio.Event()
         self._pending_code_agent_question = False
+
+    def set_attestation_logger(self, logger: "AttestationLogger", session_id: str) -> None:
+        self._attestation_logger = logger
+        self._session_id = session_id
 
     async def run(
         self,
@@ -221,17 +229,33 @@ class SupervisorAgent:
                 logger.info("Diagnosis complete", extra={"session_id": state.session_id, "agent_name": "supervisor", "action": "diagnosis_complete", "extra": {"overall_confidence": state.overall_confidence, "total_findings": len(state.all_findings)}})
                 await event_emitter.emit("supervisor", "success", "Diagnosis complete")
 
-                # Emit attestation gate event
-                await event_emitter.emit(
-                    "supervisor", "attestation_required",
-                    "Human attestation required before proceeding to remediation",
-                    details={
-                        "gate_type": "discovery_complete",
-                        "findings_count": len(state.all_findings),
-                        "confidence": state.overall_confidence,
-                        "proposed_action": "Proceed to remediation phase",
-                    }
+                # Check if auto-approval applies (high confidence, no critic challenges)
+                critic_has_challenges = any(
+                    cv.verdict == "challenged" and cv.confidence_in_verdict > 80
+                    for cv in state.critic_verdicts
                 )
+                if self._should_auto_approve(state.overall_confidence, critic_has_challenges):
+                    await event_emitter.emit(
+                        "supervisor", "auto_approved",
+                        "Findings auto-approved (high confidence, no critic challenges)",
+                        details={
+                            "gate_type": "discovery_complete",
+                            "findings_count": len(state.all_findings),
+                            "confidence": state.overall_confidence,
+                        }
+                    )
+                    self._attestation_acknowledged = True
+                else:
+                    await event_emitter.emit(
+                        "supervisor", "attestation_required",
+                        "Human attestation required before proceeding to remediation",
+                        details={
+                            "gate_type": "discovery_complete",
+                            "findings_count": len(state.all_findings),
+                            "confidence": state.overall_confidence,
+                            "proposed_action": "Proceed to remediation phase",
+                        }
+                    )
                 break
 
             state.agents_pending = next_agents
@@ -3002,17 +3026,28 @@ Examples:
         if text in ("approve", "yes", "create pr", "lgtm", "ok", "y"):
             self._fix_human_decision = "approve"
             self._fix_event.set()
-            return "Approved — creating pull request now."
-
-        if text in ("reject", "no", "cancel", "discard"):
+            response = "Approved — creating pull request now."
+        elif text in ("reject", "no", "cancel", "discard"):
             self._fix_human_decision = "reject"
             self._fix_event.set()
-            return "Fix rejected. Diagnosis remains available."
+            response = "Fix rejected. Diagnosis remains available."
+        else:
+            # Anything else is treated as feedback for regeneration
+            self._fix_human_decision = message.strip()
+            self._fix_event.set()
+            response = "Got it — regenerating fix with your feedback."
 
-        # Anything else is treated as feedback for regeneration
-        self._fix_human_decision = message.strip()
-        self._fix_event.set()
-        return "Got it — regenerating fix with your feedback."
+        if self._attestation_logger and self._session_id:
+            asyncio.create_task(self._attestation_logger.log_decision(
+                session_id=self._session_id,
+                finding_id="fix_attempt",
+                decision=self._fix_human_decision or "unknown",
+                decided_by="user",
+                confidence=0.0,
+                finding_summary=f"Fix decision: {self._fix_human_decision}",
+            ))
+
+        return response
 
     ATTESTATION_TIMEOUT = float(os.getenv("ATTESTATION_TIMEOUT_S", "600"))
     AUTO_APPROVE_THRESHOLD = float(os.getenv("ATTESTATION_AUTO_APPROVE_THRESHOLD", "0.85"))
@@ -3031,15 +3066,30 @@ Examples:
                 await self._event_emitter.emit("supervisor", "attestation_expired", {"reason": "no_response"})
             return "timeout"
 
-    def acknowledge_attestation(self, decision: str) -> str:
+    async def acknowledge_attestation(self, decision: str, session_id: str = "") -> str:
         """Record that the user has acknowledged the discovery attestation gate."""
+        sid = session_id or self._session_id
+
         if decision == "approve":
             self._attestation_acknowledged = True
-            return "Attestation acknowledged — fix generation is now available."
+            response = "Findings approved — fix generation is now available."
         elif decision == "reject":
             self._attestation_acknowledged = False
-            return "Attestation rejected — investigation findings need revision."
-        return "Unknown attestation decision."
+            response = "Findings rejected — investigation needs revision."
+        else:
+            return "Unknown attestation decision."
+
+        if self._attestation_logger and sid:
+            await self._attestation_logger.log_decision(
+                session_id=sid,
+                finding_id="all",
+                decision=decision,
+                decided_by="user",
+                confidence=getattr(self, '_last_confidence', 0.0),
+                finding_summary=f"Discovery attestation: {decision}",
+            )
+
+        return response
 
     def _process_repo_mismatch(self, message: str, state: DiagnosticState) -> str:
         """Parse user's repo mismatch response and signal the waiting coroutine."""
