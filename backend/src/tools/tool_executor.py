@@ -479,21 +479,17 @@ class ToolExecutor:
         try:
             response = self._get_prom_client().query_range(query, range_minutes)
         except Exception as exc:
-            # B8: Log full error internally, return generic message to client
-            logger.error(
-                "query_prometheus internal error",
-                extra={"query": query, "error": str(exc), "error_type": type(exc).__name__},
-            )
-            client_msg = "Prometheus query failed"
+            error_detail = f"Tool 'query_prometheus' failed: {type(exc).__name__}: {str(exc)}"
+            logger.exception(f"[tool_executor] {error_detail}")
             return ToolResult(
                 success=False,
                 intent="query_prometheus",
                 raw_output="",
-                summary=client_msg,
+                summary=error_detail,
                 evidence_snippets=[],
                 evidence_type="metric",
                 domain=domain,
-                error=client_msg,
+                error=error_detail,
                 metadata={"query": query, "range_minutes": range_minutes},
             )
 
@@ -609,21 +605,17 @@ class ToolExecutor:
                 },
             )
         except Exception as exc:
-            # B8: Log full error internally, return generic message to client
-            logger.error(
-                "search_logs internal error",
-                extra={"query": query, "index": index, "error": str(exc), "error_type": type(exc).__name__},
-            )
-            client_msg = "Log search failed"
+            error_detail = f"Tool 'search_logs' failed: {type(exc).__name__}: {str(exc)}"
+            logger.exception(f"[tool_executor] {error_detail}")
             return ToolResult(
                 success=False,
                 intent="search_logs",
                 raw_output="",
-                summary=client_msg,
+                summary=error_detail,
                 evidence_snippets=[],
                 evidence_type="log",
                 domain="unknown",
-                error=client_msg,
+                error=error_detail,
                 metadata={"query": query, "index": index},
             )
 
@@ -933,12 +925,9 @@ class ToolExecutor:
             yaml_str = json.dumps(serialized, indent=2)
             return {"yaml": yaml_str}
         except Exception as exc:
-            logger.error(
-                "get_resource_yaml failed",
-                extra={"kind": kind, "resource_name": name, "namespace": namespace,
-                       "error": str(exc), "error_type": type(exc).__name__},
-            )
-            return {"error": "Failed to fetch resource"}
+            error_detail = f"Tool 'get_resource_yaml' failed: {type(exc).__name__}: {str(exc)}"
+            logger.exception(f"[tool_executor] {error_detail}")
+            return {"error": error_detail}
 
     def get_resource_events(self, kind: str, name: str, namespace: str) -> list[dict[str, Any]]:
         """List namespaced events for a specific K8s resource.
@@ -975,12 +964,9 @@ class ToolExecutor:
                 })
             return events
         except Exception as exc:
-            logger.error(
-                "get_resource_events failed",
-                extra={"kind": kind, "resource_name": name, "namespace": namespace,
-                       "error": str(exc), "error_type": type(exc).__name__},
-            )
-            return []
+            error_detail = f"Tool 'get_resource_events' failed: {type(exc).__name__}: {str(exc)}"
+            logger.exception(f"[tool_executor] {error_detail}")
+            return [{"error": error_detail}]
 
     def get_pod_logs(
         self,
@@ -1011,12 +997,9 @@ class ToolExecutor:
             log_text: str = self._get_k8s_core_api().read_namespaced_pod_log(**kwargs)
             return {"logs": log_text}
         except Exception as exc:
-            logger.error(
-                "get_pod_logs failed",
-                extra={"pod": pod_name, "namespace": namespace,
-                       "error": str(exc), "error_type": type(exc).__name__},
-            )
-            return {"error": "Failed to fetch pod logs"}
+            error_detail = f"Tool 'get_pod_logs' failed: {type(exc).__name__}: {str(exc)}"
+            logger.exception(f"[tool_executor] {error_detail}")
+            return {"error": error_detail}
 
     # ------------------------------------------------------------------
     # Helper methods
