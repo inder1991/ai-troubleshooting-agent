@@ -317,9 +317,11 @@ Agents can explicitly request upstream analysis during their ReAct loop.
 
 **Addresses:** G10 (spike detection false positives)
 
-### 5A. Structured Cross-Agent Evidence Passing
+### 5A. Structured Cross-Agent Evidence Passing (Dual Representation)
 
-Replace unstructured text dumps between agents with structured handoffs:
+> **Mandatory: No "Stringly-Typed AI State."** Structured data must never be collapsed into text and discarded. The system maintains two parallel representations: a machine-readable dict (source of truth for supervisor, causal graph, audit trail, frontend) and a formatted text version (strictly for LLM context, generated from the dict, never parsed back).
+
+Replace unstructured text dumps between agents with dual-representation handoffs:
 
 ```python
 @dataclass
@@ -328,12 +330,24 @@ class EvidenceHandoff:
     domain: str                         # "k8s"
     timestamp: datetime | None
     confidence: float
+    source_agent: str                   # "k8s_agent"
+    finding_id: str                     # links to attestation
     corroborating_domains: list[str]
     contradicting_domains: list[str]
-    open_questions: list[str]           # "Was memory pressure in sidecar or main container?"
+    open_questions: list[str]
+
+# Machine-readable (supervisor, graph, audit, UI):
+serialize_handoffs(handoffs) → {"handoffs": [asdict(h) for h in handoffs]}
+
+# LLM-readable (context window only, generated from struct):
+format_handoff_for_agent(handoffs, target_domain) → str
 ```
 
-The supervisor extracts `EvidenceHandoff` items from each agent's findings and injects them as structured context for the next agent. The next agent receives explicit marching orders: confirm or deny specific claims at specific timestamps.
+Supervisor wiring follows a strict dual path:
+1. `serialize_handoffs()` → saved to session state, ingested by causal graph, pushed to Redis `audit:handoffs` stream
+2. `format_handoff_for_agent()` → injected into LLM prompt only
+
+The causal engine's `ingest_structured_handoffs()` method programmatically creates graph nodes from the dict — never from LLM text. The frontend polls the structured `audit:handoffs` stream to render a live investigation timeline.
 
 Zero changes to individual agent code — only the supervisor's inter-agent routing logic changes.
 

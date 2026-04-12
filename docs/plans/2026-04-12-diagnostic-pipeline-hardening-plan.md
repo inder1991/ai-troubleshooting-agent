@@ -1853,18 +1853,25 @@ git commit -m "feat(tools): add analyze_upstream_dependency tool for LLM agents"
 
 ---
 
-### Task 15: Structured Cross-Agent Evidence Handoff
+### Task 15: Structured Cross-Agent Evidence Handoff (Dual Representation)
+
+> **Mandatory design principle: No "Stringly-Typed AI State."** The evidence handoff maintains two parallel representations at all times:
+> 1. **Structured dict** — for the supervisor, causal graph, audit trail, and frontend API. This is the source of truth.
+> 2. **Formatted text** — strictly for the LLM's context window. Generated from the structured data, never the other way around.
+>
+> The system NEVER parses LLM text output to understand investigation state. The structured handoffs flow through the supervisor, causal engine, Redis audit stream, and frontend API independently of what the LLM generates.
 
 **Files:**
 - Create: `backend/src/agents/evidence_handoff.py`
 - Modify: `backend/src/agents/supervisor.py` (inter-agent routing)
+- Modify: `backend/src/agents/causal_engine.py` (ingest structured handoffs)
 - Test: `backend/tests/test_evidence_handoff.py`
 
-**Step 1: Write data model + extractor**
+**Step 1: Write data model with dual-output API**
 
 ```python
 # backend/src/agents/evidence_handoff.py
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, asdict
 from datetime import datetime
 
 
@@ -1874,18 +1881,45 @@ class EvidenceHandoff:
     domain: str
     timestamp: datetime | None = None
     confidence: float = 0.0
+    source_agent: str = ""
+    finding_id: str = ""
     corroborating_domains: list[str] = field(default_factory=list)
     contradicting_domains: list[str] = field(default_factory=list)
     open_questions: list[str] = field(default_factory=list)
 
 
+# ── Structured output (for system: supervisor, graph, audit, UI) ──
+
+def serialize_handoffs(handoffs: list[EvidenceHandoff]) -> dict:
+    """Machine-readable representation for supervisor state, causal graph,
+    audit trail, and frontend API. This is the source of truth."""
+    return {
+        "handoffs": [
+            {
+                **asdict(h),
+                "timestamp": h.timestamp.isoformat() if h.timestamp else None,
+            }
+            for h in handoffs
+        ]
+    }
+
+
+# ── Text output (strictly for LLM context window) ──
+
 def format_handoff_for_agent(handoffs: list[EvidenceHandoff], target_domain: str) -> str:
+    """Human-readable text injected into the LLM prompt. Generated FROM
+    the structured data — the LLM's response is never parsed back into
+    handoff state. The system uses serialize_handoffs() for that."""
     if not handoffs:
         return ""
     lines = ["Prior evidence to validate or refute:"]
     for i, h in enumerate(handoffs, 1):
         ts = f" at {h.timestamp.isoformat()}" if h.timestamp else ""
         lines.append(f"  {i}. [{h.domain}, confidence={h.confidence:.2f}] {h.claim}{ts}")
+        if h.corroborating_domains:
+            lines.append(f"     Corroborated by: {', '.join(h.corroborating_domains)}")
+        if h.contradicting_domains:
+            lines.append(f"     Contradicted by: {', '.join(h.contradicting_domains)}")
         if h.open_questions:
             for q in h.open_questions:
                 lines.append(f"     Open question: {q}")
@@ -1893,46 +1927,172 @@ def format_handoff_for_agent(handoffs: list[EvidenceHandoff], target_domain: str
     return "\n".join(lines)
 ```
 
-**Step 2: Write tests**
+**Step 2: Write tests for both representations**
 
 ```python
 # backend/tests/test_evidence_handoff.py
 import pytest
 from datetime import datetime
-from src.agents.evidence_handoff import EvidenceHandoff, format_handoff_for_agent
+from src.agents.evidence_handoff import (
+    EvidenceHandoff, format_handoff_for_agent, serialize_handoffs,
+)
 
 
-def test_format_handoff():
-    handoffs = [
-        EvidenceHandoff(claim="OOM killed pod-xyz", domain="k8s",
-                        timestamp=datetime(2026, 4, 12, 14, 32),
-                        confidence=0.82, open_questions=["Sidecar or main container?"]),
+@pytest.fixture
+def sample_handoffs():
+    return [
+        EvidenceHandoff(
+            claim="OOM killed pod-xyz", domain="k8s",
+            timestamp=datetime(2026, 4, 12, 14, 32),
+            confidence=0.82, source_agent="k8s_agent", finding_id="f1",
+            open_questions=["Sidecar or main container?"],
+        ),
+        EvidenceHandoff(
+            claim="Memory spike at 14:30", domain="metrics",
+            timestamp=datetime(2026, 4, 12, 14, 30),
+            confidence=0.75, source_agent="metrics_agent", finding_id="f2",
+            corroborating_domains=["k8s"],
+        ),
     ]
-    text = format_handoff_for_agent(handoffs, "metrics")
+
+
+# ── Structured representation tests ──
+
+def test_serialize_returns_dict(sample_handoffs):
+    result = serialize_handoffs(sample_handoffs)
+    assert isinstance(result, dict)
+    assert "handoffs" in result
+    assert len(result["handoffs"]) == 2
+
+
+def test_serialize_preserves_all_fields(sample_handoffs):
+    result = serialize_handoffs(sample_handoffs)
+    h = result["handoffs"][0]
+    assert h["claim"] == "OOM killed pod-xyz"
+    assert h["domain"] == "k8s"
+    assert h["confidence"] == 0.82
+    assert h["source_agent"] == "k8s_agent"
+    assert h["finding_id"] == "f1"
+    assert h["timestamp"] == "2026-04-12T14:32:00"
+    assert h["open_questions"] == ["Sidecar or main container?"]
+
+
+def test_serialize_handles_null_timestamp():
+    handoffs = [EvidenceHandoff(claim="test", domain="logs")]
+    result = serialize_handoffs(handoffs)
+    assert result["handoffs"][0]["timestamp"] is None
+
+
+def test_serialize_is_json_safe(sample_handoffs):
+    import json
+    result = serialize_handoffs(sample_handoffs)
+    serialized = json.dumps(result)
+    deserialized = json.loads(serialized)
+    assert deserialized["handoffs"][0]["claim"] == "OOM killed pod-xyz"
+
+
+def test_serialize_includes_corroborating(sample_handoffs):
+    result = serialize_handoffs(sample_handoffs)
+    h2 = result["handoffs"][1]
+    assert h2["corroborating_domains"] == ["k8s"]
+
+
+# ── Text representation tests ──
+
+def test_format_handoff_text(sample_handoffs):
+    text = format_handoff_for_agent(sample_handoffs, "code")
     assert "OOM killed pod-xyz" in text
     assert "Sidecar or main container?" in text
-    assert "metrics" in text
+    assert "code" in text
+    assert "Corroborated by: k8s" in text
 
 
-def test_empty_handoff():
+def test_format_empty_handoff():
     text = format_handoff_for_agent([], "metrics")
     assert text == ""
+
+
+# ── Dual representation consistency ──
+
+def test_structured_and_text_cover_same_claims(sample_handoffs):
+    structured = serialize_handoffs(sample_handoffs)
+    text = format_handoff_for_agent(sample_handoffs, "code")
+    for h in structured["handoffs"]:
+        assert h["claim"] in text, f"Claim '{h['claim']}' missing from text representation"
 ```
 
-**Step 3: Run tests, verify pass**
+**Step 3: Run tests to verify failure**
 
 Run: `cd backend && python -m pytest tests/test_evidence_handoff.py -v`
+Expected: FAIL with `ModuleNotFoundError`.
+
+**Step 4: Create the file (code from Step 1) and run tests**
+
+Run: `cd backend && python -m pytest tests/test_evidence_handoff.py -v`
+Expected: all 9 tests PASS.
+
+**Step 5: Add `ingest_structured_handoffs` to causal_engine.py**
+
+Modify `backend/src/agents/causal_engine.py`. Add method to `EvidenceGraphBuilder`:
+
+```python
+def ingest_structured_handoffs(self, handoffs_dict: dict) -> None:
+    """Programmatically create graph nodes from structured handoff data.
+    This uses the machine-readable dict, NOT parsed LLM text."""
+    for h in handoffs_dict.get("handoffs", []):
+        pin = EvidencePin(
+            claim=h["claim"],
+            evidence=f"Handoff from {h.get('source_agent', 'unknown')}",
+            confidence=h.get("confidence", 0.0),
+            source_type=h.get("domain", "unknown"),
+            agent_name=h.get("source_agent", "unknown"),
+        )
+        self.add_evidence(pin, node_type=f"handoff_{h.get('domain', 'unknown')}")
+```
+
+**Step 6: Integrate into supervisor routing (dual path)**
+
+In `supervisor.py`, after each agent completes:
+
+```python
+from src.agents.evidence_handoff import serialize_handoffs, format_handoff_for_agent
+
+# 1. Extract structured handoffs from agent findings
+structured_handoffs = self._extract_handoffs(agent_result)
+
+# 2. Save machine-readable state (for UI, audit, graph)
+serialized = serialize_handoffs(structured_handoffs)
+state.handoff_history.extend(serialized["handoffs"])
+self._causal_engine.ingest_structured_handoffs(serialized)
+
+# 3. Push to Redis audit stream for UI polling and compliance
+if self._redis:
+    for h in serialized["handoffs"]:
+        await self._redis.xadd("audit:handoffs", h, maxlen=5000, approximate=True)
+
+# 4. Format text STRICTLY for LLM context (never parsed back)
+llm_context = format_handoff_for_agent(structured_handoffs, next_agent_domain)
+
+# 5. Dispatch next agent with text context
+await self._dispatch_agent(next_agent_name, context={**base_context, "prior_evidence": llm_context})
+```
+
+**Step 7: Run all tests**
+
+Run: `cd backend && python -m pytest tests/test_evidence_handoff.py tests/test_causal_engine.py tests/test_supervisor.py -v`
 Expected: PASS.
 
-**Step 4: Integrate into supervisor routing**
-
-In `supervisor.py`, after each agent completes, extract `EvidenceHandoff` items from its findings. Inject formatted handoff into the next agent's context via `format_handoff_for_agent()`.
-
-**Step 5: Commit**
+**Step 8: Commit**
 
 ```bash
-git add backend/src/agents/evidence_handoff.py backend/tests/test_evidence_handoff.py backend/src/agents/supervisor.py
-git commit -m "feat(reasoning): structured cross-agent evidence handoff"
+git add backend/src/agents/evidence_handoff.py backend/tests/test_evidence_handoff.py backend/src/agents/causal_engine.py backend/src/agents/supervisor.py
+git commit -m "feat(reasoning): dual-representation evidence handoff — structured for system, text for LLM
+
+Evidence state flows through the supervisor, causal graph, audit stream,
+and frontend API as machine-readable dicts (serialize_handoffs). The LLM
+receives a formatted text version (format_handoff_for_agent) generated
+FROM the structured data — system state never depends on parsing LLM
+text output. Eliminates 'Stringly-Typed AI State' anti-pattern."
 ```
 
 ---
