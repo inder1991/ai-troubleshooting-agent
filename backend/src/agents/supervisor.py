@@ -3076,59 +3076,75 @@ Examples:
 
     async def _process_fix_decision(self, message: str) -> str:
         """State-driven fix decision -- no asyncio.Event. Clears pending action + logs audit."""
-        text = message.strip().lower()
-
-        if not self._pending_fix_approval:
-            return f"No fix awaiting review (already decided: {self._fix_human_decision or 'none'})."
-
-        if text in ("approve", "yes", "create pr", "lgtm", "ok", "y"):
-            self._fix_human_decision = "approve"
-            self._pending_fix_approval = False
-        elif text in ("reject", "no", "cancel", "discard"):
-            self._fix_human_decision = "reject"
-            self._pending_fix_approval = False
-        else:
-            # Dedup feedback using optional client UUID prefix (feedback:uuid:text)
-            feedback_text = message.strip()
-            if feedback_text.startswith("feedback:"):
-                parts = feedback_text.split(":", 2)
-                if len(parts) == 3:
-                    feedback_id = parts[1]
-                    if feedback_id in self._seen_feedback_ids:
-                        return "Feedback already received."
-                    self._seen_feedback_ids.add(feedback_id)
-                    feedback_text = parts[2]
-            self._fix_human_decision = feedback_text  # feedback
-            self._pending_fix_approval = False
-
-        if text in ("approve", "yes", "create pr", "lgtm", "ok", "y"):
-            response = "Approved — creating pull request now."
-        elif text in ("reject", "no", "cancel", "discard"):
-            response = "Fix rejected. Diagnosis remains available."
-        else:
-            response = "Got it — regenerating fix with your feedback."
-
-        # Clear pending action from Redis
+        # Atomic lock to prevent concurrent double-processing
         if self._session_store and self._session_id:
-            await self._session_store.clear_pending_action(self._session_id)
+            locked = await self._session_store.try_acquire_fix_lock(self._session_id)
+            if not locked:
+                return "Decision already being processed."
+        try:
+            text = message.strip().lower()
 
-        # Audit trail
-        if self._attestation_logger and self._session_id:
-            await self._attestation_logger.log_decision(
-                session_id=self._session_id,
-                finding_id="fix_attempt",
-                decision=self._fix_human_decision or "unknown",
-                decided_by="user",
-                confidence=0.0,
-                finding_summary=f"Fix decision: {self._fix_human_decision}",
-            )
+            if not self._pending_fix_approval:
+                return f"No fix awaiting review (already decided: {self._fix_human_decision or 'none'})."
 
-        return response
+            if text in ("approve", "yes", "create pr", "lgtm", "ok", "y"):
+                self._fix_human_decision = "approve"
+                self._pending_fix_approval = False
+            elif text in ("reject", "no", "cancel", "discard"):
+                self._fix_human_decision = "reject"
+                self._pending_fix_approval = False
+            else:
+                # Dedup feedback using optional client UUID prefix (feedback:uuid:text)
+                feedback_text = message.strip()
+                if feedback_text.startswith("feedback:"):
+                    parts = feedback_text.split(":", 2)
+                    if len(parts) == 3:
+                        feedback_id = parts[1]
+                        if feedback_id in self._seen_feedback_ids:
+                            return "Feedback already received."
+                        self._seen_feedback_ids.add(feedback_id)
+                        feedback_text = parts[2]
+                self._fix_human_decision = feedback_text  # feedback
+                self._pending_fix_approval = False
+
+            if text in ("approve", "yes", "create pr", "lgtm", "ok", "y"):
+                response = "Approved — creating pull request now."
+            elif text in ("reject", "no", "cancel", "discard"):
+                response = "Fix rejected. Diagnosis remains available."
+            else:
+                response = "Got it — regenerating fix with your feedback."
+
+            # Persist decision to Redis so resume_fix_pipeline survives restarts
+            if self._session_store and self._session_id:
+                await self._session_store.save_fix_decision(self._session_id, self._fix_human_decision)
+
+            # Clear pending action from Redis
+            if self._session_store and self._session_id:
+                await self._session_store.clear_pending_action(self._session_id)
+
+            # Audit trail — use 1.0 confidence for explicit human decisions
+            if self._attestation_logger and self._session_id:
+                await self._attestation_logger.log_decision(
+                    session_id=self._session_id,
+                    finding_id="fix_attempt",
+                    decision=self._fix_human_decision or "unknown",
+                    decided_by="user",
+                    confidence=1.0,  # explicit human decision
+                    finding_summary=f"Fix decision: {self._fix_human_decision}",
+                )
+
+            return response
+        finally:
+            if self._session_store and self._session_id:
+                await self._session_store.release_fix_lock(self._session_id)
 
     async def resume_fix_pipeline(self, session_id: str, state: "DiagnosticState",
                                    event_emitter: "EventEmitter") -> None:
         """Resume fix pipeline after human decision."""
         decision = self._fix_human_decision
+        # Fall back to Redis if in-memory state was lost (e.g. server restart)
+        if not decision and self._session_store:
+            decision = await self._session_store.load_fix_decision(session_id)
         if not decision:
             return
 

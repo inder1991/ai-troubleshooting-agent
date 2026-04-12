@@ -81,3 +81,29 @@ class RedisSessionStore:
 
     def acquire_lock(self, session_id: str, timeout: float = 10.0):
         return self._redis.lock(f"lock:{session_id}", timeout=timeout)
+
+    # ── Fix-decision lock & persistence ───────────────────────────────
+
+    async def try_acquire_fix_lock(self, session_id: str) -> bool:
+        """Atomic set-if-not-exists with 15s TTL."""
+        key = f"fix_lock:{session_id}"
+        return await self._redis.set(key, "1", nx=True, ex=15)
+
+    async def release_fix_lock(self, session_id: str) -> None:
+        key = f"fix_lock:{session_id}"
+        await self._redis.delete(key)
+
+    async def save_fix_decision(self, session_id: str, decision: str) -> None:
+        key = f"fix_decision:{session_id}"
+        await self._redis.set(key, decision, ex=3600)  # 1 hour TTL
+
+    async def load_fix_decision(self, session_id: str) -> str | None:
+        key = f"fix_decision:{session_id}"
+        raw = await self._redis.get(key)
+        if not raw:
+            return None
+        return raw.decode() if isinstance(raw, bytes) else raw
+
+    async def clear_fix_decision(self, session_id: str) -> None:
+        key = f"fix_decision:{session_id}"
+        await self._redis.delete(key)
