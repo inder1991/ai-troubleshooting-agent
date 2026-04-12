@@ -148,8 +148,7 @@ class SupervisorAgent:
         self._pending_repo_mismatch = False
         self._mismatch_confirmed_repo: str | None = None
 
-        # Human-in-the-loop: fix approval
-        self._fix_event = asyncio.Event()
+        # Human-in-the-loop: fix approval (state-driven, no asyncio.Event)
         self._pending_fix_approval = False
         self._fix_human_decision: str | None = None
         self._event_emitter: Optional[EventEmitter] = None
@@ -2305,7 +2304,7 @@ Respond ONLY with a JSON array:
 
         # Handle pending fix approval (highest priority gate)
         if self._pending_fix_approval:
-            return self._process_fix_decision(message)
+            return await self._process_fix_decision(message)
 
         # Handle pending repo mismatch confirmation for code_agent
         if self._pending_repo_mismatch:
@@ -2743,11 +2742,27 @@ Examples:
                 # This ensures _pending_fix_approval is True by the time the user can respond.
                 self._pending_fix_approval = True
                 self._fix_human_decision = None
-                self._fix_event.clear()
+
+                from src.models.pending_action import PendingAction as _PA
+                from datetime import timedelta as _td
+                pending = _PA(
+                    type="fix_approval",
+                    blocking=True,
+                    actions=["approve", "reject", "feedback"],
+                    expires_at=datetime.now(timezone.utc) + _td(seconds=600),
+                    context={
+                        "diff_summary": f"{len(fixed_files)} files changed",
+                        "fix_explanation": state.fix_result.fix_explanation[:200] if state.fix_result.fix_explanation else "",
+                    },
+                    version=1,
+                )
+                if self._session_store:
+                    await self._session_store.save_pending_action(self._session_id, pending)
+
                 await event_emitter.emit(
                     "fix_generator", "waiting_for_input",
                     "Fix proposed — awaiting human review",
-                    details={"input_type": "fix_approval"},
+                    details={"input_type": "fix_approval", "pending_action": pending.to_dict()},
                 )
 
                 # Present fix to human via WebSocket
@@ -2800,55 +2815,8 @@ Examples:
                     f"Fix proposed for {', '.join(all_fix_files)} — awaiting human review",
                     details={"target_file": target_file, "fixed_files": all_fix_files, "diff_lines": len(diff.splitlines()), "verification_failed": verification_failed},
                 )
-                try:
-                    await asyncio.wait_for(self._fix_event.wait(), timeout=600)
-                except asyncio.TimeoutError:
-                    self._pending_fix_approval = False
-                    state.fix_result.fix_status = FixStatus.FAILED
-                    await event_emitter.emit("fix_generator", "warning", "Fix approval timed out")
-                    # H4: Don't return early — break to reach the finally block for cleanup
-                    break
-
-                self._pending_fix_approval = False
-                decision = self._fix_human_decision or "reject"
-
-                if decision == "approve":
-                    # Create PR
-                    state.fix_result.fix_status = FixStatus.PR_CREATING
-                    await event_emitter.emit("fix_generator", "progress", "Creating pull request...")
-                    pr_result = await agent3.execute_pr_creation(
-                        state.session_id, pr_data, token,
-                    )
-                    state.fix_result.pr_url = pr_result.get("html_url")
-                    state.fix_result.pr_number = pr_result.get("number")
-                    state.fix_result.fix_status = FixStatus.PR_CREATED
-
-                    await event_emitter.emit(
-                        "fix_generator", "fix_approved",
-                        f"PR #{state.fix_result.pr_number} created: {state.fix_result.pr_url}",
-                    )
-                    return  # Done
-
-                elif decision == "reject":
-                    state.fix_result.fix_status = FixStatus.REJECTED
-                    await event_emitter.emit("fix_generator", "warning", "Fix rejected by user")
-                    return  # Done
-
-                else:
-                    # Feedback — loop to regenerate
-                    state.fix_result.human_feedback.append(decision)
-                    if state.fix_result.attempt_count >= state.fix_result.max_attempts:
-                        state.fix_result.fix_status = FixStatus.FAILED
-                        await event_emitter.emit("fix_generator", "warning", "Max fix attempts reached")
-                        return  # Done
-
-                    state.fix_result.fix_status = FixStatus.HUMAN_FEEDBACK
-                    await event_emitter.emit(
-                        "fix_generator", "progress",
-                        f"Regenerating fix with feedback (attempt {state.fix_result.attempt_count + 1}/{state.fix_result.max_attempts})",
-                    )
-                    current_guidance = decision
-                    # Continue loop
+                # Exit cleanly — resume on user decision via _process_fix_decision + resume_fix_pipeline
+                return
 
         except RetryableFixError:
             # Let the job queue handle retry logic
@@ -3047,35 +3015,91 @@ Examples:
                 state.fix_result.fix_status = FixStatus.VERIFICATION_IN_PROGRESS
             return {"verdict": "needs_changes", "confidence": 0, "reasoning": f"Verification skipped: {e}"}
 
-    def _process_fix_decision(self, message: str) -> str:
-        """Parse user's fix approval/rejection/feedback and signal the waiting coroutine."""
+    async def _process_fix_decision(self, message: str) -> str:
+        """State-driven fix decision -- no asyncio.Event. Clears pending action + logs audit."""
         text = message.strip().lower()
+
+        if not self._pending_fix_approval:
+            return f"No fix awaiting review (already decided: {self._fix_human_decision or 'none'})."
 
         if text in ("approve", "yes", "create pr", "lgtm", "ok", "y"):
             self._fix_human_decision = "approve"
-            self._fix_event.set()
-            response = "Approved — creating pull request now."
+            self._pending_fix_approval = False
         elif text in ("reject", "no", "cancel", "discard"):
             self._fix_human_decision = "reject"
-            self._fix_event.set()
+            self._pending_fix_approval = False
+        else:
+            self._fix_human_decision = message.strip()  # feedback
+            self._pending_fix_approval = False
+
+        if text in ("approve", "yes", "create pr", "lgtm", "ok", "y"):
+            response = "Approved — creating pull request now."
+        elif text in ("reject", "no", "cancel", "discard"):
             response = "Fix rejected. Diagnosis remains available."
         else:
-            # Anything else is treated as feedback for regeneration
-            self._fix_human_decision = message.strip()
-            self._fix_event.set()
             response = "Got it — regenerating fix with your feedback."
 
+        # Clear pending action from Redis
+        if self._session_store and self._session_id:
+            await self._session_store.clear_pending_action(self._session_id)
+
+        # Audit trail
         if self._attestation_logger and self._session_id:
-            asyncio.create_task(self._attestation_logger.log_decision(
+            await self._attestation_logger.log_decision(
                 session_id=self._session_id,
                 finding_id="fix_attempt",
                 decision=self._fix_human_decision or "unknown",
                 decided_by="user",
                 confidence=0.0,
                 finding_summary=f"Fix decision: {self._fix_human_decision}",
-            ))
+            )
 
         return response
+
+    async def resume_fix_pipeline(self, session_id: str, state: "DiagnosticState",
+                                   event_emitter: "EventEmitter") -> None:
+        """Resume fix pipeline after human decision."""
+        decision = self._fix_human_decision
+        if not decision:
+            return
+
+        if decision == "approve":
+            state.fix_result.fix_status = FixStatus.PR_CREATING
+            await event_emitter.emit("fix_generator", "progress", "Creating pull request...")
+            from src.agents.agent3.fix_generator import Agent3FixGenerator
+            repo_path = getattr(state, "repo_clone_path", None) or ""
+            agent3 = Agent3FixGenerator(
+                repo_path=repo_path,
+                llm_client=self.llm_client,
+                event_emitter=event_emitter,
+            )
+            token = getattr(state, "repo_token", None) or os.getenv("GITHUB_TOKEN", "")
+            pr_data = state.fix_result.pr_data
+            if pr_data:
+                pr_result = await agent3.execute_pr_creation(session_id, pr_data, token)
+                state.fix_result.pr_url = pr_result.get("html_url")
+                state.fix_result.pr_number = pr_result.get("number")
+                state.fix_result.fix_status = FixStatus.PR_CREATED
+                await event_emitter.emit(
+                    "fix_generator", "fix_approved",
+                    f"PR #{state.fix_result.pr_number} created: {state.fix_result.pr_url}",
+                )
+        elif decision == "reject":
+            state.fix_result.fix_status = FixStatus.REJECTED
+            await event_emitter.emit("fix_generator", "warning", "Fix rejected by user")
+        else:
+            # Feedback -- regenerate
+            state.fix_result.human_feedback.append(decision)
+            if state.fix_result.attempt_count >= state.fix_result.max_attempts:
+                state.fix_result.fix_status = FixStatus.FAILED
+                await event_emitter.emit("fix_generator", "warning", "Max fix attempts reached")
+            else:
+                state.fix_result.fix_status = FixStatus.HUMAN_FEEDBACK
+                await event_emitter.emit(
+                    "fix_generator", "progress",
+                    f"Regenerating fix with feedback (attempt {state.fix_result.attempt_count + 1}/{state.fix_result.max_attempts})",
+                )
+                await self.start_fix_generation(state, event_emitter, human_guidance=decision)
 
     ATTESTATION_TIMEOUT = float(os.getenv("ATTESTATION_TIMEOUT_S", "600"))
     AUTO_APPROVE_THRESHOLD = float(os.getenv("ATTESTATION_AUTO_APPROVE_THRESHOLD", "0.85"))
