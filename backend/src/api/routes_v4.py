@@ -2448,3 +2448,15 @@ async def get_attestation_lifecycle(session_id: str | None = None):
         return {"events": []}
     events = await logger.query_lifecycle(session_id=session_id)
     return {"events": events}
+
+
+@router_v4.get("/session/{session_id}/replay")
+async def get_session_replay(session_id: str):
+    _validate_session_id(session_id)
+    logger = _get_attestation_logger()
+    if not logger:
+        return {"timeline": []}
+    from src.utils.session_replayer import SessionReplayer
+    replayer = SessionReplayer(logger)
+    timeline = await replayer.replay(session_id)
+    return {"timeline": timeline}
