@@ -49,7 +49,7 @@ def _make_tool_result(**overrides):
 
 class TestToolRegistry:
     def test_registry_has_seven_tools(self):
-        assert len(TOOL_REGISTRY) == 7
+        assert len(TOOL_REGISTRY) == 8
 
     def test_all_tools_have_required_fields(self):
         required_keys = {"intent", "label", "icon", "slash_command", "category", "description", "params_schema", "requires_context"}

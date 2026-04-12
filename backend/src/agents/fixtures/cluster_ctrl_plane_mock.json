@@ -125,6 +125,10 @@
       {"type": "Available", "status": "True", "message": "Done applying 4.14.12"},
       {"type": "Progressing", "status": "False", "message": ""},
       {"type": "Failing", "status": "False", "message": ""}
+    ],
+    "history": [
+      {"version": "4.14.12", "state": "Completed", "startedTime": "2026-01-15T02:00:00Z", "completionTime": "2026-01-15T03:12:00Z"},
+      {"version": "4.14.10", "state": "Completed", "startedTime": "2025-12-20T04:00:00Z", "completionTime": "2025-12-20T05:05:00Z"}
     ]
   }
 }

@@ -511,15 +511,16 @@ class ToolExecutor:
         except Exception as exc:
             error_detail = f"Tool 'query_prometheus' failed: {type(exc).__name__}: {str(exc)}"
             logger.exception(f"[tool_executor] {error_detail}")
+            sanitized = "Prometheus query failed"
             return ToolResult(
                 success=False,
                 intent="query_prometheus",
-                raw_output="",
-                summary=error_detail,
+                raw_output=sanitized,
+                summary=sanitized,
                 evidence_snippets=[],
                 evidence_type="metric",
                 domain=domain,
-                error=error_detail,
+                error=sanitized,
                 metadata={"query": query, "range_minutes": range_minutes},
             )
 
@@ -637,15 +638,16 @@ class ToolExecutor:
         except Exception as exc:
             error_detail = f"Tool 'search_logs' failed: {type(exc).__name__}: {str(exc)}"
             logger.exception(f"[tool_executor] {error_detail}")
+            sanitized = "Log search failed"
             return ToolResult(
                 success=False,
                 intent="search_logs",
-                raw_output="",
-                summary=error_detail,
+                raw_output=sanitized,
+                summary=sanitized,
                 evidence_snippets=[],
                 evidence_type="log",
                 domain="unknown",
-                error=error_detail,
+                error=sanitized,
                 metadata={"query": query, "index": index},
             )
 
@@ -1015,7 +1017,7 @@ class ToolExecutor:
         except Exception as exc:
             error_detail = f"Tool 'get_resource_yaml' failed: {type(exc).__name__}: {str(exc)}"
             logger.exception(f"[tool_executor] {error_detail}")
-            return {"error": error_detail}
+            return {"error": "Failed to fetch resource"}
 
     def get_resource_events(self, kind: str, name: str, namespace: str) -> list[dict[str, Any]]:
         """List namespaced events for a specific K8s resource.
@@ -1054,7 +1056,7 @@ class ToolExecutor:
         except Exception as exc:
             error_detail = f"Tool 'get_resource_events' failed: {type(exc).__name__}: {str(exc)}"
             logger.exception(f"[tool_executor] {error_detail}")
-            return [{"error": error_detail}]
+            return []
 
     def get_pod_logs(
         self,
@@ -1087,7 +1089,7 @@ class ToolExecutor:
         except Exception as exc:
             error_detail = f"Tool 'get_pod_logs' failed: {type(exc).__name__}: {str(exc)}"
             logger.exception(f"[tool_executor] {error_detail}")
-            return {"error": error_detail}
+            return {"error": "Failed to fetch pod logs"}
 
     # ------------------------------------------------------------------
     # Helper methods
