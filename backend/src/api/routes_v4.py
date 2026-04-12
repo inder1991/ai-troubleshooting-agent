@@ -1486,6 +1486,14 @@ async def submit_attestation(session_id: str, request: AttestationDecisionReques
         raise HTTPException(status_code=400, detail="Session not ready")
 
     response_text = await supervisor.acknowledge_attestation(request.decision, session_id)
+
+    # Resume pipeline in background if approved
+    state = session.get("state")
+    emitter = session.get("emitter")
+    if state and emitter and request.decision == "approve":
+        import asyncio
+        asyncio.create_task(supervisor.resume_pipeline(session_id, state, emitter))
+
     return {"status": "recorded", "response": response_text}
 
 

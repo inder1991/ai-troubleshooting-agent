@@ -3107,6 +3107,11 @@ Examples:
         else:
             return "Unknown attestation decision."
 
+        # Clear pending action from Redis
+        if self._session_store and sid:
+            await self._session_store.clear_pending_action(sid)
+
+        # Audit trail
         if self._attestation_logger and sid:
             await self._attestation_logger.log_decision(
                 session_id=sid,
@@ -3118,6 +3123,18 @@ Examples:
             )
 
         return response
+
+    async def resume_pipeline(self, session_id: str, state, event_emitter) -> None:
+        """Resume supervisor pipeline after human attestation decision."""
+        if not self._attestation_acknowledged:
+            return
+        from src.models.schemas import DiagnosticPhase
+        await event_emitter.emit(
+            "supervisor", "phase_change",
+            "Resuming pipeline — entering remediation phase",
+            details={"phase": "fix_in_progress"},
+        )
+        state.phase = DiagnosticPhase.FIX_IN_PROGRESS
 
     def _process_repo_mismatch(self, message: str, state: DiagnosticState) -> str:
         """Parse user's repo mismatch response and signal the waiting coroutine."""
