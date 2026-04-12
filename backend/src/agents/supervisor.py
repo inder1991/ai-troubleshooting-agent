@@ -2302,6 +2302,55 @@ Respond ONLY with a JSON array:
     async def handle_user_message(self, message: str, state: DiagnosticState) -> str:
         """Handle a user message during analysis."""
 
+        # ── IntentParser routing layer ──
+        from src.agents.intent_parser import IntentParser
+        parser = IntentParser()
+
+        # Load pending action from Redis
+        pending = None
+        if self._session_store and self._session_id:
+            pending = await self._session_store.load_pending_action(self._session_id)
+
+        intent = parser.parse(message, pending)
+
+        # Security: validate intent is allowed for current pending action type
+        if pending and intent.type not in ("ask_question", "general_chat"):
+            from src.agents.intent_parser import ALLOWED_INTENTS
+            allowed = ALLOWED_INTENTS.get(pending.type, set())
+            if intent.type not in allowed:
+                return f"Invalid action '{intent.type}' for current state '{pending.type}'."
+
+        # Low confidence with pending action → re-prompt with chips
+        if pending and intent.confidence < 0.7 and intent.type == "general_chat":
+            actions_display = ", ".join(f"'{a}'" for a in pending.actions)
+            return f"I need a clear decision. You can say {actions_display}, or ask me a question about the findings."
+
+        # Route structured decisions
+        if intent.type == "approve_attestation":
+            return await self.acknowledge_attestation("approve", self._session_id)
+
+        if intent.type == "reject_attestation":
+            return await self.acknowledge_attestation("reject", self._session_id)
+
+        if intent.type in ("approve_fix", "reject_fix", "fix_feedback"):
+            if intent.type == "fix_feedback":
+                return await self._process_fix_decision(intent.entities.get("feedback", message))
+            decision_text = "approve" if intent.type == "approve_fix" else "reject"
+            return await self._process_fix_decision(decision_text)
+
+        if intent.type == "confirm_execute":
+            # Campaign execute confirmation - clear pending and proceed
+            if self._session_store and self._session_id:
+                await self._session_store.clear_pending_action(self._session_id)
+            return "Campaign execution confirmed."
+
+        if intent.type == "cancel_execute":
+            if self._session_store and self._session_id:
+                await self._session_store.clear_pending_action(self._session_id)
+            return "Campaign execution cancelled."
+
+        # ── End IntentParser routing — fall through to legacy routing ──
+
         # Handle pending fix approval (highest priority gate)
         if self._pending_fix_approval:
             return await self._process_fix_decision(message)
