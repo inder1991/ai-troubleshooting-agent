@@ -64,6 +64,43 @@ from src.utils.redis_store import get_redis_client, RedisSessionStore
 
 logger = get_logger("main")
 
+
+async def _pending_action_timeout_loop(app_ref):
+    """Check for expired pending actions and re-emit with cleared expiry."""
+    import asyncio
+    import json
+
+    while True:
+        await asyncio.sleep(30)
+        try:
+            redis_client = getattr(app_ref.state, 'redis', None)
+            if not redis_client:
+                continue
+            cursor = 0
+            while True:
+                cursor, keys = await redis_client.scan(cursor, match="pending_action:*", count=100)
+                for key in keys:
+                    raw = await redis_client.get(key)
+                    if not raw:
+                        continue
+                    from src.models.pending_action import PendingAction
+                    data = json.loads(raw if isinstance(raw, str) else raw.decode())
+                    pa = PendingAction.from_dict(data)
+                    if pa.is_expired():
+                        session_id = key.decode().split(":")[-1] if isinstance(key, bytes) else key.split(":")[-1]
+                        pa.expires_at = None
+                        await redis_client.set(
+                            key if isinstance(key, str) else key.decode(),
+                            json.dumps(pa.to_dict()),
+                            ex=86400,
+                        )
+                        logger.info("Pending action timed out for session %s, reset to indefinite", session_id)
+                if cursor == 0:
+                    break
+        except Exception:
+            pass
+
+
 # Module-level Prometheus metrics collector
 metrics_collector = MetricsCollector()
 
@@ -238,6 +275,10 @@ def create_app() -> FastAPI:
             logger.warning("Redis session store init failed (falling back to in-memory): %s", e)
             app.state.redis = None
             app.state.session_store = None
+
+        # ── Background timeout handler for expired pending actions ──
+        import asyncio as _aio
+        _aio.create_task(_pending_action_timeout_loop(app))
 
         _init_stores()
         _reload_adapter_instances()
