@@ -1842,6 +1842,12 @@ async def campaign_repo_decide(session_id: str, repo_url: str, request: Campaign
             finding_summary=f"Campaign repo {request.decision}: {decoded_repo_url}",
         )
 
+    # Persist campaign state to Redis after each repo decision
+    session_store = _get_session_store()
+    if session_store:
+        campaign_dict = state.campaign.model_dump() if hasattr(state.campaign, 'model_dump') else state.campaign.__dict__
+        await session_store.save_campaign(session_id, campaign_dict)
+
     return {"status": "ok", "repo_status": state.campaign.repos[decoded_repo_url].status.value}
 
 

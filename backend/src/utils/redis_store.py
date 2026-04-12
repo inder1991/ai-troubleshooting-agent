@@ -66,5 +66,18 @@ class RedisSessionStore:
         key = f"pending_action:{session_id}"
         await self._redis.delete(key)
 
+    # ── Campaign persistence helpers ───────────────────────────────────
+
+    async def save_campaign(self, session_id: str, campaign_data: dict) -> None:
+        key = f"campaign:{session_id}"
+        await self._redis.set(key, json.dumps(campaign_data), ex=86400)
+
+    async def load_campaign(self, session_id: str) -> dict | None:
+        key = f"campaign:{session_id}"
+        raw = await self._redis.get(key)
+        if not raw:
+            return None
+        return json.loads(raw if isinstance(raw, str) else raw.decode())
+
     def acquire_lock(self, session_id: str, timeout: float = 10.0):
         return self._redis.lock(f"lock:{session_id}", timeout=timeout)
