@@ -1454,14 +1454,14 @@ async def get_resource_logs(
 # ── Attestation Gate ──────────────────────────────────────────────────
 
 
-class AttestationDecision(BaseModel):
+class AttestationDecisionRequest(BaseModel):
     gate_type: str
     decision: str
     decided_by: str
 
 
 @router_v4.post("/session/{session_id}/attestation")
-async def submit_attestation(session_id: str, request: AttestationDecision):
+async def submit_attestation(session_id: str, request: AttestationDecisionRequest):
     """Submit attestation decision — gates fix generation."""
     _validate_session_id(session_id)
     session = sessions.get(session_id)
@@ -1474,6 +1474,62 @@ async def submit_attestation(session_id: str, request: AttestationDecision):
 
     response_text = supervisor.acknowledge_attestation(request.decision)
     return {"status": "recorded", "response": response_text}
+
+
+# ── Per-Finding Attestation ──────────────────────────────────────────
+
+
+class PerFindingDecision(BaseModel):
+    finding_id: str
+    decision: Literal["approved", "rejected", "skipped"]
+
+
+class AttestationRequest(BaseModel):
+    decisions: list[PerFindingDecision]
+
+
+@router_v4.post("/session/{session_id}/attestation/findings")
+async def submit_per_finding_attestation(session_id: str, request: AttestationRequest):
+    """Submit per-finding attestation decisions (approve/reject/skip each finding)."""
+    _validate_session_id(session_id)
+    session = sessions.get(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    supervisor = supervisors.get(session_id)
+    if not supervisor:
+        raise HTTPException(status_code=400, detail="Session not ready")
+
+    from datetime import datetime
+    from src.models.attestation import AttestationDecision as AttDecision
+
+    if not hasattr(supervisor, "_per_finding_gate"):
+        from src.models.attestation import AttestationGate
+        supervisor._per_finding_gate = AttestationGate(findings=[])
+
+    gate = supervisor._per_finding_gate
+
+    for d in request.decisions:
+        gate.decisions[d.finding_id] = AttDecision(
+            finding_id=d.finding_id,
+            decision=d.decision,
+            decided_by="user",
+            decided_at=datetime.utcnow(),
+            confidence_at_decision=0.0,
+        )
+
+    gate.status = "complete" if gate.is_complete() else "partially_decided"
+
+    # If any finding is approved, treat overall attestation as acknowledged
+    if gate.approved_finding_ids():
+        supervisor.acknowledge_attestation("approve")
+
+    return {
+        "status": gate.status,
+        "approved": gate.approved_finding_ids(),
+        "total_decided": len(gate.decisions),
+        "total_findings": len(gate.findings),
+    }
 
 
 # ── Fix Pipeline Endpoints ────────────────────────────────────────────

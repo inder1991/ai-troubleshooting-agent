@@ -154,6 +154,7 @@ class SupervisorAgent:
         # Human-in-the-loop: discovery attestation
         self._attestation_event = asyncio.Event()
         self._attestation_acknowledged = False
+        self._per_finding_gate = None  # set when per-finding attestation is used
 
         # Human-in-the-loop channel for code_agent questions
         self._code_agent_question: str = ""
