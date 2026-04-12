@@ -3157,6 +3157,9 @@ Examples:
 
     async def acknowledge_attestation(self, decision: str, session_id: str = "") -> str:
         """Record that the user has acknowledged the discovery attestation gate."""
+        if self._attestation_acknowledged and decision == "approve":
+            return "Findings already approved."
+
         sid = session_id or self._session_id
 
         if decision == "approve":
