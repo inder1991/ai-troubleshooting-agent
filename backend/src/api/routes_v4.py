@@ -35,6 +35,7 @@ from src.utils.fix_job_queue import FixJobQueue
 from src.integrations.cicd.base import DeliveryItem
 from src.integrations.cicd.resolver import resolve_cicd_clients
 from src.integrations.github_client import GitHubClient, GitHubClientError
+from src.utils.attestation_log import AttestationLogger
 
 logger = get_logger(__name__)
 
@@ -2399,3 +2400,9 @@ async def cicd_commit_detail(owner: str, repo: str, sha: str):
         if "authentication" in msg or "401" in msg:
             raise HTTPException(status_code=401, detail=str(exc))
         raise HTTPException(status_code=502, detail=str(exc))
+
+
+@router_v4.get("/audit/attestations")
+async def get_attestation_log(request: Request, session_id: str | None = None, decided_by: str | None = None, since: str | None = None):
+    attestation_logger = AttestationLogger(request.app.state.redis)
+    return await attestation_logger.query(session_id=session_id, decided_by=decided_by, since=since)
