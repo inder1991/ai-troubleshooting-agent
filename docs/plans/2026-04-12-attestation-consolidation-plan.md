@@ -2293,6 +2293,701 @@ git commit -m "test(attestation): add integration smoke tests for full attestati
 
 ---
 
+### Task 23: Workflow State Machine
+
+**Files:**
+- Create: `backend/src/agents/workflow_state_machine.py`
+- Modify: `backend/src/agents/supervisor.py` — use state machine for all phase transitions
+- Test: `backend/tests/test_workflow_state_machine.py`
+
+**Step 1: Write the failing test**
+
+```python
+# backend/tests/test_workflow_state_machine.py
+import pytest
+from src.agents.workflow_state_machine import WorkflowStateMachine, InvalidTransitionError
+from src.models.schemas import DiagnosticPhase
+
+
+class FakeState:
+    def __init__(self, phase, attestation_acknowledged=False, fix_decided=False):
+        self.phase = phase
+        self.attestation_acknowledged = attestation_acknowledged
+        self.fix_decided = fix_decided
+
+
+sm = WorkflowStateMachine()
+
+
+def test_valid_transition_initial_to_collecting():
+    state = FakeState(DiagnosticPhase.INITIAL)
+    sm.transition(state, DiagnosticPhase.COLLECTING_CONTEXT)
+    assert state.phase == DiagnosticPhase.COLLECTING_CONTEXT
+
+
+def test_valid_transition_diagnosis_to_fix_with_attestation():
+    state = FakeState(DiagnosticPhase.DIAGNOSIS_COMPLETE, attestation_acknowledged=True)
+    sm.transition(state, DiagnosticPhase.FIX_IN_PROGRESS)
+    assert state.phase == DiagnosticPhase.FIX_IN_PROGRESS
+
+
+def test_invalid_transition_diagnosis_to_fix_without_attestation():
+    state = FakeState(DiagnosticPhase.DIAGNOSIS_COMPLETE, attestation_acknowledged=False)
+    with pytest.raises(InvalidTransitionError):
+        sm.transition(state, DiagnosticPhase.FIX_IN_PROGRESS)
+
+
+def test_invalid_transition_initial_to_complete():
+    state = FakeState(DiagnosticPhase.INITIAL)
+    with pytest.raises(InvalidTransitionError):
+        sm.transition(state, DiagnosticPhase.COMPLETE)
+
+
+def test_valid_transition_fix_to_complete():
+    state = FakeState(DiagnosticPhase.FIX_IN_PROGRESS, fix_decided=True)
+    sm.transition(state, DiagnosticPhase.COMPLETE)
+    assert state.phase == DiagnosticPhase.COMPLETE
+
+
+def test_any_phase_can_go_to_error():
+    for phase in DiagnosticPhase:
+        if phase == DiagnosticPhase.ERROR:
+            continue
+        state = FakeState(phase)
+        sm.transition(state, DiagnosticPhase.ERROR)
+        assert state.phase == DiagnosticPhase.ERROR
+```
+
+**Step 2: Run test to verify it fails**
+
+Run: `cd backend && python -m pytest tests/test_workflow_state_machine.py -v`
+Expected: FAIL with `ModuleNotFoundError`
+
+**Step 3: Write minimal implementation**
+
+```python
+# backend/src/agents/workflow_state_machine.py
+from __future__ import annotations
+
+from typing import Any, Callable
+from src.models.schemas import DiagnosticPhase
+
+
+class InvalidTransitionError(Exception):
+    pass
+
+
+class WorkflowStateMachine:
+    VALID_TRANSITIONS: dict[DiagnosticPhase, list[tuple[DiagnosticPhase, Callable]]] = {
+        DiagnosticPhase.INITIAL: [
+            (DiagnosticPhase.COLLECTING_CONTEXT, lambda s: True),
+        ],
+        DiagnosticPhase.COLLECTING_CONTEXT: [
+            (DiagnosticPhase.LOGS_ANALYZED, lambda s: True),
+            (DiagnosticPhase.METRICS_ANALYZED, lambda s: True),
+            (DiagnosticPhase.K8S_ANALYZED, lambda s: True),
+        ],
+        DiagnosticPhase.LOGS_ANALYZED: [
+            (DiagnosticPhase.METRICS_ANALYZED, lambda s: True),
+            (DiagnosticPhase.VALIDATING, lambda s: True),
+            (DiagnosticPhase.DIAGNOSIS_COMPLETE, lambda s: True),
+        ],
+        DiagnosticPhase.METRICS_ANALYZED: [
+            (DiagnosticPhase.K8S_ANALYZED, lambda s: True),
+            (DiagnosticPhase.TRACING_ANALYZED, lambda s: True),
+            (DiagnosticPhase.VALIDATING, lambda s: True),
+            (DiagnosticPhase.DIAGNOSIS_COMPLETE, lambda s: True),
+        ],
+        DiagnosticPhase.K8S_ANALYZED: [
+            (DiagnosticPhase.TRACING_ANALYZED, lambda s: True),
+            (DiagnosticPhase.CODE_ANALYZED, lambda s: True),
+            (DiagnosticPhase.VALIDATING, lambda s: True),
+            (DiagnosticPhase.DIAGNOSIS_COMPLETE, lambda s: True),
+        ],
+        DiagnosticPhase.TRACING_ANALYZED: [
+            (DiagnosticPhase.CODE_ANALYZED, lambda s: True),
+            (DiagnosticPhase.VALIDATING, lambda s: True),
+            (DiagnosticPhase.DIAGNOSIS_COMPLETE, lambda s: True),
+        ],
+        DiagnosticPhase.CODE_ANALYZED: [
+            (DiagnosticPhase.VALIDATING, lambda s: True),
+            (DiagnosticPhase.DIAGNOSIS_COMPLETE, lambda s: True),
+        ],
+        DiagnosticPhase.VALIDATING: [
+            (DiagnosticPhase.RE_INVESTIGATING, lambda s: True),
+            (DiagnosticPhase.DIAGNOSIS_COMPLETE, lambda s: True),
+        ],
+        DiagnosticPhase.RE_INVESTIGATING: [
+            (DiagnosticPhase.VALIDATING, lambda s: True),
+            (DiagnosticPhase.DIAGNOSIS_COMPLETE, lambda s: True),
+        ],
+        DiagnosticPhase.DIAGNOSIS_COMPLETE: [
+            (DiagnosticPhase.FIX_IN_PROGRESS, lambda s: s.attestation_acknowledged),
+            (DiagnosticPhase.RE_INVESTIGATING, lambda s: True),
+        ],
+        DiagnosticPhase.FIX_IN_PROGRESS: [
+            (DiagnosticPhase.COMPLETE, lambda s: s.fix_decided),
+            (DiagnosticPhase.DIAGNOSIS_COMPLETE, lambda s: True),
+        ],
+        DiagnosticPhase.COMPLETE: [],
+    }
+
+    def transition(self, state: Any, target: DiagnosticPhase) -> None:
+        # Any phase can transition to ERROR
+        if target == DiagnosticPhase.ERROR:
+            state.phase = target
+            return
+
+        allowed = self.VALID_TRANSITIONS.get(state.phase, [])
+        for target_phase, guard in allowed:
+            if target_phase == target and guard(state):
+                state.phase = target
+                return
+        raise InvalidTransitionError(
+            f"Cannot transition from {state.phase.value} to {target.value}"
+        )
+```
+
+**Step 4: Run test to verify it passes**
+
+Run: `cd backend && python -m pytest tests/test_workflow_state_machine.py -v`
+Expected: PASS (6 tests)
+
+**Step 5: Wire into supervisor**
+
+In `backend/src/agents/supervisor.py`, add to `__init__`:
+
+```python
+from src.agents.workflow_state_machine import WorkflowStateMachine
+self._state_machine = WorkflowStateMachine()
+```
+
+Replace all direct `state.phase = DiagnosticPhase.X` assignments with:
+
+```python
+self._state_machine.transition(state, DiagnosticPhase.X)
+```
+
+This is a search-and-replace across supervisor.py. Each `state.phase = ...` becomes `self._state_machine.transition(state, ...)`.
+
+**Step 6: Run full test suite**
+
+Run: `cd backend && python -m pytest tests/ -v --timeout=30`
+Expected: PASS
+
+**Step 7: Commit**
+
+```bash
+git add backend/src/agents/workflow_state_machine.py backend/tests/test_workflow_state_machine.py backend/src/agents/supervisor.py
+git commit -m "feat(attestation): add WorkflowStateMachine to enforce valid phase transitions"
+```
+
+---
+
+### Task 24: Typed PendingAction Context
+
+**Files:**
+- Modify: `backend/src/models/pending_action.py` — add typed context dataclasses
+- Modify: `backend/tests/test_pending_action.py` — add typed context tests
+
+**Step 1: Write the failing test**
+
+```python
+# Append to backend/tests/test_pending_action.py
+
+from src.models.pending_action import (
+    PendingAction, AttestationContext, FixApprovalContext,
+    CampaignExecuteContext, RepoConfirmContext, CodeAgentQuestionContext,
+)
+
+
+def test_attestation_context_roundtrip():
+    ctx = AttestationContext(findings_count=4, confidence=0.87, proposed_action="Fix auth")
+    pa = PendingAction(
+        type="attestation_required", blocking=True,
+        actions=["approve", "reject"], expires_at=None,
+        context=ctx, version=1,
+    )
+    d = pa.to_dict()
+    restored = PendingAction.from_dict(d)
+    assert isinstance(restored.context, AttestationContext)
+    assert restored.context.findings_count == 4
+    assert restored.context.confidence == 0.87
+
+
+def test_fix_approval_context_roundtrip():
+    ctx = FixApprovalContext(
+        diff_summary="2 files changed",
+        fix_explanation="Add null check",
+        fixed_files=["auth.py", "handler.py"],
+        attempt_number=1,
+    )
+    pa = PendingAction(
+        type="fix_approval", blocking=True,
+        actions=["approve", "reject", "feedback"], expires_at=None,
+        context=ctx, version=1,
+    )
+    d = pa.to_dict()
+    restored = PendingAction.from_dict(d)
+    assert isinstance(restored.context, FixApprovalContext)
+    assert restored.context.fixed_files == ["auth.py", "handler.py"]
+
+
+def test_campaign_context_roundtrip():
+    ctx = CampaignExecuteContext(repo_count=5, repos=["r1", "r2"], approved_count=5)
+    pa = PendingAction(
+        type="campaign_execute_confirm", blocking=True,
+        actions=["confirm", "cancel"], expires_at=None,
+        context=ctx, version=1,
+    )
+    d = pa.to_dict()
+    restored = PendingAction.from_dict(d)
+    assert isinstance(restored.context, CampaignExecuteContext)
+    assert restored.context.repo_count == 5
+```
+
+**Step 2: Run test to verify it fails**
+
+Run: `cd backend && python -m pytest tests/test_pending_action.py -v`
+Expected: FAIL with `ImportError`
+
+**Step 3: Add typed context classes**
+
+```python
+# Add to backend/src/models/pending_action.py
+
+from dataclasses import asdict
+
+@dataclass
+class AttestationContext:
+    findings_count: int
+    confidence: float
+    proposed_action: str
+
+    def to_dict(self) -> dict:
+        return {"_ctx_type": "attestation", **asdict(self)}
+
+    @classmethod
+    def from_dict(cls, d: dict) -> AttestationContext:
+        return cls(
+            findings_count=d["findings_count"],
+            confidence=d["confidence"],
+            proposed_action=d["proposed_action"],
+        )
+
+
+@dataclass
+class FixApprovalContext:
+    diff_summary: str
+    fix_explanation: str
+    fixed_files: list[str]
+    attempt_number: int
+
+    def to_dict(self) -> dict:
+        return {"_ctx_type": "fix_approval", **asdict(self)}
+
+    @classmethod
+    def from_dict(cls, d: dict) -> FixApprovalContext:
+        return cls(
+            diff_summary=d["diff_summary"],
+            fix_explanation=d["fix_explanation"],
+            fixed_files=d["fixed_files"],
+            attempt_number=d["attempt_number"],
+        )
+
+
+@dataclass
+class CampaignExecuteContext:
+    repo_count: int
+    repos: list[str]
+    approved_count: int
+
+    def to_dict(self) -> dict:
+        return {"_ctx_type": "campaign_execute", **asdict(self)}
+
+    @classmethod
+    def from_dict(cls, d: dict) -> CampaignExecuteContext:
+        return cls(
+            repo_count=d["repo_count"],
+            repos=d["repos"],
+            approved_count=d["approved_count"],
+        )
+
+
+@dataclass
+class RepoConfirmContext:
+    repo_url: str
+    service_name: str
+
+    def to_dict(self) -> dict:
+        return {"_ctx_type": "repo_confirm", **asdict(self)}
+
+    @classmethod
+    def from_dict(cls, d: dict) -> RepoConfirmContext:
+        return cls(repo_url=d["repo_url"], service_name=d["service_name"])
+
+
+@dataclass
+class CodeAgentQuestionContext:
+    question: str
+    agent_name: str
+
+    def to_dict(self) -> dict:
+        return {"_ctx_type": "code_agent_question", **asdict(self)}
+
+    @classmethod
+    def from_dict(cls, d: dict) -> CodeAgentQuestionContext:
+        return cls(question=d["question"], agent_name=d["agent_name"])
+
+
+PendingActionContext = (
+    AttestationContext | FixApprovalContext | CampaignExecuteContext |
+    RepoConfirmContext | CodeAgentQuestionContext
+)
+
+_CONTEXT_REGISTRY: dict[str, type] = {
+    "attestation": AttestationContext,
+    "fix_approval": FixApprovalContext,
+    "campaign_execute": CampaignExecuteContext,
+    "repo_confirm": RepoConfirmContext,
+    "code_agent_question": CodeAgentQuestionContext,
+}
+```
+
+Update `PendingAction.to_dict()` and `from_dict()`:
+
+```python
+@dataclass
+class PendingAction:
+    type: PENDING_ACTION_TYPES
+    blocking: bool
+    actions: list[str]
+    expires_at: datetime | None
+    context: PendingActionContext | dict  # Accept dict for backward compat
+    version: int = 1
+
+    def to_dict(self) -> dict:
+        ctx = self.context.to_dict() if hasattr(self.context, 'to_dict') else self.context
+        return {
+            "type": self.type,
+            "blocking": self.blocking,
+            "actions": self.actions,
+            "expires_at": self.expires_at.isoformat() if self.expires_at else None,
+            "context": ctx,
+            "version": self.version,
+        }
+
+    @classmethod
+    def from_dict(cls, d: dict) -> PendingAction:
+        expires_at = None
+        if d.get("expires_at"):
+            expires_at = datetime.fromisoformat(d["expires_at"])
+
+        raw_ctx = d.get("context", {})
+        ctx_type = raw_ctx.get("_ctx_type")
+        if ctx_type and ctx_type in _CONTEXT_REGISTRY:
+            context = _CONTEXT_REGISTRY[ctx_type].from_dict(raw_ctx)
+        else:
+            context = raw_ctx  # fallback to plain dict
+
+        return cls(
+            type=d["type"],
+            blocking=d["blocking"],
+            actions=d["actions"],
+            expires_at=expires_at,
+            context=context,
+            version=d.get("version", 1),
+        )
+```
+
+**Step 4: Run test to verify it passes**
+
+Run: `cd backend && python -m pytest tests/test_pending_action.py -v`
+Expected: PASS (6 tests — 3 original + 3 new)
+
+**Step 5: Commit**
+
+```bash
+git add backend/src/models/pending_action.py backend/tests/test_pending_action.py
+git commit -m "feat(attestation): add typed context classes for PendingAction (no runtime key errors)"
+```
+
+---
+
+### Task 25: Observability Hooks (Lifecycle Events)
+
+**Files:**
+- Modify: `backend/src/utils/attestation_log.py` — add `log_lifecycle()` method
+- Modify: `backend/src/agents/supervisor.py` — emit lifecycle events
+- Modify: `backend/src/utils/redis_store.py` — emit `created` on save
+- Modify: `backend/src/api/routes_v4.py` — add lifecycle query endpoint
+- Test: `backend/tests/test_observability_hooks.py`
+
+**Step 1: Write the failing test**
+
+```python
+# backend/tests/test_observability_hooks.py
+import pytest
+from unittest.mock import AsyncMock
+from src.utils.attestation_log import AttestationLogger
+
+
+@pytest.fixture
+def mock_redis():
+    r = AsyncMock()
+    r.xadd = AsyncMock(return_value=b"1234567890-0")
+    r.xrange = AsyncMock(return_value=[])
+    return r
+
+
+@pytest.fixture
+def logger(mock_redis):
+    return AttestationLogger(mock_redis)
+
+
+@pytest.mark.asyncio
+async def test_log_lifecycle_pending_created(logger, mock_redis):
+    await logger.log_lifecycle("sess-1", "pending_action_created", {
+        "type": "attestation_required",
+        "version": 1,
+    })
+    mock_redis.xadd.assert_called_once()
+    call_args = mock_redis.xadd.call_args
+    assert call_args[0][0] == "audit:attestation_lifecycle"
+    entry = call_args[0][1]
+    assert entry["event"] == "pending_action_created"
+    assert entry["session_id"] == "sess-1"
+
+
+@pytest.mark.asyncio
+async def test_log_lifecycle_resolved(logger, mock_redis):
+    await logger.log_lifecycle("sess-1", "pending_action_resolved", {
+        "type": "attestation_required",
+        "decision": "approve",
+        "response_time_ms": "4500",
+    })
+    mock_redis.xadd.assert_called_once()
+    entry = mock_redis.xadd.call_args[0][1]
+    assert entry["event"] == "pending_action_resolved"
+    assert entry["response_time_ms"] == "4500"
+
+
+@pytest.mark.asyncio
+async def test_log_lifecycle_timed_out(logger, mock_redis):
+    await logger.log_lifecycle("sess-1", "pending_action_timed_out", {
+        "type": "fix_approval",
+        "elapsed_s": "600",
+    })
+    entry = mock_redis.xadd.call_args[0][1]
+    assert entry["event"] == "pending_action_timed_out"
+```
+
+**Step 2: Run test to verify it fails**
+
+Run: `cd backend && python -m pytest tests/test_observability_hooks.py -v`
+Expected: FAIL with `AttributeError: 'AttestationLogger' has no attribute 'log_lifecycle'`
+
+**Step 3: Add log_lifecycle method**
+
+In `backend/src/utils/attestation_log.py`:
+
+```python
+LIFECYCLE_STREAM_KEY = "audit:attestation_lifecycle"
+
+# Add to AttestationLogger class:
+async def log_lifecycle(self, session_id: str, event: str, details: dict) -> str:
+    entry = {
+        "session_id": session_id,
+        "event": event,
+        "timestamp": datetime.utcnow().isoformat(),
+        **{k: str(v) for k, v in details.items()},
+    }
+    return await self._redis.xadd(
+        LIFECYCLE_STREAM_KEY, entry,
+        maxlen=MAX_STREAM_LEN, approximate=True,
+    )
+
+async def query_lifecycle(self, session_id: str | None = None,
+                          count: int = 500) -> list[dict]:
+    raw = await self._redis.xrange(LIFECYCLE_STREAM_KEY, min="-", max="+", count=count)
+    results = []
+    for entry_id, fields in raw:
+        record = {
+            (k.decode() if isinstance(k, bytes) else k): (v.decode() if isinstance(v, bytes) else v)
+            for k, v in fields.items()
+        }
+        record["stream_id"] = entry_id.decode() if isinstance(entry_id, bytes) else entry_id
+        if session_id and record.get("session_id") != session_id:
+            continue
+        results.append(record)
+    return results
+```
+
+**Step 4: Wire into save/resolve/timeout paths**
+
+In `backend/src/utils/redis_store.py`, `save_pending_action()`:
+```python
+# After saving, log lifecycle if logger available:
+# (pass logger as optional param or access via app state)
+```
+
+In `backend/src/agents/supervisor.py`, `acknowledge_attestation()`:
+```python
+# After clearing pending action:
+if self._attestation_logger:
+    await self._attestation_logger.log_lifecycle(sid, "pending_action_resolved", {
+        "type": "attestation_required",
+        "decision": decision,
+        "response_time_ms": "...",  # compute from pending_action created time
+    })
+```
+
+In timeout background loop (Task 20):
+```python
+if attestation_logger:
+    await attestation_logger.log_lifecycle(session_id, "pending_action_timed_out", {
+        "type": pa.type,
+        "elapsed_s": str(int(os.getenv("ATTESTATION_TIMEOUT_S", "600"))),
+    })
+```
+
+**Step 5: Add lifecycle query endpoint**
+
+In `backend/src/api/routes_v4.py`:
+```python
+@router_v4.get("/audit/attestation-lifecycle")
+async def get_attestation_lifecycle(session_id: str | None = None):
+    logger = _get_attestation_logger()
+    if not logger:
+        return {"events": []}
+    events = await logger.query_lifecycle(session_id=session_id)
+    return {"events": events}
+```
+
+**Step 6: Run test to verify it passes**
+
+Run: `cd backend && python -m pytest tests/test_observability_hooks.py -v`
+Expected: PASS (3 tests)
+
+**Step 7: Commit**
+
+```bash
+git add backend/src/utils/attestation_log.py backend/src/agents/supervisor.py backend/src/utils/redis_store.py backend/src/api/routes_v4.py backend/tests/test_observability_hooks.py
+git commit -m "feat(attestation): add observability hooks — lifecycle events to Redis Streams"
+```
+
+---
+
+### Task 26: Session Replay Endpoint
+
+**Files:**
+- Create: `backend/src/utils/session_replayer.py`
+- Modify: `backend/src/api/routes_v4.py` — add replay endpoint
+- Test: `backend/tests/test_session_replayer.py`
+
+**Step 1: Write the failing test**
+
+```python
+# backend/tests/test_session_replayer.py
+import pytest
+from unittest.mock import AsyncMock
+from src.utils.session_replayer import SessionReplayer
+from src.utils.attestation_log import AttestationLogger
+
+
+@pytest.fixture
+def mock_redis():
+    r = AsyncMock()
+    r.xrange = AsyncMock(return_value=[
+        (b"1-0", {b"session_id": b"sess-1", b"event": b"pending_action_created",
+                  b"timestamp": b"2026-04-12T10:00:00", b"type": b"attestation_required"}),
+        (b"2-0", {b"session_id": b"sess-1", b"event": b"pending_action_resolved",
+                  b"timestamp": b"2026-04-12T10:01:30", b"decision": b"approve"}),
+    ])
+    return r
+
+
+@pytest.mark.asyncio
+async def test_replay_returns_chronological_timeline(mock_redis):
+    logger = AttestationLogger(mock_redis)
+    replayer = SessionReplayer(logger)
+    timeline = await replayer.replay("sess-1")
+    assert len(timeline) >= 1
+    # Events should be sorted by timestamp
+    timestamps = [e["timestamp"] for e in timeline]
+    assert timestamps == sorted(timestamps)
+```
+
+**Step 2: Run test to verify it fails**
+
+Run: `cd backend && python -m pytest tests/test_session_replayer.py -v`
+Expected: FAIL with `ModuleNotFoundError`
+
+**Step 3: Write implementation**
+
+```python
+# backend/src/utils/session_replayer.py
+from __future__ import annotations
+
+from src.utils.attestation_log import AttestationLogger
+
+
+class SessionReplayer:
+    def __init__(self, logger: AttestationLogger):
+        self._logger = logger
+
+    async def replay(self, session_id: str) -> list[dict]:
+        decisions = await self._logger.query(session_id=session_id)
+        lifecycle = await self._logger.query_lifecycle(session_id=session_id)
+
+        all_events = []
+        for d in decisions:
+            all_events.append({
+                "event_class": "decision",
+                "timestamp": d.get("decided_at", ""),
+                **d,
+            })
+        for lc in lifecycle:
+            all_events.append({
+                "event_class": "lifecycle",
+                "timestamp": lc.get("timestamp", ""),
+                **lc,
+            })
+
+        all_events.sort(key=lambda e: e.get("timestamp", ""))
+        return all_events
+```
+
+**Step 4: Add replay endpoint**
+
+In `backend/src/api/routes_v4.py`:
+```python
+@router_v4.get("/session/{session_id}/replay")
+async def get_session_replay(session_id: str):
+    _validate_session_id(session_id)
+    logger = _get_attestation_logger()
+    if not logger:
+        return {"timeline": []}
+    from src.utils.session_replayer import SessionReplayer
+    replayer = SessionReplayer(logger)
+    timeline = await replayer.replay(session_id)
+    return {"timeline": timeline}
+```
+
+**Step 5: Run test to verify it passes**
+
+Run: `cd backend && python -m pytest tests/test_session_replayer.py -v`
+Expected: PASS
+
+**Step 6: Commit**
+
+```bash
+git add backend/src/utils/session_replayer.py backend/src/api/routes_v4.py backend/tests/test_session_replayer.py
+git commit -m "feat(attestation): add session replay endpoint — chronological decision timeline"
+```
+
+---
+
 ## Execution Summary
 
 | Task | Description | Backend | Frontend |
@@ -2319,3 +3014,7 @@ git commit -m "test(attestation): add integration smoke tests for full attestati
 | 20 | Timeout background task | Modify | — |
 | 21 | Feedback dedup | Modify | Modify |
 | 22 | Integration smoke tests | Create | — |
+| 23 | Workflow State Machine | Create | — |
+| 24 | Typed PendingAction Context | Modify | — |
+| 25 | Observability Hooks | Modify | — |
+| 26 | Session Replay Endpoint | Create | — |

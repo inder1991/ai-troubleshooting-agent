@@ -9,6 +9,10 @@
 - Supervisor is stateless between human interactions (state in Redis)
 - Frontend is a dumb renderer of `pending_action` objects from backend
 - Every decision is logged to the attestation audit trail (Redis Streams)
+- Workflow state machine enforces valid phase transitions — no illegal jumps
+- Typed context per pending action — no runtime key errors
+- Full observability: lifecycle events for every pending action (created → resolved/timed_out)
+- Replayable: Redis Streams audit trail enables session replay and workflow debugging
 
 ---
 
@@ -302,6 +306,189 @@ A single reusable component that renders any `PendingAction` as a pinned card at
 
 **Files:**
 - Create: `frontend/src/components/Chat/PinnedActionCard.tsx`
+
+---
+
+## Architectural Enhancement 1: Workflow State Machine
+
+**Problem:** Transition logic is scattered across supervisor methods. Nothing prevents invalid phase jumps (e.g., going from `initial` directly to `fix_in_progress`).
+
+**Solution:** A `WorkflowStateMachine` class that encodes all valid transitions and the conditions required for each. The supervisor calls `state_machine.transition(target_phase)` which either succeeds or raises `InvalidTransitionError`.
+
+```python
+class WorkflowStateMachine:
+    VALID_TRANSITIONS: dict[DiagnosticPhase, list[tuple[DiagnosticPhase, Callable]]] = {
+        DiagnosticPhase.INITIAL: [
+            (DiagnosticPhase.COLLECTING_CONTEXT, lambda s: True),
+        ],
+        DiagnosticPhase.DIAGNOSIS_COMPLETE: [
+            (DiagnosticPhase.FIX_IN_PROGRESS, lambda s: s.attestation_acknowledged),
+            (DiagnosticPhase.RE_INVESTIGATING, lambda s: True),
+        ],
+        DiagnosticPhase.FIX_IN_PROGRESS: [
+            (DiagnosticPhase.COMPLETE, lambda s: s.fix_decided),
+            (DiagnosticPhase.DIAGNOSIS_COMPLETE, lambda s: True),  # fix rejected
+        ],
+        # ... all valid transitions with guard conditions
+    }
+
+    def transition(self, state: DiagnosticState, target: DiagnosticPhase) -> None:
+        allowed = self.VALID_TRANSITIONS.get(state.phase, [])
+        for target_phase, guard in allowed:
+            if target_phase == target and guard(state):
+                state.phase = target
+                return
+        raise InvalidTransitionError(f"{state.phase} → {target}")
+```
+
+**Where used:** Every `state.phase = ...` in supervisor.py is replaced with `self._state_machine.transition(state, new_phase)`.
+
+**Files:**
+- Create: `backend/src/agents/workflow_state_machine.py`
+- Modify: `backend/src/agents/supervisor.py` — use state machine for all phase transitions
+
+---
+
+## Architectural Enhancement 2: Typed PendingAction Context
+
+**Problem:** `PendingAction.context` is `dict` — any key typo silently breaks at runtime.
+
+**Solution:** Typed context dataclasses per use case. `PendingAction` becomes generic over its context type.
+
+```python
+@dataclass
+class AttestationContext:
+    findings_count: int
+    confidence: float
+    proposed_action: str
+
+@dataclass
+class FixApprovalContext:
+    diff_summary: str
+    fix_explanation: str
+    fixed_files: list[str]
+    attempt_number: int
+
+@dataclass
+class CampaignExecuteContext:
+    repo_count: int
+    repos: list[str]
+    approved_count: int
+
+@dataclass
+class RepoConfirmContext:
+    repo_url: str
+    service_name: str
+
+@dataclass
+class CodeAgentQuestionContext:
+    question: str
+    agent_name: str
+
+# PendingAction uses a union type for context:
+PendingActionContext = (
+    AttestationContext | FixApprovalContext | CampaignExecuteContext |
+    RepoConfirmContext | CodeAgentQuestionContext
+)
+
+@dataclass
+class PendingAction:
+    type: PENDING_ACTION_TYPES
+    blocking: bool
+    actions: list[str]
+    expires_at: datetime | None
+    context: PendingActionContext  # Typed, not dict
+    version: int = 1
+```
+
+Serialization: each context dataclass implements `to_dict()` / `from_dict()`. `PendingAction.from_dict()` dispatches to the correct context class based on `type`.
+
+**Files:**
+- Modify: `backend/src/models/pending_action.py` — add typed context classes
+- Frontend: `PendingAction.context` stays as `Record<string, unknown>` for flexibility (frontend is a dumb renderer)
+
+---
+
+## Architectural Enhancement 3: Observability Hooks
+
+**Problem:** We log decisions but not the lifecycle of pending actions. Can't answer: "How long did the user take to respond?" or "How many attestations timed out?"
+
+**Solution:** Log lifecycle events to the same Redis Streams audit trail:
+
+| Event | When | Fields |
+|-------|------|--------|
+| `pending_action_created` | Supervisor saves PendingAction | session_id, type, version, expires_at |
+| `pending_action_resolved` | User makes decision | session_id, type, decision, response_time_ms |
+| `pending_action_timed_out` | Background loop detects expiry | session_id, type, elapsed_s |
+| `pending_action_re_prompted` | Ambiguous input re-prompted | session_id, type, user_input, confidence |
+
+```python
+# In AttestationLogger, add:
+async def log_lifecycle(self, session_id: str, event: str, details: dict) -> str:
+    entry = {
+        "session_id": session_id,
+        "event": event,
+        "timestamp": datetime.utcnow().isoformat(),
+        **{k: str(v) for k, v in details.items()},
+    }
+    return await self._redis.xadd("audit:attestation_lifecycle", entry,
+                                   maxlen=MAX_STREAM_LEN, approximate=True)
+```
+
+**Wire into:**
+- `save_pending_action()` → log `pending_action_created`
+- `acknowledge_attestation()` / `_process_fix_decision()` → log `pending_action_resolved` with `response_time_ms = now - created_at`
+- Timeout background loop → log `pending_action_timed_out`
+- IntentParser re-prompt path → log `pending_action_re_prompted`
+
+**Query endpoint:** `GET /audit/attestation-lifecycle?session_id=X` — returns all lifecycle events for a session, ordered by timestamp.
+
+**Files:**
+- Modify: `backend/src/utils/attestation_log.py` — add `log_lifecycle()` method
+- Modify: `backend/src/api/routes_v4.py` — add lifecycle query endpoint
+- Modify: `backend/src/agents/supervisor.py` — emit lifecycle events at each stage
+- Modify: `backend/src/utils/redis_store.py` — emit `created` on save
+
+---
+
+## Architectural Enhancement 4: Session Replayability
+
+**Problem:** When debugging production issues, we can't replay what happened during an investigation. The audit trail has decisions but not the full sequence.
+
+**Solution:** Since we already persist everything to Redis Streams (decisions + lifecycle events), add a replay capability:
+
+```python
+class SessionReplayer:
+    def __init__(self, attestation_logger: AttestationLogger):
+        self._logger = attestation_logger
+
+    async def replay(self, session_id: str) -> list[dict]:
+        """Reconstruct the full decision timeline for a session."""
+        decisions = await self._logger.query(session_id=session_id)
+        lifecycle = await self._logger.query_lifecycle(session_id=session_id)
+
+        # Merge and sort by timestamp
+        all_events = []
+        for d in decisions:
+            all_events.append({"type": "decision", "timestamp": d["decided_at"], **d})
+        for lc in lifecycle:
+            all_events.append({"type": "lifecycle", "timestamp": lc["timestamp"], **lc})
+
+        all_events.sort(key=lambda e: e["timestamp"])
+        return all_events
+```
+
+**Query endpoint:** `GET /session/{id}/replay` — returns chronological timeline of all attestation events.
+
+**Use cases:**
+- Debug why a session got stuck (missing decision? timeout?)
+- Audit compliance (who approved what, when, how long it took)
+- Simulate workflow changes against historical data
+- Training data for improving IntentParser confidence thresholds
+
+**Files:**
+- Create: `backend/src/utils/session_replayer.py`
+- Modify: `backend/src/api/routes_v4.py` — add replay endpoint
 
 ---
 
