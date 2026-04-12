@@ -16,7 +16,7 @@ import StackTraceTelescope from './cards/StackTraceTelescope';
 import SaturationGauge from './cards/SaturationGauge';
 import AnomalySparkline, { findMatchingTimeSeries } from './cards/AnomalySparkline';
 import IncidentClosurePanel from './IncidentClosurePanel';
-import FixPipelinePanel from './FixPipelinePanel';
+import { useChatUI } from '../../contexts/ChatContext';
 import { SkeletonStack } from '../ui/SkeletonCard';
 import SkeletonCard from '../ui/SkeletonCard';
 import { safeFixed, formatTime, safeDate } from '../../utils/format';
@@ -73,6 +73,7 @@ interface PinnedCard {
 
 const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _status, events, sessionId, phase, onRefresh, onNavigateToDossier }) => {
   const { selectedService, clearSelection } = useTopologySelection();
+  const { sendMessage } = useChatUI();
 
   // Service filter: returns true if no service selected OR if text mentions the service
   const matchesService = useCallback(
@@ -737,20 +738,18 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                   </VineCard>
                 )}
 
-                {/* 8c. Fix Pipeline */}
-                {sessionId && (
-                  phase === 'diagnosis_complete' ||
-                  phase === 'fix_in_progress' ||
-                  phase === 'complete' ||
-                  (findings?.fix_data && findings.fix_data.fix_status !== 'not_started')
-                ) && (
+                {/* 8c. Fix Pipeline — chat-first trigger */}
+                {sessionId && phase === 'diagnosis_complete' && (
                   <VineCard index={vineIndex++} sectionId="fix-pipeline">
-                    <FixPipelinePanel
-                      sessionId={sessionId}
-                      findings={findings}
-                      phase={phase || null}
-                      onRefresh={onRefresh || (() => {})}
-                    />
+                    <div className="flex items-center gap-3">
+                      <span className="text-body-xs text-slate-400">Ready to generate a fix?</span>
+                      <button
+                        onClick={() => sendMessage('generate fix')}
+                        className="text-body-xs font-bold px-3 py-1.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30 transition-colors"
+                      >
+                        Generate Fix
+                      </button>
+                    </div>
                   </VineCard>
                 )}
 
