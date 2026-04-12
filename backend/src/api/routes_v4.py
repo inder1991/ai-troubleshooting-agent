@@ -1899,6 +1899,33 @@ async def execute_campaign(session_id: str):
             detail=f"Not all repos approved ({campaign.approved_count}/{campaign.total_count})",
         )
 
+    # ── Campaign confirmation gate ──────────────────────────────────
+    session_store = _get_session_store()
+    if session_store:
+        pending = await session_store.load_pending_action(session_id)
+        if pending and pending.type == "campaign_execute_confirm":
+            await session_store.clear_pending_action(session_id)
+            # Confirmed — fall through to execute
+        elif pending and pending.type != "campaign_execute_confirm":
+            raise HTTPException(
+                status_code=409,
+                detail=f"Cannot execute campaign — another action is pending: {pending.type}",
+            )
+        elif not pending:
+            # First call — create confirmation gate, don't execute yet
+            from src.models.pending_action import PendingAction
+            repo_list = list(campaign.repos.keys()) if campaign.repos else []
+            confirm_action = PendingAction(
+                type="campaign_execute_confirm",
+                blocking=True,
+                actions=["confirm", "cancel"],
+                expires_at=None,
+                context={"repo_count": len(repo_list), "repos": repo_list},
+                version=1,
+            )
+            await session_store.save_pending_action(session_id, confirm_action)
+            return {"status": "confirmation_required", "message": "Confirm execution to proceed"}
+
     orchestrator = getattr(supervisor, '_campaign_orchestrator', None)
     if not orchestrator:
         raise HTTPException(status_code=400, detail="Campaign orchestrator not initialized")

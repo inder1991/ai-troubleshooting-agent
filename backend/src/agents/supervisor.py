@@ -2430,6 +2430,12 @@ Respond helpfully. If they're asking for status, give a brief update. If they're
 
         return full_response
 
+    async def _process_campaign_execute_confirm(self) -> str:
+        """Clear the campaign-execute confirmation gate and acknowledge."""
+        if self._session_store and self._session_id:
+            await self._session_store.clear_pending_action(self._session_id)
+        return "Campaign execution confirmed. Creating pull requests..."
+
     async def _process_repo_confirmation(self, message: str) -> str:
         """Parse user's repo confirmation response and signal the waiting coroutine."""
         import re
