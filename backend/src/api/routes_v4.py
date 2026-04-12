@@ -209,6 +209,33 @@ sessions: Dict[str, Dict[str, Any]] = {}
 supervisors: Dict[str, SupervisorAgent] = {}
 
 
+async def _get_or_reconstruct_orchestrator(session_id: str, supervisor: "SupervisorAgent"):
+    """Return the campaign orchestrator, reconstructing from Redis if lost (e.g. after restart)."""
+    orchestrator = getattr(supervisor, '_campaign_orchestrator', None)
+    if orchestrator:
+        return orchestrator
+
+    # Orchestrator not in memory — try to reconstruct from persisted campaign data
+    session_store = _get_session_store()
+    if not session_store:
+        return None
+
+    campaign_data = await session_store.load_campaign(session_id)
+    if not campaign_data:
+        return None
+
+    # Campaign data exists in Redis — reconstruct a fresh orchestrator
+    from src.agents.agent3.campaign_orchestrator import CampaignOrchestrator
+    orchestrator = CampaignOrchestrator(
+        llm_client=supervisor.llm_client,
+        event_emitter=supervisor._event_emitter or EventEmitter(manager),
+        connection_config=supervisor._connection_config,
+    )
+    supervisor._campaign_orchestrator = orchestrator
+    logger.info("Reconstructed campaign orchestrator from Redis", extra={"session_id": session_id})
+    return orchestrator
+
+
 def _link_sessions(session_a: str, session_b: str):
     """Bidirectionally link two sessions."""
     for src, dst in [(session_a, session_b), (session_b, session_a)]:
@@ -248,12 +275,32 @@ SESSION_TTL_HOURS = 24
 
 
 def start_cleanup_task():
-    """No-op: session TTL is now managed by Redis expiry.
+    """Launch background loop that evicts stale in-memory sessions every 5 minutes."""
+    asyncio.ensure_future(_session_cleanup_loop())
+    logger.info("Session cleanup loop started (TTL=%dh)", SESSION_TTL_HOURS)
 
-    Kept as a callable so existing imports in main.py don't break.
-    In-memory entries are cleaned up when sessions are explicitly deleted.
-    """
-    logger.info("Session TTL managed by Redis; in-memory cleanup loop disabled")
+
+async def _session_cleanup_loop():
+    while True:
+        await asyncio.sleep(300)
+        now = datetime.now(timezone.utc)
+        stale_ids = []
+        for sid, sess in sessions.items():
+            created = sess.get("created_at")
+            if created:
+                try:
+                    age = (now - datetime.fromisoformat(created)).total_seconds()
+                    if age > SESSION_TTL_HOURS * 3600:
+                        stale_ids.append(sid)
+                except (ValueError, TypeError):
+                    pass
+        for sid in stale_ids:
+            sessions.pop(sid, None)
+            session_locks.pop(sid, None)
+            _investigation_routers.pop(sid, None)
+            supervisors.pop(sid, None)
+        if stale_ids:
+            logger.info("Cleaned up %d stale sessions", len(stale_ids))
 
 
 def create_cluster_client(connection_config=None):
@@ -960,7 +1007,11 @@ async def chat(session_id: str, request: ChatRequest):
 
     state = session.get("state")
     if state:
-        response_text = await supervisor.handle_user_message(request.message, state)
+        try:
+            response_text = await supervisor.handle_user_message(request.message, state)
+        except Exception:
+            logger.exception("Chat handler failed for session %s", session_id)
+            response_text = "Something went wrong processing your message. Please try again."
     else:
         response_text = "Analysis is still starting up. Please wait a moment."
 
@@ -971,38 +1022,72 @@ async def chat(session_id: str, request: ChatRequest):
     )
 
 
+@router_v4.get("/session/{session_id}/chat-history")
+async def get_chat_history(session_id: str):
+    _validate_session_id(session_id)
+    session = sessions.get(session_id)
+    if not session:
+        session_store = _get_session_store()
+        if session_store:
+            persisted = await session_store.load(session_id)
+            if persisted and "chat_history" in persisted:
+                return {"messages": persisted["chat_history"]}
+        return {"messages": []}
+    return {"messages": session.get("chat_history", [])}
+
+
 @router_v4.get("/sessions", response_model=list[SessionSummary])
 async def list_sessions():
+    seen_ids: set[str] = set()
     result = []
-    for sid, data in sessions.items():
-        # Extract findings count from session state
+
+    def _build_summary(sid: str, data: dict) -> SessionSummary:
         findings_count = 0
         critical_count = 0
         state = data.get("state")
         if state:
             if isinstance(state, dict):
-                # DB sessions store findings as list of dicts
                 findings = state.get("findings", [])
                 findings_count = len(findings)
                 critical_count = sum(1 for f in findings if f.get("severity") == "critical")
             elif hasattr(state, "all_findings"):
-                # App sessions store findings on supervisor state object
                 findings_count = len(state.all_findings)
                 critical_count = sum(1 for f in state.all_findings if getattr(f, "severity", "") == "critical")
-
-        result.append(SessionSummary(
+        return SessionSummary(
             session_id=sid,
-            service_name=data["service_name"],
+            service_name=data.get("service_name", "unknown"),
             incident_id=data.get("incident_id"),
-            phase=data["phase"],
-            confidence=data["confidence"],
-            created_at=data["created_at"],
+            phase=data.get("phase", "unknown"),
+            confidence=data.get("confidence", 0),
+            created_at=data.get("created_at", ""),
             capability=data.get("capability"),
             investigation_mode=data.get("investigation_mode"),
             related_sessions=data.get("related_sessions", []),
             findings_count=findings_count,
             critical_count=critical_count,
-        ))
+        )
+
+    # In-memory sessions (authoritative — they're live)
+    for sid, data in sessions.items():
+        seen_ids.add(sid)
+        result.append(_build_summary(sid, data))
+
+    # Merge Redis-persisted sessions not already in memory
+    store = _get_session_store()
+    if store:
+        try:
+            redis_ids = await store.list_session_ids()
+            for sid in redis_ids:
+                if sid in seen_ids:
+                    continue
+                persisted = await store.load(sid)
+                if persisted:
+                    seen_ids.add(sid)
+                    result.append(_build_summary(sid, persisted))
+        except Exception:
+            pass  # Redis unavailable — return in-memory only
+
+    result.sort(key=lambda s: s.created_at or "", reverse=True)
     return result
 
 
@@ -1018,6 +1103,42 @@ async def cancel_session(session_id: str):
     if emitter and hasattr(emitter, 'emit'):
         asyncio.create_task(emitter.emit("supervisor", "warning", "Investigation cancelled by user"))
     return {"status": "cancelled"}
+
+
+class FeedbackRequest(BaseModel):
+    outcome: str  # fix_worked | fix_failed | issue_recurred | wrong_diagnosis | not_applicable
+    root_cause_category: Optional[str] = None
+    fix_type: Optional[str] = None
+    notes: Optional[str] = None
+
+
+@router_v4.post("/session/{session_id}/feedback")
+async def submit_feedback(session_id: str, body: FeedbackRequest):
+    """Record whether a diagnosis/fix was accurate."""
+    _validate_session_id(session_id)
+    session = await _load_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    from src.database.feedback_store import FeedbackStore
+    store = FeedbackStore()
+    row_id = store.record_feedback(
+        session_id=session_id,
+        service_name=session.get("service_name", "unknown"),
+        outcome=body.outcome,
+        root_cause_category=body.root_cause_category,
+        fix_type=body.fix_type,
+        notes=body.notes,
+    )
+    return {"status": "recorded", "feedback_id": row_id}
+
+
+@router_v4.get("/service/{service_name}/feedback")
+async def get_service_feedback(service_name: str, limit: int = 10):
+    """Get historical diagnosis feedback for a service."""
+    from src.database.feedback_store import FeedbackStore
+    store = FeedbackStore()
+    return store.get_service_feedback(service_name, limit=min(limit, 50))
 
 
 @router_v4.delete("/session/{session_id}")
@@ -1302,7 +1423,7 @@ async def get_findings(session_id: str):
         change_summary = None
         change_high_priority_files = []
 
-    return {
+    response = {
         "session_id": session_id,
         "incident_id": state.incident_id,
         "target_service": session["service_name"],
@@ -1347,7 +1468,33 @@ async def get_findings(session_id: str):
         "evidence_pins": session.get("evidence_pins", []),
         "causal_forest": [ct.model_dump(mode="json") for ct in state.causal_forest] if state.causal_forest else [],
         "evidence_graph": state.evidence_graph,
+        "agent_statuses": state.agent_statuses,
     }
+
+    if state.hypotheses:
+        response["hypotheses"] = [
+            {
+                "hypothesis_id": h.hypothesis_id,
+                "category": h.category,
+                "status": h.status,
+                "confidence": h.confidence,
+                "evidence_for_count": len(h.evidence_for),
+                "evidence_against_count": len(h.evidence_against),
+                "downstream_effects": h.downstream_effects,
+                "elimination_reason": h.elimination_reason,
+                "elimination_phase": h.elimination_phase,
+            }
+            for h in state.hypotheses
+        ]
+    if state.hypothesis_result:
+        response["hypothesis_result"] = {
+            "status": state.hypothesis_result.status,
+            "winner_id": state.hypothesis_result.winner.hypothesis_id if state.hypothesis_result.winner else None,
+            "elimination_log": state.hypothesis_result.elimination_log,
+            "recommendations": state.hypothesis_result.recommendations,
+        }
+
+    return response
 
 
 class PromQLRequest(BaseModel):
@@ -1482,9 +1629,18 @@ class AttestationDecisionRequest(BaseModel):
 
 
 @router_v4.post("/session/{session_id}/attestation")
-async def submit_attestation(session_id: str, request: AttestationDecisionRequest):
+async def submit_attestation(session_id: str, request: AttestationDecisionRequest, raw_request: Request):
     """Submit attestation decision — gates fix generation."""
     _validate_session_id(session_id)
+
+    # ── Idempotency check ──────────────────────────────────────────
+    idem_key = raw_request.headers.get("idempotency-key")
+    session_store = _get_session_store()
+    if idem_key and session_store:
+        cached = await session_store.check_idempotency(idem_key)
+        if cached:
+            return {"status": "recorded", "response": cached}
+
     session = sessions.get(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
@@ -1501,6 +1657,10 @@ async def submit_attestation(session_id: str, request: AttestationDecisionReques
     if state and emitter and request.decision == "approve":
         import asyncio
         asyncio.create_task(supervisor.resume_pipeline(session_id, state, emitter))
+
+    # ── Cache idempotency result ───────────────────────────────────
+    if idem_key and session_store:
+        await session_store.save_idempotency(idem_key, response_text or "recorded")
 
     return {"status": "recorded", "response": response_text}
 
@@ -1570,9 +1730,18 @@ async def get_fix_status(session_id: str):
 
 
 @router_v4.post("/session/{session_id}/fix/decide")
-async def fix_decide(session_id: str, request: FixDecisionRequest):
+async def fix_decide(session_id: str, request: FixDecisionRequest, raw_request: Request):
     """Submit a fix decision (approve/reject/feedback)."""
     _validate_session_id(session_id)
+
+    # ── Idempotency check ──────────────────────────────────────────
+    idem_key = raw_request.headers.get("idempotency-key")
+    session_store = _get_session_store()
+    if idem_key and session_store:
+        cached = await session_store.check_idempotency(idem_key)
+        if cached:
+            return {"status": "ok", "response": cached}
+
     session = sessions.get(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
@@ -1595,7 +1764,16 @@ async def fix_decide(session_id: str, request: FixDecisionRequest):
             detail=f"No fix awaiting review (current status: {current})",
         )
 
-    response_text = await supervisor.handle_user_message(request.decision, state)
+    try:
+        response_text = await supervisor.handle_user_message(request.decision, state)
+    except Exception:
+        logger.exception("Fix decision handler failed for session %s", session_id)
+        raise HTTPException(status_code=500, detail="Failed to process fix decision. Please try again.")
+
+    # ── Cache idempotency result ───────────────────────────────────
+    if idem_key and session_store:
+        await session_store.save_idempotency(idem_key, response_text or "ok")
+
     return {"status": "ok", "response": response_text}
 
 
@@ -1818,7 +1996,7 @@ async def campaign_repo_decide(session_id: str, repo_url: str, request: Campaign
     if decoded_repo_url not in state.campaign.repos:
         raise HTTPException(status_code=404, detail=f"Repo not in campaign: {decoded_repo_url}")
 
-    orchestrator = getattr(supervisor, '_campaign_orchestrator', None)
+    orchestrator = await _get_or_reconstruct_orchestrator(session_id, supervisor)
     if not orchestrator:
         raise HTTPException(status_code=400, detail="Campaign orchestrator not initialized")
 
@@ -1886,9 +2064,22 @@ async def campaign_telescope(session_id: str, repo_url: str):
 
 
 @router_v4.post("/session/{session_id}/campaign/execute", response_model=CampaignExecuteResponse)
-async def execute_campaign(session_id: str):
+async def execute_campaign(session_id: str, raw_request: Request):
     """Master Gate: coordinated PR creation/merge for all approved repos."""
     _validate_session_id(session_id)
+
+    # ── Idempotency check ──────────────────────────────────────────
+    idem_key = raw_request.headers.get("idempotency-key")
+    session_store_idem = _get_session_store()
+    if idem_key and session_store_idem:
+        cached = await session_store_idem.check_idempotency(idem_key)
+        if cached:
+            import json as _json
+            try:
+                return _json.loads(cached)
+            except Exception:
+                return {"status": "ok", "response": cached}
+
     session = sessions.get(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
@@ -1932,11 +2123,16 @@ async def execute_campaign(session_id: str):
             await session_store.save_pending_action(session_id, confirm_action)
             return {"status": "confirmation_required", "message": "Confirm execution to proceed"}
 
-    orchestrator = getattr(supervisor, '_campaign_orchestrator', None)
+    orchestrator = await _get_or_reconstruct_orchestrator(session_id, supervisor)
     if not orchestrator:
         raise HTTPException(status_code=400, detail="Campaign orchestrator not initialized")
 
     result = await orchestrator.execute_campaign(campaign, state)
+
+    # ── Cache idempotency result ───────────────────────────────────
+    if idem_key and session_store_idem:
+        await session_store_idem.save_idempotency(idem_key, json.dumps(result))
+
     return CampaignExecuteResponse(**result)
 
 
@@ -2034,7 +2230,11 @@ async def investigate(session_id: str, request: InvestigateRequest):
         raise HTTPException(status_code=404, detail="Session not found")
 
     investigation_router = _get_investigation_router(session_id)
-    response, pin = await investigation_router.route(request)
+    try:
+        response, pin = await investigation_router.route(request)
+    except Exception:
+        logger.exception("Investigation route failed for session %s", session_id)
+        raise HTTPException(status_code=500, detail="Investigation command failed. Please try again.")
 
     if pin:
         # B6: Validate causal_role before storing
@@ -2437,7 +2637,10 @@ def check_circuit_breakers():
 
 @router_v4.get("/audit/attestations")
 async def get_attestation_log(request: Request, session_id: str | None = None, decided_by: str | None = None, since: str | None = None):
-    attestation_logger = AttestationLogger(request.app.state.redis)
+    redis_client = getattr(request.app.state, "redis", None)
+    if not redis_client:
+        raise HTTPException(status_code=503, detail="Audit log requires Redis")
+    attestation_logger = AttestationLogger(redis_client)
     return await attestation_logger.query(session_id=session_id, decided_by=decided_by, since=since)
 
 
