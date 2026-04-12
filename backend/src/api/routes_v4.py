@@ -2439,3 +2439,12 @@ def check_circuit_breakers():
 async def get_attestation_log(request: Request, session_id: str | None = None, decided_by: str | None = None, since: str | None = None):
     attestation_logger = AttestationLogger(request.app.state.redis)
     return await attestation_logger.query(session_id=session_id, decided_by=decided_by, since=since)
+
+
+@router_v4.get("/audit/attestation-lifecycle")
+async def get_attestation_lifecycle(session_id: str | None = None):
+    logger = _get_attestation_logger()
+    if not logger:
+        return {"events": []}
+    events = await logger.query_lifecycle(session_id=session_id)
+    return {"events": events}

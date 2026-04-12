@@ -6,6 +6,7 @@ import redis.asyncio as redis
 logger = logging.getLogger(__name__)
 
 STREAM_KEY = "audit:attestations"
+LIFECYCLE_STREAM_KEY = "audit:attestation_lifecycle"
 MAX_STREAM_LEN = 10_000
 
 
@@ -54,5 +55,31 @@ class AttestationLogger:
                     record["confidence"] = float(record["confidence"])
                 except (ValueError, TypeError):
                     pass
+            results.append(record)
+        return results
+
+    async def log_lifecycle(self, session_id: str, event: str, details: dict) -> str:
+        entry = {
+            "session_id": session_id,
+            "event": event,
+            "timestamp": datetime.utcnow().isoformat(),
+            **{k: str(v) for k, v in details.items()},
+        }
+        return await self._redis.xadd(
+            LIFECYCLE_STREAM_KEY, entry,
+            maxlen=MAX_STREAM_LEN, approximate=True,
+        )
+
+    async def query_lifecycle(self, session_id: str | None = None, count: int = 500) -> list[dict]:
+        raw = await self._redis.xrange(LIFECYCLE_STREAM_KEY, min="-", max="+", count=count)
+        results = []
+        for entry_id, fields in raw:
+            record = {
+                (k.decode() if isinstance(k, bytes) else k): (v.decode() if isinstance(v, bytes) else v)
+                for k, v in fields.items()
+            }
+            record["stream_id"] = entry_id.decode() if isinstance(entry_id, bytes) else entry_id
+            if session_id and record.get("session_id") != session_id:
+                continue
             results.append(record)
         return results
