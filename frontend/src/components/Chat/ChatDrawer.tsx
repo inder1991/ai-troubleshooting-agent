@@ -6,6 +6,7 @@ import { useChatUI, useChatStream, useInvestigationContext } from '../../context
 import MarkdownBubble from './MarkdownBubble';
 import RemediationPacketCard from './RemediationPacketCard';
 import ChatInputArea from './ChatInputArea';
+import PinnedActionCard from './PinnedActionCard';
 import ActionChip from './ActionChip';
 import { QuickActionToolbar } from './QuickActionToolbar';
 import { useInvestigationTools } from '../../hooks/useInvestigationTools';
@@ -98,6 +99,7 @@ const ChatDrawer: React.FC = () => {
     isOpen,
     isWaiting,
     isSending,
+    pendingAction,
     sendMessage,
     closeDrawer,
     activeToolCalls,
@@ -259,6 +261,12 @@ const ChatDrawer: React.FC = () => {
                 </div>
               ) : (
                 <>
+                  {pendingAction && (
+                    <PinnedActionCard
+                      pendingAction={pendingAction}
+                      onAction={(intentStr) => sendMessage(intentStr)}
+                    />
+                  )}
                   {messages.map((msg, i) =>
                     msg.metadata?.type === 'campaign_fix_proposal' ? (
                       <RemediationPacketCard key={`msg-${i}`} message={msg} />
