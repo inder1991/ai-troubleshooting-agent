@@ -1,20 +1,6 @@
 import pytest
-import asyncio
 import os
 from unittest.mock import AsyncMock, MagicMock, patch
-
-
-@pytest.mark.asyncio
-async def test_attestation_timeout():
-    from src.agents.supervisor import SupervisorAgent
-    supervisor = SupervisorAgent.__new__(SupervisorAgent)
-    supervisor._attestation_event = asyncio.Event()
-    supervisor._attestation_acknowledged = None
-    supervisor._event_emitter = AsyncMock()
-
-    with patch.dict(os.environ, {"ATTESTATION_TIMEOUT_S": "1"}):
-        result = await supervisor._wait_for_attestation(timeout=1.0)
-    assert result == "timeout"
 
 
 @pytest.mark.asyncio

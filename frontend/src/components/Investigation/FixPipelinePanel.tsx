@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { V4Findings, DiagnosticPhase, FixStatus, FixVerificationResult } from '../../types';
-import { decideOnFix, submitAttestation, cancelFix } from '../../services/api';
+import { decideOnFix, cancelFix } from '../../services/api';
 import { useChatUI } from '../../contexts/ChatContext';
 import { useCampaignContext } from '../../contexts/CampaignContext';
 import AgentFindingCard from './cards/AgentFindingCard';
@@ -167,11 +167,6 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
     setLoading('generating');
     setError(null);
     try {
-      // Auto-approve attestation gate (may already be approved — ignore errors)
-      try {
-        await submitAttestation(sessionId, 'discovery_complete', 'approve', 'user');
-      } catch { /* already approved */ }
-
       // Send through chat so the conversation appears in the drawer
       const msg = guidance.trim()
         ? `generate fix: ${guidance.trim()}`

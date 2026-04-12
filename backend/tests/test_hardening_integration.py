@@ -10,7 +10,6 @@ from src.utils.attestation_log import AttestationLogger
 from src.tools.dependency_parser import DependencyParser
 from src.agents.cross_repo_tracer import CrossRepoTracer
 from src.agents.evidence_handoff import EvidenceHandoff, format_handoff_for_agent
-from src.models.attestation import AttestationGate, AttestationDecision
 
 
 def test_all_new_modules_import():
@@ -23,7 +22,6 @@ def test_all_new_modules_import():
     assert DependencyParser is not None
     assert CrossRepoTracer is not None
     assert EvidenceHandoff is not None
-    assert AttestationGate is not None
 
 
 def test_context_guard_model_limits():

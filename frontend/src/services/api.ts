@@ -327,16 +327,6 @@ export const getReasoning = async (sessionId: string) => {
   return response.json();
 };
 
-export const submitAttestation = async (sessionId: string, gateType: string, decision: string, decidedBy: string) => {
-  const response = await fetch(`${API_BASE_URL}/api/v4/session/${sessionId}/attestation`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ gate_type: gateType, decision, decided_by: decidedBy }),
-  });
-  if (!response.ok) throw new Error('Failed to submit attestation');
-  return response.json();
-};
-
 export const getTimeline = async (sessionId: string) => {
   const response = await fetch(`${API_BASE_URL}/api/v5/session/${sessionId}/timeline`);
   if (!response.ok) throw new Error('Failed to get timeline');
