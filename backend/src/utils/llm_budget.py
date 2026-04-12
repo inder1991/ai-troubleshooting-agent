@@ -110,6 +110,13 @@ SCAN_BUDGETS = {
         max_tokens_output=15_000,
         max_total_latency_ms=60_000,
     ),
+    "cross_repo": SessionBudget(
+        max_llm_calls=40,
+        max_tool_calls_per_agent=6,
+        max_tokens_input=300_000,
+        max_tokens_output=60_000,
+        max_total_latency_ms=180_000,
+    ),
 }
 
 
@@ -126,7 +133,12 @@ def get_budget_for_mode(scan_mode: str) -> SessionBudget:
 
 
 def adapt_budget(budget: SessionBudget, cluster_size: dict) -> SessionBudget:
-    """Adjust budget based on cluster size."""
+    """Adjust budget based on cluster size.
+
+    Only scale UP for large clusters (more data = more tool rounds).
+    Never scale down — the diagnostic pipeline (4 agents + synthesizer + verdict)
+    needs a minimum of ~16 LLM calls regardless of cluster size.
+    """
     node_count = cluster_size.get("nodes", 0)
     pod_count = cluster_size.get("pods", 0)
 
@@ -135,9 +147,5 @@ def adapt_budget(budget: SessionBudget, cluster_size: dict) -> SessionBudget:
         budget.max_total_latency_ms = int(budget.max_total_latency_ms * 1.5)
         budget.max_tool_calls_per_agent = max(2, budget.max_tool_calls_per_agent - 1)
         logger.info("Budget adapted for large cluster: nodes=%d, pods=%d", node_count, pod_count)
-
-    if node_count < 5 and pod_count < 50:
-        budget.max_llm_calls = max(4, budget.max_llm_calls // 2)
-        logger.info("Budget reduced for small cluster: nodes=%d, pods=%d", node_count, pod_count)
 
     return budget

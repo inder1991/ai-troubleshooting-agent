@@ -24,6 +24,7 @@ from src.agents.k8s_agent import K8sAgent
 from src.agents.tracing_agent import TracingAgent
 from src.agents.code_agent import CodeNavigatorAgent
 from src.agents.change_agent import ChangeAgent
+from src.agents.cross_repo_tracer import CrossRepoTracer
 from src.agents.critic_agent import CriticAgent
 from src.agents.causal_engine import EvidenceGraphBuilder
 from src.agents.impact_analyzer import ImpactAnalyzer
@@ -1434,6 +1435,23 @@ class SupervisorAgent:
                     "code_agent", "finding",
                     f"Code impact: {len(impacted)} files, root cause in {root_loc.file_path}",
                     details={"impacted_count": len(impacted), "fix_areas": len(fix_areas)}
+                )
+
+            # Cross-repo correlation check
+            code_confidence = result.get("overall_confidence", 50) / 100.0
+            internal_deps_count = len(cross_repo_findings)  # proxy for upstream dep activity
+            tracer = CrossRepoTracer(repo_map={})
+            if tracer.should_trace(code_confidence=code_confidence,
+                                   internal_deps_with_recent_commits=internal_deps_count):
+                logger.info("Cross-repo trace recommended",
+                            extra={"session_id": state.session_id,
+                                   "agent_name": "supervisor",
+                                   "action": "cross_repo_dispatch",
+                                   "extra": {"code_confidence": code_confidence,
+                                             "internal_deps": internal_deps_count}})
+                state.supervisor_reasoning.append(
+                    "Cross-repo analysis recommended: code_confidence="
+                    f"{code_confidence:.2f}, internal_deps={internal_deps_count}"
                 )
 
         # Store reasoning
