@@ -187,17 +187,25 @@ def test_exact_intent_prefix():
 
 
 def test_approve_synonyms_with_attestation_pending():
-    for word in ["yes", "lgtm", "go ahead", "looks good", "approve", "ok"]:
+    for word in ["yes", "lgtm", "go ahead", "looks good", "approve", "ok",
+                 "yes please go ahead", "sounds good to me", "ship it"]:
         result = parser.parse(word, make_attestation_pending())
         assert result.type == "approve_attestation", f"Failed for: {word}"
         assert result.confidence >= 0.9
 
 
 def test_reject_synonyms_with_attestation_pending():
-    for word in ["reject", "no", "cancel", "stop"]:
+    for word in ["reject", "no", "cancel", "stop", "hold off on this", "no thanks"]:
         result = parser.parse(word, make_attestation_pending())
         assert result.type == "reject_attestation", f"Failed for: {word}"
         assert result.confidence >= 0.9
+
+
+def test_false_positive_guards():
+    """'no problem' should NOT be interpreted as rejection."""
+    for phrase in ["no problem", "no worries", "no issue"]:
+        result = parser.parse(phrase, make_attestation_pending())
+        assert result.type != "reject_attestation", f"False positive for: {phrase}"
 
 
 def test_approve_synonyms_with_fix_pending():
@@ -248,8 +256,16 @@ from dataclasses import dataclass, field
 from src.models.pending_action import PendingAction
 
 
-APPROVE_WORDS = {"approve", "yes", "y", "ok", "lgtm", "go ahead", "looks good", "create pr", "confirm", "proceed"}
-REJECT_WORDS = {"reject", "no", "n", "cancel", "stop", "discard", "abort"}
+# Single-token exact matches
+APPROVE_EXACT = {"approve", "yes", "y", "ok", "lgtm", "confirm", "proceed"}
+REJECT_EXACT = {"reject", "no", "n", "cancel", "stop", "discard", "abort"}
+
+# Multi-word phrases matched via containment (order matters — check longer first)
+APPROVE_PHRASES = ["go ahead", "looks good", "create pr", "ship it", "yes please", "sounds good", "do it"]
+REJECT_PHRASES = ["no thanks", "not now", "hold off", "don't proceed"]
+
+# Guard against false positives: "no problem" contains "no" but isn't rejection
+FALSE_POSITIVE_GUARDS = {"no problem", "no worries", "no issue", "no doubt"}
 
 
 @dataclass
@@ -267,6 +283,20 @@ _INTENT_MAP: dict[str, tuple[str, str, str | None]] = {
     "campaign_execute_confirm": ("confirm_execute", "cancel_execute", None),
     "code_agent_question": ("general_chat", "general_chat", None),
 }
+
+
+# Valid intents per pending action type — security gate
+ALLOWED_INTENTS: dict[str, set[str]] = {
+    "attestation_required": {"approve_attestation", "reject_attestation", "ask_question", "general_chat"},
+    "fix_approval": {"approve_fix", "reject_fix", "fix_feedback", "ask_question", "general_chat"},
+    "repo_confirm": {"approve_repo", "reject_repo", "ask_question", "general_chat"},
+    "campaign_execute_confirm": {"confirm_execute", "cancel_execute", "ask_question", "general_chat"},
+    "code_agent_question": {"general_chat", "ask_question"},
+}
+
+
+def _allowed_intents_for_pending(pending_type: str) -> set[str]:
+    return ALLOWED_INTENTS.get(pending_type, {"general_chat", "ask_question"})
 
 
 class IntentParser:
@@ -290,12 +320,25 @@ class IntentParser:
 
         approve_intent, reject_intent, feedback_intent = intents
 
-        # Layer 2: rule-based matching
-        if lower in APPROVE_WORDS:
+        # Layer 2: rule-based matching (exact tokens + phrase containment)
+
+        # Guard against false positives first
+        if any(fp in lower for fp in FALSE_POSITIVE_GUARDS):
+            return UserIntent(type="general_chat", confidence=0.8)
+
+        # Exact single-token match
+        if lower in APPROVE_EXACT:
             return UserIntent(type=approve_intent, confidence=0.95)
 
-        if lower in REJECT_WORDS:
+        if lower in REJECT_EXACT:
             return UserIntent(type=reject_intent, confidence=0.95)
+
+        # Phrase containment (longer phrases first to avoid partial matches)
+        if any(phrase in lower for phrase in APPROVE_PHRASES):
+            return UserIntent(type=approve_intent, confidence=0.9)
+
+        if any(phrase in lower for phrase in REJECT_PHRASES):
+            return UserIntent(type=reject_intent, confidence=0.9)
 
         # Questions → ask_question (keep pending action alive)
         if lower.endswith("?"):
@@ -718,7 +761,7 @@ async def test_acknowledge_reject_keeps_flag_false():
 Run: `cd backend && python -m pytest tests/test_attestation_resume.py -v`
 Expected: FAIL (acknowledge_attestation is still sync / doesn't clear pending)
 
-**Step 3: Rewrite acknowledge_attestation**
+**Step 3: Rewrite acknowledge_attestation + resume_pipeline**
 
 In `backend/src/agents/supervisor.py`, replace the existing `acknowledge_attestation()`:
 
@@ -751,9 +794,24 @@ async def acknowledge_attestation(self, decision: str, session_id: str = "") -> 
         )
 
     return response
+
+
+async def resume_pipeline(self, session_id: str, state: "DiagnosticState",
+                          event_emitter: "EventEmitter") -> None:
+    """Resume supervisor pipeline after human decision. Called by API layer."""
+    if not self._attestation_acknowledged:
+        return  # Rejected — don't resume
+    # Continue from where we left off (post-attestation → remediation)
+    await event_emitter.emit(
+        "supervisor", "phase_change",
+        "Resuming pipeline — entering remediation phase",
+        details={"phase": "fix_in_progress"},
+    )
+    state.phase = DiagnosticPhase.FIX_IN_PROGRESS
+    # Pipeline resumes — supervisor is ready for fix generation requests via chat
 ```
 
-Update the attestation endpoint in `routes_v4.py` (line 1464) to `await`:
+Update the attestation endpoint in `routes_v4.py` (line 1464) to `await` and trigger resume:
 
 ```python
 @router_v4.post("/session/{session_id}/attestation")
@@ -768,6 +826,14 @@ async def submit_attestation(session_id: str, request: AttestationDecisionReques
         raise HTTPException(status_code=400, detail="Session not ready")
 
     response_text = await supervisor.acknowledge_attestation(request.decision, session_id)
+
+    # Resume pipeline in background (non-blocking)
+    state = session.get("state")
+    emitter = session.get("emitter")
+    if state and emitter and request.decision == "approve":
+        import asyncio
+        asyncio.create_task(supervisor.resume_pipeline(session_id, state, emitter))
+
     return {"status": "recorded", "response": response_text}
 ```
 
@@ -935,20 +1001,80 @@ await event_emitter.emit(
 return  # Exit cleanly — resume on user decision
 ```
 
-Update `_process_fix_decision()` to clear pending action:
+Rewrite `_process_fix_decision()` — fully state-driven, no asyncio.Event:
 
 ```python
-def _process_fix_decision(self, message: str) -> str:
+async def _process_fix_decision(self, message: str) -> str:
+    """State-driven fix decision — no asyncio.Event. Clears pending action + triggers resume."""
     text = message.strip().lower()
+
+    if not self._pending_fix_approval:
+        return f"No fix awaiting review (already decided: {self._fix_human_decision or 'none'})."
 
     if text in ("approve", "yes", "create pr", "lgtm", "ok", "y"):
         self._fix_human_decision = "approve"
-        self._fix_event.set()
-        if self._session_store and self._session_id:
-            import asyncio
-            asyncio.create_task(self._session_store.clear_pending_action(self._session_id))
+        self._pending_fix_approval = False
+    elif text in ("reject", "no", "cancel", "discard"):
+        self._fix_human_decision = "reject"
+        self._pending_fix_approval = False
+    else:
+        self._fix_human_decision = message.strip()  # feedback
+        self._pending_fix_approval = False
+
+    # Clear pending action from Redis
+    if self._session_store and self._session_id:
+        await self._session_store.clear_pending_action(self._session_id)
+
+    # Audit trail
+    if self._attestation_logger and self._session_id:
+        await self._attestation_logger.log_decision(
+            session_id=self._session_id,
+            finding_id="fix_attempt",
+            decision=self._fix_human_decision,
+            decided_by="user",
+            confidence=0.0,
+            finding_summary=f"Fix decision: {self._fix_human_decision}",
+        )
+
+    if self._fix_human_decision == "approve":
         return "Approved — creating pull request now."
-    # ... same for reject and feedback, add clear_pending_action ...
+    elif self._fix_human_decision == "reject":
+        return "Fix rejected. Diagnosis remains available."
+    else:
+        return "Got it — regenerating fix with your feedback."
+```
+
+Also delete `_fix_event` from `__init__` — no more asyncio.Event for human-timescale waits:
+
+```python
+# DELETE from __init__:
+# self._fix_event = asyncio.Event()
+```
+
+Add `resume_fix_pipeline()` method for API layer to call after decision:
+
+```python
+async def resume_fix_pipeline(self, session_id: str, state: "DiagnosticState",
+                               event_emitter: "EventEmitter") -> None:
+    """Resume fix pipeline after human decision."""
+    decision = self._fix_human_decision
+    if decision == "approve":
+        # Continue to PR creation
+        await self._create_pr(state, event_emitter)
+    elif decision and decision not in ("reject",):
+        # Feedback — regenerate fix with guidance
+        await self.start_fix_generation(state, event_emitter, human_guidance=decision)
+```
+
+Wire resume in `routes_v4.py` fix/decide endpoint:
+
+```python
+# After processing decision, trigger resume:
+if supervisor._fix_human_decision:
+    state = session.get("state")
+    emitter = session.get("emitter")
+    if state and emitter:
+        asyncio.create_task(supervisor.resume_fix_pipeline(session_id, state, emitter))
 ```
 
 **Step 4: Run all tests**
@@ -1034,7 +1160,13 @@ async def handle_user_message(self, message: str, state: DiagnosticState) -> str
 
     intent = parser.parse(message, pending)
 
-    # Low confidence with pending action → re-prompt
+    # Security: validate intent is allowed for current pending action type
+    if pending and intent.type not in ("ask_question", "general_chat"):
+        allowed = _allowed_intents_for_pending(pending.type)
+        if intent.type not in allowed:
+            return f"Invalid action '{intent.type}' for current state '{pending.type}'."
+
+    # Low confidence with pending action → re-prompt with chips
     if pending and intent.confidence < 0.7 and intent.type == "general_chat":
         actions_display = ", ".join(f"'{a}'" for a in pending.actions)
         return f"I need a clear decision. You can say {actions_display}, or ask me a question about the findings."
@@ -1060,6 +1192,8 @@ async def handle_user_message(self, message: str, state: DiagnosticState) -> str
         if self._session_store and self._session_id:
             await self._session_store.clear_pending_action(self._session_id)
         return "Campaign execution cancelled."
+
+    # --- end of intent-routed decisions ---
 
     # Existing priority routing for legacy gates (keep for backward compat)
     if self._pending_fix_approval:
@@ -1106,8 +1240,11 @@ git commit -m "feat(attestation): route chat through IntentParser with re-prompt
 
 In `backend/src/agents/supervisor.py`:
 - Delete `_attestation_event = asyncio.Event()` from `__init__`
+- Delete `_fix_event = asyncio.Event()` from `__init__`
 - Delete `_per_finding_gate = None` from `__init__`
 - Delete entire `_wait_for_attestation()` method (lines 3040-3048)
+- Remove all `self._fix_event.set()` and `self._fix_event.clear()` calls
+- Remove `await asyncio.wait_for(self._fix_event.wait(), ...)` (replaced by state-driven exit in Task 7)
 
 In `backend/src/api/routes_v4.py`:
 - Delete the `submit_per_finding_attestation` endpoint (lines 1492-1533)
@@ -1293,6 +1430,12 @@ async def execute_campaign(session_id: str):
         if pending and pending.type == "campaign_execute_confirm":
             # Already confirmed — clear and proceed
             await session_store.clear_pending_action(session_id)
+        elif pending and pending.type != "campaign_execute_confirm":
+            # Different action is pending — block
+            raise HTTPException(
+                status_code=409,
+                detail=f"Cannot execute campaign — another action is pending: {pending.type}",
+            )
         elif not pending:
             # No pending action — create confirmation gate
             repo_urls = [r.repo_url for r in campaign.repos]
@@ -1931,12 +2074,36 @@ async def _pending_action_timeout_loop():
                     data = json.loads(raw if isinstance(raw, str) else raw.decode())
                     pa = PendingAction.from_dict(data)
                     if pa.is_expired():
-                        # Reset expiry (indefinite) and re-emit
+                        session_id = key.decode().split(":")[-1] if isinstance(key, bytes) else key.split(":")[-1]
+
+                        # Reset expiry (indefinite wait) — don't auto-reject
                         pa.expires_at = None
                         await redis_client.set(key, json.dumps(pa.to_dict()), ex=86400)
-                        session_id = key.decode().split(":")[-1] if isinstance(key, bytes) else key.split(":")[-1]
-                        # Log timeout
-                        logger.info(f"Pending action timed out for session {session_id}")
+
+                        # Notify user via event emitter
+                        from src.api.routes_v4 import sessions as active_sessions
+                        session = active_sessions.get(session_id)
+                        emitter = session.get("emitter") if session else None
+                        if emitter:
+                            actions_str = " / ".join(f"'{a}'" for a in pa.actions)
+                            await emitter.emit(
+                                "supervisor", "waiting_for_input",
+                                f"No response received — action still required. You can say {actions_str}.",
+                                details={"pending_action": pa.to_dict()},
+                            )
+
+                        # Log timeout to audit trail
+                        attestation_logger = _get_attestation_logger()
+                        if attestation_logger:
+                            await attestation_logger.log_decision(
+                                session_id=session_id,
+                                finding_id="timeout",
+                                decision="timed_out_reset",
+                                decided_by="system",
+                                confidence=0.0,
+                                finding_summary=f"Pending action {pa.type} timed out — reset to indefinite",
+                            )
+                        logger.info(f"Pending action timed out for session {session_id}, re-emitted")
                 if cursor == 0:
                     break
         except Exception:
