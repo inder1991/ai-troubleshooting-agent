@@ -1,6 +1,8 @@
 """Evidence graph builder and causal intelligence engine (Phase 4, Task 13)."""
 
 import uuid
+from dataclasses import dataclass
+from datetime import datetime
 from src.models.schemas import (
     EvidencePin,
     EvidenceNode,
@@ -12,6 +14,19 @@ from src.models.schemas import (
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
+
+
+@dataclass
+class CrossRepoEdge:
+    source_repo: str
+    source_file: str
+    source_commit: str
+    source_timestamp: datetime | None
+    target_repo: str
+    target_file: str
+    target_import: str
+    correlation_type: str
+    correlation_score: float
 
 
 class EvidenceGraphBuilder:
@@ -49,6 +64,41 @@ class EvidenceGraphBuilder:
             reasoning=reasoning,
         )
         self.graph.edges.append(edge)
+
+    def add_cross_repo_edge(self, edge: CrossRepoEdge) -> None:
+        """Add a cross-repo causal edge between a source breaking change and a target import."""
+        ts = edge.source_timestamp or datetime(1970, 1, 1)
+        source_id = self.add_evidence(
+            EvidencePin(
+                claim=f"Breaking change in {edge.source_repo}:{edge.source_file}",
+                supporting_evidence=[f"Commit {edge.source_commit}"],
+                source_agent="cross_repo_tracer",
+                source_tool="cross_repo_tracer",
+                confidence=edge.correlation_score,
+                timestamp=ts,
+                evidence_type="change",
+            ),
+            node_type="cross_repo_source",
+        )
+        target_id = self.add_evidence(
+            EvidencePin(
+                claim=f"Import in {edge.target_repo}:{edge.target_file}",
+                supporting_evidence=[edge.target_import],
+                source_agent="cross_repo_tracer",
+                source_tool="cross_repo_tracer",
+                confidence=edge.correlation_score,
+                timestamp=ts,
+                evidence_type="code",
+            ),
+            node_type="cross_repo_target",
+        )
+        self.add_causal_link(
+            source_id,
+            target_id,
+            edge.correlation_type,
+            edge.correlation_score,
+            f"Cross-repo: {edge.source_repo} → {edge.target_repo}",
+        )
 
     def identify_root_causes(self) -> list[str]:
         """Identify root causes: nodes that are sources but never targets, plus isolated nodes."""

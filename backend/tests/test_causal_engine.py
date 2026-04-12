@@ -127,6 +127,51 @@ class TestBuildTimeline:
             assert tid in node_ids
 
 
+class TestCrossRepoEdge:
+    def test_cross_repo_edge(self):
+        from src.agents.causal_engine import CrossRepoEdge
+
+        builder = EvidenceGraphBuilder()
+        edge = CrossRepoEdge(
+            source_repo="org/auth",
+            source_file="client.py",
+            source_commit="abc",
+            source_timestamp=None,
+            target_repo="org/api",
+            target_file="handler.py",
+            target_import="from auth.client import validate",
+            correlation_type="api_rename",
+            correlation_score=0.94,
+        )
+        builder.add_cross_repo_edge(edge)
+        assert len(builder.graph.nodes) == 2
+        assert len(builder.graph.edges) == 1
+        assert builder.graph.edges[0].relationship == "api_rename"
+        assert builder.graph.edges[0].confidence == 0.94
+        roots = builder.identify_root_causes()
+        assert len(roots) >= 1
+
+    def test_cross_repo_edge_with_timestamp(self):
+        from src.agents.causal_engine import CrossRepoEdge
+
+        builder = EvidenceGraphBuilder()
+        edge = CrossRepoEdge(
+            source_repo="org/lib",
+            source_file="util.py",
+            source_commit="def456",
+            source_timestamp=datetime(2025, 6, 15, 12, 0),
+            target_repo="org/svc",
+            target_file="main.py",
+            target_import="from lib.util import helper",
+            correlation_type="signature_change",
+            correlation_score=0.87,
+        )
+        builder.add_cross_repo_edge(edge)
+        assert builder.graph.nodes[0].pin.timestamp == datetime(2025, 6, 15, 12, 0)
+        assert builder.graph.nodes[0].node_type == "cross_repo_source"
+        assert builder.graph.nodes[1].node_type == "cross_repo_target"
+
+
 class TestEmptyGraph:
     def test_empty_graph(self):
         builder = EvidenceGraphBuilder()

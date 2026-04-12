@@ -158,7 +158,7 @@ class TokenUsage(BaseModel):
 class TaskEvent(BaseModel):
     timestamp: datetime
     agent_name: str
-    event_type: Literal["started", "progress", "success", "warning", "error", "tool_call", "phase_change", "finding", "summary", "attestation_required", "fix_proposal", "fix_approved", "waiting_for_input", "reasoning"]
+    event_type: Literal["started", "progress", "success", "warning", "error", "tool_call", "phase_change", "finding", "summary", "attestation_required", "fix_proposal", "fix_approved", "waiting_for_input", "reasoning", "thinking"]
     message: str
     details: Optional[dict] = None
     session_id: Optional[str] = None
@@ -796,14 +796,14 @@ class ReActBudget(BaseModel):
 class EvidenceNode(BaseModel):
     id: str
     pin: EvidencePin
-    node_type: Literal["symptom", "cause", "contributing_factor", "context"]
+    node_type: Literal["symptom", "cause", "contributing_factor", "context", "cross_repo_source", "cross_repo_target"]
     temporal_position: datetime
 
 
 class CausalEdge(BaseModel):
     source_id: str
     target_id: str
-    relationship: Literal["causes", "correlates", "precedes", "contributes_to"]
+    relationship: Literal["causes", "correlates", "precedes", "contributes_to", "api_rename", "signature_change", "dependency_update"]
     confidence: float = Field(..., ge=0.0, le=1.0)
     reasoning: str
 
