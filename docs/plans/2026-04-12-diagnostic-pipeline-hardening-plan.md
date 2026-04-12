@@ -1164,7 +1164,9 @@ git commit -m "feat(attestation): per-finding approve/reject/skip decisions"
 
 ---
 
-### Task 10: Attestation Audit Trail (SQLite)
+### Task 10: Attestation Audit Trail (Redis Streams)
+
+> **Why Redis Streams, not SQLite:** In a multi-instance deployment behind a load balancer, each instance would write to its own local `.db` file — the `/audit/attestations` endpoint would return inconsistent data depending on which pod serves the request. Since Redis is already the shared state backend (Phase 1), Redis Streams (`XADD`/`XRANGE`) give us ordered, persistent, queryable audit logs across all instances with no new infrastructure.
 
 **Files:**
 - Create: `backend/src/utils/attestation_log.py`
@@ -1176,130 +1178,171 @@ git commit -m "feat(attestation): per-finding approve/reject/skip decisions"
 ```python
 # backend/tests/test_attestation_log.py
 import pytest
-import sqlite3
-import tempfile
-import os
-from datetime import datetime
+import json
+from unittest.mock import AsyncMock
 
 from src.utils.attestation_log import AttestationLogger
 
 
 @pytest.fixture
-def logger():
-    fd, path = tempfile.mkstemp(suffix=".db")
-    os.close(fd)
-    al = AttestationLogger(db_path=path)
-    yield al
-    os.unlink(path)
+def mock_redis():
+    r = AsyncMock()
+    r.xadd = AsyncMock(return_value=b"1234567890-0")
+    r.xrange = AsyncMock(return_value=[])
+    return r
 
 
-def test_log_and_query(logger):
-    logger.log_decision(
+@pytest.fixture
+def logger(mock_redis):
+    return AttestationLogger(redis_client=mock_redis)
+
+
+@pytest.mark.asyncio
+async def test_log_decision(logger, mock_redis):
+    await logger.log_decision(
         session_id="sess-1", finding_id="f1", decision="approved",
         decided_by="user", confidence=0.92, finding_summary="OOM in pod-xyz",
     )
-    results = logger.query(session_id="sess-1")
+    mock_redis.xadd.assert_called_once()
+    call_args = mock_redis.xadd.call_args
+    assert call_args[0][0] == "audit:attestations"
+    fields = call_args[0][1]
+    assert fields["session_id"] == "sess-1"
+    assert fields["decision"] == "approved"
+
+
+@pytest.mark.asyncio
+async def test_query_by_session(logger, mock_redis):
+    mock_redis.xrange.return_value = [
+        (b"1234-0", {b"session_id": b"sess-1", b"finding_id": b"f1",
+                     b"decision": b"approved", b"decided_by": b"user",
+                     b"confidence": b"0.92", b"finding_summary": b"OOM in pod-xyz"}),
+    ]
+    results = await logger.query(session_id="sess-1")
     assert len(results) == 1
     assert results[0]["decision"] == "approved"
 
 
-def test_query_by_user(logger):
-    logger.log_decision("s1", "f1", "approved", "user", 0.9, "finding 1")
-    logger.log_decision("s2", "f2", "auto_approved", "system", 0.95, "finding 2")
-    results = logger.query(decided_by="user")
+@pytest.mark.asyncio
+async def test_query_filters_by_decided_by(logger, mock_redis):
+    mock_redis.xrange.return_value = [
+        (b"1-0", {b"session_id": b"s1", b"finding_id": b"f1",
+                  b"decision": b"approved", b"decided_by": b"user",
+                  b"confidence": b"0.9", b"finding_summary": b"finding 1"}),
+        (b"2-0", {b"session_id": b"s2", b"finding_id": b"f2",
+                  b"decision": b"auto_approved", b"decided_by": b"system",
+                  b"confidence": b"0.95", b"finding_summary": b"finding 2"}),
+    ]
+    results = await logger.query(decided_by="user")
     assert len(results) == 1
+    assert results[0]["decided_by"] == "user"
 
 
-def test_upsert_on_duplicate(logger):
-    logger.log_decision("s1", "f1", "skipped", "user", 0.5, "finding")
-    logger.log_decision("s1", "f1", "approved", "user", 0.8, "finding updated")
-    results = logger.query(session_id="s1")
+@pytest.mark.asyncio
+async def test_query_all(logger, mock_redis):
+    mock_redis.xrange.return_value = [
+        (b"1-0", {b"session_id": b"s1", b"finding_id": b"f1",
+                  b"decision": b"approved", b"decided_by": b"user",
+                  b"confidence": b"0.9", b"finding_summary": b"f1"}),
+    ]
+    results = await logger.query()
     assert len(results) == 1
-    assert results[0]["decision"] == "approved"
 ```
 
-**Step 2: Implement**
+**Step 2: Run to verify failure**
+
+Run: `cd backend && python -m pytest tests/test_attestation_log.py -v`
+Expected: FAIL with `ModuleNotFoundError`.
+
+**Step 3: Implement**
 
 ```python
 # backend/src/utils/attestation_log.py
-import sqlite3
-import os
+import logging
 from datetime import datetime
 
-DEFAULT_DB = os.getenv("DEBUGDUCK_DB", "data/debugduck.db")
+import redis.asyncio as redis
+
+logger = logging.getLogger(__name__)
+
+STREAM_KEY = "audit:attestations"
+MAX_STREAM_LEN = 10_000  # cap stream at 10k entries with approximate trimming
 
 
 class AttestationLogger:
-    def __init__(self, db_path: str = DEFAULT_DB):
-        self._db_path = db_path
-        self._ensure_table()
+    def __init__(self, redis_client: redis.Redis):
+        self._redis = redis_client
 
-    def _ensure_table(self):
-        with sqlite3.connect(self._db_path) as conn:
-            conn.execute("""
-                CREATE TABLE IF NOT EXISTS attestation_log (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    session_id TEXT NOT NULL,
-                    finding_id TEXT NOT NULL,
-                    decision TEXT NOT NULL,
-                    decided_by TEXT NOT NULL,
-                    decided_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    confidence REAL,
-                    finding_summary TEXT,
-                    UNIQUE(session_id, finding_id)
-                )
-            """)
+    async def log_decision(self, session_id: str, finding_id: str, decision: str,
+                           decided_by: str, confidence: float, finding_summary: str) -> str:
+        entry = {
+            "session_id": session_id,
+            "finding_id": finding_id,
+            "decision": decision,
+            "decided_by": decided_by,
+            "decided_at": datetime.utcnow().isoformat(),
+            "confidence": str(confidence),
+            "finding_summary": finding_summary,
+        }
+        entry_id = await self._redis.xadd(STREAM_KEY, entry, maxlen=MAX_STREAM_LEN, approximate=True)
+        return entry_id
 
-    def log_decision(self, session_id: str, finding_id: str, decision: str,
-                     decided_by: str, confidence: float, finding_summary: str):
-        with sqlite3.connect(self._db_path) as conn:
-            conn.execute("""
-                INSERT INTO attestation_log (session_id, finding_id, decision, decided_by, decided_at, confidence, finding_summary)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT(session_id, finding_id) DO UPDATE SET
-                    decision=excluded.decision, decided_by=excluded.decided_by,
-                    decided_at=excluded.decided_at, confidence=excluded.confidence,
-                    finding_summary=excluded.finding_summary
-            """, (session_id, finding_id, decision, decided_by, datetime.utcnow().isoformat(), confidence, finding_summary))
-
-    def query(self, session_id: str | None = None, decided_by: str | None = None,
-              since: str | None = None) -> list[dict]:
-        conditions, params = [], []
-        if session_id:
-            conditions.append("session_id = ?")
-            params.append(session_id)
-        if decided_by:
-            conditions.append("decided_by = ?")
-            params.append(decided_by)
+    async def query(self, session_id: str | None = None, decided_by: str | None = None,
+                    since: str | None = None, count: int = 500) -> list[dict]:
+        start = "-"
         if since:
-            conditions.append("decided_at >= ?")
-            params.append(since)
-        where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
-        with sqlite3.connect(self._db_path) as conn:
-            conn.row_factory = sqlite3.Row
-            rows = conn.execute(f"SELECT * FROM attestation_log {where} ORDER BY decided_at DESC", params).fetchall()
-            return [dict(r) for r in rows]
+            # Redis stream IDs are millisecond timestamps; parse ISO to ms
+            try:
+                dt = datetime.fromisoformat(since)
+                start = str(int(dt.timestamp() * 1000))
+            except (ValueError, TypeError):
+                start = "-"
+
+        raw = await self._redis.xrange(STREAM_KEY, min=start, max="+", count=count)
+        results = []
+        for entry_id, fields in raw:
+            record = {
+                (k.decode() if isinstance(k, bytes) else k): (v.decode() if isinstance(v, bytes) else v)
+                for k, v in fields.items()
+            }
+            record["stream_id"] = entry_id.decode() if isinstance(entry_id, bytes) else entry_id
+
+            # Client-side filtering (Redis Streams don't support field-level queries)
+            if session_id and record.get("session_id") != session_id:
+                continue
+            if decided_by and record.get("decided_by") != decided_by:
+                continue
+
+            # Parse confidence back to float
+            if "confidence" in record:
+                try:
+                    record["confidence"] = float(record["confidence"])
+                except (ValueError, TypeError):
+                    pass
+
+            results.append(record)
+        return results
 ```
 
-**Step 3: Run tests, verify pass**
+**Step 4: Run tests, verify pass**
 
 Run: `cd backend && python -m pytest tests/test_attestation_log.py -v`
-Expected: PASS.
+Expected: all 4 tests PASS.
 
-**Step 4: Add query endpoint to routes_v4.py**
+**Step 5: Add query endpoint to routes_v4.py**
 
 ```python
 @router_v4.get("/audit/attestations")
 async def get_attestation_log(session_id: str | None = None, decided_by: str | None = None, since: str | None = None):
-    logger = AttestationLogger()
-    return logger.query(session_id=session_id, decided_by=decided_by, since=since)
+    attestation_logger = AttestationLogger(request.app.state.redis)
+    return await attestation_logger.query(session_id=session_id, decided_by=decided_by, since=since)
 ```
 
-**Step 5: Commit**
+**Step 6: Commit**
 
 ```bash
 git add backend/src/utils/attestation_log.py backend/tests/test_attestation_log.py backend/src/api/routes_v4.py
-git commit -m "feat(compliance): attestation audit trail in SQLite with query API"
+git commit -m "feat(compliance): attestation audit trail via Redis Streams with query API"
 ```
 
 ---

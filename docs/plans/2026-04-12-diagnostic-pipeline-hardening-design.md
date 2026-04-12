@@ -197,25 +197,26 @@ Fix generation behavior:
 
 Frontend impact: `AttestationGateUI.tsx` renders per-finding approve/reject/skip buttons. Scoped to one component.
 
-### 3B. Audit Trail
+### 3B. Audit Trail (Redis Streams)
 
-Dual persistence:
+> **Why Redis Streams, not SQLite:** In a multi-instance deployment, each instance would write to its own local `.db` file — the query endpoint would return inconsistent data depending on which pod serves the request. Redis Streams (`XADD`/`XRANGE`) provide ordered, persistent, queryable audit logs shared across all instances with no new infrastructure.
 
-- **Redis** (ephemeral, active session access): `redis.hset(f"session:{id}:attestation", finding_id, json.dumps(decision))`
-- **SQLite** (durable, compliance queries): new `attestation_log` table
+Single persistence layer via Redis Streams:
 
-```sql
-CREATE TABLE attestation_log (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    session_id TEXT NOT NULL,
-    finding_id TEXT NOT NULL,
-    decision TEXT NOT NULL,
-    decided_by TEXT NOT NULL,
-    decided_at TIMESTAMP NOT NULL,
-    confidence REAL,
-    finding_summary TEXT,
-    UNIQUE(session_id, finding_id)
-);
+```python
+# Write: XADD to ordered stream with auto-trimming
+await redis.xadd("audit:attestations", {
+    "session_id": session_id,
+    "finding_id": finding_id,
+    "decision": decision,
+    "decided_by": decided_by,
+    "decided_at": datetime.utcnow().isoformat(),
+    "confidence": str(confidence),
+    "finding_summary": summary,
+}, maxlen=10_000, approximate=True)
+
+# Read: XRANGE with client-side filtering
+entries = await redis.xrange("audit:attestations", min="-", max="+", count=500)
 ```
 
 Query API:
@@ -224,6 +225,8 @@ Query API:
 GET /api/v4/audit/attestations?session_id=X
 GET /api/v4/audit/attestations?decided_by=user&since=2026-04-01
 ```
+
+Stream is capped at ~10k entries with approximate trimming. For long-term retention beyond Redis, a periodic export job can flush the stream to object storage (S3/GCS) — but this is out of scope for the initial implementation.
 
 ---
 
