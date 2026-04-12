@@ -3,6 +3,7 @@ ToolExecutor: Dispatches investigation tool calls by intent name.
 Each handler takes params dict -> returns ToolResult.
 """
 
+import asyncio
 import json
 import os
 import re
@@ -19,6 +20,20 @@ from src.utils.logger import get_logger
 from src.utils.lttb import lttb_downsample, MAX_POINTS
 
 logger = get_logger(__name__)
+
+# Per-tool timeout configuration (seconds)
+TOOL_TIMEOUTS = {
+    "fetch_pod_logs": 30,
+    "query_prometheus_range": 20,
+    "query_prometheus_instant": 10,
+    "search_elasticsearch": 30,
+    "search_logs": 30,
+    "describe_resource": 15,
+    "get_events": 15,
+    "check_pod_status": 10,
+    "analyze_upstream_dependency": 45,
+    "default": 20,
+}
 
 # Domain mapping for K8s resource kinds
 # Domain classification: use _classify_domain() helper for consistent mapping.
@@ -287,7 +302,21 @@ class ToolExecutor:
 
         handler_name = self.HANDLERS[intent]  # KeyError if unknown intent
         handler = getattr(self, handler_name)
-        return await handler(params)
+        timeout = TOOL_TIMEOUTS.get(intent, TOOL_TIMEOUTS["default"])
+        try:
+            return await asyncio.wait_for(handler(params), timeout=timeout)
+        except asyncio.TimeoutError:
+            logger.warning("Tool '%s' timed out after %ds", intent, timeout)
+            return ToolResult(
+                success=False,
+                intent=intent,
+                raw_output="",
+                summary=f"Tool '{intent}' timed out after {timeout}s",
+                evidence_snippets=[],
+                evidence_type="unknown",
+                domain="unknown",
+                error=f"Tool '{intent}' timed out after {timeout}s",
+            )
 
     # ------------------------------------------------------------------
     # fetch_pod_logs
