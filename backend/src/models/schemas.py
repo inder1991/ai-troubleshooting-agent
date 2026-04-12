@@ -80,6 +80,8 @@ class CriticVerdict(BaseModel):
     contradicting_evidence: Optional[list[Breadcrumb]] = None
     recommendation: Optional[str] = None
     confidence_in_verdict: int = Field(ge=0, le=100)
+    suggest_alternative: Optional[str] = None
+    suggested_agent: Optional[str] = None
 
     @computed_field
     @property

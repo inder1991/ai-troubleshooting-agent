@@ -26,6 +26,7 @@ from src.agents.code_agent import CodeNavigatorAgent
 from src.agents.change_agent import ChangeAgent
 from src.agents.cross_repo_tracer import CrossRepoTracer
 from src.agents.critic_agent import CriticAgent
+from src.agents.hypothesis_tracker import HypothesisTracker
 from src.agents.causal_engine import EvidenceGraphBuilder
 from src.agents.impact_analyzer import ImpactAnalyzer
 from src.utils.llm_client import AnthropicClient
@@ -134,6 +135,7 @@ class SupervisorAgent:
             "code_agent": CodeNavigatorAgent,
         }
         self._critic = CriticAgent()
+        self._hypothesis_tracker = HypothesisTracker(max_re_dispatches=2)
 
         # Human-in-the-loop: repo URL confirmation for change_agent
         self._repo_confirmation_event = asyncio.Event()
@@ -449,13 +451,22 @@ class SupervisorAgent:
             return []
 
         if state.phase == DiagnosticPhase.RE_INVESTIGATING:
-            # Re-dispatch the challenged agent's domain, then advance phase
+            # Re-dispatch challenged agents, guarded by HypothesisTracker
             agents = []
             for cv in state.critic_verdicts:
                 if cv.verdict == "challenged" and cv.confidence_in_verdict > 80:
                     challenged_agent = cv.agent_source
+                    hypothesis = cv.suggest_alternative or cv.reasoning
                     if challenged_agent in self._agents and challenged_agent not in agents:
-                        agents.append(challenged_agent)
+                        if self._hypothesis_tracker.should_dispatch(challenged_agent, hypothesis):
+                            self._hypothesis_tracker.record(challenged_agent, hypothesis)
+                            agents.append(challenged_agent)
+                        else:
+                            logger.info(
+                                "Hypothesis tracker blocked re-dispatch",
+                                extra={"agent_name": challenged_agent, "action": "redispatch_blocked",
+                                       "extra": {"hypothesis": hypothesis[:80]}},
+                            )
             # After re-dispatch, reset phase so _update_phase can advance normally
             # This prevents staying locked in RE_INVESTIGATING forever
             if not agents:
