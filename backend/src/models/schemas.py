@@ -938,7 +938,14 @@ class DiagnosticState(BaseModel):
     supervisor_reasoning: list[str] = Field(default_factory=list)
     agents_completed: list[str] = Field(default_factory=list)
     agents_pending: list[str] = Field(default_factory=list)
-    overall_confidence: int = Field(default=0, ge=0, le=100)
+    overall_confidence: float = Field(default=0, ge=0, le=100)
+
+    # Agent execution statuses: {agent_name: "success"|"no_findings"|"error"}
+    agent_statuses: dict[str, str] = Field(default_factory=dict)
+
+    # Multi-hypothesis engine
+    hypotheses: list["DiagHypothesis"] = Field(default_factory=list)
+    hypothesis_result: Optional["HypothesisResult"] = None
 
 
 class DiagnosticStateV5(DiagnosticState):
@@ -964,4 +971,5 @@ class DiagnosticStateV5(DiagnosticState):
 # Resolve forward references
 from src.models.closure_models import IncidentClosureState  # noqa: E402
 from src.models.campaign import RemediationCampaign  # noqa: E402
+from src.models.hypothesis import Hypothesis as DiagHypothesis, HypothesisResult  # noqa: E402
 DiagnosticState.model_rebuild()
