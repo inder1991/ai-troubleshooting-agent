@@ -351,7 +351,7 @@ The causal engine's `ingest_structured_handoffs()` method programmatically creat
 
 Zero changes to individual agent code — only the supervisor's inter-agent routing logic changes.
 
-### 5B. Critic Hypothesis Generation
+### 5B. Critic Hypothesis Generation (Bounded Reasoning)
 
 Add alternative hypothesis capability to critic output:
 
@@ -366,9 +366,26 @@ class CriticVerdict:
     suggested_agent: str | None       # "k8s_agent"
 ```
 
-When the critic suggests an alternative with a specific agent, the supervisor re-dispatches that agent with the alternative hypothesis as its primary question.
+When the critic suggests an alternative, the supervisor checks three guards before re-dispatching:
 
-Guard rail: max 1 re-dispatch per critic suggestion, max 2 total re-dispatches per session.
+> **Critical: Loop prevention.** Without guards, a naive re-dispatch creates hidden cycles (`Critic → k8s_agent → Critic → metrics_agent → Critic → k8s_agent...`) that silently burn tokens and latency.
+
+**HypothesisTracker** — a new module that tracks every `(agent, hypothesis)` pair:
+
+```python
+class HypothesisTracker:
+    def should_dispatch(agent, hypothesis, budget_exhausted) -> bool:
+        # Guard 1: reject if (agent, normalized_hypothesis) already tried
+        # Guard 2: reject if budget.is_exhausted()
+        # Guard 3: reject if total re-dispatches >= max (default 2)
+
+    def record(agent, hypothesis) -> None  # log after dispatch
+    def investigation_graph() -> list[tuple[str, str]]  # full trail for audit
+```
+
+Hypothesis normalization uses fuzzy matching (lowercase, strip articles/punctuation, collapse whitespace) so "Check if OOM was in the istio-proxy sidecar" and "Check OOM in istio-proxy sidecar container" are recognized as the same intent.
+
+Re-dispatch events (`re_dispatch` and `re_dispatch_blocked`) are emitted to the WebSocket/audit stream for frontend visibility and compliance.
 
 ### 5C. Spike Detection — Same-Hour-Yesterday Comparison
 

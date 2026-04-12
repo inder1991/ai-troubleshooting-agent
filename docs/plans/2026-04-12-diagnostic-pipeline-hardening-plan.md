@@ -2097,14 +2097,140 @@ text output. Eliminates 'Stringly-Typed AI State' anti-pattern."
 
 ---
 
-### Task 16: Critic Hypothesis Generation
+### Task 16: Critic Hypothesis Generation (with Loop Prevention)
+
+> **Critical guard: bounded reasoning.** Without loop detection, a naive re-dispatch creates hidden cycles:
+> `Critic → k8s_agent → Critic → metrics_agent → Critic → k8s_agent...`
+> silently burning tokens and latency. The fix: track every `(agent, hypothesis)` pair ever executed, check budget before dispatch, and reject duplicate hypotheses. This turns the system from loop-prone to a bounded reasoning engine.
 
 **Files:**
+- Create: `backend/src/agents/hypothesis_tracker.py`
 - Modify: `backend/src/agents/critic_agent.py:44-48`
-- Modify: `backend/src/agents/supervisor.py` (re-dispatch on suggestion)
+- Modify: `backend/src/agents/supervisor.py` (re-dispatch with guards)
+- Test: `backend/tests/test_hypothesis_tracker.py`
 - Test: `backend/tests/test_critic_agent.py` (extend)
 
-**Step 1: Extend CriticVerdict structure**
+**Step 1: Write HypothesisTracker with failing tests**
+
+```python
+# backend/tests/test_hypothesis_tracker.py
+import pytest
+from src.agents.hypothesis_tracker import HypothesisTracker
+
+
+def test_first_hypothesis_allowed():
+    tracker = HypothesisTracker(max_re_dispatches=2)
+    allowed = tracker.should_dispatch("k8s_agent", "Check istio-proxy memory")
+    assert allowed is True
+
+
+def test_duplicate_hypothesis_blocked():
+    tracker = HypothesisTracker(max_re_dispatches=2)
+    tracker.record("k8s_agent", "Check istio-proxy memory")
+    allowed = tracker.should_dispatch("k8s_agent", "Check istio-proxy memory")
+    assert allowed is False
+
+
+def test_same_hypothesis_different_agent_allowed():
+    tracker = HypothesisTracker(max_re_dispatches=2)
+    tracker.record("k8s_agent", "Check memory pressure")
+    allowed = tracker.should_dispatch("metrics_agent", "Check memory pressure")
+    assert allowed is True
+
+
+def test_max_re_dispatches_enforced():
+    tracker = HypothesisTracker(max_re_dispatches=2)
+    tracker.record("k8s_agent", "hypothesis A")
+    tracker.record("metrics_agent", "hypothesis B")
+    allowed = tracker.should_dispatch("log_agent", "hypothesis C")
+    assert allowed is False
+
+
+def test_budget_exhaustion_blocks():
+    tracker = HypothesisTracker(max_re_dispatches=5)
+    allowed = tracker.should_dispatch("k8s_agent", "test", budget_exhausted=True)
+    assert allowed is False
+
+
+def test_similar_hypothesis_detected():
+    tracker = HypothesisTracker(max_re_dispatches=3)
+    tracker.record("k8s_agent", "Check if OOM was in the istio-proxy sidecar")
+    allowed = tracker.should_dispatch("k8s_agent", "Check OOM in istio-proxy sidecar container")
+    assert allowed is False  # fuzzy match — same intent
+
+
+def test_investigation_graph_tracks_all():
+    tracker = HypothesisTracker(max_re_dispatches=5)
+    tracker.record("k8s_agent", "hyp A")
+    tracker.record("metrics_agent", "hyp B")
+    graph = tracker.investigation_graph()
+    assert ("k8s_agent", "hyp A") in graph
+    assert ("metrics_agent", "hyp B") in graph
+    assert len(graph) == 2
+```
+
+**Step 2: Run to verify failure**
+
+Run: `cd backend && python -m pytest tests/test_hypothesis_tracker.py -v`
+Expected: FAIL.
+
+**Step 3: Implement HypothesisTracker**
+
+```python
+# backend/src/agents/hypothesis_tracker.py
+import re
+import logging
+from dataclasses import dataclass, field
+
+logger = logging.getLogger(__name__)
+
+
+def _normalize(text: str) -> str:
+    """Normalize hypothesis text for fuzzy dedup. Lowercase, strip articles,
+    collapse whitespace, remove punctuation."""
+    t = text.lower().strip()
+    t = re.sub(r"[^a-z0-9\s]", "", t)
+    t = re.sub(r"\b(the|a|an|is|was|in|if|of|for)\b", "", t)
+    return re.sub(r"\s+", " ", t).strip()
+
+
+class HypothesisTracker:
+    def __init__(self, max_re_dispatches: int = 2):
+        self._max = max_re_dispatches
+        self._tried: dict[tuple[str, str], bool] = {}  # (agent, normalized_hyp) → True
+        self._raw: list[tuple[str, str]] = []  # ordered list for audit
+
+    def should_dispatch(self, agent: str, hypothesis: str, budget_exhausted: bool = False) -> bool:
+        if budget_exhausted:
+            logger.info(f"Re-dispatch blocked: budget exhausted (hypothesis: {hypothesis[:60]})")
+            return False
+
+        if len(self._tried) >= self._max:
+            logger.info(f"Re-dispatch blocked: max {self._max} re-dispatches reached")
+            return False
+
+        key = (agent, _normalize(hypothesis))
+        if key in self._tried:
+            logger.info(f"Re-dispatch blocked: duplicate (agent={agent}, hypothesis={hypothesis[:60]})")
+            return False
+
+        return True
+
+    def record(self, agent: str, hypothesis: str) -> None:
+        key = (agent, _normalize(hypothesis))
+        self._tried[key] = True
+        self._raw.append((agent, hypothesis))
+
+    def investigation_graph(self) -> list[tuple[str, str]]:
+        return list(self._raw)
+```
+
+**Step 4: Run tests**
+
+Run: `cd backend && python -m pytest tests/test_hypothesis_tracker.py -v`
+Expected: PASS.
+
+**Step 5: Extend CriticVerdict structure**
 
 At `critic_agent.py`, modify the verdict output schema (line ~44) to include:
 
@@ -2114,30 +2240,49 @@ At `critic_agent.py`, modify the verdict output schema (line ~44) to include:
     "reasoning": "...",
     "recommendation": "...",
     "confidence_in_verdict": 85,
-    "suggest_alternative": "Check if OOM was in the istio-proxy sidecar",  # NEW
-    "suggested_agent": "k8s_agent"  # NEW
+    "suggest_alternative": "Check if OOM was in the istio-proxy sidecar",
+    "suggested_agent": "k8s_agent"
 }
 ```
 
 Update the LLM system prompt to instruct the critic to fill `suggest_alternative` and `suggested_agent` when challenging a finding.
 
-**Step 2: Update CriticVerdict dataclass**
+Add `suggest_alternative: str | None = None` and `suggested_agent: str | None = None` to the CriticVerdict dataclass.
 
-Add `suggest_alternative: str | None = None` and `suggested_agent: str | None = None` fields.
+**Step 6: Wire bounded re-dispatch into supervisor**
 
-**Step 3: Add re-dispatch guard in supervisor**
-
-In supervisor's re-investigation logic (~line 447), when critic provides `suggest_alternative`:
+In supervisor's re-investigation logic (~line 447), replace the naive counter:
 
 ```python
+# In __init__:
+from src.agents.hypothesis_tracker import HypothesisTracker
+self._hypothesis_tracker = HypothesisTracker(max_re_dispatches=2)
+
+# In re-dispatch logic:
 if verdict.suggest_alternative and verdict.suggested_agent:
-    if re_dispatch_count < MAX_RE_DISPATCHES:  # MAX_RE_DISPATCHES = 2
+    should = self._hypothesis_tracker.should_dispatch(
+        agent=verdict.suggested_agent,
+        hypothesis=verdict.suggest_alternative,
+        budget_exhausted=self.budget.is_exhausted(),
+    )
+    if should:
+        self._hypothesis_tracker.record(verdict.suggested_agent, verdict.suggest_alternative)
         context["hypothesis"] = verdict.suggest_alternative
+        await self._event_emitter.emit("supervisor", "re_dispatch", {
+            "agent": verdict.suggested_agent,
+            "hypothesis": verdict.suggest_alternative,
+            "re_dispatch_count": len(self._hypothesis_tracker.investigation_graph()),
+        })
         await self._dispatch_agent(verdict.suggested_agent, context)
-        re_dispatch_count += 1
+    else:
+        await self._event_emitter.emit("supervisor", "re_dispatch_blocked", {
+            "agent": verdict.suggested_agent,
+            "hypothesis": verdict.suggest_alternative,
+            "reason": "duplicate, budget, or max reached",
+        })
 ```
 
-**Step 4: Add test**
+**Step 7: Add critic verdict test**
 
 ```python
 # Append to backend/tests/test_critic_agent.py
@@ -2153,16 +2298,25 @@ def test_critic_verdict_with_alternative():
     assert verdict.suggested_agent == "k8s_agent"
 ```
 
-**Step 5: Run tests**
+**Step 8: Run all tests**
 
-Run: `cd backend && python -m pytest tests/test_critic_agent.py tests/test_supervisor.py -v`
+Run: `cd backend && python -m pytest tests/test_hypothesis_tracker.py tests/test_critic_agent.py tests/test_supervisor.py -v`
 Expected: PASS.
 
-**Step 6: Commit**
+**Step 9: Commit**
 
 ```bash
-git add backend/src/agents/critic_agent.py backend/src/agents/supervisor.py backend/tests/test_critic_agent.py
-git commit -m "feat(reasoning): critic can suggest alternative hypotheses for re-dispatch"
+git add backend/src/agents/hypothesis_tracker.py backend/tests/test_hypothesis_tracker.py backend/src/agents/critic_agent.py backend/src/agents/supervisor.py backend/tests/test_critic_agent.py
+git commit -m "feat(reasoning): bounded critic re-dispatch with hypothesis tracking
+
+Three guards prevent hidden loops in critic → agent → critic cycles:
+1. Duplicate (agent, hypothesis) pairs are rejected (fuzzy match)
+2. Budget exhaustion blocks all re-dispatches
+3. Global max re-dispatches cap (default 2)
+
+The investigation_graph() method exposes the full hypothesis trail
+for audit and debugging. Re-dispatch events are emitted for the
+frontend/audit stream."
 ```
 
 ---
