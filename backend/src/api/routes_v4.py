@@ -4,7 +4,7 @@ import re
 import uuid
 import asyncio
 from datetime import datetime, timezone, timedelta
-from fastapi import APIRouter, BackgroundTasks, HTTPException
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
 from pydantic import BaseModel, ValidationError
 from typing import Dict, Any, Literal, Optional
 
@@ -38,8 +38,72 @@ from src.integrations.github_client import GitHubClient, GitHubClientError
 
 logger = get_logger(__name__)
 
-# C1: Per-session locks to prevent concurrent state mutation
+# C1: Per-session locks — in-memory fallback when Redis is unavailable
 session_locks: Dict[str, asyncio.Lock] = {}
+
+
+def _get_session_store():
+    """Return the RedisSessionStore from app state, or None if unavailable."""
+    try:
+        from src.api.main import app
+        return getattr(app.state, "session_store", None)
+    except Exception:
+        return None
+
+
+async def _persist_session(session_id: str, data: dict) -> None:
+    """Persist serializable session fields to Redis (best-effort)."""
+    store = _get_session_store()
+    if store is None:
+        return
+    # Only persist JSON-safe scalar/dict/list fields
+    _NON_SERIALIZABLE = {"emitter", "graph", "cluster_client", "connection_config", "supervisor"}
+    safe = {}
+    for k, v in data.items():
+        if k in _NON_SERIALIZABLE:
+            continue
+        try:
+            json.dumps(v)  # quick serialisability check
+            safe[k] = v
+        except (TypeError, ValueError):
+            continue
+    try:
+        await store.save(session_id, safe)
+    except Exception as e:
+        logger.warning("Redis persist failed for session %s: %s", session_id, e)
+
+
+async def _load_session(session_id: str) -> dict | None:
+    """Load session from in-memory dict; fall back to Redis if missing."""
+    data = sessions.get(session_id)
+    if data is not None:
+        return data
+    store = _get_session_store()
+    if store is None:
+        return None
+    try:
+        return await store.load(session_id)
+    except Exception:
+        return None
+
+
+async def _delete_session_redis(session_id: str) -> None:
+    """Remove session from Redis (best-effort)."""
+    store = _get_session_store()
+    if store is None:
+        return
+    try:
+        await store.delete(session_id)
+    except Exception:
+        pass
+
+
+def _acquire_lock(session_id: str):
+    """Return a Redis distributed lock, falling back to an in-memory asyncio.Lock."""
+    store = _get_session_store()
+    if store is not None:
+        return store.acquire_lock(session_id)
+    return session_locks.setdefault(session_id, asyncio.Lock())
 
 # M1: UUID4 format validation
 _UUID4_RE = re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$', re.IGNORECASE)
@@ -168,77 +232,15 @@ def _get_investigation_router(session_id: str):
 
 
 SESSION_TTL_HOURS = 24
-SESSION_CLEANUP_INTERVAL_SECONDS = 300  # 5 minutes
-
-
-async def _session_cleanup_loop():
-    """Background task to remove sessions older than SESSION_TTL_HOURS."""
-    while True:
-        await asyncio.sleep(SESSION_CLEANUP_INTERVAL_SECONDS)
-        try:
-            cutoff = datetime.now(timezone.utc) - timedelta(hours=SESSION_TTL_HOURS)
-            expired = []
-            for sid, data in list(sessions.items()):
-                created = data.get("created_at", "")
-                try:
-                    created_dt = datetime.fromisoformat(created.replace("Z", "+00:00"))
-                    if created_dt < cutoff:
-                        expired.append(sid)
-                except (ValueError, AttributeError):
-                    continue
-
-            for sid in expired:
-                # M10: Cancel running diagnosis tasks before removing session
-                task = _diagnosis_tasks.pop(sid, None)
-                if task and not task.done():
-                    task.cancel()
-                # B3: Cancel all critic delta tasks for this session
-                critic_tasks = _critic_delta_tasks.pop(sid, [])
-                for ct in critic_tasks:
-                    if not ct.done():
-                        ct.cancel()
-                # Cancel any active fix jobs for this session
-                try:
-                    fix_queue = FixJobQueue.get_instance()
-                    fix_queue.cancel_for_session(sid)
-                except Exception:
-                    pass
-                # B2: Remove investigation router for this session
-                _investigation_routers.pop(sid, None)
-                # Clear topology cache for expired session
-                try:
-                    from src.agents.cluster.topology_resolver import clear_topology_cache
-                    clear_topology_cache(sid)
-                except Exception:
-                    pass
-                # H1: Use lock during cleanup to prevent races with HTTP handlers
-                lock = session_locks.pop(sid, None)
-                if lock:
-                    async with lock:
-                        sessions.pop(sid, None)
-                        supervisors.pop(sid, None)
-                else:
-                    sessions.pop(sid, None)
-                    supervisors.pop(sid, None)
-                manager.disconnect(sid)
-                from src.observability.store import get_store
-                try:
-                    await get_store().delete_session(sid)
-                except Exception as e:
-                    logger.warning("Failed to delete session from store: %s", e)
-
-            if expired:
-                logger.info(
-                    "Session cleanup: removed %d expired sessions, %d remaining",
-                    len(expired), len(sessions),
-                )
-        except Exception as e:
-            logger.error("Session cleanup error: %s", e)
 
 
 def start_cleanup_task():
-    """Start the session cleanup background loop."""
-    asyncio.create_task(_session_cleanup_loop())
+    """No-op: session TTL is now managed by Redis expiry.
+
+    Kept as a callable so existing imports in main.py don't break.
+    In-memory entries are cleaned up when sessions are explicitly deleted.
+    """
+    logger.info("Session TTL managed by Redis; in-memory cleanup loop disabled")
 
 
 def create_cluster_client(connection_config=None):
@@ -320,7 +322,7 @@ async def start_session(request: StartSessionRequest, background_tasks: Backgrou
     from src.observability.store import get_store as _get_store
     emitter = EventEmitter(session_id=session_id, websocket_manager=manager, store=_get_store())
 
-    # C1: Create per-session lock
+    # C1: Create per-session lock (in-memory fallback; Redis lock used when available)
     session_locks[session_id] = asyncio.Lock()
 
     capability = request.capability
@@ -381,6 +383,8 @@ async def start_session(request: StartSessionRequest, background_tasks: Backgrou
             "elk_index": request.elkIndex or "",
         }
 
+        await _persist_session(session_id, sessions[session_id])
+
         background_tasks.add_task(
             run_cluster_diagnosis, session_id, graph, cluster_client, emitter, request.scan_mode,
             connection_config=connection_config
@@ -411,6 +415,7 @@ async def start_session(request: StartSessionRequest, background_tasks: Backgrou
             "capability": "network_troubleshooting",
             "chat_history": [],
         }
+        await _persist_session(session_id, sessions[session_id])
         return StartSessionResponse(
             session_id=session_id,
             incident_id=incident_id,
@@ -439,6 +444,7 @@ async def start_session(request: StartSessionRequest, background_tasks: Backgrou
             "capability": "troubleshoot_pipeline",
             "chat_history": [],
         }
+        await _persist_session(session_id, sessions[session_id])
         logger.info("Pipeline session created", extra={"session_id": session_id, "action": "session_created", "extra": "troubleshoot_pipeline"})
         return StartSessionResponse(
             session_id=session_id,
@@ -463,6 +469,7 @@ async def start_session(request: StartSessionRequest, background_tasks: Backgrou
         "profile_id": profile_id,
         "chat_history": [],
     }
+    await _persist_session(session_id, sessions[session_id])
     supervisors[session_id] = supervisor
 
     # Fall back to profile values when form doesn't provide them
@@ -592,7 +599,7 @@ async def run_cluster_diagnosis(session_id, graph, cluster_client, emitter, scan
     except RuntimeError:
         pass
 
-    lock = session_locks.setdefault(session_id, asyncio.Lock())
+    lock = _acquire_lock(session_id)
     try:
         sessions[session_id]["cluster_client"] = cluster_client
         scope_data = sessions[session_id].get("diagnostic_scope", {})
@@ -753,6 +760,7 @@ async def run_cluster_diagnosis(session_id, graph, cluster_client, emitter, scan
                 sessions[session_id]["phase"] = result.get("phase", "complete")
                 sessions[session_id]["confidence"] = int(result.get("data_completeness", 0) * 100)
                 sessions[session_id]["state"]["llm_summary"] = telemetry.get_summary(budget.budget_used_pct()).to_dict()
+                await _persist_session(session_id, sessions[session_id])
 
         await emitter.emit("cluster_supervisor", "phase_change", "Cluster diagnostics complete", {"phase": "diagnosis_complete"})
 
@@ -797,7 +805,7 @@ async def run_diagnosis(session_id: str, supervisor: SupervisorAgent, initial_in
     except RuntimeError:
         pass
 
-    lock = session_locks.setdefault(session_id, asyncio.Lock())
+    lock = _acquire_lock(session_id)
     try:
         state = await supervisor.run(
             initial_input, emitter,
@@ -1051,13 +1059,14 @@ async def delete_session(session_id: str):
 
     sessions.pop(session_id, None)
     session_locks.pop(session_id, None)
+    await _delete_session_redis(session_id)
     return {"status": "deleted", "session_id": session_id}
 
 
 @router_v4.get("/session/{session_id}/status")
 async def get_session_status(session_id: str):
     _validate_session_id(session_id)
-    session = sessions.get(session_id)
+    session = await _load_session(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
 
@@ -1107,7 +1116,7 @@ async def get_session_status(session_id: str):
 @router_v4.get("/session/{session_id}/findings")
 async def get_findings(session_id: str):
     _validate_session_id(session_id)
-    session = sessions.get(session_id)
+    session = await _load_session(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
 
@@ -1877,10 +1886,7 @@ async def execute_campaign(session_id: str):
 async def _run_critic_delta(session_id: str, pin_id: str) -> None:
     """Background task: delta-validate a new evidence pin via the CriticAgent."""
     try:
-        lock = session_locks.get(session_id)
-        if lock is None:
-            logger.warning("Critic delta: session lock missing (session expired?)", extra={"session_id": session_id, "pin_id": pin_id})
-            return
+        lock = _acquire_lock(session_id)
 
         critic = CriticAgent()
 
@@ -1975,7 +1981,7 @@ async def investigate(session_id: str, request: InvestigateRequest):
         _validate_causal_role(pin)
 
         # Merge pin into session state under lock
-        lock = session_locks.get(session_id)
+        lock = _acquire_lock(session_id)
         if lock:
             async with lock:
                 state = sessions[session_id]

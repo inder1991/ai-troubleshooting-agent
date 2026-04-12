@@ -60,6 +60,7 @@ from src.network.prometheus_exporter import MetricsCollector
 from pathlib import Path
 from src.config import APP_MODE, is_production_mode
 from src.utils.logger import get_logger
+from src.utils.redis_store import get_redis_client, RedisSessionStore
 
 logger = get_logger("main")
 
@@ -227,11 +228,19 @@ def create_app() -> FastAPI:
         import os
         _mode = "PRODUCTION" if is_production_mode() else "DEMO"
         logger.info("DebugDuck starting in %s mode (DEBUGDUCK_MODE=%s)", _mode, os.environ.get("DEBUGDUCK_MODE", "<unset>"))
+
+        # ── Initialize Redis session store ──
+        try:
+            app.state.redis = await get_redis_client()
+            app.state.session_store = RedisSessionStore(app.state.redis)
+            logger.info("Redis session store initialized")
+        except Exception as e:
+            logger.warning("Redis session store init failed (falling back to in-memory): %s", e)
+            app.state.redis = None
+            app.state.session_store = None
+
         _init_stores()
         _reload_adapter_instances()
-        # Start session TTL cleanup loop
-        from .routes_v4 import start_cleanup_task
-        start_cleanup_task()
 
         # Initialize DiagnosticStore
         try:
@@ -623,6 +632,14 @@ def create_app() -> FastAPI:
             logger.warning("RemediationEngine startup failed: %s", e)
 
     async def shutdown():
+        # ── Close Redis connection ──
+        if getattr(app.state, "redis", None):
+            try:
+                await app.state.redis.aclose()
+                logger.info("Redis connection closed")
+            except Exception as e:
+                logger.warning("Redis shutdown failed: %s", e)
+
         # ── Shutdown Fix Job Queue ──
         try:
             await FixJobQueue.get_instance().shutdown()
@@ -739,6 +756,9 @@ def create_app() -> FastAPI:
             try:
                 from .routes_v4 import sessions as _sessions
                 session_data = _sessions.get(session_id)
+                # Fall back to Redis session store if not in memory
+                if not session_data and getattr(app.state, "session_store", None):
+                    session_data = await app.state.session_store.load(session_id)
                 if session_data:
                     emitter = session_data.get("emitter")
                     if emitter and hasattr(emitter, 'get_all_events'):
