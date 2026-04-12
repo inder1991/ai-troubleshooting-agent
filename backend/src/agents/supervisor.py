@@ -32,6 +32,19 @@ from src.agents.impact_analyzer import ImpactAnalyzer
 from src.utils.llm_client import AnthropicClient
 from src.utils.event_emitter import EventEmitter
 from src.utils.logger import get_logger
+from src.models.hypothesis import Hypothesis as HypothesisModel, HypothesisResult
+from src.hypothesis.deduplicator import deduplicate_patterns
+from src.hypothesis.signal_extractor import (
+    extract_from_log_patterns, extract_from_metrics_anomalies,
+    extract_from_k8s_events, extract_from_k8s_pods,
+    extract_from_trace_spans, extract_from_code_findings,
+    extract_from_change_correlations,
+)
+from src.hypothesis.signal_normalizer import SignalNormalizer
+from src.hypothesis.evidence_mapper import EvidenceMapper
+from src.hypothesis.confidence_engine import compute_confidence as compute_hypothesis_confidence
+from src.hypothesis.causal_linker import CausalLinker
+from src.hypothesis.elimination import evaluate_hypotheses, pick_winner_or_inconclusive
 
 logger = get_logger(__name__)
 
@@ -136,6 +149,10 @@ class SupervisorAgent:
         }
         self._critic = CriticAgent()
         self._hypothesis_tracker = HypothesisTracker(max_re_dispatches=2)
+        self._signal_normalizer = SignalNormalizer()
+        self._evidence_mapper = EvidenceMapper()
+        self._causal_linker = CausalLinker()
+        self._all_signals = []
 
         from src.agents.workflow_state_machine import WorkflowStateMachine
         self._state_machine = WorkflowStateMachine()
@@ -233,6 +250,29 @@ class SupervisorAgent:
 
                 # Query memory store for similar past incidents
                 await self._query_past_incidents(state, event_emitter)
+
+                # Final hypothesis decision
+                if state.hypotheses:
+                    state.hypothesis_result = pick_winner_or_inconclusive(state.hypotheses)
+                    state.hypothesis_result.evidence_timeline = sorted(
+                        self._all_signals,
+                        key=lambda s: s.timestamp or datetime.min.replace(tzinfo=timezone.utc),
+                    )
+                    if event_emitter:
+                        if state.hypothesis_result.status == "resolved" and state.hypothesis_result.winner:
+                            w = state.hypothesis_result.winner
+                            await event_emitter.emit(
+                                "supervisor", "hypothesis_winner",
+                                f"Winner: {w.category} (confidence: {w.confidence:.0f}%)",
+                                details={"hypothesis_id": w.hypothesis_id, "category": w.category,
+                                         "confidence": w.confidence},
+                            )
+                        else:
+                            await event_emitter.emit(
+                                "supervisor", "hypothesis_inconclusive",
+                                "Investigation inconclusive — competing hypotheses or insufficient evidence",
+                                details={"recommendations": state.hypothesis_result.recommendations},
+                            )
 
                 state.phase = DiagnosticPhase.DIAGNOSIS_COMPLETE
                 logger.info("Diagnosis complete", extra={"session_id": state.session_id, "agent_name": "supervisor", "action": "diagnosis_complete", "extra": {"overall_confidence": state.overall_confidence, "total_findings": len(state.all_findings)}})
@@ -336,6 +376,12 @@ class SupervisorAgent:
                 if agent_result:
                     await self._update_state_with_result(state, agent_name, agent_result, event_emitter)
                     state.agents_completed.append(agent_name)
+
+                    # Evaluate hypotheses after each agent
+                    if state.hypotheses:
+                        await self._evaluate_hypotheses_after_agent(
+                            state, agent_name, agent_result, event_emitter
+                        )
 
                     # Emit agent summary
                     summary = self._build_agent_summary(agent_name, agent_result, state)
@@ -1132,6 +1178,24 @@ class SupervisorAgent:
             state.reasoning_chain = result.get("reasoning_chain", [])
             state.suggested_promql_queries = result.get("suggested_promql_queries", [])
 
+            # Build hypotheses from log patterns
+            patterns = []
+            primary = result.get("primary_pattern", {})
+            if primary and isinstance(primary, dict) and primary.get("exception_type"):
+                patterns.append(primary)
+            for sp in result.get("secondary_patterns", [])[:5]:
+                if isinstance(sp, dict) and sp.get("exception_type"):
+                    patterns.append(sp)
+            if patterns:
+                state.hypotheses = deduplicate_patterns(patterns, max_hypotheses=3)
+                if event_emitter:
+                    cats = [h.category for h in state.hypotheses]
+                    await event_emitter.emit(
+                        "supervisor", "hypothesis_created",
+                        f"Testing {len(state.hypotheses)} hypotheses: {', '.join(cats)}",
+                        details={"hypotheses": [{"id": h.hypothesis_id, "category": h.category} for h in state.hypotheses]},
+                    )
+
             # Auto-detect namespace from logs when user didn't provide one
             detected_ns = result.get("detected_namespace")
             if detected_ns and (not state.namespace or state.namespace == "default"):
@@ -1524,6 +1588,92 @@ class SupervisorAgent:
         state.supervisor_reasoning.append(
             f"Round: {agent_name} completed with confidence {confidence}"
         )
+
+    async def _evaluate_hypotheses_after_agent(
+        self, state: DiagnosticState, agent_name: str, result: dict,
+        event_emitter: Optional[EventEmitter] = None,
+    ) -> None:
+        """Extract signals from agent result, map evidence, score, eliminate."""
+        raw_signals = []
+        try:
+            if agent_name == "metrics_agent" and state.metrics_analysis:
+                raw_signals = extract_from_metrics_anomalies(
+                    [a.model_dump() for a in state.metrics_analysis.anomalies]
+                )
+            elif agent_name == "k8s_agent" and state.k8s_analysis:
+                raw_signals = (
+                    extract_from_k8s_events([e.model_dump() for e in state.k8s_analysis.events])
+                    + extract_from_k8s_pods([p.model_dump() for p in state.k8s_analysis.pod_statuses])
+                )
+            elif agent_name == "tracing_agent" and state.trace_analysis:
+                raw_signals = extract_from_trace_spans(
+                    [s.model_dump() for s in state.trace_analysis.call_chain]
+                )
+            elif agent_name == "code_agent" and state.code_analysis:
+                raw_signals = extract_from_code_findings(
+                    [f.model_dump() for f in (state.code_analysis.findings or [])]
+                )
+            elif agent_name == "change_agent" and state.change_analysis:
+                correlations = []
+                if isinstance(state.change_analysis, dict):
+                    correlations = state.change_analysis.get("change_correlations", [])
+                else:
+                    correlations = getattr(state.change_analysis, "change_correlations", [])
+                    if correlations:
+                        correlations = [c.model_dump() if hasattr(c, "model_dump") else c for c in correlations]
+                raw_signals = extract_from_change_correlations(correlations)
+        except Exception as e:
+            logger.warning("Signal extraction failed", extra={
+                "agent_name": agent_name, "action": "signal_extraction_error",
+                "extra": {"error": str(e)},
+            })
+            return
+
+        # Normalize signals
+        normalized = []
+        for sig in raw_signals:
+            try:
+                normed = self._signal_normalizer.normalize(sig)
+                if normed:
+                    normalized.append(normed)
+            except Exception:
+                continue
+
+        if not normalized:
+            return
+
+        # Map evidence to hypotheses (rules-first)
+        self._evidence_mapper.apply(normalized, state.hypotheses)
+
+        # Track all signals for causal linking
+        self._all_signals.extend(normalized)
+
+        # Recompute confidence for all active hypotheses
+        for h in state.hypotheses:
+            if h.status == "active":
+                h.confidence = compute_hypothesis_confidence(
+                    h, len(state.agents_completed)
+                )
+
+        # Build causal links and hypothesis graph
+        causal_links = self._causal_linker.build_links(self._all_signals)
+        self._causal_linker.build_hypothesis_graph(state.hypotheses, causal_links)
+
+        # Eliminate weak hypotheses
+        active_count = sum(1 for h in state.hypotheses if h.status == "active")
+        if active_count > 1:
+            elim_log = evaluate_hypotheses(
+                state.hypotheses,
+                agents_completed=len(state.agents_completed),
+                phase=state.phase.value,
+            )
+            for entry in elim_log:
+                if event_emitter:
+                    await event_emitter.emit(
+                        "supervisor", "hypothesis_eliminated",
+                        f"Eliminated hypothesis: {entry['hypothesis_id']} — {entry['reason']}",
+                        details=entry,
+                    )
 
     def _update_phase(self, state: DiagnosticState, event_emitter: Optional[EventEmitter] = None) -> None:
         """Update diagnostic phase based on completed agents."""

@@ -1146,7 +1146,7 @@ Respond with JSON only. No markdown fences."""
 
         return {
             "primary_pattern": data.get("primary_pattern", {}),
-            "secondary_patterns": data.get("secondary_patterns", []),
+            "secondary_patterns": data.get("secondary_patterns", [])[:5],
             "overall_confidence": data.get("overall_confidence", 50),
             "root_cause_hypothesis": data.get("root_cause_hypothesis", ""),
             "flow_analysis": data.get("flow_analysis", ""),
