@@ -27,7 +27,8 @@ const TacticalLogIcon: React.FC<{ isWaiting: boolean }> = ({ isWaiting }) => (
 );
 
 const LedgerTriggerTab: React.FC = () => {
-  const { isOpen, toggleDrawer, unreadCount, isWaiting } = useChatUI();
+  const { isOpen, toggleDrawer, unreadCount, isWaiting, pendingAction } = useChatUI();
+  const hasPendingAction = pendingAction?.blocking === true;
 
   return (
     <AnimatePresence>
@@ -41,10 +42,12 @@ const LedgerTriggerTab: React.FC = () => {
           whileHover={{ x: -4 }}
           transition={{ type: 'spring', stiffness: 300, damping: 25 }}
           onClick={toggleDrawer}
-          className={`fixed right-0 top-1/2 -translate-y-1/2 z-[60] flex flex-col items-center gap-2 py-3 px-1.5 rounded-l-lg border-r-0 cursor-pointer ${
+          className={`relative fixed right-0 top-1/2 -translate-y-1/2 z-[60] flex flex-col items-center gap-2 py-3 px-1.5 rounded-l-lg border-r-0 cursor-pointer ${
             isWaiting
               ? 'bg-amber-950/30 border border-r-0 border-amber-500/50 shadow-[inset_-2px_0_12px_rgba(245,158,11,0.2)]'
-              : 'bg-wr-bg/80 border border-r-0 border-cyan-500/30'
+              : hasPendingAction
+                ? 'bg-amber-500/10 border border-r-0 border-amber-500/50'
+                : 'bg-wr-bg/80 border border-r-0 border-cyan-500/30'
           }`}
           style={{
             boxShadow: isWaiting
@@ -58,6 +61,11 @@ const LedgerTriggerTab: React.FC = () => {
             <span className="absolute -top-2 -left-2 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-red-600 ring-1 ring-slate-950 text-body-xs font-bold text-white px-1">
               {unreadCount > 9 ? '9+' : unreadCount}
             </span>
+          )}
+
+          {/* Pending action badge */}
+          {hasPendingAction && (
+            <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-amber-400 animate-pulse" />
           )}
 
           {/* Hardware LED indicator */}
