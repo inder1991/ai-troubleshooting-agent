@@ -722,6 +722,32 @@ OUTPUT FORMAT — Final answer as JSON:
 
         return spikes
 
+    def _detect_spikes_with_baseline(self, current_window: list[dict],
+                                      previous_day_window: list[dict],
+                                      threshold: float = 2.0) -> list[dict]:
+        """Filter cyclical false-positive spikes by comparing against same-hour-yesterday baseline."""
+        if not previous_day_window:
+            return self._detect_spikes(current_window, threshold)
+
+        prev_values = [p["value"] for p in previous_day_window if p.get("value") is not None]
+        if not prev_values:
+            return self._detect_spikes(current_window, threshold)
+
+        prev_mean = sum(prev_values) / len(prev_values)
+        prev_std = (sum((v - prev_mean) ** 2 for v in prev_values) / len(prev_values)) ** 0.5
+
+        raw_spikes = self._detect_spikes(current_window, threshold)
+        filtered = []
+        for spike in raw_spikes:
+            spike_value = spike.get("peak_value", spike.get("value", 0))
+            if prev_std > 0:
+                prev_zscore = (spike_value - prev_mean) / prev_std
+                if prev_zscore >= threshold:
+                    # Spike value was also a spike yesterday — cyclical pattern
+                    continue
+            filtered.append(spike)
+        return filtered
+
     # ══════════════════════════════════════════════════════════════════════
     #  Two-Pass Mode (1 LLM call)
     # ══════════════════════════════════════════════════════════════════════

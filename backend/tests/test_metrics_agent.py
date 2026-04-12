@@ -161,3 +161,23 @@ def test_parse_final_response_includes_all_time_series():
     assert "memory_query" in result["time_series_data"]
     assert "network_query" in result["time_series_data"]
     assert result["correlated_signals"] == []
+
+
+def test_spike_not_flagged_if_cyclical():
+    from src.agents.metrics_agent import MetricsAgent
+    agent = MetricsAgent.__new__(MetricsAgent)
+
+    current = [{"timestamp": i, "value": 100 + (50 if 10 <= i <= 12 else 0)} for i in range(24)]
+    previous = [{"timestamp": i, "value": 100 + (50 if 10 <= i <= 12 else 0)} for i in range(24)]
+    spikes = agent._detect_spikes_with_baseline(current, previous, threshold=2.0)
+    assert len(spikes) == 0
+
+
+def test_spike_flagged_if_novel():
+    from src.agents.metrics_agent import MetricsAgent
+    agent = MetricsAgent.__new__(MetricsAgent)
+
+    current = [{"timestamp": i, "value": 100 + (200 if 10 <= i <= 12 else 0)} for i in range(24)]
+    previous = [{"timestamp": i, "value": 100} for i in range(24)]
+    spikes = agent._detect_spikes_with_baseline(current, previous, threshold=2.0)
+    assert len(spikes) > 0
