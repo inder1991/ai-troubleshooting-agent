@@ -137,6 +137,9 @@ class SupervisorAgent:
         self._critic = CriticAgent()
         self._hypothesis_tracker = HypothesisTracker(max_re_dispatches=2)
 
+        from src.agents.workflow_state_machine import WorkflowStateMachine
+        self._state_machine = WorkflowStateMachine()
+
         # Human-in-the-loop: repo URL confirmation for change_agent
         self._repo_confirmation_event = asyncio.Event()
         self._pending_repo_confirmation = False
