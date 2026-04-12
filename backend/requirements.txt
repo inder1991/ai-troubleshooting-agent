@@ -41,6 +41,9 @@ motor>=3.3.0
 # sqlalchemy==2.0.25
 aiosqlite>=0.20.0
 
+# Token Estimation
+tiktoken>=0.7
+
 # Testing
 pytest==7.4.4
 pytest-asyncio==0.23.3
