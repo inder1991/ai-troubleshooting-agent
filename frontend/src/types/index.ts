@@ -299,7 +299,7 @@ export interface TokenUsage {
 export interface TaskEvent {
   session_id: string;
   agent_name: string;
-  event_type: 'started' | 'progress' | 'success' | 'warning' | 'error' | 'tool_call' | 'phase_change' | 'finding' | 'summary' | 'attestation_required' | 'fix_proposal' | 'fix_approved' | 'waiting_for_input' | 'reasoning' | 'thinking';
+  event_type: 'started' | 'progress' | 'success' | 'warning' | 'error' | 'tool_call' | 'phase_change' | 'finding' | 'summary' | 'attestation_required' | 'auto_approved' | 'fix_proposal' | 'fix_approved' | 'waiting_for_input' | 'reasoning' | 'thinking';
   message: string;
   timestamp: string;
   sequence_number?: number;
@@ -339,6 +339,15 @@ export interface V4Session {
   critical_count?: number;
 }
 
+export interface PendingAction {
+  type: 'attestation_required' | 'fix_approval' | 'repo_confirm' | 'campaign_execute_confirm' | 'code_agent_question';
+  blocking: boolean;
+  actions: string[];
+  expires_at: string | null;
+  context: Record<string, unknown>;
+  version: number;
+}
+
 export interface V4SessionStatus {
   session_id: string;
   incident_id?: string;
@@ -352,6 +361,7 @@ export interface V4SessionStatus {
   created_at: string;
   updated_at: string;
   capability?: CapabilityType;
+  pending_action: PendingAction | null;
 }
 
 export interface SuggestedPromQLQuery {
@@ -942,16 +952,6 @@ export interface ConfidenceLedgerData {
   critic_adjustment?: number;
   weighted_final: number;
   weights?: Record<string, number>;
-}
-
-export interface AttestationGateData {
-  gate_type: 'discovery_complete' | 'pre_remediation' | 'post_remediation';
-  human_decision: 'approve' | 'reject' | 'modify' | null;
-  decided_by: string | null;
-  decided_at: string | null;
-  proposed_action: string | null;
-  findings_count?: number;
-  confidence?: number;
 }
 
 export interface ReasoningStepData {
