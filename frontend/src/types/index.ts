@@ -370,6 +370,43 @@ export interface SuggestedPromQLQuery {
   rationale: string;
 }
 
+// ── Multi-hypothesis engine types ─────────────────────────────────────
+
+export interface HypothesisEvidenceSummary {
+  signal_name: string;
+  signal_type: string;
+  source_agent: string;
+  strength: number;
+}
+
+export interface DiagHypothesis {
+  hypothesis_id: string;
+  category: string;
+  status: 'active' | 'eliminated' | 'winner';
+  confidence: number;
+  evidence_for: HypothesisEvidenceSummary[];
+  evidence_against: HypothesisEvidenceSummary[];
+  evidence_for_count: number;
+  evidence_against_count: number;
+  downstream_effects: string[];
+  elimination_reason: string | null;
+  elimination_phase: string | null;
+}
+
+export interface HypothesisEliminationEntry {
+  hypothesis_id: string;
+  reason: string;
+  phase: string;
+  confidence: number;
+}
+
+export interface DiagHypothesisResult {
+  status: 'resolved' | 'inconclusive';
+  winner_id: string | null;
+  elimination_log: HypothesisEliminationEntry[];
+  recommendations: string[];
+}
+
 // M8: Array fields marked optional — backend may omit them during partial state
 export interface V4Findings {
   session_id: string;
@@ -418,6 +455,9 @@ export interface V4Findings {
   evidence_pins?: EvidencePinV2[];
   causal_forest?: CausalTree[];
   evidence_graph?: EvidenceGraphData;
+  // Multi-hypothesis engine
+  hypotheses?: DiagHypothesis[];
+  hypothesis_result?: DiagHypothesisResult;
   // Diagnostic scope (returned by backend)
   diagnostic_scope?: DiagnosticScope;
   scope_coverage?: number;
