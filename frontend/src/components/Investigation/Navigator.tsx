@@ -8,6 +8,7 @@ import { useCampaignContext } from '../../contexts/CampaignContext';
 import REDMethodStatusBar from './cards/REDMethodStatusBar';
 import PromQLRunResult from './cards/PromQLRunResult';
 import SkeletonCard from '../ui/SkeletonCard';
+import EliminationLog from './EliminationLog';
 
 interface NavigatorProps {
   findings: V4Findings | null;
@@ -97,6 +98,9 @@ const Navigator: React.FC<NavigatorProps> = ({ findings, status, events }) => {
             )}
           </div>
         </section>
+
+        {/* Elimination Log */}
+        <EliminationLog result={findings?.hypothesis_result || null} />
       </div>
     </div>
   );
