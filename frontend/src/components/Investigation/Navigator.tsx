@@ -80,11 +80,16 @@ const Navigator: React.FC<NavigatorProps> = ({ findings, status, events }) => {
                   {agent.code}
                 </span>
                 <span className="text-body-xs text-slate-300 flex-1">{agent.name}</span>
-                <span className={`w-2 h-2 rounded-full ${
-                  agent.status === 'active' ? 'bg-cyan-400 animate-pulse' :
-                  agent.status === 'complete' ? 'bg-green-500' :
-                  agent.status === 'error' ? 'bg-red-500' : 'bg-slate-600'
-                }`} />
+                <span
+                  className={`w-2 h-2 rounded-full ${
+                    agent.status === 'active' ? 'bg-amber-400 animate-pulse' :
+                    agent.status === 'complete' ? 'bg-green-500' :
+                    agent.status === 'error' ? 'bg-red-500' : 'bg-slate-600'
+                  }`}
+                  role="status"
+                  aria-label={`${agent.name}: ${agent.status}`}
+                  title={agent.status}
+                />
                 {agent.tokens > 0 && (
                   <span className="text-body-xs font-mono text-slate-400">{agent.tokens.toLocaleString()}</span>
                 )}

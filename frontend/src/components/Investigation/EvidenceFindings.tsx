@@ -556,8 +556,14 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                         {filteredK8sEvents.length > 0 && (
                           <div className="space-y-1.5">
                             {filteredK8sEvents.map((ke, i) => (
-                              <div key={i} className="flex items-center gap-2 text-body-xs">
-                                <span className={`w-2 h-2 rounded-full ${ke.type === 'Warning' ? 'bg-red-500 animate-pulse' : 'bg-green-500'}`} />
+                              <div key={i} className="flex items-center gap-2 text-body-xs" role="listitem" aria-label={`${ke.type} event: ${ke.reason} on ${ke.involved_object}, ${ke.count} occurrences`}>
+                                <span className={`shrink-0 text-body-xs font-bold uppercase px-1 py-0.5 rounded border ${
+                                  ke.type === 'Warning'
+                                    ? 'text-red-400 bg-wr-severity-high/15 border-wr-severity-high/30'
+                                    : 'text-green-400 bg-emerald-500/15 border-emerald-500/30'
+                                }`}>
+                                  {ke.type === 'Warning' ? 'WARN' : 'OK'}
+                                </span>
                                 <span className="font-mono text-slate-300">{ke.involved_object}</span>
                                 <span className="text-slate-400 truncate">{ke.reason}: {ke.message}</span>
                                 <span className="text-body-xs text-slate-400 ml-auto shrink-0">{ke.count}x</span>
