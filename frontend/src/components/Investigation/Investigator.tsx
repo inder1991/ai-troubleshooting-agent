@@ -6,6 +6,7 @@ import { AgentCapsule } from './AgentCapsule';
 import { FilterToolbar } from './FilterToolbar';
 import { PhaseBreadcrumbs } from './PhaseBreadcrumbs';
 import { GhostPhaseWrapper } from './GhostPhaseWrapper';
+import HypothesisScoreboard from './HypothesisScoreboard';
 
 interface InvestigatorProps {
   sessionId: string;
@@ -517,28 +518,12 @@ const Investigator: React.FC<InvestigatorProps> = ({
         )}
       </div>
 
-      {/* Current Best Guess (sticky footer) */}
-      {bestGuess && (
-        <div className="flex-shrink-0 border-t border-wr-border/50 bg-wr-bg/60 px-4 py-3">
-          <div className="flex items-center gap-2 mb-1.5">
-            <span className="material-symbols-outlined text-[#07b6d5] text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>neurology</span>
-            <span className="text-body-xs font-bold uppercase tracking-widest text-slate-400">Current Best Guess</span>
-            <span className={`ml-auto text-sm font-mono font-bold ${bestGuess.confidence >= 70 ? 'text-emerald-400' : bestGuess.confidence >= 40 ? 'text-amber-400' : 'text-red-400'}`}>
-              {bestGuess.confidence}%
-            </span>
-          </div>
-          <p className="text-body-xs text-slate-300 leading-relaxed line-clamp-2">{bestGuess.text}</p>
-          {/* Confidence bar */}
-          <div className="mt-2 h-1.5 bg-wr-surface rounded-full overflow-hidden">
-            <motion.div
-              className={`h-full rounded-full ${confidenceColor(bestGuess.confidence)}`}
-              initial={{ width: 0 }}
-              animate={{ width: `${Math.min(bestGuess.confidence, 100)}%` }}
-              transition={{ type: 'spring', bounce: 0, duration: 0.8 }}
-            />
-          </div>
-        </div>
-      )}
+      {/* Hypothesis Scoreboard (replaces old Current Best Guess) */}
+      <HypothesisScoreboard
+        hypotheses={findings?.hypotheses || []}
+        result={findings?.hypothesis_result || null}
+        legacyGuess={bestGuess}
+      />
     </div>
   );
 };
