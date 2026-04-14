@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Pin, Info } from 'lucide-react';
+import { Pin } from 'lucide-react';
 
 interface VineCardProps {
   children: React.ReactNode;
@@ -61,12 +61,6 @@ const VineCard: React.FC<VineCardProps> = ({
               <Pin className="w-3 h-3" />
             </button>
           )}
-          <button
-            className="p-1 rounded-md bg-wr-surface/80 text-slate-400 hover:text-slate-300 transition-colors"
-            aria-label="More info"
-          >
-            <Info className="w-3 h-3" />
-          </button>
         </div>
 
         {/* Content slot */}
