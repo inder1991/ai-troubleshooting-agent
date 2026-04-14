@@ -33,6 +33,7 @@ import MermaidChart from '../Agent2/Mermaid';
 import SymptomDeck from './hud/SymptomDeck';
 import AssemblyWorkbench from './hud/AssemblyWorkbench';
 import ResolveCinematic from './hud/ResolveCinematic';
+import HypothesisEvidenceMap from './HypothesisEvidenceMap';
 
 interface EvidenceFindingsProps {
   findings: V4Findings | null;
@@ -256,6 +257,11 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
             {/* Evidence Anchor Bar - prevents infinite scroll doom */}
             {findings && hasContent && (
               <div className="sticky top-0 z-50 bg-slate-950/90 backdrop-blur border-b border-wr-border flex gap-1.5 p-2 mb-4 rounded-lg overflow-x-auto scrollbar-hide">
+                {(findings?.hypotheses?.length ?? 0) >= 2 && (
+                  <a href="#section-hypotheses" className="text-body-xs uppercase font-bold text-amber-400 bg-wr-severity-medium/10 px-2 py-1 rounded whitespace-nowrap hover:bg-wr-severity-medium/20 transition-colors">
+                    Hypotheses ({findings?.hypotheses?.length})
+                  </a>
+                )}
                 {rootCausePatterns.length > 0 && (
                   <a href="#section-root-cause" className="text-body-xs uppercase font-bold text-red-400 bg-wr-severity-high/10 px-2 py-1 rounded whitespace-nowrap hover:bg-wr-severity-high/20 transition-colors">
                     Root Cause ({rootCausePatterns.length})
@@ -299,6 +305,13 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
               <PhaseAwareEmptyState phase={phase || null} />
             ) : (
               <LogicVineContainer>
+                {/* Hypothesis Evidence Map (only when 2+ hypotheses) */}
+                <div id="section-hypotheses" className="scroll-mt-16" />
+                <HypothesisEvidenceMap
+                  hypotheses={findings?.hypotheses || []}
+                  result={findings?.hypothesis_result || null}
+                />
+
                 {/* 1. Root Cause patterns */}
                 <div id="section-root-cause" className="scroll-mt-16" />
                 {rootCausePatterns.length > 0 && (
