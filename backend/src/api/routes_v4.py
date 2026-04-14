@@ -1480,6 +1480,24 @@ async def get_findings(session_id: str):
                 "confidence": h.confidence,
                 "evidence_for_count": len(h.evidence_for),
                 "evidence_against_count": len(h.evidence_against),
+                "evidence_for": [
+                    {
+                        "signal_name": s.signal_name,
+                        "signal_type": s.signal_type,
+                        "source_agent": s.source_agent,
+                        "strength": s.strength,
+                    }
+                    for s in h.evidence_for
+                ],
+                "evidence_against": [
+                    {
+                        "signal_name": s.signal_name,
+                        "signal_type": s.signal_type,
+                        "source_agent": s.source_agent,
+                        "strength": s.strength,
+                    }
+                    for s in h.evidence_against
+                ],
                 "downstream_effects": h.downstream_effects,
                 "elimination_reason": h.elimination_reason,
                 "elimination_phase": h.elimination_phase,
