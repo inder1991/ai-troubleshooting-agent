@@ -1512,6 +1512,29 @@ async def get_findings(session_id: str):
             "recommendations": state.hypothesis_result.recommendations,
         }
 
+    # Winner flattening: inject winner's patterns as root_cause into error_patterns
+    if state.hypothesis_result and state.hypothesis_result.status == "resolved" and state.hypothesis_result.winner:
+        winner = state.hypothesis_result.winner
+        existing_pattern_ids = {
+            p.get("pattern_id") for p in response.get("error_patterns", []) if isinstance(p, dict)
+        }
+
+        for p in winner.source_patterns:
+            if isinstance(p, dict) and "pattern_id" in p and p["pattern_id"] not in existing_pattern_ids:
+                flat = dict(p)
+                flat["causal_role"] = "root_cause"
+                response.setdefault("error_patterns", []).insert(0, flat)
+                existing_pattern_ids.add(p["pattern_id"])
+
+        for h in state.hypotheses:
+            if h.status == "eliminated":
+                for p in h.source_patterns:
+                    if isinstance(p, dict) and "pattern_id" in p and p["pattern_id"] not in existing_pattern_ids:
+                        flat = dict(p)
+                        flat["causal_role"] = "correlated_anomaly"
+                        response.setdefault("error_patterns", []).append(flat)
+                        existing_pattern_ids.add(p["pattern_id"])
+
     return response
 
 
