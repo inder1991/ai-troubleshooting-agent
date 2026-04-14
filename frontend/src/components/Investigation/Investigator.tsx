@@ -431,7 +431,7 @@ const Investigator: React.FC<InvestigatorProps> = ({
       <div className="px-4 py-3 border-b border-wr-border/50 bg-wr-bg/90 backdrop-blur z-20 shrink-0 flex items-center justify-between gap-4">
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <span className="material-symbols-outlined text-primary text-sm shrink-0" style={{ fontFamily: 'Material Symbols Outlined' }}>psychology</span>
-          <h2 className="text-xs font-bold uppercase tracking-widest text-slate-400 truncate">AI Investigation Log</h2>
+          <h2 className="text-sm font-bold uppercase tracking-widest text-slate-400 truncate">AI Investigation Log</h2>
         </div>
         <div className="shrink-0">
           <FilterToolbar mode={filterMode} onModeChange={handleFilterChange} counts={filterCounts} />
