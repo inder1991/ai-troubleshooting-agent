@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Badge } from '../ui/Badge';
+import { useFeatureFlags } from '../../contexts/FeatureFlagsContext';
 
 export type NavView = 'home' | 'sessions' | 'cicd' | 'app-diagnostics' | 'cluster-diagnostics'
   | 'network-troubleshooting' | 'pr-review' | 'github-issue-fix'
@@ -22,7 +23,7 @@ interface SidebarNavProps {
   onNewMission?: () => void;
 }
 
-const navItems: NavItem[] = [
+const ALL_NAV_ITEMS: NavItem[] = [
   // Zone 1: Entry
   { kind: 'link', id: 'home', label: 'Dashboard', icon: 'space_dashboard' },
   { kind: 'link', id: 'sessions', label: 'Sessions', icon: 'history' },
@@ -124,7 +125,24 @@ const iconEl = (name: string, size = 19) => (
   </span>
 );
 
+const WORKFLOW_NAV_IDS: readonly NavView[] = ['workflow-builder', 'workflow-runs'] as const;
+
 const SidebarNav: React.FC<SidebarNavProps> = ({ activeView, onNavigate, onNewMission }) => {
+  const { workflows: workflowsEnabled, loading: flagsLoading } = useFeatureFlags();
+
+  // Filter workflow entries only once the flag probe has completed AND flag is off.
+  // While loading, keep items visible (optimistic — avoids flash).
+  const navItems = useMemo<NavItem[]>(() => {
+    if (flagsLoading || workflowsEnabled) return ALL_NAV_ITEMS;
+    return ALL_NAV_ITEMS.map((item) => {
+      if (item.kind !== 'group') return item;
+      const filteredChildren = item.children.filter(
+        (c) => !WORKFLOW_NAV_IDS.includes(c.id),
+      );
+      return { ...item, children: filteredChildren };
+    }).filter((item) => item.kind !== 'group' || item.children.length > 0);
+  }, [workflowsEnabled, flagsLoading]);
+
   const [hoveredGroup, setHoveredGroup] = useState<string | null>(null);
   const [flyoutY, setFlyoutY] = useState(0);
   const [pinned, setPinned] = useState(() => {
