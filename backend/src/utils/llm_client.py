@@ -255,3 +255,7 @@ class AnthropicClient:
         """Reset token counters."""
         self._total_input_tokens = 0
         self._total_output_tokens = 0
+
+
+def get_default_llm_client(agent_name: str, **overrides) -> AnthropicClient:
+    return AnthropicClient(agent_name=agent_name, **overrides)

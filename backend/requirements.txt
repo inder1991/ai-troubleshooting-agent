@@ -23,6 +23,7 @@ aiohttp>=3.9.0
 pydantic>=2.5.3
 pydantic-settings>=2.0
 jsonschema>=4.0
+sse-starlette>=2.0,<3.0  # 3.x pulls starlette 1.x and breaks FastAPI 0.115
 python-dotenv==1.0.0
 
 # Observability Clients
