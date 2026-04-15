@@ -25,5 +25,10 @@ class Settings(BaseSettings):
         description="Phase 1: expose /v4/catalog/* endpoints and /catalog UI",
     )
 
+    WORKFLOWS_ENABLED: bool = Field(
+        default=False,
+        description="Phase 2: expose /v4/workflows* endpoints",
+    )
+
 
 settings = Settings()
