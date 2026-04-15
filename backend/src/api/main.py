@@ -20,6 +20,7 @@ from datetime import datetime
 from src.utils.fix_job_queue import FixJobQueue
 from .routes_v4 import router_v4
 from .routes_catalog import router as catalog_router
+from .routes_workflows import router as workflows_router
 from . import db_session_endpoints as _db_session_endpoints  # noqa: F401 — ensure module is loaded
 from .agent_endpoints import agent_router
 from .routes_v5 import router as v5_router
@@ -226,6 +227,9 @@ def create_app() -> FastAPI:
     app.include_router(pr_router, prefix="/api")
     app.include_router(router_v4)
     app.include_router(catalog_router)
+    # Workflow endpoints 404 internally when WORKFLOWS_ENABLED is false, so
+    # mounting unconditionally is safe and keeps the router wired in one place.
+    app.include_router(workflows_router)
     app.include_router(agent_router)
     app.include_router(v5_router)
     app.include_router(profiles_router)
@@ -272,6 +276,41 @@ def create_app() -> FastAPI:
         from src.contracts.service import init_registry as _init_contract_registry
         _init_contract_registry()
         logger.info("Agent ContractRegistry initialized")
+
+        # ── Workflow subsystem (Phase 2 Task 19) ──
+        # Flag-gated; integrity errors (missing runner for a Phase-0 contract)
+        # are *fatal* — they propagate and refuse to boot the app.
+        from src.config import settings as _settings
+        if _settings.WORKFLOWS_ENABLED:
+            from src.contracts.service import get_registry as _get_contract_registry
+            from src.workflows import runners as _wf_runners
+            from src.workflows.repository import WorkflowRepository
+            from src.workflows.service import WorkflowService
+            from src.api.routes_workflows import set_workflow_service
+
+            contracts = _get_contract_registry()
+            runners = _wf_runners.init_runners()
+            missing = runners.verify_covers(contracts)
+            if missing:
+                raise RuntimeError(
+                    f"Phase 2 startup: missing runners for contracts {missing}"
+                )
+
+            wf_db_path = os.environ.get(
+                "WORKFLOWS_DB_PATH",
+                os.environ.get("DEBUGDUCK_DB_PATH", "./data/debugduck.db"),
+            )
+            repo = WorkflowRepository(wf_db_path)
+            await repo.init()
+            service = WorkflowService(
+                repo=repo, contracts=contracts, runners=runners
+            )
+            set_workflow_service(service)
+            logger.info(
+                "WorkflowService initialized (db=%s, runners=%d)",
+                wf_db_path,
+                len(contracts.list_all_versions()),
+            )
 
         # ── Initialize Redis session store ──
         try:
