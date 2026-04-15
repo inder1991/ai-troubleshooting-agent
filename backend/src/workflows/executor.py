@@ -75,6 +75,7 @@ class WorkflowExecutor:
         concurrency_group_caps: dict[str, int] | None = None,
         event_emitter: EventEmitter | None = None,
         sleep_fn: Callable[[float], Awaitable[None]] | None = None,
+        cancel_grace_seconds: float = 30.0,
     ) -> None:
         self._runners = runners
         self._max_concurrent = max_concurrent_steps
@@ -82,6 +83,7 @@ class WorkflowExecutor:
         self._emitter = event_emitter
         # Injected so tests can observe backoff durations without real waits.
         self._sleep = sleep_fn if sleep_fn is not None else asyncio.sleep
+        self._cancel_grace_seconds = cancel_grace_seconds
 
     async def _emit(self, ev: dict) -> None:
         if self._emitter is None:
@@ -98,6 +100,7 @@ class WorkflowExecutor:
         step: CompiledStep,
         resolved_inputs: dict,
         ns: "NodeState",
+        is_cancelled: Callable[[], bool],
     ) -> dict:
         """Run ``runner.run`` with per-step timeout and bounded retry.
 
@@ -131,7 +134,11 @@ class WorkflowExecutor:
             try:
                 coro = runner.run(
                     resolved_inputs,
-                    context={"step_id": step.id, "attempt": attempt},
+                    context={
+                        "step_id": step.id,
+                        "attempt": attempt,
+                        "is_cancelled": is_cancelled,
+                    },
                 )
                 output = await asyncio.wait_for(coro, timeout=effective_timeout)
             except asyncio.TimeoutError as e:
@@ -189,8 +196,13 @@ class WorkflowExecutor:
         compiled: CompiledWorkflow,
         inputs: dict,
         env: dict | None = None,
+        cancel_event: asyncio.Event | None = None,
     ) -> RunResult:
         env = env or {}
+        _cancel = cancel_event  # may be None; treat as never-set
+
+        def _is_cancelled() -> bool:
+            return _cancel is not None and _cancel.is_set()
         node_states: dict[str, NodeState] = {
             sid: NodeState() for sid in compiled.topo_order
         }
@@ -407,6 +419,7 @@ class WorkflowExecutor:
                         step=step,
                         resolved_inputs=resolved_inputs,
                         ns=ns,
+                        is_cancelled=_is_cancelled,
                     )
                     if outcome["ok"]:
                         ns.status = "SUCCESS"
@@ -491,7 +504,11 @@ class WorkflowExecutor:
                     runner = self._runners.get(fb.agent, fb.agent_version)
                     output = await runner.run(
                         resolved_inputs,
-                        context={"step_id": fb.id, "attempt": 1},
+                        context={
+                            "step_id": fb.id,
+                            "attempt": 1,
+                            "is_cancelled": _is_cancelled,
+                        },
                     )
                 except Exception as e:
                     fb_ns.status = "FAILED"
@@ -544,46 +561,124 @@ class WorkflowExecutor:
                 if group_sem is not None:
                     group_sem.release()
 
+        cancelling = False
+
+        async def _emit_cancelling_once() -> None:
+            nonlocal cancelling
+            if cancelling:
+                return
+            cancelling = True
+            await self._emit({"type": "run.cancelling", "timestamp": _iso_now()})
+
         # Main scheduling loop
         async def _launcher() -> None:
-            while True:
-                # Clean up finished tasks
-                done_ids = [sid for sid, t in tasks.items() if t.done()]
-                for sid in done_ids:
-                    t = tasks.pop(sid)
-                    exc = t.exception()
-                    if exc is not None:
-                        logger.exception("task for %s crashed", sid, exc_info=exc)
+            cancel_waiter: asyncio.Task | None = None
+            if _cancel is not None:
+                cancel_waiter = asyncio.create_task(_cancel.wait())
+            try:
+                while True:
+                    # Clean up finished tasks
+                    done_ids = [sid for sid, t in tasks.items() if t.done()]
+                    for sid in done_ids:
+                        t = tasks.pop(sid)
+                        exc = t.exception()
+                        if exc is not None:
+                            logger.exception("task for %s crashed", sid, exc_info=exc)
 
-                # Schedule more ready nodes
-                _sort_queue()
-                while queue:
-                    item = queue.pop(0)
-                    sid = item.step_id
-                    if sid in scheduled or sid in running:
-                        continue
-                    step = compiled.steps[sid]
-                    scheduled.add(sid)
-                    running.add(sid)
-                    tasks[sid] = asyncio.create_task(_run_step(step))
+                    # Observe cancel → switch to cancelling mode.
+                    if _is_cancelled() and not cancelling:
+                        await _emit_cancelling_once()
 
-                if not tasks and not queue:
-                    return
+                    if not cancelling:
+                        # Schedule more ready nodes
+                        _sort_queue()
+                        while queue:
+                            item = queue.pop(0)
+                            sid = item.step_id
+                            if sid in scheduled or sid in running:
+                                continue
+                            step = compiled.steps[sid]
+                            scheduled.add(sid)
+                            running.add(sid)
+                            tasks[sid] = asyncio.create_task(_run_step(step))
+                    else:
+                        # Cancelling: drain ready queue — those nodes will be
+                        # marked CANCELLED in the post-loop pass. Do not start.
+                        queue.clear()
 
-                # Wait for at least one task to complete
-                if tasks:
-                    await asyncio.wait(
-                        tasks.values(), return_when=asyncio.FIRST_COMPLETED
-                    )
+                    # When cancelling, exit the launcher immediately so the
+                    # post-loop grace window can govern in-flight tasks.
+                    if cancelling:
+                        return
+
+                    if not tasks and not queue:
+                        return
+
+                    if tasks:
+                        waiters: set[asyncio.Future] = set(tasks.values())
+                        if cancel_waiter is not None and not cancel_waiter.done():
+                            waiters.add(cancel_waiter)
+                        await asyncio.wait(
+                            waiters, return_when=asyncio.FIRST_COMPLETED
+                        )
+            finally:
+                if cancel_waiter is not None and not cancel_waiter.done():
+                    cancel_waiter.cancel()
+                    try:
+                        await cancel_waiter
+                    except (asyncio.CancelledError, BaseException):
+                        pass
 
         await _launcher()
 
-        # Any node still PENDING becomes CANCELLED (fail-fast left them behind)
-        for sid, ns in node_states.items():
-            if ns.status == "PENDING":
-                ns.status = "CANCELLED"
+        # If cancellation was requested, honor the grace window for any tasks
+        # that may still be running (e.g. cooperative tasks finishing up).
+        if _is_cancelled():
+            await _emit_cancelling_once()
+            inflight = [t for t in tasks.values() if not t.done()]
+            if inflight:
+                try:
+                    await asyncio.wait_for(
+                        asyncio.gather(*inflight, return_exceptions=True),
+                        timeout=self._cancel_grace_seconds,
+                    )
+                except asyncio.TimeoutError:
+                    # Grace expired: hard-cancel outstanding tasks.
+                    still = [t for t in tasks.values() if not t.done()]
+                    for t in still:
+                        t.cancel()
+                    # Brief propagation window.
+                    try:
+                        await asyncio.wait_for(
+                            asyncio.gather(*still, return_exceptions=True),
+                            timeout=0.1,
+                        )
+                    except asyncio.TimeoutError:
+                        pass
 
-        if fail_fast_triggered or any(
+        run_cancelled = _is_cancelled() or cancelling
+
+        # If we cancelled, any in-flight / running step that didn't complete
+        # cleanly is marked CANCELLED. ``RUNNING`` means the runner task was
+        # interrupted mid-call; leftover ``PENDING`` was never scheduled.
+        if run_cancelled:
+            # Cancellation supersedes per-step failure classification: anything
+            # that did not successfully complete is treated as CANCELLED.
+            for sid, ns in node_states.items():
+                if ns.status in ("PENDING", "RUNNING", "FAILED"):
+                    ns.status = "CANCELLED"
+                    if ns.started_at is None:
+                        ns.started_at = _iso_now()
+                    ns.ended_at = ns.ended_at or _iso_now()
+        else:
+            # Any node still PENDING becomes CANCELLED (fail-fast left them behind)
+            for sid, ns in node_states.items():
+                if ns.status == "PENDING":
+                    ns.status = "CANCELLED"
+
+        if run_cancelled:
+            status = "CANCELLED"
+        elif fail_fast_triggered or any(
             ns.status == "FAILED" and compiled.steps[sid].on_failure == "fail"
             for sid, ns in node_states.items()
         ):
@@ -593,7 +688,7 @@ class WorkflowExecutor:
 
         # But if all FAILED nodes were under on_failure=continue or replaced by
         # successful fallback (output_for_ref remapped), we're SUCCEEDED.
-        if status == "FAILED" and run_error is None:
+        if status == "FAILED" and run_error is None and not run_cancelled:
             # There's a FAILED node whose policy is 'fail' — but maybe it's the
             # primary of a successful fallback; in that case the fallback's
             # output is live and we shouldn't fail the run.
@@ -613,9 +708,15 @@ class WorkflowExecutor:
             if not failed_primary_no_fallback:
                 status = "SUCCEEDED"
 
+        if status == "SUCCEEDED":
+            final_type = "run.completed"
+        elif status == "CANCELLED":
+            final_type = "run.cancelled"
+        else:
+            final_type = "run.failed"
         await self._emit(
             {
-                "type": "run.completed" if status == "SUCCEEDED" else "run.failed",
+                "type": final_type,
                 "status": status,
                 "timestamp": _iso_now(),
             }
