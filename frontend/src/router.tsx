@@ -44,6 +44,7 @@ import WorkflowRunsView from './components/Platform/WorkflowRuns/WorkflowRunsVie
 import IntegrationSettings from './components/Settings/IntegrationSettings';
 import SettingsView from './components/Settings/SettingsView';
 import AuditLogView from './components/AuditLog/AuditLogView';
+import CatalogPage from './pages/CatalogPage';
 
 /**
  * Route wrapper components that adapt existing components to work as route elements.
@@ -188,6 +189,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <HomeRoute /> },
       { path: 'how-it-works', element: <HowItWorksRoute /> },
+      { path: 'catalog', element: <CatalogPage /> },
 
       // Investigations
       { path: 'investigations', element: <SessionsRoute /> },

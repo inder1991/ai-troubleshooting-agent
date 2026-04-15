@@ -8,7 +8,8 @@ export type NavView = 'home' | 'sessions' | 'cicd' | 'app-diagnostics' | 'cluste
   | 'db-overview' | 'db-connections' | 'db-diagnostics' | 'db-monitoring' | 'db-schema' | 'db-operations'
   | 'integrations' | 'settings' | 'agent-matrix'
   | 'audit-log' | 'mib-browser' | 'cloud-resources' | 'security-resources'
-  | 'agent-catalog' | 'workflow-builder' | 'workflow-runs' | 'how-it-works';
+  | 'agent-catalog' | 'workflow-builder' | 'workflow-runs' | 'how-it-works'
+  | 'catalog';
 
 type NavChild = { id: NavView; label: string; icon: string; badge?: 'NEW' | 'PREVIEW' | 'BETA' };
 type NavLink = { kind: 'link'; id: NavView; label: string; icon: string };
@@ -98,6 +99,7 @@ const navItems: NavItem[] = [
   {
     kind: 'group', group: 'Platform', icon: 'hub',
     children: [
+      { id: 'catalog', label: 'Catalog', icon: 'menu_book', badge: 'NEW' },
       { id: 'workflow-builder', label: 'Workflow Builder', icon: 'account_tree', badge: 'NEW' },
       { id: 'workflow-runs', label: 'Workflow Runs', icon: 'play_circle', badge: 'NEW' },
     ],

@@ -40,6 +40,8 @@ const NAV_VIEW_TO_PATH: Record<string, string> = {
   // Agents
   'agent-matrix': '/agents/matrix',
   'agent-catalog': '/agents',
+  // Catalog (Phase 1)
+  catalog: '/catalog',
   // Workflows
   'workflow-builder': '/workflows',
   'workflow-runs': '/workflows/runs',
