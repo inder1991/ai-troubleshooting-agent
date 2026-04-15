@@ -95,11 +95,21 @@ class WorkflowExecutor:
         running: set[str] = set()
         queue: list[_QueueItem] = []
 
+        # Fallback-target steps must NOT be scheduled normally — they only run
+        # when their primary fails (design §4.6).
+        fallback_targets: set[str] = {
+            s.fallback_step_id
+            for s in compiled.steps.values()
+            if s.on_failure == "fallback" and s.fallback_step_id
+        }
+
         await self._emit({"type": "run.started", "timestamp": _iso_now()})
 
         # Seed queue with nodes having no upstream deps
         monotonic = time.monotonic
         for sid in compiled.topo_order:
+            if sid in fallback_targets:
+                continue
             if not remaining_upstream[sid]:
                 queue.append(_QueueItem(monotonic(), sid))
 
@@ -136,7 +146,13 @@ class WorkflowExecutor:
             for nsid, ups in remaining_upstream.items():
                 if sid in ups:
                     ups.discard(sid)
-                    if not ups and nsid not in completed and nsid not in scheduled and nsid not in running:
+                    if (
+                        not ups
+                        and nsid not in completed
+                        and nsid not in scheduled
+                        and nsid not in running
+                        and nsid not in fallback_targets
+                    ):
                         queue.append(_QueueItem(monotonic(), nsid))
             async with cond:
                 cond.notify_all()
