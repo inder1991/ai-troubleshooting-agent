@@ -339,6 +339,16 @@ export interface V4Session {
   critical_count?: number;
 }
 
+export interface AttestationGateData {
+  gate_type: 'discovery_complete' | 'pre_remediation' | 'post_remediation';
+  human_decision: 'approve' | 'reject' | 'modify' | null;
+  decided_by: string | null;
+  decided_at: string | null;
+  proposed_action: string | null;
+  findings_count?: number;
+  confidence?: number;
+}
+
 export interface PendingAction {
   type: 'attestation_required' | 'fix_approval' | 'repo_confirm' | 'campaign_execute_confirm' | 'code_agent_question';
   blocking: boolean;
