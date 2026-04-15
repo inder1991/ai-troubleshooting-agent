@@ -678,35 +678,150 @@ def test_every_contract_has_runner():
 
 **Step 2: Run — expect FAIL** (no runners registered).
 
-**Step 3: Implement each adapter.** Adapter pattern (example for `log_agent`):
+**Step 3: Implement each adapter.** Pre-survey of the 10 Phase-0 agent entry points (class, method, sig, return shape) is locked below — implementers should match exactly:
+
+| Agent (manifest name) | Class | Entry method | Construction | Returns | Adapter action |
+|---|---|---|---|---|---|
+| `log_agent` | `LogAnalysisAgent` | `async run(context, event_emitter=None) -> dict` | `LogAnalysisAgent(connection_config=None)` | dict (matches manifest) | pass-through |
+| `k8s_agent` | `K8sAgent` | `async run(context, event_emitter=None) -> dict` | `K8sAgent()` | dict (matches) | pass-through |
+| `metrics_agent` | `MetricsAgent` | `async run(context, event_emitter=None) -> dict` | `MetricsAgent()` | dict (matches) | pass-through |
+| `tracing_agent` | `TracingAgent` | `async run_two_pass(context, event_emitter=None) -> dict` | `TracingAgent()` | dict (matches) | pass-through; **use `run_two_pass`** |
+| `code_agent` | `CodeNavigatorAgent` | `async run_two_pass(context, event_emitter=None) -> dict` | `CodeNavigatorAgent()` | dict (matches) | pass-through; **use `run_two_pass`** |
+| `change_agent` | `ChangeAgent` | `async run_two_pass(context, event_emitter=None) -> dict` | `ChangeAgent()` | dict (matches) | pass-through; **use `run_two_pass`** |
+| `critic_agent` | `CriticAgent` | `async validate(finding, state) -> CriticVerdict` (Pydantic) | `CriticAgent()` | Pydantic model | **reshape**: build `Finding` + `DiagnosticState` from inputs; return `verdict.model_dump(mode="json")` |
+| `pipeline_agent` | `PipelineAgent` | `async run(inputs: PipelineCapabilityInput \| dict) -> dict` | `PipelineAgent(llm=<shared_client>)` | dict (matches) | **shared LLM**: adapter holds a shared LLM client (lazy-singleton in `runners/__init__.py`) passed into constructor |
+| `impact_analyzer` | `ImpactAnalyzer` | sync `recommend_severity(service_name, blast_radius)` + sync `infer_business_impact(services)` | `ImpactAnalyzer()` | Pydantic + list[dict] | **orchestrate+reshape**: wrap both calls in `asyncio.to_thread`, merge into `{blast_radius, severity_recommendation, business_impact}` per manifest |
+| `intent_parser` | `IntentParser` | sync `parse(message, pending_action)` | `IntentParser()` | `UserIntent` dataclass | **async wrap**: `asyncio.to_thread`, return `dataclasses.asdict(result)` |
+
+Adapter pattern for the 7 "pass-through dict-return" agents (`log_agent`, `k8s_agent`, `metrics_agent`, `tracing_agent`, `code_agent`, `change_agent`, `pipeline_agent`):
 
 ```python
 # backend/src/workflows/runners/log_agent.py
 from typing import Any
-from src.agents.log_agent import LogAgent  # or existing function
+from src.agents.log_agent import LogAnalysisAgent
 
 
 class LogAgentRunner:
     async def run(self, inputs: dict[str, Any], *, context: dict[str, Any]) -> dict[str, Any]:
-        agent = LogAgent()
-        # Map Phase-2 input → existing Phase-0 call signature
-        return await agent.run(**inputs)  # adjust per actual signature
+        agent = LogAnalysisAgent()
+        # inputs IS the context dict (Phase-0 agents already expect a context dict);
+        # context here is Phase-2 executor context (cancellation flag, run_id, etc.) — pass neither nor event_emitter for Phase 2.
+        return await agent.run(inputs)
 ```
 
-Register in `runners/__init__.py`:
+Adapter pattern for `critic_agent` (reshape required):
 
 ```python
-def init_runners() -> AgentRunnerRegistry:
-    reg = AgentRunnerRegistry()
-    from .log_agent import LogAgentRunner
-    reg.register("log_agent", 1, LogAgentRunner())
-    # ... 9 more
-    global _registry
-    _registry = reg
-    return reg
+# backend/src/workflows/runners/critic_agent.py
+from src.agents.critic_agent import CriticAgent
+from src.models.schemas import Finding, DiagnosticState  # existing types
+
+
+class CriticAgentRunner:
+    def __init__(self) -> None:
+        self._agent = CriticAgent()  # creates AnthropicClient internally
+
+    async def run(self, inputs, *, context):
+        finding = Finding(**inputs["finding"])
+        state = DiagnosticState(**inputs["state"])
+        verdict = await self._agent.validate(finding, state)
+        return verdict.model_dump(mode="json")
 ```
 
-**Note:** For adapters, match the existing agent's real signature. If a Phase-0 agent doesn't return a dict matching the contract's output schema, the adapter normalizes. **Do not modify the Phase-0 agent.**
+Adapter pattern for `impact_analyzer` (sync, orchestrate two methods):
+
+```python
+# backend/src/workflows/runners/impact_analyzer.py
+import asyncio
+from dataclasses import asdict
+from src.agents.impact_analyzer import ImpactAnalyzer
+
+
+class ImpactAnalyzerRunner:
+    def __init__(self) -> None:
+        self._agent = ImpactAnalyzer()
+
+    async def run(self, inputs, *, context):
+        service = inputs["service_name"]
+        services = inputs.get("services", [service])
+        blast_radius = inputs["blast_radius"]  # caller-provided
+        sev = await asyncio.to_thread(self._agent.recommend_severity, service, blast_radius)
+        biz = await asyncio.to_thread(self._agent.infer_business_impact, services)
+        return {
+            "blast_radius": blast_radius,
+            "severity_recommendation": sev.model_dump(mode="json"),
+            "business_impact": biz,
+        }
+```
+
+Adapter pattern for `intent_parser` (sync wrap):
+
+```python
+# backend/src/workflows/runners/intent_parser.py
+import asyncio
+from dataclasses import asdict
+from src.agents.intent_parser import IntentParser
+
+
+class IntentParserRunner:
+    def __init__(self) -> None:
+        self._agent = IntentParser()
+
+    async def run(self, inputs, *, context):
+        intent = await asyncio.to_thread(
+            self._agent.parse, inputs["message"], inputs.get("pending_action")
+        )
+        return asdict(intent)
+```
+
+Composition root `runners/__init__.py`:
+
+```python
+from .registry import AgentRunnerRegistry
+
+_registry: AgentRunnerRegistry | None = None
+
+
+def init_runners() -> AgentRunnerRegistry:
+    global _registry
+    reg = AgentRunnerRegistry()
+    # Shared LLM client for pipeline_agent (lazy).
+    from src.utils.llm_client import get_default_llm_client  # or existing helper
+    llm = get_default_llm_client()
+
+    from .log_agent import LogAgentRunner
+    from .k8s_agent import K8sAgentRunner
+    from .metrics_agent import MetricsAgentRunner
+    from .tracing_agent import TracingAgentRunner
+    from .code_agent import CodeAgentRunner
+    from .change_agent import ChangeAgentRunner
+    from .critic_agent import CriticAgentRunner
+    from .pipeline_agent import PipelineAgentRunner
+    from .impact_analyzer import ImpactAnalyzerRunner
+    from .intent_parser import IntentParserRunner
+
+    reg.register("log_agent", 1, LogAgentRunner())
+    reg.register("k8s_agent", 1, K8sAgentRunner())
+    reg.register("metrics_agent", 1, MetricsAgentRunner())
+    reg.register("tracing_agent", 1, TracingAgentRunner())
+    reg.register("code_agent", 1, CodeAgentRunner())
+    reg.register("change_agent", 1, ChangeAgentRunner())
+    reg.register("critic_agent", 1, CriticAgentRunner())
+    reg.register("pipeline_agent", 1, PipelineAgentRunner(llm=llm))
+    reg.register("impact_analyzer", 1, ImpactAnalyzerRunner())
+    reg.register("intent_parser", 1, IntentParserRunner())
+
+    _registry = reg
+    return reg
+
+
+def get_runner_registry() -> AgentRunnerRegistry:
+    if _registry is None:
+        raise RuntimeError("runners not initialized — call init_runners() at startup")
+    return _registry
+```
+
+**Do not modify any Phase-0 agent module.** All reshaping lives in the adapter file.
 
 **Step 4: Run integrity test — expect PASS.**
 
