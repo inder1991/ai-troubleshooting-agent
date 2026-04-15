@@ -19,6 +19,7 @@ from datetime import datetime
 
 from src.utils.fix_job_queue import FixJobQueue
 from .routes_v4 import router_v4
+from .routes_catalog import router as catalog_router
 from . import db_session_endpoints as _db_session_endpoints  # noqa: F401 — ensure module is loaded
 from .agent_endpoints import agent_router
 from .routes_v5 import router as v5_router
@@ -224,6 +225,7 @@ def create_app() -> FastAPI:
     # Include routes
     app.include_router(pr_router, prefix="/api")
     app.include_router(router_v4)
+    app.include_router(catalog_router)
     app.include_router(agent_router)
     app.include_router(v5_router)
     app.include_router(profiles_router)
