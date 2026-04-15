@@ -41,3 +41,34 @@ def test_list_agents_when_enabled(client_enabled):
 def test_list_agents_returns_404_when_disabled(client_disabled):
     resp = client_disabled.get("/api/v4/catalog/agents")
     assert resp.status_code == 404
+
+
+def test_get_agent_detail(client_enabled):
+    resp = client_enabled.get("/api/v4/catalog/agents/log_agent")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["name"] == "log_agent"
+    assert "input_schema" in data
+    assert "output_schema" in data
+    assert len(data["trigger_examples"]) >= 2
+
+
+def test_get_agent_specific_version(client_enabled):
+    resp = client_enabled.get("/api/v4/catalog/agents/log_agent/v/1")
+    assert resp.status_code == 200
+    assert resp.json()["version"] == 1
+
+
+def test_get_unknown_agent_returns_404(client_enabled):
+    resp = client_enabled.get("/api/v4/catalog/agents/unknown_xyz")
+    assert resp.status_code == 404
+
+
+def test_get_unknown_version_returns_404(client_enabled):
+    resp = client_enabled.get("/api/v4/catalog/agents/log_agent/v/999")
+    assert resp.status_code == 404
+
+
+def test_detail_returns_404_when_disabled(client_disabled):
+    resp = client_disabled.get("/api/v4/catalog/agents/log_agent")
+    assert resp.status_code == 404
