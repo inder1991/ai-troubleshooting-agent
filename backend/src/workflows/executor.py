@@ -7,7 +7,9 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Awaitable, Callable
 
+from src.contracts.registry import ContractRegistry
 from src.workflows.compiler import CompiledStep, CompiledWorkflow
+from src.workflows.drift import check_drift
 from src.workflows.evaluator import MissingRefError, SkippedRefError, evaluate
 from src.workflows.runners.registry import AgentRunnerRegistry
 
@@ -197,6 +199,7 @@ class WorkflowExecutor:
         inputs: dict,
         env: dict | None = None,
         cancel_event: asyncio.Event | None = None,
+        contracts: ContractRegistry | None = None,
     ) -> RunResult:
         env = env or {}
         _cancel = cancel_event  # may be None; treat as never-set
@@ -235,6 +238,25 @@ class WorkflowExecutor:
         }
 
         await self._emit({"type": "run.started", "timestamp": _iso_now()})
+
+        # Drift check — re-validate compiled DAG against live contracts before
+        # scheduling any step. On drift, abort the run with a structured error.
+        if contracts is not None:
+            drifts = check_drift(compiled, contracts)
+            if drifts:
+                err = {
+                    "type": "drift_detected",
+                    "drifts": [d.to_dict() for d in drifts],
+                }
+                await self._emit(
+                    {
+                        "type": "run.failed",
+                        "status": "FAILED",
+                        "error": err,
+                        "timestamp": _iso_now(),
+                    }
+                )
+                return RunResult(status="FAILED", node_states=node_states, error=err)
 
         # Seed queue with nodes having no upstream deps
         monotonic = time.monotonic
