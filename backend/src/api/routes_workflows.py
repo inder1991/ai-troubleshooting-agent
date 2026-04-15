@@ -113,6 +113,20 @@ async def create_version(
 
 
 @router.get(
+    "/workflows/{workflow_id}/versions",
+    dependencies=[Depends(require_flag)],
+)
+async def list_versions(
+    workflow_id: str,
+    svc: WorkflowService = Depends(get_workflow_service),
+) -> dict[str, Any]:
+    wf = await svc.get_workflow(workflow_id)
+    if wf is None:
+        raise HTTPException(status_code=404, detail="workflow not found")
+    return {"versions": await svc.list_versions(workflow_id)}
+
+
+@router.get(
     "/workflows/{workflow_id}/versions/{version}",
     dependencies=[Depends(require_flag)],
 )
