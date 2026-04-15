@@ -8,6 +8,7 @@ import type {
   ClusterDiagnosticsForm,
   NetworkTroubleshootingForm,
   DatabaseDiagnosticsForm,
+  PipelineCapabilityForm,
 } from '../../types';
 import TroubleshootAppFields from './forms/TroubleshootAppFields';
 import PRReviewFields from './forms/PRReviewFields';
@@ -15,11 +16,21 @@ import GithubIssueFixFields from './forms/GithubIssueFixFields';
 import ClusterDiagnosticsFields from './forms/ClusterDiagnosticsFields';
 import NetworkTroubleshootingFields from './forms/NetworkTroubleshootingFields';
 import DatabaseDiagnosticsFields from './forms/DatabaseDiagnosticsFields';
+import PipelineTroubleshootingFields from './forms/PipelineTroubleshootingFields';
+
+export interface CapabilityFormOverrides {
+  git_repo?: string;
+  target?: string;
+  cluster_id?: string;
+  service_hint?: string;
+  profile_id?: string;
+}
 
 interface CapabilityFormProps {
   capability: CapabilityType;
   onBack: () => void;
   onSubmit: (data: CapabilityFormData) => void;
+  overrides?: CapabilityFormOverrides;
 }
 
 const capabilityMeta: Record<
@@ -62,9 +73,18 @@ const capabilityMeta: Record<
     icon: 'database',
     color: '#8b5cf6',
   },
+  troubleshoot_pipeline: {
+    title: 'Pipeline Troubleshooting',
+    subtitle: 'Investigate recent Jenkins builds, ArgoCD syncs, and commits for a cluster',
+    icon: 'rocket_launch',
+    color: '#06b6d4',
+  },
 };
 
-const getInitialData = (capability: CapabilityType): CapabilityFormData => {
+const getInitialData = (
+  capability: CapabilityType,
+  overrides?: CapabilityFormOverrides,
+): CapabilityFormData => {
   switch (capability) {
     case 'troubleshoot_app':
       return { capability: 'troubleshoot_app', service_name: '', time_window: '1h' };
@@ -86,11 +106,22 @@ const getInitialData = (capability: CapabilityType): CapabilityFormData => {
         sampling_mode: 'standard' as const,
         include_explain_plans: false,
       };
+    case 'troubleshoot_pipeline':
+      return {
+        capability: 'troubleshoot_pipeline',
+        cluster_id: overrides?.cluster_id ?? '',
+        time_window_minutes: 60,
+        git_repo: overrides?.git_repo ?? '',
+        service_hint: overrides?.service_hint ?? overrides?.target ?? '',
+        profile_id: overrides?.profile_id ?? '',
+      };
   }
 };
 
-const CapabilityForm: React.FC<CapabilityFormProps> = ({ capability, onBack, onSubmit }) => {
-  const [formData, setFormData] = useState<CapabilityFormData>(getInitialData(capability));
+const CapabilityForm: React.FC<CapabilityFormProps> = ({ capability, onBack, onSubmit, overrides }) => {
+  const [formData, setFormData] = useState<CapabilityFormData>(
+    getInitialData(capability, overrides),
+  );
   const meta = capabilityMeta[capability];
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -133,6 +164,10 @@ const CapabilityForm: React.FC<CapabilityFormProps> = ({ capability, onBack, onS
       case 'database_diagnostics': {
         const dd = formData as DatabaseDiagnosticsForm;
         return dd.profile_id.trim().length > 0;
+      }
+      case 'troubleshoot_pipeline': {
+        const pd = formData as PipelineCapabilityForm;
+        return pd.cluster_id.trim().length > 0 && pd.time_window_minutes > 0;
       }
     }
   };
@@ -199,6 +234,12 @@ const CapabilityForm: React.FC<CapabilityFormProps> = ({ capability, onBack, onS
             {formData.capability === 'database_diagnostics' && (
               <DatabaseDiagnosticsFields
                 data={formData as DatabaseDiagnosticsForm}
+                onChange={(d) => setFormData(d)}
+              />
+            )}
+            {formData.capability === 'troubleshoot_pipeline' && (
+              <PipelineTroubleshootingFields
+                data={formData as PipelineCapabilityForm}
                 onChange={(d) => setFormData(d)}
               />
             )}

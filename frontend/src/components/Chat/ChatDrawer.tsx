@@ -6,6 +6,7 @@ import { useChatUI, useChatStream, useInvestigationContext } from '../../context
 import MarkdownBubble from './MarkdownBubble';
 import RemediationPacketCard from './RemediationPacketCard';
 import ChatInputArea from './ChatInputArea';
+import PinnedActionCard from './PinnedActionCard';
 import ActionChip from './ActionChip';
 import { QuickActionToolbar } from './QuickActionToolbar';
 import { useInvestigationTools } from '../../hooks/useInvestigationTools';
@@ -75,7 +76,7 @@ function deriveActionChips(message: ChatMessage | undefined): DerivedChip[] {
 // ─── ToolCallPill ─────────────────────────────────────────────────────────
 
 const ToolCallPill: React.FC<{ tool: ChatToolCallEvent }> = ({ tool }) => (
-  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono bg-white/5 border border-white/10">
+  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-body-xs font-mono bg-white/5 border border-white/10">
     <span className="material-symbols-outlined text-[14px] text-amber-400">
       {tool.status === 'running' ? 'hourglass_top' : tool.status === 'complete' ? 'check_circle' : 'error'}
     </span>
@@ -84,7 +85,7 @@ const ToolCallPill: React.FC<{ tool: ChatToolCallEvent }> = ({ tool }) => (
       <span className="w-3 h-3 border-2 border-amber-400/30 border-t-amber-400 rounded-full animate-spin" />
     )}
     {tool.result_summary && (
-      <span className="text-slate-500">{tool.result_summary}</span>
+      <span className="text-slate-400">{tool.result_summary}</span>
     )}
   </div>
 );
@@ -98,6 +99,7 @@ const ChatDrawer: React.FC = () => {
     isOpen,
     isWaiting,
     isSending,
+    pendingAction,
     sendMessage,
     closeDrawer,
     activeToolCalls,
@@ -195,12 +197,12 @@ const ChatDrawer: React.FC = () => {
             initial="hidden"
             animate="visible"
             exit="exit"
-            className={`fixed top-16 right-0 bottom-0 z-[70] w-full sm:w-[420px] max-w-[100vw] flex flex-col bg-slate-900/95 backdrop-blur-xl border-l-2 ${
+            className={`fixed top-16 right-0 bottom-0 z-[70] w-full sm:w-[420px] max-w-[100vw] flex flex-col bg-wr-bg/95 backdrop-blur-xl border-l-2 ${
               isWaiting ? 'border-amber-500/40' : 'border-amber-500/20'
             }`}
           >
             {/* Header */}
-            <div className="shrink-0 flex items-center gap-2 px-4 py-3 border-b border-slate-800/50">
+            <div className="shrink-0 flex items-center gap-2 px-4 py-3 border-b border-wr-border/50">
               <span
                 className="material-symbols-outlined text-amber-400 text-[18px]"
               >
@@ -210,7 +212,7 @@ const ChatDrawer: React.FC = () => {
               <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
               <button
                 onClick={closeDrawer}
-                className="p-1 rounded hover:bg-slate-800 text-slate-500 hover:text-slate-300 transition-colors"
+                className="p-1 rounded hover:bg-wr-surface text-slate-400 hover:text-slate-300 transition-colors"
                 title="Close"
               >
                 <span
@@ -223,9 +225,9 @@ const ChatDrawer: React.FC = () => {
 
             {/* Waiting Banner */}
             {isWaiting && (
-              <div className="shrink-0 flex items-center gap-2 px-4 py-2 bg-amber-500/10 border-b border-amber-500/20">
+              <div className="shrink-0 flex items-center gap-2 px-4 py-2 bg-wr-severity-medium/10 border-b border-amber-500/20">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-                <span className="text-[11px] text-amber-400 font-mono">Foreman awaiting operator input</span>
+                <span className="text-body-xs text-amber-400 font-mono">Foreman awaiting operator input</span>
               </div>
             )}
 
@@ -248,17 +250,23 @@ const ChatDrawer: React.FC = () => {
               className="flex-1 overflow-y-auto px-3 py-3 custom-scrollbar"
             >
               {messages.length === 0 && !isStreaming ? (
-                <div className="flex flex-col items-center justify-center h-full text-slate-600 gap-3">
+                <div className="flex flex-col items-center justify-center h-full text-slate-500 gap-3">
                   <span
                     className="material-symbols-outlined text-[40px]"
                   >
                     auto_stories
                   </span>
                   <span className="text-sm font-mono">Mission log empty</span>
-                  <span className="text-[11px] text-slate-700">Ask the crew anything to begin</span>
+                  <span className="text-body-xs text-slate-700">Ask the crew anything to begin</span>
                 </div>
               ) : (
                 <>
+                  {pendingAction && (
+                    <PinnedActionCard
+                      pendingAction={pendingAction}
+                      onAction={(intentStr) => sendMessage(intentStr)}
+                    />
+                  )}
                   {messages.map((msg, i) =>
                     msg.metadata?.type === 'campaign_fix_proposal' ? (
                       <RemediationPacketCard key={`msg-${i}`} message={msg} />
@@ -291,7 +299,7 @@ const ChatDrawer: React.FC = () => {
 
                   {/* Sending indicator (non-streaming fallback) */}
                   {isSending && !isStreaming && (
-                    <div className="flex items-center gap-2 px-3 py-2 text-[11px] text-amber-500/60">
+                    <div className="flex items-center gap-2 px-3 py-2 text-body-xs text-amber-500/60">
                       <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
                       <span className="font-mono">Processing...</span>
                     </div>
@@ -302,7 +310,7 @@ const ChatDrawer: React.FC = () => {
 
             {/* Action Chips Ribbon */}
             {actionChips.length > 0 && !isSending && (
-              <div className="shrink-0 flex flex-wrap gap-2 px-3 py-2 border-t border-slate-800/50">
+              <div className="shrink-0 flex flex-wrap gap-2 px-3 py-2 border-t border-wr-border/50">
                 {actionChips.map((chip) => (
                   <ActionChip
                     key={chip.action}

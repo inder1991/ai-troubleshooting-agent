@@ -308,7 +308,7 @@ const DNSMonitoringTab: React.FC = () => {
               <div style={{ color: '#e8e0d4' }}>No DNS servers configured</div>
               <div style={{ color: '#64748b' }}>Add probe targets below to monitor resolution latency and availability</div>
             </div>
-            <div className="text-[10px] font-mono space-y-0.5 text-left" style={{ color: '#7a7060' }}>
+            <div className="text-body-xs font-mono space-y-0.5 text-left" style={{ color: '#7a7060' }}>
               <div>• On-Prem AD DNS — <span style={{ color: '#07b6d5' }}>10.1.40.100</span></div>
               <div>• AWS Route 53 — <span style={{ color: '#07b6d5' }}>vpc-shared-services resolver</span></div>
             </div>
@@ -375,7 +375,7 @@ const DNSMonitoringTab: React.FC = () => {
                   <td style={tdStyle}>{h.hostname}</td>
                   <td style={tdStyle}>
                     <span
-                      className="inline-block px-2 py-0.5 rounded text-[10px] font-mono font-bold"
+                      className="inline-block px-2 py-0.5 rounded text-body-xs font-mono font-bold"
                       style={{
                         background: 'rgba(224,159,62,0.12)',
                         color: '#e09f3e',
@@ -449,7 +449,7 @@ const DNSMonitoringTab: React.FC = () => {
               <span className="material-symbols-outlined text-base" style={{ color: '#f59e0b' }}>
                 speed
               </span>
-              <span className="text-[10px] font-mono font-bold uppercase tracking-wider" style={{ color: '#64748b' }}>
+              <span className="text-body-xs font-mono font-bold uppercase tracking-wider" style={{ color: '#64748b' }}>
                 Avg Resolution Latency
               </span>
             </div>
@@ -460,7 +460,7 @@ const DNSMonitoringTab: React.FC = () => {
             }}>
               {metrics ? `${metrics.avg_latency_ms.toFixed(1)} ms` : '--'}
             </div>
-            <div className="text-[10px] font-mono mt-1" style={{ color: '#64748b' }}>
+            <div className="text-body-xs font-mono mt-1" style={{ color: '#64748b' }}>
               {metrics ? `${metrics.total_queries} total queries` : 'No data'}
             </div>
           </div>
@@ -471,7 +471,7 @@ const DNSMonitoringTab: React.FC = () => {
               <span className="material-symbols-outlined text-base" style={{ color: '#ef4444' }}>
                 block
               </span>
-              <span className="text-[10px] font-mono font-bold uppercase tracking-wider" style={{ color: '#64748b' }}>
+              <span className="text-body-xs font-mono font-bold uppercase tracking-wider" style={{ color: '#64748b' }}>
                 NXDOMAIN Count
               </span>
             </div>
@@ -482,7 +482,7 @@ const DNSMonitoringTab: React.FC = () => {
             }}>
               {metrics ? metrics.nxdomain_count : '--'}
             </div>
-            <div className="text-[10px] font-mono mt-1" style={{ color: '#64748b' }}>
+            <div className="text-body-xs font-mono mt-1" style={{ color: '#64748b' }}>
               Failed lookups
             </div>
           </div>
@@ -493,7 +493,7 @@ const DNSMonitoringTab: React.FC = () => {
               <span className="material-symbols-outlined text-base" style={{ color: '#22c55e' }}>
                 check_circle
               </span>
-              <span className="text-[10px] font-mono font-bold uppercase tracking-wider" style={{ color: '#64748b' }}>
+              <span className="text-body-xs font-mono font-bold uppercase tracking-wider" style={{ color: '#64748b' }}>
                 Success Rate
               </span>
             </div>
@@ -603,13 +603,13 @@ const DNSMonitoringTab: React.FC = () => {
                   {queryResult.hostname}
                 </span>
                 <span
-                  className="inline-block px-2 py-0.5 rounded text-[10px] font-mono font-bold"
+                  className="inline-block px-2 py-0.5 rounded text-body-xs font-mono font-bold"
                   style={{ background: 'rgba(224,159,62,0.12)', color: '#e09f3e' }}
                 >
                   {queryResult.record_type}
                 </span>
               </div>
-              <div className="flex items-center gap-3 text-[10px] font-mono" style={{ color: '#64748b' }}>
+              <div className="flex items-center gap-3 text-body-xs font-mono" style={{ color: '#64748b' }}>
                 <span>Server: {queryResult.server_ip}</span>
                 <span>Latency: {queryResult.latency_ms.toFixed(1)} ms</span>
                 <span
@@ -680,7 +680,7 @@ const DNSMonitoringTab: React.FC = () => {
                   <td style={tdStyle}>{entry.hostname}</td>
                   <td style={{ ...tdStyle, textAlign: 'right' }}>
                     <span
-                      className="inline-block px-2 py-0.5 rounded text-[10px] font-mono font-bold"
+                      className="inline-block px-2 py-0.5 rounded text-body-xs font-mono font-bold"
                       style={{
                         background: entry.count > 20
                           ? 'rgba(239,68,68,0.15)' : 'rgba(245,158,11,0.15)',

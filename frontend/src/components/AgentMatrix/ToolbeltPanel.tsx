@@ -36,7 +36,7 @@ const ToolbeltPanel: React.FC<ToolbeltPanelProps> = ({ tools, toolHealthChecks, 
         <h3 className="text-xs font-mono uppercase tracking-widest" style={{ color: '#64748b' }}>
           Toolbelt
         </h3>
-        <span className="text-[10px] font-mono" style={{ color: '#64748b' }}>
+        <span className="text-body-xs font-mono" style={{ color: '#64748b' }}>
           <span style={{ color: '#e09f3e' }}>{healthyCount}</span>/{tools.length} online
         </span>
       </div>

@@ -1,6 +1,6 @@
 import type { ClusterProfile, GlobalIntegration, EndpointTestResult } from '../types/profiles';
 
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = '';
 
 // ===== Profile API =====
 

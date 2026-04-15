@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useRef, useEffect, useMemo } from 'react';
-import type { ChatMessage, TaskEvent, ChatToolCallEvent } from '../types';
-import { sendChatMessage } from '../services/api';
+import type { ChatMessage, TaskEvent, ChatToolCallEvent, PendingAction } from '../types';
+import { sendChatMessage, getSessionStatus } from '../services/api';
 
 // ─── Investigation Context (slow-moving: namespace/service/pod/cluster) ──
 
@@ -33,6 +33,8 @@ interface ChatUIContextValue {
   unreadCount: number;
   isWaiting: boolean;
   isSending: boolean;
+  pendingAction: PendingAction | null;
+  setPendingAction: React.Dispatch<React.SetStateAction<PendingAction | null>>;
   sendMessage: (content: string) => Promise<void>;
   toggleDrawer: () => void;
   openDrawer: () => void;
@@ -220,6 +222,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({
   const [unreadCount, setUnreadCount] = useState(0);
   const [isSending, setIsSending] = useState(false);
   const [activeToolCalls, setActiveToolCalls] = useState<ChatToolCallEvent[]>([]);
+  const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
   const prevMessageCountRef = useRef(0);
 
   // Investigation context — set by InvestigationView with real namespace/service/pod
@@ -273,6 +276,20 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({
       prevMessageCountRef.current = (messagesBySession[sessionId] || []).length;
     }
   }, [sessionId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Poll session status for pending actions
+  useEffect(() => {
+    if (!sessionId) return;
+    const fetchPending = async () => {
+      try {
+        const status = await getSessionStatus(sessionId);
+        setPendingAction(status.pending_action || null);
+      } catch { /* silent */ }
+    };
+    fetchPending();
+    const interval = setInterval(fetchPending, 5000);
+    return () => clearInterval(interval);
+  }, [sessionId]);
 
   const addMessage = useCallback((message: ChatMessage) => {
     if (!sessionId) return;
@@ -351,6 +368,8 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({
     unreadCount,
     isWaiting,
     isSending,
+    pendingAction,
+    setPendingAction,
     sendMessage,
     toggleDrawer,
     openDrawer,
@@ -361,6 +380,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({
     addToolCall,
   }), [
     sessionId, messages, isOpen, unreadCount, isWaiting, isSending,
+    pendingAction,
     sendMessage, toggleDrawer, openDrawer, closeDrawer, markRead, addMessage,
     activeToolCalls, addToolCall,
   ]);

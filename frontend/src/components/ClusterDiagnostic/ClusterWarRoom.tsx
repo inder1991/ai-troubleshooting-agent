@@ -321,7 +321,7 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
   }, [centerView, centerDomainReport]);
 
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-wr-bg relative font-sans text-slate-300">
+    <div className="warroom-shell font-sans text-slate-300">
       <ClusterHeader
         sessionId={session.session_id}
         confidence={confidence}
@@ -344,9 +344,9 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
 
       {/* Error banner */}
       {error && (
-        <div className="mx-6 mt-2 p-3 rounded-lg border border-red-500/30 bg-red-500/10 flex items-center justify-between">
+        <div className="mx-6 mt-2 p-3 rounded-lg border border-wr-severity-high/30 bg-wr-severity-high/10 flex items-center justify-between">
           <span className="text-sm text-red-400">{error}</span>
-          <button onClick={fetchFindings} className="text-xs text-red-300 hover:text-white px-3 py-1 rounded border border-red-500/30 hover:bg-red-500/20 transition-colors">
+          <button onClick={fetchFindings} className="text-xs text-red-300 hover:text-white px-3 py-1 rounded border border-wr-severity-high/30 hover:bg-wr-severity-high/20 transition-colors">
             Retry
           </button>
         </div>
@@ -354,7 +354,7 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
 
       {/* Truncation warning banner */}
       {truncationWarnings.length > 0 && (
-        <div className="mx-6 mt-2 px-3 py-2 rounded border border-amber-500/30 bg-amber-500/5 flex items-center gap-2">
+        <div className="mx-6 mt-2 px-3 py-2 rounded border border-wr-severity-medium/30 bg-amber-500/5 flex items-center gap-2">
           <span className="material-symbols-outlined text-amber-500 text-[16px]">warning</span>
           <span className="text-xs text-amber-400">
             Analysis may be incomplete: {truncationWarnings.join('. ')}
@@ -364,7 +364,7 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
 
       {/* LLM budget warning banner */}
       {budgetPct !== null && budgetPct > 80 && (
-        <div className="mx-6 mt-2 px-3 py-2 rounded border border-amber-500/30 bg-amber-500/10 flex items-center gap-2">
+        <div className="mx-6 mt-2 px-3 py-2 rounded border border-wr-severity-medium/30 bg-wr-severity-medium/10 flex items-center gap-2">
           <span className="material-symbols-outlined text-amber-500 text-[16px]">warning</span>
           <span className="text-xs text-amber-400">
             LLM budget {budgetPct}% consumed — remaining agents using heuristic analysis
@@ -373,7 +373,7 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
       )}
 
       {/* Main War Room Grid */}
-      <main className="flex-1 grid grid-cols-12 overflow-hidden relative">
+      <main className="warroom-main grid-cols-12">
         {loading && !findings && !error && (
           <>
             {/* Left column skeleton */}
@@ -412,13 +412,13 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
                 <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
                   <span className="material-symbols-outlined text-4xl text-red-500/40 mb-3">error_outline</span>
                   <h3 className="text-sm font-bold text-red-400 mb-2">All Domain Agents Failed</h3>
-                  <p className="text-[11px] text-slate-500 max-w-xs">
+                  <p className="text-body-xs text-slate-400 max-w-xs">
                     No diagnostic data could be collected. Check cluster connectivity, RBAC permissions, and API server health.
                   </p>
                   <div className="mt-4 space-y-1 text-left">
                     {domainReports.filter(r => r.failure_reason).map(r => (
-                      <div key={r.domain} className="text-[10px] text-red-400/60">
-                        <span className="font-mono text-slate-600">{r.domain}:</span> {r.failure_reason?.replace(/_/g, ' ')}
+                      <div key={r.domain} className="text-body-xs text-red-400/60">
+                        <span className="font-mono text-slate-500">{r.domain}:</span> {r.failure_reason?.replace(/_/g, ' ')}
                       </div>
                     ))}
                   </div>
@@ -471,12 +471,12 @@ const ClusterWarRoom: React.FC<ClusterWarRoomProps> = ({
               <RemediationCard steps={immediateSteps} blastRadius={findings?.blast_radius} />
               {longTermSteps.length > 0 && (
                 <div className="bg-wr-inset rounded border border-wr-border-subtle p-3">
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Long-Term Recommendations</span>
+                  <span className="text-body-xs font-semibold uppercase tracking-wider text-slate-400">Long-Term Recommendations</span>
                   <div className="mt-2 space-y-2">
                     {longTermSteps.map((step, i) => (
-                      <div key={i} className="text-[11px] text-slate-400">
+                      <div key={i} className="text-body-xs text-slate-400">
                         <p>{step.description}</p>
-                        {step.command && <code className="text-[10px] text-wr-accent block mt-1 font-mono">$ {step.command}</code>}
+                        {step.command && <code className="text-body-xs text-wr-accent block mt-1 font-mono">$ {step.command}</code>}
                       </div>
                     ))}
                   </div>

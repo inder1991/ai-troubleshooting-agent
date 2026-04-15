@@ -17,19 +17,19 @@ export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({ items }) => {
       {items.map((item, i) => (
         <React.Fragment key={i}>
           {i > 0 && (
-            <span className="material-symbols-outlined text-[12px] text-slate-600">
+            <span className="material-symbols-outlined text-[12px] text-slate-500">
               chevron_right
             </span>
           )}
           {item.onClick ? (
             <button
               onClick={item.onClick}
-              className="text-[11px] font-display text-slate-400 hover:text-[#e09f3e] transition-colors"
+              className="text-body-xs font-display text-slate-400 hover:text-[#e09f3e] transition-colors"
             >
               {item.label}
             </button>
           ) : (
-            <span className="text-[11px] font-display text-slate-300">{item.label}</span>
+            <span className="text-body-xs font-display text-slate-300">{item.label}</span>
           )}
         </React.Fragment>
       ))}

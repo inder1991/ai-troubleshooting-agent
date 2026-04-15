@@ -105,7 +105,7 @@ const ChatInputArea: React.FC<ChatInputAreaProps> = ({
   }, [showSlashMenu, filteredCommands, slashSelectedIndex, handleSlashSelect, handleSend, onEscDrawer]);
 
   return (
-    <div className="relative shrink-0 p-3 border-t border-slate-800/50">
+    <div className="relative shrink-0 p-3 border-t border-wr-border/50">
       {/* Slash command menu */}
       {showSlashMenu && (
         <SlashCommandMenu
@@ -117,7 +117,7 @@ const ChatInputArea: React.FC<ChatInputAreaProps> = ({
       )}
 
       {/* Input area */}
-      <div className="relative flex items-end gap-2 bg-slate-800/50 border border-slate-700/50 rounded-lg focus-within:border-amber-500/50 transition-colors">
+      <div className="relative flex items-end gap-2 bg-wr-surface/50 border border-wr-border-strong/50 rounded-lg focus-within:border-cyan-500/50 transition-colors">
         <textarea
           ref={textareaRef}
           value={input}
@@ -126,17 +126,18 @@ const ChatInputArea: React.FC<ChatInputAreaProps> = ({
           placeholder={placeholder}
           disabled={disabled}
           rows={1}
-          className="flex-1 bg-transparent text-sm text-slate-200 font-mono px-3 py-2.5 resize-none outline-none placeholder:text-slate-600 disabled:opacity-50"
+          className="flex-1 bg-transparent text-sm text-slate-200 font-mono px-3 py-2.5 resize-none outline-none placeholder:text-slate-500 disabled:opacity-50"
           style={{ maxHeight: '120px' }}
         />
         <button
           onClick={handleSend}
           disabled={disabled || !input.trim()}
-          className="shrink-0 p-2 mr-1 mb-0.5 rounded-md bg-amber-600 hover:bg-amber-500 disabled:bg-slate-700 disabled:text-slate-500 text-white transition-colors"
+          className="shrink-0 p-2 mr-1 mb-0.5 rounded-md bg-cyan-600 hover:bg-cyan-500 disabled:bg-wr-inset disabled:text-slate-400 text-white transition-colors"
           title="Send message"
         >
           <span
-            className="material-symbols-outlined text-[16px]"
+            className="material-symbols-outlined"
+            style={{ fontFamily: 'Material Symbols Outlined', fontSize: '16px' }}
           >
             send
           </span>

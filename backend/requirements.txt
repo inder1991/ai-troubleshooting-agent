@@ -21,6 +21,8 @@ aiohttp>=3.9.0
 
 # Data Processing
 pydantic>=2.5.3
+pydantic-settings>=2.0
+jsonschema>=4.0
 python-dotenv==1.0.0
 
 # Observability Clients
@@ -40,6 +42,9 @@ redis[hiredis]>=5.0
 motor>=3.3.0
 # sqlalchemy==2.0.25
 aiosqlite>=0.20.0
+
+# Token Estimation
+tiktoken>=0.7
 
 # Testing
 pytest==7.4.4

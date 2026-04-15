@@ -37,8 +37,8 @@ const CaseFile: React.FC<CaseFileProps> = ({ serviceName, sessionId, incidentId,
         </div>
         <p className="text-xs text-slate-300 font-mono">{serviceName}</p>
         <div className="flex items-center gap-3 mt-1.5">
-          <span className="text-[10px] text-duck-accent font-mono">{incidentId || sessionId.slice(0, 8)}</span>
-          <span className="text-[10px] text-slate-400 font-mono">{m}m {s}s</span>
+          <span className="text-body-xs text-duck-accent font-mono">{incidentId || sessionId.slice(0, 8)}</span>
+          <span className="text-body-xs text-slate-400 font-mono">{m}m {s}s</span>
         </div>
       </div>
 
@@ -56,12 +56,12 @@ const CaseFile: React.FC<CaseFileProps> = ({ serviceName, sessionId, incidentId,
                 aria-label={`Toggle ${agent.label} events`}
               >
                 <span className={`material-symbols-outlined text-[14px] ${si.cls}`}>{si.icon}</span>
-                <span className="text-[11px] font-bold text-slate-300 flex-1">{agent.label}</span>
+                <span className="text-body-xs font-bold text-slate-300 flex-1">{agent.label}</span>
                 {agent.events.length > 0 && (
-                  <span className="text-[9px] text-slate-400">{agent.events.length}</span>
+                  <span className="text-body-xs text-slate-400">{agent.events.length}</span>
                 )}
                 <span
-                  className={`material-symbols-outlined text-[12px] text-slate-500 transition-transform duration-200 ${isCollapsed ? '' : 'rotate-90'}`}
+                  className={`material-symbols-outlined text-[12px] text-slate-400 transition-transform duration-200 ${isCollapsed ? '' : 'rotate-90'}`}
                 >
                   chevron_right
                 </span>
@@ -81,13 +81,13 @@ const CaseFile: React.FC<CaseFileProps> = ({ serviceName, sessionId, incidentId,
                         const isToolCall = ev.event_type === 'progress';
                         return (
                           <div key={i} className={`flex items-start gap-1.5 ${isReasoning ? 'pl-2' : ''}`}>
-                            <span className={`shrink-0 mt-1.5 ${isToolCall ? 'material-symbols-outlined text-[10px] text-slate-500' : `w-1 h-1 rounded-full ${EVENT_DOT_COLOR[ev.event_type] || 'bg-slate-500'}`}`}
+                            <span className={`shrink-0 mt-1.5 ${isToolCall ? 'material-symbols-outlined text-body-xs text-slate-400' : `w-1 h-1 rounded-full ${EVENT_DOT_COLOR[ev.event_type] || 'bg-slate-500'}`}`}
                               aria-hidden="true">
                               {isToolCall ? 'build' : ''}
                             </span>
-                            <p className={`text-[10px] sm:text-xs leading-relaxed ${
+                            <p className={`text-body-xs sm:text-xs leading-relaxed ${
                               isReasoning ? 'text-slate-300 font-mono' :
-                              isToolCall ? 'text-slate-400 font-mono text-[9px]' :
+                              isToolCall ? 'text-slate-400 font-mono text-body-xs' :
                               'text-slate-400'
                             }`}>
                               {ev.message}
@@ -96,7 +96,7 @@ const CaseFile: React.FC<CaseFileProps> = ({ serviceName, sessionId, incidentId,
                         );
                       })}
                       {agent.events.length > 15 && (
-                        <p className="text-[9px] text-slate-400 mt-1">{agent.events.length - 15} earlier events hidden</p>
+                        <p className="text-body-xs text-slate-400 mt-1">{agent.events.length - 15} earlier events hidden</p>
                       )}
                     </div>
                   </motion.div>

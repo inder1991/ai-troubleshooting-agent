@@ -17,7 +17,7 @@ const SymptomDeck: React.FC<SymptomDeckProps> = ({ symptoms, renderSymptom }) =>
       <div className="space-y-3">
         <button
           onClick={() => setExpanded(false)}
-          className="text-[10px] text-amber-400 hover:text-amber-300 font-mono border border-amber-500/30 bg-amber-500/5 rounded-lg px-3 py-1.5 transition-colors"
+          className="text-body-xs text-amber-400 hover:text-amber-300 font-mono border border-wr-severity-medium/30 bg-amber-500/5 rounded-lg px-3 py-1.5 transition-colors"
         >
           Collapse Stack
         </button>
@@ -35,7 +35,7 @@ const SymptomDeck: React.FC<SymptomDeckProps> = ({ symptoms, renderSymptom }) =>
           <div className="sticky bottom-2 flex justify-center mt-4">
             <button
               onClick={() => setExpanded(false)}
-              className="text-[10px] text-amber-400 bg-slate-900/90 backdrop-blur border border-amber-500/30 rounded-full px-4 py-1.5 shadow-lg hover:bg-slate-800 transition-colors"
+              className="text-body-xs text-amber-400 bg-wr-bg/90 backdrop-blur border border-wr-severity-medium/30 rounded-full px-4 py-1.5 shadow-lg hover:bg-wr-surface transition-colors"
             >
               Collapse Stack
             </button>
@@ -53,19 +53,19 @@ const SymptomDeck: React.FC<SymptomDeckProps> = ({ symptoms, renderSymptom }) =>
       transition={{ type: 'spring', stiffness: 400 }}
     >
       {/* Ghost card 2 (deepest) */}
-      <div className="absolute inset-x-2 top-0 h-full translate-y-3 scale-95 bg-slate-800/20 border border-slate-700/30 rounded-xl -z-20" />
+      <div className="absolute inset-x-2 top-0 h-full translate-y-3 scale-95 bg-wr-surface/20 border border-wr-border-strong/30 rounded-xl -z-20" />
       {/* Ghost card 1 (middle) */}
-      <div className="absolute inset-x-1 top-0 h-full translate-y-1.5 scale-[0.975] bg-slate-800/40 border border-slate-700/50 rounded-xl -z-10" />
+      <div className="absolute inset-x-1 top-0 h-full translate-y-1.5 scale-[0.975] bg-wr-surface/40 border border-wr-border-strong/50 rounded-xl -z-10" />
 
       {/* Main card */}
-      <div className="relative bg-slate-900/80 border border-slate-700 group-hover:border-amber-500/50 rounded-xl overflow-hidden transition-colors">
+      <div className="relative bg-wr-bg/80 border border-wr-border-strong group-hover:border-amber-500/50 rounded-xl overflow-hidden transition-colors">
         {/* Header */}
-        <div className="px-4 py-2.5 border-b border-slate-800/50 flex items-center gap-2">
+        <div className="px-4 py-2.5 border-b border-wr-border/50 flex items-center gap-2">
           <Layers className="w-3.5 h-3.5 text-amber-400" />
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+          <span className="text-body-xs font-bold uppercase tracking-wider text-slate-400">
             Symptom Cluster
           </span>
-          <span className="text-[9px] font-mono text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded-full ml-auto">
+          <span className="text-body-xs font-mono text-amber-400 bg-wr-severity-medium/10 border border-amber-500/20 px-1.5 py-0.5 rounded-full ml-auto">
             {symptoms.length} EVENTS
           </span>
         </div>
@@ -77,7 +77,7 @@ const SymptomDeck: React.FC<SymptomDeckProps> = ({ symptoms, renderSymptom }) =>
 
         {/* CTA */}
         <div className="px-4 py-2 border-t border-dashed border-amber-500/20">
-          <span className="text-[10px] text-amber-400/70 font-mono">
+          <span className="text-body-xs text-amber-400/70 font-mono">
             Click to Fan Out Stack
           </span>
         </div>

@@ -77,7 +77,7 @@ const LabeledEdge: React.FC<EdgeProps> = ({
           className="nodrag nopan"
         >
           <span
-            className="text-[9px] font-mono px-2 py-1 rounded-full"
+            className="text-body-xs font-mono px-2 py-1 rounded-full"
             style={{
               backgroundColor: selected ? color + '20' : 'rgba(15, 32, 35, 0.95)',
               color,

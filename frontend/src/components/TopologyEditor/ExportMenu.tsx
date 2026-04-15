@@ -32,7 +32,7 @@ export default function ExportMenu({ onExport }: ExportMenuProps) {
     <div ref={menuRef} className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-mono font-medium border transition-colors hover:border-[#e09f3e]/40"
+        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-body-xs font-mono font-medium border transition-colors hover:border-[#e09f3e]/40"
         style={{ backgroundColor: '#1e1b15', borderColor: '#3d3528', color: '#e8e0d4' }}
       >
         <span className="material-symbols-outlined" style={{ fontSize: 15, color: '#e09f3e' }}>
@@ -53,7 +53,7 @@ export default function ExportMenu({ onExport }: ExportMenuProps) {
             <button
               key={opt.format}
               onClick={() => { onExport(opt.format); setOpen(false); }}
-              className="w-full flex items-center gap-2 px-3 py-2 text-[11px] font-mono text-left transition-colors hover:bg-[#1e1b15]"
+              className="w-full flex items-center gap-2 px-3 py-2 text-body-xs font-mono text-left transition-colors hover:bg-[#1e1b15]"
               style={{ color: '#e8e0d4' }}
             >
               <span className="material-symbols-outlined" style={{ fontSize: 15, color: '#e09f3e' }}>

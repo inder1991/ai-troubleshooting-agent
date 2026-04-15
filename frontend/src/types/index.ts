@@ -299,7 +299,7 @@ export interface TokenUsage {
 export interface TaskEvent {
   session_id: string;
   agent_name: string;
-  event_type: 'started' | 'progress' | 'success' | 'warning' | 'error' | 'tool_call' | 'phase_change' | 'finding' | 'summary' | 'attestation_required' | 'fix_proposal' | 'fix_approved' | 'waiting_for_input' | 'reasoning';
+  event_type: 'started' | 'progress' | 'success' | 'warning' | 'error' | 'tool_call' | 'phase_change' | 'finding' | 'summary' | 'attestation_required' | 'auto_approved' | 'fix_proposal' | 'fix_approved' | 'waiting_for_input' | 'reasoning' | 'thinking';
   message: string;
   timestamp: string;
   sequence_number?: number;
@@ -339,6 +339,25 @@ export interface V4Session {
   critical_count?: number;
 }
 
+export interface AttestationGateData {
+  gate_type: 'discovery_complete' | 'pre_remediation' | 'post_remediation';
+  human_decision: 'approve' | 'reject' | 'modify' | null;
+  decided_by: string | null;
+  decided_at: string | null;
+  proposed_action: string | null;
+  findings_count?: number;
+  confidence?: number;
+}
+
+export interface PendingAction {
+  type: 'attestation_required' | 'fix_approval' | 'repo_confirm' | 'campaign_execute_confirm' | 'code_agent_question';
+  blocking: boolean;
+  actions: string[];
+  expires_at: string | null;
+  context: Record<string, unknown>;
+  version: number;
+}
+
 export interface V4SessionStatus {
   session_id: string;
   incident_id?: string;
@@ -351,12 +370,51 @@ export interface V4SessionStatus {
   agents_completed?: string[];
   created_at: string;
   updated_at: string;
+  capability?: CapabilityType;
+  pending_action: PendingAction | null;
 }
 
 export interface SuggestedPromQLQuery {
   metric: string;
   query: string;
   rationale: string;
+}
+
+// ── Multi-hypothesis engine types ─────────────────────────────────────
+
+export interface HypothesisEvidenceSummary {
+  signal_name: string;
+  signal_type: string;
+  source_agent: string;
+  strength: number;
+}
+
+export interface DiagHypothesis {
+  hypothesis_id: string;
+  category: string;
+  status: 'active' | 'eliminated' | 'winner';
+  confidence: number;
+  evidence_for: HypothesisEvidenceSummary[];
+  evidence_against: HypothesisEvidenceSummary[];
+  evidence_for_count: number;
+  evidence_against_count: number;
+  downstream_effects: string[];
+  elimination_reason: string | null;
+  elimination_phase: string | null;
+}
+
+export interface HypothesisEliminationEntry {
+  hypothesis_id: string;
+  reason: string;
+  phase: string;
+  confidence: number;
+}
+
+export interface DiagHypothesisResult {
+  status: 'resolved' | 'inconclusive';
+  winner_id: string | null;
+  elimination_log: HypothesisEliminationEntry[];
+  recommendations: string[];
 }
 
 // M8: Array fields marked optional — backend may omit them during partial state
@@ -407,6 +465,9 @@ export interface V4Findings {
   evidence_pins?: EvidencePinV2[];
   causal_forest?: CausalTree[];
   evidence_graph?: EvidenceGraphData;
+  // Multi-hypothesis engine
+  hypotheses?: DiagHypothesis[];
+  hypothesis_result?: DiagHypothesisResult;
   // Diagnostic scope (returned by backend)
   diagnostic_scope?: DiagnosticScope;
   scope_coverage?: number;
@@ -428,7 +489,7 @@ export interface V4Findings {
 }
 
 export type FixStatus =
-  | 'not_started' | 'generating' | 'awaiting_review'
+  | 'not_started' | 'queued' | 'generating' | 'retrying' | 'awaiting_review'
   | 'human_feedback' | 'verification_in_progress'
   | 'verified' | 'verification_failed'
   | 'approved' | 'rejected'
@@ -571,7 +632,8 @@ export type CapabilityType =
   | 'github_issue_fix'
   | 'cluster_diagnostics'
   | 'network_troubleshooting'
-  | 'database_diagnostics';
+  | 'database_diagnostics'
+  | 'troubleshoot_pipeline';
 
 export interface TroubleshootAppForm {
   capability: 'troubleshoot_app';
@@ -901,7 +963,8 @@ export type CapabilityFormData =
   | GithubIssueFixForm
   | ClusterDiagnosticsForm
   | NetworkTroubleshootingForm
-  | DatabaseDiagnosticsForm;
+  | DatabaseDiagnosticsForm
+  | PipelineCapabilityForm;
 
 // ===== V5 Integration Types =====
 export interface Integration {
@@ -939,16 +1002,6 @@ export interface ConfidenceLedgerData {
   critic_adjustment?: number;
   weighted_final: number;
   weights?: Record<string, number>;
-}
-
-export interface AttestationGateData {
-  gate_type: 'discovery_complete' | 'pre_remediation' | 'post_remediation';
-  human_decision: 'approve' | 'reject' | 'modify' | null;
-  decided_by: string | null;
-  decided_at: string | null;
-  proposed_action: string | null;
-  findings_count?: number;
-  confidence?: number;
 }
 
 export interface ReasoningStepData {
@@ -2412,4 +2465,85 @@ export interface ClusterRecommendationSnapshotDTO {
   critical_count: number;
   optimization_count: number;
   security_count: number;
+}
+
+// ===== CI/CD Live Board Types =====
+
+export type DeliveryKind = 'commit' | 'build' | 'sync';
+export type DeliverySource = 'github' | 'jenkins' | 'argocd';
+export type CICDInstanceSource = 'jenkins' | 'argocd';
+
+export interface DeliveryItem {
+  kind: DeliveryKind;
+  id: string;
+  title: string;
+  source: DeliverySource;
+  source_instance: string;
+  status: string;
+  author: string | null;
+  git_sha: string | null;
+  git_repo: string | null;
+  target: string | null;
+  timestamp: string;          // ISO-8601
+  duration_s: number | null;
+  url: string;
+}
+
+export interface SourceError {
+  name: string;
+  source: CICDInstanceSource | string;
+  message: string;
+}
+
+export interface CICDStreamResponse {
+  items: DeliveryItem[];
+  source_errors: SourceError[];
+  server_ts: string;
+}
+
+export interface CommitFileDetail {
+  filename: string;
+  status: string;             // "added" | "modified" | "removed" | "renamed"
+  additions: number;
+  deletions: number;
+  patch: string;
+}
+
+export interface CommitDetail {
+  commit_sha: string;
+  message: string;
+  author: string;
+  files: CommitFileDetail[];
+}
+
+export interface PipelineCapabilityForm {
+  capability: 'troubleshoot_pipeline';
+  cluster_id: string;
+  time_window_minutes: number;
+  git_repo?: string;
+  service_hint?: string;
+  profile_id?: string;
+}
+
+export interface CatalogCostHint {
+  llm_calls: number;
+  typical_duration_s: number;
+}
+
+export interface CatalogAgentSummary {
+  name: string;
+  version: number;
+  description: string;
+  category: string;
+  tags: string[];
+  cost_hint?: CatalogCostHint | null;
+}
+
+export interface CatalogAgentDetail extends CatalogAgentSummary {
+  deprecated_versions: number[];
+  input_schema: Record<string, unknown>;
+  output_schema: Record<string, unknown>;
+  trigger_examples: string[];
+  timeout_seconds: number;
+  retry_on: string[];
 }

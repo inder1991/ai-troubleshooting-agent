@@ -1,0 +1,5 @@
+name: bad_agent
+version: 1
+description: missing trigger examples and schemas
+category: infrastructure
+timeout_seconds: 10

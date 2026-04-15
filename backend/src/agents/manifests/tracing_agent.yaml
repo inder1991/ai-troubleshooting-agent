@@ -1,0 +1,59 @@
+name: tracing_agent
+version: 1
+description: >-
+  Reconstructs distributed request flow across services. Queries Jaeger
+  first, falls back to Elasticsearch log-based reconstruction if no trace
+  data is available.
+category: observability
+tags: [tracing, jaeger, spans, elasticsearch, cascade]
+inputs:
+  type: object
+  properties:
+    trace_id:
+      type: string
+    service_name:
+      type: string
+    error_patterns:
+      type: array
+      items: { type: object }
+  required: [trace_id]
+outputs:
+  type: object
+  properties:
+    trace_id: { type: string }
+    total_duration_ms: { type: number }
+    total_services: { type: integer }
+    total_spans: { type: integer }
+    call_chain:
+      type: array
+      items: { type: object }
+    failure_point:
+      type: [object, "null"]
+    cascade_path:
+      type: array
+      items: { type: string }
+    latency_bottlenecks:
+      type: array
+      items: { type: object }
+    retry_detected: { type: boolean }
+    service_dependency_graph: { type: object }
+    trace_source: { type: string }
+    overall_confidence: { type: number }
+    mode: { type: string }
+    llm_calls: { type: integer }
+    breadcrumbs:
+      type: array
+      items: { type: object }
+    negative_findings:
+      type: array
+      items: { type: object }
+    tokens_used: { type: object }
+trigger_examples:
+  - "Trace request abc-123 across services"
+  - "Where did this request fail in the call chain?"
+  - "Show me the cascade path for trace 7f3a"
+retry_on: [TimeoutError]
+timeout_seconds: 90
+cost_hint:
+  llm_calls: 1
+  typical_duration_s: 15

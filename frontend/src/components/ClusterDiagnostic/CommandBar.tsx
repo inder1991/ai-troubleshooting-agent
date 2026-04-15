@@ -33,8 +33,8 @@ const CommandBar: React.FC = () => {
           onKeyDown={handleKeyDown}
         />
         <div className="flex gap-2 shrink-0">
-          <kbd className="px-2 py-0.5 bg-wr-bg border border-wr-border rounded text-[10px] font-mono text-slate-400 uppercase">Shift</kbd>
-          <kbd className="px-2 py-0.5 bg-wr-bg border border-wr-border rounded text-[10px] font-mono text-slate-400 uppercase">Enter</kbd>
+          <kbd className="px-2 py-0.5 bg-wr-bg border border-wr-border rounded text-body-xs font-mono text-slate-400 uppercase">Shift</kbd>
+          <kbd className="px-2 py-0.5 bg-wr-bg border border-wr-border rounded text-body-xs font-mono text-slate-400 uppercase">Enter</kbd>
         </div>
       </div>
     </footer>

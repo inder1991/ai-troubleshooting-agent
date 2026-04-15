@@ -48,7 +48,7 @@ export const ToolParamForm: React.FC<ToolParamFormProps> = ({ tool, context, onE
     .every((p) => params[p.name] !== undefined && params[p.name] !== '');
 
   return (
-    <form onSubmit={handleSubmit} role="form" aria-label="Tool parameters" className="bg-slate-800/50 border border-slate-700 rounded-lg p-3 space-y-2">
+    <form onSubmit={handleSubmit} role="form" aria-label="Tool parameters" className="bg-wr-surface/50 border border-wr-border-strong rounded-lg p-3 space-y-2">
       <div className="text-xs font-medium text-amber-400 mb-2">{tool.label}</div>
       {tool.params_schema.map((p) => (
         <ParamField key={p.name} param={p} value={params[p.name]} onChange={(v) => updateParam(p.name, v)} />
@@ -76,7 +76,7 @@ const ParamField: React.FC<{
     return (
       <label className="flex items-center gap-2 text-xs text-slate-300">
         <input type="checkbox" checked={!!value} onChange={(e) => onChange(e.target.checked)}
-          className="rounded border-slate-600 bg-slate-800" />
+          className="rounded border-wr-border-strong bg-wr-surface" />
         {param.name}
       </label>
     );
@@ -86,7 +86,7 @@ const ParamField: React.FC<{
       <label className="flex flex-col gap-1 text-xs text-slate-300">
         <span>{param.name}{param.required ? ' *' : ''}</span>
         <select value={String(value ?? '')} onChange={(e) => onChange(e.target.value)}
-          className="bg-slate-800 border border-slate-600 rounded px-2 py-1 text-xs text-white">
+          className="bg-wr-surface border border-wr-border-strong rounded px-2 py-1 text-xs text-white">
           <option value="">Select...</option>
           {param.options.map((o) => <option key={o} value={o}>{o}</option>)}
         </select>
@@ -100,7 +100,7 @@ const ParamField: React.FC<{
         value={String(value ?? '')}
         placeholder={param.placeholder}
         onChange={(e) => onChange(param.type === 'number' ? Number(e.target.value) : e.target.value)}
-        className="bg-slate-800 border border-slate-600 rounded px-2 py-1 text-xs text-white placeholder-slate-500" />
+        className="bg-wr-surface border border-wr-border-strong rounded px-2 py-1 text-xs text-white placeholder-slate-500" />
     </label>
   );
 };

@@ -95,18 +95,18 @@ const AssistantDock: React.FC<AssistantDockProps> = ({
                   <span className="w-2.5 h-2.5 rounded-full bg-amber-500/60" />
                   <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/60" />
                 </div>
-                <span className="text-[11px] font-mono text-slate-400">debugduck — assistant</span>
+                <span className="text-body-xs font-mono text-slate-400">debugduck — assistant</span>
               </div>
               <div className="flex items-center gap-3">
                 <button
                   onClick={clearThread}
-                  className="text-[10px] font-mono text-slate-500 hover:text-slate-300 transition-colors"
+                  className="text-body-xs font-mono text-slate-400 hover:text-slate-300 transition-colors"
                 >
                   clear
                 </button>
                 <button
                   onClick={() => setExpanded(false)}
-                  className="text-slate-500 hover:text-white transition-colors"
+                  className="text-slate-400 hover:text-white transition-colors"
                   aria-label="Collapse terminal"
                 >
                   <span className="material-symbols-outlined text-[16px]">keyboard_arrow_down</span>
@@ -120,19 +120,19 @@ const AssistantDock: React.FC<AssistantDockProps> = ({
               {messages.length === 0 && (
                 <div className="py-4">
                   <p className="text-slate-400 mb-1">DebugDuck AI Assistant v1.0</p>
-                  <p className="text-slate-500 mb-3">Type a command or ask a question. Examples:</p>
+                  <p className="text-slate-400 mb-3">Type a command or ask a question. Examples:</p>
                   <div className="space-y-1 mb-4">
-                    <p className="text-slate-500"><span className="text-duck-accent">❯</span> what investigations are running?</p>
-                    <p className="text-slate-500"><span className="text-duck-accent">❯</span> check system health</p>
-                    <p className="text-slate-500"><span className="text-duck-accent">❯</span> scan prod-orders database</p>
-                    <p className="text-slate-500"><span className="text-duck-accent">❯</span> show findings for INC-A3F2</p>
+                    <p className="text-slate-400"><span className="text-duck-accent">❯</span> what investigations are running?</p>
+                    <p className="text-slate-400"><span className="text-duck-accent">❯</span> check system health</p>
+                    <p className="text-slate-400"><span className="text-duck-accent">❯</span> scan prod-orders database</p>
+                    <p className="text-slate-400"><span className="text-duck-accent">❯</span> show findings for INC-A3F2</p>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     {QUICK_COMMANDS.map((qc) => (
                       <button
                         key={qc.label}
                         onClick={() => sendMessage(qc.cmd)}
-                        className="px-2 py-1 rounded text-[10px] font-mono text-slate-400 bg-duck-card/30 border border-duck-border/30 hover:border-duck-accent/30 hover:text-duck-accent transition-all"
+                        className="px-2 py-1 rounded text-body-xs font-mono text-slate-400 bg-duck-card/30 border border-duck-border/30 hover:border-duck-accent/30 hover:text-duck-accent transition-all"
                       >
                         /{qc.label}
                       </button>
@@ -143,7 +143,7 @@ const AssistantDock: React.FC<AssistantDockProps> = ({
 
               {/* Message log */}
               {messages.length > 50 && (
-                <p className="text-[9px] text-slate-600 mb-2">--- earlier output truncated ---</p>
+                <p className="text-body-xs text-slate-500 mb-2">--- earlier output truncated ---</p>
               )}
               {displayedMessages.map((msg, i) => (
                 <AssistantMessageEntry
@@ -156,8 +156,8 @@ const AssistantDock: React.FC<AssistantDockProps> = ({
               {/* Processing indicator */}
               {isLoading && (
                 <div className="flex items-center gap-2 py-1.5 pl-5">
-                  <span className="text-duck-accent text-[11px]">⟳</span>
-                  <span className="text-[11px] text-slate-400">processing</span>
+                  <span className="text-duck-accent text-body-xs">⟳</span>
+                  <span className="text-body-xs text-slate-400">processing</span>
                   <span className="flex items-center gap-0.5">
                     <span className="w-1 h-1 rounded-full bg-duck-accent/60 animate-pulse" />
                     <span className="w-1 h-1 rounded-full bg-duck-accent/60 animate-pulse" style={{ animationDelay: '200ms' }} />
@@ -181,7 +181,7 @@ const AssistantDock: React.FC<AssistantDockProps> = ({
           onKeyDown={handleKeyDown}
           onFocus={() => setExpanded(true)}
           placeholder="ask debugduck..."
-          className="flex-1 bg-transparent text-[13px] font-mono text-white placeholder:text-slate-600 outline-none"
+          className="flex-1 bg-transparent text-[13px] font-mono text-white placeholder:text-slate-500 outline-none"
           disabled={isLoading}
           aria-label="Command input"
         />
@@ -189,13 +189,13 @@ const AssistantDock: React.FC<AssistantDockProps> = ({
           <button
             onClick={handleSubmit}
             disabled={isLoading}
-            className="text-duck-accent hover:text-white transition-colors disabled:opacity-50 font-mono text-[11px]"
+            className="text-duck-accent hover:text-white transition-colors disabled:opacity-50 font-mono text-body-xs"
             aria-label="Execute"
           >
             run ↵
           </button>
         ) : (
-          <span className="text-[10px] text-slate-600 font-mono shrink-0">⌘K</span>
+          <span className="text-body-xs text-slate-500 font-mono shrink-0">⌘K</span>
         )}
       </div>
     </div>

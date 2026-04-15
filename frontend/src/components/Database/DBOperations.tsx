@@ -289,7 +289,7 @@ const DBOperations: React.FC = () => {
           <select
             value={selectedProfileId}
             onChange={(e) => setSelectedProfileId(e.target.value)}
-            className="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-amber-500 outline-none"
+            className="px-3 py-1.5 rounded-lg bg-wr-surface border border-wr-border-strong text-sm text-slate-100 focus:border-amber-500 outline-none"
           >
             {profiles.map((p) => (
               <option key={p.id} value={p.id}>{p.name} ({p.engine})</option>
@@ -306,45 +306,45 @@ const DBOperations: React.FC = () => {
             <span className="material-symbols-outlined text-[16px]">expand_more</span>
           </button>
           {showOpMenu && (
-            <div className="absolute right-0 mt-1 w-56 bg-[#0d2329] border border-slate-700/50 rounded-lg shadow-xl z-50 py-1">
+            <div className="absolute right-0 mt-1 w-56 bg-[#0d2329] border border-wr-border-strong/50 rounded-lg shadow-xl z-50 py-1">
               <button
                 onClick={() => { setShowOpMenu(false); activeQueriesRef.current?.scrollIntoView({ behavior: 'smooth' }); }}
-                className="w-full text-left px-3 py-2 text-sm text-slate-300 hover:bg-slate-700/50 hover:text-slate-100 flex items-center gap-2"
+                className="w-full text-left px-3 py-2 text-sm text-slate-300 hover:bg-wr-inset/50 hover:text-slate-100 flex items-center gap-2"
               >
                 <span className="material-symbols-outlined text-[16px]">cancel</span>
                 Kill Query
               </button>
               <button
                 onClick={() => { setShowOpMenu(false); setModalInitialAction('vacuum'); setShowModal(true); }}
-                className="w-full text-left px-3 py-2 text-sm text-slate-300 hover:bg-slate-700/50 hover:text-slate-100 flex items-center gap-2"
+                className="w-full text-left px-3 py-2 text-sm text-slate-300 hover:bg-wr-inset/50 hover:text-slate-100 flex items-center gap-2"
               >
                 <span className="material-symbols-outlined text-[16px]">cleaning_services</span>
                 Vacuum Table
               </button>
               <button
                 onClick={() => { setShowOpMenu(false); setModalInitialAction('reindex'); setShowModal(true); }}
-                className="w-full text-left px-3 py-2 text-sm text-slate-300 hover:bg-slate-700/50 hover:text-slate-100 flex items-center gap-2"
+                className="w-full text-left px-3 py-2 text-sm text-slate-300 hover:bg-wr-inset/50 hover:text-slate-100 flex items-center gap-2"
               >
                 <span className="material-symbols-outlined text-[16px]">reorder</span>
                 Reindex Table
               </button>
               <button
                 onClick={() => { setShowOpMenu(false); setModalInitialAction('create_index'); setShowModal(true); }}
-                className="w-full text-left px-3 py-2 text-sm text-slate-300 hover:bg-slate-700/50 hover:text-slate-100 flex items-center gap-2"
+                className="w-full text-left px-3 py-2 text-sm text-slate-300 hover:bg-wr-inset/50 hover:text-slate-100 flex items-center gap-2"
               >
                 <span className="material-symbols-outlined text-[16px]">add_circle</span>
                 Create Index
               </button>
               <button
                 onClick={() => { setShowOpMenu(false); setModalInitialAction('drop_index'); setShowModal(true); }}
-                className="w-full text-left px-3 py-2 text-sm text-slate-300 hover:bg-slate-700/50 hover:text-slate-100 flex items-center gap-2"
+                className="w-full text-left px-3 py-2 text-sm text-slate-300 hover:bg-wr-inset/50 hover:text-slate-100 flex items-center gap-2"
               >
                 <span className="material-symbols-outlined text-[16px]">remove_circle</span>
                 Drop Index
               </button>
               <button
                 onClick={() => { setShowOpMenu(false); setModalInitialAction('alter_config'); setShowModal(true); }}
-                className="w-full text-left px-3 py-2 text-sm text-slate-300 hover:bg-slate-700/50 hover:text-slate-100 flex items-center gap-2"
+                className="w-full text-left px-3 py-2 text-sm text-slate-300 hover:bg-wr-inset/50 hover:text-slate-100 flex items-center gap-2"
               >
                 <span className="material-symbols-outlined text-[16px]">settings</span>
                 Alter Config
@@ -355,18 +355,18 @@ const DBOperations: React.FC = () => {
       </div>
 
       {/* Panel 1: Active Queries */}
-      <div ref={activeQueriesRef} className="bg-[#0d2329] border border-slate-700/50 rounded-lg">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700/30">
+      <div ref={activeQueriesRef} className="bg-[#0d2329] border border-wr-border-strong/50 rounded-lg">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-wr-border-strong/30">
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-amber-400 text-[18px]">terminal</span>
             <h3 className="text-sm font-semibold text-slate-200">Active Queries</h3>
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-700/60 text-slate-400">
+            <span className="text-body-xs px-1.5 py-0.5 rounded bg-wr-inset/60 text-slate-400">
               {activeQueries.length}
             </span>
           </div>
           <button
             onClick={loadQueries}
-            className="text-slate-500 hover:text-slate-300 transition-colors"
+            className="text-slate-400 hover:text-slate-300 transition-colors"
           >
             <span className={`material-symbols-outlined text-[16px] ${loadingQueries ? 'animate-spin' : ''}`}>
               {loadingQueries ? 'progress_activity' : 'refresh'}
@@ -376,7 +376,7 @@ const DBOperations: React.FC = () => {
         <div className="overflow-x-auto">
           <table className="w-full text-xs text-slate-300">
             <thead>
-              <tr className="border-b border-slate-700/30 text-slate-500">
+              <tr className="border-b border-wr-border-strong/30 text-slate-400">
                 <th className="px-4 py-2 text-left font-medium">PID</th>
                 <th className="px-4 py-2 text-left font-medium">SQL</th>
                 <th className="px-4 py-2 text-left font-medium">Duration</th>
@@ -389,27 +389,27 @@ const DBOperations: React.FC = () => {
             <tbody>
               {activeQueries.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-6 text-center text-slate-500">
+                  <td colSpan={7} className="px-4 py-6 text-center text-slate-400">
                     No active queries
                   </td>
                 </tr>
               ) : (
                 activeQueries.map((q) => (
-                  <tr key={q.pid} className="border-b border-slate-700/30 hover:bg-slate-800/30">
+                  <tr key={q.pid} className="border-b border-wr-border-strong/30 hover:bg-wr-surface/30">
                     <td className="px-4 py-2 font-mono">{q.pid}</td>
                     <td className="px-4 py-2 font-mono max-w-xs truncate" title={q.query}>
                       {q.query.length > 80 ? `${q.query.slice(0, 80)}...` : q.query}
                     </td>
                     <td className="px-4 py-2">{q.duration_ms >= 1000 ? `${(q.duration_ms / 1000).toFixed(1)}s` : `${Math.round(q.duration_ms)}ms`}</td>
                     <td className="px-4 py-2">
-                      <span className="px-1.5 py-0.5 rounded bg-slate-700/50 text-[10px]">{q.state}</span>
+                      <span className="px-1.5 py-0.5 rounded bg-wr-inset/50 text-body-xs">{q.state}</span>
                     </td>
                     <td className="px-4 py-2">{q.user}</td>
                     <td className="px-4 py-2">{q.database}</td>
                     <td className="px-4 py-2 text-right">
                       <button
                         onClick={() => handleKillQuery(q.pid)}
-                        className="flex items-center gap-1 ml-auto px-2 py-1 text-[10px] rounded bg-red-500/20 hover:bg-red-500/30 text-red-400 transition-colors"
+                        className="flex items-center gap-1 ml-auto px-2 py-1 text-body-xs rounded bg-wr-severity-high/20 hover:bg-wr-severity-high/30 text-red-400 transition-colors"
                       >
                         <span className="material-symbols-outlined text-[12px]">stop</span>
                         Kill
@@ -424,18 +424,18 @@ const DBOperations: React.FC = () => {
       </div>
 
       {/* Panel 2: Pending Plans */}
-      <div className="bg-[#0d2329] border border-slate-700/50 rounded-lg">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700/30">
+      <div className="bg-[#0d2329] border border-wr-border-strong/50 rounded-lg">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-wr-border-strong/30">
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-amber-400 text-[18px]">pending_actions</span>
             <h3 className="text-sm font-semibold text-slate-200">Pending Plans</h3>
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-700/60 text-slate-400">
+            <span className="text-body-xs px-1.5 py-0.5 rounded bg-wr-inset/60 text-slate-400">
               {plans.length}
             </span>
           </div>
           <button
             onClick={loadPlans}
-            className="text-slate-500 hover:text-slate-300 transition-colors"
+            className="text-slate-400 hover:text-slate-300 transition-colors"
           >
             <span className={`material-symbols-outlined text-[16px] ${loadingPlans ? 'animate-spin' : ''}`}>
               {loadingPlans ? 'progress_activity' : 'refresh'}
@@ -444,7 +444,7 @@ const DBOperations: React.FC = () => {
         </div>
         <div className="p-4 space-y-3">
           {plans.length === 0 ? (
-            <p className="text-xs text-slate-500 text-center py-4">No pending plans</p>
+            <p className="text-xs text-slate-400 text-center py-4">No pending plans</p>
           ) : (
             plans.map((plan) => (
               <RemediationCard
@@ -460,15 +460,15 @@ const DBOperations: React.FC = () => {
       </div>
 
       {/* Panel 3: Config Recommendations */}
-      <div className="bg-[#0d2329] border border-slate-700/50 rounded-lg">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700/30">
+      <div className="bg-[#0d2329] border border-wr-border-strong/50 rounded-lg">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-wr-border-strong/30">
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-amber-400 text-[18px]">tune</span>
             <h3 className="text-sm font-semibold text-slate-200">Config Recommendations</h3>
           </div>
           <button
             onClick={loadConfig}
-            className="text-slate-500 hover:text-slate-300 transition-colors"
+            className="text-slate-400 hover:text-slate-300 transition-colors"
           >
             <span className={`material-symbols-outlined text-[16px] ${loadingConfig ? 'animate-spin' : ''}`}>
               {loadingConfig ? 'progress_activity' : 'refresh'}
@@ -478,7 +478,7 @@ const DBOperations: React.FC = () => {
         <div className="overflow-x-auto">
           <table className="w-full text-xs text-slate-300">
             <thead>
-              <tr className="border-b border-slate-700/30 text-slate-500">
+              <tr className="border-b border-wr-border-strong/30 text-slate-400">
                 <th className="px-4 py-2 text-left font-medium">Parameter</th>
                 <th className="px-4 py-2 text-left font-medium">Current</th>
                 <th className="px-4 py-2 text-left font-medium">Recommended</th>
@@ -490,24 +490,24 @@ const DBOperations: React.FC = () => {
             <tbody>
               {configRecs.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-6 text-center text-slate-500">
+                  <td colSpan={6} className="px-4 py-6 text-center text-slate-400">
                     No recommendations
                   </td>
                 </tr>
               ) : (
                 configRecs.map((rec) => (
-                  <tr key={rec.param} className="border-b border-slate-700/30 hover:bg-slate-800/30">
+                  <tr key={rec.param} className="border-b border-wr-border-strong/30 hover:bg-wr-surface/30">
                     <td className="px-4 py-2 font-mono text-amber-400">{rec.param}</td>
                     <td className="px-4 py-2 font-mono">{rec.current_value}</td>
                     <td className="px-4 py-2 font-mono text-green-400">{rec.recommended_value}</td>
                     <td className="px-4 py-2 max-w-xs">{rec.reason}</td>
                     <td className="px-4 py-2">
                       {rec.requires_restart ? (
-                        <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 text-[10px] font-medium">
+                        <span className="px-1.5 py-0.5 rounded bg-wr-severity-medium/20 text-amber-400 text-body-xs font-medium">
                           RESTART
                         </span>
                       ) : (
-                        <span className="px-1.5 py-0.5 rounded bg-green-500/20 text-green-400 text-[10px] font-medium">
+                        <span className="px-1.5 py-0.5 rounded bg-green-500/20 text-green-400 text-body-xs font-medium">
                           LIVE
                         </span>
                       )}
@@ -515,7 +515,7 @@ const DBOperations: React.FC = () => {
                     <td className="px-4 py-2 text-right">
                       <button
                         onClick={() => handleApplyConfig(rec.param, rec.recommended_value)}
-                        className="flex items-center gap-1 ml-auto px-2 py-1 text-[10px] rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 transition-colors"
+                        className="flex items-center gap-1 ml-auto px-2 py-1 text-body-xs rounded bg-wr-severity-medium/20 hover:bg-amber-500/30 text-amber-400 transition-colors"
                       >
                         <span className="material-symbols-outlined text-[12px]">play_arrow</span>
                         Apply
@@ -530,15 +530,15 @@ const DBOperations: React.FC = () => {
       </div>
 
       {/* Panel 4: Execution Log */}
-      <div className="bg-[#0d2329] border border-slate-700/50 rounded-lg">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700/30">
+      <div className="bg-[#0d2329] border border-wr-border-strong/50 rounded-lg">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-wr-border-strong/30">
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-amber-400 text-[18px]">history</span>
             <h3 className="text-sm font-semibold text-slate-200">Execution Log</h3>
           </div>
           <button
             onClick={loadLog}
-            className="text-slate-500 hover:text-slate-300 transition-colors"
+            className="text-slate-400 hover:text-slate-300 transition-colors"
           >
             <span className={`material-symbols-outlined text-[16px] ${loadingLog ? 'animate-spin' : ''}`}>
               {loadingLog ? 'progress_activity' : 'refresh'}
@@ -548,7 +548,7 @@ const DBOperations: React.FC = () => {
         <div className="overflow-x-auto">
           <table className="w-full text-xs text-slate-300">
             <thead>
-              <tr className="border-b border-slate-700/30 text-slate-500">
+              <tr className="border-b border-wr-border-strong/30 text-slate-400">
                 <th className="px-4 py-2 text-left font-medium">Timestamp</th>
                 <th className="px-4 py-2 text-left font-medium">Action</th>
                 <th className="px-4 py-2 text-left font-medium">SQL</th>
@@ -559,7 +559,7 @@ const DBOperations: React.FC = () => {
             <tbody>
               {auditLog.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-6 text-center text-slate-500">
+                  <td colSpan={5} className="px-4 py-6 text-center text-slate-400">
                     No log entries
                   </td>
                 </tr>
@@ -570,7 +570,7 @@ const DBOperations: React.FC = () => {
                   return (
                     <React.Fragment key={idx}>
                       <tr
-                        className="border-b border-slate-700/30 hover:bg-slate-800/30 cursor-pointer"
+                        className="border-b border-wr-border-strong/30 hover:bg-wr-surface/30 cursor-pointer"
                         onClick={() => setExpandedLogEntry(isExpanded ? null : entryId)}
                       >
                         <td className="px-4 py-2 whitespace-nowrap">{new Date(entry.timestamp).toLocaleString()}</td>
@@ -589,7 +589,7 @@ const DBOperations: React.FC = () => {
                         </td>
                       </tr>
                       {isExpanded && (
-                        <tr className="border-b border-slate-700/30">
+                        <tr className="border-b border-wr-border-strong/30">
                           <td colSpan={5} className="px-4 py-3">
                             <div className="grid grid-cols-2 gap-4 p-3 bg-[#081418] rounded">
                               <div>

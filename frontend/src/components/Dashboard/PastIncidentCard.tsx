@@ -79,7 +79,7 @@ const PastIncidentCard: React.FC<PastIncidentCardProps> = ({ incidents }) => {
               {incident.error_patterns.slice(0, 3).map((ep, i) => (
                 <span
                   key={i}
-                  className="text-xs bg-red-500/10 text-red-400 px-1.5 py-0.5 rounded font-mono"
+                  className="text-xs bg-wr-severity-high/10 text-red-400 px-1.5 py-0.5 rounded font-mono"
                 >
                   {ep}
                 </span>

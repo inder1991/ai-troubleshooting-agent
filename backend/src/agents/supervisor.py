@@ -1,5 +1,6 @@
 import json
 import asyncio
+import os
 import time
 import secrets
 from pathlib import Path
@@ -23,15 +24,27 @@ from src.agents.k8s_agent import K8sAgent
 from src.agents.tracing_agent import TracingAgent
 from src.agents.code_agent import CodeNavigatorAgent
 from src.agents.change_agent import ChangeAgent
+from src.agents.cross_repo_tracer import CrossRepoTracer
 from src.agents.critic_agent import CriticAgent
+from src.agents.hypothesis_tracker import HypothesisTracker
 from src.agents.causal_engine import EvidenceGraphBuilder
 from src.agents.impact_analyzer import ImpactAnalyzer
 from src.utils.llm_client import AnthropicClient
 from src.utils.event_emitter import EventEmitter
 from src.utils.logger import get_logger
-from src.prompts.rules import GROUNDING_RULES
-from src.prompts.chat_prompts import CHAT_RULES
-from src.utils.token_budget import enforce_budget
+from src.models.hypothesis import Hypothesis as HypothesisModel, HypothesisResult
+from src.hypothesis.deduplicator import deduplicate_patterns
+from src.hypothesis.signal_extractor import (
+    extract_from_log_patterns, extract_from_metrics_anomalies,
+    extract_from_k8s_events, extract_from_k8s_pods,
+    extract_from_trace_spans, extract_from_code_findings,
+    extract_from_change_correlations,
+)
+from src.hypothesis.signal_normalizer import SignalNormalizer
+from src.hypothesis.evidence_mapper import EvidenceMapper
+from src.hypothesis.confidence_engine import compute_confidence as compute_hypothesis_confidence
+from src.hypothesis.causal_linker import CausalLinker
+from src.hypothesis.elimination import evaluate_hypotheses, pick_winner_or_inconclusive
 
 logger = get_logger(__name__)
 
@@ -89,167 +102,6 @@ def generate_incident_id() -> str:
     return f"INC-{date_part}-{rand_part}"
 
 
-# ── Chat tool definitions (Anthropic tool_use format) ──────────────────────
-
-_CHAT_TOOLS: list[dict] = [
-    {
-        "name": "get_findings",
-        "description": (
-            "Retrieve all diagnostic findings from the current investigation session. "
-            "Returns a list of findings sorted by severity (critical first), each with "
-            "finding_id, agent_name, category, severity, confidence_score, and summary."
-        ),
-        "input_schema": {
-            "type": "object",
-            "properties": {},
-            "required": [],
-        },
-    },
-    {
-        "name": "get_finding_detail",
-        "description": (
-            "Retrieve full details for a specific finding by its ID. "
-            "Returns the finding's summary, severity, confidence, breadcrumbs (evidence trail), "
-            "negative findings (things ruled out), critic verdict, and resource references."
-        ),
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "finding_id": {
-                    "type": "string",
-                    "description": "The unique ID of the finding to retrieve.",
-                },
-            },
-            "required": ["finding_id"],
-        },
-    },
-    {
-        "name": "get_session_summary",
-        "description": (
-            "Get a summary of the current diagnostic session including phase, service name, "
-            "incident ID, agents that have completed, overall confidence score, reasoning chain, "
-            "and timeline of key events."
-        ),
-        "input_schema": {
-            "type": "object",
-            "properties": {},
-            "required": [],
-        },
-    },
-]
-
-
-def _execute_chat_tool(tool_name: str, tool_input: dict, state: DiagnosticState) -> str:
-    """Execute a chat tool against the current diagnostic state and return a JSON string."""
-    try:
-        if tool_name == "get_findings":
-            return _tool_get_findings(state)
-        elif tool_name == "get_finding_detail":
-            return _tool_get_finding_detail(state, tool_input.get("finding_id", ""))
-        elif tool_name == "get_session_summary":
-            return _tool_get_session_summary(state)
-        else:
-            return json.dumps({"error": f"Unknown tool: {tool_name}"})
-    except Exception as e:
-        logger.warning("Chat tool execution failed: %s(%s) — %s", tool_name, tool_input, e)
-        return json.dumps({"error": str(e)})
-
-
-def _tool_get_findings(state: DiagnosticState) -> str:
-    """Return all findings sorted by severity."""
-    severity_order = {"critical": 0, "high": 1, "medium": 2, "low": 3}
-    sorted_findings = sorted(
-        state.all_findings,
-        key=lambda f: severity_order.get(f.severity, 3),
-    )
-    findings_out = []
-    for f in sorted_findings:
-        findings_out.append({
-            "finding_id": f.finding_id,
-            "agent_name": f.agent_name,
-            "category": f.category,
-            "severity": f.severity,
-            "confidence_score": f.confidence_score,
-            "summary": f.summary,
-        })
-    return json.dumps({"count": len(findings_out), "findings": findings_out})
-
-
-def _tool_get_finding_detail(state: DiagnosticState, finding_id: str) -> str:
-    """Return detailed info for a single finding by ID."""
-    for f in state.all_findings:
-        if f.finding_id == finding_id:
-            detail = {
-                "finding_id": f.finding_id,
-                "agent_name": f.agent_name,
-                "category": f.category,
-                "severity": f.severity,
-                "confidence_score": f.confidence_score,
-                "summary": f.summary,
-                "breadcrumbs": [
-                    {
-                        "source_type": b.source_type,
-                        "action": b.action,
-                        "raw_evidence": b.raw_evidence[:500] if b.raw_evidence else "",
-                    }
-                    for b in (f.breadcrumbs or [])
-                ],
-                "negative_findings": [
-                    {"what_was_checked": nf.what_was_checked, "result": nf.result}
-                    for nf in (f.negative_findings or [])
-                ],
-                "critic_verdict": None,
-                "resource_refs": [
-                    {"ref_type": r.ref_type, "ref_id": r.ref_id}
-                    for r in (f.resource_refs or [])
-                ] if f.resource_refs else [],
-            }
-            if f.critic_verdict:
-                detail["critic_verdict"] = {
-                    "plausibility": f.critic_verdict.plausibility,
-                    "confidence_in_verdict": f.critic_verdict.confidence_in_verdict,
-                    "recommendation": f.critic_verdict.recommendation,
-                }
-            return json.dumps(detail)
-    return json.dumps({"error": f"Finding '{finding_id}' not found. Use get_findings to list available IDs."})
-
-
-def _tool_get_session_summary(state: DiagnosticState) -> str:
-    """Return a session-level summary."""
-    summary = {
-        "session_id": state.session_id,
-        "incident_id": state.incident_id,
-        "service_name": state.service_name,
-        "phase": state.phase.value,
-        "overall_confidence": state.overall_confidence,
-        "agents_completed": state.agents_completed,
-        "agents_pending": state.agents_pending,
-        "findings_count": len(state.all_findings),
-        "reasoning_chain": [],
-        "timeline_events": [],
-    }
-    # Reasoning chain
-    for step in (state.reasoning_chain or [])[:10]:
-        if isinstance(step, dict):
-            summary["reasoning_chain"].append(step.get("summary", str(step)))
-        else:
-            summary["reasoning_chain"].append(getattr(step, "summary", str(step)))
-
-    # Task events as timeline
-    for evt in (state.task_events or [])[:15]:
-        if isinstance(evt, dict):
-            summary["timeline_events"].append(evt)
-        else:
-            summary["timeline_events"].append({
-                "timestamp": evt.timestamp.isoformat() if hasattr(evt, "timestamp") else "",
-                "agent_name": getattr(evt, "agent_name", ""),
-                "event_type": getattr(evt, "event_type", ""),
-                "message": getattr(evt, "message", str(evt)),
-            })
-
-    return json.dumps(summary, default=str)
-
-
 class SupervisorAgent:
     """State machine orchestrator that routes work to specialized agents."""
 
@@ -292,10 +144,18 @@ class SupervisorAgent:
             "metrics_agent": MetricsAgent,
             "k8s_agent": K8sAgent,
             "change_agent": ChangeAgent,
-            "tracing_agent": TracingAgent,
+            # "tracing_agent": TracingAgent,
             "code_agent": CodeNavigatorAgent,
         }
         self._critic = CriticAgent()
+        self._hypothesis_tracker = HypothesisTracker(max_re_dispatches=2)
+        self._signal_normalizer = SignalNormalizer()
+        self._evidence_mapper = EvidenceMapper()
+        self._causal_linker = CausalLinker()
+        self._all_signals = []
+
+        from src.agents.workflow_state_machine import WorkflowStateMachine
+        self._state_machine = WorkflowStateMachine()
 
         # Human-in-the-loop: repo URL confirmation for change_agent
         self._repo_confirmation_event = asyncio.Event()
@@ -308,8 +168,7 @@ class SupervisorAgent:
         self._pending_repo_mismatch = False
         self._mismatch_confirmed_repo: str | None = None
 
-        # Human-in-the-loop: fix approval
-        self._fix_event = asyncio.Event()
+        # Human-in-the-loop: fix approval (state-driven, no asyncio.Event)
         self._pending_fix_approval = False
         self._fix_human_decision: str | None = None
         self._event_emitter: Optional[EventEmitter] = None
@@ -317,11 +176,28 @@ class SupervisorAgent:
         # Human-in-the-loop: discovery attestation
         self._attestation_acknowledged = False
 
+        # Attestation audit logging
+        self._attestation_logger: Optional["AttestationLogger"] = None
+        self._session_id: str = ""
+
+        # Redis session store (set via set_session_store())
+        self._session_store = None
+
+        # Feedback dedup
+        self._seen_feedback_ids: set[str] = set()
+
         # Human-in-the-loop channel for code_agent questions
         self._code_agent_question: str = ""
         self._code_agent_answer: str = ""
         self._code_agent_event = asyncio.Event()
         self._pending_code_agent_question = False
+
+    def set_attestation_logger(self, logger: "AttestationLogger", session_id: str) -> None:
+        self._attestation_logger = logger
+        self._session_id = session_id
+
+    def set_session_store(self, store) -> None:
+        self._session_store = store
 
     async def run(
         self,
@@ -375,22 +251,83 @@ class SupervisorAgent:
                 # Query memory store for similar past incidents
                 await self._query_past_incidents(state, event_emitter)
 
+                # Final hypothesis decision
+                if state.hypotheses:
+                    state.hypothesis_result = pick_winner_or_inconclusive(state.hypotheses)
+                    state.hypothesis_result.evidence_timeline = sorted(
+                        self._all_signals,
+                        key=lambda s: s.timestamp or datetime.min.replace(tzinfo=timezone.utc),
+                    )
+                    if event_emitter:
+                        if state.hypothesis_result.status == "resolved" and state.hypothesis_result.winner:
+                            w = state.hypothesis_result.winner
+                            await event_emitter.emit(
+                                "supervisor", "hypothesis_winner",
+                                f"Winner: {w.category} (confidence: {w.confidence:.0f}%)",
+                                details={"hypothesis_id": w.hypothesis_id, "category": w.category,
+                                         "confidence": w.confidence},
+                            )
+                        else:
+                            await event_emitter.emit(
+                                "supervisor", "hypothesis_inconclusive",
+                                "Investigation inconclusive — competing hypotheses or insufficient evidence",
+                                details={"recommendations": state.hypothesis_result.recommendations},
+                            )
+
                 state.phase = DiagnosticPhase.DIAGNOSIS_COMPLETE
                 logger.info("Diagnosis complete", extra={"session_id": state.session_id, "agent_name": "supervisor", "action": "diagnosis_complete", "extra": {"overall_confidence": state.overall_confidence, "total_findings": len(state.all_findings)}})
                 await event_emitter.emit("supervisor", "success", "Diagnosis complete")
 
-                # Emit attestation gate event
-                await event_emitter.emit(
-                    "supervisor", "attestation_required",
-                    "Human attestation required before proceeding to remediation",
-                    details={
-                        "gate_type": "discovery_complete",
-                        "findings_count": len(state.all_findings),
-                        "confidence": state.overall_confidence,
-                        "proposed_action": "Proceed to remediation phase",
-                    }
+                # Check if auto-approval applies (high confidence, no critic challenges)
+                critic_has_challenges = any(
+                    cv.verdict == "challenged" and cv.confidence_in_verdict > 80
+                    for cv in state.critic_verdicts
                 )
-                break
+                if self._should_auto_approve(state.overall_confidence, critic_has_challenges):
+                    await event_emitter.emit(
+                        "supervisor", "auto_approved",
+                        "Findings auto-approved (high confidence, no critic challenges)",
+                        details={
+                            "gate_type": "discovery_complete",
+                            "findings_count": len(state.all_findings),
+                            "confidence": state.overall_confidence,
+                        }
+                    )
+                    self._attestation_acknowledged = True
+                else:
+                    await event_emitter.emit(
+                        "supervisor", "attestation_required",
+                        "Human attestation required before proceeding to remediation",
+                        details={
+                            "gate_type": "discovery_complete",
+                            "findings_count": len(state.all_findings),
+                            "confidence": state.overall_confidence,
+                            "proposed_action": "Proceed to remediation phase",
+                        }
+                    )
+
+                    # Save PendingAction to Redis so the front-end can resume later
+                    from src.models.pending_action import PendingAction
+                    from datetime import timedelta
+
+                    pending = PendingAction(
+                        type="attestation_required",
+                        blocking=True,
+                        actions=["approve", "reject", "details"],
+                        expires_at=datetime.now(timezone.utc) + timedelta(
+                            seconds=int(os.getenv("ATTESTATION_TIMEOUT_S", "600"))
+                        ),
+                        context={
+                            "findings_count": len(state.all_findings),
+                            "confidence": state.overall_confidence,
+                            "proposed_action": "Proceed to remediation phase",
+                        },
+                        version=1,
+                    )
+                    if self._session_store and self._session_id:
+                        await self._session_store.save_pending_action(self._session_id, pending)
+
+                return  # Clean exit — no coroutine held open
 
             state.agents_pending = next_agents
 
@@ -433,14 +370,18 @@ class SupervisorAgent:
                     logger.error("Agent raised exception", extra={"agent_name": agent_name, "extra": str(agent_result)})
                     # C2: Mark failed agent as completed to prevent infinite re-dispatch
                     state.agents_completed.append(agent_name)
-                    state.agents_failed = getattr(state, "agents_failed", 0) + 1
                     if event_emitter:
                         await event_emitter.emit(agent_name, "error", f"Agent failed: {str(agent_result)}")
                     continue
                 if agent_result:
                     await self._update_state_with_result(state, agent_name, agent_result, event_emitter)
-                    await self._ingest_into_graph(state, agent_name, agent_result)
                     state.agents_completed.append(agent_name)
+
+                    # Evaluate hypotheses after each agent
+                    if state.hypotheses:
+                        await self._evaluate_hypotheses_after_agent(
+                            state, agent_name, agent_result, event_emitter
+                        )
 
                     # Emit agent summary
                     summary = self._build_agent_summary(agent_name, agent_result, state)
@@ -611,13 +552,22 @@ class SupervisorAgent:
             return []
 
         if state.phase == DiagnosticPhase.RE_INVESTIGATING:
-            # Re-dispatch the challenged agent's domain, then advance phase
+            # Re-dispatch challenged agents, guarded by HypothesisTracker
             agents = []
             for cv in state.critic_verdicts:
                 if cv.verdict == "challenged" and cv.confidence_in_verdict > 80:
                     challenged_agent = cv.agent_source
+                    hypothesis = cv.suggest_alternative or cv.reasoning
                     if challenged_agent in self._agents and challenged_agent not in agents:
-                        agents.append(challenged_agent)
+                        if self._hypothesis_tracker.should_dispatch(challenged_agent, hypothesis):
+                            self._hypothesis_tracker.record(challenged_agent, hypothesis)
+                            agents.append(challenged_agent)
+                        else:
+                            logger.info(
+                                "Hypothesis tracker blocked re-dispatch",
+                                extra={"agent_name": challenged_agent, "action": "redispatch_blocked",
+                                       "extra": {"hypothesis": hypothesis[:80]}},
+                            )
             # After re-dispatch, reset phase so _update_phase can advance normally
             # This prevents staying locked in RE_INVESTIGATING forever
             if not agents:
@@ -1228,6 +1178,24 @@ class SupervisorAgent:
             state.reasoning_chain = result.get("reasoning_chain", [])
             state.suggested_promql_queries = result.get("suggested_promql_queries", [])
 
+            # Build hypotheses from log patterns
+            patterns = []
+            primary = result.get("primary_pattern", {})
+            if primary and isinstance(primary, dict) and primary.get("exception_type"):
+                patterns.append(primary)
+            for sp in result.get("secondary_patterns", [])[:5]:
+                if isinstance(sp, dict) and sp.get("exception_type"):
+                    patterns.append(sp)
+            if patterns:
+                state.hypotheses = deduplicate_patterns(patterns, max_hypotheses=3)
+                if event_emitter:
+                    cats = [h.category for h in state.hypotheses]
+                    await event_emitter.emit(
+                        "supervisor", "hypothesis_created",
+                        f"Testing {len(state.hypotheses)} hypotheses: {', '.join(cats)}",
+                        details={"hypotheses": [{"id": h.hypothesis_id, "category": h.category} for h in state.hypotheses]},
+                    )
+
             # Auto-detect namespace from logs when user didn't provide one
             detected_ns = result.get("detected_namespace")
             if detected_ns and (not state.namespace or state.namespace == "default"):
@@ -1599,47 +1567,113 @@ class SupervisorAgent:
                     details={"impacted_count": len(impacted), "fix_areas": len(fix_areas)}
                 )
 
+            # Cross-repo correlation check
+            code_confidence = result.get("overall_confidence", 50) / 100.0
+            internal_deps_count = len(cross_repo_findings)  # proxy for upstream dep activity
+            tracer = CrossRepoTracer(repo_map={})
+            if tracer.should_trace(code_confidence=code_confidence,
+                                   internal_deps_with_recent_commits=internal_deps_count):
+                logger.info("Cross-repo trace recommended",
+                            extra={"session_id": state.session_id,
+                                   "agent_name": "supervisor",
+                                   "action": "cross_repo_dispatch",
+                                   "extra": {"code_confidence": code_confidence,
+                                             "internal_deps": internal_deps_count}})
+                state.supervisor_reasoning.append(
+                    "Cross-repo analysis recommended: code_confidence="
+                    f"{code_confidence:.2f}, internal_deps={internal_deps_count}"
+                )
+
         # Store reasoning
         state.supervisor_reasoning.append(
             f"Round: {agent_name} completed with confidence {confidence}"
         )
 
-    @staticmethod
-    def _finding_to_node_type(agent_name: str, finding: dict) -> str:
-        mapping = {
-            "log_agent": "error_event",
-            "metrics_agent": "metric_anomaly",
-            "k8s_agent": "k8s_event",
-            "tracing_agent": "trace_span",
-            "code_agent": "code_location",
-            "change_agent": "code_change",
-        }
-        return mapping.get(agent_name, "error_event")
+    async def _evaluate_hypotheses_after_agent(
+        self, state: DiagnosticState, agent_name: str, result: dict,
+        event_emitter: Optional[EventEmitter] = None,
+    ) -> None:
+        """Extract signals from agent result, map evidence, score, eliminate."""
+        raw_signals = []
+        try:
+            if agent_name == "metrics_agent" and state.metrics_analysis:
+                raw_signals = extract_from_metrics_anomalies(
+                    [a.model_dump() for a in state.metrics_analysis.anomalies]
+                )
+            elif agent_name == "k8s_agent" and state.k8s_analysis:
+                raw_signals = (
+                    extract_from_k8s_events([e.model_dump() for e in state.k8s_analysis.events])
+                    + extract_from_k8s_pods([p.model_dump() for p in state.k8s_analysis.pod_statuses])
+                )
+            elif agent_name == "tracing_agent" and state.trace_analysis:
+                raw_signals = extract_from_trace_spans(
+                    [s.model_dump() for s in state.trace_analysis.call_chain]
+                )
+            elif agent_name == "code_agent" and state.code_analysis:
+                raw_signals = extract_from_code_findings(
+                    [f.model_dump() for f in (state.code_analysis.findings or [])]
+                )
+            elif agent_name == "change_agent" and state.change_analysis:
+                correlations = []
+                if isinstance(state.change_analysis, dict):
+                    correlations = state.change_analysis.get("change_correlations", [])
+                else:
+                    correlations = getattr(state.change_analysis, "change_correlations", [])
+                    if correlations:
+                        correlations = [c.model_dump() if hasattr(c, "model_dump") else c for c in correlations]
+                raw_signals = extract_from_change_correlations(correlations)
+        except Exception as e:
+            logger.warning("Signal extraction failed", extra={
+                "agent_name": agent_name, "action": "signal_extraction_error",
+                "extra": {"error": str(e)},
+            })
+            return
 
-    async def _ingest_into_graph(self, state, agent_name: str, result: dict):
-        """Additive layer: reads from state findings, writes to state.evidence_graph."""
-        from src.agents.incident_graph import IncidentGraphBuilder
+        # Normalize signals
+        normalized = []
+        for sig in raw_signals:
+            try:
+                normed = self._signal_normalizer.normalize(sig)
+                if normed:
+                    normalized.append(normed)
+            except Exception:
+                continue
 
-        if not hasattr(state, '_incident_graph_builder') or state._incident_graph_builder is None:
-            state._incident_graph_builder = IncidentGraphBuilder(state.session_id)
+        if not normalized:
+            return
 
-        builder = state._incident_graph_builder
-        new_findings = result.get("findings", [])
-        for finding in new_findings:
-            builder.add_node(
-                node_type=self._finding_to_node_type(agent_name, finding),
-                data=finding,
-                timestamp=finding.get("timestamp", 0),
-                confidence=finding.get("confidence", finding.get("confidence_score", 0.5)),
-                severity=finding.get("severity", "medium"),
-                agent_source=agent_name,
+        # Map evidence to hypotheses (rules-first)
+        self._evidence_mapper.apply(normalized, state.hypotheses)
+
+        # Track all signals for causal linking
+        self._all_signals.extend(normalized)
+
+        # Recompute confidence for all active hypotheses
+        for h in state.hypotheses:
+            if h.status == "active":
+                h.confidence = compute_hypothesis_confidence(
+                    h, len(state.agents_completed)
+                )
+
+        # Build causal links and hypothesis graph
+        causal_links = self._causal_linker.build_links(self._all_signals)
+        self._causal_linker.build_hypothesis_graph(state.hypotheses, causal_links)
+
+        # Eliminate weak hypotheses
+        active_count = sum(1 for h in state.hypotheses if h.status == "active")
+        if active_count > 1:
+            elim_log = evaluate_hypotheses(
+                state.hypotheses,
+                agents_completed=len(state.agents_completed),
+                phase=state.phase.value,
             )
-
-        builder.create_tentative_edges()
-        builder.enforce_temporal_consistency()
-        builder.break_cycles()
-        builder.rank_root_causes()
-        state.evidence_graph = builder.to_serializable()
+            for entry in elim_log:
+                if event_emitter:
+                    await event_emitter.emit(
+                        "supervisor", "hypothesis_eliminated",
+                        f"Eliminated hypothesis: {entry['hypothesis_id']} — {entry['reason']}",
+                        details=entry,
+                    )
 
     def _update_phase(self, state: DiagnosticState, event_emitter: Optional[EventEmitter] = None) -> None:
         """Update diagnostic phase based on completed agents."""
@@ -2422,9 +2456,58 @@ Respond ONLY with a JSON array:
     async def handle_user_message(self, message: str, state: DiagnosticState) -> str:
         """Handle a user message during analysis."""
 
+        # ── IntentParser routing layer ──
+        from src.agents.intent_parser import IntentParser
+        parser = IntentParser()
+
+        # Load pending action from Redis
+        pending = None
+        if self._session_store and self._session_id:
+            pending = await self._session_store.load_pending_action(self._session_id)
+
+        intent = parser.parse(message, pending)
+
+        # Security: validate intent is allowed for current pending action type
+        if pending and intent.type not in ("ask_question", "general_chat"):
+            from src.agents.intent_parser import ALLOWED_INTENTS
+            allowed = ALLOWED_INTENTS.get(pending.type, set())
+            if intent.type not in allowed:
+                return f"Invalid action '{intent.type}' for current state '{pending.type}'."
+
+        # Low confidence with pending action → re-prompt with chips
+        if pending and intent.confidence < 0.7 and intent.type == "general_chat":
+            actions_display = ", ".join(f"'{a}'" for a in pending.actions)
+            return f"I need a clear decision. You can say {actions_display}, or ask me a question about the findings."
+
+        # Route structured decisions
+        if intent.type == "approve_attestation":
+            return await self.acknowledge_attestation("approve", self._session_id)
+
+        if intent.type == "reject_attestation":
+            return await self.acknowledge_attestation("reject", self._session_id)
+
+        if intent.type in ("approve_fix", "reject_fix", "fix_feedback"):
+            if intent.type == "fix_feedback":
+                return await self._process_fix_decision(intent.entities.get("feedback", message))
+            decision_text = "approve" if intent.type == "approve_fix" else "reject"
+            return await self._process_fix_decision(decision_text)
+
+        if intent.type == "confirm_execute":
+            # Campaign execute confirmation - clear pending and proceed
+            if self._session_store and self._session_id:
+                await self._session_store.clear_pending_action(self._session_id)
+            return "Campaign execution confirmed."
+
+        if intent.type == "cancel_execute":
+            if self._session_store and self._session_id:
+                await self._session_store.clear_pending_action(self._session_id)
+            return "Campaign execution cancelled."
+
+        # ── End IntentParser routing — fall through to legacy routing ──
+
         # Handle pending fix approval (highest priority gate)
         if self._pending_fix_approval:
-            return self._process_fix_decision(message)
+            return await self._process_fix_decision(message)
 
         # Handle pending repo mismatch confirmation for code_agent
         if self._pending_repo_mismatch:
@@ -2462,114 +2545,28 @@ Respond ONLY with a JSON array:
                     return "Starting fix generation using findings from all diagnostic agents. I'll present the proposed fix for your review shortly."
                 return "Fix generation is not available — event emitter not initialized."
 
-        # ── Serialize findings context for the LLM ──
-        findings_context = self._serialize_findings_for_chat(state)
-
-        # ── Build conversation history ──
-        session = None
-        try:
-            from src.api.routes_v4 import sessions
-            for sid, s in sessions.items():
-                if s.get("state") is state:
-                    session = s
-                    break
-        except ImportError:
-            pass
-
-        chat_history = session.get("chat_history", []) if session else []
-
-        # Build messages with history
-        history_messages = [{"role": m["role"], "content": m["content"]} for m in chat_history]
-        history_messages.append({"role": "user", "content": message})
-
-        system_text = f"""{CHAT_RULES}
-
-{GROUNDING_RULES}
-
-## Current Diagnostic State
+        # Stream LLM response — emit chat_chunk messages via WebSocket for live typing
+        prompt_text = f"""Current diagnostic state:
 - Phase: {state.phase.value}
 - Service: {state.service_name}
-- Agents completed: {', '.join(state.agents_completed) if state.agents_completed else 'none yet'}
+- Agents completed: {state.agents_completed}
 - Overall confidence: {state.overall_confidence}%
+- Findings so far: {len(state.all_findings)}
 
-## Diagnostic Findings
-{findings_context}
+User message: {message}
 
-## Tools
-You have access to tools that let you query live investigation data.
-Use them when the user asks for specific findings, details, or a summary
-that goes beyond what is already in the Diagnostic Findings above.
-Do NOT call tools if you can answer from the context already provided."""
-
-        # Enforce token budget to prevent context overflow
-        system_text, history_messages, _ = enforce_budget(
-            system_text, history_messages, "", model_max=200_000
-        )
+Respond helpfully. If they're asking for status, give a brief update. If they're providing additional context, acknowledge it."""
+        system_text = "You are an AI SRE assistant. Respond concisely to user messages during an active diagnosis."
 
         ws_mgr = self._event_emitter._websocket_manager if self._event_emitter else None
-
-        # ── Tool-calling loop (max 3 rounds to prevent runaway) ──
-        MAX_TOOL_ROUNDS = 3
-        messages_for_llm = list(history_messages)
         full_response = ""
-
-        for _tool_round in range(MAX_TOOL_ROUNDS + 1):
-            response = await self.llm_client.chat_with_tools(
-                system=system_text,
-                messages=messages_for_llm,
-                tools=_CHAT_TOOLS,
-                max_tokens=4096,
-            )
-
-            # Separate text blocks from tool_use blocks
-            text_blocks = [b for b in response.content if b.type == "text"]
-            tool_use_blocks = [b for b in response.content if b.type == "tool_use"]
-
-            if not tool_use_blocks:
-                # No tool calls — extract final text response
-                full_response = text_blocks[0].text if text_blocks else ""
-                break
-
-            # Notify client that tool calls are in progress
+        async for chunk in self.llm_client.chat_stream(prompt=prompt_text, system=system_text):
+            full_response += chunk
             if ws_mgr:
-                tool_names = [b.name for b in tool_use_blocks]
                 await ws_mgr.send_message(
                     state.session_id,
-                    {"type": "chat_chunk", "data": {
-                        "content": "",
-                        "done": False,
-                        "tool_calls": tool_names,
-                    }},
+                    {"type": "chat_chunk", "data": {"content": chunk, "done": False}},
                 )
-
-            # Append assistant message (contains both text + tool_use blocks)
-            messages_for_llm.append({"role": "assistant", "content": response.content})
-
-            # Execute each tool and collect results
-            tool_results = []
-            for tool_block in tool_use_blocks:
-                result_str = _execute_chat_tool(tool_block.name, tool_block.input, state)
-                tool_results.append({
-                    "type": "tool_result",
-                    "tool_use_id": tool_block.id,
-                    "content": result_str,
-                })
-
-            messages_for_llm.append({"role": "user", "content": tool_results})
-        else:
-            # Exhausted tool rounds — grab whatever text we have
-            if text_blocks:
-                full_response = text_blocks[0].text
-            else:
-                full_response = "I ran into a limit while looking up data. Here is what I found so far."
-
-        # ── Stream final text to WebSocket ──
-        if ws_mgr and full_response:
-            # Send the full response as a single chunk (tool-calling path is non-streaming)
-            await ws_mgr.send_message(
-                state.session_id,
-                {"type": "chat_chunk", "data": {"content": full_response, "done": False}},
-            )
 
         # Send final chat_chunk with done=True and full_response
         if ws_mgr:
@@ -2587,80 +2584,13 @@ Do NOT call tools if you can answer from the context already provided."""
                 },
             )
 
-        # Store conversation history (only user message + final assistant text)
-        if session is not None:
-            chat_history.append({"role": "user", "content": message})
-            chat_history.append({"role": "assistant", "content": full_response})
-            if len(chat_history) > 20:
-                session["chat_history"] = chat_history[-20:]
-
         return full_response
 
-    def _serialize_findings_for_chat(self, state) -> str:
-        """Serialize diagnostic findings into a concise text block for chat LLM context."""
-        sections = []
-
-        # Top findings sorted by severity
-        if state.all_findings:
-            severity_order = {"critical": 0, "high": 1, "medium": 2, "low": 3}
-            sorted_findings = sorted(
-                state.all_findings,
-                key=lambda f: severity_order.get(f.severity, 3),
-            )
-            findings_lines = []
-            for f in sorted_findings[:10]:
-                findings_lines.append(
-                    f"- [{f.severity.upper()}] ({f.agent_name}, {f.confidence_score}% conf) {f.summary}"
-                )
-            if findings_lines:
-                sections.append("### Top Findings\n" + "\n".join(findings_lines))
-
-        # Metrics analysis
-        if state.metrics_analysis:
-            ma = state.metrics_analysis
-            anomalies = getattr(ma, "anomalies", []) or []
-            if anomalies:
-                metrics_lines = []
-                for a in anomalies[:5]:
-                    name = getattr(a, "metric_name", str(a))
-                    severity = getattr(a, "severity", "unknown")
-                    peak = getattr(a, "peak_value", "N/A")
-                    metrics_lines.append(f"- {name}: peak={peak}, severity={severity}")
-                sections.append("### Metrics Anomalies\n" + "\n".join(metrics_lines))
-
-        # K8s analysis
-        if state.k8s_analysis:
-            ka = state.k8s_analysis
-            issues = getattr(ka, "issues", []) or getattr(ka, "pod_issues", []) or []
-            if issues:
-                k8s_lines = [f"- {issue}" for issue in issues[:5]]
-                sections.append("### K8s Issues\n" + "\n".join(k8s_lines))
-
-        # Code analysis
-        if state.code_analysis:
-            ca = state.code_analysis
-            root_cause = getattr(ca, "root_cause_location", None) or getattr(ca, "summary", None)
-            if root_cause:
-                sections.append(f"### Code Analysis\nRoot cause: {root_cause}")
-
-        # Reasoning chain
-        if state.reasoning_chain:
-            chain_lines = []
-            for step in state.reasoning_chain[:5]:
-                if isinstance(step, dict):
-                    chain_lines.append(f"- {step.get('summary', str(step))}")
-                else:
-                    summary = getattr(step, "summary", str(step))
-                    chain_lines.append(f"- {summary}")
-            if chain_lines:
-                sections.append("### Reasoning Chain\n" + "\n".join(chain_lines))
-
-        result = "\n\n".join(sections) if sections else "No findings yet."
-
-        if len(result) > 8000:
-            result = result[:8000] + "\n... (truncated)"
-
-        return result
+    async def _process_campaign_execute_confirm(self) -> str:
+        """Clear the campaign-execute confirmation gate and acknowledge."""
+        if self._session_store and self._session_id:
+            await self._session_store.clear_pending_action(self._session_id)
+        return "Campaign execution confirmed. Creating pull requests..."
 
     async def _process_repo_confirmation(self, message: str) -> str:
         """Parse user's repo confirmation response and signal the waiting coroutine."""
@@ -2851,10 +2781,37 @@ Examples:
         state: DiagnosticState,
         event_emitter: EventEmitter,
         human_guidance: str = "",
+    ) -> str:
+        """Submit fix generation to the job queue. Returns job_id."""
+        from src.utils.fix_job_queue import FixJobQueue
+
+        queue = FixJobQueue.get_instance()
+
+        async def executor():
+            await self._execute_fix_generation(state, event_emitter, human_guidance)
+
+        job = await queue.submit(session_id=state.session_id, executor=executor)
+        return job.id
+
+    async def _execute_fix_generation(
+        self,
+        state: DiagnosticState,
+        event_emitter: EventEmitter,
+        human_guidance: str = "",
     ) -> None:
-        """Orchestrate fix generation with human-in-the-loop approval."""
+        """Execute fix generation with human-in-the-loop approval.
+
+        This contains the full orchestration logic: clone, generate, verify,
+        stage, and wait for human approval.  It is called by the FixJobQueue
+        worker so that retries/cancellation are handled centrally.
+        """
         import tempfile
         import os
+        from src.utils.fix_job_queue import FixJobQueue, RetryableFixError
+
+        queue = FixJobQueue.get_instance()
+        # Resolve the active job so we can update current_stage
+        job = queue.get_active_job(state.session_id)
 
         tmp_path = ""
         try:
@@ -2863,6 +2820,10 @@ Examples:
             # parallel generation (HTTP 409), so no duplicate guard needed here.
             state.fix_result = FixResult(fix_status=FixStatus.GENERATING)
             await event_emitter.emit("fix_generator", "started", "Fix generation started")
+
+            # ── Stage: cloning ───────────────────────────────────────────
+            if job:
+                job.current_stage = "cloning"
 
             # Resolve github token
             token = ""
@@ -2885,14 +2846,23 @@ Examples:
                 await event_emitter.emit("fix_generator", "error", "Cannot generate fix — no valid repository URL")
                 return
 
-            # Clone repo (full clone for branching)
+            # Clone repo (shallow clone — unshallow later if needed for branching)
             from src.utils.repo_manager import RepoManager
             tmp_path = tempfile.mkdtemp(prefix="fix_")
-            clone_result = RepoManager.clone_repo(owner_repo, tmp_path, shallow=False, token=token)
+            queue.track_temp_dir(tmp_path)
+            clone_result = RepoManager.clone_repo(owner_repo, tmp_path, shallow=True, token=token)
             if not clone_result["success"]:
-                state.fix_result.fix_status = FixStatus.FAILED
-                await event_emitter.emit("fix_generator", "error", f"Clone failed: {clone_result.get('error', 'unknown')}")
-                return
+                raise RetryableFixError(
+                    f"Clone failed: {clone_result.get('error', 'unknown')}",
+                    stage="cloning",
+                    suggestion="Check network connectivity and repository access",
+                )
+
+            # Apply sparse checkout for target files (best-effort)
+            from src.agents.agent3.fix_generator import Agent3FixGenerator
+            target_files = Agent3FixGenerator._collect_fix_targets_static(state)
+            if target_files:
+                RepoManager.apply_sparse_checkout(tmp_path, target_files)
 
             # Verify clone contents
             import glob as _glob
@@ -2902,8 +2872,11 @@ Examples:
                           "files": [f for f in cloned_files[:20] if not "/.git/" in f]}
             })
 
+            # ── Stage: generating ────────────────────────────────────────
+            if job:
+                job.current_stage = "generating"
+
             # Create Agent 3 instance
-            from src.agents.agent3.fix_generator import Agent3FixGenerator
             agent3 = Agent3FixGenerator(
                 repo_path=tmp_path,
                 llm_client=self.llm_client,
@@ -2915,6 +2888,8 @@ Examples:
             while True:
                 # Generate fix (returns dict[file_path → fixed_code])
                 state.fix_result.fix_status = FixStatus.GENERATING
+                if job:
+                    job.current_stage = "generating"
                 generated_fixes = await agent3.generate_fix(state, current_guidance, event_emitter)
 
                 # Store results in state — build FixedFile entries for all files
@@ -2945,12 +2920,18 @@ Examples:
                 state.fix_result.fixed_files = fixed_files
                 state.fix_result.fix_explanation = self._build_fix_explanation(state, target_file, diff)
 
-                # Verify with code_agent
+                # ── Stage: verifying ─────────────────────────────────────
+                if job:
+                    job.current_stage = "verifying"
                 state.fix_result.fix_status = FixStatus.VERIFICATION_IN_PROGRESS
                 await event_emitter.emit("fix_generator", "progress", "Verifying fix with code agent...")
                 await self._verify_fix_with_code_agent(state, event_emitter)
 
                 verification_failed = (state.fix_result.fix_status == FixStatus.VERIFICATION_FAILED)
+
+                # ── Stage: staging ───────────────────────────────────────
+                if job:
+                    job.current_stage = "staging"
 
                 # Run Agent 3 Phase 1 (validation + staging; review/impact from code_agent above)
                 code_agent_vr = state.fix_result.verification_result if state.fix_result else None
@@ -2960,6 +2941,9 @@ Examples:
                 pr_data = await agent3.run_verification_phase(state, generated_fixes, verification_result=code_agent_vr)
                 state.fix_result.pr_data = pr_data
 
+                # ── Stage: awaiting_review ───────────────────────────────
+                if job:
+                    job.current_stage = "awaiting_review"
                 state.fix_result.fix_status = FixStatus.AWAITING_REVIEW
                 state.fix_result.attempt_count += 1
 
@@ -2967,11 +2951,27 @@ Examples:
                 # This ensures _pending_fix_approval is True by the time the user can respond.
                 self._pending_fix_approval = True
                 self._fix_human_decision = None
-                self._fix_event.clear()
+
+                from src.models.pending_action import PendingAction as _PA
+                from datetime import timedelta as _td
+                pending = _PA(
+                    type="fix_approval",
+                    blocking=True,
+                    actions=["approve", "reject", "feedback"],
+                    expires_at=datetime.now(timezone.utc) + _td(seconds=600),
+                    context={
+                        "diff_summary": f"{len(fixed_files)} files changed",
+                        "fix_explanation": state.fix_result.fix_explanation[:200] if state.fix_result.fix_explanation else "",
+                    },
+                    version=1,
+                )
+                if self._session_store:
+                    await self._session_store.save_pending_action(self._session_id, pending)
+
                 await event_emitter.emit(
                     "fix_generator", "waiting_for_input",
                     "Fix proposed — awaiting human review",
-                    details={"input_type": "fix_approval"},
+                    details={"input_type": "fix_approval", "pending_action": pending.to_dict()},
                 )
 
                 # Present fix to human via WebSocket
@@ -3024,65 +3024,28 @@ Examples:
                     f"Fix proposed for {', '.join(all_fix_files)} — awaiting human review",
                     details={"target_file": target_file, "fixed_files": all_fix_files, "diff_lines": len(diff.splitlines()), "verification_failed": verification_failed},
                 )
-                try:
-                    await asyncio.wait_for(self._fix_event.wait(), timeout=600)
-                except asyncio.TimeoutError:
-                    self._pending_fix_approval = False
-                    state.fix_result.fix_status = FixStatus.FAILED
-                    await event_emitter.emit("fix_generator", "warning", "Fix approval timed out")
-                    # H4: Don't return early — break to reach the finally block for cleanup
-                    break
+                # Exit cleanly — resume on user decision via _process_fix_decision + resume_fix_pipeline
+                return
 
-                self._pending_fix_approval = False
-                decision = self._fix_human_decision or "reject"
-
-                if decision == "approve":
-                    # Create PR
-                    state.fix_result.fix_status = FixStatus.PR_CREATING
-                    await event_emitter.emit("fix_generator", "progress", "Creating pull request...")
-                    pr_result = await agent3.execute_pr_creation(
-                        state.session_id, pr_data, token,
-                    )
-                    state.fix_result.pr_url = pr_result.get("html_url")
-                    state.fix_result.pr_number = pr_result.get("number")
-                    state.fix_result.fix_status = FixStatus.PR_CREATED
-
-                    await event_emitter.emit(
-                        "fix_generator", "fix_approved",
-                        f"PR #{state.fix_result.pr_number} created: {state.fix_result.pr_url}",
-                    )
-                    return  # Done
-
-                elif decision == "reject":
-                    state.fix_result.fix_status = FixStatus.REJECTED
-                    await event_emitter.emit("fix_generator", "warning", "Fix rejected by user")
-                    return  # Done
-
-                else:
-                    # Feedback — loop to regenerate
-                    state.fix_result.human_feedback.append(decision)
-                    if state.fix_result.attempt_count >= state.fix_result.max_attempts:
-                        state.fix_result.fix_status = FixStatus.FAILED
-                        await event_emitter.emit("fix_generator", "warning", "Max fix attempts reached")
-                        return  # Done
-
-                    state.fix_result.fix_status = FixStatus.HUMAN_FEEDBACK
-                    await event_emitter.emit(
-                        "fix_generator", "progress",
-                        f"Regenerating fix with feedback (attempt {state.fix_result.attempt_count + 1}/{state.fix_result.max_attempts})",
-                    )
-                    current_guidance = decision
-                    # Continue loop
-
+        except RetryableFixError:
+            # Let the job queue handle retry logic
+            raise
         except Exception as e:
             logger.error("Fix generation failed: %s", e, exc_info=True)
             if state.fix_result:
                 state.fix_result.fix_status = FixStatus.FAILED
-            await event_emitter.emit("fix_generator", "error", f"Fix generation failed: {str(e)}")
+            stage = job.current_stage if job else "unknown"
+            attempt = job.attempt if job else 0
+            await event_emitter.emit(
+                "fix_generator", "error",
+                f"Fix generation failed: {str(e)}",
+                details={"stage": stage, "attempt": attempt, "retrying": False},
+            )
         finally:
             # Cleanup cloned repo
             if tmp_path:
                 from src.utils.repo_manager import RepoManager
+                queue.untrack_temp_dir(tmp_path)
                 RepoManager.cleanup_repo(tmp_path)
 
     # ── Campaign (Multi-Repo) Fix Generation ──────────────────────────────
@@ -3261,34 +3224,169 @@ Examples:
                 state.fix_result.fix_status = FixStatus.VERIFICATION_IN_PROGRESS
             return {"verdict": "needs_changes", "confidence": 0, "reasoning": f"Verification skipped: {e}"}
 
-    def _process_fix_decision(self, message: str) -> str:
-        """Parse user's fix approval/rejection/feedback and signal the waiting coroutine."""
-        text = message.strip().lower()
+    async def _process_fix_decision(self, message: str) -> str:
+        """State-driven fix decision -- no asyncio.Event. Clears pending action + logs audit."""
+        # Atomic lock to prevent concurrent double-processing
+        if self._session_store and self._session_id:
+            locked = await self._session_store.try_acquire_fix_lock(self._session_id)
+            if not locked:
+                return "Decision already being processed."
+        try:
+            text = message.strip().lower()
 
-        if text in ("approve", "yes", "create pr", "lgtm", "ok", "y"):
-            self._fix_human_decision = "approve"
-            self._fix_event.set()
-            return "Approved — creating pull request now."
+            if not self._pending_fix_approval:
+                return f"No fix awaiting review (already decided: {self._fix_human_decision or 'none'})."
 
-        if text in ("reject", "no", "cancel", "discard"):
-            self._fix_human_decision = "reject"
-            self._fix_event.set()
-            return "Fix rejected. Diagnosis remains available."
+            if text in ("approve", "yes", "create pr", "lgtm", "ok", "y"):
+                self._fix_human_decision = "approve"
+                self._pending_fix_approval = False
+            elif text in ("reject", "no", "cancel", "discard"):
+                self._fix_human_decision = "reject"
+                self._pending_fix_approval = False
+            else:
+                # Dedup feedback using optional client UUID prefix (feedback:uuid:text)
+                feedback_text = message.strip()
+                if feedback_text.startswith("feedback:"):
+                    parts = feedback_text.split(":", 2)
+                    if len(parts) == 3:
+                        feedback_id = parts[1]
+                        if feedback_id in self._seen_feedback_ids:
+                            return "Feedback already received."
+                        self._seen_feedback_ids.add(feedback_id)
+                        feedback_text = parts[2]
+                self._fix_human_decision = feedback_text  # feedback
+                self._pending_fix_approval = False
 
-        # Anything else is treated as feedback for regeneration
-        self._fix_human_decision = message.strip()
-        self._fix_event.set()
-        return "Got it — regenerating fix with your feedback."
+            if text in ("approve", "yes", "create pr", "lgtm", "ok", "y"):
+                response = "Approved — creating pull request now."
+            elif text in ("reject", "no", "cancel", "discard"):
+                response = "Fix rejected. Diagnosis remains available."
+            else:
+                response = "Got it — regenerating fix with your feedback."
 
-    def acknowledge_attestation(self, decision: str) -> str:
+            # Persist decision to Redis so resume_fix_pipeline survives restarts
+            if self._session_store and self._session_id:
+                await self._session_store.save_fix_decision(self._session_id, self._fix_human_decision)
+
+            # Clear pending action from Redis
+            if self._session_store and self._session_id:
+                await self._session_store.clear_pending_action(self._session_id)
+
+            # Audit trail — use 1.0 confidence for explicit human decisions
+            if self._attestation_logger and self._session_id:
+                await self._attestation_logger.log_decision(
+                    session_id=self._session_id,
+                    finding_id="fix_attempt",
+                    decision=self._fix_human_decision or "unknown",
+                    decided_by="user",
+                    confidence=1.0,  # explicit human decision
+                    finding_summary=f"Fix decision: {self._fix_human_decision}",
+                )
+
+            return response
+        finally:
+            if self._session_store and self._session_id:
+                await self._session_store.release_fix_lock(self._session_id)
+
+    async def resume_fix_pipeline(self, session_id: str, state: "DiagnosticState",
+                                   event_emitter: "EventEmitter") -> None:
+        """Resume fix pipeline after human decision."""
+        decision = self._fix_human_decision
+        # Fall back to Redis if in-memory state was lost (e.g. server restart)
+        if not decision and self._session_store:
+            decision = await self._session_store.load_fix_decision(session_id)
+        if not decision:
+            return
+
+        if decision == "approve":
+            state.fix_result.fix_status = FixStatus.PR_CREATING
+            await event_emitter.emit("fix_generator", "progress", "Creating pull request...")
+            from src.agents.agent3.fix_generator import Agent3FixGenerator
+            repo_path = getattr(state, "repo_clone_path", None) or ""
+            agent3 = Agent3FixGenerator(
+                repo_path=repo_path,
+                llm_client=self.llm_client,
+                event_emitter=event_emitter,
+            )
+            token = getattr(state, "repo_token", None) or os.getenv("GITHUB_TOKEN", "")
+            pr_data = state.fix_result.pr_data
+            if pr_data:
+                pr_result = await agent3.execute_pr_creation(session_id, pr_data, token)
+                state.fix_result.pr_url = pr_result.get("html_url")
+                state.fix_result.pr_number = pr_result.get("number")
+                state.fix_result.fix_status = FixStatus.PR_CREATED
+                await event_emitter.emit(
+                    "fix_generator", "fix_approved",
+                    f"PR #{state.fix_result.pr_number} created: {state.fix_result.pr_url}",
+                )
+        elif decision == "reject":
+            state.fix_result.fix_status = FixStatus.REJECTED
+            await event_emitter.emit("fix_generator", "warning", "Fix rejected by user")
+        else:
+            # Feedback -- regenerate
+            state.fix_result.human_feedback.append(decision)
+            if state.fix_result.attempt_count >= state.fix_result.max_attempts:
+                state.fix_result.fix_status = FixStatus.FAILED
+                await event_emitter.emit("fix_generator", "warning", "Max fix attempts reached")
+            else:
+                state.fix_result.fix_status = FixStatus.HUMAN_FEEDBACK
+                await event_emitter.emit(
+                    "fix_generator", "progress",
+                    f"Regenerating fix with feedback (attempt {state.fix_result.attempt_count + 1}/{state.fix_result.max_attempts})",
+                )
+                await self.start_fix_generation(state, event_emitter, human_guidance=decision)
+
+    ATTESTATION_TIMEOUT = float(os.getenv("ATTESTATION_TIMEOUT_S", "600"))
+    AUTO_APPROVE_THRESHOLD = float(os.getenv("ATTESTATION_AUTO_APPROVE_THRESHOLD", "0.85"))
+
+    def _should_auto_approve(self, confidence: float, critic_has_challenges: bool) -> bool:
+        threshold = float(os.getenv("ATTESTATION_AUTO_APPROVE_THRESHOLD", "0.85"))
+        return confidence >= threshold and not critic_has_challenges
+
+    async def acknowledge_attestation(self, decision: str, session_id: str = "") -> str:
         """Record that the user has acknowledged the discovery attestation gate."""
+        if self._attestation_acknowledged and decision == "approve":
+            return "Findings already approved."
+
+        sid = session_id or self._session_id
+
         if decision == "approve":
             self._attestation_acknowledged = True
-            return "Attestation acknowledged — fix generation is now available."
+            response = "Findings approved — fix generation is now available."
         elif decision == "reject":
             self._attestation_acknowledged = False
-            return "Attestation rejected — investigation findings need revision."
-        return "Unknown attestation decision."
+            response = "Findings rejected — investigation needs revision."
+        else:
+            return "Unknown attestation decision."
+
+        # Clear pending action from Redis
+        if self._session_store and sid:
+            await self._session_store.clear_pending_action(sid)
+
+        # Audit trail
+        if self._attestation_logger and sid:
+            await self._attestation_logger.log_decision(
+                session_id=sid,
+                finding_id="all",
+                decision=decision,
+                decided_by="user",
+                confidence=getattr(self, '_last_confidence', 0.0),
+                finding_summary=f"Discovery attestation: {decision}",
+            )
+
+        return response
+
+    async def resume_pipeline(self, session_id: str, state, event_emitter) -> None:
+        """Resume supervisor pipeline after human attestation decision."""
+        if not self._attestation_acknowledged:
+            return
+        from src.models.schemas import DiagnosticPhase
+        await event_emitter.emit(
+            "supervisor", "phase_change",
+            "Resuming pipeline — entering remediation phase",
+            details={"phase": "fix_in_progress"},
+        )
+        state.phase = DiagnosticPhase.FIX_IN_PROGRESS
 
     def _process_repo_mismatch(self, message: str, state: DiagnosticState) -> str:
         """Parse user's repo mismatch response and signal the waiting coroutine."""

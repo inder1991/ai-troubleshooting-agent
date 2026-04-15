@@ -1,5 +1,6 @@
 """LangGraph StateGraph for cluster diagnostics with fan-out/fan-in."""
 
+import asyncio
 import operator
 from typing import Any, Annotated, Optional, TypedDict
 
@@ -25,11 +26,28 @@ from src.agents.cluster.issue_lifecycle import issue_lifecycle_classifier
 from src.agents.cluster.hypothesis_engine import hypothesis_engine
 from src.agents.cluster.solution_validator import solution_validator
 from src.agents.cluster.rbac_checker import rbac_preflight
+from src.agents.cluster.traced_node import traced_node
 from src.agents.cluster.state import DiagnosticScope
 from src.utils.logger import get_logger
 
 
 logger = get_logger(__name__)
+
+
+def _with_thinking_delay(node_fn, thinking_message: str, delay: float = 2.5):
+    """Wrap a pipeline node to emit a thinking message and delay before execution."""
+    async def wrapped(state: dict, config: RunnableConfig | None = None) -> dict:
+        emitter = (config or {}).get("configurable", {}).get("emitter")
+        if emitter:
+            await emitter.emit(
+                "cluster_supervisor", "thinking", thinking_message,
+                {"node": node_fn.__name__},
+            )
+        await asyncio.sleep(delay)
+        return await node_fn(state, config)
+    wrapped.__name__ = node_fn.__name__
+    return wrapped
+
 
 # Graph-level ceiling (seconds)
 GRAPH_TIMEOUT = 180
@@ -193,6 +211,12 @@ def dispatch_router(state: dict) -> dict:
 
     scope_coverage = len(domains) / len(ALL_DOMAINS) if ALL_DOMAINS else 1.0
 
+    if not domains:
+        logger.warning(
+            "All domains denied by RBAC — no agents will run",
+            extra={"action": "all_domains_denied", "extra": {"denied": list(denied_resources)}},
+        )
+
     logger.info(
         "Dispatch router: domains=%s, scope=%s",
         domains, scope_data.get("level", "cluster") if scope_data else "cluster",
@@ -259,6 +283,7 @@ def _should_redispatch(state: dict) -> list[str]:
     return ["to_guard_formatter"]
 
 
+@traced_node(timeout_seconds=15)
 async def _proactive_analysis_node(state: dict, config: RunnableConfig | None = None) -> dict:
     """Run proactive checks and return findings as graph state update."""
     from .proactive_analyzer import run_proactive_analysis
@@ -292,6 +317,22 @@ def build_cluster_diagnostic_graph():
     wrapped_storage = _wrap_domain_agent("storage", storage_agent)
     wrapped_rbac = _wrap_domain_agent("rbac", rbac_agent)
 
+    # Wrap intelligence pipeline nodes with thinking delays for progressive UI
+    thinking_signal_normalizer = _with_thinking_delay(
+        signal_normalizer, "Extracting normalized signals from domain reports...", 2.0)
+    thinking_failure_pattern = _with_thinking_delay(
+        failure_pattern_matcher, "Matching signals against known failure patterns...", 2.5)
+    thinking_temporal = _with_thinking_delay(
+        temporal_analyzer, "Analyzing temporal sequences and restart velocity...", 2.0)
+    thinking_diag_graph = _with_thinking_delay(
+        diagnostic_graph_builder, "Building cross-domain evidence graph...", 3.0)
+    thinking_hypothesis = _with_thinking_delay(
+        hypothesis_engine, "Generating root cause hypotheses...", 2.5)
+    thinking_critic = _with_thinking_delay(
+        critic_validator, "Validating hypotheses against evidence (6-layer validation)...", 3.0)
+    thinking_synthesize = _with_thinking_delay(
+        synthesize, "Synthesizing final diagnosis and remediation plan...", 2.5)
+
     # Add all nodes
     graph.add_node("rbac_preflight", rbac_preflight)
     graph.add_node("topology_snapshot_resolver", topology_snapshot_resolver)
@@ -303,15 +344,15 @@ def build_cluster_diagnostic_graph():
     graph.add_node("network_agent", wrapped_network)
     graph.add_node("storage_agent", wrapped_storage)
     graph.add_node("rbac_agent", wrapped_rbac)
-    graph.add_node("signal_normalizer", signal_normalizer)
-    graph.add_node("failure_pattern_matcher", failure_pattern_matcher)
-    graph.add_node("temporal_analyzer", temporal_analyzer)
+    graph.add_node("signal_normalizer", thinking_signal_normalizer)
+    graph.add_node("failure_pattern_matcher", thinking_failure_pattern)
+    graph.add_node("temporal_analyzer", thinking_temporal)
     graph.add_node("proactive_analysis", _proactive_analysis_node)
-    graph.add_node("diagnostic_graph_builder", diagnostic_graph_builder)
+    graph.add_node("diagnostic_graph_builder", thinking_diag_graph)
     graph.add_node("issue_lifecycle_classifier", issue_lifecycle_classifier)
-    graph.add_node("hypothesis_engine", hypothesis_engine)
-    graph.add_node("critic_validator", critic_validator)
-    graph.add_node("synthesize", synthesize)
+    graph.add_node("hypothesis_engine", thinking_hypothesis)
+    graph.add_node("critic_validator", thinking_critic)
+    graph.add_node("synthesize", thinking_synthesize)
     graph.add_node("solution_validator", solution_validator)
     graph.add_node("guard_formatter", guard_formatter)
 

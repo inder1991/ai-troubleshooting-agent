@@ -62,7 +62,7 @@ const LifecycleSummaryStrip: React.FC<LifecycleSummaryStripProps> = ({
               className={`inline-block w-2 h-2 rounded-full ${isScanning ? 'animate-pulse' : ''}`}
               style={{ backgroundColor: color }}
             />
-            <span className="text-[10px] font-mono text-slate-400">{count}</span>
+            <span className="text-body-xs font-mono text-slate-400">{count}</span>
           </span>
         );
       })}
@@ -73,20 +73,20 @@ const LifecycleSummaryStrip: React.FC<LifecycleSummaryStripProps> = ({
       )}
 
       {/* Domain count */}
-      <span className="text-[10px] text-slate-500 shrink-0">{domainCount} domains scanned</span>
+      <span className="text-body-xs text-slate-400 shrink-0">{domainCount} domains scanned</span>
 
       {/* Completeness */}
       {completePct !== null && (
         <>
           <span className="w-px h-3 bg-wr-border-subtle shrink-0" />
-          <span className="text-[10px] text-slate-500 font-mono shrink-0">{completePct}% complete</span>
+          <span className="text-body-xs text-slate-400 font-mono shrink-0">{completePct}% complete</span>
         </>
       )}
 
       {scopeCoverage != null && scopeCoverage < 1 && (
         <>
           <div className="w-px h-3 bg-wr-border-subtle" />
-          <span className="text-[10px] text-amber-400 font-mono">
+          <span className="text-body-xs text-amber-400 font-mono">
             Scope: {Math.round(scopeCoverage * 100)}%
           </span>
         </>

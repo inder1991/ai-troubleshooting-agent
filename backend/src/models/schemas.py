@@ -80,6 +80,8 @@ class CriticVerdict(BaseModel):
     contradicting_evidence: Optional[list[Breadcrumb]] = None
     recommendation: Optional[str] = None
     confidence_in_verdict: int = Field(ge=0, le=100)
+    suggest_alternative: Optional[str] = None
+    suggested_agent: Optional[str] = None
 
     @computed_field
     @property
@@ -158,7 +160,7 @@ class TokenUsage(BaseModel):
 class TaskEvent(BaseModel):
     timestamp: datetime
     agent_name: str
-    event_type: Literal["started", "progress", "success", "warning", "error", "tool_call", "phase_change", "finding", "summary", "attestation_required", "fix_proposal", "fix_approved", "waiting_for_input", "reasoning"]
+    event_type: Literal["started", "progress", "success", "warning", "error", "tool_call", "phase_change", "finding", "summary", "attestation_required", "fix_proposal", "fix_approved", "waiting_for_input", "reasoning", "thinking"]
     message: str
     details: Optional[dict] = None
     session_id: Optional[str] = None
@@ -796,14 +798,14 @@ class ReActBudget(BaseModel):
 class EvidenceNode(BaseModel):
     id: str
     pin: EvidencePin
-    node_type: Literal["symptom", "cause", "contributing_factor", "context"]
+    node_type: Literal["symptom", "cause", "contributing_factor", "context", "cross_repo_source", "cross_repo_target"]
     temporal_position: datetime
 
 
 class CausalEdge(BaseModel):
     source_id: str
     target_id: str
-    relationship: Literal["causes", "correlates", "precedes", "contributes_to"]
+    relationship: Literal["causes", "correlates", "precedes", "contributes_to", "api_rename", "signature_change", "dependency_update"]
     confidence: float = Field(..., ge=0.0, le=1.0)
     reasoning: str
 
@@ -936,7 +938,14 @@ class DiagnosticState(BaseModel):
     supervisor_reasoning: list[str] = Field(default_factory=list)
     agents_completed: list[str] = Field(default_factory=list)
     agents_pending: list[str] = Field(default_factory=list)
-    overall_confidence: int = Field(default=0, ge=0, le=100)
+    overall_confidence: float = Field(default=0, ge=0, le=100)
+
+    # Agent execution statuses: {agent_name: "success"|"no_findings"|"error"}
+    agent_statuses: dict[str, str] = Field(default_factory=dict)
+
+    # Multi-hypothesis engine
+    hypotheses: list["DiagHypothesis"] = Field(default_factory=list)
+    hypothesis_result: Optional["HypothesisResult"] = None
 
 
 class DiagnosticStateV5(DiagnosticState):
@@ -962,4 +971,5 @@ class DiagnosticStateV5(DiagnosticState):
 # Resolve forward references
 from src.models.closure_models import IncidentClosureState  # noqa: E402
 from src.models.campaign import RemediationCampaign  # noqa: E402
+from src.models.hypothesis import Hypothesis as DiagHypothesis, HypothesisResult  # noqa: E402
 DiagnosticState.model_rebuild()

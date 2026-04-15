@@ -61,12 +61,12 @@ export const ActivityFeedRow: React.FC<ActivityFeedRowProps> = ({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <span className="text-sm font-display font-bold text-white truncate">{targetService}</span>
-            {incidentId && <span className="text-duck-accent text-[9px] font-mono shrink-0">{incidentId}</span>}
+            {incidentId && <span className="text-duck-accent text-body-xs font-mono shrink-0">{incidentId}</span>}
           </div>
         </div>
         <StatusBadge status={status} label={phase} pulse={isRunning} />
-        <span className="text-[10px] text-slate-400 font-mono shrink-0" style={{ fontVariantNumeric: 'tabular-nums' }}>{timestamp}</span>
-        <span className="text-[10px] text-slate-400 shrink-0">{durationStr}</span>
+        <span className="text-body-xs text-slate-400 font-mono shrink-0" style={{ fontVariantNumeric: 'tabular-nums' }}>{timestamp}</span>
+        <span className="text-body-xs text-slate-400 shrink-0">{durationStr}</span>
       </div>
 
       {/* Row 2: Confidence bar + Findings + Actions */}
@@ -78,7 +78,7 @@ export const ActivityFeedRow: React.FC<ActivityFeedRowProps> = ({
             style={{ width: `${confidenceScore}%` }}
           />
         </div>
-        <span className="text-[10px] text-slate-400 font-mono shrink-0" style={{ fontVariantNumeric: 'tabular-nums' }}>
+        <span className="text-body-xs text-slate-400 font-mono shrink-0" style={{ fontVariantNumeric: 'tabular-nums' }}>
           {confidenceScore}%
         </span>
 
@@ -86,12 +86,12 @@ export const ActivityFeedRow: React.FC<ActivityFeedRowProps> = ({
         {findingsCount != null && findingsCount > 0 ? (
           <div className="flex items-center gap-1.5 shrink-0">
             {(criticalCount ?? 0) > 0 && (
-              <span className="text-[10px] font-bold text-red-400">{criticalCount} crit</span>
+              <span className="text-body-xs font-bold text-red-400">{criticalCount} crit</span>
             )}
-            <span className="text-[10px] text-slate-400">{findingsCount} findings</span>
+            <span className="text-body-xs text-slate-400">{findingsCount} findings</span>
           </div>
         ) : findingsCount === 0 && isComplete ? (
-          <span className="text-[10px] text-emerald-400 shrink-0">Clean</span>
+          <span className="text-body-xs text-emerald-400 shrink-0">Clean</span>
         ) : null}
 
         {/* Actions — right-aligned */}
@@ -106,12 +106,12 @@ export const ActivityFeedRow: React.FC<ActivityFeedRowProps> = ({
               aria-label={`Download report for ${targetService}`}
             >
               <span className="material-symbols-outlined text-[12px]" aria-hidden="true">download</span>
-              <span className="text-[9px] font-display font-bold">Report</span>
+              <span className="text-body-xs font-display font-bold">Report</span>
             </span>
           ) : isRunning ? (
             <div className="flex items-center gap-1 text-amber-400/60">
               <span className="material-symbols-outlined text-[12px] animate-spin" aria-hidden="true">progress_activity</span>
-              <span className="text-[9px]">Running</span>
+              <span className="text-body-xs">Running</span>
             </div>
           ) : null}
         </div>

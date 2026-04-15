@@ -59,7 +59,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
             wsConnected ? 'bg-green-400 animate-pulse' : 'bg-red-400'
           }`}
         />
-        <span className="text-[10px] text-gray-500 uppercase tracking-wider">
+        <span className="text-body-xs text-gray-500 uppercase tracking-wider">
           {wsConnected ? 'Live' : 'Offline'}
         </span>
       </div>
@@ -106,7 +106,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
       {/* Confidence */}
       {confidence > 0 && (
         <div className="flex items-center gap-2">
-          <span className="text-[10px] text-gray-500 uppercase tracking-wider">Confidence</span>
+          <span className="text-body-xs text-gray-500 uppercase tracking-wider">Confidence</span>
           <div className="w-16 h-1.5 bg-[#3d3528] rounded-full overflow-hidden">
             <div
               className="h-full bg-[#e09f3e] rounded-full transition-all duration-500"
@@ -122,7 +122,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
       {/* Token count */}
       {totalTokens > 0 && (
         <div className="flex items-center gap-1.5">
-          <span className="text-[10px] text-gray-500 uppercase tracking-wider">Tokens</span>
+          <span className="text-body-xs text-gray-500 uppercase tracking-wider">Tokens</span>
           <span className="text-xs text-gray-300 font-mono">
             {totalTokens.toLocaleString()}
           </span>

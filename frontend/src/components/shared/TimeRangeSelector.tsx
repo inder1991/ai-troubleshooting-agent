@@ -16,10 +16,10 @@ export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
       <button
         key={opt}
         onClick={() => onChange(opt)}
-        className={`px-2.5 py-1 text-[10px] font-bold uppercase rounded-md transition-colors ${
+        className={`px-2.5 py-1 text-body-xs font-bold uppercase rounded-md transition-colors ${
           selected === opt
             ? 'bg-[#e09f3e]/20 text-[#e09f3e] border border-[#e09f3e]/30'
-            : 'text-slate-500 hover:text-slate-300 border border-transparent'
+            : 'text-slate-400 hover:text-slate-300 border border-transparent'
         }`}
       >
         {opt}

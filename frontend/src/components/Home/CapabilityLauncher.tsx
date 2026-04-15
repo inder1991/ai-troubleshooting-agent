@@ -41,7 +41,7 @@ const capabilities: {
     title: 'Issue Fixer',
     description: 'Generate and apply automated patches to known vulnerabilities.',
     icon: 'auto_fix_high',
-    iconClasses: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
+    iconClasses: 'text-amber-400 bg-wr-severity-medium/10 border-amber-500/20',
     ctaText: 'Generate Patch',
     ctaClasses: 'text-amber-400',
   },
@@ -107,7 +107,7 @@ const CapabilityLauncher: React.FC<CapabilityLauncherProps> = ({ onSelectCapabil
 
           {/* CTA - appears on hover */}
           <div
-            className={`mt-4 flex items-center text-micro font-bold opacity-0 group-hover:opacity-100 transition-opacity ${cap.ctaClasses}`}
+            className={`mt-4 flex items-center text-body-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity ${cap.ctaClasses}`}
           >
             {cap.ctaText}
             <span className="material-symbols-outlined text-xs ml-1" aria-hidden="true">arrow_forward</span>

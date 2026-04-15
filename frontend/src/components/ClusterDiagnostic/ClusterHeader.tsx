@@ -28,7 +28,7 @@ const ClusterHeader: React.FC<ClusterHeaderProps> = ({
   const [showBreakdown, setShowBreakdown] = useState(false);
 
   return (
-    <header className="h-14 border-b border-wr-border bg-wr-surface flex items-center justify-between px-6 z-50 shadow-md shrink-0">
+    <header className="warroom-header h-14 justify-between z-50 shadow-md">
       <div className="flex items-center gap-4">
         <button onClick={onGoHome} aria-label="Return to home" className="text-slate-400 hover:text-white transition-colors">
           <span className="material-symbols-outlined">arrow_back</span>
@@ -44,14 +44,14 @@ const ClusterHeader: React.FC<ClusterHeaderProps> = ({
           </h1>
         </div>
         <div className="px-3 py-1 bg-wr-bg border border-wr-border rounded text-xs font-mono flex items-center gap-2">
-          <span className="text-slate-500 uppercase tracking-widest text-[10px]">Session:</span>
+          <span className="text-slate-400 uppercase tracking-widest text-body-xs">Session:</span>
           <span className="text-wr-accent">#{sessionId.slice(0, 8).toUpperCase()}</span>
         </div>
       </div>
 
       <div className="flex items-center gap-8">
         <div className="flex flex-col items-end">
-          <span className="text-[10px] uppercase tracking-tighter text-slate-500">Global Confidence</span>
+          <span className="text-body-xs uppercase tracking-tighter text-slate-400">Global Confidence</span>
           <div className="w-32 sm:w-48 h-2 bg-wr-bg border border-wr-border rounded-full mt-1 overflow-hidden">
             <div
               className="h-full bg-wr-accent transition-all duration-700"

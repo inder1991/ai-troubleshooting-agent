@@ -9,6 +9,7 @@ import { EnvironmentHealth } from './EnvironmentHealth';
 import { RecentAlerts } from './RecentAlerts';
 import { RecentFindings } from './RecentFindings';
 import { WeeklyStats } from './WeeklyStats';
+import DeliveryPulse from './DeliveryPulse';
 import { CompactAgentFleet } from './CompactAgentFleet';
 import AssistantDock from '../Assistant/AssistantDock';
 import LiveIntelligenceFeed from './LiveIntelligenceFeed';
@@ -62,7 +63,7 @@ const HomePage: React.FC<HomePageProps> = ({
         <div className="relative w-56 shrink-0">
           <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]" aria-hidden="true">search</span>
           <input
-            className="w-full rounded-md pl-9 pr-3 py-1.5 text-[13px] font-display text-white placeholder:text-slate-500 outline-none bg-duck-card/30 border border-duck-border/50 focus-visible:border-duck-accent"
+            className="w-full rounded-md pl-9 pr-3 py-1.5 text-[13px] font-display text-white placeholder:text-slate-400 outline-none bg-duck-card/30 border border-duck-border/50 focus-visible:border-duck-accent"
             style={{
               transition: 'border-color 200ms cubic-bezier(0.25, 1, 0.5, 1), box-shadow 200ms cubic-bezier(0.25, 1, 0.5, 1)',
             }}
@@ -118,23 +119,21 @@ const HomePage: React.FC<HomePageProps> = ({
               <div className="flex gap-5">
                 <button
                   onClick={() => setFeedTab('global')}
-                  className="text-sm font-display font-bold pb-1"
-                  style={{
-                    color: feedTab === 'global' ? 'white' : '#94a3b8',
-                    borderBottom: feedTab === 'global' ? '2px solid #e09f3e' : '2px solid transparent',
-                    transition: 'color 200ms cubic-bezier(0.25, 1, 0.5, 1), border-color 200ms cubic-bezier(0.25, 1, 0.5, 1)',
-                  }}
+                  className={`text-sm font-display font-bold pb-1 border-b-2 transition-colors duration-200 ${
+                    feedTab === 'global'
+                      ? 'text-wr-text border-wr-accent'
+                      : 'text-wr-text-muted border-transparent hover:text-wr-text-secondary'
+                  }`}
                 >
                   Global Investigations
                 </button>
                 <button
                   onClick={() => setFeedTab('mine')}
-                  className="text-sm font-display font-bold pb-1"
-                  style={{
-                    color: feedTab === 'mine' ? 'white' : '#94a3b8',
-                    borderBottom: feedTab === 'mine' ? '2px solid #e09f3e' : '2px solid transparent',
-                    transition: 'color 200ms cubic-bezier(0.25, 1, 0.5, 1), border-color 200ms cubic-bezier(0.25, 1, 0.5, 1)',
-                  }}
+                  className={`text-sm font-display font-bold pb-1 border-b-2 transition-colors duration-200 ${
+                    feedTab === 'mine'
+                      ? 'text-wr-text border-wr-accent'
+                      : 'text-wr-text-muted border-transparent hover:text-wr-text-secondary'
+                  }`}
                 >
                   My Active ({myActiveCount})
                 </button>
@@ -166,6 +165,11 @@ const HomePage: React.FC<HomePageProps> = ({
             {/* Recent Findings */}
             <div style={{ animation: 'fadeSlideLeft 350ms cubic-bezier(0.25, 1, 0.5, 1) 360ms both' }} className="surface-panel p-2.5 overflow-hidden">
               <RecentFindings />
+            </div>
+
+            {/* Delivery Pulse */}
+            <div style={{ animation: 'fadeSlideLeft 350ms cubic-bezier(0.25, 1, 0.5, 1) 400ms both' }}>
+              <DeliveryPulse />
             </div>
 
             {/* Weekly Stats */}

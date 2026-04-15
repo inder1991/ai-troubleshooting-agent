@@ -132,7 +132,7 @@ const URLInput: React.FC<{
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="flex-1 rounded-md px-3 py-1.5 text-sm text-white placeholder:text-slate-600 outline-none font-mono"
+        className="flex-1 rounded-md px-3 py-1.5 text-sm text-white placeholder:text-slate-500 outline-none font-mono"
         style={{ backgroundColor: 'rgba(30,47,51,0.6)', border: '1px solid #3d3528' }}
       />
       <button
@@ -376,7 +376,7 @@ const SettingsView: React.FC = () => {
             <div className="border-t" style={{ borderColor: '#3d3528' }} />
             <div className="flex items-center justify-between py-1">
               <span className="text-slate-400">Support</span>
-              <span className="text-slate-500 cursor-default">Report issues</span>
+              <span className="text-slate-400 cursor-default">Report issues</span>
             </div>
           </div>
         </SectionCard>

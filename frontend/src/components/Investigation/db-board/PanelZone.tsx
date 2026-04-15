@@ -36,14 +36,14 @@ const PanelZone: React.FC<PanelZoneProps> = ({
           {icon}
         </span>
         <span
-          className={`text-[10px] font-display font-bold ${
+          className={`text-body-xs font-display font-bold ${
             state === 'lit' ? 'text-slate-300' : 'text-slate-400'
           }`}
         >
           {title}
         </span>
         {state === 'scanning' && (
-          <span className="text-[9px] text-amber-400 ml-auto flex items-center gap-1" aria-label="Scanning in progress">
+          <span className="text-body-xs text-amber-400 ml-auto flex items-center gap-1" aria-label="Scanning in progress">
             <span className="material-symbols-outlined text-[12px] animate-spin">progress_activity</span>
             {agentName}
           </span>
@@ -60,7 +60,7 @@ const PanelZone: React.FC<PanelZoneProps> = ({
             exit={{ opacity: 0 }}
             className="flex-1 min-h-[100px] md:min-h-0 flex items-center justify-center border border-dashed border-duck-border/30 rounded-lg"
           >
-            <span className="text-[10px] text-slate-400 italic">
+            <span className="text-body-xs text-slate-400 italic">
               {notApplicable ? 'No issues found' : `Waiting for ${agentName}`}
             </span>
           </motion.div>
@@ -73,7 +73,7 @@ const PanelZone: React.FC<PanelZoneProps> = ({
             exit={{ opacity: 0 }}
             className="flex-1 flex items-center justify-center border border-amber-500/40 rounded-lg bg-amber-500/5"
           >
-            <span className="text-[10px] text-amber-400">Analyzing...</span>
+            <span className="text-body-xs text-amber-400">Analyzing...</span>
           </motion.div>
         )}
         {state === 'error' && (
@@ -84,7 +84,7 @@ const PanelZone: React.FC<PanelZoneProps> = ({
             exit={{ opacity: 0 }}
             className="flex-1 flex items-center justify-center border border-red-500/20 rounded-lg bg-red-500/[0.03] min-h-[100px] md:min-h-0"
           >
-            <div className="flex items-center gap-1.5 text-[10px] text-red-400">
+            <div className="flex items-center gap-1.5 text-body-xs text-red-400">
               <span className="material-symbols-outlined text-[14px]" aria-hidden="true">error</span>
               Failed to collect data
             </div>

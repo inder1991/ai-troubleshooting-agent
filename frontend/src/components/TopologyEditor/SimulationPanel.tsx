@@ -188,7 +188,7 @@ export default function SimulationPanel({ designId, onClose, onSimulationComplet
                       <span className="text-gray-300">{t.source}</span>
                       <span className="text-gray-600">→</span>
                       <span className="text-gray-300">{t.target}</span>
-                      {t.blocked_by && <span className="text-red-400 ml-auto text-[10px]">{t.blocked_by}</span>}
+                      {t.blocked_by && <span className="text-red-400 ml-auto text-body-xs">{t.blocked_by}</span>}
                     </div>
                   ))}
                 </div>

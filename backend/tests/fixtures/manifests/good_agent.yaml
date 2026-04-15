@@ -1,0 +1,18 @@
+name: good_agent
+version: 1
+description: Test agent
+category: infrastructure
+inputs:
+  type: object
+  properties:
+    x: { type: string }
+  required: [x]
+outputs:
+  type: object
+  properties:
+    y: { type: string }
+  required: [y]
+trigger_examples:
+  - "do something"
+  - "do another"
+timeout_seconds: 10

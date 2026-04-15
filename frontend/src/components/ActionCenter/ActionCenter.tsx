@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, FileText, Bug, Container, Activity, Route } from 'lucide-react';
+import { Search, FileText, Bug, Container, Activity, Route, Database, Rocket } from 'lucide-react';
 import type { CapabilityType, V4Session } from '../../types';
 import CapabilityCard from './CapabilityCard';
 
@@ -50,6 +50,20 @@ const capabilities: {
     description: 'Trace and diagnose network connectivity across firewalls, NAT, and routing',
     icon: Route,
     color: '#f59e0b',
+  },
+  {
+    type: 'database_diagnostics',
+    title: 'Database Diag',
+    description: 'PostgreSQL query analysis, connection health, and performance tuning',
+    icon: Database,
+    color: '#8b5cf6',
+  },
+  {
+    type: 'troubleshoot_pipeline',
+    title: 'Pipeline Troubleshoot',
+    description: 'Investigate CI/CD deploy failures across Jenkins, ArgoCD, and GitHub commits',
+    icon: Rocket,
+    color: '#06b6d4',
   },
 ];
 

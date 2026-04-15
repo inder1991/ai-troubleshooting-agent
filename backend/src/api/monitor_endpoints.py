@@ -11,6 +11,7 @@ from src.network.topology_store import TopologyStore
 from src.network.knowledge_graph import NetworkKnowledgeGraph
 from src.network.models import Device, DeviceType, Interface
 from src.utils.logger import get_logger
+from src.api.flow_endpoints import _validate_window
 
 logger = get_logger(__name__)
 
@@ -481,6 +482,7 @@ async def query_metrics(entity_type: str, entity_id: str, metric: str,
 @monitor_router.get("/flows/top-talkers")
 async def get_top_talkers(window: str = "5m", limit: int = 20):
     """Top N traffic flows by bytes."""
+    _validate_window(window)
     mon = _get_monitor()
     if not mon or not mon.metrics_store:
         return {"flows": []}
@@ -491,6 +493,7 @@ async def get_top_talkers(window: str = "5m", limit: int = 20):
 @monitor_router.get("/flows/traffic-matrix")
 async def get_traffic_matrix(window: str = "15m"):
     """Device-to-device bandwidth matrix."""
+    _validate_window(window)
     mon = _get_monitor()
     if not mon or not mon.metrics_store:
         return {"matrix": []}
@@ -501,6 +504,7 @@ async def get_traffic_matrix(window: str = "15m"):
 @monitor_router.get("/flows/protocols")
 async def get_protocol_breakdown(window: str = "1h"):
     """Traffic breakdown by protocol."""
+    _validate_window(window)
     mon = _get_monitor()
     if not mon or not mon.metrics_store:
         return {"protocols": []}

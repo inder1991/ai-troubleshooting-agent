@@ -3,8 +3,10 @@ FastAPI Main Application
 Entry point for the API server
 """
 
+from contextlib import asynccontextmanager
+from pathlib import Path as _P
 from dotenv import load_dotenv
-load_dotenv()
+load_dotenv(_P(__file__).resolve().parent.parent.parent / ".env")
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -15,7 +17,9 @@ from slowapi.errors import RateLimitExceeded
 from .pr_endpoints import router as pr_router
 from datetime import datetime
 
+from src.utils.fix_job_queue import FixJobQueue
 from .routes_v4 import router_v4
+from .routes_catalog import router as catalog_router
 from . import db_session_endpoints as _db_session_endpoints  # noqa: F401 — ensure module is loaded
 from .agent_endpoints import agent_router
 from .routes_v5 import router as v5_router
@@ -57,8 +61,46 @@ from src.network.prometheus_exporter import MetricsCollector
 from pathlib import Path
 from src.config import APP_MODE, is_production_mode
 from src.utils.logger import get_logger
+from src.utils.redis_store import get_redis_client, RedisSessionStore
 
 logger = get_logger("main")
+
+
+async def _pending_action_timeout_loop(app_ref):
+    """Check for expired pending actions and re-emit with cleared expiry."""
+    import asyncio
+    import json
+
+    while True:
+        await asyncio.sleep(30)
+        try:
+            redis_client = getattr(app_ref.state, 'redis', None)
+            if not redis_client:
+                continue
+            cursor = 0
+            while True:
+                cursor, keys = await redis_client.scan(cursor, match="pending_action:*", count=100)
+                for key in keys:
+                    raw = await redis_client.get(key)
+                    if not raw:
+                        continue
+                    from src.models.pending_action import PendingAction
+                    data = json.loads(raw if isinstance(raw, str) else raw.decode())
+                    pa = PendingAction.from_dict(data)
+                    if pa.is_expired():
+                        session_id = key.decode().split(":")[-1] if isinstance(key, bytes) else key.split(":")[-1]
+                        pa.expires_at = None
+                        await redis_client.set(
+                            key if isinstance(key, str) else key.decode(),
+                            json.dumps(pa.to_dict()),
+                            ex=86400,
+                        )
+                        logger.info("Pending action timed out for session %s, reset to indefinite", session_id)
+                if cursor == 0:
+                    break
+        except Exception:
+            pass
+
 
 # Module-level Prometheus metrics collector
 metrics_collector = MetricsCollector()
@@ -137,12 +179,24 @@ def create_app() -> FastAPI:
     """Create and configure FastAPI application"""
     import os
 
+    # Forward-referenced — the actual functions are defined further down in
+    # this closure. Lifespan only invokes them at serve-time, by which point
+    # they're bound in scope.
+    @asynccontextmanager
+    async def lifespan(_app: FastAPI):
+        await startup()
+        try:
+            yield
+        finally:
+            await shutdown()
+
     app = FastAPI(
         title="AI Multi-Agent Troubleshooting API",
         description="Intelligent troubleshooting with LangGraph orchestration",
         version="3.0.0",
         docs_url="/docs",
-        redoc_url="/redoc"
+        redoc_url="/redoc",
+        lifespan=lifespan,
     )
 
     # Rate limiting
@@ -171,6 +225,7 @@ def create_app() -> FastAPI:
     # Include routes
     app.include_router(pr_router, prefix="/api")
     app.include_router(router_v4)
+    app.include_router(catalog_router)
     app.include_router(agent_router)
     app.include_router(v5_router)
     app.include_router(profiles_router)
@@ -208,15 +263,32 @@ def create_app() -> FastAPI:
     _cloud_integration_router = create_cloud_router(_cloud_store)
     app.include_router(_cloud_integration_router)
 
-    @app.on_event("startup")
     async def startup():
         import os
-        logger.info("DebugDuck starting in %s mode", APP_MODE.upper())
+        _mode = "PRODUCTION" if is_production_mode() else "DEMO"
+        logger.info("DebugDuck starting in %s mode (DEBUGDUCK_MODE=%s)", _mode, os.environ.get("DEBUGDUCK_MODE", "<unset>"))
+
+        # ── Agent contract registry (Phase 1 Task 7) ──
+        from src.contracts.service import init_registry as _init_contract_registry
+        _init_contract_registry()
+        logger.info("Agent ContractRegistry initialized")
+
+        # ── Initialize Redis session store ──
+        try:
+            app.state.redis = await get_redis_client()
+            app.state.session_store = RedisSessionStore(app.state.redis)
+            logger.info("Redis session store initialized")
+        except Exception as e:
+            logger.warning("Redis session store init failed (falling back to in-memory): %s", e)
+            app.state.redis = None
+            app.state.session_store = None
+
+        # ── Background timeout handler for expired pending actions ──
+        import asyncio as _aio
+        _aio.create_task(_pending_action_timeout_loop(app))
+
         _init_stores()
         _reload_adapter_instances()
-        # Start session TTL cleanup loop
-        from .routes_v4 import start_cleanup_task
-        start_cleanup_task()
 
         # Initialize DiagnosticStore
         try:
@@ -270,9 +342,9 @@ def create_app() -> FastAPI:
         if is_production_mode():
             try:
                 topo_store = _net_topo_store()
-                removed = topo_store.clear_all_devices()
+                removed = topo_store.clear_all_fixtures()
                 if removed:
-                    logger.info("Production mode: cleared %d demo devices from topology store", removed)
+                    logger.info("Production mode: cleared %d demo rows from topology store", removed)
                 # Clear stale metrics so alert engine doesn't fire on old demo data
                 metrics_db = Path(__file__).parent.parent / "data" / "metrics.db"
                 if metrics_db.exists():
@@ -412,7 +484,7 @@ def create_app() -> FastAPI:
         except Exception as e:
             logger.warning("Search endpoints init failed: %s", e)
 
-        # ── Initialize SQLite Metrics Store + SNMP Scheduler ──
+        # ── Initialize SQLite Metrics Store + Schedulers ──
         try:
             import asyncio as _asyncio
             from src.network.sqlite_metrics_store import SQLiteMetricsStore
@@ -421,19 +493,23 @@ def create_app() -> FastAPI:
             _sqlite_metrics = SQLiteMetricsStore()
             _snmp_sched = SNMPPollingScheduler(_sqlite_metrics, interval_seconds=60)
 
-            # Build device list from topology store
+            # Build device list from topology store — demo mode only
             _device_list = []
-            try:
-                topo_store = _net_topo_store()
-                devices = topo_store.list_devices()
-                if devices:
-                    _device_list = [
-                        {"id": d.id, "name": d.name, "vendor": d.vendor, "management_ip": d.management_ip, "ha_role": getattr(d, 'ha_role', '')}
-                        for d in devices if d.management_ip
-                    ]
-                    _snmp_sched.set_devices(_device_list)
-            except Exception:
-                pass
+            _is_prod = is_production_mode()
+            if _is_prod:
+                logger.info("Production mode: skipping fixture device loading for schedulers")
+            else:
+                try:
+                    topo_store = _net_topo_store()
+                    devices = topo_store.list_devices()
+                    if devices:
+                        _device_list = [
+                            {"id": d.id, "name": d.name, "vendor": d.vendor, "management_ip": d.management_ip, "ha_role": getattr(d, 'ha_role', '')}
+                            for d in devices if d.management_ip
+                        ]
+                        _snmp_sched.set_devices(_device_list)
+                except Exception:
+                    pass
 
             # ── SQLite Alert Engine ──
             _sqlite_alert_engine = None
@@ -467,19 +543,23 @@ def create_app() -> FastAPI:
             import src.api.network_endpoints as _net_ep
             _net_ep._sqlite_metrics_store = _sqlite_metrics
 
-            _asyncio.create_task(_snmp_sched.start())
-            logger.info("SQLite MetricsStore + SNMP scheduler started")
+            if not _is_prod:
+                _asyncio.create_task(_snmp_sched.start())
+                logger.info("SQLite MetricsStore + SNMP scheduler started")
+            else:
+                logger.info("SQLite MetricsStore initialized (SNMP scheduler disabled in production)")
 
             # ── Discovery Scheduler ──
-            try:
-                from src.network.discovery_scheduler import DiscoveryScheduler
-                _discovery_sched = DiscoveryScheduler(interval_seconds=300)
-                _discovery_sched.set_devices(_device_list)
-                init_autodiscovery(_discovery_sched)
-                _asyncio.create_task(_discovery_sched.start())
-                logger.info("DiscoveryScheduler started (%d devices)", len(_device_list))
-            except Exception as e:
-                logger.warning("DiscoveryScheduler startup failed: %s", e)
+            if not _is_prod:
+                try:
+                    from src.network.discovery_scheduler import DiscoveryScheduler
+                    _discovery_sched = DiscoveryScheduler(interval_seconds=300)
+                    _discovery_sched.set_devices(_device_list)
+                    init_autodiscovery(_discovery_sched)
+                    _asyncio.create_task(_discovery_sched.start())
+                    logger.info("DiscoveryScheduler started (%d devices)", len(_device_list))
+                except Exception as e:
+                    logger.warning("DiscoveryScheduler startup failed: %s", e)
 
             # ── Config Drift Engine ──
             try:
@@ -499,40 +579,49 @@ def create_app() -> FastAPI:
             except Exception as e:
                 logger.warning("FlowStore init failed: %s", e)
 
-            # ── Mock Event Generator (syslog/trap demo data) ──
-            try:
-                from src.network.event_generator import MockEventGenerator
-                _event_gen = MockEventGenerator(_sqlite_metrics)
-                _asyncio.create_task(_event_gen.start())
-                logger.info("MockEventGenerator started")
-            except Exception as e:
-                logger.warning("MockEventGenerator startup failed: %s", e)
+            # ── Mock Event Generator (syslog/trap demo data — demo only) ──
+            if not _is_prod:
+                try:
+                    from src.network.event_generator import MockEventGenerator
+                    _event_gen = MockEventGenerator(_sqlite_metrics)
+                    _asyncio.create_task(_event_gen.start())
+                    logger.info("MockEventGenerator started")
+                except Exception as e:
+                    logger.warning("MockEventGenerator startup failed: %s", e)
 
             # ── Ping Probe Scheduler ──
-            try:
-                from src.network.ping_scheduler import PingProbeScheduler
-                _ping_sched = PingProbeScheduler(_sqlite_metrics, interval_seconds=30)
-                init_probes(_sqlite_metrics, _ping_sched)
-
-                # Load probe targets from topology store devices
+            if not _is_prod:
                 try:
-                    topo_store = _net_topo_store()
-                    devices = topo_store.list_devices()
-                    if devices:
-                        _ping_sched.set_targets([
-                            {"ip": d.management_ip, "name": d.id}
-                            for d in devices if d.management_ip
-                        ])
-                except Exception:
-                    pass
+                    from src.network.ping_scheduler import PingProbeScheduler
+                    _ping_sched = PingProbeScheduler(_sqlite_metrics, interval_seconds=30)
+                    init_probes(_sqlite_metrics, _ping_sched)
 
-                _asyncio.create_task(_ping_sched.start())
-                logger.info("PingProbeScheduler started")
-            except Exception as e:
-                logger.warning("PingProbeScheduler startup failed: %s", e)
+                    # Load probe targets from topology store devices
+                    try:
+                        topo_store = _net_topo_store()
+                        devices = topo_store.list_devices()
+                        if devices:
+                            _ping_sched.set_targets([
+                                {"ip": d.management_ip, "name": d.id}
+                                for d in devices if d.management_ip
+                            ])
+                    except Exception:
+                        pass
+
+                    _asyncio.create_task(_ping_sched.start())
+                    logger.info("PingProbeScheduler started")
+                except Exception as e:
+                    logger.warning("PingProbeScheduler startup failed: %s", e)
 
         except Exception as e:
             logger.warning("SQLite metrics / SNMP scheduler startup failed: %s", e)
+
+        # ── Start Fix Job Queue ──
+        try:
+            await FixJobQueue.get_instance().start()
+            logger.info("FixJobQueue started")
+        except Exception as e:
+            logger.warning("FixJobQueue startup failed: %s", e)
 
         # ── Initialize DB Monitor ──
         try:
@@ -590,8 +679,22 @@ def create_app() -> FastAPI:
         except Exception as e:
             logger.warning("RemediationEngine startup failed: %s", e)
 
-    @app.on_event("shutdown")
     async def shutdown():
+        # ── Close Redis connection ──
+        if getattr(app.state, "redis", None):
+            try:
+                await app.state.redis.aclose()
+                logger.info("Redis connection closed")
+            except Exception as e:
+                logger.warning("Redis shutdown failed: %s", e)
+
+        # ── Shutdown Fix Job Queue ──
+        try:
+            await FixJobQueue.get_instance().shutdown()
+            logger.info("FixJobQueue shut down")
+        except Exception as e:
+            logger.warning("FixJobQueue shutdown failed: %s", e)
+
         import src.api.monitor_endpoints as mon_ep
         if mon_ep._monitor:
             # Event bus cleanup is handled by monitor.stop()
@@ -701,6 +804,9 @@ def create_app() -> FastAPI:
             try:
                 from .routes_v4 import sessions as _sessions
                 session_data = _sessions.get(session_id)
+                # Fall back to Redis session store if not in memory
+                if not session_data and getattr(app.state, "session_store", None):
+                    session_data = await app.state.session_store.load(session_id)
                 if session_data:
                     emitter = session_data.get("emitter")
                     if emitter and hasattr(emitter, 'get_all_events'):

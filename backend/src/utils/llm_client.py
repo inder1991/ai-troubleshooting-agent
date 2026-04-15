@@ -3,6 +3,7 @@ import time
 from anthropic import AsyncAnthropic
 from src.models.schemas import TokenUsage
 from src.utils.logger import get_logger
+from src.utils.redis_semaphore import RedisLLMSemaphore
 
 logger = get_logger(__name__)
 
@@ -18,13 +19,14 @@ class LLMResponse:
 class AnthropicClient:
     """Anthropic API client with cumulative token tracking."""
 
-    def __init__(self, agent_name: str = "unknown", model: str = "claude-sonnet-4-20250514", session_id: str = ""):
+    def __init__(self, agent_name: str = "unknown", model: str = "claude-sonnet-4-20250514", session_id: str = "", semaphore: RedisLLMSemaphore | None = None):
         self.agent_name = agent_name
         self.model = model  # Caller handles resolution
         self.session_id = session_id
         self._client = AsyncAnthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
         self._total_input_tokens = 0
         self._total_output_tokens = 0
+        self._semaphore = semaphore
 
     async def chat(
         self,
@@ -164,6 +166,25 @@ class AnthropicClient:
         temperature: float = 0.0,
     ):
         """Send a message with tool definitions. Returns raw Anthropic response object."""
+        if self._semaphore:
+            acquired = await self._semaphore.acquire()
+            if not acquired:
+                raise RuntimeError("Failed to acquire LLM semaphore – too many concurrent calls")
+        try:
+            return await self._chat_with_tools_inner(system, messages, tools, max_tokens, temperature)
+        finally:
+            if self._semaphore:
+                await self._semaphore.release()
+
+    async def _chat_with_tools_inner(
+        self,
+        system: str,
+        messages: list[dict],
+        tools: list[dict] | None = None,
+        max_tokens: int = 4096,
+        temperature: float = 0.0,
+    ):
+        """Inner implementation of chat_with_tools (called after semaphore is acquired)."""
         kwargs = {
             "model": self.model,
             "max_tokens": max_tokens,

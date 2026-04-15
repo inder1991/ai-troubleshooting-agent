@@ -41,7 +41,7 @@ const CONFIG_ALLOWLIST = [
 ];
 
 const inputClass =
-  'w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 placeholder-slate-500 focus:border-amber-500 outline-none';
+  'w-full px-3 py-2 rounded-lg bg-wr-surface border border-wr-border-strong text-sm text-slate-100 placeholder-slate-500 focus:border-amber-500 outline-none';
 const labelClass = 'block text-xs font-medium text-slate-400 mb-1';
 
 const OperationFormModal: React.FC<OperationFormModalProps> = ({ onClose, onCreate, initialAction }) => {
@@ -132,14 +132,14 @@ const OperationFormModal: React.FC<OperationFormModalProps> = ({ onClose, onCrea
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-[#0d2329] border border-slate-700/50 rounded-xl shadow-2xl w-full max-w-lg mx-4" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-[#0d2329] border border-wr-border-strong/50 rounded-xl shadow-2xl w-full max-w-lg mx-4" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-700/50">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-wr-border-strong/50">
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-amber-400">build</span>
             <h3 className="text-sm font-semibold text-slate-200">New Operation</h3>
           </div>
-          <button onClick={onClose} className="text-slate-500 hover:text-slate-300 transition-colors">
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-300 transition-colors">
             <span className="material-symbols-outlined text-[20px]">close</span>
           </button>
         </div>
@@ -192,7 +192,7 @@ const OperationFormModal: React.FC<OperationFormModalProps> = ({ onClose, onCrea
                     type="checkbox"
                     checked={vacuumFull}
                     onChange={(e) => setVacuumFull(e.target.checked)}
-                    className="rounded border-slate-600 bg-slate-800 text-amber-500 focus:ring-amber-500"
+                    className="rounded border-wr-border-strong bg-wr-surface text-amber-500 focus:ring-amber-500"
                   />
                   FULL
                 </label>
@@ -201,7 +201,7 @@ const OperationFormModal: React.FC<OperationFormModalProps> = ({ onClose, onCrea
                     type="checkbox"
                     checked={vacuumAnalyze}
                     onChange={(e) => setVacuumAnalyze(e.target.checked)}
-                    className="rounded border-slate-600 bg-slate-800 text-amber-500 focus:ring-amber-500"
+                    className="rounded border-wr-border-strong bg-wr-surface text-amber-500 focus:ring-amber-500"
                   />
                   ANALYZE
                 </label>
@@ -259,7 +259,7 @@ const OperationFormModal: React.FC<OperationFormModalProps> = ({ onClose, onCrea
                   type="checkbox"
                   checked={ciUnique}
                   onChange={(e) => setCiUnique(e.target.checked)}
-                  className="rounded border-slate-600 bg-slate-800 text-amber-500 focus:ring-amber-500"
+                  className="rounded border-wr-border-strong bg-wr-surface text-amber-500 focus:ring-amber-500"
                 />
                 Unique index
               </label>
@@ -308,10 +308,10 @@ const OperationFormModal: React.FC<OperationFormModalProps> = ({ onClose, onCrea
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-slate-700/50">
+        <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-wr-border-strong/50">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-xs rounded-lg bg-slate-700/50 hover:bg-slate-600/60 text-slate-300 transition-colors"
+            className="px-4 py-2 text-xs rounded-lg bg-wr-inset/50 hover:bg-slate-600/60 text-slate-300 transition-colors"
           >
             Cancel
           </button>

@@ -4,7 +4,7 @@ import re
 import uuid
 import asyncio
 from datetime import datetime, timezone, timedelta
-from fastapi import APIRouter, BackgroundTasks, HTTPException
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
 from pydantic import BaseModel, ValidationError
 from typing import Dict, Any, Literal, Optional
 
@@ -31,11 +31,92 @@ from src.agents.cluster_client.k8s_client import KubernetesClient
 from src.agents.cluster.prometheus_detector import detect_prometheus_endpoint
 from src.agents.metrics_agent import PrometheusClient
 from src.agents.log_agent import ElasticsearchClient
+from src.utils.fix_job_queue import FixJobQueue
+from src.integrations.cicd.base import DeliveryItem
+from src.integrations.cicd.resolver import resolve_cicd_clients
+from src.integrations.github_client import GitHubClient, GitHubClientError
+from src.utils.attestation_log import AttestationLogger
 
 logger = get_logger(__name__)
 
-# C1: Per-session locks to prevent concurrent state mutation
+# C1: Per-session locks — in-memory fallback when Redis is unavailable
 session_locks: Dict[str, asyncio.Lock] = {}
+
+
+def _get_session_store():
+    """Return the RedisSessionStore from app state, or None if unavailable."""
+    try:
+        from src.api.main import app
+        return getattr(app.state, "session_store", None)
+    except Exception:
+        return None
+
+
+def _get_attestation_logger():
+    """Get AttestationLogger from app state."""
+    try:
+        from src.api.main import app
+        redis_client = getattr(app.state, 'redis', None)
+        if not redis_client:
+            return None
+        return AttestationLogger(redis_client)
+    except Exception:
+        return None
+
+
+async def _persist_session(session_id: str, data: dict) -> None:
+    """Persist serializable session fields to Redis (best-effort)."""
+    store = _get_session_store()
+    if store is None:
+        return
+    # Only persist JSON-safe scalar/dict/list fields
+    _NON_SERIALIZABLE = {"emitter", "graph", "cluster_client", "connection_config", "supervisor"}
+    safe = {}
+    for k, v in data.items():
+        if k in _NON_SERIALIZABLE:
+            continue
+        try:
+            json.dumps(v)  # quick serialisability check
+            safe[k] = v
+        except (TypeError, ValueError):
+            continue
+    try:
+        await store.save(session_id, safe)
+    except Exception as e:
+        logger.warning("Redis persist failed for session %s: %s", session_id, e)
+
+
+async def _load_session(session_id: str) -> dict | None:
+    """Load session from in-memory dict; fall back to Redis if missing."""
+    data = sessions.get(session_id)
+    if data is not None:
+        return data
+    store = _get_session_store()
+    if store is None:
+        return None
+    try:
+        return await store.load(session_id)
+    except Exception:
+        return None
+
+
+async def _delete_session_redis(session_id: str) -> None:
+    """Remove session from Redis (best-effort)."""
+    store = _get_session_store()
+    if store is None:
+        return
+    try:
+        await store.delete(session_id)
+    except Exception:
+        pass
+
+
+def _acquire_lock(session_id: str):
+    """Return a Redis distributed lock, falling back to an in-memory asyncio.Lock."""
+    store = _get_session_store()
+    if store is not None:
+        return store.acquire_lock(session_id)
+    return session_locks.setdefault(session_id, asyncio.Lock())
 
 # M1: UUID4 format validation
 _UUID4_RE = re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$', re.IGNORECASE)
@@ -128,6 +209,33 @@ sessions: Dict[str, Dict[str, Any]] = {}
 supervisors: Dict[str, SupervisorAgent] = {}
 
 
+async def _get_or_reconstruct_orchestrator(session_id: str, supervisor: "SupervisorAgent"):
+    """Return the campaign orchestrator, reconstructing from Redis if lost (e.g. after restart)."""
+    orchestrator = getattr(supervisor, '_campaign_orchestrator', None)
+    if orchestrator:
+        return orchestrator
+
+    # Orchestrator not in memory — try to reconstruct from persisted campaign data
+    session_store = _get_session_store()
+    if not session_store:
+        return None
+
+    campaign_data = await session_store.load_campaign(session_id)
+    if not campaign_data:
+        return None
+
+    # Campaign data exists in Redis — reconstruct a fresh orchestrator
+    from src.agents.agent3.campaign_orchestrator import CampaignOrchestrator
+    orchestrator = CampaignOrchestrator(
+        llm_client=supervisor.llm_client,
+        event_emitter=supervisor._event_emitter or EventEmitter(manager),
+        connection_config=supervisor._connection_config,
+    )
+    supervisor._campaign_orchestrator = orchestrator
+    logger.info("Reconstructed campaign orchestrator from Redis", extra={"session_id": session_id})
+    return orchestrator
+
+
 def _link_sessions(session_a: str, session_b: str):
     """Bidirectionally link two sessions."""
     for src, dst in [(session_a, session_b), (session_b, session_a)]:
@@ -164,71 +272,35 @@ def _get_investigation_router(session_id: str):
 
 
 SESSION_TTL_HOURS = 24
-SESSION_CLEANUP_INTERVAL_SECONDS = 300  # 5 minutes
-
-
-async def _session_cleanup_loop():
-    """Background task to remove sessions older than SESSION_TTL_HOURS."""
-    while True:
-        await asyncio.sleep(SESSION_CLEANUP_INTERVAL_SECONDS)
-        try:
-            cutoff = datetime.now(timezone.utc) - timedelta(hours=SESSION_TTL_HOURS)
-            expired = []
-            for sid, data in list(sessions.items()):
-                created = data.get("created_at", "")
-                try:
-                    created_dt = datetime.fromisoformat(created.replace("Z", "+00:00"))
-                    if created_dt < cutoff:
-                        expired.append(sid)
-                except (ValueError, AttributeError):
-                    continue
-
-            for sid in expired:
-                # M10: Cancel running diagnosis tasks before removing session
-                task = _diagnosis_tasks.pop(sid, None)
-                if task and not task.done():
-                    task.cancel()
-                # B3: Cancel all critic delta tasks for this session
-                critic_tasks = _critic_delta_tasks.pop(sid, [])
-                for ct in critic_tasks:
-                    if not ct.done():
-                        ct.cancel()
-                # B2: Remove investigation router for this session
-                _investigation_routers.pop(sid, None)
-                # Clear topology cache for expired session
-                try:
-                    from src.agents.cluster.topology_resolver import clear_topology_cache
-                    clear_topology_cache(sid)
-                except Exception:
-                    pass
-                # H1: Use lock during cleanup to prevent races with HTTP handlers
-                lock = session_locks.pop(sid, None)
-                if lock:
-                    async with lock:
-                        sessions.pop(sid, None)
-                        supervisors.pop(sid, None)
-                else:
-                    sessions.pop(sid, None)
-                    supervisors.pop(sid, None)
-                manager.disconnect(sid)
-                from src.observability.store import get_store
-                try:
-                    await get_store().delete_session(sid)
-                except Exception as e:
-                    logger.warning("Failed to delete session from store: %s", e)
-
-            if expired:
-                logger.info(
-                    "Session cleanup: removed %d expired sessions, %d remaining",
-                    len(expired), len(sessions),
-                )
-        except Exception as e:
-            logger.error("Session cleanup error: %s", e)
 
 
 def start_cleanup_task():
-    """Start the session cleanup background loop."""
-    asyncio.create_task(_session_cleanup_loop())
+    """Launch background loop that evicts stale in-memory sessions every 5 minutes."""
+    asyncio.ensure_future(_session_cleanup_loop())
+    logger.info("Session cleanup loop started (TTL=%dh)", SESSION_TTL_HOURS)
+
+
+async def _session_cleanup_loop():
+    while True:
+        await asyncio.sleep(300)
+        now = datetime.now(timezone.utc)
+        stale_ids = []
+        for sid, sess in sessions.items():
+            created = sess.get("created_at")
+            if created:
+                try:
+                    age = (now - datetime.fromisoformat(created)).total_seconds()
+                    if age > SESSION_TTL_HOURS * 3600:
+                        stale_ids.append(sid)
+                except (ValueError, TypeError):
+                    pass
+        for sid in stale_ids:
+            sessions.pop(sid, None)
+            session_locks.pop(sid, None)
+            _investigation_routers.pop(sid, None)
+            supervisors.pop(sid, None)
+        if stale_ids:
+            logger.info("Cleaned up %d stale sessions", len(stale_ids))
 
 
 def create_cluster_client(connection_config=None):
@@ -237,6 +309,7 @@ def create_cluster_client(connection_config=None):
     Returns (client, temp_kubeconfig_path_or_None).
 
     Resolution order:
+    0. DEBUGDUCK_MODE=demo → MockClusterClient (skip real cluster)
     1. bearer token (cluster_url + cluster_token)
     2. kubeconfig content written to temp file
     3. KUBECONFIG env var or ~/.kube/config
@@ -252,6 +325,12 @@ def create_cluster_client(connection_config=None):
     auth_method = getattr(connection_config, "auth_method", "token") if connection_config else "token"
     kubeconfig_content = getattr(connection_config, "kubeconfig_content", "") if connection_config else ""
     verify_ssl = getattr(connection_config, "verify_ssl", False) if connection_config else False
+
+    # If no explicit credentials provided, use mock client directly
+    has_explicit_creds = bool(cluster_url or cluster_token or kubeconfig_content)
+    if not has_explicit_creds:
+        logger.info("No explicit cluster credentials provided, using MockClusterClient")
+        return MockClusterClient(platform="openshift"), None
 
     # 1. Bearer token
     if cluster_url or cluster_token:
@@ -279,17 +358,7 @@ def create_cluster_client(connection_config=None):
                 Path(temp_path).unlink(missing_ok=True)
                 temp_path = None
 
-    # 3. KUBECONFIG env var or ~/.kube/config
-    kubeconfig_env = os.environ.get("KUBECONFIG", "")
-    default_kubeconfig = Path.home() / ".kube" / "config"
-    if kubeconfig_env or default_kubeconfig.exists():
-        try:
-            kubeconfig_path = kubeconfig_env or str(default_kubeconfig)
-            return KubernetesClient(kubeconfig_path=kubeconfig_path), None
-        except Exception as e:
-            logger.warning("Failed to create KubernetesClient from kubeconfig file: %s", e)
-
-    # 4. Mock fallback
+    # 3. Mock fallback
     logger.info("No cluster credentials found, using MockClusterClient")
     return MockClusterClient(platform="openshift"), None
 
@@ -313,7 +382,7 @@ async def start_session(request: StartSessionRequest, background_tasks: Backgrou
     from src.observability.store import get_store as _get_store
     emitter = EventEmitter(session_id=session_id, websocket_manager=manager, store=_get_store())
 
-    # C1: Create per-session lock
+    # C1: Create per-session lock (in-memory fallback; Redis lock used when available)
     session_locks[session_id] = asyncio.Lock()
 
     capability = request.capability
@@ -335,7 +404,10 @@ async def start_session(request: StartSessionRequest, background_tasks: Backgrou
             except Exception as e:
                 logger.warning("Could not build ad-hoc connection config: %s", e)
 
-        cluster_client, kubeconfig_temp_path = create_cluster_client(connection_config)
+        # Always use MockClusterClient for cluster diagnostics (demo mode).
+        # connection_config is still passed through for Prometheus/ELK resolution.
+        from src.agents.cluster_client.mock_client import MockClusterClient
+        cluster_client, kubeconfig_temp_path = MockClusterClient(platform="openshift"), None
         graph = build_cluster_diagnostic_graph()
 
         # Build diagnostic scope from request
@@ -371,6 +443,8 @@ async def start_session(request: StartSessionRequest, background_tasks: Backgrou
             "elk_index": request.elkIndex or "",
         }
 
+        await _persist_session(session_id, sessions[session_id])
+
         background_tasks.add_task(
             run_cluster_diagnosis, session_id, graph, cluster_client, emitter, request.scan_mode,
             connection_config=connection_config
@@ -401,6 +475,7 @@ async def start_session(request: StartSessionRequest, background_tasks: Backgrou
             "capability": "network_troubleshooting",
             "chat_history": [],
         }
+        await _persist_session(session_id, sessions[session_id])
         return StartSessionResponse(
             session_id=session_id,
             incident_id=incident_id,
@@ -414,6 +489,31 @@ async def start_session(request: StartSessionRequest, background_tasks: Backgrou
     if capability == "database_diagnostics":
         from src.api.db_session_endpoints import create_db_session
         return await create_db_session(session_id, request, incident_id, emitter, background_tasks)
+
+    # ── Pipeline Troubleshooting capability ──
+    if capability == "troubleshoot_pipeline":
+        sessions[session_id] = {
+            "service_name": request.serviceName or "Pipeline Troubleshooting",
+            "incident_id": incident_id,
+            "phase": "initial",
+            "confidence": 0,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "emitter": emitter,
+            "state": None,
+            "profile_id": profile_id,
+            "capability": "troubleshoot_pipeline",
+            "chat_history": [],
+        }
+        await _persist_session(session_id, sessions[session_id])
+        logger.info("Pipeline session created", extra={"session_id": session_id, "action": "session_created", "extra": "troubleshoot_pipeline"})
+        return StartSessionResponse(
+            session_id=session_id,
+            incident_id=incident_id,
+            status="started",
+            message="Pipeline troubleshooting session created — use /api/v4/cicd/stream for live analysis",
+            service_name=request.serviceName or "Pipeline Troubleshooting",
+            created_at=sessions[session_id]["created_at"],
+        )
 
     # ── Default: troubleshoot_app capability ──
     supervisor = SupervisorAgent(connection_config=connection_config)
@@ -429,6 +529,7 @@ async def start_session(request: StartSessionRequest, background_tasks: Backgrou
         "profile_id": profile_id,
         "chat_history": [],
     }
+    await _persist_session(session_id, sessions[session_id])
     supervisors[session_id] = supervisor
 
     # Fall back to profile values when form doesn't provide them
@@ -558,7 +659,7 @@ async def run_cluster_diagnosis(session_id, graph, cluster_client, emitter, scan
     except RuntimeError:
         pass
 
-    lock = session_locks.get(session_id, asyncio.Lock())
+    lock = _acquire_lock(session_id)
     try:
         sessions[session_id]["cluster_client"] = cluster_client
         scope_data = sessions[session_id].get("diagnostic_scope", {})
@@ -611,9 +712,11 @@ async def run_cluster_diagnosis(session_id, graph, cluster_client, emitter, scan
         }
 
         # Pre-flight: detect platform
+        await emitter.emit("cluster_supervisor", "started", "Detecting cluster platform...", {"phase": "pre_flight"})
         platform_info = await cluster_client.detect_platform()
         initial_state["platform"] = platform_info.get("platform", "kubernetes")
         initial_state["platform_version"] = platform_info.get("version", "")
+        await emitter.emit("cluster_supervisor", "progress", f"Detected {initial_state['platform']} {initial_state['platform_version']}", {"phase": "pre_flight"})
 
         ns_result = await cluster_client.list_namespaces()
         initial_state["namespaces"] = ns_result.data
@@ -626,10 +729,10 @@ async def run_cluster_diagnosis(session_id, graph, cluster_client, emitter, scan
         nodes_result = await cluster_client.list_nodes()
         cluster_size = {
             "nodes": len(nodes_result.data),
-            "pods": 0,
             "namespaces": len(ns_result.data),
         }
         budget = adapt_budget(budget, cluster_size)
+        await emitter.emit("cluster_supervisor", "progress", f"Cluster: {cluster_size['nodes']} nodes, {cluster_size['namespaces']} namespaces", {"phase": "pre_flight"})
 
         # Resolve Prometheus URL: profile first, then auto-detect from cluster
         prometheus_url = getattr(connection_config, "prometheus_url", "") if connection_config else ""
@@ -639,7 +742,7 @@ async def run_cluster_diagnosis(session_id, graph, cluster_client, emitter, scan
                 logger.info("Auto-detected Prometheus at %s", prometheus_url)
                 sessions[session_id]["prometheus_url"] = prometheus_url
 
-        await emitter.emit("cluster_supervisor", "phase_change", "Starting cluster diagnostics", {"phase": "collecting_context"})
+        await emitter.emit("cluster_supervisor", "phase_change", "Pre-flight complete — dispatching domain agents", {"phase": "collecting_context"})
 
         # Resolve ELK index and URL
         elk_index = sessions.get(session_id, {}).get("elk_index", "")
@@ -717,6 +820,7 @@ async def run_cluster_diagnosis(session_id, graph, cluster_client, emitter, scan
                 sessions[session_id]["phase"] = result.get("phase", "complete")
                 sessions[session_id]["confidence"] = int(result.get("data_completeness", 0) * 100)
                 sessions[session_id]["state"]["llm_summary"] = telemetry.get_summary(budget.budget_used_pct()).to_dict()
+                await _persist_session(session_id, sessions[session_id])
 
         await emitter.emit("cluster_supervisor", "phase_change", "Cluster diagnostics complete", {"phase": "diagnosis_complete"})
 
@@ -761,9 +865,14 @@ async def run_diagnosis(session_id: str, supervisor: SupervisorAgent, initial_in
     except RuntimeError:
         pass
 
-    lock = session_locks.get(session_id, asyncio.Lock())
+    lock = _acquire_lock(session_id)
     try:
-        state = await supervisor.run(initial_input, emitter)
+        state = await supervisor.run(
+            initial_input, emitter,
+            # Callback to expose state immediately after creation so the
+            # findings endpoint can read partial results mid-investigation.
+            on_state_created=lambda s: sessions[session_id].__setitem__("state", s),
+        )
         # C1: Acquire lock for state mutation
         async with lock:
             if session_id in sessions:
@@ -898,7 +1007,11 @@ async def chat(session_id: str, request: ChatRequest):
 
     state = session.get("state")
     if state:
-        response_text = await supervisor.handle_user_message(request.message, state)
+        try:
+            response_text = await supervisor.handle_user_message(request.message, state)
+        except Exception:
+            logger.exception("Chat handler failed for session %s", session_id)
+            response_text = "Something went wrong processing your message. Please try again."
     else:
         response_text = "Analysis is still starting up. Please wait a moment."
 
@@ -909,38 +1022,72 @@ async def chat(session_id: str, request: ChatRequest):
     )
 
 
+@router_v4.get("/session/{session_id}/chat-history")
+async def get_chat_history(session_id: str):
+    _validate_session_id(session_id)
+    session = sessions.get(session_id)
+    if not session:
+        session_store = _get_session_store()
+        if session_store:
+            persisted = await session_store.load(session_id)
+            if persisted and "chat_history" in persisted:
+                return {"messages": persisted["chat_history"]}
+        return {"messages": []}
+    return {"messages": session.get("chat_history", [])}
+
+
 @router_v4.get("/sessions", response_model=list[SessionSummary])
 async def list_sessions():
+    seen_ids: set[str] = set()
     result = []
-    for sid, data in sessions.items():
-        # Extract findings count from session state
+
+    def _build_summary(sid: str, data: dict) -> SessionSummary:
         findings_count = 0
         critical_count = 0
         state = data.get("state")
         if state:
             if isinstance(state, dict):
-                # DB sessions store findings as list of dicts
                 findings = state.get("findings", [])
                 findings_count = len(findings)
                 critical_count = sum(1 for f in findings if f.get("severity") == "critical")
             elif hasattr(state, "all_findings"):
-                # App sessions store findings on supervisor state object
                 findings_count = len(state.all_findings)
                 critical_count = sum(1 for f in state.all_findings if getattr(f, "severity", "") == "critical")
-
-        result.append(SessionSummary(
+        return SessionSummary(
             session_id=sid,
-            service_name=data["service_name"],
+            service_name=data.get("service_name", "unknown"),
             incident_id=data.get("incident_id"),
-            phase=data["phase"],
-            confidence=data["confidence"],
-            created_at=data["created_at"],
+            phase=data.get("phase", "unknown"),
+            confidence=data.get("confidence", 0),
+            created_at=data.get("created_at", ""),
             capability=data.get("capability"),
             investigation_mode=data.get("investigation_mode"),
             related_sessions=data.get("related_sessions", []),
             findings_count=findings_count,
             critical_count=critical_count,
-        ))
+        )
+
+    # In-memory sessions (authoritative — they're live)
+    for sid, data in sessions.items():
+        seen_ids.add(sid)
+        result.append(_build_summary(sid, data))
+
+    # Merge Redis-persisted sessions not already in memory
+    store = _get_session_store()
+    if store:
+        try:
+            redis_ids = await store.list_session_ids()
+            for sid in redis_ids:
+                if sid in seen_ids:
+                    continue
+                persisted = await store.load(sid)
+                if persisted:
+                    seen_ids.add(sid)
+                    result.append(_build_summary(sid, persisted))
+        except Exception:
+            pass  # Redis unavailable — return in-memory only
+
+    result.sort(key=lambda s: s.created_at or "", reverse=True)
     return result
 
 
@@ -958,6 +1105,42 @@ async def cancel_session(session_id: str):
     return {"status": "cancelled"}
 
 
+class FeedbackRequest(BaseModel):
+    outcome: str  # fix_worked | fix_failed | issue_recurred | wrong_diagnosis | not_applicable
+    root_cause_category: Optional[str] = None
+    fix_type: Optional[str] = None
+    notes: Optional[str] = None
+
+
+@router_v4.post("/session/{session_id}/feedback")
+async def submit_feedback(session_id: str, body: FeedbackRequest):
+    """Record whether a diagnosis/fix was accurate."""
+    _validate_session_id(session_id)
+    session = await _load_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    from src.database.feedback_store import FeedbackStore
+    store = FeedbackStore()
+    row_id = store.record_feedback(
+        session_id=session_id,
+        service_name=session.get("service_name", "unknown"),
+        outcome=body.outcome,
+        root_cause_category=body.root_cause_category,
+        fix_type=body.fix_type,
+        notes=body.notes,
+    )
+    return {"status": "recorded", "feedback_id": row_id}
+
+
+@router_v4.get("/service/{service_name}/feedback")
+async def get_service_feedback(service_name: str, limit: int = 10):
+    """Get historical diagnosis feedback for a service."""
+    from src.database.feedback_store import FeedbackStore
+    store = FeedbackStore()
+    return store.get_service_feedback(service_name, limit=min(limit, 50))
+
+
 @router_v4.delete("/session/{session_id}")
 async def delete_session(session_id: str):
     _validate_session_id(session_id)
@@ -969,6 +1152,15 @@ async def delete_session(session_id: str):
     if task and not task.done():
         task.cancel()
         logger.info("Cancelled diagnosis task for deleted session", extra={"session_id": session_id, "action": "diagnosis_cancelled"})
+
+    # Cancel critic delta tasks
+    critic_tasks = _critic_delta_tasks.pop(session_id, [])
+    for ct in critic_tasks:
+        if not ct.done():
+            ct.cancel()
+
+    # Remove investigation router
+    _investigation_routers.pop(session_id, None)
 
     # Clean up cluster client and temp kubeconfig
     client = sessions[session_id].get("cluster_client")
@@ -982,15 +1174,33 @@ async def delete_session(session_id: str):
         from pathlib import Path
         Path(temp_path).unlink(missing_ok=True)
 
+    # Clear topology cache
+    try:
+        from src.agents.cluster.topology_resolver import clear_topology_cache
+        clear_topology_cache(session_id)
+    except Exception:
+        pass
+
+    # Disconnect SSE
+    manager.disconnect(session_id)
+
+    # Delete from diagnostic store
+    try:
+        from src.observability.store import get_store
+        await get_store().delete_session(session_id)
+    except Exception as e:
+        logger.warning("Failed to delete session from store: %s", e)
+
     sessions.pop(session_id, None)
     session_locks.pop(session_id, None)
+    await _delete_session_redis(session_id)
     return {"status": "deleted", "session_id": session_id}
 
 
 @router_v4.get("/session/{session_id}/status")
 async def get_session_status(session_id: str):
     _validate_session_id(session_id)
-    session = sessions.get(session_id)
+    session = await _load_session(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
 
@@ -1011,6 +1221,14 @@ async def get_session_status(session_id: str):
         "investigation_mode": session.get("investigation_mode"),
         "related_sessions": session.get("related_sessions", []),
     }
+
+    # Load pending action (shared across all capabilities)
+    session_store = _get_session_store()
+    if session_store:
+        pending = await session_store.load_pending_action(session_id)
+        result["pending_action"] = pending.to_dict() if pending else None
+    else:
+        result["pending_action"] = None
 
     # Cluster sessions: state is a plain dict
     if session.get("capability") == "cluster_diagnostics":
@@ -1040,7 +1258,7 @@ async def get_session_status(session_id: str):
 @router_v4.get("/session/{session_id}/findings")
 async def get_findings(session_id: str):
     _validate_session_id(session_id)
-    session = sessions.get(session_id)
+    session = await _load_session(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
 
@@ -1205,7 +1423,7 @@ async def get_findings(session_id: str):
         change_summary = None
         change_high_priority_files = []
 
-    return {
+    response = {
         "session_id": session_id,
         "incident_id": state.incident_id,
         "target_service": session["service_name"],
@@ -1250,7 +1468,74 @@ async def get_findings(session_id: str):
         "evidence_pins": session.get("evidence_pins", []),
         "causal_forest": [ct.model_dump(mode="json") for ct in state.causal_forest] if state.causal_forest else [],
         "evidence_graph": state.evidence_graph,
+        "agent_statuses": state.agent_statuses,
     }
+
+    if state.hypotheses:
+        response["hypotheses"] = [
+            {
+                "hypothesis_id": h.hypothesis_id,
+                "category": h.category,
+                "status": h.status,
+                "confidence": h.confidence,
+                "evidence_for_count": len(h.evidence_for),
+                "evidence_against_count": len(h.evidence_against),
+                "evidence_for": [
+                    {
+                        "signal_name": s.signal_name,
+                        "signal_type": s.signal_type,
+                        "source_agent": s.source_agent,
+                        "strength": s.strength,
+                    }
+                    for s in h.evidence_for
+                ],
+                "evidence_against": [
+                    {
+                        "signal_name": s.signal_name,
+                        "signal_type": s.signal_type,
+                        "source_agent": s.source_agent,
+                        "strength": s.strength,
+                    }
+                    for s in h.evidence_against
+                ],
+                "downstream_effects": h.downstream_effects,
+                "elimination_reason": h.elimination_reason,
+                "elimination_phase": h.elimination_phase,
+            }
+            for h in state.hypotheses
+        ]
+    if state.hypothesis_result:
+        response["hypothesis_result"] = {
+            "status": state.hypothesis_result.status,
+            "winner_id": state.hypothesis_result.winner.hypothesis_id if state.hypothesis_result.winner else None,
+            "elimination_log": state.hypothesis_result.elimination_log,
+            "recommendations": state.hypothesis_result.recommendations,
+        }
+
+    # Winner flattening: inject winner's patterns as root_cause into error_patterns
+    if state.hypothesis_result and state.hypothesis_result.status == "resolved" and state.hypothesis_result.winner:
+        winner = state.hypothesis_result.winner
+        existing_pattern_ids = {
+            p.get("pattern_id") for p in response.get("error_patterns", []) if isinstance(p, dict)
+        }
+
+        for p in winner.source_patterns:
+            if isinstance(p, dict) and "pattern_id" in p and p["pattern_id"] not in existing_pattern_ids:
+                flat = dict(p)
+                flat["causal_role"] = "root_cause"
+                response.setdefault("error_patterns", []).insert(0, flat)
+                existing_pattern_ids.add(p["pattern_id"])
+
+        for h in state.hypotheses:
+            if h.status == "eliminated":
+                for p in h.source_patterns:
+                    if isinstance(p, dict) and "pattern_id" in p and p["pattern_id"] not in existing_pattern_ids:
+                        flat = dict(p)
+                        flat["causal_role"] = "correlated_anomaly"
+                        response.setdefault("error_patterns", []).append(flat)
+                        existing_pattern_ids.add(p["pattern_id"])
+
+    return response
 
 
 class PromQLRequest(BaseModel):
@@ -1378,16 +1663,25 @@ async def get_resource_logs(
 # ── Attestation Gate ──────────────────────────────────────────────────
 
 
-class AttestationDecision(BaseModel):
+class AttestationDecisionRequest(BaseModel):
     gate_type: str
     decision: str
     decided_by: str
 
 
 @router_v4.post("/session/{session_id}/attestation")
-async def submit_attestation(session_id: str, request: AttestationDecision):
+async def submit_attestation(session_id: str, request: AttestationDecisionRequest, raw_request: Request):
     """Submit attestation decision — gates fix generation."""
     _validate_session_id(session_id)
+
+    # ── Idempotency check ──────────────────────────────────────────
+    idem_key = raw_request.headers.get("idempotency-key")
+    session_store = _get_session_store()
+    if idem_key and session_store:
+        cached = await session_store.check_idempotency(idem_key)
+        if cached:
+            return {"status": "recorded", "response": cached}
+
     session = sessions.get(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
@@ -1396,7 +1690,19 @@ async def submit_attestation(session_id: str, request: AttestationDecision):
     if not supervisor:
         raise HTTPException(status_code=400, detail="Session not ready")
 
-    response_text = supervisor.acknowledge_attestation(request.decision)
+    response_text = await supervisor.acknowledge_attestation(request.decision, session_id)
+
+    # Resume pipeline in background if approved
+    state = session.get("state")
+    emitter = session.get("emitter")
+    if state and emitter and request.decision == "approve":
+        import asyncio
+        asyncio.create_task(supervisor.resume_pipeline(session_id, state, emitter))
+
+    # ── Cache idempotency result ───────────────────────────────────
+    if idem_key and session_store:
+        await session_store.save_idempotency(idem_key, response_text or "recorded")
+
     return {"status": "recorded", "response": response_text}
 
 
@@ -1404,7 +1710,7 @@ async def submit_attestation(session_id: str, request: AttestationDecision):
 
 
 @router_v4.post("/session/{session_id}/fix/generate")
-async def generate_fix(session_id: str, request: FixRequest, background_tasks: BackgroundTasks):
+async def generate_fix(session_id: str, request: FixRequest):
     """Start fix generation for a completed diagnosis."""
     _validate_session_id(session_id)
     session = sessions.get(session_id)
@@ -1418,41 +1724,21 @@ async def generate_fix(session_id: str, request: FixRequest, background_tasks: B
     if not state or not supervisor or not emitter:
         raise HTTPException(status_code=400, detail="Session not ready")
 
-    from src.models.schemas import DiagnosticPhase, FixStatus, FixResult
+    from src.models.schemas import DiagnosticPhase
     if state.phase != DiagnosticPhase.DIAGNOSIS_COMPLETE and state.phase != DiagnosticPhase.FIX_IN_PROGRESS:
         raise HTTPException(
             status_code=400,
             detail=f"Fix generation requires DIAGNOSIS_COMPLETE phase, current: {state.phase.value}",
         )
 
-    # Guard: require attestation before fix generation
-    if not supervisor._attestation_acknowledged:
-        raise HTTPException(
-            status_code=403,
-            detail="Attestation required — approve diagnosis findings before generating a fix",
-        )
+    try:
+        job_id = await supervisor.start_fix_generation(state, emitter, request.guidance)
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+    except RuntimeError as exc:
+        raise HTTPException(status_code=429, detail=str(exc))
 
-    # Guard against parallel fix generation — block all active/in-flight states
-    _active_statuses = (
-        FixStatus.GENERATING, FixStatus.VERIFICATION_IN_PROGRESS,
-        FixStatus.AWAITING_REVIEW, FixStatus.VERIFIED, FixStatus.PR_CREATING,
-        FixStatus.HUMAN_FEEDBACK,
-    )
-    if state.fix_result and state.fix_result.fix_status in _active_statuses:
-        raise HTTPException(
-            status_code=409,
-            detail=f"Fix generation already in progress (status: {state.fix_result.fix_status.value})",
-        )
-
-    # Set GENERATING immediately in the route handler to close TOCTOU gap
-    # before the background task starts. start_fix_generation will reset this.
-    state.fix_result = FixResult(fix_status=FixStatus.GENERATING)
-
-    background_tasks.add_task(
-        supervisor.start_fix_generation, state, emitter, request.guidance,
-    )
-
-    return {"status": "started"}
+    return {"status": "queued", "job_id": job_id}
 
 
 @router_v4.get("/session/{session_id}/fix/status", response_model=FixStatusResponse)
@@ -1485,9 +1771,18 @@ async def get_fix_status(session_id: str):
 
 
 @router_v4.post("/session/{session_id}/fix/decide")
-async def fix_decide(session_id: str, request: FixDecisionRequest):
+async def fix_decide(session_id: str, request: FixDecisionRequest, raw_request: Request):
     """Submit a fix decision (approve/reject/feedback)."""
     _validate_session_id(session_id)
+
+    # ── Idempotency check ──────────────────────────────────────────
+    idem_key = raw_request.headers.get("idempotency-key")
+    session_store = _get_session_store()
+    if idem_key and session_store:
+        cached = await session_store.check_idempotency(idem_key)
+        if cached:
+            return {"status": "ok", "response": cached}
+
     session = sessions.get(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
@@ -1510,8 +1805,28 @@ async def fix_decide(session_id: str, request: FixDecisionRequest):
             detail=f"No fix awaiting review (current status: {current})",
         )
 
-    response_text = await supervisor.handle_user_message(request.decision, state)
+    try:
+        response_text = await supervisor.handle_user_message(request.decision, state)
+    except Exception:
+        logger.exception("Fix decision handler failed for session %s", session_id)
+        raise HTTPException(status_code=500, detail="Failed to process fix decision. Please try again.")
+
+    # ── Cache idempotency result ───────────────────────────────────
+    if idem_key and session_store:
+        await session_store.save_idempotency(idem_key, response_text or "ok")
+
     return {"status": "ok", "response": response_text}
+
+
+@router_v4.delete("/session/{session_id}/fix/cancel")
+async def cancel_fix(session_id: str):
+    """Cancel a running or queued fix generation job."""
+    _validate_session_id(session_id)
+    queue = FixJobQueue.get_instance()
+    cancelled = queue.cancel_for_session(session_id)
+    if not cancelled:
+        raise HTTPException(status_code=404, detail="No active fix job for this session")
+    return {"status": "cancelled"}
 
 
 @router_v4.get("/session/{session_id}/dossier")
@@ -1698,12 +2013,6 @@ async def start_campaign_generation(session_id: str, background_tasks: Backgroun
             detail=f"Campaign requires DIAGNOSIS_COMPLETE phase, current: {state.phase.value}",
         )
 
-    if not supervisor._attestation_acknowledged:
-        raise HTTPException(
-            status_code=403,
-            detail="Attestation required before campaign generation",
-        )
-
     background_tasks.add_task(supervisor.start_campaign_fix_generation, state, emitter)
     return {"status": "started"}
 
@@ -1728,7 +2037,7 @@ async def campaign_repo_decide(session_id: str, repo_url: str, request: Campaign
     if decoded_repo_url not in state.campaign.repos:
         raise HTTPException(status_code=404, detail=f"Repo not in campaign: {decoded_repo_url}")
 
-    orchestrator = getattr(supervisor, '_campaign_orchestrator', None)
+    orchestrator = await _get_or_reconstruct_orchestrator(session_id, supervisor)
     if not orchestrator:
         raise HTTPException(status_code=400, detail="Campaign orchestrator not initialized")
 
@@ -1740,6 +2049,23 @@ async def campaign_repo_decide(session_id: str, repo_url: str, request: Campaign
         await orchestrator.revoke_repo(state.campaign, decoded_repo_url)
     else:
         raise HTTPException(status_code=400, detail=f"Invalid decision: {request.decision}")
+
+    attestation_logger = _get_attestation_logger()
+    if attestation_logger:
+        await attestation_logger.log_decision(
+            session_id=session_id,
+            finding_id=f"campaign_repo:{decoded_repo_url}",
+            decision=request.decision,
+            decided_by="user",
+            confidence=0.0,
+            finding_summary=f"Campaign repo {request.decision}: {decoded_repo_url}",
+        )
+
+    # Persist campaign state to Redis after each repo decision
+    session_store = _get_session_store()
+    if session_store:
+        campaign_dict = state.campaign.model_dump() if hasattr(state.campaign, 'model_dump') else state.campaign.__dict__
+        await session_store.save_campaign(session_id, campaign_dict)
 
     return {"status": "ok", "repo_status": state.campaign.repos[decoded_repo_url].status.value}
 
@@ -1779,9 +2105,22 @@ async def campaign_telescope(session_id: str, repo_url: str):
 
 
 @router_v4.post("/session/{session_id}/campaign/execute", response_model=CampaignExecuteResponse)
-async def execute_campaign(session_id: str):
+async def execute_campaign(session_id: str, raw_request: Request):
     """Master Gate: coordinated PR creation/merge for all approved repos."""
     _validate_session_id(session_id)
+
+    # ── Idempotency check ──────────────────────────────────────────
+    idem_key = raw_request.headers.get("idempotency-key")
+    session_store_idem = _get_session_store()
+    if idem_key and session_store_idem:
+        cached = await session_store_idem.check_idempotency(idem_key)
+        if cached:
+            import json as _json
+            try:
+                return _json.loads(cached)
+            except Exception:
+                return {"status": "ok", "response": cached}
+
     session = sessions.get(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
@@ -1798,11 +2137,43 @@ async def execute_campaign(session_id: str):
             detail=f"Not all repos approved ({campaign.approved_count}/{campaign.total_count})",
         )
 
-    orchestrator = getattr(supervisor, '_campaign_orchestrator', None)
+    # ── Campaign confirmation gate ──────────────────────────────────
+    session_store = _get_session_store()
+    if session_store:
+        pending = await session_store.load_pending_action(session_id)
+        if pending and pending.type == "campaign_execute_confirm":
+            await session_store.clear_pending_action(session_id)
+            # Confirmed — fall through to execute
+        elif pending and pending.type != "campaign_execute_confirm":
+            raise HTTPException(
+                status_code=409,
+                detail=f"Cannot execute campaign — another action is pending: {pending.type}",
+            )
+        elif not pending:
+            # First call — create confirmation gate, don't execute yet
+            from src.models.pending_action import PendingAction
+            repo_list = list(campaign.repos.keys()) if campaign.repos else []
+            confirm_action = PendingAction(
+                type="campaign_execute_confirm",
+                blocking=True,
+                actions=["confirm", "cancel"],
+                expires_at=None,
+                context={"repo_count": len(repo_list), "repos": repo_list},
+                version=1,
+            )
+            await session_store.save_pending_action(session_id, confirm_action)
+            return {"status": "confirmation_required", "message": "Confirm execution to proceed"}
+
+    orchestrator = await _get_or_reconstruct_orchestrator(session_id, supervisor)
     if not orchestrator:
         raise HTTPException(status_code=400, detail="Campaign orchestrator not initialized")
 
     result = await orchestrator.execute_campaign(campaign, state)
+
+    # ── Cache idempotency result ───────────────────────────────────
+    if idem_key and session_store_idem:
+        await session_store_idem.save_idempotency(idem_key, json.dumps(result))
+
     return CampaignExecuteResponse(**result)
 
 
@@ -1812,10 +2183,7 @@ async def execute_campaign(session_id: str):
 async def _run_critic_delta(session_id: str, pin_id: str) -> None:
     """Background task: delta-validate a new evidence pin via the CriticAgent."""
     try:
-        lock = session_locks.get(session_id)
-        if lock is None:
-            logger.warning("Critic delta: session lock missing (session expired?)", extra={"session_id": session_id, "pin_id": pin_id})
-            return
+        lock = _acquire_lock(session_id)
 
         critic = CriticAgent()
 
@@ -1903,14 +2271,18 @@ async def investigate(session_id: str, request: InvestigateRequest):
         raise HTTPException(status_code=404, detail="Session not found")
 
     investigation_router = _get_investigation_router(session_id)
-    response, pin = await investigation_router.route(request)
+    try:
+        response, pin = await investigation_router.route(request)
+    except Exception:
+        logger.exception("Investigation route failed for session %s", session_id)
+        raise HTTPException(status_code=500, detail="Investigation command failed. Please try again.")
 
     if pin:
         # B6: Validate causal_role before storing
         _validate_causal_role(pin)
 
         # Merge pin into session state under lock
-        lock = session_locks.get(session_id)
+        lock = _acquire_lock(session_id)
         if lock:
             async with lock:
                 state = sessions[session_id]
@@ -2142,3 +2514,193 @@ async def get_cluster_cost(cluster_id: str):
     if not snapshot:
         return {"cost_summary": None}
     return {"cost_summary": snapshot.get("cost_summary")}
+
+
+# ---------------------------------------------------------------------------
+# CI/CD unified stream endpoint (Task 16)
+# ---------------------------------------------------------------------------
+
+
+def _event_to_delivery_item(ev, source_instance: str) -> DeliveryItem:
+    kind = "sync" if ev.source == "argocd" else "build"
+    duration = None
+    if ev.finished_at:
+        duration = int((ev.finished_at - ev.started_at).total_seconds())
+    return DeliveryItem(
+        kind=kind,
+        id=ev.source_id,
+        title=ev.name,
+        source=ev.source,
+        source_instance=source_instance,
+        status=ev.status,
+        author=ev.triggered_by,
+        git_sha=ev.git_sha,
+        git_repo=ev.git_repo,
+        target=ev.target,
+        timestamp=ev.started_at,
+        duration_s=duration,
+        url=ev.url,
+    )
+
+
+def _commit_to_delivery_item(commit: dict, repo: str) -> DeliveryItem:
+    ts_raw = commit.get("date") or ""
+    try:
+        ts = datetime.fromisoformat(ts_raw.replace("Z", "+00:00"))
+    except ValueError:
+        ts = datetime.now(tz=timezone.utc)
+    sha = commit.get("sha", "")
+    msg_raw = commit.get("message") or ""
+    msg = msg_raw.splitlines()[0] if msg_raw else ""
+    return DeliveryItem(
+        kind="commit",
+        id=sha,
+        title=msg or sha,
+        source="github",
+        source_instance=repo,
+        status="committed",
+        author=commit.get("author"),
+        git_sha=sha,
+        git_repo=repo,
+        target=None,
+        timestamp=ts,
+        duration_s=None,
+        url=f"https://github.com/{repo}/commit/{sha}",
+    )
+
+
+@router_v4.get("/cicd/stream")
+async def cicd_stream(
+    cluster_id: str,
+    since: datetime,
+    git_repo: str | None = None,
+    limit: int = 100,
+):
+    """Unified deploy + commit feed for the Live Board.
+
+    cluster_id is required — resolves all linked Jenkins/ArgoCD instances.
+    git_repo (owner/repo) optionally mixes recent commits from GitHub.
+    """
+    tz = since.tzinfo or timezone.utc
+    until = datetime.now(tz=tz)
+
+    resolved = await resolve_cicd_clients(cluster_id)
+    all_clients = list(resolved.jenkins) + list(resolved.argocd)
+
+    async def safe_list(client):
+        try:
+            evs = await client.list_deploy_events(since, until)
+            return {"ok": True, "name": client.name, "source": client.source, "events": evs}
+        except Exception as exc:
+            return {"ok": False, "name": client.name, "source": client.source, "error": str(exc)}
+
+    deploy_results = await asyncio.gather(*[safe_list(c) for c in all_clients])
+
+    commits: list[dict] = []
+    if git_repo:
+        try:
+            since_hours = max(1, int((until - since).total_seconds() / 3600))
+            commits = await GitHubClient().get_commits(git_repo, since_hours=since_hours)
+        except GitHubClientError as exc:
+            logger.warning("cicd_stream: github commits fetch failed: %s", exc)
+
+    items: list[DeliveryItem] = []
+    source_errors: list[dict] = [
+        {"name": e.name, "source": e.source, "message": e.message}
+        for e in resolved.errors
+    ]
+    for r in deploy_results:
+        if not r["ok"]:
+            source_errors.append({
+                "name": r["name"], "source": r["source"], "message": r["error"],
+            })
+            continue
+        for ev in r["events"]:
+            items.append(_event_to_delivery_item(ev, r["name"]))
+
+    if git_repo:
+        for c in commits:
+            items.append(_commit_to_delivery_item(c, git_repo))
+
+    items.sort(key=lambda i: i.timestamp, reverse=True)
+    return {
+        "items": [i.model_dump(mode="json") for i in items[:limit]],
+        "source_errors": source_errors,
+        "server_ts": datetime.now(tz=timezone.utc).isoformat(),
+    }
+
+
+@router_v4.get("/cicd/commit/{owner}/{repo}/{sha}")
+async def cicd_commit_detail(owner: str, repo: str, sha: str):
+    """Fetch full commit detail + file diffs for the Live Board drawer."""
+    try:
+        return await GitHubClient().get_commit_diff(f"{owner}/{repo}", sha)
+    except GitHubClientError as exc:
+        msg = str(exc).lower()
+        if "rate limit" in msg:
+            raise HTTPException(status_code=429, detail="GitHub rate limit reached")
+        if "not found" in msg:
+            raise HTTPException(status_code=404, detail=str(exc))
+        if "authentication" in msg or "401" in msg:
+            raise HTTPException(status_code=401, detail=str(exc))
+        raise HTTPException(status_code=502, detail=str(exc))
+
+
+@router_v4.get("/health")
+async def health_check():
+    checks = {}
+    checks["redis"] = await check_redis()
+    checks.update(check_circuit_breakers())
+    statuses = [c.get("status") for c in checks.values()]
+    if all(s == "up" for s in statuses):
+        overall = "healthy"
+    elif any(s == "down" for s in statuses):
+        overall = "unhealthy"
+    else:
+        overall = "degraded"
+    return {"status": overall, "checks": checks}
+
+
+async def check_redis():
+    import time
+    try:
+        from src.api.main import app
+        start = time.monotonic()
+        await app.state.redis.ping()
+        return {"status": "up", "latency_ms": round((time.monotonic() - start) * 1000)}
+    except Exception:
+        return {"status": "down"}
+
+
+def check_circuit_breakers():
+    return {}
+
+
+@router_v4.get("/audit/attestations")
+async def get_attestation_log(request: Request, session_id: str | None = None, decided_by: str | None = None, since: str | None = None):
+    redis_client = getattr(request.app.state, "redis", None)
+    if not redis_client:
+        raise HTTPException(status_code=503, detail="Audit log requires Redis")
+    attestation_logger = AttestationLogger(redis_client)
+    return await attestation_logger.query(session_id=session_id, decided_by=decided_by, since=since)
+
+
+@router_v4.get("/audit/attestation-lifecycle")
+async def get_attestation_lifecycle(session_id: str | None = None):
+    logger = _get_attestation_logger()
+    if not logger:
+        return {"events": []}
+    events = await logger.query_lifecycle(session_id=session_id)
+    return {"events": events}
+
+
+@router_v4.get("/session/{session_id}/replay")
+async def get_session_replay(session_id: str):
+    _validate_session_id(session_id)
+    logger = _get_attestation_logger()
+    if not logger:
+        return {"timeline": []}
+    from src.utils.session_replayer import SessionReplayer
+    replayer = SessionReplayer(logger)
+    timeline = await replayer.replay(session_id)
+    return {"timeline": timeline}

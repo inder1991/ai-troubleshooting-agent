@@ -20,9 +20,11 @@ import type {
   ClusterRegistryEntry,
   ClusterRecommendationSnapshotDTO,
   ClusterCostSummaryDTO,
+  CICDStreamResponse,
+  CommitDetail,
 } from '../types';
 
-export const API_BASE_URL = 'http://localhost:8000';
+export const API_BASE_URL = '';
 
 /** Safely extract error detail from a response (handles non-JSON like 502 nginx HTML). */
 const extractErrorDetail = async (response: Response, fallback: string): Promise<string> => {
@@ -161,16 +163,22 @@ export const sendChatMessage = async (
   };
 };
 
-export const getSessionStatus = async (sessionId: string): Promise<V4SessionStatus> => {
-  const response = await fetch(`${API_BASE_URL}/api/v4/session/${sessionId}/status`);
+export const getSessionStatus = async (
+  sessionId: string,
+  opts?: { signal?: AbortSignal },
+): Promise<V4SessionStatus> => {
+  const response = await fetch(`${API_BASE_URL}/api/v4/session/${sessionId}/status`, { signal: opts?.signal });
   if (!response.ok) {
     throw new Error(await extractErrorDetail(response, 'Failed to get session status'));
   }
   return response.json();
 };
 
-export const getFindings = async (sessionId: string): Promise<V4Findings> => {
-  const response = await fetch(`${API_BASE_URL}/api/v4/session/${sessionId}/findings`);
+export const getFindings = async (
+  sessionId: string,
+  opts?: { signal?: AbortSignal },
+): Promise<V4Findings> => {
+  const response = await fetch(`${API_BASE_URL}/api/v4/session/${sessionId}/findings`, { signal: opts?.signal });
   if (!response.ok) {
     throw new Error(await extractErrorDetail(response, 'Failed to get findings'));
   }
@@ -254,6 +262,23 @@ export const getFixStatus = async (
   return response.json();
 };
 
+export const submitAttestation = async (
+  sessionId: string,
+  gateType: string,
+  decision: string,
+  decidedBy: string
+): Promise<{ status: string; response: string }> => {
+  const response = await fetch(`${API_BASE_URL}/api/v4/session/${sessionId}/attestation`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ gate_type: gateType, decision, decided_by: decidedBy }),
+  });
+  if (!response.ok) {
+    throw new Error(await extractErrorDetail(response, 'Failed to submit attestation'));
+  }
+  return response.json();
+};
+
 export const decideOnFix = async (
   sessionId: string,
   decision: string
@@ -265,6 +290,18 @@ export const decideOnFix = async (
   });
   if (!response.ok) {
     throw new Error(await extractErrorDetail(response, 'Failed to submit fix decision'));
+  }
+  return response.json();
+};
+
+export const cancelFix = async (
+  sessionId: string
+): Promise<{ status: string }> => {
+  const response = await fetch(`${API_BASE_URL}/api/v4/session/${sessionId}/fix/cancel`, {
+    method: 'DELETE',
+  });
+  if (!response.ok) {
+    throw new Error(await extractErrorDetail(response, 'Failed to cancel fix'));
   }
   return response.json();
 };
@@ -304,16 +341,6 @@ export const getConfidence = async (sessionId: string) => {
 export const getReasoning = async (sessionId: string) => {
   const response = await fetch(`${API_BASE_URL}/api/v5/session/${sessionId}/reasoning`);
   if (!response.ok) throw new Error('Failed to get reasoning');
-  return response.json();
-};
-
-export const submitAttestation = async (sessionId: string, gateType: string, decision: string, decidedBy: string) => {
-  const response = await fetch(`${API_BASE_URL}/api/v4/session/${sessionId}/attestation`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ gate_type: gateType, decision, decided_by: decidedBy }),
-  });
-  if (!response.ok) throw new Error('Failed to submit attestation');
   return response.json();
 };
 
@@ -2482,3 +2509,25 @@ export async function fetchBlastRadius(deviceId: string): Promise<{ affected: { 
   if (!res.ok) return { affected: [], count: 0 };
   return res.json();
 }
+
+// ── CICD API ──
+
+export const getCICDStream = async (params: {
+  clusterId: string;
+  since: string; // ISO
+  gitRepo?: string;
+  limit?: number;
+}): Promise<CICDStreamResponse> => {
+  const qs = new URLSearchParams({ cluster_id: params.clusterId, since: params.since });
+  if (params.gitRepo) qs.set('git_repo', params.gitRepo);
+  if (params.limit != null) qs.set('limit', String(params.limit));
+  const res = await fetch(`${API_BASE_URL}/api/v4/cicd/stream?${qs}`);
+  if (!res.ok) throw new Error(await extractErrorDetail(res, 'Failed to load delivery stream'));
+  return res.json();
+};
+
+export const getCICDCommitDetail = async (owner: string, repo: string, sha: string): Promise<CommitDetail> => {
+  const res = await fetch(`${API_BASE_URL}/api/v4/cicd/commit/${owner}/${repo}/${sha}`);
+  if (!res.ok) throw new Error(await extractErrorDetail(res, 'Failed to load commit detail'));
+  return res.json();
+};

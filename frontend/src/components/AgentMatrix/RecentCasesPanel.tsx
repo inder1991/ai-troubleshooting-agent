@@ -33,7 +33,7 @@ const RecentCasesPanel: React.FC<RecentCasesPanelProps> = ({ executions, isLoadi
         <h3 className="text-xs font-mono uppercase tracking-widest" style={{ color: '#64748b' }}>
           Recent Cases
         </h3>
-        <span className="text-[10px] font-mono" style={{ color: '#475569' }}>
+        <span className="text-body-xs font-mono" style={{ color: '#475569' }}>
           Last {cases.length} executions
         </span>
       </div>
@@ -72,7 +72,7 @@ const RecentCasesPanel: React.FC<RecentCasesPanelProps> = ({ executions, isLoadi
               >
                 {/* Status badge */}
                 <span
-                  className="text-[9px] font-mono font-semibold uppercase px-1.5 py-0.5 rounded flex-shrink-0 mt-0.5"
+                  className="text-body-xs font-mono font-semibold uppercase px-1.5 py-0.5 rounded flex-shrink-0 mt-0.5"
                   style={{ color: style.color, backgroundColor: style.bg }}
                 >
                   {exec.status}
@@ -82,13 +82,13 @@ const RecentCasesPanel: React.FC<RecentCasesPanelProps> = ({ executions, isLoadi
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-slate-300 truncate">{exec.summary}</p>
                   <div className="flex items-center gap-3 mt-1">
-                    <span className="text-[10px] font-mono" style={{ color: '#475569' }}>
+                    <span className="text-body-xs font-mono" style={{ color: '#475569' }}>
                       {exec.duration_ms}ms
                     </span>
-                    <span className="text-[10px] font-mono" style={{ color: '#475569' }}>
+                    <span className="text-body-xs font-mono" style={{ color: '#475569' }}>
                       conf: {exec.confidence ? `${(exec.confidence * 100).toFixed(0)}%` : '—'}
                     </span>
-                    <span className="text-[10px] font-mono" style={{ color: '#374151' }}>
+                    <span className="text-body-xs font-mono" style={{ color: '#374151' }}>
                       {relativeTime(exec.timestamp)}
                     </span>
                   </div>

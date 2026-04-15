@@ -80,7 +80,7 @@ const InvestigationFlowTab: React.FC = () => {
         return { text: 'complete \u2713', className: 'text-emerald-500' };
       case 'visible':
       default:
-        return { text: 'waiting', className: 'text-slate-500' };
+        return { text: 'waiting', className: 'text-slate-400' };
     }
   };
 
@@ -93,7 +93,7 @@ const InvestigationFlowTab: React.FC = () => {
         <span className="text-sm font-bold text-white">
           Live Investigation: Checkout Failure
         </span>
-        <span className="bg-red-500/20 text-red-400 text-[10px] font-bold uppercase px-2 py-0.5 rounded">
+        <span className="bg-wr-severity-high/20 text-red-400 text-body-xs font-bold uppercase px-2 py-0.5 rounded">
           SEV-1
         </span>
       </div>
@@ -120,13 +120,13 @@ const InvestigationFlowTab: React.FC = () => {
             textColor = 'text-[#e09f3e] font-bold';
           } else {
             dotColor = 'bg-slate-600';
-            textColor = 'text-slate-600';
+            textColor = 'text-slate-500';
           }
 
           return (
             <div
               key={label}
-              className={`flex items-center gap-1 text-[9px] font-mono uppercase tracking-wider ${textColor}`}
+              className={`flex items-center gap-1 text-body-xs font-mono uppercase tracking-wider ${textColor}`}
             >
               <span
                 className={`inline-block w-1.5 h-1.5 rounded-full ${dotColor}`}
@@ -157,7 +157,7 @@ const InvestigationFlowTab: React.FC = () => {
               }}
             >
               <div
-                className="absolute -top-2.5 left-5 px-2 text-[9px] font-bold tracking-wider uppercase"
+                className="absolute -top-2.5 left-5 px-2 text-body-xs font-bold tracking-wider uppercase"
                 style={{
                   backgroundColor: '#1a1814',
                   color: 'rgba(224,159,62,0.3)',
@@ -213,13 +213,13 @@ const InvestigationFlowTab: React.FC = () => {
                 </div>
 
                 {/* Detail */}
-                <div className="text-[10px] font-mono text-slate-400 whitespace-pre-line">
+                <div className="text-body-xs font-mono text-slate-400 whitespace-pre-line">
                   {node.detail}
                 </div>
 
                 {/* Status */}
                 <div
-                  className={`text-[9px] uppercase font-bold tracking-wider mt-2 ${statusLabel.className}`}
+                  className={`text-body-xs uppercase font-bold tracking-wider mt-2 ${statusLabel.className}`}
                 >
                   {statusLabel.text}
                 </div>
@@ -232,7 +232,7 @@ const InvestigationFlowTab: React.FC = () => {
                       : 'max-h-0 opacity-0 overflow-hidden'
                   }`}
                 >
-                  <div className="text-[10px] font-mono text-slate-300 mt-2 pt-2 border-t border-[#3d3528]">
+                  <div className="text-body-xs font-mono text-slate-300 mt-2 pt-2 border-t border-[#3d3528]">
                     {node.outputText}
                   </div>
                 </div>
@@ -246,7 +246,7 @@ const InvestigationFlowTab: React.FC = () => {
       <div className="flex items-center justify-between mt-4 pt-4 border-t border-[#3d3528]">
         {/* Speed buttons */}
         <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-500">Speed:</span>
+          <span className="text-xs text-slate-400">Speed:</span>
           {speeds.map((s) => (
             <button
               key={s}
@@ -254,7 +254,7 @@ const InvestigationFlowTab: React.FC = () => {
               className={`px-2.5 py-1 rounded text-xs font-mono transition-colors ${
                 speed === s
                   ? 'bg-[#e09f3e]/20 text-[#e09f3e] border border-[#e09f3e]/30'
-                  : 'bg-slate-900/50 text-slate-500 border border-[#3d3528] hover:text-slate-300'
+                  : 'bg-wr-bg/50 text-slate-400 border border-[#3d3528] hover:text-slate-300'
               }`}
             >
               {s}x
@@ -267,7 +267,7 @@ const InvestigationFlowTab: React.FC = () => {
           {(isRunning || progressPercent > 0) && (
             <button
               onClick={resetAnimation}
-              className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-bold transition-colors border border-[#3d3528]"
+              className="px-4 py-2 rounded-lg bg-wr-surface hover:bg-wr-inset text-slate-300 text-sm font-bold transition-colors border border-[#3d3528]"
             >
               Reset
             </button>

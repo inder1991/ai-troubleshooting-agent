@@ -27,7 +27,7 @@ const DatabaseLayout: React.FC = () => {
   return (
     <div className="flex h-full overflow-hidden">
       {/* Internal sidebar */}
-      <nav className="w-48 flex-shrink-0 border-r border-slate-700/50 bg-[#12110e] flex flex-col py-3">
+      <nav className="w-48 flex-shrink-0 border-r border-wr-border-strong/50 bg-[#12110e] flex flex-col py-3">
         <div className="px-4 mb-4">
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-amber-400 text-xl">storage</span>
@@ -41,8 +41,8 @@ const DatabaseLayout: React.FC = () => {
             className={`
               flex items-center gap-2.5 px-4 py-2 text-left text-sm transition-colors
               ${activeView === item.id
-                ? 'bg-amber-500/10 text-amber-400 border-r-2 border-amber-400'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'}
+                ? 'bg-wr-severity-medium/10 text-amber-400 border-r-2 border-amber-400'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-wr-surface/40'}
             `}
           >
             <span className="material-symbols-outlined text-[18px]">{item.icon}</span>

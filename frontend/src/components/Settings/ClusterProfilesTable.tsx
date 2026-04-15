@@ -99,7 +99,7 @@ const ClusterProfilesTable: React.FC<ClusterProfilesTableProps> = ({
                     </td>
                     <td className="px-6 py-4 text-sm">
                       <span
-                        className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-tighter ${envBadge[profile.environment]}`}
+                        className={`px-2 py-1 rounded text-body-xs font-bold uppercase tracking-tighter ${envBadge[profile.environment]}`}
                       >
                         {profile.environment}
                       </span>
@@ -163,7 +163,7 @@ const ClusterProfilesTable: React.FC<ClusterProfilesTableProps> = ({
                         </button>
                         <button
                           onClick={() => onDelete(profile.id)}
-                          className="p-1.5 hover:bg-red-500/20 text-[#8fc3cc] hover:text-red-400 rounded transition-colors"
+                          className="p-1.5 hover:bg-wr-severity-high/20 text-[#8fc3cc] hover:text-red-400 rounded transition-colors"
                           title="Delete"
                         >
                           <span

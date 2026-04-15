@@ -274,7 +274,7 @@ const AdapterInstanceForm: React.FC<Props> = ({ instance, onClose }) => {
 
           {/* API Key */}
           <div>
-            <label className={labelClass}>API Key {isEditing && <span className="text-slate-500 normal-case">(leave blank to keep current)</span>}</label>
+            <label className={labelClass}>API Key {isEditing && <span className="text-slate-400 normal-case">(leave blank to keep current)</span>}</label>
             <input
               type="password"
               value={apiKey}
@@ -294,13 +294,13 @@ const AdapterInstanceForm: React.FC<Props> = ({ instance, onClose }) => {
                 <input type="text" value={ciscoUsername} onChange={(e) => setCiscoUsername(e.target.value)} placeholder="admin" className={inputClass} style={inputStyle} />
               </div>
               <div>
-                <label className={labelClass}>Password {isEditing && <span className="text-slate-500 normal-case">(leave blank to keep current)</span>}</label>
+                <label className={labelClass}>Password {isEditing && <span className="text-slate-400 normal-case">(leave blank to keep current)</span>}</label>
                 <input type="password" value={ciscoPassword} onChange={(e) => setCiscoPassword(e.target.value)} placeholder={isEditing ? '••••••••' : 'RESTCONF password'} className={inputClass} style={inputStyle} />
               </div>
               <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
                 <input type="checkbox" checked={verifySsl} onChange={(e) => setVerifySsl(e.target.checked)} className="accent-[#e09f3e]" />
                 Verify SSL Certificate
-                <span className="text-xs text-slate-500">(disable for self-signed certs)</span>
+                <span className="text-xs text-slate-400">(disable for self-signed certs)</span>
               </label>
             </div>
           )}
@@ -359,7 +359,7 @@ const AdapterInstanceForm: React.FC<Props> = ({ instance, onClose }) => {
                             className="accent-[#e09f3e]"
                           />
                           <span className="font-mono">{dg.name}</span>
-                          <span className="text-xs text-slate-500">({dg.connected_devices} devices)</span>
+                          <span className="text-xs text-slate-400">({dg.connected_devices} devices)</span>
                         </label>
                       ))}
                     </div>
@@ -452,7 +452,7 @@ const AdapterInstanceForm: React.FC<Props> = ({ instance, onClose }) => {
                 <input type="text" value={f5Username} onChange={(e) => setF5Username(e.target.value)} placeholder="admin" className={inputClass} style={inputStyle} />
               </div>
               <div>
-                <label className={labelClass}>Password {isEditing && <span className="text-slate-500 normal-case">(leave blank to keep current)</span>}</label>
+                <label className={labelClass}>Password {isEditing && <span className="text-slate-400 normal-case">(leave blank to keep current)</span>}</label>
                 <input type="password" value={f5Password} onChange={(e) => setF5Password(e.target.value)} placeholder={isEditing ? '••••••••' : 'Password'} className={inputClass} style={inputStyle} />
               </div>
               <div>
@@ -470,11 +470,11 @@ const AdapterInstanceForm: React.FC<Props> = ({ instance, onClose }) => {
                 <input type="text" value={cpUsername} onChange={(e) => setCpUsername(e.target.value)} placeholder="admin" className={inputClass} style={inputStyle} />
               </div>
               <div>
-                <label className={labelClass}>Password {isEditing && <span className="text-slate-500 normal-case">(leave blank to keep current)</span>}</label>
+                <label className={labelClass}>Password {isEditing && <span className="text-slate-400 normal-case">(leave blank to keep current)</span>}</label>
                 <input type="password" value={cpPassword} onChange={(e) => setCpPassword(e.target.value)} placeholder={isEditing ? '••••••••' : 'Password'} className={inputClass} style={inputStyle} />
               </div>
               <div>
-                <label className={labelClass}>Domain <span className="text-slate-500 normal-case">(optional)</span></label>
+                <label className={labelClass}>Domain <span className="text-slate-400 normal-case">(optional)</span></label>
                 <input type="text" value={cpDomain} onChange={(e) => setCpDomain(e.target.value)} placeholder="e.g. SMC User" className={inputClass} style={inputStyle} />
               </div>
             </div>

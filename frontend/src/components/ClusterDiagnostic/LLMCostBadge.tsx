@@ -70,22 +70,22 @@ const LLMCostBadge: React.FC<LLMCostBadgeProps> = ({ sessionId, phase, onToggleB
     <button
       onClick={onToggleBreakdown}
       aria-label="Toggle LLM cost breakdown"
-      className={`flex items-center gap-2 px-2.5 py-1 rounded text-[10px] font-mono border transition-colors ${
+      className={`flex items-center gap-2 px-2.5 py-1 rounded text-body-xs font-mono border transition-colors ${
         isWarning
-          ? 'border-amber-500/40 bg-amber-500/10 text-amber-400'
+          ? 'border-amber-500/40 bg-wr-severity-medium/10 text-amber-400'
           : 'border-wr-border-subtle bg-wr-inset text-slate-400 hover:border-wr-accent/30'
       }`}
       title="Click for per-agent breakdown"
     >
       <span className={`w-1.5 h-1.5 rounded-full ${phase === 'complete' ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse'}`} />
-      <span className="text-slate-500 capitalize">{summary.scan_mode}</span>
-      <span className="text-slate-600">|</span>
+      <span className="text-slate-400 capitalize">{summary.scan_mode}</span>
+      <span className="text-slate-500">|</span>
       <span className="text-wr-accent">{costStr}</span>
-      <span className="text-slate-600">|</span>
+      <span className="text-slate-500">|</span>
       <span>{summary.total_calls} calls</span>
-      <span className="text-slate-600">|</span>
+      <span className="text-slate-500">|</span>
       <span>{latencyStr}</span>
-      <span className="text-slate-600">|</span>
+      <span className="text-slate-500">|</span>
       <span className={isWarning ? 'text-amber-400' : ''}>{budgetPct}%</span>
     </button>
   );

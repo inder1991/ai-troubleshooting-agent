@@ -69,7 +69,7 @@ const ClusterRegistryPage: React.FC<ClusterRegistryPageProps> = ({ onViewRecomme
               <span className="material-symbols-outlined text-[#e09f3e]" style={{ fontSize: 24 }}>cloud_circle</span>
               Cluster Fleet
             </h1>
-            <p className="text-xs text-slate-500 mt-1">
+            <p className="text-xs text-slate-400 mt-1">
               {clusters.length} cluster{clusters.length !== 1 ? 's' : ''} registered
               {totals.cost > 0 && (
                 <> &middot; <span className="text-[#e09f3e]">${totals.cost.toLocaleString(undefined, { maximumFractionDigits: 0 })}/mo</span> total</>
@@ -81,7 +81,7 @@ const ClusterRegistryPage: React.FC<ClusterRegistryPageProps> = ({ onViewRecomme
         {/* Filters */}
         <div className="flex items-center gap-3 mb-4">
           <div className="relative flex-1 max-w-xs">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-[16px]">search</span>
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[16px]">search</span>
             <input
               type="text"
               placeholder="Search clusters..."
@@ -115,7 +115,7 @@ const ClusterRegistryPage: React.FC<ClusterRegistryPageProps> = ({ onViewRecomme
         </div>
 
         {/* Column Headers */}
-        <div className="flex items-center gap-4 px-5 py-2 text-[10px] uppercase tracking-wider text-slate-500 font-medium">
+        <div className="flex items-center gap-4 px-5 py-2 text-body-xs uppercase tracking-wider text-slate-400 font-medium">
           <div className="flex-1">Cluster</div>
           <div className="w-16 text-center">Provider</div>
           <div className="w-16 text-center">Nodes</div>
@@ -145,9 +145,9 @@ const ClusterRegistryPage: React.FC<ClusterRegistryPageProps> = ({ onViewRecomme
         {/* Empty */}
         {!isLoading && !error && filtered.length === 0 && (
           <div className="flex flex-col items-center justify-center py-20 text-center">
-            <span className="material-symbols-outlined text-slate-600 mb-3" style={{ fontSize: 48 }}>cloud_off</span>
+            <span className="material-symbols-outlined text-slate-500 mb-3" style={{ fontSize: 48 }}>cloud_off</span>
             <p className="text-sm text-slate-400 mb-1">No clusters connected.</p>
-            <p className="text-xs text-slate-500">Add a cluster in Integrations to get started.</p>
+            <p className="text-xs text-slate-400">Add a cluster in Integrations to get started.</p>
           </div>
         )}
 
@@ -167,7 +167,7 @@ const ClusterRegistryPage: React.FC<ClusterRegistryPageProps> = ({ onViewRecomme
 
         {/* Footer Totals */}
         {!isLoading && filtered.length > 0 && (
-          <div className="flex items-center gap-6 mt-4 px-5 py-3 bg-[#13110d] border border-[#3d3528]/30 rounded-lg text-[11px] text-slate-400">
+          <div className="flex items-center gap-6 mt-4 px-5 py-3 bg-[#13110d] border border-[#3d3528]/30 rounded-lg text-body-xs text-slate-400">
             <span>{totals.clusters} cluster{totals.clusters !== 1 ? 's' : ''}</span>
             <span>{totals.nodes} nodes</span>
             <span>{totals.pods} pods</span>

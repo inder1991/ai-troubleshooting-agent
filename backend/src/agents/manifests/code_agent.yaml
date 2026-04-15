@@ -1,0 +1,60 @@
+name: code_agent
+version: 1
+description: >-
+  Multi-file code impact analysis — navigates a git repo (via GitHub API or
+  local filesystem), reads high-priority and stack-trace files, searches
+  for exception/error symbols, and produces an impacted-files analysis.
+category: code
+tags: [code, github, stack-trace, navigation, impact]
+inputs:
+  type: object
+  properties:
+    repo_url:
+      type: string
+      description: GitHub repo URL; enables API-based navigation when set
+    repo_path:
+      type: string
+      description: Local filesystem path to the repo (used when repo_url is absent)
+    github_token:
+      type: string
+    repo_map:
+      type: object
+      description: "service_name -> repo_url mapping for multi-repo lookups"
+    high_priority_files:
+      type: array
+      items: { type: object }
+    stack_traces:
+      type: array
+      items: { type: string }
+    exception_type:
+      type: string
+    error_message:
+      type: string
+  required: []
+outputs:
+  type: object
+  properties:
+    impacted_files:
+      type: array
+      items: { type: object }
+    fix_area:
+      type: [object, "null"]
+    overall_confidence: { type: number }
+    mode: { type: string }
+    llm_calls: { type: integer }
+    breadcrumbs:
+      type: array
+      items: { type: object }
+    negative_findings:
+      type: array
+      items: { type: object }
+    tokens_used: { type: object }
+trigger_examples:
+  - "Find the code causing this NullPointerException"
+  - "Which files are impacted by this stack trace?"
+  - "Navigate the repo and suggest a fix location"
+retry_on: [TimeoutError]
+timeout_seconds: 120
+cost_hint:
+  llm_calls: 2
+  typical_duration_s: 25

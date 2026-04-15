@@ -20,13 +20,13 @@ const CopyButton: React.FC<CopyButtonProps> = ({ text, className = '', size = 12
   return (
     <button
       onClick={handleCopy}
-      className={`p-1 rounded hover:bg-slate-700/50 transition-colors ${className}`}
+      className={`p-1 rounded hover:bg-wr-inset/50 transition-colors ${className}`}
       aria-label={copied ? 'Copied' : 'Copy to clipboard'}
       title={copied ? 'Copied!' : 'Copy'}
     >
       <span
         className={`material-symbols-outlined ${copied ? 'text-green-400' : 'text-slate-400'}`}
-        style={{ fontSize: `${size}px` }}
+        style={{ fontFamily: 'Material Symbols Outlined', fontSize: `${size}px` }}
       >
         {copied ? 'check' : 'content_copy'}
       </span>

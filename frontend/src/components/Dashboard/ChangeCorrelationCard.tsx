@@ -27,7 +27,7 @@ function riskLabel(score: number): string {
 }
 
 function riskBgClass(score: number): string {
-  if (score > 0.7) return 'bg-red-500/20 text-red-400';
+  if (score > 0.7) return 'bg-wr-severity-high/20 text-red-400';
   if (score >= 0.4) return 'bg-yellow-500/20 text-yellow-400';
   return 'bg-green-500/20 text-green-400';
 }
@@ -61,16 +61,16 @@ const ChangeCorrelationCard: React.FC<ChangeCorrelationCardProps> = ({ changes }
               {/* Header: type badge + risk label */}
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${badge.className}`}>
+                  <span className={`text-body-xs px-1.5 py-0.5 rounded font-medium ${badge.className}`}>
                     {badge.label}
                   </span>
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${riskBgClass(change.risk_score)}`}>
+                  <span className={`text-body-xs px-1.5 py-0.5 rounded font-medium ${riskBgClass(change.risk_score)}`}>
                     {riskLabel(change.risk_score)} Risk
                   </span>
                 </div>
                 {change.risk_score > 0.7 && (
                   <button
-                    className="flex items-center gap-1 text-[10px] px-2 py-1 rounded border border-red-500/40 bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors cursor-pointer"
+                    className="flex items-center gap-1 text-body-xs px-2 py-1 rounded border border-red-500/40 bg-wr-severity-high/10 text-red-400 hover:bg-wr-severity-high/20 transition-colors cursor-pointer"
                     onClick={() => {}}
                     title="Rollback this change (not yet functional)"
                   >
@@ -85,7 +85,7 @@ const ChangeCorrelationCard: React.FC<ChangeCorrelationCardProps> = ({ changes }
 
               {/* Risk score bar */}
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-[10px] text-gray-500 w-14 flex-shrink-0">Risk</span>
+                <span className="text-body-xs text-gray-500 w-14 flex-shrink-0">Risk</span>
                 <div className="flex-1 h-1.5 bg-gray-700 rounded-full overflow-hidden">
                   <motion.div
                     className="h-full rounded-full w-full origin-left"
@@ -95,14 +95,14 @@ const ChangeCorrelationCard: React.FC<ChangeCorrelationCardProps> = ({ changes }
                     transition={{ type: 'spring', stiffness: 120, damping: 20 }}
                   />
                 </div>
-                <span className="text-[10px] font-mono text-gray-400 w-8 text-right">
+                <span className="text-body-xs font-mono text-gray-400 w-8 text-right">
                   {Math.round(change.risk_score * 100)}%
                 </span>
               </div>
 
               {/* Temporal correlation bar */}
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-[10px] text-gray-500 w-14 flex-shrink-0">Temporal</span>
+                <span className="text-body-xs text-gray-500 w-14 flex-shrink-0">Temporal</span>
                 <div className="flex-1 h-1.5 bg-gray-700 rounded-full overflow-hidden">
                   <motion.div
                     className="h-full rounded-full w-full origin-left bg-[#e09f3e]"
@@ -111,13 +111,13 @@ const ChangeCorrelationCard: React.FC<ChangeCorrelationCardProps> = ({ changes }
                     transition={{ type: 'spring', stiffness: 120, damping: 20 }}
                   />
                 </div>
-                <span className="text-[10px] font-mono text-gray-400 w-8 text-right">
+                <span className="text-body-xs font-mono text-gray-400 w-8 text-right">
                   {Math.round(change.temporal_correlation * 100)}%
                 </span>
               </div>
 
               {/* Meta: author, files, timestamp */}
-              <div className="flex items-center gap-3 text-[10px] text-gray-500">
+              <div className="flex items-center gap-3 text-body-xs text-gray-500">
                 <span className="flex items-center gap-1">
                   <User className="w-3 h-3" />
                   {change.author}

@@ -6,6 +6,7 @@ import { AgentCapsule } from './AgentCapsule';
 import { FilterToolbar } from './FilterToolbar';
 import { PhaseBreadcrumbs } from './PhaseBreadcrumbs';
 import { GhostPhaseWrapper } from './GhostPhaseWrapper';
+import HypothesisScoreboard from './HypothesisScoreboard';
 
 interface InvestigatorProps {
   sessionId: string;
@@ -239,13 +240,13 @@ function buildStructuredTimeline(
 
 // Agent badge colors
 const agentColor: Record<string, string> = {
-  log_agent: 'bg-red-500/20 text-red-400 border-red-500/30',
-  metrics_agent: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+  log_agent: 'bg-wr-severity-high/20 text-red-400 border-wr-severity-high/30',
+  metrics_agent: 'bg-wr-severity-medium/20 text-amber-400 border-wr-severity-medium/30',
   k8s_agent: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
   tracing_agent: 'bg-violet-500/20 text-violet-400 border-violet-500/30',
   code_agent: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
   change_agent: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
-  critic: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+  critic: 'bg-wr-severity-medium/20 text-amber-400 border-wr-severity-medium/30',
   fix_generator: 'bg-pink-500/20 text-pink-400 border-pink-500/30',
 };
 
@@ -370,13 +371,13 @@ const Investigator: React.FC<InvestigatorProps> = ({
     c >= 70 ? 'bg-emerald-500' : c >= 40 ? 'bg-amber-500' : 'bg-red-500';
 
   return (
-    <div className="flex flex-col h-full bg-slate-900/20">
+    <div className="flex flex-col h-full bg-wr-bg/20">
       {/* Patient Zero Banner (sticky) */}
       {findings?.patient_zero && (
-        <div className="sticky top-0 z-10 bg-gradient-to-r from-red-950/80 to-red-900/40 border-b border-red-500/30 px-4 py-3 animate-pulse-red">
+        <div className="sticky top-0 z-10 bg-gradient-to-r from-red-950/80 to-red-900/40 border-b border-wr-severity-high/30 px-4 py-3 animate-pulse-red">
           <div className="flex items-center gap-2 mb-1">
             <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
-            <span className="text-[10px] font-bold uppercase tracking-wider text-red-400">Patient Zero</span>
+            <span className="text-body-xs font-bold uppercase tracking-wider text-red-400">Patient Zero</span>
             {firstErrorTime && (
               <span className="ml-auto text-lg font-mono font-bold text-red-400">{formatElapsed(elapsedSec)}</span>
             )}
@@ -384,23 +385,23 @@ const Investigator: React.FC<InvestigatorProps> = ({
           <div className="flex items-center gap-2">
             <span className="text-sm font-mono text-red-200 font-bold">{findings.patient_zero.service}</span>
             {repoMismatch && (
-              <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30">
-                <span className="material-symbols-outlined text-[12px]">warning</span>
+              <span className="inline-flex items-center gap-1 text-body-xs font-bold uppercase px-1.5 py-0.5 rounded bg-wr-severity-medium/20 text-amber-400 border border-wr-severity-medium/30">
+                <span className="material-symbols-outlined" style={{ fontFamily: 'Material Symbols Outlined', fontSize: '12px' }}>warning</span>
                 Repo Mismatch
               </span>
             )}
           </div>
-          <p className="text-[10px] text-red-300/70 mt-0.5">{findings.patient_zero.evidence}</p>
+          <p className="text-body-xs text-red-300/70 mt-0.5">{findings.patient_zero.evidence}</p>
           {repoMismatch && onAttachRepo && (
             <div className="mt-1.5 flex items-center gap-2">
-              <p className="text-[10px] text-amber-300/80">
+              <p className="text-body-xs text-amber-300/80">
                 Root cause in <strong>{findings.patient_zero.service}</strong>, repo provided for <strong>{findings.target_service}</strong>
               </p>
               <button
                 onClick={onAttachRepo}
-                className="text-[9px] font-bold uppercase px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30 transition-colors flex items-center gap-1"
+                className="text-body-xs font-bold uppercase px-2 py-0.5 rounded bg-wr-severity-medium/20 text-amber-300 border border-wr-severity-medium/30 hover:bg-amber-500/30 transition-colors flex items-center gap-1"
               >
-                <span className="material-symbols-outlined text-[11px]">link</span>
+                <span className="material-symbols-outlined" style={{ fontFamily: 'Material Symbols Outlined', fontSize: '11px' }}>link</span>
                 Attach Repo
               </button>
             </div>
@@ -410,14 +411,14 @@ const Investigator: React.FC<InvestigatorProps> = ({
 
       {/* Agent Pulse Indicator */}
       {activeAgents.length > 0 && (
-        <div className="px-4 py-2 border-b border-slate-800/50 flex items-center gap-2 flex-wrap">
+        <div className="px-4 py-2 border-b border-wr-border/50 flex items-center gap-2 flex-wrap">
           {activeAgents.map((a) => (
             <span
               key={a.name}
-              className={`text-[9px] px-2 py-0.5 rounded-full border font-bold uppercase ${
+              className={`text-body-xs px-2 py-0.5 rounded-full border font-bold uppercase ${
                 a.active
                   ? (agentColor[a.name] || 'bg-slate-500/20 text-slate-400 border-slate-500/30') + ' animate-pulse'
-                  : 'bg-slate-800/50 text-slate-500 border-slate-700'
+                  : 'bg-wr-surface/50 text-slate-400 border-wr-border-strong'
               }`}
             >
               {a.name.replace(/_/g, ' ')}
@@ -427,10 +428,10 @@ const Investigator: React.FC<InvestigatorProps> = ({
       )}
 
       {/* Header */}
-      <div className="px-4 py-3 border-b border-slate-800/50 bg-slate-900/90 backdrop-blur z-20 shrink-0 flex items-center justify-between gap-4">
+      <div className="px-4 py-3 border-b border-wr-border/50 bg-wr-bg/90 backdrop-blur z-20 shrink-0 flex items-center justify-between gap-4">
         <div className="flex items-center gap-2 flex-1 min-w-0">
-          <span className="material-symbols-outlined text-primary text-sm shrink-0">psychology</span>
-          <h2 className="text-xs font-bold font-display text-slate-400 truncate">AI Investigation Log</h2>
+          <span className="material-symbols-outlined text-primary text-sm shrink-0" style={{ fontFamily: 'Material Symbols Outlined' }}>psychology</span>
+          <h2 className="text-sm font-bold uppercase tracking-widest text-slate-400 truncate">AI Investigation Log</h2>
         </div>
         <div className="shrink-0">
           <FilterToolbar mode={filterMode} onModeChange={handleFilterChange} counts={filterCounts} />
@@ -440,10 +441,10 @@ const Investigator: React.FC<InvestigatorProps> = ({
       {/* AI Investigation Timeline */}
       <div ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-y-auto px-4 py-3 custom-scrollbar">
         {events.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-slate-500">
-            <span className="material-symbols-outlined text-3xl text-slate-600 mb-2">radar</span>
+          <div className="flex flex-col items-center justify-center h-full text-slate-400">
+            <span className="material-symbols-outlined text-3xl text-slate-500 mb-2" style={{ fontFamily: 'Material Symbols Outlined' }}>radar</span>
             <p className="text-sm">Waiting for investigation to begin...</p>
-            <p className="text-[10px] mt-1">Agent events will stream here in real-time</p>
+            <p className="text-body-xs mt-1">Agent events will stream here in real-time</p>
           </div>
         ) : (
           <div className="relative">
@@ -455,7 +456,7 @@ const Investigator: React.FC<InvestigatorProps> = ({
 
             <div className="pl-6">
               {/* Vertical connecting line */}
-              <div className="absolute left-3 top-10 bottom-2 w-px bg-slate-700" />
+              <div className="absolute left-3 top-10 bottom-2 w-px bg-wr-inset" />
 
               {/* Preamble events */}
               {structuredTimeline.preamble.length > 0 && (
@@ -479,10 +480,10 @@ const Investigator: React.FC<InvestigatorProps> = ({
                       {phase.isCurrent && (
                         <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-phase-pulse" />
                       )}
-                      <span className="text-[10px] font-bold tracking-[0.15em] text-[#e09f3e]/70">
+                      <span className="text-body-xs font-bold tracking-[0.15em] text-[#07b6d5]/70">
                         {phase.phase.replace(/_/g, ' ').toUpperCase()}
                       </span>
-                      <div className="phase-divider-line flex-1 h-px bg-gradient-to-r from-[#e09f3e]/30 to-transparent" />
+                      <div className="phase-divider-line flex-1 h-px bg-gradient-to-r from-[#07b6d5]/30 to-transparent" />
                     </div>
 
                     {/* Agent capsules within this phase */}
@@ -517,28 +518,12 @@ const Investigator: React.FC<InvestigatorProps> = ({
         )}
       </div>
 
-      {/* Current Best Guess (sticky footer) */}
-      {bestGuess && (
-        <div className="flex-shrink-0 border-t border-slate-800/50 bg-slate-900/60 px-4 py-3">
-          <div className="flex items-center gap-2 mb-1.5">
-            <span className="material-symbols-outlined text-[#e09f3e] text-sm">neurology</span>
-            <span className="text-[9px] font-bold font-display text-slate-500">Current Best Guess</span>
-            <span className={`ml-auto text-sm font-bold ${bestGuess.confidence >= 70 ? 'text-emerald-400' : bestGuess.confidence >= 40 ? 'text-amber-400' : 'text-red-400'}`}>
-              {bestGuess.confidence}%
-            </span>
-          </div>
-          <p className="text-[11px] text-slate-300 leading-relaxed line-clamp-2">{bestGuess.text}</p>
-          {/* Confidence bar */}
-          <div className="mt-2 h-1.5 bg-slate-800 rounded-full overflow-hidden">
-            <motion.div
-              className={`h-full rounded-full ${confidenceColor(bestGuess.confidence)}`}
-              initial={{ width: 0 }}
-              animate={{ width: `${Math.min(bestGuess.confidence, 100)}%` }}
-              transition={{ type: 'spring', bounce: 0, duration: 0.8 }}
-            />
-          </div>
-        </div>
-      )}
+      {/* Hypothesis Scoreboard (replaces old Current Best Guess) */}
+      <HypothesisScoreboard
+        hypotheses={findings?.hypotheses || []}
+        result={findings?.hypothesis_result || null}
+        legacyGuess={bestGuess}
+      />
     </div>
   );
 };
@@ -554,11 +539,11 @@ const EventNode: React.FC<{ event: TaskEvent; breadcrumbs?: Breadcrumb[] }> = ({
       : event.message.toUpperCase();
     return (
       <div className="relative flex items-center gap-3 py-1">
-        <div className="absolute left-[-18px] w-2.5 h-2.5 rounded-full bg-[#e09f3e] border-2 border-slate-900" />
+        <div className="absolute left-[-18px] w-2.5 h-2.5 rounded-full bg-[#07b6d5] border-2 border-slate-900" />
         <div className="flex-1 flex items-center gap-3">
-          <div className="flex-1 h-px bg-gradient-to-r from-transparent via-[#e09f3e]/40 to-transparent" />
-          <span className="text-[10px] font-bold tracking-[0.2em] text-[#e09f3e]">{phaseName}</span>
-          <div className="flex-1 h-px bg-gradient-to-r from-transparent via-[#e09f3e]/40 to-transparent" />
+          <div className="flex-1 h-px bg-gradient-to-r from-transparent via-[#07b6d5]/40 to-transparent" />
+          <span className="text-body-xs font-bold tracking-[0.2em] text-[#07b6d5]">{phaseName}</span>
+          <div className="flex-1 h-px bg-gradient-to-r from-transparent via-[#07b6d5]/40 to-transparent" />
         </div>
       </div>
     );
@@ -570,11 +555,11 @@ const EventNode: React.FC<{ event: TaskEvent; breadcrumbs?: Breadcrumb[] }> = ({
     return (
       <div className="relative">
         <div className={`absolute left-[-18px] w-2.5 h-2.5 rounded-full ${severity === 'critical' || severity === 'high' ? 'bg-red-500' : 'bg-amber-500'} border-2 border-slate-900`} />
-        <div className="bg-slate-800/30 border border-slate-700/50 rounded-lg px-3 py-2">
-          <div className="flex items-center gap-2 text-[10px]">
-            <span className="material-symbols-outlined text-sm" style={{ color: severity === 'critical' || severity === 'high' ? '#f87171' : '#fbbf24' }}>lightbulb</span>
+        <div className="bg-wr-surface/30 border border-wr-border-strong/50 rounded-lg px-3 py-2">
+          <div className="flex items-center gap-2 text-body-xs">
+            <span className="material-symbols-outlined text-sm" style={{ fontFamily: 'Material Symbols Outlined', color: severity === 'critical' || severity === 'high' ? '#f87171' : '#fbbf24' }}>lightbulb</span>
             <span className={`font-bold uppercase ${sevColor}`}>{severity}</span>
-            <span className="text-slate-500">{event.agent_name.replace(/_/g, ' ')}</span>
+            <span className="text-slate-400">{event.agent_name.replace(/_/g, ' ')}</span>
           </div>
           <p className="text-xs text-slate-300 mt-1">{event.message.split(' — ')[0]}</p>
         </div>
@@ -587,14 +572,14 @@ const EventNode: React.FC<{ event: TaskEvent; breadcrumbs?: Breadcrumb[] }> = ({
     return (
       <div className="relative">
         <div className="absolute left-[-18px] w-2.5 h-2.5 rounded-full bg-green-500 border-2 border-slate-900" />
-        <div className="bg-[#e09f3e]/5 border border-[#e09f3e]/20 rounded-lg px-3 py-2">
-          <div className="flex items-center gap-2 text-[10px]">
-            <span className="material-symbols-outlined text-[#e09f3e] text-sm">check_circle</span>
-            <span className="font-bold text-[#e09f3e]">{event.agent_name.replace(/_/g, ' ')}</span>
-            <span className={`ml-auto font-bold ${confidence >= 70 ? 'text-green-400' : confidence >= 40 ? 'text-amber-400' : 'text-red-400'}`}>{confidence}%</span>
+        <div className="bg-[#07b6d5]/5 border border-[#07b6d5]/20 rounded-lg px-3 py-2">
+          <div className="flex items-center gap-2 text-body-xs">
+            <span className="material-symbols-outlined text-[#07b6d5] text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>check_circle</span>
+            <span className="font-bold uppercase text-[#07b6d5]">{event.agent_name.replace(/_/g, ' ')}</span>
+            <span className={`ml-auto font-mono font-bold ${confidence >= 70 ? 'text-green-400' : confidence >= 40 ? 'text-amber-400' : 'text-red-400'}`}>{confidence}%</span>
           </div>
           {event.message && (
-            <p className="text-[11px] text-slate-300 mt-1.5">{event.message}</p>
+            <p className="text-body-xs text-slate-300 mt-1.5">{event.message}</p>
           )}
           {breadcrumbs && breadcrumbs.length > 0 && (
             <EvidenceTrail breadcrumbs={breadcrumbs} agentName={event.agent_name} />
@@ -608,10 +593,10 @@ const EventNode: React.FC<{ event: TaskEvent; breadcrumbs?: Breadcrumb[] }> = ({
     return (
       <div className="relative flex items-center gap-2 py-0.5">
         <div className="absolute left-[-18px] w-2.5 h-2.5 rounded-full bg-blue-400 border-2 border-slate-900" />
-        <span className="material-symbols-outlined text-blue-400 text-xs">{icon}</span>
-        <span className="text-[10px] text-blue-400 font-bold">{event.agent_name.replace(/_/g, ' ')}</span>
-        <span className="text-[10px] text-slate-500">{event.message}</span>
-        <span className="text-[9px] text-slate-600 ml-auto">{formatTime(event.timestamp)}</span>
+        <span className="material-symbols-outlined text-blue-400 text-xs" style={{ fontFamily: 'Material Symbols Outlined' }}>{icon}</span>
+        <span className="text-body-xs text-blue-400 font-bold">{event.agent_name.replace(/_/g, ' ')}</span>
+        <span className="text-body-xs text-slate-400">{event.message}</span>
+        <span className="text-body-xs text-slate-500 ml-auto">{formatTime(event.timestamp)}</span>
       </div>
     );
   }
@@ -621,9 +606,9 @@ const EventNode: React.FC<{ event: TaskEvent; breadcrumbs?: Breadcrumb[] }> = ({
     return (
       <div className="relative">
         <div className={`absolute left-[-18px] w-2.5 h-2.5 rounded-full ${isError ? 'bg-red-500' : 'bg-amber-500'} border-2 border-slate-900`} />
-        <div className={`border rounded-lg px-3 py-2 ${isError ? 'border-red-500/30 bg-red-500/10' : 'border-amber-500/30 bg-amber-500/10'}`}>
-          <div className="flex items-center gap-2 text-[10px]">
-            <span className={`font-bold ${isError ? 'text-red-400' : 'text-amber-400'}`}>{event.agent_name.replace(/_/g, ' ')}</span>
+        <div className={`border rounded-lg px-3 py-2 ${isError ? 'border-wr-severity-high/30 bg-wr-severity-high/10' : 'border-wr-severity-medium/30 bg-wr-severity-medium/10'}`}>
+          <div className="flex items-center gap-2 text-body-xs">
+            <span className={`font-bold uppercase ${isError ? 'text-red-400' : 'text-amber-400'}`}>{event.agent_name.replace(/_/g, ' ')}</span>
           </div>
           <p className="text-xs text-slate-300 mt-1">{event.message}</p>
         </div>
@@ -635,11 +620,11 @@ const EventNode: React.FC<{ event: TaskEvent; breadcrumbs?: Breadcrumb[] }> = ({
   return (
     <div className="relative flex items-start gap-2 py-0.5">
       <div className="absolute left-[-18px] w-2.5 h-2.5 rounded-full bg-slate-600 border-2 border-slate-900" />
-      <span className="text-[10px] text-slate-600 shrink-0">
+      <span className="text-body-xs text-slate-500 shrink-0">
         {formatTime(event.timestamp)}
       </span>
-      <span className="text-[10px] text-[#e09f3e]">{event.agent_name}</span>
-      <span className="text-[10px] text-slate-400 truncate">{event.message}</span>
+      <span className="text-body-xs text-[#07b6d5]">{event.agent_name}</span>
+      <span className="text-body-xs text-slate-400 truncate">{event.message}</span>
     </div>
   );
 };
@@ -651,16 +636,16 @@ const ToolCallGroupNode: React.FC<{ group: ToolCallGroup }> = ({ group }) => {
   return (
     <div className="relative">
       <div className="absolute left-[-18px] w-2.5 h-2.5 rounded-full bg-purple-500 border-2 border-slate-900" />
-      <button onClick={() => setExpanded(!expanded)} className="w-full text-left flex items-center gap-2 text-[10px] hover:bg-slate-800/30 rounded px-2 py-1 transition-colors" aria-expanded={expanded}>
-        <span className={`material-symbols-outlined text-xs text-purple-400 transition-transform ${expanded ? 'rotate-90' : ''}`}>chevron_right</span>
-        <span className="font-bold text-purple-400">{group.agent.replace(/_/g, ' ')}</span>
-        <span className="text-slate-500">{group.events.length} tool calls</span>
+      <button onClick={() => setExpanded(!expanded)} className="w-full text-left flex items-center gap-2 text-body-xs hover:bg-wr-surface/30 rounded px-2 py-1 transition-colors" aria-expanded={expanded}>
+        <span className={`material-symbols-outlined text-xs text-purple-400 transition-transform ${expanded ? 'rotate-90' : ''}`} style={{ fontFamily: 'Material Symbols Outlined' }}>chevron_right</span>
+        <span className="font-bold text-purple-400 uppercase">{group.agent.replace(/_/g, ' ')}</span>
+        <span className="text-slate-400">{group.events.length} tool calls</span>
       </button>
       {expanded && (
-        <div className="pl-4 mt-1 space-y-0.5 text-[10px] text-slate-400 font-mono">
+        <div className="pl-4 mt-1 space-y-0.5 text-body-xs text-slate-400 font-mono">
           {group.events.map((ev, i) => (
             <div key={i} className="flex gap-2">
-              <span className="text-slate-600 shrink-0">{formatTime(ev.timestamp)}</span>
+              <span className="text-slate-500 shrink-0">{formatTime(ev.timestamp)}</span>
               <span className="truncate">{ev.message}</span>
             </div>
           ))}
@@ -677,25 +662,26 @@ const ReasoningStream: React.FC<{ chain: ReasoningChainStep[] }> = ({ chain }) =
 
   return (
     <div className="relative">
-      <div className="absolute left-[-18px] w-2.5 h-2.5 rounded-full bg-[#e09f3e] border-2 border-slate-900" />
+      <div className="absolute left-[-18px] w-2.5 h-2.5 rounded-full bg-[#07b6d5] border-2 border-slate-900" />
       <div
-        className="bg-slate-950/20 border border-[#e09f3e]/15 rounded-lg overflow-hidden"
+        className="bg-slate-950/20 border border-[#07b6d5]/15 rounded-lg overflow-hidden"
         style={{
           WebkitMaskImage: 'linear-gradient(to bottom, black 75%, transparent 100%)',
           maskImage: 'linear-gradient(to bottom, black 75%, transparent 100%)',
         }}
       >
         {/* Header */}
-        <div className="px-3 py-2 flex items-center gap-2 border-b border-[#e09f3e]/10">
+        <div className="px-3 py-2 flex items-center gap-2 border-b border-[#07b6d5]/10">
           <span
-            className="material-symbols-outlined text-[#e09f3e] text-sm"
+            className="material-symbols-outlined text-[#07b6d5] text-sm"
+            style={{ fontFamily: 'Material Symbols Outlined' }}
           >
             psychology
           </span>
-          <span className="text-[10px] font-bold text-[#e09f3e]">
+          <span className="text-body-xs font-bold uppercase tracking-wider text-[#07b6d5]">
             Neural_Reasoning_Stream
           </span>
-          <span className="text-[10px] text-slate-500">
+          <span className="text-body-xs font-mono text-slate-400">
             {chain.length} step{chain.length !== 1 ? 's' : ''}
           </span>
         </div>
@@ -706,7 +692,7 @@ const ReasoningStream: React.FC<{ chain: ReasoningChainStep[] }> = ({ chain }) =
           <div
             className="absolute left-[22px] top-3 bottom-3 w-px"
             style={{
-              background: 'linear-gradient(to bottom, #e09f3e 0%, #e09f3e40 60%, transparent 100%)',
+              background: 'linear-gradient(to bottom, #07b6d5 0%, #07b6d540 60%, transparent 100%)',
             }}
           />
 
@@ -728,12 +714,12 @@ const ReasoningStream: React.FC<{ chain: ReasoningChainStep[] }> = ({ chain }) =
                     <div
                       className={`w-4 h-4 rounded-full flex items-center justify-center ${
                         isLast
-                          ? 'bg-[#e09f3e] shadow-[0_0_8px_rgba(224,159,62,0.6)]'
-                          : 'bg-[#e09f3e]/20 border border-[#e09f3e]/40'
+                          ? 'bg-[#07b6d5] shadow-[0_0_8px_rgba(7,182,213,0.6)]'
+                          : 'bg-[#07b6d5]/20 border border-[#07b6d5]/40'
                       }`}
                     >
                       {isLast && (
-                        <div className="absolute inset-0 rounded-full border-2 border-[#e09f3e]/50 animate-ping" />
+                        <div className="absolute inset-0 rounded-full border-2 border-[#07b6d5]/50 animate-ping" />
                       )}
                     </div>
                   </div>
@@ -741,20 +727,20 @@ const ReasoningStream: React.FC<{ chain: ReasoningChainStep[] }> = ({ chain }) =
                   {/* Step content */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5">
-                      <span className="text-[9px] font-bold text-[#e09f3e]/60">
+                      <span className="text-body-xs font-mono font-bold text-[#07b6d5]/60">
                         {stepLabel}
                       </span>
                       {step.tool && (
-                        <span className="text-[8px] font-mono px-1.5 py-0 rounded bg-purple-500/15 text-purple-400 border border-purple-500/20">
+                        <span className="text-chrome font-mono px-1.5 py-0 rounded bg-purple-500/15 text-purple-400 border border-purple-500/20">
                           {step.tool}
                         </span>
                       )}
                     </div>
-                    <p className="text-[11px] text-slate-300 leading-relaxed">
+                    <p className="text-body-xs text-slate-300 leading-relaxed">
                       {step.observation}
                     </p>
                     {step.inference && (
-                      <p className="text-[10px] text-slate-500 italic mt-0.5">
+                      <p className="text-body-xs text-slate-400 italic mt-0.5">
                         {'\u2192'} {step.inference}
                       </p>
                     )}
@@ -785,19 +771,19 @@ const EvidenceTrail: React.FC<{ breadcrumbs: Breadcrumb[]; agentName: string }> 
   const colorClass = agentColor[agentName] || 'bg-slate-500/20 text-slate-400 border-slate-500/30';
 
   return (
-    <div className="mt-2 pt-2 border-t border-slate-800/50">
+    <div className="mt-2 pt-2 border-t border-wr-border/50">
       <button
         onClick={() => setExpanded(!expanded)}
-        className="flex items-center gap-1.5 text-[9px] text-slate-500 hover:text-slate-300 transition-colors"
+        className="flex items-center gap-1.5 text-body-xs text-slate-400 hover:text-slate-300 transition-colors"
         aria-expanded={expanded}
         aria-label={`${expanded ? 'Collapse' : 'Expand'} evidence trail`}
       >
-        <span className="material-symbols-outlined text-xs">
+        <span className="material-symbols-outlined text-xs" style={{ fontFamily: 'Material Symbols Outlined' }}>
           attach_file
         </span>
-        <span className="font-bold">Evidence</span>
-        <span>({breadcrumbs.length})</span>
-        <span className={`material-symbols-outlined text-xs transition-transform ${expanded ? 'rotate-90' : ''}`}>
+        <span className="font-bold uppercase tracking-wider">Evidence</span>
+        <span className="font-mono">({breadcrumbs.length})</span>
+        <span className={`material-symbols-outlined text-xs transition-transform ${expanded ? 'rotate-90' : ''}`} style={{ fontFamily: 'Material Symbols Outlined' }}>
           chevron_right
         </span>
       </button>
@@ -812,10 +798,10 @@ const EvidenceTrail: React.FC<{ breadcrumbs: Breadcrumb[]; agentName: string }> 
             return (
               <span
                 key={i}
-                className={`inline-flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.5 rounded border cursor-default ${colorClass}`}
+                className={`inline-flex items-center gap-1 text-body-xs font-mono px-1.5 py-0.5 rounded border cursor-default ${colorClass}`}
                 title={crumb.detail}
               >
-                <span className="material-symbols-outlined text-[10px]">{icon}</span>
+                <span className="material-symbols-outlined" style={{ fontFamily: 'Material Symbols Outlined', fontSize: '10px' }}>{icon}</span>
                 {refLabel}
               </span>
             );

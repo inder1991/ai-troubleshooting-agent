@@ -110,11 +110,11 @@ const REDMethodStatusBar: React.FC<REDMethodStatusBarProps> = ({
         {categories.map((cat) => (
           <div
             key={cat.label}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-800/60 border border-slate-700/50"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-wr-surface/60 border border-wr-border-strong/50"
           >
             <span className={`w-2 h-2 rounded-full ${dotColor[cat.severity]}`} />
-            <span className="text-[10px] text-slate-400">{cat.label}:</span>
-            <span className={`text-[10px] font-mono font-bold ${textColor[cat.severity]}`}>
+            <span className="text-body-xs text-slate-400">{cat.label}:</span>
+            <span className={`text-body-xs font-mono font-bold ${textColor[cat.severity]}`}>
               {cat.value}
             </span>
           </div>
@@ -123,14 +123,14 @@ const REDMethodStatusBar: React.FC<REDMethodStatusBarProps> = ({
       {narratives.length > 0 && (
         <div className="space-y-1.5">
           {narratives.map((n, i) => (
-            <div key={i} className="bg-slate-800/30 rounded-lg border border-slate-700/30 px-2.5 py-1.5">
+            <div key={i} className="bg-wr-surface/30 rounded-lg border border-wr-border-strong/30 px-2.5 py-1.5">
               <div className="flex items-center gap-1.5 mb-0.5">
-                <span className="text-[9px] font-bold text-amber-400 uppercase">{n.group}</span>
+                <span className="text-body-xs font-bold text-amber-400 uppercase">{n.group}</span>
                 {n.metrics?.length > 0 && (
-                  <span className="text-[9px] text-slate-600 font-mono">{n.metrics.length} metrics</span>
+                  <span className="text-body-xs text-slate-500 font-mono">{n.metrics.length} metrics</span>
                 )}
               </div>
-              <p className="text-[10px] text-slate-400">{n.narrative}</p>
+              <p className="text-body-xs text-slate-400">{n.narrative}</p>
             </div>
           ))}
         </div>

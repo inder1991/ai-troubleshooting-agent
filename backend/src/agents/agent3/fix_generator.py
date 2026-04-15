@@ -22,6 +22,7 @@ from .stagers import PRStager
 
 from src.utils.llm_client import AnthropicClient
 from src.utils.event_emitter import EventEmitter
+from src.utils.fix_job_queue import RetryableFixError
 from src.models.schemas import DiagnosticState
 from src.utils.logger import get_logger
 
@@ -83,6 +84,29 @@ class Agent3FixGenerator:
 
         logger.info(f"Agent 3 initialized (repo: {repo_path})")
 
+    # ── Static helpers ────────────────────────────────────────────────────
+
+    @staticmethod
+    def _collect_fix_targets_static(state) -> list[str]:
+        """Collect fix target file paths from diagnostic state without needing a repo clone.
+
+        Used before cloning to enable sparse checkout — only the files we
+        actually intend to fix are materialized on disk.
+        """
+        targets: list[str] = []
+        if state.code_analysis:
+            if state.code_analysis.root_cause_location and state.code_analysis.root_cause_location.file_path:
+                targets.append(state.code_analysis.root_cause_location.file_path)
+            for fa in (state.code_analysis.suggested_fix_areas or []):
+                if fa.file_path and fa.file_path not in targets:
+                    targets.append(fa.file_path)
+            for imp in (state.code_analysis.impacted_files or []):
+                fp = imp.file_path if hasattr(imp, 'file_path') else (imp.get('file_path') if isinstance(imp, dict) else None)
+                fix_needed = imp.must_fix if hasattr(imp, 'must_fix') else (imp.get('must_fix', False) if isinstance(imp, dict) else False)
+                if fp and fix_needed and fp not in targets:
+                    targets.append(fp)
+        return targets
+
     # =========================================================================
     # PHASE 1: VERIFICATION (Automatic)
     # =========================================================================
@@ -136,7 +160,7 @@ class Agent3FixGenerator:
             validation = self.validator.validate_all(fp, code)
             if not validation["passed"]:
                 logger.info("Validation failed for %s, attempting self-correction...", fp)
-                code = await self._self_correct(code, validation)
+                code = await self._self_correct(code, validation, fp)
                 fixes[fp] = code
                 validation = self.validator.validate_all(fp, code)
                 if not validation["passed"]:
@@ -481,11 +505,18 @@ class Agent3FixGenerator:
                 details={"stage": "generating", "file_count": len(resolved_targets)},
             )
 
-        response = await self.llm_client.chat(
-            prompt=user_prompt,
-            system=system_prompt,
-            max_tokens=16384 if is_multi else 8192,
-        )
+        try:
+            response = await self.llm_client.chat(
+                prompt=user_prompt,
+                system=system_prompt,
+                max_tokens=16384 if is_multi else 8192,
+            )
+        except Exception as e:
+            raise RetryableFixError(
+                f"LLM call failed: {e}",
+                stage="generating",
+                suggestion="The AI model timed out or is overloaded. Will retry automatically.",
+            ) from e
 
         raw_output = response.text
 
@@ -929,12 +960,14 @@ class Agent3FixGenerator:
         return {"html_url": pr_data["html_url"], "number": pr_data["number"]}
 
     async def _self_correct(
-        self, code: str, validation: Dict[str, Any]
+        self, code: str, validation: Dict[str, Any], file_path: str = ""
     ) -> str:
-        """
-        Attempt to auto-correct validation issues using AnthropicClient.
-        """
+        """Attempt to auto-correct validation issues using AnthropicClient."""
+        from .validators import detect_language
+
         logger.info("\nSelf-correcting validation issues...")
+
+        lang = detect_language(file_path) or "python"
 
         errors = []
         if not validation["syntax"]["valid"]:
@@ -945,12 +978,12 @@ class Agent3FixGenerator:
                 errors.append(f"Linting error: {error}")
 
         system_prompt = (
-            "You are a code fixer. Fix ONLY the syntax/linting errors. "
+            f"You are a code fixer. Fix ONLY the syntax/linting errors in this {lang} code. "
             "Output ONLY the corrected code, no explanation."
         )
 
         user_prompt = (
-            f"Code with errors:\n```python\n{code}\n```\n\n"
+            f"Code with errors:\n```{lang}\n{code}\n```\n\n"
             f"Errors to fix:\n{chr(10).join(errors)}\n\n"
             f"Output corrected code:"
         )
@@ -975,7 +1008,7 @@ class Agent3FixGenerator:
                     content = content[first_nl + 1:]
                 corrected = content
 
-        logger.info("   Self-correction attempted")
+        logger.info("   Self-correction attempted (%s)", lang)
         return corrected.strip()
 
     async def _emit_progress(self, stage: str, message: str) -> None:

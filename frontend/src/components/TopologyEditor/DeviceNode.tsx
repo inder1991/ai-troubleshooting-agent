@@ -133,7 +133,7 @@ const DeviceNode: React.FC<NodeProps<DeviceNodeData>> = ({ data, selected }) => 
         {/* Live lock icon */}
         {isLive && (
           <div className="absolute -top-1.5 -left-1.5" style={{ zIndex: 10 }}>
-            <span className="material-symbols-outlined text-[10px]" style={{ color: '#64748b' }}>lock</span>
+            <span className="material-symbols-outlined text-body-xs" style={{ color: '#64748b' }}>lock</span>
           </div>
         )}
 
@@ -169,7 +169,7 @@ const DeviceNode: React.FC<NodeProps<DeviceNodeData>> = ({ data, selected }) => 
 
         {/* Label */}
         <span
-          className="text-[9px] font-mono font-medium text-center leading-tight max-w-[100px] truncate"
+          className="text-body-xs font-mono font-medium text-center leading-tight max-w-[100px] truncate"
           style={{ color: '#e8e0d4' }}
         >
           {data.label}
@@ -177,7 +177,7 @@ const DeviceNode: React.FC<NodeProps<DeviceNodeData>> = ({ data, selected }) => 
 
         {/* IP */}
         {data.ip && (
-          <span className="text-[8px] font-mono leading-none" style={{ color: '#64748b' }}>
+          <span className="text-chrome font-mono leading-none" style={{ color: '#64748b' }}>
             {data.ip}
           </span>
         )}

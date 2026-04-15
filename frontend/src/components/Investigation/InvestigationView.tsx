@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import type { V4Session, V4Findings, V4SessionStatus, ChatMessage, TaskEvent, DiagnosticPhase, TokenUsage, AttestationGateData } from '../../types';
 import { getFindings, getSessionStatus, sendChatMessage } from '../../services/api';
 import { useChatUI, useInvestigationContext } from '../../contexts/ChatContext';
@@ -15,6 +15,8 @@ import SurgicalTelescope from './SurgicalTelescope';
 import { TopologySelectionProvider } from '../../contexts/TopologySelectionContext';
 import { TelescopeProvider } from '../../contexts/TelescopeContext';
 import TelescopeDrawerV2 from './TelescopeDrawerV2';
+
+const RELEVANT_EVENT_TYPES = new Set<string>(['summary', 'finding', 'phase_change']);
 
 interface InvestigationViewProps {
   session: V4Session;
@@ -52,27 +54,22 @@ const InvestigationView: React.FC<InvestigationViewProps> = ({
   const { addMessage: onNewMessage } = useChatUI();
   const { setCampaign } = useCampaignContext();
 
-  // Sync campaign data from findings into CampaignContext
+  // Sync campaign data from findings into CampaignContext — keyed to avoid object-identity thrash
+  const campaignKey = findings?.campaign
+    ? `${(findings.campaign as { id?: string }).id ?? ''}:${(findings.campaign as { updated_at?: string }).updated_at ?? ''}`
+    : '';
   useEffect(() => {
-    if (findings?.campaign) {
-      setCampaign(findings.campaign);
-    }
-  }, [findings?.campaign, setCampaign]);
+    if (findings?.campaign) setCampaign(findings.campaign);
+  }, [campaignKey, findings?.campaign, setCampaign]);
 
-  // Sync investigation context (namespace/service/pod/cluster) into ChatContext
+  // Sync investigation context (namespace/service/pod) into ChatContext for QuickActionToolbar
   const { setInvestigationContext } = useInvestigationContext();
   useEffect(() => {
     const namespace = findings?.pod_statuses?.[0]?.namespace ?? null;
     const service = findings?.target_service ?? session.service_name ?? null;
     const pod = findings?.pod_statuses?.[0]?.pod_name ?? null;
-    // cluster is not directly on session/findings — will be null until available
     setInvestigationContext({ namespace, service, pod, cluster: null });
-  }, [
-    findings?.target_service,
-    findings?.pod_statuses,
-    session.service_name,
-    setInvestigationContext,
-  ]);
+  }, [findings?.target_service, findings?.pod_statuses, session.service_name, setInvestigationContext]);
 
   // Tick "last updated X s ago" every second
   useEffect(() => {
@@ -82,40 +79,53 @@ const InvestigationView: React.FC<InvestigationViewProps> = ({
     return () => { if (agoIntervalRef.current) clearInterval(agoIntervalRef.current); };
   }, [lastFetchTime]);
 
+  const abortRef = useRef<AbortController | null>(null);
   const fetchSharedData = useCallback(async () => {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
     try {
       const [f, s] = await Promise.all([
-        getFindings(session.session_id),
-        getSessionStatus(session.session_id),
+        getFindings(session.session_id, { signal: controller.signal }),
+        getSessionStatus(session.session_id, { signal: controller.signal }),
       ]);
+      if (controller.signal.aborted) return;
       setFindings(f);
       setSessionStatus(s);
       setFetchFailCount(0);
       setFetchErrorDismissed(false);
       setLastFetchTime(Date.now());
-    } catch {
+    } catch (err) {
+      if ((err as Error)?.name === 'AbortError') return;
       setFetchFailCount((c) => c + 1);
     }
   }, [session.session_id]);
+  useEffect(() => () => abortRef.current?.abort(), []);
 
-  // Poll every 5s
+  // Backoff poll interval — stretches from 5s to 30s after repeated failures
+  const pollIntervalMs = useMemo(() => {
+    if (fetchFailCount === 0) return 5000;
+    return Math.min(30000, 5000 * 2 ** Math.min(fetchFailCount, 3));
+  }, [fetchFailCount]);
+
   useEffect(() => {
     fetchSharedData();
-    const interval = setInterval(fetchSharedData, 5000);
+    const interval = setInterval(fetchSharedData, pollIntervalMs);
     return () => clearInterval(interval);
-  }, [fetchSharedData]);
+  }, [fetchSharedData, pollIntervalMs]);
 
-  // Also re-fetch on relevant WebSocket events (debounced — only on new events)
-  const relevantEventCount = events.filter(
-    (e) => e.event_type === 'summary' || e.event_type === 'finding' || e.event_type === 'phase_change'
-  ).length;
-  const prevRelevantCountRef = useRef(0);
+  // Re-fetch on relevant WebSocket events — ref-based to avoid derived recompute on every render
+  const seenRelevantRef = useRef(0);
   useEffect(() => {
-    if (relevantEventCount > prevRelevantCountRef.current) {
-      prevRelevantCountRef.current = relevantEventCount;
+    let relevant = 0;
+    for (const e of events) {
+      if (RELEVANT_EVENT_TYPES.has(e.event_type)) relevant++;
+    }
+    if (relevant > seenRelevantRef.current) {
+      seenRelevantRef.current = relevant;
       fetchSharedData();
     }
-  }, [relevantEventCount, fetchSharedData]);
+  }, [events, fetchSharedData]);
 
   // Freshness indicator color
   const freshnessColor = lastFetchAgo <= 10 ? 'bg-green-500' : lastFetchAgo <= 30 ? 'bg-amber-500' : 'bg-red-500';
@@ -131,10 +141,10 @@ const InvestigationView: React.FC<InvestigationViewProps> = ({
   }, [session.session_id, onNewMessage]);
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="warroom-shell flex flex-col h-full">
       {/* Fetch failure banner */}
       {fetchFailCount >= 3 && !fetchErrorDismissed && (
-        <div className="px-4 pt-2">
+        <div className="warroom-banner-strip">
           <ErrorBanner
             message={`Connection issue — data may be stale (${fetchFailCount} failed attempts)`}
             severity="warning"
@@ -146,18 +156,18 @@ const InvestigationView: React.FC<InvestigationViewProps> = ({
 
       {/* Last updated indicator */}
       {lastFetchTime && (
-        <div className="flex items-center gap-1.5 px-6 py-1 text-[9px] text-slate-500">
+        <div className="flex items-center gap-1.5 px-6 py-1 text-body-xs text-slate-400">
           <span className={`w-1.5 h-1.5 rounded-full ${freshnessColor}`} />
           <span>Updated {lastFetchAgo}s ago</span>
         </div>
       )}
 
-      {/* War Room: 3-column CSS Grid layout — wrapped in TelescopeProvider */}
+      {/* War Room: 3-column CSS Grid layout */}
       <TelescopeProvider>
         <TopologySelectionProvider>
           <div className="grid grid-cols-12 flex-1 overflow-hidden">
             {/* Left: The Investigator (AI reasoning only — no chat) */}
-            <div className="col-span-3 border-r border-slate-800 overflow-hidden">
+            <div className="col-span-3 border-r border-wr-border overflow-hidden">
               <Investigator
                 sessionId={session.session_id}
                 events={events}
@@ -170,44 +180,44 @@ const InvestigationView: React.FC<InvestigationViewProps> = ({
 
             {/* Center: Evidence and Findings (NO TABS) */}
             <div className="col-span-5 overflow-hidden">
-              <EvidenceFindings findings={findings} status={sessionStatus} events={events} sessionId={session.session_id} phase={phase} onRefresh={fetchSharedData} onNavigateToDossier={onNavigateToDossier} manualPins={findings?.evidence_pins} />
+              <EvidenceFindings findings={findings} status={sessionStatus} events={events} sessionId={session.session_id} phase={phase} onRefresh={fetchSharedData} onNavigateToDossier={onNavigateToDossier} />
             </div>
 
             {/* Right: The Navigator */}
-            <div className="col-span-4 border-l border-slate-800 overflow-hidden">
-              <Navigator findings={findings} status={sessionStatus} events={events} sessionId={session.session_id} />
+            <div className="col-span-4 border-l border-wr-border overflow-hidden">
+              <Navigator findings={findings} status={sessionStatus} events={events} />
             </div>
           </div>
+
+          {/* K8s Resource Inspector (Telescope V2) */}
+          <TelescopeDrawerV2 />
         </TopologySelectionProvider>
-
-        {/* TelescopeDrawer v2 (slide-out resource inspector) */}
-        <TelescopeDrawerV2 />
-
-        {/* Surgical Telescope overlay (kept for backward compat) */}
-        <SurgicalTelescope />
-
-        {/* Bottom: Remediation Progress Bar */}
-        <RemediationProgressBar
-          phase={phase}
-          confidence={confidence}
-          tokenUsage={tokenUsage}
-          wsConnected={wsConnected}
-        />
-
-        {/* Attestation Gate Modal */}
-        {attestationGate && onAttestationDecision && (
-          <AttestationGateUI
-            gate={attestationGate}
-            evidencePins={[]}
-            onDecision={(decision, _notes) => onAttestationDecision(decision)}
-            onClose={() => onAttestationDecision('dismiss')}
-          />
-        )}
-
-        {/* Chat Drawer + Trigger Tab (self-contained via ChatContext) */}
-        <ChatDrawer />
-        <LedgerTriggerTab />
       </TelescopeProvider>
+
+      {/* Surgical Telescope overlay (rendered outside grid) */}
+      <SurgicalTelescope />
+
+      {/* Bottom: Remediation Progress Bar */}
+      <RemediationProgressBar
+        phase={phase}
+        confidence={confidence}
+        tokenUsage={tokenUsage}
+        wsConnected={wsConnected}
+      />
+
+      {/* Attestation Gate Modal */}
+      {attestationGate && onAttestationDecision && (
+        <AttestationGateUI
+          gate={attestationGate}
+          evidencePins={[]}
+          onDecision={(decision, _notes) => onAttestationDecision(decision)}
+          onClose={() => onAttestationDecision('dismiss')}
+        />
+      )}
+
+      {/* Chat Drawer + Trigger Tab (self-contained via ChatContext) */}
+      <ChatDrawer />
+      <LedgerTriggerTab />
     </div>
   );
 };

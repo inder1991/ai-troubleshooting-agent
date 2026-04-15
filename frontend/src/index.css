@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 :root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: 'Inter Tight', 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
@@ -22,7 +22,7 @@ body {
   min-width: 320px;
   min-height: 100vh;
   background-color: #1a1814;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter Tight', 'Inter', sans-serif;
   overflow: hidden;
 }
 
@@ -528,7 +528,121 @@ a:focus-visible,
   --wr-domain-network: #10b981;
   --wr-domain-storage: #8b5cf6;
   --wr-domain-rbac: #ef4444;
+
+  /* Expanded text ramp (Phase 3) */
+  --wr-text-subtle: #5a5148;
+
+  /* Expanded surface ramp */
+  --wr-bg-elevated: #1e1b15;
+
+  /* Expanded border ramp */
+  --wr-border-strong: #3d3528;
+
+  /* Secondary accent — cyan for info/selection/link (frees amber to mean one thing) */
+  --wr-accent-2:      #22d3ee;
+  --wr-accent-2-glow: rgba(34, 211, 238, 0.3);
+
+  /* Z-index scale */
+  --z-base:   0;
+  --z-grid:   10;
+  --z-header: 20;
+  --z-dock:   40;
+  --z-drawer: 50;
+  --z-modal:  60;
+  --z-toast:  70;
+
+  /* Motion tokens */
+  --motion-breath: 3s;
+  --motion-pulse:  2s;
+  --motion-alarm:  1s;
+  --motion-flash:  0.6s;
+  --ease-soft:  cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-sharp: cubic-bezier(0.7, 0, 0.3, 1);
+
+  /* Glow intensity tiers */
+  --glow-ambient:   0 0 4px;
+  --glow-attention: 0 0 8px;
+  --glow-critical:  0 0 16px;
+  --glow-hero:      0 0 24px;
 }
+
+/* ─── War Room Shell Classes (shared by all 4 capabilities) ───── */
+
+.warroom-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--wr-bg-primary);
+  color: var(--wr-text-primary);
+  font-family: 'Inter Tight', 'Inter', system-ui, sans-serif;
+  position: relative;
+}
+
+.warroom-header {
+  flex-shrink: 0;
+  min-height: 56px;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--wr-border);
+  background: linear-gradient(180deg, rgba(26, 24, 20, 0.95) 0%, rgba(26, 24, 20, 0.85) 100%);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  z-index: 20;
+}
+
+.warroom-main {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 3fr 5fr 4fr;
+  overflow: hidden;
+  position: relative;
+}
+
+.warroom-column {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.warroom-column + .warroom-column {
+  border-left: 1px solid var(--wr-border);
+}
+
+.warroom-footer {
+  flex-shrink: 0;
+  min-height: 48px;
+  padding: 8px 24px;
+  border-top: 1px solid var(--wr-border);
+  background: rgba(26, 24, 20, 0.7);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  z-index: 20;
+}
+
+/* Column background variants — all war rooms get the same subtle inset look */
+.warroom-column--left  { background: linear-gradient(180deg, rgba(21, 42, 47, 0.25) 0%, rgba(21, 42, 47, 0.1) 100%); }
+.warroom-column--mid   { background: rgba(26, 24, 20, 0.4); }
+.warroom-column--right { background: linear-gradient(180deg, rgba(21, 42, 47, 0.2) 0%, rgba(21, 42, 47, 0.08) 100%); }
+
+/* Banner strip — used above the main grid for fetch-fail / truncation / budget warnings */
+.warroom-banner-strip {
+  flex-shrink: 0;
+  padding: 0 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+/* Shared scrollbar for all war room columns */
+.warroom-column::-webkit-scrollbar { width: 5px; }
+.warroom-column::-webkit-scrollbar-thumb { background: rgba(224, 159, 62, 0.2); border-radius: 3px; }
+.warroom-column::-webkit-scrollbar-thumb:hover { background: rgba(224, 159, 62, 0.4); }
 
 /* ── Cluster War Room ─────────────────────────── */
 
@@ -663,3 +777,60 @@ a:focus-visible,
     to { opacity: 1; }
   }
 }
+
+@keyframes flip {
+  0%   { transform: rotateX(0deg); opacity: 1; }
+  50%  { transform: rotateX(90deg); opacity: 0.3; }
+  100% { transform: rotateX(0deg); opacity: 1; }
+}
+.animate-flip {
+  animation: flip 400ms ease-in-out;
+  transform-origin: center;
+  display: inline-block;
+  backface-visibility: hidden;
+}
+
+/* ─── Phase 5 — additive polish ──────────────────────────────────────── */
+/* Additive only: zero steady-state pixel drift on the app diagnostic     */
+/* page. Entrance + hover are layered on existing surfaces.               */
+
+@keyframes warroom-column-enter {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+.warroom-shell .warroom-column,
+.warroom-shell > .grid > * {
+  animation: warroom-column-enter 600ms var(--ease-soft, cubic-bezier(0.22, 1, 0.36, 1)) both;
+}
+.warroom-shell .warroom-column:nth-child(2),
+.warroom-shell > .grid > *:nth-child(2) { animation-delay: 80ms;  }
+.warroom-shell .warroom-column:nth-child(3),
+.warroom-shell > .grid > *:nth-child(3) { animation-delay: 160ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .warroom-shell .warroom-column,
+  .warroom-shell > .grid > * { animation: none; }
+}
+
+/* Hover depth + subtle noise texture on surface panels.                  */
+/* Texture: radial micro-dots at 0.015 alpha — imperceptible but present. */
+.surface-panel {
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.015) 1px, transparent 0),
+    linear-gradient(180deg, rgba(30, 27, 21, 0.6) 0%, rgba(18, 17, 14, 0.6) 100%);
+  background-size: 3px 3px, 100% 100%;
+  transition:
+    transform 200ms var(--ease-soft, cubic-bezier(0.22, 1, 0.36, 1)),
+    box-shadow 200ms var(--ease-soft, cubic-bezier(0.22, 1, 0.36, 1)),
+    border-color 200ms var(--ease-soft, cubic-bezier(0.22, 1, 0.36, 1));
+}
+.surface-panel:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px -12px rgba(224, 159, 62, 0.22);
+  border-color: var(--wr-border-strong);
+}
+@media (prefers-reduced-motion: reduce) {
+  .surface-panel { transition: none; }
+  .surface-panel:hover { transform: none; }
+}
+

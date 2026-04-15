@@ -27,19 +27,19 @@ const AZNode: React.FC<NodeProps<AZNodeData>> = ({ data, selected }) => {
       />
 
       {/* AZ badge top-right */}
-      <div className="absolute top-0 right-3 -translate-y-1/2 px-2 py-0.5 rounded text-[9px] font-mono font-bold"
+      <div className="absolute top-0 right-3 -translate-y-1/2 px-2 py-0.5 rounded text-body-xs font-mono font-bold"
            style={{ zIndex: 10, backgroundColor: '#78350f', color: '#f59e0b', border: '1px solid #92400e' }}>
         AZ
       </div>
 
       {/* Zone name top-left */}
-      <div className="absolute top-0 left-3 -translate-y-1/2 px-2 py-0.5 rounded text-[10px] font-mono font-semibold"
+      <div className="absolute top-0 left-3 -translate-y-1/2 px-2 py-0.5 rounded text-body-xs font-mono font-semibold"
            style={{ zIndex: 10, backgroundColor: '#1a1814', color: '#f59e0b', border: '1px solid #92400e' }}>
         {data.zoneName || data.label}
       </div>
 
       {/* Name + region at bottom */}
-      <div className="absolute bottom-2 left-3 text-[10px] font-mono" style={{ color: '#64748b' }}>
+      <div className="absolute bottom-2 left-3 text-body-xs font-mono" style={{ color: '#64748b' }}>
         {data.label}{data.region ? ` (${data.region})` : ''}
       </div>
     </div>

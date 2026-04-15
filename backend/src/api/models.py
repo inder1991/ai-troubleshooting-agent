@@ -3,7 +3,7 @@ API Request/Response Models
 """
 
 from pydantic import BaseModel, Field
-from typing import Optional, Dict, List, Any
+from typing import Optional, Dict, List, Any, Annotated
 
 class ConversationRequest(BaseModel):
     message: str = Field(..., description="User's message")
@@ -65,26 +65,29 @@ class ChatResponse(BaseModel):
 class StartSessionRequest(BaseModel):
     model_config = {"populate_by_name": True}
 
-    serviceName: str = Field(alias="service_name", default="unknown")
-    elkIndex: Optional[str] = Field(default=None, alias="elk_index")
-    timeframe: str = Field(default="1h", alias="time_window")
-    traceId: Optional[str] = Field(default=None, alias="trace_id")
+    # Aliases must use Annotated[] for Optional/Union-typed fields — see
+    # https://docs.pydantic.dev/latest/concepts/alias/ — otherwise Pydantic v2
+    # silently drops the alias with UnsupportedFieldAttributeWarning.
+    serviceName: Annotated[str, Field(alias="service_name")] = "unknown"
+    elkIndex: Annotated[Optional[str], Field(alias="elk_index")] = None
+    timeframe: Annotated[str, Field(alias="time_window")] = "1h"
+    traceId: Annotated[Optional[str], Field(alias="trace_id")] = None
     namespace: Optional[str] = None
-    clusterUrl: Optional[str] = Field(default=None, alias="cluster_url")
-    repoUrl: Optional[str] = Field(default=None, alias="repo_url")
-    profileId: Optional[str] = Field(default=None, alias="profile_id")
+    clusterUrl: Annotated[Optional[str], Field(alias="cluster_url")] = None
+    repoUrl: Annotated[Optional[str], Field(alias="repo_url")] = None
+    profileId: Annotated[Optional[str], Field(alias="profile_id")] = None
     capability: str = "troubleshoot_app"
-    authToken: Optional[str] = Field(default=None, alias="auth_token")
-    authMethod: Optional[str] = Field(default=None, alias="auth_method")
-    kubeconfig_content: Optional[str] = Field(default=None, alias="kubeconfig_content")
-    role: Optional[str] = Field(default=None, alias="role")
-    scan_mode: str = Field(default="diagnostic", alias="scanMode")
+    authToken: Annotated[Optional[str], Field(alias="auth_token")] = None
+    authMethod: Annotated[Optional[str], Field(alias="auth_method")] = None
+    kubeconfig_content: Optional[str] = None
+    role: Optional[str] = None
+    scan_mode: Annotated[str, Field(alias="scanMode")] = "diagnostic"
     scope: Optional[dict] = None       # DiagnosticScope dict from frontend
     resource_type: Optional[str] = None
     symptoms: Optional[str] = None
-    target_host: Optional[str] = Field(default=None, alias="targetHost")
-    port_num: Optional[int] = Field(default=None, alias="portNum")
-    net_protocol: Optional[str] = Field(default=None, alias="netProtocol")
+    target_host: Annotated[Optional[str], Field(alias="targetHost")] = None
+    port_num: Annotated[Optional[int], Field(alias="portNum")] = None
+    net_protocol: Annotated[Optional[str], Field(alias="netProtocol")] = None
     extra: Optional[dict] = None  # Additional capability-specific config
 
 

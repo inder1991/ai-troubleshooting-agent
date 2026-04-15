@@ -10,6 +10,7 @@ from anthropic import APIStatusError
 from src.models.schemas import Breadcrumb, EvidencePin, NegativeFinding, ReActBudget, TokenUsage
 from src.utils.llm_client import AnthropicClient
 from src.utils.event_emitter import EventEmitter
+from src.utils.context_guard import ContextWindowGuard
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -74,6 +75,7 @@ class ReActAgent(ABC):
         self._tool_handlers: dict[str, Any] = {}
         self._consecutive_infra_failures = 0
         self._wrap_up_nudge_sent = False
+        self._context_guard = ContextWindowGuard(model_name=resolved_model)
 
     @abstractmethod
     async def _define_tools(self) -> list[dict]:
@@ -259,6 +261,9 @@ class ReActAgent(ABC):
                                   "remaining_llm_calls": remaining_llm_calls,
                                   "remaining_budget_pct": f"{remaining_budget_pct:.0%}"},
                     })
+
+            # Guard against context window overflow
+            messages = self._context_guard.truncate_if_needed(messages)
 
             # Call LLM with tools (retry on transient errors)
             response = None

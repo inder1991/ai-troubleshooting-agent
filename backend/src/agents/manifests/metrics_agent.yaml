@@ -1,0 +1,61 @@
+name: metrics_agent
+version: 1
+description: >-
+  Queries Prometheus for CPU, memory, latency, and error-rate metrics,
+  compares against 24h baselines, detects spikes, and reports anomalies
+  alongside correlated RED/USE signal groups.
+category: observability
+tags: [metrics, prometheus, anomalies, baselines, promql]
+inputs:
+  type: object
+  properties:
+    service_name:
+      type: string
+    namespace:
+      type: string
+      default: default
+    time_window:
+      type: object
+      description: "{start, end} strings (Prometheus range syntax)"
+      properties:
+        start: { type: string }
+        end: { type: string }
+    error_hints:
+      type: array
+      items: { type: string }
+    suggested_promql_queries:
+      type: array
+      items: { type: object }
+      description: PromQL suggestions produced by the log agent
+    error_patterns:
+      type: array
+      items: { type: object }
+  required: [service_name]
+outputs:
+  type: object
+  properties:
+    anomalies:
+      type: array
+      items: { type: object }
+    correlated_signals:
+      type: array
+      items: { type: object }
+    overall_confidence: { type: number }
+    mode: { type: string }
+    llm_calls: { type: integer }
+    breadcrumbs:
+      type: array
+      items: { type: object }
+    negative_findings:
+      type: array
+      items: { type: object }
+    tokens_used: { type: object }
+trigger_examples:
+  - "Show CPU and memory anomalies for order-service"
+  - "Are latency metrics spiking?"
+  - "Compare error rate to yesterday's baseline"
+retry_on: [TimeoutError]
+timeout_seconds: 120
+cost_hint:
+  llm_calls: 1
+  typical_duration_s: 20

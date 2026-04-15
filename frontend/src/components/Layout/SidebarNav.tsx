@@ -1,14 +1,15 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Badge } from '../ui/Badge';
 
-export type NavView = 'home' | 'sessions' | 'app-diagnostics' | 'cluster-diagnostics'
+export type NavView = 'home' | 'sessions' | 'cicd' | 'app-diagnostics' | 'cluster-diagnostics'
   | 'network-troubleshooting' | 'pr-review' | 'github-issue-fix'
   | 'network-topology' | 'network-adapters' | 'device-monitoring' | 'ipam' | 'matrix' | 'observatory'
   | 'k8s-clusters' | 'k8s-diagnostics' | 'cluster-registry' | 'cluster-recommendations'
   | 'db-overview' | 'db-connections' | 'db-diagnostics' | 'db-monitoring' | 'db-schema' | 'db-operations'
   | 'integrations' | 'settings' | 'agent-matrix'
   | 'audit-log' | 'mib-browser' | 'cloud-resources' | 'security-resources'
-  | 'agent-catalog' | 'workflow-builder' | 'workflow-runs';
+  | 'agent-catalog' | 'workflow-builder' | 'workflow-runs' | 'how-it-works'
+  | 'catalog';
 
 type NavChild = { id: NavView; label: string; icon: string; badge?: 'NEW' | 'PREVIEW' | 'BETA' };
 type NavLink = { kind: 'link'; id: NavView; label: string; icon: string };
@@ -25,6 +26,7 @@ const navItems: NavItem[] = [
   // Zone 1: Entry
   { kind: 'link', id: 'home', label: 'Dashboard', icon: 'space_dashboard' },
   { kind: 'link', id: 'sessions', label: 'Sessions', icon: 'history' },
+  { kind: 'link', id: 'cicd', label: 'Delivery', icon: 'rocket_launch' },
 
   // Zone 2: Diagnostics (merged — all troubleshooting in one group)
   {
@@ -97,6 +99,7 @@ const navItems: NavItem[] = [
   {
     kind: 'group', group: 'Platform', icon: 'hub',
     children: [
+      { id: 'catalog', label: 'Catalog', icon: 'menu_book', badge: 'NEW' },
       { id: 'workflow-builder', label: 'Workflow Builder', icon: 'account_tree', badge: 'NEW' },
       { id: 'workflow-runs', label: 'Workflow Runs', icon: 'play_circle', badge: 'NEW' },
     ],
@@ -244,7 +247,7 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ activeView, onNavigate, onNewMi
           {!collapsed && (
             <button
               onClick={() => setCollapsed(true)}
-              className="text-slate-500 hover:text-slate-300 transition-colors p-1 rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-duck-accent"
+              className="text-slate-400 hover:text-slate-300 transition-colors p-1 rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-duck-accent"
               aria-label="Collapse sidebar"
               title="Collapse sidebar"
             >
@@ -254,7 +257,7 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ activeView, onNavigate, onNewMi
           {collapsed && (
             <button
               onClick={() => setCollapsed(false)}
-              className="text-slate-500 hover:text-slate-300 transition-colors mt-2 p-1 rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-duck-accent"
+              className="text-slate-400 hover:text-slate-300 transition-colors mt-2 p-1 rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-duck-accent"
               aria-label="Expand sidebar"
               title="Expand sidebar"
             >
@@ -360,11 +363,11 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ activeView, onNavigate, onNewMi
               {/* Help & Feedback */}
               <button
                 className="w-full flex items-center gap-2.5 px-3 py-2 text-slate-400 hover:text-slate-200 hover:bg-white/[0.04] transition-colors text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-duck-accent"
-                onClick={() => window.open('https://docs.debugduck.dev', '_blank')}
+                onClick={() => onNavigate('how-it-works')}
                 aria-label="Help and documentation"
               >
                 <span className="material-symbols-outlined text-[18px]" aria-hidden="true">help</span>
-                <span className="text-[11px] font-display font-bold">Help & Docs</span>
+                <span className="text-body-xs font-display font-bold">Help & Docs</span>
               </button>
 
               {/* User Profile */}
@@ -373,8 +376,8 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ activeView, onNavigate, onNewMi
                   <span className="material-symbols-outlined text-[14px] text-duck-accent" aria-hidden="true">person</span>
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-[11px] font-display font-bold text-slate-200 truncate">SRE Admin</p>
-                  <p className="text-[9px] text-slate-400 truncate">Acme Corp · Pro Plan</p>
+                  <p className="text-body-xs font-display font-bold text-slate-200 truncate">SRE Admin</p>
+                  <p className="text-body-xs text-slate-400 truncate">Acme Corp · Pro Plan</p>
                 </div>
               </div>
             </>
@@ -383,8 +386,8 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ activeView, onNavigate, onNewMi
           {collapsed && (
             <div className="flex flex-col items-center gap-2 py-2">
               <button
-                onClick={() => window.open('https://docs.debugduck.dev', '_blank')}
-                className="text-slate-500 hover:text-slate-200 transition-colors"
+                onClick={() => onNavigate('how-it-works')}
+                className="text-slate-400 hover:text-slate-200 transition-colors"
                 aria-label="Help"
                 title="Help & Docs"
               >
@@ -412,7 +415,7 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ activeView, onNavigate, onNewMi
             <div className="p-5 flex flex-col">
               {/* Flyout Header */}
               <header className="flex items-center justify-between mb-5 gap-8">
-                <h2 className="text-[10px] font-display font-bold uppercase tracking-wider text-slate-400 whitespace-nowrap">
+                <h2 className="text-body-xs font-display font-bold uppercase tracking-wider text-slate-400 whitespace-nowrap">
                   {displayGroupItem.group}
                 </h2>
                 <button
@@ -420,7 +423,7 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ activeView, onNavigate, onNewMi
                   title={pinned ? 'Unpin panel' : 'Pin panel open'}
                   aria-label={pinned ? 'Unpin panel' : 'Pin panel open'}
                   className={`p-1 rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-duck-accent ${
-                    pinned ? 'text-duck-accent' : 'text-slate-600 hover:text-slate-400'
+                    pinned ? 'text-duck-accent' : 'text-slate-500 hover:text-slate-400'
                   }`}
                   style={{ transition: 'color 150ms cubic-bezier(0.25, 1, 0.5, 1), transform 100ms cubic-bezier(0.25, 1, 0.5, 1)' }}
                   onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.9)'; }}

@@ -3,6 +3,7 @@ ToolExecutor: Dispatches investigation tool calls by intent name.
 Each handler takes params dict -> returns ToolResult.
 """
 
+import asyncio
 import json
 import os
 import re
@@ -19,6 +20,20 @@ from src.utils.logger import get_logger
 from src.utils.lttb import lttb_downsample, MAX_POINTS
 
 logger = get_logger(__name__)
+
+# Per-tool timeout configuration (seconds)
+TOOL_TIMEOUTS = {
+    "fetch_pod_logs": 30,
+    "query_prometheus_range": 20,
+    "query_prometheus_instant": 10,
+    "search_elasticsearch": 30,
+    "search_logs": 30,
+    "describe_resource": 15,
+    "get_events": 15,
+    "check_pod_status": 10,
+    "analyze_upstream_dependency": 45,
+    "default": 20,
+}
 
 # Domain mapping for K8s resource kinds
 # Domain classification: use _classify_domain() helper for consistent mapping.
@@ -235,6 +250,7 @@ class ToolExecutor:
         "check_pod_status": "_check_pod_status",
         "get_events": "_get_events",
         "re_investigate_service": "_re_investigate_service",
+        "analyze_upstream_dependency": "_analyze_upstream_dependency",
     }
 
     # ------------------------------------------------------------------
@@ -286,7 +302,21 @@ class ToolExecutor:
 
         handler_name = self.HANDLERS[intent]  # KeyError if unknown intent
         handler = getattr(self, handler_name)
-        return await handler(params)
+        timeout = TOOL_TIMEOUTS.get(intent, TOOL_TIMEOUTS["default"])
+        try:
+            return await asyncio.wait_for(handler(params), timeout=timeout)
+        except asyncio.TimeoutError:
+            logger.warning("Tool '%s' timed out after %ds", intent, timeout)
+            return ToolResult(
+                success=False,
+                intent=intent,
+                raw_output="",
+                summary=f"Tool '{intent}' timed out after {timeout}s",
+                evidence_snippets=[],
+                evidence_type="unknown",
+                domain="unknown",
+                error=f"Tool '{intent}' timed out after {timeout}s",
+            )
 
     # ------------------------------------------------------------------
     # fetch_pod_logs
@@ -479,21 +509,18 @@ class ToolExecutor:
         try:
             response = self._get_prom_client().query_range(query, range_minutes)
         except Exception as exc:
-            # B8: Log full error internally, return generic message to client
-            logger.error(
-                "query_prometheus internal error",
-                extra={"query": query, "error": str(exc), "error_type": type(exc).__name__},
-            )
-            client_msg = "Prometheus query failed"
+            error_detail = f"Tool 'query_prometheus' failed: {type(exc).__name__}: {str(exc)}"
+            logger.exception(f"[tool_executor] {error_detail}")
+            sanitized = "Prometheus query failed"
             return ToolResult(
                 success=False,
                 intent="query_prometheus",
-                raw_output="",
-                summary=client_msg,
+                raw_output=sanitized,
+                summary=sanitized,
                 evidence_snippets=[],
                 evidence_type="metric",
                 domain=domain,
-                error=client_msg,
+                error=sanitized,
                 metadata={"query": query, "range_minutes": range_minutes},
             )
 
@@ -609,21 +636,18 @@ class ToolExecutor:
                 },
             )
         except Exception as exc:
-            # B8: Log full error internally, return generic message to client
-            logger.error(
-                "search_logs internal error",
-                extra={"query": query, "index": index, "error": str(exc), "error_type": type(exc).__name__},
-            )
-            client_msg = "Log search failed"
+            error_detail = f"Tool 'search_logs' failed: {type(exc).__name__}: {str(exc)}"
+            logger.exception(f"[tool_executor] {error_detail}")
+            sanitized = "Log search failed"
             return ToolResult(
                 success=False,
                 intent="search_logs",
-                raw_output="",
-                summary=client_msg,
+                raw_output=sanitized,
+                summary=sanitized,
                 evidence_snippets=[],
                 evidence_type="log",
                 domain="unknown",
-                error=client_msg,
+                error=sanitized,
                 metadata={"query": query, "index": index},
             )
 
@@ -885,6 +909,64 @@ class ToolExecutor:
         )
 
     # ------------------------------------------------------------------
+    # analyze_upstream_dependency
+    # ------------------------------------------------------------------
+
+    async def _analyze_upstream_dependency(self, params: dict[str, Any]) -> ToolResult:
+        """Analyze an upstream service for recent breaking changes."""
+        from src.agents.cross_repo_tracer import CrossRepoTracer
+
+        service_name = params.get("service_name", "")
+        dependency_name = params.get("dependency_name", "")
+        time_window = int(params.get("time_window_hours", 24))
+
+        repo_map = params.get("_context", {}).get("repo_map", {})
+        tracer = CrossRepoTracer(repo_map=repo_map)
+
+        window_end = datetime.now(tz=timezone.utc)
+        window_start = window_end - timedelta(hours=time_window)
+
+        findings = await tracer._analyze_upstream(
+            upstream_repo=service_name,
+            downstream_repo="current",
+            dependency={"name": dependency_name},
+            window_start=window_start,
+            window_end=window_end,
+        )
+
+        if not findings:
+            summary = f"No breaking changes found in {service_name} within the last {time_window} hours"
+            return ToolResult(
+                success=True,
+                intent="analyze_upstream_dependency",
+                raw_output=summary,
+                summary=summary,
+                evidence_snippets=[],
+                evidence_type="dependency_analysis",
+                domain="code",
+            )
+
+        lines = [
+            f"- {f.correlation_type}: {f.source_file} ({f.correlation_score:.0%})"
+            for f in findings
+        ]
+        summary = "\n".join(lines)
+        return ToolResult(
+            success=True,
+            intent="analyze_upstream_dependency",
+            raw_output=summary,
+            summary=summary,
+            evidence_snippets=lines,
+            evidence_type="dependency_analysis",
+            domain="code",
+            metadata={
+                "service_name": service_name,
+                "dependency_name": dependency_name,
+                "finding_count": len(findings),
+            },
+        )
+
+    # ------------------------------------------------------------------
     # Public resource accessors (Surgical Telescope)
     # ------------------------------------------------------------------
 
@@ -933,11 +1015,8 @@ class ToolExecutor:
             yaml_str = json.dumps(serialized, indent=2)
             return {"yaml": yaml_str}
         except Exception as exc:
-            logger.error(
-                "get_resource_yaml failed",
-                extra={"kind": kind, "resource_name": name, "namespace": namespace,
-                       "error": str(exc), "error_type": type(exc).__name__},
-            )
+            error_detail = f"Tool 'get_resource_yaml' failed: {type(exc).__name__}: {str(exc)}"
+            logger.exception(f"[tool_executor] {error_detail}")
             return {"error": "Failed to fetch resource"}
 
     def get_resource_events(self, kind: str, name: str, namespace: str) -> list[dict[str, Any]]:
@@ -975,11 +1054,8 @@ class ToolExecutor:
                 })
             return events
         except Exception as exc:
-            logger.error(
-                "get_resource_events failed",
-                extra={"kind": kind, "resource_name": name, "namespace": namespace,
-                       "error": str(exc), "error_type": type(exc).__name__},
-            )
+            error_detail = f"Tool 'get_resource_events' failed: {type(exc).__name__}: {str(exc)}"
+            logger.exception(f"[tool_executor] {error_detail}")
             return []
 
     def get_pod_logs(
@@ -1011,11 +1087,8 @@ class ToolExecutor:
             log_text: str = self._get_k8s_core_api().read_namespaced_pod_log(**kwargs)
             return {"logs": log_text}
         except Exception as exc:
-            logger.error(
-                "get_pod_logs failed",
-                extra={"pod": pod_name, "namespace": namespace,
-                       "error": str(exc), "error_type": type(exc).__name__},
-            )
+            error_detail = f"Tool 'get_pod_logs' failed: {type(exc).__name__}: {str(exc)}"
+            logger.exception(f"[tool_executor] {error_detail}")
             return {"error": "Failed to fetch pod logs"}
 
     # ------------------------------------------------------------------

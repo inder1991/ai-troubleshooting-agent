@@ -15,6 +15,11 @@ class EventEmitter:
         self._websocket_manager = websocket_manager
         self._store = store
         self._events: list[TaskEvent] = []
+        self._pubsub_bridge = None
+
+    def set_pubsub_bridge(self, bridge) -> None:
+        """Attach a RedisPubSubBridge for cross-instance event broadcasting."""
+        self._pubsub_bridge = bridge
 
     async def emit(
         self,
@@ -61,6 +66,20 @@ class EventEmitter:
                     "WebSocket broadcast failed (event persisted at seq=%s)",
                     event.sequence_number,
                     extra={"session_id": self.session_id, "action": "ws_broadcast_failed",
+                           "extra": str(e)},
+                )
+
+        if self._pubsub_bridge:
+            try:
+                await self._pubsub_bridge.publish(
+                    self.session_id,
+                    {"type": "task_event", "data": event.model_dump(mode="json")},
+                )
+            except Exception as e:
+                logger.warning(
+                    "Redis pub/sub publish failed (event persisted at seq=%s)",
+                    event.sequence_number,
+                    extra={"session_id": self.session_id, "action": "pubsub_publish_failed",
                            "extra": str(e)},
                 )
 

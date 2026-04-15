@@ -64,7 +64,7 @@ const RemediationProgressBar: React.FC<RemediationProgressBarProps> = ({
         {/* Progress Tracker */}
         <div className="flex-1 flex items-center relative">
           {/* Background connector line */}
-          <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-1 bg-slate-800 -z-10" />
+          <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-1 bg-wr-surface -z-10" />
           {/* Active connector line */}
           <div
             className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-[#e09f3e] -z-10 transition-all duration-700"
@@ -85,20 +85,21 @@ const RemediationProgressBar: React.FC<RemediationProgressBarProps> = ({
                         ? 'bg-[#e09f3e] ring-4 ring-[#e09f3e]/20'
                         : isActive
                         ? 'bg-[#e09f3e] ring-4 ring-[#e09f3e]/40 animate-pulse'
-                        : 'bg-slate-800 text-slate-500'
+                        : 'bg-wr-surface text-slate-400'
                     }`}
                     aria-label={`${step.label}: ${isComplete ? 'complete' : isActive ? 'in progress' : 'pending'}`}
                     title={`${step.label}: ${isComplete ? 'Complete' : isActive ? 'In Progress' : 'Pending'}`}
                   >
                     <span
                       className="material-symbols-outlined text-sm"
+                      style={{ fontFamily: 'Material Symbols Outlined' }}
                     >
                       {isComplete ? 'check' : step.icon}
                     </span>
                   </div>
                   <span
-                    className={`text-[10px] font-bold ${
-                      isPending ? 'text-slate-500' : 'text-[#e09f3e]'
+                    className={`text-body-xs font-bold uppercase tracking-widest ${
+                      isPending ? 'text-slate-400' : 'text-[#e09f3e]'
                     }`}
                   >
                     {step.label}
@@ -110,19 +111,20 @@ const RemediationProgressBar: React.FC<RemediationProgressBarProps> = ({
         </div>
 
         {/* Right section: Resolution CTA - matches reference */}
-        <div className="shrink-0 flex items-center gap-4 pl-8 border-l border-slate-800">
+        <div className="shrink-0 flex items-center gap-4 pl-8 border-l border-wr-border">
           {/* Est. Resolution */}
           <div className="text-right">
-            <div className="text-[10px] text-slate-500 font-bold font-display">Fix Confidence</div>
+            <div className="text-body-xs text-slate-400 font-bold uppercase tracking-widest">Fix Confidence</div>
             <div className="text-sm font-mono text-slate-300">
               {confidence > 0 ? `${Math.round(confidence)}%` : '--'}
             </div>
           </div>
 
           {/* Resolve button */}
-          <button className="bg-primary hover:bg-primary/90 text-white px-6 py-2.5 rounded-lg font-bold text-xs flex items-center gap-2 transition-all shadow-lg shadow-primary/20">
+          <button className="bg-primary hover:bg-primary/90 text-white px-6 py-2.5 rounded-lg font-bold text-xs uppercase tracking-wider flex items-center gap-2 transition-all shadow-lg shadow-primary/20">
             <span
               className="material-symbols-outlined text-sm"
+              style={{ fontFamily: 'Material Symbols Outlined' }}
             >
               task_alt
             </span>

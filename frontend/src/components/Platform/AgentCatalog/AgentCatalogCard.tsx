@@ -49,13 +49,13 @@ const AgentCatalogCard: React.FC<Props> = ({ agent, selected, onClick }) => (
       />
     </div>
 
-    <div className="mt-1 text-[10px] font-mono truncate" style={{ color: '#64748b' }}>
+    <div className="mt-1 text-body-xs font-mono truncate" style={{ color: '#64748b' }}>
       {agent.id}
     </div>
 
     <div className="mt-2 flex items-center gap-2 flex-wrap">
       <span
-        className="text-[9px] font-mono px-1.5 py-0.5 rounded"
+        className="text-body-xs font-mono px-1.5 py-0.5 rounded"
         style={{
           background: `${ROLE_COLOR[agent.role] || '#64748b'}20`,
           color: ROLE_COLOR[agent.role] || '#64748b',
@@ -64,13 +64,13 @@ const AgentCatalogCard: React.FC<Props> = ({ agent, selected, onClick }) => (
       >
         {agent.role}
       </span>
-      <span className="text-[9px] font-mono" style={{ color: '#3d4a50' }}>
+      <span className="text-body-xs font-mono" style={{ color: '#3d4a50' }}>
         {agent.workflow}
       </span>
     </div>
 
     {agent.tools.length > 0 && (
-      <div className="mt-2 text-[9px] font-mono" style={{ color: '#4a5568' }}>
+      <div className="mt-2 text-body-xs font-mono" style={{ color: '#4a5568' }}>
         {agent.tools.length} tool{agent.tools.length !== 1 ? 's' : ''}
         {agent.timeout_s && ` · ${agent.timeout_s}s timeout`}
       </div>

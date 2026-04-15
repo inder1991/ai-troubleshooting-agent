@@ -42,12 +42,12 @@ export const WeeklyStats: React.FC = () => {
 
   return (
     <div>
-      <h3 className="text-[10px] font-display font-bold text-slate-400 mb-1.5">Weekly Stats</h3>
+      <h3 className="text-body-xs font-display font-bold text-slate-400 mb-1.5">Weekly Stats</h3>
       <div className="grid grid-cols-2 gap-x-3 gap-y-1">
         {items.map((item) => (
           <div key={item.label} className="flex items-center justify-between">
-            <span className="text-[9px] text-slate-500">{item.label}</span>
-            <span className={`text-[10px] font-mono font-bold ${item.color}`} style={{ fontVariantNumeric: 'tabular-nums' }}>
+            <span className="text-body-xs text-slate-400">{item.label}</span>
+            <span className={`text-body-xs font-mono font-bold ${item.color}`} style={{ fontVariantNumeric: 'tabular-nums' }}>
               {item.value}
             </span>
           </div>

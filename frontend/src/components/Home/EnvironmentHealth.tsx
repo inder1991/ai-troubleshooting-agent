@@ -38,7 +38,7 @@ export const EnvironmentHealth: React.FC = () => {
       <div className="flex items-center gap-2 px-3 py-2 bg-duck-panel border border-duck-border rounded-lg"
         style={{ borderLeft: `3px solid ${borderColor}` }}>
         <span className="material-symbols-outlined text-sm text-slate-400 animate-spin" aria-hidden="true">progress_activity</span>
-        <span className="text-[11px] text-slate-400">Scanning systems...</span>
+        <span className="text-body-xs text-slate-400">Scanning systems...</span>
       </div>
     );
   }
@@ -55,7 +55,7 @@ export const EnvironmentHealth: React.FC = () => {
         </div>
         <div className="flex items-center gap-2">
           <span className="material-symbols-outlined text-sm text-emerald-400" aria-hidden="true">check_circle</span>
-          <span className="text-[11px] font-display font-bold text-emerald-400">
+          <span className="text-body-xs font-display font-bold text-emerald-400">
             {nodes.length}/{nodes.length} Systems Nominal
           </span>
         </div>
@@ -92,14 +92,14 @@ export const EnvironmentHealth: React.FC = () => {
               <span className={`material-symbols-outlined text-[14px] ${si.cls}`} aria-hidden="true">
                 {si.icon}
               </span>
-              <span className="text-[11px] text-slate-200 font-display font-bold flex-1 truncate">
+              <span className="text-body-xs text-slate-200 font-display font-bold flex-1 truncate">
                 {node.name}
               </span>
-              <span className={`text-[10px] ${si.cls}`}>
+              <span className={`text-body-xs ${si.cls}`}>
                 {node.status}
               </span>
               {node.latencyMs != null && (
-                <span className="text-[10px] text-slate-400 font-mono">{node.latencyMs}ms</span>
+                <span className="text-body-xs text-slate-400 font-mono">{node.latencyMs}ms</span>
               )}
             </div>
           );
@@ -109,7 +109,7 @@ export const EnvironmentHealth: React.FC = () => {
       {/* Healthy summary */}
       <div className="flex items-center gap-1.5 mt-2 pt-1.5 border-t border-duck-border/30">
         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" aria-hidden="true" />
-        <span className="text-[10px] text-slate-400">
+        <span className="text-body-xs text-slate-400">
           {healthyCount} system{healthyCount !== 1 ? 's' : ''} healthy
         </span>
       </div>

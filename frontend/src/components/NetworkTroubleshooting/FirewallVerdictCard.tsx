@@ -63,7 +63,7 @@ const FirewallVerdictCard: React.FC<FirewallVerdictCardProps> = ({ verdict }) =>
               const gradeColors = { CRITICAL: '#ef4444', HIGH: '#f59e0b' };
               return (
                 <span
-                  className="px-2 py-0.5 rounded text-[10px] font-bold tracking-wider animate-pulse"
+                  className="px-2 py-0.5 rounded text-body-xs font-bold tracking-wider animate-pulse"
                   style={{
                     color: gradeColors[grade as keyof typeof gradeColors],
                     backgroundColor: `${gradeColors[grade as keyof typeof gradeColors]}20`,

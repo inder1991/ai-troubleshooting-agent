@@ -170,6 +170,10 @@ class GlobalIntegrationStore:
                 return gi
         return None
 
+    def list_by_service_type(self, service_type: str) -> list[GlobalIntegration]:
+        """Return all integrations matching the given service_type."""
+        return [gi for gi in self.list_all() if gi.service_type == service_type]
+
     def seed_defaults(self):
         """Pre-populate default global integrations if the table is empty."""
         if self.list_all():

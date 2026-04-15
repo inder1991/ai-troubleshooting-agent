@@ -17,7 +17,7 @@ const statusConfig: Record<string, { color: string; bg: string; label: string; d
   available: { color: 'text-emerald-400', bg: 'bg-emerald-400/10', label: 'Available', dot: 'bg-emerald-400' },
   reserved: { color: 'text-blue-400', bg: 'bg-blue-400/10', label: 'Reserved', dot: 'bg-blue-400' },
   assigned: { color: 'text-amber-400', bg: 'bg-amber-400/10', label: 'Used', dot: 'bg-amber-400' },
-  deprecated: { color: 'text-slate-500', bg: 'bg-slate-500/10', label: 'Deprecated', dot: 'bg-slate-500' },
+  deprecated: { color: 'text-slate-400', bg: 'bg-slate-500/10', label: 'Deprecated', dot: 'bg-slate-500' },
 };
 
 type ViewTab = 'table' | 'chart' | 'heatmap';
@@ -306,13 +306,13 @@ export default function IPAMSubnetDetail({ subnet, onUtilizationChange, addToast
       </div>
 
       {/* Utilization bar */}
-      <div className="w-full h-4 bg-slate-700/50 rounded-full overflow-hidden">
+      <div className="w-full h-4 bg-wr-inset/50 rounded-full overflow-hidden">
         <div
           className={`h-full rounded-full transition-all ${barColor}`}
           style={{ width: `${Math.min(utilPct, 100)}%` }}
         />
       </div>
-      <div className="flex justify-between text-xs text-slate-500">
+      <div className="flex justify-between text-xs text-slate-400">
         <span>{utilPct}% utilized</span>
         <span>{subnet.available ?? 0} available</span>
       </div>
@@ -328,7 +328,7 @@ export default function IPAMSubnetDetail({ subnet, onUtilizationChange, addToast
           </div>
           <button
             onClick={() => setScanResult(null)}
-            className="text-slate-500 hover:text-slate-300"
+            className="text-slate-400 hover:text-slate-300"
           >
             <span className="material-symbols-outlined text-sm">close</span>
           </button>
@@ -342,7 +342,7 @@ export default function IPAMSubnetDetail({ subnet, onUtilizationChange, addToast
           className={`px-4 py-2 text-xs font-semibold uppercase tracking-wider border-b-2 transition-colors ${
             activeTab === 'table'
               ? 'border-amber-400 text-amber-300'
-              : 'border-transparent text-slate-500 hover:text-slate-300'
+              : 'border-transparent text-slate-400 hover:text-slate-300'
           }`}
         >
           IP Address View
@@ -352,7 +352,7 @@ export default function IPAMSubnetDetail({ subnet, onUtilizationChange, addToast
           className={`px-4 py-2 text-xs font-semibold uppercase tracking-wider border-b-2 transition-colors ${
             activeTab === 'chart'
               ? 'border-amber-400 text-amber-300'
-              : 'border-transparent text-slate-500 hover:text-slate-300'
+              : 'border-transparent text-slate-400 hover:text-slate-300'
           }`}
         >
           Chart View
@@ -362,7 +362,7 @@ export default function IPAMSubnetDetail({ subnet, onUtilizationChange, addToast
           className={`px-4 py-2 text-xs font-semibold uppercase tracking-wider border-b-2 transition-colors ${
             activeTab === 'heatmap'
               ? 'border-amber-400 text-amber-300'
-              : 'border-transparent text-slate-500 hover:text-slate-300'
+              : 'border-transparent text-slate-400 hover:text-slate-300'
           }`}
         >
           Heatmap
@@ -385,7 +385,7 @@ export default function IPAMSubnetDetail({ subnet, onUtilizationChange, addToast
                     <div className="text-xs text-slate-400 uppercase">{sc.label}</div>
                     <div className="text-lg font-bold text-slate-200">{count}</div>
                   </div>
-                  <div className="text-sm text-slate-500">{pct}%</div>
+                  <div className="text-sm text-slate-400">{pct}%</div>
                 </div>
               );
             })}
@@ -455,7 +455,7 @@ export default function IPAMSubnetDetail({ subnet, onUtilizationChange, addToast
               </div>
             )}
             <div className="flex-1" />
-            <span className="text-slate-500">Filter:</span>
+            <span className="text-slate-400">Filter:</span>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
@@ -478,9 +478,9 @@ export default function IPAMSubnetDetail({ subnet, onUtilizationChange, addToast
 
           {/* IP Grid Table */}
           {loading ? (
-            <div className="text-center text-slate-500 py-8">Loading IPs...</div>
+            <div className="text-center text-slate-400 py-8">Loading IPs...</div>
           ) : ips.length === 0 ? (
-            <div className="text-center text-slate-500 py-8 text-sm">
+            <div className="text-center text-slate-400 py-8 text-sm">
               No IPs found. Populate this subnet first.
             </div>
           ) : (
@@ -488,7 +488,7 @@ export default function IPAMSubnetDetail({ subnet, onUtilizationChange, addToast
             <div className="max-h-[400px] overflow-y-auto">
               <table className="w-full text-sm">
                 <thead className="sticky top-0 bg-[#1e1b15] z-10">
-                  <tr className="text-left text-xs text-slate-500 uppercase tracking-wider">
+                  <tr className="text-left text-xs text-slate-400 uppercase tracking-wider">
                     <th className="py-2 px-2 w-8">
                       <input
                         type="checkbox"
@@ -541,7 +541,7 @@ export default function IPAMSubnetDetail({ subnet, onUtilizationChange, addToast
                             {sc.label}
                           </span>
                         </td>
-                        <td className="py-1.5 px-2 font-mono text-slate-500 text-xs">
+                        <td className="py-1.5 px-2 font-mono text-slate-400 text-xs">
                           {ip.mac_address || '-'}
                         </td>
                         <td className="py-1.5 px-2 text-slate-400 text-xs">
@@ -553,13 +553,13 @@ export default function IPAMSubnetDetail({ subnet, onUtilizationChange, addToast
                         <td className="py-1.5 px-2 text-slate-400 text-xs">
                           {device ? device.name : ip.assigned_device_id || '-'}
                         </td>
-                        <td className="py-1.5 px-2 text-slate-500 text-xs">{ip.ip_type}</td>
+                        <td className="py-1.5 px-2 text-slate-400 text-xs">{ip.ip_type}</td>
                         <td className="py-1.5 px-2 relative">
                           {isSelectable && (
                             <>
                               <button
                                 onClick={() => setActionMenuId(actionMenuId === ip.id ? '' : ip.id)}
-                                className="text-slate-500 hover:text-slate-300"
+                                className="text-slate-400 hover:text-slate-300"
                               >
                                 <span className="material-symbols-outlined text-sm">more_vert</span>
                               </button>
@@ -657,12 +657,12 @@ export default function IPAMSubnetDetail({ subnet, onUtilizationChange, addToast
           <div className="bg-[#1e1b15] border border-[#3d3528] rounded-lg p-6 w-[420px]">
             <div className="flex items-center justify-between mb-4">
               <h4 className="text-sm font-semibold text-slate-200">IP Correlation Trace</h4>
-              <button onClick={() => setCorrelationChain(null)} className="text-slate-500 hover:text-slate-300">
+              <button onClick={() => setCorrelationChain(null)} className="text-slate-400 hover:text-slate-300">
                 <span className="material-symbols-outlined">close</span>
               </button>
             </div>
             {correlationLoading ? (
-              <div className="text-center text-slate-500 py-8 text-sm">Loading...</div>
+              <div className="text-center text-slate-400 py-8 text-sm">Loading...</div>
             ) : correlationChain ? (
               <div className="space-y-1 text-sm font-mono">
                 <div className="flex items-center gap-2 p-2 bg-[#1a1814] rounded">
@@ -672,7 +672,7 @@ export default function IPAMSubnetDetail({ subnet, onUtilizationChange, addToast
                     correlationChain.ip.status === 'assigned' ? 'bg-amber-400/10 text-amber-400' : 'bg-slate-600/30 text-slate-400'
                   }`}>{correlationChain.ip.status}</span>
                   {correlationChain.ip.owner_team && (
-                    <span className="text-xs text-slate-500">{correlationChain.ip.owner_team}</span>
+                    <span className="text-xs text-slate-400">{correlationChain.ip.owner_team}</span>
                   )}
                 </div>
                 {correlationChain.interface && (
@@ -703,7 +703,7 @@ export default function IPAMSubnetDetail({ subnet, onUtilizationChange, addToast
                   <div className="flex items-center gap-2 p-2 bg-[#1a1814] rounded ml-16">
                     <span className="text-emerald-400">Subnet</span>
                     <span className="text-slate-300">{correlationChain.subnet.cidr}</span>
-                    <span className="ml-auto text-xs text-slate-500">{correlationChain.subnet.utilization_pct}%</span>
+                    <span className="ml-auto text-xs text-slate-400">{correlationChain.subnet.utilization_pct}%</span>
                   </div>
                 )}
               </div>
@@ -723,16 +723,16 @@ export default function IPAMSubnetDetail({ subnet, onUtilizationChange, addToast
               </div>
               <button
                 onClick={() => setHistoryIp(null)}
-                className="text-slate-500 hover:text-slate-300"
+                className="text-slate-400 hover:text-slate-300"
               >
                 <span className="material-symbols-outlined">close</span>
               </button>
             </div>
             <div className="flex-1 overflow-y-auto">
               {historyLoading ? (
-                <div className="text-center text-slate-500 py-8 text-sm">Loading...</div>
+                <div className="text-center text-slate-400 py-8 text-sm">Loading...</div>
               ) : historyEvents.length === 0 ? (
-                <div className="text-center text-slate-500 py-8 text-sm">No history available</div>
+                <div className="text-center text-slate-400 py-8 text-sm">No history available</div>
               ) : (
                 <div className="space-y-2">
                   {historyEvents.map((evt, i) => (
@@ -752,7 +752,7 @@ export default function IPAMSubnetDetail({ subnet, onUtilizationChange, addToast
                         <div className="flex items-center gap-2">
                           <span className="text-sm text-slate-200 font-medium">{evt.action}</span>
                           {evt.old_status && evt.new_status && (
-                            <span className="text-xs text-slate-500">
+                            <span className="text-xs text-slate-400">
                               {evt.old_status} → {evt.new_status}
                             </span>
                           )}
@@ -761,10 +761,10 @@ export default function IPAMSubnetDetail({ subnet, onUtilizationChange, addToast
                           <div className="text-xs text-slate-400 mt-0.5">{evt.details}</div>
                         )}
                         {evt.device_id && (
-                          <div className="text-xs text-slate-500 mt-0.5">Device: {evt.device_id}</div>
+                          <div className="text-xs text-slate-400 mt-0.5">Device: {evt.device_id}</div>
                         )}
                         {evt.timestamp && (
-                          <div className="text-[10px] text-slate-600 mt-1">
+                          <div className="text-body-xs text-slate-500 mt-1">
                             {new Date(evt.timestamp).toLocaleString()}
                           </div>
                         )}

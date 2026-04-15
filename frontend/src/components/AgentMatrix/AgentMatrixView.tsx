@@ -134,10 +134,10 @@ const AgentMatrixView: React.FC<AgentMatrixViewProps> = ({ onGoHome }) => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search agents by name, description, or tool..."
-                className="flex-1 bg-transparent text-sm text-white placeholder:text-slate-600 outline-none"
+                className="flex-1 bg-transparent text-sm text-white placeholder:text-slate-500 outline-none"
               />
               {searchQuery && (
-                <button onClick={() => setSearchQuery('')} className="text-slate-600 hover:text-slate-300">
+                <button onClick={() => setSearchQuery('')} className="text-slate-500 hover:text-slate-300">
                   <span className="material-symbols-outlined text-sm">close</span>
                 </button>
               )}
@@ -150,7 +150,7 @@ const AgentMatrixView: React.FC<AgentMatrixViewProps> = ({ onGoHome }) => {
                   onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.95)'; }}
                   onMouseUp={e => { e.currentTarget.style.transform = 'scale(1)'; }}
                   onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; }}
-                  className="flex items-center gap-1.5 text-[10px] uppercase px-2.5 py-1 rounded"
+                  className="flex items-center gap-1.5 text-body-xs uppercase px-2.5 py-1 rounded"
                   style={{
                     backgroundColor: statusFilter === status ? 'rgba(224,159,62,0.15)' : 'transparent',
                     color: statusFilter === status ? '#e09f3e' : '#64748b',

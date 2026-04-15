@@ -125,6 +125,30 @@ class ClusterClient(ABC):
         """OpenShift MachineConfigPools."""
         return QueryResult()
 
+    async def get_cluster_version(self) -> QueryResult:
+        """OpenShift ClusterVersion object."""
+        return QueryResult()
+
+    async def list_machines(self) -> QueryResult:
+        """OpenShift Machines (machine.openshift.io/v1beta1)."""
+        return QueryResult()
+
+    async def list_subscriptions(self, namespace: str = "") -> QueryResult:
+        """OLM Subscriptions (operators.coreos.com/v1alpha1)."""
+        return QueryResult()
+
+    async def list_csvs(self, namespace: str = "") -> QueryResult:
+        """OLM ClusterServiceVersions (operators.coreos.com/v1alpha1)."""
+        return QueryResult()
+
+    async def list_install_plans(self, namespace: str = "") -> QueryResult:
+        """OLM InstallPlans (operators.coreos.com/v1alpha1)."""
+        return QueryResult()
+
+    async def get_proxy_config(self) -> QueryResult:
+        """OpenShift cluster-wide Proxy config (config.openshift.io/v1)."""
+        return QueryResult()
+
     # RBAC resources — non-abstract, not all agents need these
     async def list_roles(self, namespace: str = "") -> QueryResult:
         """List Roles. Returns empty by default."""
@@ -185,6 +209,18 @@ class ClusterClient(ABC):
 
     async def list_api_versions_in_use(self) -> QueryResult:
         """Scan common resources for apiVersion usage to detect deprecations."""
+        return QueryResult()
+
+    async def list_webhooks(self) -> QueryResult:
+        """List ValidatingWebhookConfiguration + MutatingWebhookConfiguration."""
+        return QueryResult()
+
+    async def list_routes(self, namespace: str = "") -> QueryResult:
+        """List OpenShift Routes."""
+        return QueryResult()
+
+    async def list_ingresses(self, namespace: str = "") -> QueryResult:
+        """List Kubernetes Ingresses."""
         return QueryResult()
 
     async def build_topology_snapshot(self) -> "TopologySnapshot":

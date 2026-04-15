@@ -54,7 +54,7 @@ const ConnectionPoolGauge: React.FC<ConnectionPoolGaugeProps> = ({
           <span className="text-lg font-bold" style={{ color }}>
             {Math.round(utilization)}%
           </span>
-          <span className="text-[8px] text-slate-400 uppercase tracking-wider">used</span>
+          <span className="text-chrome text-slate-400 uppercase tracking-wider">used</span>
         </div>
       </div>
 
@@ -71,8 +71,8 @@ const ConnectionPoolGauge: React.FC<ConnectionPoolGaugeProps> = ({
               className="w-2 h-2 rounded-full"
               style={{ backgroundColor: dotColor }}
             />
-            <span className="text-[10px] text-slate-400 w-12">{label}</span>
-            <span className="text-[11px] text-white font-mono">{value}</span>
+            <span className="text-body-xs text-slate-400 w-12">{label}</span>
+            <span className="text-body-xs text-white font-mono">{value}</span>
           </div>
         ))}
       </div>

@@ -1,0 +1,81 @@
+name: log_agent
+version: 1
+description: >-
+  Analyzes application logs via Elasticsearch to identify error patterns,
+  OOMs, panics, crash causes, and infer upstream/downstream dependencies.
+category: observability
+tags: [logs, errors, patterns, elasticsearch]
+inputs:
+  type: object
+  properties:
+    service_name:
+      type: string
+      description: Target service to analyze logs for
+    namespace:
+      type: string
+      description: Kubernetes namespace (optional — falls back to default)
+    timeframe:
+      type: string
+      description: Elasticsearch range string (e.g. "now-1h")
+      default: "now-1h"
+    elk_index:
+      type: string
+      description: Optional ES index override (autodiscovered if omitted)
+    trace_id:
+      type: string
+    known_dependencies:
+      type: array
+      items: { type: string }
+    business_impact:
+      type: array
+      items: { type: object }
+  required: [service_name]
+outputs:
+  type: object
+  properties:
+    primary_pattern:
+      type: object
+      description: Dominant error pattern with LLM+deterministic merge
+    secondary_patterns:
+      type: array
+      items: { type: object }
+    overall_confidence:
+      type: number
+    root_cause_hypothesis:
+      type: string
+    flow_analysis:
+      type: string
+    patient_zero:
+      type: [object, "null"]
+    inferred_dependencies:
+      type: array
+      items: { type: object }
+    reasoning_chain:
+      type: array
+      items: { type: object }
+    suggested_promql_queries:
+      type: array
+      items: { type: object }
+    breadcrumbs:
+      type: array
+      items: { type: object }
+    negative_findings:
+      type: array
+      items: { type: object }
+    evidence_pins:
+      type: array
+      items: { type: object }
+    raw_logs_count: { type: integer }
+    patterns_found: { type: integer }
+    service_flow:
+      type: array
+      items: { type: object }
+trigger_examples:
+  - "Why is my service erroring?"
+  - "Analyze logs for the last 30 minutes in payment-service"
+  - "Find crash causes in checkout"
+retry_on: [TimeoutError]
+timeout_seconds: 60
+cost_hint:
+  llm_calls: 2
+  typical_duration_s: 15

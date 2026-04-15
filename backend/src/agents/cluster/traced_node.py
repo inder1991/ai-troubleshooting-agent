@@ -50,6 +50,13 @@ _NODE_DEFAULT_OUTPUTS = {
     "hypothesis_engine": {"ranked_hypotheses": [], "hypotheses_by_issue": {}, "hypothesis_selection": {"root_causes": [], "selection_method": "timeout", "llm_reasoning_needed": False}},
     "critic_validator": {"critic_result": {"validations": [], "dropped_hypotheses": [], "weakened_hypotheses": [], "warnings": []}},
     "solution_validator": {},
+    "alert_correlator": {"issue_clusters": []},
+    "causal_firewall": {"causal_search_space": {"valid_links": [], "annotated_links": [], "blocked_links": [], "total_evaluated": 0, "total_blocked": 0, "total_annotated": 0}},
+    "rbac_preflight": {"rbac_check": {"status": "timeout", "granted": [], "denied": [], "warnings": ["RBAC preflight timed out"]}},
+    "topology_snapshot_resolver": {"topology_graph": {"nodes": {}, "edges": []}, "scoped_topology_graph": {"nodes": {}, "edges": []}, "topology_freshness": {"stale": True}},
+    "synthesize": {"health_report": None, "causal_chains": [], "uncorrelated_findings": [], "data_completeness": 0.0, "phase": "timeout", "re_dispatch_domains": [], "re_dispatch_count": 0},
+    "guard_formatter": {"guard_scan_result": None},
+    "_proactive_analysis_node": {"proactive_findings": []},
 }
 
 _AGENT_NODE_NAMES = frozenset({"node_agent", "ctrl_plane_agent", "network_agent", "storage_agent", "rbac_agent"})

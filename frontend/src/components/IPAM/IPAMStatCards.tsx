@@ -10,7 +10,7 @@ const cards = [
   { key: 'assigned_ips' as const, label: 'Assigned', icon: 'check_circle', color: 'text-amber-400' },
   { key: 'available_ips' as const, label: 'Available', icon: 'radio_button_unchecked', color: 'text-emerald-400' },
   { key: 'reserved_ips' as const, label: 'Reserved', icon: 'lock', color: 'text-blue-400' },
-  { key: 'deprecated_ips' as const, label: 'Deprecated', icon: 'do_not_disturb', color: 'text-slate-500' },
+  { key: 'deprecated_ips' as const, label: 'Deprecated', icon: 'do_not_disturb', color: 'text-slate-400' },
   { key: 'total_subnets' as const, label: 'Subnets', icon: 'hub', color: 'text-amber-400' },
 ];
 
@@ -33,7 +33,7 @@ export default function IPAMStatCards({ stats }: Props) {
               <span className={`material-symbols-outlined text-lg ${c.color}`}>
                 {c.icon}
               </span>
-              <span className="text-[11px] text-slate-400 uppercase tracking-wider">
+              <span className="text-body-xs text-slate-400 uppercase tracking-wider">
                 {c.label}
               </span>
             </div>
@@ -41,12 +41,12 @@ export default function IPAMStatCards({ stats }: Props) {
               {value.toLocaleString()}
             </div>
             {isTotal && (
-              <div className="text-xs text-slate-500 mt-0.5">
+              <div className="text-xs text-slate-400 mt-0.5">
                 {stats.overall_utilization_pct}% utilized
               </div>
             )}
             {!isTotal && !isSubnets && (
-              <div className="text-xs text-slate-500 mt-0.5">{pct}% of total</div>
+              <div className="text-xs text-slate-400 mt-0.5">{pct}% of total</div>
             )}
           </div>
         );

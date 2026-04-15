@@ -32,10 +32,10 @@ export default function IPAMAddressSpaceMap({ blockId }: Props) {
   }, [blockId]);
 
   if (loading) {
-    return <div className="text-center text-slate-500 py-8 text-sm">Loading address space map...</div>;
+    return <div className="text-center text-slate-400 py-8 text-sm">Loading address space map...</div>;
   }
   if (!data) {
-    return <div className="text-center text-slate-500 py-8 text-sm">No data available.</div>;
+    return <div className="text-center text-slate-400 py-8 text-sm">No data available.</div>;
   }
 
   const totalSize = data.total_hosts || 1;
@@ -75,7 +75,7 @@ export default function IPAMAddressSpaceMap({ blockId }: Props) {
         })}
         {freePct > 0.5 && (
           <div
-            className="bg-slate-800 flex items-center justify-center text-xs text-slate-500"
+            className="bg-wr-surface flex items-center justify-center text-xs text-slate-400"
             style={{ width: `${freePct}%` }}
           >
             {freePct > 10 ? 'Free' : ''}
@@ -89,7 +89,7 @@ export default function IPAMAddressSpaceMap({ blockId }: Props) {
           <span className="font-mono text-amber-300">{hovered.cidr}</span>
           <span className="text-slate-400">{hovered.name || 'unnamed'}</span>
           <span className="ml-auto text-slate-300">{hovered.utilization_pct}% utilized</span>
-          <span className="text-slate-500">{hovered.size.toLocaleString()} hosts</span>
+          <span className="text-slate-400">{hovered.size.toLocaleString()} hosts</span>
         </div>
       )}
 
@@ -100,13 +100,13 @@ export default function IPAMAddressSpaceMap({ blockId }: Props) {
             <div className={`w-3 h-3 rounded-sm ${utilizationGradient(seg.utilization_pct)}`} />
             <span className="font-mono text-slate-300 w-32">{seg.cidr}</span>
             <span className="text-slate-400 flex-1 truncate">{seg.name || '-'}</span>
-            <div className="w-16 h-1.5 bg-slate-700 rounded-full overflow-hidden">
+            <div className="w-16 h-1.5 bg-wr-inset rounded-full overflow-hidden">
               <div
                 className={`h-full rounded-full ${utilizationGradient(seg.utilization_pct)}`}
                 style={{ width: `${Math.min(seg.utilization_pct, 100)}%` }}
               />
             </div>
-            <span className="text-slate-500 w-8 text-right">{seg.utilization_pct}%</span>
+            <span className="text-slate-400 w-8 text-right">{seg.utilization_pct}%</span>
           </div>
         ))}
       </div>

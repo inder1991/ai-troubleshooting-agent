@@ -54,6 +54,22 @@ const serviceConfig: Record<string, { icon: string; bgColor: string; borderColor
     displayName: 'GitHub Enterprise',
     subtitle: 'Version Control',
   },
+  jenkins: {
+    icon: 'build',
+    bgColor: 'bg-[#d33833]/10',
+    borderColor: 'border-[#d33833]/20',
+    textColor: 'text-[#d33833]',
+    displayName: 'Jenkins',
+    subtitle: 'CI / Build Automation',
+  },
+  argocd: {
+    icon: 'deployed_code',
+    bgColor: 'bg-[#ef7b4d]/10',
+    borderColor: 'border-[#ef7b4d]/20',
+    textColor: 'text-[#ef7b4d]',
+    displayName: 'Argo CD',
+    subtitle: 'GitOps Continuous Delivery',
+  },
   aws: {
     icon: 'cloud',
     bgColor: 'bg-[#ff9900]/10',
@@ -178,6 +194,7 @@ const GlobalIntegrationsSection: React.FC<GlobalIntegrationsSectionProps> = ({
   const [newPassword, setNewPassword] = useState('');
   const [newToken, setNewToken] = useState('');
   const [newOrgs, setNewOrgs] = useState('');
+  const [newClusterIds, setNewClusterIds] = useState('');
 
   const getLocal = (id: string, field: string, fallback: string) => {
     return localUpdates[id]?.[field] ?? fallback;
@@ -226,6 +243,9 @@ const GlobalIntegrationsSection: React.FC<GlobalIntegrationsSectionProps> = ({
     if (newServiceType === 'github' && newOrgs.trim()) {
       data.config = { orgs: newOrgs.split(',').map((s) => s.trim()).filter(Boolean) };
     }
+    if ((newServiceType === 'jenkins' || newServiceType === 'argocd') && newClusterIds.trim()) {
+      data.config = { cluster_ids: newClusterIds.split(',').map((s) => s.trim()).filter(Boolean) };
+    }
     onAdd(data);
     setNewName('');
     setNewUrl('');
@@ -234,6 +254,7 @@ const GlobalIntegrationsSection: React.FC<GlobalIntegrationsSectionProps> = ({
     setNewPassword('');
     setNewToken('');
     setNewOrgs('');
+    setNewClusterIds('');
     setNewServiceType('elk');
   };
 
@@ -277,6 +298,10 @@ const GlobalIntegrationsSection: React.FC<GlobalIntegrationsSectionProps> = ({
                     setNewServiceType(e.target.value);
                     if (e.target.value === 'github') {
                       setNewAuthMethod('bearer_token');
+                    } else if (e.target.value === 'jenkins') {
+                      setNewAuthMethod('basic_auth');
+                    } else if (e.target.value === 'argocd') {
+                      setNewAuthMethod('bearer_token');
                     }
                   }}
                   className={`${inputClass} px-3 py-1.5 font-bold`}
@@ -286,6 +311,8 @@ const GlobalIntegrationsSection: React.FC<GlobalIntegrationsSectionProps> = ({
                   <option value="confluence">Confluence</option>
                   <option value="remedy">BMC Remedy</option>
                   <option value="github">GitHub Enterprise</option>
+                  <option value="jenkins">Jenkins</option>
+                  <option value="argocd">Argo CD</option>
                 </select>
                 <input
                   type="text"
@@ -312,6 +339,15 @@ const GlobalIntegrationsSection: React.FC<GlobalIntegrationsSectionProps> = ({
                   onChange={(e) => setNewOrgs(e.target.value)}
                   className={`w-full mt-2 ${inputClass} px-4 py-2 text-xs`}
                   placeholder="GitHub Orgs (comma-separated, e.g. org-a, org-b, org-c)"
+                />
+              )}
+              {(newServiceType === 'jenkins' || newServiceType === 'argocd') && (
+                <input
+                  type="text"
+                  value={newClusterIds}
+                  onChange={(e) => setNewClusterIds(e.target.value)}
+                  className={`w-full mt-2 ${inputClass} px-4 py-2 text-xs`}
+                  placeholder="Linked clusters (comma-separated profile IDs; blank = all clusters)"
                 />
               )}
             </div>
@@ -392,7 +428,7 @@ const GlobalIntegrationsSection: React.FC<GlobalIntegrationsSectionProps> = ({
                   </div>
                   <div>
                     <h4 className="font-bold text-sm text-white">{gi.name || config.displayName}</h4>
-                    <span className="text-[10px] text-[#8fc3cc] uppercase tracking-widest">
+                    <span className="text-body-xs text-[#8fc3cc] uppercase tracking-widest">
                       {gi.category || config.subtitle}
                     </span>
                   </div>
@@ -414,7 +450,7 @@ const GlobalIntegrationsSection: React.FC<GlobalIntegrationsSectionProps> = ({
                         return orgs.length > 0 && (
                           <div className="flex flex-wrap gap-1 mb-1.5">
                             {orgs.map((org) => (
-                              <span key={org} className="inline-flex items-center px-2 py-0.5 rounded bg-slate-600/20 border border-slate-500/20 text-[10px] text-slate-300 font-mono">
+                              <span key={org} className="inline-flex items-center px-2 py-0.5 rounded bg-slate-600/20 border border-slate-500/20 text-body-xs text-slate-300 font-mono">
                                 {org}
                               </span>
                             ))}
@@ -431,6 +467,33 @@ const GlobalIntegrationsSection: React.FC<GlobalIntegrationsSectionProps> = ({
                         }}
                         className={`w-full ${inputClass} px-4 py-1.5 text-xs`}
                         placeholder="GitHub Orgs (comma-separated, e.g. org-a, org-b)"
+                      />
+                    </div>
+                  )}
+                  {(gi.service_type === 'jenkins' || gi.service_type === 'argocd') && (
+                    <div className="mt-2">
+                      {(() => {
+                        const cids = (gi.config?.cluster_ids as string[] | undefined) || [];
+                        return cids.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mb-1.5">
+                            {cids.map((cid) => (
+                              <span key={cid} className="inline-flex items-center px-2 py-0.5 rounded bg-slate-600/20 border border-slate-500/20 text-body-xs text-slate-300 font-mono">
+                                {cid}
+                              </span>
+                            ))}
+                          </div>
+                        );
+                      })()}
+                      <input
+                        type="text"
+                        value={getLocal(gi.id, '_cluster_ids', ((gi.config?.cluster_ids as string[] | undefined) || []).join(', '))}
+                        onChange={(e) => {
+                          setLocal(gi.id, '_cluster_ids', e.target.value);
+                          const cluster_ids = e.target.value.split(',').map((s) => s.trim()).filter(Boolean);
+                          onUpdate(gi.id, { config: { cluster_ids } });
+                        }}
+                        className={`w-full ${inputClass} px-4 py-1.5 text-xs`}
+                        placeholder="Linked clusters (comma-separated; blank = all)"
                       />
                     </div>
                   )}
@@ -485,13 +548,13 @@ const GlobalIntegrationsSection: React.FC<GlobalIntegrationsSectionProps> = ({
                     {isTesting ? 'Testing...' : 'Test Connection'}
                   </button>
 
-                  <span className={`text-[10px] font-bold uppercase flex items-center gap-1 ${status.classes}`}>
+                  <span className={`text-body-xs font-bold uppercase flex items-center gap-1 ${status.classes}`}>
                     {status.dot && <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />}
                     {status.text}
                   </span>
 
                   {testResult && (
-                    <span className={`text-[9px] font-mono ${testResult.reachable ? 'text-green-400' : 'text-red-400'}`}>
+                    <span className={`text-body-xs font-mono ${testResult.reachable ? 'text-green-400' : 'text-red-400'}`}>
                       {testResult.reachable
                         ? `${testResult.latency_ms}ms`
                         : testResult.error?.substring(0, 25)}
@@ -501,7 +564,7 @@ const GlobalIntegrationsSection: React.FC<GlobalIntegrationsSectionProps> = ({
                   {onDelete && (
                     <button
                       onClick={() => onDelete(gi.id)}
-                      className="p-1.5 hover:bg-red-500/20 text-[#8fc3cc] hover:text-red-400 rounded transition-colors"
+                      className="p-1.5 hover:bg-wr-severity-high/20 text-[#8fc3cc] hover:text-red-400 rounded transition-colors"
                       title="Delete integration"
                     >
                       <span

@@ -69,7 +69,7 @@ const TroubleshootAppFields: React.FC<TroubleshootAppFieldsProps> = ({ data, onC
             const p = profiles.find((pr) => pr.id === selectedProfile);
             if (!p) return null;
             return (
-              <div className="flex items-center gap-2 mt-1.5 text-[10px]">
+              <div className="flex items-center gap-2 mt-1.5 text-body-xs">
                 <span className={`w-1.5 h-1.5 rounded-full ${statusDot[p.status] || 'bg-gray-500'}`} />
                 <span className={envBadge[p.environment] || 'text-gray-400'}>{p.environment}</span>
                 <span className="text-gray-600 font-mono">{p.cluster_url}</span>

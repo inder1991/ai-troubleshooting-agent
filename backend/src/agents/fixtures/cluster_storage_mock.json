@@ -1,58 +1,172 @@
 {
   "storage_classes": [
     {
-      "name": "gp3",
+      "name": "gp3-csi",
       "provisioner": "ebs.csi.aws.com",
       "default": true,
-      "reclaim_policy": "Delete"
+      "reclaim_policy": "Delete",
+      "volume_binding_mode": "WaitForFirstConsumer",
+      "allow_volume_expansion": true,
+      "parameters": {
+        "type": "gp3",
+        "iops": "3000",
+        "throughput": "125"
+      }
     },
     {
-      "name": "gp2",
+      "name": "gp2-legacy",
       "provisioner": "kubernetes.io/aws-ebs",
       "default": false,
-      "reclaim_policy": "Delete"
+      "reclaim_policy": "Delete",
+      "volume_binding_mode": "Immediate",
+      "allow_volume_expansion": false,
+      "parameters": {
+        "type": "gp2"
+      }
+    },
+    {
+      "name": "io2-high-perf",
+      "provisioner": "ebs.csi.aws.com",
+      "default": false,
+      "reclaim_policy": "Retain",
+      "volume_binding_mode": "WaitForFirstConsumer",
+      "allow_volume_expansion": true,
+      "parameters": {
+        "type": "io2",
+        "iops": "16000"
+      }
     }
   ],
   "pvcs": [
     {
-      "name": "access-logs-pvc",
-      "namespace": "production",
-      "status": "Bound",
-      "capacity": "10Gi",
-      "used_pct": 98,
-      "storage_class": "gp3"
-    },
-    {
-      "name": "app-data-pvc",
-      "namespace": "production",
-      "status": "Bound",
-      "capacity": "50Gi",
-      "used_pct": 45,
-      "storage_class": "gp3"
-    },
-    {
-      "name": "monitoring-pvc",
-      "namespace": "monitoring",
+      "name": "data-postgres-0",
+      "namespace": "ecommerce-prod",
       "status": "Bound",
       "capacity": "100Gi",
-      "used_pct": 32,
-      "storage_class": "gp3"
+      "used_pct": 94,
+      "storage_class": "gp3-csi",
+      "volume_name": "pvc-a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "access_modes": ["ReadWriteOnce"],
+      "node": "worker-1.prod-east.internal",
+      "warning": "Volume usage at 94% — approaching capacity limit. Postgres WAL accumulation detected."
+    },
+    {
+      "name": "data-postgres-1",
+      "namespace": "ecommerce-prod",
+      "status": "Bound",
+      "capacity": "100Gi",
+      "used_pct": 62,
+      "storage_class": "gp3-csi",
+      "volume_name": "pvc-b2c3d4e5-f6a7-8901-bcde-f23456789012",
+      "access_modes": ["ReadWriteOnce"],
+      "node": "worker-2.prod-east.internal"
+    },
+    {
+      "name": "data-redis-0",
+      "namespace": "ecommerce-prod",
+      "status": "Bound",
+      "capacity": "20Gi",
+      "used_pct": 41,
+      "storage_class": "gp3-csi",
+      "volume_name": "pvc-c3d4e5f6-a7b8-9012-cdef-345678901234",
+      "access_modes": ["ReadWriteOnce"],
+      "node": "worker-2.prod-east.internal"
+    },
+    {
+      "name": "search-data-0",
+      "namespace": "ecommerce-prod",
+      "status": "Pending",
+      "capacity": "",
+      "used_pct": 0,
+      "storage_class": "io2-high-perf-NOT-FOUND",
+      "volume_name": "",
+      "access_modes": ["ReadWriteOnce"],
+      "warning": "StorageClass io2-high-perf-NOT-FOUND does not exist — PVC stuck in Pending",
+      "events": [
+        {
+          "type": "Warning",
+          "reason": "ProvisioningFailed",
+          "message": "storageclass.storage.k8s.io \"io2-high-perf-NOT-FOUND\" not found",
+          "timestamp": "2026-04-06T06:30:00Z",
+          "count": 12
+        }
+      ]
+    },
+    {
+      "name": "order-data-volume",
+      "namespace": "ecommerce-prod",
+      "status": "Pending",
+      "capacity": "50Gi",
+      "used_pct": 0,
+      "storage_class": "gp3-csi",
+      "volume_name": "pvc-d4e5f6a7-b8c9-0123-defa-456789012345",
+      "access_modes": ["ReadWriteOnce"],
+      "warning": "Volume previously attached to worker-3 (NotReady) — CSI detach timeout, cannot reattach to new node",
+      "events": [
+        {
+          "type": "Warning",
+          "reason": "FailedAttachVolume",
+          "message": "Multi-Attach error for volume \"pvc-d4e5f6a7-b8c9-0123-defa-456789012345\": volume is already exclusively attached to node worker-3.prod-east.internal and cannot be attached to node worker-1.prod-east.internal",
+          "timestamp": "2026-04-06T06:20:00Z",
+          "count": 8
+        }
+      ]
+    },
+    {
+      "name": "monitoring-prometheus-data",
+      "namespace": "monitoring",
+      "status": "Bound",
+      "capacity": "200Gi",
+      "used_pct": 45,
+      "storage_class": "gp3-csi",
+      "volume_name": "pvc-e5f6a7b8-c9d0-1234-efab-567890123456",
+      "access_modes": ["ReadWriteOnce"],
+      "node": "worker-1.prod-east.internal"
     }
   ],
   "csi_driver_pods": [
     {
       "name": "ebs-csi-controller-0",
+      "namespace": "openshift-cluster-csi-drivers",
       "status": "Running",
-      "restarts": 0
+      "restarts": 0,
+      "ready": true
     },
     {
-      "name": "ebs-csi-node-abc",
+      "name": "ebs-csi-controller-1",
+      "namespace": "openshift-cluster-csi-drivers",
       "status": "Running",
-      "restarts": 0
+      "restarts": 0,
+      "ready": true
+    },
+    {
+      "name": "ebs-csi-node-worker1",
+      "namespace": "openshift-cluster-csi-drivers",
+      "status": "Running",
+      "restarts": 0,
+      "ready": true
+    },
+    {
+      "name": "ebs-csi-node-worker2",
+      "namespace": "openshift-cluster-csi-drivers",
+      "status": "Running",
+      "restarts": 0,
+      "ready": true
+    },
+    {
+      "name": "ebs-csi-node-worker3",
+      "namespace": "openshift-cluster-csi-drivers",
+      "status": "NotReady",
+      "restarts": 3,
+      "ready": false,
+      "warning": "CSI node plugin on worker-3 not responding — volume operations will fail"
     }
   ],
   "volume_metrics": {
-    "iops_throttled_pct": 0,
-    "attach_latency_ms": 120
+    "iops_throttled_pct": 12.4,
+    "attach_latency_ms": 8500,
+    "detach_timeout_count": 3,
+    "pending_attach_operations": 2,
+    "warning": "Elevated attach latency (8.5s vs normal 120ms) — CSI controller struggling with NotReady node detach"
   }
 }

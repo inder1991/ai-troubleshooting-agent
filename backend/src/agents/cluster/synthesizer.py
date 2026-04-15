@@ -10,7 +10,7 @@ import time
 
 from src.agents.cluster.state import (
     DomainReport, DomainStatus, DomainAnomaly, CausalChain, CausalLink,
-    BlastRadius, ClusterHealthReport,
+    ClusterBlastRadius, ClusterHealthReport,
 )
 from src.agents.cluster.command_validator import validate_kubectl_command, add_dry_run, generate_rollback
 from src.agents.cluster.traced_node import traced_node
@@ -46,6 +46,14 @@ CONSTRAINED_LINK_TYPES = [
     "api_latency -> timeout_cascade",
     "quota_exceeded -> scheduling_failure",
     "image_pull_failure -> pod_pending",
+    "operator_degraded -> workload_rescheduling",
+    "webhook_failure -> pod_creation_blocked",
+    "mount_failure -> container_crash",
+    "probe_failure -> service_degradation",
+    "cluster_upgrade_stuck -> operator_degraded",
+    "olm_failure -> operator_degraded",
+    "machine_failure -> node_not_ready",
+    "proxy_misconfigured -> image_pull_failure",
     "unknown",
 ]
 
@@ -302,6 +310,9 @@ async def _llm_causal_reasoning(
     except asyncio.TimeoutError:
         logger.warning("LLM causal reasoning timed out after 30s")
         return {"causal_chains": [], "uncorrelated_findings": [a.model_dump(mode="json") if hasattr(a, "model_dump") else a for a in anomalies]}
+    except Exception as e:
+        logger.error("LLM causal reasoning failed: %s", e, extra={"action": "synth_causal_error", "extra": str(e)})
+        return {"causal_chains": [], "uncorrelated_findings": [a.model_dump(mode="json") if hasattr(a, "model_dump") else a for a in anomalies]}
 
     latency_ms = int((time.monotonic() - call_start) * 1000)
     usage = getattr(response, "usage", None)
@@ -425,6 +436,15 @@ Note: re_dispatch_domains valid values are: ctrl_plane, node, network, storage, 
         )
     except asyncio.TimeoutError:
         logger.warning("LLM verdict timed out after 30s")
+        return {
+            "platform_health": "UNKNOWN",
+            "blast_radius": {"summary": "Unable to determine", "affected_namespaces": [], "affected_pods": [], "affected_nodes": []},
+            "remediation": {"immediate": [], "long_term": []},
+            "re_dispatch_needed": False,
+            "re_dispatch_domains": [],
+        }
+    except Exception as e:
+        logger.error("LLM verdict failed: %s", e, extra={"action": "synth_verdict_error", "extra": str(e)})
         return {
             "platform_health": "UNKNOWN",
             "blast_radius": {"summary": "Unable to determine", "affected_namespaces": [], "affected_pods": [], "affected_nodes": []},
@@ -598,10 +618,10 @@ async def synthesize(state: dict, config: RunnableConfig) -> dict:
 
     # Build health report with Pydantic validation safety
     try:
-        blast_radius = BlastRadius(**verdict.get("blast_radius", {}))
+        blast_radius = ClusterBlastRadius(**verdict.get("blast_radius", {}))
     except Exception:
         logger.warning("Failed to parse blast_radius from LLM, using defaults")
-        blast_radius = BlastRadius()
+        blast_radius = ClusterBlastRadius()
 
     causal_chains = []
     for c in causal_result.get("causal_chains", []):

@@ -18,15 +18,15 @@ const PromQLRunResult: React.FC<PromQLRunResultProps> = ({
   if (loading) {
     return (
       <div className="mt-2 space-y-1.5">
-        <div className="h-2 w-3/4 bg-amber-500/20 rounded animate-pulse" />
-        <div className="h-2 w-1/2 bg-amber-500/10 rounded animate-pulse" />
+        <div className="h-2 w-3/4 bg-wr-severity-medium/20 rounded animate-pulse" />
+        <div className="h-2 w-1/2 bg-wr-severity-medium/10 rounded animate-pulse" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="mt-2 text-[10px] text-red-400 font-mono">
+      <div className="mt-2 text-body-xs text-red-400 font-mono">
         {error}
       </div>
     );
@@ -48,7 +48,7 @@ const PromQLRunResult: React.FC<PromQLRunResultProps> = ({
         severity="info"
       />
       <div className="flex items-baseline gap-2">
-        <span className="text-[10px] text-slate-500">Current:</span>
+        <span className="text-body-xs text-slate-400">Current:</span>
         <span className={`text-sm font-mono font-bold ${valueColor}`}>
           {formatNumber(currentValue)}
         </span>

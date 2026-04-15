@@ -37,9 +37,9 @@ interface Profile {
 }
 
 const severityColor: Record<string, string> = {
-  critical: 'bg-red-500/20 text-red-400 border-red-500/30',
+  critical: 'bg-wr-severity-high/20 text-red-400 border-wr-severity-high/30',
   high: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
-  medium: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+  medium: 'bg-wr-severity-medium/20 text-amber-400 border-wr-severity-medium/30',
   low: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
   info: 'bg-slate-500/20 text-slate-400 border-slate-500/30',
 };
@@ -131,7 +131,7 @@ const DBDiagnostics: React.FC = () => {
           <select
             value={selectedProfileId}
             onChange={(e) => { setSelectedProfileId(e.target.value); setActiveRun(null); }}
-            className="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-amber-500 outline-none"
+            className="px-3 py-1.5 rounded-lg bg-wr-surface border border-wr-border-strong text-sm text-slate-100 focus:border-amber-500 outline-none"
           >
             {profiles.map((p) => (
               <option key={p.id} value={p.id}>{p.name} ({p.engine})</option>
@@ -152,7 +152,7 @@ const DBDiagnostics: React.FC = () => {
 
       {/* Active run results */}
       {activeRun && (
-        <div className="rounded-xl border border-slate-700/50 bg-[#0d2328] p-5 space-y-4">
+        <div className="rounded-xl border border-wr-border-strong/50 bg-[#0d2328] p-5 space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className={`material-symbols-outlined text-lg ${
@@ -164,20 +164,20 @@ const DBDiagnostics: React.FC = () => {
               </span>
               <div>
                 <p className="text-sm font-medium text-slate-100">Run {activeRun.run_id.slice(0, 8)}</p>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-slate-400">
                   {activeRun.status} • {new Date(activeRun.started_at).toLocaleString()}
                 </p>
               </div>
             </div>
             {activeRun.status === 'completed' && (
-              <span className="text-xs text-slate-500">
+              <span className="text-xs text-slate-400">
                 {activeRun.findings.length} finding(s)
               </span>
             )}
           </div>
 
           {activeRun.summary && (
-            <p className="text-sm text-slate-300 bg-slate-800/50 rounded-lg px-3 py-2">{activeRun.summary}</p>
+            <p className="text-sm text-slate-300 bg-wr-surface/50 rounded-lg px-3 py-2">{activeRun.summary}</p>
           )}
 
           {/* Findings */}
@@ -212,11 +212,11 @@ const DBDiagnostics: React.FC = () => {
       <div>
         <h3 className="text-sm font-medium text-slate-400 mb-2">History</h3>
         {loading ? (
-          <div className="text-center py-8 text-slate-500">
+          <div className="text-center py-8 text-slate-400">
             <span className="material-symbols-outlined animate-spin">progress_activity</span>
           </div>
         ) : runs.length === 0 ? (
-          <p className="text-sm text-slate-500 py-4 text-center">No diagnostic runs yet for this profile.</p>
+          <p className="text-sm text-slate-400 py-4 text-center">No diagnostic runs yet for this profile.</p>
         ) : (
           <div className="space-y-1">
             {runs.map((r) => (
@@ -224,7 +224,7 @@ const DBDiagnostics: React.FC = () => {
                 key={r.run_id}
                 onClick={() => handleViewRun(r.run_id)}
                 className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left transition-colors ${
-                  activeRun?.run_id === r.run_id ? 'bg-amber-500/10 border border-amber-500/30' : 'hover:bg-slate-800/50 border border-transparent'
+                  activeRun?.run_id === r.run_id ? 'bg-wr-severity-medium/10 border border-wr-severity-medium/30' : 'hover:bg-wr-surface/50 border border-transparent'
                 }`}
               >
                 <div className="flex items-center gap-2">
@@ -232,12 +232,12 @@ const DBDiagnostics: React.FC = () => {
                     r.status === 'completed' ? 'bg-emerald-400' : r.status === 'failed' ? 'bg-red-400' : 'bg-amber-400'
                   }`} />
                   <span className="text-sm text-slate-300">{r.run_id.slice(0, 8)}</span>
-                  <span className="text-xs text-slate-500">{new Date(r.started_at).toLocaleString()}</span>
+                  <span className="text-xs text-slate-400">{new Date(r.started_at).toLocaleString()}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-slate-500">{r.findings?.length || 0} findings</span>
+                  <span className="text-xs text-slate-400">{r.findings?.length || 0} findings</span>
                   <span className={`text-xs px-1.5 py-0.5 rounded ${
-                    r.status === 'completed' ? 'bg-emerald-500/20 text-emerald-400' : r.status === 'failed' ? 'bg-red-500/20 text-red-400' : 'bg-amber-500/20 text-amber-400'
+                    r.status === 'completed' ? 'bg-emerald-500/20 text-emerald-400' : r.status === 'failed' ? 'bg-wr-severity-high/20 text-red-400' : 'bg-wr-severity-medium/20 text-amber-400'
                   }`}>{r.status}</span>
                 </div>
               </button>

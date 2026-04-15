@@ -84,18 +84,21 @@ General rules:
 async def _llm_analyze(system: str, prompt: str, session_id: str = "") -> dict:
     """Single-pass LLM call using structured tool output. Returns findings dict."""
     from src.agents.cluster.output_schemas import SUBMIT_DOMAIN_FINDINGS_TOOL
-    client = AnthropicClient(agent_name="cluster_ctrl_plane", session_id=session_id)
-    response = await client.chat_with_tools(
-        system=system,
-        messages=[{"role": "user", "content": prompt}],
-        tools=[SUBMIT_DOMAIN_FINDINGS_TOOL],
-        max_tokens=2000,
-        temperature=0.1,
-    )
-    for block in response.content:
-        if getattr(block, "type", None) == "tool_use" and block.name == "submit_domain_findings":
-            return block.input
-    logger.warning("LLM did not call submit_domain_findings tool", extra={"action": "parse_error"})
+    try:
+        client = AnthropicClient(agent_name="cluster_ctrl_plane", session_id=session_id)
+        response = await client.chat_with_tools(
+            system=system,
+            messages=[{"role": "user", "content": prompt}],
+            tools=[SUBMIT_DOMAIN_FINDINGS_TOOL],
+            max_tokens=2000,
+            temperature=0.1,
+        )
+        for block in response.content:
+            if getattr(block, "type", None) == "tool_use" and block.name == "submit_domain_findings":
+                return block.input
+        logger.warning("LLM did not call submit_domain_findings tool", extra={"action": "parse_error"})
+    except Exception as e:
+        logger.error("_llm_analyze failed: %s", e, extra={"action": "llm_analyze_error", "extra": str(e)})
     return {"anomalies": [], "ruled_out": [], "confidence": 0}
 
 
@@ -162,6 +165,228 @@ async def _heuristic_analyze(data_payload: dict, domain: str = "ctrl_plane") -> 
                 "severity": "high",
             })
 
+    # Check operator progressing
+    for op in data_payload.get("cluster_operators", []):
+        op_name = op.get("name", "unknown")
+        if op.get("progressing"):
+            anomalies.append({
+                "domain": domain,
+                "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                "description": f"Operator {op_name} is progressing (upgrade in progress)",
+                "evidence_ref": f"operator/{op_name}",
+                "severity": "medium",
+            })
+
+    # Check SCC with allowPrivilegedContainer for non-system namespaces
+    system_prefixes = ("openshift-", "kube-", "default")
+    for scc in data_payload.get("security_context_constraints", []):
+        scc_name = scc.get("name", "unknown")
+        if scc.get("allowPrivilegedContainer"):
+            users = scc.get("users", [])
+            non_system = [u for u in users if not any(u.startswith(f"system:serviceaccount:{p}") for p in system_prefixes)]
+            if non_system:
+                anomalies.append({
+                    "domain": domain,
+                    "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                    "description": f"SCC {scc_name} allows privileged containers for non-system users: {', '.join(non_system[:3])}",
+                    "evidence_ref": f"scc/{scc_name}",
+                    "severity": "medium",
+                })
+
+    # Check MCP machine count mismatch (update in progress)
+    for mcp in data_payload.get("machine_config_pools", []):
+        mcp_name = mcp.get("name", "unknown")
+        machine_count = mcp.get("machineCount", 0)
+        updated_count = mcp.get("updatedMachineCount", 0)
+        if machine_count and machine_count != updated_count and not mcp.get("degraded"):
+            anomalies.append({
+                "domain": domain,
+                "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                "description": f"MachineConfigPool {mcp_name} updating: {updated_count}/{machine_count} machines updated (mismatch)",
+                "evidence_ref": f"mcp/{mcp_name}",
+                "severity": "medium",
+            })
+
+    # Check etcd pods
+    for pod in data_payload.get("etcd_pods", []):
+        pod_name = pod.get("name", "unknown")
+        status = pod.get("status", "")
+        restarts = pod.get("restarts", 0)
+        if status not in ("Running",):
+            anomalies.append({
+                "domain": domain,
+                "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                "description": f"Etcd pod {pod_name} is not running (status: {status})",
+                "evidence_ref": f"pod/openshift-etcd/{pod_name}",
+                "severity": "critical",
+            })
+        elif restarts and restarts > 3:
+            anomalies.append({
+                "domain": domain,
+                "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                "description": f"Etcd pod {pod_name} has high restart count ({restarts})",
+                "evidence_ref": f"pod/openshift-etcd/{pod_name}",
+                "severity": "high",
+            })
+
+    # Check webhooks
+    for wh in data_payload.get("webhooks", []):
+        wh_name = wh.get("name", "unknown")
+        failure_policy = wh.get("failure_policy", "Ignore")
+        timeout = wh.get("timeout_seconds", 10)
+        client_config = wh.get("client_config", {})
+        is_external = "url" in client_config
+
+        if failure_policy == "Fail" and is_external:
+            anomalies.append({
+                "domain": domain,
+                "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                "description": f"Webhook {wh_name} has failurePolicy=Fail with external URL — can block API operations if external service is down",
+                "evidence_ref": f"webhook/{wh_name}",
+                "severity": "high",
+            })
+        if timeout and timeout > 10:
+            anomalies.append({
+                "domain": domain,
+                "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                "description": f"Webhook {wh_name} has high timeout ({timeout}s > 10s) — can cause API latency",
+                "evidence_ref": f"webhook/{wh_name}",
+                "severity": "medium",
+            })
+
+    # Check ClusterVersion
+    cv = data_payload.get("cluster_version")
+    if cv and isinstance(cv, dict):
+        conditions = cv.get("conditions", [])
+        cv_version = cv.get("version", "unknown")
+        cv_desired = cv.get("desired", cv_version)
+
+        for cond in conditions:
+            cond_type = cond.get("type", "")
+            cond_status = cond.get("status", "")
+            cond_msg = cond.get("message", "")
+
+            if cond_type == "Failing" and cond_status == "True":
+                anomalies.append({
+                    "domain": domain,
+                    "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                    "description": f"ClusterVersion upgrade failing: {cond_msg or 'upgrade to ' + cv_desired + ' is failing'}",
+                    "evidence_ref": "clusterversion/version",
+                    "severity": "critical",
+                })
+            elif cond_type == "Available" and cond_status == "False":
+                anomalies.append({
+                    "domain": domain,
+                    "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                    "description": f"ClusterVersion not available: {cond_msg or 'cluster version ' + cv_version + ' is not available'}",
+                    "evidence_ref": "clusterversion/version",
+                    "severity": "critical",
+                })
+            elif cond_type == "Progressing" and cond_status == "True" and cv_version != cv_desired:
+                anomalies.append({
+                    "domain": domain,
+                    "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                    "description": f"ClusterVersion upgrade progressing: {cv_version} → {cv_desired}",
+                    "evidence_ref": "clusterversion/version",
+                    "severity": "high",
+                })
+
+    # Check OLM Subscriptions
+    for sub in data_payload.get("subscriptions", []):
+        sub_name = sub.get("name", "unknown")
+        state = sub.get("state", "")
+        if state and state != "AtLatestKnown":
+            anomalies.append({
+                "domain": domain,
+                "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                "description": f"OLM Subscription {sub_name} state is {state} (currentCSV: {sub.get('currentCSV', '?')}, installedCSV: {sub.get('installedCSV', '?')})",
+                "evidence_ref": f"subscription/{sub.get('namespace', '')}/{sub_name}",
+                "severity": "high",
+            })
+
+    # Check OLM CSVs
+    failed_phases = ("Failed", "Unknown", "Replacing")
+    for csv in data_payload.get("csvs", []):
+        csv_name = csv.get("name", "unknown")
+        phase = csv.get("phase", "")
+        if phase in failed_phases:
+            anomalies.append({
+                "domain": domain,
+                "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                "description": f"ClusterServiceVersion {csv_name} phase is {phase}: {csv.get('message', '')}",
+                "evidence_ref": f"csv/{csv.get('namespace', '')}/{csv_name}",
+                "severity": "high",
+            })
+
+    # Check OLM InstallPlans
+    for ip in data_payload.get("install_plans", []):
+        ip_name = ip.get("name", "unknown")
+        if ip.get("approval") == "Manual" and not ip.get("approved"):
+            anomalies.append({
+                "domain": domain,
+                "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                "description": f"InstallPlan {ip_name} requires manual approval for {', '.join(ip.get('csv_names', []))}",
+                "evidence_ref": f"installplan/{ip.get('namespace', '')}/{ip_name}",
+                "severity": "low",
+            })
+        elif ip.get("phase") == "Installing":
+            anomalies.append({
+                "domain": domain,
+                "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                "description": f"InstallPlan {ip_name} stuck in Installing phase",
+                "evidence_ref": f"installplan/{ip.get('namespace', '')}/{ip_name}",
+                "severity": "medium",
+            })
+
+    # Check Machines
+    for machine in data_payload.get("machines", []):
+        m_name = machine.get("name", "unknown")
+        phase = machine.get("phase", "")
+        node_ref = machine.get("node_ref", "")
+
+        if phase and phase != "Running":
+            if phase == "Provisioned" and not node_ref:
+                anomalies.append({
+                    "domain": domain,
+                    "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                    "description": f"Machine {m_name} is Provisioned but has no node reference — may be stuck joining cluster",
+                    "evidence_ref": f"machine/{m_name}",
+                    "severity": "medium",
+                })
+            elif phase in ("Failed", "Deleting", "Provisioning"):
+                anomalies.append({
+                    "domain": domain,
+                    "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                    "description": f"Machine {m_name} is not Running (phase: {phase})",
+                    "evidence_ref": f"machine/{m_name}",
+                    "severity": "high",
+                })
+
+    # Check Proxy config
+    proxy = data_payload.get("proxy_config")
+    if proxy and isinstance(proxy, dict):
+        http_proxy = proxy.get("httpProxy", "")
+        no_proxy = proxy.get("noProxy", "")
+        trusted_ca = proxy.get("trustedCA", "")
+        https_proxy = proxy.get("httpsProxy", "")
+
+        if http_proxy and not no_proxy:
+            anomalies.append({
+                "domain": domain,
+                "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                "description": f"Proxy configured (httpProxy={http_proxy}) but noProxy is empty — cluster-internal traffic may be routed through proxy",
+                "evidence_ref": "proxy/cluster",
+                "severity": "medium",
+            })
+        if https_proxy and not trusted_ca:
+            anomalies.append({
+                "domain": domain,
+                "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                "description": f"HTTPS proxy configured but no trustedCA bundle — TLS interception may fail",
+                "evidence_ref": "proxy/cluster",
+                "severity": "medium",
+            })
+
     confidence = 50 if anomalies else 70
     return {"anomalies": anomalies, "ruled_out": ruled_out, "confidence": confidence}
 
@@ -184,7 +409,7 @@ async def _tool_calling_loop(system: str, initial_context: str, cluster_client,
     tool_call_count = 0
     retry_count = 0
 
-    for iteration in range(MAX_TOOL_CALLS + 1):
+    for iteration in range(MAX_TOOL_CALLS):
         call_start = time.monotonic()
         try:
             response = await asyncio.wait_for(
@@ -219,9 +444,9 @@ async def _tool_calling_loop(system: str, initial_context: str, cluster_client,
             return None  # Triggers heuristic fallback
 
         latency_ms = int((time.monotonic() - call_start) * 1000)
-        input_tokens = getattr(response, "usage", None)
-        in_tok = input_tokens.input_tokens if input_tokens else 0
-        out_tok = input_tokens.output_tokens if input_tokens else 0
+        usage = getattr(response, "usage", None)
+        in_tok = usage.input_tokens if usage else 0
+        out_tok = usage.output_tokens if usage else 0
 
         if budget:
             budget.record(input_tokens=in_tok, output_tokens=out_tok, latency_ms=latency_ms)
@@ -277,7 +502,12 @@ async def _tool_calling_loop(system: str, initial_context: str, cluster_client,
         messages.append({"role": "assistant", "content": response.content})
         tool_results = []
         for tu in tool_uses:
-            result_str = await execute_tool_call(tu.name, tu.input, cluster_client, tool_call_count)
+            try:
+                result_str = await execute_tool_call(tu.name, tu.input, cluster_client, tool_call_count)
+            except Exception as e:
+                logger.error("Tool call %s failed: %s", tu.name, e,
+                             extra={"action": "tool_call_error", "extra": str(e)})
+                result_str = json.dumps({"error": f"Tool execution failed: {e}"})
             tool_results.append({
                 "type": "tool_result",
                 "tool_use_id": tu.id,
@@ -367,6 +597,25 @@ async def ctrl_plane_agent(state: dict, config: RunnableConfig) -> dict:
             data_payload["machine_config_pools"] = machine_config_pools.data
         if sccs.data:
             data_payload["security_context_constraints"] = sccs.data
+        # Platform-layer pre-fetch
+        cluster_version = await client.get_cluster_version()
+        if cluster_version.data:
+            data_payload["cluster_version"] = cluster_version.data[0]
+        subscriptions = await client.list_subscriptions()
+        if subscriptions.data:
+            data_payload["subscriptions"] = subscriptions.data
+        csvs = await client.list_csvs()
+        if csvs.data:
+            data_payload["csvs"] = csvs.data
+        install_plans = await client.list_install_plans()
+        if install_plans.data:
+            data_payload["install_plans"] = install_plans.data
+        machines = await client.list_machines()
+        if machines.data:
+            data_payload["machines"] = machines.data
+        proxy_config = await client.get_proxy_config()
+        if proxy_config.data:
+            data_payload["proxy_config"] = proxy_config.data[0]
 
     version_context = get_version_context(platform_version)
     truncation_parts = []

@@ -16,10 +16,10 @@ interface EndpointSectionProps {
 const statusBadge: Record<EndpointStatus, { text: string; icon: string; classes: string }> = {
   unknown: { text: 'Not Tested', icon: 'help_outline', classes: 'text-gray-500 bg-gray-500/10 border-gray-500/20' },
   healthy: { text: 'Verified', icon: 'check_circle', classes: 'text-green-500 bg-green-500/10 border-green-500/20' },
-  testing: { text: 'Testing...', icon: 'pending', classes: 'text-amber-500 bg-amber-500/10 border-amber-500/20' },
-  degraded: { text: 'Degraded', icon: 'warning', classes: 'text-amber-500 bg-amber-500/10 border-amber-500/20' },
-  unreachable: { text: 'Unreachable', icon: 'cloud_off', classes: 'text-red-500 bg-red-500/10 border-red-500/20' },
-  connection_failed: { text: 'Connection Failed', icon: 'error', classes: 'text-red-500 bg-red-500/10 border-red-500/20' },
+  testing: { text: 'Testing...', icon: 'pending', classes: 'text-amber-500 bg-wr-severity-medium/10 border-amber-500/20' },
+  degraded: { text: 'Degraded', icon: 'warning', classes: 'text-amber-500 bg-wr-severity-medium/10 border-amber-500/20' },
+  unreachable: { text: 'Unreachable', icon: 'cloud_off', classes: 'text-red-500 bg-wr-severity-high/10 border-red-500/20' },
+  connection_failed: { text: 'Connection Failed', icon: 'error', classes: 'text-red-500 bg-wr-severity-high/10 border-red-500/20' },
 };
 
 const EndpointSection: React.FC<EndpointSectionProps> = ({
@@ -89,7 +89,7 @@ const EndpointSection: React.FC<EndpointSectionProps> = ({
           <span className="text-xs font-bold text-white uppercase tracking-wider">{label}</span>
         </div>
         <span
-          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border ${badge.classes}`}
+          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-body-xs font-medium border ${badge.classes}`}
         >
           <span
             className="material-symbols-outlined text-xs"
@@ -102,7 +102,7 @@ const EndpointSection: React.FC<EndpointSectionProps> = ({
 
       {/* Row 1: URL + Test button */}
       <div className="mb-3">
-        <label className="block text-[10px] text-gray-500 mb-1 uppercase tracking-wider">Endpoint URL</label>
+        <label className="block text-body-xs text-gray-500 mb-1 uppercase tracking-wider">Endpoint URL</label>
         <div className="relative">
           <input
             type="text"
@@ -114,7 +114,7 @@ const EndpointSection: React.FC<EndpointSectionProps> = ({
           <button
             onClick={() => onTest(endpointName, url)}
             disabled={!url || testing}
-            className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1 text-[10px] font-bold text-[#e09f3e] bg-[#e09f3e]/10 border border-[#e09f3e]/20 rounded hover:bg-[#e09f3e]/20 disabled:text-gray-600 disabled:bg-transparent disabled:border-transparent disabled:cursor-not-allowed transition-colors"
+            className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1 text-body-xs font-bold text-[#e09f3e] bg-[#e09f3e]/10 border border-[#e09f3e]/20 rounded hover:bg-[#e09f3e]/20 disabled:text-gray-600 disabled:bg-transparent disabled:border-transparent disabled:cursor-not-allowed transition-colors"
           >
             {testing ? 'Testing...' : 'Test'}
           </button>
@@ -123,7 +123,7 @@ const EndpointSection: React.FC<EndpointSectionProps> = ({
 
       {/* Row 2: Auth method */}
       <div className="mb-3">
-        <label className="block text-[10px] text-gray-500 mb-1 uppercase tracking-wider">Authentication</label>
+        <label className="block text-body-xs text-gray-500 mb-1 uppercase tracking-wider">Authentication</label>
         <select
           value={authMethod}
           onChange={(e) => handleAuthChange(e.target.value)}
@@ -141,7 +141,7 @@ const EndpointSection: React.FC<EndpointSectionProps> = ({
       {/* Row 3: Credentials (only when auth method selected) */}
       {authMethod === 'basic_auth' && (
         <div>
-          <label className="block text-[10px] text-gray-500 mb-1 uppercase tracking-wider">Credentials</label>
+          <label className="block text-body-xs text-gray-500 mb-1 uppercase tracking-wider">Credentials</label>
           <div className="grid grid-cols-2 gap-3">
             <input
               type="text"
@@ -163,7 +163,7 @@ const EndpointSection: React.FC<EndpointSectionProps> = ({
 
       {authMethod !== 'none' && authMethod !== 'basic_auth' && (
         <div>
-          <label className="block text-[10px] text-gray-500 mb-1 uppercase tracking-wider">Credentials</label>
+          <label className="block text-body-xs text-gray-500 mb-1 uppercase tracking-wider">Credentials</label>
           <input
             type="password"
             value={authToken}
@@ -175,10 +175,10 @@ const EndpointSection: React.FC<EndpointSectionProps> = ({
       )}
 
       {testResult && (
-        <div className={`mt-3 px-3 py-1.5 rounded-lg text-[10px] font-medium ${
+        <div className={`mt-3 px-3 py-1.5 rounded-lg text-body-xs font-medium ${
           testResult.reachable
             ? 'bg-green-500/10 border border-green-500/20 text-green-400'
-            : 'bg-red-500/10 border border-red-500/20 text-red-400'
+            : 'bg-wr-severity-high/10 border border-red-500/20 text-red-400'
         }`}>
           {testResult.reachable
             ? `Reachable - ${testResult.latency_ms}ms latency`

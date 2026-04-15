@@ -344,12 +344,13 @@ class TestResolvedConnectionConfig:
 class TestCreateClusterClient:
     def test_returns_tuple(self, monkeypatch):
         """create_cluster_client always returns (client, temp_path_or_None)."""
+        import src.api.routes_v4 as _routes_v4
         from src.api.routes_v4 import create_cluster_client
         from src.integrations.connection_config import ResolvedConnectionConfig
 
         # Patch KubernetesClient to avoid real network calls
         monkeypatch.setattr(
-            "src.api.routes_v4.KubernetesClient",
+            _routes_v4, "KubernetesClient",
             lambda **kwargs: object()
         )
         cfg = ResolvedConnectionConfig(cluster_url="https://api.example.com:6443", cluster_token="tok")
@@ -363,11 +364,12 @@ class TestCreateClusterClient:
     def test_kubeconfig_content_creates_temp_file(self, monkeypatch, tmp_path):
         """When auth_method=kubeconfig and kubeconfig_content set, a temp file is created."""
         import os
+        import src.api.routes_v4 as _routes_v4
         from src.api.routes_v4 import create_cluster_client
         from src.integrations.connection_config import ResolvedConnectionConfig
 
         monkeypatch.setattr(
-            "src.api.routes_v4.KubernetesClient",
+            _routes_v4, "KubernetesClient",
             lambda **kwargs: type("C", (), {"kubeconfig_path": kwargs.get("kubeconfig_path")})()
         )
         cfg = ResolvedConnectionConfig(
@@ -472,6 +474,7 @@ class TestTestConnectionEndpoint:
     def test_returns_connected_status(self, client, monkeypatch):
         """POST /api/v5/profiles/test-connection returns status=connected on success."""
         from unittest.mock import AsyncMock, MagicMock
+        import src.api.routes_profiles as _routes_profiles
 
         mock_client_instance = MagicMock()
         mock_client_instance.detect_platform = AsyncMock(
@@ -483,7 +486,7 @@ class TestTestConnectionEndpoint:
             return mock_client_instance
 
         monkeypatch.setattr(
-            "src.api.routes_profiles.KubernetesClient",
+            _routes_profiles, "KubernetesClient",
             mock_k8s_constructor
         )
 
@@ -504,6 +507,7 @@ class TestTestConnectionEndpoint:
     def test_returns_auth_failed_on_401(self, client, monkeypatch):
         """POST /api/v5/profiles/test-connection returns status=auth_failed on 401 error."""
         from unittest.mock import AsyncMock, MagicMock
+        import src.api.routes_profiles as _routes_profiles
 
         def mock_k8s_constructor(**kwargs):
             instance = MagicMock()
@@ -511,7 +515,7 @@ class TestTestConnectionEndpoint:
             instance.close = AsyncMock()
             return instance
 
-        monkeypatch.setattr("src.api.routes_profiles.KubernetesClient", mock_k8s_constructor)
+        monkeypatch.setattr(_routes_profiles, "KubernetesClient", mock_k8s_constructor)
 
         resp = client.post("/api/v5/profiles/test-connection", json={
             "cluster_url": "https://api.example.com:6443",
@@ -524,6 +528,7 @@ class TestTestConnectionEndpoint:
     def test_kubeconfig_auth_method(self, client, monkeypatch, tmp_path):
         """Kubeconfig auth method writes temp file and passes path to KubernetesClient."""
         from unittest.mock import AsyncMock, MagicMock
+        import src.api.routes_profiles as _routes_profiles
 
         received_kwargs = {}
 
@@ -534,7 +539,7 @@ class TestTestConnectionEndpoint:
             instance.close = AsyncMock()
             return instance
 
-        monkeypatch.setattr("src.api.routes_profiles.KubernetesClient", mock_k8s_constructor)
+        monkeypatch.setattr(_routes_profiles, "KubernetesClient", mock_k8s_constructor)
 
         resp = client.post("/api/v5/profiles/test-connection", json={
             "cluster_url": "https://api.example.com:6443",
@@ -552,6 +557,7 @@ class TestClusterClientLifecycle:
         """After start_session, cluster_client should be stored in the session dict."""
         from unittest.mock import MagicMock, AsyncMock
         import asyncio
+        import src.api.routes_v4 as _routes_v4
 
         mock_k8s = MagicMock()
         mock_k8s.detect_platform = AsyncMock(return_value={"platform": "openshift", "version": "4.14"})
@@ -560,7 +566,7 @@ class TestClusterClientLifecycle:
         mock_k8s.close = AsyncMock()
 
         monkeypatch.setattr(
-            "src.api.routes_v4.KubernetesClient",
+            _routes_v4, "KubernetesClient",
             lambda **kwargs: mock_k8s
         )
 
@@ -569,7 +575,7 @@ class TestClusterClientLifecycle:
         mock_graph = MagicMock()
         mock_graph.ainvoke = AsyncMock(return_value={"phase": "complete", "data_completeness": 0.8,
                                                       "domain_reports": [], "health_report": None})
-        monkeypatch.setattr("src.api.routes_v4.build_cluster_diagnostic_graph", lambda: mock_graph)
+        monkeypatch.setattr(_routes_v4, "build_cluster_diagnostic_graph", lambda: mock_graph)
 
         resp = client.post("/api/v4/session/start", json={
             "capability": "cluster_diagnostics",

@@ -95,7 +95,7 @@ const NetworkChatDrawer: React.FC<NetworkChatDrawerProps> = ({
               animate={{ x: 0 }}
               exit={{ x: 420 }}
               transition={{ type: 'spring', stiffness: 400, damping: 40 }}
-              className="fixed right-0 top-0 bottom-0 w-full sm:w-[420px] z-[70] bg-slate-900/95 backdrop-blur-xl border-l border-white/5 flex flex-col shadow-2xl"
+              className="fixed right-0 top-0 bottom-0 w-full sm:w-[420px] z-[70] bg-wr-bg/95 backdrop-blur-xl border-l border-white/5 flex flex-col shadow-2xl"
             >
               {/* Header */}
               <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 flex-shrink-0">
@@ -107,14 +107,14 @@ const NetworkChatDrawer: React.FC<NetworkChatDrawerProps> = ({
                   <button
                     onClick={clearThread}
                     title="New thread"
-                    className="p-1.5 rounded text-slate-500 hover:text-slate-300 hover:bg-white/5 transition-colors"
+                    className="p-1.5 rounded text-slate-400 hover:text-slate-300 hover:bg-white/5 transition-colors"
                   >
                     <span className="material-symbols-outlined text-[18px]">restart_alt</span>
                   </button>
                   <button
                     onClick={() => setIsOpen(false)}
                     title="Close"
-                    className="p-1.5 rounded text-slate-500 hover:text-slate-300 hover:bg-white/5 transition-colors"
+                    className="p-1.5 rounded text-slate-400 hover:text-slate-300 hover:bg-white/5 transition-colors"
                   >
                     <span className="material-symbols-outlined text-[18px]">close</span>
                   </button>
@@ -125,8 +125,8 @@ const NetworkChatDrawer: React.FC<NetworkChatDrawerProps> = ({
               <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3 custom-scrollbar">
                 {messages.length === 0 && (
                   <div className="text-center py-8">
-                    <span className="material-symbols-outlined text-[40px] text-slate-600 mb-3 block">chat</span>
-                    <p className="text-xs text-slate-500 mb-4">
+                    <span className="material-symbols-outlined text-[40px] text-slate-500 mb-3 block">chat</span>
+                    <p className="text-xs text-slate-400 mb-4">
                       Ask me about what you see in this view.
                     </p>
                     <div className="flex flex-col gap-2">
@@ -151,7 +151,7 @@ const NetworkChatDrawer: React.FC<NetworkChatDrawerProps> = ({
 
                 {/* Tool call indicators */}
                 {activeToolCalls.length > 0 && (
-                  <div className="flex items-center gap-2 text-xs text-slate-500 px-2">
+                  <div className="flex items-center gap-2 text-xs text-slate-400 px-2">
                     <span className="animate-spin material-symbols-outlined text-[14px]">progress_activity</span>
                     <span>Using: {activeToolCalls.join(', ')}</span>
                   </div>
@@ -159,7 +159,7 @@ const NetworkChatDrawer: React.FC<NetworkChatDrawerProps> = ({
 
                 {/* Sending indicator */}
                 {isSending && activeToolCalls.length === 0 && (
-                  <div className="flex items-center gap-2 text-xs text-slate-500 px-2">
+                  <div className="flex items-center gap-2 text-xs text-slate-400 px-2">
                     <span className="animate-pulse">Thinking...</span>
                   </div>
                 )}
@@ -221,11 +221,11 @@ const MessageBubble: React.FC<{ message: NetworkChatMessage }> = ({ message }) =
             {message.tool_calls.map((tc, i) => (
               <span
                 key={i}
-                className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] ${
-                  tc.blocked ? 'bg-red-500/10 text-red-400' : 'bg-amber-400/10 text-amber-400'
+                className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-body-xs ${
+                  tc.blocked ? 'bg-wr-severity-high/10 text-red-400' : 'bg-amber-400/10 text-amber-400'
                 }`}
               >
-                <span className="material-symbols-outlined text-[11px]">build</span>
+                <span className="material-symbols-outlined text-body-xs">build</span>
                 {tc.name}
               </span>
             ))}

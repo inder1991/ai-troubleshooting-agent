@@ -98,7 +98,7 @@ const TrafficFlowsTab: React.FC<Props> = ({ links }) => {
             <SectionHeader title="Top Talkers" />
             {topTalkers.length > 0 ? (
               <div className="space-y-1">
-                <div className="grid grid-cols-4 text-[10px] font-mono font-bold pb-1 border-b" style={{ color: '#64748b', borderColor: '#3d3528' }}>
+                <div className="grid grid-cols-4 text-body-xs font-mono font-bold pb-1 border-b" style={{ color: '#64748b', borderColor: '#3d3528' }}>
                   <span>Source</span><span>Destination</span><span>Protocol</span><span className="text-right">Bytes</span>
                 </div>
                 {topTalkers.map((t, i) => (
@@ -118,7 +118,7 @@ const TrafficFlowsTab: React.FC<Props> = ({ links }) => {
                   <div style={{ color: '#64748b' }}>Configure NetFlow v5/v9 or IPFIX export on your routers</div>
                   <div style={{ color: '#64748b' }}>Collector listening on <span style={{ color: '#07b6d5' }}>UDP 2055</span></div>
                 </div>
-                <div className="text-[10px] font-mono mt-1" style={{ color: '#7a7060' }}>
+                <div className="text-body-xs font-mono mt-1" style={{ color: '#7a7060' }}>
                   Path diagnosis is still available using topology + firewall policy data
                 </div>
               </div>
@@ -174,7 +174,7 @@ const TrafficFlowsTab: React.FC<Props> = ({ links }) => {
                         className="absolute inset-y-0 left-0 rounded"
                         style={{ width: `${barWidth}%`, backgroundColor: healthColor(link), opacity: 0.2 }}
                       />
-                      <div className="absolute inset-0 flex items-center justify-between px-2 text-[11px] font-mono">
+                      <div className="absolute inset-0 flex items-center justify-between px-2 text-body-xs font-mono">
                         <span style={{ color: '#e09f3e' }}>{formatBandwidth(link.bandwidth_bps)}</span>
                         <span style={{ color: '#64748b' }}>
                           {link.latency_ms.toFixed(1)}ms &middot; {(link.utilization * 100).toFixed(0)}% util

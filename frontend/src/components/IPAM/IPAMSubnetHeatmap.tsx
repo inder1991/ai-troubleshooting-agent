@@ -146,7 +146,7 @@ export default function IPAMSubnetHeatmap({ subnetCidr, ips }: Props) {
 
   if (prefix < 16) {
     return (
-      <div className="text-center text-slate-500 py-8 text-sm">
+      <div className="text-center text-slate-400 py-8 text-sm">
         Heatmap not available for subnets larger than /16.
       </div>
     );

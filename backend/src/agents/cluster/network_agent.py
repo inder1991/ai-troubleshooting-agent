@@ -82,18 +82,21 @@ Rules:
 async def _llm_analyze(system: str, prompt: str, session_id: str = "") -> dict:
     """Single-pass LLM call using structured tool output. Returns findings dict."""
     from src.agents.cluster.output_schemas import SUBMIT_DOMAIN_FINDINGS_TOOL
-    client = AnthropicClient(agent_name="cluster_network", session_id=session_id)
-    response = await client.chat_with_tools(
-        system=system,
-        messages=[{"role": "user", "content": prompt}],
-        tools=[SUBMIT_DOMAIN_FINDINGS_TOOL],
-        max_tokens=2000,
-        temperature=0.1,
-    )
-    for block in response.content:
-        if getattr(block, "type", None) == "tool_use" and block.name == "submit_domain_findings":
-            return block.input
-    logger.warning("LLM did not call submit_domain_findings tool", extra={"action": "parse_error"})
+    try:
+        client = AnthropicClient(agent_name="cluster_network", session_id=session_id)
+        response = await client.chat_with_tools(
+            system=system,
+            messages=[{"role": "user", "content": prompt}],
+            tools=[SUBMIT_DOMAIN_FINDINGS_TOOL],
+            max_tokens=2000,
+            temperature=0.1,
+        )
+        for block in response.content:
+            if getattr(block, "type", None) == "tool_use" and block.name == "submit_domain_findings":
+                return block.input
+        logger.warning("LLM did not call submit_domain_findings tool", extra={"action": "parse_error"})
+    except Exception as e:
+        logger.error("_llm_analyze failed: %s", e, extra={"action": "llm_analyze_error", "extra": str(e)})
     return {"anomalies": [], "ruled_out": [], "confidence": 0}
 
 
@@ -169,6 +172,80 @@ async def _heuristic_analyze(data_payload: dict, domain: str = "network") -> dic
                 "severity": "high",
             })
 
+    # Check endpoints with not_ready_addresses
+    for ep in data_payload.get("endpoints", []):
+        ep_name = ep.get("name", "unknown")
+        ns = ep.get("namespace", "default")
+        not_ready = ep.get("not_ready_addresses", 0)
+        if not_ready and not_ready > 0:
+            anomalies.append({
+                "domain": domain,
+                "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                "description": f"Endpoints {ns}/{ep_name} has {not_ready} not_ready addresses",
+                "evidence_ref": f"endpoints/{ns}/{ep_name}",
+                "severity": "medium",
+            })
+
+    # Check Routes (OpenShift)
+    for route in data_payload.get("routes", []):
+        route_name = route.get("name", "unknown")
+        ns = route.get("namespace", "default")
+        backend_ep = route.get("backend_endpoints", -1)
+        if backend_ep == 0:
+            anomalies.append({
+                "domain": domain,
+                "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                "description": f"Route {ns}/{route_name} backend has 0 endpoints — traffic will fail",
+                "evidence_ref": f"route/{ns}/{route_name}",
+                "severity": "high",
+            })
+
+    # Check Ingresses
+    for ing in data_payload.get("ingresses", []):
+        ing_name = ing.get("name", "unknown")
+        ns = ing.get("namespace", "default")
+        missing_backends = ing.get("missing_backends", [])
+        ingress_class = ing.get("ingress_class")
+        if missing_backends:
+            anomalies.append({
+                "domain": domain,
+                "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                "description": f"Ingress {ns}/{ing_name} has missing backend services: {', '.join(missing_backends)}",
+                "evidence_ref": f"ingress/{ns}/{ing_name}",
+                "severity": "high",
+            })
+        if ingress_class is None:
+            anomalies.append({
+                "domain": domain,
+                "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                "description": f"Ingress {ns}/{ing_name} has no ingress class — may not be picked up by any controller",
+                "evidence_ref": f"ingress/{ns}/{ing_name}",
+                "severity": "medium",
+            })
+
+    # Check DNS deployment replicas
+    for dns_dep in data_payload.get("dns_deployments", []):
+        dep_name = dns_dep.get("name", "unknown")
+        ns = dns_dep.get("namespace", "")
+        desired = dns_dep.get("replicas_desired", 0)
+        ready = dns_dep.get("replicas_ready", 0)
+        if desired and ready == 0:
+            anomalies.append({
+                "domain": domain,
+                "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                "description": f"DNS deployment {ns}/{dep_name} has 0 ready replicas — cluster DNS is down",
+                "evidence_ref": f"deployment/{ns}/{dep_name}",
+                "severity": "critical",
+            })
+        elif desired and ready < desired:
+            anomalies.append({
+                "domain": domain,
+                "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                "description": f"DNS deployment {ns}/{dep_name} has {ready}/{desired} replicas ready — DNS capacity reduced",
+                "evidence_ref": f"deployment/{ns}/{dep_name}",
+                "severity": "high",
+            })
+
     confidence = 50 if anomalies else 70
     return {"anomalies": anomalies, "ruled_out": ruled_out, "confidence": confidence}
 
@@ -191,7 +268,7 @@ async def _tool_calling_loop(system: str, initial_context: str, cluster_client,
     tool_call_count = 0
     retry_count = 0
 
-    for iteration in range(MAX_TOOL_CALLS + 1):
+    for iteration in range(MAX_TOOL_CALLS):
         call_start = time.monotonic()
         try:
             response = await asyncio.wait_for(
@@ -281,7 +358,12 @@ async def _tool_calling_loop(system: str, initial_context: str, cluster_client,
         messages.append({"role": "assistant", "content": response.content})
         tool_results = []
         for tu in tool_uses:
-            result_str = await execute_tool_call(tu.name, tu.input, cluster_client, tool_call_count)
+            try:
+                result_str = await execute_tool_call(tu.name, tu.input, cluster_client, tool_call_count)
+            except Exception as e:
+                logger.error("Tool call %s failed: %s", tu.name, e,
+                             extra={"action": "tool_call_error", "extra": str(e)})
+                result_str = json.dumps({"error": f"Tool execution failed: {e}"})
             tool_results.append({
                 "type": "tool_result",
                 "tool_use_id": tu.id,

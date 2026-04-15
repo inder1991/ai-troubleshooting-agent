@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { V4Findings, DiagnosticPhase, FixStatus, FixVerificationResult } from '../../types';
-import { decideOnFix, submitAttestation } from '../../services/api';
+import { decideOnFix, cancelFix } from '../../services/api';
 import { useChatUI } from '../../contexts/ChatContext';
 import { useCampaignContext } from '../../contexts/CampaignContext';
 import AgentFindingCard from './cards/AgentFindingCard';
@@ -19,23 +19,25 @@ interface FixPipelinePanelProps {
 
 const statusConfig: Record<FixStatus, { label: string; color: string }> = {
   not_started: { label: 'NOT STARTED', color: 'text-slate-400 bg-slate-500/10 border-slate-500/20' },
-  generating: { label: 'GENERATING', color: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
+  queued: { label: 'QUEUED', color: 'text-blue-400 bg-blue-500/10 border-blue-500/20' },
+  generating: { label: 'GENERATING', color: 'text-amber-400 bg-wr-severity-medium/10 border-amber-500/20' },
+  retrying: { label: 'RETRYING', color: 'text-amber-400 bg-wr-severity-medium/10 border-amber-500/20' },
   awaiting_review: { label: 'AWAITING REVIEW', color: 'text-violet-400 bg-violet-500/10 border-violet-500/20' },
   human_feedback: { label: 'PROCESSING FEEDBACK', color: 'text-blue-400 bg-blue-500/10 border-blue-500/20' },
-  verification_in_progress: { label: 'VERIFYING', color: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
+  verification_in_progress: { label: 'VERIFYING', color: 'text-amber-400 bg-wr-severity-medium/10 border-amber-500/20' },
   verified: { label: 'VERIFIED', color: 'text-green-400 bg-green-500/10 border-green-500/20' },
-  verification_failed: { label: 'VERIFICATION FAILED', color: 'text-red-400 bg-red-500/10 border-red-500/20' },
+  verification_failed: { label: 'VERIFICATION FAILED', color: 'text-red-400 bg-wr-severity-high/10 border-red-500/20' },
   approved: { label: 'APPROVED', color: 'text-green-400 bg-green-500/10 border-green-500/20' },
-  rejected: { label: 'REJECTED', color: 'text-red-400 bg-red-500/10 border-red-500/20' },
+  rejected: { label: 'REJECTED', color: 'text-red-400 bg-wr-severity-high/10 border-red-500/20' },
   pr_creating: { label: 'CREATING PR', color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' },
   pr_created: { label: 'PR CREATED', color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' },
-  failed: { label: 'FAILED', color: 'text-red-400 bg-red-500/10 border-red-500/20' },
+  failed: { label: 'FAILED', color: 'text-red-400 bg-wr-severity-high/10 border-red-500/20' },
 };
 
 const FixStatusBadge: React.FC<{ status: FixStatus }> = ({ status }) => {
   const cfg = statusConfig[status] || statusConfig.not_started;
   return (
-    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${cfg.color}`}>
+    <span className={`text-body-xs font-bold px-1.5 py-0.5 rounded border ${cfg.color}`}>
       {cfg.label}
     </span>
   );
@@ -45,8 +47,8 @@ const FixStatusBadge: React.FC<{ status: FixStatus }> = ({ status }) => {
 
 const verdictConfig: Record<string, { icon: string; color: string }> = {
   approve: { icon: 'check_circle', color: 'text-green-400 bg-green-500/10 border-green-500/20' },
-  reject: { icon: 'cancel', color: 'text-red-400 bg-red-500/10 border-red-500/20' },
-  needs_changes: { icon: 'edit_note', color: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
+  reject: { icon: 'cancel', color: 'text-red-400 bg-wr-severity-high/10 border-red-500/20' },
+  needs_changes: { icon: 'edit_note', color: 'text-amber-400 bg-wr-severity-medium/10 border-amber-500/20' },
 };
 
 // ─── Diff Viewer ──────────────────────────────────────────────────────────
@@ -85,7 +87,7 @@ const DiffLines: React.FC<{ text: string }> = ({ text }) => {
         if (line.startsWith('+') && !line.startsWith('+++')) lineColor = 'text-green-400';
         else if (line.startsWith('-') && !line.startsWith('---')) lineColor = 'text-red-400';
         else if (line.startsWith('@@')) lineColor = 'text-amber-400';
-        else if (line.startsWith('diff') || line.startsWith('index')) lineColor = 'text-slate-500';
+        else if (line.startsWith('diff') || line.startsWith('index')) lineColor = 'text-slate-400';
         return (
           <div key={i} className={lineColor}>
             {line}
@@ -103,7 +105,7 @@ const DiffViewer: React.FC<{ diff: string }> = ({ diff }) => {
 
   if (!isMultiFile) {
     return (
-      <pre className="text-[10px] font-mono bg-slate-900/60 rounded p-3 max-h-[300px] overflow-y-auto overflow-x-auto custom-scrollbar whitespace-pre">
+      <pre className="text-body-xs font-mono bg-wr-bg/60 rounded p-3 max-h-[300px] overflow-y-auto overflow-x-auto custom-scrollbar whitespace-pre">
         <DiffLines text={diff} />
       </pre>
     );
@@ -113,18 +115,18 @@ const DiffViewer: React.FC<{ diff: string }> = ({ diff }) => {
     <div className="space-y-2">
       {sections.map((s, i) => (
         <details key={i} open={i === 0}>
-          <summary className="cursor-pointer flex items-center gap-2 text-[10px] font-mono text-blue-400 hover:text-blue-300 py-1">
-            <span className="material-symbols-outlined text-[11px]">
+          <summary className="cursor-pointer flex items-center gap-2 text-body-xs font-mono text-blue-400 hover:text-blue-300 py-1">
+            <span className="material-symbols-outlined text-body-xs" style={{ fontFamily: 'Material Symbols Outlined' }}>
               description
             </span>
             {s.file}
-            <span className="text-slate-500 ml-auto">
+            <span className="text-slate-400 ml-auto">
               +{(s.content.match(/^\+[^+]/gm) || []).length}
               &nbsp;
               -{(s.content.match(/^-[^-]/gm) || []).length}
             </span>
           </summary>
-          <pre className="text-[10px] font-mono bg-slate-900/60 rounded p-3 max-h-[250px] overflow-y-auto overflow-x-auto custom-scrollbar whitespace-pre mt-1">
+          <pre className="text-body-xs font-mono bg-wr-bg/60 rounded p-3 max-h-[250px] overflow-y-auto overflow-x-auto custom-scrollbar whitespace-pre mt-1">
             <DiffLines text={s.content} />
           </pre>
         </details>
@@ -165,11 +167,6 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
     setLoading('generating');
     setError(null);
     try {
-      // Auto-approve attestation gate (may already be approved — ignore errors)
-      try {
-        await submitAttestation(sessionId, 'discovery_complete', 'approve', 'user');
-      } catch { /* already approved */ }
-
       // Send through chat so the conversation appears in the drawer
       const msg = guidance.trim()
         ? `generate fix: ${guidance.trim()}`
@@ -225,12 +222,25 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
     }
   };
 
+  const handleCancel = async () => {
+    setLoading('cancelling');
+    setError(null);
+    try {
+      await cancelFix(sessionId);
+      onRefresh();
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to cancel fix');
+    } finally {
+      setLoading(null);
+    }
+  };
+
   // ── Render Helpers ───────────────────────────────────────────────────
 
   const renderAttemptCounter = () => {
     if (!fixData || fixData.max_attempts <= 0) return null;
     return (
-      <span className="text-[9px] text-slate-500 font-mono">
+      <span className="text-body-xs text-slate-400 font-mono">
         Attempt {fixData.attempt_count}/{fixData.max_attempts}
       </span>
     );
@@ -239,28 +249,28 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
   const renderVerificationResult = (vr: FixVerificationResult) => {
     const cfg = verdictConfig[vr.verdict] || verdictConfig.needs_changes;
     return (
-      <div className="rounded-lg bg-slate-800/30 border border-slate-700/50 p-3 space-y-2">
+      <div className="rounded-lg bg-wr-surface/30 border border-wr-border-strong/50 p-3 space-y-2">
         <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-sm">
+          <span className="material-symbols-outlined text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>
             {cfg.icon}
           </span>
-          <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${cfg.color}`}>
+          <span className={`text-body-xs font-bold px-2 py-0.5 rounded border ${cfg.color}`}>
             {vr.verdict.replace(/_/g, ' ').toUpperCase()}
           </span>
-          <span className="text-[10px] font-mono text-slate-400">
+          <span className="text-body-xs font-mono text-slate-400">
             {Math.round(vr.confidence)}% confidence
           </span>
         </div>
 
         {vr.reasoning && (
-          <p className="text-[10px] text-slate-400 leading-relaxed">{vr.reasoning}</p>
+          <p className="text-body-xs text-slate-400 leading-relaxed">{vr.reasoning}</p>
         )}
 
         {vr.issues_found.length > 0 && (
           <div className="space-y-1">
-            <span className="text-[9px] font-bold text-red-400 uppercase tracking-wider">Issues Found</span>
+            <span className="text-body-xs font-bold text-red-400 uppercase tracking-wider">Issues Found</span>
             {vr.issues_found.map((issue, i) => (
-              <div key={i} className="flex items-start gap-1.5 text-[10px] text-red-300">
+              <div key={i} className="flex items-start gap-1.5 text-body-xs text-red-300">
                 <span className="text-red-500 shrink-0 mt-0.5">&#x2022;</span>
                 <span>{issue}</span>
               </div>
@@ -270,9 +280,9 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
 
         {vr.regression_risks.length > 0 && (
           <div className="space-y-1">
-            <span className="text-[9px] font-bold text-amber-400 uppercase tracking-wider">Regression Risks</span>
+            <span className="text-body-xs font-bold text-amber-400 uppercase tracking-wider">Regression Risks</span>
             {vr.regression_risks.map((risk, i) => (
-              <div key={i} className="flex items-start gap-1.5 text-[10px] text-amber-300">
+              <div key={i} className="flex items-start gap-1.5 text-body-xs text-amber-300">
                 <span className="text-amber-500 shrink-0 mt-0.5">&#x2022;</span>
                 <span>{risk}</span>
               </div>
@@ -282,10 +292,10 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
 
         {vr.suggestions.length > 0 && (
           <div className="space-y-1">
-            <span className="text-[9px] font-bold text-amber-400 uppercase tracking-wider">Suggestions</span>
+            <span className="text-body-xs font-bold text-amber-400 uppercase tracking-wider">Suggestions</span>
             {vr.suggestions.map((s, i) => (
-              <div key={i} className="flex items-start gap-1.5 text-[10px] text-amber-300">
-                <span className="text-amber-500 shrink-0 mt-0.5">&#x2022;</span>
+              <div key={i} className="flex items-start gap-1.5 text-body-xs text-amber-300">
+                <span className="text-cyan-500 shrink-0 mt-0.5">&#x2022;</span>
                 <span>{s}</span>
               </div>
             ))}
@@ -299,7 +309,7 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
 
   const renderGenerateSection = () => (
     <div className="space-y-3">
-      <p className="text-[11px] text-slate-400">
+      <p className="text-body-xs text-slate-400">
         Generate an automated fix based on the diagnosis findings. Optionally provide guidance to steer the fix.
       </p>
       <textarea
@@ -307,17 +317,17 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
         value={guidance}
         onChange={(e) => setGuidance(e.target.value)}
         rows={2}
-        className="w-full text-[11px] bg-slate-800/60 border border-slate-700/50 rounded px-3 py-2 text-slate-200 placeholder-slate-600 font-mono focus:outline-none focus:border-emerald-500/50 resize-none"
+        className="w-full text-body-xs bg-wr-surface/60 border border-wr-border-strong/50 rounded px-3 py-2 text-slate-200 placeholder-slate-600 font-mono focus:outline-none focus:border-emerald-500/50 resize-none"
       />
       <button
         onClick={handleGenerateFix}
         disabled={loading === 'generating'}
-        className="text-[10px] font-bold px-4 py-1.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:saturate-0 flex items-center gap-2"
+        className="text-body-xs font-bold px-4 py-1.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:saturate-0 flex items-center gap-2"
       >
         {loading === 'generating' ? (
           <div className="w-3 h-3 border-2 border-emerald-400/30 border-t-emerald-400 rounded-full animate-spin" />
         ) : (
-          <span className="material-symbols-outlined text-xs">
+          <span className="material-symbols-outlined text-xs" style={{ fontFamily: 'Material Symbols Outlined' }}>
             auto_fix_high
           </span>
         )}
@@ -327,22 +337,33 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
   );
 
   const renderProgressSection = () => (
-    <div className="flex items-center gap-3 py-2">
-      <div className="w-5 h-5 border-2 border-slate-700 border-t-emerald-500 rounded-full animate-spin" />
-      <div>
-        <div className="text-[11px] text-slate-300">
-          {fixStatus === 'generating' && 'Generating fix...'}
-          {fixStatus === 'verification_in_progress' && 'Verifying generated fix...'}
-          {fixStatus === 'pr_creating' && 'Creating pull request...'}
-          {fixStatus === 'human_feedback' && 'Processing your feedback...'}
-        </div>
-        {fixData?.fixed_files && fixData.fixed_files.length > 1 ? (
-          <div className="text-[10px] font-mono text-slate-500 mt-0.5">
-            {fixData.fixed_files.length} files: {fixData.fixed_files.map(f => f.file_path.split('/').pop()).join(', ')}
+    <div className="space-y-2">
+      <div className="flex items-center gap-3 py-2">
+        <div className="w-5 h-5 border-2 border-wr-border-strong border-t-emerald-500 rounded-full animate-spin" />
+        <div className="flex-1">
+          <div className="text-body-xs text-slate-300">
+            {fixStatus === 'queued' && 'Fix job queued — waiting for available worker...'}
+            {fixStatus === 'generating' && 'Generating fix...'}
+            {fixStatus === 'retrying' && 'Retrying fix generation...'}
+            {fixStatus === 'verification_in_progress' && 'Verifying generated fix...'}
+            {fixStatus === 'pr_creating' && 'Creating pull request...'}
+            {fixStatus === 'human_feedback' && 'Processing your feedback...'}
           </div>
-        ) : fixData?.target_file ? (
-          <div className="text-[10px] font-mono text-slate-500 mt-0.5">{fixData.target_file}</div>
-        ) : null}
+          {fixData?.fixed_files && fixData.fixed_files.length > 1 ? (
+            <div className="text-body-xs font-mono text-slate-400 mt-0.5">
+              {fixData.fixed_files.length} files: {fixData.fixed_files.map(f => f.file_path.split('/').pop()).join(', ')}
+            </div>
+          ) : fixData?.target_file ? (
+            <div className="text-body-xs font-mono text-slate-400 mt-0.5">{fixData.target_file}</div>
+          ) : null}
+        </div>
+        <button
+          onClick={handleCancel}
+          disabled={loading === 'cancelling'}
+          className="text-body-xs font-bold px-2 py-1 rounded bg-wr-severity-high/10 text-red-400 border border-red-500/20 hover:bg-wr-severity-high/20 disabled:opacity-50"
+        >
+          {loading === 'cancelling' ? 'Cancelling...' : 'Cancel'}
+        </button>
       </div>
     </div>
   );
@@ -354,23 +375,23 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
         <div className="space-y-1">
           {fixData.fixed_files.map((ff, i) => (
             <div key={i} className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-xs text-slate-500">
+              <span className="material-symbols-outlined text-xs text-slate-400" style={{ fontFamily: 'Material Symbols Outlined' }}>
                 description
               </span>
-              <span className="text-[11px] font-mono text-blue-400">{ff.file_path}</span>
+              <span className="text-body-xs font-mono text-blue-400">{ff.file_path}</span>
             </div>
           ))}
         </div>
       ) : fixData?.target_file ? (
         <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-xs text-slate-500">
+          <span className="material-symbols-outlined text-xs text-slate-400" style={{ fontFamily: 'Material Symbols Outlined' }}>
             description
           </span>
-          <span className="text-[11px] font-mono text-blue-400">{fixData.target_file}</span>
+          <span className="text-body-xs font-mono text-blue-400">{fixData.target_file}</span>
         </div>
       ) : null}
       {fixData?.fix_explanation && (
-        <p className="text-[11px] text-slate-300 leading-relaxed">{fixData.fix_explanation}</p>
+        <p className="text-body-xs text-slate-300 leading-relaxed">{fixData.fix_explanation}</p>
       )}
 
       {/* Verification Result */}
@@ -382,12 +403,13 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
           <div className="flex items-center gap-2 mb-1.5">
             <button
               onClick={() => setShowDiff(!showDiff)}
-              className="flex items-center gap-1.5 text-[10px] text-slate-400 hover:text-slate-300"
+              className="flex items-center gap-1.5 text-body-xs text-slate-400 hover:text-slate-300"
               aria-expanded={showDiff}
               aria-label={`${showDiff ? 'Hide' : 'Show'} diff`}
             >
               <span
                 className={`material-symbols-outlined text-xs transition-transform duration-200 ${showDiff ? 'rotate-90' : ''}`}
+                style={{ fontFamily: 'Material Symbols Outlined' }}
               >
                 chevron_right
               </span>
@@ -402,9 +424,9 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
       {/* Human Feedback History */}
       {(fixData?.human_feedback?.length ?? 0) > 0 && (
         <div className="space-y-1.5">
-          <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Previous Feedback</span>
+          <span className="text-body-xs font-bold text-slate-400 uppercase tracking-wider">Previous Feedback</span>
           {fixData!.human_feedback.map((fb, i) => (
-            <div key={i} className="text-[10px] text-slate-400 bg-slate-800/30 rounded px-2.5 py-1.5 border border-slate-700/30 font-mono">
+            <div key={i} className="text-body-xs text-slate-400 bg-wr-surface/30 rounded px-2.5 py-1.5 border border-wr-border-strong/30 font-mono">
               {fb}
             </div>
           ))}
@@ -413,12 +435,12 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
 
       {/* Action Buttons — only when awaiting_review */}
       {fixStatus === 'awaiting_review' && (
-        <div className="space-y-2 pt-1 border-t border-slate-800/50">
+        <div className="space-y-2 pt-1 border-t border-wr-border/50">
           <div className="flex items-center gap-2">
             {loading === 'approving' ? (
               <button
                 disabled
-                className="text-[10px] font-bold px-3 py-1.5 rounded bg-green-500/20 text-green-400 border border-green-500/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:saturate-0 flex items-center gap-1.5"
+                className="text-body-xs font-bold px-3 py-1.5 rounded bg-green-500/20 text-green-400 border border-green-500/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:saturate-0 flex items-center gap-1.5"
               >
                 <div className="w-3 h-3 border-2 border-green-400/30 border-t-green-400 rounded-full animate-spin" />
                 Approving...
@@ -430,18 +452,18 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
                 holdLabel="Hold to confirm..."
                 icon="check_circle"
                 disabled={!!loading}
-                className="text-[10px] font-bold px-3 py-1.5 rounded bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30"
+                className="text-body-xs font-bold px-3 py-1.5 rounded bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30"
               />
             )}
             <button
               onClick={handleReject}
               disabled={!!loading}
-              className="text-[10px] font-bold px-3 py-1.5 rounded bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:saturate-0 flex items-center gap-1.5"
+              className="text-body-xs font-bold px-3 py-1.5 rounded bg-wr-severity-high/20 text-red-400 border border-wr-severity-high/30 hover:bg-wr-severity-high/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:saturate-0 flex items-center gap-1.5"
             >
               {loading === 'rejecting' ? (
                 <div className="w-3 h-3 border-2 border-red-400/30 border-t-red-400 rounded-full animate-spin" />
               ) : (
-                <span className="material-symbols-outlined text-xs">
+                <span className="material-symbols-outlined text-xs" style={{ fontFamily: 'Material Symbols Outlined' }}>
                   cancel
                 </span>
               )}
@@ -455,12 +477,12 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
               value={feedbackText}
               onChange={(e) => setFeedbackText(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleFeedback()}
-              className="flex-1 text-[11px] bg-slate-800/60 border border-slate-700/50 rounded px-2.5 py-1.5 text-slate-200 placeholder-slate-600 font-mono focus:outline-none focus:border-violet-500/50"
+              className="flex-1 text-body-xs bg-wr-surface/60 border border-wr-border-strong/50 rounded px-2.5 py-1.5 text-slate-200 placeholder-slate-600 font-mono focus:outline-none focus:border-violet-500/50"
             />
             <button
               onClick={handleFeedback}
               disabled={!feedbackText.trim() || !!loading}
-              className="text-[10px] font-bold px-3 py-1.5 rounded bg-violet-500/20 text-violet-400 border border-violet-500/30 hover:bg-violet-500/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:saturate-0"
+              className="text-body-xs font-bold px-3 py-1.5 rounded bg-violet-500/20 text-violet-400 border border-violet-500/30 hover:bg-violet-500/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:saturate-0"
             >
               {loading === 'feedback' ? 'Sending...' : 'Send Feedback'}
             </button>
@@ -475,10 +497,10 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
     return (
       <div className="space-y-3">
         <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-emerald-400 text-base">
+          <span className="material-symbols-outlined text-emerald-400 text-base" style={{ fontFamily: 'Material Symbols Outlined' }}>
             check_circle
           </span>
-          <span className="text-[11px] font-bold text-emerald-400">Pull Request Created Successfully</span>
+          <span className="text-body-xs font-bold text-emerald-400">Pull Request Created Successfully</span>
         </div>
 
         {fixData?.pr_url && (
@@ -486,34 +508,34 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
             href={fixData.pr_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[11px] text-[#e09f3e] hover:underline font-mono block"
+            className="text-body-xs text-[#e09f3e] hover:underline font-mono block"
           >
             {fixData.pr_url}
           </a>
         )}
 
-        <div className="grid grid-cols-2 gap-2 text-[10px]">
+        <div className="grid grid-cols-2 gap-2 text-body-xs">
           {fixData?.pr_number && (
-            <div className="bg-slate-800/40 rounded px-2.5 py-1.5 border border-slate-700/30">
-              <span className="text-slate-500">PR #</span>
+            <div className="bg-wr-surface/40 rounded px-2.5 py-1.5 border border-wr-border-strong/30">
+              <span className="text-slate-400">PR #</span>
               <span className="text-slate-200 font-mono ml-1">{fixData.pr_number}</span>
             </div>
           )}
           {prData?.branch_name && (
-            <div className="bg-slate-800/40 rounded px-2.5 py-1.5 border border-slate-700/30">
-              <span className="text-slate-500">Branch</span>
+            <div className="bg-wr-surface/40 rounded px-2.5 py-1.5 border border-wr-border-strong/30">
+              <span className="text-slate-400">Branch</span>
               <span className="text-slate-200 font-mono ml-1 truncate">{prData.branch_name}</span>
             </div>
           )}
           {prData?.commit_sha && (
-            <div className="bg-slate-800/40 rounded px-2.5 py-1.5 border border-slate-700/30">
-              <span className="text-slate-500">Commit</span>
+            <div className="bg-wr-surface/40 rounded px-2.5 py-1.5 border border-wr-border-strong/30">
+              <span className="text-slate-400">Commit</span>
               <span className="text-slate-200 font-mono ml-1">{prData.commit_sha.slice(0, 8)}</span>
             </div>
           )}
           {prData?.pr_title && (
-            <div className="bg-slate-800/40 rounded px-2.5 py-1.5 border border-slate-700/30 col-span-2">
-              <span className="text-slate-500">Title</span>
+            <div className="bg-wr-surface/40 rounded px-2.5 py-1.5 border border-wr-border-strong/30 col-span-2">
+              <span className="text-slate-400">Title</span>
               <span className="text-slate-200 ml-1">{prData.pr_title}</span>
             </div>
           )}
@@ -524,10 +546,11 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
           <div>
             <button
               onClick={() => setShowDiff(!showDiff)}
-              className="flex items-center gap-1.5 text-[10px] text-slate-400 hover:text-slate-300 mb-1.5"
+              className="flex items-center gap-1.5 text-body-xs text-slate-400 hover:text-slate-300 mb-1.5"
             >
               <span
                 className={`material-symbols-outlined text-xs transition-transform ${showDiff ? 'rotate-90' : ''}`}
+                style={{ fontFamily: 'Material Symbols Outlined' }}
               >
                 chevron_right
               </span>
@@ -545,25 +568,25 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
     return (
       <div className="space-y-3">
         <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-red-400 text-base">
+          <span className="material-symbols-outlined text-red-400 text-base" style={{ fontFamily: 'Material Symbols Outlined' }}>
             {fixStatus === 'rejected' ? 'block' : 'error'}
           </span>
-          <span className="text-[11px] font-bold text-red-400">
+          <span className="text-body-xs font-bold text-red-400">
             {fixStatus === 'rejected' ? 'Fix Rejected' : 'Fix Generation Failed'}
           </span>
         </div>
         {fixData?.fix_explanation && (
-          <p className="text-[10px] text-slate-400">{fixData.fix_explanation}</p>
+          <p className="text-body-xs text-slate-400">{fixData.fix_explanation}</p>
         )}
         {maxReached ? (
-          <span className="text-[10px] text-slate-500 italic">Max attempts reached ({fixData!.max_attempts}). No further retries available.</span>
+          <span className="text-body-xs text-slate-400 italic">Max attempts reached ({fixData!.max_attempts}). No further retries available.</span>
         ) : (
           <button
             onClick={handleGenerateFix}
             disabled={loading === 'generating'}
-            className="text-[10px] font-bold px-3 py-1.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:saturate-0 flex items-center gap-2"
+            className="text-body-xs font-bold px-3 py-1.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:saturate-0 flex items-center gap-2"
           >
-            <span className="material-symbols-outlined text-xs">
+            <span className="material-symbols-outlined text-xs" style={{ fontFamily: 'Material Symbols Outlined' }}>
               refresh
             </span>
             {loading === 'generating' ? 'Starting...' : 'Retry Fix Generation'}
@@ -579,23 +602,23 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
         <div className="space-y-1">
           {fixData.fixed_files.map((ff, i) => (
             <div key={i} className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-xs text-slate-500">
+              <span className="material-symbols-outlined text-xs text-slate-400" style={{ fontFamily: 'Material Symbols Outlined' }}>
                 description
               </span>
-              <span className="text-[11px] font-mono text-blue-400">{ff.file_path}</span>
+              <span className="text-body-xs font-mono text-blue-400">{ff.file_path}</span>
             </div>
           ))}
         </div>
       ) : fixData?.target_file ? (
         <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-xs text-slate-500">
+          <span className="material-symbols-outlined text-xs text-slate-400" style={{ fontFamily: 'Material Symbols Outlined' }}>
             description
           </span>
-          <span className="text-[11px] font-mono text-blue-400">{fixData.target_file}</span>
+          <span className="text-body-xs font-mono text-blue-400">{fixData.target_file}</span>
         </div>
       ) : null}
       {fixData?.fix_explanation && (
-        <p className="text-[11px] text-slate-300 leading-relaxed">{fixData.fix_explanation}</p>
+        <p className="text-body-xs text-slate-300 leading-relaxed">{fixData.fix_explanation}</p>
       )}
       {verification && renderVerificationResult(verification)}
       {fixData?.diff && (
@@ -603,12 +626,13 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
           <div className="flex items-center gap-2 mb-1.5">
             <button
               onClick={() => setShowDiff(!showDiff)}
-              className="flex items-center gap-1.5 text-[10px] text-slate-400 hover:text-slate-300"
+              className="flex items-center gap-1.5 text-body-xs text-slate-400 hover:text-slate-300"
               aria-expanded={showDiff}
               aria-label={`${showDiff ? 'Hide' : 'Show'} diff`}
             >
               <span
                 className={`material-symbols-outlined text-xs transition-transform duration-200 ${showDiff ? 'rotate-90' : ''}`}
+                style={{ fontFamily: 'Material Symbols Outlined' }}
               >
                 chevron_right
               </span>
@@ -629,8 +653,8 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
     if (!fixData && phase === 'fix_in_progress') {
       return (
         <div className="flex items-center gap-3 py-2">
-          <div className="w-5 h-5 border-2 border-slate-700 border-t-emerald-500 rounded-full animate-spin" />
-          <span className="text-[11px] text-slate-300">Fix pipeline initializing...</span>
+          <div className="w-5 h-5 border-2 border-wr-border-strong border-t-emerald-500 rounded-full animate-spin" />
+          <span className="text-body-xs text-slate-300">Fix pipeline initializing...</span>
         </div>
       );
     }
@@ -638,7 +662,9 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
     switch (fixStatus) {
       case 'not_started':
         return renderGenerateSection();
+      case 'queued':
       case 'generating':
+      case 'retrying':
       case 'verification_in_progress':
       case 'pr_creating':
       case 'human_feedback':
@@ -664,7 +690,7 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
     <AgentFindingCard agent="D" title="Fix Pipeline">
       {/* Header row: status badge + attempt counter */}
       <div className="flex items-center gap-2 mb-3">
-        <span className="material-symbols-outlined text-emerald-400 text-sm">
+        <span className="material-symbols-outlined text-emerald-400 text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>
           build_circle
         </span>
         <FixStatusBadge status={fixStatus} />
@@ -673,7 +699,7 @@ const FixPipelinePanel: React.FC<FixPipelinePanelProps> = ({
 
       {/* Error banner */}
       {error && (
-        <div className="text-[10px] text-red-400 bg-red-500/10 border border-red-500/20 rounded px-3 py-1.5 mb-3">
+        <div className="text-body-xs text-red-400 bg-wr-severity-high/10 border border-red-500/20 rounded px-3 py-1.5 mb-3">
           {error}
         </div>
       )}

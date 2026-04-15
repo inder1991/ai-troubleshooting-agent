@@ -1,0 +1,45 @@
+name: pipeline_agent
+version: 1
+description: >-
+  ReAct-style CI/CD troubleshooting agent. Lists recent Jenkins/Argo CD
+  deploys within a cluster and service window, fetches build/sync detail
+  artifacts, and emits a finding with deeplinks.
+category: infrastructure
+tags: [cicd, jenkins, argocd, deploys, pipeline]
+inputs:
+  type: object
+  properties:
+    cluster_id:
+      type: string
+    time_window_minutes:
+      type: integer
+      default: 60
+    git_repo:
+      type: [string, "null"]
+    service_hint:
+      type: [string, "null"]
+  required: [cluster_id]
+outputs:
+  type: object
+  properties:
+    finding: { type: string }
+    root_cause:
+      type: [string, "null"]
+    deeplinks:
+      type: array
+      items: { type: object }
+    terminated_reason:
+      type: string
+      description: "\"finished\" or \"max_iterations\""
+    resolver_errors:
+      type: array
+      items: { type: object }
+trigger_examples:
+  - "Troubleshoot my pipeline"
+  - "Did any recent Jenkins builds fail for this cluster?"
+  - "Check Argo CD sync status around the incident"
+retry_on: []
+timeout_seconds: 90
+cost_hint:
+  llm_calls: 4
+  typical_duration_s: 15

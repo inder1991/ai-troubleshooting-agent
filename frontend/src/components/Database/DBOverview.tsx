@@ -101,7 +101,7 @@ const DBOverview: React.FC = () => {
         <h2 className="text-lg font-semibold text-slate-100">Fleet Health</h2>
         <button
           onClick={loadProfiles}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-slate-700/50 hover:bg-slate-700 text-slate-300 rounded-lg transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-wr-inset/50 hover:bg-wr-inset text-slate-300 rounded-lg transition-colors"
         >
           <span className="material-symbols-outlined text-[16px]">refresh</span>
           Refresh
@@ -110,7 +110,7 @@ const DBOverview: React.FC = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {profiles.map((p) => (
-          <div key={p.profile_id} className="rounded-xl border border-slate-700/50 bg-[#0d2328] p-4 space-y-3">
+          <div key={p.profile_id} className="rounded-xl border border-wr-border-strong/50 bg-[#0d2328] p-4 space-y-3">
             {/* Header */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -119,34 +119,34 @@ const DBOverview: React.FC = () => {
                 </span>
                 <div>
                   <p className="text-sm font-medium text-slate-100">{p.name}</p>
-                  <p className="text-xs text-slate-500">{p.engine} • {p.host}:{p.port}/{p.database}</p>
+                  <p className="text-xs text-slate-400">{p.engine} • {p.host}:{p.port}/{p.database}</p>
                 </div>
               </div>
               {p.latency_ms !== undefined && (
-                <span className="text-xs text-slate-500">{p.latency_ms}ms</span>
+                <span className="text-xs text-slate-400">{p.latency_ms}ms</span>
               )}
             </div>
 
             {/* Error state */}
             {p.error && (
-              <p className="text-xs text-red-400 bg-red-500/10 rounded px-2 py-1">{p.error}</p>
+              <p className="text-xs text-red-400 bg-wr-severity-high/10 rounded px-2 py-1">{p.error}</p>
             )}
 
             {/* Stats */}
             {p.performance && p.connections && (
               <div className="grid grid-cols-3 gap-2 text-center">
-                <div className="rounded-lg bg-slate-800/50 p-2">
-                  <p className="text-xs text-slate-500">Active</p>
+                <div className="rounded-lg bg-wr-surface/50 p-2">
+                  <p className="text-xs text-slate-400">Active</p>
                   <p className="text-lg font-semibold text-amber-400">{p.connections.active}</p>
                 </div>
-                <div className="rounded-lg bg-slate-800/50 p-2">
-                  <p className="text-xs text-slate-500">Cache Hit</p>
+                <div className="rounded-lg bg-wr-surface/50 p-2">
+                  <p className="text-xs text-slate-400">Cache Hit</p>
                   <p className="text-lg font-semibold text-emerald-400">
                     {(p.performance.cache_hit_ratio * 100).toFixed(1)}%
                   </p>
                 </div>
-                <div className="rounded-lg bg-slate-800/50 p-2">
-                  <p className="text-xs text-slate-500">TPS</p>
+                <div className="rounded-lg bg-wr-surface/50 p-2">
+                  <p className="text-xs text-slate-400">TPS</p>
                   <p className="text-lg font-semibold text-amber-400">
                     {p.performance.transactions_per_sec.toFixed(0)}
                   </p>
@@ -157,11 +157,11 @@ const DBOverview: React.FC = () => {
             {/* Connection gauge */}
             {p.connections && p.connections.max_connections > 0 && (
               <div>
-                <div className="flex justify-between text-xs text-slate-500 mb-1">
+                <div className="flex justify-between text-xs text-slate-400 mb-1">
                   <span>Connections</span>
                   <span>{p.connections.active + p.connections.idle}/{p.connections.max_connections}</span>
                 </div>
-                <div className="h-1.5 rounded-full bg-slate-700 overflow-hidden">
+                <div className="h-1.5 rounded-full bg-wr-inset overflow-hidden">
                   <div
                     className={`h-full rounded-full transition-all ${
                       ((p.connections.active + p.connections.idle) / p.connections.max_connections) > 0.8
@@ -176,7 +176,7 @@ const DBOverview: React.FC = () => {
             )}
 
             {p.version && (
-              <p className="text-xs text-slate-600">v{p.version}</p>
+              <p className="text-xs text-slate-500">v{p.version}</p>
             )}
           </div>
         ))}

@@ -108,7 +108,7 @@ const SessionTable: React.FC<SessionTableProps> = ({ sessions, onSelectSession }
               </td>
               <td className="px-4 py-3">
                 <div className="text-white font-medium">{session.service_name}</div>
-                <div className="text-[10px] text-gray-500 font-mono">
+                <div className="text-body-xs text-gray-500 font-mono">
                   {session.session_id.substring(0, 8)}
                 </div>
               </td>

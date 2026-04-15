@@ -146,7 +146,7 @@ async def submit_attestation(session_id: str, request: AttestationRequest):
     from src.api.routes_v4 import supervisors
     supervisor = supervisors.get(session_id)
     if supervisor:
-        supervisor.acknowledge_attestation(request.decision)
+        await supervisor.acknowledge_attestation(request.decision, session_id)
 
     return {"status": "recorded", "gate": gate}
 

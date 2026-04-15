@@ -85,7 +85,13 @@ class CausalChain(BaseModel):
     cascading_effects: list[CausalLink] = Field(default_factory=list)
 
 
-class BlastRadius(BaseModel):
+class ClusterBlastRadius(BaseModel):
+    """Cluster-diagnostic blast radius — lists of affected resource names.
+
+    Distinct from models.schemas.BlastRadius (which models business/service
+    impact with scope/tier). Renamed to resolve a name collision that
+    caused import-order-dependent validation errors.
+    """
     summary: str = ""
     affected_namespaces: list[str] = Field(default_factory=list)
     affected_pods: list[str] = Field(default_factory=list)
@@ -111,7 +117,7 @@ class ClusterHealthReport(BaseModel):
     platform_version: str = ""
     platform_health: str = "UNKNOWN"
     data_completeness: float = 0.0
-    blast_radius: BlastRadius = Field(default_factory=BlastRadius)
+    blast_radius: ClusterBlastRadius = Field(default_factory=ClusterBlastRadius)
     causal_chains: list[CausalChain] = Field(default_factory=list)
     uncorrelated_findings: list[DomainAnomaly] = Field(default_factory=list)
     domain_reports: list[DomainReport] = Field(default_factory=list)

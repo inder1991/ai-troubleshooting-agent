@@ -147,7 +147,7 @@ const stack = [
 /*  Helpers                                                            */
 /* ------------------------------------------------------------------ */
 
-const Arrow = () => <span className="text-slate-500 text-xs font-bold select-none">&rarr;</span>;
+const Arrow = () => <span className="text-slate-400 text-xs font-bold select-none">&rarr;</span>;
 
 const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <h3 className="text-sm font-bold text-slate-300 uppercase tracking-wider mb-3">{children}</h3>
@@ -159,7 +159,7 @@ const FlowBox: React.FC<{ label: string; small: string; color: string }> = ({ la
     style={{ borderColor: color, backgroundColor: `${color}10` }}
   >
     <span className="text-xs font-mono font-bold block" style={{ color }}>{label}</span>
-    <span className="text-[10px] text-slate-500 block leading-tight">{small}</span>
+    <span className="text-body-xs text-slate-400 block leading-tight">{small}</span>
   </div>
 );
 
@@ -192,7 +192,7 @@ const ArchitectureTab: React.FC = () => {
           <Arrow />
 
           {/* Agent cluster */}
-          <span className="flex items-center gap-1.5 px-2 py-1 rounded border border-[#3d3528] bg-slate-900/50">
+          <span className="flex items-center gap-1.5 px-2 py-1 rounded border border-[#3d3528] bg-wr-bg/50">
             {agentCluster.map((a) => (
               <span
                 key={a.label}
@@ -233,19 +233,19 @@ const ArchitectureTab: React.FC = () => {
           {agents.map((agent) => (
             <div
               key={agent.num}
-              className="rounded-lg p-3.5 bg-slate-900/50 border border-[#3d3528]"
+              className="rounded-lg p-3.5 bg-wr-bg/50 border border-[#3d3528]"
               style={{ borderTopWidth: 3, borderTopColor: agent.color }}
             >
               <div className="flex items-center gap-2.5 mb-2">
                 <span
-                  className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0"
+                  className="w-6 h-6 rounded-full flex items-center justify-center text-body-xs font-bold text-white shrink-0"
                   style={{ backgroundColor: agent.color }}
                 >
                   {agent.num}
                 </span>
                 <span className="text-sm font-bold text-white">{agent.name}</span>
               </div>
-              <p className="text-[11px] font-mono text-slate-400 mb-1.5">{agent.pattern}</p>
+              <p className="text-body-xs font-mono text-slate-400 mb-1.5">{agent.pattern}</p>
               <p className="text-xs text-slate-400 leading-relaxed">{agent.desc}</p>
             </div>
           ))}
@@ -268,23 +268,23 @@ const ArchitectureTab: React.FC = () => {
             return (
               <div
                 key={phase.num}
-                className={`flex items-center gap-2 px-3 py-2 bg-slate-900/50 border border-[#3d3528] ${
+                className={`flex items-center gap-2 px-3 py-2 bg-wr-bg/50 border border-[#3d3528] ${
                   isFirst ? 'rounded-l-lg' : ''
                 } ${isLast ? 'rounded-r-lg' : ''}`}
                 style={{ borderLeftWidth: isFirst ? 1 : 0 }}
               >
                 <span
-                  className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0"
+                  className="w-5 h-5 rounded-full flex items-center justify-center text-body-xs font-bold text-white shrink-0"
                   style={{ backgroundColor: phase.color }}
                 >
                   {phase.num}
                 </span>
                 <div className="flex flex-col">
                   <span className="text-xs font-bold text-slate-200 leading-tight">{phase.name}</span>
-                  <span className="text-[10px] text-slate-500 leading-tight">{phase.sub}</span>
+                  <span className="text-body-xs text-slate-400 leading-tight">{phase.sub}</span>
                 </div>
                 {!isLast && (
-                  <span className="text-slate-500 text-sm font-bold ml-1 select-none">&rsaquo;</span>
+                  <span className="text-slate-400 text-sm font-bold ml-1 select-none">&rsaquo;</span>
                 )}
               </div>
             );
@@ -311,10 +311,10 @@ const ArchitectureTab: React.FC = () => {
                 <div
                   className={`px-3 py-2 rounded border text-center ${
                     isNoLlm
-                      ? 'border-slate-600 bg-slate-800/60'
+                      ? 'border-wr-border-strong bg-wr-surface/60'
                       : isHuman
                         ? 'border-yellow-700 bg-yellow-950/30'
-                        : 'bg-slate-900/50 border-[#3d3528]'
+                        : 'bg-wr-bg/50 border-[#3d3528]'
                   }`}
                   style={{
                     borderColor: isNoLlm ? undefined : step.color,
@@ -326,7 +326,7 @@ const ArchitectureTab: React.FC = () => {
                   >
                     {step.name}
                   </span>
-                  <span className="text-[10px] text-slate-500 block leading-tight">{step.sub}</span>
+                  <span className="text-body-xs text-slate-400 block leading-tight">{step.sub}</span>
                 </div>
               </React.Fragment>
             );
@@ -347,22 +347,22 @@ const ArchitectureTab: React.FC = () => {
           {gates.map((gate, i) => (
             <div
               key={gate.name}
-              className="bg-slate-900/50 border border-[#3d3528] rounded-lg p-3"
+              className="bg-wr-bg/50 border border-[#3d3528] rounded-lg p-3"
               style={{ borderTopWidth: 3, borderTopColor: C.yellow }}
             >
               <div className="flex items-center gap-2 mb-2">
                 <span
-                  className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0"
+                  className="w-5 h-5 rounded-full flex items-center justify-center text-body-xs font-bold text-white shrink-0"
                   style={{ backgroundColor: C.yellow }}
                 >
                   {i + 1}
                 </span>
                 <span className="text-xs font-bold text-slate-200">{gate.name}</span>
               </div>
-              <p className="text-[10px] text-slate-500 mb-0.5">
+              <p className="text-body-xs text-slate-400 mb-0.5">
                 <span className="font-semibold text-slate-400">When:</span> {gate.when}
               </p>
-              <p className="text-[10px] text-slate-500">
+              <p className="text-body-xs text-slate-400">
                 <span className="font-semibold text-slate-400">Why:</span> {gate.why}
               </p>
             </div>
@@ -393,16 +393,16 @@ const ArchitectureTab: React.FC = () => {
               {components.map((c) => (
                 <tr
                   key={c.num}
-                  className={c.num % 2 === 0 ? 'bg-slate-900/60' : 'bg-slate-900/30'}
+                  className={c.num % 2 === 0 ? 'bg-wr-bg/60' : 'bg-wr-bg/30'}
                 >
-                  <td className="px-3 py-2 text-slate-500 font-mono">{c.num}</td>
+                  <td className="px-3 py-2 text-slate-400 font-mono">{c.num}</td>
                   <td className="px-3 py-2 text-slate-200 font-semibold">{c.name}</td>
                   <td className="px-3 py-2 text-slate-400 font-mono">{c.pattern}</td>
                   <td className="px-3 py-2">
                     {c.llm.startsWith('Yes') ? (
                       <span className="text-[#e09f3e] font-bold">{c.llm}</span>
                     ) : (
-                      <span className="text-slate-600">{c.llm}</span>
+                      <span className="text-slate-500">{c.llm}</span>
                     )}
                   </td>
                 </tr>
@@ -425,7 +425,7 @@ const ArchitectureTab: React.FC = () => {
           {stack.map((s) => (
             <div
               key={s.label}
-              className="bg-slate-900/50 border border-[#3d3528] rounded-lg p-3"
+              className="bg-wr-bg/50 border border-[#3d3528] rounded-lg p-3"
             >
               <span className="text-xs font-bold text-white block mb-1">{s.label}</span>
               <span className="text-xs text-slate-400">{s.items}</span>

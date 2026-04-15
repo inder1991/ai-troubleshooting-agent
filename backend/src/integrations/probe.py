@@ -328,6 +328,14 @@ class GlobalProbe:
         if service_type in cloud_providers:
             return await self._test_cloud_provider(service_type, credentials)
 
+        # ArgoCD kubeconfig mode can't be HTTP-probed without a cluster client.
+        # Mark as reachable ("credentials saved") so the Settings UI doesn't block
+        # save; real verification happens on first list_deploy_events call.
+        if service_type == "argocd" and auth_method == "kubeconfig":
+            ep.reachable = True
+            ep.discovered_url = "kubeconfig (verified on first use)"
+            return ep
+
         headers = self._build_auth_headers(auth_method, credentials)
         test_path = self._get_test_path(service_type)
         test_url = f"{url.rstrip('/')}{test_path}"
@@ -358,6 +366,8 @@ class GlobalProbe:
             "confluence": "/rest/api/space",
             "remedy": "/api/arsys/v1",
             "github": "/user",
+            "jenkins": "/api/json",
+            "argocd": "/api/version",
         }
         return paths.get(service_type, "/")
 

@@ -44,12 +44,12 @@ const AgentDetailPanel: React.FC<Props> = ({ agent, onClose }) => {
       <div className="flex items-center justify-between px-5 py-4 border-b flex-shrink-0" style={{ borderColor: '#1e2a2e' }}>
         <div>
           <div className="text-sm font-mono font-bold" style={{ color: '#e8e0d4' }}>{agent.name}</div>
-          <div className="text-[10px] font-mono mt-0.5" style={{ color: '#64748b' }}>{agent.id}</div>
+          <div className="text-body-xs font-mono mt-0.5" style={{ color: '#64748b' }}>{agent.id}</div>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={handleCopy}
-            className="flex items-center gap-1 px-2.5 py-1 rounded text-[10px] font-mono"
+            className="flex items-center gap-1 px-2.5 py-1 rounded text-body-xs font-mono"
             style={{ border: '1px solid #1e2a2e', color: copied ? '#22c55e' : '#64748b', background: 'transparent' }}
           >
             <span className="material-symbols-outlined" style={{ fontSize: 13 }}>{copied ? 'check' : 'content_copy'}</span>
@@ -64,7 +64,7 @@ const AgentDetailPanel: React.FC<Props> = ({ agent, onClose }) => {
       <div className="flex-1 overflow-auto px-5 py-4 space-y-5">
         {/* Description */}
         <div>
-          <div className="text-[10px] font-mono uppercase tracking-widest mb-1" style={{ color: '#3d4a50' }}>Description</div>
+          <div className="text-body-xs font-mono uppercase tracking-widest mb-1" style={{ color: '#3d4a50' }}>Description</div>
           <div className="text-xs font-mono" style={{ color: '#9a9080' }}>{agent.description || '—'}</div>
         </div>
 
@@ -77,7 +77,7 @@ const AgentDetailPanel: React.FC<Props> = ({ agent, onClose }) => {
             { label: 'Model', value: agent.llm_config?.model || 'default' },
           ].map(({ label, value }) => (
             <div key={label} className="rounded p-2.5" style={{ background: '#0a1214', border: '1px solid #1a2428' }}>
-              <div className="text-[9px] font-mono uppercase tracking-widest mb-1" style={{ color: '#3d4a50' }}>{label}</div>
+              <div className="text-body-xs font-mono uppercase tracking-widest mb-1" style={{ color: '#3d4a50' }}>{label}</div>
               <div className="text-xs font-mono truncate" style={{ color: '#e8e0d4' }}>{value}</div>
             </div>
           ))}
@@ -85,7 +85,7 @@ const AgentDetailPanel: React.FC<Props> = ({ agent, onClose }) => {
 
         {/* Tools */}
         <div>
-          <div className="text-[10px] font-mono uppercase tracking-widest mb-2" style={{ color: '#3d4a50' }}>Tools</div>
+          <div className="text-body-xs font-mono uppercase tracking-widest mb-2" style={{ color: '#3d4a50' }}>Tools</div>
           {agent.tools.length === 0 ? (
             <div className="text-xs font-mono" style={{ color: '#3d4a50' }}>No tools defined</div>
           ) : (
@@ -93,7 +93,7 @@ const AgentDetailPanel: React.FC<Props> = ({ agent, onClose }) => {
               {agent.tools.map(t => (
                 <span
                   key={t}
-                  className="px-2 py-0.5 rounded text-[10px] font-mono"
+                  className="px-2 py-0.5 rounded text-body-xs font-mono"
                   style={{ background: 'rgba(7,182,213,0.08)', border: '1px solid rgba(7,182,213,0.2)', color: '#07b6d5' }}
                 >
                   {t}
@@ -108,16 +108,16 @@ const AgentDetailPanel: React.FC<Props> = ({ agent, onClose }) => {
           <div className="flex items-center gap-2 mb-1">
             <span className="material-symbols-outlined" style={{ fontSize: 14, color: '#3d4a50' }}>play_circle</span>
             <span className="text-xs font-mono font-semibold" style={{ color: '#3d4a50' }}>Try it</span>
-            <span className="text-[9px] font-mono px-1.5 py-0.5 rounded" style={{ background: '#1a2428', color: '#4a5568' }}>COMING SOON</span>
+            <span className="text-body-xs font-mono px-1.5 py-0.5 rounded" style={{ background: '#1a2428', color: '#4a5568' }}>COMING SOON</span>
           </div>
-          <div className="text-[10px] font-mono" style={{ color: '#3d4a50' }}>
+          <div className="text-body-xs font-mono" style={{ color: '#3d4a50' }}>
             Standalone agent invocation available after platform backend ships.
           </div>
         </div>
 
         {/* Recent executions */}
         <div>
-          <div className="text-[10px] font-mono uppercase tracking-widest mb-2" style={{ color: '#3d4a50' }}>Recent Executions</div>
+          <div className="text-body-xs font-mono uppercase tracking-widest mb-2" style={{ color: '#3d4a50' }}>Recent Executions</div>
           {executions.length === 0 ? (
             <div className="text-xs font-mono" style={{ color: '#3d4a50' }}>No recent executions</div>
           ) : (
@@ -125,7 +125,7 @@ const AgentDetailPanel: React.FC<Props> = ({ agent, onClose }) => {
               {executions.slice(0, 5).map(ex => (
                 <div
                   key={ex.execution_id}
-                  className="flex items-center justify-between text-[10px] font-mono rounded px-2.5 py-2"
+                  className="flex items-center justify-between text-body-xs font-mono rounded px-2.5 py-2"
                   style={{ background: '#0a1214', border: '1px solid #1a2428' }}
                 >
                   <span style={{ color: STATUS_COLOR[ex.status] || '#64748b' }}>● {ex.status}</span>

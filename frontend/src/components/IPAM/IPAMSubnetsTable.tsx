@@ -68,7 +68,7 @@ export default function IPAMSubnetsTable({ subnets, onSelectSubnet, selectedSubn
       <div className="max-h-[280px] overflow-y-auto">
         <table className="w-full text-sm">
           <thead className="sticky top-0 bg-[#132a2f]">
-            <tr className="text-left text-xs text-slate-500 uppercase tracking-wider">
+            <tr className="text-left text-xs text-slate-400 uppercase tracking-wider">
               <th className="py-2 px-3 cursor-pointer" onClick={() => handleSort('cidr')}>
                 CIDR <SortIcon col="cidr" />
               </th>
@@ -108,7 +108,7 @@ export default function IPAMSubnetsTable({ subnets, onSelectSubnet, selectedSubn
                   <td className="py-2 px-3 text-slate-400">{s.vlan_id || '-'}</td>
                   <td className="py-2 px-3">
                     <div className="flex items-center gap-2">
-                      <div className="w-20 h-2 bg-slate-700 rounded-full overflow-hidden">
+                      <div className="w-20 h-2 bg-wr-inset rounded-full overflow-hidden">
                         <div
                           className={`h-full rounded-full ${barColor}`}
                           style={{ width: `${Math.min(pct, 100)}%` }}
@@ -117,7 +117,7 @@ export default function IPAMSubnetsTable({ subnets, onSelectSubnet, selectedSubn
                       <span className="text-xs text-slate-400 w-8 text-right">{pct}%</span>
                     </div>
                   </td>
-                  <td className="py-2 px-3 font-mono text-slate-500 text-xs">{s.gateway_ip || '-'}</td>
+                  <td className="py-2 px-3 font-mono text-slate-400 text-xs">{s.gateway_ip || '-'}</td>
                   <td className="py-2 px-3">
                     {s.environment && (
                       <span className="px-1.5 py-0.5 rounded text-xs bg-[#1e3a40] text-slate-300">
@@ -130,7 +130,7 @@ export default function IPAMSubnetsTable({ subnets, onSelectSubnet, selectedSubn
             })}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={7} className="py-6 text-center text-slate-500 text-sm">
+                <td colSpan={7} className="py-6 text-center text-slate-400 text-sm">
                   No subnets found
                 </td>
               </tr>

@@ -4,7 +4,7 @@ interface SkeletonCardProps {
   variant?: 'card' | 'inline' | 'metric';
 }
 
-const shimmerClass = 'animate-pulse bg-slate-800/60 rounded';
+const shimmerClass = 'animate-pulse bg-wr-surface/60 rounded';
 
 const SkeletonCard: React.FC<SkeletonCardProps> = ({ variant = 'card' }) => {
   if (variant === 'inline') {
@@ -19,7 +19,7 @@ const SkeletonCard: React.FC<SkeletonCardProps> = ({ variant = 'card' }) => {
 
   if (variant === 'metric') {
     return (
-      <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-4">
+      <div className="bg-wr-bg/40 border border-wr-border rounded-xl p-4">
         <div className="flex items-center gap-2 mb-3">
           <div className={`w-5 h-5 rounded-full ${shimmerClass}`} />
           <div className={`h-3 w-24 ${shimmerClass}`} />
@@ -32,7 +32,7 @@ const SkeletonCard: React.FC<SkeletonCardProps> = ({ variant = 'card' }) => {
 
   // Default: full card
   return (
-    <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-4 space-y-3">
+    <div className="bg-wr-bg/40 border border-wr-border rounded-xl p-4 space-y-3">
       <div className="flex items-center gap-2">
         <div className={`w-5 h-5 rounded-full ${shimmerClass}`} />
         <div className={`h-3 w-32 ${shimmerClass}`} />

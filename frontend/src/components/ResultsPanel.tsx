@@ -221,7 +221,7 @@ const ResultsPanel: React.FC<ResultsPanelProps> = ({ sessionId }) => {
                 <span
                   className={`text-xs px-1.5 py-0.5 rounded font-medium ${
                     f.severity === 'critical'
-                      ? 'bg-red-500/20 text-red-400'
+                      ? 'bg-wr-severity-high/20 text-red-400'
                       : f.severity === 'high'
                       ? 'bg-orange-500/20 text-orange-400'
                       : f.severity === 'medium'

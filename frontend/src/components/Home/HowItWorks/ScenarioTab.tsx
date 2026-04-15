@@ -157,15 +157,15 @@ const ServiceNode: React.FC<{ service: Service }> = ({ service }) => (
       {service.name}
     </p>
     <span
-      className="inline-block mt-1 text-[10px] font-semibold uppercase tracking-wide"
+      className="inline-block mt-1 text-body-xs font-semibold uppercase tracking-wide"
       style={{ color: service.badgeColor }}
     >
       {service.badge}
     </span>
     <div className="mt-2 space-y-0.5">
       {service.metrics.map((m) => (
-        <div key={m.label} className="flex justify-between text-[10px]">
-          <span className="text-slate-500">{m.label}</span>
+        <div key={m.label} className="flex justify-between text-body-xs">
+          <span className="text-slate-400">{m.label}</span>
           <span style={{ color: STATUS_COLORS[m.status] }}>{m.value}</span>
         </div>
       ))}
@@ -194,7 +194,7 @@ const ScenarioTab: React.FC<ScenarioTabProps> = ({ onSwitchToFlow }) => {
           }}
         >
           <div className="flex items-center gap-2">
-            <span className="bg-red-500/20 text-red-400 text-[10px] font-bold uppercase px-2 py-0.5 rounded">
+            <span className="bg-wr-severity-high/20 text-red-400 text-body-xs font-bold uppercase px-2 py-0.5 rounded">
               SEV-1 &mdash; Critical Incident
             </span>
             <span className="material-symbols-outlined text-red-400 text-base">
@@ -297,7 +297,7 @@ const ScenarioTab: React.FC<ScenarioTabProps> = ({ onSwitchToFlow }) => {
           {contextCards.map((card) => (
             <div
               key={card.title}
-              className="bg-slate-900/50 border border-[#3d3528] rounded-lg p-4"
+              className="bg-wr-bg/50 border border-[#3d3528] rounded-lg p-4"
               style={{ borderTop: `3px solid ${card.borderColor}` }}
             >
               <div className="flex items-center gap-2 mb-3">
@@ -323,7 +323,7 @@ const ScenarioTab: React.FC<ScenarioTabProps> = ({ onSwitchToFlow }) => {
         viewport={{ once: true, amount: 0.2 }}
         custom={3}
       >
-        <div className="bg-slate-900/50 border border-[#3d3528] rounded-lg p-6 text-center max-w-md mx-auto">
+        <div className="bg-wr-bg/50 border border-[#3d3528] rounded-lg p-6 text-center max-w-md mx-auto">
           <p className="text-sm text-slate-400">
             Ready to watch the AI agents investigate and resolve this incident
             in real-time?

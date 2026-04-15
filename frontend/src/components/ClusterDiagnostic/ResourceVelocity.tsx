@@ -7,7 +7,7 @@ interface ResourceVelocityProps {
 const ResourceVelocity: React.FC<ResourceVelocityProps> = ({ label = 'Resource Velocity' }) => {
   return (
     <div className="h-40 bg-wr-surface/40 rounded border border-wr-border p-3">
-      <h3 className="text-[10px] uppercase font-bold tracking-widest text-slate-500 mb-2">{label}</h3>
+      <h3 className="text-body-xs uppercase font-bold tracking-widest text-slate-400 mb-2">{label}</h3>
       <svg aria-hidden="true" className="w-full h-full" viewBox="0 0 200 80" preserveAspectRatio="none">
         <path d="M0 40 L200 40" stroke="var(--wr-border)" strokeDasharray="2" strokeWidth="1" />
         <text x="5" y="35" fill="var(--wr-border)" fontSize="6">REQUEST_LIMIT</text>

@@ -53,24 +53,24 @@ const CausalTreeCard: React.FC<CausalTreeCardProps> = ({ tree, sessionId, onTria
     : 0;
 
   return (
-    <div className={`rounded-lg border border-slate-800/50 border-l-[3px] ${SEVERITY_BORDER[tree.severity]} bg-slate-900/30`}>
+    <div className={`rounded-lg border border-wr-border/50 border-l-[3px] ${SEVERITY_BORDER[tree.severity]} bg-wr-bg/30`}>
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 cursor-pointer" onClick={() => setExpanded(!expanded)}>
         <div className="flex items-center gap-2 flex-1 min-w-0">
-          <span className="material-symbols-outlined text-[16px] text-slate-500">{expanded ? 'expand_more' : 'chevron_right'}</span>
+          <span className="material-symbols-outlined text-[16px] text-slate-400">{expanded ? 'expand_more' : 'chevron_right'}</span>
           <div className="flex-1 min-w-0">
-            <div className="text-[11px] font-medium text-slate-200 truncate">
+            <div className="text-body-xs font-medium text-slate-200 truncate">
               {parseResourceEntities(tree.root_cause.summary, handleEntityClick)}
             </div>
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {blastCount > 0 && (
-            <span className="text-[9px] text-amber-400 bg-amber-950/30 px-1.5 py-0.5 rounded font-mono">
+            <span className="text-body-xs text-amber-400 bg-amber-950/30 px-1.5 py-0.5 rounded font-mono">
               {blastCount} affected
             </span>
           )}
-          <button onClick={(e) => { e.stopPropagation(); cycleTriage(); }} className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${TRIAGE_COLORS[triage]}`}>
+          <button onClick={(e) => { e.stopPropagation(); cycleTriage(); }} className={`text-body-xs font-bold px-2 py-0.5 rounded uppercase tracking-wider ${TRIAGE_COLORS[triage]}`}>
             {triage}
           </button>
         </div>
@@ -80,18 +80,18 @@ const CausalTreeCard: React.FC<CausalTreeCardProps> = ({ tree, sessionId, onTria
       {expanded && (
         <div className="px-4 pb-4 space-y-3">
           {/* Root cause details */}
-          <div className="text-[10px] text-slate-400">
+          <div className="text-body-xs text-slate-400">
             {parseResourceEntities(tree.root_cause.description || tree.root_cause.summary, handleEntityClick)}
           </div>
 
           {/* Cascading symptoms */}
           {tree.cascading_symptoms.length > 0 && (
             <div className="space-y-1">
-              <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Cascading Symptoms</span>
+              <span className="text-body-xs font-bold text-slate-400 uppercase tracking-wider">Cascading Symptoms</span>
               {tree.cascading_symptoms.map((s, i) => (
-                <div key={i} className="flex items-start gap-2 pl-3 border-l border-slate-700/40">
+                <div key={i} className="flex items-start gap-2 pl-3 border-l border-wr-border-strong/40">
                   <CausalRoleBadge role="cascading_failure" />
-                  <span className="text-[10px] text-slate-400">
+                  <span className="text-body-xs text-slate-400">
                     {parseResourceEntities(s.summary, handleEntityClick)}
                   </span>
                 </div>
@@ -102,9 +102,9 @@ const CausalTreeCard: React.FC<CausalTreeCardProps> = ({ tree, sessionId, onTria
           {/* Correlated signals */}
           {tree.correlated_signals.length > 0 && (
             <div className="space-y-1">
-              <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Correlated Signals</span>
+              <span className="text-body-xs font-bold text-slate-400 uppercase tracking-wider">Correlated Signals</span>
               {tree.correlated_signals.map((sig, i) => (
-                <div key={i} className="text-[10px] text-slate-400">
+                <div key={i} className="text-body-xs text-slate-400">
                   <span className="text-amber-400">{sig.group_name}</span>: {sig.narrative}
                 </div>
               ))}
@@ -114,7 +114,7 @@ const CausalTreeCard: React.FC<CausalTreeCardProps> = ({ tree, sessionId, onTria
           {/* Operational recommendations */}
           {tree.operational_recommendations.length > 0 && (
             <div className="space-y-2">
-              <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Recommendations</span>
+              <span className="text-body-xs font-bold text-slate-400 uppercase tracking-wider">Recommendations</span>
               {tree.operational_recommendations.map(rec => (
                 <RecommendationCard key={rec.id} recommendation={rec} />
               ))}

@@ -218,14 +218,14 @@ const DatabaseWarRoom: React.FC<DatabaseWarRoomProps> = ({
   }, [ps]);
 
   return (
-    <div className={`flex flex-col h-full overflow-hidden bg-duck-bg ${phase === 'complete' ? 'ring-1 ring-duck-accent/20' : ''}`}>
+    <div className={`warroom-shell ${phase === 'complete' ? 'ring-1 ring-duck-accent/20' : ''}`}>
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-duck-border bg-duck-panel/50 shrink-0">
+      <div className="warroom-header justify-between !py-2">
         <div className="flex items-center gap-3">
           <span className="material-symbols-outlined text-violet-400 text-xl">database</span>
           <div>
             <h1 className="text-sm font-display font-bold text-white">{session.service_name}</h1>
-            <p className="text-[10px] text-slate-400">{phase || 'initializing'}</p>
+            <p className="text-body-xs text-slate-400">{phase || 'initializing'}</p>
           </div>
         </div>
         <div className="flex items-center gap-4">
@@ -234,14 +234,14 @@ const DatabaseWarRoom: React.FC<DatabaseWarRoomProps> = ({
           </span>
           <div className="flex items-center gap-1.5">
             <span className={`w-1.5 h-1.5 rounded-full ${wsConnected ? 'bg-emerald-400' : 'bg-red-400'}`} />
-            <span className={`text-[10px] font-bold uppercase ${wsConnected ? 'text-emerald-400' : 'text-red-300'}`}>
+            <span className={`text-body-xs font-bold uppercase ${wsConnected ? 'text-emerald-400' : 'text-red-300'}`}>
               {wsConnected ? 'LIVE' : 'OFFLINE'}
             </span>
           </div>
           {phase && !['complete', 'error', 'cancelled'].includes(phase) && (
             <button
               onClick={handleCancel}
-              className="text-[10px] text-slate-400 hover:text-red-400 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-duck-accent"
+              className="text-body-xs text-slate-400 hover:text-red-400 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-duck-accent"
               aria-label="Cancel investigation"
             >
               Cancel
@@ -251,9 +251,9 @@ const DatabaseWarRoom: React.FC<DatabaseWarRoomProps> = ({
       </div>
 
       {pollFailCount >= 3 && (
-        <div className="px-4 py-2 bg-red-500/10 border-b border-red-500/20 flex items-center gap-2 shrink-0">
+        <div className="px-4 py-2 bg-wr-severity-high/10 border-b border-red-500/20 flex items-center gap-2 shrink-0">
           <span className="material-symbols-outlined text-red-400 text-sm" aria-hidden="true">wifi_off</span>
-          <span className="text-[11px] text-red-400">Connection lost — retrying automatically</span>
+          <span className="text-body-xs text-red-400">Connection lost — retrying automatically</span>
         </div>
       )}
 
@@ -298,7 +298,7 @@ const DatabaseWarRoom: React.FC<DatabaseWarRoomProps> = ({
                 {slowQueries ? <SlowQueryTimeline queries={slowQueries} /> : null}
                 {planSteps ? <QueryFlamechart planSteps={planSteps} /> : null}
                 {!slowQueries && !planSteps && (
-                  <p className="text-[10px] text-slate-500 italic text-center py-4">Awaiting query data...</p>
+                  <p className="text-body-xs text-slate-400 italic text-center py-4">Awaiting query data...</p>
                 )}
               </div>
             </PanelZone>
@@ -355,7 +355,7 @@ const DatabaseWarRoom: React.FC<DatabaseWarRoomProps> = ({
                     <button
                       key={i}
                       onClick={() => setActivePlanIdx(i)}
-                      className={`text-[9px] px-1.5 py-0.5 rounded transition-colors ${
+                      className={`text-body-xs px-1.5 py-0.5 rounded transition-colors ${
                         i === activePlanIdx
                           ? 'bg-duck-accent/20 text-duck-accent'
                           : 'text-slate-400 hover:text-slate-300'
@@ -386,7 +386,7 @@ const DatabaseWarRoom: React.FC<DatabaseWarRoomProps> = ({
               ) : (
                 <div className="flex items-center gap-2">
                   <span className="material-symbols-outlined text-emerald-400 text-sm">check_circle</span>
-                  <span className="text-[11px] font-display font-bold text-emerald-400">Complete — no fixes needed</span>
+                  <span className="text-body-xs font-display font-bold text-emerald-400">Complete — no fixes needed</span>
                 </div>
               )}
             </div>
@@ -396,11 +396,11 @@ const DatabaseWarRoom: React.FC<DatabaseWarRoomProps> = ({
           {phase === 'complete' ? (
             <div className="flex items-center gap-2 py-1 mb-4">
               <span className="material-symbols-outlined text-emerald-400 text-sm">check_circle</span>
-              <span className="text-[10px] font-display font-bold text-emerald-400">All agents complete</span>
+              <span className="text-body-xs font-display font-bold text-emerald-400">All agents complete</span>
             </div>
           ) : (
             <div className="mb-5">
-              <h2 className="text-[10px] font-display font-bold text-slate-400 mb-2">Agents</h2>
+              <h2 className="text-body-xs font-display font-bold text-slate-400 mb-2">Agents</h2>
               <div className="space-y-1">
                 {DB_AGENT_IDS.map((agent) => {
                   const agentEvents = agentEventMap[agent] || [];
@@ -409,7 +409,7 @@ const DatabaseWarRoom: React.FC<DatabaseWarRoomProps> = ({
                   const si = getStatusIcon(status);
                   return (
                     <div key={agent} className="flex items-center justify-between py-2 px-2 md:py-1">
-                      <span className="text-[10px] text-slate-400">{agent.replace(/_/g, ' ')}</span>
+                      <span className="text-body-xs text-slate-400">{agent.replace(/_/g, ' ')}</span>
                       <span className={`material-symbols-outlined text-[14px] ${si.cls}`}>
                         {si.icon}
                       </span>
@@ -422,7 +422,7 @@ const DatabaseWarRoom: React.FC<DatabaseWarRoomProps> = ({
 
           {/* Replication Topology */}
           <div className="mb-5">
-            <h2 className="text-[10px] font-display font-bold text-slate-400 mb-2">Replication</h2>
+            <h2 className="text-body-xs font-display font-bold text-slate-400 mb-2">Replication</h2>
             {replication ? (
               replication.replicas && replication.replicas.length > 0 ? (
                 <ReplicationTopologySVG
@@ -432,19 +432,19 @@ const DatabaseWarRoom: React.FC<DatabaseWarRoomProps> = ({
               ) : (
                 <div className="flex items-center gap-2 py-3 px-3 bg-duck-surface/20 rounded-lg">
                   <span className="material-symbols-outlined text-slate-400 text-sm" aria-hidden="true">dns</span>
-                  <span className="text-[10px] text-slate-400">Single node — no replication configured</span>
+                  <span className="text-body-xs text-slate-400">Single node — no replication configured</span>
                 </div>
               )
             ) : (
               <div className="flex items-center justify-center h-20 border border-dashed border-duck-border/30 rounded-lg">
-                <span className="text-[10px] text-slate-400 italic">Awaiting replication data</span>
+                <span className="text-body-xs text-slate-400 italic">Awaiting replication data</span>
               </div>
             )}
           </div>
 
           {/* Health Strip */}
           <div className="mb-5">
-            <h2 className="text-[10px] font-display font-bold text-slate-400 mb-2">Health</h2>
+            <h2 className="text-body-xs font-display font-bold text-slate-400 mb-2">Health</h2>
             <HealthStrip
               cacheHitRatio={performance?.cache_hit_ratio}
               tps={performance?.transactions_per_sec}

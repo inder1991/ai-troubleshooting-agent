@@ -37,7 +37,7 @@ const HowItWorksSection: React.FC = () => {
             className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-bold uppercase tracking-wider transition-colors relative ${
               activeTab === tab.id
                 ? 'text-[#e09f3e]'
-                : 'text-slate-500 hover:text-slate-300'
+                : 'text-slate-400 hover:text-slate-300'
             }`}
           >
             <span

@@ -16,7 +16,7 @@ function renderContent(text: string): React.ReactNode[] {
     if (line.startsWith('```')) {
       if (inCodeBlock) {
         elements.push(
-          <pre key={`code-${i}`} className="text-[11px] font-mono text-amber-300/80 bg-duck-bg/80 rounded px-2.5 py-2 my-1.5 overflow-x-auto whitespace-pre-wrap border border-duck-border/20">
+          <pre key={`code-${i}`} className="text-body-xs font-mono text-amber-300/80 bg-duck-bg/80 rounded px-2.5 py-2 my-1.5 overflow-x-auto whitespace-pre-wrap border border-duck-border/20">
             {codeLines.join('\n')}
           </pre>
         );
@@ -28,14 +28,14 @@ function renderContent(text: string): React.ReactNode[] {
     } else if (line.match(/^[-•]\s/)) {
       elements.push(
         <div key={i} className="flex items-start gap-2 my-0.5 ml-2">
-          <span className="text-duck-accent text-[8px] mt-1.5 shrink-0">▸</span>
+          <span className="text-duck-accent text-chrome mt-1.5 shrink-0">▸</span>
           <span className="text-slate-200">{line.replace(/^[-•]\s/, '')}</span>
         </div>
       );
     } else if (line.match(/^\d+\.\s/)) {
       elements.push(
         <div key={i} className="flex items-start gap-2 my-0.5 ml-2">
-          <span className="text-slate-400 font-mono text-[11px] w-4 shrink-0">{line.match(/^\d+/)?.[0]}.</span>
+          <span className="text-slate-400 font-mono text-body-xs w-4 shrink-0">{line.match(/^\d+/)?.[0]}.</span>
           <span className="text-slate-200">{line.replace(/^\d+\.\s/, '')}</span>
         </div>
       );
@@ -65,8 +65,8 @@ const AssistantMessageEntry: React.FC<AssistantMessageProps> = ({ message, onAct
   if (isUser) {
     return (
       <div className="flex items-start gap-2 py-1.5 group">
-        <span className="text-[10px] font-mono text-slate-500 shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity" style={{ fontVariantNumeric: 'tabular-nums' }}>{time}</span>
-        <span className="text-duck-accent font-mono text-[11px] shrink-0 mt-0.5">❯</span>
+        <span className="text-body-xs font-mono text-slate-400 shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity" style={{ fontVariantNumeric: 'tabular-nums' }}>{time}</span>
+        <span className="text-duck-accent font-mono text-body-xs shrink-0 mt-0.5">❯</span>
         <span className="text-[13px] font-mono text-white">{message.content}</span>
       </div>
     );
@@ -84,9 +84,9 @@ const AssistantMessageEntry: React.FC<AssistantMessageProps> = ({ message, onAct
             <button
               key={i}
               onClick={() => onActionClick?.(action)}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-mono bg-duck-accent/10 text-duck-accent border border-duck-accent/25 hover:bg-duck-accent/20 hover:border-duck-accent/40 transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-duck-accent"
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded text-body-xs font-mono bg-duck-accent/10 text-duck-accent border border-duck-accent/25 hover:bg-duck-accent/20 hover:border-duck-accent/40 transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-duck-accent"
             >
-              <span className="text-[10px]">→</span>
+              <span className="text-body-xs">→</span>
               {action.type === 'navigate' ? `go ${action.page}` :
                action.type === 'download_report' ? 'download report' :
                action.type === 'start_investigation' ? `run ${action.capability?.replace(/_/g, '-')}` : 'execute'}

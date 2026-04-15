@@ -62,7 +62,7 @@ const NeuralTether: React.FC<NeuralTetherProps> = ({ isActive, tabRef }) => {
           <svg className="w-full h-full">
             <defs>
               <linearGradient id="tether-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="rgba(224, 159, 62, 0.8)" />
+                <stop offset="0%" stopColor="rgba(7, 182, 213, 0.8)" />
                 <stop offset="100%" stopColor="rgba(245, 158, 11, 0.8)" />
               </linearGradient>
             </defs>
@@ -73,7 +73,7 @@ const NeuralTether: React.FC<NeuralTetherProps> = ({ isActive, tabRef }) => {
               fill="none"
               stroke="url(#tether-gradient)"
               strokeWidth={1}
-              className="drop-shadow-[0_0_8px_rgba(224,159,62,0.5)] opacity-50"
+              className="drop-shadow-[0_0_8px_rgba(7,182,213,0.5)] opacity-50"
             />
 
             {/* Tactical animated dashed path */}

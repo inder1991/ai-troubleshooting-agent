@@ -33,19 +33,19 @@ const ASGNode: React.FC<NodeProps<ASGNodeData>> = ({ data, selected }) => {
       />
 
       {/* Capacity badge top-right */}
-      <div className="absolute top-0 right-3 -translate-y-1/2 px-2 py-0.5 rounded text-[9px] font-mono font-bold"
+      <div className="absolute top-0 right-3 -translate-y-1/2 px-2 py-0.5 rounded text-body-xs font-mono font-bold"
            style={{ zIndex: 10, backgroundColor: '#065f46', color: '#10b981', border: '1px solid #059669' }}>
         {capacityLabel}
       </div>
 
       {/* Name top-left */}
-      <div className="absolute top-0 left-3 -translate-y-1/2 px-2 py-0.5 rounded text-[10px] font-mono font-semibold"
+      <div className="absolute top-0 left-3 -translate-y-1/2 px-2 py-0.5 rounded text-body-xs font-mono font-semibold"
            style={{ zIndex: 10, backgroundColor: '#1a1814', color: '#10b981', border: '1px solid #065f46' }}>
         {data.label}
       </div>
 
       {/* Launch template at bottom */}
-      <div className="absolute bottom-2 left-3 text-[10px] font-mono" style={{ color: '#64748b' }}>
+      <div className="absolute bottom-2 left-3 text-body-xs font-mono" style={{ color: '#64748b' }}>
         {data.launchTemplate ? `Template: ${data.launchTemplate}` : 'ASG'}
       </div>
     </div>

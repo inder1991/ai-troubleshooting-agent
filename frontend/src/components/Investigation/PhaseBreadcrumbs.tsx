@@ -17,7 +17,7 @@ export const PhaseBreadcrumbs: React.FC<PhaseBreadcrumbsProps> = ({ phases, scro
   };
 
   return (
-    <div className="phase-breadcrumb-bar sticky top-0 z-40 h-8 flex items-center gap-1 px-3 backdrop-blur-md bg-slate-900/70 border-b border-slate-800/50 overflow-x-auto whitespace-nowrap scrollbar-hide"
+    <div className="phase-breadcrumb-bar sticky top-0 z-40 h-8 flex items-center gap-1 px-3 backdrop-blur-md bg-wr-bg/70 border-b border-wr-border/50 overflow-x-auto whitespace-nowrap scrollbar-hide"
       style={{
         maskImage: 'linear-gradient(to right, black 85%, transparent 100%)',
         WebkitMaskImage: 'linear-gradient(to right, black 85%, transparent 100%)',
@@ -29,18 +29,18 @@ export const PhaseBreadcrumbs: React.FC<PhaseBreadcrumbsProps> = ({ phases, scro
 
         return (
           <React.Fragment key={phase.phaseId}>
-            {i > 0 && <span className="text-[9px] text-slate-600">/</span>}
+            {i > 0 && <span className="text-body-xs text-slate-500">/</span>}
             <button
               onClick={() => handleClick(phase.phaseId)}
-              className={`text-[9px] font-bold uppercase tracking-wider whitespace-nowrap transition-colors flex items-center gap-1 ${
+              className={`text-body-xs font-bold uppercase tracking-wider whitespace-nowrap transition-colors flex items-center gap-1 ${
                 isActive
-                  ? 'text-[#e09f3e] font-bold'
+                  ? 'text-[#07b6d5] font-bold'
                   : isComplete
-                    ? 'text-slate-500 hover:text-slate-400'
-                    : 'text-slate-600 hover:text-slate-500'
+                    ? 'text-slate-400 hover:text-slate-400'
+                    : 'text-slate-500 hover:text-slate-400'
               }`}
             >
-              {isActive && <span className="w-1 h-1 rounded-full bg-[#e09f3e]" />}
+              {isActive && <span className="w-1 h-1 rounded-full bg-[#07b6d5]" />}
               {phase.phase.replace(/_/g, ' ')}
             </button>
           </React.Fragment>

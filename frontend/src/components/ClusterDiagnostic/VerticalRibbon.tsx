@@ -34,7 +34,7 @@ const VerticalRibbon: React.FC<VerticalRibbonProps> = ({ domain, report, onClick
           priority_high
         </span>
 
-        <div className="vertical-label text-[10px] font-bold tracking-widest whitespace-nowrap py-2 flex-1 text-center"
+        <div className="vertical-label text-body-xs font-bold tracking-widest whitespace-nowrap py-2 flex-1 text-center"
           style={{ color: isActive ? 'var(--wr-accent)' : 'var(--wr-text-muted)' }}
         >
           PRIORITY
@@ -73,7 +73,7 @@ const VerticalRibbon: React.FC<VerticalRibbonProps> = ({ domain, report, onClick
         <path d="M20 100 L20 60 L35 50 L5 40 L20 30 L20 0" strokeWidth="1.5" />
       </svg>
 
-      <div className="vertical-label text-[10px] font-bold tracking-widest text-slate-400 whitespace-nowrap py-2 flex-1 text-center"
+      <div className="vertical-label text-body-xs font-bold tracking-widest text-slate-400 whitespace-nowrap py-2 flex-1 text-center"
         style={{ color: isActive ? 'var(--wr-accent)' : undefined }}
       >
         {meta.label}

@@ -92,18 +92,21 @@ Rules:
 async def _llm_analyze(system: str, prompt: str, session_id: str = "") -> dict:
     """Single-pass LLM call using structured tool output. Returns findings dict."""
     from src.agents.cluster.output_schemas import SUBMIT_DOMAIN_FINDINGS_TOOL
-    client = AnthropicClient(agent_name="cluster_node", session_id=session_id)
-    response = await client.chat_with_tools(
-        system=system,
-        messages=[{"role": "user", "content": prompt}],
-        tools=[SUBMIT_DOMAIN_FINDINGS_TOOL],
-        max_tokens=2000,
-        temperature=0.1,
-    )
-    for block in response.content:
-        if getattr(block, "type", None) == "tool_use" and block.name == "submit_domain_findings":
-            return block.input
-    logger.warning("LLM did not call submit_domain_findings tool", extra={"action": "parse_error"})
+    try:
+        client = AnthropicClient(agent_name="cluster_node", session_id=session_id)
+        response = await client.chat_with_tools(
+            system=system,
+            messages=[{"role": "user", "content": prompt}],
+            tools=[SUBMIT_DOMAIN_FINDINGS_TOOL],
+            max_tokens=2000,
+            temperature=0.1,
+        )
+        for block in response.content:
+            if getattr(block, "type", None) == "tool_use" and block.name == "submit_domain_findings":
+                return block.input
+        logger.warning("LLM did not call submit_domain_findings tool", extra={"action": "parse_error"})
+    except Exception as e:
+        logger.error("_llm_analyze failed: %s", e, extra={"action": "llm_analyze_error", "extra": str(e)})
     return {"anomalies": [], "ruled_out": [], "confidence": 0}
 
 
@@ -202,6 +205,67 @@ async def _heuristic_analyze(data_payload: dict, domain: str = "node") -> dict:
             "severity": "medium",
         })
 
+    # Check init containers stuck
+    for pod in data_payload.get("pods", data_payload.get("top_pods", [])):
+        pod_name = pod.get("name", "unknown")
+        ns = pod.get("namespace", "default")
+        for init_c in pod.get("init_containers", []):
+            init_name = init_c.get("name", "unknown")
+            state = init_c.get("state", "")
+            reason = init_c.get("reason", "")
+            if state == "waiting" and reason in ("CrashLoopBackOff", "Error", "ImagePullBackOff"):
+                anomalies.append({
+                    "domain": domain,
+                    "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                    "description": f"Init container {init_name} stuck in pod {ns}/{pod_name} (reason: {reason})",
+                    "evidence_ref": f"pod/{ns}/{pod_name}",
+                    "severity": "high",
+                })
+
+    # Check probe misconfiguration: Running but not Ready for > 5min
+    for pod in data_payload.get("pods", data_payload.get("top_pods", [])):
+        pod_name = pod.get("name", "unknown")
+        ns = pod.get("namespace", "default")
+        status = pod.get("status", "")
+        ready = pod.get("ready", True)
+        not_ready_minutes = pod.get("running_not_ready_minutes", 0)
+        if status == "Running" and not ready and not_ready_minutes and not_ready_minutes > 5:
+            anomalies.append({
+                "domain": domain,
+                "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                "description": f"Pod {ns}/{pod_name} is Running but not Ready for {not_ready_minutes}min — possible probe misconfiguration",
+                "evidence_ref": f"pod/{ns}/{pod_name}",
+                "severity": "medium",
+            })
+
+    # Check for FailedMount events
+    for event in data_payload.get("events", []):
+        reason = event.get("reason", "")
+        msg = event.get("message", "")
+        obj = event.get("object", "")
+        if reason == "FailedMount" or ("MountVolume.SetUp failed" in msg):
+            anomalies.append({
+                "domain": domain,
+                "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                "description": f"ConfigMap/Secret mount failure on {obj}: {msg}",
+                "evidence_ref": f"event/{obj}",
+                "severity": "high",
+            })
+
+    # Check for quota exceeded events
+    for event in data_payload.get("events", []):
+        reason = event.get("reason", "")
+        msg = event.get("message", "").lower()
+        obj = event.get("object", "")
+        if reason == "FailedCreate" and "exceeded quota" in msg:
+            anomalies.append({
+                "domain": domain,
+                "anomaly_id": f"{domain}-heur-{len(anomalies)+1}",
+                "description": f"ResourceQuota blocking pod creation on {obj}: {event.get('message', '')}",
+                "evidence_ref": f"event/{obj}",
+                "severity": "high",
+            })
+
     confidence = 50 if anomalies else 70
     return {"anomalies": anomalies, "ruled_out": ruled_out, "confidence": confidence}
 
@@ -224,7 +288,7 @@ async def _tool_calling_loop(system: str, initial_context: str, cluster_client,
     tool_call_count = 0
     retry_count = 0
 
-    for iteration in range(MAX_TOOL_CALLS + 1):
+    for iteration in range(MAX_TOOL_CALLS):
         call_start = time.monotonic()
         try:
             response = await asyncio.wait_for(
@@ -314,7 +378,12 @@ async def _tool_calling_loop(system: str, initial_context: str, cluster_client,
         messages.append({"role": "assistant", "content": response.content})
         tool_results = []
         for tu in tool_uses:
-            result_str = await execute_tool_call(tu.name, tu.input, cluster_client, tool_call_count)
+            try:
+                result_str = await execute_tool_call(tu.name, tu.input, cluster_client, tool_call_count)
+            except Exception as e:
+                logger.error("Tool call %s failed: %s", tu.name, e,
+                             extra={"action": "tool_call_error", "extra": str(e)})
+                result_str = json.dumps({"error": f"Tool execution failed: {e}"})
             tool_results.append({
                 "type": "tool_result",
                 "tool_use_id": tu.id,

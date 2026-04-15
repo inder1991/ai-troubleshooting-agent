@@ -81,7 +81,7 @@ const MiniChart: React.FC<{ data: MetricPoint[]; color: string; label: string; u
   const latestVal = data.length > 0 ? (scale ? data[data.length - 1].value * scale : data[data.length - 1].value) : null;
 
   return (
-    <div className="rounded-xl border border-slate-700/50 bg-[#0d2328] p-4 space-y-2">
+    <div className="rounded-xl border border-wr-border-strong/50 bg-[#0d2328] p-4 space-y-2">
       <div className="flex items-center justify-between">
         <span className="text-xs text-slate-400">{label}</span>
         {latestVal !== null && (
@@ -103,7 +103,7 @@ const MiniChart: React.FC<{ data: MetricPoint[]; color: string; label: string; u
             />
           </svg>
         ) : (
-          <div className="flex items-center justify-center h-full text-xs text-slate-600">
+          <div className="flex items-center justify-center h-full text-xs text-slate-500">
             No data yet
           </div>
         )}
@@ -113,8 +113,8 @@ const MiniChart: React.FC<{ data: MetricPoint[]; color: string; label: string; u
 };
 
 const severityColors: Record<string, string> = {
-  critical: 'bg-red-500/20 text-red-400',
-  warning: 'bg-amber-500/20 text-amber-400',
+  critical: 'bg-wr-severity-high/20 text-red-400',
+  warning: 'bg-wr-severity-medium/20 text-amber-400',
   info: 'bg-blue-500/20 text-blue-400',
 };
 
@@ -226,13 +226,13 @@ const DBMonitoring: React.FC = () => {
           <select
             value={selectedProfileId}
             onChange={(e) => setSelectedProfileId(e.target.value)}
-            className="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-amber-500 outline-none"
+            className="px-3 py-1.5 rounded-lg bg-wr-surface border border-wr-border-strong text-sm text-slate-100 focus:border-amber-500 outline-none"
           >
             {profiles.map((p) => (
               <option key={p.id} value={p.id}>{p.name} ({p.engine})</option>
             ))}
           </select>
-          <div className="flex rounded-lg overflow-hidden border border-slate-600">
+          <div className="flex rounded-lg overflow-hidden border border-wr-border-strong">
             {TIME_RANGES.map((tr) => (
               <button
                 key={tr.label}
@@ -240,7 +240,7 @@ const DBMonitoring: React.FC = () => {
                 className={`px-2.5 py-1 text-xs transition-colors ${
                   timeRange.label === tr.label
                     ? 'bg-amber-600 text-white'
-                    : 'bg-slate-800 text-slate-400 hover:text-slate-200'
+                    : 'bg-wr-surface text-slate-400 hover:text-slate-200'
                 }`}
               >
                 {tr.label}
@@ -251,7 +251,7 @@ const DBMonitoring: React.FC = () => {
         <div className="flex items-center gap-2">
           <button
             onClick={loadCharts}
-            className="flex items-center gap-1 px-3 py-1.5 text-xs bg-slate-700/50 hover:bg-slate-700 text-slate-300 rounded-lg transition-colors"
+            className="flex items-center gap-1 px-3 py-1.5 text-xs bg-wr-inset/50 hover:bg-wr-inset text-slate-300 rounded-lg transition-colors"
           >
             <span className={`material-symbols-outlined text-[16px] ${loadingCharts ? 'animate-spin' : ''}`}>
               {loadingCharts ? 'progress_activity' : 'refresh'}
@@ -262,7 +262,7 @@ const DBMonitoring: React.FC = () => {
             onClick={handleToggleMonitor}
             className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg transition-colors ${
               monitorRunning
-                ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
+                ? 'bg-wr-severity-high/20 text-red-400 hover:bg-wr-severity-high/30'
                 : 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30'
             }`}
           >
@@ -292,7 +292,7 @@ const DBMonitoring: React.FC = () => {
       <div>
         <h3 className="text-sm font-medium text-slate-400 mb-2">Active Alerts</h3>
         {alerts.length === 0 ? (
-          <div className="text-xs text-slate-600 py-4 text-center rounded-lg border border-slate-700/30 bg-[#0d2328]">
+          <div className="text-xs text-slate-500 py-4 text-center rounded-lg border border-wr-border-strong/30 bg-[#0d2328]">
             No active alerts
           </div>
         ) : (
@@ -307,7 +307,7 @@ const DBMonitoring: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs opacity-60">{new Date(a.fired_at).toLocaleTimeString()}</span>
-                  <button className="text-slate-500 hover:text-emerald-400 transition-colors" title="Acknowledge">
+                  <button className="text-slate-400 hover:text-emerald-400 transition-colors" title="Acknowledge">
                     <span className="material-symbols-outlined text-[16px]">check_circle</span>
                   </button>
                 </div>
@@ -329,10 +329,10 @@ const DBMonitoring: React.FC = () => {
             Add Rule
           </button>
         </div>
-        <div className="rounded-xl border border-slate-700/50 bg-[#0d2328] overflow-hidden">
+        <div className="rounded-xl border border-wr-border-strong/50 bg-[#0d2328] overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-700/50 text-xs text-slate-500">
+              <tr className="border-b border-wr-border-strong/50 text-xs text-slate-400">
                 <th className="text-left px-4 py-2 font-medium">Name</th>
                 <th className="text-left px-4 py-2 font-medium">Metric</th>
                 <th className="text-left px-4 py-2 font-medium">Condition</th>
@@ -343,7 +343,7 @@ const DBMonitoring: React.FC = () => {
             </thead>
             <tbody>
               {rules.map((r) => (
-                <tr key={r.id} className="border-b border-slate-700/30 last:border-0 hover:bg-slate-800/30">
+                <tr key={r.id} className="border-b border-wr-border-strong/30 last:border-0 hover:bg-wr-surface/30">
                   <td className="px-4 py-2 text-slate-200">{r.name}</td>
                   <td className="px-4 py-2 text-slate-400 font-mono text-xs">{r.metric}</td>
                   <td className="px-4 py-2 text-slate-400 text-xs">{r.condition} {r.threshold}</td>
@@ -358,13 +358,13 @@ const DBMonitoring: React.FC = () => {
                   <td className="px-4 py-2 text-right flex items-center justify-end gap-1">
                     <button
                       onClick={() => handleEditRule(r)}
-                      className="text-slate-500 hover:text-amber-400 transition-colors"
+                      className="text-slate-400 hover:text-amber-400 transition-colors"
                     >
                       <span className="material-symbols-outlined text-[16px]">edit</span>
                     </button>
                     <button
                       onClick={() => handleDeleteRule(r.id)}
-                      className="text-slate-500 hover:text-red-400 transition-colors"
+                      className="text-slate-400 hover:text-red-400 transition-colors"
                     >
                       <span className="material-symbols-outlined text-[16px]">delete</span>
                     </button>
@@ -372,7 +372,7 @@ const DBMonitoring: React.FC = () => {
                 </tr>
               ))}
               {rules.length === 0 && (
-                <tr><td colSpan={6} className="text-center py-4 text-xs text-slate-600">No alert rules configured</td></tr>
+                <tr><td colSpan={6} className="text-center py-4 text-xs text-slate-500">No alert rules configured</td></tr>
               )}
             </tbody>
           </table>
@@ -382,7 +382,7 @@ const DBMonitoring: React.FC = () => {
       {/* Create rule modal */}
       {showRuleForm && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => { setShowRuleForm(false); setEditingRuleId(null); }}>
-          <div className="bg-[#0d2328] border border-slate-700/50 rounded-xl w-full max-w-md p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-[#0d2328] border border-wr-border-strong/50 rounded-xl w-full max-w-md p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-base font-semibold text-slate-100">{editingRuleId ? 'Edit Alert Rule' : 'New Alert Rule'}</h3>
             <div className="space-y-3">
               <div>
@@ -390,7 +390,7 @@ const DBMonitoring: React.FC = () => {
                 <input
                   value={newRule.name}
                   onChange={(e) => setNewRule({ ...newRule, name: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-amber-500 outline-none"
+                  className="w-full px-3 py-2 rounded-lg bg-wr-surface border border-wr-border-strong text-sm text-slate-100 focus:border-amber-500 outline-none"
                   placeholder="My custom rule"
                 />
               </div>
@@ -400,7 +400,7 @@ const DBMonitoring: React.FC = () => {
                   <select
                     value={newRule.metric}
                     onChange={(e) => setNewRule({ ...newRule, metric: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-amber-500 outline-none"
+                    className="w-full px-3 py-2 rounded-lg bg-wr-surface border border-wr-border-strong text-sm text-slate-100 focus:border-amber-500 outline-none"
                   >
                     <option value="db_conn_utilization">Connection Utilization</option>
                     <option value="db_cache_hit_ratio">Cache Hit Ratio</option>
@@ -415,7 +415,7 @@ const DBMonitoring: React.FC = () => {
                   <select
                     value={newRule.condition}
                     onChange={(e) => setNewRule({ ...newRule, condition: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-amber-500 outline-none"
+                    className="w-full px-3 py-2 rounded-lg bg-wr-surface border border-wr-border-strong text-sm text-slate-100 focus:border-amber-500 outline-none"
                   >
                     <option value="gt">Greater than</option>
                     <option value="lt">Less than</option>
@@ -430,7 +430,7 @@ const DBMonitoring: React.FC = () => {
                     type="number"
                     value={newRule.threshold}
                     onChange={(e) => setNewRule({ ...newRule, threshold: parseFloat(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-amber-500 outline-none"
+                    className="w-full px-3 py-2 rounded-lg bg-wr-surface border border-wr-border-strong text-sm text-slate-100 focus:border-amber-500 outline-none"
                   />
                 </div>
                 <div>
@@ -439,7 +439,7 @@ const DBMonitoring: React.FC = () => {
                     type="number"
                     value={newRule.cooldown}
                     onChange={(e) => setNewRule({ ...newRule, cooldown: parseInt(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-amber-500 outline-none"
+                    className="w-full px-3 py-2 rounded-lg bg-wr-surface border border-wr-border-strong text-sm text-slate-100 focus:border-amber-500 outline-none"
                   />
                 </div>
               </div>
@@ -448,7 +448,7 @@ const DBMonitoring: React.FC = () => {
                 <select
                   value={newRule.severity}
                   onChange={(e) => setNewRule({ ...newRule, severity: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:border-amber-500 outline-none"
+                  className="w-full px-3 py-2 rounded-lg bg-wr-surface border border-wr-border-strong text-sm text-slate-100 focus:border-amber-500 outline-none"
                 >
                   <option value="warning">Warning</option>
                   <option value="critical">Critical</option>

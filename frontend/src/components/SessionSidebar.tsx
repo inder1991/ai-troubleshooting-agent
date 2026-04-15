@@ -73,7 +73,7 @@ const SessionSidebar: React.FC<SessionSidebarProps> = ({
           </div>
           <div>
             <h1 className="text-sm font-bold text-white">DebugDuck</h1>
-            <p className="text-[10px] text-gray-500">AI SRE Platform</p>
+            <p className="text-body-xs text-gray-500">AI SRE Platform</p>
           </div>
         </div>
       </div>
@@ -91,7 +91,7 @@ const SessionSidebar: React.FC<SessionSidebarProps> = ({
 
       {/* Navigation */}
       <div className="px-3 py-2">
-        <p className="text-[10px] text-gray-600 uppercase tracking-wider font-medium px-2 mb-2">
+        <p className="text-body-xs text-gray-600 uppercase tracking-wider font-medium px-2 mb-2">
           Navigation
         </p>
         <nav className="space-y-0.5">
@@ -113,7 +113,7 @@ const SessionSidebar: React.FC<SessionSidebarProps> = ({
 
       {/* Sessions list */}
       <div className="flex-1 overflow-y-auto px-3 py-2">
-        <p className="text-[10px] text-gray-600 uppercase tracking-wider font-medium px-2 mb-2">
+        <p className="text-body-xs text-gray-600 uppercase tracking-wider font-medium px-2 mb-2">
           Recent Sessions
         </p>
         {sessions.length === 0 ? (
@@ -144,7 +144,7 @@ const SessionSidebar: React.FC<SessionSidebarProps> = ({
                       phaseColors[session.status] || 'bg-gray-500'
                     }`}
                   />
-                  <span className="text-[10px] text-gray-500">{phaseLabel(session.status)}</span>
+                  <span className="text-body-xs text-gray-500">{phaseLabel(session.status)}</span>
                 </div>
                 {session.confidence > 0 && (
                   <div className="mt-1">
@@ -168,11 +168,11 @@ const SessionSidebar: React.FC<SessionSidebarProps> = ({
       <div className="p-3 border-t border-[#3d3528]">
         <div className="flex items-center gap-2 px-2">
           <div className="w-6 h-6 rounded-full bg-[#e09f3e]/20 flex items-center justify-center">
-            <span className="text-[10px] text-[#e09f3e] font-bold">SRE</span>
+            <span className="text-body-xs text-[#e09f3e] font-bold">SRE</span>
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-xs text-white truncate">SRE Operator</p>
-            <p className="text-[10px] text-gray-600">Platform v5</p>
+            <p className="text-body-xs text-gray-600">Platform v5</p>
           </div>
         </div>
       </div>

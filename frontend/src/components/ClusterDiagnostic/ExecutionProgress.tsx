@@ -27,9 +27,9 @@ interface PhaseInfo {
 function statusIcon(status: PhaseStatus): React.ReactNode {
   switch (status) {
     case 'complete':
-      return <span className="text-emerald-500 text-[11px]">&#10003;</span>;
+      return <span className="text-emerald-500 text-body-xs">&#10003;</span>;
     case 'failed':
-      return <span className="text-red-500 text-[11px]">&#10007;</span>;
+      return <span className="text-red-500 text-body-xs">&#10007;</span>;
     case 'running':
       return <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse inline-block" />;
     default:
@@ -73,7 +73,7 @@ const ExecutionProgress: React.FC<ExecutionProgressProps> = ({ domainReports, ph
 
   return (
     <div className="bg-wr-inset rounded border border-wr-border-subtle p-3 max-h-[220px] lg:max-h-[280px] overflow-hidden">
-      <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Execution Progress</span>
+      <span className="text-body-xs font-semibold uppercase tracking-wider text-slate-400">Execution Progress</span>
 
       <div className="mt-3 space-y-3">
         {phases.map((p, idx) => {
@@ -83,7 +83,7 @@ const ExecutionProgress: React.FC<ExecutionProgressProps> = ({ domainReports, ph
               {/* Phase row */}
               <div className="flex items-center gap-2">
                 {statusIcon(p.status)}
-                <span className={`text-[11px] font-mono flex-1 ${p.status === 'running' ? 'text-amber-400' : p.status === 'complete' ? 'text-slate-300' : 'text-slate-400'}`}>
+                <span className={`text-body-xs font-mono flex-1 ${p.status === 'running' ? 'text-amber-400' : p.status === 'complete' ? 'text-slate-300' : 'text-slate-400'}`}>
                   {p.label}
                 </span>
               </div>
@@ -113,7 +113,7 @@ const ExecutionProgress: React.FC<ExecutionProgressProps> = ({ domainReports, ph
                             }}
                           />
                         </div>
-                        <span className="text-[10px] text-slate-400 font-mono truncate w-full text-center">
+                        <span className="text-body-xs text-slate-400 font-mono truncate w-full text-center">
                           {domain.replace('_', ' ').slice(0, 4)}
                         </span>
                       </div>

@@ -1,4 +1,13 @@
-"""REST endpoints for NetFlow/traffic analysis."""
+"""Legacy NetFlow REST endpoints (in-memory flow_store).
+
+NOTE: These endpoints are preserved for back-compat with an older in-memory
+FlowStore. New code should prefer the InfluxDB-backed endpoints in
+``src.api.flow_endpoints`` (prefix ``/api/v4/network/flows``) or the monitor
+flow endpoints in ``src.api.monitor_endpoints`` (prefix ``/api/v4/monitor/flows``).
+
+Router prefix: ``/api/v4/flows``
+Param name: ``range`` (values: 5m, 15m, 1h, 6h, 24h)
+"""
 
 from __future__ import annotations
 from fastapi import APIRouter

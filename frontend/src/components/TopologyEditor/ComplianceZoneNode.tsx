@@ -40,7 +40,7 @@ const ComplianceZoneNode: React.FC<NodeProps<ComplianceZoneData>> = ({ data, sel
       {/* Live lock icon */}
       {isLive && (
         <div className="absolute -top-1.5 -left-1.5" style={{ zIndex: 10 }}>
-          <span className="material-symbols-outlined text-[10px]" style={{ color: '#64748b' }}>lock</span>
+          <span className="material-symbols-outlined text-body-xs" style={{ color: '#64748b' }}>lock</span>
         </div>
       )}
 
@@ -53,13 +53,13 @@ const ComplianceZoneNode: React.FC<NodeProps<ComplianceZoneData>> = ({ data, sel
       )}
 
       {/* Standard badge */}
-      <div className="absolute top-0 right-3 -translate-y-1/2 px-2 py-0.5 rounded text-[9px] font-mono font-bold"
+      <div className="absolute top-0 right-3 -translate-y-1/2 px-2 py-0.5 rounded text-body-xs font-mono font-bold"
            style={{ zIndex: 10, backgroundColor: '#78350f', color: '#f59e0b', border: '1px solid #92400e' }}>
         {standardLabels[data.complianceStandard || ''] || 'Compliance'}
       </div>
 
       {/* Zone name */}
-      <div className="absolute top-0 left-3 -translate-y-1/2 px-2 py-0.5 rounded text-[10px] font-mono font-semibold"
+      <div className="absolute top-0 left-3 -translate-y-1/2 px-2 py-0.5 rounded text-body-xs font-mono font-semibold"
            style={{ zIndex: 10, backgroundColor: '#1a1814', color: '#f59e0b', border: '1px solid #78350f' }}>
         {data.label}
       </div>

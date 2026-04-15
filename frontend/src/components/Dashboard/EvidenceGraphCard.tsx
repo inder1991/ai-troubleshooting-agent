@@ -16,7 +16,7 @@ const nodeTypeColor: Record<string, string> = {
 
 const nodeTypeBg: Record<string, string> = {
   cause: 'bg-orange-500/10 border-orange-500/40',
-  symptom: 'bg-red-500/10 border-red-500/40',
+  symptom: 'bg-wr-severity-high/10 border-red-500/40',
   contributing_factor: 'bg-yellow-500/10 border-yellow-500/40',
   context: 'bg-gray-500/10 border-gray-500/40',
 };
@@ -57,14 +57,14 @@ const EvidenceGraphCard: React.FC<EvidenceGraphCardProps> = ({ nodes, edges, roo
       >
         <div className="flex items-center gap-1.5 mb-1">
           <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
-          <span className="text-[10px] font-medium uppercase tracking-wide" style={{ color }}>
+          <span className="text-body-xs font-medium uppercase tracking-wide" style={{ color }}>
             {label}
           </span>
         </div>
         <p className="text-xs text-gray-300 line-clamp-2">{node.claim}</p>
         <div className="mt-1 flex items-center justify-between">
-          <span className="text-[10px] text-gray-500">{node.source_agent}</span>
-          <span className="text-[10px] text-gray-500 font-mono">{Math.round(node.confidence * 100)}%</span>
+          <span className="text-body-xs text-gray-500">{node.source_agent}</span>
+          <span className="text-body-xs text-gray-500 font-mono">{Math.round(node.confidence * 100)}%</span>
         </div>
       </div>
     );
@@ -76,7 +76,7 @@ const EvidenceGraphCard: React.FC<EvidenceGraphCardProps> = ({ nodes, edges, roo
     if (!sourceNode || !targetNode) return null;
 
     return (
-      <div key={`${edge.source_id}-${edge.target_id}`} className="flex items-center gap-1 text-[10px] text-gray-500">
+      <div key={`${edge.source_id}-${edge.target_id}`} className="flex items-center gap-1 text-body-xs text-gray-500">
         <span className="truncate max-w-[80px]">{sourceNode.claim.slice(0, 20)}</span>
         <span className="text-gray-600">--{edge.relationship}--&gt;</span>
         <span className="truncate max-w-[80px]">{targetNode.claim.slice(0, 20)}</span>
@@ -97,7 +97,7 @@ const EvidenceGraphCard: React.FC<EvidenceGraphCardProps> = ({ nodes, edges, roo
         {/* Root causes column */}
         {roots.length > 0 && (
           <div className="flex flex-col gap-2 flex-shrink-0">
-            <div className="text-[10px] text-gray-500 uppercase tracking-wide text-center mb-1">Root Causes</div>
+            <div className="text-body-xs text-gray-500 uppercase tracking-wide text-center mb-1">Root Causes</div>
             {roots.map(renderNode)}
           </div>
         )}
@@ -113,7 +113,7 @@ const EvidenceGraphCard: React.FC<EvidenceGraphCardProps> = ({ nodes, edges, roo
         {/* Intermediates column */}
         {intermediates.length > 0 && (
           <div className="flex flex-col gap-2 flex-shrink-0">
-            <div className="text-[10px] text-gray-500 uppercase tracking-wide text-center mb-1">Contributing</div>
+            <div className="text-body-xs text-gray-500 uppercase tracking-wide text-center mb-1">Contributing</div>
             {intermediates.map(renderNode)}
           </div>
         )}
@@ -129,7 +129,7 @@ const EvidenceGraphCard: React.FC<EvidenceGraphCardProps> = ({ nodes, edges, roo
         {/* Leaves / symptoms column */}
         {leaves.length > 0 && (
           <div className="flex flex-col gap-2 flex-shrink-0">
-            <div className="text-[10px] text-gray-500 uppercase tracking-wide text-center mb-1">Symptoms</div>
+            <div className="text-body-xs text-gray-500 uppercase tracking-wide text-center mb-1">Symptoms</div>
             {leaves.map(renderNode)}
           </div>
         )}
@@ -137,7 +137,7 @@ const EvidenceGraphCard: React.FC<EvidenceGraphCardProps> = ({ nodes, edges, roo
         {/* Isolated nodes */}
         {isolated.length > 0 && (
           <div className="flex flex-col gap-2 flex-shrink-0">
-            <div className="text-[10px] text-gray-500 uppercase tracking-wide text-center mb-1">Evidence</div>
+            <div className="text-body-xs text-gray-500 uppercase tracking-wide text-center mb-1">Evidence</div>
             {isolated.map(renderNode)}
           </div>
         )}
@@ -146,7 +146,7 @@ const EvidenceGraphCard: React.FC<EvidenceGraphCardProps> = ({ nodes, edges, roo
       {/* Edge details */}
       {edges.length > 0 && (
         <div className="mt-3 border-t border-gray-700 pt-2 space-y-1">
-          <div className="text-[10px] text-gray-500 uppercase tracking-wide mb-1">Causal Links</div>
+          <div className="text-body-xs text-gray-500 uppercase tracking-wide mb-1">Causal Links</div>
           {edges.map(renderEdgeLabel)}
         </div>
       )}
@@ -156,7 +156,7 @@ const EvidenceGraphCard: React.FC<EvidenceGraphCardProps> = ({ nodes, edges, roo
         {Object.entries(nodeTypeColor).map(([type, color]) => (
           <div key={type} className="flex items-center gap-1">
             <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
-            <span className="text-[10px] text-gray-500 capitalize">{type.replace('_', ' ')}</span>
+            <span className="text-body-xs text-gray-500 capitalize">{type.replace('_', ' ')}</span>
           </div>
         ))}
       </div>
