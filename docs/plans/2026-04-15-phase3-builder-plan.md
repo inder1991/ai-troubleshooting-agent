@@ -275,9 +275,7 @@ export const createVersion = (workflowId: string, dag: WorkflowDag) =>
   call<VersionSummary>(`/api/v4/workflows/${workflowId}/versions`, { method: 'POST', body: JSON.stringify(dag) });
 ```
 
-**Note:** If backend doesn't expose `GET /api/v4/workflows/:id/versions` list (Phase 2 only exposes `GET /:id/versions/:v` + `GET /:id` with latest summary), either:
-- Skip `listVersions` for now and surface prior versions via repeated `getVersion(workflowId, N)` walking back from latest — acceptable for Phase 3.
-- Confirm during implementation by checking `backend/src/api/routes_workflows.py`. If missing, add a minimal `GET /:id/versions` endpoint in a **separate small backend PR** before Phase 3 UI — this is the **only** allowed backend change during Phase 3 and must be called out explicitly.
+**Note (LOCKED):** Backend does NOT currently expose `GET /api/v4/workflows/:id/versions`. Phase 3 adds this endpoint as its **only allowed backend change** — trivial additive route mirroring the `GET /:id/versions/:v` shape. Implement it as part of Task 2 with a backend test. Call it out explicitly in the PR.
 
 `services/runs.ts` (similar structure):
 ```ts
@@ -514,14 +512,16 @@ Tests: toggle switches between literal/ref/transform; value shape correct per mo
 - Test: `__tests__/SimplePredicate.test.tsx`
 
 Single clause: `{field: RefExpr; op; value}` →
-- `op === 'eq' | 'neq' | 'gt' | 'gte' | 'lt' | 'lte' | 'contains' | 'exists'`.
-- Type-aware op list via schema lookup on the selected field.
+- `op === 'eq' | 'neq' | 'contains' | 'not_contains' | 'exists' | 'not_exists'`.
+- **LOCKED:** Phase 2 `FROZEN_OPS = {coalesce, concat, eq, in, exists, and, or, not}` — no `gt/gte/lt/lte`. Simple mode does NOT expose comparison ops.
+- Type-aware op list via schema lookup on the selected field (boolean fields → only `eq`/`neq`; string → add `contains`; all → `exists`).
 - Emits AST:
   - `==` → `{op: 'eq', left: ref, right: {literal: value}}`
-  - `!=` → `{op: 'not', arg: {op: 'eq', ...}}`
-  - `>` etc → spec doesn't have built-in gt; emit `{op: 'gt', left, right}` **only if backend compiler supports it** — otherwise hide these ops in simple mode. **Confirm during implementation.** If backend lacks comparison ops, Phase 3 exposes only `eq`, `in` (contains), `exists`, plus their negations.
-  - `contains` → `{op: 'in', left: {literal: value}, right: ref}` (matches frozen op semantics).
-  - `exists` → `{op: 'exists', args: [ref]}`.
+  - `!=` → `{op: 'not', arg: {op: 'eq', left: ref, right: {literal: value}}}`
+  - `contains` → `{op: 'in', args: [{literal: value}, ref]}` (confirm `in` arg order against `evaluator.py` during implementation; adjust if needed).
+  - `not_contains` → `{op: 'not', arg: {op: 'in', ...}}`
+  - `exists` → `{op: 'exists', args: [ref]}`
+  - `not_exists` → `{op: 'not', arg: {op: 'exists', args: [ref]}}`
 
 Completeness enforced: field + op + (value if op needs one).
 
@@ -790,7 +790,7 @@ Run: `npx playwright install chromium` documented in README.
 
 **Problem:** The E2E must NOT hit real LLM/network. Solution: a test-only env flag `WORKFLOW_RUNNERS_STUB=true` that swaps the `log_agent` runner with a deterministic stub at startup. Check `init_runners()` in `backend/src/workflows/runners/__init__.py` — add this env check there (additive, behind flag, defaults off).
 
-*Actually*: modifying `runners/__init__.py` for Phase 3 is a minor cross-layer exception. Flag it in the PR description. If this is unacceptable, Phase 3 E2E reduces to a "UI only" test that stubs fetch directly (no real backend), which is closer to a component test. Recommend the env-flag approach — document in the PR.
+**LOCKED:** Env-flag approach approved. Additive, behind flag, default off. Call out in PR as the second of the two allowed backend changes.
 
 **Scenario:**
 1. Playwright starts Vite + (externally running) backend with `WORKFLOWS_ENABLED=true WORKFLOW_RUNNERS_STUB=true`.
@@ -853,10 +853,10 @@ cd frontend && npm run test:e2e   # requires backend running with WORKFLOWS_ENAB
 - [ ] Non-impact: `backend/` unchanged except the one documented stub-runner hook; `frontend/src/components/Investigation/` unchanged; legacy `Platform/WorkflowBuilder` + `Platform/WorkflowRuns` deleted
 - [ ] Phase 1 + Phase 2 backend tests still green
 
-## Open items to confirm during implementation
+## Open items — all RESOLVED
 
-1. Does `backend/src/api/routes_workflows.py` expose `GET /api/v4/workflows/:id/versions` (list)? If not, either skip the listing (walk back via `getVersion`) or add it as the only backend change in Phase 3 — call out in PR.
-2. Does the Phase 2 compiler support `gt/gte/lt/lte` predicate ops? If not, Phase 3 simple-mode exposes only `eq`, `in` (contains), `exists`, + their negations.
-3. The stub-runner env flag `WORKFLOW_RUNNERS_STUB` — acceptable in `runners/__init__.py`, or should the E2E be reduced to a UI-only smoke against fully-mocked fetch?
+1. **`GET /workflows/:id/versions`** — does NOT exist in Phase 2. Phase 3 adds it as an additive route. Only backend change in Task 2.
+2. **Predicate ops** — Phase 2 frozen set is `{coalesce, concat, eq, in, exists, and, or, not}`. No `gt/gte/lt/lte`. Simple mode exposes only `eq`, `neq`, `contains`, `not_contains`, `exists`, `not_exists`.
+3. **Stub runner env flag** — `WORKFLOW_RUNNERS_STUB` in `runners/__init__.py` approved. Additive, behind flag, default off.
 
-Answer these before starting Task 25 at latest; Task 11 depends on #2.
+Two allowed backend touches in Phase 3 (both trivial, both behind existing flags): list-versions endpoint + stub-runners env.
