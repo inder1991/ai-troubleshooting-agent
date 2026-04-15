@@ -23,3 +23,9 @@ def test_log_agent_manifest_present():
     c = reg.get("log_agent", version=1)
     assert c.category == "observability"
     assert "service_name" in c.input_schema["properties"]
+
+
+def test_minimum_manifest_count():
+    reg = ContractRegistry()
+    reg.load_all(MANIFESTS_DIR)
+    assert len(reg.list()) >= 10, f"got {len(reg.list())}"

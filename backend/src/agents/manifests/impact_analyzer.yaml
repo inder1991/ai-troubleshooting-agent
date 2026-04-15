@@ -1,0 +1,66 @@
+name: impact_analyzer
+version: 1
+description: >-
+  Deterministic helper that maps affected services to business
+  capabilities, estimates blast radius scope, and recommends an incident
+  severity (P1-P4) from a service-tier x scope matrix. Pure rules, no LLM.
+category: process
+tags: [severity, blast-radius, business-impact, deterministic]
+inputs:
+  type: object
+  properties:
+    primary_service:
+      type: string
+    services:
+      type: array
+      items: { type: string }
+      description: Services used for business-capability mapping
+    upstream:
+      type: array
+      items: { type: string }
+    downstream:
+      type: array
+      items: { type: string }
+    shared:
+      type: array
+      items: { type: string }
+    blast_radius:
+      type: object
+      description: Pre-computed BlastRadius passed to recommend_severity
+  required: []
+outputs:
+  type: object
+  properties:
+    blast_radius:
+      type: object
+      properties:
+        primary_service: { type: string }
+        upstream_affected:
+          type: array
+          items: { type: string }
+        downstream_affected:
+          type: array
+          items: { type: string }
+        shared_resources:
+          type: array
+          items: { type: string }
+        estimated_user_impact: { type: string }
+        scope: { type: string }
+    severity_recommendation:
+      type: object
+      properties:
+        recommended_severity: { type: string }
+        reasoning: { type: string }
+        factors: { type: object }
+    business_impact:
+      type: array
+      items: { type: object }
+trigger_examples:
+  - "What's the blast radius if checkout goes down?"
+  - "Recommend an incident severity for this outage"
+  - "Map affected services to business capabilities"
+retry_on: []
+timeout_seconds: 5
+cost_hint:
+  llm_calls: 0
+  typical_duration_s: 0.1

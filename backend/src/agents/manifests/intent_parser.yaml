@@ -1,0 +1,38 @@
+name: intent_parser
+version: 1
+description: >-
+  Deterministic rule-based parser that maps a user chat message (plus the
+  current pending action, if any) onto a typed intent — approve/reject,
+  fix_feedback, ask_question, or general_chat. No LLM.
+category: process
+tags: [intent, routing, deterministic, chat]
+inputs:
+  type: object
+  properties:
+    message:
+      type: string
+      description: Raw user message (supports the "__intent:X" chip-click prefix)
+    pending_action:
+      type: [object, "null"]
+      description: Current PendingAction (type + payload) or null when idle
+  required: [message]
+outputs:
+  type: object
+  properties:
+    type:
+      type: string
+      description: Intent type (approve_fix, reject_fix, ask_question, general_chat, ...)
+    confidence:
+      type: number
+    entities:
+      type: object
+      description: Extracted entities (e.g. "feedback" for fix_feedback)
+trigger_examples:
+  - "approve"
+  - "Parse this user reply into an intent"
+  - "yes please create the PR"
+retry_on: []
+timeout_seconds: 5
+cost_hint:
+  llm_calls: 0
+  typical_duration_s: 0.01

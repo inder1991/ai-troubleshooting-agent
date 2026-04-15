@@ -1,0 +1,39 @@
+name: critic_agent
+version: 1
+description: >-
+  Read-only validator that cross-checks a candidate finding against
+  evidence from every other agent (logs, metrics, k8s, tracing, negative
+  findings) and issues a validated/challenged/insufficient verdict.
+category: process
+tags: [validation, cross-check, verdict, evidence]
+inputs:
+  type: object
+  properties:
+    finding:
+      type: object
+      description: The Finding Pydantic model to validate
+    state:
+      type: object
+      description: DiagnosticState containing data from all other agents
+  required: [finding, state]
+outputs:
+  type: object
+  properties:
+    finding_id: { type: string }
+    agent_source: { type: string }
+    verdict:
+      type: string
+      description: validated | challenged | insufficient_data
+    reasoning: { type: string }
+    recommendation:
+      type: [string, "null"]
+    confidence_in_verdict: { type: integer }
+trigger_examples:
+  - "Validate this finding against the rest of the evidence"
+  - "Does the metrics data contradict the DB-down claim?"
+  - "Critic — is this OOM conclusion supported?"
+retry_on: [TimeoutError]
+timeout_seconds: 45
+cost_hint:
+  llm_calls: 1
+  typical_duration_s: 8

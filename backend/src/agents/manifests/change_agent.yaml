@@ -1,0 +1,63 @@
+name: change_agent
+version: 1
+description: >-
+  Correlates recent commits, deployments, config changes, and CI/CD events
+  against an incident window to surface likely change-induced causes and
+  rank files by blast risk.
+category: infrastructure
+tags: [changes, git, deployments, cicd, correlation]
+inputs:
+  type: object
+  properties:
+    repo_url:
+      type: string
+    github_token:
+      type: string
+    namespace:
+      type: string
+      default: default
+    incident_start:
+      type: string
+      description: ISO timestamp (datetime) — anchors the CI/CD lookup window
+      format: date-time
+    cli_tool:
+      type: string
+      default: kubectl
+    stack_trace_files:
+      type: array
+      items: { type: string }
+    cluster_id:
+      type: string
+    service_name:
+      type: string
+    exception_type:
+      type: string
+  required: []
+outputs:
+  type: object
+  properties:
+    change_correlations:
+      type: array
+      items: { type: object }
+    high_priority_files:
+      type: array
+      items: { type: object }
+    summary: { type: string }
+    mode: { type: string }
+    llm_calls: { type: integer }
+    breadcrumbs:
+      type: array
+      items: { type: object }
+    negative_findings:
+      type: array
+      items: { type: object }
+    tokens_used: { type: object }
+trigger_examples:
+  - "What changed recently that could have caused this?"
+  - "Correlate recent deploys with this incident"
+  - "Any risky commits in the last 2 hours?"
+retry_on: [TimeoutError]
+timeout_seconds: 90
+cost_hint:
+  llm_calls: 2
+  typical_duration_s: 18

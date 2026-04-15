@@ -1,0 +1,60 @@
+name: k8s_agent
+version: 1
+description: >-
+  Analyzes Kubernetes/OpenShift workload health — pod status, events,
+  deployments, HPA, crashloops/OOMs, and resource mismatches.
+category: infrastructure
+tags: [kubernetes, openshift, pods, events, hpa]
+inputs:
+  type: object
+  properties:
+    service_name:
+      type: string
+      description: Service / workload name (used as deployment name and label fallback)
+    namespace:
+      type: string
+      description: Kubernetes namespace (defaults to "default")
+      default: default
+    suggested_label_selector:
+      type: string
+      description: Explicit label selector; falls back to app={service_name}
+    cluster_url:
+      type: string
+    error_patterns:
+      type: array
+      items: { type: object }
+      description: Error hints forwarded from log analysis
+  required: [service_name]
+outputs:
+  type: object
+  properties:
+    pod_statuses:
+      type: array
+      items: { type: object }
+    events:
+      type: array
+      items: { type: object }
+    is_crashloop: { type: boolean }
+    total_restarts_last_hour: { type: integer }
+    resource_mismatch:
+      type: [object, "null"]
+    overall_confidence: { type: number }
+    error: { type: string }
+    mode: { type: string }
+    llm_calls: { type: integer }
+    breadcrumbs:
+      type: array
+      items: { type: object }
+    negative_findings:
+      type: array
+      items: { type: object }
+    tokens_used: { type: object }
+trigger_examples:
+  - "Is my pod healthy?"
+  - "Check k8s resource status for checkout"
+  - "Are there any CrashLoopBackOff pods in payments namespace?"
+retry_on: [TimeoutError]
+timeout_seconds: 90
+cost_hint:
+  llm_calls: 1
+  typical_duration_s: 12
