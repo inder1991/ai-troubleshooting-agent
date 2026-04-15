@@ -45,6 +45,7 @@ import IntegrationSettings from './components/Settings/IntegrationSettings';
 import SettingsView from './components/Settings/SettingsView';
 import AuditLogView from './components/AuditLog/AuditLogView';
 import CatalogPage from './pages/CatalogPage';
+import WorkflowsGuard from './components/Workflows/Shared/WorkflowsGuard';
 
 /**
  * Route wrapper components that adapt existing components to work as route elements.
@@ -251,13 +252,27 @@ export const router = createBrowserRouter([
         ],
       },
 
-      // Workflows section
+      // Workflows section — guarded by WORKFLOWS_ENABLED feature flag.
       {
         path: 'workflows',
         element: <WorkflowsLayout />,
         children: [
-          { index: true, element: <WorkflowBuilderView /> },
-          { path: 'runs', element: <WorkflowRunsRoute /> },
+          {
+            index: true,
+            element: (
+              <WorkflowsGuard>
+                <WorkflowBuilderView />
+              </WorkflowsGuard>
+            ),
+          },
+          {
+            path: 'runs',
+            element: (
+              <WorkflowsGuard>
+                <WorkflowRunsRoute />
+              </WorkflowsGuard>
+            ),
+          },
         ],
       },
 
