@@ -12,7 +12,7 @@ from fastapi.testclient import TestClient
 
 @pytest.fixture
 def client():
-    from backend.src.api import main as app_main
+    from src.api import main as app_main
     with TestClient(app_main.app) as c:
         yield c
 
@@ -31,9 +31,9 @@ def test_sessions_route_exists(client):
 
 def test_catalog_flag_off_does_not_expose_routes(monkeypatch):
     monkeypatch.setenv("CATALOG_UI_ENABLED", "false")
-    from backend.src import config
+    from src import config
     reload(config)
-    from backend.src.api import main as app_main
+    from src.api import main as app_main
     reload(app_main)
     with TestClient(app_main.app) as c:
         assert c.get("/api/v4/catalog/agents").status_code == 404
@@ -41,6 +41,6 @@ def test_catalog_flag_off_does_not_expose_routes(monkeypatch):
 
 def test_catalog_flag_off_is_the_default(monkeypatch):
     monkeypatch.delenv("CATALOG_UI_ENABLED", raising=False)
-    from backend.src import config
+    from src import config
     reload(config)
     assert config.settings.CATALOG_UI_ENABLED is False

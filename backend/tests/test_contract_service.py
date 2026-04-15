@@ -2,8 +2,8 @@
 
 import pytest
 
-from backend.src.contracts import service as contract_service
-from backend.src.contracts.service import get_registry, init_registry
+from src.contracts import service as contract_service
+from src.contracts.service import get_registry, init_registry
 
 
 def test_get_registry_before_init_raises():

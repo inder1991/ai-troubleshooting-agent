@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from backend.src.contracts.registry import ContractRegistry
+from src.contracts.registry import ContractRegistry
 
 MANIFESTS_DIR = Path(__file__).parent.parent / "src" / "agents" / "manifests"
 

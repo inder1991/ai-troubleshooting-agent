@@ -11,9 +11,9 @@ from pydantic import BaseModel
 
 from typing import Any
 
-from backend.src import config
-from backend.src.contracts.models import AgentContract, CostHint
-from backend.src.contracts.service import get_registry
+from src import config
+from src.contracts.models import AgentContract, CostHint
+from src.contracts.service import get_registry
 
 router = APIRouter(prefix="/api/v4/catalog", tags=["catalog"])
 

@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from backend.src.contracts.registry import ContractRegistry, ManifestLoadError
+from src.contracts.registry import ContractRegistry, ManifestLoadError
 
 FIXTURES = Path(__file__).parent / "fixtures" / "manifests"
 

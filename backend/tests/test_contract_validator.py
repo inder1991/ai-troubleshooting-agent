@@ -1,6 +1,6 @@
 """JSON-Schema validator wrapper — structured issue list."""
 
-from backend.src.contracts.validator import ValidationIssue, validate_against
+from src.contracts.validator import ValidationIssue, validate_against
 
 SCHEMA = {
     "type": "object",

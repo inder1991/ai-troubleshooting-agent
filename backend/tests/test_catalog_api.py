@@ -8,9 +8,9 @@ from fastapi.testclient import TestClient
 
 def _build_client(monkeypatch, enabled: bool):
     monkeypatch.setenv("CATALOG_UI_ENABLED", "true" if enabled else "false")
-    from backend.src import config
+    from src import config
     reload(config)
-    from backend.src.api import main as app_main
+    from src.api import main as app_main
     reload(app_main)
     # Startup lifespan populates the ContractRegistry; TestClient context runs it.
     return TestClient(app_main.app)

@@ -3,7 +3,7 @@
 import pytest
 from pydantic import ValidationError
 
-from backend.src.contracts.models import AgentContract
+from src.contracts.models import AgentContract
 
 MINIMAL = {
     "name": "test_agent",
