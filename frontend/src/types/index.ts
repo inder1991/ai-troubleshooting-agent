@@ -2524,3 +2524,26 @@ export interface PipelineCapabilityForm {
   service_hint?: string;
   profile_id?: string;
 }
+
+export interface CatalogCostHint {
+  llm_calls: number;
+  typical_duration_s: number;
+}
+
+export interface CatalogAgentSummary {
+  name: string;
+  version: number;
+  description: string;
+  category: string;
+  tags: string[];
+  cost_hint?: CatalogCostHint | null;
+}
+
+export interface CatalogAgentDetail extends CatalogAgentSummary {
+  deprecated_versions: number[];
+  input_schema: Record<string, unknown>;
+  output_schema: Record<string, unknown>;
+  trigger_examples: string[];
+  timeout_seconds: number;
+  retry_on: string[];
+}
