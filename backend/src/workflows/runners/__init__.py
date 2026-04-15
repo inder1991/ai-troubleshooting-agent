@@ -28,12 +28,9 @@ def init_runners() -> AgentRunnerRegistry:
     global _registry
     reg = AgentRunnerRegistry()
 
-    # Shared LLM client for ``pipeline_agent``. The repo exposes
-    # ``AnthropicClient`` as the canonical LLM wrapper — hold a single
-    # instance on the pipeline runner so it is reused across runs.
-    from src.utils.llm_client import AnthropicClient
+    from src.utils.llm_client import get_default_llm_client
 
-    pipeline_llm = AnthropicClient(agent_name="pipeline_agent")
+    pipeline_llm = get_default_llm_client(agent_name="pipeline_agent")
 
     from .change_agent import ChangeAgentRunner
     from .code_agent import CodeAgentRunner
