@@ -38,6 +38,29 @@ def _iso_now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+MAX_ATTEMPTS = 3
+_BACKOFF_BASE = 0.1
+_BACKOFF_CAP = 2.0
+
+
+def _exception_names(exc: BaseException) -> list[str]:
+    """Return class name + base class names up the MRO (excluding object)."""
+    return [cls.__name__ for cls in type(exc).__mro__ if cls is not object]
+
+
+def _is_retryable(exc: BaseException, retry_on: list[str]) -> bool:
+    if not retry_on:
+        return False
+    wanted = set(retry_on)
+    return any(name in wanted for name in _exception_names(exc))
+
+
+def _backoff_for(attempt: int) -> float:
+    # attempt is the completed attempt number (1-based). Sleep BEFORE attempt+1.
+    # Cap prevents pathological waits if callers ever widen MAX_ATTEMPTS.
+    return min(_BACKOFF_BASE * (2 ** (attempt - 1)), _BACKOFF_CAP)
+
+
 @dataclass(order=True)
 class _QueueItem:
     readiness_time: float
@@ -51,11 +74,14 @@ class WorkflowExecutor:
         max_concurrent_steps: int = 8,
         concurrency_group_caps: dict[str, int] | None = None,
         event_emitter: EventEmitter | None = None,
+        sleep_fn: Callable[[float], Awaitable[None]] | None = None,
     ) -> None:
         self._runners = runners
         self._max_concurrent = max_concurrent_steps
         self._group_caps = dict(concurrency_group_caps or {})
         self._emitter = event_emitter
+        # Injected so tests can observe backoff durations without real waits.
+        self._sleep = sleep_fn if sleep_fn is not None else asyncio.sleep
 
     async def _emit(self, ev: dict) -> None:
         if self._emitter is None:
@@ -64,6 +90,99 @@ class WorkflowExecutor:
             await self._emitter(ev)
         except Exception:
             logger.exception("event emitter raised; continuing")
+
+    async def _invoke_with_retry(
+        self,
+        *,
+        runner: Any,
+        step: CompiledStep,
+        resolved_inputs: dict,
+        ns: "NodeState",
+    ) -> dict:
+        """Run ``runner.run`` with per-step timeout and bounded retry.
+
+        Emits a fresh ``step.started`` per attempt and a terminal
+        ``step.completed`` (on success) or ``step.failed`` (on exhaustion).
+        Returns ``{"ok": True, "output": ..., "ended_at": iso}`` on success or
+        ``{"ok": False, "error": {...}, "ended_at": iso}`` on failure.
+        """
+        monotonic = time.monotonic
+        effective_timeout = step.timeout_seconds  # compiler already took the min
+        retry_on = step.retry_on
+
+        last_exc: BaseException | None = None
+        last_error_class: str | None = None
+
+        for attempt in range(1, MAX_ATTEMPTS + 1):
+            ns.attempt = attempt
+            started_at = _iso_now()
+            if attempt == 1:
+                ns.started_at = started_at
+            t0 = monotonic()
+            await self._emit(
+                {
+                    "type": "step.started",
+                    "node_id": step.id,
+                    "attempt": attempt,
+                    "duration_ms": None,
+                    "timestamp": started_at,
+                }
+            )
+            try:
+                coro = runner.run(
+                    resolved_inputs,
+                    context={"step_id": step.id, "attempt": attempt},
+                )
+                output = await asyncio.wait_for(coro, timeout=effective_timeout)
+            except asyncio.TimeoutError as e:
+                last_exc = e
+                last_error_class = "timeout"
+                retryable = "TimeoutError" in retry_on
+            except Exception as e:  # noqa: BLE001 — runner boundary
+                last_exc = e
+                last_error_class = type(e).__name__
+                retryable = _is_retryable(e, retry_on)
+            else:
+                ended_at = _iso_now()
+                duration_ms = (monotonic() - t0) * 1000.0
+                await self._emit(
+                    {
+                        "type": "step.completed",
+                        "node_id": step.id,
+                        "attempt": attempt,
+                        "duration_ms": duration_ms,
+                        "timestamp": ended_at,
+                    }
+                )
+                return {"ok": True, "output": output, "ended_at": ended_at}
+
+            # Failure path (timeout or exception)
+            ended_at = _iso_now()
+            duration_ms = (monotonic() - t0) * 1000.0
+            if retryable and attempt < MAX_ATTEMPTS:
+                await self._sleep(_backoff_for(attempt))
+                continue
+            # Exhausted: emit terminal failure event and return.
+            message = str(last_exc) if last_exc is not None else ""
+            await self._emit(
+                {
+                    "type": "step.failed",
+                    "node_id": step.id,
+                    "attempt": attempt,
+                    "duration_ms": duration_ms,
+                    "error_class": last_error_class,
+                    "error_message": message,
+                    "timestamp": ended_at,
+                }
+            )
+            return {
+                "ok": False,
+                "error": {"type": last_error_class, "message": message},
+                "ended_at": ended_at,
+            }
+
+        # Unreachable — loop returns on success or on exhaustion.
+        raise AssertionError("retry loop fell through")
 
     async def run(
         self,
@@ -282,61 +401,23 @@ class WorkflowExecutor:
                     await group_sem.acquire()
                 try:
                     ns.status = "RUNNING"
-                    ns.attempt = 1
-                    ns.started_at = _iso_now()
-                    t0 = monotonic()
-                    await self._emit(
-                        {
-                            "type": "step.started",
-                            "node_id": step.id,
-                            "attempt": 1,
-                            "duration_ms": None,
-                            "timestamp": ns.started_at,
-                        }
+                    runner = self._runners.get(step.agent, step.agent_version)
+                    outcome = await self._invoke_with_retry(
+                        runner=runner,
+                        step=step,
+                        resolved_inputs=resolved_inputs,
+                        ns=ns,
                     )
-                    try:
-                        runner = self._runners.get(step.agent, step.agent_version)
-                        output = await runner.run(
-                            resolved_inputs,
-                            context={
-                                "step_id": step.id,
-                                "attempt": 1,
-                            },
-                        )
-                    except Exception as e:
+                    if outcome["ok"]:
+                        ns.status = "SUCCESS"
+                        ns.output = outcome["output"]
+                        ns.ended_at = outcome["ended_at"]
+                    else:
                         ns.status = "FAILED"
-                        ns.ended_at = _iso_now()
-                        duration_ms = (monotonic() - t0) * 1000.0
-                        ns.error = {
-                            "type": type(e).__name__,
-                            "message": str(e),
-                        }
-                        await self._emit(
-                            {
-                                "type": "step.failed",
-                                "node_id": step.id,
-                                "attempt": 1,
-                                "duration_ms": duration_ms,
-                                "error_class": type(e).__name__,
-                                "error_message": str(e),
-                                "timestamp": ns.ended_at,
-                            }
-                        )
+                        ns.ended_at = outcome["ended_at"]
+                        ns.error = outcome["error"]
                         await _handle_failure(step)
                         return
-                    ns.status = "SUCCESS"
-                    ns.output = output
-                    ns.ended_at = _iso_now()
-                    duration_ms = (monotonic() - t0) * 1000.0
-                    await self._emit(
-                        {
-                            "type": "step.completed",
-                            "node_id": step.id,
-                            "attempt": 1,
-                            "duration_ms": duration_ms,
-                            "timestamp": ns.ended_at,
-                        }
-                    )
                 finally:
                     if group_sem is not None:
                         group_sem.release()
