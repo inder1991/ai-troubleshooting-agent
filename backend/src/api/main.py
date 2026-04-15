@@ -266,6 +266,11 @@ def create_app() -> FastAPI:
         _mode = "PRODUCTION" if is_production_mode() else "DEMO"
         logger.info("DebugDuck starting in %s mode (DEBUGDUCK_MODE=%s)", _mode, os.environ.get("DEBUGDUCK_MODE", "<unset>"))
 
+        # ── Agent contract registry (Phase 1 Task 7) ──
+        from backend.src.contracts.service import init_registry as _init_contract_registry
+        _init_contract_registry()
+        logger.info("Agent ContractRegistry initialized")
+
         # ── Initialize Redis session store ──
         try:
             app.state.redis = await get_redis_client()
