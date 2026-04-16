@@ -36,6 +36,8 @@ from src.integrations.cicd.base import DeliveryItem
 from src.integrations.cicd.resolver import resolve_cicd_clients
 from src.integrations.github_client import GitHubClient, GitHubClientError
 from src.utils.attestation_log import AttestationLogger
+from src.workflows.investigation_executor import InvestigationExecutor
+from src.workflows.investigation_store import InvestigationStore
 
 logger = get_logger(__name__)
 
@@ -207,6 +209,8 @@ router_v4 = APIRouter(prefix="/api/v4", tags=["v4"])
 # In-memory session store
 sessions: Dict[str, Dict[str, Any]] = {}
 supervisors: Dict[str, SupervisorAgent] = {}
+_investigation_store = InvestigationStore(redis_client=None)
+_investigation_executors: dict[str, InvestigationExecutor] = {}
 
 
 async def _get_or_reconstruct_orchestrator(session_id: str, supervisor: "SupervisorAgent"):
@@ -531,6 +535,15 @@ async def start_session(request: StartSessionRequest, background_tasks: Backgrou
     }
     await _persist_session(session_id, sessions[session_id])
     supervisors[session_id] = supervisor
+
+    inv_run_id = f"investigation-{session_id}"
+    inv_executor = InvestigationExecutor(
+        run_id=inv_run_id,
+        emitter=emitter,
+        store=_investigation_store,
+        workflow_executor=None,
+    )
+    _investigation_executors[session_id] = inv_executor
 
     # Fall back to profile values when form doesn't provide them
     cluster_url = request.clusterUrl
@@ -865,6 +878,8 @@ async def run_diagnosis(session_id: str, supervisor: SupervisorAgent, initial_in
     except RuntimeError:
         pass
 
+    inv_executor = _investigation_executors.get(session_id)
+
     lock = _acquire_lock(session_id)
     try:
         state = await supervisor.run(
@@ -872,6 +887,7 @@ async def run_diagnosis(session_id: str, supervisor: SupervisorAgent, initial_in
             # Callback to expose state immediately after creation so the
             # findings endpoint can read partial results mid-investigation.
             on_state_created=lambda s: sessions[session_id].__setitem__("state", s),
+            investigation_executor=inv_executor,
         )
         # C1: Acquire lock for state mutation
         async with lock:
@@ -1936,6 +1952,18 @@ async def get_session_events(
                            if (e.sequence_number or 0) > after_sequence]
             return {"events": event_dicts}
         return {"events": []}
+
+
+@router_v4.get("/session/{session_id}/dag")
+async def get_investigation_dag(session_id: str):
+    """Return the virtual DAG for a session's investigation."""
+    inv_executor = _investigation_executors.get(session_id)
+    if inv_executor:
+        return inv_executor.get_dag().to_dict()
+    dag = await _investigation_store.load_dag(f"investigation-{session_id}")
+    if dag:
+        return dag.to_dict()
+    return {"run_id": f"investigation-{session_id}", "steps": [], "status": "unknown"}
 
 
 @router_v4.get("/session/{session_id}/llm-calls")

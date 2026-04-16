@@ -154,6 +154,8 @@ class SupervisorAgent:
         self._causal_linker = CausalLinker()
         self._all_signals = []
 
+        self._investigation_executor = None
+
         from src.agents.workflow_state_machine import WorkflowStateMachine
         self._state_machine = WorkflowStateMachine()
 
@@ -205,9 +207,11 @@ class SupervisorAgent:
         event_emitter: EventEmitter,
         websocket_manager=None,
         on_state_created=None,
+        investigation_executor=None,
     ) -> DiagnosticState:
         """Run the full diagnostic workflow."""
         self._event_emitter = event_emitter
+        self._investigation_executor = investigation_executor
         state = DiagnosticState(
             session_id=initial_input.get("session_id", "unknown"),
             incident_id=initial_input.get("incident_id") or generate_incident_id(),
@@ -655,6 +659,15 @@ class SupervisorAgent:
                     await self._emit_staged_mock_events(agent_name, fixture_data, state, event_emitter)
                 return fixture_data
 
+        # Route through InvestigationExecutor if available
+        if self._investigation_executor is not None:
+            context = await self._build_agent_context(agent_name, state, event_emitter)
+            return await self._dispatch_via_executor(
+                agent_name, self._investigation_executor,
+                round_num=len(self._investigation_executor.get_dag().steps) + 1,
+                agent_input=context,
+            )
+
         # Repo mismatch check for code_agent
         if agent_name == "code_agent" and state.patient_zero:
             await self._check_repo_mismatch(state, event_emitter)
@@ -698,6 +711,33 @@ class SupervisorAgent:
             if event_emitter:
                 await event_emitter.emit(agent_name, "error", f"Agent failed: {str(e)}")
             return None
+
+    async def _dispatch_via_executor(
+        self, agent_name: str, investigation_executor, round_num: int,
+        agent_input: dict | None = None, hypothesis_id: str | None = None,
+        reason: str | None = None,
+    ) -> dict | None:
+        """Dispatch an agent through InvestigationExecutor instead of directly."""
+        from src.workflows.investigation_types import InvestigationStepSpec
+        from src.workflows.event_schema import StepMetadata
+
+        prev_steps = investigation_executor.get_dag().steps
+        prev_step_id = prev_steps[-1].step_id if prev_steps else None
+
+        spec = InvestigationStepSpec(
+            step_id=f"round-{round_num}-{agent_name}",
+            agent=agent_name,
+            depends_on=[prev_step_id] if prev_step_id else [],
+            input_data=agent_input,
+            metadata=StepMetadata(
+                agent=agent_name,
+                round=round_num,
+                hypothesis_id=hypothesis_id,
+                reason=reason,
+            ),
+        )
+        result = await investigation_executor.run_step(spec)
+        return result.output
 
     async def _emit_staged_mock_events(
         self, agent_name: str, fixture: dict, state: DiagnosticState, event_emitter: EventEmitter
