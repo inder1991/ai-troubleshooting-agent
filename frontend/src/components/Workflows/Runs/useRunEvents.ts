@@ -79,8 +79,11 @@ export function useRunEvents(runId: string): UseRunEventsResult {
               es.close();
               setConnected(false);
             }
-          } catch {
-            // Ignore parse errors
+          } catch (err) {
+            console.warn('[useRunEvents] Failed to parse SSE event', {
+              error: err,
+              rawData: evt.data,
+            });
           }
         };
 
