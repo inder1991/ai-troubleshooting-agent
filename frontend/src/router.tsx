@@ -1,4 +1,4 @@
-import { createBrowserRouter, useNavigate, useSearchParams } from 'react-router-dom';
+import { createBrowserRouter, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import AppLayout from './layouts/AppLayout';
 import NetworkLayout from './layouts/NetworkLayout';
 import DatabaseLayout from './layouts/DatabaseLayout';
@@ -134,6 +134,11 @@ function ClusterRecommendationsRoute() {
       onBack={() => navigate('/clusters/registry')}
     />
   );
+}
+
+function RunDetailPlaceholder() {
+  const { runId } = useParams();
+  return <div>Run {runId} (Task 22)</div>;
 }
 
 function WorkflowRunsRoute() {
@@ -279,6 +284,14 @@ export const router = createBrowserRouter([
             element: (
               <WorkflowsGuard>
                 <WorkflowRunsRoute />
+              </WorkflowsGuard>
+            ),
+          },
+          {
+            path: 'runs/:runId',
+            element: (
+              <WorkflowsGuard>
+                <RunDetailPlaceholder />
               </WorkflowsGuard>
             ),
           },

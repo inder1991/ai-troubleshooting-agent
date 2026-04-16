@@ -382,4 +382,137 @@ describe('WorkflowBuilderPage', () => {
 
     expect(screen.getByText(/duplicate step id/i)).toBeInTheDocument();
   });
+
+  // ---- Task 20: Run trigger wiring ----
+
+  test('Run button opens InputsForm modal', async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByText('Test Workflow')).toBeInTheDocument();
+    });
+
+    // Click the Run button
+    await user.click(screen.getByRole('button', { name: /^run$/i }));
+
+    // InputsForm modal should appear
+    await waitFor(() => {
+      expect(screen.getByTestId('inputs-form-modal')).toBeInTheDocument();
+    });
+  });
+
+  test('submit form -> createRun called -> navigates to run detail route', async () => {
+    // Use a dag with simple inputs_schema so form mode is used
+    const dagWithSchema: WorkflowDag = {
+      inputs_schema: {
+        type: 'object',
+        properties: {
+          query: { type: 'string' },
+        },
+      },
+      steps: [
+        { id: 'step-a', agent: 'log_analyzer', agent_version: 1, inputs: {} },
+      ],
+    };
+
+    server.use(
+      http.get('/api/v4/workflows/:id/versions/:version', () =>
+        HttpResponse.json({
+          workflow_id: 'wf-1',
+          version: 2,
+          created_at: '2026-02-01T00:00:00Z',
+          dag: dagWithSchema,
+          compiled: null,
+        }),
+      ),
+      http.post('/api/v4/workflows/:id/runs', () =>
+        HttpResponse.json({
+          run: {
+            id: 'run-42',
+            workflow_version_id: 'v-2',
+            status: 'pending',
+            inputs: { query: 'test' },
+          },
+        }),
+      ),
+    );
+
+    const user = userEvent.setup();
+
+    // Render with a route that includes run detail so navigation can be verified
+    let navigatedTo: string | null = null;
+    render(
+      <MemoryRouter initialEntries={['/workflows/wf-1']}>
+        <Routes>
+          <Route path="/workflows/:workflowId" element={<WorkflowBuilderPage />} />
+          <Route
+            path="/workflows/runs/:runId"
+            element={<div data-testid="run-detail-placeholder">Run detail</div>}
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Test Workflow')).toBeInTheDocument();
+    });
+
+    // Open run modal
+    await user.click(screen.getByRole('button', { name: /^run$/i }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('inputs-form-modal')).toBeInTheDocument();
+    });
+
+    // Fill in query and submit
+    const queryInput = screen.getByLabelText('query');
+    await user.type(queryInput, 'test');
+
+    await user.click(screen.getByRole('button', { name: /run workflow/i }));
+
+    // Should navigate to run detail page
+    await waitFor(() => {
+      expect(screen.getByTestId('run-detail-placeholder')).toBeInTheDocument();
+    });
+  });
+
+  test('createRun 422 -> error shown in form', async () => {
+    server.use(
+      http.post('/api/v4/workflows/:id/runs', () =>
+        HttpResponse.json(
+          {
+            detail: {
+              type: 'inputs_invalid',
+              message: 'Invalid inputs provided',
+              errors: [{ message: 'field x is bad' }],
+            },
+          },
+          { status: 422 },
+        ),
+      ),
+    );
+
+    const user = userEvent.setup();
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByText('Test Workflow')).toBeInTheDocument();
+    });
+
+    // Open run modal
+    await user.click(screen.getByRole('button', { name: /^run$/i }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('inputs-form-modal')).toBeInTheDocument();
+    });
+
+    // Submit (schema is {} so it's valid immediately)
+    await user.click(screen.getByRole('button', { name: /run workflow/i }));
+
+    // Error should be shown in the form
+    await waitFor(() => {
+      expect(screen.getByText(/invalid inputs provided/i)).toBeInTheDocument();
+    });
+  });
 });

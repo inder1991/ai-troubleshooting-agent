@@ -4,6 +4,22 @@ import { isSchemaSimple, SchemaField } from '../Shared/SchemaField';
 
 type AnySchema = Record<string, unknown>;
 
+/** Safe localStorage wrapper — returns null / no-ops if unavailable. */
+function safeGetItem(key: string): string | null {
+  try {
+    return window.localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+function safeSetItem(key: string, value: string): void {
+  try {
+    window.localStorage.setItem(key, value);
+  } catch {
+    // ignore
+  }
+}
+
 export interface InputsFormProps {
   schema: AnySchema; // JSON Schema object
   onSubmit(inputs: Record<string, unknown>, opts: { idempotency_key?: string }): void;
@@ -49,7 +65,7 @@ export function InputsForm({
   const [formValues, setFormValues] = useState<Record<string, unknown>>(() => {
     if (persistKey) {
       try {
-        const stored = window.localStorage.getItem(persistKey);
+        const stored = safeGetItem(persistKey);
         if (stored) return JSON.parse(stored);
       } catch {
         // ignore
@@ -151,7 +167,7 @@ export function InputsForm({
   const handleSubmit = useCallback(() => {
     if (!isValid || !currentValues) return;
     if (persistKey) {
-      window.localStorage.setItem(persistKey, JSON.stringify(currentValues));
+      safeSetItem(persistKey, JSON.stringify(currentValues));
     }
     onSubmit(currentValues, {
       idempotency_key: idempotencyKey || undefined,

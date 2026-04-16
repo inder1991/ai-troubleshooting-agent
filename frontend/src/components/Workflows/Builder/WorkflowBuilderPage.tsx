@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import type {
   WorkflowDetail,
   VersionSummary,
@@ -20,9 +20,12 @@ import { ValidationBanner } from '../Shared/ValidationBanner';
 import type { ValidationError } from '../Shared/ValidationBanner';
 import { StepList } from './StepList';
 import { StepDrawer } from './StepDrawer';
+import { InputsForm } from '../Runs/InputsForm';
+import { createRun, InputsInvalidError } from '../../../services/runs';
 
 export function WorkflowBuilderPage() {
   const { workflowId } = useParams<{ workflowId: string }>();
+  const navigate = useNavigate();
 
   // API-fetched data
   const [workflow, setWorkflow] = useState<WorkflowDetail | null>(null);
@@ -37,8 +40,9 @@ export function WorkflowBuilderPage() {
   const [successBanner, setSuccessBanner] = useState(false);
   const successTimer = useRef<ReturnType<typeof setTimeout>>();
 
-  // Run modal placeholder
+  // Run modal
   const [showRunModal, setShowRunModal] = useState(false);
+  const [runErrors, setRunErrors] = useState<string[]>([]);
 
   // Dirty confirm dialog
   const [pendingVersionSwitch, setPendingVersionSwitch] = useState<number | null>(null);
@@ -146,8 +150,33 @@ export function WorkflowBuilderPage() {
   }, [workflowId, saving, builder]);
 
   const handleRun = useCallback(() => {
+    setRunErrors([]);
     setShowRunModal(true);
   }, []);
+
+  const handleRunSubmit = useCallback(
+    async (
+      inputs: Record<string, unknown>,
+      opts: { idempotency_key?: string },
+    ) => {
+      if (!workflowId) return;
+      try {
+        const run = await createRun(workflowId, {
+          inputs,
+          idempotency_key: opts.idempotency_key,
+        });
+        setShowRunModal(false);
+        navigate(`/workflows/runs/${run.id}`);
+      } catch (err) {
+        if (err instanceof InputsInvalidError) {
+          setRunErrors([err.message, ...err.errors.map((e) => e.message ?? '')].filter(Boolean));
+        } else {
+          setRunErrors([err instanceof Error ? err.message : 'Failed to create run']);
+        }
+      }
+    },
+    [workflowId, navigate],
+  );
 
   const handleVersionSelect = useCallback(
     (version: number) => {
@@ -400,9 +429,18 @@ export function WorkflowBuilderPage() {
         </div>
       )}
 
-      {/* Run modal placeholder */}
+      {/* Run modal */}
       {showRunModal && (
-        <div data-testid="run-modal-placeholder">Run modal (Task 19)</div>
+        <InputsForm
+          schema={builder.draftDag.inputs_schema as Record<string, unknown>}
+          onSubmit={handleRunSubmit}
+          onCancel={() => {
+            setShowRunModal(false);
+            setRunErrors([]);
+          }}
+          persistKey={`wf-inputs-${workflowId}`}
+          serverErrors={runErrors}
+        />
       )}
     </div>
   );
