@@ -84,6 +84,8 @@ class ErrorPayload:
 
 @dataclass(frozen=True)
 class EventEnvelope:
+    SCHEMA_VERSION = 1
+
     event_type: str  # "step_update" | "run_update" | "error"
     run_id: str
     sequence_number: int
@@ -105,6 +107,7 @@ class EventEnvelope:
             return obj
 
         return {
+            "schema_version": self.SCHEMA_VERSION,
             "event_type": self.event_type,
             "run_id": self.run_id,
             "sequence_number": self.sequence_number,
