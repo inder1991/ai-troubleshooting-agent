@@ -1,12 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { getRecentRuns, addRecentRun, updateRunStatus } from './recentRuns';
-import type { RecentRunEntry } from './recentRuns';
-import { getRun } from '../../../services/runs';
+import { listRuns } from '../../../services/runs';
+import { RunFilterBar } from './RunFilterBar';
 import { createRun } from '../../../services/runs';
 import { listWorkflows, listVersions, getVersion } from '../../../services/workflows';
 import { InputsForm } from './InputsForm';
-import type { RunStatus, WorkflowSummary, VersionSummary, WorkflowVersionDetail } from '../../../types';
+import type { RunListResponse, RunStatus, WorkflowSummary, VersionSummary, WorkflowVersionDetail } from '../../../types';
 
 const STATUS_CLASSES: Record<RunStatus, string> = {
   running: 'bg-amber-500 animate-pulse',
@@ -16,8 +15,6 @@ const STATUS_CLASSES: Record<RunStatus, string> = {
   succeeded: 'bg-emerald-500',
   failed: 'bg-red-500',
 };
-
-const VISIBLE_REFRESH = 10;
 
 /** Format a date string as relative time (e.g. "2 min ago"). */
 function relativeTime(iso: string): string {
@@ -34,12 +31,22 @@ function relativeTime(iso: string): string {
 
 type NewRunStep = 'closed' | 'select' | 'inputs';
 
+const LIMIT = 50;
+
 export function WorkflowRunsPage() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const filterWorkflowId = searchParams.get('workflow_id');
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const [runs, setRuns] = useState<RecentRunEntry[]>([]);
+  // Server-side run data
+  const [runData, setRunData] = useState<RunListResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Filter state from URL params
+  const statuses = searchParams.get('status')?.split(',').filter(Boolean) ?? [];
+  const sortBy = (searchParams.get('sort') ?? 'started_at') as 'started_at' | 'duration';
+  const sortOrder = (searchParams.get('order') ?? 'desc') as 'asc' | 'desc';
+  const page = Number(searchParams.get('page') ?? '0');
+  const workflowFilter = searchParams.get('workflow_id') ?? undefined;
 
   // New-run wizard state
   const [newRunStep, setNewRunStep] = useState<NewRunStep>('closed');
@@ -50,49 +57,49 @@ export function WorkflowRunsPage() {
   const [versionDetail, setVersionDetail] = useState<WorkflowVersionDetail | null>(null);
   const [loadingVersionDetail, setLoadingVersionDetail] = useState(false);
 
-  // Load recent runs from localStorage on mount
+  // Fetch runs when filters change
   useEffect(() => {
-    setRuns(getRecentRuns());
-  }, []);
-
-  // Refresh status for the first N visible runs
-  useEffect(() => {
-    const toRefresh = runs.slice(0, VISIBLE_REFRESH);
-    if (toRefresh.length === 0) return;
-
     let cancelled = false;
-
-    async function refresh() {
-      for (const entry of toRefresh) {
-        if (cancelled) return;
-        try {
-          const detail = await getRun(entry.runId);
-          if (cancelled) return;
-          if (detail.status !== entry.status) {
-            updateRunStatus(entry.runId, detail.status);
-            setRuns((prev) =>
-              prev.map((r) =>
-                r.runId === entry.runId ? { ...r, status: detail.status } : r,
-              ),
-            );
-          }
-        } catch {
-          // silently ignore — run may have been deleted
-        }
-      }
-    }
-
-    refresh();
+    setLoading(true);
+    listRuns({
+      status: statuses.length > 0 ? statuses.join(',') : undefined,
+      workflow_id: workflowFilter,
+      sort: sortBy,
+      order: sortOrder,
+      limit: LIMIT,
+      offset: page * LIMIT,
+    })
+      .then((data) => { if (!cancelled) setRunData(data); })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-    // Only run once on mount
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [searchParams.toString()]);
 
-  // Filter by workflow_id query param
-  const filteredRuns = useMemo(() => {
-    if (!filterWorkflowId) return runs;
-    return runs.filter((r) => r.workflowId === filterWorkflowId);
-  }, [runs, filterWorkflowId]);
+  // Filter handlers
+  const handleStatusToggle = useCallback((status: string) => {
+    setSearchParams((prev) => {
+      const current = prev.get('status')?.split(',').filter(Boolean) ?? [];
+      const next = current.includes(status)
+        ? current.filter((s) => s !== status)
+        : [...current, status];
+      const params = new URLSearchParams(prev);
+      if (next.length > 0) params.set('status', next.join(','));
+      else params.delete('status');
+      params.delete('page');
+      return params;
+    });
+  }, [setSearchParams]);
+
+  const handleSortChange = useCallback((sort: 'started_at' | 'duration', order: 'asc' | 'desc') => {
+    setSearchParams((prev) => {
+      const params = new URLSearchParams(prev);
+      params.set('sort', sort);
+      params.set('order', order);
+      params.delete('page');
+      return params;
+    });
+  }, [setSearchParams]);
 
   // New run: open wizard
   const handleNewRun = useCallback(async () => {
@@ -140,7 +147,7 @@ export function WorkflowRunsPage() {
     [selectedWorkflowId],
   );
 
-  // New run: submit
+  // New run: submit — after creation, refresh the run list
   const handleSubmit = useCallback(
     async (inputs: Record<string, unknown>, opts: { idempotency_key?: string }) => {
       if (!selectedWorkflowId || !versionDetail) return;
@@ -149,21 +156,13 @@ export function WorkflowRunsPage() {
           inputs,
           idempotency_key: opts.idempotency_key,
         });
-        const wf = workflows.find((w) => w.id === selectedWorkflowId);
-        addRecentRun({
-          runId: run.id,
-          workflowId: selectedWorkflowId,
-          workflowName: wf?.name,
-          status: run.status,
-          startedAt: run.started_at ?? new Date().toISOString(),
-        });
         setNewRunStep('closed');
         navigate(`/workflows/runs/${run.id}`, { state: { workflowId: selectedWorkflowId } });
       } catch {
         // ignore
       }
     },
-    [selectedWorkflowId, versionDetail, workflows, navigate],
+    [selectedWorkflowId, versionDetail, navigate],
   );
 
   const handleCancelNewRun = useCallback(() => {
@@ -187,6 +186,15 @@ export function WorkflowRunsPage() {
           New run
         </button>
       </div>
+
+      {/* Filter bar */}
+      <RunFilterBar
+        statuses={statuses}
+        onStatusToggle={handleStatusToggle}
+        sortBy={sortBy}
+        sortOrder={sortOrder}
+        onSortChange={handleSortChange}
+      />
 
       {/* New run wizard — step 1: select workflow + version */}
       {newRunStep === 'select' && (
@@ -260,9 +268,11 @@ export function WorkflowRunsPage() {
       )}
 
       {/* Runs list */}
-      {filteredRuns.length === 0 ? (
+      {loading ? (
+        <div className="text-center py-12 text-wr-text-muted text-sm">Loading runs...</div>
+      ) : !runData || runData.runs.length === 0 ? (
         <div className="text-center py-12 text-wr-text-muted text-sm">
-          No recent runs. Start one with the button above.
+          No runs found. Start one with the button above.
         </div>
       ) : (
         <div className="overflow-x-auto">
@@ -270,39 +280,34 @@ export function WorkflowRunsPage() {
             <thead>
               <tr className="border-b border-wr-border text-left text-xs font-medium text-wr-text-muted">
                 <th className="py-2 pr-4">Run ID</th>
-                <th className="py-2 pr-4">Workflow</th>
                 <th className="py-2 pr-4">Status</th>
                 <th className="py-2 pr-4">Started</th>
                 <th className="py-2">Action</th>
               </tr>
             </thead>
             <tbody>
-              {filteredRuns.map((entry) => (
+              {runData.runs.map((run) => (
                 <tr
-                  key={entry.runId}
+                  key={run.id}
                   className="border-b border-wr-border/50 hover:bg-wr-elevated/30"
                 >
                   <td className="py-2 pr-4 font-mono text-xs text-wr-text">
-                    {entry.runId}
-                  </td>
-                  <td className="py-2 pr-4 text-wr-text">
-                    {entry.workflowName ?? entry.workflowId}
+                    {run.id}
                   </td>
                   <td className="py-2 pr-4">
                     <span
                       data-testid="run-status-badge"
-                      className={`inline-block px-2 py-0.5 rounded text-xs font-semibold text-white ${STATUS_CLASSES[entry.status] ?? 'bg-neutral-500'}`}
+                      className={`inline-block px-2 py-0.5 rounded text-xs font-semibold text-white ${STATUS_CLASSES[run.status] ?? 'bg-neutral-500'}`}
                     >
-                      {entry.status}
+                      {run.status}
                     </span>
                   </td>
                   <td className="py-2 pr-4 text-xs text-wr-text-muted">
-                    {relativeTime(entry.startedAt)}
+                    {run.started_at ? relativeTime(run.started_at) : '--'}
                   </td>
                   <td className="py-2">
                     <Link
-                      to={`/workflows/runs/${entry.runId}`}
-                      state={{ workflowId: entry.workflowId }}
+                      to={`/workflows/runs/${run.id}`}
                       className="rounded px-2 py-1 text-xs font-medium text-wr-accent hover:underline"
                     >
                       View
@@ -315,10 +320,26 @@ export function WorkflowRunsPage() {
         </div>
       )}
 
-      {/* Footer note */}
-      <p className="text-xs text-wr-text-muted pt-2">
-        Showing runs from this browser only. A global run history will be available in a future release.
-      </p>
+      {/* Pagination */}
+      {runData && runData.total > LIMIT && (
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-wr-text-muted">
+            {runData.offset + 1}&ndash;{Math.min(runData.offset + LIMIT, runData.total)} of {runData.total}
+          </span>
+          <div className="flex gap-2">
+            <button disabled={page === 0}
+              onClick={() => setSearchParams((p) => { const params = new URLSearchParams(p); params.set('page', String(page - 1)); return params; })}
+              className="rounded px-2 py-1 text-xs text-wr-text border border-wr-border hover:bg-wr-elevated disabled:opacity-40">
+              Previous
+            </button>
+            <button disabled={runData.offset + LIMIT >= runData.total}
+              onClick={() => setSearchParams((p) => { const params = new URLSearchParams(p); params.set('page', String(page + 1)); return params; })}
+              className="rounded px-2 py-1 text-xs text-wr-text border border-wr-border hover:bg-wr-elevated disabled:opacity-40">
+              Next
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
