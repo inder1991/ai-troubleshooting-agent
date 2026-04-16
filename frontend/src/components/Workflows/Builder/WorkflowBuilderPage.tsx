@@ -11,8 +11,10 @@ import {
   listVersions,
   getVersion,
   createVersion,
+  rollbackVersion,
   CompileError,
 } from '../../../services/workflows';
+import { VersionDiff } from '../Shared/VersionDiff';
 import { listAgents } from '../../../services/catalog';
 import { useBuilderState } from './useBuilderState';
 import { WorkflowHeader } from '../Shared/WorkflowHeader';
@@ -43,6 +45,11 @@ export function WorkflowBuilderPage() {
   // Run modal
   const [showRunModal, setShowRunModal] = useState(false);
   const [runErrors, setRunErrors] = useState<string[]>([]);
+
+  // Diff modal
+  const [showDiff, setShowDiff] = useState(false);
+  const [diffVersions, setDiffVersions] = useState<{ old: StepSpec[]; new: StepSpec[] } | null>(null);
+  const [rollingBack, setRollingBack] = useState(false);
 
   // Dirty confirm dialog
   const [pendingVersionSwitch, setPendingVersionSwitch] = useState<number | null>(null);
@@ -225,6 +232,37 @@ export function WorkflowBuilderPage() {
     setPendingVersionSwitch(null);
   }, []);
 
+  const handleRollback = useCallback(async (version: number) => {
+    if (!workflowId || rollingBack) return;
+    setRollingBack(true);
+    try {
+      const result = await rollbackVersion(workflowId, version);
+      const updatedVersions = await listVersions(workflowId);
+      setVersions(updatedVersions);
+      const versionDetail = await getVersion(workflowId, result.version);
+      builder.loadVersion(versionDetail.dag, result.version);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Rollback failed');
+    } finally {
+      setRollingBack(false);
+    }
+  }, [workflowId, rollingBack, builder]);
+
+  const handleShowDiff = useCallback(async (versionNum: number) => {
+    if (!workflowId) return;
+    try {
+      const latestVersion = Math.max(...versions.map((v) => v.version));
+      const [oldDetail, newDetail] = await Promise.all([
+        getVersion(workflowId, versionNum),
+        getVersion(workflowId, latestVersion),
+      ]);
+      setDiffVersions({ old: oldDetail.dag.steps, new: newDetail.dag.steps });
+      setShowDiff(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load diff');
+    }
+  }, [workflowId, versions]);
+
   const handleAddStep = useCallback(
     (agent: CatalogAgentSummary) => {
       builder.addStep(agent.name, agent.version);
@@ -314,6 +352,9 @@ export function WorkflowBuilderPage() {
         onSave={handleSave}
         onRun={handleRun}
         saving={saving}
+        onRollback={handleRollback}
+        onShowDiff={handleShowDiff}
+        rollingBack={rollingBack}
       />
 
       {/* Success banner */}
@@ -444,6 +485,21 @@ export function WorkflowBuilderPage() {
           persistKey={`wf-inputs-${workflowId}`}
           serverErrors={runErrors}
         />
+      )}
+
+      {showDiff && diffVersions && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="w-full max-w-2xl max-h-[80vh] overflow-y-auto rounded-lg border border-wr-border bg-wr-surface p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-wr-text">Version Diff</h2>
+              <button type="button" onClick={() => setShowDiff(false)}
+                className="text-wr-text-muted hover:text-wr-text">
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            <VersionDiff oldSteps={diffVersions.old} newSteps={diffVersions.new} />
+          </div>
+        </div>
       )}
     </div>
   );

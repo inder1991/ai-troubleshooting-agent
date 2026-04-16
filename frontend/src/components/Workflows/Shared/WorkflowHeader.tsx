@@ -17,6 +17,9 @@ interface Props {
   onSave: () => void;
   onRun: () => void;
   saving?: boolean;
+  onRollback?: (version: number) => void;
+  onShowDiff?: (version: number) => void;
+  rollingBack?: boolean;
 }
 
 export function WorkflowHeader({
@@ -31,6 +34,9 @@ export function WorkflowHeader({
   onSave,
   onRun,
   saving,
+  onRollback,
+  onShowDiff,
+  rollingBack,
 }: Props) {
   const saveDisabled = !canSave || !!saving;
 
@@ -53,6 +59,23 @@ export function WorkflowHeader({
           onSelect={onSelectVersion}
           onFork={onForkVersion}
         />
+        {selectedVersion !== undefined && activeVersion !== undefined && selectedVersion !== activeVersion && (
+          <div className="flex items-center gap-2">
+            {onRollback && (
+              <button type="button" onClick={() => onRollback(selectedVersion)}
+                disabled={rollingBack}
+                className="rounded-md border border-wr-border bg-wr-surface px-2 py-1 text-xs text-wr-text hover:bg-wr-elevated disabled:opacity-50">
+                {rollingBack ? 'Restoring...' : 'Restore this version'}
+              </button>
+            )}
+            {onShowDiff && (
+              <button type="button" onClick={() => onShowDiff(selectedVersion)}
+                className="rounded-md border border-wr-border bg-wr-surface px-2 py-1 text-xs text-wr-text hover:bg-wr-elevated">
+                Diff
+              </button>
+            )}
+          </div>
+        )}
         <div className="flex items-center gap-2">
           <button
             type="button"
