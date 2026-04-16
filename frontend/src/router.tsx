@@ -1,4 +1,4 @@
-import { createBrowserRouter, useNavigate, useSearchParams } from 'react-router-dom';
+import { createBrowserRouter, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import AppLayout from './layouts/AppLayout';
 import NetworkLayout from './layouts/NetworkLayout';
 import DatabaseLayout from './layouts/DatabaseLayout';
@@ -39,12 +39,15 @@ import ClusterRegistryPage from './components/ClusterRegistry/ClusterRegistryPag
 import ClusterRecommendationsPage from './components/ClusterRegistry/ClusterRecommendationsPage';
 import AgentMatrixView from './components/AgentMatrix/AgentMatrixView';
 import AgentCatalogView from './components/Platform/AgentCatalog/AgentCatalogView';
-import WorkflowBuilderView from './components/Platform/WorkflowBuilder/WorkflowBuilderView';
-import WorkflowRunsView from './components/Platform/WorkflowRuns/WorkflowRunsView';
+import { WorkflowListPage } from './components/Workflows/Builder/WorkflowListPage';
+import { WorkflowBuilderPage } from './components/Workflows/Builder/WorkflowBuilderPage';
+import { WorkflowRunsPage } from './components/Workflows/Runs/WorkflowRunsPage';
 import IntegrationSettings from './components/Settings/IntegrationSettings';
 import SettingsView from './components/Settings/SettingsView';
 import AuditLogView from './components/AuditLog/AuditLogView';
 import CatalogPage from './pages/CatalogPage';
+import WorkflowsGuard from './components/Workflows/Shared/WorkflowsGuard';
+import { RunDetailPage } from './components/Workflows/Runs/RunDetailPage';
 
 /**
  * Route wrapper components that adapt existing components to work as route elements.
@@ -132,11 +135,6 @@ function ClusterRecommendationsRoute() {
       onBack={() => navigate('/clusters/registry')}
     />
   );
-}
-
-function WorkflowRunsRoute() {
-  const navigate = useNavigate();
-  return <WorkflowRunsView onNavigate={() => navigate('/workflows')} />;
 }
 
 function CapabilityFormRoute() {
@@ -251,13 +249,43 @@ export const router = createBrowserRouter([
         ],
       },
 
-      // Workflows section
+      // Workflows section — guarded by WORKFLOWS_ENABLED feature flag.
       {
         path: 'workflows',
         element: <WorkflowsLayout />,
         children: [
-          { index: true, element: <WorkflowBuilderView /> },
-          { path: 'runs', element: <WorkflowRunsRoute /> },
+          {
+            index: true,
+            element: (
+              <WorkflowsGuard>
+                <WorkflowListPage />
+              </WorkflowsGuard>
+            ),
+          },
+          {
+            path: ':workflowId',
+            element: (
+              <WorkflowsGuard>
+                <WorkflowBuilderPage />
+              </WorkflowsGuard>
+            ),
+          },
+          {
+            path: 'runs',
+            element: (
+              <WorkflowsGuard>
+                <WorkflowRunsPage />
+              </WorkflowsGuard>
+            ),
+          },
+          {
+            path: 'runs/:runId',
+            element: (
+              <WorkflowsGuard>
+                <RunDetailPage />
+              </WorkflowsGuard>
+            ),
+          },
         ],
       },
 

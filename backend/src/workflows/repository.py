@@ -99,6 +99,16 @@ class WorkflowRepository:
                 row = await cur.fetchone()
                 return dict(row) if row else None
 
+    async def list_versions(self, workflow_id: str) -> list[dict[str, Any]]:
+        async with self._conn() as db:
+            async with db.execute(
+                "SELECT * FROM workflow_versions WHERE workflow_id = ? "
+                "ORDER BY version DESC",
+                (workflow_id,),
+            ) as cur:
+                rows = await cur.fetchall()
+                return [dict(r) for r in rows]
+
     async def get_latest_version(
         self, workflow_id: str
     ) -> dict[str, Any] | None:

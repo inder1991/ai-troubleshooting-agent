@@ -2547,3 +2547,108 @@ export interface CatalogAgentDetail extends CatalogAgentSummary {
   timeout_seconds: number;
   retry_on: string[];
 }
+
+// ----- Phase 2/3 Workflow DAG + Run shapes -----
+
+export interface WorkflowSummary {
+  id: string;
+  name: string;
+  description: string;
+  created_at: string;
+  created_by?: string;
+}
+
+export interface VersionSummary {
+  version_id: string;
+  workflow_id: string;
+  version: number;
+  created_at: string;
+}
+
+export interface WorkflowDetail extends WorkflowSummary {
+  latest_version?: { version: number; created_at: string };
+}
+
+export interface WorkflowVersionDetail {
+  workflow_id: string;
+  version: number;
+  created_at: string;
+  dag: WorkflowDag;
+  compiled: unknown;
+}
+
+export type RefExpr =
+  | { ref: { from: 'input'; path: string } }
+  | { ref: { from: 'env'; path: string } }
+  | { ref: { from: 'node'; node_id: string; path: string } };
+
+export type LiteralExpr = { literal: unknown };
+
+export type TransformExpr =
+  | { op: 'coalesce' | 'concat'; args: MappingExpr[] };
+
+export type PredicateExpr =
+  | { op: 'eq' | 'in' | 'exists'; left?: MappingExpr; right?: MappingExpr; args?: MappingExpr[] }
+  | { op: 'and' | 'or'; args: PredicateExpr[] }
+  | { op: 'not'; arg: PredicateExpr };
+
+export type MappingExpr = RefExpr | LiteralExpr | TransformExpr;
+
+export interface StepSpec {
+  id: string;
+  agent: string;
+  agent_version: number | 'latest';
+  inputs: Record<string, MappingExpr>;
+  when?: PredicateExpr;
+  on_failure?: 'fail' | 'continue' | 'fallback';
+  fallback_step_id?: string;
+  parallel_group?: string;
+  concurrency_group?: string;
+  timeout_seconds_override?: number;
+  retry_on_override?: string[];
+}
+
+export interface WorkflowDag {
+  inputs_schema: Record<string, unknown>;
+  steps: StepSpec[];
+}
+
+export type RunStatus =
+  | 'pending'
+  | 'running'
+  | 'cancelling'
+  | 'cancelled'
+  | 'succeeded'
+  | 'failed';
+
+export type StepRunStatus =
+  | 'pending'
+  | 'running'
+  | 'success'
+  | 'failed'
+  | 'skipped'
+  | 'cancelled';
+
+export interface StepRunDetail {
+  id: string;
+  step_id: string;
+  status: StepRunStatus;
+  attempt: number;
+  started_at?: string;
+  ended_at?: string;
+  duration_ms?: number;
+  output?: unknown;
+  error?: { type?: string; class?: string; message?: string };
+}
+
+export interface RunDetail {
+  id: string;
+  workflow_version_id: string;
+  status: RunStatus;
+  started_at?: string;
+  ended_at?: string;
+  inputs: Record<string, unknown>;
+  error?: { type?: string; message?: string };
+  idempotency_key?: string;
+  step_runs: StepRunDetail[];
+}

@@ -163,6 +163,18 @@ class WorkflowService:
             "workflow_id": workflow_id,
         }
 
+    async def list_versions(self, workflow_id: str) -> list[dict[str, Any]]:
+        rows = await self._repo.list_versions(workflow_id)
+        return [
+            {
+                "version_id": r["id"],
+                "workflow_id": r["workflow_id"],
+                "version": r["version"],
+                "created_at": r["created_at"],
+            }
+            for r in rows
+        ]
+
     async def get_version(
         self, workflow_id: str, version: int
     ) -> dict[str, Any] | None:
