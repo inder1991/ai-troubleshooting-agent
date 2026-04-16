@@ -23,14 +23,7 @@ interface StepStatusPanelProps {
   onCardClick?: (stepId: string) => void;
 }
 
-const STATUS_CLASSES: Record<StepRunStatus, string> = {
-  running: 'bg-amber-500 animate-pulse',
-  success: 'bg-emerald-500',
-  failed: 'bg-red-500',
-  skipped: 'bg-gray-500',
-  cancelled: 'bg-slate-500',
-  pending: 'bg-neutral-500',
-};
+import { STATUS_BADGE_CLASSES } from '../Shared/statusConstants';
 
 function formatDuration(ms: number): string {
   if (ms < 1000) return '<1s';
@@ -80,7 +73,7 @@ function mergeWithEvents(
 
 function StepCard({ step, highlighted, onCardClick }: { step: StepRunDetail; highlighted?: boolean; onCardClick?: (stepId: string) => void }) {
   const [showOutput, setShowOutput] = useState(false);
-  const badgeClass = STATUS_CLASSES[step.status] ?? STATUS_CLASSES.pending;
+  const badgeClass = STATUS_BADGE_CLASSES[step.status] ?? STATUS_BADGE_CLASSES.pending;
 
   return (
     <div

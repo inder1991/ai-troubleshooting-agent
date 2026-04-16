@@ -33,7 +33,7 @@ describe('StepStatusPanel', () => {
       { status: 'running', expectedClass: 'bg-amber' },
       { status: 'success', expectedClass: 'bg-emerald' },
       { status: 'failed', expectedClass: 'bg-red' },
-      { status: 'skipped', expectedClass: 'bg-gray' },
+      { status: 'skipped', expectedClass: 'bg-neutral' },
       { status: 'cancelled', expectedClass: 'bg-slate' },
       { status: 'pending', expectedClass: 'bg-neutral' },
     ];

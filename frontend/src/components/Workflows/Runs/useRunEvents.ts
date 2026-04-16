@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { getRun, subscribeEvents } from '../../../services/runs';
 import type { RunDetail, RunStatus } from '../../../types';
 import type { LiveEvent } from './StepStatusPanel';
+import { TERMINAL_STATUSES } from '../Shared/statusConstants';
 
 export interface UseRunEventsResult {
   run: RunDetail | null;
@@ -10,12 +11,6 @@ export interface UseRunEventsResult {
   error: Error | null;
   connected: boolean;
 }
-
-const TERMINAL_STATUSES: ReadonlySet<RunStatus> = new Set([
-  'success',
-  'failed',
-  'cancelled',
-]);
 
 const TERMINAL_EVENT_TYPES = new Set([
   'run.completed',

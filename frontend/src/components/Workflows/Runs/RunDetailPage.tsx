@@ -8,19 +8,9 @@ import { InputsForm } from './InputsForm';
 import { cancelRun, createRun, getRerunData, RunTerminalError } from '../../../services/runs';
 import { getVersion } from '../../../services/workflows';
 import type { RunStatus, StepSpec } from '../../../types';
+import { STATUS_BADGE_CLASSES, isTerminal } from '../Shared/statusConstants';
 
 type ViewMode = 'cards' | 'graph';
-
-const STATUS_CLASSES: Record<RunStatus, string> = {
-  running: 'bg-amber-500 animate-pulse',
-  pending: 'bg-neutral-500',
-  cancelling: 'bg-slate-400',
-  cancelled: 'bg-slate-500',
-  success: 'bg-emerald-500',
-  failed: 'bg-red-500',
-};
-
-const TERMINAL: ReadonlySet<RunStatus> = new Set(['success', 'failed', 'cancelled']);
 
 function readViewMode(): ViewMode {
   try {
@@ -97,7 +87,7 @@ export function RunDetailPage() {
 
   if (!run) return null;
 
-  const isTerminal = TERMINAL.has(run.status);
+  const terminal = isTerminal(run.status);
   const graphDisabled = !workflowId;
 
   async function handleCancel() {
@@ -168,7 +158,7 @@ export function RunDetailPage() {
           </h1>
           <span
             data-testid="run-status-badge"
-            className={`px-2 py-0.5 rounded text-xs font-semibold text-white ${STATUS_CLASSES[run.status] ?? 'bg-neutral-500'}`}
+            className={`px-2 py-0.5 rounded text-xs font-semibold text-white ${STATUS_BADGE_CLASSES[run.status] ?? 'bg-neutral-500'}`}
           >
             {run.status}
           </span>
@@ -198,21 +188,21 @@ export function RunDetailPage() {
         <div className="flex items-center gap-2">
           <button
             className="px-3 py-1.5 rounded text-sm font-medium bg-wr-accent text-wr-on-accent hover:bg-wr-accent-hover disabled:opacity-40 disabled:cursor-not-allowed"
-            disabled={!isTerminal || rerunning}
+            disabled={!terminal || rerunning}
             onClick={handleRerun}
           >
             {rerunning ? 'Rerunning...' : 'Rerun'}
           </button>
           <button
             className="px-3 py-1.5 rounded text-sm font-medium border border-wr-border bg-wr-surface text-wr-text hover:bg-wr-elevated disabled:opacity-40 disabled:cursor-not-allowed"
-            disabled={!isTerminal}
+            disabled={!terminal}
             onClick={handleRerunWithChanges}
           >
             Rerun with changes
           </button>
           <button
             className="px-3 py-1.5 rounded text-sm font-medium bg-red-600 hover:bg-red-700 text-white disabled:opacity-40 disabled:cursor-not-allowed"
-            disabled={isTerminal || cancelling}
+            disabled={terminal || cancelling}
             onClick={handleCancel}
           >
             {cancelling ? 'Cancelling...' : 'Cancel'}

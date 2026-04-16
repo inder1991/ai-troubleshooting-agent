@@ -6,15 +6,7 @@ import { createRun } from '../../../services/runs';
 import { listWorkflows, listVersions, getVersion } from '../../../services/workflows';
 import { InputsForm } from './InputsForm';
 import type { RunListResponse, RunStatus, WorkflowSummary, VersionSummary, WorkflowVersionDetail } from '../../../types';
-
-const STATUS_CLASSES: Record<RunStatus, string> = {
-  running: 'bg-amber-500 animate-pulse',
-  pending: 'bg-neutral-500',
-  cancelling: 'bg-slate-400',
-  cancelled: 'bg-slate-500',
-  success: 'bg-emerald-500',
-  failed: 'bg-red-500',
-};
+import { STATUS_BADGE_CLASSES } from '../Shared/statusConstants';
 
 /** Format a date string as relative time (e.g. "2 min ago"). */
 function relativeTime(iso: string): string {
@@ -316,7 +308,7 @@ export function WorkflowRunsPage() {
                   <td className="py-2 pr-4">
                     <span
                       data-testid="run-status-badge"
-                      className={`inline-block px-2 py-0.5 rounded text-xs font-semibold text-white ${STATUS_CLASSES[run.status] ?? 'bg-neutral-500'}`}
+                      className={`inline-block px-2 py-0.5 rounded text-xs font-semibold text-white ${STATUS_BADGE_CLASSES[run.status] ?? 'bg-neutral-500'}`}
                     >
                       {run.status}
                     </span>

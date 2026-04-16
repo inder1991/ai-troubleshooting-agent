@@ -3,15 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import type { RunStatus, WorkflowSummary } from '../../../types';
 import { listWorkflows, createWorkflow, deleteWorkflow, duplicateWorkflow, updateWorkflow } from '../../../services/workflows';
 import { ConfirmDeleteDialog } from '../Shared/ConfirmDeleteDialog';
-
-const STATUS_DOT_CLASSES: Record<RunStatus, string> = {
-  running: 'bg-amber-500',
-  pending: 'bg-neutral-500',
-  cancelling: 'bg-slate-400',
-  cancelled: 'bg-slate-500',
-  success: 'bg-emerald-500',
-  failed: 'bg-red-500',
-};
+import { STATUS_DOT_CLASSES } from '../Shared/statusConstants';
 
 function relativeTime(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
