@@ -30,10 +30,12 @@ describe('DagEdge', () => {
     expect(path!.getAttribute('d')).toBe('M 0 0 L 50 25 L 100 50');
   });
 
-  it('2. pending edge has neutral color stroke', () => {
+  it('2. pending edge has neutral color stroke and no flow particle', () => {
     const container = renderInSvg(<DagEdge edge={makeEdge()} edgeStatus="pending" />);
     const path = container.querySelector('[data-testid="edge-A-B"] path');
     expect(path!.getAttribute('stroke')).toBe('#525252');
+    const flowPath = container.querySelector('.dag-flow-particle');
+    expect(flowPath).toBeNull();
   });
 
   it('3. active edge has amber stroke and flow particle path with dag-flow-particle class', () => {
