@@ -25,6 +25,7 @@ export interface InputsFormProps {
   onSubmit(inputs: Record<string, unknown>, opts: { idempotency_key?: string }): void;
   onCancel(): void;
   persistKey?: string; // localStorage key for prefill
+  initialValues?: Record<string, unknown>; // pre-fill values (e.g. for rerun)
   serverErrors?: string[];
 }
 
@@ -54,6 +55,7 @@ export function InputsForm({
   onSubmit,
   onCancel,
   persistKey,
+  initialValues,
   serverErrors,
 }: InputsFormProps) {
   const isSimple = useMemo(() => allPropertiesSimple(schema), [schema]);
@@ -63,6 +65,9 @@ export function InputsForm({
 
   // Form values (object)
   const [formValues, setFormValues] = useState<Record<string, unknown>>(() => {
+    if (initialValues && Object.keys(initialValues).length > 0) {
+      return { ...defaultFromSchema(schema), ...initialValues };
+    }
     if (persistKey) {
       try {
         const stored = safeGetItem(persistKey);

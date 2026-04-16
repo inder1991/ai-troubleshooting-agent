@@ -1,8 +1,29 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { WorkflowSummary } from '../../../types';
+import type { RunStatus, WorkflowSummary } from '../../../types';
 import { listWorkflows, createWorkflow, deleteWorkflow, duplicateWorkflow, updateWorkflow } from '../../../services/workflows';
 import { ConfirmDeleteDialog } from '../Shared/ConfirmDeleteDialog';
+
+const STATUS_DOT_CLASSES: Record<RunStatus, string> = {
+  running: 'bg-amber-500',
+  pending: 'bg-neutral-500',
+  cancelling: 'bg-slate-400',
+  cancelled: 'bg-slate-500',
+  succeeded: 'bg-emerald-500',
+  failed: 'bg-red-500',
+};
+
+function relativeTime(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const seconds = Math.floor(diff / 1000);
+  if (seconds < 60) return `${seconds}s ago`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} min ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
 
 export function WorkflowListPage() {
   const navigate = useNavigate();
@@ -237,8 +258,19 @@ export function WorkflowListPage() {
                     </div>
                   )}
                 </div>
-                <div className="shrink-0 text-xs text-wr-text-muted">
-                  {new Date(wf.created_at).toLocaleDateString()}
+                <div className="shrink-0 flex items-center gap-3">
+                  {wf.last_run_status && (
+                    <span className="flex items-center gap-1.5 text-xs text-wr-text-muted">
+                      <span
+                        className={`inline-block h-2 w-2 rounded-full ${STATUS_DOT_CLASSES[wf.last_run_status] ?? 'bg-neutral-500'}`}
+                        title={wf.last_run_status}
+                      />
+                      {wf.last_run_at ? relativeTime(wf.last_run_at) : wf.last_run_status}
+                    </span>
+                  )}
+                  <span className="text-xs text-wr-text-muted">
+                    {new Date(wf.created_at).toLocaleDateString()}
+                  </span>
                 </div>
               </button>
 

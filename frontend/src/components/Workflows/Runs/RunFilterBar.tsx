@@ -12,10 +12,14 @@ interface RunFilterBarProps {
   sortBy: 'started_at' | 'duration';
   sortOrder: 'asc' | 'desc';
   onSortChange: (sort: 'started_at' | 'duration', order: 'asc' | 'desc') => void;
+  fromDate: string;
+  toDate: string;
+  onDateChange: (from: string, to: string) => void;
 }
 
 export function RunFilterBar({
   statuses, onStatusToggle, sortBy, sortOrder, onSortChange,
+  fromDate, toDate, onDateChange,
 }: RunFilterBarProps) {
   return (
     <div className="flex flex-wrap items-center gap-3">
@@ -31,6 +35,26 @@ export function RunFilterBar({
             </button>
           );
         })}
+      </div>
+      <div className="flex items-center gap-2">
+        <label htmlFor="run-from" className="text-xs text-wr-text-muted">From</label>
+        <input
+          id="run-from"
+          type="date"
+          aria-label="From date"
+          value={fromDate}
+          onChange={(e) => onDateChange(e.target.value, toDate)}
+          className="rounded-md border border-wr-border bg-wr-bg px-2 py-1 text-xs text-wr-text"
+        />
+        <label htmlFor="run-to" className="text-xs text-wr-text-muted">To</label>
+        <input
+          id="run-to"
+          type="date"
+          aria-label="To date"
+          value={toDate}
+          onChange={(e) => onDateChange(fromDate, e.target.value)}
+          className="rounded-md border border-wr-border bg-wr-bg px-2 py-1 text-xs text-wr-text"
+        />
       </div>
       <div className="ml-auto flex items-center gap-2">
         <label htmlFor="run-sort" className="text-xs text-wr-text-muted">Sort</label>

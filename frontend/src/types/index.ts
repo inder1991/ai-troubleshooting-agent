@@ -2556,6 +2556,8 @@ export interface WorkflowSummary {
   description: string;
   created_at: string;
   created_by?: string;
+  last_run_status?: RunStatus;
+  last_run_at?: string;
 }
 
 export interface VersionSummary {
@@ -2644,6 +2646,7 @@ export interface StepRunDetail {
 export interface RunDetail {
   id: string;
   workflow_version_id: string;
+  workflow_id?: string;
   status: RunStatus;
   started_at?: string;
   ended_at?: string;
@@ -2657,6 +2660,7 @@ export interface RunListResponse {
   runs: Array<{
     id: string;
     workflow_version_id: string;
+    workflow_id?: string;
     status: RunStatus;
     started_at?: string;
     ended_at?: string;

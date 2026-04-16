@@ -35,14 +35,19 @@ export function RunDetailPage() {
   const { runId } = useParams<{ runId: string }>();
   const location = useLocation();
   const navigate = useNavigate();
-  const workflowId = (location.state as { workflowId?: string } | null)?.workflowId ?? null;
+  const locationWorkflowId = (location.state as { workflowId?: string } | null)?.workflowId ?? null;
 
   const { run, liveEvents, loading, error, connected } = useRunEvents(runId!);
+
+  // Resolve workflowId from run data first, fall back to navigation state.
+  const workflowId = run?.workflow_id ?? locationWorkflowId;
+
   const [showRaw, setShowRaw] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [rerunning, setRerunning] = useState(false);
   const [showRerunInputs, setShowRerunInputs] = useState(false);
   const [rerunData, setRerunData] = useState<{ workflow_version_id: string; inputs: Record<string, unknown> } | null>(null);
+  const [rerunSchema, setRerunSchema] = useState<Record<string, unknown>>({});
   const [viewMode, setViewMode] = useState<ViewMode>(readViewMode);
   const [dagSteps, setDagSteps] = useState<StepSpec[] | null>(null);
   const [highlightedStepId, setHighlightedStepId] = useState<string | null>(null);
@@ -128,6 +133,17 @@ export function RunDetailPage() {
     try {
       const data = await getRerunData(runId);
       setRerunData(data);
+      // Fetch schema from the version if we can resolve workflowId.
+      if (workflowId) {
+        try {
+          const versionDetail = await getVersion(workflowId, run!.workflow_version_id);
+          setRerunSchema(versionDetail.dag.inputs_schema ?? {});
+        } catch {
+          setRerunSchema({});
+        }
+      } else {
+        setRerunSchema({});
+      }
       setShowRerunInputs(true);
     } catch {
       // silently fail
@@ -242,7 +258,8 @@ export function RunDetailPage() {
 
       {showRerunInputs && rerunData && (
         <InputsForm
-          schema={{}}
+          schema={rerunSchema}
+          initialValues={rerunData.inputs}
           onSubmit={async (inputs, opts) => {
             if (!workflowId) return;
             try {

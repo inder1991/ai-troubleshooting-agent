@@ -10,6 +10,9 @@ describe('RunFilterBar', () => {
     sortBy: 'started_at' as const,
     sortOrder: 'desc' as const,
     onSortChange: vi.fn(),
+    fromDate: '',
+    toDate: '',
+    onDateChange: vi.fn(),
   };
 
   it('renders status chip buttons', () => {

@@ -22,6 +22,7 @@ export class InputsInvalidError extends Error {
 interface RunSummaryWire {
   id: string;
   workflow_version_id: string;
+  workflow_id?: string;
   status: RunDetail['status'];
   started_at?: string;
   ended_at?: string;
@@ -37,6 +38,7 @@ function normalizeRun(
   return {
     id: summary.id,
     workflow_version_id: summary.workflow_version_id,
+    workflow_id: summary.workflow_id,
     status: summary.status,
     started_at: summary.started_at,
     ended_at: summary.ended_at,

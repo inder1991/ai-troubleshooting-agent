@@ -110,15 +110,20 @@ class WorkflowService:
 
     async def list_workflows(self) -> list[dict[str, Any]]:
         rows = await self._repo.list_workflows()
-        return [
-            {
+        result: list[dict[str, Any]] = []
+        for r in rows:
+            wf: dict[str, Any] = {
                 "id": r["id"],
                 "name": r["name"],
                 "description": r["description"],
                 "created_at": r["created_at"],
             }
-            for r in rows
-        ]
+            latest_run = await self._repo.get_latest_run_for_workflow(r["id"])
+            if latest_run is not None:
+                wf["last_run_status"] = latest_run["status"]
+                wf["last_run_at"] = latest_run.get("started_at") or latest_run.get("ended_at")
+            result.append(wf)
+        return result
 
     async def get_workflow(self, id: str) -> dict[str, Any] | None:
         row = await self._repo.get_workflow(id)
@@ -209,7 +214,7 @@ class WorkflowService:
         name: str | None = None,
         description: str | None = None,
     ) -> dict[str, Any] | None:
-        wf = await self._repo.get_workflow(workflow_id)
+        wf = await self.get_workflow(workflow_id)
         if wf is None:
             return None
         await self._repo.update_workflow(workflow_id, name=name, description=description)
@@ -221,18 +226,13 @@ class WorkflowService:
             raise LookupError("workflow not found")
         base_name = wf["name"]
         new_name = f"{base_name} (copy)"
+        existing = await self._repo.list_workflows()
+        names = {w["name"] for w in existing}
         suffix = 1
-        while True:
-            existing = await self._repo.list_workflows()
-            names = {w["name"] for w in existing}
-            if new_name not in names:
-                try:
-                    new_id = await self._repo.duplicate_workflow(workflow_id, new_name)
-                    break
-                except Exception:
-                    pass
+        while new_name in names:
             suffix += 1
             new_name = f"{base_name} (copy {suffix})"
+        new_id = await self._repo.duplicate_workflow(workflow_id, new_name)
         return await self.get_workflow(new_id)
 
     async def rollback_version(
@@ -272,7 +272,25 @@ class WorkflowService:
             "offset": offset,
         }
 
+    async def rerun(self, run_id: str) -> dict[str, Any]:
+        """Create a new run using the same version and inputs as an existing run."""
+        row = await self._repo.get_run(run_id)
+        if row is None:
+            raise LookupError("run not found")
+        workflow_version_id = row["workflow_version_id"]
+        inputs_json = row["inputs_json"]
+        new_run_id = await self._repo.create_run(
+            workflow_version_id=workflow_version_id,
+            inputs_json=inputs_json,
+        )
+        return {
+            "run_id": new_run_id,
+            "workflow_version_id": workflow_version_id,
+            "inputs": json.loads(inputs_json),
+        }
+
     async def get_rerun_data(self, run_id: str) -> dict[str, Any]:
+        """Return rerun data for the 'rerun with changes' flow (pre-fill form)."""
         row = await self._repo.get_run(run_id)
         if row is None:
             raise LookupError("run not found")
@@ -284,7 +302,7 @@ class WorkflowService:
     # ---- run path (Task 16-18) ----
 
     def _run_summary(self, row: dict[str, Any]) -> dict[str, Any]:
-        return {
+        summary: dict[str, Any] = {
             "id": row["id"],
             "workflow_version_id": row["workflow_version_id"],
             "status": row["status"],
@@ -292,8 +310,13 @@ class WorkflowService:
             "ended_at": row["ended_at"],
             "idempotency_key": row.get("idempotency_key"),
             "run_mode": row.get("run_mode", "workflow"),
+            "inputs": json.loads(row["inputs_json"]) if row.get("inputs_json") else None,
             "error": json.loads(row["error_json"]) if row.get("error_json") else None,
         }
+        # Include workflow_id when available (joined from workflow_versions).
+        if "workflow_id" in row:
+            summary["workflow_id"] = row["workflow_id"]
+        return summary
 
     def _step_summary(self, row: dict[str, Any]) -> dict[str, Any]:
         return {

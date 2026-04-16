@@ -187,7 +187,14 @@ class WorkflowRepository:
             where.append("wr.started_at <= ?")
             params.append(to_date)
         where_clause = " AND ".join(where) if where else "1=1"
-        sort_col = "wr.started_at"
+        if sort == "duration":
+            sort_col = (
+                "CASE WHEN wr.ended_at IS NOT NULL "
+                "THEN (julianday(wr.ended_at) - julianday(wr.started_at)) "
+                "ELSE 0 END"
+            )
+        else:
+            sort_col = "wr.started_at"
         order_dir = "DESC" if order == "desc" else "ASC"
         async with self._conn() as db:
             async with db.execute(
@@ -196,7 +203,8 @@ class WorkflowRepository:
             ) as cur:
                 total = (await cur.fetchone())[0]
             async with db.execute(
-                f"SELECT wr.* FROM workflow_runs wr "
+                f"SELECT wr.*, wv.workflow_id FROM workflow_runs wr "
+                f"LEFT JOIN workflow_versions wv ON wr.workflow_version_id = wv.id "
                 f"WHERE {where_clause} ORDER BY {sort_col} {order_dir} LIMIT ? OFFSET ?",
                 (*params, limit, offset),
             ) as cur:
@@ -299,7 +307,10 @@ class WorkflowRepository:
     async def get_run(self, run_id: str) -> dict[str, Any] | None:
         async with self._conn() as db:
             async with db.execute(
-                "SELECT * FROM workflow_runs WHERE id = ?", (run_id,)
+                "SELECT wr.*, wv.workflow_id FROM workflow_runs wr "
+                "LEFT JOIN workflow_versions wv ON wr.workflow_version_id = wv.id "
+                "WHERE wr.id = ?",
+                (run_id,),
             ) as cur:
                 row = await cur.fetchone()
                 return dict(row) if row else None

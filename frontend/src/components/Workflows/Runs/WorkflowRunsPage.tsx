@@ -47,6 +47,8 @@ export function WorkflowRunsPage() {
   const sortOrder = (searchParams.get('order') ?? 'desc') as 'asc' | 'desc';
   const page = Number(searchParams.get('page') ?? '0');
   const workflowFilter = searchParams.get('workflow_id') ?? undefined;
+  const fromDate = searchParams.get('from') ?? '';
+  const toDate = searchParams.get('to') ?? '';
 
   // New-run wizard state
   const [newRunStep, setNewRunStep] = useState<NewRunStep>('closed');
@@ -64,6 +66,8 @@ export function WorkflowRunsPage() {
     listRuns({
       status: statuses.length > 0 ? statuses.join(',') : undefined,
       workflow_id: workflowFilter,
+      from: fromDate || undefined,
+      to: toDate || undefined,
       sort: sortBy,
       order: sortOrder,
       limit: LIMIT,
@@ -96,6 +100,18 @@ export function WorkflowRunsPage() {
       const params = new URLSearchParams(prev);
       params.set('sort', sort);
       params.set('order', order);
+      params.delete('page');
+      return params;
+    });
+  }, [setSearchParams]);
+
+  const handleDateChange = useCallback((from: string, to: string) => {
+    setSearchParams((prev) => {
+      const params = new URLSearchParams(prev);
+      if (from) params.set('from', from);
+      else params.delete('from');
+      if (to) params.set('to', to);
+      else params.delete('to');
       params.delete('page');
       return params;
     });
@@ -194,6 +210,9 @@ export function WorkflowRunsPage() {
         sortBy={sortBy}
         sortOrder={sortOrder}
         onSortChange={handleSortChange}
+        fromDate={fromDate}
+        toDate={toDate}
+        onDateChange={handleDateChange}
       />
 
       {/* New run wizard — step 1: select workflow + version */}
