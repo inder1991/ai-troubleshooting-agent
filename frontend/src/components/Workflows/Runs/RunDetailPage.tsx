@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, useLocation } from 'react-router-dom';
+import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { useRunEvents } from './useRunEvents';
 import { StepStatusPanel } from './StepStatusPanel';
 import { EventsRawStream } from './EventsRawStream';
 import { DagView } from './DagView';
-import { cancelRun, RunTerminalError } from '../../../services/runs';
+import { InputsForm } from './InputsForm';
+import { cancelRun, createRun, getRerunData, RunTerminalError } from '../../../services/runs';
 import { getVersion } from '../../../services/workflows';
 import type { RunStatus, StepSpec } from '../../../types';
 
@@ -33,11 +34,15 @@ function readViewMode(): ViewMode {
 export function RunDetailPage() {
   const { runId } = useParams<{ runId: string }>();
   const location = useLocation();
+  const navigate = useNavigate();
   const workflowId = (location.state as { workflowId?: string } | null)?.workflowId ?? null;
 
   const { run, liveEvents, loading, error, connected } = useRunEvents(runId!);
   const [showRaw, setShowRaw] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [rerunning, setRerunning] = useState(false);
+  const [showRerunInputs, setShowRerunInputs] = useState(false);
+  const [rerunData, setRerunData] = useState<{ workflow_version_id: string; inputs: Record<string, unknown> } | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>(readViewMode);
   const [dagSteps, setDagSteps] = useState<StepSpec[] | null>(null);
   const [highlightedStepId, setHighlightedStepId] = useState<string | null>(null);
@@ -104,6 +109,31 @@ export function RunDetailPage() {
     }
   }
 
+  async function handleRerun() {
+    if (!runId || rerunning || !workflowId) return;
+    setRerunning(true);
+    try {
+      const data = await getRerunData(runId);
+      const newRun = await createRun(workflowId, { inputs: data.inputs });
+      navigate(`/workflows/runs/${newRun.id}`, { state: { workflowId } });
+    } catch {
+      // silently fail
+    } finally {
+      setRerunning(false);
+    }
+  }
+
+  async function handleRerunWithChanges() {
+    if (!runId) return;
+    try {
+      const data = await getRerunData(runId);
+      setRerunData(data);
+      setShowRerunInputs(true);
+    } catch {
+      // silently fail
+    }
+  }
+
   const handleNodeClick = (nodeId: string) => {
     setHighlightedStepId((prev) => (prev === nodeId ? null : nodeId));
   };
@@ -149,13 +179,29 @@ export function RunDetailPage() {
           </div>
         </div>
 
-        <button
-          className="px-3 py-1.5 rounded text-sm font-medium bg-red-600 hover:bg-red-700 text-white disabled:opacity-40 disabled:cursor-not-allowed"
-          disabled={isTerminal || cancelling}
-          onClick={handleCancel}
-        >
-          {cancelling ? 'Cancelling...' : 'Cancel'}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            className="px-3 py-1.5 rounded text-sm font-medium bg-wr-accent text-wr-on-accent hover:bg-wr-accent-hover disabled:opacity-40 disabled:cursor-not-allowed"
+            disabled={!isTerminal || rerunning}
+            onClick={handleRerun}
+          >
+            {rerunning ? 'Rerunning...' : 'Rerun'}
+          </button>
+          <button
+            className="px-3 py-1.5 rounded text-sm font-medium border border-wr-border bg-wr-surface text-wr-text hover:bg-wr-elevated disabled:opacity-40 disabled:cursor-not-allowed"
+            disabled={!isTerminal}
+            onClick={handleRerunWithChanges}
+          >
+            Rerun with changes
+          </button>
+          <button
+            className="px-3 py-1.5 rounded text-sm font-medium bg-red-600 hover:bg-red-700 text-white disabled:opacity-40 disabled:cursor-not-allowed"
+            disabled={isTerminal || cancelling}
+            onClick={handleCancel}
+          >
+            {cancelling ? 'Cancelling...' : 'Cancel'}
+          </button>
+        </div>
       </div>
 
       {/* DagView (graph mode) */}
@@ -193,6 +239,23 @@ export function RunDetailPage() {
           </div>
         )}
       </div>
+
+      {showRerunInputs && rerunData && (
+        <InputsForm
+          schema={{}}
+          onSubmit={async (inputs, opts) => {
+            if (!workflowId) return;
+            try {
+              const newRun = await createRun(workflowId, { inputs, idempotency_key: opts.idempotency_key });
+              setShowRerunInputs(false);
+              navigate(`/workflows/runs/${newRun.id}`, { state: { workflowId } });
+            } catch {
+              // silently fail
+            }
+          }}
+          onCancel={() => setShowRerunInputs(false)}
+        />
+      )}
     </div>
   );
 }
