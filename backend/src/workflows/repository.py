@@ -7,11 +7,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, AsyncIterator
 
+import sqlite3
+
 import aiosqlite
 
-_MIGRATION_PATH = (
-    Path(__file__).parent / "migrations" / "001_create_workflow_tables.sql"
-)
+_MIGRATIONS_DIR = Path(__file__).parent / "migrations"
 
 
 def _now() -> str:
@@ -28,10 +28,14 @@ class WorkflowRepository:
         self._write_lock = asyncio.Lock()
 
     async def init(self) -> None:
-        sql = _MIGRATION_PATH.read_text()
         async with aiosqlite.connect(self._db_path) as db:
             await db.execute("PRAGMA foreign_keys = ON")
-            await db.executescript(sql)
+            for sql_file in sorted(_MIGRATIONS_DIR.glob("*.sql")):
+                try:
+                    await db.executescript(sql_file.read_text())
+                except sqlite3.OperationalError as exc:
+                    if "duplicate column" not in str(exc):
+                        raise
             await db.commit()
 
     @asynccontextmanager
