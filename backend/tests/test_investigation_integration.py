@@ -664,3 +664,226 @@ class TestPinDataIntegrity:
         for pin_data in pins:
             expected_type = type_map[pin_data["id"]][0]
             assert pin_data["evidence_type"] == expected_type
+
+
+# ---------------------------------------------------------------------------
+# Phase 5: Full Investigation Loop (InvestigationExecutor integration)
+# ---------------------------------------------------------------------------
+
+from src.workflows.investigation_executor import InvestigationExecutor
+from src.workflows.investigation_store import InvestigationStore
+from src.workflows.investigation_types import InvestigationStepSpec
+from src.workflows.event_schema import StepStatus, StepMetadata
+
+
+class _FakeEmitter:
+    def __init__(self):
+        self.events = []
+    async def emit(self, agent_name, event_type, message, details=None):
+        self.events.append({"agent_name": agent_name, "event_type": event_type, "message": message, "details": details})
+
+
+class _FakeWorkflowExecutor:
+    """Simulates WorkflowExecutor running 1-node DAGs with per-agent mock results."""
+    def __init__(self, agent_results: dict[str, dict]):
+        self._agent_results = agent_results
+        self.run_count = 0
+
+    async def run(self, compiled, inputs, env=None, cancel_event=None, contracts=None):
+        step_id = compiled.topo_order[0]
+        agent = compiled.steps[step_id].agent
+        self.run_count += 1
+        output = self._agent_results.get(agent, {"evidence_pins": []})
+
+        @dataclass
+        class NodeState:
+            status: str = "COMPLETED"
+            output: dict | None = None
+            error: dict | None = None
+            started_at: str = "2026-04-16T10:00:00Z"
+            ended_at: str = "2026-04-16T10:00:01Z"
+            attempt: int = 1
+
+        @dataclass
+        class RunResult:
+            status: str = "COMPLETED"
+            node_states: dict = None
+            error: dict | None = None
+
+        return RunResult(
+            status="COMPLETED",
+            node_states={step_id: NodeState(output=output)},
+        )
+
+
+from dataclasses import dataclass as dataclass
+
+
+@pytest.mark.asyncio
+async def test_full_investigation_loop():
+    """Simulate a 3-round investigation: log -> metrics -> k8s."""
+    emitter = _FakeEmitter()
+    store = InvestigationStore(redis_client=None)
+    wf_executor = _FakeWorkflowExecutor(agent_results={
+        "log_agent": {"evidence_pins": [{"claim": "OOM in api-gateway"}], "overall_confidence": 40},
+        "metrics_agent": {"evidence_pins": [{"claim": "memory spike at 10:42"}], "overall_confidence": 65},
+        "k8s_agent": {"evidence_pins": [{"claim": "pod restarted 3x"}], "overall_confidence": 80},
+    })
+
+    inv_executor = InvestigationExecutor(
+        run_id="inv-integration-1",
+        emitter=emitter,
+        store=store,
+        workflow_executor=wf_executor,
+    )
+
+    # Round 1: log_agent
+    r1 = await inv_executor.run_step(InvestigationStepSpec(
+        step_id="round-1-log-agent",
+        agent="log_agent",
+        depends_on=[],
+        input_data={"service_name": "api-gateway"},
+        metadata=StepMetadata(agent="log_agent", round=1, reason="initial triage"),
+    ))
+    assert r1.status == StepStatus.SUCCESS
+    assert r1.output["evidence_pins"][0]["claim"] == "OOM in api-gateway"
+
+    # Round 2: metrics_agent (depends on log)
+    r2 = await inv_executor.run_step(InvestigationStepSpec(
+        step_id="round-2-metrics-agent",
+        agent="metrics_agent",
+        depends_on=["round-1-log-agent"],
+        input_data={"service_name": "api-gateway"},
+        metadata=StepMetadata(agent="metrics_agent", round=2, hypothesis_id="h1", reason="validate OOM"),
+    ))
+    assert r2.status == StepStatus.SUCCESS
+
+    # Round 3: k8s_agent (depends on metrics)
+    r3 = await inv_executor.run_step(InvestigationStepSpec(
+        step_id="round-3-k8s-agent",
+        agent="k8s_agent",
+        depends_on=["round-2-metrics-agent"],
+        input_data={"namespace": "production"},
+        metadata=StepMetadata(agent="k8s_agent", round=3, hypothesis_id="h1", reason="check pod health"),
+    ))
+    assert r3.status == StepStatus.SUCCESS
+
+    # Verify virtual DAG
+    dag = inv_executor.get_dag()
+    assert len(dag.steps) == 3
+    assert dag.steps[0].step_id == "round-1-log-agent"
+    assert dag.steps[1].depends_on == ["round-1-log-agent"]
+    assert dag.steps[2].depends_on == ["round-2-metrics-agent"]
+
+    # Verify all steps have typed results
+    for step in dag.steps:
+        assert step.status == StepStatus.SUCCESS
+        assert step.started_at is not None
+        assert step.ended_at is not None
+        assert step.duration_ms is not None
+
+    # Verify events emitted (2 per step: running + success = 6 total)
+    step_events = [e for e in emitter.events if e["event_type"] == "step_update"]
+    assert len(step_events) == 6
+
+    # Verify sequence numbers are monotonic
+    seq_numbers = [e["details"]["sequence_number"] for e in step_events]
+    assert seq_numbers == sorted(seq_numbers)
+    assert len(set(seq_numbers)) == len(seq_numbers)
+
+    # Verify workflow executor was called 3 times
+    assert wf_executor.run_count == 3
+
+    # Verify persistence
+    loaded = await store.load_dag("inv-integration-1")
+    assert loaded is not None
+    assert len(loaded.steps) == 3
+
+    # Verify causal metadata preserved
+    assert dag.steps[1].triggered_by == "h1"
+    assert dag.steps[2].reason == "check pod health"
+
+
+@pytest.mark.asyncio
+async def test_investigation_with_agent_failure():
+    """One agent fails mid-investigation — DAG records the failure."""
+    emitter = _FakeEmitter()
+    store = InvestigationStore(redis_client=None)
+
+    class FailingExecutor:
+        async def run(self, compiled, inputs, **kwargs):
+            step_id = compiled.topo_order[0]
+            @dataclass
+            class NodeState:
+                status: str = "FAILED"
+                output: dict | None = None
+                error: dict | None = None
+                started_at: str = "2026-04-16T10:00:00Z"
+                ended_at: str = "2026-04-16T10:00:05Z"
+                attempt: int = 1
+            @dataclass
+            class RunResult:
+                status: str = "FAILED"
+                node_states: dict = None
+                error: dict | None = None
+            return RunResult(
+                status="FAILED",
+                node_states={step_id: NodeState(error={"message": "Prometheus unreachable", "type": "ConnectionError"})},
+                error={"message": "Prometheus unreachable"},
+            )
+
+    inv_executor = InvestigationExecutor(
+        run_id="inv-fail-1",
+        emitter=emitter,
+        store=store,
+        workflow_executor=FailingExecutor(),
+    )
+
+    result = await inv_executor.run_step(InvestigationStepSpec(
+        step_id="round-1-metrics-agent",
+        agent="metrics_agent",
+        depends_on=[],
+        metadata=StepMetadata(agent="metrics_agent", round=1),
+    ))
+
+    assert result.status == StepStatus.FAILED
+    assert result.error is not None
+    assert result.error.message == "Prometheus unreachable"
+    assert result.error.type == "ConnectionError"
+
+    dag = inv_executor.get_dag()
+    assert dag.steps[0].status == StepStatus.FAILED
+    assert dag.steps[0].error.message == "Prometheus unreachable"
+
+
+@pytest.mark.asyncio
+async def test_hypothesis_boundary():
+    """Verify hypotheses stay in supervisor, NOT in the executor/DAG."""
+    emitter = _FakeEmitter()
+    store = InvestigationStore(redis_client=None)
+    wf_executor = _FakeWorkflowExecutor(agent_results={
+        "log_agent": {"evidence_pins": [], "overall_confidence": 50},
+    })
+
+    inv_executor = InvestigationExecutor(
+        run_id="inv-boundary-1",
+        emitter=emitter,
+        store=store,
+        workflow_executor=wf_executor,
+    )
+
+    await inv_executor.run_step(InvestigationStepSpec(
+        step_id="round-1-log-agent",
+        agent="log_agent",
+        depends_on=[],
+        metadata=StepMetadata(agent="log_agent", round=1, hypothesis_id="h1"),
+    ))
+
+    dag = inv_executor.get_dag()
+    # DAG knows which hypothesis triggered the step (metadata)
+    assert dag.steps[0].triggered_by == "h1"
+    # But DAG does NOT contain hypothesis details, evidence, or confidence
+    step_dict = dag.steps[0].to_dict()
+    assert "hypotheses" not in step_dict
+    assert "evidence" not in step_dict
+    assert "confidence" not in step_dict
