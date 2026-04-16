@@ -319,6 +319,7 @@ export function WorkflowBuilderPage() {
       {/* Success banner */}
       {successBanner && (
         <div
+          data-testid="save-success-banner"
           className="border-b border-wr-border bg-emerald-500/10 px-6 py-2 text-sm text-emerald-400"
           role="status"
         >
@@ -369,6 +370,7 @@ export function WorkflowBuilderPage() {
           <div className="relative mt-4">
             <button
               type="button"
+              data-testid="add-step-btn"
               onClick={() => setAddStepOpen((o) => !o)}
               className="w-full rounded-md border border-dashed border-wr-border bg-wr-surface px-3 py-2 text-sm text-wr-text-muted hover:border-wr-accent hover:text-wr-text"
               aria-label="Add step"
@@ -381,6 +383,7 @@ export function WorkflowBuilderPage() {
                   <button
                     key={`${agent.name}-${agent.version}`}
                     type="button"
+                    data-testid={`agent-option-${agent.name}`}
                     onClick={() => handleAddStep(agent)}
                     className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-wr-text hover:bg-wr-elevated"
                   >

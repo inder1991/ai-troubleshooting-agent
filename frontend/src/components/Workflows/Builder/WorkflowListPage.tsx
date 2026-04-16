@@ -78,6 +78,7 @@ export function WorkflowListPage() {
         </h1>
         <button
           type="button"
+          data-testid="create-workflow-btn"
           onClick={() => setShowCreate((o) => !o)}
           className="rounded-md border border-wr-border bg-wr-accent px-4 py-2 text-sm text-wr-on-accent hover:bg-wr-accent-hover"
         >
@@ -98,6 +99,7 @@ export function WorkflowListPage() {
               </label>
               <input
                 id="wf-create-name"
+                data-testid="wf-name-input"
                 type="text"
                 value={createName}
                 onChange={(e) => setCreateName(e.target.value)}
@@ -124,6 +126,7 @@ export function WorkflowListPage() {
             <div className="flex gap-2">
               <button
                 type="button"
+                data-testid="wf-create-submit"
                 onClick={handleCreate}
                 disabled={!createName.trim() || creating}
                 className="rounded-md border border-wr-border bg-wr-accent px-4 py-1.5 text-sm text-wr-on-accent hover:bg-wr-accent-hover disabled:cursor-not-allowed disabled:opacity-50"

@@ -56,6 +56,7 @@ export function WorkflowHeader({
         <div className="flex items-center gap-2">
           <button
             type="button"
+            data-testid="save-btn"
             onClick={onSave}
             disabled={saveDisabled}
             className="inline-flex items-center gap-2 rounded-md border border-wr-border bg-wr-surface px-3 py-1.5 text-sm text-wr-text hover:bg-wr-elevated disabled:cursor-not-allowed disabled:opacity-50"
@@ -71,6 +72,7 @@ export function WorkflowHeader({
           </button>
           <button
             type="button"
+            data-testid="run-btn"
             onClick={onRun}
             className="rounded-md border border-wr-border bg-wr-accent px-3 py-1.5 text-sm text-wr-on-accent hover:bg-wr-accent-hover"
           >
