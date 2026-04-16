@@ -39,7 +39,8 @@ import ClusterRegistryPage from './components/ClusterRegistry/ClusterRegistryPag
 import ClusterRecommendationsPage from './components/ClusterRegistry/ClusterRecommendationsPage';
 import AgentMatrixView from './components/AgentMatrix/AgentMatrixView';
 import AgentCatalogView from './components/Platform/AgentCatalog/AgentCatalogView';
-import WorkflowBuilderView from './components/Platform/WorkflowBuilder/WorkflowBuilderView';
+import { WorkflowListPage } from './components/Workflows/Builder/WorkflowListPage';
+import { WorkflowBuilderPage } from './components/Workflows/Builder/WorkflowBuilderPage';
 import WorkflowRunsView from './components/Platform/WorkflowRuns/WorkflowRunsView';
 import IntegrationSettings from './components/Settings/IntegrationSettings';
 import SettingsView from './components/Settings/SettingsView';
@@ -261,7 +262,15 @@ export const router = createBrowserRouter([
             index: true,
             element: (
               <WorkflowsGuard>
-                <WorkflowBuilderView />
+                <WorkflowListPage />
+              </WorkflowsGuard>
+            ),
+          },
+          {
+            path: ':workflowId',
+            element: (
+              <WorkflowsGuard>
+                <WorkflowBuilderPage />
               </WorkflowsGuard>
             ),
           },
