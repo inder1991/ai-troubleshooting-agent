@@ -41,7 +41,7 @@ import AgentMatrixView from './components/AgentMatrix/AgentMatrixView';
 import AgentCatalogView from './components/Platform/AgentCatalog/AgentCatalogView';
 import { WorkflowListPage } from './components/Workflows/Builder/WorkflowListPage';
 import { WorkflowBuilderPage } from './components/Workflows/Builder/WorkflowBuilderPage';
-import WorkflowRunsView from './components/Platform/WorkflowRuns/WorkflowRunsView';
+import { WorkflowRunsPage } from './components/Workflows/Runs/WorkflowRunsPage';
 import IntegrationSettings from './components/Settings/IntegrationSettings';
 import SettingsView from './components/Settings/SettingsView';
 import AuditLogView from './components/AuditLog/AuditLogView';
@@ -135,11 +135,6 @@ function ClusterRecommendationsRoute() {
       onBack={() => navigate('/clusters/registry')}
     />
   );
-}
-
-function WorkflowRunsRoute() {
-  const navigate = useNavigate();
-  return <WorkflowRunsView onNavigate={() => navigate('/workflows')} />;
 }
 
 function CapabilityFormRoute() {
@@ -279,7 +274,7 @@ export const router = createBrowserRouter([
             path: 'runs',
             element: (
               <WorkflowsGuard>
-                <WorkflowRunsRoute />
+                <WorkflowRunsPage />
               </WorkflowsGuard>
             ),
           },
