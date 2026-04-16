@@ -6,13 +6,13 @@ OFF-by-default deploys expose nothing.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
 import asyncio
 import json
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, status
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, ValidationError, conint
 from sse_starlette.sse import EventSourceResponse
 
 from src import config
@@ -357,44 +357,61 @@ async def rollback_version(
         raise HTTPException(status_code=404, detail=str(e))
 
 
+class ListRunsParams(BaseModel):
+    status: str | None = Query(default=None)
+    workflow_id: str | None = None
+    from_date: str | None = None
+    to_date: str | None = None
+    sort: Literal["started_at", "duration"] = "started_at"
+    order: Literal["asc", "desc"] = "desc"
+    limit: conint(ge=1, le=200) = 50
+    offset: conint(ge=0) = 0
+
+
+_VALID_STATUSES = {"pending", "running", "success", "failed", "cancelled", "cancelling"}
+
+
+def _parse_statuses(raw: str | None) -> list[str] | None:
+    if not raw:
+        return None
+    statuses = [s.strip() for s in raw.split(",") if s.strip()]
+    invalid = set(statuses) - _VALID_STATUSES
+    if invalid:
+        raise HTTPException(
+            status_code=400,
+            detail=f"invalid status values: {', '.join(sorted(invalid))}. "
+            f"allowed: {', '.join(sorted(_VALID_STATUSES))}",
+        )
+    return statuses
+
+
 @router.get("/runs", dependencies=[Depends(require_flag)])
 async def list_runs(
-    status_filter: str | None = Query(default=None, alias="status"),
-    workflow_id: str | None = None,
-    from_date: str | None = None,
-    to_date: str | None = None,
-    sort: str = "started_at",
-    order: str = "desc",
-    limit: int = 50,
-    offset: int = 0,
+    params: ListRunsParams = Depends(),
     svc: WorkflowService = Depends(get_workflow_service),
 ) -> dict[str, Any]:
-    statuses = status_filter.split(",") if status_filter else None
+    statuses = _parse_statuses(params.status)
     return await svc.list_runs(
-        workflow_id=workflow_id, statuses=statuses, from_date=from_date,
-        to_date=to_date, sort=sort, order=order, limit=min(limit, 200), offset=offset,
+        workflow_id=params.workflow_id, statuses=statuses, from_date=params.from_date,
+        to_date=params.to_date, sort=params.sort, order=params.order,
+        limit=params.limit, offset=params.offset,
     )
 
 
 @router.get("/workflows/{workflow_id}/runs", dependencies=[Depends(require_flag)])
 async def list_workflow_runs(
     workflow_id: str,
-    status_filter: str | None = Query(default=None, alias="status"),
-    from_date: str | None = None,
-    to_date: str | None = None,
-    sort: str = "started_at",
-    order: str = "desc",
-    limit: int = 50,
-    offset: int = 0,
+    params: ListRunsParams = Depends(),
     svc: WorkflowService = Depends(get_workflow_service),
 ) -> dict[str, Any]:
     wf = await svc.get_workflow(workflow_id)
     if wf is None:
         raise HTTPException(status_code=404, detail="workflow not found")
-    statuses = status_filter.split(",") if status_filter else None
+    statuses = _parse_statuses(params.status)
     return await svc.list_runs(
-        workflow_id=workflow_id, statuses=statuses, from_date=from_date,
-        to_date=to_date, sort=sort, order=order, limit=min(limit, 200), offset=offset,
+        workflow_id=workflow_id, statuses=statuses, from_date=params.from_date,
+        to_date=params.to_date, sort=params.sort, order=params.order,
+        limit=params.limit, offset=params.offset,
     )
 
 

@@ -194,3 +194,63 @@ async def test_rerun(client):
     assert "run_id" in data
     assert "workflow_version_id" in data
     assert "inputs" in data
+
+
+# ---- DELETE 409 CONFLICT (active runs) ----
+
+@pytest.mark.asyncio
+async def test_delete_workflow_409_active_runs(client):
+    wf = await _create_wf(client)
+    ver = await _create_version(client, wf["id"])
+    # Create a run (will go through executor quickly with stub runner)
+    run_resp = await client.post(
+        f"/api/v4/workflows/{wf['id']}/runs",
+        json={"inputs": {}},
+    )
+    assert run_resp.status_code == 201
+    run_id = run_resp.json()["run"]["id"]
+    # Directly set status to 'running' in the DB via the service's repo
+    from src.api.routes_workflows import _service
+    async with _service._repo._conn() as db:
+        await db.execute(
+            "UPDATE workflow_runs SET status = 'running' WHERE id = ?",
+            (run_id,),
+        )
+        await db.commit()
+    # Attempt to delete should return 409
+    resp = await client.delete(f"/api/v4/workflows/{wf['id']}")
+    assert resp.status_code == 409
+    assert resp.json()["detail"]["type"] == "active_runs"
+
+
+# ---- LIST RUNS VALIDATION ----
+
+@pytest.mark.asyncio
+async def test_list_runs_invalid_status(client):
+    resp = await client.get("/api/v4/runs", params={"status": "bogus"})
+    assert resp.status_code == 400
+    assert "invalid status values" in resp.json()["detail"]
+
+
+@pytest.mark.asyncio
+async def test_list_runs_invalid_sort(client):
+    resp = await client.get("/api/v4/runs", params={"sort": "nope"})
+    assert resp.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_list_runs_invalid_limit(client):
+    resp = await client.get("/api/v4/runs", params={"limit": 0})
+    assert resp.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_list_runs_limit_over_max(client):
+    resp = await client.get("/api/v4/runs", params={"limit": 201})
+    assert resp.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_list_runs_negative_offset(client):
+    resp = await client.get("/api/v4/runs", params={"offset": -1})
+    assert resp.status_code == 422
