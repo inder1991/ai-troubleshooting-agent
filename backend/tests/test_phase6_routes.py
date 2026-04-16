@@ -202,19 +202,16 @@ async def test_rerun(client):
 async def test_delete_workflow_409_active_runs(client):
     wf = await _create_wf(client)
     ver = await _create_version(client, wf["id"])
-    # Create a run (will go through executor quickly with stub runner)
-    run_resp = await client.post(
-        f"/api/v4/workflows/{wf['id']}/runs",
-        json={"inputs": {}},
-    )
-    assert run_resp.status_code == 201
-    run_id = run_resp.json()["run"]["id"]
-    # Directly set status to 'running' in the DB via the service's repo
+    ver_id = ver["version_id"]
+    # Insert a run with status='running' directly — avoids race with background executor
     from src.api.routes_workflows import _service
+    import uuid
+    run_id = str(uuid.uuid4())
     async with _service._repo._conn() as db:
         await db.execute(
-            "UPDATE workflow_runs SET status = 'running' WHERE id = ?",
-            (run_id,),
+            "INSERT INTO workflow_runs (id, workflow_version_id, status, inputs_json, started_at) "
+            "VALUES (?, ?, 'running', '{}', datetime('now'))",
+            (run_id, ver_id),
         )
         await db.commit()
     # Attempt to delete should return 409

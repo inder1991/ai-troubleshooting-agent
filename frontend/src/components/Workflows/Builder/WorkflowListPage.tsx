@@ -285,7 +285,7 @@ export function WorkflowListPage() {
               </button>
 
               {/* Three-dot menu */}
-              <div className="relative shrink-0" ref={menuRef}>
+              <div className="relative shrink-0" ref={menuOpenId === wf.id ? menuRef : undefined}>
                 <button
                   type="button"
                   data-testid={`menu-btn-${wf.id}`}
