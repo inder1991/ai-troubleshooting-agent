@@ -180,6 +180,61 @@ describe('computeFailurePath', () => {
     expect(highlighted.has('D')).toBe(true);
     expect(dimmed.has('C')).toBe(true);
   });
+
+  it('16. multiple failures → union of paths highlighted', () => {
+    // A → B(fail), C → D(fail), E is isolated ok
+    const model = mkModel(
+      { A: 'success', B: 'failed', C: 'success', D: 'failed', E: 'success' },
+      [['A', 'B'], ['C', 'D']],
+    );
+    const { highlighted, dimmed } = computeFailurePath(model);
+    expect(highlighted.has('A')).toBe(true);
+    expect(highlighted.has('B')).toBe(true);
+    expect(highlighted.has('C')).toBe(true);
+    expect(highlighted.has('D')).toBe(true);
+    expect(dimmed.has('E')).toBe(true);
+  });
+
+  it('17. isolated failure (no deps, no dependents) → only that node highlighted', () => {
+    const model = mkModel(
+      { A: 'success', B: 'failed', C: 'success' },
+      [['A', 'C']], // B has no edges
+    );
+    const { highlighted, dimmed } = computeFailurePath(model);
+    expect(highlighted.size).toBe(1);
+    expect(highlighted.has('B')).toBe(true);
+    expect(dimmed.has('A')).toBe(true);
+    expect(dimmed.has('C')).toBe(true);
+  });
+});
+
+/* ── isEdgeOnFailurePath (additional) ────────────────────────────── */
+describe('isEdgeOnFailurePath – additional', () => {
+  it('18. source highlighted, target not → false', () => {
+    const highlighted = new Set(['A']);
+    expect(isEdgeOnFailurePath({ source: 'A', target: 'B' }, highlighted)).toBe(false);
+  });
+
+  it('19. source not highlighted, target highlighted → false', () => {
+    const highlighted = new Set(['B']);
+    expect(isEdgeOnFailurePath({ source: 'A', target: 'B' }, highlighted)).toBe(false);
+  });
+
+  it('20. neither highlighted → false', () => {
+    const highlighted = new Set<string>();
+    expect(isEdgeOnFailurePath({ source: 'A', target: 'B' }, highlighted)).toBe(false);
+  });
+});
+
+/* ── edgeStatus (additional) ──────────────────────────────────── */
+describe('edgeStatus – exhaustive', () => {
+  it('21. skipped → pending', () => {
+    expect(edgeStatus('skipped')).toBe('pending');
+  });
+
+  it('22. cancelled → pending', () => {
+    expect(edgeStatus('cancelled')).toBe('pending');
+  });
 });
 
 /* ── edgeStatus ────────────────────────────────────────────────── */
