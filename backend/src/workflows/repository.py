@@ -74,10 +74,147 @@ class WorkflowRepository:
     async def list_workflows(self) -> list[dict[str, Any]]:
         async with self._conn() as db:
             async with db.execute(
-                "SELECT * FROM workflows ORDER BY created_at ASC"
+                "SELECT * FROM workflows WHERE deleted_at IS NULL ORDER BY created_at ASC"
             ) as cur:
                 rows = await cur.fetchall()
                 return [dict(r) for r in rows]
+
+    async def soft_delete_workflow(self, id: str) -> None:
+        async with self._conn() as db:
+            await db.execute(
+                "UPDATE workflows SET deleted_at = ? WHERE id = ? AND deleted_at IS NULL",
+                (_now(), id),
+            )
+            await db.commit()
+
+    async def has_active_runs(self, workflow_id: str) -> bool:
+        async with self._conn() as db:
+            async with db.execute(
+                "SELECT 1 FROM workflow_runs wr "
+                "JOIN workflow_versions wv ON wr.workflow_version_id = wv.id "
+                "WHERE wv.workflow_id = ? AND wr.status IN ('running', 'pending', 'cancelling') "
+                "LIMIT 1",
+                (workflow_id,),
+            ) as cur:
+                return await cur.fetchone() is not None
+
+    async def update_workflow(
+        self, id: str, *, name: str | None = None, description: str | None = None
+    ) -> None:
+        parts: list[str] = []
+        vals: list[Any] = []
+        if name is not None:
+            parts.append("name = ?")
+            vals.append(name)
+        if description is not None:
+            parts.append("description = ?")
+            vals.append(description)
+        if not parts:
+            return
+        vals.append(id)
+        async with self._conn() as db:
+            await db.execute(
+                f"UPDATE workflows SET {', '.join(parts)} WHERE id = ?",
+                tuple(vals),
+            )
+            await db.commit()
+
+    async def duplicate_workflow(self, source_id: str, new_name: str) -> str:
+        source = await self.get_workflow(source_id)
+        if source is None:
+            raise LookupError("source workflow not found")
+        latest = await self.get_latest_version(source_id)
+        if latest is None:
+            raise LookupError("source has no versions")
+        new_id = _new_id()
+        async with self._conn() as db:
+            await db.execute(
+                "INSERT INTO workflows (id, name, description, created_at, created_by) "
+                "VALUES (?, ?, ?, ?, ?)",
+                (new_id, new_name, source["description"], _now(), source.get("created_by")),
+            )
+            v_id = _new_id()
+            await db.execute(
+                "INSERT INTO workflow_versions "
+                "(id, workflow_id, version, dag_json, compiled_json, is_active, created_at) "
+                "VALUES (?, ?, 1, ?, ?, 1, ?)",
+                (v_id, new_id, latest["dag_json"], latest["compiled_json"], _now()),
+            )
+            await db.commit()
+        return new_id
+
+    async def rollback_version(
+        self, workflow_id: str, target_version: int
+    ) -> tuple[str, int]:
+        target = await self.get_version(workflow_id, target_version)
+        if target is None:
+            raise LookupError("target version not found")
+        latest = await self.get_latest_version(workflow_id)
+        next_version = (latest["version"] + 1) if latest else 1
+        v_id = await self.create_version(
+            workflow_id, next_version, target["dag_json"], target["compiled_json"]
+        )
+        return v_id, next_version
+
+    async def list_runs(
+        self,
+        *,
+        workflow_id: str | None = None,
+        statuses: list[str] | None = None,
+        from_date: str | None = None,
+        to_date: str | None = None,
+        sort: str = "started_at",
+        order: str = "desc",
+        limit: int = 50,
+        offset: int = 0,
+    ) -> tuple[list[dict[str, Any]], int]:
+        where: list[str] = []
+        params: list[Any] = []
+        if workflow_id is not None:
+            where.append(
+                "wr.workflow_version_id IN "
+                "(SELECT id FROM workflow_versions WHERE workflow_id = ?)"
+            )
+            params.append(workflow_id)
+        if statuses:
+            placeholders = ",".join("?" for _ in statuses)
+            where.append(f"wr.status IN ({placeholders})")
+            params.extend(statuses)
+        if from_date:
+            where.append("wr.started_at >= ?")
+            params.append(from_date)
+        if to_date:
+            where.append("wr.started_at <= ?")
+            params.append(to_date)
+        where_clause = " AND ".join(where) if where else "1=1"
+        sort_col = "wr.started_at"
+        order_dir = "DESC" if order == "desc" else "ASC"
+        async with self._conn() as db:
+            async with db.execute(
+                f"SELECT COUNT(*) FROM workflow_runs wr WHERE {where_clause}",
+                tuple(params),
+            ) as cur:
+                total = (await cur.fetchone())[0]
+            async with db.execute(
+                f"SELECT wr.* FROM workflow_runs wr "
+                f"WHERE {where_clause} ORDER BY {sort_col} {order_dir} LIMIT ? OFFSET ?",
+                (*params, limit, offset),
+            ) as cur:
+                rows = [dict(r) for r in await cur.fetchall()]
+        return rows, total
+
+    async def get_latest_run_for_workflow(
+        self, workflow_id: str
+    ) -> dict[str, Any] | None:
+        async with self._conn() as db:
+            async with db.execute(
+                "SELECT wr.* FROM workflow_runs wr "
+                "JOIN workflow_versions wv ON wr.workflow_version_id = wv.id "
+                "WHERE wv.workflow_id = ? ORDER BY wr.started_at DESC LIMIT 1",
+                (workflow_id,),
+            ) as cur:
+                row = await cur.fetchone()
+                return dict(row) if row else None
 
     async def create_version(
         self,
