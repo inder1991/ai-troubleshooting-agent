@@ -10,5 +10,9 @@ node_modules/
 dist/
 .DS_Store
 
+# Playwright
+frontend/playwright-report/
+frontend/test-results/
+
 # Runtime data
 backend/data/
