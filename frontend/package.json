@@ -17,6 +17,7 @@
     "ajv": "^8.18.0",
     "d3-force": "^3.0.0",
     "dagre": "^0.8.5",
+    "elkjs": "^0.11.1",
     "framer-motion": "^11.0.0",
     "highlight.js": "^11.11.1",
     "html2canvas": "^1.4.1",
