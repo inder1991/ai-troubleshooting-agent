@@ -11,13 +11,13 @@ from typing import Any
 import asyncio
 import json
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, status
 from pydantic import BaseModel, ValidationError
 from sse_starlette.sse import EventSourceResponse
 
 from src import config
 from src.workflows.compiler import CompileError
-from src.workflows.service import InputsInvalid, RunTerminal, WorkflowService
+from src.workflows.service import ActiveRunsError, InputsInvalid, RunTerminal, WorkflowService
 
 router = APIRouter(prefix="/api/v4", tags=["workflows"])
 
@@ -44,6 +44,11 @@ class CreateWorkflowBody(BaseModel):
     name: str
     description: str | None = None
     created_by: str | None = None
+
+
+class UpdateWorkflowBody(BaseModel):
+    name: str | None = None
+    description: str | None = None
 
 
 @router.post(
@@ -289,3 +294,116 @@ async def cancel_run(
     if summary is None:
         raise HTTPException(status_code=404, detail="run not found")
     return {"run": summary}
+
+
+@router.delete(
+    "/workflows/{workflow_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_flag)],
+)
+async def delete_workflow(
+    workflow_id: str,
+    svc: WorkflowService = Depends(get_workflow_service),
+):
+    try:
+        result = await svc.delete_workflow(workflow_id)
+    except ActiveRunsError:
+        raise HTTPException(status_code=409, detail={"type": "active_runs", "message": "workflow has active runs"})
+    if not result:
+        raise HTTPException(status_code=404, detail="workflow not found")
+    return None
+
+
+@router.patch("/workflows/{workflow_id}", dependencies=[Depends(require_flag)])
+async def update_workflow(
+    workflow_id: str,
+    body: UpdateWorkflowBody,
+    svc: WorkflowService = Depends(get_workflow_service),
+) -> dict[str, Any]:
+    result = await svc.update_workflow(workflow_id, name=body.name, description=body.description)
+    if result is None:
+        raise HTTPException(status_code=404, detail="workflow not found")
+    return result
+
+
+@router.post(
+    "/workflows/{workflow_id}/duplicate",
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_flag)],
+)
+async def duplicate_workflow(
+    workflow_id: str,
+    svc: WorkflowService = Depends(get_workflow_service),
+) -> dict[str, Any]:
+    try:
+        return await svc.duplicate_workflow(workflow_id)
+    except LookupError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.post(
+    "/workflows/{workflow_id}/versions/{version}/rollback",
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_flag)],
+)
+async def rollback_version(
+    workflow_id: str,
+    version: int,
+    svc: WorkflowService = Depends(get_workflow_service),
+) -> dict[str, Any]:
+    try:
+        return await svc.rollback_version(workflow_id, version)
+    except LookupError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.get("/runs", dependencies=[Depends(require_flag)])
+async def list_runs(
+    status_filter: str | None = Query(default=None, alias="status"),
+    workflow_id: str | None = None,
+    from_date: str | None = None,
+    to_date: str | None = None,
+    sort: str = "started_at",
+    order: str = "desc",
+    limit: int = 50,
+    offset: int = 0,
+    svc: WorkflowService = Depends(get_workflow_service),
+) -> dict[str, Any]:
+    statuses = status_filter.split(",") if status_filter else None
+    return await svc.list_runs(
+        workflow_id=workflow_id, statuses=statuses, from_date=from_date,
+        to_date=to_date, sort=sort, order=order, limit=min(limit, 200), offset=offset,
+    )
+
+
+@router.get("/workflows/{workflow_id}/runs", dependencies=[Depends(require_flag)])
+async def list_workflow_runs(
+    workflow_id: str,
+    status_filter: str | None = Query(default=None, alias="status"),
+    from_date: str | None = None,
+    to_date: str | None = None,
+    sort: str = "started_at",
+    order: str = "desc",
+    limit: int = 50,
+    offset: int = 0,
+    svc: WorkflowService = Depends(get_workflow_service),
+) -> dict[str, Any]:
+    wf = await svc.get_workflow(workflow_id)
+    if wf is None:
+        raise HTTPException(status_code=404, detail="workflow not found")
+    statuses = status_filter.split(",") if status_filter else None
+    return await svc.list_runs(
+        workflow_id=workflow_id, statuses=statuses, from_date=from_date,
+        to_date=to_date, sort=sort, order=order, limit=min(limit, 200), offset=offset,
+    )
+
+
+@router.post("/runs/{run_id}/rerun", dependencies=[Depends(require_flag)])
+async def rerun(
+    run_id: str,
+    svc: WorkflowService = Depends(get_workflow_service),
+) -> dict[str, Any]:
+    try:
+        return await svc.get_rerun_data(run_id)
+    except LookupError as e:
+        raise HTTPException(status_code=404, detail=str(e))
