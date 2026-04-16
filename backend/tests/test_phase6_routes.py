@@ -254,3 +254,21 @@ async def test_list_runs_limit_over_max(client):
 async def test_list_runs_negative_offset(client):
     resp = await client.get("/api/v4/runs", params={"offset": -1})
     assert resp.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_list_runs_mixed_valid_invalid_status(client):
+    resp = await client.get("/api/v4/runs", params={"status": "running,bogus"})
+    assert resp.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_list_runs_valid_statuses(client):
+    resp = await client.get("/api/v4/runs", params={"status": "running,failed"})
+    assert resp.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_list_runs_invalid_order(client):
+    resp = await client.get("/api/v4/runs", params={"order": "sideways"})
+    assert resp.status_code == 422
