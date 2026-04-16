@@ -47,6 +47,7 @@ import SettingsView from './components/Settings/SettingsView';
 import AuditLogView from './components/AuditLog/AuditLogView';
 import CatalogPage from './pages/CatalogPage';
 import WorkflowsGuard from './components/Workflows/Shared/WorkflowsGuard';
+import { RunDetailPage } from './components/Workflows/Runs/RunDetailPage';
 
 /**
  * Route wrapper components that adapt existing components to work as route elements.
@@ -134,11 +135,6 @@ function ClusterRecommendationsRoute() {
       onBack={() => navigate('/clusters/registry')}
     />
   );
-}
-
-function RunDetailPlaceholder() {
-  const { runId } = useParams();
-  return <div>Run {runId} (Task 22)</div>;
 }
 
 function WorkflowRunsRoute() {
@@ -291,7 +287,7 @@ export const router = createBrowserRouter([
             path: 'runs/:runId',
             element: (
               <WorkflowsGuard>
-                <RunDetailPlaceholder />
+                <RunDetailPage />
               </WorkflowsGuard>
             ),
           },
