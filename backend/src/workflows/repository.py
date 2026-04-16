@@ -31,11 +31,16 @@ class WorkflowRepository:
         async with aiosqlite.connect(self._db_path) as db:
             await db.execute("PRAGMA foreign_keys = ON")
             for sql_file in sorted(_MIGRATIONS_DIR.glob("*.sql")):
-                try:
-                    await db.executescript(sql_file.read_text())
-                except sqlite3.OperationalError as exc:
-                    if "duplicate column" not in str(exc):
-                        raise
+                sql = sql_file.read_text()
+                for stmt in sql.split(";"):
+                    stmt = stmt.strip()
+                    if not stmt:
+                        continue
+                    try:
+                        await db.execute(stmt)
+                    except sqlite3.OperationalError as exc:
+                        if "duplicate column" not in str(exc):
+                            raise
             await db.commit()
 
     @asynccontextmanager
