@@ -1,10 +1,14 @@
-import { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useState, useEffect, useCallback } from 'react';
+import { useParams, useLocation } from 'react-router-dom';
 import { useRunEvents } from './useRunEvents';
 import { StepStatusPanel } from './StepStatusPanel';
 import { EventsRawStream } from './EventsRawStream';
+import { DagView } from './DagView';
 import { cancelRun, RunTerminalError } from '../../../services/runs';
-import type { RunStatus } from '../../../types';
+import { getVersion } from '../../../services/workflows';
+import type { RunStatus, StepSpec } from '../../../types';
+
+type ViewMode = 'cards' | 'graph';
 
 const STATUS_CLASSES: Record<RunStatus, string> = {
   running: 'bg-amber-500 animate-pulse',
@@ -17,11 +21,55 @@ const STATUS_CLASSES: Record<RunStatus, string> = {
 
 const TERMINAL: ReadonlySet<RunStatus> = new Set(['succeeded', 'failed', 'cancelled']);
 
+function readViewMode(): ViewMode {
+  try {
+    const stored = window.localStorage.getItem('wf-run-view-mode');
+    return stored === 'graph' ? 'graph' : 'cards';
+  } catch {
+    return 'cards';
+  }
+}
+
 export function RunDetailPage() {
   const { runId } = useParams<{ runId: string }>();
+  const location = useLocation();
+  const workflowId = (location.state as { workflowId?: string } | null)?.workflowId ?? null;
+
   const { run, liveEvents, loading, error, connected } = useRunEvents(runId!);
   const [showRaw, setShowRaw] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>(readViewMode);
+  const [dagSteps, setDagSteps] = useState<StepSpec[] | null>(null);
+  const [highlightedStepId, setHighlightedStepId] = useState<string | null>(null);
+
+  // Fetch DAG steps when we have workflowId and run data
+  useEffect(() => {
+    if (!workflowId || !run) return;
+    let cancelled = false;
+
+    async function fetchSteps() {
+      try {
+        const versionDetail = await getVersion(workflowId!, run!.workflow_version_id);
+        if (!cancelled) {
+          setDagSteps(versionDetail.dag.steps);
+        }
+      } catch {
+        // Silently fail — graph view just won't be available
+      }
+    }
+
+    fetchSteps();
+    return () => { cancelled = true; };
+  }, [workflowId, run?.workflow_version_id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleViewMode = useCallback((mode: ViewMode) => {
+    setViewMode(mode);
+    try {
+      window.localStorage.setItem('wf-run-view-mode', mode);
+    } catch {
+      // localStorage not available
+    }
+  }, []);
 
   if (loading) {
     return (
@@ -40,6 +88,7 @@ export function RunDetailPage() {
   if (!run) return null;
 
   const isTerminal = TERMINAL.has(run.status);
+  const graphDisabled = !workflowId;
 
   async function handleCancel() {
     if (!runId || cancelling) return;
@@ -54,6 +103,14 @@ export function RunDetailPage() {
       setCancelling(false);
     }
   }
+
+  const handleNodeClick = (nodeId: string) => {
+    setHighlightedStepId((prev) => (prev === nodeId ? null : nodeId));
+  };
+
+  const handleCardClick = (stepId: string) => {
+    setHighlightedStepId((prev) => (prev === stepId ? null : stepId));
+  };
 
   return (
     <div className="p-6 space-y-6">
@@ -74,6 +131,22 @@ export function RunDetailPage() {
             className={`inline-block w-2 h-2 rounded-full ${connected ? 'bg-emerald-400' : 'bg-neutral-600'}`}
             title={connected ? 'SSE connected' : 'SSE disconnected'}
           />
+
+          {/* View mode toggle */}
+          <div className="flex rounded border border-wr-border overflow-hidden">
+            <button
+              className={`px-3 py-1 text-xs font-medium ${viewMode === 'cards' ? 'bg-wr-accent text-white' : 'bg-wr-surface text-wr-text-secondary hover:bg-wr-surface-2'}`}
+              onClick={() => handleViewMode('cards')}
+              data-testid="view-toggle-cards"
+            >Cards</button>
+            <button
+              className={`px-3 py-1 text-xs font-medium ${viewMode === 'graph' && !graphDisabled ? 'bg-wr-accent text-white' : 'bg-wr-surface text-wr-text-secondary hover:bg-wr-surface-2'}`}
+              onClick={() => !graphDisabled && handleViewMode('graph')}
+              disabled={graphDisabled}
+              title={graphDisabled ? 'Navigate from a workflow to use graph view' : undefined}
+              data-testid="view-toggle-graph"
+            >Graph</button>
+          </div>
         </div>
 
         <button
@@ -85,8 +158,26 @@ export function RunDetailPage() {
         </button>
       </div>
 
+      {/* DagView (graph mode) */}
+      {viewMode === 'graph' && !graphDisabled && dagSteps && (
+        <div className="h-80">
+          <DagView
+            steps={dagSteps}
+            stepRuns={run.step_runs}
+            liveEvents={liveEvents}
+            selectedNodeId={highlightedStepId}
+            onNodeClick={handleNodeClick}
+          />
+        </div>
+      )}
+
       {/* Step status panel */}
-      <StepStatusPanel stepRuns={run.step_runs} liveEvents={liveEvents} />
+      <StepStatusPanel
+        stepRuns={run.step_runs}
+        liveEvents={liveEvents}
+        highlightedStepId={highlightedStepId}
+        onCardClick={handleCardClick}
+      />
 
       {/* Raw events toggle */}
       <div>

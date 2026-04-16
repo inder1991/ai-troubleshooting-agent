@@ -834,3 +834,11 @@ a:focus-visible,
   .surface-panel:hover { transform: none; }
 }
 
+/* ── DAG flow-particle animation ─────────────────────────────── */
+@keyframes dag-flow {
+  to { stroke-dashoffset: -24; }
+}
+.dag-flow-particle {
+  animation: dag-flow 0.8s linear infinite;
+}
+

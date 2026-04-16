@@ -19,6 +19,8 @@ export interface LiveEvent {
 interface StepStatusPanelProps {
   stepRuns: StepRunDetail[];
   liveEvents?: LiveEvent[];
+  highlightedStepId?: string | null;
+  onCardClick?: (stepId: string) => void;
 }
 
 const STATUS_CLASSES: Record<StepRunStatus, string> = {
@@ -76,12 +78,21 @@ function mergeWithEvents(
   });
 }
 
-function StepCard({ step }: { step: StepRunDetail }) {
+function StepCard({ step, highlighted, onCardClick }: { step: StepRunDetail; highlighted?: boolean; onCardClick?: (stepId: string) => void }) {
   const [showOutput, setShowOutput] = useState(false);
   const badgeClass = STATUS_CLASSES[step.status] ?? STATUS_CLASSES.pending;
 
   return (
-    <div className="rounded-lg border border-wr-border bg-wr-surface p-4 space-y-2">
+    <div
+      data-testid={`step-card-${step.step_id}`}
+      className={`rounded-lg border border-wr-border bg-wr-surface p-4 space-y-2${highlighted ? ' ring-2 ring-wr-accent' : ''}${onCardClick ? ' cursor-pointer' : ''}`}
+      onClick={() => onCardClick?.(step.step_id)}
+      ref={(el) => {
+        if (highlighted && el && typeof el.scrollIntoView === 'function') {
+          el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      }}
+    >
       {/* Header row */}
       <div className="flex items-center justify-between">
         <span className="font-medium text-wr-text">{step.step_id}</span>
@@ -129,7 +140,7 @@ function StepCard({ step }: { step: StepRunDetail }) {
   );
 }
 
-export function StepStatusPanel({ stepRuns, liveEvents = [] }: StepStatusPanelProps) {
+export function StepStatusPanel({ stepRuns, liveEvents = [], highlightedStepId, onCardClick }: StepStatusPanelProps) {
   const merged = useMemo(
     () => mergeWithEvents(stepRuns, liveEvents),
     [stepRuns, liveEvents],
@@ -138,7 +149,12 @@ export function StepStatusPanel({ stepRuns, liveEvents = [] }: StepStatusPanelPr
   return (
     <div className="space-y-3">
       {merged.map((step) => (
-        <StepCard key={`${step.step_id}-${step.id}`} step={step} />
+        <StepCard
+          key={`${step.step_id}-${step.id}`}
+          step={step}
+          highlighted={step.step_id === highlightedStepId}
+          onCardClick={onCardClick}
+        />
       ))}
     </div>
   );
