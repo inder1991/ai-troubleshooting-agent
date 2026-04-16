@@ -166,7 +166,7 @@ export function WorkflowBuilderPage() {
           idempotency_key: opts.idempotency_key,
         });
         setShowRunModal(false);
-        navigate(`/workflows/runs/${run.id}`);
+        navigate(`/workflows/runs/${run.id}`, { state: { workflowId } });
       } catch (err) {
         if (err instanceof InputsInvalidError) {
           setRunErrors([err.message, ...err.errors.map((e) => e.message ?? '')].filter(Boolean));

@@ -158,7 +158,7 @@ export function WorkflowRunsPage() {
           startedAt: run.started_at ?? new Date().toISOString(),
         });
         setNewRunStep('closed');
-        navigate(`/workflows/runs/${run.id}`);
+        navigate(`/workflows/runs/${run.id}`, { state: { workflowId: selectedWorkflowId } });
       } catch {
         // ignore
       }
@@ -302,6 +302,7 @@ export function WorkflowRunsPage() {
                   <td className="py-2">
                     <Link
                       to={`/workflows/runs/${entry.runId}`}
+                      state={{ workflowId: entry.workflowId }}
                       className="rounded px-2 py-1 text-xs font-medium text-wr-accent hover:underline"
                     >
                       View
