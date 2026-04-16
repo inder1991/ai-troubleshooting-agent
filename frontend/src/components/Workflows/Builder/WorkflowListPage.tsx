@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { RunStatus, WorkflowSummary } from '../../../types';
 import { listWorkflows, createWorkflow, deleteWorkflow, duplicateWorkflow, updateWorkflow } from '../../../services/workflows';
@@ -34,11 +34,23 @@ export function WorkflowListPage() {
   const [creating, setCreating] = useState(false);
 
   // Three-dot menu / actions state
+  const menuRef = useRef<HTMLDivElement>(null);
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<WorkflowSummary | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    if (!menuOpenId) return;
+    function handleClick(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpenId(null);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [menuOpenId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -273,7 +285,7 @@ export function WorkflowListPage() {
               </button>
 
               {/* Three-dot menu */}
-              <div className="relative shrink-0">
+              <div className="relative shrink-0" ref={menuRef}>
                 <button
                   type="button"
                   data-testid={`menu-btn-${wf.id}`}
@@ -287,7 +299,10 @@ export function WorkflowListPage() {
                 </button>
 
                 {menuOpenId === wf.id && (
-                  <div className="absolute right-0 top-full z-10 mt-1 w-40 rounded-md border border-wr-border bg-wr-surface py-1 shadow-lg">
+                  <div
+                    className="absolute right-0 top-full z-10 mt-1 w-40 rounded-md border border-wr-border bg-wr-surface py-1 shadow-lg"
+                    onKeyDown={(e) => { if (e.key === 'Escape') setMenuOpenId(null); }}
+                  >
                     <button
                       type="button"
                       className="w-full px-3 py-1.5 text-left text-sm text-wr-text hover:bg-wr-elevated"
