@@ -14,7 +14,7 @@ const mockRunsResponse = {
     {
       id: 'run-1',
       workflow_version_id: 'wv-1',
-      status: 'succeeded' as RunStatus,
+      status: 'success' as RunStatus,
       started_at: new Date(Date.now() - 120_000).toISOString(),
     },
     {
@@ -161,7 +161,7 @@ describe('WorkflowRunsPage', () => {
   });
 
   test('status badge shows correct color for each status', async () => {
-    const statuses: RunStatus[] = ['pending', 'running', 'succeeded', 'failed', 'cancelled', 'cancelling'];
+    const statuses: RunStatus[] = ['pending', 'running', 'success', 'failed', 'cancelled', 'cancelling'];
     server.use(
       http.get('/api/v4/runs', () =>
         HttpResponse.json({
@@ -188,7 +188,7 @@ describe('WorkflowRunsPage', () => {
     );
 
     expect(badgeMap.get('running')).toContain('amber');
-    expect(badgeMap.get('succeeded')).toContain('emerald');
+    expect(badgeMap.get('success')).toContain('emerald');
     expect(badgeMap.get('failed')).toContain('red');
     expect(badgeMap.get('cancelled')).toContain('slate');
     expect(badgeMap.get('pending')).toContain('neutral');

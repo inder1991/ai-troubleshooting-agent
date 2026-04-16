@@ -112,7 +112,7 @@ async def test_linear_two_step_runs_in_order():
     executor = WorkflowExecutor(runners)
     result = await executor.run(compiled, inputs={})
     assert order == ["a", "b"]
-    assert result.status == "SUCCEEDED"
+    assert result.status == "SUCCESS"
     assert result.node_states["a"].status == "SUCCESS"
     assert result.node_states["b"].status == "SUCCESS"
     assert result.node_states["a"].output == {"v": "a"}
@@ -167,7 +167,7 @@ async def test_parallel_fanout_respects_global_cap():
     )
     executor = WorkflowExecutor(runners, max_concurrent_steps=2)
     _, result = await asyncio.gather(release_soon(), executor.run(compiled, inputs={}))
-    assert result.status == "SUCCEEDED"
+    assert result.status == "SUCCESS"
     assert tracker.peak == 2
 
 
@@ -197,7 +197,7 @@ async def test_fifo_tiebreak_by_step_id_lex_order():
     )
     executor = WorkflowExecutor(runners, max_concurrent_steps=1)
     result = await executor.run(compiled, inputs={})
-    assert result.status == "SUCCEEDED"
+    assert result.status == "SUCCESS"
     assert order == ["x_alpha", "x_beta", "x_gamma"]
 
 
@@ -269,4 +269,4 @@ async def test_emitter_exception_does_not_fail_run():
 
     executor = WorkflowExecutor(runners, event_emitter=emit)
     result = await executor.run(compiled, inputs={})
-    assert result.status == "SUCCEEDED"
+    assert result.status == "SUCCESS"

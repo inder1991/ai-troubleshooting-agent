@@ -112,13 +112,13 @@ describe('useRunEvents', () => {
       es.simulateMessage({
         id: 2,
         type: 'run.completed',
-        data: { status: 'succeeded' },
+        data: { status: 'success' },
         timestamp: new Date().toISOString(),
       });
     });
 
     expect(es.readyState).toBe(2); // closed
-    expect(result.current.run?.status).toBe('succeeded');
+    expect(result.current.run?.status).toBe('success');
   });
 
   test('unmount closes EventSource', async () => {

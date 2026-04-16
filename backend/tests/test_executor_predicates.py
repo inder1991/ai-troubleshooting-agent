@@ -81,7 +81,7 @@ async def test_when_true_executes():
     runners = _runners({"a": _Recording("a", log)})
     executor = WorkflowExecutor(runners)
     result = await executor.run(compiled, inputs={"mode": "prod"})
-    assert result.status == "SUCCEEDED"
+    assert result.status == "SUCCESS"
     assert result.node_states["a"].status == "SUCCESS"
     assert log == ["a"]
 
@@ -118,7 +118,7 @@ async def test_when_false_marks_skipped_and_runner_not_called():
     runners = _runners({"a": _Recording("a", log)})
     executor = WorkflowExecutor(runners, event_emitter=emit)
     result = await executor.run(compiled, inputs={"mode": "dev"})
-    assert result.status == "SUCCEEDED"
+    assert result.status == "SUCCESS"
     assert result.node_states["a"].status == "SKIPPED"
     assert log == []
     assert any(e["type"] == "step.skipped" and e["node_id"] == "a" for e in events)
@@ -205,7 +205,7 @@ async def test_branch_without_ref_to_skipped_proceeds():
     )
     executor = WorkflowExecutor(runners)
     result = await executor.run(compiled, inputs={"mode": "dev"})
-    assert result.status == "SUCCEEDED"
+    assert result.status == "SUCCESS"
     assert result.node_states["a"].status == "SKIPPED"
     assert result.node_states["b"].status == "SUCCESS"
     assert result.node_states["c"].status == "SUCCESS"

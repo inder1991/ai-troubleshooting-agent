@@ -16,11 +16,11 @@ const STATUS_CLASSES: Record<RunStatus, string> = {
   pending: 'bg-neutral-500',
   cancelling: 'bg-slate-400',
   cancelled: 'bg-slate-500',
-  succeeded: 'bg-emerald-500',
+  success: 'bg-emerald-500',
   failed: 'bg-red-500',
 };
 
-const TERMINAL: ReadonlySet<RunStatus> = new Set(['succeeded', 'failed', 'cancelled']);
+const TERMINAL: ReadonlySet<RunStatus> = new Set(['success', 'failed', 'cancelled']);
 
 function readViewMode(): ViewMode {
   try {

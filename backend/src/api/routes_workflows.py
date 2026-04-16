@@ -186,7 +186,7 @@ async def get_run(
     return data
 
 
-_TERMINAL_RUN_STATUSES = {"succeeded", "failed", "cancelled"}
+_TERMINAL_RUN_STATUSES = {"success", "failed", "cancelled"}
 
 
 @router.get("/runs/{run_id}/events", dependencies=[Depends(require_flag)])

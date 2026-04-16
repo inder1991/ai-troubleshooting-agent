@@ -2615,21 +2615,17 @@ export interface WorkflowDag {
   steps: StepSpec[];
 }
 
-export type RunStatus =
+export type Status =
   | 'pending'
   | 'running'
   | 'cancelling'
   | 'cancelled'
-  | 'succeeded'
-  | 'failed';
-
-export type StepRunStatus =
-  | 'pending'
-  | 'running'
   | 'success'
   | 'failed'
-  | 'skipped'
-  | 'cancelled';
+  | 'skipped';
+
+export type RunStatus = Status;
+export type StepRunStatus = Status;
 
 export interface StepRunDetail {
   id: string;

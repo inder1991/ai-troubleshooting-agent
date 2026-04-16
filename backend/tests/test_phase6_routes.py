@@ -156,7 +156,7 @@ async def test_list_runs(client):
 
 @pytest.mark.asyncio
 async def test_list_runs_status_filter(client):
-    resp = await client.get("/api/v4/runs", params={"status": "succeeded"})
+    resp = await client.get("/api/v4/runs", params={"status": "success"})
     assert resp.status_code == 200
     assert "runs" in resp.json()
 

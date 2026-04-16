@@ -132,7 +132,7 @@ async def test_retry_succeeds_on_third_attempt():
 
     executor = WorkflowExecutor(runners, event_emitter=emit, sleep_fn=_fake_sleep)
     result = await executor.run(compiled, inputs={})
-    assert result.status == "SUCCEEDED"
+    assert result.status == "SUCCESS"
     ns = result.node_states["a"]
     assert ns.status == "SUCCESS"
     assert ns.attempt == 3
@@ -231,5 +231,5 @@ async def test_exponential_backoff_sleeps_01_02_for_three_attempts():
 
     executor = WorkflowExecutor(runners, sleep_fn=_fake_sleep)
     result = await executor.run(compiled, inputs={})
-    assert result.status == "SUCCEEDED"
+    assert result.status == "SUCCESS"
     assert sleeps == [0.1, 0.2]

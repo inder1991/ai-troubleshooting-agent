@@ -122,7 +122,7 @@ async def test_continue_isolates_failure_on_independent_branch():
     runners = _runners({"a": _Fail("a", log), "b": _Succeed("b", log)})
     executor = WorkflowExecutor(runners)
     result = await executor.run(compiled, inputs={})
-    assert result.status == "SUCCEEDED"
+    assert result.status == "SUCCESS"
     assert result.node_states["a"].status == "FAILED"
     assert result.node_states["b"].status == "SUCCESS"
 
@@ -206,7 +206,7 @@ async def test_fallback_replaces_output_for_downstream_refs():
     )
     executor = WorkflowExecutor(runners)
     result = await executor.run(compiled, inputs={})
-    assert result.status == "SUCCEEDED"
+    assert result.status == "SUCCESS"
     assert result.node_states["a"].status == "FAILED"
     assert result.node_states["a_fb"].status == "SUCCESS"
     assert result.node_states["c"].status == "SUCCESS"

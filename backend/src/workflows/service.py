@@ -18,6 +18,7 @@ import jsonschema
 
 from src.contracts.registry import ContractRegistry
 from src.workflows.compiler import CompiledStep, CompiledWorkflow, compile_dag
+from src.workflows.event_schema import normalize_status
 from src.workflows.executor import WorkflowExecutor
 from src.workflows.models import WorkflowDag
 from src.workflows.repository import WorkflowRepository
@@ -64,7 +65,7 @@ def _rehydrate_compiled(compiled_dict: dict[str, Any]) -> CompiledWorkflow:
     )
 
 
-_TERMINAL = {"succeeded", "failed", "cancelled"}
+_TERMINAL = {"success", "failed", "cancelled"}
 
 
 class WorkflowService:
@@ -500,7 +501,7 @@ class WorkflowService:
                 try:
                     q.put_nowait(live_ev)
                 except asyncio.QueueFull:
-                    pass
+                    logger.warning("SSE event queue full, event dropped: run_id=%s seq=%s", run_id, sequence)
 
         async def _driver() -> None:
             executor = WorkflowExecutor(
@@ -517,11 +518,7 @@ class WorkflowService:
                     cancel_event=cancel_event,
                     contracts=self._contracts,
                 )
-                final_status = {
-                    "SUCCEEDED": "succeeded",
-                    "FAILED": "failed",
-                    "CANCELLED": "cancelled",
-                }.get(result.status, "failed")
+                final_status = normalize_status(result.status).value
                 if result.error is not None:
                     err_json = json.dumps(result.error, default=str)
             except Exception as e:  # noqa: BLE001
@@ -544,7 +541,7 @@ class WorkflowService:
                     try:
                         q.put_nowait(sentinel)
                     except asyncio.QueueFull:
-                        pass
+                        logger.warning("SSE terminal event queue full, event dropped: run_id=%s status=%s", run_id, final_status)
                 # Cleanup maps after a grace tick so last subscribers can drain.
                 self._run_cancel_events.pop(run_id, None)
 

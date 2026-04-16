@@ -7,13 +7,41 @@ from enum import Enum
 from typing import Any
 
 
-class StepStatus(str, Enum):
+class Status(str, Enum):
     PENDING = "pending"
     RUNNING = "running"
     SUCCESS = "success"
     FAILED = "failed"
     SKIPPED = "skipped"
     CANCELLED = "cancelled"
+    CANCELLING = "cancelling"
+
+
+# Backward-compatible alias
+StepStatus = Status
+
+
+_STATUS_ALIASES: dict[str, Status] = {
+    "COMPLETED": Status.SUCCESS,
+    "SUCCESS": Status.SUCCESS,
+    "SUCCEEDED": Status.SUCCESS,
+    "FAILED": Status.FAILED,
+    "PENDING": Status.PENDING,
+    "RUNNING": Status.RUNNING,
+    "SKIPPED": Status.SKIPPED,
+    "CANCELLED": Status.CANCELLED,
+}
+
+
+def normalize_status(raw: str) -> Status:
+    """Convert any known status string to the canonical ``Status`` enum."""
+    upper = raw.upper()
+    if upper in _STATUS_ALIASES:
+        return _STATUS_ALIASES[upper]
+    try:
+        return StepStatus(raw.lower())
+    except ValueError:
+        return StepStatus.FAILED
 
 
 @dataclass(frozen=True)

@@ -17,7 +17,7 @@ describe('RunFilterBar', () => {
 
   it('renders status chip buttons', () => {
     render(<RunFilterBar {...defaultProps} />);
-    expect(screen.getByRole('button', { name: /succeeded/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /success/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /failed/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /running/i })).toBeInTheDocument();
   });

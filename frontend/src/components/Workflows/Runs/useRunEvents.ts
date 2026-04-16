@@ -12,7 +12,7 @@ export interface UseRunEventsResult {
 }
 
 const TERMINAL_STATUSES: ReadonlySet<RunStatus> = new Set([
-  'succeeded',
+  'success',
   'failed',
   'cancelled',
 ]);
@@ -69,7 +69,7 @@ export function useRunEvents(runId: string): UseRunEventsResult {
               // Update run status from event
               const newStatus =
                 parsed.type === 'run.completed'
-                  ? 'succeeded'
+                  ? 'success'
                   : parsed.type === 'run.failed'
                     ? 'failed'
                     : 'cancelled';

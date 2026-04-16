@@ -111,10 +111,10 @@ async def test_get_and_update_run_status(repo):
     run = await repo.get_run(run_id)
     assert run["status"] in ("pending", "queued", "created")
     await repo.update_run_status(
-        run_id, "succeeded", ended_at="2026-04-15T00:00:00+00:00"
+        run_id, "success", ended_at="2026-04-15T00:00:00+00:00"
     )
     run2 = await repo.get_run(run_id)
-    assert run2["status"] == "succeeded"
+    assert run2["status"] == "success"
     assert run2["ended_at"] == "2026-04-15T00:00:00+00:00"
 
 
@@ -128,7 +128,7 @@ async def test_step_run_create_update_list(repo):
     sr_id = await repo.create_step_run(run_id, "node-a", attempt=1)
     await repo.update_step_run(
         sr_id,
-        status="succeeded",
+        status="success",
         output_json='{"x":1}',
         ended_at="2026-04-15T00:00:00+00:00",
         duration_ms=42,
@@ -136,7 +136,7 @@ async def test_step_run_create_update_list(repo):
     rows = await repo.list_step_runs(run_id)
     assert len(rows) == 1
     assert rows[0]["step_id"] == "node-a"
-    assert rows[0]["status"] == "succeeded"
+    assert rows[0]["status"] == "success"
     assert rows[0]["duration_ms"] == 42
     assert rows[0]["output_json"] == '{"x":1}'
 
