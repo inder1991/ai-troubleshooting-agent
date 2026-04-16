@@ -7,14 +7,40 @@ from src.contracts.registry import ContractRegistry
 from src.workflows.compiler import CompiledWorkflow, _extract_ref_paths, _path_exists_in_schema
 
 
+def _check_schema_version(d: dict[str, Any], expected: int, cls_name: str) -> None:
+    # Default to ``expected`` for unversioned dicts so existing v1 payloads
+    # written before this field existed still load. Phase-0 grace window only.
+    version = d.get("schema_version", expected)
+    if version != expected:
+        raise ValueError(
+            f"unsupported schema_version for {cls_name}: got {version!r}, expected {expected}"
+        )
+
+
 @dataclass
 class DriftError:
+    SCHEMA_VERSION = 1
+
     step_id: str
     reason: str
     detail: str
 
-    def to_dict(self) -> dict[str, str]:
-        return {"step_id": self.step_id, "reason": self.reason, "detail": self.detail}
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "schema_version": self.SCHEMA_VERSION,
+            "step_id": self.step_id,
+            "reason": self.reason,
+            "detail": self.detail,
+        }
+
+    @classmethod
+    def from_dict(cls, d: dict[str, Any]) -> DriftError:
+        _check_schema_version(d, cls.SCHEMA_VERSION, cls.__name__)
+        return cls(
+            step_id=d["step_id"],
+            reason=d["reason"],
+            detail=d["detail"],
+        )
 
 
 def check_drift(

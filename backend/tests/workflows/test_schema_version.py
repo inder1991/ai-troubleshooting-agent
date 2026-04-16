@@ -136,3 +136,33 @@ def test_event_envelope_step_serializes_schema_version():
 def test_event_envelope_run_serializes_schema_version():
     env = make_run_event(run_id="r1", status="running", sequence_number=1)
     assert env.to_dict()["schema_version"] == 1
+
+
+# ── DriftError ──────────────────────────────────────────────────────
+
+def test_drift_error_serializes_schema_version():
+    from src.workflows.drift import DriftError
+    e = DriftError(step_id="s1", reason="contract_missing", detail="x v1 not in registry")
+    assert e.to_dict()["schema_version"] == 1
+
+
+def test_drift_error_rejects_unknown_schema_version():
+    from src.workflows.drift import DriftError
+    with pytest.raises(ValueError, match="schema_version"):
+        DriftError.from_dict({
+            "step_id": "s1",
+            "reason": "contract_missing",
+            "detail": "x v1 not in registry",
+            "schema_version": 999,
+        })
+
+
+def test_drift_error_accepts_unversioned_dict_as_v1():
+    from src.workflows.drift import DriftError
+    e = DriftError.from_dict({
+        "step_id": "s1",
+        "reason": "contract_missing",
+        "detail": "x v1 not in registry",
+    })
+    assert e.step_id == "s1"
+    assert e.reason == "contract_missing"
