@@ -122,7 +122,7 @@ class WorkflowService:
 
     async def get_workflow(self, id: str) -> dict[str, Any] | None:
         row = await self._repo.get_workflow(id)
-        if row is None:
+        if row is None or row.get("deleted_at"):
             return None
         latest = await self._repo.get_latest_version(id)
         latest_summary: dict[str, Any] | None = None
@@ -187,6 +187,98 @@ class WorkflowService:
             "dag": json.loads(row["dag_json"]),
             "compiled": json.loads(row["compiled_json"]),
             "created_at": row["created_at"],
+        }
+
+    # ---- delete / update / duplicate / rollback (Phase 6) ----
+
+    async def delete_workflow(self, workflow_id: str) -> bool:
+        wf = await self._repo.get_workflow(workflow_id)
+        if wf is None:
+            return False
+        if wf.get("deleted_at"):
+            return True  # already deleted, idempotent
+        if await self._repo.has_active_runs(workflow_id):
+            raise ActiveRunsError("workflow has active runs")
+        await self._repo.soft_delete_workflow(workflow_id)
+        return True
+
+    async def update_workflow(
+        self,
+        workflow_id: str,
+        *,
+        name: str | None = None,
+        description: str | None = None,
+    ) -> dict[str, Any] | None:
+        wf = await self._repo.get_workflow(workflow_id)
+        if wf is None:
+            return None
+        await self._repo.update_workflow(workflow_id, name=name, description=description)
+        return await self.get_workflow(workflow_id)
+
+    async def duplicate_workflow(self, workflow_id: str) -> dict[str, Any]:
+        wf = await self._repo.get_workflow(workflow_id)
+        if wf is None:
+            raise LookupError("workflow not found")
+        base_name = wf["name"]
+        new_name = f"{base_name} (copy)"
+        suffix = 1
+        while True:
+            existing = await self._repo.list_workflows()
+            names = {w["name"] for w in existing}
+            if new_name not in names:
+                try:
+                    new_id = await self._repo.duplicate_workflow(workflow_id, new_name)
+                    break
+                except Exception:
+                    pass
+            suffix += 1
+            new_name = f"{base_name} (copy {suffix})"
+        return await self.get_workflow(new_id)
+
+    async def rollback_version(
+        self, workflow_id: str, target_version: int
+    ) -> dict[str, Any]:
+        v_id, v_num = await self._repo.rollback_version(workflow_id, target_version)
+        return {"version_id": v_id, "version": v_num, "workflow_id": workflow_id}
+
+    # ---- run listing / rerun (Phase 6) ----
+
+    async def list_runs(
+        self,
+        *,
+        workflow_id: str | None = None,
+        statuses: list[str] | None = None,
+        from_date: str | None = None,
+        to_date: str | None = None,
+        sort: str = "started_at",
+        order: str = "desc",
+        limit: int = 50,
+        offset: int = 0,
+    ) -> dict[str, Any]:
+        rows, total = await self._repo.list_runs(
+            workflow_id=workflow_id,
+            statuses=statuses,
+            from_date=from_date,
+            to_date=to_date,
+            sort=sort,
+            order=order,
+            limit=limit,
+            offset=offset,
+        )
+        return {
+            "runs": [self._run_summary(r) for r in rows],
+            "total": total,
+            "limit": limit,
+            "offset": offset,
+        }
+
+    async def get_rerun_data(self, run_id: str) -> dict[str, Any]:
+        row = await self._repo.get_run(run_id)
+        if row is None:
+            raise LookupError("run not found")
+        return {
+            "workflow_version_id": row["workflow_version_id"],
+            "inputs": json.loads(row["inputs_json"]),
         }
 
     # ---- run path (Task 16-18) ----
@@ -460,6 +552,11 @@ class WorkflowService:
             ) as cur:
                 row = await cur.fetchone()
                 return dict(row) if row else None
+
+
+class ActiveRunsError(Exception):
+    """Raised when trying to delete a workflow with active runs."""
+    pass
 
 
 class RunTerminal(Exception):
