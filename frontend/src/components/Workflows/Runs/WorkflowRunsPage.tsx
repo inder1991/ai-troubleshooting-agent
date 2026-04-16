@@ -53,6 +53,8 @@ export function WorkflowRunsPage() {
   const [selectedVersion, setSelectedVersion] = useState<number | null>(null);
   const [versionDetail, setVersionDetail] = useState<WorkflowVersionDetail | null>(null);
   const [loadingVersionDetail, setLoadingVersionDetail] = useState(false);
+  const [loadingWorkflows, setLoadingWorkflows] = useState(false);
+  const [loadingVersions, setLoadingVersions] = useState(false);
 
   // Fetch runs when filters change
   useEffect(() => {
@@ -115,11 +117,14 @@ export function WorkflowRunsPage() {
   // New run: open wizard
   const handleNewRun = useCallback(async () => {
     setNewRunStep('select');
+    setLoadingWorkflows(true);
     try {
       const wfs = await listWorkflows();
       setWorkflows(wfs);
     } catch (e) {
       showToast({ type: 'error', message: getErrorMessage(e, 'Failed to load workflows') });
+    } finally {
+      setLoadingWorkflows(false);
     }
   }, [showToast]);
 
@@ -130,11 +135,14 @@ export function WorkflowRunsPage() {
     setVersionDetail(null);
     setVersions([]);
     if (!wfId) return;
+    setLoadingVersions(true);
     try {
       const vs = await listVersions(wfId);
       setVersions(vs);
     } catch (e) {
       showToast({ type: 'error', message: getErrorMessage(e, 'Failed to load versions') });
+    } finally {
+      setLoadingVersions(false);
     }
   }, [showToast]);
 
@@ -224,7 +232,8 @@ export function WorkflowRunsPage() {
               aria-label="Workflow"
               value={selectedWorkflowId}
               onChange={(e) => handleWorkflowChange(e.target.value)}
-              className="w-full rounded-md border border-wr-border bg-wr-bg px-2 py-1.5 text-sm text-wr-text"
+              disabled={loadingWorkflows}
+              className="w-full rounded-md border border-wr-border bg-wr-bg px-2 py-1.5 text-sm text-wr-text disabled:opacity-50"
             >
               <option value="">Select a workflow...</option>
               {workflows.map((wf) => (
@@ -233,6 +242,9 @@ export function WorkflowRunsPage() {
                 </option>
               ))}
             </select>
+            {loadingWorkflows && (
+              <div className="text-xs text-wr-text-muted">Loading workflows...</div>
+            )}
           </div>
 
           {versions.length > 0 && (
@@ -245,7 +257,8 @@ export function WorkflowRunsPage() {
                 aria-label="Version"
                 value={selectedVersion ?? ''}
                 onChange={(e) => handleVersionChange(Number(e.target.value))}
-                className="w-full rounded-md border border-wr-border bg-wr-bg px-2 py-1.5 text-sm text-wr-text"
+                disabled={loadingVersions}
+                className="w-full rounded-md border border-wr-border bg-wr-bg px-2 py-1.5 text-sm text-wr-text disabled:opacity-50"
               >
                 <option value="">Select a version...</option>
                 {versions.map((v) => (
@@ -254,6 +267,9 @@ export function WorkflowRunsPage() {
                   </option>
                 ))}
               </select>
+              {loadingVersions && (
+                <div className="text-xs text-wr-text-muted">Loading versions...</div>
+              )}
             </div>
           )}
 
