@@ -3,6 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { RunDetailPage } from '../RunDetailPage';
+import { ToastProvider } from '../../Shared/Toast';
 import type { RunDetail } from '../../../../types';
 
 // ---- MockEventSource ----
@@ -66,11 +67,13 @@ const FAKE_RUN: RunDetail = {
 
 function renderPage() {
   return render(
-    <MemoryRouter initialEntries={['/workflows/runs/run-42']}>
-      <Routes>
-        <Route path="/workflows/runs/:runId" element={<RunDetailPage />} />
-      </Routes>
-    </MemoryRouter>,
+    <ToastProvider>
+      <MemoryRouter initialEntries={['/workflows/runs/run-42']}>
+        <Routes>
+          <Route path="/workflows/runs/:runId" element={<RunDetailPage />} />
+        </Routes>
+      </MemoryRouter>
+    </ToastProvider>,
   );
 }
 

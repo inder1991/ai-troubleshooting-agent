@@ -9,6 +9,8 @@ import { cancelRun, createRun, getRerunData, RunTerminalError } from '../../../s
 import { getVersion } from '../../../services/workflows';
 import type { RunStatus, StepSpec } from '../../../types';
 import { STATUS_BADGE_CLASSES, isTerminal } from '../Shared/statusConstants';
+import { useToast } from '../Shared/Toast';
+import { getErrorMessage } from '../Shared/errorUtils';
 
 type ViewMode = 'cards' | 'graph';
 
@@ -28,6 +30,7 @@ export function RunDetailPage() {
   const locationWorkflowId = (location.state as { workflowId?: string } | null)?.workflowId ?? null;
 
   const { run, liveEvents, loading, error, connected } = useRunEvents(runId!);
+  const { showToast } = useToast();
 
   // Resolve workflowId from run data first, fall back to navigation state.
   const workflowId = run?.workflow_id ?? locationWorkflowId;
@@ -53,8 +56,8 @@ export function RunDetailPage() {
         if (!cancelled) {
           setDagSteps(versionDetail.dag.steps);
         }
-      } catch {
-        // Silently fail — graph view just won't be available
+      } catch (e) {
+        if (!cancelled) showToast({ type: 'error', message: getErrorMessage(e, 'Failed to load workflow graph') });
       }
     }
 
@@ -111,8 +114,8 @@ export function RunDetailPage() {
       const data = await getRerunData(runId);
       const newRun = await createRun(workflowId, { inputs: data.inputs });
       navigate(`/workflows/runs/${newRun.id}`, { state: { workflowId } });
-    } catch {
-      // silently fail
+    } catch (e) {
+      showToast({ type: 'error', message: getErrorMessage(e, 'Failed to rerun workflow') });
     } finally {
       setRerunning(false);
     }
@@ -129,14 +132,15 @@ export function RunDetailPage() {
           const versionDetail = await getVersion(workflowId, run!.workflow_version_id);
           setRerunSchema(versionDetail.dag.inputs_schema ?? {});
         } catch {
+          // Non-critical: fall back to empty schema for the inputs form
           setRerunSchema({});
         }
       } else {
         setRerunSchema({});
       }
       setShowRerunInputs(true);
-    } catch {
-      // silently fail
+    } catch (e) {
+      showToast({ type: 'error', message: getErrorMessage(e, 'Failed to load rerun data') });
     }
   }
 
@@ -256,8 +260,8 @@ export function RunDetailPage() {
               const newRun = await createRun(workflowId, { inputs, idempotency_key: opts.idempotency_key });
               setShowRerunInputs(false);
               navigate(`/workflows/runs/${newRun.id}`, { state: { workflowId } });
-            } catch {
-              // silently fail
+            } catch (e) {
+              showToast({ type: 'error', message: getErrorMessage(e, 'Failed to start rerun') });
             }
           }}
           onCancel={() => setShowRerunInputs(false)}

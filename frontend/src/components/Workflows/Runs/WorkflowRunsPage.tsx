@@ -7,6 +7,8 @@ import { listWorkflows, listVersions, getVersion } from '../../../services/workf
 import { InputsForm } from './InputsForm';
 import type { RunListResponse, RunStatus, WorkflowSummary, VersionSummary, WorkflowVersionDetail } from '../../../types';
 import { STATUS_BADGE_CLASSES } from '../Shared/statusConstants';
+import { useToast } from '../Shared/Toast';
+import { getErrorMessage } from '../Shared/errorUtils';
 
 /** Format a date string as relative time (e.g. "2 min ago"). */
 function relativeTime(iso: string): string {
@@ -28,6 +30,7 @@ const LIMIT = 50;
 export function WorkflowRunsPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { showToast } = useToast();
 
   // Server-side run data
   const [runData, setRunData] = useState<RunListResponse | null>(null);
@@ -66,7 +69,7 @@ export function WorkflowRunsPage() {
       offset: page * LIMIT,
     })
       .then((data) => { if (!cancelled) setRunData(data); })
-      .catch(() => {})
+      .catch((e) => { if (!cancelled) showToast({ type: 'error', message: getErrorMessage(e, 'Failed to load runs') }); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -115,10 +118,10 @@ export function WorkflowRunsPage() {
     try {
       const wfs = await listWorkflows();
       setWorkflows(wfs);
-    } catch {
-      // ignore
+    } catch (e) {
+      showToast({ type: 'error', message: getErrorMessage(e, 'Failed to load workflows') });
     }
-  }, []);
+  }, [showToast]);
 
   // New run: select workflow
   const handleWorkflowChange = useCallback(async (wfId: string) => {
@@ -130,10 +133,10 @@ export function WorkflowRunsPage() {
     try {
       const vs = await listVersions(wfId);
       setVersions(vs);
-    } catch {
-      // ignore
+    } catch (e) {
+      showToast({ type: 'error', message: getErrorMessage(e, 'Failed to load versions') });
     }
-  }, []);
+  }, [showToast]);
 
   // New run: select version -> load detail
   const handleVersionChange = useCallback(
@@ -146,13 +149,13 @@ export function WorkflowRunsPage() {
         const detail = await getVersion(selectedWorkflowId, v);
         setVersionDetail(detail);
         setNewRunStep('inputs');
-      } catch {
-        // ignore
+      } catch (e) {
+        showToast({ type: 'error', message: getErrorMessage(e, 'Failed to load version details') });
       } finally {
         setLoadingVersionDetail(false);
       }
     },
-    [selectedWorkflowId],
+    [selectedWorkflowId, showToast],
   );
 
   // New run: submit — after creation, refresh the run list
@@ -166,11 +169,11 @@ export function WorkflowRunsPage() {
         });
         setNewRunStep('closed');
         navigate(`/workflows/runs/${run.id}`, { state: { workflowId: selectedWorkflowId } });
-      } catch {
-        // ignore
+      } catch (e) {
+        showToast({ type: 'error', message: getErrorMessage(e, 'Failed to create run') });
       }
     },
-    [selectedWorkflowId, versionDetail, navigate],
+    [selectedWorkflowId, versionDetail, navigate, showToast],
   );
 
   const handleCancelNewRun = useCallback(() => {

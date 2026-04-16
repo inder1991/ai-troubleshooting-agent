@@ -4,6 +4,8 @@ import type { RunStatus, WorkflowSummary } from '../../../types';
 import { listWorkflows, createWorkflow, deleteWorkflow, duplicateWorkflow, updateWorkflow } from '../../../services/workflows';
 import { ConfirmDeleteDialog } from '../Shared/ConfirmDeleteDialog';
 import { STATUS_DOT_CLASSES } from '../Shared/statusConstants';
+import { useToast } from '../Shared/Toast';
+import { getErrorMessage } from '../Shared/errorUtils';
 
 function relativeTime(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -19,6 +21,7 @@ function relativeTime(iso: string): string {
 
 export function WorkflowListPage() {
   const navigate = useNavigate();
+  const { showToast } = useToast();
 
   const [workflows, setWorkflows] = useState<WorkflowSummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -78,21 +81,23 @@ export function WorkflowListPage() {
     try {
       await updateWorkflow(wfId, { name: newName.trim() });
       setWorkflows((prev) => prev.map((w) => (w.id === wfId ? { ...w, name: newName.trim() } : w)));
+      showToast({ type: 'success', message: 'Workflow renamed' });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Rename failed');
+      showToast({ type: 'error', message: getErrorMessage(err, 'Failed to rename workflow') });
     }
     setRenamingId(null);
-  }, []);
+  }, [showToast]);
 
   const handleDuplicate = useCallback(async (wfId: string) => {
     setMenuOpenId(null);
     try {
       const dup = await duplicateWorkflow(wfId);
+      showToast({ type: 'success', message: 'Workflow duplicated' });
       navigate(`/workflows/${dup.id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Duplicate failed');
+      showToast({ type: 'error', message: getErrorMessage(err, 'Failed to duplicate workflow') });
     }
-  }, [navigate]);
+  }, [navigate, showToast]);
 
   const handleDelete = useCallback(async () => {
     if (!deleteTarget) return;
@@ -101,12 +106,13 @@ export function WorkflowListPage() {
       await deleteWorkflow(deleteTarget.id);
       setWorkflows((prev) => prev.filter((w) => w.id !== deleteTarget.id));
       setDeleteTarget(null);
+      showToast({ type: 'success', message: 'Workflow deleted' });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Delete failed');
+      showToast({ type: 'error', message: getErrorMessage(err, 'Failed to delete workflow') });
     } finally {
       setDeleting(false);
     }
-  }, [deleteTarget]);
+  }, [deleteTarget, showToast]);
 
   // ---- Render ----
 

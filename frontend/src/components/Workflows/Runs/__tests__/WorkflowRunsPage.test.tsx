@@ -5,6 +5,7 @@ import { setupServer } from 'msw/node';
 import { http, HttpResponse } from 'msw';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { WorkflowRunsPage } from '../WorkflowRunsPage';
+import { ToastProvider } from '../../Shared/Toast';
 import type { RunStatus } from '../../../../types';
 
 // ---- Mock data ----
@@ -105,12 +106,14 @@ function LocationDisplay() {
 
 function renderPage(initialPath = '/workflows/runs') {
   return render(
-    <MemoryRouter initialEntries={[initialPath]}>
-      <Routes>
-        <Route path="/workflows/runs" element={<WorkflowRunsPage />} />
-        <Route path="/workflows/runs/:runId" element={<LocationDisplay />} />
-      </Routes>
-    </MemoryRouter>,
+    <ToastProvider>
+      <MemoryRouter initialEntries={[initialPath]}>
+        <Routes>
+          <Route path="/workflows/runs" element={<WorkflowRunsPage />} />
+          <Route path="/workflows/runs/:runId" element={<LocationDisplay />} />
+        </Routes>
+      </MemoryRouter>
+    </ToastProvider>,
   );
 }
 

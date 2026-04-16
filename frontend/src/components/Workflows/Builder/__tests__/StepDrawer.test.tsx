@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { setupServer } from 'msw/node';
 import { http, HttpResponse } from 'msw';
 import { StepDrawer } from '../StepDrawer';
+import { ToastProvider } from '../../Shared/Toast';
 import type { StepSpec, CatalogAgentSummary, CatalogAgentDetail } from '../../../../types';
 
 // ---- MSW mock data ----
@@ -74,15 +75,17 @@ function renderDrawer(overrides: Partial<Parameters<typeof StepDrawer>[0]> = {})
   const onDelete = vi.fn();
   const onClose = vi.fn();
   const result = render(
-    <StepDrawer
-      step={makeStep()}
-      catalog={catalog}
-      allSteps={allSteps}
-      onChange={onChange}
-      onDelete={onDelete}
-      onClose={onClose}
-      {...overrides}
-    />,
+    <ToastProvider>
+      <StepDrawer
+        step={makeStep()}
+        catalog={catalog}
+        allSteps={allSteps}
+        onChange={onChange}
+        onDelete={onDelete}
+        onClose={onClose}
+        {...overrides}
+      />
+    </ToastProvider>,
   );
   return { onChange, onDelete, onClose, ...result };
 }
