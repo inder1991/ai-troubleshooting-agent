@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { WorkflowSummary } from '../../../types';
-import { listWorkflows, createWorkflow } from '../../../services/workflows';
+import { listWorkflows, createWorkflow, deleteWorkflow, duplicateWorkflow, updateWorkflow } from '../../../services/workflows';
+import { ConfirmDeleteDialog } from '../Shared/ConfirmDeleteDialog';
 
 export function WorkflowListPage() {
   const navigate = useNavigate();
@@ -15,6 +16,13 @@ export function WorkflowListPage() {
   const [createName, setCreateName] = useState('');
   const [createDesc, setCreateDesc] = useState('');
   const [creating, setCreating] = useState(false);
+
+  // Three-dot menu / actions state
+  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState<WorkflowSummary | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -51,6 +59,41 @@ export function WorkflowListPage() {
       setCreating(false);
     }
   }, [createName, createDesc, creating, navigate]);
+
+  const handleRename = useCallback(async (wfId: string, newName: string) => {
+    if (!newName.trim()) return;
+    try {
+      await updateWorkflow(wfId, { name: newName.trim() });
+      setWorkflows((prev) => prev.map((w) => (w.id === wfId ? { ...w, name: newName.trim() } : w)));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Rename failed');
+    }
+    setRenamingId(null);
+  }, []);
+
+  const handleDuplicate = useCallback(async (wfId: string) => {
+    setMenuOpenId(null);
+    try {
+      const dup = await duplicateWorkflow(wfId);
+      navigate(`/workflows/${dup.id}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Duplicate failed');
+    }
+  }, [navigate]);
+
+  const handleDelete = useCallback(async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await deleteWorkflow(deleteTarget.id);
+      setWorkflows((prev) => prev.filter((w) => w.id !== deleteTarget.id));
+      setDeleteTarget(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Delete failed');
+    } finally {
+      setDeleting(false);
+    }
+  }, [deleteTarget]);
 
   // ---- Render ----
 
@@ -158,28 +201,112 @@ export function WorkflowListPage() {
       ) : (
         <div className="space-y-2">
           {workflows.map((wf) => (
-            <button
+            <div
               key={wf.id}
-              type="button"
-              onClick={() => navigate(`/workflows/${wf.id}`)}
-              className="flex w-full items-center gap-4 rounded-md border border-wr-border bg-wr-surface px-4 py-3 text-left hover:bg-wr-elevated transition-colors"
+              className="relative flex w-full items-center gap-4 rounded-md border border-wr-border bg-wr-surface px-4 py-3 hover:bg-wr-elevated transition-colors"
             >
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium text-wr-text">
-                  {wf.name}
+              {/* Clickable main area */}
+              <button
+                type="button"
+                onClick={() => navigate(`/workflows/${wf.id}`)}
+                className="flex flex-1 items-center gap-4 min-w-0 text-left"
+              >
+                <div className="flex-1 min-w-0">
+                  {renamingId === wf.id ? (
+                    <input
+                      type="text"
+                      value={renameValue}
+                      onChange={(e) => setRenameValue(e.target.value)}
+                      onBlur={() => handleRename(wf.id, renameValue)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleRename(wf.id, renameValue);
+                        if (e.key === 'Escape') setRenamingId(null);
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                      autoFocus
+                      className="w-full rounded-md border border-wr-border bg-wr-bg px-2 py-1 text-sm text-wr-text focus:outline focus:outline-2 focus:outline-wr-accent"
+                    />
+                  ) : (
+                    <div className="text-sm font-medium text-wr-text">
+                      {wf.name}
+                    </div>
+                  )}
+                  {wf.description && (
+                    <div className="mt-0.5 text-xs text-wr-text-muted truncate">
+                      {wf.description}
+                    </div>
+                  )}
                 </div>
-                {wf.description && (
-                  <div className="mt-0.5 text-xs text-wr-text-muted truncate">
-                    {wf.description}
+                <div className="shrink-0 text-xs text-wr-text-muted">
+                  {new Date(wf.created_at).toLocaleDateString()}
+                </div>
+              </button>
+
+              {/* Three-dot menu */}
+              <div className="relative shrink-0">
+                <button
+                  type="button"
+                  data-testid={`menu-btn-${wf.id}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setMenuOpenId((prev) => (prev === wf.id ? null : wf.id));
+                  }}
+                  className="rounded p-1 text-wr-text-muted hover:bg-wr-elevated hover:text-wr-text"
+                >
+                  <span className="material-symbols-outlined text-lg">more_vert</span>
+                </button>
+
+                {menuOpenId === wf.id && (
+                  <div className="absolute right-0 top-full z-10 mt-1 w-40 rounded-md border border-wr-border bg-wr-surface py-1 shadow-lg">
+                    <button
+                      type="button"
+                      className="w-full px-3 py-1.5 text-left text-sm text-wr-text hover:bg-wr-elevated"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setMenuOpenId(null);
+                        setRenamingId(wf.id);
+                        setRenameValue(wf.name);
+                      }}
+                    >
+                      Rename
+                    </button>
+                    <button
+                      type="button"
+                      className="w-full px-3 py-1.5 text-left text-sm text-wr-text hover:bg-wr-elevated"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDuplicate(wf.id);
+                      }}
+                    >
+                      Duplicate
+                    </button>
+                    <button
+                      type="button"
+                      className="w-full px-3 py-1.5 text-left text-sm text-red-400 hover:bg-wr-elevated"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setMenuOpenId(null);
+                        setDeleteTarget(wf);
+                      }}
+                    >
+                      Delete
+                    </button>
                   </div>
                 )}
               </div>
-              <div className="shrink-0 text-xs text-wr-text-muted">
-                {new Date(wf.created_at).toLocaleDateString()}
-              </div>
-            </button>
+            </div>
           ))}
         </div>
+      )}
+
+      {/* Delete confirmation dialog */}
+      {deleteTarget && (
+        <ConfirmDeleteDialog
+          workflowName={deleteTarget.name}
+          onConfirm={handleDelete}
+          onCancel={() => setDeleteTarget(null)}
+          deleting={deleting}
+        />
       )}
     </div>
   );
