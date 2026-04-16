@@ -1,7 +1,7 @@
 import { describe, expect, test, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { RunDetailPage } from '../RunDetailPage';
 import { ToastProvider } from '../../Shared/Toast';
 import type { RunDetail } from '../../../../types';
@@ -39,10 +39,14 @@ class MockEventSource {
 const mockGetRun = vi.fn();
 const mockCancelRun = vi.fn();
 const mockSubscribeEvents = vi.fn();
+const mockCreateRun = vi.fn();
+const mockGetRerunData = vi.fn();
 
 vi.mock('../../../../services/runs', () => ({
   getRun: (...args: unknown[]) => mockGetRun(...args),
   cancelRun: (...args: unknown[]) => mockCancelRun(...args),
+  createRun: (...args: unknown[]) => mockCreateRun(...args),
+  getRerunData: (...args: unknown[]) => mockGetRerunData(...args),
   subscribeEvents: (...args: unknown[]) => mockSubscribeEvents(...args),
   RunTerminalError: class extends Error {
     status: string;
@@ -52,6 +56,12 @@ vi.mock('../../../../services/runs', () => ({
       this.status = s;
     }
   },
+}));
+
+const mockGetVersion = vi.fn();
+
+vi.mock('../../../../services/workflows', () => ({
+  getVersion: (...args: unknown[]) => mockGetVersion(...args),
 }));
 
 const FAKE_RUN: RunDetail = {
@@ -65,12 +75,18 @@ const FAKE_RUN: RunDetail = {
   ],
 };
 
+function LocationDisplay() {
+  const location = useLocation();
+  return <div data-testid="location">{location.pathname}</div>;
+}
+
 function renderPage() {
   return render(
     <ToastProvider>
       <MemoryRouter initialEntries={['/workflows/runs/run-42']}>
         <Routes>
           <Route path="/workflows/runs/:runId" element={<RunDetailPage />} />
+          <Route path="/workflows/runs/:runId/nav" element={<LocationDisplay />} />
         </Routes>
       </MemoryRouter>
     </ToastProvider>,
@@ -81,8 +97,12 @@ beforeEach(() => {
   MockEventSource.instances = [];
   mockGetRun.mockReset();
   mockCancelRun.mockReset();
+  mockCreateRun.mockReset();
+  mockGetRerunData.mockReset();
+  mockGetVersion.mockReset();
   mockSubscribeEvents.mockReset();
   mockGetRun.mockResolvedValue(FAKE_RUN);
+  mockGetVersion.mockResolvedValue({ dag: { steps: [], inputs_schema: {} } });
   mockSubscribeEvents.mockImplementation((runId: string) => {
     return new MockEventSource(`/api/v4/runs/${runId}/events`);
   });
@@ -144,5 +164,86 @@ describe('RunDetailPage', () => {
     await user.click(toggleBtn);
 
     expect(screen.getByTestId('events-raw-stream')).toBeInTheDocument();
+  });
+
+  // ---- Rerun tests ----
+
+  test('rerun button is disabled while run is still running', async () => {
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByText(/run-42/i)).toBeInTheDocument();
+    });
+
+    const rerunBtn = screen.getByRole('button', { name: /^rerun$/i });
+    expect(rerunBtn).toBeDisabled();
+  });
+
+  test('rerun button is enabled for terminal run and calls createRun', async () => {
+    const user = userEvent.setup();
+
+    const terminalRun: RunDetail = {
+      ...FAKE_RUN,
+      status: 'success',
+      workflow_id: 'wf-abc',
+      step_runs: [
+        { id: 'sr-1', step_id: 'step-a', status: 'success', attempt: 1 },
+      ],
+    };
+    mockGetRun.mockResolvedValue(terminalRun);
+    mockGetRerunData.mockResolvedValue({
+      workflow_version_id: 'wv-1',
+      inputs: { service: 'api' },
+    });
+    mockCreateRun.mockResolvedValue({
+      id: 'run-99',
+      workflow_version_id: 'wv-1',
+      status: 'pending',
+      inputs: { service: 'api' },
+      step_runs: [],
+    });
+
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByText(/run-42/i)).toBeInTheDocument();
+    });
+
+    const rerunBtn = screen.getByRole('button', { name: /^rerun$/i });
+    expect(rerunBtn).toBeEnabled();
+
+    await user.click(rerunBtn);
+
+    await waitFor(() => {
+      expect(mockGetRerunData).toHaveBeenCalledWith('run-42');
+    });
+    expect(mockCreateRun).toHaveBeenCalledWith('wf-abc', { inputs: { service: 'api' } });
+  });
+
+  test('rerun failure shows error toast', async () => {
+    const user = userEvent.setup();
+
+    const terminalRun: RunDetail = {
+      ...FAKE_RUN,
+      status: 'failed',
+      workflow_id: 'wf-abc',
+      step_runs: [],
+    };
+    mockGetRun.mockResolvedValue(terminalRun);
+    mockGetRerunData.mockRejectedValue(new Error('Server error'));
+
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByText(/run-42/i)).toBeInTheDocument();
+    });
+
+    const rerunBtn = screen.getByRole('button', { name: /^rerun$/i });
+    await user.click(rerunBtn);
+
+    // getErrorMessage returns the Error.message, which is 'Server error'
+    await waitFor(() => {
+      expect(screen.getByText('Server error')).toBeInTheDocument();
+    });
   });
 });

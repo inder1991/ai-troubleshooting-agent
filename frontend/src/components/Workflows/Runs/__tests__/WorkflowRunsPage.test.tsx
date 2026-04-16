@@ -241,4 +241,147 @@ describe('WorkflowRunsPage', () => {
     await screen.findByText(/run-1/);
     expect(screen.getByLabelText(/sort/i)).toBeInTheDocument();
   });
+
+  // ---- Filter tests ----
+
+  test('clicking a status chip updates URL search params and refetches', async () => {
+    const user = userEvent.setup();
+    let capturedUrl = '';
+
+    server.use(
+      http.get('/api/v4/runs', ({ request }) => {
+        capturedUrl = request.url;
+        return HttpResponse.json(mockRunsResponse);
+      }),
+    );
+
+    renderPage();
+    await screen.findByText(/run-1/);
+
+    // Click "Failed" status chip
+    await user.click(screen.getByRole('button', { name: /^failed$/i }));
+
+    // Wait for refetch with status param
+    await waitFor(() => {
+      expect(capturedUrl).toContain('status=failed');
+    });
+  });
+
+  test('clicking multiple status chips combines them in URL', async () => {
+    const user = userEvent.setup();
+    let capturedUrl = '';
+
+    server.use(
+      http.get('/api/v4/runs', ({ request }) => {
+        capturedUrl = request.url;
+        return HttpResponse.json(mockRunsResponse);
+      }),
+    );
+
+    renderPage();
+    await screen.findByText(/run-1/);
+
+    // Click "Failed" then "Running"
+    await user.click(screen.getByRole('button', { name: /^failed$/i }));
+    await waitFor(() => {
+      expect(capturedUrl).toContain('status=failed');
+    });
+
+    await user.click(screen.getByRole('button', { name: /^running$/i }));
+    await waitFor(() => {
+      expect(capturedUrl).toContain('status=failed%2Crunning');
+    });
+  });
+
+  test('toggling a status chip off removes it from URL', async () => {
+    const user = userEvent.setup();
+    let capturedUrl = '';
+
+    server.use(
+      http.get('/api/v4/runs', ({ request }) => {
+        capturedUrl = request.url;
+        return HttpResponse.json(mockRunsResponse);
+      }),
+    );
+
+    renderPage();
+    await screen.findByText(/run-1/);
+
+    // Click "Failed" to enable
+    await user.click(screen.getByRole('button', { name: /^failed$/i }));
+    await waitFor(() => {
+      expect(capturedUrl).toContain('status=failed');
+    });
+
+    // Click "Failed" again to disable
+    await user.click(screen.getByRole('button', { name: /^failed$/i }));
+    await waitFor(() => {
+      expect(capturedUrl).not.toContain('status=');
+    });
+  });
+
+  // ---- Pagination tests ----
+
+  test('pagination controls appear when total > LIMIT and navigate pages', async () => {
+    const user = userEvent.setup();
+    const requests: string[] = [];
+
+    // 60 total runs with limit 50 means pagination should show
+    server.use(
+      http.get('/api/v4/runs', ({ request }) => {
+        requests.push(request.url);
+        const url = new URL(request.url);
+        const offset = Number(url.searchParams.get('offset') ?? '0');
+        return HttpResponse.json({
+          runs: offset === 0
+            ? mockRunsResponse.runs
+            : [{ id: 'run-page2', workflow_version_id: 'wv-1', status: 'success' as RunStatus, started_at: new Date().toISOString() }],
+          total: 60,
+          limit: 50,
+          offset,
+        });
+      }),
+    );
+
+    renderPage();
+    await screen.findByText(/run-1/);
+
+    // Pagination should show
+    expect(screen.getByRole('button', { name: /previous/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /next/i })).toBeEnabled();
+
+    // Click Next
+    await user.click(screen.getByRole('button', { name: /next/i }));
+
+    // Should fetch with offset=50 (page 1 * LIMIT 50)
+    await waitFor(() => {
+      const lastReq = requests[requests.length - 1];
+      expect(lastReq).toContain('offset=50');
+    });
+
+    // Wait for page 2 data
+    await screen.findByText('run-page2');
+
+    // Next should be disabled on last page, Previous enabled
+    expect(screen.getByRole('button', { name: /next/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /previous/i })).toBeEnabled();
+
+    // Click Previous
+    await user.click(screen.getByRole('button', { name: /previous/i }));
+
+    // Should refetch with offset=0
+    await waitFor(() => {
+      const lastReq = requests[requests.length - 1];
+      expect(lastReq).toContain('offset=0');
+    });
+  });
+
+  test('pagination is not shown when total <= LIMIT', async () => {
+    renderPage();
+    await screen.findByText(/run-1/);
+
+    // Default mock has total=3, limit=50 — no pagination
+    expect(screen.queryByRole('button', { name: /previous/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /next/i })).not.toBeInTheDocument();
+  });
 });
