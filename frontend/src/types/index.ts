@@ -2652,3 +2652,21 @@ export interface RunDetail {
   idempotency_key?: string;
   step_runs: StepRunDetail[];
 }
+
+export interface RunListResponse {
+  runs: Array<{
+    id: string;
+    workflow_version_id: string;
+    status: RunStatus;
+    started_at?: string;
+    ended_at?: string;
+  }>;
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface RerunData {
+  workflow_version_id: string;
+  inputs: Record<string, unknown>;
+}

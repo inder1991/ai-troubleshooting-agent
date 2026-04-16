@@ -1,6 +1,6 @@
 import { API_BASE_URL } from './api';
 import { WorkflowsDisabledError } from './workflows';
-import type { RunDetail, StepRunDetail } from '../types';
+import type { RunDetail, StepRunDetail, RunListResponse, RerunData } from '../types';
 
 export class RunTerminalError extends Error {
   constructor(public status: string) {
@@ -110,6 +110,38 @@ export async function cancelRun(runId: string): Promise<RunDetail> {
   const resp = await runsFetch(path, { method: 'POST' });
   const data = (await handleCommon(resp, path, 'POST')) as { run: RunSummaryWire };
   return normalizeRun(data.run);
+}
+
+export async function listRuns(params?: {
+  status?: string;
+  workflow_id?: string;
+  from?: string;
+  to?: string;
+  sort?: string;
+  order?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<RunListResponse> {
+  const query = new URLSearchParams();
+  if (params?.status) query.set('status', params.status);
+  if (params?.workflow_id) query.set('workflow_id', params.workflow_id);
+  if (params?.from) query.set('from', params.from);
+  if (params?.to) query.set('to', params.to);
+  if (params?.sort) query.set('sort', params.sort);
+  if (params?.order) query.set('order', params.order);
+  if (params?.limit != null) query.set('limit', String(params.limit));
+  if (params?.offset != null) query.set('offset', String(params.offset));
+
+  const qs = query.toString();
+  const path = `/api/v4/runs${qs ? `?${qs}` : ''}`;
+  const resp = await runsFetch(path);
+  return (await handleCommon(resp, path, 'GET')) as RunListResponse;
+}
+
+export async function getRerunData(runId: string): Promise<RerunData> {
+  const path = `/api/v4/runs/${encodeURIComponent(runId)}/rerun`;
+  const resp = await runsFetch(path, { method: 'POST' });
+  return (await handleCommon(resp, path, 'POST')) as RerunData;
 }
 
 export function subscribeEvents(

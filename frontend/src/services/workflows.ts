@@ -37,7 +37,13 @@ export async function callWorkflowsApi<T>(
       ...(init?.headers || {}),
     },
   });
+  if (resp.status === 204) return undefined as T;
   if (resp.status === 404) throw new WorkflowsDisabledError();
+  if (resp.status === 409) {
+    const body = await resp.json().catch(() => ({}));
+    const d = (body?.detail ?? {}) as { type?: string; message?: string };
+    throw new Error(d.message ?? 'conflict');
+  }
   if (resp.status === 422) {
     const body = await resp.json().catch(() => ({}));
     const d = (body?.detail ?? {}) as {
@@ -106,5 +112,39 @@ export function createVersion(
   return callWorkflowsApi<VersionSummary>(
     `/api/v4/workflows/${encodeURIComponent(workflowId)}/versions`,
     { method: 'POST', body: JSON.stringify(dag) },
+  );
+}
+
+export function deleteWorkflow(id: string): Promise<void> {
+  return callWorkflowsApi<void>(
+    `/api/v4/workflows/${encodeURIComponent(id)}`,
+    { method: 'DELETE' },
+  );
+}
+
+export function updateWorkflow(
+  id: string,
+  body: { name?: string; description?: string },
+): Promise<WorkflowDetail> {
+  return callWorkflowsApi<WorkflowDetail>(
+    `/api/v4/workflows/${encodeURIComponent(id)}`,
+    { method: 'PATCH', body: JSON.stringify(body) },
+  );
+}
+
+export function duplicateWorkflow(id: string): Promise<WorkflowDetail> {
+  return callWorkflowsApi<WorkflowDetail>(
+    `/api/v4/workflows/${encodeURIComponent(id)}/duplicate`,
+    { method: 'POST' },
+  );
+}
+
+export function rollbackVersion(
+  workflowId: string,
+  version: number,
+): Promise<VersionSummary> {
+  return callWorkflowsApi<VersionSummary>(
+    `/api/v4/workflows/${encodeURIComponent(workflowId)}/versions/${version}/rollback`,
+    { method: 'POST' },
   );
 }
