@@ -408,7 +408,7 @@ class WorkflowService:
         # Repo enforces (workflow_version_id, idempotency_key) uniqueness.
         existing_id: str | None = None
         if idempotency_key is not None:
-            existing = await self._find_run_by_key(
+            existing = await self._repo.find_run_by_idempotency_key(
                 workflow_version_id=latest["id"], key=idempotency_key
             )
             existing_id = existing["id"] if existing else None
@@ -556,23 +556,6 @@ class WorkflowService:
         row = await self._repo.get_run(run_id)
         assert row is not None
         return self._run_summary(row)
-
-    async def _find_run_by_key(
-        self, *, workflow_version_id: str, key: str
-    ) -> dict[str, Any] | None:
-        # No direct repo method; use connection via append pattern — simplest is
-        # to use list via sqlite direct. We add a lightweight query here.
-        import aiosqlite
-
-        async with aiosqlite.connect(self._repo._db_path) as db:  # type: ignore[attr-defined]
-            db.row_factory = aiosqlite.Row
-            async with db.execute(
-                "SELECT * FROM workflow_runs WHERE workflow_version_id = ? "
-                "AND idempotency_key = ?",
-                (workflow_version_id, key),
-            ) as cur:
-                row = await cur.fetchone()
-                return dict(row) if row else None
 
 
 class ActiveRunsError(Exception):
