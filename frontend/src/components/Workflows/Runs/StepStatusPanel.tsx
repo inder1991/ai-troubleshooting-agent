@@ -88,7 +88,7 @@ function StepCard({ step, highlighted, onCardClick }: { step: StepRunDetail; hig
       className={`rounded-lg border border-wr-border bg-wr-surface p-4 space-y-2${highlighted ? ' ring-2 ring-wr-accent' : ''}${onCardClick ? ' cursor-pointer' : ''}`}
       onClick={() => onCardClick?.(step.step_id)}
       ref={(el) => {
-        if (highlighted && el) {
+        if (highlighted && el && typeof el.scrollIntoView === 'function') {
           el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
       }}
