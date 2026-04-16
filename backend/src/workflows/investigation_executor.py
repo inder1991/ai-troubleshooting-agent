@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from src.workflows.compiler import CompiledStep, CompiledWorkflow
-from src.workflows.event_schema import StepStatus, ErrorDetail
+from src.workflows.event_schema import StepStatus, ErrorDetail, normalize_status
 from src.workflows.investigation_types import (
     InvestigationStepSpec,
     StepResult,
@@ -69,7 +69,7 @@ class InvestigationExecutor:
             end_iso = datetime.now(timezone.utc).isoformat()
 
             node_state = run_result.node_states.get(spec.step_id)
-            if node_state and node_state.status == "COMPLETED":
+            if node_state and normalize_status(node_state.status) == StepStatus.SUCCESS:
                 vstep.status = StepStatus.SUCCESS
                 vstep.output = node_state.output
                 vstep.ended_at = end_iso

@@ -27,7 +27,7 @@ class InvestigationStore:
             try:
                 await self._redis.set(self._key(dag.run_id), serialized, ex=self._ttl)
             except Exception as e:
-                logger.warning("Redis save failed, using in-memory fallback: %s", e)
+                logger.error("Redis save_dag failed for run_id=%s, falling back to in-memory: %s", dag.run_id, e)
                 self._memory[dag.run_id] = serialized
         else:
             self._memory[dag.run_id] = serialized
@@ -53,6 +53,6 @@ class InvestigationStore:
         if self._redis is not None:
             try:
                 await self._redis.delete(self._key(run_id))
-            except Exception:
-                pass
+            except Exception as e:
+                logger.error("Redis delete failed for run_id=%s: %s", run_id, e)
         self._memory.pop(run_id, None)
