@@ -1,10 +1,6 @@
 import type { WorkflowDetail, VersionSummary } from '../../../types';
 import { VersionSwitcher } from './VersionSwitcher';
 
-// TODO(phase4): add inline rename once backend exposes PATCH /api/v4/workflows/{id}.
-// As of Phase 3 backend (routes_workflows.py) no rename endpoint exists, so
-// name is rendered read-only here.
-
 interface Props {
   workflow: WorkflowDetail;
   versions: VersionSummary[];

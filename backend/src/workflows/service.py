@@ -282,6 +282,7 @@ class WorkflowService:
         new_run_id = await self._repo.create_run(
             workflow_version_id=workflow_version_id,
             inputs_json=inputs_json,
+            idempotency_key=None,
         )
         return {
             "run_id": new_run_id,

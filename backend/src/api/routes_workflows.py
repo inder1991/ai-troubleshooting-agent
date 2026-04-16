@@ -398,12 +398,27 @@ async def list_workflow_runs(
     )
 
 
-@router.post("/runs/{run_id}/rerun", dependencies=[Depends(require_flag)])
-async def rerun(
+@router.get("/runs/{run_id}/rerun-data", dependencies=[Depends(require_flag)])
+async def get_rerun_data(
     run_id: str,
     svc: WorkflowService = Depends(get_workflow_service),
 ) -> dict[str, Any]:
     try:
         return await svc.get_rerun_data(run_id)
+    except LookupError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.post(
+    "/runs/{run_id}/rerun",
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_flag)],
+)
+async def rerun(
+    run_id: str,
+    svc: WorkflowService = Depends(get_workflow_service),
+) -> dict[str, Any]:
+    try:
+        return await svc.rerun(run_id)
     except LookupError as e:
         raise HTTPException(status_code=404, detail=str(e))

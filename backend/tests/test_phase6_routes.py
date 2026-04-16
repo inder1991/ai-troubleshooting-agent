@@ -189,7 +189,8 @@ async def test_rerun(client):
     # Wait briefly for run to be persisted
     await asyncio.sleep(0.2)
     resp = await client.post(f"/api/v4/runs/{run_id}/rerun")
-    assert resp.status_code == 200
+    assert resp.status_code == 201
     data = resp.json()
+    assert "run_id" in data
     assert "workflow_version_id" in data
     assert "inputs" in data
