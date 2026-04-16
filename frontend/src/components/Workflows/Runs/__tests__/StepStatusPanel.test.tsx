@@ -95,6 +95,53 @@ describe('StepStatusPanel', () => {
     expect(screen.getByText(/42/)).toBeInTheDocument();
   });
 
+  test('step card responds to Enter key when clickable', async () => {
+    const onClick = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <StepStatusPanel
+        stepRuns={[makeStep({ step_id: 'kb-step' })]}
+        onCardClick={onClick}
+      />,
+    );
+    const card = screen.getByTestId('step-card-kb-step');
+    card.focus();
+    await user.keyboard('{Enter}');
+    expect(onClick).toHaveBeenCalledWith('kb-step');
+  });
+
+  test('step card responds to Space key when clickable', async () => {
+    const onClick = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <StepStatusPanel
+        stepRuns={[makeStep({ step_id: 'sp-step' })]}
+        onCardClick={onClick}
+      />,
+    );
+    const card = screen.getByTestId('step-card-sp-step');
+    card.focus();
+    await user.keyboard(' ');
+    expect(onClick).toHaveBeenCalledWith('sp-step');
+  });
+
+  test('step card has role="button" when clickable', () => {
+    render(
+      <StepStatusPanel
+        stepRuns={[makeStep({ step_id: 'role-step' })]}
+        onCardClick={vi.fn()}
+      />,
+    );
+    expect(screen.getByTestId('step-card-role-step')).toHaveAttribute('role', 'button');
+  });
+
+  test('step card has no role when not clickable', () => {
+    render(
+      <StepStatusPanel stepRuns={[makeStep({ step_id: 'norole-step' })]} />,
+    );
+    expect(screen.getByTestId('step-card-norole-step')).not.toHaveAttribute('role');
+  });
+
   test('LiveEvent overlays: pending step + step.started event → running', () => {
     const events: LiveEvent[] = [
       {

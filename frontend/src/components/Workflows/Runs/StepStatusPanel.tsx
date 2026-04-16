@@ -80,6 +80,14 @@ function StepCard({ step, highlighted, onCardClick }: { step: StepRunDetail; hig
       data-testid={`step-card-${step.step_id}`}
       className={`rounded-lg border border-wr-border bg-wr-surface p-4 space-y-2${highlighted ? ' ring-2 ring-wr-accent' : ''}${onCardClick ? ' cursor-pointer' : ''}`}
       onClick={() => onCardClick?.(step.step_id)}
+      onKeyDown={(e) => {
+        if ((e.key === 'Enter' || e.key === ' ') && onCardClick) {
+          e.preventDefault();
+          onCardClick(step.step_id);
+        }
+      }}
+      role={onCardClick ? 'button' : undefined}
+      tabIndex={onCardClick ? 0 : undefined}
       ref={(el) => {
         if (highlighted && el && typeof el.scrollIntoView === 'function') {
           el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
