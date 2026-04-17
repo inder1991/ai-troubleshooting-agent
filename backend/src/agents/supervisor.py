@@ -3,6 +3,7 @@ import asyncio
 import os
 import time
 import secrets
+import uuid
 from pathlib import Path
 from typing import Optional
 from datetime import datetime, timezone
@@ -27,7 +28,11 @@ from src.agents.change_agent import ChangeAgent
 from src.agents.cross_repo_tracer import CrossRepoTracer
 from src.agents.critic_agent import CriticAgent
 from src.agents.hypothesis_tracker import HypothesisTracker
-from src.agents.causal_engine import EvidenceGraphBuilder
+from src.agents.causal_engine import (
+    EvidenceGraphBuilder,
+    build_incident_graph_from_pins,
+    find_root_causes,
+)
 from src.agents.impact_analyzer import ImpactAnalyzer
 from src.utils.llm_client import AnthropicClient
 from src.utils.event_emitter import EventEmitter
@@ -47,6 +52,28 @@ from src.hypothesis.causal_linker import CausalLinker
 from src.hypothesis.elimination import evaluate_hypotheses, pick_winner_or_inconclusive
 
 logger = get_logger(__name__)
+
+
+# Task 1.14: coverage-gap tracking. When an agent is skipped or errors
+# out, the supervisor appends a one-liner to state.coverage_gaps so
+# downstream trust/confidence signals reflect the coverage actually
+# achieved (not what was merely attempted). Reason strings come from
+# exception messages which can be unbounded, so we truncate.
+MAX_GAP_REASON_LEN = 240
+
+
+def record_coverage_gap(state, agent_name: str, reason: str) -> None:
+    """Append ``<agent_name>: <reason>`` to ``state.coverage_gaps``,
+    deduplicating identical entries and truncating long reasons."""
+    if not agent_name:
+        raise ValueError("agent_name must be non-empty")
+    if not reason:
+        raise ValueError("reason must be non-empty")
+    if len(reason) > MAX_GAP_REASON_LEN:
+        reason = reason[:MAX_GAP_REASON_LEN] + " …[truncated]"
+    entry = f"{agent_name}: {reason}"
+    if entry not in state.coverage_gaps:
+        state.coverage_gaps.append(entry)
 
 
 def update_confidence_ledger(ledger: ConfidenceLedger, pins: list[EvidencePin]) -> None:
@@ -102,8 +129,26 @@ def generate_incident_id() -> str:
     return f"INC-{date_part}-{rand_part}"
 
 
+class SupervisorAlreadyConsumed(RuntimeError):
+    """Raised when a single-use SupervisorAgent is asked to run a second time.
+
+    Contract (per Phase-2, Task 2.10): one SupervisorAgent instance == one
+    investigation. Reusing an instance across runs led to the state-leak
+    audit finding where residual findings, coverage_gaps, and event
+    emitters bled between unrelated investigations. Call build_supervisor()
+    (or construct a fresh instance) per request instead.
+    """
+
+
 class SupervisorAgent:
-    """State machine orchestrator that routes work to specialized agents."""
+    """State machine orchestrator that routes work to specialized agents.
+
+    **Single-use instance contract.** Each ``SupervisorAgent`` is bound to
+    exactly one investigation. ``run`` / ``run_v5`` may be called at most
+    once; a second call raises ``SupervisorAlreadyConsumed``. Route new
+    investigations through a fresh instance (e.g. build via a factory in
+    ``routes_v4.py``).
+    """
 
     @staticmethod
     def _extract_file_paths_from_traces(traces: list[str]) -> list[str]:
@@ -194,6 +239,16 @@ class SupervisorAgent:
         self._code_agent_event = asyncio.Event()
         self._pending_code_agent_question = False
 
+        # Single-use instance guard — see SupervisorAlreadyConsumed.
+        self._consumed: bool = False
+
+    def _claim_single_use(self) -> None:
+        if self._consumed:
+            raise SupervisorAlreadyConsumed(
+                "SupervisorAgent is single-use; build a fresh instance per investigation"
+            )
+        self._consumed = True
+
     def set_attestation_logger(self, logger: "AttestationLogger", session_id: str) -> None:
         self._attestation_logger = logger
         self._session_id = session_id
@@ -210,6 +265,7 @@ class SupervisorAgent:
         investigation_executor=None,
     ) -> DiagnosticState:
         """Run the full diagnostic workflow."""
+        self._claim_single_use()
         self._event_emitter = event_emitter
         self._investigation_executor = investigation_executor
         state = DiagnosticState(
@@ -374,6 +430,8 @@ class SupervisorAgent:
                     logger.error("Agent raised exception", extra={"agent_name": agent_name, "extra": str(agent_result)})
                     # C2: Mark failed agent as completed to prevent infinite re-dispatch
                     state.agents_completed.append(agent_name)
+                    # Task 1.14: surface the failure to downstream consumers.
+                    record_coverage_gap(state, agent_name, str(agent_result) or type(agent_result).__name__)
                     if event_emitter:
                         await event_emitter.emit(agent_name, "error", f"Agent failed: {str(agent_result)}")
                     continue
@@ -467,6 +525,7 @@ class SupervisorAgent:
         event_emitter: Optional[EventEmitter] = None,
     ) -> DiagnosticStateV5:
         """V5 pipeline with governance, causal intelligence, and confidence tracking."""
+        self._claim_single_use()
         builder = EvidenceGraphBuilder()
 
         # Reordered dispatch: Metrics -> Tracing -> K8s -> Log -> Code -> Change
@@ -508,10 +567,21 @@ class SupervisorAgent:
 
                 state.agents_completed.append(agent_name)
 
-        # Build causal graph
+        # Build causal graph (legacy topology view retained for UI compatibility)
         builder.identify_root_causes()
         state.evidence_graph = builder.graph
         state.incident_timeline = builder.build_timeline()
+
+        # Phase-2 bridge: compute rule-based roots over a typed IncidentGraph.
+        # Returns [] until the signature library (Phase 4) supplies 'causes'
+        # edges — which is correct behaviour: no certified causes, no roots.
+        typed_graph = build_incident_graph_from_pins(state.evidence_pins)
+        typed_roots = find_root_causes(typed_graph)
+        if typed_roots:
+            # Overwrite the legacy topology-derived root_causes only when the
+            # rule-based engine actually produced something. Otherwise keep
+            # whatever the legacy builder emitted so the UI is not worse off.
+            state.evidence_graph.root_causes = [r.node_id for r in typed_roots]
 
         return state
 
@@ -680,6 +750,12 @@ class SupervisorAgent:
                 "agent_name": agent_name, "action": "skipped",
                 "extra": skip_reason,
             })
+            # Task 1.14: also record the skip on state.coverage_gaps
+            # so the trust UI can show "metrics_agent skipped: <reason>".
+            try:
+                record_coverage_gap(state, agent_name, skip_reason)
+            except Exception:
+                logger.exception("record_coverage_gap failed", extra={"agent_name": agent_name})
             if event_emitter:
                 await event_emitter.emit(agent_name, "warning", f"Skipped: {skip_reason}")
             # Mark as completed to prevent infinite re-dispatch
@@ -708,6 +784,12 @@ class SupervisorAgent:
             return result
         except Exception as e:
             logger.error("Agent failed", extra={"session_id": getattr(state, 'session_id', ''), "agent_name": agent_name, "action": "agent_error", "extra": str(e)})
+            # Task 1.14: record the skip reason on state so the API
+            # response lists this agent as a coverage gap.
+            try:
+                record_coverage_gap(state, agent_name, str(e) or type(e).__name__)
+            except Exception:
+                logger.exception("record_coverage_gap failed", extra={"agent_name": agent_name})
             if event_emitter:
                 await event_emitter.emit(agent_name, "error", f"Agent failed: {str(e)}")
             return None
@@ -727,6 +809,10 @@ class SupervisorAgent:
         spec = InvestigationStepSpec(
             step_id=f"round-{round_num}-{agent_name}",
             agent=agent_name,
+            # TODO(phase-2): when supervisor gains crash-recovery / retry semantics,
+            # derive idempotency_key deterministically from (run_id, step_id, attempt)
+            # rather than uuid4 so replays are dedup-eligible.
+            idempotency_key=uuid.uuid4().hex,
             depends_on=[prev_step_id] if prev_step_id else [],
             input_data=agent_input,
             metadata=StepMetadata(

@@ -4,17 +4,34 @@ from dataclasses import dataclass
 from typing import Any
 
 from src.contracts.registry import ContractRegistry
+from src.workflows._schema import _check_schema_version
 from src.workflows.compiler import CompiledWorkflow, _extract_ref_paths, _path_exists_in_schema
 
 
 @dataclass
 class DriftError:
+    SCHEMA_VERSION = 1
+
     step_id: str
     reason: str
     detail: str
 
-    def to_dict(self) -> dict[str, str]:
-        return {"step_id": self.step_id, "reason": self.reason, "detail": self.detail}
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "schema_version": self.SCHEMA_VERSION,
+            "step_id": self.step_id,
+            "reason": self.reason,
+            "detail": self.detail,
+        }
+
+    @classmethod
+    def from_dict(cls, d: dict[str, Any]) -> DriftError:
+        _check_schema_version(d, cls.SCHEMA_VERSION, cls.__name__)
+        return cls(
+            step_id=d["step_id"],
+            reason=d["reason"],
+            detail=d["detail"],
+        )
 
 
 def check_drift(

@@ -19,6 +19,7 @@ from datetime import datetime
 
 from src.utils.fix_job_queue import FixJobQueue
 from .routes_v4 import router_v4
+from .routes_feedback import feedback_router
 from .routes_catalog import router as catalog_router
 from .routes_workflows import router as workflows_router
 from . import db_session_endpoints as _db_session_endpoints  # noqa: F401 — ensure module is loaded
@@ -226,6 +227,7 @@ def create_app() -> FastAPI:
     # Include routes
     app.include_router(pr_router, prefix="/api")
     app.include_router(router_v4)
+    app.include_router(feedback_router)
     app.include_router(catalog_router)
     # Workflow endpoints 404 internally when WORKFLOWS_ENABLED is false, so
     # mounting unconditionally is safe and keeps the router wired in one place.
@@ -719,6 +721,14 @@ def create_app() -> FastAPI:
             logger.warning("RemediationEngine startup failed: %s", e)
 
     async def shutdown():
+        # ── Close shared per-backend http client pool (Task 3.3) ──
+        try:
+            from src.integrations.http_clients import close_all as _close_http_clients
+            await _close_http_clients()
+            logger.info("Shared http client pool closed")
+        except Exception as e:
+            logger.warning("http_clients.close_all failed: %s", e)
+
         # ── Close Redis connection ──
         if getattr(app.state, "redis", None):
             try:

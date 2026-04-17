@@ -132,12 +132,12 @@ def test_cancel_terminal_returns_409(tmp_path, monkeypatch):
     app = _build_app(tmp_path, monkeypatch, enabled=True, runner=_FastRunner())
     with TestClient(app) as c:
         run_id = _setup_run(c)
-        _wait_status(c, run_id, {"succeeded", "failed"})
+        _wait_status(c, run_id, {"success", "failed"})
         r = c.post(f"/api/v4/runs/{run_id}/cancel")
         assert r.status_code == 409
         body = r.json()
         assert body["detail"]["type"] == "run_terminal"
-        assert body["detail"]["status"] in ("succeeded", "failed")
+        assert body["detail"]["status"] in ("success", "failed")
 
 
 def test_cancel_in_flight_transitions_to_cancelled(tmp_path, monkeypatch):

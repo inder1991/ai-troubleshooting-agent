@@ -103,7 +103,7 @@ async def test_group_cap_limits_concurrency_below_global():
         runners, max_concurrent_steps=8, concurrency_group_caps={"logs_api": 2}
     )
     _, result = await asyncio.gather(release_soon(), executor.run(compiled, inputs={}))
-    assert result.status == "SUCCEEDED"
+    assert result.status == "SUCCESS"
     assert tracker.peak.get("logs_api", 0) == 2
 
 
@@ -132,5 +132,5 @@ async def test_no_group_only_global_cap_applies():
     )
     executor = WorkflowExecutor(runners, max_concurrent_steps=4)
     _, result = await asyncio.gather(release_soon(), executor.run(compiled, inputs={}))
-    assert result.status == "SUCCEEDED"
+    assert result.status == "SUCCESS"
     assert tracker.peak.get("none", 0) == 4

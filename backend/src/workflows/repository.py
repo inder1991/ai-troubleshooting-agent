@@ -423,6 +423,18 @@ class WorkflowRepository:
                 await db.commit()
         return event_id, sequence
 
+    async def find_run_by_idempotency_key(
+        self, workflow_version_id: str, key: str
+    ) -> dict[str, Any] | None:
+        async with self._conn() as db:
+            async with db.execute(
+                "SELECT * FROM workflow_runs WHERE workflow_version_id = ? "
+                "AND idempotency_key = ?",
+                (workflow_version_id, key),
+            ) as cur:
+                row = await cur.fetchone()
+                return dict(row) if row else None
+
     async def list_events(
         self, run_id: str, after_sequence: int = 0
     ) -> list[dict[str, Any]]:

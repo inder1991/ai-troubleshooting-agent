@@ -1,0 +1,56 @@
+name: nightly-eval
+
+# **Stub workflow — activation gated on labelled eval corpus.**
+#
+# When `backend/eval/incidents/` has >= 10 labelled cases:
+#   1. Uncomment the schedule trigger below.
+#   2. Drop the early-exit step and let the runner actually run.
+#   3. Commit a baseline.json in the first green run; fail future runs
+#      that regress top1_accuracy by > 3 points, ECE by > 0.05, or add
+#      new high_confidence_wrong cases.
+#
+# Kept in-repo so the CI shape is reviewable before it fires live.
+
+on:
+  workflow_dispatch:
+  # schedule:
+  #   - cron: "17 6 * * *"   # 06:17 UTC daily
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Short-circuit until corpus exists
+        run: |
+          count=$(find backend/eval/incidents -name '*.yaml' ! -name '_template.yaml' | wc -l)
+          if [ "$count" -lt 10 ]; then
+            echo "Eval corpus has $count labelled incidents; gate requires >=10."
+            echo "Skipping nightly eval run. See docs/plans/2026-04-17-phase4-verification.md."
+            exit 0
+          fi
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Install deps
+        run: |
+          cd backend
+          pip install -r requirements.txt
+
+      - name: Run eval
+        run: |
+          cd backend
+          python -m eval.runner --corpus eval/incidents --out report.json
+
+      - name: Compare to baseline
+        run: |
+          cd backend
+          python -m eval.runner --corpus eval/incidents --fail-on-regression eval/baseline.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: eval-report
+          path: backend/report.json

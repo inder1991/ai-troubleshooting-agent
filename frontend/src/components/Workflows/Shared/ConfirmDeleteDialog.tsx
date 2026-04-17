@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect, useCallback, KeyboardEvent } from 'react';
 
 interface Props {
   workflowName: string;
@@ -10,11 +10,60 @@ interface Props {
 export function ConfirmDeleteDialog({ workflowName, onConfirm, onCancel, deleting }: Props) {
   const [input, setInput] = useState('');
   const matches = input === workflowName;
+  const panelRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent<HTMLDivElement>) => {
+      if (e.key === 'Escape') {
+        onCancel();
+        return;
+      }
+
+      if (e.key === 'Tab') {
+        const panel = panelRef.current;
+        if (!panel) return;
+        const focusable = panel.querySelectorAll<HTMLElement>(
+          'input, button, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusable.length === 0) return;
+
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+
+        if (e.shiftKey) {
+          if (document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+          }
+        } else {
+          if (document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
+      }
+    },
+    [onCancel],
+  );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="w-full max-w-md rounded-lg border border-wr-border bg-wr-surface p-6 space-y-4">
-        <h2 className="text-lg font-semibold text-wr-text">Delete workflow</h2>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      onKeyDown={handleKeyDown}
+    >
+      <div
+        ref={panelRef}
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="delete-dialog-title"
+        className="w-full max-w-md rounded-lg border border-wr-border bg-wr-surface p-6 space-y-4"
+      >
+        <h2 id="delete-dialog-title" className="text-lg font-semibold text-wr-text">Delete workflow</h2>
         <p className="text-sm text-wr-text-muted">
           This will permanently remove this workflow from the list. Existing runs and
           their data will remain accessible.
@@ -23,6 +72,7 @@ export function ConfirmDeleteDialog({ workflowName, onConfirm, onCancel, deletin
           Type <span className="font-mono font-semibold text-red-400">{workflowName}</span> to confirm.
         </p>
         <input
+          ref={inputRef}
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}

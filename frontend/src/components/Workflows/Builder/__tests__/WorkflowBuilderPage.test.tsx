@@ -5,6 +5,7 @@ import { setupServer } from 'msw/node';
 import { http, HttpResponse } from 'msw';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { WorkflowBuilderPage } from '../WorkflowBuilderPage';
+import { ToastProvider } from '../../Shared/Toast';
 import type {
   WorkflowDetail,
   VersionSummary,
@@ -106,11 +107,13 @@ afterAll(() => server.close());
 
 function renderPage() {
   return render(
-    <MemoryRouter initialEntries={['/workflows/wf-1']}>
-      <Routes>
-        <Route path="/workflows/:workflowId" element={<WorkflowBuilderPage />} />
-      </Routes>
-    </MemoryRouter>,
+    <ToastProvider>
+      <MemoryRouter initialEntries={['/workflows/wf-1']}>
+        <Routes>
+          <Route path="/workflows/:workflowId" element={<WorkflowBuilderPage />} />
+        </Routes>
+      </MemoryRouter>
+    </ToastProvider>,
   );
 }
 
@@ -443,15 +446,17 @@ describe('WorkflowBuilderPage', () => {
     // Render with a route that includes run detail so navigation can be verified
     let navigatedTo: string | null = null;
     render(
-      <MemoryRouter initialEntries={['/workflows/wf-1']}>
-        <Routes>
-          <Route path="/workflows/:workflowId" element={<WorkflowBuilderPage />} />
-          <Route
-            path="/workflows/runs/:runId"
-            element={<div data-testid="run-detail-placeholder">Run detail</div>}
-          />
-        </Routes>
-      </MemoryRouter>,
+      <ToastProvider>
+        <MemoryRouter initialEntries={['/workflows/wf-1']}>
+          <Routes>
+            <Route path="/workflows/:workflowId" element={<WorkflowBuilderPage />} />
+            <Route
+              path="/workflows/runs/:runId"
+              element={<div data-testid="run-detail-placeholder">Run detail</div>}
+            />
+          </Routes>
+        </MemoryRouter>
+      </ToastProvider>,
     );
 
     await waitFor(() => {

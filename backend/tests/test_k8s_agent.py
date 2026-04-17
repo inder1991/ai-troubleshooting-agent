@@ -185,7 +185,12 @@ def test_parse_final_response_valid_json():
     assert len(result["pod_statuses"]) == 1
 
 
-def test_parse_final_response_json_in_text():
+def test_parse_final_response_json_in_text_now_raises():
+    """Task 1.10 deleted the regex-extract-JSON-from-prose path (operating
+    rule 6: no silent fallbacks). Prose-wrapped JSON is no longer
+    accepted — the model must return clean JSON (or, preferably, go
+    through the new submit_k8s_analysis tool-use path)."""
+    from src.agents.critic_agent import StructuredOutputRequired
     agent = K8sAgent()
     text = """Based on my analysis, here are the findings:
 
@@ -199,30 +204,26 @@ def test_parse_final_response_json_in_text():
     }
 
     This indicates a crash loop."""
-    result = agent._parse_final_response(text)
-    assert result["is_crashloop"] is True
-    assert result["total_restarts_last_hour"] == 12
-    assert result["resource_mismatch"] == "memory limit too low"
+    with pytest.raises(StructuredOutputRequired):
+        agent._parse_final_response(text)
 
 
-def test_parse_final_response_invalid_json():
+def test_parse_final_response_invalid_json_raises():
+    """Invalid JSON no longer returns a synthesized error dict — it raises."""
+    from src.agents.critic_agent import StructuredOutputRequired
     agent = K8sAgent()
     text = "This is not JSON at all, just some text analysis."
-    result = agent._parse_final_response(text)
-    assert "error" in result
-    assert "raw_response" in result
+    with pytest.raises(StructuredOutputRequired):
+        agent._parse_final_response(text)
 
 
-def test_parse_final_response_missing_fields():
+def test_parse_final_response_missing_fields_raises():
+    from src.agents.critic_agent import StructuredOutputRequired
     agent = K8sAgent()
+    # is_crashloop missing (required).
     text = json.dumps({"overall_confidence": 60})
-    result = agent._parse_final_response(text)
-    assert result["pod_statuses"] == []
-    assert result["events"] == []
-    assert result["is_crashloop"] is False
-    assert result["total_restarts_last_hour"] == 0
-    assert result["resource_mismatch"] is None
-    assert result["overall_confidence"] == 60
+    with pytest.raises(StructuredOutputRequired):
+        agent._parse_final_response(text)
 
 
 # --- Phase 2: _analyze_pod_statuses edge cases ---

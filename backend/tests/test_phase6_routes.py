@@ -156,7 +156,7 @@ async def test_list_runs(client):
 
 @pytest.mark.asyncio
 async def test_list_runs_status_filter(client):
-    resp = await client.get("/api/v4/runs", params={"status": "succeeded"})
+    resp = await client.get("/api/v4/runs", params={"status": "success"})
     assert resp.status_code == 200
     assert "runs" in resp.json()
 
@@ -194,3 +194,78 @@ async def test_rerun(client):
     assert "run_id" in data
     assert "workflow_version_id" in data
     assert "inputs" in data
+
+
+# ---- DELETE 409 CONFLICT (active runs) ----
+
+@pytest.mark.asyncio
+async def test_delete_workflow_409_active_runs(client):
+    wf = await _create_wf(client)
+    ver = await _create_version(client, wf["id"])
+    ver_id = ver["version_id"]
+    # Insert a run with status='running' directly — avoids race with background executor
+    from src.api.routes_workflows import _service
+    import uuid
+    run_id = str(uuid.uuid4())
+    async with _service._repo._conn() as db:
+        await db.execute(
+            "INSERT INTO workflow_runs (id, workflow_version_id, status, inputs_json, started_at) "
+            "VALUES (?, ?, 'running', '{}', datetime('now'))",
+            (run_id, ver_id),
+        )
+        await db.commit()
+    # Attempt to delete should return 409
+    resp = await client.delete(f"/api/v4/workflows/{wf['id']}")
+    assert resp.status_code == 409
+    assert resp.json()["detail"]["type"] == "active_runs"
+
+
+# ---- LIST RUNS VALIDATION ----
+
+@pytest.mark.asyncio
+async def test_list_runs_invalid_status(client):
+    resp = await client.get("/api/v4/runs", params={"status": "bogus"})
+    assert resp.status_code == 400
+    assert "invalid status values" in resp.json()["detail"]
+
+
+@pytest.mark.asyncio
+async def test_list_runs_invalid_sort(client):
+    resp = await client.get("/api/v4/runs", params={"sort": "nope"})
+    assert resp.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_list_runs_invalid_limit(client):
+    resp = await client.get("/api/v4/runs", params={"limit": 0})
+    assert resp.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_list_runs_limit_over_max(client):
+    resp = await client.get("/api/v4/runs", params={"limit": 201})
+    assert resp.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_list_runs_negative_offset(client):
+    resp = await client.get("/api/v4/runs", params={"offset": -1})
+    assert resp.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_list_runs_mixed_valid_invalid_status(client):
+    resp = await client.get("/api/v4/runs", params={"status": "running,bogus"})
+    assert resp.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_list_runs_valid_statuses(client):
+    resp = await client.get("/api/v4/runs", params={"status": "running,failed"})
+    assert resp.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_list_runs_invalid_order(client):
+    resp = await client.get("/api/v4/runs", params={"order": "sideways"})
+    assert resp.status_code == 422

@@ -943,6 +943,12 @@ class DiagnosticState(BaseModel):
     # Agent execution statuses: {agent_name: "success"|"no_findings"|"error"}
     agent_statuses: dict[str, str] = Field(default_factory=dict)
 
+    # Task 1.14: one-liner reasons for agents that were skipped or
+    # failed so downstream confidence / trust signals reflect the
+    # coverage actually achieved, not what was attempted.
+    # Format: "<agent_name>: <reason>".
+    coverage_gaps: list[str] = Field(default_factory=list)
+
     # Multi-hypothesis engine
     hypotheses: list["DiagHypothesis"] = Field(default_factory=list)
     hypothesis_result: Optional["HypothesisResult"] = None

@@ -229,5 +229,5 @@ async def test_cancel_after_completion_is_noop():
     result = await executor.run(compiled, inputs={}, cancel_event=cancel)
     # Setting cancel after the fact should not retroactively change status.
     cancel.set()
-    assert result.status == "SUCCEEDED"
+    assert result.status == "SUCCESS"
     assert result.node_states["a"].status == "SUCCESS"

@@ -164,14 +164,21 @@ class AnthropicClient:
         tools: list[dict] | None = None,
         max_tokens: int = 4096,
         temperature: float = 0.0,
+        tool_choice: dict | None = None,
     ):
-        """Send a message with tool definitions. Returns raw Anthropic response object."""
+        """Send a message with tool definitions. Returns raw Anthropic response object.
+
+        ``tool_choice`` is forwarded verbatim to the SDK — pass
+        ``{"type": "tool", "name": "foo"}`` to force the model to call
+        a specific tool (structured-output pattern, Task 1.9/1.10)."""
         if self._semaphore:
             acquired = await self._semaphore.acquire()
             if not acquired:
                 raise RuntimeError("Failed to acquire LLM semaphore – too many concurrent calls")
         try:
-            return await self._chat_with_tools_inner(system, messages, tools, max_tokens, temperature)
+            return await self._chat_with_tools_inner(
+                system, messages, tools, max_tokens, temperature, tool_choice
+            )
         finally:
             if self._semaphore:
                 await self._semaphore.release()
@@ -183,6 +190,7 @@ class AnthropicClient:
         tools: list[dict] | None = None,
         max_tokens: int = 4096,
         temperature: float = 0.0,
+        tool_choice: dict | None = None,
     ):
         """Inner implementation of chat_with_tools (called after semaphore is acquired)."""
         kwargs = {
@@ -194,6 +202,8 @@ class AnthropicClient:
         }
         if tools:
             kwargs["tools"] = tools
+        if tool_choice is not None:
+            kwargs["tool_choice"] = tool_choice
 
         logger.info("LLM call", extra={
             "agent_name": self.agent_name,

@@ -11,6 +11,8 @@ import { getAgentVersion } from '../../../services/catalog';
 import { InputMappingField } from './InputMapping/InputMappingField';
 import { PredicateBuilder } from './PredicateBuilder/index';
 import type { RefSource } from './RefPicker/RefPicker';
+import { useToast } from '../Shared/Toast';
+import { getErrorMessage } from '../Shared/errorUtils';
 
 // ---- Props ----
 
@@ -67,6 +69,7 @@ export function StepDrawer({
   onClose,
 }: StepDrawerProps) {
   // ---- Agent detail state ----
+  const { showToast } = useToast();
   const [agentDetail, setAgentDetail] = useState<CatalogAgentDetail | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
 
@@ -96,8 +99,11 @@ export function StepDrawer({
 
     getAgentVersion(step.agent, version).then((detail) => {
       if (!cancelled) setAgentDetail(detail);
-    }).catch(() => {
-      if (!cancelled) setAgentDetail(null);
+    }).catch((e) => {
+      if (!cancelled) {
+        setAgentDetail(null);
+        showToast({ type: 'error', message: getErrorMessage(e, 'Failed to load agent details') });
+      }
     });
 
     return () => { cancelled = true; };

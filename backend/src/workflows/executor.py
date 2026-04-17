@@ -706,10 +706,10 @@ class WorkflowExecutor:
         ):
             status = "FAILED"
         else:
-            status = "SUCCEEDED"
+            status = "SUCCESS"
 
         # But if all FAILED nodes were under on_failure=continue or replaced by
-        # successful fallback (output_for_ref remapped), we're SUCCEEDED.
+        # successful fallback (output_for_ref remapped), we're SUCCESS.
         if status == "FAILED" and run_error is None and not run_cancelled:
             # There's a FAILED node whose policy is 'fail' — but maybe it's the
             # primary of a successful fallback; in that case the fallback's
@@ -728,9 +728,9 @@ class WorkflowExecutor:
                 failed_primary_no_fallback = True
                 break
             if not failed_primary_no_fallback:
-                status = "SUCCEEDED"
+                status = "SUCCESS"
 
-        if status == "SUCCEEDED":
+        if status == "SUCCESS":
             final_type = "run.completed"
         elif status == "CANCELLED":
             final_type = "run.cancelled"

@@ -5,7 +5,7 @@ Boots the *real* FastAPI app with ``WORKFLOWS_ENABLED=true`` and
 subsystem end-to-end. Then exercises the full happy path:
 
   create workflow -> create version (2-step DAG) -> create run
-  -> SSE stream -> get run (terminal SUCCEEDED) -> idempotent re-POST.
+  -> SSE stream -> get run (terminal SUCCESS) -> idempotent re-POST.
 
 The ``log_agent`` runner is swapped for a deterministic stub after
 startup so the test has zero LLM / network / log-backend coupling.
@@ -124,7 +124,7 @@ def _wait_terminal(client: TestClient, run_id: str, timeout: float = 5.0) -> dic
         r = client.get(f"/api/v4/runs/{run_id}")
         assert r.status_code == 200, r.text
         last = r.json()
-        if last["run"]["status"] in ("succeeded", "failed", "cancelled"):
+        if last["run"]["status"] in ("success", "failed", "cancelled"):
             return last
         time.sleep(0.02)
     raise AssertionError(f"run did not reach terminal in {timeout}s: {last}")
@@ -174,7 +174,7 @@ def test_phase2_end_to_end_smoke(real_app_client):
 
     # 4. Wait for terminal state via polling.
     final = _wait_terminal(client, run_id)
-    assert final["run"]["status"] == "succeeded", final
+    assert final["run"]["status"] == "success", final
     step_runs = {sr["step_id"]: sr for sr in final["step_runs"]}
     assert set(step_runs) == {"a", "b"}, step_runs
     assert step_runs["a"]["status"] == "success"

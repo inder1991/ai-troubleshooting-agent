@@ -116,23 +116,26 @@ const FAKE_VERSION: WorkflowVersionDetail = {
 // Import after mocks
 import { RunDetailPage } from '../RunDetailPage';
 import { StepStatusPanel } from '../StepStatusPanel';
+import { ToastProvider } from '../../Shared/Toast';
 
 function renderPage() {
   // Start in graph mode via localStorage
   localStorageMock.setItem('wf-run-view-mode', 'graph');
   return render(
-    <MemoryRouter
-      initialEntries={[
-        {
-          pathname: '/workflows/runs/run-42',
-          state: { workflowId: 'wf-1' },
-        },
-      ]}
-    >
-      <Routes>
-        <Route path="/workflows/runs/:runId" element={<RunDetailPage />} />
-      </Routes>
-    </MemoryRouter>,
+    <ToastProvider>
+      <MemoryRouter
+        initialEntries={[
+          {
+            pathname: '/workflows/runs/run-42',
+            state: { workflowId: 'wf-1' },
+          },
+        ]}
+      >
+        <Routes>
+          <Route path="/workflows/runs/:runId" element={<RunDetailPage />} />
+        </Routes>
+      </MemoryRouter>
+    </ToastProvider>,
   );
 }
 

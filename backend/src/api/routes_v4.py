@@ -38,6 +38,7 @@ from src.integrations.github_client import GitHubClient, GitHubClientError
 from src.utils.attestation_log import AttestationLogger
 from src.workflows.investigation_executor import InvestigationExecutor
 from src.workflows.investigation_store import InvestigationStore
+from src.workflows.outbox import OutboxWriter
 
 logger = get_logger(__name__)
 
@@ -209,7 +210,8 @@ router_v4 = APIRouter(prefix="/api/v4", tags=["v4"])
 # In-memory session store
 sessions: Dict[str, Dict[str, Any]] = {}
 supervisors: Dict[str, SupervisorAgent] = {}
-_investigation_store = InvestigationStore(redis_client=None)
+_investigation_store = InvestigationStore()
+_investigation_writer = OutboxWriter()
 _investigation_executors: dict[str, InvestigationExecutor] = {}
 
 
@@ -539,8 +541,7 @@ async def start_session(request: StartSessionRequest, background_tasks: Backgrou
     inv_run_id = f"investigation-{session_id}"
     inv_executor = InvestigationExecutor(
         run_id=inv_run_id,
-        emitter=emitter,
-        store=_investigation_store,
+        writer=_investigation_writer,
         workflow_executor=None,
     )
     _investigation_executors[session_id] = inv_executor
@@ -1267,6 +1268,10 @@ async def get_session_status(session_id: str):
         result["token_usage"] = [t.model_dump() for t in state.token_usage]
         if state.all_breadcrumbs:
             result["breadcrumbs"] = [b.model_dump(mode="json") for b in state.all_breadcrumbs]
+        # Task 1.14: surface skip/error reasons so the trust UI can
+        # show "Evidence coverage: 3/5 agents" instead of silently
+        # hiding agents that never ran.
+        result["coverage_gaps"] = list(getattr(state, "coverage_gaps", []) or [])
 
     return result
 

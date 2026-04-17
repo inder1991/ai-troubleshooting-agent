@@ -112,24 +112,27 @@ const FAKE_VERSION: WorkflowVersionDetail = {
 
 // Import after mocks
 import { RunDetailPage } from '../RunDetailPage';
+import { ToastProvider } from '../../Shared/Toast';
 
 function renderPage(opts: { locationState?: Record<string, unknown>; initialLocalStorage?: string } = {}) {
   if (opts.initialLocalStorage) {
     window.localStorage.setItem('wf-run-view-mode', opts.initialLocalStorage);
   }
   return render(
-    <MemoryRouter
-      initialEntries={[
-        {
-          pathname: '/workflows/runs/run-42',
-          state: opts.locationState,
-        },
-      ]}
-    >
-      <Routes>
-        <Route path="/workflows/runs/:runId" element={<RunDetailPage />} />
-      </Routes>
-    </MemoryRouter>,
+    <ToastProvider>
+      <MemoryRouter
+        initialEntries={[
+          {
+            pathname: '/workflows/runs/run-42',
+            state: opts.locationState,
+          },
+        ]}
+      >
+        <Routes>
+          <Route path="/workflows/runs/:runId" element={<RunDetailPage />} />
+        </Routes>
+      </MemoryRouter>
+    </ToastProvider>,
   );
 }
 

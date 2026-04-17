@@ -4,18 +4,9 @@ from dataclasses import dataclass
 from src.agents.supervisor import SupervisorAgent
 from src.workflows.investigation_executor import InvestigationExecutor
 from src.workflows.investigation_types import InvestigationStepSpec
-from src.workflows.investigation_store import InvestigationStore
 from src.workflows.event_schema import StepStatus
 
-
-class FakeEmitter:
-    def __init__(self):
-        self.events = []
-    async def emit(self, agent_name, event_type, message, details=None):
-        self.events.append({"agent_name": agent_name, "event_type": event_type})
-        class FakeTaskEvent:
-            sequence_number = len(self.events)
-        return FakeTaskEvent()
+from backend.tests.workflows._fakes import FakeOutboxWriter
 
 
 class FakeWorkflowExecutor:
@@ -43,13 +34,11 @@ class FakeWorkflowExecutor:
 @pytest.mark.asyncio
 async def test_supervisor_uses_investigation_executor():
     """When investigation_executor is provided, _dispatch_via_executor routes through it."""
-    emitter = FakeEmitter()
-    store = InvestigationStore(redis_client=None)
+    writer = FakeOutboxWriter()
     wf_executor = FakeWorkflowExecutor()
     inv_executor = InvestigationExecutor(
         run_id="inv-test",
-        emitter=emitter,
-        store=store,
+        writer=writer,
         workflow_executor=wf_executor,
     )
 

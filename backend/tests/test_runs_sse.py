@@ -103,7 +103,7 @@ def _wait_terminal(client: TestClient, run_id: str, timeout: float = 3.0) -> Non
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         body = client.get(f"/api/v4/runs/{run_id}").json()
-        if body["run"]["status"] in ("succeeded", "failed", "cancelled"):
+        if body["run"]["status"] in ("success", "failed", "cancelled"):
             return
         time.sleep(0.02)
     raise AssertionError("timeout waiting for terminal")

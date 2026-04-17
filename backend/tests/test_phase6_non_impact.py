@@ -97,15 +97,15 @@ async def test_soft_delete_does_not_affect_runs(repo):
     run2_id = await _make_run(repo, v_id, key="r2")
 
     # Move one run to a terminal state
-    await repo.update_run_status(run1_id, "succeeded")
-    await repo.update_run_status(run2_id, "succeeded")
+    await repo.update_run_status(run1_id, "success")
+    await repo.update_run_status(run2_id, "success")
 
     await repo.soft_delete_workflow(wf_id)
 
     # get_run still works for each run
     run1 = await repo.get_run(run1_id)
     assert run1 is not None
-    assert run1["status"] == "succeeded"
+    assert run1["status"] == "success"
 
     run2 = await repo.get_run(run2_id)
     assert run2 is not None
@@ -132,9 +132,9 @@ async def test_full_run_snapshot_guarantee(repo):
     sr2_id = await repo.create_step_run(run_id, "step_b", attempt=1)
 
     # Mark step runs and run as completed
-    await repo.update_step_run(sr1_id, "succeeded", output_json='{"ok":true}')
-    await repo.update_step_run(sr2_id, "succeeded", output_json='{"ok":true}')
-    await repo.update_run_status(run_id, "succeeded")
+    await repo.update_step_run(sr1_id, "success", output_json='{"ok":true}')
+    await repo.update_step_run(sr2_id, "success", output_json='{"ok":true}')
+    await repo.update_run_status(run_id, "success")
 
     # Soft-delete the workflow
     await repo.soft_delete_workflow(wf_id)
@@ -147,7 +147,7 @@ async def test_full_run_snapshot_guarantee(repo):
     # Verify run still exists and is intact
     run = await repo.get_run(run_id)
     assert run is not None
-    assert run["status"] == "succeeded"
+    assert run["status"] == "success"
     assert run["workflow_version_id"] == v_id
 
     # Verify run's version still resolves
@@ -161,7 +161,7 @@ async def test_full_run_snapshot_guarantee(repo):
     assert len(step_runs) == 2
     step_ids = {sr["step_id"] for sr in step_runs}
     assert step_ids == {"step_a", "step_b"}
-    assert all(sr["status"] == "succeeded" for sr in step_runs)
+    assert all(sr["status"] == "success" for sr in step_runs)
 
     # Verify inputs are preserved
     parsed = json.loads(run["inputs_json"])

@@ -1,9 +1,19 @@
-"""Evidence graph builder and causal intelligence engine (Phase 4, Task 13)."""
+"""Evidence graph builder and causal intelligence engine.
+
+Includes:
+- EvidenceGraphBuilder — legacy pydantic-model graph (used by supervisor; still
+  populates timeline & nodes; root-cause logic now follows the typed-edge rules).
+- find_root_causes(IncidentGraph) — rule-based root identification over the
+  Phase-2 typed graph. A node is a root iff it has at least one outgoing
+  'causes' edge AND no incoming 'causes' edge. Topology alone is no longer
+  sufficient — that was the bug.
+"""
 
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Literal
+from src.agents.incident_graph import IncidentGraph
 from src.models.schemas import (
     EvidencePin,
     EvidenceNode,
@@ -15,6 +25,95 @@ from src.models.schemas import (
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
+
+
+@dataclass(frozen=True)
+class Root:
+    """Identified root cause with deterministic score."""
+    node_id: str
+    score: float
+
+
+def _score_root(causes_count: int, precedes_count: int, depth: int) -> float:
+    """Deterministic root score: more 'causes' descendants > more 'precedes' > shallower (earlier) > deeper."""
+    # Reach (causes count dominates), small bonus for precedes, slight earliness bonus.
+    return round(
+        2.0 * causes_count
+        + 0.5 * precedes_count
+        + (1.0 / (1 + depth)),
+        4,
+    )
+
+
+def find_root_causes(graph: IncidentGraph) -> list[Root]:
+    """Identify root-cause nodes in a typed IncidentGraph.
+
+    Rules:
+      1. A root must have ≥1 outgoing edge of type 'causes'.
+      2. A root must not itself be the target of any 'causes' edge.
+    Topological position (no incoming edges of any type) is *not* sufficient —
+    a node whose only outgoing edges are 'correlates' or 'precedes' is not a
+    root cause, even if it has no parents.
+    """
+    candidates: list[Root] = []
+    for n in graph.nodes:
+        outgoing = graph.outgoing_edges(n)
+        causes_count = sum(1 for _, _, d in outgoing if d.get("edge_type") == "causes")
+        precedes_count = sum(1 for _, _, d in outgoing if d.get("edge_type") == "precedes")
+        if causes_count == 0:
+            continue
+        if graph.incoming_causes(n) > 0:
+            continue
+        candidates.append(
+            Root(
+                node_id=n,
+                score=_score_root(causes_count, precedes_count, graph.depth(n)),
+            )
+        )
+    return sorted(candidates, key=lambda r: -r.score)
+
+
+def build_incident_graph_from_pins(pins) -> IncidentGraph:
+    """Construct a typed ``IncidentGraph`` from an ordered list of EvidencePins.
+
+    The builder only emits ``precedes`` edges — strictly temporal, no causal
+    claims. ``causes`` edges arrive later via the Phase-4 signature library
+    (pattern_id) or explicit user override. That means ``find_root_causes``
+    over this graph correctly returns ``[]`` today: no causes, no roots.
+    That is by design — it prevents the supervisor from declaring a root
+    cause on topology alone, which was the pre-Phase-2 bug.
+
+    Edge rule: for each pin, add a precedes edge to every later pin on the
+    same ``source_agent`` within 5 minutes. Cross-agent temporal-only links
+    are left to the signature library — they are the high-signal edges and
+    deserve rule-checked certification, not a heuristic.
+    """
+    g = IncidentGraph()
+    ordered = sorted(
+        [p for p in pins if p is not None and getattr(p, "timestamp", None)],
+        key=lambda p: p.timestamp,
+    )
+    for idx, pin in enumerate(ordered):
+        g.add_node(
+            f"pin-{idx}",
+            t=pin.timestamp.timestamp(),
+            source_agent=pin.source_agent,
+            evidence_type=pin.evidence_type,
+            claim=pin.claim,
+        )
+    for i, a in enumerate(ordered):
+        for j in range(i + 1, len(ordered)):
+            b = ordered[j]
+            if a.source_agent != b.source_agent:
+                continue
+            lag = (b.timestamp - a.timestamp).total_seconds()
+            if lag > 300:   # only same-agent chains within 5 minutes
+                break
+            g.add_edge(
+                f"pin-{i}", f"pin-{j}",
+                edge_type="precedes", lag_s=int(lag),
+            )
+    return g
 
 
 @dataclass

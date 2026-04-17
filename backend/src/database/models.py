@@ -1,10 +1,176 @@
-"""Pydantic models for database diagnostics."""
+"""Pydantic models for database diagnostics + SQLAlchemy ORM models."""
 from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import Literal, Optional
 
+import sqlalchemy as sa
 from pydantic import BaseModel, Field
+from sqlalchemy.orm import DeclarativeBase, mapped_column
+
+
+class Base(DeclarativeBase):
+    """Declarative base for hardening-track ORM models (outbox, audit, priors, eval).
+
+    NOTE: ORM columns below use bare ``mapped_column(...)`` rather than the modern
+    ``Mapped[...]`` annotated form because Python 3.14 + SQLAlchemy 2.0.36 +
+    ``from __future__ import annotations`` (above) interact badly: typed
+    ``Mapped[Optional[datetime]]`` fails inside ``sqlalchemy/util/typing.py``
+    with ``TypeError: descriptor '__getitem__' requires a 'typing.Union' object``.
+    Workaround until SQLAlchemy ships a fix: stay on ``mapped_column()`` only,
+    or drop the ``__future__`` import from THIS module specifically.
+    """
+
+
+class Outbox(Base):
+    __tablename__ = "investigation_outbox"
+    __table_args__ = (
+        sa.UniqueConstraint("run_id", "seq", name="uq_outbox_run_seq"),
+        sa.Index(
+            "ix_outbox_unrelayed",
+            "relayed_at",
+            postgresql_where=sa.text("relayed_at IS NULL"),
+        ),
+    )
+
+    id = mapped_column(sa.BigInteger, primary_key=True)
+    run_id = mapped_column(sa.String(64), nullable=False, index=True)
+    seq = mapped_column(sa.BigInteger, nullable=False)
+    kind = mapped_column(sa.String(64), nullable=False)
+    # ``sa.JSON`` is portable across backends. Switch to ``JSONB`` only if/when
+    # we need indexed predicates on payload subfields (currently the relay reads
+    # rows whole and forwards — no predicate pushdown).
+    payload = mapped_column(sa.JSON, nullable=False)
+    created_at = mapped_column(
+        sa.DateTime(timezone=True), server_default=sa.func.now()
+    )
+    relayed_at = mapped_column(sa.DateTime(timezone=True), nullable=True)
+
+
+class AgentPrior(Base):
+    """Per-agent confidence prior, persisted across investigations.
+
+    Written by ``ConfidenceCalibrator.update_prior`` after a feedback signal
+    (user-labelled correct/incorrect outcome). Read back at the start of the
+    next investigation so learning carries forward.
+    """
+
+    __tablename__ = "agent_priors"
+
+    agent_name = mapped_column(sa.String(128), primary_key=True)
+    prior = mapped_column(sa.Float, nullable=False, server_default=sa.text("0.65"))
+    sample_count = mapped_column(
+        sa.BigInteger, nullable=False, server_default=sa.text("0")
+    )
+    updated_at = mapped_column(
+        sa.DateTime(timezone=True),
+        nullable=False,
+        server_default=sa.func.now(),
+    )
+
+
+class PromptVersion(Base):
+    """Registered system prompt + tool schema blob for a single agent.
+
+    ``version_id`` IS the sha256 of the prompt content — two different
+    prompts can never share a version_id, and registering the same prompt
+    twice is an UPSERT that preserves the original created_at.
+    """
+
+    __tablename__ = "prompt_versions"
+    __table_args__ = (
+        sa.UniqueConstraint("agent", "sha256", name="uq_prompt_agent_sha"),
+    )
+
+    version_id = mapped_column(sa.String(64), primary_key=True)
+    agent = mapped_column(sa.String(64), nullable=False, index=True)
+    system_prompt = mapped_column(sa.Text, nullable=False)
+    tool_schemas = mapped_column(sa.JSON, nullable=True)
+    sha256 = mapped_column(sa.String(64), nullable=False)
+    created_at = mapped_column(
+        sa.DateTime(timezone=True),
+        nullable=False,
+        server_default=sa.func.now(),
+    )
+
+
+class BackendCallAudit(Base):
+    """One row per external-backend call — Prometheus, ELK, K8s, Jira, etc.
+
+    The audit layer is write-only from the application's perspective; reads
+    are either ad-hoc SQL for incident postmortems or a future observability
+    dashboard. Fire-and-forget writing (bounded queue) means a slow DB
+    can't back-pressure real work.
+    """
+
+    __tablename__ = "backend_call_audit"
+    __table_args__ = (
+        sa.Index(
+            "ix_backend_call_audit_run_created", "run_id", "created_at"
+        ),
+    )
+
+    id = mapped_column(sa.BigInteger, primary_key=True)
+    run_id = mapped_column(sa.String(64), nullable=False, index=True)
+    agent = mapped_column(sa.String(64), nullable=False)
+    tool = mapped_column(sa.String(128), nullable=False)
+    backend = mapped_column(sa.String(64), nullable=False)
+    query_hash = mapped_column(sa.String(64), nullable=False)
+    response_code = mapped_column(sa.Integer, nullable=True)
+    duration_ms = mapped_column(sa.Integer, nullable=False)
+    bytes = mapped_column(sa.BigInteger, nullable=True)
+    error = mapped_column(sa.Text, nullable=True)
+    created_at = mapped_column(
+        sa.DateTime(timezone=True),
+        nullable=False,
+        server_default=sa.func.now(),
+    )
+
+
+class IncidentFeedback(Base):
+    """User-submitted outcome label for an investigation run.
+
+    One row per (run_id, submitter) — the unique constraint enforces
+    idempotency so a double-click in the UI or a retry in the client does
+    not double-count toward prior updates.
+    """
+
+    __tablename__ = "incident_feedback"
+    __table_args__ = (
+        sa.UniqueConstraint(
+            "run_id", "submitter", name="uq_incident_feedback_run_submitter"
+        ),
+    )
+
+    id = mapped_column(sa.BigInteger, primary_key=True)
+    run_id = mapped_column(sa.String(64), nullable=False, index=True)
+    was_correct = mapped_column(sa.Boolean, nullable=False)
+    actual_root_cause = mapped_column(sa.Text, nullable=True)
+    freeform = mapped_column(sa.Text, nullable=True)
+    submitter = mapped_column(sa.String(128), nullable=False)
+    created_at = mapped_column(
+        sa.DateTime(timezone=True),
+        nullable=False,
+        server_default=sa.func.now(),
+    )
+
+
+class DagSnapshot(Base):
+    """One-row-per-run snapshot of the VirtualDag, written transactionally
+    alongside outbox events by ``OutboxWriter`` (see ``workflows/outbox.py``)."""
+
+    __tablename__ = "investigation_dag_snapshot"
+
+    run_id = mapped_column(sa.String(64), primary_key=True)
+    payload = mapped_column(sa.JSON, nullable=False)
+    schema_version = mapped_column(
+        sa.Integer, nullable=False, server_default=sa.text("1")
+    )
+    updated_at = mapped_column(
+        sa.DateTime(timezone=True),
+        nullable=False,
+        server_default=sa.func.now(),
+    )
 
 
 # ── Connection Profile ──

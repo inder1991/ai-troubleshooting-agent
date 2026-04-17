@@ -8,19 +8,11 @@ import { InputsForm } from './InputsForm';
 import { cancelRun, createRun, getRerunData, RunTerminalError } from '../../../services/runs';
 import { getVersion } from '../../../services/workflows';
 import type { RunStatus, StepSpec } from '../../../types';
+import { STATUS_BADGE_CLASSES, isTerminal } from '../Shared/statusConstants';
+import { useToast } from '../Shared/Toast';
+import { getErrorMessage } from '../Shared/errorUtils';
 
 type ViewMode = 'cards' | 'graph';
-
-const STATUS_CLASSES: Record<RunStatus, string> = {
-  running: 'bg-amber-500 animate-pulse',
-  pending: 'bg-neutral-500',
-  cancelling: 'bg-slate-400',
-  cancelled: 'bg-slate-500',
-  succeeded: 'bg-emerald-500',
-  failed: 'bg-red-500',
-};
-
-const TERMINAL: ReadonlySet<RunStatus> = new Set(['succeeded', 'failed', 'cancelled']);
 
 function readViewMode(): ViewMode {
   try {
@@ -38,6 +30,7 @@ export function RunDetailPage() {
   const locationWorkflowId = (location.state as { workflowId?: string } | null)?.workflowId ?? null;
 
   const { run, liveEvents, loading, error, connected } = useRunEvents(runId!);
+  const { showToast } = useToast();
 
   // Resolve workflowId from run data first, fall back to navigation state.
   const workflowId = run?.workflow_id ?? locationWorkflowId;
@@ -63,8 +56,8 @@ export function RunDetailPage() {
         if (!cancelled) {
           setDagSteps(versionDetail.dag.steps);
         }
-      } catch {
-        // Silently fail — graph view just won't be available
+      } catch (e) {
+        if (!cancelled) showToast({ type: 'error', message: getErrorMessage(e, 'Failed to load workflow graph') });
       }
     }
 
@@ -97,7 +90,7 @@ export function RunDetailPage() {
 
   if (!run) return null;
 
-  const isTerminal = TERMINAL.has(run.status);
+  const terminal = isTerminal(run.status);
   const graphDisabled = !workflowId;
 
   async function handleCancel() {
@@ -121,8 +114,8 @@ export function RunDetailPage() {
       const data = await getRerunData(runId);
       const newRun = await createRun(workflowId, { inputs: data.inputs });
       navigate(`/workflows/runs/${newRun.id}`, { state: { workflowId } });
-    } catch {
-      // silently fail
+    } catch (e) {
+      showToast({ type: 'error', message: getErrorMessage(e, 'Failed to rerun workflow') });
     } finally {
       setRerunning(false);
     }
@@ -139,14 +132,15 @@ export function RunDetailPage() {
           const versionDetail = await getVersion(workflowId, run!.workflow_version_id);
           setRerunSchema(versionDetail.dag.inputs_schema ?? {});
         } catch {
+          // Non-critical: fall back to empty schema for the inputs form
           setRerunSchema({});
         }
       } else {
         setRerunSchema({});
       }
       setShowRerunInputs(true);
-    } catch {
-      // silently fail
+    } catch (e) {
+      showToast({ type: 'error', message: getErrorMessage(e, 'Failed to load rerun data') });
     }
   }
 
@@ -168,7 +162,7 @@ export function RunDetailPage() {
           </h1>
           <span
             data-testid="run-status-badge"
-            className={`px-2 py-0.5 rounded text-xs font-semibold text-white ${STATUS_CLASSES[run.status] ?? 'bg-neutral-500'}`}
+            className={`px-2 py-0.5 rounded text-xs font-semibold text-white ${STATUS_BADGE_CLASSES[run.status] ?? 'bg-neutral-500'}`}
           >
             {run.status}
           </span>
@@ -198,21 +192,21 @@ export function RunDetailPage() {
         <div className="flex items-center gap-2">
           <button
             className="px-3 py-1.5 rounded text-sm font-medium bg-wr-accent text-wr-on-accent hover:bg-wr-accent-hover disabled:opacity-40 disabled:cursor-not-allowed"
-            disabled={!isTerminal || rerunning}
+            disabled={!terminal || rerunning}
             onClick={handleRerun}
           >
             {rerunning ? 'Rerunning...' : 'Rerun'}
           </button>
           <button
             className="px-3 py-1.5 rounded text-sm font-medium border border-wr-border bg-wr-surface text-wr-text hover:bg-wr-elevated disabled:opacity-40 disabled:cursor-not-allowed"
-            disabled={!isTerminal}
+            disabled={!terminal}
             onClick={handleRerunWithChanges}
           >
             Rerun with changes
           </button>
           <button
             className="px-3 py-1.5 rounded text-sm font-medium bg-red-600 hover:bg-red-700 text-white disabled:opacity-40 disabled:cursor-not-allowed"
-            disabled={isTerminal || cancelling}
+            disabled={terminal || cancelling}
             onClick={handleCancel}
           >
             {cancelling ? 'Cancelling...' : 'Cancel'}
@@ -266,8 +260,8 @@ export function RunDetailPage() {
               const newRun = await createRun(workflowId, { inputs, idempotency_key: opts.idempotency_key });
               setShowRerunInputs(false);
               navigate(`/workflows/runs/${newRun.id}`, { state: { workflowId } });
-            } catch {
-              // silently fail
+            } catch (e) {
+              showToast({ type: 'error', message: getErrorMessage(e, 'Failed to start rerun') });
             }
           }}
           onCancel={() => setShowRerunInputs(false)}

@@ -1,5 +1,5 @@
 const ALL_STATUSES = [
-  { value: 'succeeded', label: 'Succeeded', activeClass: 'bg-emerald-600 text-white' },
+  { value: 'success', label: 'Success', activeClass: 'bg-emerald-600 text-white' },
   { value: 'failed', label: 'Failed', activeClass: 'bg-red-600 text-white' },
   { value: 'running', label: 'Running', activeClass: 'bg-amber-600 text-white' },
   { value: 'pending', label: 'Pending', activeClass: 'bg-neutral-600 text-white' },

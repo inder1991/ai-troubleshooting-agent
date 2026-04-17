@@ -1,5 +1,11 @@
 """InvestigationExecutor: conductor that dispatches agent steps through WorkflowExecutor
-as 1-node DAGs, maintains an append-only virtual DAG, and emits canonical events."""
+as 1-node DAGs, maintains an append-only virtual DAG, and persists every transition
+through ``OutboxWriter`` (DAG snapshot + outbox event committed in one Postgres tx).
+
+Audit P0 #5/#6: there is no in-memory fallback. If Postgres is unreachable,
+``run_step`` and ``cancel`` propagate the underlying exception. Delivery to live
+clients is the OutboxRelay's job (Task 1.4) — the executor is write-side only.
+"""
 from __future__ import annotations
 
 import time
@@ -7,35 +13,70 @@ from datetime import datetime, timezone
 from typing import Any
 
 from src.workflows.compiler import CompiledStep, CompiledWorkflow
-from src.workflows.event_schema import StepStatus, ErrorDetail
+from src.workflows.event_schema import (
+    StepStatus,
+    ErrorDetail,
+    StepMetadata,
+    make_run_event,
+    make_step_event,
+    normalize_status,
+)
 from src.workflows.investigation_types import (
     InvestigationStepSpec,
     StepResult,
     VirtualStep,
     VirtualDag,
 )
-from src.workflows.investigation_store import InvestigationStore
-from src.workflows.investigation_event_adapter import InvestigationEventAdapter
+from src.workflows.outbox import OutboxWriter
+from src.workflows.run_lock import RunLock
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
+
+
+class StepAlreadyRunning(Exception):
+    """Raised when a step with the same idempotency_key is resubmitted while still RUNNING."""
+
+
+class StepIdempotencyKeyMismatch(Exception):
+    """Raised when a step_id is resubmitted with a different idempotency_key — a planner logic bug."""
 
 
 class InvestigationExecutor:
     def __init__(
         self,
         run_id: str,
-        emitter: Any,
-        store: InvestigationStore,
+        writer: OutboxWriter,
         workflow_executor: Any,
+        dag: VirtualDag | None = None,
+        *,
+        run_lock: RunLock | None = None,
     ):
         self._run_id = run_id
-        self._dag = VirtualDag(run_id=run_id)
-        self._store = store
+        # DAG resumption (loading from snapshot on construction) is a Phase-2
+        # graceful-drain concern (Task 4.26). For now the executor always
+        # starts fresh unless a caller explicitly seeds a DAG.
+        self._dag = dag if dag is not None else VirtualDag(run_id=run_id)
+        self._writer = writer
         self._workflow_executor = workflow_executor
-        self._adapter = InvestigationEventAdapter(run_id=run_id, emitter=emitter)
+        # The caller (route handler / WorkflowService) is expected to have
+        # already acquired this lock; the executor just owns the release side
+        # so cancel()/finish() can't forget it. See Task 1.6.
+        self._run_lock = run_lock
 
     async def run_step(self, spec: InvestigationStepSpec) -> StepResult:
+        existing = self._dag.get_step(spec.step_id)
+        if existing is not None:
+            if existing.idempotency_key != spec.idempotency_key:
+                raise StepIdempotencyKeyMismatch(
+                    f"step_id {spec.step_id!r} already exists with idempotency_key "
+                    f"{existing.idempotency_key!r}, refusing resubmission with {spec.idempotency_key!r}"
+                )
+            if existing.status in (StepStatus.SUCCESS, StepStatus.FAILED):
+                return self._step_result_from(existing)
+            if existing.status == StepStatus.RUNNING:
+                raise StepAlreadyRunning(spec.step_id)
+
         now_iso = datetime.now(timezone.utc).isoformat()
 
         vstep = VirtualStep(
@@ -47,15 +88,14 @@ class InvestigationExecutor:
             group=spec.metadata.group if spec.metadata else None,
             triggered_by=spec.metadata.hypothesis_id if spec.metadata else None,
             reason=spec.metadata.reason if spec.metadata else None,
+            idempotency_key=spec.idempotency_key,
         )
         self._dag.append_step(vstep)
 
-        # Mark running and emit
         vstep.status = StepStatus.RUNNING
         vstep.started_at = now_iso
         seq = self._dag.next_sequence()
-        await self._adapter.emit_step_update(vstep, sequence_number=seq)
-        await self._store.save_dag(self._dag)
+        await self._commit_step_transition(vstep, seq)
 
         start_mono = time.monotonic()
         try:
@@ -69,7 +109,7 @@ class InvestigationExecutor:
             end_iso = datetime.now(timezone.utc).isoformat()
 
             node_state = run_result.node_states.get(spec.step_id)
-            if node_state and node_state.status == "COMPLETED":
+            if node_state and normalize_status(node_state.status) == StepStatus.SUCCESS:
                 vstep.status = StepStatus.SUCCESS
                 vstep.output = node_state.output
                 vstep.ended_at = end_iso
@@ -121,10 +161,8 @@ class InvestigationExecutor:
                 duration_ms=elapsed_ms,
             )
 
-        # Emit final status and persist
         seq = self._dag.next_sequence()
-        await self._adapter.emit_step_update(vstep, sequence_number=seq)
-        await self._store.save_dag(self._dag)
+        await self._commit_step_transition(vstep, seq)
 
         return result
 
@@ -140,8 +178,66 @@ class InvestigationExecutor:
     async def cancel(self) -> None:
         self._dag.status = "cancelled"
         seq = self._dag.next_sequence()
-        await self._adapter.emit_run_update(status="cancelled", sequence_number=seq)
-        await self._store.save_dag(self._dag)
+        envelope = make_run_event(
+            run_id=self._run_id,
+            status="cancelled",
+            sequence_number=seq,
+        )
+        async with self._writer.transaction(run_id=self._run_id) as tx:
+            await tx.update_dag(self._dag.to_dict())
+            await tx.append_event(seq=seq, kind="run_update", payload=envelope.to_dict())
+        await self._release_lock_if_held()
+
+    async def finalize(self) -> None:
+        """Release the distributed run lock. Call once when the executor is
+        terminal (success/failed/cancelled). Safe to call multiple times."""
+        await self._release_lock_if_held()
+
+    async def _release_lock_if_held(self) -> None:
+        lock = self._run_lock
+        if lock is None:
+            return
+        self._run_lock = None
+        try:
+            await lock.release()
+        except Exception:
+            logger.exception("InvestigationExecutor: run_lock release failed", extra={"run_id": self._run_id})
+
+    async def _commit_step_transition(self, vstep: VirtualStep, seq: int) -> None:
+        envelope = make_step_event(
+            run_id=self._run_id,
+            step_id=vstep.step_id,
+            parent_step_ids=vstep.depends_on,
+            status=vstep.status,
+            sequence_number=seq,
+            started_at=vstep.started_at,
+            ended_at=vstep.ended_at,
+            metadata=StepMetadata(
+                agent=vstep.agent,
+                round=vstep.round,
+                group=vstep.group,
+                hypothesis_id=vstep.triggered_by,
+                reason=vstep.reason,
+                duration_ms=vstep.duration_ms,
+                error=vstep.error,
+            ),
+        )
+        async with self._writer.transaction(run_id=self._run_id) as tx:
+            await tx.update_dag(self._dag.to_dict())
+            await tx.append_event(seq=seq, kind="step_update", payload=envelope.to_dict())
+
+    def _step_result_from(self, vstep: VirtualStep) -> StepResult:
+        assert vstep.started_at is not None and vstep.ended_at is not None, \
+            f"completed step {vstep.step_id!r} has null timestamps; invariant violated"
+        return StepResult(
+            step_id=vstep.step_id,
+            status=vstep.status,
+            output=vstep.output,
+            error=vstep.error,
+            started_at=vstep.started_at,
+            ended_at=vstep.ended_at,
+            duration_ms=vstep.duration_ms or 0,  # 0 ms is semantically valid; keep as-is
+        )
 
     def _build_single_step_workflow(self, spec: InvestigationStepSpec) -> CompiledWorkflow:
         step = CompiledStep(

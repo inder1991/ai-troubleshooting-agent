@@ -89,7 +89,7 @@ async def test_happy_path_no_drift():
     runners = _runners({"a": _Succeed("a", log), "b": _Succeed("b", log)})
     executor = WorkflowExecutor(runners)
     result = await executor.run(compiled, inputs={}, contracts=contracts)
-    assert result.status == "SUCCEEDED"
+    assert result.status == "SUCCESS"
     assert log == ["a", "b"]
 
 

@@ -6,14 +6,44 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
 
+from src.workflows._schema import _check_schema_version
 
-class StepStatus(str, Enum):
+
+class Status(str, Enum):
     PENDING = "pending"
     RUNNING = "running"
     SUCCESS = "success"
     FAILED = "failed"
     SKIPPED = "skipped"
     CANCELLED = "cancelled"
+    CANCELLING = "cancelling"
+
+
+# Backward-compatible alias
+StepStatus = Status
+
+
+_STATUS_ALIASES: dict[str, Status] = {
+    "COMPLETED": Status.SUCCESS,
+    "SUCCESS": Status.SUCCESS,
+    "SUCCEEDED": Status.SUCCESS,
+    "FAILED": Status.FAILED,
+    "PENDING": Status.PENDING,
+    "RUNNING": Status.RUNNING,
+    "SKIPPED": Status.SKIPPED,
+    "CANCELLED": Status.CANCELLED,
+}
+
+
+def normalize_status(raw: str) -> Status:
+    """Convert any known status string to the canonical ``Status`` enum."""
+    upper = raw.upper()
+    if upper in _STATUS_ALIASES:
+        return _STATUS_ALIASES[upper]
+    try:
+        return StepStatus(raw.lower())
+    except ValueError:
+        return StepStatus.FAILED
 
 
 @dataclass(frozen=True)
@@ -56,6 +86,8 @@ class ErrorPayload:
 
 @dataclass(frozen=True)
 class EventEnvelope:
+    SCHEMA_VERSION = 1
+
     event_type: str  # "step_update" | "run_update" | "error"
     run_id: str
     sequence_number: int
@@ -77,12 +109,20 @@ class EventEnvelope:
             return obj
 
         return {
+            "schema_version": self.SCHEMA_VERSION,
             "event_type": self.event_type,
             "run_id": self.run_id,
             "sequence_number": self.sequence_number,
             "timestamp": self.timestamp,
             "payload": _convert(self.payload),
         }
+
+    @classmethod
+    def from_dict(cls, d: dict[str, Any]) -> "EventEnvelope":
+        _check_schema_version(d, cls.SCHEMA_VERSION, cls.__name__)
+        raise NotImplementedError(
+            "EventEnvelope is wire-only; deserialize the typed payload directly via the appropriate handler."
+        )
 
 
 def make_step_event(

@@ -99,7 +99,7 @@ def _wait_for_terminal(client: TestClient, run_id: str, timeout: float = 3.0) ->
         r = client.get(f"/api/v4/runs/{run_id}")
         assert r.status_code == 200, r.text
         body = r.json()
-        if body["run"]["status"] in ("succeeded", "failed", "cancelled"):
+        if body["run"]["status"] in ("success", "failed", "cancelled"):
             return body
         time.sleep(0.02)
     raise AssertionError(f"run did not reach terminal: {body}")
@@ -125,7 +125,7 @@ def test_create_run_happy_path(client_enabled):
     run_id = r.json()["run"]["id"]
 
     final = _wait_for_terminal(client_enabled, run_id)
-    assert final["run"]["status"] == "succeeded"
+    assert final["run"]["status"] == "success"
     assert len(final["step_runs"]) == 1
     assert final["step_runs"][0]["step_id"] == "s1"
     assert final["step_runs"][0]["status"] == "success"

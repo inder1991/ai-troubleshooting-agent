@@ -52,4 +52,22 @@ describe('ConfirmDeleteDialog', () => {
     render(<ConfirmDeleteDialog {...defaultProps} deleting />);
     expect(screen.getByText(/deleting/i)).toBeInTheDocument();
   });
+
+  it('pressing Escape calls onCancel', async () => {
+    const onCancel = vi.fn();
+    const user = userEvent.setup();
+    render(<ConfirmDeleteDialog workflowName="test" onConfirm={vi.fn()} onCancel={onCancel} />);
+    await user.keyboard('{Escape}');
+    expect(onCancel).toHaveBeenCalled();
+  });
+
+  it('has role="alertdialog" and aria-modal', () => {
+    render(<ConfirmDeleteDialog workflowName="test" onConfirm={vi.fn()} onCancel={vi.fn()} />);
+    expect(screen.getByRole('alertdialog')).toHaveAttribute('aria-modal', 'true');
+  });
+
+  it('input receives initial focus', () => {
+    render(<ConfirmDeleteDialog workflowName="test" onConfirm={vi.fn()} onCancel={vi.fn()} />);
+    expect(document.activeElement?.tagName).toBe('INPUT');
+  });
 });

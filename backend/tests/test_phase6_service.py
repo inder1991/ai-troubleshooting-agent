@@ -214,9 +214,9 @@ def test_list_runs_with_filters(svc, repo):
             inputs_json=json.dumps({"service_name": "a"}),
             idempotency_key=None,
         )
-        await repo.update_run_status(run_id, "succeeded")
-        # filter for succeeded
-        result = await svc.list_runs(workflow_id=wf_id, statuses=["succeeded"])
+        await repo.update_run_status(run_id, "success")
+        # filter for success
+        result = await svc.list_runs(workflow_id=wf_id, statuses=["success"])
         assert result["total"] == 1
         # filter for failed -> none
         result2 = await svc.list_runs(workflow_id=wf_id, statuses=["failed"])

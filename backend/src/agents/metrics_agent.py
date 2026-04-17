@@ -8,9 +8,32 @@ from typing import Any
 import requests
 
 from src.agents.react_base import ReActAgent
+from src.agents.baseline import (
+    DEFAULT_BASELINE_THRESHOLD_PCT,
+    apply_baseline_filter_dicts,
+)
 from src.models.schemas import MetricAnomaly, DataPoint, TimeRange, MetricsAnalysisResult, TokenUsage
+from src.tools.promql_safety import UnsafeQuery, validate_promql
 from src.utils.event_emitter import EventEmitter
 from src.utils.logger import get_logger
+
+
+def _parse_step_seconds(step: Any) -> int:
+    """Convert a Prometheus step value (``"60s"``, ``"1m"``, int, float)
+    into seconds. Unrecognised → 60 so validate_promql can still run on
+    the best-guess assumption that step is at least the minimum."""
+    if isinstance(step, (int, float)):
+        return max(1, int(step))
+    if not isinstance(step, str) or not step:
+        return 60
+    unit = step[-1].lower()
+    value_part = step[:-1]
+    mult = {"s": 1, "m": 60, "h": 3600, "d": 86400}
+    if unit in mult and value_part.isdigit():
+        return max(1, int(value_part) * mult[unit])
+    if step.isdigit():
+        return max(1, int(step))
+    return 60
 
 logger = get_logger(__name__)
 
@@ -150,6 +173,8 @@ If no spike detection is needed, output the final JSON directly.
 
 CRITICAL LABEL RULE: Every PromQL query MUST include namespace= and pod=~ or service= labels to scope to the target service. Never execute a query without these labels.
 
+MANDATORY DUAL BASELINE (24h + 7d): For every metric you call out as anomalous, you MUST issue BOTH `<query> offset 24h` AND `<query> offset 7d` and report baseline_value (24h) and baseline_value_7d (7d) on the finding. The pipeline keeps the anomaly if EITHER deviation >= 15% — this catches both fresh spikes (24h catches) and slow-drift incidents where the 24h baseline is itself already degraded (7d catches). Skip anomalies whose current is within 15% of BOTH baselines to save budget.
+
 SIGNAL OVER NOISE: Prioritize anomalies but ALWAYS include baseline metrics. Your final JSON must contain:
 - All anomalous metrics (with severity critical/high/medium)
 - Key baseline metrics (CPU, memory, connection pools) even if normal — mark them severity "low" with confidence_score 100 and correlation_to_incident "Within normal range — rules out resource exhaustion"
@@ -260,8 +285,26 @@ OUTPUT FORMAT — Final answer as JSON:
 
         # Include all queried time series data — even normal metrics provide context
 
+        # Task 1.13: suppress within-noise anomalies. A peak within 15% of
+        # baseline is signal-indistinguishable from normal load — reporting
+        # it floods downstream causal analysis with false positives.
+        raw_anomalies = data.get("anomalies", [])
+        filtered_anomalies = apply_baseline_filter_dicts(
+            raw_anomalies, threshold_pct=DEFAULT_BASELINE_THRESHOLD_PCT
+        )
+        suppressed = len(raw_anomalies) - len(filtered_anomalies)
+        if suppressed:
+            logger.info(
+                "Baseline filter suppressed within-noise anomalies",
+                extra={
+                    "agent_name": self.agent_name,
+                    "action": "baseline_suppress",
+                    "extra": {"suppressed": suppressed, "threshold_pct": DEFAULT_BASELINE_THRESHOLD_PCT},
+                },
+            )
+
         result = {
-            "anomalies": data.get("anomalies", []),
+            "anomalies": filtered_anomalies,
             "correlated_signals": data.get("correlated_signals", []),
             "time_series_data": dict(self._time_series_cache),
             "overall_confidence": data.get("overall_confidence", 50),
@@ -324,6 +367,15 @@ OUTPUT FORMAT — Final answer as JSON:
         end = self._resolve_time(params["end"])
         step = params.get("step", "60s")
 
+        # Task 1.11: safety bounds. Reject unbounded / high-cardinality
+        # PromQL before it hits Prometheus.
+        try:
+            step_s = _parse_step_seconds(step)
+            range_h = max(1, int((end - start) / 3600)) if isinstance(start, (int, float)) and isinstance(end, (int, float)) else 24
+            validate_promql(query, step_s=step_s, range_h=range_h)
+        except UnsafeQuery as e:
+            return json.dumps({"error": f"unsafe_promql: {e}"})
+
         try:
             resp = await self._async_get(
                 f"{self.prometheus_url}/api/v1/query_range",
@@ -381,6 +433,11 @@ OUTPUT FORMAT — Final answer as JSON:
 
     async def _query_instant(self, params: dict) -> str:
         query = params["query"]
+        # Task 1.11: instant queries still need namespace/length/year bounds.
+        try:
+            validate_promql(query, step_s=60, range_h=1)
+        except UnsafeQuery as e:
+            return json.dumps({"error": f"unsafe_promql: {e}"})
         try:
             resp = await self._async_get(
                 f"{self.prometheus_url}/api/v1/query",

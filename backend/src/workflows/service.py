@@ -10,17 +10,18 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from dataclasses import asdict
 from datetime import datetime, timezone
 from typing import Any
 
 import jsonschema
 
 from src.contracts.registry import ContractRegistry
-from src.workflows.compiler import CompiledStep, CompiledWorkflow, compile_dag
+from src.workflows.compiler import CompiledWorkflow, compile_dag
+from src.workflows.event_schema import normalize_status
 from src.workflows.executor import WorkflowExecutor
 from src.workflows.models import WorkflowDag
 from src.workflows.repository import WorkflowRepository
+from src.workflows.run_lock import RunLock, RunLocked
 from src.workflows.runners.registry import AgentRunnerRegistry
 
 
@@ -40,31 +41,10 @@ def _now() -> str:
 
 
 def _rehydrate_compiled(compiled_dict: dict[str, Any]) -> CompiledWorkflow:
-    steps_raw = compiled_dict["steps"]
-    steps: dict[str, CompiledStep] = {}
-    for sid, s in steps_raw.items():
-        steps[sid] = CompiledStep(
-            id=s["id"],
-            agent=s["agent"],
-            agent_version=s["agent_version"],
-            inputs=s["inputs"],
-            when=s.get("when"),
-            on_failure=s.get("on_failure", "fail"),
-            fallback_step_id=s.get("fallback_step_id"),
-            parallel_group=s.get("parallel_group"),
-            concurrency_group=s.get("concurrency_group"),
-            timeout_seconds=float(s["timeout_seconds"]),
-            retry_on=list(s.get("retry_on", [])),
-            upstream_ids=list(s.get("upstream_ids", [])),
-        )
-    return CompiledWorkflow(
-        topo_order=list(compiled_dict["topo_order"]),
-        steps=steps,
-        inputs_schema=compiled_dict.get("inputs_schema", {}),
-    )
+    return CompiledWorkflow.from_dict(compiled_dict)
 
 
-_TERMINAL = {"succeeded", "failed", "cancelled"}
+_TERMINAL = {"success", "failed", "cancelled"}
 
 
 class WorkflowService:
@@ -75,11 +55,19 @@ class WorkflowService:
         runners: AgentRunnerRegistry | None = None,
         *,
         cancel_grace_seconds: float = 30.0,
+        redis_client: Any | None = None,
+        lock_ttl_s: int = 15,
+        lock_heartbeat_s: float = 5.0,
     ) -> None:
         self._repo = repo
         self._contracts = contracts
         self._runners = runners
         self._cancel_grace_seconds = cancel_grace_seconds
+        # Multi-replica run_id lock (Task 1.6). When redis_client is None
+        # (single-replica local / unit tests) locking is skipped.
+        self._redis_client = redis_client
+        self._lock_ttl_s = lock_ttl_s
+        self._lock_heartbeat_s = lock_heartbeat_s
         # Per-run live event queues for SSE consumers (in-memory).
         self._run_subscribers: dict[str, list[asyncio.Queue]] = {}
         # Per-run cancel events.
@@ -157,7 +145,7 @@ class WorkflowService:
             workflow_id,
             next_version,
             dag_json=json.dumps(dag_dict),
-            compiled_json=json.dumps(asdict(compiled), default=str),
+            compiled_json=json.dumps(compiled.to_dict(), default=str),
         )
         row = await self._repo.get_version(workflow_id, next_version)
         assert row is not None
@@ -407,7 +395,7 @@ class WorkflowService:
         # Repo enforces (workflow_version_id, idempotency_key) uniqueness.
         existing_id: str | None = None
         if idempotency_key is not None:
-            existing = await self._find_run_by_key(
+            existing = await self._repo.find_run_by_idempotency_key(
                 workflow_version_id=latest["id"], key=idempotency_key
             )
             existing_id = existing["id"] if existing else None
@@ -423,6 +411,31 @@ class WorkflowService:
             row = await self._repo.get_run(run_id)
             assert row is not None
             return self._run_summary(row)
+
+        # Acquire the distributed run lock (Task 1.6) before scheduling the
+        # driver. If another replica already owns this run_id, mark the row
+        # failed so we don't leak a permanently-pending run, and raise
+        # RunLocked so the API layer can return 409.
+        run_lock: RunLock | None = None
+        if self._redis_client is not None:
+            run_lock = RunLock(
+                run_id,
+                redis=self._redis_client,
+                ttl_s=self._lock_ttl_s,
+                heartbeat_s=self._lock_heartbeat_s,
+            )
+            try:
+                await run_lock.acquire()
+            except RunLocked:
+                await self._repo.update_run_status(
+                    run_id,
+                    "failed",
+                    ended_at=_now(),
+                    error_json=json.dumps(
+                        {"type": "RunLocked", "message": f"run_id {run_id} already owned by another replica"}
+                    ),
+                )
+                raise
 
         compiled = _rehydrate_compiled(compiled_dict)
         cancel_event = asyncio.Event()
@@ -500,7 +513,7 @@ class WorkflowService:
                 try:
                     q.put_nowait(live_ev)
                 except asyncio.QueueFull:
-                    pass
+                    logger.warning("SSE event queue full, event dropped: run_id=%s seq=%s", run_id, sequence)
 
         async def _driver() -> None:
             executor = WorkflowExecutor(
@@ -517,11 +530,7 @@ class WorkflowService:
                     cancel_event=cancel_event,
                     contracts=self._contracts,
                 )
-                final_status = {
-                    "SUCCEEDED": "succeeded",
-                    "FAILED": "failed",
-                    "CANCELLED": "cancelled",
-                }.get(result.status, "failed")
+                final_status = normalize_status(result.status).value
                 if result.error is not None:
                     err_json = json.dumps(result.error, default=str)
             except Exception as e:  # noqa: BLE001
@@ -544,7 +553,14 @@ class WorkflowService:
                     try:
                         q.put_nowait(sentinel)
                     except asyncio.QueueFull:
-                        pass
+                        logger.warning("SSE terminal event queue full, event dropped: run_id=%s status=%s", run_id, final_status)
+                # Release the distributed lock (Task 1.6) so another
+                # replica can pick up this run_id if we ever rerun/resume.
+                if run_lock is not None:
+                    try:
+                        await run_lock.release()
+                    except Exception:
+                        logger.exception("run_lock release failed for %s", run_id)
                 # Cleanup maps after a grace tick so last subscribers can drain.
                 self._run_cancel_events.pop(run_id, None)
 
@@ -559,23 +575,6 @@ class WorkflowService:
         row = await self._repo.get_run(run_id)
         assert row is not None
         return self._run_summary(row)
-
-    async def _find_run_by_key(
-        self, *, workflow_version_id: str, key: str
-    ) -> dict[str, Any] | None:
-        # No direct repo method; use connection via append pattern — simplest is
-        # to use list via sqlite direct. We add a lightweight query here.
-        import aiosqlite
-
-        async with aiosqlite.connect(self._repo._db_path) as db:  # type: ignore[attr-defined]
-            db.row_factory = aiosqlite.Row
-            async with db.execute(
-                "SELECT * FROM workflow_runs WHERE workflow_version_id = ? "
-                "AND idempotency_key = ?",
-                (workflow_version_id, key),
-            ) as cur:
-                row = await cur.fetchone()
-                return dict(row) if row else None
 
 
 class ActiveRunsError(Exception):

@@ -89,7 +89,7 @@ async def test_has_active_runs_false_when_terminal(repo):
     wf_id = await _make_workflow(repo)
     v_id = await _make_version(repo, wf_id)
     run_id = await _make_run(repo, v_id, key="k1")
-    await repo.update_run_status(run_id, "succeeded")
+    await repo.update_run_status(run_id, "success")
     assert await repo.has_active_runs(wf_id) is False
 
 
@@ -170,7 +170,7 @@ async def test_list_runs_filter_status(repo):
     v_id = await _make_version(repo, wf_id)
     r1 = await _make_run(repo, v_id, key="a")
     r2 = await _make_run(repo, v_id, key="b")
-    await repo.update_run_status(r1, "succeeded")
+    await repo.update_run_status(r1, "success")
     rows, total = await repo.list_runs(statuses=["pending"])
     assert total == 1
     assert rows[0]["id"] == r2
@@ -241,7 +241,7 @@ async def test_get_latest_run_for_workflow(repo):
     r1 = await _make_run(repo, v_id, key="a")
     await repo.update_run_status(r1, "running", ended_at=None)
     # start r1 so it has a started_at
-    await repo.update_run_status(r1, "succeeded", ended_at="2026-01-01T00:00:00+00:00")
+    await repo.update_run_status(r1, "success", ended_at="2026-01-01T00:00:00+00:00")
     r2 = await _make_run(repo, v_id, key="b")
     await repo.update_run_status(r2, "running")
     latest = await repo.get_latest_run_for_workflow(wf_id)

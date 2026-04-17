@@ -6,15 +6,9 @@ import { createRun } from '../../../services/runs';
 import { listWorkflows, listVersions, getVersion } from '../../../services/workflows';
 import { InputsForm } from './InputsForm';
 import type { RunListResponse, RunStatus, WorkflowSummary, VersionSummary, WorkflowVersionDetail } from '../../../types';
-
-const STATUS_CLASSES: Record<RunStatus, string> = {
-  running: 'bg-amber-500 animate-pulse',
-  pending: 'bg-neutral-500',
-  cancelling: 'bg-slate-400',
-  cancelled: 'bg-slate-500',
-  succeeded: 'bg-emerald-500',
-  failed: 'bg-red-500',
-};
+import { STATUS_BADGE_CLASSES } from '../Shared/statusConstants';
+import { useToast } from '../Shared/Toast';
+import { getErrorMessage } from '../Shared/errorUtils';
 
 /** Format a date string as relative time (e.g. "2 min ago"). */
 function relativeTime(iso: string): string {
@@ -36,6 +30,7 @@ const LIMIT = 50;
 export function WorkflowRunsPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { showToast } = useToast();
 
   // Server-side run data
   const [runData, setRunData] = useState<RunListResponse | null>(null);
@@ -58,6 +53,8 @@ export function WorkflowRunsPage() {
   const [selectedVersion, setSelectedVersion] = useState<number | null>(null);
   const [versionDetail, setVersionDetail] = useState<WorkflowVersionDetail | null>(null);
   const [loadingVersionDetail, setLoadingVersionDetail] = useState(false);
+  const [loadingWorkflows, setLoadingWorkflows] = useState(false);
+  const [loadingVersions, setLoadingVersions] = useState(false);
 
   // Fetch runs when filters change
   useEffect(() => {
@@ -74,7 +71,7 @@ export function WorkflowRunsPage() {
       offset: page * LIMIT,
     })
       .then((data) => { if (!cancelled) setRunData(data); })
-      .catch(() => {})
+      .catch((e) => { if (!cancelled) showToast({ type: 'error', message: getErrorMessage(e, 'Failed to load runs') }); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -120,13 +117,16 @@ export function WorkflowRunsPage() {
   // New run: open wizard
   const handleNewRun = useCallback(async () => {
     setNewRunStep('select');
+    setLoadingWorkflows(true);
     try {
       const wfs = await listWorkflows();
       setWorkflows(wfs);
-    } catch {
-      // ignore
+    } catch (e) {
+      showToast({ type: 'error', message: getErrorMessage(e, 'Failed to load workflows') });
+    } finally {
+      setLoadingWorkflows(false);
     }
-  }, []);
+  }, [showToast]);
 
   // New run: select workflow
   const handleWorkflowChange = useCallback(async (wfId: string) => {
@@ -135,13 +135,16 @@ export function WorkflowRunsPage() {
     setVersionDetail(null);
     setVersions([]);
     if (!wfId) return;
+    setLoadingVersions(true);
     try {
       const vs = await listVersions(wfId);
       setVersions(vs);
-    } catch {
-      // ignore
+    } catch (e) {
+      showToast({ type: 'error', message: getErrorMessage(e, 'Failed to load versions') });
+    } finally {
+      setLoadingVersions(false);
     }
-  }, []);
+  }, [showToast]);
 
   // New run: select version -> load detail
   const handleVersionChange = useCallback(
@@ -154,13 +157,13 @@ export function WorkflowRunsPage() {
         const detail = await getVersion(selectedWorkflowId, v);
         setVersionDetail(detail);
         setNewRunStep('inputs');
-      } catch {
-        // ignore
+      } catch (e) {
+        showToast({ type: 'error', message: getErrorMessage(e, 'Failed to load version details') });
       } finally {
         setLoadingVersionDetail(false);
       }
     },
-    [selectedWorkflowId],
+    [selectedWorkflowId, showToast],
   );
 
   // New run: submit — after creation, refresh the run list
@@ -174,11 +177,11 @@ export function WorkflowRunsPage() {
         });
         setNewRunStep('closed');
         navigate(`/workflows/runs/${run.id}`, { state: { workflowId: selectedWorkflowId } });
-      } catch {
-        // ignore
+      } catch (e) {
+        showToast({ type: 'error', message: getErrorMessage(e, 'Failed to create run') });
       }
     },
-    [selectedWorkflowId, versionDetail, navigate],
+    [selectedWorkflowId, versionDetail, navigate, showToast],
   );
 
   const handleCancelNewRun = useCallback(() => {
@@ -229,7 +232,8 @@ export function WorkflowRunsPage() {
               aria-label="Workflow"
               value={selectedWorkflowId}
               onChange={(e) => handleWorkflowChange(e.target.value)}
-              className="w-full rounded-md border border-wr-border bg-wr-bg px-2 py-1.5 text-sm text-wr-text"
+              disabled={loadingWorkflows}
+              className="w-full rounded-md border border-wr-border bg-wr-bg px-2 py-1.5 text-sm text-wr-text disabled:opacity-50"
             >
               <option value="">Select a workflow...</option>
               {workflows.map((wf) => (
@@ -238,6 +242,9 @@ export function WorkflowRunsPage() {
                 </option>
               ))}
             </select>
+            {loadingWorkflows && (
+              <div className="text-xs text-wr-text-muted">Loading workflows...</div>
+            )}
           </div>
 
           {versions.length > 0 && (
@@ -250,7 +257,8 @@ export function WorkflowRunsPage() {
                 aria-label="Version"
                 value={selectedVersion ?? ''}
                 onChange={(e) => handleVersionChange(Number(e.target.value))}
-                className="w-full rounded-md border border-wr-border bg-wr-bg px-2 py-1.5 text-sm text-wr-text"
+                disabled={loadingVersions}
+                className="w-full rounded-md border border-wr-border bg-wr-bg px-2 py-1.5 text-sm text-wr-text disabled:opacity-50"
               >
                 <option value="">Select a version...</option>
                 {versions.map((v) => (
@@ -259,6 +267,9 @@ export function WorkflowRunsPage() {
                   </option>
                 ))}
               </select>
+              {loadingVersions && (
+                <div className="text-xs text-wr-text-muted">Loading versions...</div>
+              )}
             </div>
           )}
 
@@ -316,7 +327,7 @@ export function WorkflowRunsPage() {
                   <td className="py-2 pr-4">
                     <span
                       data-testid="run-status-badge"
-                      className={`inline-block px-2 py-0.5 rounded text-xs font-semibold text-white ${STATUS_CLASSES[run.status] ?? 'bg-neutral-500'}`}
+                      className={`inline-block px-2 py-0.5 rounded text-xs font-semibold text-white ${STATUS_BADGE_CLASSES[run.status] ?? 'bg-neutral-500'}`}
                     >
                       {run.status}
                     </span>

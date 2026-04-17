@@ -91,7 +91,7 @@ async def _llm_analyze(system: str, prompt: str, session_id: str = "") -> dict:
             messages=[{"role": "user", "content": prompt}],
             tools=[SUBMIT_DOMAIN_FINDINGS_TOOL],
             max_tokens=2000,
-            temperature=0.1,
+            temperature=0.0,
         )
         for block in response.content:
             if getattr(block, "type", None) == "tool_use" and block.name == "submit_domain_findings":
@@ -418,7 +418,7 @@ async def _tool_calling_loop(system: str, initial_context: str, cluster_client,
                     messages=messages,
                     tools=tools,
                     max_tokens=2000,
-                    temperature=0.1,
+                    temperature=0.0,
                 ),
                 timeout=15,
             )

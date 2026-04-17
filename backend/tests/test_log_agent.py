@@ -278,44 +278,10 @@ def test_pick_best_index_empty():
 
 
 # ─── LLM Response Parsing ─────────────────────────────────────────────────────
-
-def test_parse_llm_response_valid_json():
-    agent = LogAnalysisAgent()
-    text = json.dumps({
-        "primary_pattern": {
-            "pattern_id": "p1",
-            "exception_type": "ConnectionTimeout",
-            "error_message": "Timed out after 30s",
-            "frequency": 47,
-            "severity": "critical",
-            "affected_components": ["order-service"],
-            "confidence_score": 87,
-            "priority_rank": 1,
-            "priority_reasoning": "High frequency timeout"
-        },
-        "secondary_patterns": [],
-        "overall_confidence": 85,
-        "root_cause_hypothesis": "Database pool exhaustion",
-        "flow_analysis": ""
-    })
-    result = agent._parse_llm_response(text)
-    assert result["primary_pattern"]["exception_type"] == "ConnectionTimeout"
-    assert result["overall_confidence"] == 85
-    assert result["root_cause_hypothesis"] == "Database pool exhaustion"
-
-
-def test_parse_llm_response_json_in_text():
-    agent = LogAnalysisAgent()
-    text = 'Here is the analysis:\n{"primary_pattern": {}, "overall_confidence": 60}\nDone.'
-    result = agent._parse_llm_response(text)
-    assert result["overall_confidence"] == 60
-
-
-def test_parse_llm_response_invalid():
-    agent = LogAnalysisAgent()
-    result = agent._parse_llm_response("not json at all")
-    assert result["overall_confidence"] == 30
-    assert result["primary_pattern"] == {}
+# Task 1.10 replaced _parse_llm_response(text) (regex JSON extraction
+# with default-field-filling on parse failure) with _parse_log_analysis_
+# from_response(response) backed by Anthropic tool-use. Unit tests for
+# the new parse path live in tests/agents/test_log_agent_tool_use.py.
 
 
 # ─── Build Result ─────────────────────────────────────────────────────────────
@@ -481,9 +447,9 @@ async def test_run_full_hybrid_pipeline():
             return mock_indices_response
         return mock_search_response
 
-    # Mock LLM
-    mock_llm_response = MagicMock()
-    mock_llm_response.text = json.dumps({
+    # Mock LLM — Task 1.10 switched log_agent to tool-use output.
+    from types import SimpleNamespace as _Ns
+    tool_input = {
         "primary_pattern": {
             "pattern_id": "p1",
             "exception_type": "ConnectionTimeout",
@@ -498,13 +464,18 @@ async def test_run_full_hybrid_pipeline():
         "secondary_patterns": [],
         "overall_confidence": 78,
         "root_cause_hypothesis": "payment-service is unresponsive",
-        "flow_analysis": ""
-    })
+        "flow_analysis": "",
+    }
+    mock_llm_response = _Ns(
+        content=[_Ns(type="tool_use", name="submit_log_analysis", input=tool_input, id="t1")],
+        usage=_Ns(input_tokens=10, output_tokens=20),
+        stop_reason="tool_use",
+    )
 
     with patch("requests.get", side_effect=mock_requests_side_effect), \
          patch("requests.post", return_value=mock_search_response), \
          patch("requests.head", return_value=mock_head_response):
-        agent.llm_client.chat = AsyncMock(return_value=mock_llm_response)
+        agent.llm_client.chat_with_tools = AsyncMock(return_value=mock_llm_response)
 
         result = await agent.run(
             context={
@@ -547,13 +518,24 @@ async def test_run_emits_events():
     mock_indices.json.return_value = []
     mock_indices.raise_for_status = MagicMock()
 
-    mock_llm = MagicMock()
-    mock_llm.text = '{"primary_pattern": {}, "overall_confidence": 20}'
+    from types import SimpleNamespace as _Ns
+    mock_llm = _Ns(
+        content=[_Ns(
+            type="tool_use", name="submit_log_analysis", id="t",
+            input={
+                "primary_pattern": {},
+                "overall_confidence": 20,
+                "root_cause_hypothesis": "n/a",
+            },
+        )],
+        usage=_Ns(input_tokens=1, output_tokens=1),
+        stop_reason="tool_use",
+    )
 
     with patch("requests.get", return_value=mock_indices), \
          patch("requests.post", return_value=mock_response), \
          patch("requests.head", return_value=MagicMock(status_code=404)):
-        agent.llm_client.chat = AsyncMock(return_value=mock_llm)
+        agent.llm_client.chat_with_tools = AsyncMock(return_value=mock_llm)
         await agent.run(
             context={"service_name": "test", "elk_index": "*", "timeframe": "now-1h"},
             event_emitter=emitter,
@@ -654,19 +636,29 @@ async def test_run_with_trace_id_reconstructs_flow():
     mock_indices.json.return_value = []
     mock_indices.raise_for_status = MagicMock()
 
-    mock_llm = MagicMock()
-    mock_llm.text = json.dumps({
-        "primary_pattern": {"exception_type": "ConnectionTimeout", "error_message": "timeout", "frequency": 1,
-                           "severity": "high", "affected_components": ["checkout"], "confidence_score": 70,
-                           "priority_rank": 1, "priority_reasoning": "timeout"},
-        "overall_confidence": 70,
-    })
+    from types import SimpleNamespace as _Ns
+    mock_llm = _Ns(
+        content=[_Ns(
+            type="tool_use", name="submit_log_analysis", id="t",
+            input={
+                "primary_pattern": {
+                    "exception_type": "ConnectionTimeout", "error_message": "timeout",
+                    "frequency": 1, "severity": "high", "affected_components": ["checkout"],
+                    "confidence_score": 70, "priority_rank": 1, "priority_reasoning": "timeout",
+                },
+                "overall_confidence": 70,
+                "root_cause_hypothesis": "payment timeout",
+            },
+        )],
+        usage=_Ns(input_tokens=1, output_tokens=1),
+        stop_reason="tool_use",
+    )
 
     # For this test, directly mock _search_by_trace_id to return trace logs
     with patch("requests.head", return_value=mock_head), \
          patch("requests.get", return_value=mock_indices), \
          patch("requests.post", return_value=mock_search):
-        agent.llm_client.chat = AsyncMock(return_value=mock_llm)
+        agent.llm_client.chat_with_tools = AsyncMock(return_value=mock_llm)
 
         # Mock trace search specifically
         original_trace = agent._search_by_trace_id
@@ -4207,8 +4199,10 @@ def test_downstream_evidence_rendered_in_prompt():
     prompt = agent._build_analysis_prompt(collection, {"service_name": "checkout-service"})
     assert "## Downstream Evidence" in prompt
     assert "inventory-service" in prompt
-    assert "DB timeout after 5000ms" in prompt
-    assert "Stack: at InventoryDB.query()" in prompt
+    # Stack traces and messages are now JSON-escaped per Task 1.8 to block
+    # prompt injection; the content is still recoverable, just quoted.
+    assert '"DB timeout after 5000ms"' in prompt
+    assert 'Stack: "at InventoryDB.query()"' in prompt
     assert "Metadata: pod=inv-abc123" in prompt
     assert "Downstream trace for ConnectError (5x):" in prompt
 
