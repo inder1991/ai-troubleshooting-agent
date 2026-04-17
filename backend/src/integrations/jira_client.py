@@ -7,6 +7,7 @@ from typing import Optional
 
 import httpx
 
+from src.integrations.post_retry import idempotent_post
 from src.utils.logger import get_logger
 
 logger = get_logger("jira_client")
@@ -57,7 +58,10 @@ class JiraClient:
         headers = {**self._auth_headers(), "Content-Type": "application/json"}
 
         async with httpx.AsyncClient(verify=False, timeout=15.0) as client:
-            resp = await client.post(url, json=payload, headers=headers)
+            # K.6 — idempotency-key + retry-after wrap. Jira dedups on
+            # Idempotency-Key, so a retried POST doesn't create a second
+            # ticket. 429 Retry-After honoured; 502/503/504 backoff.
+            resp = await idempotent_post(client, url, json=payload, headers=headers)
             resp.raise_for_status()
             data = resp.json()
 
