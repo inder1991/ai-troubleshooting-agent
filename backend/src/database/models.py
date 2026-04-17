@@ -69,6 +69,39 @@ class AgentPrior(Base):
     )
 
 
+class BackendCallAudit(Base):
+    """One row per external-backend call — Prometheus, ELK, K8s, Jira, etc.
+
+    The audit layer is write-only from the application's perspective; reads
+    are either ad-hoc SQL for incident postmortems or a future observability
+    dashboard. Fire-and-forget writing (bounded queue) means a slow DB
+    can't back-pressure real work.
+    """
+
+    __tablename__ = "backend_call_audit"
+    __table_args__ = (
+        sa.Index(
+            "ix_backend_call_audit_run_created", "run_id", "created_at"
+        ),
+    )
+
+    id = mapped_column(sa.BigInteger, primary_key=True)
+    run_id = mapped_column(sa.String(64), nullable=False, index=True)
+    agent = mapped_column(sa.String(64), nullable=False)
+    tool = mapped_column(sa.String(128), nullable=False)
+    backend = mapped_column(sa.String(64), nullable=False)
+    query_hash = mapped_column(sa.String(64), nullable=False)
+    response_code = mapped_column(sa.Integer, nullable=True)
+    duration_ms = mapped_column(sa.Integer, nullable=False)
+    bytes = mapped_column(sa.BigInteger, nullable=True)
+    error = mapped_column(sa.Text, nullable=True)
+    created_at = mapped_column(
+        sa.DateTime(timezone=True),
+        nullable=False,
+        server_default=sa.func.now(),
+    )
+
+
 class IncidentFeedback(Base):
     """User-submitted outcome label for an investigation run.
 
