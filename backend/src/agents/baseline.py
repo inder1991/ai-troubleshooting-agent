@@ -56,10 +56,18 @@ def apply_baseline_filter_dicts(
 ) -> list[dict]:
     """Dict-keyed variant of ``apply_baseline_filter``. Used where the
     anomalies stream exists as LLM-output dicts (metrics_agent) rather
-    than fully-typed MetricAnomaly instances. Each dict must have
-    ``peak_value`` and ``baseline_value``; annotates survivors with
-    ``baseline_delta_pct``. Findings missing either field are kept
-    (can't assess — deferred to downstream validation)."""
+    than fully-typed MetricAnomaly instances.
+
+    Dual-baseline: if the dict carries ``baseline_value_7d`` alongside
+    ``baseline_value`` (24h offset), compute absolute deviation against
+    both and keep the larger. This catches slow-drift incidents where
+    the 24h baseline is itself already degraded — e.g. a memory leak
+    ongoing for 3 days shows ~0% vs 24h-ago but large % vs 7d-ago.
+
+    Each dict must have ``peak_value`` and ``baseline_value``; survivors
+    are annotated with ``baseline_delta_pct`` (the MAX-of-two when a
+    7d baseline is present). Findings missing either required field
+    are kept (can't assess — deferred to downstream validation)."""
     if threshold_pct < 0:
         raise ValueError(f"threshold_pct {threshold_pct} must be >= 0")
 
@@ -71,12 +79,27 @@ def apply_baseline_filter_dicts(
             kept.append(f)
             continue
         try:
-            delta_pct = _absolute_deviation_percent(float(peak), float(baseline))
+            peak_f = float(peak)
+            delta_24h = _absolute_deviation_percent(peak_f, float(baseline))
         except (TypeError, ValueError):
             kept.append(f)
             continue
+
+        delta_7d = None
+        if "baseline_value_7d" in f and f["baseline_value_7d"] is not None:
+            try:
+                delta_7d = _absolute_deviation_percent(
+                    peak_f, float(f["baseline_value_7d"])
+                )
+            except (TypeError, ValueError):
+                delta_7d = None
+
+        delta_pct = max(delta_24h, delta_7d) if delta_7d is not None else delta_24h
         if delta_pct >= threshold_pct:
             annotated = dict(f)
             annotated["baseline_delta_pct"] = round(delta_pct, 1)
+            if delta_7d is not None:
+                annotated["baseline_delta_pct_24h"] = round(delta_24h, 1)
+                annotated["baseline_delta_pct_7d"] = round(delta_7d, 1)
             kept.append(annotated)
     return kept

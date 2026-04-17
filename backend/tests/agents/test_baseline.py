@@ -105,3 +105,69 @@ def test_threshold_negative_rejected():
 
     with pytest.raises(ValueError):
         apply_baseline_filter([_anomaly(82, 78)], threshold_pct=-1)
+
+
+# ── Dual-baseline (24h + 7d) ────────────────────────────────────────────
+
+
+def test_dual_baseline_catches_slow_drift_incident():
+    """Slow memory-leak case: current=92, 24h baseline=90 (already
+    degraded), 7d baseline=50 (healthy). The 24h delta alone is 2%
+    which looks like noise, but the 7d delta is 84% — the anomaly
+    MUST be kept. Take max(delta_24h, delta_7d)."""
+    from src.agents.baseline import apply_baseline_filter_dicts
+
+    findings = [{
+        "metric_name": "memory_percent",
+        "peak_value": 92.0,
+        "baseline_value": 90.0,      # 24h baseline — also degraded
+        "baseline_value_7d": 50.0,   # 7d baseline — healthy reference
+    }]
+    out = apply_baseline_filter_dicts(findings, threshold_pct=15)
+    assert len(out) == 1
+    # The annotated delta reflects the larger (7d) deviation.
+    assert out[0]["baseline_delta_pct"] >= 80
+
+
+def test_dual_baseline_recent_spike_uses_24h():
+    """Fresh spike: current=180, 24h baseline=80 (+125%), 7d baseline
+    ~80 too. Either baseline catches it; the max is still > threshold."""
+    from src.agents.baseline import apply_baseline_filter_dicts
+
+    findings = [{
+        "metric_name": "error_rate",
+        "peak_value": 180.0,
+        "baseline_value": 80.0,
+        "baseline_value_7d": 82.0,
+    }]
+    out = apply_baseline_filter_dicts(findings, threshold_pct=15)
+    assert len(out) == 1
+    assert out[0]["baseline_delta_pct"] >= 100
+
+
+def test_dual_baseline_both_near_current_suppressed():
+    """True non-event: current matches both 24h and 7d baselines."""
+    from src.agents.baseline import apply_baseline_filter_dicts
+
+    findings = [{
+        "metric_name": "cpu_percent",
+        "peak_value": 82.0,
+        "baseline_value": 80.0,
+        "baseline_value_7d": 78.0,
+    }]
+    out = apply_baseline_filter_dicts(findings, threshold_pct=15)
+    assert out == []
+
+
+def test_dual_baseline_missing_7d_falls_back_to_24h():
+    """Back-compat: findings without baseline_value_7d still work."""
+    from src.agents.baseline import apply_baseline_filter_dicts
+
+    findings = [{
+        "metric_name": "cpu_percent",
+        "peak_value": 180.0,
+        "baseline_value": 80.0,
+        # no baseline_value_7d
+    }]
+    out = apply_baseline_filter_dicts(findings, threshold_pct=15)
+    assert len(out) == 1

@@ -173,7 +173,7 @@ If no spike detection is needed, output the final JSON directly.
 
 CRITICAL LABEL RULE: Every PromQL query MUST include namespace= and pod=~ or service= labels to scope to the target service. Never execute a query without these labels.
 
-MANDATORY 24H BASELINE: For every metric you call out as anomalous, you MUST issue a paired baseline query using `<query> offset 24h` and compare current vs baseline. A peak within 15% of baseline is signal-indistinguishable from normal load — DO NOT report it as anomalous (the pipeline suppresses within-noise spikes automatically, but you should skip them at query time to save budget).
+MANDATORY DUAL BASELINE (24h + 7d): For every metric you call out as anomalous, you MUST issue BOTH `<query> offset 24h` AND `<query> offset 7d` and report baseline_value (24h) and baseline_value_7d (7d) on the finding. The pipeline keeps the anomaly if EITHER deviation >= 15% — this catches both fresh spikes (24h catches) and slow-drift incidents where the 24h baseline is itself already degraded (7d catches). Skip anomalies whose current is within 15% of BOTH baselines to save budget.
 
 SIGNAL OVER NOISE: Prioritize anomalies but ALWAYS include baseline metrics. Your final JSON must contain:
 - All anomalous metrics (with severity critical/high/medium)
