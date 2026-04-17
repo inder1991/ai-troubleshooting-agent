@@ -173,13 +173,22 @@ class KubernetesClient(ClusterClient):
     async def list_pods(self, namespace: str = "") -> QueryResult:
         self._ensure_client()
         try:
+            # K.8 extension — list_all walks every continue-token page so
+            # large clusters aren't silently truncated to the default
+            # 500-item per-call limit. OBJECT_CAPS still applies at the
+            # return layer (after priority-sort) so the shape clients
+            # receive is unchanged.
+            from src.agents.k8s_pagination import list_all
             if namespace:
-                result = await self._run_sync(
-                    self._core_api.list_namespaced_pod, namespace
+                all_items = await list_all(
+                    self._core_api.list_namespaced_pod,
+                    limit=500,
+                    namespace=namespace,
                 )
             else:
-                result = await self._run_sync(
-                    self._core_api.list_pod_for_all_namespaces
+                all_items = await list_all(
+                    self._core_api.list_pod_for_all_namespaces,
+                    limit=500,
                 )
             cap = OBJECT_CAPS["pods"]
             # Prioritize unhealthy pods before truncation
@@ -194,7 +203,7 @@ class KubernetesClient(ClusterClient):
                         phase = cs.state.waiting.reason or phase
                         break
                 return _STATUS_PRIORITY.get(phase, 3)
-            sorted_items = sorted(result.items, key=_pod_sort_key)
+            sorted_items = sorted(all_items, key=_pod_sort_key)
             pods = []
             for pod in sorted_items[:cap]:
                 container_statuses = pod.status.container_statuses or []
@@ -605,17 +614,21 @@ class KubernetesClient(ClusterClient):
     async def list_pdbs(self, namespace: str = "") -> QueryResult:
         self._ensure_client()
         try:
+            from src.agents.k8s_pagination import list_all
             policy_api = client.PolicyV1Api(self._api_client)
             if namespace:
-                result = await self._run_sync(
-                    policy_api.list_namespaced_pod_disruption_budget, namespace
+                pdb_items = await list_all(
+                    policy_api.list_namespaced_pod_disruption_budget,
+                    limit=500,
+                    namespace=namespace,
                 )
             else:
-                result = await self._run_sync(
-                    policy_api.list_pod_disruption_budget_for_all_namespaces
+                pdb_items = await list_all(
+                    policy_api.list_pod_disruption_budget_for_all_namespaces,
+                    limit=500,
                 )
             pdbs = []
-            for pdb in result.items:
+            for pdb in pdb_items:
                 pdbs.append({
                     "name": pdb.metadata.name,
                     "namespace": pdb.metadata.namespace,
