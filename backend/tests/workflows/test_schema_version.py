@@ -71,7 +71,37 @@ def test_step_result_serializes_schema_version():
         ended_at="2026-04-17T00:00:01Z",
         duration_ms=1000,
     )
-    assert result.to_dict()["schema_version"] == 1
+    d = result.to_dict()
+    assert d["schema_version"] == 1
+    # None ``error`` is pruned for symmetry with VirtualStep.to_dict.
+    assert "error" not in d
+
+
+def test_step_result_to_dict_includes_error_when_present():
+    result = StepResult(
+        step_id="s1",
+        status=StepStatus.FAILED,
+        output=None,
+        error=ErrorDetail(message="boom", type="RuntimeError"),
+        started_at="2026-04-17T00:00:00Z",
+        ended_at="2026-04-17T00:00:01Z",
+        duration_ms=1000,
+    )
+    d = result.to_dict()
+    assert d["error"] == {"message": "boom", "type": "RuntimeError"}
+
+
+def test_step_result_from_dict_handles_missing_error_key():
+    restored = StepResult.from_dict({
+        "schema_version": 1,
+        "step_id": "s1",
+        "status": "success",
+        "output": None,
+        "started_at": "x",
+        "ended_at": "y",
+        "duration_ms": 0,
+    })
+    assert restored.error is None
 
 
 def test_step_result_roundtrip():
@@ -166,3 +196,119 @@ def test_drift_error_accepts_unversioned_dict_as_v1():
     })
     assert e.step_id == "s1"
     assert e.reason == "contract_missing"
+
+
+# ── CompiledStep ────────────────────────────────────────────────────
+
+def _sample_compiled_step():
+    from src.workflows.compiler import CompiledStep
+    return CompiledStep(
+        id="s1",
+        agent="log_agent",
+        agent_version=1,
+        inputs={"foo": "bar"},
+        when=None,
+        on_failure="fail",
+        fallback_step_id=None,
+        parallel_group=None,
+        concurrency_group=None,
+        timeout_seconds=30.0,
+        retry_on=["TimeoutError"],
+        upstream_ids=[],
+    )
+
+
+def test_compiled_step_serializes_schema_version():
+    assert _sample_compiled_step().to_dict()["schema_version"] == 1
+
+
+def test_compiled_step_rejects_unknown_schema_version():
+    from src.workflows.compiler import CompiledStep
+    bad = _sample_compiled_step().to_dict()
+    bad["schema_version"] = 999
+    with pytest.raises(ValueError, match="schema_version"):
+        CompiledStep.from_dict(bad)
+
+
+def test_compiled_step_accepts_unversioned_dict_as_v1():
+    from src.workflows.compiler import CompiledStep
+    raw = _sample_compiled_step().to_dict()
+    raw.pop("schema_version")
+    cs = CompiledStep.from_dict(raw)
+    assert cs.id == "s1"
+    assert cs.agent == "log_agent"
+
+
+# ── CompiledWorkflow ────────────────────────────────────────────────
+
+def _sample_compiled_workflow():
+    from src.workflows.compiler import CompiledWorkflow
+    return CompiledWorkflow(
+        topo_order=["s1"],
+        steps={"s1": _sample_compiled_step()},
+        inputs_schema={"type": "object"},
+    )
+
+
+def test_compiled_workflow_serializes_schema_version():
+    cw = _sample_compiled_workflow()
+    d = cw.to_dict()
+    assert d["schema_version"] == 1
+    assert d["steps"]["s1"]["schema_version"] == 1
+
+
+def test_compiled_workflow_rejects_unknown_schema_version():
+    from src.workflows.compiler import CompiledWorkflow
+    bad = _sample_compiled_workflow().to_dict()
+    bad["schema_version"] = 999
+    with pytest.raises(ValueError, match="schema_version"):
+        CompiledWorkflow.from_dict(bad)
+
+
+def test_compiled_workflow_accepts_unversioned_dict_as_v1():
+    from src.workflows.compiler import CompiledWorkflow
+    raw = _sample_compiled_workflow().to_dict()
+    raw.pop("schema_version")
+    cw = CompiledWorkflow.from_dict(raw)
+    assert cw.topo_order == ["s1"]
+    assert "s1" in cw.steps
+
+
+def test_compiled_workflow_roundtrip():
+    from src.workflows.compiler import CompiledWorkflow
+    cw = _sample_compiled_workflow()
+    restored = CompiledWorkflow.from_dict(cw.to_dict())
+    assert restored.topo_order == cw.topo_order
+    assert restored.inputs_schema == cw.inputs_schema
+    assert restored.steps.keys() == cw.steps.keys()
+    s_orig = cw.steps["s1"]
+    s_new = restored.steps["s1"]
+    assert s_new == s_orig
+
+
+# ── EventEnvelope.from_dict stub ────────────────────────────────────
+
+def test_event_envelope_from_dict_rejects_unknown_schema_version():
+    from src.workflows.event_schema import EventEnvelope
+    with pytest.raises(ValueError, match="schema_version"):
+        EventEnvelope.from_dict({
+            "schema_version": 999,
+            "event_type": "step_update",
+            "run_id": "r1",
+            "sequence_number": 1,
+            "timestamp": "x",
+            "payload": {},
+        })
+
+
+def test_event_envelope_from_dict_raises_not_implemented_when_version_ok():
+    from src.workflows.event_schema import EventEnvelope
+    with pytest.raises(NotImplementedError, match="wire-only"):
+        EventEnvelope.from_dict({
+            "schema_version": 1,
+            "event_type": "step_update",
+            "run_id": "r1",
+            "sequence_number": 1,
+            "timestamp": "x",
+            "payload": {},
+        })

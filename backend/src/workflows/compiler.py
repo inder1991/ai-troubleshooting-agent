@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from src.contracts.registry import ContractRegistry
+from src.workflows._schema import _check_schema_version
 from src.workflows.models import WorkflowDag, StepSpec
 
 
@@ -16,6 +17,8 @@ class CompileError(ValueError):
 
 @dataclass
 class CompiledStep:
+    SCHEMA_VERSION = 1
+
     id: str
     agent: str
     agent_version: int
@@ -29,12 +32,66 @@ class CompiledStep:
     retry_on: list[str]
     upstream_ids: list[str] = field(default_factory=list)
 
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "schema_version": self.SCHEMA_VERSION,
+            "id": self.id,
+            "agent": self.agent,
+            "agent_version": self.agent_version,
+            "inputs": self.inputs,
+            "when": self.when,
+            "on_failure": self.on_failure,
+            "fallback_step_id": self.fallback_step_id,
+            "parallel_group": self.parallel_group,
+            "concurrency_group": self.concurrency_group,
+            "timeout_seconds": self.timeout_seconds,
+            "retry_on": list(self.retry_on),
+            "upstream_ids": list(self.upstream_ids),
+        }
+
+    @classmethod
+    def from_dict(cls, d: dict[str, Any]) -> "CompiledStep":
+        _check_schema_version(d, cls.SCHEMA_VERSION, cls.__name__)
+        return cls(
+            id=d["id"],
+            agent=d["agent"],
+            agent_version=d["agent_version"],
+            inputs=d["inputs"],
+            when=d.get("when"),
+            on_failure=d.get("on_failure", "fail"),
+            fallback_step_id=d.get("fallback_step_id"),
+            parallel_group=d.get("parallel_group"),
+            concurrency_group=d.get("concurrency_group"),
+            timeout_seconds=float(d["timeout_seconds"]),
+            retry_on=list(d.get("retry_on", [])),
+            upstream_ids=list(d.get("upstream_ids", [])),
+        )
+
 
 @dataclass
 class CompiledWorkflow:
+    SCHEMA_VERSION = 1
+
     topo_order: list[str]
     steps: dict[str, CompiledStep]
     inputs_schema: dict
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "schema_version": self.SCHEMA_VERSION,
+            "topo_order": list(self.topo_order),
+            "steps": {sid: s.to_dict() for sid, s in self.steps.items()},
+            "inputs_schema": self.inputs_schema,
+        }
+
+    @classmethod
+    def from_dict(cls, d: dict[str, Any]) -> "CompiledWorkflow":
+        _check_schema_version(d, cls.SCHEMA_VERSION, cls.__name__)
+        return cls(
+            topo_order=list(d["topo_order"]),
+            steps={sid: CompiledStep.from_dict(s) for sid, s in d["steps"].items()},
+            inputs_schema=d.get("inputs_schema", {}),
+        )
 
 
 def _extract_ref_paths(expr: Any, acc: list[tuple[str, Any]]) -> None:

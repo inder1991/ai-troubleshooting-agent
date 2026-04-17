@@ -4,17 +4,8 @@ from dataclasses import dataclass
 from typing import Any
 
 from src.contracts.registry import ContractRegistry
+from src.workflows._schema import _check_schema_version
 from src.workflows.compiler import CompiledWorkflow, _extract_ref_paths, _path_exists_in_schema
-
-
-def _check_schema_version(d: dict[str, Any], expected: int, cls_name: str) -> None:
-    # Default to ``expected`` for unversioned dicts so existing v1 payloads
-    # written before this field existed still load. Phase-0 grace window only.
-    version = d.get("schema_version", expected)
-    if version != expected:
-        raise ValueError(
-            f"unsupported schema_version for {cls_name}: got {version!r}, expected {expected}"
-        )
 
 
 @dataclass

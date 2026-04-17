@@ -10,14 +10,13 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from dataclasses import asdict
 from datetime import datetime, timezone
 from typing import Any
 
 import jsonschema
 
 from src.contracts.registry import ContractRegistry
-from src.workflows.compiler import CompiledStep, CompiledWorkflow, compile_dag
+from src.workflows.compiler import CompiledWorkflow, compile_dag
 from src.workflows.event_schema import normalize_status
 from src.workflows.executor import WorkflowExecutor
 from src.workflows.models import WorkflowDag
@@ -41,28 +40,7 @@ def _now() -> str:
 
 
 def _rehydrate_compiled(compiled_dict: dict[str, Any]) -> CompiledWorkflow:
-    steps_raw = compiled_dict["steps"]
-    steps: dict[str, CompiledStep] = {}
-    for sid, s in steps_raw.items():
-        steps[sid] = CompiledStep(
-            id=s["id"],
-            agent=s["agent"],
-            agent_version=s["agent_version"],
-            inputs=s["inputs"],
-            when=s.get("when"),
-            on_failure=s.get("on_failure", "fail"),
-            fallback_step_id=s.get("fallback_step_id"),
-            parallel_group=s.get("parallel_group"),
-            concurrency_group=s.get("concurrency_group"),
-            timeout_seconds=float(s["timeout_seconds"]),
-            retry_on=list(s.get("retry_on", [])),
-            upstream_ids=list(s.get("upstream_ids", [])),
-        )
-    return CompiledWorkflow(
-        topo_order=list(compiled_dict["topo_order"]),
-        steps=steps,
-        inputs_schema=compiled_dict.get("inputs_schema", {}),
-    )
+    return CompiledWorkflow.from_dict(compiled_dict)
 
 
 _TERMINAL = {"success", "failed", "cancelled"}
@@ -158,7 +136,7 @@ class WorkflowService:
             workflow_id,
             next_version,
             dag_json=json.dumps(dag_dict),
-            compiled_json=json.dumps(asdict(compiled), default=str),
+            compiled_json=json.dumps(compiled.to_dict(), default=str),
         )
         row = await self._repo.get_version(workflow_id, next_version)
         assert row is not None

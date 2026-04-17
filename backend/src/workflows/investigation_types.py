@@ -4,17 +4,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+from src.workflows._schema import _check_schema_version
 from src.workflows.event_schema import StepStatus, StepMetadata, ErrorDetail
-
-
-def _check_schema_version(d: dict[str, Any], expected: int, cls_name: str) -> None:
-    # Default to ``expected`` for unversioned dicts so existing v1 payloads
-    # written before this field existed still load. Phase-0 grace window only.
-    version = d.get("schema_version", expected)
-    if version != expected:
-        raise ValueError(
-            f"unsupported schema_version for {cls_name}: got {version!r}, expected {expected}"
-        )
 
 
 @dataclass
@@ -99,15 +90,13 @@ class StepResult:
         }
         if self.error is not None:
             d["error"] = {"message": self.error.message, "type": self.error.type}
-        else:
-            d["error"] = None
         return d
 
     @classmethod
     def from_dict(cls, d: dict[str, Any]) -> StepResult:
         _check_schema_version(d, cls.SCHEMA_VERSION, cls.__name__)
         error = None
-        if d.get("error") is not None:
+        if "error" in d and d["error"] is not None:
             error = ErrorDetail(**d["error"])
         return cls(
             step_id=d["step_id"],

@@ -6,6 +6,8 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
 
+from src.workflows._schema import _check_schema_version
+
 
 class Status(str, Enum):
     PENDING = "pending"
@@ -114,6 +116,13 @@ class EventEnvelope:
             "timestamp": self.timestamp,
             "payload": _convert(self.payload),
         }
+
+    @classmethod
+    def from_dict(cls, d: dict[str, Any]) -> "EventEnvelope":
+        _check_schema_version(d, cls.SCHEMA_VERSION, cls.__name__)
+        raise NotImplementedError(
+            "EventEnvelope is wire-only; deserialize the typed payload directly via the appropriate handler."
+        )
 
 
 def make_step_event(
