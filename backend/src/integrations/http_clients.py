@@ -39,6 +39,26 @@ _clients: dict[str, httpx.AsyncClient] = {}
 _lock = asyncio.Lock()
 
 
+async def _inject_traceparent_hook(request: httpx.Request) -> None:
+    """httpx event_hook that stamps ``traceparent`` on every outbound
+    request (Stage K.11). A caller-provided header wins; absent header,
+    the current context is used or a fresh trace is started.
+    """
+    try:
+        from src.observability.trace_context import (
+            TRACEPARENT_HEADER,
+            inject_traceparent,
+        )
+        if TRACEPARENT_HEADER in request.headers:
+            return
+        merged = inject_traceparent(dict(request.headers))
+        if TRACEPARENT_HEADER in merged:
+            request.headers[TRACEPARENT_HEADER] = merged[TRACEPARENT_HEADER]
+    except Exception:
+        # Header injection must never break an outbound call.
+        pass
+
+
 def _build_client(backend: str) -> httpx.AsyncClient:
     if backend not in _LIMITS:
         raise KeyError(
@@ -54,6 +74,8 @@ def _build_client(backend: str) -> httpx.AsyncClient:
         limits=httpx.Limits(max_connections=max_c, max_keepalive_connections=keep),
         timeout=_DEFAULT_TIMEOUT,
         transport=transport,
+        # Stage K.11 — stamp traceparent on every request.
+        event_hooks={"request": [_inject_traceparent_hook]},
     )
 
 
