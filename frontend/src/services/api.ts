@@ -2531,3 +2531,75 @@ export const getCICDCommitDetail = async (owner: string, repo: string, sha: stri
   if (!res.ok) throw new Error(await extractErrorDetail(res, 'Failed to load commit detail'));
   return res.json();
 };
+
+// ── Investigation feedback + pin-lineage (Phase 4, Tasks 4.13 / 4.18) ─────
+
+export interface SubmitFeedbackArgs {
+  runId: string;
+  wasCorrect: boolean;
+  actualRootCause: string;
+  submitter?: string;
+}
+
+export interface SubmitFeedbackResponse {
+  ok: boolean;
+  status: string;
+  priors_updated: string[];
+  idempotent_replay: boolean;
+}
+
+export const submitInvestigationFeedback = async (
+  args: SubmitFeedbackArgs,
+): Promise<SubmitFeedbackResponse> => {
+  const body = {
+    was_correct: args.wasCorrect,
+    actual_root_cause: args.actualRootCause || null,
+    submitter: args.submitter || 'anonymous',
+  };
+  const res = await fetch(
+    `${API_BASE_URL}/api/v4/investigations/${encodeURIComponent(args.runId)}/feedback`,
+    {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    },
+  );
+  if (!res.ok) {
+    throw new Error(await extractErrorDetail(res, 'Failed to submit feedback'));
+  }
+  const payload = await res.json();
+  return {
+    ok: true,
+    status: payload.status,
+    priors_updated: payload.priors_updated || [],
+    idempotent_replay: !!payload.idempotent_replay,
+  };
+};
+
+export interface RerunQueryArgs {
+  runId: string;
+  toolName: string;
+  query: string;
+}
+
+export interface RerunQueryResponse {
+  raw_value: string;
+  ran_at: string;
+}
+
+export const rerunQuery = async (
+  args: RerunQueryArgs,
+): Promise<RerunQueryResponse> => {
+  const res = await fetch(
+    `${API_BASE_URL}/api/v4/investigations/${encodeURIComponent(args.runId)}/rerun-query`,
+    {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ tool_name: args.toolName, query: args.query }),
+    },
+  );
+  if (!res.ok) {
+    throw new Error(await extractErrorDetail(res, 'Failed to re-run query'));
+  }
+  return res.json();
+};

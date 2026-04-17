@@ -8,10 +8,22 @@ export interface TopologyNode {
   role: 'patient_zero' | 'upstream' | 'downstream' | 'blast_radius' | 'normal';
 }
 
+export type TopologyEdgeType =
+  | 'error'
+  | 'blast_radius'
+  | 'normal'
+  // Phase-4 typed-edge vocabulary from the CausalRuleEngine (Task 2.1).
+  // Preserved alongside legacy types so existing call sites still compile.
+  | 'causes'
+  | 'precedes'
+  | 'correlates'
+  | 'contradicts'
+  | 'supports';
+
 export interface TopologyEdge {
   source: string;
   target: string;
-  type: 'error' | 'blast_radius' | 'normal';
+  type: TopologyEdgeType;
 }
 
 interface LayoutResult {

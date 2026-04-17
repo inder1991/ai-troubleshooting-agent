@@ -7,6 +7,12 @@ import { FilterToolbar } from './FilterToolbar';
 import { PhaseBreadcrumbs } from './PhaseBreadcrumbs';
 import { GhostPhaseWrapper } from './GhostPhaseWrapper';
 import HypothesisScoreboard from './HypothesisScoreboard';
+import { CoverageGapsBanner } from './CoverageGapsBanner';
+import { BudgetPill } from './BudgetPill';
+import { SelfConsistencyBadge } from './SelfConsistencyBadge';
+import { FeedbackRow } from './FeedbackRow';
+import { submitInvestigationFeedback } from '../../services/api';
+import { CriticDissentBanner } from './CriticDissentBanner';
 
 interface InvestigatorProps {
   sessionId: string;
@@ -372,6 +378,42 @@ const Investigator: React.FC<InvestigatorProps> = ({
 
   return (
     <div className="flex flex-col h-full bg-wr-bg/20">
+      {/* Coverage-gap banner (Task 4.10) — surfaces agents that didn't run */}
+      {findings?.coverage_gaps && findings.coverage_gaps.length > 0 && (
+        <div className="px-4 pt-3">
+          <CoverageGapsBanner gaps={findings.coverage_gaps} />
+        </div>
+      )}
+      {/* Critic dissent banner (Task 4.16) — winner's advocate/challenger/judge diverged */}
+      {findings?.winner_critic_dissent && (
+        <div className="px-4 pt-2">
+          <CriticDissentBanner dissent={findings.winner_critic_dissent} />
+        </div>
+      )}
+      {/* Telemetry strip: budget pill + self-consistency badge (Tasks 4.11, 4.12) */}
+      {(findings?.budget || findings?.self_consistency) && (
+        <div className="px-4 pt-2 flex items-center gap-2 flex-wrap">
+          {findings?.budget && (
+            <BudgetPill
+              toolCalls={{
+                used: findings.budget.tool_calls_used,
+                max: findings.budget.tool_calls_max,
+              }}
+              llmUsd={{
+                used: findings.budget.llm_usd_used,
+                max: findings.budget.llm_usd_max,
+              }}
+            />
+          )}
+          {findings?.self_consistency && (
+            <SelfConsistencyBadge
+              nRuns={findings.self_consistency.n_runs}
+              agreedCount={findings.self_consistency.agreed_count}
+              penaltyPct={findings.self_consistency.penalty_pct}
+            />
+          )}
+        </div>
+      )}
       {/* Patient Zero Banner (sticky) */}
       {findings?.patient_zero && (
         <div className="sticky top-0 z-10 bg-gradient-to-r from-red-950/80 to-red-900/40 border-b border-wr-severity-high/30 px-4 py-3 animate-pulse-red">
@@ -523,6 +565,14 @@ const Investigator: React.FC<InvestigatorProps> = ({
         hypotheses={findings?.hypotheses || []}
         result={findings?.hypothesis_result || null}
         legacyGuess={bestGuess}
+      />
+      {/* Feedback row (Task 4.13) — user labels the outcome; priors update server-side */}
+      <FeedbackRow
+        runId={`investigation-${sessionId}`}
+        submit={async (payload) => {
+          await submitInvestigationFeedback(payload);
+          return { ok: true };
+        }}
       />
     </div>
   );

@@ -83,6 +83,11 @@ const HypothesisScoreboard: React.FC<HypothesisScoreboardProps> = ({
     return b.confidence - a.confidence;
   });
 
+  // Task 4.14: cap to top-3. The supervisor's reducer already keeps 3,
+  // but the board can receive more when live-updates race the reducer.
+  const topThree = sorted.slice(0, 3);
+  const remaining = sorted.length - topThree.length;
+
   const isInconclusive = result?.status === 'inconclusive';
   const isResolved = result?.status === 'resolved';
 
@@ -110,8 +115,8 @@ const HypothesisScoreboard: React.FC<HypothesisScoreboardProps> = ({
         )}
       </div>
 
-      <div className="space-y-1.5">
-        {sorted.map((h) => (
+      <div className="space-y-1.5" data-testid="hypothesis-scoreboard-rows">
+        {topThree.map((h) => (
           <div
             key={h.hypothesis_id}
             className={`flex items-center gap-2 ${
@@ -170,6 +175,13 @@ const HypothesisScoreboard: React.FC<HypothesisScoreboardProps> = ({
           </div>
         ))}
       </div>
+
+      {remaining > 0 && (
+        <div className="mt-1 text-body-xs text-slate-500 italic">
+          +{remaining} more {remaining === 1 ? 'hypothesis' : 'hypotheses'} with
+          lower confidence hidden
+        </div>
+      )}
 
       {isInconclusive && result?.recommendations && result.recommendations.length > 0 && (
         <div className="mt-2 pt-2 border-t border-wr-border/30">
