@@ -33,6 +33,11 @@ from src.agents.causal_engine import (
     build_incident_graph_from_pins,
     find_root_causes,
 )
+from src.agents.orchestration.dispatcher import (
+    AgentSpec,
+    Dispatcher,
+    StepResult,
+)
 from src.agents.impact_analyzer import ImpactAnalyzer
 from src.utils.llm_client import AnthropicClient
 from src.utils.event_emitter import EventEmitter
@@ -402,11 +407,35 @@ class SupervisorAgent:
                 await event_emitter.emit("supervisor", "progress", f"Dispatching {agent_name}")
 
             if len(next_agents) > 1 and not _any_mocked:
-                results = await asyncio.gather(
-                    *(self._dispatch_agent(name, state, event_emitter) for name in next_agents),
-                    return_exceptions=True,
+                # Stage B — Dispatcher owns parallel fan-out + per-agent timeout.
+                # Executor delegates to the existing _dispatch_agent so every
+                # current path (mocking, InvestigationExecutor routing,
+                # prerequisite checks, error handling) is preserved verbatim.
+                dispatcher = Dispatcher(
+                    executor=lambda spec: self._dispatch_agent(
+                        spec.agent, state, event_emitter
+                    ),
+                    timeout_per_agent_s=float(
+                        os.getenv("AGENT_DISPATCH_TIMEOUT_S", "120.0")
+                    ),
                 )
-                agent_results = list(zip(next_agents, results))
+                specs = [AgentSpec(agent=n) for n in next_agents]
+                step_results: list[StepResult] = await dispatcher.dispatch_round(specs)
+                # Map StepResult back to the legacy ``(name, value_or_exc)``
+                # shape downstream code expects. A timeout surfaces as an
+                # asyncio.TimeoutError; a general error stays an Exception.
+                agent_results = []
+                for sr in step_results:
+                    if sr.status == "ok":
+                        agent_results.append((sr.agent, sr.value))
+                    elif sr.status == "timeout":
+                        agent_results.append(
+                            (sr.agent, asyncio.TimeoutError(sr.error or "timed out"))
+                        )
+                    else:
+                        agent_results.append(
+                            (sr.agent, RuntimeError(sr.error or "dispatch failed"))
+                        )
             else:
                 # Sequential dispatch — one at a time (always for single agent, forced for mocked)
                 agent_results = []
