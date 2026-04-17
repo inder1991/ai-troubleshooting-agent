@@ -1276,6 +1276,8 @@ async def get_session_status(session_id: str):
         # so the UI can answer "why did the investigation stop?" without
         # re-deriving it from loop-completion heuristics.
         result["diagnosis_stop_reason"] = getattr(state, "diagnosis_stop_reason", None)
+        # Stage H — signature library match (pattern pill data for the UI).
+        result["signature_match"] = getattr(state, "signature_match", None)
 
     return result
 

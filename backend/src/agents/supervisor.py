@@ -72,6 +72,11 @@ from src.agents.orchestration.confidence_adapter import (
 )
 from src.agents.orchestration.planner import Planner
 from src.agents.orchestration.reducer import Reducer
+from src.agents.orchestration.signal_extractor import extract_signals_from_state
+from src.agents.orchestration.signature_matcher import (
+    SignatureHypothesis,
+    try_signature_match,
+)
 from src.agents.orchestration.state_adapters import (
     eval_gate_inputs,
     planner_inputs,
@@ -337,6 +342,40 @@ class SupervisorAgent:
 
         logger.info("Session started", extra={"session_id": state.session_id, "incident_id": state.incident_id, "agent_name": "supervisor", "action": "session_start", "extra": state.service_name})
         await event_emitter.emit("supervisor", "started", f"Starting diagnosis for {state.service_name} [{state.incident_id}]")
+
+        # Stage H — signature fast-path. Opt-in via
+        # DIAGNOSTIC_SIGNATURE_FAST_PATH=on (default off so a first
+        # rollout can observe without behaviour change). Evaluates the
+        # signal vocabulary derived from whatever state arrived with
+        # initial_input; only fires when a pattern matches at/above its
+        # floor confidence. The main loop runs normally when it doesn't.
+        if os.getenv("DIAGNOSTIC_SIGNATURE_FAST_PATH", "off").strip().lower() == "on":
+            try:
+                signals = extract_signals_from_state(state)
+                hypothesis = try_signature_match(signals)
+                if hypothesis is not None and hypothesis.confidence >= 0.80:
+                    state.signature_match = {
+                        "pattern_name": hypothesis.pattern_name,
+                        "confidence": hypothesis.confidence,
+                        "matched_at_ms": 0,
+                        "summary": hypothesis.summary,
+                        "remediation": hypothesis.suggested_remediation or "",
+                    }
+                    await event_emitter.emit(
+                        "supervisor",
+                        "signature_matched",
+                        f"Pattern match: {hypothesis.pattern_name} "
+                        f"(confidence {hypothesis.confidence:.2f})",
+                        details=state.signature_match,
+                    )
+                    # The main loop still runs so agents can confirm the
+                    # match with live evidence — but stop_reason preserves
+                    # the fast-path fact in the API response and the UI.
+                    state.diagnosis_stop_reason = (
+                        f"signature_matched_{hypothesis.pattern_name}"
+                    )
+            except Exception as exc:
+                logger.warning("signature fast-path failed: %s", exc)
 
         max_rounds = 10
         re_investigation_count = 0

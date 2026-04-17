@@ -948,6 +948,12 @@ class DiagnosticState(BaseModel):
     # None while the loop is still running.
     diagnosis_stop_reason: Optional[str] = None
 
+    # Stage H of the run_v5 orchestration swap — the signature library
+    # matched a known failure shape. Structure:
+    #   {"pattern_name": "...", "confidence": 0..1,
+    #    "matched_at_ms": int, "summary": "...", "remediation": "..."}
+    signature_match: Optional[dict] = None
+
     # Agent execution statuses: {agent_name: "success"|"no_findings"|"error"}
     agent_statuses: dict[str, str] = Field(default_factory=dict)
 
