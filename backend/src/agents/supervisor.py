@@ -38,6 +38,7 @@ from src.agents.orchestration.dispatcher import (
     Dispatcher,
     StepResult,
 )
+from src.agents.orchestration.reducer import Reducer
 from src.agents.impact_analyzer import ImpactAnalyzer
 from src.utils.llm_client import AnthropicClient
 from src.utils.event_emitter import EventEmitter
@@ -299,6 +300,11 @@ class SupervisorAgent:
         max_rounds = 10
         re_investigation_count = 0
         max_re_investigations = 1  # Allow at most 1 re-investigation cycle
+        # Stage C — Reducer produces structured round summaries that drive
+        # stall detection. ``rounds_since_new_signal`` feeds EvalGate in
+        # Stage D; for now it's tracked but unused.
+        reducer = Reducer()
+        rounds_since_new_signal = 0
         for round_num in range(max_rounds):
             next_agents = self._decide_next_agents(state)
 
@@ -406,6 +412,7 @@ class SupervisorAgent:
                 logger.info("Agent dispatched", extra={"session_id": state.session_id, "agent_name": agent_name, "action": "dispatch", "extra": {"phase": state.phase.value}})
                 await event_emitter.emit("supervisor", "progress", f"Dispatching {agent_name}")
 
+            step_results: list[StepResult] = []
             if len(next_agents) > 1 and not _any_mocked:
                 # Stage B — Dispatcher owns parallel fan-out + per-agent timeout.
                 # Executor delegates to the existing _dispatch_agent so every
@@ -420,7 +427,7 @@ class SupervisorAgent:
                     ),
                 )
                 specs = [AgentSpec(agent=n) for n in next_agents]
-                step_results: list[StepResult] = await dispatcher.dispatch_round(specs)
+                step_results = await dispatcher.dispatch_round(specs)
                 # Map StepResult back to the legacy ``(name, value_or_exc)``
                 # shape downstream code expects. A timeout surfaces as an
                 # asyncio.TimeoutError; a general error stays an Exception.
@@ -453,6 +460,26 @@ class SupervisorAgent:
                         await asyncio.sleep(3.0)
                     r = await self._dispatch_agent(name, state, event_emitter)
                     agent_results.append((name, r))
+                    # Synthesise a StepResult for the reducer so the stall-
+                    # detection signal is consistent between parallel and
+                    # sequential dispatch paths.
+                    step_results.append(
+                        StepResult(
+                            agent=name,
+                            status="ok" if r is not None else "error",
+                            value=r,
+                            error=None if r is not None else "no result",
+                        )
+                    )
+
+            # Stage C — Reducer summarises the round. reduced.new_signal
+            # tells us whether any agent produced fresh pins so EvalGate
+            # can detect a stall.
+            reduced = reducer.reduce(step_results)
+            if reduced.new_signal:
+                rounds_since_new_signal = 0
+            else:
+                rounds_since_new_signal += 1
 
             for agent_name, agent_result in agent_results:
                 if isinstance(agent_result, Exception):
