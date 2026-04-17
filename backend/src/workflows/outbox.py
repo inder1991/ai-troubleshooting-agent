@@ -72,8 +72,31 @@ class _Tx:
         )
 
 
+_DEFAULT_DAG_TABLE = "investigation_dag_snapshot"
+_DEFAULT_OUTBOX_TABLE = "investigation_outbox"
+
+
 class OutboxWriter:
     """Async context manager that brackets DAG + outbox writes in one tx."""
+
+    def __init__(
+        self,
+        dag_table: str = _DEFAULT_DAG_TABLE,
+        outbox_table: str = _DEFAULT_OUTBOX_TABLE,
+    ) -> None:
+        # Args reserved for future test-injection of alternate table names; the
+        # current writer talks to the ORM models (DagSnapshot/Outbox) which
+        # encode the production table names. Validating here means a misuse
+        # like ``OutboxWriter("wrong_dag_table")`` fails fast instead of
+        # silently writing to the production tables.
+        if dag_table != _DEFAULT_DAG_TABLE or outbox_table != _DEFAULT_OUTBOX_TABLE:
+            raise NotImplementedError(
+                f"Custom table names not yet wired through ORM models "
+                f"(got dag_table={dag_table!r}, outbox_table={outbox_table!r}). "
+                f"Open follow-up if test-injection is required."
+            )
+        self._dag_table = dag_table
+        self._outbox_table = outbox_table
 
     @asynccontextmanager
     async def transaction(self, run_id: str) -> AsyncIterator[_Tx]:
