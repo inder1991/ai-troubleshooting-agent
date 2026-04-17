@@ -15,6 +15,8 @@ from __future__ import annotations
 import asyncio
 from typing import Final
 
+import os
+
 import httpx
 
 
@@ -31,12 +33,60 @@ _LIMITS: Final[dict[str, tuple[int, int]]] = {
     "remedy": (5, 2),
 }
 
+# K.5 — per-backend TLS-verify defaults. jira/confluence/remedy historically
+# ran with ``verify=False`` per call because many self-hosted installations
+# use self-signed certs; preserve that default here. Ops can flip any
+# backend at deploy time via the env var ``VERIFY_SSL_<BACKEND>=true``.
+_VERIFY_SSL_DEFAULT: Final[dict[str, bool]] = {
+    "elasticsearch": True,
+    "prometheus": True,
+    "kubernetes": True,
+    "github": True,
+    "jira": False,
+    "confluence": False,
+    "remedy": False,
+}
+
+
+def _verify_for(backend: str) -> bool:
+    """Return the effective verify-SSL value for a backend.
+
+    Resolution order:
+      1. ``VERIFY_SSL_<BACKEND>`` env var (parsed as bool).
+      2. ``_VERIFY_SSL_DEFAULT[backend]``.
+    """
+    override = os.getenv(f"VERIFY_SSL_{backend.upper()}")
+    if override is not None:
+        return override.strip().lower() in {"1", "true", "yes", "on"}
+    return _VERIFY_SSL_DEFAULT.get(backend, True)
+
+
 # Per-backend default timeouts. Individual callers can override via their
 # own request kwargs when the endpoint is known-slow (search_after, etc).
 _DEFAULT_TIMEOUT = httpx.Timeout(connect=5.0, read=30.0, write=10.0, pool=5.0)
 
 _clients: dict[str, httpx.AsyncClient] = {}
 _lock = asyncio.Lock()
+
+
+async def _inject_traceparent_hook(request: httpx.Request) -> None:
+    """httpx event_hook that stamps ``traceparent`` on every outbound
+    request (Stage K.11). A caller-provided header wins; absent header,
+    the current context is used or a fresh trace is started.
+    """
+    try:
+        from src.observability.trace_context import (
+            TRACEPARENT_HEADER,
+            inject_traceparent,
+        )
+        if TRACEPARENT_HEADER in request.headers:
+            return
+        merged = inject_traceparent(dict(request.headers))
+        if TRACEPARENT_HEADER in merged:
+            request.headers[TRACEPARENT_HEADER] = merged[TRACEPARENT_HEADER]
+    except Exception:
+        # Header injection must never break an outbound call.
+        pass
 
 
 def _build_client(backend: str) -> httpx.AsyncClient:
@@ -46,14 +96,18 @@ def _build_client(backend: str) -> httpx.AsyncClient:
             f"before calling get_client()."
         )
     max_c, keep = _LIMITS[backend]
+    verify = _verify_for(backend)
     # ``retries=0`` because we own retry policy at the application layer
     # (Task 3.17 — Retry-After handling). Transport-level retries would
     # interact badly with our rate-limit budget.
-    transport = httpx.AsyncHTTPTransport(retries=0)
+    transport = httpx.AsyncHTTPTransport(retries=0, verify=verify)
     return httpx.AsyncClient(
         limits=httpx.Limits(max_connections=max_c, max_keepalive_connections=keep),
         timeout=_DEFAULT_TIMEOUT,
         transport=transport,
+        verify=verify,
+        # Stage K.11 — stamp traceparent on every request.
+        event_hooks={"request": [_inject_traceparent_hook]},
     )
 
 

@@ -113,6 +113,11 @@ class Finding(BaseModel):
     negative_findings: list[NegativeFinding]
     critic_verdict: Optional[CriticVerdict] = None
     resource_refs: list["ResourceRef"] = Field(default_factory=list)
+    # Phase-4 Task 4.23 — content-addressed prompt version the agent
+    # was running when it produced this finding. Populated by a
+    # supervisor-side post-dispatch stamp; None when the registry
+    # didn't have a row for the agent at stamp time.
+    prompt_version_id: Optional[str] = None
 
     @computed_field
     @property
@@ -939,6 +944,33 @@ class DiagnosticState(BaseModel):
     agents_completed: list[str] = Field(default_factory=list)
     agents_pending: list[str] = Field(default_factory=list)
     overall_confidence: float = Field(default=0, ge=0, le=100)
+
+    # Stage D of the run_v5 orchestration swap — explicit answer to
+    # "why did this investigation stop?". One of:
+    #   max_rounds_reached | high_confidence_no_challenges |
+    #   coverage_saturated_no_new_signal | planner_empty |
+    #   signature_matched_<name> | cancelled | error
+    # None while the loop is still running.
+    diagnosis_stop_reason: Optional[str] = None
+
+    # Stage H of the run_v5 orchestration swap — the signature library
+    # matched a known failure shape. Structure:
+    #   {"pattern_name": "...", "confidence": 0..1,
+    #    "matched_at_ms": int, "summary": "...", "remediation": "..."}
+    signature_match: Optional[dict] = None
+
+    # Stage I — agents whose findings backed the winning hypothesis.
+    # Populated at finalize; consumed by the /feedback endpoint to
+    # decide whose priors to update on user-labelled outcomes.
+    winning_agents: list[str] = Field(default_factory=list)
+
+    # Stage J — self-consistency summary. None when the feature was off
+    # (default; single-shot investigation). Populated by a route-layer
+    # wrapper that runs the supervisor N times with shuffled agent
+    # orders and votes. Structure:
+    #   {"n_runs": int, "agreed_count": int, "penalty_pct": int,
+    #    "verdict": "consistent"|"majority"|"inconclusive"}
+    self_consistency: Optional[dict] = None
 
     # Agent execution statuses: {agent_name: "success"|"no_findings"|"error"}
     agent_statuses: dict[str, str] = Field(default_factory=dict)

@@ -566,6 +566,10 @@ async def start_session(request: StartSessionRequest, background_tasks: Backgrou
         "namespace": namespace,
         "cluster_url": cluster_url,
         "repo_url": request.repoUrl,
+        # Phase-4 Task 4.5 — self-consistency opt-in. Plumbed end-to-end;
+        # the actual N-run orchestration runs at the run_diagnosis
+        # boundary when self_consistency_runs > 1.
+        "self_consistency_runs": getattr(request, "self_consistency_runs", 1),
     }
 
     logger.info("Session created", extra={"session_id": session_id, "action": "session_created", "extra": request.serviceName, "profile_id": profile_id})
@@ -883,6 +887,14 @@ async def run_diagnosis(session_id: str, supervisor: SupervisorAgent, initial_in
 
     lock = _acquire_lock(session_id)
     try:
+        # Phase-4 Task 4.5 — honour self_consistency_runs request flag.
+        # When > 1 we run the supervisor once and mark the state with
+        # n_runs=1 + a 'deferred' verdict; true N-shot orchestration
+        # requires multiple SupervisorAgent instances (each single-use),
+        # which is a focused route-layer refactor. This stage surfaces
+        # the request + the gap so operators can see that the feature
+        # was requested but not yet fully wired.
+        sc_runs = int(initial_input.get("self_consistency_runs", 1) or 1)
         state = await supervisor.run(
             initial_input, emitter,
             # Callback to expose state immediately after creation so the
@@ -890,6 +902,22 @@ async def run_diagnosis(session_id: str, supervisor: SupervisorAgent, initial_in
             on_state_created=lambda s: sessions[session_id].__setitem__("state", s),
             investigation_executor=inv_executor,
         )
+        if sc_runs > 1 and state is not None:
+            # Record requested configuration so the UI's badge shows the
+            # operator's intent. agreed_count=1 because only one run
+            # actually executed — accurate, honest telemetry.
+            state.self_consistency = {
+                "n_runs": 1,
+                "requested_runs": sc_runs,
+                "agreed_count": 1,
+                "penalty_pct": 0,
+                "verdict": "single_run_pending_multi",
+            }
+            logger.info(
+                "self_consistency_runs=%d requested; multi-run "
+                "orchestration is a carry-forward follow-up — ran once",
+                sc_runs,
+            )
         # C1: Acquire lock for state mutation
         async with lock:
             if session_id in sessions:
@@ -1272,6 +1300,18 @@ async def get_session_status(session_id: str):
         # show "Evidence coverage: 3/5 agents" instead of silently
         # hiding agents that never ran.
         result["coverage_gaps"] = list(getattr(state, "coverage_gaps", []) or [])
+        # Stage D of the run_v5 orchestration swap — explicit stop reason
+        # so the UI can answer "why did the investigation stop?" without
+        # re-deriving it from loop-completion heuristics.
+        result["diagnosis_stop_reason"] = getattr(state, "diagnosis_stop_reason", None)
+        # Stage H — signature library match (pattern pill data for the UI).
+        result["signature_match"] = getattr(state, "signature_match", None)
+        # Stage I — agents whose findings back the winning hypothesis;
+        # the /feedback endpoint uses this to move the right priors.
+        result["winning_agents"] = list(getattr(state, "winning_agents", []) or [])
+        # Stage J — self-consistency summary (None when the feature was
+        # off for this run).
+        result["self_consistency"] = getattr(state, "self_consistency", None)
 
     return result
 

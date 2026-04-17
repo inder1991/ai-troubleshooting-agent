@@ -697,7 +697,63 @@ OUTPUT FORMAT — Final answer as JSON:
                 "query": f'kube_pod_status_phase{{namespace="{namespace}", pod=~"{service_name}.*", phase="Pending"}}',
                 "description": "Pods stuck in Pending state",
             },
+        ] + self._library_golden_signals(namespace, service_name)
+
+    def _library_golden_signals(self, namespace: str, service_name: str) -> list[dict]:
+        """K.9 — supplement defaults with promql_library's safety-
+        validated golden-signals queries. Each library entry passes
+        validate_promql before return so an unsafe namespace/service
+        combination (e.g. injected quotes) falls through silently
+        rather than poisoning the default-queries list.
+        """
+        if not namespace or not service_name:
+            return []
+        try:
+            from src.agents.promql_library import (
+                build_golden_signals,
+                query_alerts_firing,
+            )
+            signals = build_golden_signals(namespace=namespace, service=service_name)
+        except Exception:
+            return []
+        out: list[dict] = [
+            {
+                "name": "latency_p50_lib",
+                "query": signals["latency_p50"],
+                "description": "P50 HTTP request latency (library)",
+            },
+            {
+                "name": "latency_p95_lib",
+                "query": signals["latency_p95"],
+                "description": "P95 HTTP request latency (library)",
+            },
+            {
+                "name": "traffic_rps_lib",
+                "query": signals["traffic_rps"],
+                "description": "Request traffic (library)",
+            },
+            {
+                "name": "error_rate_lib",
+                "query": signals["error_rate"],
+                "description": "5xx error-rate ratio with div-by-zero guard (library)",
+            },
+            {
+                "name": "saturation_cpu_lib",
+                "query": signals["saturation_cpu"],
+                "description": "CPU saturation vs limits (library)",
+            },
         ]
+        try:
+            out.append(
+                {
+                    "name": "alerts_firing_lib",
+                    "query": query_alerts_firing(namespace=namespace),
+                    "description": "Alerts currently firing in the namespace (library)",
+                }
+            )
+        except Exception:
+            pass
+        return out
 
     def _detect_spikes(self, data_points: list[dict], baseline_threshold: float = 2.0) -> list[dict]:
         """Detect anomalous spikes in time-series data using median + MAD (robust to outliers)."""

@@ -368,14 +368,22 @@ After analysis, provide your final answer as JSON:
 
         try:
             from kubernetes import client
+            from src.agents.k8s_pagination import list_all
             v1 = client.CoreV1Api(self._get_k8s_client())
-            pods = v1.list_namespaced_pod(
-                namespace=namespace, label_selector=label_selector, _request_timeout=10,
+            # K.8 — continue-token pagination. Large namespaces used to
+            # silently truncate at 500 items (the default limit); list_all
+            # drains every page deterministically.
+            pod_items = await list_all(
+                v1.list_namespaced_pod,
+                limit=500,
+                namespace=namespace,
+                label_selector=label_selector,
+                _request_timeout=10,
             )
 
             result = []
             all_healthy = True
-            for pod in pods.items:
+            for pod in pod_items:
                 pod_info = self._extract_pod_info(pod)
                 result.append(pod_info)
                 if pod_info["status"] not in ("Running",) or pod_info["restart_count"] > 0:

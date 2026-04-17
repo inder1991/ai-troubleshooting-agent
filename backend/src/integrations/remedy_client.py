@@ -2,8 +2,8 @@
 BMC Remedy ITSM client — JWT login, create incident.
 """
 
-import httpx
-
+from src.integrations.http_clients import get_client
+from src.integrations.post_retry import idempotent_post
 from src.utils.logger import get_logger
 
 logger = get_logger("remedy_client")
@@ -31,15 +31,17 @@ class RemedyClient:
             return self._jwt_token
 
         # basic_auth: credentials expected as "username:password"
+        # K.5 — shared remedy pool; verify=_verify_for('remedy')=False by default,
+        # flip via VERIFY_SSL_REMEDY=true for deployments with real CA certs.
         url = f"{self.base_url}/api/jwt/login"
-        async with httpx.AsyncClient(verify=False, timeout=10.0) as client:
-            resp = await client.post(
-                url,
-                content=self.credentials,
-                headers={"Content-Type": "application/x-www-form-urlencoded"},
-            )
-            resp.raise_for_status()
-            self._jwt_token = resp.text.strip()
+        client = get_client("remedy")
+        resp = await client.post(
+            url,
+            content=self.credentials,
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+        )
+        resp.raise_for_status()
+        self._jwt_token = resp.text.strip()
 
         logger.info("Obtained Remedy JWT token")
         return self._jwt_token
@@ -81,10 +83,13 @@ class RemedyClient:
 
         payload = {"values": values}
 
-        async with httpx.AsyncClient(verify=False, timeout=15.0) as client:
-            resp = await client.post(url, json=payload, headers=headers)
-            resp.raise_for_status()
-            data = resp.json()
+        # K.5 — shared remedy pool + K.6 idempotent_post wrap so a retried POST
+        # doesn't create a second incident. verify=_verify_for('remedy')=False
+        # by default; flip via VERIFY_SSL_REMEDY=true for real CA certs.
+        client = get_client("remedy")
+        resp = await idempotent_post(client, url, json=payload, headers=headers)
+        resp.raise_for_status()
+        data = resp.json()
 
         incident_number = data.get("values", {}).get("Incident Number", "")
         logger.info("Created Remedy incident %s", incident_number)

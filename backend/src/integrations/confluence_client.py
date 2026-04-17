@@ -5,8 +5,8 @@ Confluence REST client — create pages in Storage Format.
 import base64
 from typing import Optional
 
-import httpx
-
+from src.integrations.http_clients import get_client
+from src.integrations.post_retry import idempotent_post
 from src.utils.logger import get_logger
 
 logger = get_logger("confluence_client")
@@ -58,10 +58,13 @@ class ConfluenceClient:
         url = f"{self.base_url}/rest/api/content"
         headers = {**self._auth_headers(), "Content-Type": "application/json"}
 
-        async with httpx.AsyncClient(verify=False, timeout=15.0) as client:
-            resp = await client.post(url, json=payload, headers=headers)
-            resp.raise_for_status()
-            data = resp.json()
+        # K.5 — shared confluence pool; K.6 idempotent_post wrap.
+        # verify=_verify_for('confluence')=False by default; flip via
+        # VERIFY_SSL_CONFLUENCE=true for deployments with real certs.
+        client = get_client("confluence")
+        resp = await idempotent_post(client, url, json=payload, headers=headers)
+        resp.raise_for_status()
+        data = resp.json()
 
         page_id = data.get("id", "")
         logger.info("Created Confluence page %s in space %s", page_id, space_key)
@@ -72,7 +75,7 @@ class ConfluenceClient:
         url = f"{self.base_url}/rest/api/space/{space_key}"
         headers = self._auth_headers()
 
-        async with httpx.AsyncClient(verify=False, timeout=10.0) as client:
-            resp = await client.get(url, headers=headers)
-            resp.raise_for_status()
-            return resp.json()
+        client = get_client("confluence")
+        resp = await client.get(url, headers=headers)
+        resp.raise_for_status()
+        return resp.json()

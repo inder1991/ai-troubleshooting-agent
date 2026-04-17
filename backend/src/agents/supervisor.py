@@ -27,11 +27,59 @@ from src.agents.code_agent import CodeNavigatorAgent
 from src.agents.change_agent import ChangeAgent
 from src.agents.cross_repo_tracer import CrossRepoTracer
 from src.agents.critic_agent import CriticAgent
+from src.agents.critic_ensemble import CriticEnsemble
+
+
+def _finding_to_dict(finding) -> dict:
+    """Shallow finding -> dict for CriticEnsemble input. Best-effort:
+    captures claim/summary so keyword-based partitioning has something to
+    work with. Unknown shapes degrade gracefully."""
+    if isinstance(finding, dict):
+        return finding
+    out = {}
+    for attr in (
+        "claim",
+        "summary",
+        "finding_id",
+        "agent_source",
+        "source_agent",
+        "service",
+        "category",
+    ):
+        val = getattr(finding, attr, None)
+        if val is not None:
+            out[attr] = val
+    # Ensure 'claim' key exists for the partitioner even if finding only
+    # carries 'summary'.
+    if "claim" not in out and "summary" in out:
+        out["claim"] = out["summary"]
+    return out
 from src.agents.hypothesis_tracker import HypothesisTracker
 from src.agents.causal_engine import (
     EvidenceGraphBuilder,
     build_incident_graph_from_pins,
     find_root_causes,
+)
+from src.agents.orchestration.dispatcher import (
+    AgentSpec,
+    Dispatcher,
+    StepResult,
+)
+from src.agents.orchestration.eval_gate import EvalGate
+from src.agents.orchestration.confidence_adapter import (
+    compute_state_confidence,
+    state_confidence_mode,
+)
+from src.agents.orchestration.planner import Planner
+from src.agents.orchestration.reducer import Reducer
+from src.agents.orchestration.signal_extractor import extract_signals_from_state
+from src.agents.orchestration.signature_matcher import (
+    SignatureHypothesis,
+    try_signature_match,
+)
+from src.agents.orchestration.state_adapters import (
+    eval_gate_inputs,
+    planner_inputs,
 )
 from src.agents.impact_analyzer import ImpactAnalyzer
 from src.utils.llm_client import AnthropicClient
@@ -193,6 +241,10 @@ class SupervisorAgent:
             "code_agent": CodeNavigatorAgent,
         }
         self._critic = CriticAgent()
+        # Stage G — CriticEnsemble is lazy: constructed on first use only
+        # when DIAGNOSTIC_CRITIC_MODE=ensemble. Default is legacy so tests
+        # that assert on the current CriticAgent output stay stable.
+        self._critic_ensemble: Optional[CriticEnsemble] = None
         self._hypothesis_tracker = HypothesisTracker(max_re_dispatches=2)
         self._signal_normalizer = SignalNormalizer()
         self._evidence_mapper = EvidenceMapper()
@@ -291,13 +343,78 @@ class SupervisorAgent:
         logger.info("Session started", extra={"session_id": state.session_id, "incident_id": state.incident_id, "agent_name": "supervisor", "action": "session_start", "extra": state.service_name})
         await event_emitter.emit("supervisor", "started", f"Starting diagnosis for {state.service_name} [{state.incident_id}]")
 
+        # Stage H — signature fast-path. Opt-in via
+        # DIAGNOSTIC_SIGNATURE_FAST_PATH=on (default off so a first
+        # rollout can observe without behaviour change). Evaluates the
+        # signal vocabulary derived from whatever state arrived with
+        # initial_input; only fires when a pattern matches at/above its
+        # floor confidence. The main loop runs normally when it doesn't.
+        if os.getenv("DIAGNOSTIC_SIGNATURE_FAST_PATH", "off").strip().lower() == "on":
+            try:
+                signals = extract_signals_from_state(state)
+                hypothesis = try_signature_match(signals)
+                if hypothesis is not None and hypothesis.confidence >= 0.80:
+                    state.signature_match = {
+                        "pattern_name": hypothesis.pattern_name,
+                        "confidence": hypothesis.confidence,
+                        "matched_at_ms": 0,
+                        "summary": hypothesis.summary,
+                        "remediation": hypothesis.suggested_remediation or "",
+                    }
+                    await event_emitter.emit(
+                        "supervisor",
+                        "signature_matched",
+                        f"Pattern match: {hypothesis.pattern_name} "
+                        f"(confidence {hypothesis.confidence:.2f})",
+                        details=state.signature_match,
+                    )
+                    # The main loop still runs so agents can confirm the
+                    # match with live evidence — but stop_reason preserves
+                    # the fast-path fact in the API response and the UI.
+                    state.diagnosis_stop_reason = (
+                        f"signature_matched_{hypothesis.pattern_name}"
+                    )
+            except Exception as exc:
+                logger.warning("signature fast-path failed: %s", exc)
+
         max_rounds = 10
         re_investigation_count = 0
         max_re_investigations = 1  # Allow at most 1 re-investigation cycle
-        for round_num in range(max_rounds):
-            next_agents = self._decide_next_agents(state)
+        # Stage C + D — Reducer + EvalGate drive the loop. EvalGate
+        # produces an explicit stop reason the API + UI can surface.
+        reducer = Reducer()
+        gate = EvalGate()
+        planner = Planner()
+        rounds_since_new_signal = 0
+        round_num = 0
+        while True:
+            gate_decision = gate.is_done(
+                eval_gate_inputs(
+                    state,
+                    round_num=round_num,
+                    rounds_since_new_signal=rounds_since_new_signal,
+                    max_rounds=max_rounds,
+                    max_agents=len(self._agents) or 6,
+                )
+            )
+            if gate_decision.is_done:
+                state.diagnosis_stop_reason = gate_decision.reason
+                break
+
+            # Stage E — Planner routing is env-flagged. Default is
+            # 'legacy' so existing pipeline behaviour / tests are unchanged;
+            # operators flip to 'deterministic' to enable the new rule-based
+            # Planner.next(...) with coverage_gaps + capability flags.
+            _planner_mode = os.getenv("DIAGNOSTIC_PLANNER_MODE", "legacy").strip().lower()
+            if _planner_mode == "deterministic":
+                next_agents = planner.next(
+                    planner_inputs(state, registered_agents=set(self._agents.keys()))
+                )
+            else:
+                next_agents = self._decide_next_agents(state)
 
             if not next_agents:
+                state.diagnosis_stop_reason = state.diagnosis_stop_reason or "planner_empty"
                 # Add synthesis delay for mocked demo pacing
                 import os as _os_synth
                 _mock_synth = [a.strip() for a in _os_synth.getenv("MOCK_AGENTS", "").split(",") if a.strip()]
@@ -318,6 +435,32 @@ class SupervisorAgent:
                         self._all_signals,
                         key=lambda s: s.timestamp or datetime.min.replace(tzinfo=timezone.utc),
                     )
+                    # Stage I — winning_agents closes the /feedback priors
+                    # loop. Follow-up refinement: derive precise agents
+                    # from winner.evidence_for[*].source_agent (each
+                    # evidence signal carries the agent that produced it).
+                    # Falls back to agents_completed when no winner is
+                    # picked (inconclusive hypothesis_result).
+                    winner = getattr(state.hypothesis_result, "winner", None)
+                    if winner is not None and getattr(winner, "evidence_for", None):
+                        precise_agents = [
+                            getattr(sig, "source_agent", None)
+                            for sig in winner.evidence_for
+                            if getattr(sig, "source_agent", None)
+                        ]
+                        state.winning_agents = list(dict.fromkeys(precise_agents)) or (
+                            list(dict.fromkeys(state.agents_completed))
+                        )
+                    else:
+                        state.winning_agents = list(
+                            dict.fromkeys(state.agents_completed)
+                        )
+                    try:
+                        await self._persist_winning_agents(state)
+                    except Exception as exc:
+                        logger.warning(
+                            "persist winning_agents failed (non-fatal): %s", exc
+                        )
                     if event_emitter:
                         if state.hypothesis_result.status == "resolved" and state.hypothesis_result.winner:
                             w = state.hypothesis_result.winner
@@ -401,12 +544,37 @@ class SupervisorAgent:
                 logger.info("Agent dispatched", extra={"session_id": state.session_id, "agent_name": agent_name, "action": "dispatch", "extra": {"phase": state.phase.value}})
                 await event_emitter.emit("supervisor", "progress", f"Dispatching {agent_name}")
 
+            step_results: list[StepResult] = []
             if len(next_agents) > 1 and not _any_mocked:
-                results = await asyncio.gather(
-                    *(self._dispatch_agent(name, state, event_emitter) for name in next_agents),
-                    return_exceptions=True,
+                # Stage B — Dispatcher owns parallel fan-out + per-agent timeout.
+                # Executor delegates to the existing _dispatch_agent so every
+                # current path (mocking, InvestigationExecutor routing,
+                # prerequisite checks, error handling) is preserved verbatim.
+                dispatcher = Dispatcher(
+                    executor=lambda spec: self._dispatch_agent(
+                        spec.agent, state, event_emitter
+                    ),
+                    timeout_per_agent_s=float(
+                        os.getenv("AGENT_DISPATCH_TIMEOUT_S", "120.0")
+                    ),
                 )
-                agent_results = list(zip(next_agents, results))
+                specs = [AgentSpec(agent=n) for n in next_agents]
+                step_results = await dispatcher.dispatch_round(specs)
+                # Map StepResult back to the legacy ``(name, value_or_exc)``
+                # shape downstream code expects. A timeout surfaces as an
+                # asyncio.TimeoutError; a general error stays an Exception.
+                agent_results = []
+                for sr in step_results:
+                    if sr.status == "ok":
+                        agent_results.append((sr.agent, sr.value))
+                    elif sr.status == "timeout":
+                        agent_results.append(
+                            (sr.agent, asyncio.TimeoutError(sr.error or "timed out"))
+                        )
+                    else:
+                        agent_results.append(
+                            (sr.agent, RuntimeError(sr.error or "dispatch failed"))
+                        )
             else:
                 # Sequential dispatch — one at a time (always for single agent, forced for mocked)
                 agent_results = []
@@ -424,7 +592,33 @@ class SupervisorAgent:
                         await asyncio.sleep(3.0)
                     r = await self._dispatch_agent(name, state, event_emitter)
                     agent_results.append((name, r))
+                    # Synthesise a StepResult for the reducer so the stall-
+                    # detection signal is consistent between parallel and
+                    # sequential dispatch paths.
+                    step_results.append(
+                        StepResult(
+                            agent=name,
+                            status="ok" if r is not None else "error",
+                            value=r,
+                            error=None if r is not None else "no result",
+                        )
+                    )
 
+            # Stage C — Reducer summarises the round. reduced.new_signal
+            # tells us whether any agent produced fresh pins so EvalGate
+            # can detect a stall.
+            reduced = reducer.reduce(step_results)
+            if reduced.new_signal:
+                rounds_since_new_signal = 0
+            else:
+                rounds_since_new_signal += 1
+
+            # Stage F — env-gated deterministic confidence override.
+            # Legacy per-agent running-average is computed inside
+            # _update_state_with_result; when the deterministic flag is set
+            # we recompute from state as a whole *after* the result loop.
+            # The override lands below so _update_state_with_result has
+            # already filled in any typed-state fields the formula reads.
             for agent_name, agent_result in agent_results:
                 if isinstance(agent_result, Exception):
                     logger.error("Agent raised exception", extra={"agent_name": agent_name, "extra": str(agent_result)})
@@ -437,6 +631,7 @@ class SupervisorAgent:
                     continue
                 if agent_result:
                     await self._update_state_with_result(state, agent_name, agent_result, event_emitter)
+                    self._stamp_prompt_version(state, agent_name)
                     state.agents_completed.append(agent_name)
 
                     # Evaluate hypotheses after each agent
@@ -466,8 +661,16 @@ class SupervisorAgent:
                                 k8s_ctx["oom_kills"] = sum(1 for p in state.k8s_analysis.pod_statuses if p.oom_killed)
                                 k8s_ctx["memory_percent"] = 0
                                 k8s_ctx["crashloop"] = state.k8s_analysis.is_crashloop
-                            verdict = self._critic._evaluate_finding(
-                                finding, metrics_context=metrics_ctx, k8s_context=k8s_ctx,
+                            # Stage G — env-gated critic path. Default legacy
+                            # single-role CriticAgent; ensemble is opt-in via
+                            # DIAGNOSTIC_CRITIC_MODE=ensemble. Ensemble output
+                            # is mapped back to the CriticVerdict shape the UI
+                            # + re-investigation branch below expect.
+                            verdict = await self._run_critic_on_finding(
+                                finding,
+                                metrics_context=metrics_ctx,
+                                k8s_context=k8s_ctx,
+                                state=state,
                             )
                             finding.critic_verdict = verdict
                             state.critic_verdicts.append(verdict)
@@ -487,6 +690,21 @@ class SupervisorAgent:
                                         "action": "re_investigation_capped",
                                         "extra": {"re_investigation_count": re_investigation_count}
                                     })
+
+            # Stage F — deterministic confidence override (env-flagged).
+            # Runs after _update_state_with_result has mutated state for
+            # each agent so the ConfidenceInputs reflect the newest round.
+            if state_confidence_mode() == "deterministic":
+                try:
+                    det_conf = compute_state_confidence(state)
+                    # compute_state_confidence returns 0..1; overall_confidence
+                    # is 0..100.
+                    state.overall_confidence = round(max(0.0, min(det_conf, 1.0)) * 100)
+                except Exception as _conf_exc:
+                    logger.warning(
+                        "deterministic confidence failed; retaining legacy value: %s",
+                        _conf_exc,
+                    )
 
             old_phase = state.phase
             self._update_phase(state, event_emitter)
@@ -512,6 +730,8 @@ class SupervisorAgent:
                 # (timeout, skip, no affected services) to prevent re-dispatch
                 if "change_agent" not in state.agents_completed:
                     state.agents_completed.append("change_agent")
+
+            round_num += 1
 
         # Compile token usage
         state.token_usage.append(self.llm_client.get_total_usage())
@@ -652,6 +872,188 @@ class SupervisorAgent:
             return []
 
         return []
+
+    def _stamp_prompt_version(self, state, agent_name: str) -> None:
+        """Stamp unstamped findings from ``agent_name`` with the agent's
+        current prompt_version_id. Best-effort: a registry miss leaves
+        the field as None rather than failing the investigation.
+
+        Phase-4 Task 4.23 wiring — supervisor-side implementation keeps
+        each agent's source file untouched. Agents that later want to
+        self-stamp can still call PromptRegistry().get(self.agent_name)
+        on init; the supervisor-side stamp idempotently skips findings
+        that already carry a version_id.
+        """
+        try:
+            from src.prompts.registry import PromptRegistry
+
+            registry_key = agent_name.replace("_agent", "_agent")
+            # PromptRegistry is keyed by the concrete agent names we seeded
+            # in Task 4.23 (log_agent, metrics_agent, ...). Unknown agent
+            # names just miss cleanly.
+            pinned = None
+            try:
+                pinned = PromptRegistry().get(registry_key)
+            except KeyError:
+                return
+            if pinned is None:
+                return
+            for finding in getattr(state, "all_findings", None) or []:
+                if (
+                    getattr(finding, "agent_name", None) == agent_name
+                    and not getattr(finding, "prompt_version_id", None)
+                ):
+                    try:
+                        finding.prompt_version_id = pinned.version_id
+                    except Exception:
+                        # Pydantic v2 models allow attribute assignment;
+                        # guard anyway so a model-config change never
+                        # breaks a live run.
+                        pass
+        except Exception:
+            # Stamping must never fail the investigation.
+            pass
+
+    async def _persist_winning_agents(self, state) -> None:
+        """UPSERT state.winning_agents into the DAG snapshot payload.
+
+        The /feedback endpoint reads ``payload.winning_agents`` to know
+        which agents' priors to nudge on a user-labelled outcome. Best-
+        effort: a failure here doesn't break the investigation.
+        """
+        if not state.winning_agents:
+            return
+        run_id = f"investigation-{getattr(state, 'session_id', '')}"
+        if not run_id or run_id == "investigation-":
+            return
+        try:
+            from src.database.engine import get_session
+            from src.database.models import DagSnapshot
+            from sqlalchemy import select
+            from sqlalchemy.dialects.postgresql import insert as pg_insert
+            from sqlalchemy import func
+        except Exception:
+            return
+
+        async with get_session() as session:
+            async with session.begin():
+                existing = await session.execute(
+                    select(DagSnapshot.payload).where(DagSnapshot.run_id == run_id)
+                )
+                row = existing.first()
+                payload = row[0] if row and isinstance(row[0], dict) else {
+                    "schema_version": 1,
+                    "run_id": run_id,
+                }
+                payload["winning_agents"] = list(state.winning_agents)
+                if state.signature_match:
+                    payload["signature_match"] = state.signature_match
+                if state.diagnosis_stop_reason:
+                    payload["diagnosis_stop_reason"] = state.diagnosis_stop_reason
+                stmt = pg_insert(DagSnapshot).values(
+                    run_id=run_id,
+                    payload=payload,
+                    schema_version=int(payload.get("schema_version", 1)),
+                )
+                stmt = stmt.on_conflict_do_update(
+                    index_elements=[DagSnapshot.run_id],
+                    set_={
+                        "payload": stmt.excluded.payload,
+                        "schema_version": stmt.excluded.schema_version,
+                        "updated_at": func.now(),
+                    },
+                )
+                await session.execute(stmt)
+
+    async def _run_critic_on_finding(
+        self,
+        finding,
+        *,
+        metrics_context: dict,
+        k8s_context: dict,
+        state,
+    ):
+        """Route finding through legacy CriticAgent OR new CriticEnsemble.
+
+        ``DIAGNOSTIC_CRITIC_MODE`` env var controls the path:
+            legacy (default): self._critic._evaluate_finding(...)
+            ensemble: CriticEnsemble + adapter back to CriticVerdict.
+        Ensemble output is additive — UI-visible fields
+        (advocate_verdict / challenger_verdict / judge_verdict) stamp
+        onto the finding so CriticDissentBanner can light up.
+        """
+        mode = os.getenv("DIAGNOSTIC_CRITIC_MODE", "legacy").strip().lower()
+        if mode != "ensemble":
+            return self._critic._evaluate_finding(
+                finding,
+                metrics_context=metrics_context,
+                k8s_context=k8s_context,
+            )
+
+        # Ensemble path — lazy-init the CriticEnsemble and reuse it.
+        if self._critic_ensemble is None:
+            self._critic_ensemble = CriticEnsemble(client=self.llm_client)
+
+        try:
+            pins = list(getattr(state, "evidence_pins", None) or [])
+            ensemble_result = await self._critic_ensemble.evaluate(
+                finding=_finding_to_dict(finding),
+                evidence_pins=pins,
+            )
+        except Exception as exc:
+            logger.warning(
+                "CriticEnsemble failed; falling back to legacy CriticAgent: %s", exc
+            )
+            return self._critic._evaluate_finding(
+                finding,
+                metrics_context=metrics_context,
+                k8s_context=k8s_context,
+            )
+
+        # Map ensemble final verdict to the legacy CriticVerdict enum.
+        final_to_legacy = {
+            "confirmed": "validated",
+            "challenged": "challenged",
+            "needs_more_evidence": "insufficient_data",
+        }
+        legacy_verdict = final_to_legacy.get(
+            ensemble_result.final_verdict, "insufficient_data"
+        )
+        reasoning = (
+            f"advocate={ensemble_result.advocate.verdict}; "
+            f"challenger={ensemble_result.challenger.verdict}; "
+            f"judge={ensemble_result.final_verdict}. "
+            f"{ensemble_result.advocate.reasoning or ''}"
+        ).strip()
+        from src.models.schemas import CriticVerdict as _CV
+
+        cv = _CV(
+            finding_id=getattr(finding, "finding_id", "")
+            or getattr(finding, "id", "unknown"),
+            agent_source=getattr(finding, "agent_source", "")
+            or getattr(finding, "source_agent", "unknown"),
+            verdict=legacy_verdict,
+            reasoning=reasoning[:1000],
+            confidence_in_verdict=(
+                90 if ensemble_result.final_verdict != "needs_more_evidence" else 50
+            ),
+        )
+        # Stamp ensemble-specific fields onto the finding so the UI can
+        # render the CriticDissentBanner without a secondary API call.
+        try:
+            setattr(
+                finding,
+                "critic_dissent",
+                {
+                    "advocate_verdict": ensemble_result.advocate.verdict,
+                    "challenger_verdict": ensemble_result.challenger.verdict,
+                    "judge_verdict": ensemble_result.final_verdict,
+                    "summary": ensemble_result.advocate.reasoning or "",
+                },
+            )
+        except Exception:
+            pass
+        return cv
 
     def _decide_action_for_confidence(self, state: DiagnosticState) -> str:
         """Decide action based on overall confidence score."""
