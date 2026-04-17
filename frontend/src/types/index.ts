@@ -368,6 +368,10 @@ export interface V4SessionStatus {
   token_usage: TokenUsage[];
   breadcrumbs: Breadcrumb[];
   agents_completed?: string[];
+  /** One-liner reasons for agents that were skipped or errored out.
+   * Format: "<agent_name>: <reason>". Surfaced by Task 1.14 so the
+   * trust UI reflects actual coverage vs attempted coverage. */
+  coverage_gaps?: string[];
   created_at: string;
   updated_at: string;
   capability?: CapabilityType;

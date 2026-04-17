@@ -50,6 +50,28 @@ from src.hypothesis.elimination import evaluate_hypotheses, pick_winner_or_incon
 logger = get_logger(__name__)
 
 
+# Task 1.14: coverage-gap tracking. When an agent is skipped or errors
+# out, the supervisor appends a one-liner to state.coverage_gaps so
+# downstream trust/confidence signals reflect the coverage actually
+# achieved (not what was merely attempted). Reason strings come from
+# exception messages which can be unbounded, so we truncate.
+MAX_GAP_REASON_LEN = 240
+
+
+def record_coverage_gap(state, agent_name: str, reason: str) -> None:
+    """Append ``<agent_name>: <reason>`` to ``state.coverage_gaps``,
+    deduplicating identical entries and truncating long reasons."""
+    if not agent_name:
+        raise ValueError("agent_name must be non-empty")
+    if not reason:
+        raise ValueError("reason must be non-empty")
+    if len(reason) > MAX_GAP_REASON_LEN:
+        reason = reason[:MAX_GAP_REASON_LEN] + " …[truncated]"
+    entry = f"{agent_name}: {reason}"
+    if entry not in state.coverage_gaps:
+        state.coverage_gaps.append(entry)
+
+
 def update_confidence_ledger(ledger: ConfidenceLedger, pins: list[EvidencePin]) -> None:
     """Update ledger from evidence pins. Average confidence per type, then compute weighted final."""
     type_map: dict[str, list[float]] = {
@@ -375,6 +397,8 @@ class SupervisorAgent:
                     logger.error("Agent raised exception", extra={"agent_name": agent_name, "extra": str(agent_result)})
                     # C2: Mark failed agent as completed to prevent infinite re-dispatch
                     state.agents_completed.append(agent_name)
+                    # Task 1.14: surface the failure to downstream consumers.
+                    record_coverage_gap(state, agent_name, str(agent_result) or type(agent_result).__name__)
                     if event_emitter:
                         await event_emitter.emit(agent_name, "error", f"Agent failed: {str(agent_result)}")
                     continue
@@ -681,6 +705,12 @@ class SupervisorAgent:
                 "agent_name": agent_name, "action": "skipped",
                 "extra": skip_reason,
             })
+            # Task 1.14: also record the skip on state.coverage_gaps
+            # so the trust UI can show "metrics_agent skipped: <reason>".
+            try:
+                record_coverage_gap(state, agent_name, skip_reason)
+            except Exception:
+                logger.exception("record_coverage_gap failed", extra={"agent_name": agent_name})
             if event_emitter:
                 await event_emitter.emit(agent_name, "warning", f"Skipped: {skip_reason}")
             # Mark as completed to prevent infinite re-dispatch
@@ -709,6 +739,12 @@ class SupervisorAgent:
             return result
         except Exception as e:
             logger.error("Agent failed", extra={"session_id": getattr(state, 'session_id', ''), "agent_name": agent_name, "action": "agent_error", "extra": str(e)})
+            # Task 1.14: record the skip reason on state so the API
+            # response lists this agent as a coverage gap.
+            try:
+                record_coverage_gap(state, agent_name, str(e) or type(e).__name__)
+            except Exception:
+                logger.exception("record_coverage_gap failed", extra={"agent_name": agent_name})
             if event_emitter:
                 await event_emitter.emit(agent_name, "error", f"Agent failed: {str(e)}")
             return None

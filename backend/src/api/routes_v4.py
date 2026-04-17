@@ -1268,6 +1268,10 @@ async def get_session_status(session_id: str):
         result["token_usage"] = [t.model_dump() for t in state.token_usage]
         if state.all_breadcrumbs:
             result["breadcrumbs"] = [b.model_dump(mode="json") for b in state.all_breadcrumbs]
+        # Task 1.14: surface skip/error reasons so the trust UI can
+        # show "Evidence coverage: 3/5 agents" instead of silently
+        # hiding agents that never ran.
+        result["coverage_gaps"] = list(getattr(state, "coverage_gaps", []) or [])
 
     return result
 
