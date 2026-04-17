@@ -73,6 +73,49 @@ def find_root_causes(graph: IncidentGraph) -> list[Root]:
     return sorted(candidates, key=lambda r: -r.score)
 
 
+def build_incident_graph_from_pins(pins) -> IncidentGraph:
+    """Construct a typed ``IncidentGraph`` from an ordered list of EvidencePins.
+
+    The builder only emits ``precedes`` edges — strictly temporal, no causal
+    claims. ``causes`` edges arrive later via the Phase-4 signature library
+    (pattern_id) or explicit user override. That means ``find_root_causes``
+    over this graph correctly returns ``[]`` today: no causes, no roots.
+    That is by design — it prevents the supervisor from declaring a root
+    cause on topology alone, which was the pre-Phase-2 bug.
+
+    Edge rule: for each pin, add a precedes edge to every later pin on the
+    same ``source_agent`` within 5 minutes. Cross-agent temporal-only links
+    are left to the signature library — they are the high-signal edges and
+    deserve rule-checked certification, not a heuristic.
+    """
+    g = IncidentGraph()
+    ordered = sorted(
+        [p for p in pins if p is not None and getattr(p, "timestamp", None)],
+        key=lambda p: p.timestamp,
+    )
+    for idx, pin in enumerate(ordered):
+        g.add_node(
+            f"pin-{idx}",
+            t=pin.timestamp.timestamp(),
+            source_agent=pin.source_agent,
+            evidence_type=pin.evidence_type,
+            claim=pin.claim,
+        )
+    for i, a in enumerate(ordered):
+        for j in range(i + 1, len(ordered)):
+            b = ordered[j]
+            if a.source_agent != b.source_agent:
+                continue
+            lag = (b.timestamp - a.timestamp).total_seconds()
+            if lag > 300:   # only same-agent chains within 5 minutes
+                break
+            g.add_edge(
+                f"pin-{i}", f"pin-{j}",
+                edge_type="precedes", lag_s=int(lag),
+            )
+    return g
+
+
 @dataclass
 class CrossRepoEdge:
     source_repo: str

@@ -28,7 +28,11 @@ from src.agents.change_agent import ChangeAgent
 from src.agents.cross_repo_tracer import CrossRepoTracer
 from src.agents.critic_agent import CriticAgent
 from src.agents.hypothesis_tracker import HypothesisTracker
-from src.agents.causal_engine import EvidenceGraphBuilder
+from src.agents.causal_engine import (
+    EvidenceGraphBuilder,
+    build_incident_graph_from_pins,
+    find_root_causes,
+)
 from src.agents.impact_analyzer import ImpactAnalyzer
 from src.utils.llm_client import AnthropicClient
 from src.utils.event_emitter import EventEmitter
@@ -533,10 +537,21 @@ class SupervisorAgent:
 
                 state.agents_completed.append(agent_name)
 
-        # Build causal graph
+        # Build causal graph (legacy topology view retained for UI compatibility)
         builder.identify_root_causes()
         state.evidence_graph = builder.graph
         state.incident_timeline = builder.build_timeline()
+
+        # Phase-2 bridge: compute rule-based roots over a typed IncidentGraph.
+        # Returns [] until the signature library (Phase 4) supplies 'causes'
+        # edges — which is correct behaviour: no certified causes, no roots.
+        typed_graph = build_incident_graph_from_pins(state.evidence_pins)
+        typed_roots = find_root_causes(typed_graph)
+        if typed_roots:
+            # Overwrite the legacy topology-derived root_causes only when the
+            # rule-based engine actually produced something. Otherwise keep
+            # whatever the legacy builder emitted so the UI is not worse off.
+            state.evidence_graph.root_causes = [r.node_id for r in typed_roots]
 
         return state
 
