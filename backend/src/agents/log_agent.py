@@ -15,12 +15,111 @@ from src.utils.llm_client import AnthropicClient
 from src.utils.event_emitter import EventEmitter
 from src.utils.logger import get_logger
 from src.prompts.sanitize import quote_user_text
+from src.agents.critic_agent import StructuredOutputRequired
 
 import os
 
 logger = get_logger(__name__)
 
 ES_MAX_RESULTS = int(os.getenv("ES_MAX_RESULTS", "5000"))
+
+
+# Task 1.10: structured output via Anthropic tool-use. Replaces the
+# regex `\{[\s\S]*\}` extraction path, which silently defaulted to
+# overall_confidence=30 on any parse failure.
+_LOG_ANALYSIS_TOOL_NAME = "submit_log_analysis"
+_LOG_ANALYSIS_TOOL_SCHEMA: dict = {
+    "name": _LOG_ANALYSIS_TOOL_NAME,
+    "description": (
+        "Submit your log-pattern analysis. You MUST call this tool exactly "
+        "once and MUST NOT reply in free text."
+    ),
+    "input_schema": {
+        "type": "object",
+        "required": [
+            "primary_pattern",
+            "overall_confidence",
+            "root_cause_hypothesis",
+        ],
+        "properties": {
+            "primary_pattern": {
+                "type": "object",
+                "description": "The top-priority pattern driving the incident",
+            },
+            "secondary_patterns": {
+                "type": "array",
+                "items": {"type": "object"},
+                "default": [],
+            },
+            "overall_confidence": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 100,
+            },
+            "root_cause_hypothesis": {"type": "string"},
+            "flow_analysis": {"type": "string"},
+            "patient_zero": {
+                "description": "{service, evidence, first_error_time} or null",
+            },
+            "inferred_dependencies": {
+                "type": "array",
+                "items": {"type": "object"},
+                "default": [],
+            },
+            "reasoning_chain": {
+                "type": "array",
+                "items": {"type": "object"},
+                "default": [],
+            },
+            "suggested_promql_queries": {
+                "type": "array",
+                "items": {"type": "object"},
+                "default": [],
+            },
+        },
+    },
+}
+
+
+def _parse_log_analysis_from_response(response) -> dict:
+    """Extract the structured log analysis from an Anthropic Messages
+    response. Raises ``StructuredOutputRequired`` if the forced tool
+    call is missing or its input is incomplete."""
+    tool_uses = [
+        b for b in getattr(response, "content", [])
+        if getattr(b, "type", None) == "tool_use"
+    ]
+    if not tool_uses:
+        raise StructuredOutputRequired(
+            f"log_agent LLM returned no {_LOG_ANALYSIS_TOOL_NAME} tool_use block"
+        )
+    if tool_uses[0].name != _LOG_ANALYSIS_TOOL_NAME:
+        raise StructuredOutputRequired(
+            f"log_agent LLM called unexpected tool {tool_uses[0].name!r}"
+        )
+    data = tool_uses[0].input or {}
+    for req in ("primary_pattern", "overall_confidence", "root_cause_hypothesis"):
+        if req not in data:
+            raise StructuredOutputRequired(
+                f"log_agent tool_use missing required field {req!r}"
+            )
+    conf = data["overall_confidence"]
+    if not isinstance(conf, int) or not (0 <= conf <= 100):
+        raise StructuredOutputRequired(
+            f"log_agent overall_confidence {conf!r} missing or out of range"
+        )
+
+    return {
+        "primary_pattern": data.get("primary_pattern", {}),
+        "secondary_patterns": (data.get("secondary_patterns") or [])[:5],
+        "overall_confidence": conf,
+        "root_cause_hypothesis": data.get("root_cause_hypothesis", ""),
+        "flow_analysis": data.get("flow_analysis", ""),
+        "patient_zero": data.get("patient_zero", None),
+        "inferred_dependencies": data.get("inferred_dependencies") or [],
+        "reasoning_chain": data.get("reasoning_chain") or [],
+        "suggested_promql_queries": data.get("suggested_promql_queries") or [],
+    }
 
 
 def _render_log_line_for_prompt(
@@ -805,15 +904,29 @@ Respond with JSON only. No markdown fences."""
 
         prompt = self._build_analysis_prompt(collection, context)
 
-        response = await self.llm_client.chat(
-            prompt=prompt,
+        # Task 1.10: force structured output via tool-use; no regex parse.
+        response = await self.llm_client.chat_with_tools(
             system=self.SYSTEM_PROMPT,
+            messages=[{"role": "user", "content": prompt}],
+            tools=[_LOG_ANALYSIS_TOOL_SCHEMA],
+            tool_choice={"type": "tool", "name": _LOG_ANALYSIS_TOOL_NAME},
             max_tokens=4096,
             temperature=0.0,
         )
 
-        analysis = self._parse_llm_response(response.text)
-        logger.info("LLM analysis complete", extra={"agent_name": self.agent_name, "action": "llm_analysis", "extra": {"confidence": analysis.get("overall_confidence", 0)}, "tokens": {"input": response.input_tokens, "output": response.output_tokens}})
+        analysis = _parse_log_analysis_from_response(response)
+        logger.info(
+            "LLM analysis complete",
+            extra={
+                "agent_name": self.agent_name,
+                "action": "llm_analysis",
+                "extra": {"confidence": analysis.get("overall_confidence", 0)},
+                "tokens": {
+                    "input": response.usage.input_tokens,
+                    "output": response.usage.output_tokens,
+                },
+            },
+        )
         return analysis
 
     def _build_analysis_prompt(self, collection: dict, context: dict) -> str:
@@ -1153,39 +1266,6 @@ Respond with JSON only. No markdown fences."""
         )
 
         return "\n".join(parts)
-
-    def _parse_llm_response(self, text: str) -> dict:
-        """Parse LLM's JSON response."""
-        try:
-            json_match = re.search(r'\{[\s\S]*\}', text)
-            if json_match:
-                data = json.loads(json_match.group())
-            else:
-                data = json.loads(text)
-        except (json.JSONDecodeError, AttributeError):
-            return {
-                "primary_pattern": {},
-                "secondary_patterns": [],
-                "overall_confidence": 30,
-                "root_cause_hypothesis": "Failed to parse LLM response",
-                "flow_analysis": "",
-                "patient_zero": None,
-                "inferred_dependencies": [],
-                "reasoning_chain": [],
-                "suggested_promql_queries": [],
-            }
-
-        return {
-            "primary_pattern": data.get("primary_pattern", {}),
-            "secondary_patterns": data.get("secondary_patterns", [])[:5],
-            "overall_confidence": data.get("overall_confidence", 50),
-            "root_cause_hypothesis": data.get("root_cause_hypothesis", ""),
-            "flow_analysis": data.get("flow_analysis", ""),
-            "patient_zero": data.get("patient_zero", None),
-            "inferred_dependencies": data.get("inferred_dependencies", []),
-            "reasoning_chain": data.get("reasoning_chain", []),
-            "suggested_promql_queries": data.get("suggested_promql_queries", []),
-        }
 
     # ─── Build Result ──────────────────────────────────────────────────────
 

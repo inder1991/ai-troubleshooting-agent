@@ -5,11 +5,91 @@ from datetime import datetime, timezone, timedelta
 from typing import Any
 
 from src.agents.react_base import ReActAgent
+from src.agents.critic_agent import StructuredOutputRequired
 from src.models.schemas import PodHealthStatus, K8sEvent, K8sAnalysisResult, TokenUsage
 from src.utils.event_emitter import EventEmitter
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
+
+
+# Task 1.10: structured output via Anthropic tool-use.
+_K8S_ANALYSIS_TOOL_NAME = "submit_k8s_analysis"
+_K8S_ANALYSIS_TOOL_SCHEMA: dict = {
+    "name": _K8S_ANALYSIS_TOOL_NAME,
+    "description": (
+        "Submit your Kubernetes health analysis. You MUST call this tool "
+        "exactly once and MUST NOT reply in free text."
+    ),
+    "input_schema": {
+        "type": "object",
+        "required": ["is_crashloop", "overall_confidence"],
+        "properties": {
+            "pod_statuses": {
+                "type": "array",
+                "items": {"type": "object"},
+                "default": [],
+            },
+            "events": {
+                "type": "array",
+                "items": {"type": "object"},
+                "default": [],
+            },
+            "is_crashloop": {"type": "boolean"},
+            "total_restarts_last_hour": {
+                "type": "integer",
+                "minimum": 0,
+                "default": 0,
+            },
+            "resource_mismatch": {
+                "description": "Resource mismatch summary or null",
+            },
+            "overall_confidence": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 100,
+            },
+        },
+    },
+}
+
+
+def _parse_k8s_analysis_from_response(response) -> dict:
+    """Extract the structured K8s analysis from an Anthropic Messages
+    response. Raises ``StructuredOutputRequired`` if the forced tool
+    call is missing or its input is incomplete."""
+    tool_uses = [
+        b for b in getattr(response, "content", [])
+        if getattr(b, "type", None) == "tool_use"
+    ]
+    if not tool_uses:
+        raise StructuredOutputRequired(
+            f"k8s_agent LLM returned no {_K8S_ANALYSIS_TOOL_NAME} tool_use block"
+        )
+    if tool_uses[0].name != _K8S_ANALYSIS_TOOL_NAME:
+        raise StructuredOutputRequired(
+            f"k8s_agent LLM called unexpected tool {tool_uses[0].name!r}"
+        )
+    data = tool_uses[0].input or {}
+    for req in ("is_crashloop", "overall_confidence"):
+        if req not in data:
+            raise StructuredOutputRequired(
+                f"k8s_agent tool_use missing required field {req!r}"
+            )
+    conf = data["overall_confidence"]
+    if not isinstance(conf, int) or not (0 <= conf <= 100):
+        raise StructuredOutputRequired(
+            f"k8s_agent overall_confidence {conf!r} missing or out of range"
+        )
+
+    return {
+        "pod_statuses": data.get("pod_statuses") or [],
+        "events": data.get("events") or [],
+        "is_crashloop": bool(data["is_crashloop"]),
+        "total_restarts_last_hour": int(data.get("total_restarts_last_hour") or 0),
+        "resource_mismatch": data.get("resource_mismatch"),
+        "overall_confidence": conf,
+    }
 
 
 class K8sAgent(ReActAgent):
@@ -210,29 +290,36 @@ After analysis, provide your final answer as JSON:
         return f"Unknown tool: {tool_name}"
 
     def _parse_final_response(self, text: str) -> dict:
-        import re
-        try:
-            json_match = re.search(r'\{[\s\S]*\}', text)
-            if json_match:
-                data = json.loads(json_match.group())
-            else:
-                data = json.loads(text)
-        except (json.JSONDecodeError, AttributeError):
-            return {"error": "Failed to parse response", "raw_response": text}
+        """ReActAgent abstract method. The two-pass path uses
+        ``_parse_k8s_analysis_from_response`` (tool-use). This
+        abstract-required override exists for the ReAct-loop path when
+        the model emits a final free-text answer.
 
-        result = {
-            "pod_statuses": data.get("pod_statuses", []),
-            "events": data.get("events", []),
-            "is_crashloop": data.get("is_crashloop", False),
-            "total_restarts_last_hour": data.get("total_restarts_last_hour", 0),
+        Strict JSON only — the regex ``\\{[\\s\\S]*\\}`` extraction and
+        default-field-filling fallback from pre-Task 1.10 were removed
+        (operating rule 6: no silent fallbacks)."""
+        try:
+            data = json.loads(text)
+        except json.JSONDecodeError as e:
+            raise StructuredOutputRequired(
+                f"k8s_agent final response is not valid JSON: {e}"
+            )
+        for req in ("is_crashloop", "overall_confidence"):
+            if req not in data:
+                raise StructuredOutputRequired(
+                    f"k8s_agent final response missing required field {req!r}"
+                )
+        return {
+            "pod_statuses": data.get("pod_statuses") or [],
+            "events": data.get("events") or [],
+            "is_crashloop": bool(data["is_crashloop"]),
+            "total_restarts_last_hour": int(data.get("total_restarts_last_hour") or 0),
             "resource_mismatch": data.get("resource_mismatch"),
-            "overall_confidence": data.get("overall_confidence", 50),
+            "overall_confidence": int(data["overall_confidence"]),
             "breadcrumbs": [b.model_dump(mode="json") for b in self.breadcrumbs],
             "negative_findings": [n.model_dump(mode="json") for n in self.negative_findings],
             "tokens_used": self.get_token_usage().model_dump(),
         }
-        logger.info("K8s agent complete", extra={"agent_name": self.agent_name, "action": "complete", "extra": {"pods": len(result["pod_statuses"]), "events": len(result["events"]), "confidence": result["overall_confidence"]}})
-        return result
 
     # --- Tool implementations ---
 
@@ -821,18 +908,29 @@ After analysis, provide your final answer as JSON:
             context, connectivity, pods_data, events_data,
             deployment_data, hpa_data, pod_logs
         )
-        analyze_response = await self.llm_client.chat(
-            prompt=analyze_prompt,
+        # Task 1.10: force structured output via tool-use; no regex parse.
+        analyze_response = await self.llm_client.chat_with_tools(
             system=self._two_pass_k8s_system_prompt(),
+            messages=[{"role": "user", "content": analyze_prompt}],
+            tools=[_K8S_ANALYSIS_TOOL_SCHEMA],
+            tool_choice={"type": "tool", "name": _K8S_ANALYSIS_TOOL_NAME},
             max_tokens=4096,
         )
 
         if event_emitter:
             await event_emitter.emit(self.agent_name, "success", "K8s agent completed analysis")
 
-        result = self._parse_final_response(analyze_response.text)
-        result["mode"] = "two_pass"
-        result["llm_calls"] = 1
+        analysis = _parse_k8s_analysis_from_response(analyze_response)
+        # Merge agent-tracked evidence (breadcrumbs/negative findings/token usage)
+        # with the model's analysis (Task 1.10 preserves the prior `_parse_final_response` shape).
+        result = {
+            **analysis,
+            "breadcrumbs": [b.model_dump(mode="json") for b in self.breadcrumbs],
+            "negative_findings": [n.model_dump(mode="json") for n in self.negative_findings],
+            "tokens_used": self.get_token_usage().model_dump(),
+            "mode": "two_pass",
+            "llm_calls": 1,
+        }
         logger.info("Two-pass K8s analysis complete", extra={
             "agent_name": self.agent_name, "action": "complete",
             "extra": {
