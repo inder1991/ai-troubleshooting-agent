@@ -4207,8 +4207,10 @@ def test_downstream_evidence_rendered_in_prompt():
     prompt = agent._build_analysis_prompt(collection, {"service_name": "checkout-service"})
     assert "## Downstream Evidence" in prompt
     assert "inventory-service" in prompt
-    assert "DB timeout after 5000ms" in prompt
-    assert "Stack: at InventoryDB.query()" in prompt
+    # Stack traces and messages are now JSON-escaped per Task 1.8 to block
+    # prompt injection; the content is still recoverable, just quoted.
+    assert '"DB timeout after 5000ms"' in prompt
+    assert 'Stack: "at InventoryDB.query()"' in prompt
     assert "Metadata: pod=inv-abc123" in prompt
     assert "Downstream trace for ConnectError (5x):" in prompt
 
