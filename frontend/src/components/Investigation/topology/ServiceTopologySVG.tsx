@@ -7,6 +7,9 @@ interface ServiceTopologySVGProps {
   patientZero: PatientZero | null;
   blastRadius: BlastRadiusData | null;
   podStatuses?: PodHealthStatus[];
+  /** Phase-4 Task 4.21 — highlight a walk path returned by the Planner's
+   * upstream_walk. Rendered as an overlay with the topology-glow class. */
+  walkPath?: string[];
 }
 
 const NODE_RADIUS = 20;
@@ -19,10 +22,30 @@ const nodeStyles: Record<TopologyNode['role'], { fill: string; stroke: string; c
   normal: { fill: '#0f3443', stroke: '#06b6d4' },
 };
 
+// Legacy edge types keep their existing classes.
 const edgeStyles: Record<TopologyEdge['type'], string> = {
   error: 'topology-edge-error',
   blast_radius: 'topology-edge-warning',
   normal: 'topology-edge-normal',
+  // Phase-4 typed-edge vocabulary (Task 2.1's CausalRuleEngine).
+  causes: 'topology-edge-causes',
+  precedes: 'topology-edge-precedes',
+  correlates: 'topology-edge-correlates',
+  contradicts: 'topology-edge-contradicts',
+  supports: 'topology-edge-supports',
+};
+
+// Inline stroke + dasharray fallback so component tests can assert on
+// the rendering without depending on external CSS being loaded.
+const edgeInline: Record<TopologyEdge['type'], { stroke: string; dasharray: string }> = {
+  error: { stroke: 'var(--wr-red)', dasharray: '' },
+  blast_radius: { stroke: 'var(--wr-amber)', dasharray: '' },
+  normal: { stroke: '#475569', dasharray: '' },
+  causes: { stroke: 'var(--wr-red)', dasharray: '' },
+  precedes: { stroke: 'var(--wr-amber)', dasharray: '6,3' },
+  correlates: { stroke: '#94a3b8', dasharray: '2,3' },
+  contradicts: { stroke: 'var(--wr-red)', dasharray: '2,3' },
+  supports: { stroke: 'var(--wr-emerald)', dasharray: '2,3' },
 };
 
 const ServiceTopologySVG: React.FC<ServiceTopologySVGProps> = ({
@@ -30,6 +53,7 @@ const ServiceTopologySVG: React.FC<ServiceTopologySVGProps> = ({
   patientZero,
   blastRadius,
   podStatuses = [],
+  walkPath,
 }) => {
   const { nodes, edges, width, height } = useTopologyLayout(dependencies, patientZero, blastRadius);
 
@@ -105,25 +129,62 @@ const ServiceTopologySVG: React.FC<ServiceTopologySVGProps> = ({
         const tgt = nodeMap.get(edge.target);
         if (!src || !tgt) return null;
 
-        const marker = edge.type === 'error' ? 'url(#arrowhead-red)' : 'url(#arrowhead)';
-        // Calculate edge direction dynamically based on node positions
+        const marker =
+          edge.type === 'error' || edge.type === 'causes' || edge.type === 'contradicts'
+            ? 'url(#arrowhead-red)'
+            : 'url(#arrowhead)';
         const dx = tgt.x - src.x;
         const dy = tgt.y - src.y;
         const dist = Math.sqrt(dx * dx + dy * dy) || 1;
         const nx = dx / dist;
         const ny = dy / dist;
+        const inline = edgeInline[edge.type];
         return (
           <line
             key={i}
+            data-testid={`edge-${edge.source}-${edge.target}`}
             x1={src.x + nx * NODE_RADIUS}
             y1={src.y + ny * NODE_RADIUS}
             x2={tgt.x - nx * NODE_RADIUS}
             y2={tgt.y - ny * NODE_RADIUS}
             className={edgeStyles[edge.type]}
+            stroke={inline.stroke}
+            strokeDasharray={inline.dasharray || undefined}
             markerEnd={marker}
           />
         );
       })}
+
+      {/* Walk overlay (Task 4.21) — highlight every edge along walkPath */}
+      {walkPath && walkPath.length >= 2 && (
+        <g data-testid="walk-overlay">
+          {walkPath.slice(0, -1).map((from, i) => {
+            const to = walkPath[i + 1];
+            const src = nodeMap.get(from);
+            const tgt = nodeMap.get(to);
+            if (!src || !tgt) return null;
+            const dx = tgt.x - src.x;
+            const dy = tgt.y - src.y;
+            const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+            const nx = dx / dist;
+            const ny = dy / dist;
+            return (
+              <line
+                key={`${from}-${to}`}
+                data-testid={`walk-overlay-${from}-${to}`}
+                x1={src.x + nx * NODE_RADIUS}
+                y1={src.y + ny * NODE_RADIUS}
+                x2={tgt.x - nx * NODE_RADIUS}
+                y2={tgt.y - ny * NODE_RADIUS}
+                stroke="var(--wr-amber)"
+                strokeWidth={3}
+                strokeOpacity={0.9}
+                className="topology-glow"
+              />
+            );
+          })}
+        </g>
+      )}
 
       {/* Nodes */}
       {nodes.map((node) => {
