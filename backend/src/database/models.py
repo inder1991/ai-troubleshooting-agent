@@ -69,6 +69,31 @@ class AgentPrior(Base):
     )
 
 
+class PromptVersion(Base):
+    """Registered system prompt + tool schema blob for a single agent.
+
+    ``version_id`` IS the sha256 of the prompt content — two different
+    prompts can never share a version_id, and registering the same prompt
+    twice is an UPSERT that preserves the original created_at.
+    """
+
+    __tablename__ = "prompt_versions"
+    __table_args__ = (
+        sa.UniqueConstraint("agent", "sha256", name="uq_prompt_agent_sha"),
+    )
+
+    version_id = mapped_column(sa.String(64), primary_key=True)
+    agent = mapped_column(sa.String(64), nullable=False, index=True)
+    system_prompt = mapped_column(sa.Text, nullable=False)
+    tool_schemas = mapped_column(sa.JSON, nullable=True)
+    sha256 = mapped_column(sa.String(64), nullable=False)
+    created_at = mapped_column(
+        sa.DateTime(timezone=True),
+        nullable=False,
+        server_default=sa.func.now(),
+    )
+
+
 class BackendCallAudit(Base):
     """One row per external-backend call — Prometheus, ELK, K8s, Jira, etc.
 
