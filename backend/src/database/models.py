@@ -10,7 +10,16 @@ from sqlalchemy.orm import DeclarativeBase, mapped_column
 
 
 class Base(DeclarativeBase):
-    pass
+    """Declarative base for hardening-track ORM models (outbox, audit, priors, eval).
+
+    NOTE: ORM columns below use bare ``mapped_column(...)`` rather than the modern
+    ``Mapped[...]`` annotated form because Python 3.14 + SQLAlchemy 2.0.36 +
+    ``from __future__ import annotations`` (above) interact badly: typed
+    ``Mapped[Optional[datetime]]`` fails inside ``sqlalchemy/util/typing.py``
+    with ``TypeError: descriptor '__getitem__' requires a 'typing.Union' object``.
+    Workaround until SQLAlchemy ships a fix: stay on ``mapped_column()`` only,
+    or drop the ``__future__`` import from THIS module specifically.
+    """
 
 
 class Outbox(Base):
@@ -28,6 +37,9 @@ class Outbox(Base):
     run_id = mapped_column(sa.String(64), nullable=False, index=True)
     seq = mapped_column(sa.BigInteger, nullable=False)
     kind = mapped_column(sa.String(64), nullable=False)
+    # ``sa.JSON`` is portable across backends. Switch to ``JSONB`` only if/when
+    # we need indexed predicates on payload subfields (currently the relay reads
+    # rows whole and forwards — no predicate pushdown).
     payload = mapped_column(sa.JSON, nullable=False)
     created_at = mapped_column(
         sa.DateTime(timezone=True), server_default=sa.func.now()
