@@ -69,6 +69,34 @@ class AgentPrior(Base):
     )
 
 
+class IncidentFeedback(Base):
+    """User-submitted outcome label for an investigation run.
+
+    One row per (run_id, submitter) — the unique constraint enforces
+    idempotency so a double-click in the UI or a retry in the client does
+    not double-count toward prior updates.
+    """
+
+    __tablename__ = "incident_feedback"
+    __table_args__ = (
+        sa.UniqueConstraint(
+            "run_id", "submitter", name="uq_incident_feedback_run_submitter"
+        ),
+    )
+
+    id = mapped_column(sa.BigInteger, primary_key=True)
+    run_id = mapped_column(sa.String(64), nullable=False, index=True)
+    was_correct = mapped_column(sa.Boolean, nullable=False)
+    actual_root_cause = mapped_column(sa.Text, nullable=True)
+    freeform = mapped_column(sa.Text, nullable=True)
+    submitter = mapped_column(sa.String(128), nullable=False)
+    created_at = mapped_column(
+        sa.DateTime(timezone=True),
+        nullable=False,
+        server_default=sa.func.now(),
+    )
+
+
 class DagSnapshot(Base):
     """One-row-per-run snapshot of the VirtualDag, written transactionally
     alongside outbox events by ``OutboxWriter`` (see ``workflows/outbox.py``)."""
