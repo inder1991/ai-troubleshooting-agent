@@ -314,6 +314,22 @@ async def test_normalize_status_completed_maps_to_success():
 
 
 @pytest.mark.asyncio
+async def test_step_result_from_asserts_completed_step_has_timestamps(executor):
+    """_step_result_from is only valid for SUCCESS/FAILED steps; missing
+    timestamps on a completed step indicates an invariant violation."""
+    spec = _make_spec(step_id="round-1-log_agent")
+    await executor.run_step(spec)
+
+    dag = executor.get_dag()
+    vstep = dag.steps[0]
+    # Mutate to violate the invariant — completed step with no timestamps.
+    vstep.started_at = None
+    vstep.ended_at = None
+    with pytest.raises(AssertionError, match="invariant violated"):
+        executor._step_result_from(vstep)
+
+
+@pytest.mark.asyncio
 async def test_duplicate_step_id_does_not_create_duplicate_dag_entry(emitter, store):
     """Running a step with the same step_id + idempotency_key twice produces one DAG entry."""
     executor = InvestigationExecutor(

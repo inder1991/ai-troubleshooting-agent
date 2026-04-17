@@ -1,11 +1,14 @@
 """Virtual DAG model, step spec, and typed step result for investigations."""
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from typing import Any
 
 from src.workflows._schema import _check_schema_version
 from src.workflows.event_schema import StepStatus, StepMetadata, ErrorDetail
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -45,7 +48,7 @@ class InvestigationStepSpec:
     def from_dict(cls, d: dict[str, Any]) -> InvestigationStepSpec:
         # v2 added a required ``idempotency_key``. v1 payloads predate the
         # field — synthesize a deterministic legacy key during the grace window.
-        version = d.get("schema_version", cls.SCHEMA_VERSION)
+        version = d.get("schema_version", 1)  # Truly unversioned dicts predate v2 — treat as v1 for grace-window migration.
         if version not in (1, cls.SCHEMA_VERSION):
             raise ValueError(
                 f"unsupported schema_version for {cls.__name__}: got {version!r}, expected {cls.SCHEMA_VERSION}"
@@ -73,6 +76,11 @@ class InvestigationStepSpec:
             idempotency_key = d["idempotency_key"]
         else:
             idempotency_key = d.get("idempotency_key") or f"legacy-{d['step_id']}"
+            if "idempotency_key" not in d:
+                logger.warning(
+                    "InvestigationStepSpec v1 grace synth fired",
+                    extra={"step_id": d.get("step_id"), "synthesized_key": idempotency_key},
+                )
         return cls(
             step_id=d["step_id"],
             agent=d["agent"],

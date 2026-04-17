@@ -159,6 +159,23 @@ def test_investigation_step_spec_v1_dict_synthesizes_legacy_idempotency_key():
         "schema_version": 1,
     })
     assert spec.idempotency_key == "legacy-s1"
+    # Forward migration: re-serialized as v2 with synthesized key
+    d2 = spec.to_dict()
+    assert d2["schema_version"] == 2
+    assert d2["idempotency_key"] == "legacy-s1"
+    # Round-trip stable
+    spec2 = InvestigationStepSpec.from_dict(d2)
+    assert spec2.idempotency_key == "legacy-s1"
+
+
+def test_investigation_step_spec_unversioned_dict_hits_grace_path():
+    # Truly unversioned dicts (no schema_version key at all) predate v2 and
+    # must land in the grace path that synthesizes a legacy idempotency_key.
+    spec = InvestigationStepSpec.from_dict({
+        "step_id": "s1",
+        "agent": "log_agent",
+    })
+    assert spec.idempotency_key == "legacy-s1"
 
 
 def test_investigation_step_spec_v2_requires_idempotency_key():

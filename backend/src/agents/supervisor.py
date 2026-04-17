@@ -3,6 +3,7 @@ import asyncio
 import os
 import time
 import secrets
+import uuid
 from pathlib import Path
 from typing import Optional
 from datetime import datetime, timezone
@@ -718,7 +719,6 @@ class SupervisorAgent:
         reason: str | None = None,
     ) -> dict | None:
         """Dispatch an agent through InvestigationExecutor instead of directly."""
-        import uuid
         from src.workflows.investigation_types import InvestigationStepSpec
         from src.workflows.event_schema import StepMetadata
 
@@ -728,6 +728,9 @@ class SupervisorAgent:
         spec = InvestigationStepSpec(
             step_id=f"round-{round_num}-{agent_name}",
             agent=agent_name,
+            # TODO(phase-2): when supervisor gains crash-recovery / retry semantics,
+            # derive idempotency_key deterministically from (run_id, step_id, attempt)
+            # rather than uuid4 so replays are dedup-eligible.
             idempotency_key=uuid.uuid4().hex,
             depends_on=[prev_step_id] if prev_step_id else [],
             input_data=agent_input,

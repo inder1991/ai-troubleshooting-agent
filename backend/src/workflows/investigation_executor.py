@@ -165,14 +165,16 @@ class InvestigationExecutor:
         await self._store.save_dag(self._dag)
 
     def _step_result_from(self, vstep: VirtualStep) -> StepResult:
+        assert vstep.started_at is not None and vstep.ended_at is not None, \
+            f"completed step {vstep.step_id!r} has null timestamps; invariant violated"
         return StepResult(
             step_id=vstep.step_id,
             status=vstep.status,
             output=vstep.output,
             error=vstep.error,
-            started_at=vstep.started_at or "",
-            ended_at=vstep.ended_at or "",
-            duration_ms=vstep.duration_ms or 0,
+            started_at=vstep.started_at,
+            ended_at=vstep.ended_at,
+            duration_ms=vstep.duration_ms or 0,  # 0 ms is semantically valid; keep as-is
         )
 
     def _build_single_step_workflow(self, spec: InvestigationStepSpec) -> CompiledWorkflow:
