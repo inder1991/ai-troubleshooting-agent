@@ -1,9 +1,19 @@
-"""Evidence graph builder and causal intelligence engine (Phase 4, Task 13)."""
+"""Evidence graph builder and causal intelligence engine.
+
+Includes:
+- EvidenceGraphBuilder — legacy pydantic-model graph (used by supervisor; still
+  populates timeline & nodes; root-cause logic now follows the typed-edge rules).
+- find_root_causes(IncidentGraph) — rule-based root identification over the
+  Phase-2 typed graph. A node is a root iff it has at least one outgoing
+  'causes' edge AND no incoming 'causes' edge. Topology alone is no longer
+  sufficient — that was the bug.
+"""
 
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Literal
+from src.agents.incident_graph import IncidentGraph
 from src.models.schemas import (
     EvidencePin,
     EvidenceNode,
@@ -15,6 +25,52 @@ from src.models.schemas import (
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
+
+
+@dataclass(frozen=True)
+class Root:
+    """Identified root cause with deterministic score."""
+    node_id: str
+    score: float
+
+
+def _score_root(causes_count: int, precedes_count: int, depth: int) -> float:
+    """Deterministic root score: more 'causes' descendants > more 'precedes' > shallower (earlier) > deeper."""
+    # Reach (causes count dominates), small bonus for precedes, slight earliness bonus.
+    return round(
+        2.0 * causes_count
+        + 0.5 * precedes_count
+        + (1.0 / (1 + depth)),
+        4,
+    )
+
+
+def find_root_causes(graph: IncidentGraph) -> list[Root]:
+    """Identify root-cause nodes in a typed IncidentGraph.
+
+    Rules:
+      1. A root must have ≥1 outgoing edge of type 'causes'.
+      2. A root must not itself be the target of any 'causes' edge.
+    Topological position (no incoming edges of any type) is *not* sufficient —
+    a node whose only outgoing edges are 'correlates' or 'precedes' is not a
+    root cause, even if it has no parents.
+    """
+    candidates: list[Root] = []
+    for n in graph.nodes:
+        outgoing = graph.outgoing_edges(n)
+        causes_count = sum(1 for _, _, d in outgoing if d.get("edge_type") == "causes")
+        precedes_count = sum(1 for _, _, d in outgoing if d.get("edge_type") == "precedes")
+        if causes_count == 0:
+            continue
+        if graph.incoming_causes(n) > 0:
+            continue
+        candidates.append(
+            Root(
+                node_id=n,
+                score=_score_root(causes_count, precedes_count, graph.depth(n)),
+            )
+        )
+    return sorted(candidates, key=lambda r: -r.score)
 
 
 @dataclass

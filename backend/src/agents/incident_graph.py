@@ -93,6 +93,14 @@ class IncidentGraph:
         self.G: nx.DiGraph = nx.DiGraph()
         self._rule_engine = rule_engine or CausalRuleEngine()
 
+    @property
+    def nodes(self):
+        return self.G.nodes
+
+    @property
+    def edges(self):
+        return self.G.edges
+
     def add_node(self, node_id: str, t: float | None = None, **attrs) -> None:
         """Add a node. `t` is the event timestamp (seconds, any monotonic origin)."""
         self.G.add_node(node_id, t=t, **attrs)
