@@ -129,8 +129,26 @@ def generate_incident_id() -> str:
     return f"INC-{date_part}-{rand_part}"
 
 
+class SupervisorAlreadyConsumed(RuntimeError):
+    """Raised when a single-use SupervisorAgent is asked to run a second time.
+
+    Contract (per Phase-2, Task 2.10): one SupervisorAgent instance == one
+    investigation. Reusing an instance across runs led to the state-leak
+    audit finding where residual findings, coverage_gaps, and event
+    emitters bled between unrelated investigations. Call build_supervisor()
+    (or construct a fresh instance) per request instead.
+    """
+
+
 class SupervisorAgent:
-    """State machine orchestrator that routes work to specialized agents."""
+    """State machine orchestrator that routes work to specialized agents.
+
+    **Single-use instance contract.** Each ``SupervisorAgent`` is bound to
+    exactly one investigation. ``run`` / ``run_v5`` may be called at most
+    once; a second call raises ``SupervisorAlreadyConsumed``. Route new
+    investigations through a fresh instance (e.g. build via a factory in
+    ``routes_v4.py``).
+    """
 
     @staticmethod
     def _extract_file_paths_from_traces(traces: list[str]) -> list[str]:
@@ -221,6 +239,16 @@ class SupervisorAgent:
         self._code_agent_event = asyncio.Event()
         self._pending_code_agent_question = False
 
+        # Single-use instance guard — see SupervisorAlreadyConsumed.
+        self._consumed: bool = False
+
+    def _claim_single_use(self) -> None:
+        if self._consumed:
+            raise SupervisorAlreadyConsumed(
+                "SupervisorAgent is single-use; build a fresh instance per investigation"
+            )
+        self._consumed = True
+
     def set_attestation_logger(self, logger: "AttestationLogger", session_id: str) -> None:
         self._attestation_logger = logger
         self._session_id = session_id
@@ -237,6 +265,7 @@ class SupervisorAgent:
         investigation_executor=None,
     ) -> DiagnosticState:
         """Run the full diagnostic workflow."""
+        self._claim_single_use()
         self._event_emitter = event_emitter
         self._investigation_executor = investigation_executor
         state = DiagnosticState(
@@ -496,6 +525,7 @@ class SupervisorAgent:
         event_emitter: Optional[EventEmitter] = None,
     ) -> DiagnosticStateV5:
         """V5 pipeline with governance, causal intelligence, and confidence tracking."""
+        self._claim_single_use()
         builder = EvidenceGraphBuilder()
 
         # Reordered dispatch: Metrics -> Tracing -> K8s -> Log -> Code -> Change
