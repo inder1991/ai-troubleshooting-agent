@@ -121,10 +121,49 @@ _KIND_TO_API_METHOD: dict[str, tuple[str, bool, str]] = {
 }
 
 
-class ToolExecutor:
-    """Stateless tool dispatcher. Each method: params -> ToolResult."""
+# Handler → backend name. Used for audit rows + circuit breaker selection.
+# Kept as a small explicit map (rather than string-sniffing the intent)
+# so "one ambiguous name" can be mapped without a refactor.
+_BACKEND_FOR_HANDLER: dict[str, str] = {
+    "_fetch_pod_logs": "kubernetes",
+    "_get_pod_events": "kubernetes",
+    "_list_pods": "kubernetes",
+    "_get_deployment": "kubernetes",
+    "_list_nodes": "kubernetes",
+    "_list_services": "kubernetes",
+    "_get_configmap": "kubernetes",
+    "_prom_query": "prometheus",
+    "_prom_query_range": "prometheus",
+    "_elk_search": "elasticsearch",
+    "_elk_indices": "elasticsearch",
+    "_search_code": "github",
+    "_get_commit_diff": "github",
+    "_list_commits": "github",
+}
 
-    def __init__(self, connection_config: dict):
+
+class ToolExecutor:
+    """Stateless tool dispatcher. Each method: params -> ToolResult.
+
+    Phase-3 call-site middleware (Stage K.2/K.3/K.4) is opt-in via the
+    optional constructor args: ``audit``, ``budget``, ``cache``,
+    ``run_id`` + ``agent_name``. When provided, every ``execute()``:
+      - charges the budget (raises BudgetExceeded at the cap);
+      - checks the dedup cache (hits bypass dispatch + budget cost);
+      - times + audits the call into ``backend_call_audit``.
+    When omitted, behaviour is identical to pre-Phase-3.
+    """
+
+    def __init__(
+        self,
+        connection_config: dict,
+        *,
+        run_id: str | None = None,
+        agent_name: str | None = None,
+        audit: Any | None = None,
+        budget: Any | None = None,
+        cache: Any | None = None,
+    ):
         self._config = connection_config
         self._k8s_api_client = None  # Cached ApiClient
         self._k8s_core_api = None    # Injected or lazy-initialized
@@ -132,6 +171,18 @@ class ToolExecutor:
         self._k8s_networking_api = None
         self._prom_client = None
         self._es_client = None
+        # Phase-3 middleware (all optional)
+        self._run_id = run_id
+        self._agent_name = agent_name
+        self._audit = audit
+        self._budget = budget
+        self._cache = cache
+
+    def _backend_for_intent(self, intent: str) -> str:
+        handler = self.HANDLERS.get(intent)
+        if handler in _BACKEND_FOR_HANDLER:
+            return _BACKEND_FOR_HANDLER[handler]
+        return "unknown"
 
     # ------------------------------------------------------------------
     # Lazy client initialization (config -> env var -> kubeconfig fallback)
@@ -285,7 +336,16 @@ class ToolExecutor:
         return None
 
     async def execute(self, intent: str, params: dict[str, Any]) -> ToolResult:
-        """Dispatch a tool call by intent name."""
+        """Dispatch a tool call by intent name.
+
+        When Phase-3 middleware is wired in (``budget`` / ``cache`` /
+        ``audit`` constructor args), each call goes through:
+          1. param validation (unchanged — no budget/audit cost on bad
+             inputs; the caller's typo shouldn't burn spend).
+          2. budget charge (raises BudgetExceeded at cap).
+          3. cache lookup (HIT skips dispatch, doesn't charge audit).
+          4. timed audit row written on MISS around the actual handler.
+        """
         # Validate required params before dispatch
         validation_error = self._validate_params(intent, params)
         if validation_error:
@@ -303,20 +363,68 @@ class ToolExecutor:
         handler_name = self.HANDLERS[intent]  # KeyError if unknown intent
         handler = getattr(self, handler_name)
         timeout = TOOL_TIMEOUTS.get(intent, TOOL_TIMEOUTS["default"])
-        try:
-            return await asyncio.wait_for(handler(params), timeout=timeout)
-        except asyncio.TimeoutError:
-            logger.warning("Tool '%s' timed out after %ds", intent, timeout)
-            return ToolResult(
-                success=False,
-                intent=intent,
-                raw_output="",
-                summary=f"Tool '{intent}' timed out after {timeout}s",
-                evidence_snippets=[],
-                evidence_type="unknown",
-                domain="unknown",
-                error=f"Tool '{intent}' timed out after {timeout}s",
-            )
+        backend = self._backend_for_intent(intent)
+
+        # K.3 — budget charge before dispatch. BudgetExceeded propagates
+        # so the supervisor can record a coverage_gap for the agent.
+        if self._budget is not None:
+            await self._budget.charge_tool_call(intent)
+
+        async def _run(p: dict) -> ToolResult:
+            # K.2 — audit wraps the actual handler call.
+            if self._audit is not None and self._run_id:
+                from src.integrations.backend_audit import timed_call
+                async with timed_call(
+                    self._audit,
+                    run_id=self._run_id,
+                    agent=self._agent_name or "unknown",
+                    tool=intent,
+                    backend=backend,
+                    params=p,
+                ) as ctx:
+                    try:
+                        result = await asyncio.wait_for(handler(p), timeout=timeout)
+                    except asyncio.TimeoutError:
+                        ctx["error"] = f"timed out after {timeout}s"
+                        ctx["response_code"] = 504
+                        logger.warning("Tool '%s' timed out after %ds", intent, timeout)
+                        return ToolResult(
+                            success=False,
+                            intent=intent,
+                            raw_output="",
+                            summary=f"Tool '{intent}' timed out after {timeout}s",
+                            evidence_snippets=[],
+                            evidence_type="unknown",
+                            domain="unknown",
+                            error=f"Tool '{intent}' timed out after {timeout}s",
+                        )
+                    ctx["response_code"] = 200 if getattr(result, "success", False) else 500
+                    try:
+                        ctx["bytes"] = len(str(getattr(result, "raw_output", "") or ""))
+                    except Exception:
+                        ctx["bytes"] = None
+                    return result
+            # No audit wired — run the handler directly.
+            try:
+                return await asyncio.wait_for(handler(p), timeout=timeout)
+            except asyncio.TimeoutError:
+                logger.warning("Tool '%s' timed out after %ds", intent, timeout)
+                return ToolResult(
+                    success=False,
+                    intent=intent,
+                    raw_output="",
+                    summary=f"Tool '{intent}' timed out after {timeout}s",
+                    evidence_snippets=[],
+                    evidence_type="unknown",
+                    domain="unknown",
+                    error=f"Tool '{intent}' timed out after {timeout}s",
+                )
+
+        # K.4 — cache HIT skips dispatch + audit entirely (we count the
+        # dispatch we avoided as zero cost).
+        if self._cache is not None:
+            return await self._cache.get_or_compute(intent, params, _run)
+        return await _run(params)
 
     # ------------------------------------------------------------------
     # fetch_pod_logs
