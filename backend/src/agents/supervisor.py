@@ -436,15 +436,25 @@ class SupervisorAgent:
                         key=lambda s: s.timestamp or datetime.min.replace(tzinfo=timezone.utc),
                     )
                     # Stage I — winning_agents closes the /feedback priors
-                    # loop. Today we use agents_completed as a safe over-
-                    # approximation; a precise mapping from winning
-                    # hypothesis supporting_node_ids -> source_agents will
-                    # land once the signature library certifies causal
-                    # chains (Phase-4 signature patterns provide the
-                    # structured linkage we need).
-                    state.winning_agents = list(
-                        dict.fromkeys(state.agents_completed)
-                    )
+                    # loop. Follow-up refinement: derive precise agents
+                    # from winner.evidence_for[*].source_agent (each
+                    # evidence signal carries the agent that produced it).
+                    # Falls back to agents_completed when no winner is
+                    # picked (inconclusive hypothesis_result).
+                    winner = getattr(state.hypothesis_result, "winner", None)
+                    if winner is not None and getattr(winner, "evidence_for", None):
+                        precise_agents = [
+                            getattr(sig, "source_agent", None)
+                            for sig in winner.evidence_for
+                            if getattr(sig, "source_agent", None)
+                        ]
+                        state.winning_agents = list(dict.fromkeys(precise_agents)) or (
+                            list(dict.fromkeys(state.agents_completed))
+                        )
+                    else:
+                        state.winning_agents = list(
+                            dict.fromkeys(state.agents_completed)
+                        )
                     try:
                         await self._persist_winning_agents(state)
                     except Exception as exc:
