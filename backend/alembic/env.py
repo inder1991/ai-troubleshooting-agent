@@ -38,9 +38,9 @@ def _resolve_sync_url() -> str | None:
     return config.get_main_option("sqlalchemy.url") or None
 
 
-# Application MetaData will be wired here as models are introduced
-# (Task 1.2 outbox, Task 2.4 priors, Task 3.15 audit, ...).
-target_metadata = None
+from src.database.models import Base
+
+target_metadata = Base.metadata
 
 
 def run_migrations_offline() -> None:

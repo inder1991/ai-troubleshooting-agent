@@ -1,10 +1,38 @@
-"""Pydantic models for database diagnostics."""
+"""Pydantic models for database diagnostics + SQLAlchemy ORM models."""
 from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import Literal, Optional
 
+import sqlalchemy as sa
 from pydantic import BaseModel, Field
+from sqlalchemy.orm import DeclarativeBase, mapped_column
+
+
+class Base(DeclarativeBase):
+    pass
+
+
+class Outbox(Base):
+    __tablename__ = "investigation_outbox"
+    __table_args__ = (
+        sa.UniqueConstraint("run_id", "seq", name="uq_outbox_run_seq"),
+        sa.Index(
+            "ix_outbox_unrelayed",
+            "relayed_at",
+            postgresql_where=sa.text("relayed_at IS NULL"),
+        ),
+    )
+
+    id = mapped_column(sa.BigInteger, primary_key=True)
+    run_id = mapped_column(sa.String(64), nullable=False, index=True)
+    seq = mapped_column(sa.BigInteger, nullable=False)
+    kind = mapped_column(sa.String(64), nullable=False)
+    payload = mapped_column(sa.JSON, nullable=False)
+    created_at = mapped_column(
+        sa.DateTime(timezone=True), server_default=sa.func.now()
+    )
+    relayed_at = mapped_column(sa.DateTime(timezone=True), nullable=True)
 
 
 # ── Connection Profile ──
