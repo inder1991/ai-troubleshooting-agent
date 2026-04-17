@@ -5,8 +5,7 @@ Jira REST v2 client — create issues, add comments, link PRs.
 import base64
 from typing import Optional
 
-import httpx
-
+from src.integrations.http_clients import get_client
 from src.integrations.post_retry import idempotent_post
 from src.utils.logger import get_logger
 
@@ -57,13 +56,14 @@ class JiraClient:
         url = f"{self.base_url}/rest/api/2/issue"
         headers = {**self._auth_headers(), "Content-Type": "application/json"}
 
-        async with httpx.AsyncClient(verify=False, timeout=15.0) as client:
-            # K.6 — idempotency-key + retry-after wrap. Jira dedups on
-            # Idempotency-Key, so a retried POST doesn't create a second
-            # ticket. 429 Retry-After honoured; 502/503/504 backoff.
-            resp = await idempotent_post(client, url, json=payload, headers=headers)
-            resp.raise_for_status()
-            data = resp.json()
+        # K.5 — shared per-backend singleton (connection reuse + K.11
+        # traceparent injection). K.6 idempotent_post still wraps.
+        # verify=_verify_for('jira')=False by default; ops flip via
+        # VERIFY_SSL_JIRA=true for deployments with real CA certs.
+        client = get_client("jira")
+        resp = await idempotent_post(client, url, json=payload, headers=headers)
+        resp.raise_for_status()
+        data = resp.json()
 
         issue_key = data.get("key", "")
         logger.info("Created Jira issue %s in project %s", issue_key, project_key)
@@ -75,10 +75,10 @@ class JiraClient:
         headers = {**self._auth_headers(), "Content-Type": "application/json"}
         payload = {"body": comment}
 
-        async with httpx.AsyncClient(verify=False, timeout=10.0) as client:
-            resp = await client.post(url, json=payload, headers=headers)
-            resp.raise_for_status()
-            return resp.json()
+        client = get_client("jira")
+        resp = await client.post(url, json=payload, headers=headers)
+        resp.raise_for_status()
+        return resp.json()
 
     async def add_remote_link(self, issue_key: str, url: str, title: str) -> dict:
         """POST /rest/api/2/issue/{key}/remotelink — links a PR to an issue."""
@@ -91,7 +91,7 @@ class JiraClient:
             }
         }
 
-        async with httpx.AsyncClient(verify=False, timeout=10.0) as client:
-            resp = await client.post(endpoint, json=payload, headers=headers)
-            resp.raise_for_status()
-            return resp.json()
+        client = get_client("jira")
+        resp = await client.post(endpoint, json=payload, headers=headers)
+        resp.raise_for_status()
+        return resp.json()
