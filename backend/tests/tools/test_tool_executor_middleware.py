@@ -158,6 +158,51 @@ class TestCacheShortCircuits:
         assert ex.stub_calls == 2
 
 
+class TestCircuitBreaker:
+    @pytest.mark.asyncio
+    async def test_failing_tool_eventually_opens_breaker(self):
+        """5 consecutive handler failures trip the per-backend breaker;
+        the 6th call fast-fails without hitting the handler."""
+        from src.agents._decorators import (
+            CircuitOpenError,
+            reset_breakers_for_tests,
+        )
+        from src.tools.tool_executor import _BACKEND_FOR_HANDLER
+
+        reset_breakers_for_tests()
+
+        class _BrokenExecutor(_StubExecutor):
+            HANDLERS = {"_stub_tool": "_stub_handler"}
+
+            async def _stub_handler(self, params):
+                self.stub_calls += 1
+                return ToolResult(
+                    success=False,
+                    intent="_stub_tool",
+                    raw_output="",
+                    summary="backend down",
+                    evidence_snippets=[],
+                    evidence_type="unknown",
+                    domain="unknown",
+                    error="backend down",
+                )
+
+        # Pin the stub handler to a real backend so the breaker engages.
+        _BACKEND_FOR_HANDLER["_stub_handler"] = "prometheus"
+        try:
+            ex = _BrokenExecutor(run_id=_TEST_RUN_ID, agent_name="stub_agent")
+            for _ in range(5):
+                await ex.execute("_stub_tool", {"q": "x"})
+            assert ex.stub_calls == 5
+            # 6th call — breaker should be OPEN and fast-fail.
+            with pytest.raises(CircuitOpenError):
+                await ex.execute("_stub_tool", {"q": "x"})
+            assert ex.stub_calls == 5
+        finally:
+            _BACKEND_FOR_HANDLER.pop("_stub_handler", None)
+            reset_breakers_for_tests()
+
+
 class TestAllTogether:
     @pytest.mark.asyncio
     async def test_budget_cache_audit_compose_cleanly(self):

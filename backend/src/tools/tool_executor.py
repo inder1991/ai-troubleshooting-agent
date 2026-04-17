@@ -365,12 +365,40 @@ class ToolExecutor:
         timeout = TOOL_TIMEOUTS.get(intent, TOOL_TIMEOUTS["default"])
         backend = self._backend_for_intent(intent)
 
+        # K.1 — per-backend circuit breaker check. When the breaker is
+        # open, fast-fail without hitting the backend OR charging the
+        # budget. Records a "circuit_open" response_code in audit so
+        # postmortems can see which calls were blocked.
+        if backend != "unknown":
+            from src.agents._decorators import CircuitOpenError, get_breaker
+            breaker = get_breaker(backend)
+            if not breaker.allow_request():
+                if self._audit is not None and self._run_id:
+                    self._audit.record(
+                        run_id=self._run_id,
+                        agent=self._agent_name or "unknown",
+                        tool=intent,
+                        backend=backend,
+                        params=params,
+                        response_code=None,
+                        duration_ms=0,
+                        bytes_=None,
+                        error=f"circuit_open: {backend} state={breaker.state}",
+                    )
+                raise CircuitOpenError(
+                    f"circuit_open: backend={backend!r} state={breaker.state!r}"
+                )
+
         # K.3 — budget charge before dispatch. BudgetExceeded propagates
         # so the supervisor can record a coverage_gap for the agent.
         if self._budget is not None:
             await self._budget.charge_tool_call(intent)
 
         async def _run(p: dict) -> ToolResult:
+            _breaker = None
+            if backend != "unknown":
+                from src.agents._decorators import get_breaker as _get_breaker
+                _breaker = _get_breaker(backend)
             # K.2 — audit wraps the actual handler call.
             if self._audit is not None and self._run_id:
                 from src.integrations.backend_audit import timed_call
@@ -388,6 +416,8 @@ class ToolExecutor:
                         ctx["error"] = f"timed out after {timeout}s"
                         ctx["response_code"] = 504
                         logger.warning("Tool '%s' timed out after %ds", intent, timeout)
+                        if _breaker is not None:
+                            _breaker.record_failure()
                         return ToolResult(
                             success=False,
                             intent=intent,
@@ -403,12 +433,25 @@ class ToolExecutor:
                         ctx["bytes"] = len(str(getattr(result, "raw_output", "") or ""))
                     except Exception:
                         ctx["bytes"] = None
+                    if _breaker is not None:
+                        if getattr(result, "success", False):
+                            _breaker.record_success()
+                        else:
+                            _breaker.record_failure()
                     return result
             # No audit wired — run the handler directly.
             try:
-                return await asyncio.wait_for(handler(p), timeout=timeout)
+                result = await asyncio.wait_for(handler(p), timeout=timeout)
+                if _breaker is not None:
+                    if getattr(result, "success", False):
+                        _breaker.record_success()
+                    else:
+                        _breaker.record_failure()
+                return result
             except asyncio.TimeoutError:
                 logger.warning("Tool '%s' timed out after %ds", intent, timeout)
+                if _breaker is not None:
+                    _breaker.record_failure()
                 return ToolResult(
                     success=False,
                     intent=intent,
