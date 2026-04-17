@@ -718,6 +718,7 @@ class SupervisorAgent:
         reason: str | None = None,
     ) -> dict | None:
         """Dispatch an agent through InvestigationExecutor instead of directly."""
+        import uuid
         from src.workflows.investigation_types import InvestigationStepSpec
         from src.workflows.event_schema import StepMetadata
 
@@ -727,6 +728,7 @@ class SupervisorAgent:
         spec = InvestigationStepSpec(
             step_id=f"round-{round_num}-{agent_name}",
             agent=agent_name,
+            idempotency_key=uuid.uuid4().hex,
             depends_on=[prev_step_id] if prev_step_id else [],
             input_data=agent_input,
             metadata=StepMetadata(

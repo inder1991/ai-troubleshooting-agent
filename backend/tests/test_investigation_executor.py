@@ -81,10 +81,11 @@ def executor(emitter, store):
     )
 
 
-def _make_spec(step_id="round-1-log_agent", agent="log_agent", depends_on=None, input_data=None, metadata=None):
+def _make_spec(step_id="round-1-log_agent", agent="log_agent", depends_on=None, input_data=None, metadata=None, idempotency_key=None):
     return InvestigationStepSpec(
         step_id=step_id,
         agent=agent,
+        idempotency_key=idempotency_key or f"key-{step_id}",
         depends_on=depends_on or [],
         input_data=input_data,
         metadata=metadata,
@@ -314,7 +315,7 @@ async def test_normalize_status_completed_maps_to_success():
 
 @pytest.mark.asyncio
 async def test_duplicate_step_id_does_not_create_duplicate_dag_entry(emitter, store):
-    """Running a step with the same step_id twice should not produce duplicate entries."""
+    """Running a step with the same step_id + idempotency_key twice produces one DAG entry."""
     executor = InvestigationExecutor(
         run_id="inv-dedup",
         emitter=emitter,
@@ -327,10 +328,6 @@ async def test_duplicate_step_id_does_not_create_duplicate_dag_entry(emitter, st
 
     dag = executor.get_dag()
     step_ids = [s.step_id for s in dag.steps]
-    # NOTE: The current implementation appends unconditionally, so duplicates
-    # will exist. This test documents the actual behaviour. If dedup guard is
-    # added later, change the assertion to == 1.
-    assert step_ids.count("round-1-log_agent") >= 1
-    # Regardless, verify the DAG is still serialisable and loadable
+    assert step_ids.count("round-1-log_agent") == 1
     loaded = await store.load_dag("inv-dedup")
     assert loaded is not None

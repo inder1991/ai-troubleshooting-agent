@@ -122,9 +122,11 @@ def test_investigation_step_spec():
     spec = InvestigationStepSpec(
         step_id="round-1-log-agent",
         agent="log_agent",
+        idempotency_key="key-round-1-log-agent",
         depends_on=[],
         input_data={"service_name": "api-gateway"},
         metadata=StepMetadata(agent="log_agent", round=1, reason="initial triage"),
     )
     assert spec.step_id == "round-1-log-agent"
     assert spec.input_data["service_name"] == "api-gateway"
+    assert spec.idempotency_key == "key-round-1-log-agent"

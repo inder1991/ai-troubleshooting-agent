@@ -137,8 +137,9 @@ def test_step_result_rejects_unknown_schema_version():
 # ── InvestigationStepSpec ───────────────────────────────────────────
 
 def test_investigation_step_spec_serializes_schema_version():
-    spec = InvestigationStepSpec(step_id="s1", agent="log_agent")
-    assert spec.to_dict()["schema_version"] == 1
+    spec = InvestigationStepSpec(step_id="s1", agent="log_agent", idempotency_key="k1")
+    assert spec.to_dict()["schema_version"] == 2
+    assert spec.to_dict()["idempotency_key"] == "k1"
 
 
 def test_investigation_step_spec_rejects_unknown_schema_version():
@@ -146,7 +147,26 @@ def test_investigation_step_spec_rejects_unknown_schema_version():
         InvestigationStepSpec.from_dict({
             "step_id": "s1",
             "agent": "log_agent",
+            "idempotency_key": "k1",
             "schema_version": 999,
+        })
+
+
+def test_investigation_step_spec_v1_dict_synthesizes_legacy_idempotency_key():
+    spec = InvestigationStepSpec.from_dict({
+        "step_id": "s1",
+        "agent": "log_agent",
+        "schema_version": 1,
+    })
+    assert spec.idempotency_key == "legacy-s1"
+
+
+def test_investigation_step_spec_v2_requires_idempotency_key():
+    with pytest.raises(ValueError, match="idempotency_key"):
+        InvestigationStepSpec.from_dict({
+            "step_id": "s1",
+            "agent": "log_agent",
+            "schema_version": 2,
         })
 
 

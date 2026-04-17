@@ -10,10 +10,11 @@ from src.workflows.event_schema import StepStatus, StepMetadata, ErrorDetail
 
 @dataclass
 class InvestigationStepSpec:
-    SCHEMA_VERSION = 1
+    SCHEMA_VERSION = 2
 
     step_id: str
     agent: str
+    idempotency_key: str
     depends_on: list[str] = field(default_factory=list)
     input_data: dict | None = None
     metadata: StepMetadata | None = None
@@ -23,6 +24,7 @@ class InvestigationStepSpec:
             "schema_version": self.SCHEMA_VERSION,
             "step_id": self.step_id,
             "agent": self.agent,
+            "idempotency_key": self.idempotency_key,
             "depends_on": list(self.depends_on),
         }
         if self.input_data is not None:
@@ -41,7 +43,13 @@ class InvestigationStepSpec:
 
     @classmethod
     def from_dict(cls, d: dict[str, Any]) -> InvestigationStepSpec:
-        _check_schema_version(d, cls.SCHEMA_VERSION, cls.__name__)
+        # v2 added a required ``idempotency_key``. v1 payloads predate the
+        # field — synthesize a deterministic legacy key during the grace window.
+        version = d.get("schema_version", cls.SCHEMA_VERSION)
+        if version not in (1, cls.SCHEMA_VERSION):
+            raise ValueError(
+                f"unsupported schema_version for {cls.__name__}: got {version!r}, expected {cls.SCHEMA_VERSION}"
+            )
         metadata = None
         if d.get("metadata") is not None:
             md = dict(d["metadata"])
@@ -57,9 +65,18 @@ class InvestigationStepSpec:
                 duration_ms=md.get("duration_ms"),
                 error=error,
             )
+        if version == cls.SCHEMA_VERSION:
+            if "idempotency_key" not in d:
+                raise ValueError(
+                    f"{cls.__name__} v{cls.SCHEMA_VERSION} requires 'idempotency_key'"
+                )
+            idempotency_key = d["idempotency_key"]
+        else:
+            idempotency_key = d.get("idempotency_key") or f"legacy-{d['step_id']}"
         return cls(
             step_id=d["step_id"],
             agent=d["agent"],
+            idempotency_key=idempotency_key,
             depends_on=d.get("depends_on", []),
             input_data=d.get("input_data"),
             metadata=metadata,
@@ -126,6 +143,7 @@ class VirtualStep:
     duration_ms: int | None = None
     output: dict | None = None
     error: ErrorDetail | None = None
+    idempotency_key: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         d: dict[str, Any] = {
@@ -136,7 +154,7 @@ class VirtualStep:
             "status": self.status.value if isinstance(self.status, StepStatus) else self.status,
             "round": self.round,
         }
-        for attr in ("group", "triggered_by", "reason", "started_at", "ended_at", "duration_ms", "output"):
+        for attr in ("group", "triggered_by", "reason", "started_at", "ended_at", "duration_ms", "output", "idempotency_key"):
             val = getattr(self, attr)
             if val is not None:
                 d[attr] = val
@@ -164,6 +182,7 @@ class VirtualStep:
             duration_ms=d.get("duration_ms"),
             output=d.get("output"),
             error=error,
+            idempotency_key=d.get("idempotency_key"),
         )
 
 

@@ -21,6 +21,14 @@ from src.utils.logger import get_logger
 logger = get_logger(__name__)
 
 
+class StepAlreadyRunning(Exception):
+    """Raised when a step with the same idempotency_key is resubmitted while still RUNNING."""
+
+
+class StepIdempotencyKeyMismatch(Exception):
+    """Raised when a step_id is resubmitted with a different idempotency_key — a planner logic bug."""
+
+
 class InvestigationExecutor:
     def __init__(
         self,
@@ -36,6 +44,18 @@ class InvestigationExecutor:
         self._adapter = InvestigationEventAdapter(run_id=run_id, emitter=emitter)
 
     async def run_step(self, spec: InvestigationStepSpec) -> StepResult:
+        existing = self._dag.get_step(spec.step_id)
+        if existing is not None:
+            if existing.idempotency_key != spec.idempotency_key:
+                raise StepIdempotencyKeyMismatch(
+                    f"step_id {spec.step_id!r} already exists with idempotency_key "
+                    f"{existing.idempotency_key!r}, refusing resubmission with {spec.idempotency_key!r}"
+                )
+            if existing.status in (StepStatus.SUCCESS, StepStatus.FAILED):
+                return self._step_result_from(existing)
+            if existing.status == StepStatus.RUNNING:
+                raise StepAlreadyRunning(spec.step_id)
+
         now_iso = datetime.now(timezone.utc).isoformat()
 
         vstep = VirtualStep(
@@ -47,6 +67,7 @@ class InvestigationExecutor:
             group=spec.metadata.group if spec.metadata else None,
             triggered_by=spec.metadata.hypothesis_id if spec.metadata else None,
             reason=spec.metadata.reason if spec.metadata else None,
+            idempotency_key=spec.idempotency_key,
         )
         self._dag.append_step(vstep)
 
@@ -142,6 +163,17 @@ class InvestigationExecutor:
         seq = self._dag.next_sequence()
         await self._adapter.emit_run_update(status="cancelled", sequence_number=seq)
         await self._store.save_dag(self._dag)
+
+    def _step_result_from(self, vstep: VirtualStep) -> StepResult:
+        return StepResult(
+            step_id=vstep.step_id,
+            status=vstep.status,
+            output=vstep.output,
+            error=vstep.error,
+            started_at=vstep.started_at or "",
+            ended_at=vstep.ended_at or "",
+            duration_ms=vstep.duration_ms or 0,
+        )
 
     def _build_single_step_workflow(self, spec: InvestigationStepSpec) -> CompiledWorkflow:
         step = CompiledStep(

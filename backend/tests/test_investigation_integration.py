@@ -741,6 +741,7 @@ async def test_full_investigation_loop():
     r1 = await inv_executor.run_step(InvestigationStepSpec(
         step_id="round-1-log-agent",
         agent="log_agent",
+        idempotency_key="key-round-1-log-agent",
         depends_on=[],
         input_data={"service_name": "api-gateway"},
         metadata=StepMetadata(agent="log_agent", round=1, reason="initial triage"),
@@ -752,6 +753,7 @@ async def test_full_investigation_loop():
     r2 = await inv_executor.run_step(InvestigationStepSpec(
         step_id="round-2-metrics-agent",
         agent="metrics_agent",
+        idempotency_key="key-round-2-metrics-agent",
         depends_on=["round-1-log-agent"],
         input_data={"service_name": "api-gateway"},
         metadata=StepMetadata(agent="metrics_agent", round=2, hypothesis_id="h1", reason="validate OOM"),
@@ -762,6 +764,7 @@ async def test_full_investigation_loop():
     r3 = await inv_executor.run_step(InvestigationStepSpec(
         step_id="round-3-k8s-agent",
         agent="k8s_agent",
+        idempotency_key="key-round-3-k8s-agent",
         depends_on=["round-2-metrics-agent"],
         input_data={"namespace": "production"},
         metadata=StepMetadata(agent="k8s_agent", round=3, hypothesis_id="h1", reason="check pod health"),
@@ -842,6 +845,7 @@ async def test_investigation_with_agent_failure():
     result = await inv_executor.run_step(InvestigationStepSpec(
         step_id="round-1-metrics-agent",
         agent="metrics_agent",
+        idempotency_key="key-round-1-metrics-agent",
         depends_on=[],
         metadata=StepMetadata(agent="metrics_agent", round=1),
     ))
@@ -875,6 +879,7 @@ async def test_hypothesis_boundary():
     await inv_executor.run_step(InvestigationStepSpec(
         step_id="round-1-log-agent",
         agent="log_agent",
+        idempotency_key="key-round-1-log-agent",
         depends_on=[],
         metadata=StepMetadata(agent="log_agent", round=1, hypothesis_id="h1"),
     ))
