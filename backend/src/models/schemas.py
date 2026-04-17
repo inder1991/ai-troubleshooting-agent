@@ -959,6 +959,14 @@ class DiagnosticState(BaseModel):
     # decide whose priors to update on user-labelled outcomes.
     winning_agents: list[str] = Field(default_factory=list)
 
+    # Stage J — self-consistency summary. None when the feature was off
+    # (default; single-shot investigation). Populated by a route-layer
+    # wrapper that runs the supervisor N times with shuffled agent
+    # orders and votes. Structure:
+    #   {"n_runs": int, "agreed_count": int, "penalty_pct": int,
+    #    "verdict": "consistent"|"majority"|"inconclusive"}
+    self_consistency: Optional[dict] = None
+
     # Agent execution statuses: {agent_name: "success"|"no_findings"|"error"}
     agent_statuses: dict[str, str] = Field(default_factory=dict)
 

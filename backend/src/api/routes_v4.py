@@ -1281,6 +1281,9 @@ async def get_session_status(session_id: str):
         # Stage I — agents whose findings back the winning hypothesis;
         # the /feedback endpoint uses this to move the right priors.
         result["winning_agents"] = list(getattr(state, "winning_agents", []) or [])
+        # Stage J — self-consistency summary (None when the feature was
+        # off for this run).
+        result["self_consistency"] = getattr(state, "self_consistency", None)
 
     return result
 
