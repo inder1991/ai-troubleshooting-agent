@@ -27,6 +27,33 @@ from src.agents.code_agent import CodeNavigatorAgent
 from src.agents.change_agent import ChangeAgent
 from src.agents.cross_repo_tracer import CrossRepoTracer
 from src.agents.critic_agent import CriticAgent
+from src.agents.critic_ensemble import CriticEnsemble
+
+
+def _finding_to_dict(finding) -> dict:
+    """Shallow finding -> dict for CriticEnsemble input. Best-effort:
+    captures claim/summary so keyword-based partitioning has something to
+    work with. Unknown shapes degrade gracefully."""
+    if isinstance(finding, dict):
+        return finding
+    out = {}
+    for attr in (
+        "claim",
+        "summary",
+        "finding_id",
+        "agent_source",
+        "source_agent",
+        "service",
+        "category",
+    ):
+        val = getattr(finding, attr, None)
+        if val is not None:
+            out[attr] = val
+    # Ensure 'claim' key exists for the partitioner even if finding only
+    # carries 'summary'.
+    if "claim" not in out and "summary" in out:
+        out["claim"] = out["summary"]
+    return out
 from src.agents.hypothesis_tracker import HypothesisTracker
 from src.agents.causal_engine import (
     EvidenceGraphBuilder,
@@ -209,6 +236,10 @@ class SupervisorAgent:
             "code_agent": CodeNavigatorAgent,
         }
         self._critic = CriticAgent()
+        # Stage G — CriticEnsemble is lazy: constructed on first use only
+        # when DIAGNOSTIC_CRITIC_MODE=ensemble. Default is legacy so tests
+        # that assert on the current CriticAgent output stay stable.
+        self._critic_ensemble: Optional[CriticEnsemble] = None
         self._hypothesis_tracker = HypothesisTracker(max_re_dispatches=2)
         self._signal_normalizer = SignalNormalizer()
         self._evidence_mapper = EvidenceMapper()
@@ -564,8 +595,16 @@ class SupervisorAgent:
                                 k8s_ctx["oom_kills"] = sum(1 for p in state.k8s_analysis.pod_statuses if p.oom_killed)
                                 k8s_ctx["memory_percent"] = 0
                                 k8s_ctx["crashloop"] = state.k8s_analysis.is_crashloop
-                            verdict = self._critic._evaluate_finding(
-                                finding, metrics_context=metrics_ctx, k8s_context=k8s_ctx,
+                            # Stage G — env-gated critic path. Default legacy
+                            # single-role CriticAgent; ensemble is opt-in via
+                            # DIAGNOSTIC_CRITIC_MODE=ensemble. Ensemble output
+                            # is mapped back to the CriticVerdict shape the UI
+                            # + re-investigation branch below expect.
+                            verdict = await self._run_critic_on_finding(
+                                finding,
+                                metrics_context=metrics_ctx,
+                                k8s_context=k8s_ctx,
+                                state=state,
                             )
                             finding.critic_verdict = verdict
                             state.critic_verdicts.append(verdict)
@@ -767,6 +806,96 @@ class SupervisorAgent:
             return []
 
         return []
+
+    async def _run_critic_on_finding(
+        self,
+        finding,
+        *,
+        metrics_context: dict,
+        k8s_context: dict,
+        state,
+    ):
+        """Route finding through legacy CriticAgent OR new CriticEnsemble.
+
+        ``DIAGNOSTIC_CRITIC_MODE`` env var controls the path:
+            legacy (default): self._critic._evaluate_finding(...)
+            ensemble: CriticEnsemble + adapter back to CriticVerdict.
+        Ensemble output is additive — UI-visible fields
+        (advocate_verdict / challenger_verdict / judge_verdict) stamp
+        onto the finding so CriticDissentBanner can light up.
+        """
+        mode = os.getenv("DIAGNOSTIC_CRITIC_MODE", "legacy").strip().lower()
+        if mode != "ensemble":
+            return self._critic._evaluate_finding(
+                finding,
+                metrics_context=metrics_context,
+                k8s_context=k8s_context,
+            )
+
+        # Ensemble path — lazy-init the CriticEnsemble and reuse it.
+        if self._critic_ensemble is None:
+            self._critic_ensemble = CriticEnsemble(client=self.llm_client)
+
+        try:
+            pins = list(getattr(state, "evidence_pins", None) or [])
+            ensemble_result = await self._critic_ensemble.evaluate(
+                finding=_finding_to_dict(finding),
+                evidence_pins=pins,
+            )
+        except Exception as exc:
+            logger.warning(
+                "CriticEnsemble failed; falling back to legacy CriticAgent: %s", exc
+            )
+            return self._critic._evaluate_finding(
+                finding,
+                metrics_context=metrics_context,
+                k8s_context=k8s_context,
+            )
+
+        # Map ensemble final verdict to the legacy CriticVerdict enum.
+        final_to_legacy = {
+            "confirmed": "validated",
+            "challenged": "challenged",
+            "needs_more_evidence": "insufficient_data",
+        }
+        legacy_verdict = final_to_legacy.get(
+            ensemble_result.final_verdict, "insufficient_data"
+        )
+        reasoning = (
+            f"advocate={ensemble_result.advocate.verdict}; "
+            f"challenger={ensemble_result.challenger.verdict}; "
+            f"judge={ensemble_result.final_verdict}. "
+            f"{ensemble_result.advocate.reasoning or ''}"
+        ).strip()
+        from src.models.schemas import CriticVerdict as _CV
+
+        cv = _CV(
+            finding_id=getattr(finding, "finding_id", "")
+            or getattr(finding, "id", "unknown"),
+            agent_source=getattr(finding, "agent_source", "")
+            or getattr(finding, "source_agent", "unknown"),
+            verdict=legacy_verdict,
+            reasoning=reasoning[:1000],
+            confidence_in_verdict=(
+                90 if ensemble_result.final_verdict != "needs_more_evidence" else 50
+            ),
+        )
+        # Stamp ensemble-specific fields onto the finding so the UI can
+        # render the CriticDissentBanner without a secondary API call.
+        try:
+            setattr(
+                finding,
+                "critic_dissent",
+                {
+                    "advocate_verdict": ensemble_result.advocate.verdict,
+                    "challenger_verdict": ensemble_result.challenger.verdict,
+                    "judge_verdict": ensemble_result.final_verdict,
+                    "summary": ensemble_result.advocate.reasoning or "",
+                },
+            )
+        except Exception:
+            pass
+        return cv
 
     def _decide_action_for_confidence(self, state: DiagnosticState) -> str:
         """Decide action based on overall confidence score."""
