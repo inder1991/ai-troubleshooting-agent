@@ -21,6 +21,10 @@ interface SidebarNavProps {
   activeView: NavView;
   onNavigate: (view: NavView) => void;
   onNewMission?: () => void;
+  /** When true, sidebar is locked to its 48px rail form (hover fly-outs still
+   * work for labels). Used on investigation routes so the War Room keeps its
+   * grid space but users don't lose global navigation. */
+  forceCollapsed?: boolean;
 }
 
 const ALL_NAV_ITEMS: NavItem[] = [
@@ -127,7 +131,7 @@ const iconEl = (name: string, size = 19) => (
 
 const WORKFLOW_NAV_IDS: readonly NavView[] = ['workflow-builder', 'workflow-runs'] as const;
 
-const SidebarNav: React.FC<SidebarNavProps> = ({ activeView, onNavigate, onNewMission }) => {
+const SidebarNav: React.FC<SidebarNavProps> = ({ activeView, onNavigate, onNewMission, forceCollapsed = false }) => {
   const { workflows: workflowsEnabled, loading: flagsLoading } = useFeatureFlags();
 
   // Filter workflow entries only once the flag probe has completed AND flag is off.
@@ -148,9 +152,15 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ activeView, onNavigate, onNewMi
   const [pinned, setPinned] = useState(() => {
     try { return localStorage.getItem('sidebar-pinned') === 'true'; } catch { return false; }
   });
-  const [collapsed, setCollapsed] = useState(() => {
+  const [userCollapsed, setUserCollapsed] = useState(() => {
     try { return localStorage.getItem('sidebar-collapsed') === 'true'; } catch { return false; }
   });
+  const collapsed = forceCollapsed || userCollapsed;
+  const setCollapsed = (next: boolean) => {
+    // While forceCollapsed is active, user toggle is a no-op — rail stays locked.
+    if (forceCollapsed) return;
+    setUserCollapsed(next);
+  };
   const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -160,11 +170,11 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ activeView, onNavigate, onNewMi
     window.dispatchEvent(new Event('sidebar-pin-change'));
   }, [pinned]);
 
-  // Persist collapsed state & notify App layout
+  // Persist USER collapse pref (not forceCollapsed — that's route-driven).
   useEffect(() => {
-    try { localStorage.setItem('sidebar-collapsed', String(collapsed)); } catch { /* noop */ }
+    try { localStorage.setItem('sidebar-collapsed', String(userCollapsed)); } catch { /* noop */ }
     window.dispatchEvent(new Event('sidebar-pin-change'));
-  }, [collapsed]);
+  }, [userCollapsed]);
 
   const activeGroupName = useMemo(() => {
     const item = navItems.find(
@@ -262,7 +272,7 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ activeView, onNavigate, onNewMi
               </span>
             )}
           </button>
-          {!collapsed && (
+          {!collapsed && !forceCollapsed && (
             <button
               onClick={() => setCollapsed(true)}
               className="text-slate-400 hover:text-slate-300 transition-colors p-1 rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-duck-accent"
@@ -272,7 +282,7 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ activeView, onNavigate, onNewMi
               <span className="material-symbols-outlined text-[16px]">chevron_left</span>
             </button>
           )}
-          {collapsed && (
+          {collapsed && !forceCollapsed && (
             <button
               onClick={() => setCollapsed(false)}
               className="text-slate-400 hover:text-slate-300 transition-colors mt-2 p-1 rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-duck-accent"

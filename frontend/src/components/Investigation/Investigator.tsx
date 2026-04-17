@@ -427,8 +427,7 @@ const Investigator: React.FC<InvestigatorProps> = ({
           <div className="flex items-center gap-2">
             <span className="text-sm font-mono text-red-200 font-bold">{findings.patient_zero.service}</span>
             {repoMismatch && (
-              <span className="inline-flex items-center gap-1 text-body-xs font-bold uppercase px-1.5 py-0.5 rounded bg-wr-severity-medium/20 text-amber-400 border border-wr-severity-medium/30">
-                <span className="material-symbols-outlined" style={{ fontFamily: 'Material Symbols Outlined', fontSize: '12px' }}>warning</span>
+              <span className="inline-flex items-center text-body-xs font-bold uppercase px-1.5 py-0.5 rounded bg-wr-severity-medium/20 text-amber-400 border border-wr-severity-medium/30">
                 Repo Mismatch
               </span>
             )}
@@ -441,9 +440,8 @@ const Investigator: React.FC<InvestigatorProps> = ({
               </p>
               <button
                 onClick={onAttachRepo}
-                className="text-body-xs font-bold uppercase px-2 py-0.5 rounded bg-wr-severity-medium/20 text-amber-300 border border-wr-severity-medium/30 hover:bg-amber-500/30 transition-colors flex items-center gap-1"
+                className="text-body-xs font-bold uppercase px-2 py-0.5 rounded bg-wr-severity-medium/20 text-amber-300 border border-wr-severity-medium/30 hover:bg-amber-500/30 transition-colors"
               >
-                <span className="material-symbols-outlined" style={{ fontFamily: 'Material Symbols Outlined', fontSize: '11px' }}>link</span>
                 Attach Repo
               </button>
             </div>
@@ -471,8 +469,7 @@ const Investigator: React.FC<InvestigatorProps> = ({
 
       {/* Header */}
       <div className="px-4 py-3 border-b border-wr-border/50 bg-wr-bg/90 backdrop-blur z-20 shrink-0 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-2 flex-1 min-w-0">
-          <span className="material-symbols-outlined text-primary text-sm shrink-0" style={{ fontFamily: 'Material Symbols Outlined' }}>psychology</span>
+        <div className="flex items-center flex-1 min-w-0">
           <h2 className="text-sm font-bold uppercase tracking-widest text-slate-400 truncate">AI Investigation Log</h2>
         </div>
         <div className="shrink-0">
@@ -722,12 +719,6 @@ const ReasoningStream: React.FC<{ chain: ReasoningChainStep[] }> = ({ chain }) =
       >
         {/* Header */}
         <div className="px-3 py-2 flex items-center gap-2 border-b border-[#07b6d5]/10">
-          <span
-            className="material-symbols-outlined text-[#07b6d5] text-sm"
-            style={{ fontFamily: 'Material Symbols Outlined' }}
-          >
-            psychology
-          </span>
           <span className="text-body-xs font-bold uppercase tracking-wider text-[#07b6d5]">
             Neural_Reasoning_Stream
           </span>
@@ -828,9 +819,6 @@ const EvidenceTrail: React.FC<{ breadcrumbs: Breadcrumb[]; agentName: string }> 
         aria-expanded={expanded}
         aria-label={`${expanded ? 'Collapse' : 'Expand'} evidence trail`}
       >
-        <span className="material-symbols-outlined text-xs" style={{ fontFamily: 'Material Symbols Outlined' }}>
-          attach_file
-        </span>
         <span className="font-bold uppercase tracking-wider">Evidence</span>
         <span className="font-mono">({breadcrumbs.length})</span>
         <span className={`material-symbols-outlined text-xs transition-transform ${expanded ? 'rotate-90' : ''}`} style={{ fontFamily: 'Material Symbols Outlined' }}>

@@ -25,8 +25,7 @@ const Navigator: React.FC<NavigatorProps> = ({ findings, status, events }) => {
   return (
     <div className="flex flex-col h-full bg-wr-bg/20 overflow-y-auto custom-scrollbar">
       {/* Header */}
-      <div className="p-4 border-b border-wr-border flex items-center gap-2 sticky top-0 z-10 bg-wr-bg/90 backdrop-blur">
-        <span className="material-symbols-outlined text-slate-400 text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>explore</span>
+      <div className="p-4 border-b border-wr-border flex items-center sticky top-0 z-10 bg-wr-bg/90 backdrop-blur">
         <h2 className="text-sm font-bold uppercase tracking-widest text-slate-400">Navigator</h2>
       </div>
 
