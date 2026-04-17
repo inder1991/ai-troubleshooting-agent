@@ -28,6 +28,7 @@ from src.workflows.investigation_types import (
     VirtualDag,
 )
 from src.workflows.outbox import OutboxWriter
+from src.workflows.run_lock import RunLock
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -48,6 +49,8 @@ class InvestigationExecutor:
         writer: OutboxWriter,
         workflow_executor: Any,
         dag: VirtualDag | None = None,
+        *,
+        run_lock: RunLock | None = None,
     ):
         self._run_id = run_id
         # DAG resumption (loading from snapshot on construction) is a Phase-2
@@ -56,6 +59,10 @@ class InvestigationExecutor:
         self._dag = dag if dag is not None else VirtualDag(run_id=run_id)
         self._writer = writer
         self._workflow_executor = workflow_executor
+        # The caller (route handler / WorkflowService) is expected to have
+        # already acquired this lock; the executor just owns the release side
+        # so cancel()/finish() can't forget it. See Task 1.6.
+        self._run_lock = run_lock
 
     async def run_step(self, spec: InvestigationStepSpec) -> StepResult:
         existing = self._dag.get_step(spec.step_id)
@@ -179,6 +186,22 @@ class InvestigationExecutor:
         async with self._writer.transaction(run_id=self._run_id) as tx:
             await tx.update_dag(self._dag.to_dict())
             await tx.append_event(seq=seq, kind="run_update", payload=envelope.to_dict())
+        await self._release_lock_if_held()
+
+    async def finalize(self) -> None:
+        """Release the distributed run lock. Call once when the executor is
+        terminal (success/failed/cancelled). Safe to call multiple times."""
+        await self._release_lock_if_held()
+
+    async def _release_lock_if_held(self) -> None:
+        lock = self._run_lock
+        if lock is None:
+            return
+        self._run_lock = None
+        try:
+            await lock.release()
+        except Exception:
+            logger.exception("InvestigationExecutor: run_lock release failed", extra={"run_id": self._run_id})
 
     async def _commit_step_transition(self, vstep: VirtualStep, seq: int) -> None:
         envelope = make_step_event(

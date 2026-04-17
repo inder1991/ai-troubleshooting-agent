@@ -17,6 +17,7 @@ from sse_starlette.sse import EventSourceResponse
 
 from src import config
 from src.workflows.compiler import CompileError
+from src.workflows.run_lock import RunLocked
 from src.workflows.service import ActiveRunsError, InputsInvalid, RunTerminal, WorkflowService
 
 router = APIRouter(prefix="/api/v4", tags=["workflows"])
@@ -172,6 +173,11 @@ async def create_run(
         )
     except LookupError as e:
         raise HTTPException(status_code=404, detail=str(e))
+    except RunLocked as e:
+        raise HTTPException(
+            status_code=409,
+            detail={"type": "run_locked", "message": str(e)},
+        )
     return {"run": summary}
 
 

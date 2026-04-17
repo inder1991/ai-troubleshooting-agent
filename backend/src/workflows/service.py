@@ -21,6 +21,7 @@ from src.workflows.event_schema import normalize_status
 from src.workflows.executor import WorkflowExecutor
 from src.workflows.models import WorkflowDag
 from src.workflows.repository import WorkflowRepository
+from src.workflows.run_lock import RunLock, RunLocked
 from src.workflows.runners.registry import AgentRunnerRegistry
 
 
@@ -54,11 +55,19 @@ class WorkflowService:
         runners: AgentRunnerRegistry | None = None,
         *,
         cancel_grace_seconds: float = 30.0,
+        redis_client: Any | None = None,
+        lock_ttl_s: int = 15,
+        lock_heartbeat_s: float = 5.0,
     ) -> None:
         self._repo = repo
         self._contracts = contracts
         self._runners = runners
         self._cancel_grace_seconds = cancel_grace_seconds
+        # Multi-replica run_id lock (Task 1.6). When redis_client is None
+        # (single-replica local / unit tests) locking is skipped.
+        self._redis_client = redis_client
+        self._lock_ttl_s = lock_ttl_s
+        self._lock_heartbeat_s = lock_heartbeat_s
         # Per-run live event queues for SSE consumers (in-memory).
         self._run_subscribers: dict[str, list[asyncio.Queue]] = {}
         # Per-run cancel events.
@@ -403,6 +412,31 @@ class WorkflowService:
             assert row is not None
             return self._run_summary(row)
 
+        # Acquire the distributed run lock (Task 1.6) before scheduling the
+        # driver. If another replica already owns this run_id, mark the row
+        # failed so we don't leak a permanently-pending run, and raise
+        # RunLocked so the API layer can return 409.
+        run_lock: RunLock | None = None
+        if self._redis_client is not None:
+            run_lock = RunLock(
+                run_id,
+                redis=self._redis_client,
+                ttl_s=self._lock_ttl_s,
+                heartbeat_s=self._lock_heartbeat_s,
+            )
+            try:
+                await run_lock.acquire()
+            except RunLocked:
+                await self._repo.update_run_status(
+                    run_id,
+                    "failed",
+                    ended_at=_now(),
+                    error_json=json.dumps(
+                        {"type": "RunLocked", "message": f"run_id {run_id} already owned by another replica"}
+                    ),
+                )
+                raise
+
         compiled = _rehydrate_compiled(compiled_dict)
         cancel_event = asyncio.Event()
         self._run_cancel_events[run_id] = cancel_event
@@ -520,6 +554,13 @@ class WorkflowService:
                         q.put_nowait(sentinel)
                     except asyncio.QueueFull:
                         logger.warning("SSE terminal event queue full, event dropped: run_id=%s status=%s", run_id, final_status)
+                # Release the distributed lock (Task 1.6) so another
+                # replica can pick up this run_id if we ever rerun/resume.
+                if run_lock is not None:
+                    try:
+                        await run_lock.release()
+                    except Exception:
+                        logger.exception("run_lock release failed for %s", run_id)
                 # Cleanup maps after a grace tick so last subscribers can drain.
                 self._run_cancel_events.pop(run_id, None)
 
