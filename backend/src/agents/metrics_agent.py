@@ -8,6 +8,10 @@ from typing import Any
 import requests
 
 from src.agents.react_base import ReActAgent
+from src.agents.baseline import (
+    DEFAULT_BASELINE_THRESHOLD_PCT,
+    apply_baseline_filter_dicts,
+)
 from src.models.schemas import MetricAnomaly, DataPoint, TimeRange, MetricsAnalysisResult, TokenUsage
 from src.tools.promql_safety import UnsafeQuery, validate_promql
 from src.utils.event_emitter import EventEmitter
@@ -169,6 +173,8 @@ If no spike detection is needed, output the final JSON directly.
 
 CRITICAL LABEL RULE: Every PromQL query MUST include namespace= and pod=~ or service= labels to scope to the target service. Never execute a query without these labels.
 
+MANDATORY 24H BASELINE: For every metric you call out as anomalous, you MUST issue a paired baseline query using `<query> offset 24h` and compare current vs baseline. A peak within 15% of baseline is signal-indistinguishable from normal load — DO NOT report it as anomalous (the pipeline suppresses within-noise spikes automatically, but you should skip them at query time to save budget).
+
 SIGNAL OVER NOISE: Prioritize anomalies but ALWAYS include baseline metrics. Your final JSON must contain:
 - All anomalous metrics (with severity critical/high/medium)
 - Key baseline metrics (CPU, memory, connection pools) even if normal — mark them severity "low" with confidence_score 100 and correlation_to_incident "Within normal range — rules out resource exhaustion"
@@ -279,8 +285,26 @@ OUTPUT FORMAT — Final answer as JSON:
 
         # Include all queried time series data — even normal metrics provide context
 
+        # Task 1.13: suppress within-noise anomalies. A peak within 15% of
+        # baseline is signal-indistinguishable from normal load — reporting
+        # it floods downstream causal analysis with false positives.
+        raw_anomalies = data.get("anomalies", [])
+        filtered_anomalies = apply_baseline_filter_dicts(
+            raw_anomalies, threshold_pct=DEFAULT_BASELINE_THRESHOLD_PCT
+        )
+        suppressed = len(raw_anomalies) - len(filtered_anomalies)
+        if suppressed:
+            logger.info(
+                "Baseline filter suppressed within-noise anomalies",
+                extra={
+                    "agent_name": self.agent_name,
+                    "action": "baseline_suppress",
+                    "extra": {"suppressed": suppressed, "threshold_pct": DEFAULT_BASELINE_THRESHOLD_PCT},
+                },
+            )
+
         result = {
-            "anomalies": data.get("anomalies", []),
+            "anomalies": filtered_anomalies,
             "correlated_signals": data.get("correlated_signals", []),
             "time_series_data": dict(self._time_series_cache),
             "overall_confidence": data.get("overall_confidence", 50),
