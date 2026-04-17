@@ -47,6 +47,24 @@ class Outbox(Base):
     relayed_at = mapped_column(sa.DateTime(timezone=True), nullable=True)
 
 
+class DagSnapshot(Base):
+    """One-row-per-run snapshot of the VirtualDag, written transactionally
+    alongside outbox events by ``OutboxWriter`` (see ``workflows/outbox.py``)."""
+
+    __tablename__ = "investigation_dag_snapshot"
+
+    run_id = mapped_column(sa.String(64), primary_key=True)
+    payload = mapped_column(sa.JSON, nullable=False)
+    schema_version = mapped_column(
+        sa.Integer, nullable=False, server_default=sa.text("1")
+    )
+    updated_at = mapped_column(
+        sa.DateTime(timezone=True),
+        nullable=False,
+        server_default=sa.func.now(),
+    )
+
+
 # ── Connection Profile ──
 
 
