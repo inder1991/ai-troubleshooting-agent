@@ -1,21 +1,21 @@
 # backend/tests/test_investigation_executor.py
 import pytest
-import asyncio
 from dataclasses import dataclass
 from typing import Any
 
 from src.workflows.investigation_executor import InvestigationExecutor
 from src.workflows.investigation_types import InvestigationStepSpec, StepResult, VirtualDag
-from src.workflows.investigation_store import InvestigationStore
 from src.workflows.event_schema import StepStatus, StepMetadata, normalize_status
 
+from backend.tests.workflows._fakes import FakeOutboxWriter
 
-class FakeEmitter:
-    def __init__(self):
-        self.events: list[dict[str, Any]] = []
 
-    async def emit(self, agent_name, event_type, message, details=None):
-        self.events.append({"agent_name": agent_name, "event_type": event_type, "message": message, "details": details})
+def _step_events(writer: FakeOutboxWriter) -> list[dict[str, Any]]:
+    return [e for e in writer.events if e["kind"] == "step_update"]
+
+
+def _run_events(writer: FakeOutboxWriter) -> list[dict[str, Any]]:
+    return [e for e in writer.events if e["kind"] == "run_update"]
 
 
 class FakeWorkflowExecutor:
@@ -62,21 +62,15 @@ class FakeWorkflowExecutor:
 
 
 @pytest.fixture
-def emitter():
-    return FakeEmitter()
+def writer():
+    return FakeOutboxWriter()
 
 
 @pytest.fixture
-def store():
-    return InvestigationStore(redis_client=None)
-
-
-@pytest.fixture
-def executor(emitter, store):
+def executor(writer):
     return InvestigationExecutor(
         run_id="inv-123",
-        emitter=emitter,
-        store=store,
+        writer=writer,
         workflow_executor=FakeWorkflowExecutor(result_output={"findings": [{"msg": "OOM"}]}),
     )
 
@@ -109,14 +103,14 @@ async def test_run_step_appends_to_dag(executor):
 
 
 @pytest.mark.asyncio
-async def test_run_step_emits_running_then_final_status(executor, emitter):
-    """run_step should emit at least two events: running and success/failed."""
+async def test_run_step_emits_running_then_final_status(executor, writer):
+    """run_step should emit at least two outbox events: running and success/failed."""
     spec = _make_spec()
     await executor.run_step(spec)
 
-    step_events = [e for e in emitter.events if e["event_type"] == "step_update"]
+    step_events = _step_events(writer)
     assert len(step_events) >= 2
-    statuses = [e["details"]["payload"]["status"] for e in step_events]
+    statuses = [e["payload"]["payload"]["status"] for e in step_events]
     assert statuses[0] == "running"
     assert statuses[-1] in ("success", "failed")
 
@@ -141,12 +135,11 @@ async def test_run_step_returns_typed_step_result(executor):
 
 
 @pytest.mark.asyncio
-async def test_run_step_failure_marks_step_failed(emitter, store):
+async def test_run_step_failure_marks_step_failed(writer):
     """If WorkflowExecutor raises, step should be marked failed."""
     executor = InvestigationExecutor(
         run_id="inv-fail-raise",
-        emitter=emitter,
-        store=store,
+        writer=writer,
         workflow_executor=FakeWorkflowExecutor(should_raise=True),
     )
     spec = _make_spec()
@@ -161,12 +154,11 @@ async def test_run_step_failure_marks_step_failed(emitter, store):
 
 
 @pytest.mark.asyncio
-async def test_run_step_failure_via_agent_error(emitter, store):
+async def test_run_step_failure_via_agent_error(writer):
     """If the agent returns a FAILED status (not an exception), step should be marked failed."""
     executor = InvestigationExecutor(
         run_id="inv-fail-agent",
-        emitter=emitter,
-        store=store,
+        writer=writer,
         workflow_executor=FakeWorkflowExecutor(should_fail=True),
     )
     spec = _make_spec()
@@ -186,7 +178,7 @@ async def test_run_step_failure_via_agent_error(emitter, store):
 
 
 @pytest.mark.asyncio
-async def test_run_steps_sequential(executor, emitter):
+async def test_run_steps_sequential(executor, writer):
     """run_steps should execute steps sequentially and return all results."""
     specs = [
         _make_spec(step_id="round-1-log_agent", agent="log_agent"),
@@ -204,21 +196,22 @@ async def test_run_steps_sequential(executor, emitter):
 
 
 # ---------------------------------------------------------------------------
-# Persistence
+# Persistence (via OutboxWriter)
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.asyncio
-async def test_dag_persisted_to_store(executor, store):
-    """After run_step, DAG should be saved to the store."""
+async def test_dag_persisted_via_writer(executor, writer):
+    """After run_step, DAG snapshot should have been written through the writer."""
     spec = _make_spec()
     await executor.run_step(spec)
 
-    loaded = await store.load_dag("inv-123")
-    assert loaded is not None
-    assert len(loaded.steps) == 1
-    assert loaded.steps[0].step_id == spec.step_id
-    assert loaded.steps[0].status == StepStatus.SUCCESS
+    # Two transitions per step ⇒ two update_dag calls; the last reflects SUCCESS.
+    assert len(writer.dag_updates) == 2
+    final_payload = writer.dag_updates[-1]["payload"]
+    assert final_payload["run_id"] == "inv-123"
+    assert len(final_payload["steps"]) == 1
+    assert final_payload["steps"][0]["status"] == "success"
 
 
 # ---------------------------------------------------------------------------
@@ -227,7 +220,7 @@ async def test_dag_persisted_to_store(executor, store):
 
 
 @pytest.mark.asyncio
-async def test_sequence_numbers_monotonic(executor, emitter):
+async def test_sequence_numbers_monotonic(executor, writer):
     """Each event should have an incrementing sequence number."""
     specs = [
         _make_spec(step_id="round-1-log_agent", agent="log_agent"),
@@ -235,12 +228,10 @@ async def test_sequence_numbers_monotonic(executor, emitter):
     ]
     await executor.run_steps(specs)
 
-    step_events = [e for e in emitter.events if e["event_type"] == "step_update"]
-    seq_numbers = [e["details"]["sequence_number"] for e in step_events]
-    # Strictly monotonically increasing
+    step_events = _step_events(writer)
+    seq_numbers = [e["seq"] for e in step_events]
     assert seq_numbers == sorted(seq_numbers)
     assert len(set(seq_numbers)) == len(seq_numbers)
-    # Should start at 1
     assert seq_numbers[0] == 1
 
 
@@ -257,7 +248,6 @@ async def test_step_id_convention(executor):
 
     dag = executor.get_dag()
     step = dag.steps[0]
-    # Verify the step_id is stored as-is and follows the convention
     assert step.step_id == "round-3-code_navigator"
     parts = step.step_id.split("-", 2)
     assert parts[0] == "round"
@@ -271,9 +261,8 @@ async def test_step_id_convention(executor):
 
 
 @pytest.mark.asyncio
-async def test_cancel_marks_running_step_cancelled(executor, emitter, store):
-    """cancel() should mark the investigation DAG as cancelled."""
-    # Run a step first so we have some state
+async def test_cancel_marks_running_step_cancelled(executor, writer):
+    """cancel() should mark the investigation DAG as cancelled and emit a run_update."""
     spec = _make_spec()
     await executor.run_step(spec)
 
@@ -281,13 +270,12 @@ async def test_cancel_marks_running_step_cancelled(executor, emitter, store):
     dag = executor.get_dag()
     assert dag.status == "cancelled"
 
-    run_events = [e for e in emitter.events if e["event_type"] == "run_update"]
+    run_events = _run_events(writer)
     assert len(run_events) == 1
+    assert run_events[0]["payload"]["payload"]["status"] == "cancelled"
 
-    # Verify persisted
-    loaded = await store.load_dag("inv-123")
-    assert loaded is not None
-    assert loaded.status == "cancelled"
+    final_dag_payload = writer.dag_updates[-1]["payload"]
+    assert final_dag_payload["status"] == "cancelled"
 
 
 # ---------------------------------------------------------------------------
@@ -302,7 +290,6 @@ async def test_normalize_status_completed_maps_to_success():
     assert normalize_status("completed") == StepStatus.SUCCESS
     assert normalize_status("SUCCEEDED") == StepStatus.SUCCESS
     assert normalize_status("SUCCESS") == StepStatus.SUCCESS
-    # Also check the non-alias path
     assert normalize_status("running") == StepStatus.RUNNING
     assert normalize_status("pending") == StepStatus.PENDING
     assert normalize_status("FAILED") == StepStatus.FAILED
@@ -322,7 +309,6 @@ async def test_step_result_from_asserts_completed_step_has_timestamps(executor):
 
     dag = executor.get_dag()
     vstep = dag.steps[0]
-    # Mutate to violate the invariant — completed step with no timestamps.
     vstep.started_at = None
     vstep.ended_at = None
     with pytest.raises(AssertionError, match="invariant violated"):
@@ -330,12 +316,11 @@ async def test_step_result_from_asserts_completed_step_has_timestamps(executor):
 
 
 @pytest.mark.asyncio
-async def test_duplicate_step_id_does_not_create_duplicate_dag_entry(emitter, store):
+async def test_duplicate_step_id_does_not_create_duplicate_dag_entry(writer):
     """Running a step with the same step_id + idempotency_key twice produces one DAG entry."""
     executor = InvestigationExecutor(
         run_id="inv-dedup",
-        emitter=emitter,
-        store=store,
+        writer=writer,
         workflow_executor=FakeWorkflowExecutor(result_output={"v": "first"}),
     )
     spec = _make_spec(step_id="round-1-log_agent")
@@ -345,5 +330,3 @@ async def test_duplicate_step_id_does_not_create_duplicate_dag_entry(emitter, st
     dag = executor.get_dag()
     step_ids = [s.step_id for s in dag.steps]
     assert step_ids.count("round-1-log_agent") == 1
-    loaded = await store.load_dag("inv-dedup")
-    assert loaded is not None

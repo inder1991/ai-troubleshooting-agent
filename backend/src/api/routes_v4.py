@@ -38,6 +38,7 @@ from src.integrations.github_client import GitHubClient, GitHubClientError
 from src.utils.attestation_log import AttestationLogger
 from src.workflows.investigation_executor import InvestigationExecutor
 from src.workflows.investigation_store import InvestigationStore
+from src.workflows.outbox import OutboxWriter
 
 logger = get_logger(__name__)
 
@@ -209,7 +210,8 @@ router_v4 = APIRouter(prefix="/api/v4", tags=["v4"])
 # In-memory session store
 sessions: Dict[str, Dict[str, Any]] = {}
 supervisors: Dict[str, SupervisorAgent] = {}
-_investigation_store = InvestigationStore(redis_client=None)
+_investigation_store = InvestigationStore()
+_investigation_writer = OutboxWriter()
 _investigation_executors: dict[str, InvestigationExecutor] = {}
 
 
@@ -539,8 +541,7 @@ async def start_session(request: StartSessionRequest, background_tasks: Backgrou
     inv_run_id = f"investigation-{session_id}"
     inv_executor = InvestigationExecutor(
         run_id=inv_run_id,
-        emitter=emitter,
-        store=_investigation_store,
+        writer=_investigation_writer,
         workflow_executor=None,
     )
     _investigation_executors[session_id] = inv_executor

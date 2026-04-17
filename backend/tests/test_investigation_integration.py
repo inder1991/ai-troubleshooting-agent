@@ -671,16 +671,10 @@ class TestPinDataIntegrity:
 # ---------------------------------------------------------------------------
 
 from src.workflows.investigation_executor import InvestigationExecutor
-from src.workflows.investigation_store import InvestigationStore
 from src.workflows.investigation_types import InvestigationStepSpec
 from src.workflows.event_schema import StepStatus, StepMetadata
 
-
-class _FakeEmitter:
-    def __init__(self):
-        self.events = []
-    async def emit(self, agent_name, event_type, message, details=None):
-        self.events.append({"agent_name": agent_name, "event_type": event_type, "message": message, "details": details})
+from backend.tests.workflows._fakes import FakeOutboxWriter
 
 
 class _FakeWorkflowExecutor:
@@ -722,8 +716,7 @@ from dataclasses import dataclass as dataclass
 @pytest.mark.asyncio
 async def test_full_investigation_loop():
     """Simulate a 3-round investigation: log -> metrics -> k8s."""
-    emitter = _FakeEmitter()
-    store = InvestigationStore(redis_client=None)
+    writer = FakeOutboxWriter()
     wf_executor = _FakeWorkflowExecutor(agent_results={
         "log_agent": {"evidence_pins": [{"claim": "OOM in api-gateway"}], "overall_confidence": 40},
         "metrics_agent": {"evidence_pins": [{"claim": "memory spike at 10:42"}], "overall_confidence": 65},
@@ -732,8 +725,7 @@ async def test_full_investigation_loop():
 
     inv_executor = InvestigationExecutor(
         run_id="inv-integration-1",
-        emitter=emitter,
-        store=store,
+        writer=writer,
         workflow_executor=wf_executor,
     )
 
@@ -786,21 +778,20 @@ async def test_full_investigation_loop():
         assert step.duration_ms is not None
 
     # Verify events emitted (2 per step: running + success = 6 total)
-    step_events = [e for e in emitter.events if e["event_type"] == "step_update"]
+    step_events = [e for e in writer.events if e["kind"] == "step_update"]
     assert len(step_events) == 6
 
     # Verify sequence numbers are monotonic
-    seq_numbers = [e["details"]["sequence_number"] for e in step_events]
+    seq_numbers = [e["seq"] for e in step_events]
     assert seq_numbers == sorted(seq_numbers)
     assert len(set(seq_numbers)) == len(seq_numbers)
 
     # Verify workflow executor was called 3 times
     assert wf_executor.run_count == 3
 
-    # Verify persistence
-    loaded = await store.load_dag("inv-integration-1")
-    assert loaded is not None
-    assert len(loaded.steps) == 3
+    # Verify the writer captured the final DAG snapshot (latest update_dag call).
+    final_dag = writer.dag_updates[-1]["payload"]
+    assert len(final_dag["steps"]) == 3
 
     # Verify causal metadata preserved
     assert dag.steps[1].triggered_by == "h1"
@@ -810,8 +801,7 @@ async def test_full_investigation_loop():
 @pytest.mark.asyncio
 async def test_investigation_with_agent_failure():
     """One agent fails mid-investigation — DAG records the failure."""
-    emitter = _FakeEmitter()
-    store = InvestigationStore(redis_client=None)
+    writer = FakeOutboxWriter()
 
     class FailingExecutor:
         async def run(self, compiled, inputs, **kwargs):
@@ -837,8 +827,7 @@ async def test_investigation_with_agent_failure():
 
     inv_executor = InvestigationExecutor(
         run_id="inv-fail-1",
-        emitter=emitter,
-        store=store,
+        writer=writer,
         workflow_executor=FailingExecutor(),
     )
 
@@ -863,16 +852,14 @@ async def test_investigation_with_agent_failure():
 @pytest.mark.asyncio
 async def test_hypothesis_boundary():
     """Verify hypotheses stay in supervisor, NOT in the executor/DAG."""
-    emitter = _FakeEmitter()
-    store = InvestigationStore(redis_client=None)
+    writer = FakeOutboxWriter()
     wf_executor = _FakeWorkflowExecutor(agent_results={
         "log_agent": {"evidence_pins": [], "overall_confidence": 50},
     })
 
     inv_executor = InvestigationExecutor(
         run_id="inv-boundary-1",
-        emitter=emitter,
-        store=store,
+        writer=writer,
         workflow_executor=wf_executor,
     )
 

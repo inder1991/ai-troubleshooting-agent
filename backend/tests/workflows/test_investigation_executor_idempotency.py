@@ -1,7 +1,6 @@
 """Idempotency: same step_id + same idempotency_key returns cached result;
 mismatched key for an existing step_id is a logic bug and raises."""
 from dataclasses import dataclass
-from typing import Any
 
 import pytest
 
@@ -11,16 +10,9 @@ from src.workflows.investigation_executor import (
     StepAlreadyRunning,
     StepIdempotencyKeyMismatch,
 )
-from src.workflows.investigation_store import InvestigationStore
 from src.workflows.investigation_types import InvestigationStepSpec, StepResult
 
-
-class _FakeEmitter:
-    def __init__(self) -> None:
-        self.events: list[dict[str, Any]] = []
-
-    async def emit(self, agent_name, event_type, message, details=None):
-        self.events.append({"agent_name": agent_name, "event_type": event_type, "message": message, "details": details})
+from backend.tests.workflows._fakes import FakeOutboxWriter
 
 
 class _FakeWorkflowExecutor:
@@ -54,13 +46,8 @@ class _FakeWorkflowExecutor:
 
 
 @pytest.fixture
-def emitter():
-    return _FakeEmitter()
-
-
-@pytest.fixture
-def store():
-    return InvestigationStore(redis_client=None)
+def writer():
+    return FakeOutboxWriter()
 
 
 @pytest.fixture
@@ -69,11 +56,10 @@ def workflow_executor():
 
 
 @pytest.fixture
-def executor(emitter, store, workflow_executor):
+def executor(writer, workflow_executor):
     return InvestigationExecutor(
         run_id="inv-idem",
-        emitter=emitter,
-        store=store,
+        writer=writer,
         workflow_executor=workflow_executor,
     )
 
@@ -115,7 +101,7 @@ async def test_mismatched_idempotency_key_for_same_step_id_raises(executor, spec
 
 
 @pytest.mark.asyncio
-async def test_running_step_resubmission_raises_step_already_running(emitter, store, spec_factory):
+async def test_running_step_resubmission_raises_step_already_running(writer, spec_factory):
     """If a step is currently RUNNING and the same idempotency_key is resubmitted,
     raise StepAlreadyRunning instead of starting a duplicate execution."""
 
@@ -129,8 +115,7 @@ async def test_running_step_resubmission_raises_step_already_running(emitter, st
 
     executor = InvestigationExecutor(
         run_id="inv-running",
-        emitter=emitter,
-        store=store,
+        writer=writer,
         workflow_executor=_PausingExecutor(),
     )
 
