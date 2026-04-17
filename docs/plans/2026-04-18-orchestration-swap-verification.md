@@ -92,31 +92,31 @@ All five are optional / backward-compatible. UI components from PR #26 read them
 
 ## Carry-forward / deferred
 
-Explicitly out-of-scope for this PR; tracked for focused follow-ups:
+### Phase-3 call-site migrations — status
 
-### Phase-3 call-site migrations (K.1–K.11)
+Originally listed as a 14-item follow-up block. The branch has since knocked most of them off:
 
-Deep per-file diffs touching agent internals + integration clients. Each is safe-and-incremental on its own but collectively noisy. Recommended as a single focused PR per migration:
+| Migration | Status in PR #27 |
+|---|---|
+| K.1 `@with_circuit_breaker` on agent outbound calls | ✅ Shipped at the tool_executor layer (cleaner boundary than per-agent decoration) |
+| K.2 `BackendAudit.timed_call` in `tool_executor.execute` | ✅ Shipped |
+| K.3 `InvestigationBudget.charge_tool_call` in `tool_executor.execute` | ✅ Shipped |
+| K.4 `ResultCache.get_or_compute` in `tool_executor.execute` | ✅ Shipped |
+| K.6 `retry_with_retry_after` + `idempotency_scope` on external POSTs | ✅ Shipped for Jira / Confluence / Remedy `create_*` endpoints via `idempotent_post` helper. GitHub client has no POST endpoints (GETs only) so no-op. |
+| K.7 `paginate_search` in log_agent | ✅ `ElasticsearchClient.paginate_all` adopts PIT + search_after; safe lifecycle verified |
+| K.8 `list_all` in k8s_agent + cluster_client | ✅ `_get_pod_status`, `cluster_client.list_pods`, `cluster_client.list_pdbs` migrated |
+| K.9 `promql_library` in metrics_agent | ✅ Golden-signals + ALERTS entries added to default-queries list |
+| K.10 `validate_stack_trace` in code_agent | ✅ `_stamp_stale_frames` post-processing pass marks UI's `is_stale` |
+| K.11 `trace_context.inject_traceparent` on http_clients | ✅ Shipped via httpx event_hook |
+| K.12 step-latency metrics in investigation_executor | ✅ Shipped |
+| K.13 prompt registry bootstrap on startup | ✅ Shipped |
+| K.14 resume scan on startup (log-only) | ✅ Shipped; real dispatch deferred (see below) |
 
-- K.1 `@with_circuit_breaker` on log_agent / metrics_agent / k8s_agent / tracing_agent outbound calls.
-- K.2 `BackendAudit.timed_call` middleware in `tool_executor.execute`.
-- K.3 `InvestigationBudget.charge_tool_call` in `tool_executor.execute`.
-- K.4 `ResultCache.get_or_compute` in `tool_executor.execute`.
-- K.5 `get_client(backend)` in jira/confluence/github/remedy/ElasticsearchClient/PrometheusClient.
-- K.6 `retry_with_retry_after` + `idempotency_scope` on every external POST.
-- K.7 `paginate_search` in `log_agent.search`.
-- K.8 `list_all` wrapper on every K8s list call site.
-- K.9 `promql_library` in `metrics_agent`.
-- K.10 `validate_stack_trace` in `code_agent`.
-- K.11 `trace_context.inject_traceparent` on `http_clients.get_client` default headers.
+### Remaining deferrals (all safe, each deserves its own PR)
 
-### Other deferrals (with rationale in plan §7)
-
-- **Agent-side prompt-version stamping.** Agents don't currently call `PromptRegistry().get(self.agent_name)` on init. The rows are now persisted; wiring 6 agents to read + stamp `finding.prompt_version_id` is a focused follow-up PR.
-- **Actual resume dispatch.** `DIAGNOSTIC_RESUME_ON_STARTUP=on` currently runs a log-only scan. Actual dispatch needs a route-layer `build_supervisor(run_id)` factory — one focused PR.
-- **SelfConsistency route-layer wrapper.** State field + API surface are in place; the N-shot runner itself is standalone-tested from Phase 4; wrapping needs one route-layer diff.
-- **Priors feeding back into `compute_confidence`.** Read-only today — persists but doesn't influence scoring. Enabling the loop is deliberate follow-up.
-- **Precise winning_agents from hypothesis supporting_node_ids.** Currently uses `agents_completed` as over-approximation. Precise mapping awaits Phase-4 signature-pattern certified causal chains.
+- **K.5 `get_client(backend)` adoption in jira/confluence/remedy clients.** Each client today uses `async with httpx.AsyncClient(verify=False, timeout=15.0)`. Migrating to the shared singleton gains connection reuse + traceparent injection (K.11 fires automatically), but the `verify=False` per-call signals that some deployments use self-signed TLS. Needs deployment-env verification before flipping. ElasticsearchClient + the inline Prometheus HTTP callers in metrics_agent are in the same bucket.
+- **Real resume dispatch.** `DIAGNOSTIC_RESUME_ON_STARTUP=on` currently runs a log-only scan so operators see which orphaned runs would be picked up. Actual dispatch needs a route-layer `build_supervisor(run_id)` factory plus state reconstruction from the DAG snapshot — a focused PR of its own.
+- **Full N-shot SelfConsistency orchestration.** State field + API surface + request parameter (`self_consistency_runs`) all plumbed through; current behaviour runs the supervisor once and records `verdict='single_run_pending_multi'` honestly. True N-run voting needs a route-layer wrapper that builds N `SupervisorAgent` instances (each `_claim_single_use` enforced) and feeds the results into `SelfConsistency.run()` from Phase 4.
 
 ## Gate result
 
