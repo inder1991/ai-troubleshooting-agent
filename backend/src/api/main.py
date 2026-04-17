@@ -720,6 +720,55 @@ def create_app() -> FastAPI:
         except Exception as e:
             logger.warning("RemediationEngine startup failed: %s", e)
 
+        # Stage K.13 — persist seeded prompt registry so every agent prompt
+        # has a stable content-addressed version_id row in prompt_versions.
+        # Best-effort: a DB issue logs + continues so the app still boots.
+        try:
+            from src.prompts.registry import PromptRegistry
+            _reg = PromptRegistry()
+            for prompt in _reg.list_all():
+                try:
+                    await _reg.ensure_persisted(prompt.agent)
+                except Exception as _reg_exc:
+                    logger.warning(
+                        "prompt registry ensure_persisted failed for %s: %s",
+                        prompt.agent, _reg_exc,
+                    )
+            logger.info("Prompt registry seeded (%d agents)", len(_reg.list_all()))
+        except Exception as e:
+            logger.warning("Prompt registry bootstrap failed: %s", e)
+
+        # Stage K.14 — resume orphaned investigations whose owning pod
+        # went away mid-flight. Best-effort: every failure logged and
+        # swallowed so a resume issue never blocks the API coming up.
+        if os.environ.get("DIAGNOSTIC_RESUME_ON_STARTUP", "off").strip().lower() == "on":
+            try:
+                from src.workflows.resume import resume_all_in_progress
+                # acquire_lock + dispatch_resume are deferred: the real
+                # wiring requires a route-layer SupervisorAgent factory.
+                # For this stage we just log candidates.
+                async def _log_only_lock(run_id: str) -> bool:
+                    logger.info(
+                        "resume candidate (lock not acquired, logging only): %s",
+                        run_id,
+                    )
+                    return False
+
+                async def _noop_dispatch(run):
+                    return None
+
+                taken = await resume_all_in_progress(
+                    acquire_lock=_log_only_lock,
+                    dispatch_resume=_noop_dispatch,
+                )
+                logger.info(
+                    "Resume scan complete (%d orphaned runs logged; "
+                    "dispatch disabled until supervisor factory lands)",
+                    len(taken),
+                )
+            except Exception as e:
+                logger.warning("Resume scan failed: %s", e)
+
     async def shutdown():
         # ── Close shared per-backend http client pool (Task 3.3) ──
         try:

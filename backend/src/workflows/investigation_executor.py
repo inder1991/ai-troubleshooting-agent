@@ -27,6 +27,7 @@ from src.workflows.investigation_types import (
     VirtualStep,
     VirtualDag,
 )
+from src.observability.metrics import record_step_completion
 from src.workflows.outbox import OutboxWriter
 from src.workflows.run_lock import RunLock
 from src.utils.logger import get_logger
@@ -123,6 +124,15 @@ class InvestigationExecutor:
                     ended_at=end_iso,
                     duration_ms=elapsed_ms,
                 )
+                # Stage K.12 — step-latency histogram (Phase-4 Task 4.28).
+                try:
+                    record_step_completion(
+                        agent=spec.agent or "unknown",
+                        duration_ms=float(elapsed_ms),
+                        status="success",
+                    )
+                except Exception:
+                    pass
             else:
                 error_dict = (node_state.error if node_state else None) or run_result.error or {}
                 error_detail = ErrorDetail(
@@ -142,6 +152,14 @@ class InvestigationExecutor:
                     ended_at=end_iso,
                     duration_ms=elapsed_ms,
                 )
+                try:
+                    record_step_completion(
+                        agent=spec.agent or "unknown",
+                        duration_ms=float(elapsed_ms),
+                        status="error",
+                    )
+                except Exception:
+                    pass
 
         except Exception as e:
             elapsed_ms = round((time.monotonic() - start_mono) * 1000)
@@ -160,6 +178,19 @@ class InvestigationExecutor:
                 ended_at=end_iso,
                 duration_ms=elapsed_ms,
             )
+            try:
+                # Bubble-up exception path — treat timeouts distinctly so
+                # the 'timeout' histogram label actually sees data when the
+                # outbox-driven timeout window fires.
+                from asyncio import TimeoutError as _AioTimeout
+                status = "timeout" if isinstance(e, _AioTimeout) else "error"
+                record_step_completion(
+                    agent=spec.agent or "unknown",
+                    duration_ms=float(elapsed_ms),
+                    status=status,
+                )
+            except Exception:
+                pass
 
         seq = self._dag.next_sequence()
         await self._commit_step_transition(vstep, seq)
