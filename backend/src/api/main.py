@@ -721,6 +721,14 @@ def create_app() -> FastAPI:
             logger.warning("RemediationEngine startup failed: %s", e)
 
     async def shutdown():
+        # ── Close shared per-backend http client pool (Task 3.3) ──
+        try:
+            from src.integrations.http_clients import close_all as _close_http_clients
+            await _close_http_clients()
+            logger.info("Shared http client pool closed")
+        except Exception as e:
+            logger.warning("http_clients.close_all failed: %s", e)
+
         # ── Close Redis connection ──
         if getattr(app.state, "redis", None):
             try:
