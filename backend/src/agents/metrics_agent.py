@@ -9,8 +9,27 @@ import requests
 
 from src.agents.react_base import ReActAgent
 from src.models.schemas import MetricAnomaly, DataPoint, TimeRange, MetricsAnalysisResult, TokenUsage
+from src.tools.promql_safety import UnsafeQuery, validate_promql
 from src.utils.event_emitter import EventEmitter
 from src.utils.logger import get_logger
+
+
+def _parse_step_seconds(step: Any) -> int:
+    """Convert a Prometheus step value (``"60s"``, ``"1m"``, int, float)
+    into seconds. Unrecognised → 60 so validate_promql can still run on
+    the best-guess assumption that step is at least the minimum."""
+    if isinstance(step, (int, float)):
+        return max(1, int(step))
+    if not isinstance(step, str) or not step:
+        return 60
+    unit = step[-1].lower()
+    value_part = step[:-1]
+    mult = {"s": 1, "m": 60, "h": 3600, "d": 86400}
+    if unit in mult and value_part.isdigit():
+        return max(1, int(value_part) * mult[unit])
+    if step.isdigit():
+        return max(1, int(step))
+    return 60
 
 logger = get_logger(__name__)
 
@@ -324,6 +343,15 @@ OUTPUT FORMAT — Final answer as JSON:
         end = self._resolve_time(params["end"])
         step = params.get("step", "60s")
 
+        # Task 1.11: safety bounds. Reject unbounded / high-cardinality
+        # PromQL before it hits Prometheus.
+        try:
+            step_s = _parse_step_seconds(step)
+            range_h = max(1, int((end - start) / 3600)) if isinstance(start, (int, float)) and isinstance(end, (int, float)) else 24
+            validate_promql(query, step_s=step_s, range_h=range_h)
+        except UnsafeQuery as e:
+            return json.dumps({"error": f"unsafe_promql: {e}"})
+
         try:
             resp = await self._async_get(
                 f"{self.prometheus_url}/api/v1/query_range",
@@ -381,6 +409,11 @@ OUTPUT FORMAT — Final answer as JSON:
 
     async def _query_instant(self, params: dict) -> str:
         query = params["query"]
+        # Task 1.11: instant queries still need namespace/length/year bounds.
+        try:
+            validate_promql(query, step_s=60, range_h=1)
+        except UnsafeQuery as e:
+            return json.dumps({"error": f"unsafe_promql: {e}"})
         try:
             resp = await self._async_get(
                 f"{self.prometheus_url}/api/v1/query",
