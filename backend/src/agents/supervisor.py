@@ -39,6 +39,10 @@ from src.agents.orchestration.dispatcher import (
     StepResult,
 )
 from src.agents.orchestration.eval_gate import EvalGate
+from src.agents.orchestration.confidence_adapter import (
+    compute_state_confidence,
+    state_confidence_mode,
+)
 from src.agents.orchestration.planner import Planner
 from src.agents.orchestration.reducer import Reducer
 from src.agents.orchestration.state_adapters import (
@@ -513,6 +517,12 @@ class SupervisorAgent:
             else:
                 rounds_since_new_signal += 1
 
+            # Stage F — env-gated deterministic confidence override.
+            # Legacy per-agent running-average is computed inside
+            # _update_state_with_result; when the deterministic flag is set
+            # we recompute from state as a whole *after* the result loop.
+            # The override lands below so _update_state_with_result has
+            # already filled in any typed-state fields the formula reads.
             for agent_name, agent_result in agent_results:
                 if isinstance(agent_result, Exception):
                     logger.error("Agent raised exception", extra={"agent_name": agent_name, "extra": str(agent_result)})
@@ -575,6 +585,21 @@ class SupervisorAgent:
                                         "action": "re_investigation_capped",
                                         "extra": {"re_investigation_count": re_investigation_count}
                                     })
+
+            # Stage F — deterministic confidence override (env-flagged).
+            # Runs after _update_state_with_result has mutated state for
+            # each agent so the ConfidenceInputs reflect the newest round.
+            if state_confidence_mode() == "deterministic":
+                try:
+                    det_conf = compute_state_confidence(state)
+                    # compute_state_confidence returns 0..1; overall_confidence
+                    # is 0..100.
+                    state.overall_confidence = round(max(0.0, min(det_conf, 1.0)) * 100)
+                except Exception as _conf_exc:
+                    logger.warning(
+                        "deterministic confidence failed; retaining legacy value: %s",
+                        _conf_exc,
+                    )
 
             old_phase = state.phase
             self._update_phase(state, event_emitter)
