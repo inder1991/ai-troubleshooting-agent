@@ -89,6 +89,12 @@ class StartSessionRequest(BaseModel):
     port_num: Annotated[Optional[int], Field(alias="portNum")] = None
     net_protocol: Annotated[Optional[str], Field(alias="netProtocol")] = None
     extra: Optional[dict] = None  # Additional capability-specific config
+    # Phase-4 Task 4.5 opt-in: run the supervisor N times with shuffled
+    # agent dispatch orders and vote on the winner. N>1 triples LLM cost
+    # so this is off by default.
+    self_consistency_runs: Annotated[
+        int, Field(alias="selfConsistencyRuns", ge=1, le=5)
+    ] = 1
 
 
 class StartSessionResponse(BaseModel):
