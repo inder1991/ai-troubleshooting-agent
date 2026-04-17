@@ -1272,6 +1272,10 @@ async def get_session_status(session_id: str):
         # show "Evidence coverage: 3/5 agents" instead of silently
         # hiding agents that never ran.
         result["coverage_gaps"] = list(getattr(state, "coverage_gaps", []) or [])
+        # Stage D of the run_v5 orchestration swap — explicit stop reason
+        # so the UI can answer "why did the investigation stop?" without
+        # re-deriving it from loop-completion heuristics.
+        result["diagnosis_stop_reason"] = getattr(state, "diagnosis_stop_reason", None)
 
     return result
 

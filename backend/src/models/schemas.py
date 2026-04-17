@@ -940,6 +940,14 @@ class DiagnosticState(BaseModel):
     agents_pending: list[str] = Field(default_factory=list)
     overall_confidence: float = Field(default=0, ge=0, le=100)
 
+    # Stage D of the run_v5 orchestration swap — explicit answer to
+    # "why did this investigation stop?". One of:
+    #   max_rounds_reached | high_confidence_no_challenges |
+    #   coverage_saturated_no_new_signal | planner_empty |
+    #   signature_matched_<name> | cancelled | error
+    # None while the loop is still running.
+    diagnosis_stop_reason: Optional[str] = None
+
     # Agent execution statuses: {agent_name: "success"|"no_findings"|"error"}
     agent_statuses: dict[str, str] = Field(default_factory=dict)
 

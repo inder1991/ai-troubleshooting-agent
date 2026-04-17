@@ -38,7 +38,9 @@ from src.agents.orchestration.dispatcher import (
     Dispatcher,
     StepResult,
 )
+from src.agents.orchestration.eval_gate import EvalGate
 from src.agents.orchestration.reducer import Reducer
+from src.agents.orchestration.state_adapters import eval_gate_inputs
 from src.agents.impact_analyzer import ImpactAnalyzer
 from src.utils.llm_client import AnthropicClient
 from src.utils.event_emitter import EventEmitter
@@ -300,15 +302,30 @@ class SupervisorAgent:
         max_rounds = 10
         re_investigation_count = 0
         max_re_investigations = 1  # Allow at most 1 re-investigation cycle
-        # Stage C — Reducer produces structured round summaries that drive
-        # stall detection. ``rounds_since_new_signal`` feeds EvalGate in
-        # Stage D; for now it's tracked but unused.
+        # Stage C + D — Reducer + EvalGate drive the loop. EvalGate
+        # produces an explicit stop reason the API + UI can surface.
         reducer = Reducer()
+        gate = EvalGate()
         rounds_since_new_signal = 0
-        for round_num in range(max_rounds):
+        round_num = 0
+        while True:
+            gate_decision = gate.is_done(
+                eval_gate_inputs(
+                    state,
+                    round_num=round_num,
+                    rounds_since_new_signal=rounds_since_new_signal,
+                    max_rounds=max_rounds,
+                    max_agents=len(self._agents) or 6,
+                )
+            )
+            if gate_decision.is_done:
+                state.diagnosis_stop_reason = gate_decision.reason
+                break
+
             next_agents = self._decide_next_agents(state)
 
             if not next_agents:
+                state.diagnosis_stop_reason = state.diagnosis_stop_reason or "planner_empty"
                 # Add synthesis delay for mocked demo pacing
                 import os as _os_synth
                 _mock_synth = [a.strip() for a in _os_synth.getenv("MOCK_AGENTS", "").split(",") if a.strip()]
@@ -568,6 +585,8 @@ class SupervisorAgent:
                 # (timeout, skip, no affected services) to prevent re-dispatch
                 if "change_agent" not in state.agents_completed:
                     state.agents_completed.append("change_agent")
+
+            round_num += 1
 
         # Compile token usage
         state.token_usage.append(self.llm_client.get_total_usage())
