@@ -113,6 +113,11 @@ class Finding(BaseModel):
     negative_findings: list[NegativeFinding]
     critic_verdict: Optional[CriticVerdict] = None
     resource_refs: list["ResourceRef"] = Field(default_factory=list)
+    # Phase-4 Task 4.23 — content-addressed prompt version the agent
+    # was running when it produced this finding. Populated by a
+    # supervisor-side post-dispatch stamp; None when the registry
+    # didn't have a row for the agent at stamp time.
+    prompt_version_id: Optional[str] = None
 
     @computed_field
     @property

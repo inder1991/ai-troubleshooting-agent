@@ -631,6 +631,7 @@ class SupervisorAgent:
                     continue
                 if agent_result:
                     await self._update_state_with_result(state, agent_name, agent_result, event_emitter)
+                    self._stamp_prompt_version(state, agent_name)
                     state.agents_completed.append(agent_name)
 
                     # Evaluate hypotheses after each agent
@@ -871,6 +872,47 @@ class SupervisorAgent:
             return []
 
         return []
+
+    def _stamp_prompt_version(self, state, agent_name: str) -> None:
+        """Stamp unstamped findings from ``agent_name`` with the agent's
+        current prompt_version_id. Best-effort: a registry miss leaves
+        the field as None rather than failing the investigation.
+
+        Phase-4 Task 4.23 wiring — supervisor-side implementation keeps
+        each agent's source file untouched. Agents that later want to
+        self-stamp can still call PromptRegistry().get(self.agent_name)
+        on init; the supervisor-side stamp idempotently skips findings
+        that already carry a version_id.
+        """
+        try:
+            from src.prompts.registry import PromptRegistry
+
+            registry_key = agent_name.replace("_agent", "_agent")
+            # PromptRegistry is keyed by the concrete agent names we seeded
+            # in Task 4.23 (log_agent, metrics_agent, ...). Unknown agent
+            # names just miss cleanly.
+            pinned = None
+            try:
+                pinned = PromptRegistry().get(registry_key)
+            except KeyError:
+                return
+            if pinned is None:
+                return
+            for finding in getattr(state, "all_findings", None) or []:
+                if (
+                    getattr(finding, "agent_name", None) == agent_name
+                    and not getattr(finding, "prompt_version_id", None)
+                ):
+                    try:
+                        finding.prompt_version_id = pinned.version_id
+                    except Exception:
+                        # Pydantic v2 models allow attribute assignment;
+                        # guard anyway so a model-config change never
+                        # breaks a live run.
+                        pass
+        except Exception:
+            # Stamping must never fail the investigation.
+            pass
 
     async def _persist_winning_agents(self, state) -> None:
         """UPSERT state.winning_agents into the DAG snapshot payload.
