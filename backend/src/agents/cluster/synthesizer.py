@@ -303,7 +303,7 @@ async def _llm_causal_reasoning(
                 messages=[{"role": "user", "content": bounded_prompt}],
                 tools=[SUBMIT_CAUSAL_ANALYSIS_TOOL],
                 max_tokens=3000,
-                temperature=0.1,
+                temperature=0.0,
             ),
             timeout=30,
         )
@@ -430,7 +430,7 @@ Note: re_dispatch_domains valid values are: ctrl_plane, node, network, storage, 
                 messages=[{"role": "user", "content": prompt}],
                 tools=[SUBMIT_VERDICT_TOOL],
                 max_tokens=3000,
-                temperature=0.1,
+                temperature=0.0,
             ),
             timeout=30,
         )
