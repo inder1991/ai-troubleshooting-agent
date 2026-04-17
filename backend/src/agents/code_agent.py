@@ -170,6 +170,10 @@ class CodeNavigatorAgent(ReActAgent):
         result = self._parse_final_response(analyze_response.text)
         result["mode"] = "two_pass"
         result["llm_calls"] = 1 if plan.get("can_produce_final_answer") else 2
+        # K.10 — validate every file:line pair the LLM produced against
+        # the content we've already prefetched. Stale frames get
+        # is_stale=True so the UI's StackTraceTelescope warning fires.
+        self._stamp_stale_frames(result, additional_data.get("file_contents") or {})
         logger.info("Two-pass analysis complete", extra={
             "agent_name": self.agent_name, "action": "complete",
             "extra": {"confidence": result.get("overall_confidence", 0)},
@@ -1180,6 +1184,61 @@ When you encounter the following file types, apply type-specific analysis checks
         }
         logger.info("Code agent complete", extra={"agent_name": self.agent_name, "action": "complete", "extra": {"impacted_files": len(data.get("impacted_files", [])), "confidence": data.get("overall_confidence", 0)}})
         return result
+
+    # --- K.10: stack-trace stale-line validator ---
+
+    def _stamp_stale_frames(self, result: dict, file_contents: dict[str, str]) -> None:
+        """Walk root_cause_location + impacted_files and stamp
+        ``is_stale=True`` on any entry whose cited line exceeds the
+        prefetched file's length. Silently no-ops when content isn't
+        available — we can't prove a frame is stale without data.
+        """
+        if not file_contents:
+            return
+
+        def _line_count(path: str) -> int | None:
+            content = file_contents.get(path)
+            if content is None:
+                return None
+            return len(content.splitlines())
+
+        def _mark(entry: dict) -> None:
+            path = entry.get("file_path") or entry.get("file")
+            if not path:
+                return
+            length = _line_count(path)
+            if length is None:
+                return
+            # relevant_lines may be a list of {start, end} ranges or
+            # a list of ints — tolerate both.
+            stale_hits: list[str] = []
+            lines = entry.get("relevant_lines") or entry.get("line_numbers") or []
+            for item in lines:
+                if isinstance(item, dict):
+                    end = item.get("end") or item.get("start")
+                else:
+                    end = item
+                try:
+                    ln = int(end)
+                except (TypeError, ValueError):
+                    continue
+                if ln > length:
+                    stale_hits.append(f"{path}:{ln} > file length {length}")
+            if stale_hits:
+                entry["is_stale"] = True
+                entry["stale_reason"] = "; ".join(stale_hits)
+            else:
+                entry["is_stale"] = False
+
+        root = result.get("root_cause_location")
+        if isinstance(root, dict):
+            _mark(root)
+        for entry in result.get("impacted_files") or []:
+            if isinstance(entry, dict):
+                _mark(entry)
+        for entry in result.get("suggested_fix_areas") or []:
+            if isinstance(entry, dict):
+                _mark(entry)
 
     # --- Helpers ---
 
