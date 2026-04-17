@@ -7,6 +7,7 @@ import { FilterToolbar } from './FilterToolbar';
 import { PhaseBreadcrumbs } from './PhaseBreadcrumbs';
 import { GhostPhaseWrapper } from './GhostPhaseWrapper';
 import HypothesisScoreboard from './HypothesisScoreboard';
+import { CoverageGapsBanner } from './CoverageGapsBanner';
 
 interface InvestigatorProps {
   sessionId: string;
@@ -372,6 +373,12 @@ const Investigator: React.FC<InvestigatorProps> = ({
 
   return (
     <div className="flex flex-col h-full bg-wr-bg/20">
+      {/* Coverage-gap banner (Task 4.10) — surfaces agents that didn't run */}
+      {findings?.coverage_gaps && findings.coverage_gaps.length > 0 && (
+        <div className="px-4 pt-3">
+          <CoverageGapsBanner gaps={findings.coverage_gaps} />
+        </div>
+      )}
       {/* Patient Zero Banner (sticky) */}
       {findings?.patient_zero && (
         <div className="sticky top-0 z-10 bg-gradient-to-r from-red-950/80 to-red-900/40 border-b border-wr-severity-high/30 px-4 py-3 animate-pulse-red">
