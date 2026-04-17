@@ -224,17 +224,27 @@ class CriticEnsemble:
         *,
         partitioner: EvidencePartitioner | None = None,
         aggregator: JudgeAggregator | None = None,
+        retriever: Any | None = None,
         model: str = "claude-sonnet-4-20250514",
         top_k: int = 3,
     ) -> None:
         self._client = client
         self._partitioner = partitioner or EvidencePartitioner()
         self._aggregator = aggregator or JudgeAggregator()
+        self._retriever = retriever
         self._model = model
         self._top_k = top_k
 
     async def evaluate(self, *, finding: dict, evidence_pins: list[Any]) -> EnsembleResult:
         finding_claim = finding.get("claim", "") if isinstance(finding, dict) else getattr(finding, "claim", "")
+        # Retriever pool — injected before partitioning so cross-source pins
+        # are eligible to land on either side according to their support score.
+        if self._retriever is not None:
+            try:
+                retrieved = await self._retriever.fetch_independent_evidence(finding)
+            except Exception:
+                retrieved = []
+            evidence_pins = list(evidence_pins) + list(retrieved)
         advocate_pins, challenger_pins = self._partitioner.partition(
             evidence_pins, finding_claim, top_k=self._top_k
         )
