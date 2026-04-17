@@ -16,3 +16,11 @@ frontend/test-results/
 
 # Runtime data
 backend/data/
+data/*.db
+data/*.db-journal
+data/*.db-wal
+data/*.db-shm
+
+# Claude Code harness runtime state
+.claude/scheduled_tasks.lock
+.claude/worktrees/
