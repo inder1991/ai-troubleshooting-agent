@@ -1390,7 +1390,16 @@ Respond with JSON only. No markdown fences."""
                         {"match_phrase": {"app": query}},
                         {"match_phrase": {"host.name": query}},
                         {"match_phrase": {"container.name": query}},
-                        {"query_string": {"query": f'"{query}"'}},
+                        # Task 1.12: qualify the fallback so the ELK
+                        # allowlist accepts it (no unbounded field scan).
+                        {"query_string": {
+                            "query": f'"{query}"',
+                            "fields": [
+                                "service", "service.name", "service_name",
+                                "kubernetes.container.name", "kubernetes.labels.app",
+                                "app", "host.name", "container.name",
+                            ],
+                        }},
                     ],
                     "minimum_should_match": 1,
                 }
@@ -1435,6 +1444,17 @@ Respond with JSON only. No markdown fences."""
         # Exclude health-check / readiness / liveness probe noise
         if exclude_noise:
             es_query["query"]["bool"]["must_not"] = list(self._NOISE_EXCLUSION_CLAUSES)
+
+        # Task 1.12: safety bounds on every dispatched ES query.
+        from src.tools.elk_safety import UnsafeQuery as _ElkUnsafe, validate_elk_query
+        try:
+            validate_elk_query(es_query)
+        except _ElkUnsafe as e:
+            logger.warning(
+                "ES query rejected by safety middleware",
+                extra={"agent_name": self.agent_name, "action": "elk_unsafe", "extra": str(e)},
+            )
+            return json.dumps({"error": f"unsafe_elk_query: {e}", "total": 0, "logs": []})
 
         try:
             resp = requests.post(
@@ -1510,23 +1530,44 @@ Respond with JSON only. No markdown fences."""
         index = params.get("index", "app-logs-*")
         trace_id = params["trace_id"]
         size = params.get("size", 100)
+        # Task 1.12: every ES query needs a time range envelope.
+        # Trace-id matches are narrowly scoped already but we still
+        # bound the walk at 7d to honor the allowlist.
+        time_range = params.get("time_range", "now-7d")
 
         es_query = {
             "size": size,
             "sort": [{"@timestamp": {"order": "asc"}}],
             "query": {
                 "bool": {
-                    "should": [
-                        {"match": {"trace_id": trace_id}},
-                        {"match": {"traceId": trace_id}},
-                        {"match": {"correlation_id": trace_id}},
-                        {"match": {"request_id": trace_id}},
-                        {"match": {"x-request-id": trace_id}},
+                    "must": [
+                        {"bool": {
+                            "should": [
+                                {"match": {"trace_id": trace_id}},
+                                {"match": {"traceId": trace_id}},
+                                {"match": {"correlation_id": trace_id}},
+                                {"match": {"request_id": trace_id}},
+                                {"match": {"x-request-id": trace_id}},
+                            ],
+                            "minimum_should_match": 1,
+                        }},
                     ],
-                    "minimum_should_match": 1,
+                    "filter": [
+                        {"range": {"@timestamp": {"gte": time_range, "lte": "now"}}},
+                    ],
                 }
             },
         }
+
+        from src.tools.elk_safety import UnsafeQuery as _ElkUnsafe, validate_elk_query
+        try:
+            validate_elk_query(es_query)
+        except _ElkUnsafe as e:
+            logger.warning(
+                "Trace-ID ES query rejected by safety middleware",
+                extra={"agent_name": self.agent_name, "action": "elk_unsafe_trace", "extra": str(e)},
+            )
+            return json.dumps({"error": f"unsafe_elk_query: {e}", "total": 0, "logs": []})
 
         try:
             resp = requests.post(
