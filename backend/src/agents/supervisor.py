@@ -39,8 +39,12 @@ from src.agents.orchestration.dispatcher import (
     StepResult,
 )
 from src.agents.orchestration.eval_gate import EvalGate
+from src.agents.orchestration.planner import Planner
 from src.agents.orchestration.reducer import Reducer
-from src.agents.orchestration.state_adapters import eval_gate_inputs
+from src.agents.orchestration.state_adapters import (
+    eval_gate_inputs,
+    planner_inputs,
+)
 from src.agents.impact_analyzer import ImpactAnalyzer
 from src.utils.llm_client import AnthropicClient
 from src.utils.event_emitter import EventEmitter
@@ -306,6 +310,7 @@ class SupervisorAgent:
         # produces an explicit stop reason the API + UI can surface.
         reducer = Reducer()
         gate = EvalGate()
+        planner = Planner()
         rounds_since_new_signal = 0
         round_num = 0
         while True:
@@ -322,7 +327,17 @@ class SupervisorAgent:
                 state.diagnosis_stop_reason = gate_decision.reason
                 break
 
-            next_agents = self._decide_next_agents(state)
+            # Stage E — Planner routing is env-flagged. Default is
+            # 'legacy' so existing pipeline behaviour / tests are unchanged;
+            # operators flip to 'deterministic' to enable the new rule-based
+            # Planner.next(...) with coverage_gaps + capability flags.
+            _planner_mode = os.getenv("DIAGNOSTIC_PLANNER_MODE", "legacy").strip().lower()
+            if _planner_mode == "deterministic":
+                next_agents = planner.next(
+                    planner_inputs(state, registered_agents=set(self._agents.keys()))
+                )
+            else:
+                next_agents = self._decide_next_agents(state)
 
             if not next_agents:
                 state.diagnosis_stop_reason = state.diagnosis_stop_reason or "planner_empty"
