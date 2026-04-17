@@ -376,6 +376,8 @@ export interface V4SessionStatus {
   budget?: BudgetTelemetry;
   /** Self-consistency summary (Task 4.5 + UI Task 4.12). */
   self_consistency?: SelfConsistencySummary;
+  /** Winning-hypothesis critic dissent (Task 2.6 + UI Task 4.16). */
+  winner_critic_dissent?: WinnerCriticDissent | null;
   created_at: string;
   updated_at: string;
   capability?: CapabilityType;
@@ -393,6 +395,13 @@ export interface SelfConsistencySummary {
   n_runs: number;
   agreed_count: number;
   penalty_pct: number;
+}
+
+export interface WinnerCriticDissent {
+  advocate_verdict: 'confirmed' | 'challenged' | 'insufficient_evidence';
+  challenger_verdict: 'confirmed' | 'challenged' | 'insufficient_evidence';
+  judge_verdict: 'confirmed' | 'challenged' | 'needs_more_evidence';
+  summary?: string;
 }
 
 export interface SuggestedPromQLQuery {

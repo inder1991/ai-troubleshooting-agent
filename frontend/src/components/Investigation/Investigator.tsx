@@ -12,6 +12,7 @@ import { BudgetPill } from './BudgetPill';
 import { SelfConsistencyBadge } from './SelfConsistencyBadge';
 import { FeedbackRow } from './FeedbackRow';
 import { submitInvestigationFeedback } from '../../services/api';
+import { CriticDissentBanner } from './CriticDissentBanner';
 
 interface InvestigatorProps {
   sessionId: string;
@@ -381,6 +382,12 @@ const Investigator: React.FC<InvestigatorProps> = ({
       {findings?.coverage_gaps && findings.coverage_gaps.length > 0 && (
         <div className="px-4 pt-3">
           <CoverageGapsBanner gaps={findings.coverage_gaps} />
+        </div>
+      )}
+      {/* Critic dissent banner (Task 4.16) — winner's advocate/challenger/judge diverged */}
+      {findings?.winner_critic_dissent && (
+        <div className="px-4 pt-2">
+          <CriticDissentBanner dissent={findings.winner_critic_dissent} />
         </div>
       )}
       {/* Telemetry strip: budget pill + self-consistency badge (Tasks 4.11, 4.12) */}
