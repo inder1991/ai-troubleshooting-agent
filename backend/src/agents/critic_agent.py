@@ -14,6 +14,104 @@ logger = get_logger(__name__)
 _CRITIC_LLM_TIMEOUT_S = 30.0
 
 
+# Task 1.9: Structured output via Anthropic tool-use. The critic gates
+# whether findings reach the user — regex extraction from free text has
+# been producing malformed/defaulted verdicts we can't audit. The tool
+# schema forces the SDK to validate enum + range at parse time.
+_VERDICT_TOOL_NAME = "submit_critic_verdict"
+_VERDICT_TOOL_SCHEMA: dict = {
+    "name": _VERDICT_TOOL_NAME,
+    "description": (
+        "Submit your final verdict on the proposed finding. "
+        "You MUST call this tool exactly once and MUST NOT reply in free text."
+    ),
+    "input_schema": {
+        "type": "object",
+        "required": ["verdict", "confidence", "reasoning"],
+        "properties": {
+            "verdict": {
+                "type": "string",
+                "enum": ["validated", "challenged", "insufficient_data"],
+                "description": (
+                    "validated: evidence supports the finding. "
+                    "challenged: evidence contradicts it. "
+                    "insufficient_data: not enough evidence either way."
+                ),
+            },
+            "confidence": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 100,
+                "description": "Confidence in this verdict (0-100)",
+            },
+            "reasoning": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Why you chose this verdict, max ~300 words",
+            },
+            "contradictions": {
+                "type": "array",
+                "items": {"type": "string"},
+                "default": [],
+                "description": "Specific contradictions found in other agent data",
+            },
+            "recommendation": {
+                "type": "string",
+                "description": "What to do next (only meaningful if challenged)",
+            },
+        },
+    },
+}
+
+
+class StructuredOutputRequired(Exception):
+    """Raised when the critic LLM returns free text instead of the forced
+    ``submit_critic_verdict`` tool call, or when the tool input violates
+    the declared schema. The caller decides whether to retry or skip —
+    we never silently fall back to a default verdict (operating rule 6)."""
+
+
+def _parse_critic_tool_use(response, finding: Finding) -> CriticVerdict:
+    """Extract the verdict from the Anthropic Messages response. Raises
+    ``StructuredOutputRequired`` if the forced tool call is missing or
+    its input fails validation."""
+    tool_uses = [
+        b for b in getattr(response, "content", []) if getattr(b, "type", None) == "tool_use"
+    ]
+    if not tool_uses:
+        raise StructuredOutputRequired(
+            f"critic LLM returned no {_VERDICT_TOOL_NAME} tool_use block"
+        )
+    if tool_uses[0].name != _VERDICT_TOOL_NAME:
+        raise StructuredOutputRequired(
+            f"critic LLM called unexpected tool {tool_uses[0].name!r}"
+        )
+    data = tool_uses[0].input or {}
+
+    verdict_val = data.get("verdict")
+    if verdict_val not in ("validated", "challenged", "insufficient_data"):
+        raise StructuredOutputRequired(
+            f"critic verdict {verdict_val!r} not in allowed enum"
+        )
+    conf = data.get("confidence")
+    if not isinstance(conf, int) or not (0 <= conf <= 100):
+        raise StructuredOutputRequired(
+            f"critic confidence {conf!r} missing or out of range"
+        )
+    reasoning = data.get("reasoning")
+    if not isinstance(reasoning, str) or not reasoning.strip():
+        raise StructuredOutputRequired("critic reasoning missing or empty")
+
+    return CriticVerdict(
+        finding_id=finding.finding_id,
+        agent_source=finding.agent_name,
+        verdict=verdict_val,
+        reasoning=reasoning,
+        recommendation=data.get("recommendation"),
+        confidence_in_verdict=conf,
+    )
+
+
 class CriticAgent:
     """Read-only agent that cross-validates findings against other agent data."""
 
@@ -22,31 +120,38 @@ class CriticAgent:
         self.llm_client = llm_client or AnthropicClient(agent_name="critic")
 
     async def validate(self, finding: Finding, state: DiagnosticState) -> CriticVerdict:
-        """Validate a finding against all available evidence in the diagnostic state."""
+        """Validate a finding against all available evidence in the diagnostic state.
+
+        Uses Anthropic tool-use (``submit_critic_verdict``) for structured
+        output (Task 1.9). Raises ``StructuredOutputRequired`` if the model
+        returns free text or an input that violates the tool schema — we
+        never silently default the verdict (operating rule 6).
+        """
         logger.info("Critic started", extra={"agent_name": "critic", "action": "validate_start", "extra": {"finding": finding.finding_id}})
         context = self._build_context(finding, state)
+        system_prompt = (
+            "You are a Critic Agent. Your ONLY job is to validate or challenge "
+            "findings from other agents.\n\n"
+            "Rules:\n"
+            "1. You have NO write access — only read and analyze existing data\n"
+            "2. Cross-check the finding against data from ALL other agents\n"
+            "3. Look for contradictions, inconsistencies, or unsupported claims\n"
+            "4. If evidence supports the finding, verdict is 'validated'\n"
+            "5. If evidence contradicts the finding, verdict is 'challenged'\n"
+            "6. If there's not enough evidence, verdict is 'insufficient_data'\n\n"
+            "OUTPUT CONTRACT: You MUST call the submit_critic_verdict tool "
+            "exactly once. Do not reply in free text. Do not call any other "
+            "tool."
+        )
 
         try:
             response = await asyncio.wait_for(
-                self.llm_client.chat(
-                    prompt=context,
-                    system="""You are a Critic Agent. Your ONLY job is to validate or challenge findings from other agents.
-
-Rules:
-1. You have NO write access — you can only read and analyze existing data
-2. Check the finding against data from ALL other agents
-3. Look for contradictions, inconsistencies, or unsupported claims
-4. If evidence supports the finding, verdict is "validated"
-5. If evidence contradicts the finding, verdict is "challenged"
-6. If there's not enough evidence either way, verdict is "insufficient_data"
-
-Respond with JSON:
-{
-    "verdict": "validated|challenged|insufficient_data",
-    "reasoning": "Detailed explanation",
-    "recommendation": "What to do next (if challenged)",
-    "confidence_in_verdict": 85
-}""",
+                self.llm_client.chat_with_tools(
+                    system=system_prompt,
+                    messages=[{"role": "user", "content": context}],
+                    tools=[_VERDICT_TOOL_SCHEMA],
+                    tool_choice={"type": "tool", "name": _VERDICT_TOOL_NAME},
+                    max_tokens=2048,
                 ),
                 timeout=_CRITIC_LLM_TIMEOUT_S,
             )
@@ -64,48 +169,20 @@ Respond with JSON:
                 confidence_in_verdict=0,
             )
 
-        try:
-            import re
-            json_match = re.search(r'\{[\s\S]*\}', response.text)
-            if json_match:
-                data = json.loads(json_match.group())
-            else:
-                data = json.loads(response.text)
-
-            verdict_obj = CriticVerdict(
-                finding_id=finding.finding_id,
-                agent_source=finding.agent_name,
-                verdict=data.get("verdict", "insufficient_data"),
-                reasoning=data.get("reasoning", "Unable to parse response"),
-                recommendation=data.get("recommendation"),
-                confidence_in_verdict=min(max(data.get("confidence_in_verdict", 50), 0), 100),
-            )
-            logger.info("Verdict issued", extra={"agent_name": "critic", "action": "verdict", "extra": {"finding": finding.finding_id, "verdict": verdict_obj.verdict, "confidence": verdict_obj.confidence_in_verdict}})
-            return verdict_obj
-        except json.JSONDecodeError:
-            logger.warning("Failed to parse Critic JSON response", extra={
-                "agent_name": "critic", "action": "parse_error",
-                "extra": {"finding": finding.finding_id, "response_preview": response.text[:200]},
-            })
-            return CriticVerdict(
-                finding_id=finding.finding_id,
-                agent_source=finding.agent_name,
-                verdict="insufficient_data",
-                reasoning=f"Failed to parse Critic response: {response.text[:200]}",
-                confidence_in_verdict=30,
-            )
-        except Exception as e:
-            logger.error("Critic validation unexpected error", extra={
-                "agent_name": "critic", "action": "validation_error",
-                "extra": {"finding": finding.finding_id, "error": str(e)},
-            })
-            return CriticVerdict(
-                finding_id=finding.finding_id,
-                agent_source=finding.agent_name,
-                verdict="insufficient_data",
-                reasoning=f"Critic validation error: {str(e)[:200]}",
-                confidence_in_verdict=20,
-            )
+        verdict_obj = _parse_critic_tool_use(response, finding)
+        logger.info(
+            "Verdict issued",
+            extra={
+                "agent_name": "critic",
+                "action": "verdict",
+                "extra": {
+                    "finding": finding.finding_id,
+                    "verdict": verdict_obj.verdict,
+                    "confidence": verdict_obj.confidence_in_verdict,
+                },
+            },
+        )
+        return verdict_obj
 
     async def validate_delta(
         self,
