@@ -47,6 +47,28 @@ class Outbox(Base):
     relayed_at = mapped_column(sa.DateTime(timezone=True), nullable=True)
 
 
+class AgentPrior(Base):
+    """Per-agent confidence prior, persisted across investigations.
+
+    Written by ``ConfidenceCalibrator.update_prior`` after a feedback signal
+    (user-labelled correct/incorrect outcome). Read back at the start of the
+    next investigation so learning carries forward.
+    """
+
+    __tablename__ = "agent_priors"
+
+    agent_name = mapped_column(sa.String(128), primary_key=True)
+    prior = mapped_column(sa.Float, nullable=False, server_default=sa.text("0.65"))
+    sample_count = mapped_column(
+        sa.BigInteger, nullable=False, server_default=sa.text("0")
+    )
+    updated_at = mapped_column(
+        sa.DateTime(timezone=True),
+        nullable=False,
+        server_default=sa.func.now(),
+    )
+
+
 class DagSnapshot(Base):
     """One-row-per-run snapshot of the VirtualDag, written transactionally
     alongside outbox events by ``OutboxWriter`` (see ``workflows/outbox.py``)."""

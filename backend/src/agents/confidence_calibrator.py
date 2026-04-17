@@ -15,10 +15,26 @@ asking a model:
   - topology_path_length: whether we traversed a service-topology path
 
 Weights live here (not a YAML) so the policy is auditable with the code.
+
+Priors:
+  ``ConfidenceCalibrator.update_prior`` / ``get_prior`` persist per-agent
+  priors to Postgres (table ``agent_priors``). A prior is an EMA-style
+  rolling estimate of the fraction of this agent's findings the user later
+  labelled correct. Priors are currently read/written but not yet fed into
+  ``compute_confidence`` — the two are deliberately decoupled until the
+  feedback endpoint (Task 2.5) and supervisor wiring land. That keeps
+  Task 2.3's determinism guarantee intact during this transition.
 """
 from __future__ import annotations
 
 from dataclasses import dataclass
+
+from sqlalchemy import func
+from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy import select
+
+from src.database.engine import get_session
+from src.database.models import AgentPrior
 
 # Contribution weights. They are deliberately expressed as a convex-ish
 # combination with a small signature/topology bonus and a contradiction
@@ -74,3 +90,64 @@ def compute_confidence(i: ConfidenceInputs) -> float:
     )
     contra_penalty = min(i.contradiction_count * _W_CONTRA_PENALTY, _W_CONTRA_CAP)
     return max(0.0, min(1.0, base - contra_penalty + topo_bonus))
+
+
+# ── Priors ────────────────────────────────────────────────────────────────
+
+DEFAULT_PRIOR: float = 0.65
+# EMA smoothing factor for prior updates: larger alpha = more responsive,
+# smaller = more stable. 0.1 keeps a decade of samples visible.
+_PRIOR_ALPHA: float = 0.1
+
+
+class ConfidenceCalibrator:
+    """Async wrapper over the agent_priors table.
+
+    Stateless — each call opens its own session. The caller is responsible
+    for choosing when to update (typically on a feedback signal).
+    """
+
+    async def get_prior(self, agent_name: str) -> float:
+        async with get_session() as session:
+            row = await session.execute(
+                select(AgentPrior.prior).where(AgentPrior.agent_name == agent_name)
+            )
+            val = row.scalar_one_or_none()
+            return float(val) if val is not None else DEFAULT_PRIOR
+
+    async def update_prior(self, agent_name: str, was_correct: bool) -> float:
+        """UPSERT the per-agent prior using an EMA toward the latest signal.
+
+        Returns the new prior after the update.
+        """
+        target = 1.0 if was_correct else 0.0
+        async with get_session() as session:
+            async with session.begin():
+                existing = await session.execute(
+                    select(AgentPrior.prior, AgentPrior.sample_count).where(
+                        AgentPrior.agent_name == agent_name
+                    )
+                )
+                row = existing.first()
+                if row is None:
+                    current = DEFAULT_PRIOR
+                    sample_count = 0
+                else:
+                    current = float(row.prior)
+                    sample_count = int(row.sample_count)
+                new_prior = (1 - _PRIOR_ALPHA) * current + _PRIOR_ALPHA * target
+                stmt = pg_insert(AgentPrior).values(
+                    agent_name=agent_name,
+                    prior=new_prior,
+                    sample_count=sample_count + 1,
+                )
+                stmt = stmt.on_conflict_do_update(
+                    index_elements=[AgentPrior.agent_name],
+                    set_={
+                        "prior": stmt.excluded.prior,
+                        "sample_count": stmt.excluded.sample_count,
+                        "updated_at": func.now(),
+                    },
+                )
+                await session.execute(stmt)
+        return new_prior
