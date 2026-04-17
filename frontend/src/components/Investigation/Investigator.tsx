@@ -10,6 +10,8 @@ import HypothesisScoreboard from './HypothesisScoreboard';
 import { CoverageGapsBanner } from './CoverageGapsBanner';
 import { BudgetPill } from './BudgetPill';
 import { SelfConsistencyBadge } from './SelfConsistencyBadge';
+import { FeedbackRow } from './FeedbackRow';
+import { submitInvestigationFeedback } from '../../services/api';
 
 interface InvestigatorProps {
   sessionId: string;
@@ -556,6 +558,14 @@ const Investigator: React.FC<InvestigatorProps> = ({
         hypotheses={findings?.hypotheses || []}
         result={findings?.hypothesis_result || null}
         legacyGuess={bestGuess}
+      />
+      {/* Feedback row (Task 4.13) — user labels the outcome; priors update server-side */}
+      <FeedbackRow
+        runId={`investigation-${sessionId}`}
+        submit={async (payload) => {
+          await submitInvestigationFeedback(payload);
+          return { ok: true };
+        }}
       />
     </div>
   );
