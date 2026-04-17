@@ -4,6 +4,7 @@ BMC Remedy ITSM client — JWT login, create incident.
 
 import httpx
 
+from src.integrations.post_retry import idempotent_post
 from src.utils.logger import get_logger
 
 logger = get_logger("remedy_client")
@@ -82,7 +83,9 @@ class RemedyClient:
         payload = {"values": values}
 
         async with httpx.AsyncClient(verify=False, timeout=15.0) as client:
-            resp = await client.post(url, json=payload, headers=headers)
+            # K.6 — idempotency-key + retry-after so a retried POST doesn't
+            # create a second incident.
+            resp = await idempotent_post(client, url, json=payload, headers=headers)
             resp.raise_for_status()
             data = resp.json()
 
