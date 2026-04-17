@@ -372,10 +372,27 @@ export interface V4SessionStatus {
    * Format: "<agent_name>: <reason>". Surfaced by Task 1.14 so the
    * trust UI reflects actual coverage vs attempted coverage. */
   coverage_gaps?: string[];
+  /** Per-investigation budget telemetry (Task 3.1 + UI Task 4.11). */
+  budget?: BudgetTelemetry;
+  /** Self-consistency summary (Task 4.5 + UI Task 4.12). */
+  self_consistency?: SelfConsistencySummary;
   created_at: string;
   updated_at: string;
   capability?: CapabilityType;
   pending_action: PendingAction | null;
+}
+
+export interface BudgetTelemetry {
+  tool_calls_used: number;
+  tool_calls_max: number;
+  llm_usd_used: number;
+  llm_usd_max: number;
+}
+
+export interface SelfConsistencySummary {
+  n_runs: number;
+  agreed_count: number;
+  penalty_pct: number;
 }
 
 export interface SuggestedPromQLQuery {

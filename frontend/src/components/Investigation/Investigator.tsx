@@ -8,6 +8,8 @@ import { PhaseBreadcrumbs } from './PhaseBreadcrumbs';
 import { GhostPhaseWrapper } from './GhostPhaseWrapper';
 import HypothesisScoreboard from './HypothesisScoreboard';
 import { CoverageGapsBanner } from './CoverageGapsBanner';
+import { BudgetPill } from './BudgetPill';
+import { SelfConsistencyBadge } from './SelfConsistencyBadge';
 
 interface InvestigatorProps {
   sessionId: string;
@@ -377,6 +379,30 @@ const Investigator: React.FC<InvestigatorProps> = ({
       {findings?.coverage_gaps && findings.coverage_gaps.length > 0 && (
         <div className="px-4 pt-3">
           <CoverageGapsBanner gaps={findings.coverage_gaps} />
+        </div>
+      )}
+      {/* Telemetry strip: budget pill + self-consistency badge (Tasks 4.11, 4.12) */}
+      {(findings?.budget || findings?.self_consistency) && (
+        <div className="px-4 pt-2 flex items-center gap-2 flex-wrap">
+          {findings?.budget && (
+            <BudgetPill
+              toolCalls={{
+                used: findings.budget.tool_calls_used,
+                max: findings.budget.tool_calls_max,
+              }}
+              llmUsd={{
+                used: findings.budget.llm_usd_used,
+                max: findings.budget.llm_usd_max,
+              }}
+            />
+          )}
+          {findings?.self_consistency && (
+            <SelfConsistencyBadge
+              nRuns={findings.self_consistency.n_runs}
+              agreedCount={findings.self_consistency.agreed_count}
+              penaltyPct={findings.self_consistency.penalty_pct}
+            />
+          )}
         </div>
       )}
       {/* Patient Zero Banner (sticky) */}
