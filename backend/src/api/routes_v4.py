@@ -1278,6 +1278,9 @@ async def get_session_status(session_id: str):
         result["diagnosis_stop_reason"] = getattr(state, "diagnosis_stop_reason", None)
         # Stage H — signature library match (pattern pill data for the UI).
         result["signature_match"] = getattr(state, "signature_match", None)
+        # Stage I — agents whose findings back the winning hypothesis;
+        # the /feedback endpoint uses this to move the right priors.
+        result["winning_agents"] = list(getattr(state, "winning_agents", []) or [])
 
     return result
 

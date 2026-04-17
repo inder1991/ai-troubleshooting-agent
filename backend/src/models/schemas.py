@@ -954,6 +954,11 @@ class DiagnosticState(BaseModel):
     #    "matched_at_ms": int, "summary": "...", "remediation": "..."}
     signature_match: Optional[dict] = None
 
+    # Stage I — agents whose findings backed the winning hypothesis.
+    # Populated at finalize; consumed by the /feedback endpoint to
+    # decide whose priors to update on user-labelled outcomes.
+    winning_agents: list[str] = Field(default_factory=list)
+
     # Agent execution statuses: {agent_name: "success"|"no_findings"|"error"}
     agent_statuses: dict[str, str] = Field(default_factory=dict)
 

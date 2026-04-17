@@ -435,6 +435,22 @@ class SupervisorAgent:
                         self._all_signals,
                         key=lambda s: s.timestamp or datetime.min.replace(tzinfo=timezone.utc),
                     )
+                    # Stage I — winning_agents closes the /feedback priors
+                    # loop. Today we use agents_completed as a safe over-
+                    # approximation; a precise mapping from winning
+                    # hypothesis supporting_node_ids -> source_agents will
+                    # land once the signature library certifies causal
+                    # chains (Phase-4 signature patterns provide the
+                    # structured linkage we need).
+                    state.winning_agents = list(
+                        dict.fromkeys(state.agents_completed)
+                    )
+                    try:
+                        await self._persist_winning_agents(state)
+                    except Exception as exc:
+                        logger.warning(
+                            "persist winning_agents failed (non-fatal): %s", exc
+                        )
                     if event_emitter:
                         if state.hypothesis_result.status == "resolved" and state.hypothesis_result.winner:
                             w = state.hypothesis_result.winner
@@ -845,6 +861,57 @@ class SupervisorAgent:
             return []
 
         return []
+
+    async def _persist_winning_agents(self, state) -> None:
+        """UPSERT state.winning_agents into the DAG snapshot payload.
+
+        The /feedback endpoint reads ``payload.winning_agents`` to know
+        which agents' priors to nudge on a user-labelled outcome. Best-
+        effort: a failure here doesn't break the investigation.
+        """
+        if not state.winning_agents:
+            return
+        run_id = f"investigation-{getattr(state, 'session_id', '')}"
+        if not run_id or run_id == "investigation-":
+            return
+        try:
+            from src.database.engine import get_session
+            from src.database.models import DagSnapshot
+            from sqlalchemy import select
+            from sqlalchemy.dialects.postgresql import insert as pg_insert
+            from sqlalchemy import func
+        except Exception:
+            return
+
+        async with get_session() as session:
+            async with session.begin():
+                existing = await session.execute(
+                    select(DagSnapshot.payload).where(DagSnapshot.run_id == run_id)
+                )
+                row = existing.first()
+                payload = row[0] if row and isinstance(row[0], dict) else {
+                    "schema_version": 1,
+                    "run_id": run_id,
+                }
+                payload["winning_agents"] = list(state.winning_agents)
+                if state.signature_match:
+                    payload["signature_match"] = state.signature_match
+                if state.diagnosis_stop_reason:
+                    payload["diagnosis_stop_reason"] = state.diagnosis_stop_reason
+                stmt = pg_insert(DagSnapshot).values(
+                    run_id=run_id,
+                    payload=payload,
+                    schema_version=int(payload.get("schema_version", 1)),
+                )
+                stmt = stmt.on_conflict_do_update(
+                    index_elements=[DagSnapshot.run_id],
+                    set_={
+                        "payload": stmt.excluded.payload,
+                        "schema_version": stmt.excluded.schema_version,
+                        "updated_at": func.now(),
+                    },
+                )
+                await session.execute(stmt)
 
     async def _run_critic_on_finding(
         self,
