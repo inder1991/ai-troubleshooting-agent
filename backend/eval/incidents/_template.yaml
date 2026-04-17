@@ -1,0 +1,33 @@
+# backend/eval/incidents/_template.yaml
+schema_version: 1
+incident_id: "<unique slug, e.g., 2025-12-15-payment-oom>"
+title: "Payment service OOM cascade"
+incident_window:
+  start: "2025-12-15T14:30:00Z"
+  end:   "2025-12-15T15:10:00Z"
+context:
+  cluster: "prod-us-east-1"
+  namespace: "payments"
+  service: "payment-api"
+  symptom_summary: "p99 latency went from 200ms to 8s; error rate 0.1% → 12%"
+inputs_for_replay:
+  prom_url: "<recorded snapshot path or live url>"
+  elk_url:  "<...>"
+  k8s_snapshot: "eval/snapshots/2025-12-15-payments.tgz"
+  starting_signals:
+    - "Datadog alert: payment-api latency p99 > 5s"
+labels:
+  root_cause:
+    category: "memory"               # one of: memory|cpu|network|deploy|config|dep|cert|quota|other
+    summary: "OOMKill due to deploy that doubled message-batch size"
+    evidence_must_include:
+      - "kubectl event Reason=OOMKilling pod=payment-api-*"
+      - "deploy at 14:25 changed BATCH_SIZE 50 → 100"
+  cascading_symptoms:
+    - "p99 latency spike"
+    - "error rate spike"
+  acceptable_alternates: []         # other root causes that would also be considered correct
+  hard_negative_hypotheses:         # diagnoses that should NOT win
+    - "Database slow query"
+    - "Network partition"
+notes: "Free text for the labeller."
