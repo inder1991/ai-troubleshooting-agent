@@ -2451,3 +2451,87 @@ class ElasticsearchClient:
         )
         resp.raise_for_status()
         return resp.json()
+
+    # ── K.7 — PIT-paginated search (Phase-3 ``paginate_search``) ────────
+
+    async def open_pit(self, *, index: str, keep_alive: str = "1m") -> dict:
+        """POST /{index}/_pit — returns {'id': '<pit_id>'}."""
+        import asyncio
+        return await asyncio.to_thread(self._open_pit_sync, index, keep_alive)
+
+    def _open_pit_sync(self, index: str, keep_alive: str) -> dict:
+        resp = requests.post(
+            f"{self.url}/{index}/_pit?keep_alive={keep_alive}",
+            headers=self._headers,
+            timeout=10,
+            verify=self._verify_ssl,
+        )
+        resp.raise_for_status()
+        return resp.json()
+
+    async def close_pit(self, *, pit_id: str) -> None:
+        """DELETE /_pit — idempotent; swallows 404 so callers using
+        try/finally don't mask the original exception."""
+        import asyncio
+        await asyncio.to_thread(self._close_pit_sync, pit_id)
+
+    def _close_pit_sync(self, pit_id: str) -> None:
+        try:
+            requests.delete(
+                f"{self.url}/_pit",
+                json={"id": pit_id},
+                headers=self._headers,
+                timeout=5,
+                verify=self._verify_ssl,
+            )
+        except Exception:
+            pass
+
+    async def paginate_all(
+        self,
+        query: dict,
+        *,
+        index: str = "*",
+        page_size: int = 5000,
+        max_total: int = 50_000,
+        keep_alive: str = "1m",
+        sort: list[dict] | None = None,
+    ):
+        """Async iterator that yields every hit up to ``max_total`` for
+        ``query``. Thin convenience wrapper over ``paginate_search`` from
+        src.agents.elk_pagination.
+
+        A small adapter binds the current client to the index so the
+        helper's ``es.search(body=body)`` call resolves to our
+        ``search(index, body, timeout)`` signature without touching the
+        existing callers.
+        """
+        from src.agents.elk_pagination import paginate_search
+
+        client = self
+
+        class _PITAdapter:
+            """Protocol-shaped wrapper around ElasticsearchClient."""
+
+            async def open_pit(self, *, index: str, keep_alive: str) -> dict:
+                return await client.open_pit(index=index, keep_alive=keep_alive)
+
+            async def close_pit(self, *, pit_id: str) -> None:
+                await client.close_pit(pit_id=pit_id)
+
+            async def search(self, *, body: dict) -> dict:
+                # PIT-scoped body carries its own index via pit.id, so we
+                # pass '_all' as index; ES ignores the URL-index when
+                # pit.id is present.
+                return await client.search("_all", body)
+
+        async for hit in paginate_search(
+            _PITAdapter(),
+            query,
+            index=index,
+            page_size=page_size,
+            max_total=max_total,
+            keep_alive=keep_alive,
+            sort=sort,
+        ):
+            yield hit
