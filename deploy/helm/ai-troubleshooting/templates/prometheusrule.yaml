@@ -1,9 +1,20 @@
 {{- include "aitsh.validate" . -}}
 {{- if .Values.prometheusRule.enabled -}}
 {{/*
-SLO-burn alerts derived from the Phase 4 Task 4.28 metrics surface. Off by
-default; customer enables in their values overlay. Operator-tunable via
-.Values.prometheusRule.rules.*.
+SLO alerts for the AI Troubleshooting System (Phase-4 Task 4.28 metrics).
+Off by default; operator enables in their values overlay. Every threshold
+is operator-tunable via `.Values.prometheusRule.rules.*`.
+
+Metrics referenced here come from ``backend/src/observability/metrics.py``
+and are the ones the app actually emits:
+
+  investigation_step_duration_ms_bucket   histogram (label: agent, status)
+  investigation_total                     counter    (label: outcome)
+  investigation_in_flight                 gauge
+
+If the operator runs a separate customer-facing Prometheus that scrapes
+their own services (not this app), use the standard RED-method alerts on
+THAT stack — those aren't the responsibility of this chart.
 */}}
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
@@ -17,38 +28,47 @@ spec:
     - name: ai-troubleshooting.slo
       interval: 30s
       rules:
-        - alert: AITshootApiHighLatency
+        # p95 step duration — a tier-level SLO. Fires when agents are
+        # taking longer than the target to complete individual steps.
+        - alert: AITshootStepSlowP95
           expr: |
-            histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[{{ .Values.prometheusRule.rules.burnRateFastWindow }}])) by (le))
-              > {{ div .Values.prometheusRule.rules.apiP99LatencyMs 1000 }}
-          for: 5m
+            histogram_quantile(0.95,
+              sum by (le) (rate(investigation_step_duration_ms_bucket[{{ .Values.prometheusRule.rules.stepDurationWindow }}]))
+            ) > {{ .Values.prometheusRule.rules.stepP95LatencyMs }}
+          for: {{ .Values.prometheusRule.rules.stepSlowFor }}
           labels:
             severity: warning
             service: ai-troubleshooting
           annotations:
-            summary: "AI Troubleshooting API p99 latency above SLO"
-            description: "p99 latency over {{ .Values.prometheusRule.rules.burnRateFastWindow }} > {{ .Values.prometheusRule.rules.apiP99LatencyMs }}ms"
+            summary: "p95 diagnostic step latency above {{ .Values.prometheusRule.rules.stepP95LatencyMs }}ms"
+            description: "Investigate slow agent or backend; check circuit-breaker state."
 
+        # In-flight concurrency — capacity signal. Fires when the tier's
+        # concurrent-investigation count sustains near the configured cap.
+        - alert: AITshootInFlightNearCap
+          expr: |
+            investigation_in_flight > {{ .Values.prometheusRule.rules.inFlightAbsoluteThreshold }}
+          for: {{ .Values.prometheusRule.rules.inFlightFor }}
+          labels:
+            severity: warning
+            service: ai-troubleshooting
+          annotations:
+            summary: "investigation_in_flight > {{ .Values.prometheusRule.rules.inFlightAbsoluteThreshold }}"
+            description: "Scale the supervisor tier or raise the per-investigation budget cap."
+
+        # Failure-ratio — the headline investigation-health SLO. Pages.
+        # outcome labels: completed | inconclusive | cancelled | failed
+        # (see backend/src/observability/metrics.py).
         - alert: AITshootInvestigationFailureRatio
           expr: |
-            (sum(rate(investigation_failed_total[{{ .Values.prometheusRule.rules.burnRateSlowWindow }}]))
-             / sum(rate(investigation_started_total[{{ .Values.prometheusRule.rules.burnRateSlowWindow }}])))
+            (sum(rate(investigation_total{outcome=~"failed|cancelled"}[{{ .Values.prometheusRule.rules.failureRatioWindow }}]))
+             / clamp_min(sum(rate(investigation_total[{{ .Values.prometheusRule.rules.failureRatioWindow }}])), 1))
               > {{ .Values.prometheusRule.rules.investigationFailureRatio }}
-          for: 15m
+          for: {{ .Values.prometheusRule.rules.failureRatioFor }}
           labels:
-            severity: warning
+            severity: page
             service: ai-troubleshooting
           annotations:
-            summary: "Investigation failure ratio above SLO"
-            description: "Failure ratio over {{ .Values.prometheusRule.rules.burnRateSlowWindow }} > {{ .Values.prometheusRule.rules.investigationFailureRatio }}"
-
-        - alert: AITshootOutboxLag
-          expr: aitsh_outbox_lag_seconds > 60
-          for: 5m
-          labels:
-            severity: warning
-            service: ai-troubleshooting
-          annotations:
-            summary: "Outbox relay lag > 60s"
-            description: "Worker may be saturated or Redis unreachable. Check the worker Deployment."
+            summary: "Investigation failure+cancel ratio above {{ .Values.prometheusRule.rules.investigationFailureRatio }}"
+            description: "Page on-call. Check backend outages / circuit-breaker state / Anthropic API."
 {{- end }}

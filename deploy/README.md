@@ -21,7 +21,7 @@ deploy/
 | Install in production | `../docs/deployment.md` (uses `deploy/helm/`) |
 | Promote a release across envs | `gitops/README.md` |
 | Wire the customer's Jenkins | `ci/Jenkinsfile` |
-| Apply standalone Prom alerts (without the chart) | `prometheus/alerts.yaml` |
+| Tune SLO alert thresholds | `helm/ai-troubleshooting/values.yaml` → `prometheusRule.rules` |
 
 ## Sub-directories
 
@@ -36,11 +36,6 @@ Per-env values and `Application` CRDs for dev / staging / prod. Designed to be *
 
 ### `ci/` — Customer-internal Jenkins
 `Jenkinsfile` that builds the multi-arch image, packages the Helm chart, pushes both to a customer Nexus (or any OCI registry), and triggers an ArgoCD sync. Mirrors what `.github/workflows/release.yml` does for the open-source side.
-
-### `prometheus/` — Standalone SLO alerts
-`alerts.yaml` containing PrometheusRule alerts for the Phase 4 SLO metrics (investigation step latency, in-flight cap, etc.). When the Helm chart's `prometheusRule.enabled=true`, equivalent alerts ship via the chart. This standalone file is for clusters where the chart is already installed but the operator wants to roll PrometheusRule changes independently of the chart's upgrade cadence.
-
-> **Future cleanup (separate PR):** the chart's `templates/prometheusrule.yaml` currently uses placeholder metric names. The real names live in `prometheus/alerts.yaml`. Merge them — chart should reference the real names, then this standalone file can be deleted.
 
 ## What's NOT in `deploy/`
 
