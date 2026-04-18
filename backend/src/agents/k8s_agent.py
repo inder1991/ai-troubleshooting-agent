@@ -2,7 +2,7 @@ import asyncio
 import json
 import os
 from datetime import datetime, timezone, timedelta
-from typing import Any
+from typing import Any, Optional
 
 from src.agents.react_base import ReActAgent
 from src.agents.critic_agent import StructuredOutputRequired
@@ -103,6 +103,37 @@ class K8sAgent(ReActAgent):
         )
         self._k8s_client = None
         self._connection_config = connection_config
+        # TracingAgent handoff state (populated per-run from context).
+        self._tracing_scope_services: list[str] = []
+        self._tracing_failure_service: Optional[str] = None
+        self._tracing_critical_path: list[str] = []
+        self._tracing_handoff_used: bool = False
+
+    @staticmethod
+    def _apply_tracing_handoff(context: dict) -> dict:
+        """Extract TracingAgent handoff into a simple dict.
+
+        Precedence:
+          - hot_services_from_traces wins over services_from_traces (tighter)
+          - failure_service_from_trace always prepended to scope
+          - critical_path_services orders the drill-down inside k8s_agent
+        """
+        hot = context.get("hot_services_from_traces") or []
+        all_svcs = context.get("services_from_traces") or []
+        scope = list(hot) if hot else list(all_svcs)
+
+        failure = context.get("failure_service_from_trace")
+        if failure and failure not in scope:
+            scope = [failure, *scope]
+
+        critical_path = list(context.get("critical_path_services") or [])
+
+        return {
+            "scope_services": scope,
+            "failure_service": failure,
+            "critical_path": critical_path,
+            "any_tracing_data": bool(scope or critical_path),
+        }
 
     def _get_k8s_client(self):
         """Lazily initialize Kubernetes client."""
@@ -800,24 +831,70 @@ After analysis, provide your final answer as JSON:
         namespace = context.get("namespace", "default")
         label_selector = context.get("suggested_label_selector", f"app={service_name}")
 
+        # TracingAgent handoff — when tracing ran first and populated fields
+        # on state, scope pod lookups to those services instead of just
+        # service_name. Cuts API call count in multi-service incidents.
+        tracing_hint = self._apply_tracing_handoff(context)
+        self._tracing_scope_services = tracing_hint["scope_services"]
+        self._tracing_failure_service = tracing_hint["failure_service"]
+        self._tracing_critical_path = tracing_hint["critical_path"]
+        self._tracing_handoff_used = tracing_hint["any_tracing_data"]
+
         logger.info("K8s agent two-pass starting", extra={
             "agent_name": self.agent_name, "action": "two_pass_start",
-            "extra": {"service": service_name, "namespace": namespace, "selector": label_selector},
+            "extra": {
+                "service": service_name, "namespace": namespace, "selector": label_selector,
+                "tracing_handoff_used": self._tracing_handoff_used,
+                "tracing_scope_services": self._tracing_scope_services,
+            },
         })
 
         if event_emitter:
             await event_emitter.emit(self.agent_name, "started", "K8s agent starting two-pass analysis")
+            if self._tracing_handoff_used:
+                await event_emitter.emit(
+                    self.agent_name, "progress",
+                    f"Scoped by tracing: {len(self._tracing_scope_services)} service(s)",
+                )
 
         # ── Phase 0a: Discovery (connectivity + pods + events) ───────────
         if event_emitter:
             await event_emitter.emit(self.agent_name, "tool_call", "Pre-fetching cluster connectivity, pods, and events")
 
-        connectivity_raw, pods_raw, events_raw = await asyncio.gather(
-            self._test_cluster_connectivity(),
-            self._get_pod_status({"namespace": namespace, "label_selector": label_selector}),
-            self._get_events({"namespace": namespace, "since_minutes": 60}),
-            return_exceptions=True,
-        )
+        # When tracing handoff identified specific services, query pods for
+        # EACH of them and merge (vs. one broad label_selector scan). The
+        # failure_service goes first so its pods are prioritized in any
+        # downstream truncation.
+        if self._tracing_scope_services:
+            pod_queries = [
+                self._get_pod_status({
+                    "namespace": namespace,
+                    "label_selector": f"app={svc}",
+                })
+                for svc in self._tracing_scope_services
+            ]
+            results = await asyncio.gather(
+                self._test_cluster_connectivity(),
+                *pod_queries,
+                self._get_events({"namespace": namespace, "since_minutes": 60}),
+                return_exceptions=True,
+            )
+            connectivity_raw = results[0]
+            pod_results_raw = results[1:-1]
+            events_raw = results[-1]
+            # Merge pod query results from each hot service.
+            merged_pods: list[dict] = []
+            for r in pod_results_raw:
+                parsed = self._safe_parse(r)
+                merged_pods.extend(parsed.get("pods", []))
+            pods_raw = json.dumps({"pods": merged_pods})
+        else:
+            connectivity_raw, pods_raw, events_raw = await asyncio.gather(
+                self._test_cluster_connectivity(),
+                self._get_pod_status({"namespace": namespace, "label_selector": label_selector}),
+                self._get_events({"namespace": namespace, "since_minutes": 60}),
+                return_exceptions=True,
+            )
 
         connectivity = self._safe_parse(connectivity_raw)
         pods_data = self._safe_parse(pods_raw)
@@ -930,6 +1007,25 @@ After analysis, provide your final answer as JSON:
 
         analysis = _parse_k8s_analysis_from_response(analyze_response)
         # Merge agent-tracked evidence (breadcrumbs/negative findings/token usage)
+        # Attribute tracing-scoping if it was used + produced useful output.
+        if self._tracing_handoff_used and (self._tracing_scope_services or self._tracing_critical_path):
+            from datetime import datetime, timezone
+            from src.models.schemas import Breadcrumb
+            self.breadcrumbs.append(
+                Breadcrumb(
+                    agent_name=self.agent_name,
+                    action="scoped_by_tracing",
+                    source_type="k8s_event",
+                    source_reference="tracing_agent handoff",
+                    raw_evidence=(
+                        f"K8s pod lookups scoped to services: "
+                        f"{', '.join(self._tracing_scope_services) or '(none)'}; "
+                        f"critical path: {' → '.join(self._tracing_critical_path) or '(none)'}"
+                    ),
+                    timestamp=datetime.now(timezone.utc),
+                )
+            )
+
         # with the model's analysis (Task 1.10 preserves the prior `_parse_final_response` shape).
         result = {
             **analysis,
