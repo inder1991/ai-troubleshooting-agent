@@ -4,7 +4,7 @@ import os
 import re
 import base64
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 import httpx
 
@@ -59,6 +59,62 @@ class CodeNavigatorAgent(ReActAgent):
         self._ask_human_callback = None
         self._event_emitter = None
         self._state = None
+        # TracingAgent handoff state (populated per-run from context).
+        self._tracing_priority_services: list[str] = []
+        self._tracing_failure_service: Optional[str] = None
+        self._tracing_bottleneck_operations: list[tuple[str, str]] = []
+        self._tracing_handoff_used: bool = False
+
+    @staticmethod
+    def _apply_tracing_handoff(context: dict) -> dict:
+        """Extract TracingAgent handoff for code_agent's repo prioritization.
+
+        code_agent uses the handoff differently than log/k8s:
+          - ``bottleneck_operations`` (TA-PR2) — (service, operation) pairs
+            with critical-path-hotspot findings — these are the code paths
+            the user most likely cares about. code_agent prioritizes the
+            corresponding repos first.
+          - ``failure_service_from_trace`` — the suspected failure point;
+            its repo goes to the top of the analysis list.
+          - ``hot_services_from_traces`` — services with any pattern finding;
+            their repos follow.
+
+        Returns a dict with ``priority_services`` (ordered, deduped) +
+        ``bottleneck_operations`` (for the LLM prompt) + ``any_tracing_data``.
+        """
+        failure = context.get("failure_service_from_trace")
+        bottlenecks = list(context.get("bottleneck_operations") or [])
+        hot = context.get("hot_services_from_traces") or []
+        all_svcs = context.get("services_from_traces") or []
+
+        # Priority order: failure → bottleneck services → hot → rest
+        priority: list[str] = []
+
+        def _push(svc: str) -> None:
+            if svc and svc not in priority:
+                priority.append(svc)
+
+        if failure:
+            _push(failure)
+        for svc, _op in bottlenecks:
+            _push(svc)
+        for svc in hot:
+            _push(svc)
+        for svc in all_svcs:
+            _push(svc)
+
+        # Normalize bottleneck tuples (defensive — handle list-shaped JSON too).
+        normalized_bottlenecks: list[tuple[str, str]] = []
+        for b in bottlenecks:
+            if isinstance(b, (list, tuple)) and len(b) >= 2:
+                normalized_bottlenecks.append((str(b[0]), str(b[1])))
+
+        return {
+            "priority_services": priority,
+            "failure_service": failure,
+            "bottleneck_operations": normalized_bottlenecks,
+            "any_tracing_data": bool(priority or normalized_bottlenecks),
+        }
 
     # =========================================================================
     # TWO-PASS MODE: 2 LLM calls instead of 5-15 ReAct iterations
@@ -91,8 +147,24 @@ class CodeNavigatorAgent(ReActAgent):
             if parsed:
                 self._repo_map[svc] = parsed
 
+        # TracingAgent handoff — when tracing ran first and populated
+        # bottleneck_operations / failure_service / hot_services, code_agent
+        # prioritizes the corresponding repos so the LLM's attention lands
+        # on the code paths the user most likely cares about.
+        tracing_hint = self._apply_tracing_handoff(context)
+        self._tracing_priority_services = tracing_hint["priority_services"]
+        self._tracing_failure_service = tracing_hint["failure_service"]
+        self._tracing_bottleneck_operations = tracing_hint["bottleneck_operations"]
+        self._tracing_handoff_used = tracing_hint["any_tracing_data"]
+
         if event_emitter:
             await event_emitter.emit(self.agent_name, "started", "Code agent starting two-pass analysis")
+            if self._tracing_handoff_used:
+                await event_emitter.emit(
+                    self.agent_name, "progress",
+                    f"Prioritized by tracing: {len(self._tracing_priority_services)} service(s), "
+                    f"{len(self._tracing_bottleneck_operations)} bottleneck op(s)",
+                )
 
         # ── Phase 0: Pre-fetch (0 LLM calls) ────────────────────────────
         if event_emitter:
@@ -174,6 +246,29 @@ class CodeNavigatorAgent(ReActAgent):
         # the content we've already prefetched. Stale frames get
         # is_stale=True so the UI's StackTraceTelescope warning fires.
         self._stamp_stale_frames(result, additional_data.get("file_contents") or {})
+
+        # Attribute tracing-prioritization so FeedbackRow can credit tracing
+        # when the investigation succeeds on a bottleneck-op-guided path.
+        if self._tracing_handoff_used:
+            from datetime import datetime, timezone
+            from src.models.schemas import Breadcrumb
+            if "breadcrumbs" not in result or not isinstance(result.get("breadcrumbs"), list):
+                result["breadcrumbs"] = []
+            result["breadcrumbs"].append(
+                Breadcrumb(
+                    agent_name=self.agent_name,
+                    action="prioritized_by_tracing",
+                    source_type="code",
+                    source_reference="tracing_agent handoff",
+                    raw_evidence=(
+                        f"Repo analysis prioritized by tracing: "
+                        f"services {', '.join(self._tracing_priority_services[:6]) or '(none)'}; "
+                        f"bottlenecks {len(self._tracing_bottleneck_operations)}"
+                    ),
+                    timestamp=datetime.now(timezone.utc),
+                ).model_dump(mode="json")
+            )
+
         logger.info("Two-pass analysis complete", extra={
             "agent_name": self.agent_name, "action": "complete",
             "extra": {"confidence": result.get("overall_confidence", 0)},
@@ -425,8 +520,29 @@ class CodeNavigatorAgent(ReActAgent):
             "# Code Impact Analysis — Phase 1: Planning\n",
             "## Diagnostic Context\n",
             investigation_context,
-            "\n## Repository File Tree\n",
         ]
+
+        # TracingAgent handoff (TA-PR2) — name the services + operations
+        # the tracer already identified as bottlenecks so the LLM focuses
+        # its file-read plan on those code paths.
+        if self._tracing_handoff_used:
+            parts.append("\n## Tracing Handoff (pre-analyzed, deterministic — do not re-derive)\n")
+            if self._tracing_failure_service:
+                parts.append(f"- Suspected failure service: **{self._tracing_failure_service}**")
+            if self._tracing_bottleneck_operations:
+                parts.append("- Bottleneck operations (critical-path hotspots):")
+                for svc, op in self._tracing_bottleneck_operations[:10]:
+                    parts.append(f"    - `{svc}` / `{op}`")
+            if self._tracing_priority_services:
+                parts.append(
+                    "- Service priority order: " +
+                    " → ".join(self._tracing_priority_services[:8])
+                )
+            parts.append(
+                "- Prioritize file reads in these services' repos when planning."
+            )
+
+        parts.append("\n## Repository File Tree\n")
 
         tree = prefetched.get("file_tree", [])
         if tree:
