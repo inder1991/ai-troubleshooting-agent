@@ -184,6 +184,11 @@ async def _run_metrics_logs_cross_check(state, event_emitter) -> None:
     the check fires the moment both analyses are present (regardless of
     which agent landed second). Dedupes by (kind, service_name) against
     ``state.divergence_findings`` to stay idempotent across re-runs.
+
+    Emits one ``cross_check_complete`` summary event per run so the
+    Investigator timeline shows when the check happened, regardless of
+    whether disagreements were found. Event is fired exactly once,
+    gated by ``state.cross_checks_announced``.
     """
     try:
         from src.agents.cross_check import check_metrics_logs_divergence
@@ -192,18 +197,16 @@ async def _run_metrics_logs_cross_check(state, event_emitter) -> None:
             metrics=state.metrics_analysis,
             logs=state.log_analysis,
         )
-        if not divergences:
-            return
 
         existing_keys = {(d.kind, d.service_name) for d in state.divergence_findings}
         new_divergences = [
             d for d in divergences
             if (d.kind, d.service_name) not in existing_keys
         ]
-        if not new_divergences:
-            return
 
-        state.divergence_findings.extend(new_divergences)
+        if new_divergences:
+            state.divergence_findings.extend(new_divergences)
+
         if event_emitter:
             for d in new_divergences:
                 await event_emitter.emit(
@@ -213,6 +216,24 @@ async def _run_metrics_logs_cross_check(state, event_emitter) -> None:
                         "kind": d.kind,
                         "service": d.service_name,
                         "severity": d.severity,
+                    },
+                )
+
+            if "metrics_logs" not in state.cross_checks_announced:
+                state.cross_checks_announced.add("metrics_logs")
+                total = len(divergences)
+                summary = (
+                    f"cross-check: metrics ↔ logs agreed"
+                    if total == 0
+                    else f"cross-check: metrics ↔ logs — {total} signal "
+                         f"disagreement{'s' if total != 1 else ''}"
+                )
+                await event_emitter.emit(
+                    "supervisor", "summary", summary,
+                    details={
+                        "action": "cross_check_complete",
+                        "cross_check": "metrics_logs",
+                        "divergence_count": total,
                     },
                 )
     except Exception:
@@ -2149,8 +2170,9 @@ class SupervisorAgent:
             # Cross-check: tracing ↔ metrics divergence. Runs here because
             # tracing_agent typically runs AFTER metrics_agent — by the time
             # we land trace_analysis, metrics_analysis is already on state.
-            # Divergences are emitted into state.divergence_findings and an
-            # event is surfaced for each so the UI can flag the investigation.
+            # Divergences are emitted into state.divergence_findings and a
+            # single `cross_check_complete` summary is fired for the timeline
+            # regardless of whether disagreements were found.
             if state.metrics_analysis is not None and state.trace_analysis is not None:
                 try:
                     from src.agents.cross_check import check_tracing_metrics_divergence
@@ -2159,16 +2181,40 @@ class SupervisorAgent:
                         metrics=state.metrics_analysis,
                         trace=state.trace_analysis,
                     )
-                    if divergences:
-                        state.divergence_findings.extend(divergences)
-                        if event_emitter:
-                            for d in divergences:
-                                await event_emitter.emit(
-                                    "supervisor", "finding",
-                                    f"[divergence] {d.human_summary}",
-                                    details={"kind": d.kind, "service": d.service_name,
-                                             "severity": d.severity},
-                                )
+                    existing_keys = {(d.kind, d.service_name) for d in state.divergence_findings}
+                    new_divergences = [
+                        d for d in divergences
+                        if (d.kind, d.service_name) not in existing_keys
+                    ]
+                    if new_divergences:
+                        state.divergence_findings.extend(new_divergences)
+
+                    if event_emitter:
+                        for d in new_divergences:
+                            await event_emitter.emit(
+                                "supervisor", "finding",
+                                f"[divergence] {d.human_summary}",
+                                details={"kind": d.kind, "service": d.service_name,
+                                         "severity": d.severity},
+                            )
+
+                        if "tracing_metrics" not in state.cross_checks_announced:
+                            state.cross_checks_announced.add("tracing_metrics")
+                            total = len(divergences)
+                            summary = (
+                                f"cross-check: tracing ↔ metrics agreed"
+                                if total == 0
+                                else f"cross-check: tracing ↔ metrics — {total} signal "
+                                     f"disagreement{'s' if total != 1 else ''}"
+                            )
+                            await event_emitter.emit(
+                                "supervisor", "summary", summary,
+                                details={
+                                    "action": "cross_check_complete",
+                                    "cross_check": "tracing_metrics",
+                                    "divergence_count": total,
+                                },
+                            )
                 except Exception:
                     logger.exception("tracing↔metrics divergence check failed")
 

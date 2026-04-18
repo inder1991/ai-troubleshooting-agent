@@ -1095,6 +1095,11 @@ class DiagnosticState(BaseModel):
     # Cross-check output — populated by supervisor after multiple agents
     # have completed (e.g., tracing ↔ metrics divergence check).
     divergence_findings: list[DivergenceFinding] = Field(default_factory=list)
+    # Names of cross-checks that have already emitted a completion summary
+    # event this run. Used by the supervisor's cross-check helpers to fire
+    # a timeline marker exactly once per check, regardless of which agent
+    # landing triggered it. Values: "metrics_logs", "tracing_metrics".
+    cross_checks_announced: set[str] = Field(default_factory=set)
 
     # Agent results
     log_analysis: Optional[LogAnalysisResult] = None
