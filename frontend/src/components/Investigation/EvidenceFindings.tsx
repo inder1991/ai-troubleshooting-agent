@@ -12,6 +12,7 @@ import type {
 } from '../../types';
 import AgentFindingCard from './cards/AgentFindingCard';
 import TracingEvidenceCard from './cards/TracingEvidenceCard';
+import DisagreementStrip from './DisagreementStrip';
 import CausalRoleBadge from './cards/CausalRoleBadge';
 import StackTraceTelescope from './cards/StackTraceTelescope';
 import SaturationGauge from './cards/SaturationGauge';
@@ -255,6 +256,11 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                 </motion.div>
               )}
             </AnimatePresence>
+            {/* Cross-agent signal disagreements — un-cardlike marginalia,
+                sits above the anchor bar so it's read before diving into
+                the card stack. Renders nothing when there are no divergences. */}
+            <DisagreementStrip findings={findings} />
+
             {/* Evidence Anchor Bar - prevents infinite scroll doom */}
             {findings && hasContent && (
               <div className="sticky top-0 z-50 bg-slate-950/90 backdrop-blur border-b border-wr-border flex gap-1.5 p-2 mb-4 rounded-lg overflow-x-auto scrollbar-hide">

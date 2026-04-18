@@ -376,6 +376,27 @@ export interface CriticVerdict {
   contradicting_evidence?: Breadcrumb[];
 }
 
+// Cross-agent divergence — supervisor flags when two agents disagree about
+// the same service. Six kinds across two cross-checkers.
+export type DivergenceKind =
+  // tracing ↔ metrics
+  | 'trace_failure_service_no_metric_anomaly'
+  | 'trace_baseline_regression_no_metric_anomaly'
+  | 'metric_anomaly_service_absent_from_trace'
+  // metrics ↔ logs
+  | 'metric_anomaly_no_error_logs'
+  | 'log_error_cluster_no_metric_anomaly'
+  | 'log_error_service_not_in_metrics';
+
+export interface DivergenceFinding {
+  kind: DivergenceKind;
+  severity: 'critical' | 'high' | 'medium' | 'low';
+  human_summary: string;
+  service_name: string;
+  metadata: Record<string, unknown>;
+  deterministic?: boolean;
+}
+
 export interface Breadcrumb {
   timestamp: string;
   agent_name: string;
@@ -594,6 +615,9 @@ export interface V4Findings {
   evidence_pins?: EvidencePinV2[];
   causal_forest?: CausalTree[];
   evidence_graph?: EvidenceGraphData;
+  // Cross-agent divergence findings (supervisor cross-check output).
+  // Rendered as the DisagreementStrip in EvidenceFindings.
+  divergence_findings?: DivergenceFinding[];
   // Multi-hypothesis engine
   hypotheses?: DiagHypothesis[];
   hypothesis_result?: DiagHypothesisResult;
