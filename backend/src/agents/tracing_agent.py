@@ -50,10 +50,14 @@ from src.agents.tracing.elk_reconstructor import ElkLogReconstructor, Reconstruc
 from src.agents.tracing.envoy_flags import EnvoyResponseFlagsMatcher
 from src.agents.tracing.ranker import RankerConfig, SymptomHints, TraceRanker
 from src.agents.tracing.redactor import RedactionConfig, SpanTagRedactor
+from src.agents.tracing.patterns_runner import PatternsRunner
+from src.agents.tracing.patterns.baseline_regression import BaselineFetcher
 from src.agents.tracing.summarizer import SummarizedTrace, SummarizerConfig, TraceSummarizer
 from src.agents.tracing.tier_selector import TierSelector
 from src.models.schemas import (
     EnvoyFlagFinding,
+    LatencyRegressionHint,
+    PatternFinding,
     SpanInfo,
     TierDecision,
     TraceAnalysisResult,
@@ -91,6 +95,10 @@ class TracingAgentConfig:
 
     # Trace-mining defaults when user gives service+window but no trace_id.
     default_mining_window_minutes: int = 15
+
+    # TA-PR2 — baseline lookup for the baseline_latency_regression detector.
+    # None means the detector emits no findings (graceful degradation).
+    baseline_fetcher: Optional[BaselineFetcher] = None
 
 
 # Confidence multiplier when we fall back to ELK reconstruction.
@@ -134,6 +142,7 @@ class TracingAgent(ReActAgent):
         self._redactor = SpanTagRedactor(self._config.redaction)
         self._summarizer = TraceSummarizer(self._config.summarizer)
         self._ranker = TraceRanker(self._config.ranker)
+        self._patterns = PatternsRunner(baseline_fetcher=self._config.baseline_fetcher)
 
     # Abstract ReActAgent methods — TracingAgent runs in an explicit orchestrated
     # mode (run_two_pass), NOT the generic ReAct loop, so these are minimal stubs
@@ -211,7 +220,7 @@ class TracingAgent(ReActAgent):
                 trace_ids[0], time_window, event_emitter, reason="all_traces_empty"
             )
 
-        # Step 3 — redact, summarize, scan each trace.
+        # Step 3 — redact, summarize, scan each trace (envoy flags + TA-PR2 patterns).
         processed: list[_ProcessedTrace] = []
         for tid, raw_spans in fetched:
             if not raw_spans:
@@ -219,9 +228,14 @@ class TracingAgent(ReActAgent):
             safe_spans = [self._redactor.redact_span(s) for s in raw_spans]
             summary = self._summarizer.summarize(safe_spans)
             envoy = EnvoyResponseFlagsMatcher.scan_trace(safe_spans)
+            patterns = self._patterns.run(safe_spans)
             processed.append(
                 _ProcessedTrace(
-                    trace_id=tid, spans=safe_spans, summary=summary, envoy=envoy
+                    trace_id=tid,
+                    spans=safe_spans,
+                    summary=summary,
+                    envoy=envoy,
+                    patterns=patterns,
                 )
             )
 
@@ -238,6 +252,7 @@ class TracingAgent(ReActAgent):
             summarized_span_count=len(primary.summary.kept_spans),
             summarizer_ambiguous_failure_point=ambiguous,
             has_any_error_span=any(s.status == "error" for s in primary.spans),
+            pattern_findings=primary.patterns,
         )
 
         # Step 5 — dispatch by tier.
@@ -572,6 +587,16 @@ class TracingAgent(ReActAgent):
         if primary.summary.was_summarized:
             trace_source = "summarized"
 
+        # TA-PR2 — handoff fields derived deterministically from pattern findings.
+        hot_services = sorted({p.service_name for p in primary.patterns})
+        critical_path_services = _critical_path_service_chain(primary.spans)
+        bottleneck_operations = [
+            (p.service_name, p.metadata.get("operation", ""))
+            for p in primary.patterns
+            if p.kind == "critical_path_hotspot"
+        ]
+        baseline_hints = self._patterns.hints_for_metrics(primary.patterns)
+
         result = TraceAnalysisResult(
             trace_id=primary.trace_id,
             total_duration_ms=total_duration,
@@ -596,6 +621,12 @@ class TracingAgent(ReActAgent):
             cross_trace_consensus=cross_trace_consensus,
             sampling_mode=self._config.sampling_mode,
             services_in_chain=services,
+            # TA-PR2 additions.
+            pattern_findings=primary.patterns,
+            hot_services=hot_services,
+            critical_path_services=critical_path_services,
+            bottleneck_operations=bottleneck_operations,
+            baseline_regressions=baseline_hints,
         )
         return result.model_dump(mode="json")
 
@@ -623,6 +654,7 @@ class _ProcessedTrace:
     spans: list[SpanInfo]
     summary: SummarizedTrace
     envoy: list[EnvoyFlagFinding]
+    patterns: list[PatternFinding] = field(default_factory=list)
 
 
 def _build_config(connection_config: Any) -> TracingAgentConfig:
@@ -728,6 +760,46 @@ def _compute_dependency_graph(spans: list[SpanInfo]) -> dict[str, list[str]]:
             continue
         edges.setdefault(parent.service_name, set()).add(span.service_name)
     return {k: sorted(v) for k, v in edges.items()}
+
+
+def _critical_path_service_chain(spans: list[SpanInfo]) -> list[str]:
+    """Ordered service list along the trace's critical path (root → leaf).
+
+    TA-PR2 handoff contract — metrics_agent uses this to drill into the
+    RED metrics of these services in order.
+    """
+    if not spans:
+        return []
+    by_id = {s.span_id: s for s in spans}
+    parent_ids = {s.parent_span_id for s in spans if s.parent_span_id}
+    leaves = [s for s in spans if s.span_id not in parent_ids]
+    if not leaves:
+        leaves = spans
+
+    best_total = 0.0
+    best_chain: list[str] = []
+    for leaf in leaves:
+        chain: list[str] = []
+        total = 0.0
+        cur: Optional[SpanInfo] = leaf
+        seen: set[str] = set()
+        while cur is not None and cur.span_id not in seen:
+            seen.add(cur.span_id)
+            chain.append(cur.service_name)
+            total += cur.duration_ms
+            cur = by_id.get(cur.parent_span_id) if cur.parent_span_id else None
+        if total > best_total:
+            best_total = total
+            best_chain = chain
+
+    # Dedup preserving order: root...leaf reading makes more sense reversed.
+    seen2: set[str] = set()
+    ordered = []
+    for s in reversed(best_chain):
+        if s not in seen2:
+            seen2.add(s)
+            ordered.append(s)
+    return ordered
 
 
 def _hop_to_span(hop: Any, idx: int) -> SpanInfo:
@@ -839,6 +911,14 @@ def _build_analyze_prompt(
             for f in pt.envoy:
                 parts.append(
                     f"- [{f.flag}] {f.service_name} — {f.human_summary}. {f.likely_cause}"
+                )
+
+        if pt.patterns:
+            parts.append("\n### Deterministic Pattern Findings (pre-analyzed — build on these, do not re-derive)")
+            for p in pt.patterns[:15]:
+                parts.append(
+                    f"- [{p.kind} / {p.severity}, conf={p.confidence}] "
+                    f"{p.service_name}: {p.human_summary}"
                 )
 
         parts.append(f"\n### Spans ({len(pt.summary.kept_spans)} shown)")

@@ -1992,6 +1992,31 @@ class SupervisorAgent:
             if mined := result.get("mined_trace_ids"):
                 state.trace_ids_mined = mined
 
+            # TA-PR2 handoff enrichment — deterministic pattern pre-analysis.
+            # log_agent narrows to hot_services; metrics_agent drills down
+            # on critical_path_services in order; code_agent prioritizes
+            # bottleneck_operations; CriticEnsemble cross-checks against
+            # pattern_findings as independent evidence.
+            if hot := result.get("hot_services"):
+                state.hot_services_from_traces = hot
+            if crit := result.get("critical_path_services"):
+                state.critical_path_services = crit
+            if bottlenecks := result.get("bottleneck_operations"):
+                state.bottleneck_operations = [
+                    tuple(b) if isinstance(b, (list, tuple)) else (b, "")
+                    for b in bottlenecks
+                ]
+            if regressions := result.get("baseline_regressions"):
+                from src.models.schemas import LatencyRegressionHint as _LRH
+                state.baseline_regressions = [
+                    _LRH(**r) if isinstance(r, dict) else r for r in regressions
+                ]
+            if patterns := result.get("pattern_findings"):
+                from src.models.schemas import PatternFinding as _PF
+                state.pattern_findings_from_traces = [
+                    _PF(**p) if isinstance(p, dict) else p for p in patterns
+                ]
+
             state.trace_analysis = TraceAnalysisResult(
                 trace_id=result.get("trace_id", state.trace_id or "unknown"),
                 total_duration_ms=result.get("total_duration_ms", 0),

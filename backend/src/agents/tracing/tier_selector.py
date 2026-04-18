@@ -44,6 +44,10 @@ class TierSelectorInputs:
     summarized_span_count: int
     summarizer_ambiguous_failure_point: bool
     has_any_error_span: bool
+    # TA-PR2 — deterministic pattern pre-analysis signals.
+    pattern_findings_count: int = 0
+    distinct_pattern_kinds: int = 0
+    has_critical_severity_pattern: bool = False
 
 
 class TierSelector:
@@ -111,7 +115,32 @@ class TierSelector:
                 model_key="default",
             )
 
-        # Rule 7 — we have envoy findings (just not self-explanatory) +
+        # TA-PR2 rules — deterministic pattern pre-analysis signals.
+
+        # Rule 7a — multiple distinct pattern kinds OR any critical-severity
+        # pattern → Tier 2 (co-occurring patterns need reconciliation; a
+        # critical-severity pattern warrants the better model).
+        if inputs.distinct_pattern_kinds >= 2 or inputs.has_critical_severity_pattern:
+            return TierDecision(
+                tier=2,
+                rationale=(
+                    f"pattern_pre_analysis_complex "
+                    f"(kinds={inputs.distinct_pattern_kinds}, "
+                    f"critical={inputs.has_critical_severity_pattern})"
+                ),
+                model_key="default",
+            )
+
+        # Rule 7b — exactly one pattern kind found and not critical → Tier 1
+        # is enough (LLM's job reduces to natural-language synthesis).
+        if inputs.pattern_findings_count >= 1:
+            return TierDecision(
+                tier=1,
+                rationale="pattern_pre_analysis_single_kind",
+                model_key="cheap",
+            )
+
+        # Rule 8 — we have envoy findings (just not self-explanatory) +
         # single trace — Tier 1 can handle the synthesis.
         if inputs.envoy_findings_count >= 1:
             return TierDecision(
@@ -120,7 +149,7 @@ class TierSelector:
                 model_key="cheap",
             )
 
-        # Rule 8 — single trace, small, has an error — Tier 1 is enough.
+        # Rule 9 — single trace, small, has an error — Tier 1 is enough.
         if inputs.has_any_error_span:
             return TierDecision(
                 tier=1,
@@ -128,7 +157,7 @@ class TierSelector:
                 model_key="cheap",
             )
 
-        # Rule 9 — single trace, small, no errors → still Tier 1 (user wants
+        # Rule 10 — single trace, small, no errors → still Tier 1 (user wants
         # a flow analysis / latency story; doesn't need Sonnet).
         return TierDecision(
             tier=1,
@@ -168,10 +197,12 @@ class TierSelector:
         summarized_span_count: int,
         summarizer_ambiguous_failure_point: bool,
         has_any_error_span: bool,
+        pattern_findings: list | None = None,
     ) -> TierDecision:
-        """Convenience wrapper — derives envoy-related flags from findings list."""
+        """Convenience wrapper — derives envoy-related + pattern flags."""
         from src.agents.tracing.envoy_flags import EnvoyResponseFlagsMatcher
 
+        pf = pattern_findings or []
         inputs = TierSelectorInputs(
             has_mined_multiple_traces=has_mined_multiple_traces,
             envoy_findings_count=len(findings),
@@ -181,5 +212,10 @@ class TierSelector:
             summarized_span_count=summarized_span_count,
             summarizer_ambiguous_failure_point=summarizer_ambiguous_failure_point,
             has_any_error_span=has_any_error_span,
+            pattern_findings_count=len(pf),
+            distinct_pattern_kinds=len({f.kind for f in pf}),
+            has_critical_severity_pattern=any(
+                getattr(f, "severity", "") == "critical" for f in pf
+            ),
         )
         return TierSelector.select(inputs)

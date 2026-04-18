@@ -614,6 +614,46 @@ class TierDecision(BaseModel):
     )
 
 
+class PatternFinding(BaseModel):
+    """Deterministic-pattern finding from TracingAgent pre-analysis (TA-PR2).
+
+    Each finding is produced by a pure-function matcher with zero LLM
+    involvement — same philosophy as the Phase 4 log-signature library.
+    When any pattern matches, the LLM's job reduces to synthesis; when
+    multiple patterns co-occur, the tier selector escalates to Sonnet.
+    """
+
+    kind: Literal[
+        "n_plus_one",
+        "fan_out_amplification",
+        "app_level_retry",
+        "critical_path_hotspot",
+        "baseline_latency_regression",
+    ]
+    confidence: int = Field(ge=0, le=100)
+    severity: Literal["critical", "high", "medium", "low"]
+    human_summary: str
+    span_ids_involved: list[str] = Field(default_factory=list)
+    service_name: str
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    deterministic: bool = True
+
+
+class LatencyRegressionHint(BaseModel):
+    """Baseline-aware latency regression carried across agents (TA-PR2).
+
+    Consumed by metrics_agent so its own baseline comparator stays aligned
+    with trace-side findings — prevents "metrics says fine, traces say slow".
+    """
+
+    service_name: str
+    operation_name: str
+    observed_duration_ms: float
+    baseline_p99_ms: float
+    z_score: float
+    baseline_source: Literal["trace_history", "no_baseline"] = "trace_history"
+
+
 class TraceAnalysisResult(BaseModel):
     trace_id: str
     total_duration_ms: float
@@ -653,6 +693,22 @@ class TraceAnalysisResult(BaseModel):
         default_factory=list,
         description="Deterministic service list extracted from spans — consumed by downstream agents.",
     )
+
+    # TA-PR2 additions — deterministic pattern pre-analysis output.
+    pattern_findings: list[PatternFinding] = Field(default_factory=list)
+    hot_services: list[str] = Field(
+        default_factory=list,
+        description="Services with at least one pattern finding — narrows log/k8s agent queries.",
+    )
+    critical_path_services: list[str] = Field(
+        default_factory=list,
+        description="Services ordered along the critical path — drives metrics-agent drill-down order.",
+    )
+    bottleneck_operations: list[tuple[str, str]] = Field(
+        default_factory=list,
+        description="(service, operation) pairs with critical-path-hotspot findings — guides code_agent.",
+    )
+    baseline_regressions: list[LatencyRegressionHint] = Field(default_factory=list)
 
 
 class LineRange(BaseModel):
@@ -997,6 +1053,18 @@ class DiagnosticState(BaseModel):
     services_from_traces: list[str] = Field(default_factory=list)
     failure_service_from_trace: Optional[str] = None
     trace_ids_mined: list[str] = Field(default_factory=list)
+
+    # TA-PR2 handoff fields — deterministic pattern pre-analysis output.
+    # Downstream agents consume these to focus their work (log_agent scopes
+    # log queries to hot_services; metrics_agent drills down on
+    # critical_path_services in order; code_agent prioritizes repos holding
+    # bottleneck_operations; CriticEnsemble cross-checks against
+    # pattern_findings as independent evidence).
+    hot_services_from_traces: list[str] = Field(default_factory=list)
+    critical_path_services: list[str] = Field(default_factory=list)
+    bottleneck_operations: list[tuple[str, str]] = Field(default_factory=list)
+    baseline_regressions: list[LatencyRegressionHint] = Field(default_factory=list)
+    pattern_findings_from_traces: list[PatternFinding] = Field(default_factory=list)
 
     # Agent results
     log_analysis: Optional[LogAnalysisResult] = None

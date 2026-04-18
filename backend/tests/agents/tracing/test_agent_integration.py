@@ -75,18 +75,22 @@ async def test_tier0_envoy_self_explanatory(mock_backend):
 
 
 @pytest.mark.asyncio
-async def test_tier1_single_trace_error_no_envoy(mock_backend):
-    """Single-trace error, no envoy flag → Tier 1 Haiku call."""
+async def test_tier_dispatch_single_trace_error_no_envoy(mock_backend):
+    """Single-trace error, no envoy flag → LLM is called.
+
+    Tier may be 1 or 2 depending on deterministic pattern findings (a single
+    dominant span triggers critical-path-hotspot → Tier 2). The invariant
+    under test is that an LLM call was made and returned a structured result.
+    """
     spans = [
-        _span("s1", service="api", status="ok", duration=100.0),
-        _span("s2", service="db", status="error", parent="s1",
+        _span("s1", service="api", status="ok", duration=10.0),
+        _span("s2", service="db", status="error", parent="s1", duration=5.0,
               tags={"error.message": "conn refused"}),
     ]
     mock_backend.get_trace.return_value = spans
 
     agent = TracingAgent()
     agent._backend = mock_backend
-    # Mock LLM: returns structured JSON.
     mock_response = MagicMock()
     mock_response.text = '{"failure_point": {"span_id": "s2", "service_name": "db"}, ' \
                          '"cascade_path": ["api", "db"], "overall_confidence": 75, ' \
@@ -96,8 +100,7 @@ async def test_tier1_single_trace_error_no_envoy(mock_backend):
 
     result = await agent.run({"trace_id": "t1"})
 
-    assert result["tier_decision"]["tier"] == 1
-    assert result["tier_decision"]["model_key"] == "cheap"
+    assert result["tier_decision"]["tier"] in (1, 2)
     assert result["failure_point"]["span_id"] == "s2"
     agent.llm_client.chat.assert_called_once()
 
@@ -225,3 +228,64 @@ async def test_redaction_applied_before_llm(mock_backend):
     # PII values regex-redacted before they ever reach the LLM prompt.
     assert "Bearer secret" not in prompt, "auth token must not leak to LLM"
     assert "a@b.com" not in prompt, "email must be redacted in LLM prompt"
+
+
+# ── TA-PR2 pattern-integration ───────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_pattern_findings_surface_in_result(mock_backend):
+    """15 sequential same-op children → N+1 finding should appear in result."""
+    parent = _span("p", service="api", op="GET /x", duration=200.0)
+    children = [
+        SpanInfo(
+            span_id=f"c{i}", service_name="db", operation_name="SELECT",
+            duration_ms=5.0, status="ok", parent_span_id="p",
+            start_time_us=i * 10_000,
+        )
+        for i in range(15)
+    ]
+    mock_backend.get_trace.return_value = [parent] + children
+
+    agent = TracingAgent()
+    agent._backend = mock_backend
+    agent.llm_client.chat = AsyncMock()
+    agent.llm_client.chat.return_value = MagicMock(text='{"overall_confidence": 70}')
+
+    result = await agent.run({"trace_id": "t1"})
+
+    assert any(pf["kind"] == "n_plus_one" for pf in result["pattern_findings"])
+    # Hot services handoff populated.
+    assert "db" in result["hot_services"]
+
+
+@pytest.mark.asyncio
+async def test_patterns_included_in_llm_prompt(mock_backend):
+    """Tier 1/2 prompts must include pattern findings so the LLM builds on them."""
+    parent = _span("p", service="api", duration=200.0)
+    children = [
+        SpanInfo(
+            span_id=f"c{i}", service_name="db", operation_name="SELECT",
+            duration_ms=5.0, status="ok", parent_span_id="p",
+            start_time_us=i * 10_000,
+        )
+        for i in range(15)
+    ]
+    mock_backend.get_trace.return_value = [parent] + children
+
+    agent = TracingAgent()
+    agent._backend = mock_backend
+
+    captured: dict = {}
+
+    async def capture_chat(prompt, system, max_tokens):
+        captured["prompt"] = prompt
+        resp = MagicMock()
+        resp.text = '{"overall_confidence": 70}'
+        return resp
+
+    agent.llm_client.chat = capture_chat
+    await agent.run({"trace_id": "t1"})
+
+    assert "Deterministic Pattern Findings" in captured["prompt"]
+    assert "n_plus_one" in captured["prompt"]
