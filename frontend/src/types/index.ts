@@ -196,15 +196,112 @@ export interface SpanInfo {
   span_id: string;
   service: string;
   operation: string;
+  // Backend also emits service_name / operation_name; accept both.
+  service_name?: string;
+  operation_name?: string;
   duration_ms: number;
   status: string;
   error: boolean;
   parent_span_id: string | null;
-  error_message?: string;
+  error_message?: string | null;
   tags?: Record<string, string>;
   start_offset_ms?: number;
   trace_id?: string;
   critical_path?: boolean;
+  // TA-PR1 additions (waterfall concurrency, provenance).
+  start_time_us?: number | null;
+  kind?: 'server' | 'client' | 'producer' | 'consumer' | 'internal' | null;
+  events?: Array<Record<string, unknown>>;
+  process_tags?: Record<string, string>;
+  stripped_tag_keys?: string[];
+  value_redactions?: number;
+}
+
+// TA-PR1 — deterministic Envoy response.flags finding.
+export type EnvoyFlag = 'UH' | 'UO' | 'UC' | 'UT' | 'URX' | 'DC' | 'NR' | 'LR' | 'RL';
+export interface EnvoyFlagFinding {
+  flag: EnvoyFlag;
+  span_id: string;
+  service_name: string;
+  upstream_cluster?: string | null;
+  human_summary: string;
+  likely_cause: string;
+  deterministic: boolean;
+}
+
+// TA-PR2 — pattern-pre-analysis finding.
+export type PatternKind =
+  | 'n_plus_one'
+  | 'fan_out_amplification'
+  | 'app_level_retry'
+  | 'critical_path_hotspot'
+  | 'baseline_latency_regression';
+export interface PatternFinding {
+  kind: PatternKind;
+  confidence: number;
+  severity: 'critical' | 'high' | 'medium' | 'low';
+  human_summary: string;
+  span_ids_involved: string[];
+  service_name: string;
+  metadata: Record<string, unknown>;
+  deterministic: boolean;
+}
+
+export interface LatencyRegressionHint {
+  service_name: string;
+  operation_name: string;
+  observed_duration_ms: number;
+  baseline_p99_ms: number;
+  z_score: number;
+  baseline_source: 'trace_history' | 'no_baseline';
+}
+
+export interface TierDecision {
+  tier: 0 | 1 | 2;
+  rationale: string;
+  model_key: 'cheap' | 'default' | 'none';
+}
+
+export interface TraceSummary {
+  trace_id: string;
+  root_service: string;
+  root_operation: string;
+  start_time_us: number;
+  duration_ms: number;
+  span_count: number;
+  error_count: number;
+  services: string[];
+  has_error: boolean;
+}
+
+// Full TracingAgent result shape — what EvidenceFindings consumes.
+export interface TraceAnalysisResult {
+  trace_id: string;
+  total_duration_ms: number;
+  total_services: number;
+  total_spans: number;
+  call_chain: SpanInfo[];
+  failure_point?: SpanInfo | null;
+  cascade_path: string[];
+  latency_bottlenecks: SpanInfo[];
+  retry_detected: boolean;
+  service_dependency_graph: Record<string, string[]>;
+  trace_source: 'jaeger' | 'tempo' | 'elasticsearch' | 'combined' | 'summarized';
+  elk_reconstruction_confidence?: number | null;
+  overall_confidence: number;
+  // TA-PR1 additions.
+  envoy_findings?: EnvoyFlagFinding[];
+  mined_trace_ids?: string[];
+  tier_decision?: TierDecision | null;
+  cross_trace_consensus?: 'unanimous' | 'majority' | 'divergent' | null;
+  sampling_mode?: 'head_based' | 'tail_based' | 'full' | null;
+  services_in_chain?: string[];
+  // TA-PR2 additions.
+  pattern_findings?: PatternFinding[];
+  hot_services?: string[];
+  critical_path_services?: string[];
+  bottleneck_operations?: Array<[string, string]>;
+  baseline_regressions?: LatencyRegressionHint[];
 }
 
 export interface PatientZero {
@@ -464,6 +561,8 @@ export interface V4Findings {
   pod_statuses?: PodHealthStatus[];
   k8s_events?: K8sEvent[];
   trace_spans?: SpanInfo[];
+  // TA-PR3 — full TracingAgent result for the evidence card + telescope.
+  trace_analysis?: TraceAnalysisResult | null;
   impacted_files?: CodeImpact[];
   diff_analysis?: DiffAnalysisItem[];
   suggested_fix_areas?: SuggestedFixArea[];
