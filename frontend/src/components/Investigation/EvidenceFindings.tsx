@@ -11,6 +11,7 @@ import type {
   CrossRepoFinding, PastIncidentMatch, EventMarker, PodHealthStatus,
 } from '../../types';
 import AgentFindingCard from './cards/AgentFindingCard';
+import TracingEvidenceCard from './cards/TracingEvidenceCard';
 import CausalRoleBadge from './cards/CausalRoleBadge';
 import StackTraceTelescope from './cards/StackTraceTelescope';
 import SaturationGauge from './cards/SaturationGauge';
@@ -793,9 +794,20 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                   </VineCard>
                 )}
 
-                {/* 10. Trace waterfall */}
+                {/* 10. Distributed trace (TA-PR3 — TracingEvidenceCard) */}
                 <div id="section-traces" className="scroll-mt-16" />
-                {filteredTraceSpans.length > 0 && (
+                {findings?.trace_analysis ? (
+                  <VineCard
+                    index={vineIndex++}
+                    sectionId="traces"
+                    isNew={newSections.has('traces')}
+                    onPin={() => handlePin('traces', 'Distributed Trace', 'L')}
+                    isPinned={pinnedSections.has('traces')}
+                  >
+                    <TracingEvidenceCard trace={findings.trace_analysis} />
+                  </VineCard>
+                ) : filteredTraceSpans.length > 0 && (
+                  /* Fallback — legacy trace_spans payload (pre-TA-PR3 backends) */
                   <VineCard
                     index={vineIndex++}
                     sectionId="traces"
