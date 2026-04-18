@@ -1469,6 +1469,23 @@ class SupervisorAgent:
             # Backward compat: local path
             if state.repo_url and not state.repo_url.startswith(("http://", "https://", "git@")):
                 base["repo_path"] = state.repo_url
+
+            # TracingAgent handoff (TA-PR1 + TA-PR2) — when tracing ran
+            # first, code_agent uses bottleneck_operations to prioritize
+            # which repos' code to analyze first, putting the code paths
+            # the tracer identified as critical-path hotspots at the top
+            # of the LLM's attention.
+            if state.services_from_traces:
+                base["services_from_traces"] = list(state.services_from_traces)
+            if state.hot_services_from_traces:
+                base["hot_services_from_traces"] = list(state.hot_services_from_traces)
+            if state.failure_service_from_trace:
+                base["failure_service_from_trace"] = state.failure_service_from_trace
+            if state.bottleneck_operations:
+                base["bottleneck_operations"] = [
+                    list(op) if isinstance(op, tuple) else op
+                    for op in state.bottleneck_operations
+                ]
             if state.log_analysis and state.log_analysis.primary_pattern:
                 base["exception_type"] = state.log_analysis.primary_pattern.exception_type
                 base["stack_traces"] = list(state.log_analysis.primary_pattern.stack_traces or [])
