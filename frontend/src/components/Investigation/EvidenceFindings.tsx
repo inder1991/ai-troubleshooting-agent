@@ -401,7 +401,6 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                     ) : (
                       <section className="space-y-2">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="material-symbols-outlined text-amber-500 text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>receipt_long</span>
                           <span className="text-body-xs font-bold font-display">Error Clusters</span>
                           <span className="text-body-xs font-mono text-slate-400">{ungroupedPatterns.length}</span>
                         </div>
@@ -1085,8 +1084,7 @@ const TemporalFlowTimeline: React.FC<{
     <div className="bg-wr-bg/40 border border-wr-border rounded-xl overflow-hidden">
       <div className="px-4 py-2 border-b border-wr-border flex items-center justify-between bg-wr-bg/60">
         <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-violet-400 text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>timeline</span>
-          <span className="text-body-xs font-bold font-display">Temporal Flow</span>
+          <span className="text-body-xs font-bold font-display text-violet-300">Temporal Flow</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-body-xs text-slate-400">{serviceCount} services, {steps.length} steps</span>
@@ -1553,8 +1551,7 @@ const TraceWaterfall: React.FC<{ spans: SpanInfo[] }> = ({ spans }) => {
   return (
     <div className="bg-wr-bg/40 border border-wr-border rounded-xl p-4 space-y-3">
       <div className="flex items-center gap-2">
-        <span className="material-symbols-outlined text-amber-400 text-sm" style={{ fontFamily: 'Material Symbols Outlined' }}>stacked_bar_chart</span>
-        <span className="text-body-xs font-bold font-display">Trace Waterfall</span>
+        <span className="text-body-xs font-bold font-display text-amber-300">Trace Waterfall</span>
         <span className="text-body-xs text-slate-400 ml-auto">{spans.length} spans, {totalDuration.toFixed(0)}ms</span>
         {errorCount > 0 && <span className="text-red-400 text-body-xs font-bold">{errorCount} errors</span>}
       </div>
