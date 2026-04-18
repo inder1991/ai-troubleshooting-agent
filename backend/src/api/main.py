@@ -224,6 +224,11 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    # K8s-canonical health probes (/healthz + /readyz) — see src/api/health.py.
+    # Mounted first so probes work even if a downstream router fails to load.
+    from .health import router as health_router
+    app.include_router(health_router)
+
     # Include routes
     app.include_router(pr_router, prefix="/api")
     app.include_router(router_v4)
