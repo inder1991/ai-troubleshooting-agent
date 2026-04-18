@@ -1444,6 +1444,20 @@ class SupervisorAgent:
                     }
                 ]
 
+            # TracingAgent handoff — when tracing ran first and populated
+            # these on state, k8s_agent uses them to scope its pod lookups
+            # to the services actually implicated in the trace (vs. scanning
+            # the whole namespace) and orders drill-downs along the critical
+            # path. Each field is optional; absent → legacy behavior.
+            if state.services_from_traces:
+                base["services_from_traces"] = list(state.services_from_traces)
+            if state.hot_services_from_traces:
+                base["hot_services_from_traces"] = list(state.hot_services_from_traces)
+            if state.failure_service_from_trace:
+                base["failure_service_from_trace"] = state.failure_service_from_trace
+            if state.critical_path_services:
+                base["critical_path_services"] = list(state.critical_path_services)
+
         elif agent_name == "tracing_agent":
             base["trace_id"] = state.trace_id
 
