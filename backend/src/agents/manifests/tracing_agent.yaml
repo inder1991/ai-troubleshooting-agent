@@ -1,22 +1,36 @@
 name: tracing_agent
-version: 1
+version: 2
 description: >-
-  Reconstructs distributed request flow across services. Queries Jaeger
-  first, falls back to Elasticsearch log-based reconstruction if no trace
-  data is available.
+  Distributed-tracing diagnostic agent. Queries Jaeger or Tempo (same query
+  API), mines candidate traces when trace_id isn't given, runs deterministic
+  Envoy response.flags matching, summarizes large traces under a prompt
+  budget, falls back to Elasticsearch log reconstruction when trace data
+  isn't available. Tier 0/1/2 model-cost cascade routes most analyses to
+  Haiku or skip-LLM; Sonnet only when cross-trace consensus or ambiguity
+  demands it.
 category: observability
-tags: [tracing, jaeger, spans, elasticsearch, cascade]
+tags: [tracing, jaeger, tempo, istio, envoy, spans, elasticsearch, cascade, mining]
 inputs:
   type: object
   properties:
     trace_id:
       type: string
+      description: "Optional — when absent, agent mines candidates from service + time_window."
     service_name:
       type: string
+    time_window:
+      type: object
+      description: "Required when trace_id is absent; pair of ISO 8601 timestamps."
+      properties:
+        start: { type: string, format: "date-time" }
+        end:   { type: string, format: "date-time" }
+    window_minutes:
+      type: integer
+      description: "Convenience alternative to time_window — last N minutes."
     error_patterns:
       type: array
       items: { type: object }
-  required: [trace_id]
+  required: []
 outputs:
   type: object
   properties:
@@ -37,10 +51,31 @@ outputs:
       items: { type: object }
     retry_detected: { type: boolean }
     service_dependency_graph: { type: object }
-    trace_source: { type: string }
+    trace_source:
+      type: string
+      enum: [jaeger, tempo, elasticsearch, combined, summarized]
     overall_confidence: { type: number }
-    mode: { type: string }
-    llm_calls: { type: integer }
+    envoy_findings:
+      type: array
+      description: "Deterministic Envoy response.flags findings — no LLM involved."
+      items: { type: object }
+    mined_trace_ids:
+      type: array
+      description: "Trace IDs mined when input lacked a trace_id; top-N ranked."
+      items: { type: string }
+    tier_decision:
+      type: object
+      description: "Which cost tier was used for LLM analysis (0=no LLM, 1=Haiku, 2=Sonnet)."
+    cross_trace_consensus:
+      type: [string, "null"]
+      enum: [unanimous, majority, divergent, null]
+    sampling_mode:
+      type: string
+      enum: [head_based, tail_based, full]
+    services_in_chain:
+      type: array
+      items: { type: string }
+      description: "Handoff contract — log/k8s/code/metrics agents scope their queries to these."
     breadcrumbs:
       type: array
       items: { type: object }
@@ -52,8 +87,41 @@ trigger_examples:
   - "Trace request abc-123 across services"
   - "Where did this request fail in the call chain?"
   - "Show me the cascade path for trace 7f3a"
+  - "checkout-api is slow in the last 15 minutes"
+  - "Find failing traces for inventory-service today"
+config:
+  backend_kind:
+    type: enum
+    values: [jaeger, tempo]
+    default: jaeger
+  sampling_mode:
+    type: enum
+    values: [head_based, tail_based, full]
+    default: tail_based
+  max_analysis_spans:
+    type: integer
+    default: 2000
+  max_fetched_spans:
+    type: integer
+    default: 50000
+  collapse_istio_sidecars:
+    type: boolean
+    default: true
+  redaction_enabled:
+    type: boolean
+    default: true
+  data_policy: pass_through_v1
+  data_policy_note: >-
+    v1 ships with permissive denylist redaction — span tag keys matching
+    password/token/secret/cookie/etc. are stripped entirely, values are
+    scrubbed for JWT/card/SSN/email/bearer/long-blob patterns. Everything
+    else passes through. v1.1 may tighten to allowlist-only for regulated
+    customers (GDPR/HIPAA/PCI).
 retry_on: [TimeoutError]
 timeout_seconds: 90
 cost_hint:
-  llm_calls: 1
-  typical_duration_s: 15
+  tier_0_percent_estimate: 40
+  tier_1_llm_calls: 1
+  tier_2_llm_calls: 1
+  typical_duration_s: 8
+  weighted_cost_usd_estimate: 0.006
