@@ -2093,6 +2093,32 @@ class SupervisorAgent:
                     details={"total_spans": result.get("total_spans", 0), "cascade_path": result.get("cascade_path", [])}
                 )
 
+            # Cross-check: tracing ↔ metrics divergence. Runs here because
+            # tracing_agent typically runs AFTER metrics_agent — by the time
+            # we land trace_analysis, metrics_analysis is already on state.
+            # Divergences are emitted into state.divergence_findings and an
+            # event is surfaced for each so the UI can flag the investigation.
+            if state.metrics_analysis is not None and state.trace_analysis is not None:
+                try:
+                    from src.agents.cross_check import check_tracing_metrics_divergence
+
+                    divergences = check_tracing_metrics_divergence(
+                        metrics=state.metrics_analysis,
+                        trace=state.trace_analysis,
+                    )
+                    if divergences:
+                        state.divergence_findings.extend(divergences)
+                        if event_emitter:
+                            for d in divergences:
+                                await event_emitter.emit(
+                                    "supervisor", "finding",
+                                    f"[divergence] {d.human_summary}",
+                                    details={"kind": d.kind, "service": d.service_name,
+                                             "severity": d.severity},
+                                )
+                except Exception:
+                    logger.exception("tracing↔metrics divergence check failed")
+
         # Handle code_agent results
         if agent_name == "code_agent":
             root_loc_raw = result.get("root_cause_location", {})

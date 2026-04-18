@@ -639,6 +639,27 @@ class PatternFinding(BaseModel):
     deterministic: bool = True
 
 
+class DivergenceFinding(BaseModel):
+    """Cross-check signal when two agents' views of the same incident disagree.
+
+    First shipped for tracing ↔ metrics — e.g., tracing says service X is
+    slow; metrics' baseline comparator didn't flag X. Divergence is itself
+    diagnostic: sampling artifact, metric-pipeline lag, aggregation bug,
+    or a genuine gap the investigation should explore.
+    """
+
+    kind: Literal[
+        "trace_failure_service_no_metric_anomaly",
+        "trace_baseline_regression_no_metric_anomaly",
+        "metric_anomaly_service_absent_from_trace",
+    ]
+    severity: Literal["critical", "high", "medium", "low"]
+    human_summary: str
+    service_name: str
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    deterministic: bool = True
+
+
 class LatencyRegressionHint(BaseModel):
     """Baseline-aware latency regression carried across agents (TA-PR2).
 
@@ -1065,6 +1086,10 @@ class DiagnosticState(BaseModel):
     bottleneck_operations: list[tuple[str, str]] = Field(default_factory=list)
     baseline_regressions: list[LatencyRegressionHint] = Field(default_factory=list)
     pattern_findings_from_traces: list[PatternFinding] = Field(default_factory=list)
+
+    # Cross-check output — populated by supervisor after multiple agents
+    # have completed (e.g., tracing ↔ metrics divergence check).
+    divergence_findings: list[DivergenceFinding] = Field(default_factory=list)
 
     # Agent results
     log_analysis: Optional[LogAnalysisResult] = None
