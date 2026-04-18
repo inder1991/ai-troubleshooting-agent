@@ -1,14 +1,21 @@
-# Local-dev infrastructure for the diagnostic-workflow hardening work.
-# Postgres is the new durable store for outbox, audit log, agent priors and
-# the eval store. Bring up with:
+# DEPRECATED — use the full local stack instead.
 #
-#     docker-compose -f docker-compose.dev.yml up -d postgres
+#   make up
 #
-# The default DATABASE_URL in backend/src/database/engine.py points here.
+# This used to be a Postgres-only convenience for backend devs running
+# `pytest` against a real DB. The full stack now lives in
+# `infra/local/compose.dev.yml` (postgres + redis + web + worker + frontend).
+#
+# This file is kept as a one-service shim so existing dev scripts that
+# `docker-compose -f docker-compose.dev.yml up -d postgres` keep working.
+#
+# To stop using this:
+#   docker-compose -f docker-compose.dev.yml down
+#   make up
 
 services:
   postgres:
-    image: postgres:15
+    image: postgres:15-alpine
     container_name: diagnostic-dev-postgres
     ports:
       - "5432:5432"

@@ -1,0 +1,64 @@
+# Keep image builds small + reproducible.
+
+# VCS
+.git
+.github
+.gitignore
+
+# Editor / OS
+.vscode
+.idea
+.DS_Store
+*.swp
+
+# Local dev environment
+.env
+.env.local
+.venv
+venv
+.pytest_cache
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+
+# Frontend build artifacts (rebuilt fresh in image)
+frontend/node_modules
+frontend/dist
+frontend/.vite
+frontend/playwright-report
+frontend/test-results
+frontend/coverage
+
+# Backend artifacts
+backend/.venv
+backend/venv
+backend/data
+backend/full_error.log
+backend/__pycache__
+
+# Runtime data + scratch
+data
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Local infra (compose files, Makefile) — only Dockerfile is used by build
+infra/local/compose.*.yml
+infra/local/scripts
+Makefile
+
+# Worktrees + Claude harness
+.worktrees
+.claude
+
+# Docs + assets that don't belong in the image
+docs
+*.md
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.avif
+*.pdf
