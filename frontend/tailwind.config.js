@@ -25,6 +25,10 @@ export default {
           'text-secondary': 'var(--wr-text-secondary)',
           'text-muted': 'var(--wr-text-muted)',
           'text-subtle': 'var(--wr-text-subtle)',
+          // Warm paper — Slot 2 VERDICT + primary editorial text in the left-panel
+          // redesign. Existed as a text color inside the Mermaid overrides; promoted
+          // to a first-class token so the editorial voice has a stable name.
+          paper: 'var(--wr-paper)',
           accent: 'var(--wr-accent)',
           'accent-glow': 'var(--wr-accent-glow)',
           'accent-2': 'var(--wr-accent-2)',
