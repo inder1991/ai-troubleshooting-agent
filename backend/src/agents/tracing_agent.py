@@ -142,7 +142,23 @@ class TracingAgent(ReActAgent):
         self._redactor = SpanTagRedactor(self._config.redaction)
         self._summarizer = TraceSummarizer(self._config.summarizer)
         self._ranker = TraceRanker(self._config.ranker)
-        self._patterns = PatternsRunner(baseline_fetcher=self._config.baseline_fetcher)
+
+        # TA-PR2b — default to the DB-backed baseline fetcher unless the
+        # caller injected a different one. When the populator hasn't run
+        # yet (empty table) the fetcher returns None per key and the
+        # BaselineRegressionDetector gracefully emits no findings.
+        resolved_fetcher = self._config.baseline_fetcher
+        if resolved_fetcher is None and os.environ.get("TRACE_BASELINE_DISABLE") != "1":
+            try:
+                from src.workers.trace_baseline_populator import build_baseline_fetcher
+                resolved_fetcher = build_baseline_fetcher()
+            except Exception:
+                # Don't fail TracingAgent construction if the populator
+                # module can't be imported — e.g., inside minimal unit-test
+                # environments. Detector just won't emit baseline findings.
+                logger.debug("baseline fetcher unavailable; detector will skip")
+
+        self._patterns = PatternsRunner(baseline_fetcher=resolved_fetcher)
 
     # Abstract ReActAgent methods — TracingAgent runs in an explicit orchestrated
     # mode (run_two_pass), NOT the generic ReAct loop, so these are minimal stubs

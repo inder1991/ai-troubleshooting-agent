@@ -173,6 +173,32 @@ class DagSnapshot(Base):
     )
 
 
+class TraceLatencyBaseline(Base):
+    """Rolling P99 latency baseline per (service, operation) — 7-day window.
+
+    Populated every 5 minutes by the ``trace_baseline_populator`` task in
+    ``src/workers/main.py``. Read at TracingAgent construction time by the
+    ``BaselineRegressionDetector`` (TA-PR2) to compare observed span
+    durations against "normal" for that service+operation.
+
+    Composite primary key on (service, operation) — one row per pair.
+    Upsert pattern on the populator (Postgres ON CONFLICT) keeps writes
+    cheap and re-runs idempotent.
+    """
+
+    __tablename__ = "trace_latency_baseline"
+
+    service_name = mapped_column(sa.String(128), primary_key=True)
+    operation_name = mapped_column(sa.String(255), primary_key=True)
+    p99_ms_7d = mapped_column(sa.Float, nullable=False)
+    sample_count = mapped_column(sa.Integer, nullable=False)
+    updated_at = mapped_column(
+        sa.DateTime(timezone=True),
+        nullable=False,
+        server_default=sa.func.now(),
+    )
+
+
 # ── Connection Profile ──
 
 

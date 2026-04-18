@@ -84,6 +84,24 @@ async def _start_outbox_relay() -> asyncio.Task[None]:
     return asyncio.create_task(_supervised(relay.run_forever, "outbox_relay"))
 
 
+async def _start_trace_baseline_populator() -> asyncio.Task[None]:
+    """Boot the TA-PR2b baseline populator.
+
+    Aggregates P99 latency per (service, operation) from recent
+    DagSnapshot rows every 5 minutes. Feeds the
+    ``BaselineRegressionDetector`` so it emits real findings.
+    """
+    from src.workers.trace_baseline_populator import (
+        DEFAULT_INTERVAL_S,
+        run_forever as baseline_run_forever,
+    )
+    interval_s = int(os.environ.get("TRACE_BASELINE_INTERVAL_S", str(DEFAULT_INTERVAL_S)))
+    logger.info("starting trace baseline populator (interval_s=%d)", interval_s)
+    async def _loop() -> None:
+        await baseline_run_forever(interval_s=interval_s)
+    return asyncio.create_task(_supervised(_loop, "trace_baseline_populator"))
+
+
 async def _run_resume_scan() -> None:
     """Log-only scan for orphaned runs (Stage K subset).
 
@@ -199,7 +217,8 @@ async def _amain() -> int:
 
     # 2. Long-running subsystems.
     relay_task = await _start_outbox_relay()
-    long_running: list[asyncio.Task[None]] = [relay_task]
+    baseline_task = await _start_trace_baseline_populator()
+    long_running: list[asyncio.Task[None]] = [relay_task, baseline_task]
 
     # 3. Block until drain requested.
     await lifecycle.wait_for_drain()
