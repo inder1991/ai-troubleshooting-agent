@@ -74,14 +74,14 @@ services:
   backend-migrate:
     container_name: ai-tshoot-migrate
     build:
-      context: ../..
-      dockerfile: infra/local/Dockerfile
+      context: ../../..
+      dockerfile: deploy/docker/Dockerfile
       target: backend-base
     environment: *backend-env
     volumes:
-      - ../../backend/src:/app/src:ro
-      - ../../backend/alembic:/app/alembic:ro
-      - ../../backend/alembic.ini:/app/alembic.ini:ro
+      - ../../../backend/src:/app/src:ro
+      - ../../../backend/alembic:/app/alembic:ro
+      - ../../../backend/alembic.ini:/app/alembic.ini:ro
     depends_on:
       postgres: {condition: service_healthy}
     command: ["alembic", "upgrade", "head"]
@@ -89,15 +89,15 @@ services:
   backend-web:
     container_name: ai-tshoot-web
     build:
-      context: ../..
-      dockerfile: infra/local/Dockerfile
+      context: ../../..
+      dockerfile: deploy/docker/Dockerfile
       target: backend-dev
     environment: *backend-env
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     volumes:
-      - ../../backend/src:/app/src
-      - ../../backend/alembic:/app/alembic
+      - ../../../backend/src:/app/src
+      - ../../../backend/alembic:/app/alembic
     depends_on:
       postgres: {condition: service_healthy}
       redis:    {condition: service_healthy}
@@ -112,13 +112,13 @@ services:
   backend-worker:
     container_name: ai-tshoot-worker
     build:
-      context: ../..
-      dockerfile: infra/local/Dockerfile
+      context: ../../..
+      dockerfile: deploy/docker/Dockerfile
       target: backend-dev
     environment: *backend-env
     volumes:
-      - ../../backend/src:/app/src
-      - ../../backend/alembic:/app/alembic
+      - ../../../backend/src:/app/src
+      - ../../../backend/alembic:/app/alembic
     depends_on:
       postgres: {condition: service_healthy}
       redis:    {condition: service_healthy}
@@ -130,18 +130,18 @@ services:
   frontend:
     container_name: ai-tshoot-frontend
     build:
-      context: ../..
-      dockerfile: infra/local/Dockerfile
+      context: ../../..
+      dockerfile: deploy/docker/Dockerfile
       target: frontend-dev
     ports:
       - "${FRONTEND_PORT:-5173}:5173"
     volumes:
-      - ../../frontend/src:/app/src
-      - ../../frontend/index.html:/app/index.html
-      - ../../frontend/vite.config.ts:/app/vite.config.ts
-      - ../../frontend/tsconfig.json:/app/tsconfig.json
-      - ../../frontend/tailwind.config.js:/app/tailwind.config.js
-      - ../../frontend/postcss.config.js:/app/postcss.config.js
+      - ../../../frontend/src:/app/src
+      - ../../../frontend/index.html:/app/index.html
+      - ../../../frontend/vite.config.ts:/app/vite.config.ts
+      - ../../../frontend/tsconfig.json:/app/tsconfig.json
+      - ../../../frontend/tailwind.config.js:/app/tailwind.config.js
+      - ../../../frontend/postcss.config.js:/app/postcss.config.js
     environment:
       VITE_API_BASE_URL: http://localhost:${BACKEND_PORT:-8000}
     depends_on:

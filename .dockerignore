@@ -45,8 +45,8 @@ data
 *.db-shm
 
 # Local infra (compose files, Makefile) — only Dockerfile is used by build
-infra/local/compose.*.yml
-infra/local/scripts
+deploy/docker/compose.*.yml
+deploy/docker/scripts
 Makefile
 
 # Worktrees + Claude harness

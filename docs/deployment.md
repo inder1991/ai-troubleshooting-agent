@@ -57,11 +57,11 @@ kubectl -n "$NS" create secret generic ext-redis-creds --from-literal=password=.
 ### Vanilla Kubernetes
 
 ```bash
-helm dependency update charts/ai-troubleshooting
+helm dependency update deploy/helm/ai-troubleshooting
 
-helm install ai-tshoot charts/ai-troubleshooting \
+helm install ai-tshoot deploy/helm/ai-troubleshooting \
   -n ai-tshoot \
-  -f charts/ai-troubleshooting/values-prod.yaml \
+  -f deploy/helm/ai-troubleshooting/values-prod.yaml \
   --set anthropic.defaultKey.existingSecret=anthropic-default \
   --set ingress.enabled=true \
   --set ingress.host=ai-tshoot.example.com \
@@ -71,10 +71,10 @@ helm install ai-tshoot charts/ai-troubleshooting \
 ### OpenShift
 
 ```bash
-helm install ai-tshoot charts/ai-troubleshooting \
+helm install ai-tshoot deploy/helm/ai-troubleshooting \
   -n ai-tshoot \
-  -f charts/ai-troubleshooting/values-openshift.yaml \
-  -f charts/ai-troubleshooting/values-prod.yaml \
+  -f deploy/helm/ai-troubleshooting/values-openshift.yaml \
+  -f deploy/helm/ai-troubleshooting/values-prod.yaml \
   --set anthropic.defaultKey.existingSecret=anthropic-default \
   --set route.host=ai-tshoot.apps.cluster.example.com \
   --wait --timeout 10m
@@ -92,9 +92,9 @@ curl -fsS https://ai-tshoot.example.com/readyz
 ## Upgrade
 
 ```bash
-helm upgrade ai-tshoot charts/ai-troubleshooting \
+helm upgrade ai-tshoot deploy/helm/ai-troubleshooting \
   -n ai-tshoot \
-  -f charts/ai-troubleshooting/values-prod.yaml \
+  -f deploy/helm/ai-troubleshooting/values-prod.yaml \
   --set anthropic.defaultKey.existingSecret=anthropic-default \
   --set image.tag=0.1.1 \
   --wait --timeout 10m
@@ -168,7 +168,7 @@ kubectl -n ai-tshoot create secret generic anthropic-default-new \
   --from-literal=api_key=sk-ant-NEW... \
   --dry-run=client -o yaml | kubectl apply -f -
 
-helm upgrade ai-tshoot charts/ai-troubleshooting -n ai-tshoot \
+helm upgrade ai-tshoot deploy/helm/ai-troubleshooting -n ai-tshoot \
   --reuse-values \
   --set anthropic.defaultKey.existingSecret=anthropic-default-new
 
@@ -179,7 +179,7 @@ kubectl -n ai-tshoot delete secret anthropic-default
 
 ### Rotate bundled Postgres password
 
-The Bitnami subchart documents this — see `charts/ai-troubleshooting/charts/postgresql/README.md` after `helm dep build`.
+The Bitnami subchart documents this — see `deploy/helm/ai-troubleshooting/charts/postgresql/README.md` after `helm dep build`.
 
 ## Troubleshooting
 

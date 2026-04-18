@@ -11,15 +11,15 @@ kubectl -n ai-tshoot create secret generic anthropic-default \
   --from-literal=api_key=sk-ant-...
 
 # 2. Add chart deps + install.
-helm dependency update charts/ai-troubleshooting
-helm install ai-tshoot charts/ai-troubleshooting \
+helm dependency update deploy/helm/ai-troubleshooting
+helm install ai-tshoot deploy/helm/ai-troubleshooting \
   -n ai-tshoot \
   --set anthropic.defaultKey.existingSecret=anthropic-default
 
 # 3. (OpenShift) overlay the OpenShift values.
-helm install ai-tshoot charts/ai-troubleshooting \
+helm install ai-tshoot deploy/helm/ai-troubleshooting \
   -n ai-tshoot \
-  -f charts/ai-troubleshooting/values-openshift.yaml \
+  -f deploy/helm/ai-troubleshooting/values-openshift.yaml \
   --set anthropic.defaultKey.existingSecret=anthropic-default
 ```
 
@@ -110,9 +110,9 @@ The chart aborts install with a clear error message if:
 
 Stack overlays at install time:
 ```bash
-helm install ai-tshoot charts/ai-troubleshooting \
-  -f charts/ai-troubleshooting/values-openshift.yaml \
-  -f charts/ai-troubleshooting/values-prod.yaml \
+helm install ai-tshoot deploy/helm/ai-troubleshooting \
+  -f deploy/helm/ai-troubleshooting/values-openshift.yaml \
+  -f deploy/helm/ai-troubleshooting/values-prod.yaml \
   -f my-customer-overrides.yaml
 ```
 
@@ -149,7 +149,7 @@ Curls `/healthz` + `/readyz` from inside the cluster. Fails the test on non-200.
 ## Upgrade
 
 ```bash
-helm upgrade ai-tshoot charts/ai-troubleshooting \
+helm upgrade ai-tshoot deploy/helm/ai-troubleshooting \
   -n ai-tshoot \
   --set image.tag=0.1.1
 ```

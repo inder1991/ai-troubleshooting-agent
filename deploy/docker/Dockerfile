@@ -75,6 +75,6 @@ RUN npm run build
 
 FROM nginx:1.27-alpine AS frontend-prod
 COPY --from=frontend-build /app/dist /usr/share/nginx/html
-COPY infra/local/nginx.conf /etc/nginx/conf.d/default.conf
+COPY deploy/docker/nginx.conf /etc/nginx/conf.d/default.conf
 # nginx already runs as non-root in alpine image with the standard config.
 EXPOSE 8080

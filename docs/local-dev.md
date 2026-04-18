@@ -73,7 +73,7 @@ Source is bind-mounted from your laptop into the container, so edits in your IDE
 **Worker code changes need a manual restart** (long-lived investigations would otherwise survive the reload):
 
 ```bash
-docker compose -f infra/local/compose.dev.yml restart backend-worker
+docker compose -f deploy/docker/compose.dev.yml restart backend-worker
 ```
 
 ## Test the prod image locally
@@ -100,7 +100,7 @@ make seed     # optional — repopulate with fixtures
 
 ## Pre-flight checks
 
-`make up` runs `infra/local/scripts/preflight.sh` first. It catches:
+`make up` runs `deploy/docker/scripts/preflight.sh` first. It catches:
 
 - Docker daemon not running
 - `docker compose v2` not installed
@@ -165,7 +165,7 @@ The schema is regenerated from scratch.
 Worker code changes need a manual restart:
 
 ```bash
-docker compose -f infra/local/compose.dev.yml restart backend-worker
+docker compose -f deploy/docker/compose.dev.yml restart backend-worker
 make logs SERVICE=backend-worker
 ```
 
@@ -193,4 +193,4 @@ For local testing of agent code paths against these, point your local stack at a
 
 ## Production deployment
 
-This local stack is for development only. Production uses the Helm chart in `charts/ai-troubleshooting/` — see `docs/deployment.md` (coming in PR 3).
+This local stack is for development only. Production uses the Helm chart in `deploy/helm/ai-troubleshooting/` — see `docs/deployment.md` (coming in PR 3).
