@@ -22,6 +22,8 @@ EXEMPT_PATHS: Set[str] = {
     "/health",
     "/health/ready",
     "/health/live",
+    "/healthz",  # k8s-canonical liveness (see src/api/health.py)
+    "/readyz",   # k8s-canonical readiness (see src/api/health.py)
     "/metrics",
     "/docs",
     "/redoc",
