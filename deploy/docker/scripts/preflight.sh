@@ -5,8 +5,8 @@
 # Exits 0 on success, non-zero with a human-readable error on failure.
 set -euo pipefail
 
-# Resolve repo root from this script's location (infra/local/scripts/).
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+# Resolve repo root from this script's location (deploy/docker/scripts/).
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)"
 cd "${ROOT}"
 
 red()    { printf '\033[31m%s\033[0m\n' "$*" >&2; }

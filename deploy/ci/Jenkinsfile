@@ -70,7 +70,7 @@ pipeline {
             --target backend-prod \
             --tag "${IMAGE}:${RESOLVED_TAG}" \
             --tag "${IMAGE}:sha-$(git rev-parse HEAD)" \
-            --file infra/local/Dockerfile \
+            --file deploy/docker/Dockerfile \
             --push \
             .
         '''
@@ -81,13 +81,13 @@ pipeline {
       steps {
         sh '''
           set -euo pipefail
-          helm dependency update charts/ai-troubleshooting
+          helm dependency update deploy/helm/ai-troubleshooting
           # Sync chart's appVersion to the image tag for the release artifact.
           sed -i "s|^appVersion: .*|appVersion: \\"${RESOLVED_TAG}\\"|" \
-            charts/ai-troubleshooting/Chart.yaml
+            deploy/helm/ai-troubleshooting/Chart.yaml
           mkdir -p /tmp/chart
-          helm package charts/ai-troubleshooting -d /tmp/chart
-          CHART_VERSION=$(awk '/^version:/ {print $2; exit}' charts/ai-troubleshooting/Chart.yaml)
+          helm package deploy/helm/ai-troubleshooting -d /tmp/chart
+          CHART_VERSION=$(awk '/^version:/ {print $2; exit}' deploy/helm/ai-troubleshooting/Chart.yaml)
           echo "${NEXUS_CREDS_PSW}" | helm registry login "${NEXUS_REGISTRY}" \
             -u "${NEXUS_CREDS_USR}" --password-stdin
           helm push "/tmp/chart/ai-troubleshooting-${CHART_VERSION}.tgz" \

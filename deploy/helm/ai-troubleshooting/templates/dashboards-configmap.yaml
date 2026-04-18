@@ -38,7 +38,7 @@ metadata:
     {{ .Values.dashboards.label }}: "1"
 data:
   README: |
-    Drop Grafana dashboard JSON files in charts/ai-troubleshooting/dashboards/
+    Drop Grafana dashboard JSON files in deploy/helm/ai-troubleshooting/dashboards/
     to populate this ConfigMap. The chart uses .Files.Glob "dashboards/*.json"
     to load them at template-render time.
 {{- end }}

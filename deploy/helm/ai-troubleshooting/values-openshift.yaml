@@ -1,6 +1,6 @@
 # OpenShift overlay — applied alongside values.yaml:
-#   helm install <release> charts/ai-troubleshooting \
-#     -f charts/ai-troubleshooting/values-openshift.yaml \
+#   helm install <release> deploy/helm/ai-troubleshooting \
+#     -f deploy/helm/ai-troubleshooting/values-openshift.yaml \
 #     -f my-env-overrides.yaml
 
 openshift:

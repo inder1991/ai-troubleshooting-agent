@@ -4,10 +4,10 @@
 # When stuck:   make help   → list every target
 
 # ─── Configuration ────────────────────────────────────────────────────────────
-COMPOSE_DEV       := docker compose -f infra/local/compose.dev.yml
-COMPOSE_PRODLIKE  := docker compose -f infra/local/compose.prod-like.yml
-PREFLIGHT         := infra/local/scripts/preflight.sh
-SEED              := infra/local/scripts/seed.sh
+COMPOSE_DEV       := docker compose -f deploy/docker/compose.dev.yml
+COMPOSE_PRODLIKE  := docker compose -f deploy/docker/compose.prod-like.yml
+PREFLIGHT         := deploy/docker/scripts/preflight.sh
+SEED              := deploy/docker/scripts/seed.sh
 
 # Default service for `make logs SERVICE=...`.
 SERVICE ?=

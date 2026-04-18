@@ -11,7 +11,7 @@
 # Use:  make up-prod-like
 #
 # This is NOT the production deploy mechanism — that's the Helm chart in
-# charts/ai-troubleshooting/. This file just runs the same images locally.
+# deploy/helm/ai-troubleshooting/. This file just runs the same images locally.
 
 name: ai-tshoot-prodlike
 
@@ -48,8 +48,8 @@ services:
 
   backend-migrate:
     build:
-      context: ../..
-      dockerfile: infra/local/Dockerfile
+      context: ../../..
+      dockerfile: deploy/docker/Dockerfile
       target: backend-prod
     environment: *backend-env
     depends_on:
@@ -58,8 +58,8 @@ services:
 
   backend-web:
     build:
-      context: ../..
-      dockerfile: infra/local/Dockerfile
+      context: ../../..
+      dockerfile: deploy/docker/Dockerfile
       target: backend-prod
     environment: *backend-env
     ports:
@@ -77,8 +77,8 @@ services:
 
   backend-worker:
     build:
-      context: ../..
-      dockerfile: infra/local/Dockerfile
+      context: ../../..
+      dockerfile: deploy/docker/Dockerfile
       target: backend-prod
     environment: *backend-env
     depends_on:
@@ -89,8 +89,8 @@ services:
 
   frontend:
     build:
-      context: ../..
-      dockerfile: infra/local/Dockerfile
+      context: ../../..
+      dockerfile: deploy/docker/Dockerfile
       target: frontend-prod
     ports:
       - "${FRONTEND_PORT:-5173}:8080"

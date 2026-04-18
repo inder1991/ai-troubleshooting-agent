@@ -46,7 +46,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: infra/local/Dockerfile
+          file: deploy/docker/Dockerfile
           target: backend-prod
           platforms: linux/amd64,linux/arm64
           push: true
@@ -64,18 +64,18 @@ jobs:
 
       - name: Sync chart appVersion to release tag
         run: |
-          sed -i 's/^appVersion: .*/appVersion: "${{ steps.ver.outputs.semver }}"/' charts/ai-troubleshooting/Chart.yaml
-          cat charts/ai-troubleshooting/Chart.yaml | grep -E "version:|appVersion:"
+          sed -i 's/^appVersion: .*/appVersion: "${{ steps.ver.outputs.semver }}"/' deploy/helm/ai-troubleshooting/Chart.yaml
+          cat deploy/helm/ai-troubleshooting/Chart.yaml | grep -E "version:|appVersion:"
 
       - name: Build chart deps
-        run: helm dependency update charts/ai-troubleshooting
+        run: helm dependency update deploy/helm/ai-troubleshooting
 
       - name: Package + push chart to OCI registry
         run: |
-          helm package charts/ai-troubleshooting -d /tmp/chart
+          helm package deploy/helm/ai-troubleshooting -d /tmp/chart
           helm registry login ${{ env.REGISTRY }} -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
           # Chart version is independent of appVersion — read from Chart.yaml.
-          CHART_VERSION=$(awk '/^version:/ {print $2; exit}' charts/ai-troubleshooting/Chart.yaml)
+          CHART_VERSION=$(awk '/^version:/ {print $2; exit}' deploy/helm/ai-troubleshooting/Chart.yaml)
           helm push "/tmp/chart/ai-troubleshooting-${CHART_VERSION}.tgz" oci://${{ env.REGISTRY }}/${{ github.repository_owner }}/charts
 
       - name: Create GitHub Release

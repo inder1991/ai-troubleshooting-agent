@@ -82,28 +82,28 @@ jobs:
         with:
           version: v3.16.1
       - name: Build chart deps
-        run: helm dependency update charts/ai-troubleshooting
+        run: helm dependency update deploy/helm/ai-troubleshooting
       - name: Lint
-        run: helm lint charts/ai-troubleshooting --set anthropic.defaultKey.existingSecret=test
+        run: helm lint deploy/helm/ai-troubleshooting --set anthropic.defaultKey.existingSecret=test
       - name: Validation guard — missing default key fails
         run: |
-          if helm template ci charts/ai-troubleshooting 2>/dev/null; then
+          if helm template ci deploy/helm/ai-troubleshooting 2>/dev/null; then
             echo "Validation guard FAILED to fire" >&2
             exit 1
           fi
           echo "✓ guard fires"
       - name: Render — vanilla
-        run: helm template ci charts/ai-troubleshooting --set anthropic.defaultKey.existingSecret=test --set ingress.enabled=true | head -200
+        run: helm template ci deploy/helm/ai-troubleshooting --set anthropic.defaultKey.existingSecret=test --set ingress.enabled=true | head -200
       - name: Render — OpenShift overlay
         run: |
-          helm template ci charts/ai-troubleshooting \
-            -f charts/ai-troubleshooting/values-openshift.yaml \
+          helm template ci deploy/helm/ai-troubleshooting \
+            -f deploy/helm/ai-troubleshooting/values-openshift.yaml \
             --set anthropic.defaultKey.existingSecret=test \
             | grep -q "kind: Route"
       - name: Render — prod overlay
         run: |
-          helm template ci charts/ai-troubleshooting \
-            -f charts/ai-troubleshooting/values-prod.yaml \
+          helm template ci deploy/helm/ai-troubleshooting \
+            -f deploy/helm/ai-troubleshooting/values-prod.yaml \
             --set anthropic.defaultKey.existingSecret=test \
             | grep -q "HorizontalPodAutoscaler"
 
@@ -125,7 +125,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: infra/local/Dockerfile
+          file: deploy/docker/Dockerfile
           target: backend-prod
           platforms: linux/amd64,linux/arm64
           push: true
