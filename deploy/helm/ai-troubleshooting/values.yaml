@@ -281,12 +281,21 @@ serviceMonitor:
 prometheusRule:
   enabled: false
   labels: {}                   # match Prometheus Operator's ruleSelector
-  # SLO burn defaults derived from Phase 4 Task 4.28 metrics. Operator
-  # tunes thresholds in their overlay.
+  # SLO defaults keyed to the Phase-4 metrics emitted by the backend
+  # (investigation_step_duration_ms, investigation_in_flight,
+  # investigation_total{outcome}). Operator tunes thresholds in their
+  # overlay. See templates/prometheusrule.yaml for the alert expressions.
   rules:
-    burnRateFastWindow: 5m
-    burnRateSlowWindow: 1h
-    apiP99LatencyMs: 2000
+    # p95 step-latency warning
+    stepDurationWindow: 10m
+    stepP95LatencyMs: 30000
+    stepSlowFor: 10m
+    # in-flight concurrency capacity warning
+    inFlightAbsoluteThreshold: 40
+    inFlightFor: 5m
+    # investigation failure+cancel ratio page
+    failureRatioWindow: 5m
+    failureRatioFor: 5m
     investigationFailureRatio: 0.05
 
 dashboards:
