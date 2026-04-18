@@ -1385,6 +1385,24 @@ class SupervisorAgent:
             if known_deps:
                 base["known_dependencies"] = known_deps
 
+            # TracingAgent handoff (TA-PR1 + TA-PR2 output). Populated only
+            # when tracing_agent ran before log_agent; narrows + prioritizes
+            # the ELK query dramatically. Each field is optional — log_agent
+            # falls back to its legacy query when absent.
+            if state.services_from_traces:
+                base["services_from_traces"] = list(state.services_from_traces)
+            if state.hot_services_from_traces:
+                base["hot_services_from_traces"] = list(state.hot_services_from_traces)
+            if state.failure_service_from_trace:
+                base["failure_service_from_trace"] = state.failure_service_from_trace
+            if state.trace_ids_mined:
+                base["trace_ids_mined"] = list(state.trace_ids_mined)
+            if state.pattern_findings_from_traces:
+                base["pattern_findings_from_traces"] = [
+                    {"kind": p.kind, "severity": p.severity, "service_name": p.service_name}
+                    for p in state.pattern_findings_from_traces
+                ]
+
         elif agent_name == "metrics_agent":
             base["namespace"] = state.namespace or "default"
             if state.log_analysis:

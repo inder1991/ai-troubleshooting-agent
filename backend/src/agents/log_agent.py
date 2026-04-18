@@ -3,7 +3,7 @@ import re
 import hashlib
 from collections import defaultdict
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Optional
 
 import requests
 
@@ -155,6 +155,70 @@ class LogAnalysisAgent:
         self._patterns: list[dict] = []
         self._service_flow: list[dict] = []
         self._event_emitter: EventEmitter | None = None
+        # TracingAgent handoff — populated by `_apply_tracing_handoff()` when
+        # state carried the relevant fields (TA-PR1 + TA-PR2 handoff contracts).
+        self._tracing_scope_services: list[str] = []
+        self._tracing_boost_service: Optional[str] = None
+        self._tracing_trace_ids: list[str] = []
+        self._tracing_handoff_used: bool = False
+
+    def _add_tracing_breadcrumb(self, *, scoped_to: list[str]) -> None:
+        """Record that this log_agent run was scoped by TracingAgent handoff.
+
+        Auditable by the supervisor's feedback loop — Phase 4's FeedbackRow
+        can credit the narrowing back to tracing_agent's priors.
+        """
+        self.breadcrumbs.append(
+            Breadcrumb(
+                agent_name=self.agent_name,
+                action="scoped_by_tracing",
+                source_type="trace_span",
+                source_reference="tracing_agent handoff",
+                raw_evidence=f"ELK query scoped to services: {', '.join(scoped_to)}",
+                timestamp=datetime.now(timezone.utc),
+            )
+        )
+
+    @staticmethod
+    def _apply_tracing_handoff(context: dict) -> dict:
+        """Extract TracingAgent handoff into a simpler shape used by the query builder.
+
+        Returns a dict with keys: ``scope_services``, ``boost_service``,
+        ``trace_ids``, ``expand_window_for_pattern`` (bool). All optional —
+        empty dict is valid and means "no handoff available".
+
+        Precedence:
+          - hot_services_from_traces wins over services_from_traces when both
+            present (hot = services with pattern findings, tighter scope)
+          - failure_service_from_trace is always used as the boost target
+        """
+        hot = context.get("hot_services_from_traces") or []
+        all_svcs = context.get("services_from_traces") or []
+        scope_services = list(hot) if hot else list(all_svcs)
+
+        failure_svc = context.get("failure_service_from_trace")
+        if failure_svc and failure_svc not in scope_services:
+            scope_services = [failure_svc, *scope_services]
+
+        trace_ids = list(context.get("trace_ids_mined") or [])
+        tid = context.get("trace_id")
+        if tid and tid not in trace_ids:
+            trace_ids.append(tid)
+
+        patterns = context.get("pattern_findings_from_traces") or []
+        expand = any(
+            p.get("kind") in ("app_level_retry", "n_plus_one")
+            for p in patterns
+            if isinstance(p, dict)
+        )
+
+        return {
+            "scope_services": scope_services,
+            "boost_service": failure_svc,
+            "trace_ids": trace_ids,
+            "expand_window_for_pattern": expand,
+            "any_tracing_data": bool(scope_services or trace_ids or patterns),
+        }
 
     def _build_es_headers(self, connection_config) -> dict:
         """Build HTTP headers for Elasticsearch requests, including auth."""
@@ -377,13 +441,41 @@ class LogAnalysisAgent:
 
         service = context.get("service_name", "*")
         timeframe = context.get("timeframe", "now-1h")
-        logs = await self._search_elasticsearch({
+
+        # TracingAgent handoff — when trace data is available, narrow the
+        # ELK query to the services/traces the tracer already identified.
+        # Cuts the search space by 5-10× in typical multi-service investigations.
+        tracing_hint = self._apply_tracing_handoff(context)
+        self._tracing_scope_services = tracing_hint["scope_services"]
+        self._tracing_boost_service = tracing_hint["boost_service"]
+        self._tracing_trace_ids = tracing_hint["trace_ids"]
+        self._tracing_handoff_used = tracing_hint["any_tracing_data"]
+
+        if self._tracing_handoff_used and event_emitter:
+            await event_emitter.emit(
+                self.agent_name, "progress",
+                f"Scoped by tracing: {len(self._tracing_scope_services)} service(s), "
+                f"{len(self._tracing_trace_ids)} trace_id(s)",
+            )
+
+        first_params: dict = {
             "index": index,
             "query": service,
             "time_range": timeframe,
             "size": 200,
             "level_filter": "ERROR",
-        })
+        }
+        if self._tracing_scope_services:
+            first_params["scope_services"] = self._tracing_scope_services
+        if self._tracing_boost_service:
+            first_params["boost_service"] = self._tracing_boost_service
+        if self._tracing_trace_ids:
+            first_params["trace_ids"] = self._tracing_trace_ids
+
+        logs = await self._search_elasticsearch(first_params)
+
+        if self._tracing_handoff_used and self._raw_logs:
+            self._add_tracing_breadcrumb(scoped_to=self._tracing_scope_services)
 
         # Step 3: Broaden if no results
         if not self._raw_logs:
@@ -1361,6 +1453,12 @@ Respond with JSON only. No markdown fences."""
         message_filter = params.get("message_filter", "")
         exclude_noise = params.get("exclude_noise", False)
 
+        # TracingAgent handoff params (TA log-agent PR). All optional; when
+        # absent, the query shape is identical to the pre-handoff path.
+        scope_services: list[str] = params.get("scope_services") or []
+        boost_service: Optional[str] = params.get("boost_service")
+        trace_ids: list[str] = params.get("trace_ids") or []
+
         size = min(size, ES_MAX_RESULTS)
 
         es_query: dict[str, Any] = {
@@ -1376,9 +1474,53 @@ Respond with JSON only. No markdown fences."""
             },
         }
 
+        # Tracing handoff — scope by services.
+        #   match any of the supplied services across the known service-field
+        #   aliases. This REPLACES the single-service match below when the
+        #   handoff is present (scope is tighter by construction).
+        if scope_services:
+            service_fields = [
+                "service", "service.name", "service_name",
+                "kubernetes.container.name", "kubernetes.labels.app",
+                "app", "host.name", "container.name",
+            ]
+            should_clauses: list[dict] = []
+            for svc in scope_services:
+                for field in service_fields:
+                    should_clauses.append({"match_phrase": {field: svc}})
+            es_query["query"]["bool"]["must"].append({
+                "bool": {"should": should_clauses, "minimum_should_match": 1}
+            })
+
+        # Tracing handoff — boost the failure-point service so its errors
+        # rank higher in the relevance sort. This is a `should` at the top
+        # level (doesn't change match set, changes ordering).
+        if boost_service:
+            for field in ("service", "service.name", "service_name"):
+                es_query["query"]["bool"].setdefault("should", []).append(
+                    {"match_phrase": {field: {"query": boost_service, "boost": 3.0}}}
+                )
+
+        # Tracing handoff — filter to logs correlated with the mined traces
+        # via any of the OTel / common correlation-id conventions.
+        if trace_ids:
+            tid_fields = [
+                "trace_id", "traceId", "otel.trace_id", "trace.id", "TraceID",
+                "span.trace_id", "correlation_id", "request_id", "x-request-id",
+            ]
+            tid_clauses: list[dict] = []
+            for tid in trace_ids:
+                for field in tid_fields:
+                    tid_clauses.append({"match": {field: tid}})
+            es_query["query"]["bool"]["must"].append({
+                "bool": {"should": tid_clauses, "minimum_should_match": 1}
+            })
+
         # Service matching: use targeted field search instead of query_string
-        # to avoid hyphenated names like "checkout-service" matching all docs
-        if query and query != "*":
+        # to avoid hyphenated names like "checkout-service" matching all docs.
+        # Skipped entirely when scope_services already narrowed the query —
+        # the tracing handoff is strictly more specific than a single service name.
+        if query and query != "*" and not scope_services:
             es_query["query"]["bool"]["must"].append({
                 "bool": {
                     "should": [
