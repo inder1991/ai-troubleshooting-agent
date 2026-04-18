@@ -177,6 +177,48 @@ def generate_incident_id() -> str:
     return f"INC-{date_part}-{rand_part}"
 
 
+async def _run_metrics_logs_cross_check(state, event_emitter) -> None:
+    """Run the metrics↔logs divergence checker and merge findings onto state.
+
+    Called from both the metrics_agent and log_agent result handlers so
+    the check fires the moment both analyses are present (regardless of
+    which agent landed second). Dedupes by (kind, service_name) against
+    ``state.divergence_findings`` to stay idempotent across re-runs.
+    """
+    try:
+        from src.agents.cross_check import check_metrics_logs_divergence
+
+        divergences = check_metrics_logs_divergence(
+            metrics=state.metrics_analysis,
+            logs=state.log_analysis,
+        )
+        if not divergences:
+            return
+
+        existing_keys = {(d.kind, d.service_name) for d in state.divergence_findings}
+        new_divergences = [
+            d for d in divergences
+            if (d.kind, d.service_name) not in existing_keys
+        ]
+        if not new_divergences:
+            return
+
+        state.divergence_findings.extend(new_divergences)
+        if event_emitter:
+            for d in new_divergences:
+                await event_emitter.emit(
+                    "supervisor", "finding",
+                    f"[divergence] {d.human_summary}",
+                    details={
+                        "kind": d.kind,
+                        "service": d.service_name,
+                        "severity": d.severity,
+                    },
+                )
+    except Exception:
+        logger.exception("metrics↔logs divergence check failed")
+
+
 class SupervisorAlreadyConsumed(RuntimeError):
     """Raised when a single-use SupervisorAgent is asked to run a second time.
 
@@ -1784,6 +1826,11 @@ class SupervisorAgent:
                 })
                 state.namespace = detected_ns
 
+            # Cross-check: metrics ↔ logs. Fires from whichever agent lands
+            # second — see _run_metrics_logs_cross_check for dedup logic.
+            if state.metrics_analysis is not None and state.log_analysis is not None:
+                await _run_metrics_logs_cross_check(state, event_emitter)
+
         # Handle change_agent results
         if agent_name == "change_agent":
             state.change_analysis = result
@@ -1898,6 +1945,12 @@ class SupervisorAgent:
                     f"Found {len(anomalies)} metric anomalies",
                     details={"anomaly_count": len(anomalies), "severity_breakdown": severity_counts}
                 )
+
+            # Cross-check: metrics ↔ logs divergence. Fires whenever both
+            # analyses are present. Idempotent: run from both the metrics
+            # and log handlers — _merge_divergences dedups by (kind, service).
+            if state.metrics_analysis is not None and state.log_analysis is not None:
+                await _run_metrics_logs_cross_check(state, event_emitter)
 
         # Handle k8s_agent results
         if agent_name == "k8s_agent":
