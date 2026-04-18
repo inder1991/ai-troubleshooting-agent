@@ -649,9 +649,14 @@ class DivergenceFinding(BaseModel):
     """
 
     kind: Literal[
+        # tracing ↔ metrics
         "trace_failure_service_no_metric_anomaly",
         "trace_baseline_regression_no_metric_anomaly",
         "metric_anomaly_service_absent_from_trace",
+        # metrics ↔ logs
+        "metric_anomaly_no_error_logs",
+        "log_error_cluster_no_metric_anomaly",
+        "log_error_service_not_in_metrics",
     ]
     severity: Literal["critical", "high", "medium", "low"]
     human_summary: str
