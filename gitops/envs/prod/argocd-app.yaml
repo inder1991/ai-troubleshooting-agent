@@ -1,0 +1,36 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ai-troubleshooting-prod
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  sources:
+    - repoURL: oci://nexus.internal/charts
+      chart: ai-troubleshooting
+      targetRevision: 0.1.0                         # bump for promotion
+      helm:
+        releaseName: ai-tshoot
+        valueFiles:
+          - $values/envs/prod/values.yaml
+    - repoURL: https://github.com/inder1991/acme-platform-gitops.git
+      targetRevision: HEAD
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ai-tshoot-prod
+  syncPolicy:
+    # Manual approval gate for prod — automated false; SRE clicks "Sync".
+    automated: null
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+      - PruneLast=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 1m
+        factor: 2
+        maxDuration: 10m

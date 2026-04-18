@@ -1,0 +1,71 @@
+# staging environment overrides — pre-prod soak.
+# Mirrors prod resource shape but runs the latest cut of code from main.
+
+image:
+  tag: ""              # bumped to tested rc tags during release-candidate flow
+  pullPolicy: IfNotPresent
+
+web:
+  replicaCount: 2
+  resources:
+    requests: {cpu: 300m, memory: 512Mi}
+    limits:   {cpu: 1,    memory: 2Gi}
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+
+worker:
+  replicaCount: 2
+  resources:
+    requests: {cpu: 500m, memory: 1Gi}
+    limits:   {cpu: 2,    memory: 4Gi}
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+
+postgresql:
+  primary:
+    persistence:
+      size: 20Gi
+    resources:
+      requests: {cpu: 500m, memory: 1Gi}
+      limits:   {cpu: 2,    memory: 4Gi}
+
+redis:
+  master:
+    persistence:
+      size: 4Gi
+
+backup:
+  enabled: true
+  schedule: "0 2 * * *"
+  retentionDays: 7
+
+anthropic:
+  defaultKey:
+    existingSecret: anthropic-default
+
+ingress:
+  enabled: true
+  className: nginx
+  host: ai-tshoot.staging.example.invalid
+  tls:
+    enabled: true
+    certManager:
+      enabled: true
+      issuer: letsencrypt-prod
+
+serviceMonitor:
+  enabled: true
+prometheusRule:
+  enabled: true
+dashboards:
+  enabled: true
+
+networkPolicy:
+  enabled: true
+  egressAllowlist:
+    cidrs:
+      - 0.0.0.0/0   # broad in staging; tighten in prod

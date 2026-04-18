@@ -1,0 +1,91 @@
+{{- include "aitsh.validate" . -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "aitsh.fullname" . }}-worker
+  labels:
+    {{- include "aitsh.labels" . | nindent 4 }}
+    {{- with .Values.worker.podLabels }}{{- toYaml . | nindent 4 }}{{- end }}
+spec:
+  {{- if not .Values.worker.hpa.enabled }}
+  replicas: {{ .Values.worker.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "aitsh.worker.selectorLabels" . | nindent 6 }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      # Worker rollouts are intentionally slower — long-lived investigations
+      # need time to checkpoint before the old pod dies.
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        {{- include "aitsh.worker.selectorLabels" . | nindent 8 }}
+        {{- with .Values.worker.podLabels }}{{- toYaml . | nindent 8 }}{{- end }}
+      {{- with .Values.worker.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      serviceAccountName: {{ include "aitsh.serviceAccountName" . }}
+      {{- if not .Values.openshift.enabled }}
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+        fsGroup: 10001
+      {{- end }}
+      # Long drain — paired with WORKER_DRAIN_GRACE_S=110 in ConfigMap.
+      # SIGTERM → drain flag flips → in-flight work checkpoints → exit clean
+      # before SIGKILL at terminationGracePeriodSeconds.
+      terminationGracePeriodSeconds: {{ .Values.worker.terminationGracePeriodSeconds }}
+      containers:
+        - name: worker
+          image: {{ include "aitsh.image" . | quote }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["python", "-m", "src.workers.main"]
+          {{- if not .Values.openshift.enabled }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities:
+              drop: ["ALL"]
+          {{- else }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          {{- end }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "aitsh.fullname" . }}-config
+          env:
+            {{- include "aitsh.commonEnv" . | nindent 12 }}
+            {{- with .Values.worker.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          # No HTTP probes — worker doesn't serve HTTP. Process liveness is
+          # enforced by the Deployment controller; in-process supervised loops
+          # restart on transient crash (PR 2 _supervised()).
+          resources:
+            {{- toYaml .Values.worker.resources | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+      {{- with .Values.worker.nodeSelector }}
+      nodeSelector: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.worker.tolerations }}
+      tolerations: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.worker.affinity }}
+      affinity: {{- toYaml . | nindent 8 }}
+      {{- end }}

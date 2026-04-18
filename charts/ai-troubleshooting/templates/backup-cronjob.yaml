@@ -1,0 +1,87 @@
+{{- include "aitsh.validate" . -}}
+{{/*
+Postgres pg_dump CronJob — auto-skipped when externalDatabase is in use
+(operator's managed Postgres has its own backup story).
+*/}}
+{{- if and .Values.backup.enabled .Values.postgresql.enabled -}}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "aitsh.fullname" . }}-backup
+  labels:
+    {{- include "aitsh.labels" . | nindent 4 }}
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: {{ .Values.backup.storage.size }}
+  {{- with .Values.backup.storage.storageClassName }}
+  storageClassName: {{ . }}
+  {{- end }}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "aitsh.fullname" . }}-backup
+  labels:
+    {{- include "aitsh.labels" . | nindent 4 }}
+spec:
+  schedule: {{ .Values.backup.schedule | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      template:
+        metadata:
+          labels:
+            {{- include "aitsh.selectorLabels" . | nindent 12 }}
+            app.kubernetes.io/component: backup
+        spec:
+          restartPolicy: OnFailure
+          serviceAccountName: {{ include "aitsh.serviceAccountName" . }}
+          containers:
+            - name: pgdump
+              image: postgres:15-alpine
+              imagePullPolicy: IfNotPresent
+              env:
+                - name: POSTGRES_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ include "aitsh.postgresPasswordSecretName" . }}
+                      key:  {{ include "aitsh.postgresPasswordSecretKey" . }}
+                - name: POSTGRES_HOST
+                  value: {{ include "aitsh.postgresHost" . | quote }}
+                - name: POSTGRES_USER
+                  value: {{ include "aitsh.postgresUser" . | quote }}
+                - name: POSTGRES_DB
+                  value: {{ include "aitsh.postgresDb"   . | quote }}
+                - name: RETENTION_DAYS
+                  value: {{ .Values.backup.retentionDays | quote }}
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  set -euo pipefail
+                  TS=$(date -u +%Y%m%dT%H%M%SZ)
+                  OUT="/backup/${POSTGRES_DB}-${TS}.sql.gz"
+                  echo "Dumping ${POSTGRES_DB}@${POSTGRES_HOST} -> ${OUT}"
+                  PGPASSWORD="${POSTGRES_PASSWORD}" pg_dump \
+                    -h "${POSTGRES_HOST}" -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" \
+                    --no-owner --no-privileges \
+                    | gzip -9 > "${OUT}"
+                  ls -lh "${OUT}"
+                  # Prune older than retention.
+                  find /backup -name "${POSTGRES_DB}-*.sql.gz" -mtime +${RETENTION_DAYS} -delete
+                  echo "Backup complete + pruned (retention ${RETENTION_DAYS}d)."
+              resources:
+                {{- toYaml .Values.backup.resources | nindent 16 }}
+              volumeMounts:
+                - name: backup
+                  mountPath: /backup
+          volumes:
+            - name: backup
+              persistentVolumeClaim:
+                claimName: {{ include "aitsh.fullname" . }}-backup
+{{- end }}

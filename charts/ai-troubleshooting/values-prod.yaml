@@ -1,0 +1,51 @@
+# Production tuning — applied alongside values.yaml + (optionally) values-openshift.yaml.
+
+web:
+  replicaCount: 3
+  resources:
+    requests: {cpu: 500m,  memory: 1Gi}
+    limits:   {cpu: 2,     memory: 4Gi}
+  hpa:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 12
+
+worker:
+  replicaCount: 3
+  resources:
+    requests: {cpu: 1,     memory: 2Gi}
+    limits:   {cpu: 4,     memory: 8Gi}
+  hpa:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+
+postgresql:
+  primary:
+    persistence:
+      size: 50Gi
+    resources:
+      requests: {cpu: 1,     memory: 2Gi}
+      limits:   {cpu: 4,     memory: 8Gi}
+
+redis:
+  master:
+    persistence:
+      size: 8Gi
+    resources:
+      requests: {cpu: 250m, memory: 512Mi}
+      limits:   {cpu: 1,    memory: 1Gi}
+
+# Operator typically already has Prometheus Operator in cluster (D.32).
+serviceMonitor:
+  enabled: true
+prometheusRule:
+  enabled: true
+dashboards:
+  enabled: true
+
+backup:
+  schedule: "0 1 * * *"
+  retentionDays: 30
+  storage:
+    size: 100Gi

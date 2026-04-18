@@ -1,0 +1,66 @@
+# dev environment overrides — applied on top of the chart's values.yaml.
+# Optimized for fast feedback, not capacity.
+
+image:
+  tag: ""              # empty = chart's appVersion; bump to a sha tag for hotfix testing
+  pullPolicy: Always   # in dev we re-pull mutable sha-tagged images frequently
+
+web:
+  replicaCount: 1
+  resources:
+    requests: {cpu: 100m, memory: 256Mi}
+    limits:   {cpu: 500m, memory: 1Gi}
+  hpa:
+    enabled: false
+  pdb:
+    enabled: false     # dev clusters routinely drain nodes; PDB just slows us down
+
+worker:
+  replicaCount: 1
+  resources:
+    requests: {cpu: 250m, memory: 512Mi}
+    limits:   {cpu: 1,    memory: 2Gi}
+  hpa:
+    enabled: false
+  pdb:
+    enabled: false
+
+postgresql:
+  primary:
+    persistence:
+      size: 5Gi
+    resources:
+      requests: {cpu: 100m, memory: 256Mi}
+      limits:   {cpu: 500m, memory: 1Gi}
+
+redis:
+  master:
+    persistence:
+      size: 1Gi
+
+backup:
+  enabled: true
+  schedule: "0 4 * * *"
+  retentionDays: 3
+  storage:
+    size: 5Gi
+
+# Operator pre-creates this Secret on the dev cluster.
+anthropic:
+  defaultKey:
+    existingSecret: anthropic-default
+
+# Vanilla K8s ingress for dev clusters.
+ingress:
+  enabled: true
+  className: nginx
+  host: ai-tshoot.dev.example.invalid
+  tls:
+    enabled: false   # dev: no TLS to keep the iteration loop tight
+
+serviceMonitor:
+  enabled: false
+prometheusRule:
+  enabled: false
+dashboards:
+  enabled: false

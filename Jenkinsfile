@@ -1,0 +1,125 @@
+// Customer-internal Jenkins pipeline.
+//
+// What it does:
+//   1. Build the same multi-arch image GitHub Actions builds, but push to
+//      the customer's internal Nexus instead of GHCR.
+//   2. Push the chart as an OCI artifact to the same Nexus.
+//   3. Trigger an ArgoCD sync on the dev environment (staging + prod
+//      promotion is operator-driven via gitops-repo PRs).
+//
+// Assumes Jenkins agents have docker, helm 3.x, and curl installed.
+
+pipeline {
+  agent any
+
+  parameters {
+    string(name: 'IMAGE_TAG',     defaultValue: '',                    description: 'Override tag (default: derive from git tag or sha)')
+    string(name: 'NEXUS_REGISTRY', defaultValue: 'nexus.internal',     description: 'OCI registry hostname')
+    string(name: 'IMAGE_REPO',    defaultValue: 'ai-troubleshooting', description: 'Image repository name in registry')
+    string(name: 'CHART_REPO',    defaultValue: 'charts',             description: 'Chart repository path in registry')
+    string(name: 'ARGOCD_APP',    defaultValue: 'ai-troubleshooting-dev', description: 'ArgoCD Application to sync after push')
+    booleanParam(name: 'SYNC_ARGOCD', defaultValue: true,             description: 'Trigger ArgoCD sync on success')
+  }
+
+  environment {
+    NEXUS_CREDS = credentials('nexus-oci-creds')          // username:password from Jenkins creds store
+    ARGOCD_TOKEN = credentials('argocd-api-token')         // bearer token for ArgoCD API
+    ARGOCD_HOST = 'argocd.internal'                        // override per env if needed
+  }
+
+  options {
+    timestamps()
+    timeout(time: 45, unit: 'MINUTES')
+    disableConcurrentBuilds()
+  }
+
+  stages {
+
+    stage('Resolve version') {
+      steps {
+        script {
+          if (params.IMAGE_TAG?.trim()) {
+            env.RESOLVED_TAG = params.IMAGE_TAG.trim()
+          } else {
+            // Prefer the most recent git tag if HEAD is exactly on it; else sha.
+            def tag = sh(returnStdout: true, script: 'git describe --tags --exact-match 2>/dev/null || true').trim()
+            if (tag) {
+              env.RESOLVED_TAG = tag.replaceFirst('^v', '')
+            } else {
+              env.RESOLVED_TAG = "sha-${env.GIT_COMMIT.take(8)}"
+            }
+          }
+          echo "Building image tag: ${env.RESOLVED_TAG}"
+        }
+      }
+    }
+
+    stage('Build + push multi-arch image') {
+      steps {
+        sh '''
+          set -euo pipefail
+          docker buildx create --use --name ai-tshoot-builder >/dev/null 2>&1 || \
+            docker buildx use ai-tshoot-builder
+
+          echo "${NEXUS_CREDS_PSW}" | docker login ${NEXUS_REGISTRY} \
+            -u "${NEXUS_CREDS_USR}" --password-stdin
+
+          IMAGE="${NEXUS_REGISTRY}/${IMAGE_REPO}/app"
+          docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            --target backend-prod \
+            --tag "${IMAGE}:${RESOLVED_TAG}" \
+            --tag "${IMAGE}:sha-$(git rev-parse HEAD)" \
+            --file infra/local/Dockerfile \
+            --push \
+            .
+        '''
+      }
+    }
+
+    stage('Package + push chart') {
+      steps {
+        sh '''
+          set -euo pipefail
+          helm dependency update charts/ai-troubleshooting
+          # Sync chart's appVersion to the image tag for the release artifact.
+          sed -i "s|^appVersion: .*|appVersion: \\"${RESOLVED_TAG}\\"|" \
+            charts/ai-troubleshooting/Chart.yaml
+          mkdir -p /tmp/chart
+          helm package charts/ai-troubleshooting -d /tmp/chart
+          CHART_VERSION=$(awk '/^version:/ {print $2; exit}' charts/ai-troubleshooting/Chart.yaml)
+          echo "${NEXUS_CREDS_PSW}" | helm registry login "${NEXUS_REGISTRY}" \
+            -u "${NEXUS_CREDS_USR}" --password-stdin
+          helm push "/tmp/chart/ai-troubleshooting-${CHART_VERSION}.tgz" \
+            "oci://${NEXUS_REGISTRY}/${CHART_REPO}"
+        '''
+      }
+    }
+
+    stage('Trigger ArgoCD sync') {
+      when { expression { params.SYNC_ARGOCD } }
+      steps {
+        sh '''
+          set -euo pipefail
+          curl -fsSL -X POST "https://${ARGOCD_HOST}/api/v1/applications/${ARGOCD_APP}/sync" \
+            -H "Authorization: Bearer ${ARGOCD_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d '{"prune": true, "dryRun": false}'
+          echo "✓ ArgoCD sync triggered for ${ARGOCD_APP}"
+        '''
+      }
+    }
+  }
+
+  post {
+    always {
+      sh 'docker buildx rm ai-tshoot-builder >/dev/null 2>&1 || true'
+    }
+    success {
+      echo "✓ Released image + chart at tag ${env.RESOLVED_TAG}"
+    }
+    failure {
+      echo "✗ Pipeline failed — image/chart NOT pushed cleanly"
+    }
+  }
+}

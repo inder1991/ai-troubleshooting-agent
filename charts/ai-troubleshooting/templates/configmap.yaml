@@ -1,0 +1,38 @@
+{{- include "aitsh.validate" . -}}
+{{/*
+Non-secret runtime config — feature flags, log level, host/port references.
+Anything sensitive (passwords, API keys) lives in templates/secret.yaml.
+*/}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "aitsh.fullname" . }}-config
+  labels:
+    {{- include "aitsh.labels" . | nindent 4 }}
+data:
+  LOG_LEVEL: "INFO"
+  PYTHONUNBUFFERED: "1"
+
+  # Health probe budgets (PR 2 src/api/health.py).
+  HEALTH_PROBE_TIMEOUT_S: "0.8"
+
+  # Worker drain pairs with terminationGracePeriodSeconds: 120 on the worker
+  # Deployment. Kept slightly under the grace window so SIGTERM has room to
+  # flush before SIGKILL.
+  WORKER_DRAIN_GRACE_S: "110"
+
+  # Phase 4 toggles — defaults match production-conservative legacy paths.
+  # Operator flips individually via overlay values without a code revert.
+  DIAGNOSTIC_PLANNER_MODE: "legacy"
+  DIAGNOSTIC_CONFIDENCE_MODE: "deterministic"
+  DIAGNOSTIC_CRITIC_MODE: "legacy"
+  DIAGNOSTIC_SIGNATURE_FAST_PATH: "off"
+  DIAGNOSTIC_RESUME_ON_STARTUP: "off"
+
+  # Connection metadata (passwords come from Secret).
+  POSTGRES_HOST: {{ include "aitsh.postgresHost" . | quote }}
+  POSTGRES_PORT: {{ include "aitsh.postgresPort" . | quote }}
+  POSTGRES_USER: {{ include "aitsh.postgresUser" . | quote }}
+  POSTGRES_DB:   {{ include "aitsh.postgresDb"   . | quote }}
+  REDIS_HOST: {{ include "aitsh.redisHost" . | quote }}
+  REDIS_PORT: {{ include "aitsh.redisPort" . | quote }}
