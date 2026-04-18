@@ -1,0 +1,104 @@
+# Prod-like local stack — useful for catching "works in dev, breaks in prod"
+# class of bugs (missing migrations, wrong CSP headers, baked-in vs mounted
+# source mismatches, gunicorn signal handling, etc.).
+#
+# Differences from compose.dev.yml:
+#   - No bind mounts; source is COPY'd into the image at build time.
+#   - Backend runs gunicorn with uvicorn workers (4 worker processes).
+#   - Frontend serves the BUILT vite output via nginx (not the dev server).
+#   - No --reload anywhere; restart container to pick up code changes.
+#
+# Use:  make up-prod-like
+#
+# This is NOT the production deploy mechanism — that's the Helm chart in
+# charts/ai-troubleshooting/. This file just runs the same images locally.
+
+name: ai-tshoot-prodlike
+
+x-backend-env: &backend-env
+  DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-ai_tshoot}:${POSTGRES_PASSWORD:-ai_tshoot_dev}@postgres:5432/${POSTGRES_DB:-ai_tshoot}
+  REDIS_URL: redis://:${REDIS_PASSWORD:-ai_tshoot_dev}@redis:6379/0
+  ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:?ANTHROPIC_API_KEY is required — set it in .env}
+  PYTHONPATH: /app
+
+services:
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-ai_tshoot}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ai_tshoot_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-ai_tshoot}
+    volumes:
+      - postgres_data_prodlike:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ai_tshoot}"]
+      interval: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:-ai_tshoot_dev}"]
+    volumes:
+      - redis_data_prodlike:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-ai_tshoot_dev}", "ping"]
+      interval: 3s
+      retries: 20
+
+  backend-migrate:
+    build:
+      context: ../..
+      dockerfile: infra/local/Dockerfile
+      target: backend-prod
+    environment: *backend-env
+    depends_on:
+      postgres: {condition: service_healthy}
+    command: ["alembic", "upgrade", "head"]
+
+  backend-web:
+    build:
+      context: ../..
+      dockerfile: infra/local/Dockerfile
+      target: backend-prod
+    environment: *backend-env
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis:    {condition: service_healthy}
+      backend-migrate: {condition: service_completed_successfully}
+    # Default CMD from backend-prod stage (gunicorn + uvicorn workers).
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"]
+      interval: 5s
+      retries: 20
+      start_period: 15s
+
+  backend-worker:
+    build:
+      context: ../..
+      dockerfile: infra/local/Dockerfile
+      target: backend-prod
+    environment: *backend-env
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis:    {condition: service_healthy}
+      backend-migrate: {condition: service_completed_successfully}
+    command: ["python", "-m", "src.workers.main"]
+
+  frontend:
+    build:
+      context: ../..
+      dockerfile: infra/local/Dockerfile
+      target: frontend-prod
+    ports:
+      - "${FRONTEND_PORT:-5173}:8080"
+    depends_on:
+      backend-web: {condition: service_healthy}
+
+volumes:
+  postgres_data_prodlike:
+    name: ai-tshoot-postgres-prodlike
+  redis_data_prodlike:
+    name: ai-tshoot-redis-prodlike

@@ -1,0 +1,154 @@
+# Local dev stack — `make up` calls this.
+#
+# What this gives you:
+#   - postgres 15        (durable: named volume)
+#   - redis 7            (durable: named volume)
+#   - backend-web        (FastAPI + uvicorn --reload; bind-mounted src)
+#   - backend-worker     (worker dispatcher; bind-mounted src)
+#   - frontend           (vite dev server; bind-mounted src)
+#
+# All five start in dependency order; healthchecks gate the rest.
+#
+# DON'T USE THIS IN PRODUCTION — see compose.prod-like.yml or the Helm chart.
+
+name: ai-tshoot
+
+x-backend-env: &backend-env
+  DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-ai_tshoot}:${POSTGRES_PASSWORD:-ai_tshoot_dev}@postgres:5432/${POSTGRES_DB:-ai_tshoot}
+  REDIS_URL: redis://:${REDIS_PASSWORD:-ai_tshoot_dev}@redis:6379/0
+  ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:?ANTHROPIC_API_KEY is required — set it in .env}
+  PYTHONPATH: /app
+  # Phase 4 toggles — defaults match production-conservative legacy paths.
+  DIAGNOSTIC_PLANNER_MODE: ${DIAGNOSTIC_PLANNER_MODE:-legacy}
+  DIAGNOSTIC_CONFIDENCE_MODE: ${DIAGNOSTIC_CONFIDENCE_MODE:-deterministic}
+  DIAGNOSTIC_CRITIC_MODE: ${DIAGNOSTIC_CRITIC_MODE:-legacy}
+  DIAGNOSTIC_SIGNATURE_FAST_PATH: ${DIAGNOSTIC_SIGNATURE_FAST_PATH:-off}
+  DIAGNOSTIC_RESUME_ON_STARTUP: ${DIAGNOSTIC_RESUME_ON_STARTUP:-off}
+
+services:
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: ai-tshoot-postgres
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-ai_tshoot}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ai_tshoot_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-ai_tshoot}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ai_tshoot} -d ${POSTGRES_DB:-ai_tshoot}"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    deploy:
+      resources:
+        limits: {memory: 512M}
+
+  redis:
+    image: redis:7-alpine
+    container_name: ai-tshoot-redis
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --requirepass
+      - ${REDIS_PASSWORD:-ai_tshoot_dev}
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-ai_tshoot_dev}", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    deploy:
+      resources:
+        limits: {memory: 256M}
+
+  # One-shot migration runner — exits when alembic finishes. Other services
+  # depend_on this with condition: service_completed_successfully.
+  backend-migrate:
+    container_name: ai-tshoot-migrate
+    build:
+      context: ../..
+      dockerfile: infra/local/Dockerfile
+      target: backend-base
+    environment: *backend-env
+    volumes:
+      - ../../backend/src:/app/src:ro
+      - ../../backend/alembic:/app/alembic:ro
+      - ../../backend/alembic.ini:/app/alembic.ini:ro
+    depends_on:
+      postgres: {condition: service_healthy}
+    command: ["alembic", "upgrade", "head"]
+
+  backend-web:
+    container_name: ai-tshoot-web
+    build:
+      context: ../..
+      dockerfile: infra/local/Dockerfile
+      target: backend-dev
+    environment: *backend-env
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    volumes:
+      - ../../backend/src:/app/src
+      - ../../backend/alembic:/app/alembic
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis:    {condition: service_healthy}
+      backend-migrate: {condition: service_completed_successfully}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 15s
+
+  backend-worker:
+    container_name: ai-tshoot-worker
+    build:
+      context: ../..
+      dockerfile: infra/local/Dockerfile
+      target: backend-dev
+    environment: *backend-env
+    volumes:
+      - ../../backend/src:/app/src
+      - ../../backend/alembic:/app/alembic
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis:    {condition: service_healthy}
+      backend-migrate: {condition: service_completed_successfully}
+    # Worker entrypoint — outbox relay + investigation runner + scheduler +
+    # resume scan, collapsed into one process. Implemented in PR 2.
+    command: ["python", "-m", "src.workers.main"]
+
+  frontend:
+    container_name: ai-tshoot-frontend
+    build:
+      context: ../..
+      dockerfile: infra/local/Dockerfile
+      target: frontend-dev
+    ports:
+      - "${FRONTEND_PORT:-5173}:5173"
+    volumes:
+      - ../../frontend/src:/app/src
+      - ../../frontend/index.html:/app/index.html
+      - ../../frontend/vite.config.ts:/app/vite.config.ts
+      - ../../frontend/tsconfig.json:/app/tsconfig.json
+      - ../../frontend/tailwind.config.js:/app/tailwind.config.js
+      - ../../frontend/postcss.config.js:/app/postcss.config.js
+    environment:
+      VITE_API_BASE_URL: http://localhost:${BACKEND_PORT:-8000}
+    depends_on:
+      backend-web: {condition: service_healthy}
+
+volumes:
+  postgres_data:
+    name: ai-tshoot-postgres-data
+  redis_data:
+    name: ai-tshoot-redis-data
