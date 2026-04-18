@@ -1,0 +1,45 @@
+{{- include "aitsh.validate" . -}}
+{{- if .Values.dashboards.enabled -}}
+{{/*
+Grafana dashboards published as ConfigMaps with the
+`grafana_dashboard: "1"` label so a Grafana sidecar (in the customer's
+existing Grafana deployment) auto-imports them. Operator's choice — off by
+default to avoid label collisions with their own dashboard naming.
+
+Dashboard JSON content lives in files/dashboards/*.json and is loaded via
+the Helm `.Files.Glob` mechanism so adding a new dashboard is just dropping
+a JSON file in place.
+*/}}
+{{- $files := .Files.Glob "dashboards/*.json" -}}
+{{- if $files -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "aitsh.fullname" . }}-dashboards
+  labels:
+    {{- include "aitsh.labels" . | nindent 4 }}
+    {{ .Values.dashboards.label }}: "1"
+data:
+{{- range $path, $_ := $files }}
+  {{ base $path }}: |
+    {{- $.Files.Get $path | nindent 4 }}
+{{- end }}
+{{- else -}}
+{{/*
+No dashboard JSON files yet — emit a placeholder ConfigMap so operators see
+the wiring works and know where to drop dashboards (charts/.../dashboards/).
+*/}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "aitsh.fullname" . }}-dashboards
+  labels:
+    {{- include "aitsh.labels" . | nindent 4 }}
+    {{ .Values.dashboards.label }}: "1"
+data:
+  README: |
+    Drop Grafana dashboard JSON files in charts/ai-troubleshooting/dashboards/
+    to populate this ConfigMap. The chart uses .Files.Glob "dashboards/*.json"
+    to load them at template-render time.
+{{- end }}
+{{- end }}

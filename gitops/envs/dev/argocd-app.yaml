@@ -1,0 +1,54 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ai-troubleshooting-dev
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  # Source A: the chart (pinned to a specific version pulled from the OCI
+  # registry where releases are pushed). Bump the targetRevision to promote.
+  source:
+    repoURL: oci://nexus.internal/charts            # update to your registry
+    chart: ai-troubleshooting
+    targetRevision: 0.1.0                           # chart version
+    helm:
+      releaseName: ai-tshoot
+      valueFiles:
+        # Resolved relative to the gitops repo via the secondary source below.
+        - $values/envs/dev/values.yaml
+
+  # Source B: the gitops repo holding the per-env values.yaml. Helm with
+  # multiple sources picks values from `$values`-prefixed paths.
+  sources:
+    - repoURL: oci://nexus.internal/charts
+      chart: ai-troubleshooting
+      targetRevision: 0.1.0
+      helm:
+        releaseName: ai-tshoot
+        valueFiles:
+          - $values/envs/dev/values.yaml
+    - repoURL: https://github.com/inder1991/acme-platform-gitops.git
+      targetRevision: HEAD
+      ref: values
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ai-tshoot-dev
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 30s
+        factor: 2
+        maxDuration: 5m

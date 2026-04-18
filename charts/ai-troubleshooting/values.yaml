@@ -1,0 +1,305 @@
+# ai-troubleshooting Helm chart — default values.
+#
+# Overlay strategy:
+#   values.yaml             defaults (this file)            — sane single-tenant install
+#   values-openshift.yaml   overlay for OpenShift           — Routes, OpenShift SCC
+#   values-prod.yaml        overlay for production tuning   — bigger resources, HPA on
+#
+# All toggles below are off-by-default unless noted otherwise. Single-tenant
+# install assumed (locked in conversation A.2). Outbound internet allowed
+# (A.3) so Anthropic API works.
+
+# ─── Global ──────────────────────────────────────────────────────────────────
+global:
+  # Override the auto-generated resource name prefix. Defaults to
+  # `<release>-ai-troubleshooting` via the helper template.
+  nameOverride: ""
+  fullnameOverride: ""
+
+# ─── Image ───────────────────────────────────────────────────────────────────
+image:
+  # Pluggable registry. Default is GHCR; operators using Nexus/Quay set
+  # repository to `nexus.internal/ai-troubleshooting/app` etc.
+  repository: ghcr.io/inder1991/ai-troubleshooting/app
+  # SemVer or sha-prefixed immutable tag. Never use `latest`.
+  # Defaults to .Chart.AppVersion if empty.
+  tag: ""
+  pullPolicy: IfNotPresent
+  # Name of an existing imagePullSecret. Empty = no auth.
+  pullSecret: ""
+
+# ─── OpenShift ───────────────────────────────────────────────────────────────
+openshift:
+  # When true: render OpenShift Route instead of Ingress, drop UID
+  # specification (let restricted-v2 SCC inject), and other OS-isms.
+  # Use values-openshift.yaml as the canonical overlay.
+  enabled: false
+
+# ─── Web Deployment (HTTP API + UI) ──────────────────────────────────────────
+web:
+  replicaCount: 2
+  resources:
+    requests: {cpu: 200m, memory: 512Mi}
+    limits:   {cpu: 1,    memory: 2Gi}
+
+  # Probe paths land in the chart from PR 2 (src/api/health.py).
+  probes:
+    liveness:
+      path: /healthz
+      initialDelaySeconds: 10
+      periodSeconds: 10
+      timeoutSeconds: 2
+      failureThreshold: 6     # 60s of liveness failure before kill
+    readiness:
+      path: /readyz
+      initialDelaySeconds: 5
+      periodSeconds: 5
+      timeoutSeconds: 2
+      failureThreshold: 3     # 15s before pod removed from Service
+
+  # Graceful drain — web requests are short-lived; 30s is plenty.
+  terminationGracePeriodSeconds: 30
+
+  hpa:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+
+  pdb:
+    enabled: true
+    minAvailable: 1
+
+  podLabels: {}
+  podAnnotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+  # Extra env vars applied to web pods. Use `name`/`value` or `name`/`valueFrom`.
+  extraEnv: []
+
+# ─── Worker Deployment (background dispatcher from PR 2) ─────────────────────
+worker:
+  replicaCount: 2
+  resources:
+    requests: {cpu: 500m, memory: 1Gi}
+    limits:   {cpu: 2,    memory: 4Gi}
+
+  # Worker has no HTTP probes — checks happen via process liveness.
+  # Liveness via exec on a marker file would be over-engineered for v1.
+
+  # Long drain — investigations checkpoint to DB on SIGTERM. Paired with
+  # WORKER_DRAIN_GRACE_S=110 in the worker entrypoint (PR 2).
+  terminationGracePeriodSeconds: 120
+
+  hpa:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 10
+    # NOTE: when enabled, default to CPU. Custom-metric HPA on
+    # `outbox_lag_seconds` is documented in docs/deployment.md but requires
+    # custom-metrics-adapter — opt-in via metrics block below.
+    targetCPUUtilizationPercentage: 75
+
+  pdb:
+    enabled: true
+    minAvailable: 1
+
+  podLabels: {}
+  podAnnotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+  extraEnv: []
+
+# ─── Service ─────────────────────────────────────────────────────────────────
+service:
+  type: ClusterIP
+  port: 8000
+
+# ─── Ingress (vanilla K8s) ───────────────────────────────────────────────────
+ingress:
+  enabled: false
+  className: nginx
+  host: ai-troubleshooting.example.invalid
+  path: /
+  pathType: Prefix
+  annotations: {}
+  tls:
+    enabled: false
+    secretName: ""             # operator-provided existing TLS secret
+    certManager:
+      enabled: false           # if true, annotate for cert-manager auto-issue
+      issuer: letsencrypt-prod # ClusterIssuer name
+
+# ─── Route (OpenShift) ───────────────────────────────────────────────────────
+route:
+  enabled: false
+  host: ""                     # let OpenShift assign if empty
+  tls:
+    enabled: true
+    termination: edge          # edge | passthrough | reencrypt
+    insecureEdgeTerminationPolicy: Redirect
+  annotations: {}
+
+# ─── Secrets ─────────────────────────────────────────────────────────────────
+# Plain Kubernetes Secrets (D.28 locked). Helper-templated so a future swap
+# to sealed-secrets / ExternalSecrets / Vault is one helper change.
+secrets:
+  # When true (default), the chart creates a Secret named <release>-secrets
+  # holding ANTHROPIC_API_KEY + connection strings. When false, operator
+  # must pre-create a Secret with the keys this chart expects (see
+  # templates/secret.yaml) and pass its name via `secrets.existingName`.
+  create: true
+  existingName: ""
+
+# ─── Anthropic — model-agnostic key store (B.11) ─────────────────────────────
+anthropic:
+  # The default key — used by any model whose key_name maps to "default" in
+  # the agent_model_routes DB table, OR if a named override env var is empty.
+  # REQUIRED. existingSecret-only — no inline value accepted.
+  # Operator pre-creates the Secret:
+  #   kubectl create secret generic anthropic-default --from-literal=api_key=sk-...
+  defaultKey:
+    existingSecret: ""             # MUST be set by operator
+    secretKey: api_key
+
+  # Optional named keys. Names are operator-chosen ("premium", "cheap",
+  # "billing-team-a"). Each renders to ANTHROPIC_API_KEY_<NAME> on both
+  # web and worker pods. The app's key_resolver looks them up dynamically.
+  # See backend/src/llm/key_resolver.py from PR 2.
+  namedKeys: []
+    # - name: premium
+    #   existingSecret: anthropic-premium
+    #   secretKey: api_key
+    # - name: cheap
+    #   existingSecret: anthropic-cheap
+    #   secretKey: api_key
+
+# ─── Postgres (bundled by default — Bitnami subchart) ────────────────────────
+postgresql:
+  enabled: true
+  fullnameOverride: ""         # auto: <release>-postgresql
+  auth:
+    username: ai_tshoot
+    database: ai_tshoot
+    # password auto-generated on first install + persisted via Bitnami's
+    # standard "existing secret" mechanism. To use your own, set:
+    #   existingSecret: my-pg-secret
+    #   secretKeys: {userPasswordKey: password}
+    existingSecret: ""
+  primary:
+    persistence:
+      enabled: true
+      size: 10Gi
+    resources:
+      requests: {cpu: 200m, memory: 512Mi}
+      limits:   {cpu: 1,    memory: 2Gi}
+  # Bitnami chart supports replication; off for single-tenant default.
+  architecture: standalone
+
+# Escape hatch: point at an external Postgres. Mutually exclusive with
+# postgresql.enabled=true (validation guards this).
+externalDatabase:
+  enabled: false
+  host: ""
+  port: 5432
+  database: ai_tshoot
+  username: ai_tshoot
+  sslmode: require
+  # Pre-created Secret with the password under existingSecretPasswordKey.
+  # No inline password supported — single secrets pattern (D.28).
+  existingSecret: ""
+  existingSecretPasswordKey: password
+
+# ─── Redis (bundled by default — Bitnami subchart) ───────────────────────────
+redis:
+  enabled: true
+  fullnameOverride: ""
+  auth:
+    enabled: true
+    existingSecret: ""         # ditto Postgres pattern
+  architecture: standalone     # single primary; sentinel optional via overlay
+  master:
+    persistence:
+      enabled: true
+      size: 4Gi
+    resources:
+      requests: {cpu: 100m, memory: 128Mi}
+      limits:   {cpu: 250m, memory: 512Mi}
+
+# Escape hatch: external Redis. Mutually exclusive with redis.enabled=true.
+externalRedis:
+  enabled: false
+  host: ""
+  port: 6379
+  tls: false
+  database: 0
+  existingSecret: ""
+  existingSecretPasswordKey: password
+
+# ─── Database migration job (Alembic) ────────────────────────────────────────
+migration:
+  enabled: true
+  # Helm hook timing: pre-install + pre-upgrade so migrations always run
+  # before the Deployment rolls.
+  hookWeight: -5
+  resources:
+    requests: {cpu: 100m, memory: 256Mi}
+    limits:   {cpu: 500m, memory: 1Gi}
+
+# ─── Postgres backup CronJob (auto-disabled with externalDatabase) ───────────
+backup:
+  enabled: true
+  schedule: "0 2 * * *"        # daily at 02:00 UTC
+  retentionDays: 7
+  resources:
+    requests: {cpu: 100m, memory: 256Mi}
+    limits:   {cpu: 500m, memory: 1Gi}
+  storage:
+    size: 20Gi
+    storageClassName: ""
+
+# ─── Network policies ────────────────────────────────────────────────────────
+networkPolicy:
+  enabled: false
+  # Egress allowlist — Anthropic API + customer's outbound integrations.
+  # Operator extends in their values overlay.
+  egressAllowlist:
+    # CIDR or namespace selectors. Empty = allow all egress.
+    cidrs: []
+
+# ─── Observability hooks (off by default) ────────────────────────────────────
+serviceMonitor:
+  enabled: false
+  interval: 30s
+  scrapeTimeout: 10s
+  labels: {}                   # match Prometheus Operator's serviceMonitorSelector
+
+prometheusRule:
+  enabled: false
+  labels: {}                   # match Prometheus Operator's ruleSelector
+  # SLO burn defaults derived from Phase 4 Task 4.28 metrics. Operator
+  # tunes thresholds in their overlay.
+  rules:
+    burnRateFastWindow: 5m
+    burnRateSlowWindow: 1h
+    apiP99LatencyMs: 2000
+    investigationFailureRatio: 0.05
+
+dashboards:
+  # Renders Grafana dashboards as ConfigMaps with the
+  # `grafana_dashboard: "1"` label so a sidecar-equipped Grafana auto-imports.
+  enabled: false
+  label: grafana_dashboard
+
+# ─── Optional auth front-door (placeholder for D.23 future) ──────────────────
+oauth2Proxy:
+  enabled: false               # locked off in D.23, scaffolded for future
+  # Reserved keys — implementation deferred until customer requests SSO.
+
+# ─── Smoke test (helm test) ──────────────────────────────────────────────────
+tests:
+  enabled: true

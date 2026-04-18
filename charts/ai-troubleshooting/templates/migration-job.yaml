@@ -1,0 +1,74 @@
+{{- include "aitsh.validate" . -}}
+{{- if .Values.migration.enabled -}}
+{{/*
+Helm pre-install + pre-upgrade hook — runs Alembic migrations BEFORE the
+Deployments roll. If migrations fail, the install/upgrade aborts and the
+existing Deployments stay untouched (no half-deployed schema).
+
+Hook lifecycle:
+  pre-install  — first install
+  pre-upgrade  — every helm upgrade
+  post-rollback — re-runs migrations on rollback (so DB matches deployed app)
+
+Hook artifact is deleted on success but kept on failure for debugging.
+*/}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "aitsh.fullname" . }}-migrate-{{ .Release.Revision }}
+  labels:
+    {{- include "aitsh.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "{{ .Values.migration.hookWeight }}"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 1
+  ttlSecondsAfterFinished: 600
+  template:
+    metadata:
+      labels:
+        {{- include "aitsh.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: migrate
+    spec:
+      serviceAccountName: {{ include "aitsh.serviceAccountName" . }}
+      restartPolicy: Never
+      {{- if not .Values.openshift.enabled }}
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      {{- end }}
+      containers:
+        - name: migrate
+          image: {{ include "aitsh.image" . | quote }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["alembic", "upgrade", "head"]
+          {{- if not .Values.openshift.enabled }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities:
+              drop: ["ALL"]
+          {{- else }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          {{- end }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "aitsh.fullname" . }}-config
+          env:
+            {{- include "aitsh.commonEnv" . | nindent 12 }}
+          resources:
+            {{- toYaml .Values.migration.resources | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+{{- end }}

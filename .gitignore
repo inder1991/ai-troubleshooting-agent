@@ -24,3 +24,5 @@ data/*.db-shm
 # Claude Code harness runtime state
 .claude/scheduled_tasks.lock
 .claude/worktrees/
+charts/ai-troubleshooting/charts/*.tgz
+charts/ai-troubleshooting/tmpcharts-*/

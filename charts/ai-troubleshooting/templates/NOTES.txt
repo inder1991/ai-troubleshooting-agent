@@ -1,0 +1,87 @@
+═══════════════════════════════════════════════════════════════════════════════
+  AI Troubleshooting System
+  chart    : {{ .Chart.Name }} {{ .Chart.Version }}
+  app      : {{ default .Chart.AppVersion .Values.image.tag }}
+  release  : {{ .Release.Name }} (namespace: {{ .Release.Namespace }})
+═══════════════════════════════════════════════════════════════════════════════
+
+Web Deployment .................. {{ include "aitsh.fullname" . }}-web
+Worker Deployment ............... {{ include "aitsh.fullname" . }}-worker
+Service ......................... {{ include "aitsh.fullname" . }}-web:{{ .Values.service.port }}
+
+Database:
+  {{- if .Values.postgresql.enabled }}
+  Mode .......................... bundled (Bitnami subchart)
+  Host .......................... {{ include "aitsh.postgresHost" . }}
+  Backup CronJob ................ {{ if .Values.backup.enabled }}enabled ({{ .Values.backup.schedule }}, retain {{ .Values.backup.retentionDays }}d){{ else }}disabled{{ end }}
+  {{- else }}
+  Mode .......................... external
+  Host .......................... {{ include "aitsh.postgresHost" . }}
+  Backup CronJob ................ skipped (operator's own backup story)
+  {{- end }}
+
+Redis:
+  {{- if .Values.redis.enabled }}
+  Mode .......................... bundled (Bitnami subchart)
+  Host .......................... {{ include "aitsh.redisHost" . }}
+  {{- else }}
+  Mode .......................... external
+  Host .......................... {{ include "aitsh.redisHost" . }}
+  {{- end }}
+
+Ingress:
+  {{- if .Values.ingress.enabled }}
+  Mode .......................... vanilla K8s Ingress
+  Host .......................... https://{{ .Values.ingress.host }}
+  {{- else if .Values.route.enabled }}
+  Mode .......................... OpenShift Route
+  {{- if .Values.route.host }}
+  Host .......................... https://{{ .Values.route.host }}
+  {{- else }}
+  Host .......................... (auto-assigned by OpenShift; check `oc get route`)
+  {{- end }}
+  {{- else }}
+  Mode .......................... ⚠ none — no external access configured
+  Hint .......................... `kubectl port-forward svc/{{ include "aitsh.fullname" . }}-web {{ .Values.service.port }}:{{ .Values.service.port }}`
+  {{- end }}
+
+Anthropic keys:
+  default ....................... secret/{{ .Values.anthropic.defaultKey.existingSecret }} → ANTHROPIC_API_KEY
+  {{- range .Values.anthropic.namedKeys }}
+  named: {{ .name }} ............ secret/{{ .existingSecret }} → {{ include "aitsh.anthropicEnvVar" .name }}
+  {{- end }}
+  {{- if not .Values.anthropic.namedKeys }}
+  named overrides ............... none configured
+  {{- end }}
+
+Observability:
+  ServiceMonitor ................ {{ if .Values.serviceMonitor.enabled }}✓ enabled{{ else }}✗ disabled{{ end }}
+  PrometheusRule ................ {{ if .Values.prometheusRule.enabled }}✓ enabled{{ else }}✗ disabled{{ end }}
+  Grafana dashboards ............ {{ if .Values.dashboards.enabled }}✓ enabled (label: {{ .Values.dashboards.label }}){{ else }}✗ disabled{{ end }}
+
+Auth:
+  ⚠ This deployment is UNAUTHENTICATED. Anyone with network reachability to
+    {{ include "aitsh.fullname" . }}-web can use it. Recommended:
+      - Network policy (see networkPolicy.enabled in values)
+      - oauth-proxy / OAuth2 sidecar in front of Ingress/Route
+      - mTLS at the service mesh layer
+
+Health probes:
+  liveness ...................... {{ .Values.web.probes.liveness.path }}
+  readiness ..................... {{ .Values.web.probes.readiness.path }} (postgres + redis ping)
+
+Smoke check:
+  $ helm test {{ .Release.Name }} -n {{ .Release.Namespace }}
+
+Next steps:
+  1. Verify pods are Ready:
+       kubectl get pods -n {{ .Release.Namespace }} -l app.kubernetes.io/instance={{ .Release.Name }}
+  2. Tail web logs:
+       kubectl logs -n {{ .Release.Namespace }} -l app.kubernetes.io/component=web --tail=200
+  3. Tail worker logs:
+       kubectl logs -n {{ .Release.Namespace }} -l app.kubernetes.io/component=worker --tail=200
+  4. After install settles, configure integrations via the Settings UI:
+       OpenSearch / Prometheus / Kubernetes target / Jira / Confluence / Remedy / GitHub
+
+Documentation: docs/deployment.md
+═══════════════════════════════════════════════════════════════════════════════

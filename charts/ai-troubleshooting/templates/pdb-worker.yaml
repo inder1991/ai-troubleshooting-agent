@@ -1,0 +1,14 @@
+{{- include "aitsh.validate" . -}}
+{{- if .Values.worker.pdb.enabled -}}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "aitsh.fullname" . }}-worker
+  labels:
+    {{- include "aitsh.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.worker.pdb.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "aitsh.worker.selectorLabels" . | nindent 6 }}
+{{- end }}

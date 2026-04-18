@@ -1,0 +1,33 @@
+{{- include "aitsh.validate" . -}}
+{{- if .Values.tests.enabled -}}
+{{/*
+`helm test <release>` smoke check — curls /healthz + /readyz and fails
+the test on non-200. Useful in CI after `helm upgrade --wait`.
+*/}}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ include "aitsh.fullname" . }}-smoke
+  labels:
+    {{- include "aitsh.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": hook-succeeded
+spec:
+  restartPolicy: Never
+  containers:
+    - name: smoke
+      image: curlimages/curl:8.10.1
+      command: ["/bin/sh", "-c"]
+      args:
+        - |
+          set -eu
+          TARGET="http://{{ include "aitsh.fullname" . }}-web:{{ .Values.service.port }}"
+          echo "→ /healthz"
+          curl -fsS "${TARGET}/healthz"
+          echo
+          echo "→ /readyz"
+          curl -fsS "${TARGET}/readyz"
+          echo
+          echo "✓ smoke passed"
+{{- end }}

@@ -1,0 +1,54 @@
+{{- include "aitsh.validate" . -}}
+{{- if .Values.prometheusRule.enabled -}}
+{{/*
+SLO-burn alerts derived from the Phase 4 Task 4.28 metrics surface. Off by
+default; customer enables in their values overlay. Operator-tunable via
+.Values.prometheusRule.rules.*.
+*/}}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "aitsh.fullname" . }}
+  labels:
+    {{- include "aitsh.labels" . | nindent 4 }}
+    {{- with .Values.prometheusRule.labels }}{{- toYaml . | nindent 4 }}{{- end }}
+spec:
+  groups:
+    - name: ai-troubleshooting.slo
+      interval: 30s
+      rules:
+        - alert: AITshootApiHighLatency
+          expr: |
+            histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[{{ .Values.prometheusRule.rules.burnRateFastWindow }}])) by (le))
+              > {{ div .Values.prometheusRule.rules.apiP99LatencyMs 1000 }}
+          for: 5m
+          labels:
+            severity: warning
+            service: ai-troubleshooting
+          annotations:
+            summary: "AI Troubleshooting API p99 latency above SLO"
+            description: "p99 latency over {{ .Values.prometheusRule.rules.burnRateFastWindow }} > {{ .Values.prometheusRule.rules.apiP99LatencyMs }}ms"
+
+        - alert: AITshootInvestigationFailureRatio
+          expr: |
+            (sum(rate(investigation_failed_total[{{ .Values.prometheusRule.rules.burnRateSlowWindow }}]))
+             / sum(rate(investigation_started_total[{{ .Values.prometheusRule.rules.burnRateSlowWindow }}])))
+              > {{ .Values.prometheusRule.rules.investigationFailureRatio }}
+          for: 15m
+          labels:
+            severity: warning
+            service: ai-troubleshooting
+          annotations:
+            summary: "Investigation failure ratio above SLO"
+            description: "Failure ratio over {{ .Values.prometheusRule.rules.burnRateSlowWindow }} > {{ .Values.prometheusRule.rules.investigationFailureRatio }}"
+
+        - alert: AITshootOutboxLag
+          expr: aitsh_outbox_lag_seconds > 60
+          for: 5m
+          labels:
+            severity: warning
+            service: ai-troubleshooting
+          annotations:
+            summary: "Outbox relay lag > 60s"
+            description: "Worker may be saturated or Redis unreachable. Check the worker Deployment."
+{{- end }}

@@ -1,0 +1,60 @@
+{{- include "aitsh.validate" . -}}
+{{- if .Values.networkPolicy.enabled -}}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "aitsh.fullname" . }}
+  labels:
+    {{- include "aitsh.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "aitsh.selectorLabels" . | nindent 6 }}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    # Allow ingress from pods in the same namespace (Ingress controller / Route).
+    - from:
+        - podSelector: {}
+      ports:
+        - port: 8000
+          protocol: TCP
+  egress:
+    # DNS — required for service discovery + Anthropic API resolution.
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+    # Operator-defined egress allowlist (CIDRs).
+    {{- range .Values.networkPolicy.egressAllowlist.cidrs }}
+    - to:
+        - ipBlock:
+            cidr: {{ . | quote }}
+      ports:
+        - port: 443
+          protocol: TCP
+    {{- end }}
+    # Bundled DB + Redis (always allowed when bundled).
+    {{- if .Values.postgresql.enabled }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: postgresql
+              app.kubernetes.io/instance: {{ .Release.Name }}
+      ports:
+        - port: 5432
+          protocol: TCP
+    {{- end }}
+    {{- if .Values.redis.enabled }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: redis
+              app.kubernetes.io/instance: {{ .Release.Name }}
+      ports:
+        - port: 6379
+          protocol: TCP
+    {{- end }}
+{{- end }}

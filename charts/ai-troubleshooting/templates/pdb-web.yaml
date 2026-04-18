@@ -1,0 +1,14 @@
+{{- include "aitsh.validate" . -}}
+{{- if .Values.web.pdb.enabled -}}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "aitsh.fullname" . }}-web
+  labels:
+    {{- include "aitsh.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.web.pdb.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "aitsh.web.selectorLabels" . | nindent 6 }}
+{{- end }}

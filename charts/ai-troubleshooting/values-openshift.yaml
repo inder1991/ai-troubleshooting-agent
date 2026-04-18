@@ -1,0 +1,34 @@
+# OpenShift overlay — applied alongside values.yaml:
+#   helm install <release> charts/ai-troubleshooting \
+#     -f charts/ai-troubleshooting/values-openshift.yaml \
+#     -f my-env-overrides.yaml
+
+openshift:
+  enabled: true
+
+# Use Routes instead of Ingress.
+ingress:
+  enabled: false
+
+route:
+  enabled: true
+  tls:
+    enabled: true
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+
+# Bitnami subcharts run fine on OpenShift restricted-v2 SCC out of the box —
+# ensure no UID is hardcoded.
+postgresql:
+  primary:
+    podSecurityContext:
+      enabled: false           # OpenShift assigns UID via SCC
+    containerSecurityContext:
+      enabled: false
+
+redis:
+  master:
+    podSecurityContext:
+      enabled: false
+    containerSecurityContext:
+      enabled: false

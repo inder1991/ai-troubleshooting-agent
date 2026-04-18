@@ -1,0 +1,48 @@
+apiVersion: v2
+name: ai-troubleshooting
+description: |
+  AI Troubleshooting System — single-tenant deployment of the diagnostic
+  agent platform (FastAPI + worker + bundled Postgres/Redis). Renders for
+  both vanilla Kubernetes 1.28+ and OpenShift 4.x.
+
+# Chart version (templates) — bumps independently of appVersion.
+# See docs/deployment.md for the version-bump policy.
+version: 0.1.0
+
+# App image tag the chart deploys by default. Override via image.tag.
+appVersion: "0.1.0"
+
+type: application
+kubeVersion: ">=1.28.0-0"
+
+home: https://github.com/inder1991/ai-troubleshooting-agent
+sources:
+  - https://github.com/inder1991/ai-troubleshooting-agent
+
+maintainers:
+  - name: Platform Team
+    email: ops@example.invalid
+
+keywords:
+  - ai
+  - troubleshooting
+  - diagnostics
+  - sre
+  - openshift
+
+# Bundled-by-default dependencies. Both can be disabled in values.yaml in
+# favor of an external connection (see externalDatabase / externalRedis).
+dependencies:
+  - name: postgresql
+    version: "15.5.38"
+    repository: oci://registry-1.docker.io/bitnamicharts
+    condition: postgresql.enabled
+  - name: redis
+    version: "20.0.5"
+    repository: oci://registry-1.docker.io/bitnamicharts
+    condition: redis.enabled
+
+annotations:
+  artifacthub.io/changes: |
+    - kind: added
+      description: Initial chart (PR 3 of deployment-automation rollout).
