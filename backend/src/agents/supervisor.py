@@ -237,7 +237,7 @@ class SupervisorAgent:
             "metrics_agent": MetricsAgent,
             "k8s_agent": K8sAgent,
             "change_agent": ChangeAgent,
-            # "tracing_agent": TracingAgent,
+            "tracing_agent": TracingAgent,  # Production-ready v1 rewrite (TA-PR1)
             "code_agent": CodeNavigatorAgent,
         }
         self._critic = CriticAgent()
@@ -1976,9 +1976,21 @@ class SupervisorAgent:
             state.all_findings.extend(trace_findings)
 
             trace_source = result.get("trace_source", "jaeger")
-            valid_sources = ("jaeger", "tempo", "elasticsearch", "combined")
+            # "summarized" added in TA-PR1 — marks results where the LLM
+            # only saw a deterministic subset of the full span list.
+            valid_sources = ("jaeger", "tempo", "elasticsearch", "combined", "summarized")
             if trace_source not in valid_sources:
                 trace_source = "jaeger"
+
+            # TA-PR1 handoff enrichment — downstream agents (log_agent,
+            # k8s_agent, code_agent, metrics_agent) read these to scope
+            # their own queries instead of re-deriving from scratch.
+            if services := result.get("services_in_chain"):
+                state.services_from_traces = services
+            if fp := result.get("failure_point"):
+                state.failure_service_from_trace = fp.get("service_name")
+            if mined := result.get("mined_trace_ids"):
+                state.trace_ids_mined = mined
 
             state.trace_analysis = TraceAnalysisResult(
                 trace_id=result.get("trace_id", state.trace_id or "unknown"),

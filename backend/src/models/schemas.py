@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, computed_field, model_validator
-from typing import Optional, Literal
+from typing import Any, Optional, Literal
 from datetime import datetime
 from enum import Enum
 
@@ -524,6 +524,33 @@ class SpanInfo(BaseModel):
     parent_span_id: Optional[str] = None
     tags: dict[str, str] = Field(default_factory=dict)
 
+    # Extended fields (v1 TracingAgent rewrite — optional so existing callers stay compatible).
+    start_time_us: Optional[int] = Field(
+        default=None,
+        description="Absolute Unix microseconds. Required for concurrency-honest waterfall rendering.",
+    )
+    kind: Optional[Literal["server", "client", "producer", "consumer", "internal"]] = None
+    events: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Span-scoped events (e.g. exceptions, http.response_code with timing).",
+    )
+    critical_path: bool = Field(
+        default=False,
+        description="True if this span lies on the trace's longest-duration root→leaf path.",
+    )
+    process_tags: dict[str, str] = Field(
+        default_factory=dict,
+        description="Jaeger 'processes' — host / pod / service.version. Separate from span tags.",
+    )
+    stripped_tag_keys: list[str] = Field(
+        default_factory=list,
+        description="Tag keys removed entirely by the redactor (PII/secrets policy).",
+    )
+    value_redactions: int = Field(
+        default=0,
+        description="Count of tag-values scrubbed by pattern match (JWT / email / card / etc.).",
+    )
+
     @computed_field
     @property
     def service(self) -> str:
@@ -540,6 +567,53 @@ class SpanInfo(BaseModel):
         return self.status == "error" or self.error_message is not None
 
 
+class TraceSummary(BaseModel):
+    """Lightweight metadata returned by ``TraceBackend.find_traces()``.
+
+    Mining picks candidates based on these cheap-to-fetch summaries; only the
+    top-N (typically 3) get full ``get_trace()`` calls afterwards.
+    """
+
+    trace_id: str
+    root_service: str
+    root_operation: str
+    start_time_us: int
+    duration_ms: float
+    span_count: int
+    error_count: int
+    services: list[str] = Field(default_factory=list)
+
+    @computed_field
+    @property
+    def has_error(self) -> bool:
+        return self.error_count > 0
+
+
+class EnvoyFlagFinding(BaseModel):
+    """Deterministic Istio/Envoy failure identified from response.flags tag.
+
+    Produced by ``EnvoyResponseFlagsMatcher`` with zero LLM involvement.
+    """
+
+    flag: Literal["UH", "UO", "UC", "UT", "URX", "DC", "NR", "LR", "RL"]
+    span_id: str
+    service_name: str
+    upstream_cluster: Optional[str] = None
+    human_summary: str
+    likely_cause: str
+    deterministic: bool = True
+
+
+class TierDecision(BaseModel):
+    """Output of ``TierSelector.select()`` — which analysis path to take."""
+
+    tier: Literal[0, 1, 2]
+    rationale: str
+    model_key: Literal["cheap", "default", "none"] = Field(
+        description="Resolved via llm.key_resolver.key_for(model_key). 'none' for Tier 0."
+    )
+
+
 class TraceAnalysisResult(BaseModel):
     trace_id: str
     total_duration_ms: float
@@ -551,13 +625,34 @@ class TraceAnalysisResult(BaseModel):
     latency_bottlenecks: list[SpanInfo]
     retry_detected: bool
     service_dependency_graph: dict[str, list[str]]
-    trace_source: Literal["jaeger", "tempo", "elasticsearch", "combined"]
+    trace_source: Literal[
+        "jaeger",
+        "tempo",
+        "elasticsearch",
+        "combined",
+        "summarized",
+    ]
     elk_reconstruction_confidence: Optional[int] = Field(default=None, ge=0, le=100)
     findings: list[Finding]
     negative_findings: list[NegativeFinding]
     breadcrumbs: list[Breadcrumb]
     overall_confidence: int = Field(ge=0, le=100)
     tokens_used: TokenUsage
+
+    # Extended telemetry from v1 rewrite (all optional so existing fixture
+    # payloads + tests remain green).
+    envoy_findings: list[EnvoyFlagFinding] = Field(default_factory=list)
+    mined_trace_ids: list[str] = Field(default_factory=list)
+    tier_decision: Optional[TierDecision] = None
+    cross_trace_consensus: Optional[str] = Field(
+        default=None,
+        description="'unanimous' | 'majority' | 'divergent' when N>1 traces analyzed.",
+    )
+    sampling_mode: Optional[Literal["head_based", "tail_based", "full"]] = None
+    services_in_chain: list[str] = Field(
+        default_factory=list,
+        description="Deterministic service list extracted from spans — consumed by downstream agents.",
+    )
 
 
 class LineRange(BaseModel):
@@ -895,6 +990,13 @@ class DiagnosticState(BaseModel):
 
     # Multi-repo mapping (service_name -> repo_url)
     repo_map: dict[str, str] = Field(default_factory=dict)
+
+    # TA-PR1 handoff fields — populated by TracingAgent; consumed by
+    # log_agent / k8s_agent / code_agent / metrics_agent to scope their
+    # own queries. Optional on older serialized state (field default list/None).
+    services_from_traces: list[str] = Field(default_factory=list)
+    failure_service_from_trace: Optional[str] = None
+    trace_ids_mined: list[str] = Field(default_factory=list)
 
     # Agent results
     log_analysis: Optional[LogAnalysisResult] = None

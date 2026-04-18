@@ -31,6 +31,10 @@ _LIMITS: Final[dict[str, tuple[int, int]]] = {
     "jira": (10, 5),
     "confluence": (10, 5),
     "remedy": (5, 2),
+    # TracingAgent v1 — shared pool per backend kind. Tempo uses Jaeger-
+    # compatible HTTP endpoints so they share the "jaeger" identity; the
+    # backend adapter picks its own URL.
+    "jaeger": (30, 10),
 }
 
 # K.5 — per-backend TLS-verify defaults. jira/confluence/remedy historically
@@ -45,6 +49,9 @@ _VERIFY_SSL_DEFAULT: Final[dict[str, bool]] = {
     "jira": False,
     "confluence": False,
     "remedy": False,
+    # Jaeger/Tempo commonly run behind self-signed OAuth proxies in
+    # customer deployments; operators opt-in to verify via VERIFY_SSL_JAEGER.
+    "jaeger": False,
 }
 
 
