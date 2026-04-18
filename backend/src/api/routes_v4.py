@@ -1416,6 +1416,7 @@ async def get_findings(session_id: str):
             "evidence_pins": session.get("evidence_pins", []),
             "causal_forest": [],
             "evidence_graph": None,
+            "divergence_findings": [],
             "message": "Analysis not yet complete",
         }
 
@@ -1530,6 +1531,9 @@ async def get_findings(session_id: str):
         "causal_forest": [ct.model_dump(mode="json") for ct in state.causal_forest] if state.causal_forest else [],
         "evidence_graph": state.evidence_graph,
         "agent_statuses": state.agent_statuses,
+        # Cross-agent divergence findings (tracing↔metrics, metrics↔logs).
+        # UI renders these as an un-cardlike reconciliation strip.
+        "divergence_findings": [d.model_dump(mode="json") for d in state.divergence_findings],
     }
 
     if state.hypotheses:
