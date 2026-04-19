@@ -49,6 +49,11 @@ TARGETS=(
   "frontend/src/components/center/ReproduceQueryRow.tsx"
   "frontend/src/components/center/BlastRadiusList.tsx"
   "frontend/src/components/center/PinPostmortemChip.tsx"
+  # PR 6 — carousel + truncated-label + pin ghost
+  "frontend/src/components/shell/EditorialCarousel.tsx"
+  "frontend/src/components/shell/TruncatedLabel.tsx"
+  "frontend/src/components/center/PinnedGhost.tsx"
+  "frontend/src/stores/pinStore.ts"
 )
 
 EXISTING=()
