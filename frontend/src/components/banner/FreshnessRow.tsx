@@ -3,6 +3,7 @@ import type { V4Findings, V4SessionStatus, TaskEvent, DiagnosticPhase } from '..
 import { synthesizePhaseNarrative } from './phaseNarrative';
 import { useIncidentLifecycle } from '../../contexts/IncidentLifecycleContext';
 import { useAppControl } from '../../contexts/AppControlContext';
+import SessionControlsRow from './SessionControlsRow';
 
 /**
  * FreshnessRow — the always-on second line of the War Room banner
@@ -33,6 +34,10 @@ interface FreshnessRowProps {
   events: TaskEvent[];
   lastFetchAgoSec: number;
   wsConnected: boolean;
+  /** PR-B — session ID for the Cancel / Copy-link controls row. Optional
+   *  so consumers who don't need the controls (tests, storybook) can
+   *  render the freshness line without wiring session context. */
+  sessionId?: string;
 }
 
 function formatTokens(tokens: number): string {
@@ -58,6 +63,7 @@ export const FreshnessRow: React.FC<FreshnessRowProps> = ({
   events,
   lastFetchAgoSec,
   wsConnected,
+  sessionId,
 }) => {
   const { lifecycle, updatedAtMs } = useIncidentLifecycle();
   const { isManualOverride } = useAppControl();
@@ -119,8 +125,11 @@ export const FreshnessRow: React.FC<FreshnessRowProps> = ({
       className="freshness-row px-6 py-1.5 flex flex-col gap-0.5"
       data-testid="freshness-row"
     >
-      {/* Clause line — micro-typography per clause */}
-      <p className="flex items-baseline flex-wrap gap-x-2 text-[12px] leading-[1.5]">
+      {/* Clause line — micro-typography per clause. Session controls
+          (Copy link, Cancel) hug the right edge so they never steal
+          attention but are always reachable. */}
+      <div className="flex items-baseline gap-3">
+      <p className="flex-1 min-w-0 flex items-baseline flex-wrap gap-x-2 text-[12px] leading-[1.5]">
         <span className="inline-flex items-baseline gap-1.5 text-wr-paper font-medium">
           <span
             className={`inline-block w-1.5 h-1.5 rounded-full ${dotClass}`}
@@ -160,6 +169,18 @@ export const FreshnessRow: React.FC<FreshnessRowProps> = ({
           </span>
         )}
       </p>
+
+      {/* Session controls — always-on right-aligned cluster. Copy link
+          and Cancel are non-optional user controls; hiding them would
+          force SREs back to closing the tab. */}
+      {sessionId && (
+        <SessionControlsRow
+          sessionId={sessionId}
+          findings={findings}
+          status={status}
+        />
+      )}
+      </div>
 
       {/* Phase narrative line */}
       {narrative && (

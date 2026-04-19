@@ -1,9 +1,11 @@
 import React from 'react';
+import * as Tooltip from '@radix-ui/react-tooltip';
 import type {
   DiagnosticPhase,
   TokenUsage,
   BudgetTelemetry,
   SelfConsistencySummary,
+  V4Findings,
 } from '../../types';
 import { BudgetPill } from './BudgetPill';
 import { SelfConsistencyBadge } from './SelfConsistencyBadge';
@@ -17,6 +19,49 @@ interface RemediationProgressBarProps {
   // belongs in the session-wide footer, not the left panel.
   budget?: BudgetTelemetry | null;
   selfConsistency?: SelfConsistencySummary | null;
+  /** PR-B — findings for the Resolve Incident button's enablement
+   *  gate. Button is visible-but-disabled when no remediation plan
+   *  is ready; educates the user via tooltip rather than hiding. */
+  findings?: V4Findings | null;
+  /** PR-B — optional click handler. When absent, the button is
+   *  clickable-but-noop; wired in PR-B via InvestigationView. */
+  onResolve?: () => void;
+}
+
+function deriveResolveState(
+  phase: DiagnosticPhase | null,
+  findings: V4Findings | null | undefined,
+): { canResolve: boolean; tooltip: string } {
+  const hasFix = Boolean(
+    findings?.root_cause_location ||
+      (findings?.diff_analysis && findings.diff_analysis.length > 0) ||
+      (findings?.suggested_fix_areas && findings.suggested_fix_areas.length > 0),
+  );
+  if (hasFix && (phase === 'diagnosis_complete' || phase === 'complete')) {
+    return { canResolve: true, tooltip: 'Apply remediation and mark incident resolved.' };
+  }
+  if (phase === 'cancelled') {
+    return {
+      canResolve: false,
+      tooltip: 'Investigation was cancelled. Re-run to propose a remediation.',
+    };
+  }
+  if (phase === 'error') {
+    return {
+      canResolve: false,
+      tooltip: 'Investigation errored out. Check logs before proposing a fix.',
+    };
+  }
+  if (phase === 'logs_analyzed' || phase === 'metrics_analyzed' || phase === 'k8s_analyzed') {
+    return {
+      canResolve: false,
+      tooltip: 'Waiting for agents to propose a remediation plan.',
+    };
+  }
+  return {
+    canResolve: false,
+    tooltip: 'A remediation plan will appear here once the diagnosis completes.',
+  };
 }
 
 interface StepDef {
@@ -66,7 +111,10 @@ const RemediationProgressBar: React.FC<RemediationProgressBarProps> = ({
   wsConnected: _wsConnected,
   budget = null,
   selfConsistency = null,
+  findings = null,
+  onResolve,
 }) => {
+  const { canResolve, tooltip: resolveTooltip } = deriveResolveState(phase, findings);
   const activeIdx = getActiveStepIndex(phase);
   const totalTokens = (tokenUsage || []).reduce((sum, t) => sum + t.total_tokens, 0);
   const progressPercent = steps.length > 1 ? Math.round((activeIdx / (steps.length - 1)) * 100) : 0;
@@ -162,16 +210,48 @@ const RemediationProgressBar: React.FC<RemediationProgressBarProps> = ({
             </div>
           </div>
 
-          {/* Resolve button */}
-          <button className="bg-primary hover:bg-primary/90 text-white px-6 py-2.5 rounded-lg font-bold text-xs uppercase tracking-wider flex items-center gap-2 transition-all shadow-lg shadow-primary/20">
-            <span
-              className="material-symbols-outlined text-sm"
-              style={{ fontFamily: 'Material Symbols Outlined' }}
-            >
-              task_alt
-            </span>
-            Resolve Incident
-          </button>
+          {/* PR-B — Resolve button. Always rendered to avoid button-
+              blindness; disabled when no remediation plan is ready,
+              with a phase-aware tooltip educating the user on the
+              workflow. Keyboard-reachable regardless of disabled state. */}
+          <Tooltip.Provider>
+            <Tooltip.Root>
+              <Tooltip.Trigger asChild>
+                <button
+                  onClick={canResolve && onResolve ? onResolve : undefined}
+                  disabled={!canResolve}
+                  aria-label={resolveTooltip}
+                  className={
+                    'px-6 py-2.5 rounded-lg font-bold text-xs uppercase tracking-wider flex items-center gap-2 transition-all ' +
+                    (canResolve
+                      ? 'bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20 cursor-pointer'
+                      : 'bg-wr-surface text-slate-400 cursor-not-allowed opacity-60')
+                  }
+                  data-testid="resolve-incident-btn"
+                >
+                  <span
+                    className="material-symbols-outlined text-sm"
+                    style={{ fontFamily: 'Material Symbols Outlined' }}
+                  >
+                    task_alt
+                  </span>
+                  Resolve Incident
+                </button>
+              </Tooltip.Trigger>
+              <Tooltip.Portal>
+                <Tooltip.Content
+                  side="top"
+                  sideOffset={6}
+                  className="bg-wr-bg border border-wr-border rounded px-2 py-1 text-[11px] text-wr-paper max-w-[240px]"
+                  style={{ zIndex: 'var(--z-tooltip)' }}
+                  data-testid="resolve-incident-tooltip"
+                >
+                  {resolveTooltip}
+                  <Tooltip.Arrow className="fill-wr-border" />
+                </Tooltip.Content>
+              </Tooltip.Portal>
+            </Tooltip.Root>
+          </Tooltip.Provider>
         </div>
       </div>
     </footer>

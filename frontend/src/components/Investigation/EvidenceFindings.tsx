@@ -267,7 +267,7 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
             {/* FixReadyBar — shows when phase=diagnosis_complete AND fix
                 data is present. Renders above DisagreementStrip so the
                 answer is the first thing the SRE sees. */}
-            <FixReadyBar findings={findings} status={_status} />
+            <FixReadyBar findings={findings} status={_status} sessionId={sessionId} />
 
             {/* BlastRadiusList — actionable service list with live
                 status dots. Replaces the chip-based card. */}

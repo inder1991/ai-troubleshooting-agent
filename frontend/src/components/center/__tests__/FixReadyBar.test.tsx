@@ -1,8 +1,9 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { FixReadyBar } from '../FixReadyBar';
 import { IncidentLifecycleProvider } from '../../../contexts/IncidentLifecycleContext';
 import type { V4Findings, V4SessionStatus, CodeImpact, DiagnosticPhase } from '../../../types';
+import * as apiModule from '../../../services/api';
 
 function status(phase: DiagnosticPhase = 'diagnosis_complete', updatedAt = '2026-04-19T00:00:00Z'): V4SessionStatus {
   return {
@@ -141,6 +142,52 @@ describe('FixReadyBar', () => {
     expect(trigger.getAttribute('aria-expanded')).toBe('false');
     fireEvent.click(trigger);
     expect(trigger.getAttribute('aria-expanded')).toBe('true');
+  });
+
+  // ── PR-B: Open PR default handler ──
+
+  it('falls back to generateFix when onOpenPR is not provided (sessionId + fix data)', async () => {
+    const spy = vi.spyOn(apiModule, 'generateFix').mockResolvedValue({ status: 'ok' });
+    const s = status('diagnosis_complete');
+    render(
+      <IncidentLifecycleProvider status={s} now={Date.parse(s.updated_at) + 1000}>
+        <FixReadyBar
+          findings={findings({ root_cause_location: loc() })}
+          status={s}
+          sessionId="s1"
+        />
+      </IncidentLifecycleProvider>,
+    );
+    fireEvent.click(screen.getByTestId('fix-ready-open-pr'));
+    await waitFor(() => expect(spy).toHaveBeenCalledWith('s1'));
+  });
+
+  it('surface a user-visible error when generateFix fails', async () => {
+    vi.spyOn(apiModule, 'generateFix').mockRejectedValue(new Error('backend down'));
+    const s = status('diagnosis_complete');
+    render(
+      <IncidentLifecycleProvider status={s} now={Date.parse(s.updated_at) + 1000}>
+        <FixReadyBar
+          findings={findings({ root_cause_location: loc() })}
+          status={s}
+          sessionId="s1"
+        />
+      </IncidentLifecycleProvider>,
+    );
+    fireEvent.click(screen.getByTestId('fix-ready-open-pr'));
+    await waitFor(() =>
+      expect(screen.getByTestId('fix-ready-open-pr-error').textContent).toMatch(/backend down/),
+    );
+  });
+
+  it('omits open-PR affordance entirely when neither onOpenPR nor sessionId is provided', () => {
+    render(
+      <Harness
+        findings={findings({ root_cause_location: loc() })}
+        status={status('diagnosis_complete')}
+      />,
+    );
+    expect(screen.queryByTestId('fix-ready-open-pr')).toBeNull();
   });
 
   // ── Historical lifecycle ──

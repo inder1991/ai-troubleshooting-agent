@@ -32,6 +32,10 @@ interface BannerRegionProps {
   onBannerAction?: (signal: Signal) => void;
   /** Fired when the user clicks the Retry button on a fetch-fail banner. */
   onRetryFetch?: () => void;
+  /** PR-B — session ID threaded down to FreshnessRow's control cluster
+   *  (Copy link, Cancel). Optional for tests that render the banner
+   *  without a live session. */
+  sessionId?: string;
 }
 
 export const BannerRegion: React.FC<BannerRegionProps> = ({
@@ -45,6 +49,7 @@ export const BannerRegion: React.FC<BannerRegionProps> = ({
   attestationGate,
   onBannerAction,
   onRetryFetch,
+  sessionId,
 }) => {
   const { lifecycle } = useIncidentLifecycle();
   const { isManualOverride } = useAppControl();
@@ -108,6 +113,7 @@ export const BannerRegion: React.FC<BannerRegionProps> = ({
         events={events}
         lastFetchAgoSec={lastFetchAgoSec}
         wsConnected={wsConnected}
+        sessionId={sessionId}
       />
     </div>
   );

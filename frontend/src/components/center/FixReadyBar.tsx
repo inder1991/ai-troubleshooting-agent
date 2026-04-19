@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import * as Accordion from '@radix-ui/react-accordion';
 import { useSpring, animated } from '@react-spring/web';
 import type { V4Findings, V4SessionStatus, CodeImpact, DiffAnalysisItem, SuggestedFixArea } from '../../types';
 import { useIncidentLifecycle } from '../../contexts/IncidentLifecycleContext';
+import { generateFix } from '../../services/api';
 
 /**
  * FixReadyBar — center-panel addition #2 (the user's #2)
@@ -34,6 +35,12 @@ import { useIncidentLifecycle } from '../../contexts/IncidentLifecycleContext';
 interface FixReadyBarProps {
   findings: V4Findings | null;
   status: V4SessionStatus | null;
+  /** PR-B — session context so the "open PR" button can call
+   *  /api/v4/session/{id}/fix/generate directly when no external
+   *  onOpenPR handler is wired in. Parent components that want custom
+   *  behavior (e.g. open a confirmation dialog first) can still pass
+   *  onOpenPR and the sessionId path is skipped. */
+  sessionId?: string;
   onOpenPR?: () => void;
 }
 
@@ -83,10 +90,39 @@ function deriveFixSummary(findings: V4Findings | null): FixSummary | null {
 
 const TERMINAL_PHASES = new Set(['diagnosis_complete', 'complete']);
 
-export const FixReadyBar: React.FC<FixReadyBarProps> = ({ findings, status, onOpenPR }) => {
+export const FixReadyBar: React.FC<FixReadyBarProps> = ({
+  findings,
+  status,
+  sessionId,
+  onOpenPR,
+}) => {
   const { lifecycle } = useIncidentLifecycle();
   const [dismissed, setDismissed] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState<string | null>(null);
+
+  // PR-B — default handler: call the existing /fix/generate endpoint
+  // when the parent didn't supply a custom onOpenPR. Resolves the
+  // dead-button bug (SDET audit C1) so the action is always live.
+  const handleOpenPR = useCallback(async () => {
+    if (onOpenPR) {
+      onOpenPR();
+      return;
+    }
+    if (!sessionId || generating) return;
+    setGenerating(true);
+    setGenerateError(null);
+    try {
+      await generateFix(sessionId);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to start';
+      setGenerateError(msg);
+      window.setTimeout(() => setGenerateError(null), 4000);
+    } finally {
+      setGenerating(false);
+    }
+  }, [onOpenPR, sessionId, generating]);
 
   const phase = status?.phase;
   const triggered = phase && TERMINAL_PHASES.has(phase);
@@ -157,15 +193,25 @@ export const FixReadyBar: React.FC<FixReadyBarProps> = ({ findings, status, onOp
               </Accordion.Trigger>
             </Accordion.Header>
 
-            {!isHistorical && onOpenPR && (
+            {!isHistorical && (onOpenPR || sessionId) && (
               <button
                 type="button"
-                onClick={onOpenPR}
-                className="shrink-0 text-[12px] text-wr-paper underline-offset-4 hover:underline focus-visible:underline focus:outline-none"
+                onClick={handleOpenPR}
+                disabled={generating}
+                className="shrink-0 text-[12px] text-wr-paper underline-offset-4 hover:underline focus-visible:underline focus:outline-none disabled:opacity-50 disabled:cursor-wait"
                 data-testid="fix-ready-open-pr"
               >
-                open PR
+                {generating ? 'starting…' : 'open PR'}
               </button>
+            )}
+            {generateError && (
+              <span
+                className="shrink-0 text-[11px] text-red-400 font-editorial italic"
+                role="alert"
+                data-testid="fix-ready-open-pr-error"
+              >
+                {generateError}
+              </span>
             )}
 
             {!isHistorical && (

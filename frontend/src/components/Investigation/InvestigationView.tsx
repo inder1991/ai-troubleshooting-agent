@@ -54,7 +54,7 @@ const InvestigationView: React.FC<InvestigationViewProps> = ({
   const agoIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Chat state now managed by ChatContext
-  const { addMessage: onNewMessage } = useChatUI();
+  const { addMessage: onNewMessage, openDrawer: openChatDrawer } = useChatUI();
   const { setCampaign } = useCampaignContext();
 
   // Sync campaign data from findings into CampaignContext — keyed to avoid object-identity thrash
@@ -133,15 +133,19 @@ const InvestigationView: React.FC<InvestigationViewProps> = ({
   // Freshness indicator color
   const freshnessColor = lastFetchAgo <= 10 ? 'bg-green-500' : lastFetchAgo <= 30 ? 'bg-amber-500' : 'bg-red-500';
 
-  // Attach repo handler — sends "confirm" through chat
+  // Attach repo handler — sends "confirm" through chat.
+  // PR-B: auto-open the chat drawer so the user sees the response
+  // (SDET audit C2). Previously the response landed in a collapsed
+  // drawer and users thought the click had no effect.
   const handleAttachRepo = useCallback(() => {
     if (!session.session_id) return;
+    openChatDrawer();
     const userMsg: ChatMessage = { role: 'user', content: 'confirm', timestamp: new Date().toISOString() };
     onNewMessage(userMsg);
     sendChatMessage(session.session_id, 'confirm').then((resp) => {
       if (resp?.content) onNewMessage(resp);
     }).catch(() => {});
-  }, [session.session_id, onNewMessage]);
+  }, [session.session_id, onNewMessage, openChatDrawer]);
 
   return (
     <AppControlProvider>
@@ -230,6 +234,7 @@ const WarRoomGrid: React.FC<WarRoomGridProps> = ({
         fetchErrorDismissed={fetchErrorDismissed}
         attestationGate={attestationGate ?? null}
         onRetryFetch={fetchSharedData}
+        sessionId={session.session_id}
       />
 
       {/* Main grid — 3 columns (+ gutter) */}
@@ -297,6 +302,8 @@ const WarRoomGrid: React.FC<WarRoomGridProps> = ({
           wsConnected={wsConnected}
           budget={sessionStatus?.budget ?? null}
           selfConsistency={sessionStatus?.self_consistency ?? null}
+          findings={findings}
+          onResolve={onNavigateToDossier}
         />
       </div>
 
