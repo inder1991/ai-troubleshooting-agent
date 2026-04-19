@@ -13,6 +13,9 @@ import type {
 import AgentFindingCard from './cards/AgentFindingCard';
 import TracingEvidenceCard from './cards/TracingEvidenceCard';
 import DisagreementStrip from './DisagreementStrip';
+import EditorialScrollArea from '../shell/EditorialScrollArea';
+import AnchorToolbar, { AnchorPill } from '../shell/AnchorToolbar';
+import StickyStack from '../shell/StickyStack';
 import CausalRoleBadge from './cards/CausalRoleBadge';
 import StackTraceTelescope from './cards/StackTraceTelescope';
 import SaturationGauge from './cards/SaturationGauge';
@@ -226,9 +229,11 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
         {/* BriefingHeader retired in PR 2 — replaced by the banner
             region's freshness row + phase narrative above the grid. */}
 
-        {/* Scrollable evidence stack */}
+        {/* Scrollable evidence stack — Radix ScrollArea for always-visible
+            themed scrollbars that mouse-only users can reach. */}
         <LayoutGroup>
-          <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+          <EditorialScrollArea className="flex-1">
+            <div className="p-6">
             {/* Topology service filter banner */}
             <AnimatePresence>
               {selectedService && (
@@ -254,55 +259,46 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                 </motion.div>
               )}
             </AnimatePresence>
-            {/* Cross-agent signal disagreements — un-cardlike marginalia,
-                sits above the anchor bar so it's read before diving into
-                the card stack. Renders nothing when there are no divergences. */}
+            {/* DisagreementStrip — quiet marginalia above the anchor bar */}
             <DisagreementStrip findings={findings} />
 
-            {/* Evidence Anchor Bar - prevents infinite scroll doom */}
+            {/* Evidence Anchor Bar — wrapped in StickyStack so the
+                --sticky-stack-h CSS variable reflects its current
+                height and section-anchor scroll-margin-top values
+                land below the stuck bar. */}
             {findings && hasContent && (
-              <div className="sticky top-0 z-50 bg-slate-950/90 backdrop-blur border-b border-wr-border flex gap-1.5 p-2 mb-4 rounded-lg overflow-x-auto scrollbar-hide">
-                {(findings?.hypotheses?.length ?? 0) >= 2 && (
-                  <a href="#section-hypotheses" className="text-body-xs uppercase font-bold text-amber-400 bg-wr-severity-medium/10 px-2 py-1 rounded whitespace-nowrap hover:bg-wr-severity-medium/20 transition-colors">
-                    Hypotheses ({findings?.hypotheses?.length})
-                  </a>
-                )}
-                {rootCausePatterns.length > 0 && (
-                  <a href="#section-root-cause" className="text-body-xs uppercase font-bold text-red-400 bg-wr-severity-high/10 px-2 py-1 rounded whitespace-nowrap hover:bg-wr-severity-high/20 transition-colors">
-                    Root Cause ({rootCausePatterns.length})
-                  </a>
-                )}
-                {cascadingPatterns.length > 0 && (
-                  <a href="#section-cascading" className="text-body-xs uppercase font-bold text-orange-400 bg-orange-500/10 px-2 py-1 rounded whitespace-nowrap hover:bg-orange-500/20 transition-colors">
-                    Cascading ({cascadingPatterns.length})
-                  </a>
-                )}
-                {filteredFindings.length > 0 && (
-                  <a href="#section-findings" className="text-body-xs uppercase font-bold text-amber-400 bg-wr-severity-medium/10 px-2 py-1 rounded whitespace-nowrap hover:bg-wr-severity-medium/20 transition-colors">
-                    Findings ({filteredFindings.length})
-                  </a>
-                )}
-                {filteredMetrics.length > 0 && (
-                  <a href="#section-metrics" className="text-body-xs uppercase font-bold text-amber-400 bg-wr-severity-medium/10 px-2 py-1 rounded whitespace-nowrap hover:bg-wr-severity-medium/20 transition-colors">
-                    Metrics ({filteredMetrics.length})
-                  </a>
-                )}
-                {(filteredK8sEvents.length > 0 || filteredPodStatuses.length > 0) && (
-                  <a href="#section-k8s" className="text-body-xs uppercase font-bold text-orange-400 bg-orange-500/10 px-2 py-1 rounded whitespace-nowrap hover:bg-orange-500/20 transition-colors">
-                    K8s ({filteredK8sEvents.length + filteredPodStatuses.length})
-                  </a>
-                )}
-                {(findings?.trace_spans?.length ?? 0) > 0 && (
-                  <a href="#section-traces" className="text-body-xs uppercase font-bold text-violet-400 bg-violet-500/10 px-2 py-1 rounded whitespace-nowrap hover:bg-violet-500/20 transition-colors">
-                    Traces ({findings?.trace_spans?.length})
-                  </a>
-                )}
-                {correlatedPatterns.length > 0 && (
-                  <a href="#section-correlated" className="text-body-xs uppercase font-bold text-blue-400 bg-blue-500/10 px-2 py-1 rounded whitespace-nowrap hover:bg-blue-500/20 transition-colors">
-                    Correlated ({correlatedPatterns.length})
-                  </a>
-                )}
-              </div>
+              <StickyStack className="mb-4 -mx-6 px-6">
+                <AnchorToolbar
+                  pills={((): AnchorPill[] => {
+                    const p: AnchorPill[] = [];
+                    if ((findings?.hypotheses?.length ?? 0) >= 2) {
+                      p.push({ id: 'hypotheses', label: 'Hypotheses', anchor: 'section-hypotheses', count: findings?.hypotheses?.length, tone: 'severity-medium' });
+                    }
+                    if (rootCausePatterns.length > 0) {
+                      p.push({ id: 'root-cause', label: 'Root Cause', anchor: 'section-root-cause', count: rootCausePatterns.length, tone: 'severity-high' });
+                    }
+                    if (cascadingPatterns.length > 0) {
+                      p.push({ id: 'cascading', label: 'Cascading', anchor: 'section-cascading', count: cascadingPatterns.length, tone: 'severity-high' });
+                    }
+                    if (filteredFindings.length > 0) {
+                      p.push({ id: 'findings', label: 'Findings', anchor: 'section-findings', count: filteredFindings.length, tone: 'severity-medium' });
+                    }
+                    if (filteredMetrics.length > 0) {
+                      p.push({ id: 'metrics', label: 'Metrics', anchor: 'section-metrics', count: filteredMetrics.length, tone: 'severity-medium' });
+                    }
+                    if (filteredK8sEvents.length > 0 || filteredPodStatuses.length > 0) {
+                      p.push({ id: 'k8s', label: 'K8s', anchor: 'section-k8s', count: filteredK8sEvents.length + filteredPodStatuses.length, tone: 'severity-high' });
+                    }
+                    if ((findings?.trace_spans?.length ?? 0) > 0) {
+                      p.push({ id: 'traces', label: 'Traces', anchor: 'section-traces', count: findings?.trace_spans?.length, tone: 'paper' });
+                    }
+                    if (correlatedPatterns.length > 0) {
+                      p.push({ id: 'correlated', label: 'Correlated', anchor: 'section-correlated', count: correlatedPatterns.length, tone: 'severity-low' });
+                    }
+                    return p;
+                  })()}
+                />
+              </StickyStack>
             )}
             {findings === null ? (
               <SkeletonStack count={3} />
@@ -311,14 +307,14 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
             ) : (
               <LogicVineContainer>
                 {/* Hypothesis Evidence Map (only when 2+ hypotheses) */}
-                <div id="section-hypotheses" className="scroll-mt-16" />
+                <div id="section-hypotheses" className="scroll-mt-[calc(var(--sticky-stack-h,0px)+8px)]" data-scroll-anchor />
                 <HypothesisEvidenceMap
                   hypotheses={findings?.hypotheses || []}
                   result={findings?.hypothesis_result || null}
                 />
 
                 {/* 1. Root Cause patterns */}
-                <div id="section-root-cause" className="scroll-mt-16" />
+                <div id="section-root-cause" className="scroll-mt-[calc(var(--sticky-stack-h,0px)+8px)]" data-scroll-anchor />
                 {rootCausePatterns.length > 0 && (
                   <VineCard
                     index={vineIndex++}
@@ -354,7 +350,7 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                 )}
 
                 {/* 2. Cascading patterns */}
-                <div id="section-cascading" className="scroll-mt-16" />
+                <div id="section-cascading" className="scroll-mt-[calc(var(--sticky-stack-h,0px)+8px)]" data-scroll-anchor />
                 {cascadingPatterns.length > 0 && (
                   <VineCard
                     index={vineIndex++}
@@ -418,7 +414,7 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                 )}
 
                 {/* 3. High-severity findings */}
-                <div id="section-findings" className="scroll-mt-16" />
+                <div id="section-findings" className="scroll-mt-[calc(var(--sticky-stack-h,0px)+8px)]" data-scroll-anchor />
                 {filteredFindings.length > 0 && (
                   <VineCard
                     index={vineIndex++}
@@ -486,7 +482,7 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                 )}
 
                 {/* 4. Metric anomalies */}
-                <div id="section-metrics" className="scroll-mt-16" />
+                <div id="section-metrics" className="scroll-mt-[calc(var(--sticky-stack-h,0px)+8px)]" data-scroll-anchor />
                 {filteredMetrics.length > 0 && (
                   <VineCard
                     index={vineIndex++}
@@ -532,7 +528,7 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                 )}
 
                 {/* 5. K8s health + events */}
-                <div id="section-k8s" className="scroll-mt-16" />
+                <div id="section-k8s" className="scroll-mt-[calc(var(--sticky-stack-h,0px)+8px)]" data-scroll-anchor />
                 {(filteredK8sEvents.length > 0 || filteredPodStatuses.length > 0) && (
                   <VineCard
                     index={vineIndex++}
@@ -777,7 +773,7 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                 )}
 
                 {/* 9. Correlated anomalies */}
-                <div id="section-correlated" className="scroll-mt-16" />
+                <div id="section-correlated" className="scroll-mt-[calc(var(--sticky-stack-h,0px)+8px)]" data-scroll-anchor />
                 {correlatedPatterns.length > 0 && (
                   <VineCard
                     index={vineIndex++}
@@ -799,7 +795,7 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                 )}
 
                 {/* 10. Distributed trace (TA-PR3 — TracingEvidenceCard) */}
-                <div id="section-traces" className="scroll-mt-16" />
+                <div id="section-traces" className="scroll-mt-[calc(var(--sticky-stack-h,0px)+8px)]" data-scroll-anchor />
                 {findings?.trace_analysis ? (
                   <VineCard
                     index={vineIndex++}
@@ -887,9 +883,11 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                 )}
               </LogicVineContainer>
             )}
-          </div>
+            </div>
+          </EditorialScrollArea>
 
-          {/* Assembly Workbench */}
+          {/* Assembly Workbench — sits outside the ScrollArea so pinned
+              items always stay visible at the top of the column. */}
           <AssemblyWorkbench
             pinnedItems={Array.from(pinnedSections.values())}
             onUnpin={handleUnpin}

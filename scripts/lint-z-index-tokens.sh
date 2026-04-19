@@ -41,6 +41,9 @@ TARGETS=(
   "frontend/src/components/Chat/LedgerTriggerTab.tsx"
   "frontend/src/components/Investigation/TelescopeDrawerV2.tsx"
   "frontend/src/components/Investigation/SurgicalTelescope.tsx"
+  # PR 4 — scroll + anchor primitives
+  "frontend/src/components/shell/EditorialScrollArea.tsx"
+  "frontend/src/components/shell/AnchorToolbar.tsx"
 )
 
 EXISTING=()

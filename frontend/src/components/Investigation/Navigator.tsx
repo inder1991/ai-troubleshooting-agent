@@ -10,6 +10,8 @@ import PromQLRunResult from './cards/PromQLRunResult';
 import SkeletonCard from '../ui/SkeletonCard';
 import EliminationLog from './EliminationLog';
 import AgentsCard from './AgentsCard';
+import EditorialScrollArea from '../shell/EditorialScrollArea';
+import StickyStack from '../shell/StickyStack';
 
 interface NavigatorProps {
   findings: V4Findings | null;
@@ -22,13 +24,18 @@ const Navigator: React.FC<NavigatorProps> = ({ findings, status, events }) => {
   const { hoveredRepo } = useCampaignContext();
 
   return (
-    <div className="flex flex-col h-full bg-wr-bg/20 overflow-y-auto custom-scrollbar">
-      {/* Header */}
-      <div className="p-4 border-b border-wr-border flex items-center sticky top-0 z-10 bg-wr-bg/90 backdrop-blur">
-        <h2 className="text-sm font-bold uppercase tracking-widest text-slate-400">Navigator</h2>
-      </div>
+    <div className="flex flex-col h-full bg-wr-bg/20">
+      {/* Header — registered with StickyStack so the Navigator's own
+          section anchors (if any) land below it, and so the stack
+          height is measured for future sub-scroll regions. */}
+      <StickyStack>
+        <div className="p-4 border-b border-wr-border flex items-center bg-wr-bg/90 backdrop-blur">
+          <h2 className="text-sm font-bold uppercase tracking-widest text-slate-400">Navigator</h2>
+        </div>
+      </StickyStack>
 
-      <div className="p-4 space-y-5">
+      <EditorialScrollArea className="flex-1">
+        <div className="p-4 space-y-5">
         {/* AGENTS card — promoted to column top in PR 5. Gives the right
             panel a hero slot that answers "is the investigation alive /
             making progress?" at a glance. Fuses the old left-panel Agent
@@ -70,7 +77,8 @@ const Navigator: React.FC<NavigatorProps> = ({ findings, status, events }) => {
 
         {/* Elimination Log */}
         <EliminationLog result={findings?.hypothesis_result || null} />
-      </div>
+        </div>
+      </EditorialScrollArea>
     </div>
   );
 };
