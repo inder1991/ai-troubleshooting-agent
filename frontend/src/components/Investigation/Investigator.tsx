@@ -6,13 +6,10 @@ import { AgentCapsule } from './AgentCapsule';
 import { FilterToolbar } from './FilterToolbar';
 import { PhaseBreadcrumbs } from './PhaseBreadcrumbs';
 import { GhostPhaseWrapper } from './GhostPhaseWrapper';
-import HypothesisScoreboard from './HypothesisScoreboard';
-import { CoverageGapsBanner } from './CoverageGapsBanner';
-import { BudgetPill } from './BudgetPill';
-import { SelfConsistencyBadge } from './SelfConsistencyBadge';
 import { FeedbackRow } from './FeedbackRow';
 import { submitInvestigationFeedback } from '../../services/api';
-import { CriticDissentBanner } from './CriticDissentBanner';
+import Verdict from './Verdict';
+import StatusStrip from './StatusStrip';
 
 interface InvestigatorProps {
   sessionId: string;
@@ -315,16 +312,9 @@ const Investigator: React.FC<InvestigatorProps> = ({
     return { all: reasoning + findingsCount + raw, reasoning, findings: findingsCount, raw };
   }, [structuredTimeline]);
 
-  // Derive active agents
-  const activeAgents = useMemo(() => {
-    const started = new Set<string>();
-    const completed = new Set<string>();
-    events.forEach((e) => {
-      if (e.event_type === 'started') started.add(e.agent_name);
-      if (e.event_type === 'summary' || e.event_type === 'success') completed.add(e.agent_name);
-    });
-    return Array.from(started).map((a) => ({ name: a, active: !completed.has(a) }));
-  }, [events]);
+  // activeAgents derivation removed — the Agent Pulse Indicator that
+  // consumed it moved to the right panel's AGENTS card (PR 5). Navigator
+  // computes its own active-agents list from the same event stream.
 
   // Repo mismatch detection
   const repoMismatch = useMemo(() => {
@@ -350,70 +340,17 @@ const Investigator: React.FC<InvestigatorProps> = ({
     return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
   };
 
-  // Current Best Guess — derived from the latest high-severity finding or summary
-  const bestGuess = useMemo(() => {
-    if (!findings) return null;
-    // Use the top finding's summary if available
-    const topFinding = findings.findings?.[0];
-    if (topFinding) {
-      return {
-        text: topFinding.title || topFinding.summary,
-        confidence: status?.confidence ?? findings.code_overall_confidence ?? 0,
-      };
-    }
-    // Fall back to latest summary event message
-    const summaryEvents = events.filter((e) => e.event_type === 'summary' && e.message);
-    const lastSummary = summaryEvents[summaryEvents.length - 1];
-    if (lastSummary) {
-      return {
-        text: lastSummary.message,
-        confidence: Number(lastSummary.details?.confidence || 0),
-      };
-    }
-    return null;
-  }, [findings, events, status?.confidence]);
-
-  const confidenceColor = (c: number) =>
-    c >= 70 ? 'bg-emerald-500' : c >= 40 ? 'bg-amber-500' : 'bg-red-500';
+  // bestGuess + confidenceColor removed — Verdict.tsx owns this
+  // derivation now, with a stricter hypothesis-winner precedence and
+  // confidence folded into prose instead of a colored badge.
 
   return (
-    <div className="flex flex-col h-full bg-wr-bg/20">
-      {/* Coverage-gap banner (Task 4.10) — surfaces agents that didn't run */}
-      {findings?.coverage_gaps && findings.coverage_gaps.length > 0 && (
-        <div className="px-4 pt-3">
-          <CoverageGapsBanner gaps={findings.coverage_gaps} />
-        </div>
-      )}
-      {/* Critic dissent banner (Task 4.16) — winner's advocate/challenger/judge diverged */}
-      {findings?.winner_critic_dissent && (
-        <div className="px-4 pt-2">
-          <CriticDissentBanner dissent={findings.winner_critic_dissent} />
-        </div>
-      )}
-      {/* Telemetry strip: budget pill + self-consistency badge (Tasks 4.11, 4.12) */}
-      {(findings?.budget || findings?.self_consistency) && (
-        <div className="px-4 pt-2 flex items-center gap-2 flex-wrap">
-          {findings?.budget && (
-            <BudgetPill
-              toolCalls={{
-                used: findings.budget.tool_calls_used,
-                max: findings.budget.tool_calls_max,
-              }}
-              llmUsd={{
-                used: findings.budget.llm_usd_used,
-                max: findings.budget.llm_usd_max,
-              }}
-            />
-          )}
-          {findings?.self_consistency && (
-            <SelfConsistencyBadge
-              nRuns={findings.self_consistency.n_runs}
-              agreedCount={findings.self_consistency.agreed_count}
-              penaltyPct={findings.self_consistency.penalty_pct}
-            />
-          )}
-        </div>
-      )}
+    <div className="warroom-left-editorial flex flex-col h-full bg-wr-bg/20">
+      {/* Note: CoverageGapsBanner, CriticDissentBanner, BudgetPill, and
+          SelfConsistencyBadge are intentionally NOT rendered here anymore.
+          — Gaps + dissent fold into <StatusStrip /> below Patient Zero.
+          — Budget + SelfConsistency move to the bottom progress bar (PR 4).
+          See docs/design/left-panel-editorial.md for the rationale. */}
       {/* Patient Zero Banner (sticky) */}
       {findings?.patient_zero && (
         <div className="sticky top-0 z-10 bg-gradient-to-r from-red-950/80 to-red-900/40 border-b border-wr-severity-high/30 px-4 py-3 animate-pulse-red">
@@ -449,23 +386,15 @@ const Investigator: React.FC<InvestigatorProps> = ({
         </div>
       )}
 
-      {/* Agent Pulse Indicator */}
-      {activeAgents.length > 0 && (
-        <div className="px-4 py-2 border-b border-wr-border/50 flex items-center gap-2 flex-wrap">
-          {activeAgents.map((a) => (
-            <span
-              key={a.name}
-              className={`text-body-xs px-2 py-0.5 rounded-full border font-bold uppercase ${
-                a.active
-                  ? (agentColor[a.name] || 'bg-slate-500/20 text-slate-400 border-slate-500/30') + ' animate-pulse'
-                  : 'bg-wr-surface/50 text-slate-400 border-wr-border-strong'
-              }`}
-            >
-              {a.name.replace(/_/g, ' ')}
-            </span>
-          ))}
-        </div>
-      )}
+      {/* Slot 2 — VERDICT (editorial prose) + blast-radius sentence */}
+      <Verdict findings={findings} events={events} />
+
+      {/* Slot 3 — Status Strip (single-line marginalia; folds in the
+          old CoverageGapsBanner + CriticDissentBanner data) */}
+      <StatusStrip findings={findings} status={status} />
+
+      {/* Agent Pulse Indicator removed from left panel — moved to the
+          right-panel AGENTS card in PR 5 (see docs/design/left-panel-editorial.md) */}
 
       {/* Header */}
       <div className="px-4 py-3 border-b border-wr-border/50 bg-wr-bg/90 backdrop-blur z-20 shrink-0 flex items-center justify-between gap-4">
@@ -557,13 +486,11 @@ const Investigator: React.FC<InvestigatorProps> = ({
         )}
       </div>
 
-      {/* Hypothesis Scoreboard (replaces old Current Best Guess) */}
-      <HypothesisScoreboard
-        hypotheses={findings?.hypotheses || []}
-        result={findings?.hypothesis_result || null}
-        legacyGuess={bestGuess}
-      />
-      {/* Feedback row (Task 4.13) — user labels the outcome; priors update server-side */}
+      {/* Hypothesis Scoreboard removed — its role is now owned by
+          <Verdict /> above, promoted to a hero slot under Patient Zero.
+          See docs/design/left-panel-editorial.md. */}
+      {/* Feedback row (Task 4.13) — user labels the outcome; priors update server-side.
+          Gating on phase === 'complete' is scheduled for PR 4. */}
       <FeedbackRow
         runId={`investigation-${sessionId}`}
         submit={async (payload) => {
