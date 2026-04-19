@@ -10,6 +10,7 @@ import { FeedbackRow } from './FeedbackRow';
 import { submitInvestigationFeedback } from '../../services/api';
 import Verdict from './Verdict';
 import StatusStrip from './StatusStrip';
+import PatientZeroMetadata from './PatientZeroMetadata';
 
 interface InvestigatorProps {
   sessionId: string;
@@ -370,6 +371,9 @@ const Investigator: React.FC<InvestigatorProps> = ({
             )}
           </div>
           <p className="text-body-xs text-red-300/70 mt-0.5">{findings.patient_zero.evidence}</p>
+          {/* PR 2b — Env context + service ownership. Additive, never
+              shouts when data missing. Each line drops silently. */}
+          <PatientZeroMetadata findings={findings} />
           {repoMismatch && onAttachRepo && (
             <div className="mt-1.5 flex items-center gap-2">
               <p className="text-body-xs text-amber-300/80">
