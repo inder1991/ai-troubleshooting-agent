@@ -2,6 +2,7 @@ import os
 import time
 from anthropic import AsyncAnthropic
 from src.models.schemas import TokenUsage
+from src.utils.credential_redactor import redact_for_logging
 from src.utils.logger import get_logger
 from src.utils.redis_semaphore import RedisLLMSemaphore
 
@@ -69,7 +70,17 @@ class AnthropicClient:
         try:
             response = await self._client.messages.create(**kwargs)
         except Exception as e:
-            logger.error("LLM call failed", extra={"agent_name": self.agent_name, "session_id": self.session_id, "action": "llm_error", "extra": str(e)})
+            # PR-A — run the exception string through the credential
+            # redactor before logging. The Anthropic SDK's exceptions
+            # can carry the raw Authorization header in their body on
+            # some failure paths; without redaction this leaks to any
+            # log sink that tails the stream.
+            logger.error("LLM call failed", extra={
+                "agent_name": self.agent_name,
+                "session_id": self.session_id,
+                "action": "llm_error",
+                "extra": redact_for_logging(str(e)),
+            })
             raise
 
         elapsed_ms = round((time.monotonic() - start) * 1000)
@@ -153,7 +164,10 @@ class AnthropicClient:
                 })
         except Exception as e:
             logger.error("LLM stream failed", extra={
-                "agent_name": self.agent_name, "session_id": self.session_id, "action": "llm_stream_error", "extra": str(e),
+                "agent_name": self.agent_name,
+                "session_id": self.session_id,
+                "action": "llm_stream_error",
+                "extra": redact_for_logging(str(e)),
             })
             raise
 
@@ -222,7 +236,10 @@ class AnthropicClient:
             response = await self._client.messages.create(**kwargs)
         except Exception as e:
             logger.error("LLM call failed", extra={
-                "agent_name": self.agent_name, "session_id": self.session_id, "action": "llm_error", "extra": str(e)
+                "agent_name": self.agent_name,
+                "session_id": self.session_id,
+                "action": "llm_error",
+                "extra": redact_for_logging(str(e)),
             })
             raise
 

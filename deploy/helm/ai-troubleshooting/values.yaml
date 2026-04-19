@@ -178,6 +178,37 @@ anthropic:
     #   existingSecret: anthropic-cheap
     #   secretKey: api_key
 
+# ─── Encryption (PR-A security hardening) ────────────────────────────────────
+# Fernet master key used to encrypt stored integration credentials
+# (Jira / Confluence / cluster credentials). Without a stable key sourced
+# from an external secret, an ephemeral container that restarts loses
+# the key and orphans every credential in the database — a silent
+# data-loss failure mode.
+#
+# When existingSecret is set, FERNET_REQUIRE_ENV_KEY=on is added to the
+# pod env, forcing the backend to fail-fast at startup if the key isn't
+# present. When omitted, the backend falls back to its dev-key path
+# with a loud warning — suitable for dev / demo only.
+encryption:
+  masterKey:
+    # Pre-create the secret:
+    #   KEY=$(python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())')
+    #   kubectl create secret generic aitsh-master-key --from-literal=master-key="$KEY"
+    # Rotate by generating a new Fernet key, layering the old one as
+    # DEBUGDUCK_MASTER_KEY_PREVIOUS for the migration window (future
+    # follow-up; see docs/plans/2026-04-18-fernet-key-env-migration.md).
+    existingSecret: ""              # "" → dev-key fallback; set in prod
+    secretKey: master-key
+
+# ─── Security (PR-A) ─────────────────────────────────────────────────────────
+security:
+  # Enforce session-level ownership checks on /chat, /cancel, and
+  # attestation decision endpoints. When "on", a caller whose identifier
+  # (from request.state.owner_id or X-Session-Owner header) doesn't match
+  # the session's recorded owner gets a 403. Default "off" keeps the
+  # single-tenant dev/demo experience unchanged.
+  sessionOwnershipCheck: "off"      # "on" in managed multi-tenant deploys
+
 # ─── Postgres (bundled by default — Bitnami subchart) ────────────────────────
 postgresql:
   enabled: true
