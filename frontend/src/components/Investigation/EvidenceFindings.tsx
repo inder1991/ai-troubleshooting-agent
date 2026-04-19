@@ -20,6 +20,8 @@ import FixReadyBar from '../center/FixReadyBar';
 import BlastRadiusList from '../center/BlastRadiusList';
 import PinPostmortemChip from '../center/PinPostmortemChip';
 import ReproduceQueryRow from '../center/ReproduceQueryRow';
+import PinnedGhost from '../center/PinnedGhost';
+import { usePinStore } from '../../stores/pinStore';
 import CausalRoleBadge from './cards/CausalRoleBadge';
 import StackTraceTelescope from './cards/StackTraceTelescope';
 import SaturationGauge from './cards/SaturationGauge';
@@ -159,26 +161,25 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
   const agentName = latestEvent?.agent_name || 'System';
   const isProcessing = phase !== 'complete' && phase !== 'diagnosis_complete';
 
-  // ── Pin state for Assembly Workbench ──
-  const [pinnedSections, setPinnedSections] = useState<Map<string, PinnedCard>>(new Map());
-  const handlePin = useCallback((sectionId: string, title: string, agentCode: string) => {
-    setPinnedSections(prev => {
-      const next = new Map(prev);
-      if (next.has(sectionId)) {
-        next.delete(sectionId);
-      } else {
-        next.set(sectionId, { id: sectionId, agentType: agentCode, title });
-      }
-      return next;
-    });
-  }, []);
-  const handleUnpin = useCallback((id: string) => {
-    setPinnedSections(prev => {
-      const next = new Map(prev);
-      next.delete(id);
-      return next;
-    });
-  }, []);
+  // ── Pin state moved to Zustand pinStore (PR 6). Single source of
+  //    truth so the inline ghost placeholder + AssemblyWorkbench chip
+  //    always agree. usePinStore selectors below stay reactive. ──
+  const pinnedMap = usePinStore((s) => s.pinned);
+  const togglePin = usePinStore((s) => s.toggle);
+  const unpinStore = usePinStore((s) => s.unpin);
+  const pinnedSections = pinnedMap; // alias: same Map<id, PinnedItem> shape
+  const handlePin = useCallback(
+    (sectionId: string, title: string, agentCode: string) => {
+      togglePin({ id: sectionId, label: title, agentCode });
+    },
+    [togglePin],
+  );
+  const handleUnpin = useCallback(
+    (id: string) => {
+      unpinStore(id);
+    },
+    [unpinStore],
+  );
   const fixReady = phase === 'diagnosis_complete' || phase === 'complete';
 
   // ── Resolve Cinematic trigger ──
@@ -335,9 +336,20 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                   result={findings?.hypothesis_result || null}
                 />
 
-                {/* 1. Root Cause patterns */}
+                {/* 1. Root Cause patterns — when pinned, the inline slot
+                    renders a PinnedGhost placeholder instead of the full
+                    VineCard. The full card lives exclusively in the
+                    AssemblyWorkbench, so pinned content exists in exactly
+                    one place. */}
                 <div id="section-root-cause" className="scroll-mt-[calc(var(--sticky-stack-h,0px)+8px)]" data-scroll-anchor />
-                {rootCausePatterns.length > 0 && (
+                {rootCausePatterns.length > 0 && pinnedSections.has('root-cause') && (
+                  <PinnedGhost
+                    id="root-cause"
+                    label={rootCausePatterns[0]?.exception_type || 'Root Cause'}
+                    agentCode="L"
+                  />
+                )}
+                {rootCausePatterns.length > 0 && !pinnedSections.has('root-cause') && (
                   <VineCard
                     index={vineIndex++}
                     isRootCause
