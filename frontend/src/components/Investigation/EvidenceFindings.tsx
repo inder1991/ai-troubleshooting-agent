@@ -1864,14 +1864,52 @@ const PastIncidentsSection: React.FC<{ incidents: PastIncidentMatch[] }> = ({ in
 
 // ─── Phase-Aware Empty State ───────────────────────────────────────────────
 
-const phaseEmptyMessages: Record<string, { icon: string; message: string }> = {
-  initial: { icon: 'radar', message: 'Agents are gathering data...' },
-  collecting_context: { icon: 'radar', message: 'Agents are gathering data...' },
-  logs_analyzed: { icon: 'analytics', message: 'Log analysis complete. Waiting for metrics...' },
-  metrics_analyzed: { icon: 'analytics', message: 'Metrics analyzed. Continuing investigation...' },
-  k8s_analyzed: { icon: 'analytics', message: 'K8s analysis done. Continuing investigation...' },
-  diagnosis_complete: { icon: 'check_circle', message: 'Investigation complete. Review findings above.' },
-  complete: { icon: 'check_circle', message: 'Investigation complete.' },
+// PR-I — phase-aware empty-state copy. Each phase tells the user
+// what's happening now AND what they should expect next, so a blank
+// evidence column doesn't feel like nothing's happening. The old copy
+// ("Agents are gathering data...") was too generic — operators hit
+// refresh because they couldn't tell if the system was alive.
+const phaseEmptyMessages: Record<string, { icon: string; message: string; hint?: string }> = {
+  initial: {
+    icon: 'radar',
+    message: 'Dispatching agents…',
+    hint: 'First findings usually appear in 10–20 seconds.',
+  },
+  collecting_context: {
+    icon: 'radar',
+    message: 'Agents are reading logs, metrics, and traces.',
+    hint: 'Evidence populates here as each agent finishes its first pass.',
+  },
+  logs_analyzed: {
+    icon: 'analytics',
+    message: 'Log analysis complete.',
+    hint: 'Metrics and traces still running — the verdict waits for both.',
+  },
+  metrics_analyzed: {
+    icon: 'analytics',
+    message: 'Metrics analyzed.',
+    hint: 'Correlating signals with logs and traces.',
+  },
+  k8s_analyzed: {
+    icon: 'analytics',
+    message: 'K8s analysis complete.',
+    hint: 'Continuing investigation into upstream and downstream services.',
+  },
+  re_investigating: {
+    icon: 'refresh',
+    message: 'Re-investigating after a challenged verdict.',
+    hint: 'The critic asked for stronger evidence — the supervisor is looking again.',
+  },
+  diagnosis_complete: {
+    icon: 'check_circle',
+    message: 'Investigation complete.',
+    hint: 'Review findings above. Click a finding to open its telescope.',
+  },
+  complete: {
+    icon: 'check_circle',
+    message: 'Investigation complete.',
+    hint: 'Pin evidence to build the postmortem dossier.',
+  },
 };
 
 const PhaseAwareEmptyState: React.FC<{ phase: DiagnosticPhase | null }> = ({ phase }) => {
@@ -1890,7 +1928,15 @@ const PhaseAwareEmptyState: React.FC<{ phase: DiagnosticPhase | null }> = ({ pha
         >
           {info.icon}
         </span>
-        <p className="text-sm">{info.message}</p>
+        <p className="text-sm" data-testid="phase-empty-message">{info.message}</p>
+        {info.hint && (
+          <p
+            className="text-[12px] font-editorial italic text-slate-500 mt-1 max-w-[320px] mx-auto leading-[1.4]"
+            data-testid="phase-empty-hint"
+          >
+            {info.hint}
+          </p>
+        )}
       </div>
     </div>
   );

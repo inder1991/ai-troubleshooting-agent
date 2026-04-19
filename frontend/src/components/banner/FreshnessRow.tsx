@@ -151,7 +151,18 @@ export const FreshnessRow: React.FC<FreshnessRowProps> = ({
   const tokensClause = totalTokens > 0 ? formatTokens(totalTokens) : null;
 
   const usd = status?.budget?.llm_usd_used ?? 0;
+  const usdMax = status?.budget?.llm_usd_max ?? 0;
   const costClause = usd > 0 ? `$${usd.toFixed(3)}` : null;
+  // PR-I — surface a cost-burn warning when we've spent > 80% of the
+  // budgeted LLM USD. Gives operators a moment to intervene before
+  // the investigation hits the cap and stops dispatching agents.
+  // Hidden until 80% + when no cap is configured (usdMax === 0).
+  const budgetPct = usdMax > 0 ? usd / usdMax : 0;
+  const burnClause =
+    usdMax > 0 && budgetPct >= 0.8
+      ? `${Math.round(budgetPct * 100)}% of budget`
+      : null;
+  const burnHigh = budgetPct >= 0.95;
 
   // Phase narrative
   const narrative = synthesizePhaseNarrative({
@@ -217,6 +228,18 @@ export const FreshnessRow: React.FC<FreshnessRowProps> = ({
             data-testid="freshness-cost"
           >
             · {costClause}
+          </span>
+        )}
+
+        {burnClause && (
+          <span
+            className={`font-editorial italic tabular-nums ${
+              burnHigh ? 'text-red-400' : 'text-amber-400'
+            }`}
+            data-testid="freshness-burn"
+            aria-label={`${burnClause} — ${burnHigh ? 'critical' : 'warning'}`}
+          >
+            · {burnClause}
           </span>
         )}
 
