@@ -99,6 +99,46 @@ describe('AgentsCard', () => {
     expect(screen.getByTestId('agents-total-tokens').textContent).toMatch(/100 tokens/);
   });
 
+  // ── PR-D: reactivity (re-investigation) ─────────────────────────
+
+  it('NOW strip flips completed agent back to active when a fresh `started` arrives later (re-investigation)', () => {
+    // Typical re-investigation event order for the same agent.
+    const events = [
+      event({ agent_name: 'log_agent', event_type: 'started', timestamp: '2026-04-19T00:00:00Z' }),
+      event({ agent_name: 'log_agent', event_type: 'summary', timestamp: '2026-04-19T00:00:10Z' }),
+      event({ agent_name: 'log_agent', event_type: 'started', timestamp: '2026-04-19T00:00:20Z' }),
+    ];
+    render(<AgentsCard status={status()} events={events} />);
+    expect(screen.getByTestId('live-agent-log_agent')).toBeInTheDocument();
+    const dot = screen.getByTestId('agents-row-log_agent').querySelector('[role="status"]');
+    expect(dot?.getAttribute('title')).toBe('active');
+  });
+
+  it('last-event-wins: error after summary renders as error', () => {
+    const events = [
+      event({ agent_name: 'log_agent', event_type: 'started' }),
+      event({ agent_name: 'log_agent', event_type: 'summary' }),
+      event({ agent_name: 'log_agent', event_type: 'started' }),
+      event({ agent_name: 'log_agent', event_type: 'error', message: 'boom' }),
+    ];
+    render(<AgentsCard status={status()} events={events} />);
+    const dot = screen.getByTestId('agents-row-log_agent').querySelector('[role="status"]');
+    expect(dot?.getAttribute('title')).toBe('error');
+  });
+
+  it('NOW strip re-renders immediately when a new event arrives (no polling involved)', () => {
+    const base = [event({ agent_name: 'log_agent', event_type: 'started' })];
+    const { rerender } = render(<AgentsCard status={status()} events={base} />);
+    expect(screen.getByTestId('live-agent-log_agent')).toBeInTheDocument();
+    expect(screen.queryByTestId('live-agent-metrics_agent')).toBeNull();
+
+    // A new event arrives via WebSocket → parent passes a new events array.
+    const after = [...base, event({ agent_name: 'metrics_agent', event_type: 'started' })];
+    rerender(<AgentsCard status={status()} events={after} />);
+    expect(screen.getByTestId('live-agent-log_agent')).toBeInTheDocument();
+    expect(screen.getByTestId('live-agent-metrics_agent')).toBeInTheDocument();
+  });
+
   it('status dot reflects completed / active / error / pending', () => {
     const events = [
       event({ agent_name: 'log_agent', event_type: 'started' }),

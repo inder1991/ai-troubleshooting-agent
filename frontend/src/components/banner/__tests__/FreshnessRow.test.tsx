@@ -143,6 +143,109 @@ describe('FreshnessRow', () => {
     expect(screen.getByTestId('freshness-age').textContent).toMatch(/closed/);
   });
 
+  // ── PR-D: terminal-phase neutralization ─────────────────────────
+
+  it('shows "resolved" (not "live") the moment phase goes terminal, even if just now', () => {
+    // Incident just completed — still in `recent` bucket, not historical.
+    const closed = status({
+      phase: 'complete',
+      updated_at: '2026-04-19T00:00:00Z',
+    });
+    render(
+      <Harness
+        status={closed}
+        now={Date.parse('2026-04-19T00:00:05Z')} // 5s after close
+        lastFetchAgoSec={2}
+      />,
+    );
+    const row = screen.getByTestId('freshness-row');
+    expect(row.textContent).toMatch(/resolved/);
+    expect(row.textContent).not.toMatch(/\blive\b/);
+  });
+
+  it('drops seconds counter for terminal phase even when recently closed', () => {
+    const closed = status({
+      phase: 'complete',
+      updated_at: '2026-04-19T00:00:00Z',
+    });
+    render(
+      <Harness
+        status={closed}
+        now={Date.parse('2026-04-19T00:00:05Z')}
+        lastFetchAgoSec={2}
+      />,
+    );
+    const age = screen.getByTestId('freshness-age').textContent || '';
+    expect(age).toMatch(/closed/);
+    expect(age).not.toMatch(/\b2s\b/);
+  });
+
+  it('tokens clause updates reactively when status.token_usage grows (PR-D)', () => {
+    const { rerender } = render(
+      <Harness status={status({ token_usage: [tu('log_agent', 1000)] })} />,
+    );
+    expect(screen.getByTestId('freshness-tokens').textContent).toMatch(/1\.0k tokens/);
+
+    rerender(
+      <AppControlProvider>
+        <IncidentLifecycleProvider status={status()} now={undefined}>
+          <FreshnessRow
+            findings={findings()}
+            status={status({
+              token_usage: [tu('log_agent', 1000), tu('metrics_agent', 2500)],
+            })}
+            events={[]}
+            lastFetchAgoSec={3}
+            wsConnected={true}
+          />
+        </IncidentLifecycleProvider>
+      </AppControlProvider>,
+    );
+    expect(screen.getByTestId('freshness-tokens').textContent).toMatch(/3\.5k tokens/);
+  });
+
+  it('cost clause updates reactively when budget.llm_usd_used grows (PR-D)', () => {
+    const { rerender } = render(
+      <Harness
+        status={status({
+          budget: { tool_calls_used: 1, tool_calls_max: 10, llm_usd_used: 0.010, llm_usd_max: 1 },
+        })}
+      />,
+    );
+    expect(screen.getByTestId('freshness-cost').textContent).toMatch(/\$0\.010/);
+
+    rerender(
+      <AppControlProvider>
+        <IncidentLifecycleProvider status={status()} now={undefined}>
+          <FreshnessRow
+            findings={findings()}
+            status={status({
+              budget: { tool_calls_used: 2, tool_calls_max: 10, llm_usd_used: 0.087, llm_usd_max: 1 },
+            })}
+            events={[]}
+            lastFetchAgoSec={3}
+            wsConnected={true}
+          />
+        </IncidentLifecycleProvider>
+      </AppControlProvider>,
+    );
+    expect(screen.getByTestId('freshness-cost').textContent).toMatch(/\$0\.087/);
+  });
+
+  it('treats diagnosis_complete the same way as complete', () => {
+    const closed = status({
+      phase: 'diagnosis_complete',
+      updated_at: '2026-04-19T00:00:00Z',
+    });
+    render(
+      <Harness
+        status={closed}
+        now={Date.parse('2026-04-19T00:01:00Z')}
+      />,
+    );
+    expect(screen.getByTestId('freshness-row').textContent).toMatch(/resolved/);
+  });
+
   it('renders the phase narrative line', () => {
     render(<Harness events={[event({ agent_name: 'log_agent', event_type: 'started' })]} />);
     expect(screen.getByTestId('phase-narrative').textContent).toMatch(
