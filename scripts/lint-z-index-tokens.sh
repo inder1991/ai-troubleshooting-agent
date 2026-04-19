@@ -28,7 +28,14 @@ TARGETS=(
   "frontend/src/components/shell/PaneDrawer.tsx"
   "frontend/src/components/shell/GutterRail.tsx"
   "frontend/src/contexts/IncidentLifecycleContext.tsx"
-  # PR 2 will add banner/freshness files; PR 3 drawer consumers; etc.
+  # PR 2 — banner region components
+  "frontend/src/components/banner/BannerRegion.tsx"
+  "frontend/src/components/banner/BannerRow.tsx"
+  "frontend/src/components/banner/FreshnessRow.tsx"
+  "frontend/src/components/banner/signalScheduler.ts"
+  "frontend/src/components/banner/phaseNarrative.ts"
+  "frontend/src/contexts/AppControlContext.tsx"
+  # PR 3 will add drawer consumers; etc.
 )
 
 EXISTING=()
