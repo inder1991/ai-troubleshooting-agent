@@ -3,7 +3,7 @@ API Request/Response Models
 """
 
 from pydantic import BaseModel, Field
-from typing import Optional, Dict, List, Any, Annotated
+from typing import Any, Annotated, Dict, List, Optional
 
 class ConversationRequest(BaseModel):
     message: str = Field(..., description="User's message")
@@ -89,6 +89,27 @@ class StartSessionRequest(BaseModel):
     port_num: Annotated[Optional[int], Field(alias="portNum")] = None
     net_protocol: Annotated[Optional[str], Field(alias="netProtocol")] = None
     extra: Optional[dict] = None  # Additional capability-specific config
+    # PR-F (SDET audit contract drift) — database_diagnostics capability
+    # fields. Previously the frontend declared these on its TS mirror
+    # but the backend model didn't, so Pydantic silently dropped them
+    # (default `model_config["extra"] == "ignore"`). Now declared as
+    # Optional + aliased where the TS side uses camelCase.
+    focus: Optional[list[str]] = None
+    database_type: Annotated[
+        Optional[str], Field(alias="databaseType")
+    ] = None
+    sampling_mode: Annotated[
+        Optional[str], Field(alias="samplingMode")
+    ] = None
+    include_explain_plans: Annotated[
+        Optional[bool], Field(alias="includeExplainPlans")
+    ] = None
+    parent_session_id: Annotated[
+        Optional[str], Field(alias="parentSessionId")
+    ] = None
+    table_filter: Annotated[
+        Optional[list[str]], Field(alias="tableFilter")
+    ] = None
     # Phase-4 Task 4.5 opt-in: run the supervisor N times with shuffled
     # agent dispatch orders and vote on the winner. N>1 triples LLM cost
     # so this is off by default.
@@ -105,6 +126,49 @@ class StartSessionResponse(BaseModel):
     service_name: str = ""
     created_at: str = ""
     capability: Optional[str] = None
+
+
+class BudgetTelemetry(BaseModel):
+    """PR-F — front-of-contract shape for session budget exposed on
+    ``GET /session/{id}/status``. Matches the TypeScript
+    ``BudgetTelemetry`` interface exactly so the FreshnessRow cost
+    clause has something real to render.
+
+    The source-of-truth type in the backend is ``SessionBudget``
+    (``src/utils/llm_budget.py``) which tracks call counts + token
+    counts. ``BudgetTelemetry.from_session_budget`` translates that
+    into the UI's tool-calls + USD-spend vocabulary. USD is derived
+    from input-token count times a flat $/token approximation (Claude
+    Sonnet input price, ~$3 / 1M tokens) — precise enough for the UI
+    to display "$0.042 spent of $10.00 budget" without pulling real
+    billing data into the request path.
+    """
+    tool_calls_used: int = 0
+    tool_calls_max: int = 0
+    llm_usd_used: float = 0.0
+    llm_usd_max: float = 0.0
+
+    @classmethod
+    def from_session_budget(cls, budget: Any) -> "BudgetTelemetry":
+        if budget is None:
+            return cls()
+        try:
+            max_calls = int(getattr(budget, "max_llm_calls", 0) or 0)
+            used_calls = int(getattr(budget, "current_llm_calls", 0) or 0)
+            tokens_in = int(getattr(budget, "current_tokens_input", 0) or 0)
+            tokens_max = int(getattr(budget, "max_tokens_input", 0) or 0)
+        except (TypeError, ValueError):
+            return cls()
+        # Claude Sonnet input pricing approximation. Off by a small
+        # constant factor per model is fine — we want the UI to answer
+        # "are we burning money fast?" at a glance, not run the invoice.
+        USD_PER_INPUT_TOKEN = 3.0 / 1_000_000.0
+        return cls(
+            tool_calls_used=used_calls,
+            tool_calls_max=max_calls,
+            llm_usd_used=round(tokens_in * USD_PER_INPUT_TOKEN, 4),
+            llm_usd_max=round(tokens_max * USD_PER_INPUT_TOKEN, 4),
+        )
 
 
 class SessionSummary(BaseModel):

@@ -1315,6 +1315,24 @@ async def get_session_status(session_id: str):
         result["agents_completed"] = state.agents_completed
         result["findings_count"] = len(state.all_findings)
         result["token_usage"] = [t.model_dump() for t in state.token_usage]
+        # PR-F (SDET audit contract drift) — expose BudgetTelemetry on
+        # /status so the FreshnessRow cost clause has real data to
+        # render. Previously /status never returned `budget`, so the
+        # clause was permanently dead. We look up the SessionBudget
+        # from whichever of the two stash locations the cluster vs app
+        # paths use, and translate into the UI-facing shape.
+        try:
+            from src.api.models import BudgetTelemetry
+            raw_budget = session.get("budget")
+            if raw_budget is None and state is not None:
+                raw_budget = getattr(state, "session_budget", None)
+            if raw_budget is not None:
+                result["budget"] = BudgetTelemetry.from_session_budget(
+                    raw_budget,
+                ).model_dump()
+        except Exception:
+            # Non-fatal — budget is decorative telemetry.
+            logger.debug("budget telemetry skipped", exc_info=True)
         if state.all_breadcrumbs:
             result["breadcrumbs"] = [b.model_dump(mode="json") for b in state.all_breadcrumbs]
         # Task 1.14: surface skip/error reasons so the trust UI can
