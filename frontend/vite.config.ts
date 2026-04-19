@@ -9,6 +9,13 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     css: false,
+    // Close-out fix: Playwright specs live under e2e/ and use the
+    // Playwright test runner, not vitest. Vitest's default include
+    // picks them up and fails to load ("describe is not a function"
+    // against @playwright/test), so explicitly exclude them. Also
+    // exclude node_modules (default, but making it explicit guards
+    // against future include overrides).
+    exclude: ['node_modules/**', 'dist/**', 'e2e/**', '.idea', '.git', '.cache'],
   },
   server: {
     port: 5173,
