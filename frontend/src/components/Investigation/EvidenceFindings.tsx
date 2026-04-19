@@ -16,6 +16,10 @@ import DisagreementStrip from './DisagreementStrip';
 import EditorialScrollArea from '../shell/EditorialScrollArea';
 import AnchorToolbar, { AnchorPill } from '../shell/AnchorToolbar';
 import StickyStack from '../shell/StickyStack';
+import FixReadyBar from '../center/FixReadyBar';
+import BlastRadiusList from '../center/BlastRadiusList';
+import PinPostmortemChip from '../center/PinPostmortemChip';
+import ReproduceQueryRow from '../center/ReproduceQueryRow';
 import CausalRoleBadge from './cards/CausalRoleBadge';
 import StackTraceTelescope from './cards/StackTraceTelescope';
 import SaturationGauge from './cards/SaturationGauge';
@@ -259,45 +263,63 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                 </motion.div>
               )}
             </AnimatePresence>
+            {/* FixReadyBar — shows when phase=diagnosis_complete AND fix
+                data is present. Renders above DisagreementStrip so the
+                answer is the first thing the SRE sees. */}
+            <FixReadyBar findings={findings} status={_status} />
+
+            {/* BlastRadiusList — actionable service list with live
+                status dots. Replaces the chip-based card. */}
+            <BlastRadiusList findings={findings} />
+
             {/* DisagreementStrip — quiet marginalia above the anchor bar */}
             <DisagreementStrip findings={findings} />
 
             {/* Evidence Anchor Bar — wrapped in StickyStack so the
                 --sticky-stack-h CSS variable reflects its current
                 height and section-anchor scroll-margin-top values
-                land below the stuck bar. */}
+                land below the stuck bar. PinPostmortemChip rides
+                alongside the toolbar so both are always visible. */}
             {findings && hasContent && (
               <StickyStack className="mb-4 -mx-6 px-6">
-                <AnchorToolbar
-                  pills={((): AnchorPill[] => {
-                    const p: AnchorPill[] = [];
-                    if ((findings?.hypotheses?.length ?? 0) >= 2) {
-                      p.push({ id: 'hypotheses', label: 'Hypotheses', anchor: 'section-hypotheses', count: findings?.hypotheses?.length, tone: 'severity-medium' });
-                    }
-                    if (rootCausePatterns.length > 0) {
-                      p.push({ id: 'root-cause', label: 'Root Cause', anchor: 'section-root-cause', count: rootCausePatterns.length, tone: 'severity-high' });
-                    }
-                    if (cascadingPatterns.length > 0) {
-                      p.push({ id: 'cascading', label: 'Cascading', anchor: 'section-cascading', count: cascadingPatterns.length, tone: 'severity-high' });
-                    }
-                    if (filteredFindings.length > 0) {
-                      p.push({ id: 'findings', label: 'Findings', anchor: 'section-findings', count: filteredFindings.length, tone: 'severity-medium' });
-                    }
-                    if (filteredMetrics.length > 0) {
-                      p.push({ id: 'metrics', label: 'Metrics', anchor: 'section-metrics', count: filteredMetrics.length, tone: 'severity-medium' });
-                    }
-                    if (filteredK8sEvents.length > 0 || filteredPodStatuses.length > 0) {
-                      p.push({ id: 'k8s', label: 'K8s', anchor: 'section-k8s', count: filteredK8sEvents.length + filteredPodStatuses.length, tone: 'severity-high' });
-                    }
-                    if ((findings?.trace_spans?.length ?? 0) > 0) {
-                      p.push({ id: 'traces', label: 'Traces', anchor: 'section-traces', count: findings?.trace_spans?.length, tone: 'paper' });
-                    }
-                    if (correlatedPatterns.length > 0) {
-                      p.push({ id: 'correlated', label: 'Correlated', anchor: 'section-correlated', count: correlatedPatterns.length, tone: 'severity-low' });
-                    }
-                    return p;
-                  })()}
-                />
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <AnchorToolbar
+                      pills={((): AnchorPill[] => {
+                        const p: AnchorPill[] = [];
+                        if ((findings?.hypotheses?.length ?? 0) >= 2) {
+                          p.push({ id: 'hypotheses', label: 'Hypotheses', anchor: 'section-hypotheses', count: findings?.hypotheses?.length, tone: 'severity-medium' });
+                        }
+                        if (rootCausePatterns.length > 0) {
+                          p.push({ id: 'root-cause', label: 'Root Cause', anchor: 'section-root-cause', count: rootCausePatterns.length, tone: 'severity-high' });
+                        }
+                        if (cascadingPatterns.length > 0) {
+                          p.push({ id: 'cascading', label: 'Cascading', anchor: 'section-cascading', count: cascadingPatterns.length, tone: 'severity-high' });
+                        }
+                        if (filteredFindings.length > 0) {
+                          p.push({ id: 'findings', label: 'Findings', anchor: 'section-findings', count: filteredFindings.length, tone: 'severity-medium' });
+                        }
+                        if (filteredMetrics.length > 0) {
+                          p.push({ id: 'metrics', label: 'Metrics', anchor: 'section-metrics', count: filteredMetrics.length, tone: 'severity-medium' });
+                        }
+                        if (filteredK8sEvents.length > 0 || filteredPodStatuses.length > 0) {
+                          p.push({ id: 'k8s', label: 'K8s', anchor: 'section-k8s', count: filteredK8sEvents.length + filteredPodStatuses.length, tone: 'severity-high' });
+                        }
+                        if ((findings?.trace_spans?.length ?? 0) > 0) {
+                          p.push({ id: 'traces', label: 'Traces', anchor: 'section-traces', count: findings?.trace_spans?.length, tone: 'paper' });
+                        }
+                        if (correlatedPatterns.length > 0) {
+                          p.push({ id: 'correlated', label: 'Correlated', anchor: 'section-correlated', count: correlatedPatterns.length, tone: 'severity-low' });
+                        }
+                        return p;
+                      })()}
+                    />
+                  </div>
+                  <PinPostmortemChip
+                    findings={findings}
+                    onOpenDossier={onNavigateToDossier}
+                  />
+                </div>
               </StickyStack>
             )}
             {findings === null ? (
@@ -518,6 +540,10 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                               {ma.correlation_to_incident && (
                                 <p className="text-body-xs text-slate-400 italic mt-1.5">{ma.correlation_to_incident}</p>
                               )}
+                              <ReproduceQueryRow
+                                anomaly={ma}
+                                queries={findings?.suggested_promql_queries || []}
+                              />
                             </AgentFindingCard>
                           );
                         })}
