@@ -73,6 +73,18 @@ jobs:
         working-directory: frontend
         run: npx vitest run
 
+  warroom-invariants:
+    name: War Room invariants (palette + z-index + layout)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Palette lint (left panel editorial)
+        run: bash scripts/lint-left-panel-palette.sh
+      - name: Z-index token lint
+        run: bash scripts/lint-z-index-tokens.sh
+      - name: War Room layout invariants
+        run: bash scripts/lint-warroom-invariants.sh
+
   helm-lint:
     name: Helm lint + render
     runs-on: ubuntu-latest
