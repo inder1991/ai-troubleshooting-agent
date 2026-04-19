@@ -25,7 +25,10 @@ import { safeFixed, formatTime, safeDate } from '../../utils/format';
 
 // HUD components
 import HUDAtmosphere from './hud/HUDAtmosphere';
-import BriefingHeader from './hud/BriefingHeader';
+// BriefingHeader removed in PR 2 of the War Room redesign — its
+// ticker (latest event + agent + severity + processing state) moved
+// to the freshness row of the top BannerRegion, so the evidence
+// column no longer needs its own always-on ticker.
 import LogicVineContainer from './hud/LogicVineContainer';
 import VineCard from './hud/VineCard';
 import TargetingBrackets from './hud/TargetingBrackets';
@@ -220,13 +223,8 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
   return (
     <div className="flex flex-col h-full bg-[#1a1814]">
       <HUDAtmosphere>
-        {/* Briefing Header */}
-        <BriefingHeader
-          latestEventText={latestEventText}
-          agentName={agentName}
-          severity={sev}
-          isProcessing={isProcessing}
-        />
+        {/* BriefingHeader retired in PR 2 — replaced by the banner
+            region's freshness row + phase narrative above the grid. */}
 
         {/* Scrollable evidence stack */}
         <LayoutGroup>

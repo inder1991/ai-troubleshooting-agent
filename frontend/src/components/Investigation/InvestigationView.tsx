@@ -8,13 +8,15 @@ import EvidenceFindings from './EvidenceFindings';
 import Navigator from './Navigator';
 import RemediationProgressBar from './RemediationProgressBar';
 import AttestationGateUI from '../Remediation/AttestationGateUI';
-import ErrorBanner from '../ui/ErrorBanner';
 import ChatDrawer from '../Chat/ChatDrawer';
 import LedgerTriggerTab from '../Chat/LedgerTriggerTab';
 import SurgicalTelescope from './SurgicalTelescope';
 import { TopologySelectionProvider } from '../../contexts/TopologySelectionContext';
 import { TelescopeProvider } from '../../contexts/TelescopeContext';
+import { IncidentLifecycleProvider } from '../../contexts/IncidentLifecycleContext';
+import { AppControlProvider } from '../../contexts/AppControlContext';
 import TelescopeDrawerV2 from './TelescopeDrawerV2';
+import BannerRegion from '../banner/BannerRegion';
 
 const RELEVANT_EVENT_TYPES = new Set<string>(['summary', 'finding', 'phase_change']);
 
@@ -141,89 +143,100 @@ const InvestigationView: React.FC<InvestigationViewProps> = ({
   }, [session.session_id, onNewMessage]);
 
   return (
-    <div className="warroom-shell flex flex-col h-full">
-      {/* Fetch failure banner */}
-      {fetchFailCount >= 3 && !fetchErrorDismissed && (
-        <div className="warroom-banner-strip">
-          <ErrorBanner
-            message={`Connection issue — data may be stale (${fetchFailCount} failed attempts)`}
-            severity="warning"
-            onDismiss={() => setFetchErrorDismissed(true)}
-            onRetry={fetchSharedData}
+    <AppControlProvider>
+      <IncidentLifecycleProvider status={sessionStatus}>
+        <div className="warroom-grid">
+          {/* Banner region — top grid row. Conditionally renders one-line
+              action banner above always-on freshness row. */}
+          <BannerRegion
+            findings={findings}
+            status={sessionStatus}
+            events={events}
+            lastFetchAgoSec={lastFetchAgo}
+            wsConnected={wsConnected}
+            fetchFailCount={fetchFailCount}
+            fetchErrorDismissed={fetchErrorDismissed}
+            attestationGate={attestationGate ?? null}
+            onRetryFetch={fetchSharedData}
           />
-        </div>
-      )}
 
-      {/* Last updated indicator */}
-      {lastFetchTime && (
-        <div className="flex items-center gap-1.5 px-6 py-1 text-body-xs text-slate-400">
-          <span className={`w-1.5 h-1.5 rounded-full ${freshnessColor}`} />
-          <span>Updated {lastFetchAgo}s ago</span>
-        </div>
-      )}
+          {/* Main grid — 3 columns (+ gutter) all in the new named regions */}
+          <TelescopeProvider>
+            <TopologySelectionProvider>
+              {/* Left: The Investigator */}
+              <div className="wr-region-investigator overflow-hidden">
+                <Investigator
+                  sessionId={session.session_id}
+                  events={events}
+                  wsConnected={wsConnected}
+                  findings={findings}
+                  status={sessionStatus}
+                  onAttachRepo={handleAttachRepo}
+                />
+              </div>
 
-      {/* War Room: 3-column CSS Grid layout */}
-      <TelescopeProvider>
-        <TopologySelectionProvider>
-          <div className="grid grid-cols-12 flex-1 overflow-hidden">
-            {/* Left: The Investigator (AI reasoning only — no chat) */}
-            <div className="col-span-3 border-r border-wr-border overflow-hidden">
-              <Investigator
-                sessionId={session.session_id}
-                events={events}
-                wsConnected={wsConnected}
-                findings={findings}
-                status={sessionStatus}
-                onAttachRepo={handleAttachRepo}
-              />
-            </div>
+              {/* Center: Evidence and Findings */}
+              <div className="wr-region-evidence overflow-hidden">
+                <EvidenceFindings
+                  findings={findings}
+                  status={sessionStatus}
+                  events={events}
+                  sessionId={session.session_id}
+                  phase={phase}
+                  onRefresh={fetchSharedData}
+                  onNavigateToDossier={onNavigateToDossier}
+                />
+              </div>
 
-            {/* Center: Evidence and Findings (NO TABS) */}
-            <div className="col-span-5 overflow-hidden">
-              <EvidenceFindings findings={findings} status={sessionStatus} events={events} sessionId={session.session_id} phase={phase} onRefresh={fetchSharedData} onNavigateToDossier={onNavigateToDossier} />
-            </div>
+              {/* Right: The Navigator */}
+              <div className="wr-region-navigator overflow-hidden">
+                <Navigator findings={findings} status={sessionStatus} events={events} />
+              </div>
 
-            {/* Right: The Navigator */}
-            <div className="col-span-4 border-l border-wr-border overflow-hidden">
-              <Navigator findings={findings} status={sessionStatus} events={events} />
-            </div>
+              {/* Right-edge gutter — persistent UI lives here rather than
+                  floating over the Navigator column. LedgerTriggerTab
+                  relocates here in PR 3. */}
+              <div className="wr-region-gutter" data-testid="gutter-rail">
+                {/* LedgerTriggerTab retained at document root for now; PR 3
+                    relocates it into this gutter. */}
+              </div>
+
+              {/* K8s Resource Inspector (Telescope V2) */}
+              <TelescopeDrawerV2 />
+            </TopologySelectionProvider>
+          </TelescopeProvider>
+
+          {/* Surgical Telescope overlay (rendered outside grid) */}
+          <SurgicalTelescope />
+
+          {/* Footer — Remediation Progress Bar */}
+          <div className="wr-region-footer">
+            <RemediationProgressBar
+              phase={phase}
+              confidence={confidence}
+              tokenUsage={tokenUsage}
+              wsConnected={wsConnected}
+              budget={sessionStatus?.budget ?? null}
+              selfConsistency={sessionStatus?.self_consistency ?? null}
+            />
           </div>
 
-          {/* K8s Resource Inspector (Telescope V2) */}
-          <TelescopeDrawerV2 />
-        </TopologySelectionProvider>
-      </TelescopeProvider>
+          {/* Attestation Gate Modal */}
+          {attestationGate && onAttestationDecision && (
+            <AttestationGateUI
+              gate={attestationGate}
+              evidencePins={[]}
+              onDecision={(decision, _notes) => onAttestationDecision(decision)}
+              onClose={() => onAttestationDecision('dismiss')}
+            />
+          )}
 
-      {/* Surgical Telescope overlay (rendered outside grid) */}
-      <SurgicalTelescope />
-
-      {/* Bottom: Remediation Progress Bar
-          Budget + SelfConsistency telemetry were relocated here from the
-          left panel in PR 4 — they're session-wide, not investigation-
-          state, and belong with the other session-wide footer chrome. */}
-      <RemediationProgressBar
-        phase={phase}
-        confidence={confidence}
-        tokenUsage={tokenUsage}
-        wsConnected={wsConnected}
-        budget={sessionStatus?.budget ?? null}
-        selfConsistency={sessionStatus?.self_consistency ?? null}
-      />
-
-      {/* Attestation Gate Modal */}
-      {attestationGate && onAttestationDecision && (
-        <AttestationGateUI
-          gate={attestationGate}
-          evidencePins={[]}
-          onDecision={(decision, _notes) => onAttestationDecision(decision)}
-          onClose={() => onAttestationDecision('dismiss')}
-        />
-      )}
-
-      {/* Chat Drawer + Trigger Tab (self-contained via ChatContext) */}
-      <ChatDrawer />
-      <LedgerTriggerTab />
-    </div>
+          {/* Chat Drawer + Trigger Tab (PR 3 ports them to PaneDrawer) */}
+          <ChatDrawer />
+          <LedgerTriggerTab />
+        </div>
+      </IncidentLifecycleProvider>
+    </AppControlProvider>
   );
 };
 
