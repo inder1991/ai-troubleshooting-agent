@@ -15,6 +15,7 @@ import { TopologySelectionProvider } from '../../contexts/TopologySelectionConte
 import { TelescopeProvider } from '../../contexts/TelescopeContext';
 import { IncidentLifecycleProvider } from '../../contexts/IncidentLifecycleContext';
 import { AppControlProvider } from '../../contexts/AppControlContext';
+import { RegionPortalsProvider, useRegionPortals } from '../../contexts/RegionPortalsContext';
 import TelescopeDrawerV2 from './TelescopeDrawerV2';
 import BannerRegion from '../banner/BannerRegion';
 
@@ -145,98 +146,177 @@ const InvestigationView: React.FC<InvestigationViewProps> = ({
   return (
     <AppControlProvider>
       <IncidentLifecycleProvider status={sessionStatus}>
-        <div className="warroom-grid">
-          {/* Banner region — top grid row. Conditionally renders one-line
-              action banner above always-on freshness row. */}
-          <BannerRegion
-            findings={findings}
-            status={sessionStatus}
+        <RegionPortalsProvider>
+          <WarRoomGrid
+            session={session}
             events={events}
-            lastFetchAgoSec={lastFetchAgo}
             wsConnected={wsConnected}
+            phase={phase}
+            confidence={confidence}
+            tokenUsage={tokenUsage}
+            attestationGate={attestationGate}
+            onAttestationDecision={onAttestationDecision}
+            onNavigateToDossier={onNavigateToDossier}
+            findings={findings}
+            sessionStatus={sessionStatus}
+            lastFetchAgo={lastFetchAgo}
             fetchFailCount={fetchFailCount}
             fetchErrorDismissed={fetchErrorDismissed}
-            attestationGate={attestationGate ?? null}
-            onRetryFetch={fetchSharedData}
+            fetchSharedData={fetchSharedData}
+            handleAttachRepo={handleAttachRepo}
           />
+        </RegionPortalsProvider>
+      </IncidentLifecycleProvider>
+    </AppControlProvider>
+  );
+};
 
-          {/* Main grid — 3 columns (+ gutter) all in the new named regions */}
-          <TelescopeProvider>
-            <TopologySelectionProvider>
-              {/* Left: The Investigator */}
-              <div className="wr-region-investigator overflow-hidden">
-                <Investigator
-                  sessionId={session.session_id}
-                  events={events}
-                  wsConnected={wsConnected}
-                  findings={findings}
-                  status={sessionStatus}
-                  onAttachRepo={handleAttachRepo}
-                />
-              </div>
+// Inner grid component — consumes useRegionPortals() to wire region
+// refs that PR 3 drawers use as their pane-portal mount targets.
+interface WarRoomGridProps {
+  session: V4Session;
+  events: TaskEvent[];
+  wsConnected: boolean;
+  phase: DiagnosticPhase | null;
+  confidence: number;
+  tokenUsage: TokenUsage[];
+  attestationGate?: AttestationGateData | null;
+  onAttestationDecision?: (decision: string) => void;
+  onNavigateToDossier?: () => void;
+  findings: V4Findings | null;
+  sessionStatus: V4SessionStatus | null;
+  lastFetchAgo: number;
+  fetchFailCount: number;
+  fetchErrorDismissed: boolean;
+  fetchSharedData: () => void;
+  handleAttachRepo: () => void;
+}
 
-              {/* Center: Evidence and Findings */}
-              <div className="wr-region-evidence overflow-hidden">
-                <EvidenceFindings
-                  findings={findings}
-                  status={sessionStatus}
-                  events={events}
-                  sessionId={session.session_id}
-                  phase={phase}
-                  onRefresh={fetchSharedData}
-                  onNavigateToDossier={onNavigateToDossier}
-                />
-              </div>
+const WarRoomGrid: React.FC<WarRoomGridProps> = ({
+  session,
+  events,
+  wsConnected,
+  phase,
+  confidence,
+  tokenUsage,
+  attestationGate,
+  onAttestationDecision,
+  onNavigateToDossier,
+  findings,
+  sessionStatus,
+  lastFetchAgo,
+  fetchFailCount,
+  fetchErrorDismissed,
+  fetchSharedData,
+  handleAttachRepo,
+}) => {
+  const {
+    setInvestigatorEl,
+    setEvidenceEl,
+    setNavigatorEl,
+    setGutterEl,
+  } = useRegionPortals();
 
-              {/* Right: The Navigator */}
-              <div className="wr-region-navigator overflow-hidden">
-                <Navigator findings={findings} status={sessionStatus} events={events} />
-              </div>
+  return (
+    <div className="warroom-grid">
+      {/* Banner region — top grid row */}
+      <BannerRegion
+        findings={findings}
+        status={sessionStatus}
+        events={events}
+        lastFetchAgoSec={lastFetchAgo}
+        wsConnected={wsConnected}
+        fetchFailCount={fetchFailCount}
+        fetchErrorDismissed={fetchErrorDismissed}
+        attestationGate={attestationGate ?? null}
+        onRetryFetch={fetchSharedData}
+      />
 
-              {/* Right-edge gutter — persistent UI lives here rather than
-                  floating over the Navigator column. LedgerTriggerTab
-                  relocates here in PR 3. */}
-              <div className="wr-region-gutter" data-testid="gutter-rail">
-                {/* LedgerTriggerTab retained at document root for now; PR 3
-                    relocates it into this gutter. */}
-              </div>
-
-              {/* K8s Resource Inspector (Telescope V2) */}
-              <TelescopeDrawerV2 />
-            </TopologySelectionProvider>
-          </TelescopeProvider>
-
-          {/* Surgical Telescope overlay (rendered outside grid) */}
-          <SurgicalTelescope />
-
-          {/* Footer — Remediation Progress Bar */}
-          <div className="wr-region-footer">
-            <RemediationProgressBar
-              phase={phase}
-              confidence={confidence}
-              tokenUsage={tokenUsage}
+      {/* Main grid — 3 columns (+ gutter) */}
+      <TelescopeProvider>
+        <TopologySelectionProvider>
+          {/* Left: Investigator */}
+          <div
+            ref={setInvestigatorEl}
+            className="wr-region-investigator overflow-hidden relative"
+          >
+            <Investigator
+              sessionId={session.session_id}
+              events={events}
               wsConnected={wsConnected}
-              budget={sessionStatus?.budget ?? null}
-              selfConsistency={sessionStatus?.self_consistency ?? null}
+              findings={findings}
+              status={sessionStatus}
+              onAttachRepo={handleAttachRepo}
             />
           </div>
 
-          {/* Attestation Gate Modal */}
-          {attestationGate && onAttestationDecision && (
-            <AttestationGateUI
-              gate={attestationGate}
-              evidencePins={[]}
-              onDecision={(decision, _notes) => onAttestationDecision(decision)}
-              onClose={() => onAttestationDecision('dismiss')}
+          {/* Center: Evidence (hosts TelescopeDrawerV2 + SurgicalTelescope
+              PaneDrawers via RegionPortalsContext) */}
+          <div
+            ref={setEvidenceEl}
+            className="wr-region-evidence overflow-hidden relative"
+          >
+            <EvidenceFindings
+              findings={findings}
+              status={sessionStatus}
+              events={events}
+              sessionId={session.session_id}
+              phase={phase}
+              onRefresh={fetchSharedData}
+              onNavigateToDossier={onNavigateToDossier}
             />
-          )}
+          </div>
 
-          {/* Chat Drawer + Trigger Tab (PR 3 ports them to PaneDrawer) */}
-          <ChatDrawer />
-          <LedgerTriggerTab />
-        </div>
-      </IncidentLifecycleProvider>
-    </AppControlProvider>
+          {/* Right: Navigator (hosts ChatDrawer via RegionPortalsContext) */}
+          <div
+            ref={setNavigatorEl}
+            className="wr-region-navigator overflow-hidden relative"
+          >
+            <Navigator findings={findings} status={sessionStatus} events={events} />
+          </div>
+
+          {/* Gutter rail — hosts LedgerTriggerTab */}
+          <div
+            ref={setGutterEl}
+            className="wr-region-gutter flex flex-col items-center pt-[45vh] relative"
+            data-testid="gutter-rail"
+          />
+
+          {/* Resource telescopes mount into Evidence region */}
+          <TelescopeDrawerV2 />
+          <SurgicalTelescope />
+        </TopologySelectionProvider>
+      </TelescopeProvider>
+
+      {/* Footer */}
+      <div className="wr-region-footer">
+        <RemediationProgressBar
+          phase={phase}
+          confidence={confidence}
+          tokenUsage={tokenUsage}
+          wsConnected={wsConnected}
+          budget={sessionStatus?.budget ?? null}
+          selfConsistency={sessionStatus?.self_consistency ?? null}
+        />
+      </div>
+
+      {/* Attestation Gate Modal — true modal, not a pane drawer */}
+      {attestationGate && onAttestationDecision && (
+        <AttestationGateUI
+          gate={attestationGate}
+          evidencePins={[]}
+          onDecision={(decision, _notes) => onAttestationDecision(decision)}
+          onClose={() => onAttestationDecision('dismiss')}
+        />
+      )}
+
+      {/* ChatDrawer mounts into Navigator via PaneDrawer; LedgerTab
+          mounts into the gutter rail. Both read refs from
+          RegionPortalsContext. Rendered here so their internal state
+          is scoped to the WarRoomGrid lifetime. */}
+      <ChatDrawer />
+      <LedgerTriggerTab />
+    </div>
   );
 };
 

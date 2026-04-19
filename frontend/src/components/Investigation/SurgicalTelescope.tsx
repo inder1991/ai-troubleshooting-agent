@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useCampaignContext } from '../../contexts/CampaignContext';
+import { useRegionPortals } from '../../contexts/RegionPortalsContext';
+import PaneDrawer from '../shell/PaneDrawer';
 import CausalRoleBadge from './cards/CausalRoleBadge';
 import VSCodeLink from './VSCodeLink';
 import { telescopeVariants } from '../../styles/campaign-animations';
@@ -18,6 +20,7 @@ const SurgicalTelescope: React.FC = () => {
   } = useCampaignContext();
 
   const [activeFileIdx, setActiveFileIdx] = useState(0);
+  const { evidenceRef } = useRegionPortals();
 
   if (!telescopeRepo || !telescopeData) return null;
 
@@ -28,29 +31,26 @@ const SurgicalTelescope: React.FC = () => {
   const files = telescopeData.files;
   const activeFile = files[activeFileIdx];
 
+  // PR 3 — SurgicalTelescope mounts inside the Evidence region via
+  // PaneDrawer. Previously rendered as a full-viewport modal overlay;
+  // now capped so evidence + investigator stay visible.
   return (
-    <AnimatePresence>
+    <PaneDrawer
+      open={true}
+      onOpenChange={(next) => { if (!next) closeTelescope(); }}
+      mountInto={evidenceRef}
+      maxInlineSize="min(720px, calc(100cqi - 24px))"
+      title="Surgical telescope"
+      description="Inline code diff review"
+    >
       <motion.div
-        key="telescope-overlay"
-        className="fixed inset-0 z-[80] flex items-start justify-center"
+        variants={telescopeVariants}
         initial="hidden"
         animate="visible"
         exit="exit"
+        className="flex flex-col h-full bg-[#0a1a1f] border-l border-wr-border-strong/50 shadow-2xl overflow-hidden"
+        data-testid="surgical-telescope-content"
       >
-        {/* Backdrop */}
-        <motion.div
-          className="absolute inset-0 bg-black/85 backdrop-blur-sm"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          onClick={closeTelescope}
-        />
-
-        {/* Content panel */}
-        <motion.div
-          variants={telescopeVariants}
-          className="relative mt-12 mx-4 w-full max-w-[95vw] max-h-[calc(100vh-6rem)] flex flex-col bg-[#0a1a1f] border border-wr-border-strong/50 rounded-xl shadow-2xl overflow-hidden"
-        >
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-3 border-b border-wr-border/50 bg-wr-bg/50">
             <div className="flex items-center gap-3">
@@ -125,9 +125,8 @@ const SurgicalTelescope: React.FC = () => {
               </div>
             )}
           </div>
-        </motion.div>
       </motion.div>
-    </AnimatePresence>
+    </PaneDrawer>
   );
 };
 

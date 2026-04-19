@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useTelescopeContext } from '../../contexts/TelescopeContext';
 import { useChatUI } from '../../contexts/ChatContext';
+import { useRegionPortals } from '../../contexts/RegionPortalsContext';
+import PaneDrawer from '../shell/PaneDrawer';
 import { getResource } from '../../services/api';
 import type { TelescopeResource } from '../../types';
 import LogViewerTab from './telescope/LogViewerTab';
@@ -8,6 +10,7 @@ import LogViewerTab from './telescope/LogViewerTab';
 const TelescopeDrawerV2: React.FC = () => {
   const { isOpen, target, defaultTab, breadcrumbs, closeTelescope, popBreadcrumb } = useTelescopeContext();
   const { sessionId } = useChatUI();
+  const { evidenceRef } = useRegionPortals();
   const [activeTab, setActiveTab] = useState<'yaml' | 'logs' | 'events'>(defaultTab);
   const [data, setData] = useState<TelescopeResource | null>(null);
   const [loading, setLoading] = useState(false);
@@ -23,10 +26,22 @@ const TelescopeDrawerV2: React.FC = () => {
       .finally(() => setLoading(false));
   }, [isOpen, target, sessionId]);
 
+  // PR 3 — Telescope mounts inside the Evidence region, capped so
+  // the evidence column retains at least 24px of visibility while the
+  // drawer is open. Navigator column remains fully visible.
   return (
-    <div
-      className={`fixed right-0 top-0 bottom-0 w-[450px] z-[100] bg-[#0a1a1f] border-l border-wr-border-strong/50 shadow-2xl flex flex-col transition-transform duration-300 ease-out ${isOpen && target ? 'translate-x-0' : 'translate-x-full'}`}
+    <PaneDrawer
+      open={isOpen && !!target}
+      onOpenChange={(next) => { if (!next) closeTelescope(); }}
+      mountInto={evidenceRef}
+      maxInlineSize="min(640px, calc(100cqi - 24px))"
+      title="Resource telescope"
+      description="Kubernetes YAML, logs, and events"
     >
+      <div
+        className="flex flex-col h-full bg-[#0a1a1f] border-l border-wr-border-strong/50 shadow-2xl"
+        data-testid="telescope-drawer-content"
+      >
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-wr-border/50">
         <div className="flex items-center gap-2">
@@ -92,7 +107,8 @@ const TelescopeDrawerV2: React.FC = () => {
           <EventsTab events={data?.events || []} />
         )}
       </div>
-    </div>
+      </div>
+    </PaneDrawer>
   );
 };
 
