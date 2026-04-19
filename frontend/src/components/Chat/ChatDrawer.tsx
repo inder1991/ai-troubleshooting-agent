@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect, useMemo, useCallback } from 'react'
 import { Check, HelpCircle, XCircle, GitBranch, MessageCircle, SkipForward } from 'lucide-react';
 import { useChatUI, useChatStream, useInvestigationContext } from '../../contexts/ChatContext';
 import { useRegionPortals } from '../../contexts/RegionPortalsContext';
+import { useIncidentLifecycle } from '../../contexts/IncidentLifecycleContext';
 import PaneDrawer from '../shell/PaneDrawer';
 import MarkdownBubble from './MarkdownBubble';
 import RemediationPacketCard from './RemediationPacketCard';
@@ -105,6 +106,12 @@ const ChatDrawer: React.FC = () => {
     activeToolCalls,
   } = useChatUI();
   const { isStreaming, streamingContent } = useChatStream();
+  // PR-G (audit Bug #22) — on historical incidents the investigation
+  // is archived; accepting new chat messages would either error on the
+  // backend (session state gone) or fire a fresh LLM call against a
+  // closed session. Disable input + banner explaining why.
+  const { lifecycle } = useIncidentLifecycle();
+  const isHistorical = lifecycle === 'historical';
 
   // Investigation tools for Quick Action Toolbar
   const { tools, loading: toolsLoading, error: toolsError, retry: toolsRetry, executeAction } = useInvestigationTools(sessionId);
@@ -318,10 +325,30 @@ const ChatDrawer: React.FC = () => {
               </div>
             )}
 
+        {/* Read-only banner for historical incidents — PR-G */}
+        {isHistorical && (
+          <div
+            className="shrink-0 px-3 py-2 border-t border-wr-border/50 bg-wr-inset/30 text-[11px] font-editorial italic text-wr-text-muted flex items-center gap-1.5"
+            data-testid="chat-historical-banner"
+            role="status"
+          >
+            <span aria-hidden>📁</span>
+            <span>
+              Archived investigation · chat is read-only. Start a new session to
+              ask follow-up questions.
+            </span>
+          </div>
+        )}
+
         {/* Input Area */}
         <ChatInputArea
           onSend={sendMessage}
-          disabled={isSending}
+          disabled={isSending || isHistorical}
+          placeholder={
+            isHistorical
+              ? 'Chat closed — investigation is archived'
+              : undefined
+          }
           onEscDrawer={closeDrawer}
         />
       </div>

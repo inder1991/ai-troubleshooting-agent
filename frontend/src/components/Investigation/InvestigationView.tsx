@@ -13,7 +13,7 @@ import LedgerTriggerTab from '../Chat/LedgerTriggerTab';
 import SurgicalTelescope from './SurgicalTelescope';
 import { TopologySelectionProvider } from '../../contexts/TopologySelectionContext';
 import { TelescopeProvider } from '../../contexts/TelescopeContext';
-import { IncidentLifecycleProvider } from '../../contexts/IncidentLifecycleContext';
+import { IncidentLifecycleProvider, deriveLifecycle } from '../../contexts/IncidentLifecycleContext';
 import { AppControlProvider } from '../../contexts/AppControlContext';
 import { RegionPortalsProvider, useRegionPortals } from '../../contexts/RegionPortalsContext';
 import TelescopeDrawerV2 from './TelescopeDrawerV2';
@@ -74,13 +74,23 @@ const InvestigationView: React.FC<InvestigationViewProps> = ({
     setInvestigationContext({ namespace, service, pod, cluster: null });
   }, [findings?.target_service, findings?.pod_statuses, session.service_name, setInvestigationContext]);
 
-  // Tick "last updated X s ago" every second
+  // PR-G — derive lifecycle here (instead of via useIncidentLifecycle,
+  // which would require hoisting the polling effects into a child that
+  // lives under the provider) so we can suspend per-second tickers and
+  // /status+/findings polling when the incident is historical. Keeping
+  // a live 1Hz interval on an archived incident burns battery on mobile
+  // and issues hundreds of useless fetches in background tabs.
+  const derived = useMemo(() => deriveLifecycle(sessionStatus), [sessionStatus]);
+  const isHistorical = derived.lifecycle === 'historical';
+
+  // Tick "last updated X s ago" every second — suspended when historical.
   useEffect(() => {
+    if (isHistorical) return;
     agoIntervalRef.current = setInterval(() => {
       if (lastFetchTime) setLastFetchAgo(Math.floor((Date.now() - lastFetchTime) / 1000));
     }, 1000);
     return () => { if (agoIntervalRef.current) clearInterval(agoIntervalRef.current); };
-  }, [lastFetchTime]);
+  }, [lastFetchTime, isHistorical]);
 
   const abortRef = useRef<AbortController | null>(null);
   const fetchSharedData = useCallback(async () => {
@@ -112,14 +122,21 @@ const InvestigationView: React.FC<InvestigationViewProps> = ({
   }, [fetchFailCount]);
 
   useEffect(() => {
+    // Always fetch once so we have an initial snapshot (covers deep-
+    // links into a historical incident — we still want findings data
+    // loaded, we just don't need to keep polling after).
     fetchSharedData();
+    if (isHistorical) return;
     const interval = setInterval(fetchSharedData, pollIntervalMs);
     return () => clearInterval(interval);
-  }, [fetchSharedData, pollIntervalMs]);
+  }, [fetchSharedData, pollIntervalMs, isHistorical]);
 
-  // Re-fetch on relevant WebSocket events — ref-based to avoid derived recompute on every render
+  // Re-fetch on relevant WebSocket events — ref-based to avoid derived recompute on every render.
+  // Also suspended on historical incidents: replay events should not
+  // trigger fresh /findings calls for a closed investigation.
   const seenRelevantRef = useRef(0);
   useEffect(() => {
+    if (isHistorical) return;
     let relevant = 0;
     for (const e of events) {
       if (RELEVANT_EVENT_TYPES.has(e.event_type)) relevant++;
@@ -128,7 +145,7 @@ const InvestigationView: React.FC<InvestigationViewProps> = ({
       seenRelevantRef.current = relevant;
       fetchSharedData();
     }
-  }, [events, fetchSharedData]);
+  }, [events, fetchSharedData, isHistorical]);
 
   // Freshness indicator color
   const freshnessColor = lastFetchAgo <= 10 ? 'bg-green-500' : lastFetchAgo <= 30 ? 'bg-amber-500' : 'bg-red-500';
