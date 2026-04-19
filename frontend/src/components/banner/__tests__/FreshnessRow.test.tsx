@@ -232,6 +232,76 @@ describe('FreshnessRow', () => {
     expect(screen.getByTestId('freshness-cost').textContent).toMatch(/\$0\.087/);
   });
 
+  // ── PR-I: cost-budget burn warning ──────────────────────────────
+
+  it('renders burn clause in amber when budget usage ≥ 80%', () => {
+    render(
+      <Harness
+        status={status({
+          budget: {
+            tool_calls_used: 15,
+            tool_calls_max: 20,
+            llm_usd_used: 0.85,
+            llm_usd_max: 1.0,
+          },
+        })}
+      />,
+    );
+    const burn = screen.getByTestId('freshness-burn');
+    expect(burn.textContent).toMatch(/85% of budget/);
+    expect(burn.className).toMatch(/text-amber-400/);
+  });
+
+  it('renders burn clause in red when budget usage ≥ 95%', () => {
+    render(
+      <Harness
+        status={status({
+          budget: {
+            tool_calls_used: 19,
+            tool_calls_max: 20,
+            llm_usd_used: 0.98,
+            llm_usd_max: 1.0,
+          },
+        })}
+      />,
+    );
+    const burn = screen.getByTestId('freshness-burn');
+    expect(burn.textContent).toMatch(/98% of budget/);
+    expect(burn.className).toMatch(/text-red-400/);
+  });
+
+  it('hides burn clause when under 80%', () => {
+    render(
+      <Harness
+        status={status({
+          budget: {
+            tool_calls_used: 5,
+            tool_calls_max: 20,
+            llm_usd_used: 0.20,
+            llm_usd_max: 1.0,
+          },
+        })}
+      />,
+    );
+    expect(screen.queryByTestId('freshness-burn')).toBeNull();
+  });
+
+  it('hides burn clause when no budget cap is configured', () => {
+    render(
+      <Harness
+        status={status({
+          budget: {
+            tool_calls_used: 10,
+            tool_calls_max: 0,
+            llm_usd_used: 1.50,
+            llm_usd_max: 0,
+          },
+        })}
+      />,
+    );
+    expect(screen.queryByTestId('freshness-burn')).toBeNull();
+  });
+
   // ── PR-E: signature-match pill + stop-reason line ───────────────
 
   it('renders a signature-match pill when status.signature_match is present', () => {
