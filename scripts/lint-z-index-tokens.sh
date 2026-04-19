@@ -44,6 +44,11 @@ TARGETS=(
   # PR 4 — scroll + anchor primitives
   "frontend/src/components/shell/EditorialScrollArea.tsx"
   "frontend/src/components/shell/AnchorToolbar.tsx"
+  # PR 5 — center-panel additions
+  "frontend/src/components/center/FixReadyBar.tsx"
+  "frontend/src/components/center/ReproduceQueryRow.tsx"
+  "frontend/src/components/center/BlastRadiusList.tsx"
+  "frontend/src/components/center/PinPostmortemChip.tsx"
 )
 
 EXISTING=()
