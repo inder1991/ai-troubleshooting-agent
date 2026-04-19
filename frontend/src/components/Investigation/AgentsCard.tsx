@@ -49,13 +49,17 @@ function buildAgentRows(
     { key: 'change_agent',  name: 'Change Intel',     code: 'C' },
   ];
 
-  const started = new Set<string>();
-  const completed = new Set<string>();
-  const errored = new Set<string>();
+  // PR-D (audit Bug #14, NOW-strip reactivity): walk the event stream
+  // in order and track the *latest* lifecycle state per agent. The
+  // prior implementation used three independent sets which couldn't
+  // downgrade `complete` back to `active` — so on re-investigation,
+  // a fresh `started` event arriving after an earlier `summary` left
+  // the NOW strip empty despite the agent actually running again.
+  const latest: Record<string, AgentRow['status']> = {};
   for (const e of events) {
-    if (e.event_type === 'started') started.add(e.agent_name);
-    if (e.event_type === 'summary' || e.event_type === 'success') completed.add(e.agent_name);
-    if (e.event_type === 'error') errored.add(e.agent_name);
+    if (e.event_type === 'started') latest[e.agent_name] = 'active';
+    else if (e.event_type === 'summary' || e.event_type === 'success') latest[e.agent_name] = 'complete';
+    else if (e.event_type === 'error') latest[e.agent_name] = 'error';
   }
 
   const tokenMap: Record<string, number> = {};
@@ -65,9 +69,7 @@ function buildAgentRows(
     key: a.key,
     name: a.name,
     code: a.code,
-    status: errored.has(a.key)   ? 'error'    :
-            completed.has(a.key) ? 'complete' :
-            started.has(a.key)   ? 'active'   : 'pending',
+    status: latest[a.key] ?? 'pending',
     tokens: tokenMap[a.key] || 0,
   }));
 }

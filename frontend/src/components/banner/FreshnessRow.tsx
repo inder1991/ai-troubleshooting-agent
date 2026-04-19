@@ -65,11 +65,18 @@ export const FreshnessRow: React.FC<FreshnessRowProps> = ({
   wsConnected,
   sessionId,
 }) => {
-  const { lifecycle, updatedAtMs } = useIncidentLifecycle();
+  const { lifecycle, updatedAtMs, isTerminal } = useIncidentLifecycle();
   const { isManualOverride } = useAppControl();
 
   // ── Compute clauses ──
   const isArchived = lifecycle === 'historical';
+  // PR-D (audit Bug #13): once the investigation is terminal — even if
+  // it just completed 5s ago — the `live` dot and seconds-counter are
+  // misleading; agents are no longer running. Flip the leading clause
+  // to a neutral "resolved / archived" voice as soon as the phase goes
+  // terminal, so the banner reflects "investigation ended" instead of
+  // "still running with zero updates."
+  const isFinished = isTerminal;
 
   // Dot + status label (leading clause)
   let dotClass: string;
@@ -80,6 +87,11 @@ export const FreshnessRow: React.FC<FreshnessRowProps> = ({
   } else if (isArchived) {
     dotClass = 'bg-slate-500';
     statusLabel = 'archived';
+  } else if (isFinished) {
+    // recent-bucket, terminal phase — investigation wrapped; no more
+    // polling semantics to communicate.
+    dotClass = 'bg-slate-400';
+    statusLabel = 'resolved';
   } else if (!wsConnected) {
     dotClass = 'bg-slate-500';
     statusLabel = 'reconnecting';
@@ -94,8 +106,10 @@ export const FreshnessRow: React.FC<FreshnessRowProps> = ({
     statusLabel = 'stale';
   }
 
-  // Freshness clause
-  const freshnessClause = isArchived
+  // Freshness clause. Terminal phases (recent + historical) surface
+  // close-time instead of a ticking seconds counter — the counter
+  // implies "waiting for the next poll", which is no longer true.
+  const freshnessClause = isFinished
     ? `closed ${formatClosedAgo(updatedAtMs)}`
     : `${lastFetchAgoSec}s`;
 

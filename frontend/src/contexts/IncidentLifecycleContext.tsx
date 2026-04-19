@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useMemo } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import type { V4SessionStatus, DiagnosticPhase } from '../types';
 
 /**
@@ -79,14 +79,55 @@ export function deriveLifecycle(
 /**
  * Provider — colocate with the InvestigationView (or any parent that
  * already has sessionStatus in scope).
+ *
+ * PR-D (audit Bug #12, event-driven lifecycle): the provider used to
+ * re-derive only when `status` or an externally-supplied `now` prop
+ * changed. That made lifecycle transitions dependent on whoever was
+ * feeding `now` — typically a 60s polling loop — so a `recent` → `historical`
+ * flip (at t+6h) could be delayed indefinitely if polling paused.
+ *
+ * Now the provider:
+ *   1. Recomputes on every `status` change (phase_change hits this
+ *      path immediately because `status.phase` is memo input).
+ *   2. Runs its own low-frequency internal ticker (60s) while the
+ *      incident is `active` or `recent`, so the bucket flip happens
+ *      without the parent having to poll. The ticker stops once the
+ *      lifecycle reaches `historical` — nothing more to transition to.
+ *   3. If the caller still passes `now` explicitly (tests), that value
+ *      wins — internal tick is suppressed.
  */
+const LIFECYCLE_TICK_MS = 60_000;
+
 export const IncidentLifecycleProvider: React.FC<{
   status: V4SessionStatus | null;
-  /** Optional clock-injection for deterministic tests. */
+  /** Optional clock-injection for deterministic tests. Suppresses the
+   *  internal ticker so tests remain deterministic. */
   now?: number;
   children: React.ReactNode;
 }> = ({ status, now, children }) => {
-  const value = useMemo(() => deriveLifecycle(status, now), [status, now]);
+  const [tick, setTick] = useState<number>(() => Date.now());
+
+  // Recompute using the latest clock source: caller-supplied `now` wins
+  // (tests), else our internal tick.
+  const effectiveNow = now ?? tick;
+  const value = useMemo(
+    () => deriveLifecycle(status, effectiveNow),
+    [status, effectiveNow],
+  );
+
+  // Internal ticker — runs only when a clock-override isn't supplied
+  // and the incident isn't already historical (nothing to transition
+  // to). Resets whenever `status` changes so the bucket math uses a
+  // fresh reference point after each phase_change.
+  useEffect(() => {
+    if (now !== undefined) return;
+    if (value.lifecycle === 'historical') return;
+    const id = window.setInterval(() => {
+      setTick(Date.now());
+    }, LIFECYCLE_TICK_MS);
+    return () => window.clearInterval(id);
+  }, [now, value.lifecycle, status]);
+
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 };
 
