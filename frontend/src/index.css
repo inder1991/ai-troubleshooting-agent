@@ -532,6 +532,13 @@ a:focus-visible,
   /* Expanded text ramp (Phase 3) */
   --wr-text-subtle: #5a5148;
 
+  /* Warm paper — editorial hero text in the left-panel redesign (Slot 2
+     VERDICT, blast radius sentence). Deliberate departure from the stock
+     #e2e8f0 primary text, chosen to evoke dossier/brief rather than
+     cyber-dashboard. Promoted to a first-class token so the editorial
+     voice has a stable name across components. */
+  --wr-paper: #e8e0d4;
+
   /* Expanded surface ramp */
   --wr-bg-elevated: #1e1b15;
 
@@ -832,6 +839,26 @@ a:focus-visible,
 @media (prefers-reduced-motion: reduce) {
   .surface-panel { transition: none; }
   .surface-panel:hover { transform: none; }
+}
+
+/* ─── Left-panel editorial palette scope ──────────────────────────────
+   The Investigator column (left panel) is moving to an editorial-dossier
+   voice: warm-paper text on #1a1814, with red reserved strictly for
+   Patient Zero. Everything below the Patient Zero banner must use only
+   the monochrome ramp (paper / muted / subtle) plus agent-identity
+   left-borders. Cyan, amber-as-accent, and gradients are banned in this
+   scope.
+
+   The scope is marked with the class `.warroom-left-editorial` applied
+   by Investigator.tsx (added in PR 2). Tokens declared here so the
+   linter (scripts/lint-palette.sh) has a single source of truth. */
+
+.warroom-left-editorial {
+  /* paper-on-dark typographic voice; overrides stock body color for the
+     subtree without touching the global --wr-text-primary. */
+  --editorial-text:    var(--wr-paper);
+  --editorial-muted:   var(--wr-text-muted);
+  --editorial-subtle:  var(--wr-text-subtle);
 }
 
 /* ── DAG flow-particle animation ─────────────────────────────── */
