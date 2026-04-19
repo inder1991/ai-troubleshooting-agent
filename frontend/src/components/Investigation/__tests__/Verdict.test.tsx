@@ -96,6 +96,52 @@ describe('Verdict', () => {
     expect(screen.queryByText(/DIFFERENT:/)).toBeNull();
   });
 
+  it('prefers top finding when its confidence exceeds the hypothesis winner (PR-C precedence fix)', () => {
+    const hypoResult: DiagHypothesisResult = {
+      status: 'resolved',
+      winner_id: 'h1',
+      elimination_log: [],
+      recommendations: [],
+    };
+    render(
+      <Verdict
+        findings={findings({
+          hypothesis_result: hypoResult,
+          hypotheses: [hypothesis({ category: 'weak_hypothesis_winner', confidence: 55 })],
+          findings: [topFinding({ title: 'AGENT FINDING — stronger signal', confidence: 92 })],
+        })}
+        events={[]}
+      />,
+    );
+    expect(screen.getByText(/AGENT FINDING — stronger signal/)).toBeInTheDocument();
+    expect(screen.queryByText(/weak hypothesis winner/)).toBeNull();
+    // Verdict block carries data-source="finding" in the high-confidence branch
+    const verdict = screen.getByTestId('verdict');
+    expect(verdict.getAttribute('data-source')).toBe('finding');
+  });
+
+  it('breaks confidence ties toward hypothesis winner', () => {
+    const hypoResult: DiagHypothesisResult = {
+      status: 'resolved',
+      winner_id: 'h1',
+      elimination_log: [],
+      recommendations: [],
+    };
+    render(
+      <Verdict
+        findings={findings({
+          hypothesis_result: hypoResult,
+          hypotheses: [hypothesis({ category: 'hypothesis_wins_on_tie', confidence: 72 })],
+          findings: [topFinding({ title: 'top finding tied', confidence: 72 })],
+        })}
+        events={[]}
+      />,
+    );
+    expect(screen.getByText(/hypothesis wins on tie/)).toBeInTheDocument();
+    const verdict = screen.getByTestId('verdict');
+    expect(verdict.getAttribute('data-source')).toBe('hypothesis');
+  });
+
   it('falls back to top finding when no hypothesis winner', () => {
     render(
       <Verdict

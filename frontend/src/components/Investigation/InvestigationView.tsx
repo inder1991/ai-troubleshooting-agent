@@ -277,7 +277,7 @@ const WarRoomGrid: React.FC<WarRoomGridProps> = ({
             ref={setNavigatorEl}
             className="wr-region-navigator overflow-hidden relative"
           >
-            <Navigator findings={findings} status={sessionStatus} events={events} />
+            <Navigator findings={findings} status={sessionStatus} events={events} sessionId={session.session_id} />
           </div>
 
           {/* Gutter rail — hosts LedgerTriggerTab */}

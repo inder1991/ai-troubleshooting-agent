@@ -555,6 +555,7 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                               <ReproduceQueryRow
                                 anomaly={ma}
                                 queries={findings?.suggested_promql_queries || []}
+                                sessionId={sessionId}
                               />
                             </AgentFindingCard>
                           );

@@ -1067,6 +1067,12 @@ class DiagnosticState(BaseModel):
     time_window: TimeWindow
     cluster_url: Optional[str] = None
     namespace: Optional[str] = None
+    # PR-C (SDET audit Bug #6) — explicit flag recording whether the
+    # operator supplied `namespace` at session start. When True, the
+    # log_agent namespace auto-detect MUST NOT overwrite it, even if
+    # the operator happened to type "default" (a valid k8s namespace
+    # that the old "falsy-or-default" guard silently ignored).
+    namespace_user_set: bool = False
     repo_url: Optional[str] = None
     elk_index: Optional[str] = None
 
