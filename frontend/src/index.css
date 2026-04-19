@@ -1,3 +1,19 @@
+/* ─── CSS cascade layers (PR 1) ───────────────────────────────────────
+   Single ordered cascade for the whole app. Later layers win over
+   earlier ones without needing !important. Layer meanings:
+
+     reset       — browser normalization
+     tokens      — CSS custom properties (--wr-*, --z-*)
+     base        — app-scope base styles
+     components  — component-scope styles
+     columns     — grid shell + column layout (PR 1)
+     editorial   — warm-paper editorial palette (left-panel scope)
+     overrides   — explicit last-word escape hatch (use sparingly)
+
+   Tailwind's own @tailwind directives aren't inside this @layer since
+   Tailwind already manages its own layer ordering. */
+@layer reset, tokens, base, components, columns, editorial, overrides;
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -487,6 +503,19 @@ a:focus-visible,
   --z-modal:  60;
   --z-toast:  70;
 
+  /* Column-scoped stacking (PR 1) — finer-grained scale used by the
+     new grid shell. The --z-shell-* tokens are page-scope; everything
+     below is scoped to a single column's internal stacking context.
+     Values chosen so column-overlay never beats shell-banner — the
+     banner row always wins because it's page-scope context. */
+  --z-column-content:    0;
+  --z-column-sticky:    10;   /* single sticky-stack per column */
+  --z-column-separator: 15;   /* inter-column borders, dividers */
+  --z-column-overlay:   20;   /* column-scoped popovers, in-column drawers */
+  --z-shell-banner:     30;   /* page-scope banner region */
+  /* --z-drawer / --z-modal / --z-toast defined above. */
+  --z-tooltip:          80;   /* hover cards, tooltips — always on top */
+
   /* Motion tokens */
   --motion-breath: 3s;
   --motion-pulse:  2s;
@@ -579,6 +608,174 @@ a:focus-visible,
 .warroom-column::-webkit-scrollbar { width: 5px; }
 .warroom-column::-webkit-scrollbar-thumb { background: rgba(224, 159, 62, 0.2); border-radius: 3px; }
 .warroom-column::-webkit-scrollbar-thumb:hover { background: rgba(224, 159, 62, 0.4); }
+
+/* ─── War Room — grid shell (PR 1, dormant) ────────────────────────────
+   Named-region CSS Grid replacement for the flex-inside-grid-inside-
+   fixed-overlays layout. InvestigationView.tsx keeps rendering via
+   .warroom-shell until PR 2 flips the switch — both classes coexist so
+   this PR introduces zero visible change.
+
+   Geometry targets:
+     ≥ 1288px — four columns (investigator / evidence / navigator / gutter)
+     1024–1287px — three columns; navigator collapses into a gutter-
+                   triggered PaneDrawer
+     < 1024px — graceful fallback message; app is not optimized for this
+                width. Matches the 1024–2560px invariant in the design doc.
+
+   Every column carries its own container context so children can use
+   @container queries rather than viewport media queries. min-width: 0
+   is mandatory on every column to prevent intrinsic content from
+   blowing out the grid. */
+
+.warroom-grid {
+  display: grid;
+  height: 100dvh;
+  grid-template-columns:
+    clamp(320px, 22vw, 380px)    /* investigator */
+    minmax(540px, 1fr)           /* evidence */
+    clamp(380px, 28vw, 460px)    /* navigator */
+    48px;                        /* gutter */
+  grid-template-rows:
+    minmax(0, auto)              /* banner (0px when empty) */
+    1fr                          /* main */
+    auto;                        /* footer */
+  grid-template-areas:
+    "banner       banner    banner    banner"
+    "investigator evidence  navigator gutter"
+    "footer       footer    footer    gutter";
+  overflow: hidden;
+  background: var(--wr-bg-primary);
+  color: var(--wr-text-primary);
+  font-family: 'Inter Tight', 'Inter', system-ui, sans-serif;
+
+  /* Mode 3 banner entrance uses a pure-CSS grid-row transition — no
+     JS measurement, no layout jank. Framer Motion layout on column
+     roots absorbs any residual pop. */
+  transition: grid-template-rows 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.wr-region-banner {
+  grid-area: banner;
+  overflow: hidden;
+  z-index: var(--z-shell-banner);
+}
+.wr-region-investigator {
+  grid-area: investigator;
+  min-width: 0;
+  container-type: inline-size;
+  container-name: investigator;
+  overflow: hidden;
+  border-right: 1px solid var(--wr-border);
+}
+.wr-region-evidence {
+  grid-area: evidence;
+  min-width: 0;
+  container-type: inline-size;
+  container-name: evidence;
+  overflow: hidden;
+}
+.wr-region-navigator {
+  grid-area: navigator;
+  min-width: 0;
+  container-type: inline-size;
+  container-name: navigator;
+  overflow: hidden;
+  border-left: 1px solid var(--wr-border);
+}
+.wr-region-gutter {
+  grid-area: gutter;
+  overflow: hidden;
+  border-left: 1px solid var(--wr-border);
+  background: var(--wr-bg-inset);
+}
+.wr-region-footer {
+  grid-area: footer;
+  overflow: hidden;
+}
+
+/* 1024–1287px — collapse Navigator into a drawer so Investigator +
+   Evidence + Gutter remain inline without clipping. The drawer uses
+   the PaneDrawer primitive when toggled via the gutter handle. */
+@media (max-width: 1287px) {
+  .warroom-grid {
+    grid-template-columns:
+      clamp(300px, 26vw, 360px)
+      minmax(0, 1fr)
+      48px;
+    grid-template-areas:
+      "banner       banner   banner"
+      "investigator evidence gutter"
+      "footer       footer   gutter";
+  }
+  .wr-region-navigator {
+    /* When collapsed, Navigator is portaled into a drawer above the
+       grid; the grid-area declaration still exists on the class but no
+       element occupies the slot. */
+    display: none;
+  }
+  .wr-region-navigator[data-collapsed-drawer="true"] {
+    display: block;
+    position: fixed;
+    inset-block: var(--banner-h, 0);
+    inset-inline-end: 48px;
+    inline-size: min(440px, 70vw);
+    z-index: var(--z-drawer);
+    background: var(--wr-bg-primary);
+    transform: translateX(100%);
+    transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .wr-region-navigator[data-collapsed-drawer="true"][data-visible="true"] {
+    transform: translateX(0);
+  }
+}
+
+/* Below the supported floor — render a friendly message instead of
+   allowing a broken layout. Matches the 1024px invariant. */
+@media (max-width: 1023px) {
+  .warroom-grid {
+    display: block;
+    padding: 48px;
+  }
+  .warroom-grid::before {
+    content: "This War Room is optimized for widths ≥ 1024px. Please widen the window.";
+    display: block;
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 18px;
+    line-height: 1.5;
+    color: var(--wr-paper);
+    max-width: 32ch;
+  }
+  .warroom-grid > * { display: none; }
+}
+
+/* ─── Sticky-stack plumbing ───────────────────────────────────────────
+   Every column uses one <StickyStack /> wrapper (see
+   components/shell/StickyStack.tsx) which measures its own height and
+   publishes --sticky-stack-h on its parent. Section anchors then use
+   scroll-margin-top: calc(var(--sticky-stack-h) + 8px) so jump-links
+   always land below the stuck headers, regardless of how many sticky
+   elements are inside the stack. */
+
+.wr-region-investigator,
+.wr-region-evidence,
+.wr-region-navigator {
+  --sticky-stack-h: 0px;
+}
+
+[data-scroll-anchor] {
+  scroll-margin-top: calc(var(--sticky-stack-h, 0px) + 8px);
+}
+
+/* ─── Reduced motion carve-out ────────────────────────────────────────
+   The grid-row transition is crucial for layout coherence in Mode 3
+   entrance, but users who set prefers-reduced-motion: reduce get
+   instant layout instead of an animated push. */
+
+@media (prefers-reduced-motion: reduce) {
+  .warroom-grid { transition-duration: 0ms; }
+  .wr-region-navigator[data-collapsed-drawer="true"] { transition-duration: 0ms; }
+}
 
 /* ── Cluster War Room ─────────────────────────── */
 
