@@ -9,6 +9,7 @@ import REDMethodStatusBar from './cards/REDMethodStatusBar';
 import PromQLRunResult from './cards/PromQLRunResult';
 import SkeletonCard from '../ui/SkeletonCard';
 import EliminationLog from './EliminationLog';
+import AgentsCard from './AgentsCard';
 
 interface NavigatorProps {
   findings: V4Findings | null;
@@ -19,8 +20,6 @@ interface NavigatorProps {
 const Navigator: React.FC<NavigatorProps> = ({ findings, status, events }) => {
   const { selectedService, selectService } = useTopologySelection();
   const { hoveredRepo } = useCampaignContext();
-  const agentStatuses = buildAgentStatuses(status, events);
-  const totalTokens = status?.token_usage?.reduce((sum, t) => sum + t.total_tokens, 0) ?? 0;
 
   return (
     <div className="flex flex-col h-full bg-wr-bg/20 overflow-y-auto custom-scrollbar">
@@ -30,6 +29,12 @@ const Navigator: React.FC<NavigatorProps> = ({ findings, status, events }) => {
       </div>
 
       <div className="p-4 space-y-5">
+        {/* AGENTS card — promoted to column top in PR 5. Gives the right
+            panel a hero slot that answers "is the investigation alive /
+            making progress?" at a glance. Fuses the old left-panel Agent
+            Pulse Indicator (NOW strip at top) with the inventory matrix. */}
+        <AgentsCard status={status} events={events} />
+
         {/* RED Method Status */}
         {findings ? (
           <REDMethodStatusBar
@@ -62,46 +67,6 @@ const Navigator: React.FC<NavigatorProps> = ({ findings, status, events }) => {
 
         {/* Infrastructure Health */}
         <InfraHealthCards findings={findings} />
-
-        {/* Agent Status Matrix */}
-        <section>
-          <h3 className="text-body-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Agent Status</h3>
-          <div className="bg-wr-bg/40 border border-wr-border rounded-lg p-3 space-y-2">
-            {agentStatuses.map((agent, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-body-xs font-bold ${
-                  agent.code === 'L' ? 'bg-wr-severity-high/20 text-red-400' :
-                  agent.code === 'M' ? 'bg-wr-severity-medium/20 text-amber-400' :
-                  agent.code === 'K' ? 'bg-orange-500/20 text-orange-400' :
-                  agent.code === 'C' ? 'bg-emerald-500/20 text-emerald-400' :
-                  'bg-slate-500/20 text-slate-400'
-                }`}>
-                  {agent.code}
-                </span>
-                <span className="text-body-xs text-slate-300 flex-1">{agent.name}</span>
-                <span
-                  className={`w-2 h-2 rounded-full ${
-                    agent.status === 'active' ? 'bg-amber-400 animate-pulse' :
-                    agent.status === 'complete' ? 'bg-green-500' :
-                    agent.status === 'error' ? 'bg-red-500' : 'bg-slate-600'
-                  }`}
-                  role="status"
-                  aria-label={`${agent.name}: ${agent.status}`}
-                  title={agent.status}
-                />
-                {agent.tokens > 0 && (
-                  <span className="text-body-xs font-mono text-slate-400">{agent.tokens.toLocaleString()}</span>
-                )}
-              </div>
-            ))}
-            {totalTokens > 0 && (
-              <div className="border-t border-wr-border-strong pt-2 flex justify-between">
-                <span className="text-body-xs text-slate-400">Total</span>
-                <span className="text-body-xs font-mono text-slate-400">{totalTokens.toLocaleString()} tokens</span>
-              </div>
-            )}
-          </div>
-        </section>
 
         {/* Elimination Log */}
         <EliminationLog result={findings?.hypothesis_result || null} />
@@ -261,46 +226,7 @@ const InfraHealthCards: React.FC<{ findings: V4Findings | null }> = ({ findings 
   );
 };
 
-// ─── Agent Status Builder ─────────────────────────────────────────────────
-
-interface AgentStatusInfo {
-  name: string;
-  code: string;
-  status: 'pending' | 'active' | 'complete' | 'error';
-  tokens: number;
-}
-
-function buildAgentStatuses(status: V4SessionStatus | null, events: TaskEvent[]): AgentStatusInfo[] {
-  const agents = [
-    { key: 'log_agent', name: 'Log Analyzer', code: 'L' },
-    { key: 'metrics_agent', name: 'Metric Scanner', code: 'M' },
-    { key: 'k8s_agent', name: 'K8s Probe', code: 'K' },
-    { key: 'tracing_agent', name: 'Trace Walker', code: 'T' },
-    { key: 'code_agent', name: 'Code Navigator', code: 'N' },
-    { key: 'change_agent', name: 'Change Intel', code: 'C' },
-  ];
-
-  const started = new Set<string>();
-  const completed = new Set<string>();
-  const errored = new Set<string>();
-  events.forEach((e) => {
-    if (e.event_type === 'started') started.add(e.agent_name);
-    if (e.event_type === 'summary' || e.event_type === 'success') completed.add(e.agent_name);
-    if (e.event_type === 'error') errored.add(e.agent_name);
-  });
-
-  const tokenMap: Record<string, number> = {};
-  status?.token_usage?.forEach((t) => { tokenMap[t.agent_name] = t.total_tokens; });
-
-  return agents.map((a) => ({
-    name: a.name,
-    code: a.code,
-    status: errored.has(a.key) ? 'error' as const :
-            completed.has(a.key) ? 'complete' as const :
-            started.has(a.key) ? 'active' as const : 'pending' as const,
-    tokens: tokenMap[a.key] || 0,
-  }));
-}
+// Agent status builder moved to AgentsCard.tsx in PR 5.
 
 // ─── Ghost Topology (placeholder while loading) ─────────────────────────
 
