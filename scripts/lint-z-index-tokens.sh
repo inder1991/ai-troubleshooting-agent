@@ -35,7 +35,12 @@ TARGETS=(
   "frontend/src/components/banner/signalScheduler.ts"
   "frontend/src/components/banner/phaseNarrative.ts"
   "frontend/src/contexts/AppControlContext.tsx"
-  # PR 3 will add drawer consumers; etc.
+  # PR 3 — drawer portal consumers
+  "frontend/src/contexts/RegionPortalsContext.tsx"
+  "frontend/src/components/Chat/ChatDrawer.tsx"
+  "frontend/src/components/Chat/LedgerTriggerTab.tsx"
+  "frontend/src/components/Investigation/TelescopeDrawerV2.tsx"
+  "frontend/src/components/Investigation/SurgicalTelescope.tsx"
 )
 
 EXISTING=()

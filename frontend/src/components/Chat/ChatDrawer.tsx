@@ -1,8 +1,8 @@
 import React, { useRef, useState, useEffect, useMemo, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { Check, HelpCircle, XCircle, GitBranch, MessageCircle, SkipForward } from 'lucide-react';
-import { drawerVariants, backdropVariants } from '../../styles/chat-animations';
 import { useChatUI, useChatStream, useInvestigationContext } from '../../contexts/ChatContext';
+import { useRegionPortals } from '../../contexts/RegionPortalsContext';
+import PaneDrawer from '../shell/PaneDrawer';
 import MarkdownBubble from './MarkdownBubble';
 import RemediationPacketCard from './RemediationPacketCard';
 import ChatInputArea from './ChatInputArea';
@@ -176,31 +176,26 @@ const ChatDrawer: React.FC = () => {
     sendMessage(action);
   }, [sendMessage]);
 
-  return (
-    <AnimatePresence mode="wait">
-      {isOpen && (
-        <>
-          {/* Backdrop — z-[55] */}
-          <motion.div
-            key="drawer-backdrop"
-            variants={backdropVariants}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-            className="fixed inset-0 top-16 z-[55] bg-black/10 backdrop-blur-[2px] pointer-events-none"
-          />
+  // PR 3 — ChatDrawer mounts inside the Navigator region via PaneDrawer.
+  // No more fixed-position floating overlay; evidence + investigator
+  // columns remain fully visible and interactive while chat is open.
+  const { navigatorRef } = useRegionPortals();
 
-          {/* Drawer — z-[60], responsive width */}
-          <motion.div
-            key="chat-drawer"
-            variants={drawerVariants}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-            className={`fixed top-16 right-0 bottom-0 z-[70] w-full sm:w-[420px] max-w-[100vw] flex flex-col bg-wr-bg/95 backdrop-blur-xl border-l-2 ${
-              isWaiting ? 'border-amber-500/40' : 'border-amber-500/20'
-            }`}
-          >
+  return (
+    <PaneDrawer
+      open={isOpen}
+      onOpenChange={(next) => { if (!next) closeDrawer(); }}
+      mountInto={navigatorRef}
+      maxInlineSize="100cqi"
+      title="Mission log"
+      description="Investigation chat and quick actions"
+    >
+      <div
+        className={`flex flex-col h-full bg-wr-bg/95 backdrop-blur-xl border-l-2 ${
+          isWaiting ? 'border-amber-500/40' : 'border-amber-500/20'
+        }`}
+        data-testid="chat-drawer-content"
+      >
             {/* Header */}
             <div className="shrink-0 flex items-center gap-2 px-4 py-3 border-b border-wr-border/50">
               <span
@@ -323,16 +318,14 @@ const ChatDrawer: React.FC = () => {
               </div>
             )}
 
-            {/* Input Area */}
-            <ChatInputArea
-              onSend={sendMessage}
-              disabled={isSending}
-              onEscDrawer={closeDrawer}
-            />
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+        {/* Input Area */}
+        <ChatInputArea
+          onSend={sendMessage}
+          disabled={isSending}
+          onEscDrawer={closeDrawer}
+        />
+      </div>
+    </PaneDrawer>
   );
 };
 

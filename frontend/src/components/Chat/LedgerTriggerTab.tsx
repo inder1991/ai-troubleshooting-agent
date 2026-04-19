@@ -1,6 +1,8 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useChatUI } from '../../contexts/ChatContext';
+import { useRegionPortals } from '../../contexts/RegionPortalsContext';
 
 const TacticalLogIcon: React.FC<{ isWaiting: boolean }> = ({ isWaiting }) => (
   <svg
@@ -28,21 +30,28 @@ const TacticalLogIcon: React.FC<{ isWaiting: boolean }> = ({ isWaiting }) => (
 
 const LedgerTriggerTab: React.FC = () => {
   const { isOpen, toggleDrawer, unreadCount, isWaiting, pendingAction } = useChatUI();
+  const { gutterRef } = useRegionPortals();
   const hasPendingAction = pendingAction?.blocking === true;
 
-  return (
+  // PR 3 — LedgerTab relocates from fixed positioning to the reserved
+  // gutter rail so it can never cover Navigator content. Portals into
+  // the gutter region element published by RegionPortalsContext; falls
+  // back to a document.body portal if the grid isn't mounted yet.
+  const target = gutterRef.current ?? (typeof document !== 'undefined' ? document.body : null);
+  if (!target) return null;
+
+  const content = (
     <AnimatePresence>
       {!isOpen && (
         <motion.button
           key="ledger-tab"
           layoutId="chat-trigger"
-          initial={{ x: 50, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          exit={{ x: 100 }}
-          whileHover={{ x: -4 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
           transition={{ type: 'spring', stiffness: 300, damping: 25 }}
           onClick={toggleDrawer}
-          className={`relative fixed right-0 top-1/2 -translate-y-1/2 z-[60] flex flex-col items-center gap-2 py-3 px-1.5 rounded-l-lg border-r-0 cursor-pointer ${
+          className={`relative flex flex-col items-center gap-2 py-3 px-1.5 mx-auto rounded-l-lg border-r-0 cursor-pointer ${
             isWaiting
               ? 'bg-amber-950/30 border border-r-0 border-amber-500/50 shadow-[inset_-2px_0_12px_rgba(245,158,11,0.2)]'
               : hasPendingAction
@@ -55,6 +64,7 @@ const LedgerTriggerTab: React.FC = () => {
               : '-10px 0 15px rgba(0,0,0,0.5)',
           }}
           title={isWaiting ? 'Input Required — Open Mission Log' : 'Open Mission Log'}
+          data-testid="ledger-trigger-tab"
         >
           {/* Unread badge */}
           {unreadCount > 0 && (
@@ -99,6 +109,8 @@ const LedgerTriggerTab: React.FC = () => {
       )}
     </AnimatePresence>
   );
+
+  return createPortal(content, target);
 };
 
 export default LedgerTriggerTab;
