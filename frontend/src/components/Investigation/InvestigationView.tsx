@@ -197,12 +197,17 @@ const InvestigationView: React.FC<InvestigationViewProps> = ({
       {/* Surgical Telescope overlay (rendered outside grid) */}
       <SurgicalTelescope />
 
-      {/* Bottom: Remediation Progress Bar */}
+      {/* Bottom: Remediation Progress Bar
+          Budget + SelfConsistency telemetry were relocated here from the
+          left panel in PR 4 — they're session-wide, not investigation-
+          state, and belong with the other session-wide footer chrome. */}
       <RemediationProgressBar
         phase={phase}
         confidence={confidence}
         tokenUsage={tokenUsage}
         wsConnected={wsConnected}
+        budget={sessionStatus?.budget ?? null}
+        selfConsistency={sessionStatus?.self_consistency ?? null}
       />
 
       {/* Attestation Gate Modal */}
