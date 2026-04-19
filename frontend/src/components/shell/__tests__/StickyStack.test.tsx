@@ -18,18 +18,16 @@ class MockResizeObserver {
   }
 }
 
-const originalRO = (global as unknown as { ResizeObserver: unknown }).ResizeObserver;
+const originalRO = (globalThis as unknown as { ResizeObserver: unknown }).ResizeObserver;
 
 describe('StickyStack', () => {
   beforeEach(() => {
-    // @ts-expect-error injecting into jsdom
-    global.ResizeObserver = MockResizeObserver;
+    (globalThis as unknown as { ResizeObserver: unknown }).ResizeObserver = MockResizeObserver;
     MockResizeObserver.instances = [];
   });
 
   afterEach(() => {
-    // @ts-expect-error restoring
-    global.ResizeObserver = originalRO;
+    (globalThis as unknown as { ResizeObserver: unknown }).ResizeObserver = originalRO;
   });
 
   it('renders children inside a sticky wrapper', () => {
