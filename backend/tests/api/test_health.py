@@ -16,7 +16,12 @@ from src.api.health import router as health_router
 
 
 @pytest.fixture()
-def client() -> TestClient:
+def client(monkeypatch) -> TestClient:
+    # PR-J added an ANTHROPIC_API_KEY presence check to /readyz. Most
+    # of these tests assume env-independent behavior, so stub a
+    # plausible credential; tests that want to exercise the missing-
+    # credential path override via monkeypatch.
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-test-placeholder-xyz")
     app = FastAPI()
     app.include_router(health_router)
     return TestClient(app)
@@ -35,7 +40,12 @@ def test_readyz_200_when_both_deps_ok(client: TestClient):
     assert r.status_code == 200
     body = r.json()
     assert body["ready"] is True
-    assert body["checks"] == {"postgres": "ok", "redis": "ok"}
+    # PR-J adds llm_credential alongside postgres + redis.
+    assert body["checks"] == {
+        "postgres": "ok",
+        "redis": "ok",
+        "llm_credential": "ok",
+    }
 
 
 def test_readyz_503_when_postgres_fails(client: TestClient):
@@ -70,3 +80,20 @@ def test_readyz_503_when_probe_times_out(client: TestClient):
         r = client.get("/readyz")
     assert r.status_code == 503
     assert r.json()["checks"]["postgres"].startswith("error: timeout")
+
+
+def test_readyz_503_when_llm_credential_missing(monkeypatch):
+    """PR-J — missing ANTHROPIC_API_KEY fails readiness."""
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    app = FastAPI()
+    app.include_router(health_router)
+    c = TestClient(app)
+    with patch("src.api.health._check_postgres", new=AsyncMock(return_value=None)), \
+         patch("src.api.health._check_redis",    new=AsyncMock(return_value=None)):
+        r = c.get("/readyz")
+    assert r.status_code == 503
+    body = r.json()
+    assert body["ready"] is False
+    assert body["checks"]["postgres"] == "ok"
+    assert body["checks"]["redis"] == "ok"
+    assert body["checks"]["llm_credential"].startswith("error:")

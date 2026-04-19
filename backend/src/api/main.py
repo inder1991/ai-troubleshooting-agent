@@ -205,6 +205,17 @@ def create_app() -> FastAPI:
     app.state.limiter = limiter
     app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+    # PR-J — request-id middleware + structured error envelopes. Must
+    # wrap the app EARLY so the request_id is available to downstream
+    # handlers (including slowapi's rate-limit handler, which would
+    # otherwise skip the envelope and emit its own shape).
+    from .middleware_observability import (
+        RequestIDMiddleware,
+        register_error_envelope_handlers,
+    )
+    app.add_middleware(RequestIDMiddleware)
+    register_error_envelope_handlers(app)
+
     # API key authentication middleware (only when API_KEYS env var is set)
     if os.environ.get("API_KEYS", "").strip():
         from .auth import APIKeyMiddleware

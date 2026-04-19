@@ -62,6 +62,10 @@ async def readyz() -> JSONResponse:
 
     checks["postgres"] = await _check(_check_postgres)
     checks["redis"] = await _check(_check_redis)
+    # PR-J — LLM credential presence is a readiness concern: without it
+    # the supervisor can't run a single diagnosis step. Cheap check
+    # (env var lookup), so no timeout budget needed.
+    checks["llm_credential"] = _check_llm_credential()
 
     all_ok = all(v == "ok" for v in checks.values())
     return JSONResponse(
@@ -94,6 +98,25 @@ async def _check_postgres() -> None:
 
     async with get_session() as session:
         await session.execute(text("SELECT 1"))
+
+
+def _check_llm_credential() -> str:
+    """Confirm an Anthropic credential is configured.
+
+    PR-J — without a credential the supervisor will reject every run at
+    the first LLM call. Readiness should reflect that reality so
+    operators don't waste time debugging a "mysteriously hanging" pod.
+
+    We only check for *presence* — never log the value. A trimmed
+    placeholder / sentinel (``"REPLACE_ME"``) also counts as missing.
+    """
+    val = (os.environ.get("ANTHROPIC_API_KEY") or "").strip()
+    if not val:
+        return "error: ANTHROPIC_API_KEY is not set"
+    lowered = val.lower()
+    if lowered.startswith("replace") or lowered in {"todo", "xxx", "<set>"}:
+        return f"error: ANTHROPIC_API_KEY looks like a placeholder ({val[:6]}…)"
+    return "ok"
 
 
 async def _check_redis() -> None:
