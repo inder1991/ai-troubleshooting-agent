@@ -370,8 +370,17 @@ def create_cluster_client(connection_config=None):
 
 
 @router_v4.post("/session/start", response_model=StartSessionResponse)
-async def start_session(request: StartSessionRequest, background_tasks: BackgroundTasks):
+async def start_session(
+    request: StartSessionRequest,
+    background_tasks: BackgroundTasks,
+    raw_request: Request,
+):
     session_id = str(uuid.uuid4())
+    # PR-A: capture owner at creation so later sensitive calls (/chat,
+    # /cancel, attestation) can enforce ownership when the feature flag
+    # is on. No-op when off — owner is still recorded but never checked.
+    from src.api.session_auth import extract_owner_id as _extract_owner
+    session_owner = _extract_owner(raw_request)
 
     from src.agents.supervisor import generate_incident_id
     incident_id = generate_incident_id()
@@ -448,6 +457,7 @@ async def start_session(request: StartSessionRequest, background_tasks: Backgrou
             "kubeconfig_temp_path": kubeconfig_temp_path,
             "elk_index": request.elkIndex or "",
         }
+        sessions[session_id]["owner_id"] = session_owner
 
         await _persist_session(session_id, sessions[session_id])
 
@@ -481,6 +491,7 @@ async def start_session(request: StartSessionRequest, background_tasks: Backgrou
             "capability": "network_troubleshooting",
             "chat_history": [],
         }
+        sessions[session_id]["owner_id"] = session_owner
         await _persist_session(session_id, sessions[session_id])
         return StartSessionResponse(
             session_id=session_id,
@@ -510,6 +521,7 @@ async def start_session(request: StartSessionRequest, background_tasks: Backgrou
             "capability": "troubleshoot_pipeline",
             "chat_history": [],
         }
+        sessions[session_id]["owner_id"] = session_owner
         await _persist_session(session_id, sessions[session_id])
         logger.info("Pipeline session created", extra={"session_id": session_id, "action": "session_created", "extra": "troubleshoot_pipeline"})
         return StartSessionResponse(
@@ -535,6 +547,7 @@ async def start_session(request: StartSessionRequest, background_tasks: Backgrou
         "profile_id": profile_id,
         "chat_history": [],
     }
+    sessions[session_id]["owner_id"] = session_owner
     await _persist_session(session_id, sessions[session_id])
     supervisors[session_id] = supervisor
 
@@ -1028,13 +1041,18 @@ Be concise. Reference specific findings from the state when answering.
 
 
 @router_v4.post("/session/{session_id}/chat", response_model=ChatResponse)
-async def chat(session_id: str, request: ChatRequest):
+async def chat(session_id: str, request: ChatRequest, raw_request: Request):
     _validate_session_id(session_id)
     logger.info("Chat message received", extra={"session_id": session_id, "action": "chat"})
 
     session = sessions.get(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
+
+    # PR-A — feature-flag-gated session-ownership enforcement. No-op when
+    # SESSION_OWNERSHIP_CHECK=off (single-tenant default).
+    from src.api.session_auth import enforce_session_owner
+    enforce_session_owner(session, raw_request)
 
     # Branch by capability
     if session.get("capability") == "cluster_diagnostics":
@@ -1137,11 +1155,14 @@ async def list_sessions():
 
 
 @router_v4.post("/session/{session_id}/cancel")
-async def cancel_session(session_id: str):
+async def cancel_session(session_id: str, raw_request: Request):
     _validate_session_id(session_id)
     session = sessions.get(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
+    # PR-A — feature-flag-gated ownership check.
+    from src.api.session_auth import enforce_session_owner
+    enforce_session_owner(session, raw_request)
     session["phase"] = "cancelled"
     session["_cancelled"] = True
     emitter = session.get("emitter")

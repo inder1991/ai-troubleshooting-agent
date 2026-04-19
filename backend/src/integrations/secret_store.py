@@ -37,6 +37,15 @@ class SecretStore(ABC):
         """Replace a secret with a new value. Returns new handle."""
 
 
+class FernetKeyMissingError(RuntimeError):
+    """Raised when production-mode startup detects a missing master key.
+
+    PR-A — SDET audit Bug #3. Prevents the silent-data-loss failure
+    mode where an ephemeral container loses its persisted dev key on
+    restart, making every stored credential undecryptable.
+    """
+
+
 class FernetSecretStore(SecretStore):
     """Fernet-based local encryption store.
 
@@ -45,12 +54,19 @@ class FernetSecretStore(SecretStore):
     2. DEBUGDUCK_MASTER_KEY environment variable
     3. Persisted dev key from data/.fernet_dev_key (survives restarts)
     4. Auto-generate new dev key and persist it
+
+    PR-A hardening — when ``FERNET_REQUIRE_ENV_KEY=on`` (set in production
+    overlays), only path 1 and 2 are allowed. Paths 3 and 4 raise
+    FernetKeyMissingError at construction time so the container fails
+    fast instead of silently generating a new key that would orphan
+    every credential in the database.
     """
 
     _DEV_KEY_PATH = os.path.join("data", ".fernet_dev_key")
 
     def __init__(self, master_key: Optional[str] = None):
         env_key = master_key or os.environ.get("DEBUGDUCK_MASTER_KEY")
+        require_env_key = os.environ.get("FERNET_REQUIRE_ENV_KEY", "off").lower() == "on"
         dev_key = self._load_dev_key()
 
         if env_key:
@@ -58,6 +74,18 @@ class FernetSecretStore(SecretStore):
             self._is_env_key = True
             # Keep dev key fernet for migration if credentials were saved with it
             self._dev_fernet = Fernet(dev_key.encode()) if dev_key and dev_key != env_key else None
+        elif require_env_key:
+            # PR-A production-mode guard — refuse to fall back to the
+            # dev-key path. Fail-fast prevents the silent data-loss
+            # failure mode where an ephemeral container loses its
+            # persisted key and auto-generates a new one.
+            raise FernetKeyMissingError(
+                "DEBUGDUCK_MASTER_KEY is required in production "
+                "(FERNET_REQUIRE_ENV_KEY=on). Set DEBUGDUCK_MASTER_KEY "
+                "to a stable Fernet key in your secret manager; see "
+                "docs/plans/2026-04-18-fernet-key-env-migration.md "
+                "for rotation guidance."
+            )
         elif dev_key:
             key = dev_key
             self._is_env_key = False
