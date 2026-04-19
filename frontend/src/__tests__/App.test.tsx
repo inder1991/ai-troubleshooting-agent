@@ -12,7 +12,7 @@ describe('ClusterDiagnosticsFields auth methods', () => {
 });
 
 describe('save_cluster credential policy', () => {
-  it('save_cluster undefined → do not save (App.tsx line ~297 and CapabilityForm.tsx line 126 policy)', () => {
+  it('save_cluster undefined → do not save (App.tsx line ~297 and CapabilityForm.tsx line 157 policy)', () => {
     // Policy: undefined means user did not opt in to saving
     const saveCluster = undefined as boolean | undefined;
 
@@ -20,8 +20,13 @@ describe('save_cluster credential policy', () => {
     const willSave = saveCluster ?? false;
     expect(willSave).toBe(false);
 
-    // CapabilityForm.tsx: validation should NOT require a name when not saving
-    const requiresName = !(saveCluster ?? false);
+    // CapabilityForm.tsx: validation should NOT require a name when not
+    // saving. Mirrors the production predicate:
+    //   hasName = !(save_cluster ?? false) || !!cluster_name
+    // → when save_cluster is undefined, the left disjunct is always true,
+    //   so the name is never required. `requiresName` below directly
+    //   models "is a name required" (true when saving).
+    const requiresName = saveCluster ?? false;
     expect(requiresName).toBe(false);
   });
 
@@ -30,7 +35,7 @@ describe('save_cluster credential policy', () => {
     const willSave = saveCluster ?? false;
     expect(willSave).toBe(true);
 
-    const requiresName = !(saveCluster ?? false);
+    const requiresName = saveCluster ?? false;
     expect(requiresName).toBe(true); // name required when saving
   });
 });
