@@ -132,7 +132,34 @@ const ChatStreamProvider: React.FC<ChatStreamProviderProps> = ({
     setStreaming({ isStreaming: false, content: '', messageId: null });
   }, [sessionId]);
 
+  // PR-B — chat stream watchdog (SDET audit bug E6). The SSE bridge
+  // can get stuck "streaming" forever when the backend connection
+  // drops mid-stream without closing; users stare at a blinking
+  // cursor that never resolves. Track the last-chunk timestamp;
+  // when isStreaming stays true for >30s with no chunks, force-close
+  // the stream and emit a reconnect-prompt message.
+  const lastChunkAtRef = useRef<number>(0);
+  useEffect(() => {
+    if (!streaming.isStreaming) return;
+    const iv = window.setInterval(() => {
+      const quietFor = Date.now() - lastChunkAtRef.current;
+      if (quietFor > 30_000) {
+        window.clearInterval(iv);
+        setStreaming({ isStreaming: false, content: '', messageId: null });
+        addMessage({
+          role: 'assistant',
+          content:
+            '_Stream timed out after 30s of silence. Reconnect or retry your last message._',
+          timestamp: new Date().toISOString(),
+          metadata: { type: 'stream_timeout' } as ChatMessage['metadata'],
+        });
+      }
+    }, 5_000);
+    return () => window.clearInterval(iv);
+  }, [streaming.isStreaming, addMessage]);
+
   const startStream = useCallback(() => {
+    lastChunkAtRef.current = Date.now(); // PR-B watchdog baseline
     setStreaming({
       isStreaming: true,
       content: '',
@@ -141,6 +168,7 @@ const ChatStreamProvider: React.FC<ChatStreamProviderProps> = ({
   }, []);
 
   const appendChunk = useCallback((chunk: string) => {
+    lastChunkAtRef.current = Date.now(); // PR-B watchdog — each chunk resets the timer
     setStreaming(prev => ({
       ...prev,
       isStreaming: true,

@@ -306,6 +306,25 @@ export const cancelFix = async (
   return response.json();
 };
 
+// ── PR-B: cancel the whole investigation (not just the fix step) ────
+// Backend endpoint: POST /api/v4/session/{id}/cancel (flips state.phase
+// → 'cancelled', emits a supervisor warning event). No body required.
+// Used by the Banner region's Cancel Investigation affordance.
+export const cancelInvestigation = async (
+  sessionId: string,
+): Promise<{ status: string }> => {
+  const response = await fetch(
+    `${API_BASE_URL}/api/v4/session/${sessionId}/cancel`,
+    { method: 'POST' },
+  );
+  if (!response.ok) {
+    throw new Error(
+      await extractErrorDetail(response, 'Failed to cancel investigation'),
+    );
+  }
+  return response.json();
+};
+
 // ===== V4 PromQL Proxy =====
 
 export const runPromQLQuery = async (
