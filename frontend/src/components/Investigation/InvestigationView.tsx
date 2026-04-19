@@ -257,11 +257,22 @@ const WarRoomGrid: React.FC<WarRoomGridProps> = ({
       {/* Main grid — 3 columns (+ gutter) */}
       <TelescopeProvider>
         <TopologySelectionProvider>
+          {/* PR-H — semantic landmarks so the screen-reader regions
+              rotor lists "Investigator", "Evidence", "Navigator" as
+              first-class jump targets. Each column gets its own
+              aria-labelledby pointing to an sr-only heading, so the
+              name in the rotor matches what sighted users see. */}
+
           {/* Left: Investigator */}
-          <div
+          <section
             ref={setInvestigatorEl}
             className="wr-region-investigator overflow-hidden relative"
+            role="region"
+            aria-labelledby="wr-region-label-investigator"
           >
+            <h2 id="wr-region-label-investigator" className="sr-only">
+              Investigator
+            </h2>
             <Investigator
               sessionId={session.session_id}
               events={events}
@@ -270,14 +281,19 @@ const WarRoomGrid: React.FC<WarRoomGridProps> = ({
               status={sessionStatus}
               onAttachRepo={handleAttachRepo}
             />
-          </div>
+          </section>
 
           {/* Center: Evidence (hosts TelescopeDrawerV2 + SurgicalTelescope
               PaneDrawers via RegionPortalsContext) */}
-          <div
+          <section
             ref={setEvidenceEl}
             className="wr-region-evidence overflow-hidden relative"
+            role="region"
+            aria-labelledby="wr-region-label-evidence"
           >
+            <h2 id="wr-region-label-evidence" className="sr-only">
+              Evidence and findings
+            </h2>
             <EvidenceFindings
               findings={findings}
               status={sessionStatus}
@@ -287,15 +303,20 @@ const WarRoomGrid: React.FC<WarRoomGridProps> = ({
               onRefresh={fetchSharedData}
               onNavigateToDossier={onNavigateToDossier}
             />
-          </div>
+          </section>
 
           {/* Right: Navigator (hosts ChatDrawer via RegionPortalsContext) */}
-          <div
+          <section
             ref={setNavigatorEl}
             className="wr-region-navigator overflow-hidden relative"
+            role="region"
+            aria-labelledby="wr-region-label-navigator"
           >
+            <h2 id="wr-region-label-navigator" className="sr-only">
+              Navigator — topology and agents
+            </h2>
             <Navigator findings={findings} status={sessionStatus} events={events} sessionId={session.session_id} />
-          </div>
+          </section>
 
           {/* Gutter rail — hosts LedgerTriggerTab */}
           <div

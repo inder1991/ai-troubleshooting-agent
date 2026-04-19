@@ -46,4 +46,37 @@ describe('ServiceTopologySVG — typed edges + walk overlay (Task 4.21)', () => 
     );
     expect(screen.queryByTestId('walk-overlay')).toBeNull();
   });
+
+  // ── PR-H: accessibility ─────────────────────────────────────────
+
+  it('SVG root has a descriptive aria-label summarizing the topology', () => {
+    const { container } = render(
+      <ServiceTopologySVG
+        dependencies={twoNodeDeps}
+        patientZero={{ service: 'b', first_error_time: '2026-04-19T00:00:00Z' } as any}
+        blastRadius={null}
+      />,
+    );
+    const svg = container.querySelector('svg');
+    expect(svg).not.toBeNull();
+    const label = svg!.getAttribute('aria-label') ?? '';
+    expect(label).toMatch(/2 services/);
+    expect(label).toMatch(/patient zero b/);
+  });
+
+  it('each node is focusable and carries a per-node aria-label', () => {
+    render(
+      <ServiceTopologySVG
+        dependencies={twoNodeDeps}
+        patientZero={{ service: 'a', first_error_time: '2026-04-19T00:00:00Z' } as any}
+        blastRadius={null}
+      />,
+    );
+    const nodeA = screen.getByTestId('topology-node-a');
+    expect(nodeA.getAttribute('tabindex')).toBe('0');
+    expect(nodeA.getAttribute('role')).toBe('img');
+    expect(nodeA.getAttribute('aria-label')).toMatch(/a.*patient zero/);
+    const nodeB = screen.getByTestId('topology-node-b');
+    expect(nodeB.getAttribute('aria-label')).toMatch(/b.*dependency|b.*healthy|b.*blast/);
+  });
 });

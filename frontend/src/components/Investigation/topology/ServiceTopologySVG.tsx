@@ -85,14 +85,34 @@ const ServiceTopologySVG: React.FC<ServiceTopologySVGProps> = ({
 
   const nodeMap = new Map(nodes.map((n) => [n.id, n]));
 
+  // PR-H (audit Bug #26) — a11y summary string for the SVG. Screen
+  // readers now hear "Service topology: 7 services; patient zero
+  // checkout-svc; 3 downstream affected" instead of silently skipping
+  // the whole diagram.
+  const a11ySummary = (() => {
+    const parts: string[] = [`Service topology: ${nodes.length} services`];
+    if (patientZero?.service) parts.push(`patient zero ${patientZero.service}`);
+    if (blastRadius) {
+      const total =
+        (blastRadius.upstream_affected?.length ?? 0) +
+        (blastRadius.downstream_affected?.length ?? 0);
+      if (total > 0) parts.push(`${total} services in blast radius`);
+    }
+    if (crashloopServices.size > 0) {
+      parts.push(`${crashloopServices.size} with crashlooping pods`);
+    }
+    return parts.join('; ');
+  })();
+
   return (
     <svg
       viewBox={`0 0 ${width} ${height}`}
       className="w-full"
       style={{ minHeight: '100px', maxHeight: '260px' }}
       role="img"
-      aria-label="Service topology diagram"
+      aria-label={a11ySummary}
     >
+      <title>{a11ySummary}</title>
       <defs>
         <filter id="glow-red">
           <feGaussianBlur stdDeviation="3" result="coloredBlur" />
@@ -190,8 +210,28 @@ const ServiceTopologySVG: React.FC<ServiceTopologySVGProps> = ({
       {nodes.map((node) => {
         const style = nodeStyles[node.role];
         const isCrashloop = crashloopServices.has(node.id);
+        // Per-node a11y label. Roles translate to human-readable
+        // phrases; crashloop flag surfaces the most urgent signal.
+        const roleLabel = ({
+          patient_zero: 'patient zero',
+          upstream: 'upstream dependency',
+          downstream: 'downstream dependency',
+          blast_radius: 'in blast radius',
+          normal: 'healthy',
+        } as Record<typeof node.role, string>)[node.role] ?? node.role;
+        const nodeLabel = isCrashloop
+          ? `${node.id} (${roleLabel}, crashlooping pod)`
+          : `${node.id} (${roleLabel})`;
         return (
-          <g key={node.id} className={`${style.className || ''} ${isCrashloop ? 'topology-node-crashloop' : ''}`}>
+          <g
+            key={node.id}
+            className={`${style.className || ''} ${isCrashloop ? 'topology-node-crashloop' : ''}`}
+            role="img"
+            aria-label={nodeLabel}
+            tabIndex={0}
+            data-testid={`topology-node-${node.id}`}
+          >
+            <title>{nodeLabel}</title>
             {/* Pulsing outer ring for crashloop nodes */}
             {isCrashloop && (
               <circle

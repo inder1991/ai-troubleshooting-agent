@@ -232,6 +232,24 @@ describe('FreshnessRow', () => {
     expect(screen.getByTestId('freshness-cost').textContent).toMatch(/\$0\.087/);
   });
 
+  // ── PR-H: a11y live regions ─────────────────────────────────────
+
+  it('marks the clause line as a polite live region (screen-reader announcements)', () => {
+    render(<Harness />);
+    const row = screen.getByTestId('freshness-row');
+    const clause = row.querySelector('[aria-live="polite"]');
+    expect(clause).not.toBeNull();
+    expect(clause?.getAttribute('aria-atomic')).toBe('true');
+    expect(clause?.getAttribute('role')).toBe('status');
+  });
+
+  it('marks the phase narrative as its own polite live region', () => {
+    render(<Harness events={[event({ agent_name: 'log_agent', event_type: 'started' })]} />);
+    const narrative = screen.getByTestId('phase-narrative');
+    expect(narrative.getAttribute('aria-live')).toBe('polite');
+    expect(narrative.getAttribute('aria-atomic')).toBe('true');
+  });
+
   it('treats diagnosis_complete the same way as complete', () => {
     const closed = status({
       phase: 'diagnosis_complete',

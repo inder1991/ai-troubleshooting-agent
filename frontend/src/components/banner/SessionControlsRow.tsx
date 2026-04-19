@@ -91,7 +91,7 @@ export const SessionControlsRow: React.FC<SessionControlsRowProps> = ({
         <button
           type="button"
           onClick={handleCopyLink}
-          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-wr-inset/40 focus-visible:bg-wr-inset/40 focus:outline-none transition-colors"
+          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-wr-inset/40 focus-visible:bg-wr-inset/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-wr-text-muted focus:outline-none transition-colors"
           aria-label="Copy session link"
           title="Copy this session's URL"
           data-testid="copy-session-link"
@@ -114,7 +114,7 @@ export const SessionControlsRow: React.FC<SessionControlsRowProps> = ({
           type="button"
           onClick={handleCancel}
           disabled={!canCancel || cancelling}
-          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-wr-inset/40 focus-visible:bg-wr-inset/40 focus:outline-none transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-wr-inset/40 focus-visible:bg-wr-inset/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-wr-text-muted focus:outline-none transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           aria-label={
             canCancel
               ? 'Cancel investigation'
