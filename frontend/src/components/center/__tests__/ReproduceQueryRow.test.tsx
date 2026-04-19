@@ -1,7 +1,9 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { ReproduceQueryRow } from '../ReproduceQueryRow';
-import type { MetricAnomaly, SuggestedPromQLQuery } from '../../../types';
+import { IncidentLifecycleProvider } from '../../../contexts/IncidentLifecycleContext';
+import type { MetricAnomaly, SuggestedPromQLQuery, V4SessionStatus } from '../../../types';
+import * as apiModule from '../../../services/api';
 
 function anomaly(over: Partial<MetricAnomaly> = {}): MetricAnomaly {
   const now = new Date();
@@ -99,5 +101,72 @@ describe('ReproduceQueryRow', () => {
     expect(row.textContent).toMatch(/reproduce/);
     expect(row.innerHTML).toMatch(/font-editorial/);
     expect(row.innerHTML).not.toMatch(/rounded-full/);
+  });
+
+  // ── PR-C: historical lifecycle gate ────────────────────────────────
+
+  function historicalStatus(): V4SessionStatus {
+    return {
+      session_id: 's',
+      service_name: 'svc',
+      phase: 'complete',
+      confidence: 80,
+      findings_count: 0,
+      token_usage: [],
+      breadcrumbs: [],
+      created_at: '2026-04-17T00:00:00Z',
+      updated_at: '2026-04-17T00:00:00Z',
+      pending_action: null,
+    };
+  }
+
+  it('disables Run + does not call API when investigation is historical', async () => {
+    const spy = vi.spyOn(apiModule, 'runPromQLQuery').mockResolvedValue({
+      data_points: [],
+      current_value: 0,
+    } as any);
+
+    // now 48h after updated_at → bucket = historical
+    const now = Date.parse('2026-04-19T00:00:00Z');
+    render(
+      <IncidentLifecycleProvider status={historicalStatus()} now={now}>
+        <ReproduceQueryRow anomaly={anomaly()} queries={[query()]} />
+      </IncidentLifecycleProvider>,
+    );
+    const runBtn = screen.getByTestId('reproduce-run');
+    expect(runBtn).toBeDisabled();
+    expect(runBtn.getAttribute('data-historical')).toBe('true');
+
+    fireEvent.click(runBtn);
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it('keeps Run enabled when lifecycle is recent (within 6h of close)', () => {
+    // 1h after updated_at → bucket = recent
+    const now = Date.parse('2026-04-17T01:00:00Z');
+    render(
+      <IncidentLifecycleProvider status={historicalStatus()} now={now}>
+        <ReproduceQueryRow anomaly={anomaly()} queries={[query()]} />
+      </IncidentLifecycleProvider>,
+    );
+    const runBtn = screen.getByTestId('reproduce-run');
+    expect(runBtn).not.toBeDisabled();
+    expect(runBtn.getAttribute('data-historical')).toBeNull();
+  });
+
+  it('keeps Copy enabled even when historical (clipboard is not a live side effect)', () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText },
+      configurable: true,
+    });
+    const now = Date.parse('2026-04-19T00:00:00Z');
+    render(
+      <IncidentLifecycleProvider status={historicalStatus()} now={now}>
+        <ReproduceQueryRow anomaly={anomaly()} queries={[query()]} />
+      </IncidentLifecycleProvider>,
+    );
+    fireEvent.click(screen.getByTestId('reproduce-copy'));
+    expect(writeText).toHaveBeenCalledWith('rate(http_errors_total[5m])');
   });
 });

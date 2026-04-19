@@ -7,13 +7,18 @@ has a marker for when the cross-check ran.
 """
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime, timezone
 from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
 
-from src.agents.supervisor import _run_metrics_logs_cross_check
+from src.agents.supervisor import (
+    _CROSS_CHECK_LOCKS,
+    _run_metrics_logs_cross_check,
+    reset_cross_check_state_for_reinvestigation,
+)
 from src.models.schemas import (
     DiagnosticPhase,
     DiagnosticState,
@@ -234,3 +239,81 @@ async def test_pluralisation():
     many_summary = [c for c in _collect_emits(emitter_many) if c["event_type"] == "summary"][0]
     assert many_summary["details"]["divergence_count"] >= 2
     assert "signal disagreements" in many_summary["message"]
+
+
+# ── PR-C: race + re-investigation reset ───────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_concurrent_invocations_emit_summary_exactly_once():
+    """Both agent handlers racing to fire the cross-check must produce one summary.
+
+    Bug #2: when log_agent and metrics_agent land results in the same
+    event-loop tick, both handlers invoke the helper concurrently. Before
+    the per-state lock, both could observe ``cross_checks_announced`` as
+    empty and each emit the summary, doubling the timeline entry.
+    """
+    state = _state(
+        metrics=_metrics([_anomaly('errors{service="payments-api"}')]),
+        logs=_logs_with_pattern("checkout-service"),
+    )
+    emitter = AsyncMock()
+    emitter.emit = AsyncMock()
+
+    await asyncio.gather(
+        _run_metrics_logs_cross_check(state, emitter),
+        _run_metrics_logs_cross_check(state, emitter),
+    )
+
+    summaries = [c for c in _collect_emits(emitter) if c["event_type"] == "summary"]
+    assert len(summaries) == 1, (
+        f"Expected exactly 1 summary under concurrent invocation, got {len(summaries)}"
+    )
+
+
+@pytest.mark.asyncio
+async def test_reset_clears_divergence_findings_and_announcement_set():
+    """On re_investigating transition, stale divergences must be cleared.
+
+    Bug #8: without reset, a second run would accumulate divergences on
+    top of the first, leaving DisagreementStrip showing double-counted
+    services and stale findings from the prior round.
+    """
+    state = _state(
+        metrics=_metrics([_anomaly('errors{service="payments-api"}')]),
+        logs=_logs_with_pattern("checkout-service"),
+    )
+    emitter = AsyncMock()
+    emitter.emit = AsyncMock()
+
+    await _run_metrics_logs_cross_check(state, emitter)
+    assert len(state.divergence_findings) >= 1
+    assert "metrics_logs" in state.cross_checks_announced
+
+    reset_cross_check_state_for_reinvestigation(state)
+
+    assert state.divergence_findings == []
+    assert state.cross_checks_announced == set()
+    assert id(state) not in _CROSS_CHECK_LOCKS
+
+
+@pytest.mark.asyncio
+async def test_reset_allows_summary_to_fire_again_on_next_run():
+    """After reset, the next cross-check run must emit its own summary."""
+    state = _state(
+        metrics=_metrics([_anomaly('errors{service="payments-api"}')]),
+        logs=_logs_with_pattern("checkout-service"),
+    )
+    emitter_first = AsyncMock()
+    emitter_first.emit = AsyncMock()
+    await _run_metrics_logs_cross_check(state, emitter_first)
+
+    reset_cross_check_state_for_reinvestigation(state)
+
+    emitter_second = AsyncMock()
+    emitter_second.emit = AsyncMock()
+    await _run_metrics_logs_cross_check(state, emitter_second)
+
+    summaries = [c for c in _collect_emits(emitter_second) if c["event_type"] == "summary"]
+    assert len(summaries) == 1
+    assert summaries[0]["details"]["action"] == "cross_check_complete"

@@ -19,10 +19,13 @@ import type {
  *   - 50–69% → "Probably — X (N% confidence)."
  *   - <50%   → "Unclear — X is one possibility (N% confidence)."
  *
- * Data precedence:
- *   1. findings.hypothesis_result.winner_id → resolve in findings.hypotheses[]
- *   2. findings.findings[0]                  (top severity/confidence agent finding)
- *   3. latest `summary` event                (fallback for early investigation)
+ * Data precedence (PR-C fix for Bug #4 — audit):
+ *   1. Prefer whichever of {hypothesis winner, top finding} has the higher
+ *      confidence — a 92%-confidence agent finding should not be buried
+ *      beneath a 60%-confidence hypothesis winner just because hypothesis
+ *      evaluation happened to run. Ties break toward the hypothesis
+ *      (richer semantic structure).
+ *   2. latest `summary` event — fallback when neither source exists.
  *
  * Blast-radius sentence immediately follows VERDICT in the same voice,
  * conditionally rendered when `findings.blast_radius` is present.
@@ -53,32 +56,44 @@ function resolveVerdict(
 ): VerdictBody | null {
   if (!findings) return null;
 
-  // 1. Hypothesis winner
+  // Collect available candidates.
+  const candidates: VerdictBody[] = [];
+
   const winnerId = findings.hypothesis_result?.winner_id;
   if (winnerId) {
     const winner = (findings.hypotheses || []).find(
       (h: DiagHypothesis) => h.hypothesis_id === winnerId,
     );
     if (winner) {
-      return {
+      candidates.push({
         text: humanizeCategory(winner.category),
         confidence: winner.confidence,
         source: 'hypothesis',
-      };
+      });
     }
   }
 
-  // 2. Top finding
   const topFinding = findings.findings?.[0];
   if (topFinding && (topFinding.title || topFinding.summary)) {
-    return {
+    candidates.push({
       text: topFinding.title || topFinding.summary || '',
       confidence: topFinding.confidence ?? 0,
       source: 'finding',
-    };
+    });
   }
 
-  // 3. Latest summary event
+  if (candidates.length > 0) {
+    // Highest confidence wins. Tie → hypothesis (richer semantic
+    // structure: winner_id carries `confidence_reasoning`, rule chain,
+    // blast-radius link, etc. — prose-ier and more load-bearing than
+    // a top-rank agent finding's summary line).
+    candidates.sort((a, b) => {
+      if (b.confidence !== a.confidence) return b.confidence - a.confidence;
+      return a.source === 'hypothesis' ? -1 : 1;
+    });
+    return candidates[0];
+  }
+
   const summaries = events.filter((e) => e.event_type === 'summary' && e.message);
   const last = summaries[summaries.length - 1];
   if (last) {

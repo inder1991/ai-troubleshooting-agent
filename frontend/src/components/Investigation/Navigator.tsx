@@ -17,9 +17,12 @@ interface NavigatorProps {
   findings: V4Findings | null;
   status: V4SessionStatus | null;
   events: TaskEvent[];
+  /** Optional — threads session into the Metrics Validation Dock so
+   *  the backend rate-limits per session, not per host. */
+  sessionId?: string;
 }
 
-const Navigator: React.FC<NavigatorProps> = ({ findings, status, events }) => {
+const Navigator: React.FC<NavigatorProps> = ({ findings, status, events, sessionId }) => {
   const { selectedService, selectService } = useTopologySelection();
   const { hoveredRepo } = useCampaignContext();
 
@@ -70,7 +73,7 @@ const Navigator: React.FC<NavigatorProps> = ({ findings, status, events }) => {
         </section>
 
         {/* Metrics Validation Dock */}
-        <MetricsValidationDock queries={findings?.suggested_promql_queries || []} />
+        <MetricsValidationDock queries={findings?.suggested_promql_queries || []} sessionId={sessionId} />
 
         {/* Infrastructure Health */}
         <InfraHealthCards findings={findings} />
@@ -85,7 +88,7 @@ const Navigator: React.FC<NavigatorProps> = ({ findings, status, events }) => {
 
 // ─── Metrics Validation Dock ──────────────────────────────────────────────
 
-const MetricsValidationDock: React.FC<{ queries: SuggestedPromQLQuery[] }> = ({ queries }) => {
+const MetricsValidationDock: React.FC<{ queries: SuggestedPromQLQuery[]; sessionId?: string }> = ({ queries, sessionId }) => {
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
   const [runResults, setRunResults] = useState<Record<number, {
     loading: boolean;
@@ -115,7 +118,7 @@ const MetricsValidationDock: React.FC<{ queries: SuggestedPromQLQuery[] }> = ({ 
       const end = Math.floor(Date.now() / 1000).toString();
       const start = (Math.floor(Date.now() / 1000) - 3600).toString(); // last 1h
 
-      const result = await runPromQLQuery(query, start, end, '60s');
+      const result = await runPromQLQuery(query, start, end, '60s', sessionId);
       setRunResults((prev) => ({
         ...prev,
         [idx]: {

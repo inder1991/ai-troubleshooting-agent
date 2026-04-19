@@ -177,6 +177,25 @@ def generate_incident_id() -> str:
     return f"INC-{date_part}-{rand_part}"
 
 
+# PR-C — one lock per DiagnosticState instance, keyed by id(state). When
+# both the log_agent and metrics_agent handlers race to land their
+# results in the same event-loop tick, the lock serializes the
+# read-modify-write on ``state.cross_checks_announced`` so exactly one
+# "cross-check complete" summary fires. Before this fix, both handlers
+# could see the key absent from the set and each emit the summary,
+# producing a duplicated timeline entry (SDET audit Bug #2).
+_CROSS_CHECK_LOCKS: "dict[int, asyncio.Lock]" = {}
+
+
+def _cross_check_lock_for(state) -> asyncio.Lock:
+    sid = id(state)
+    lock = _CROSS_CHECK_LOCKS.get(sid)
+    if lock is None:
+        lock = asyncio.Lock()
+        _CROSS_CHECK_LOCKS[sid] = lock
+    return lock
+
+
 async def _run_metrics_logs_cross_check(state, event_emitter) -> None:
     """Run the metrics↔logs divergence checker and merge findings onto state.
 
@@ -188,56 +207,81 @@ async def _run_metrics_logs_cross_check(state, event_emitter) -> None:
     Emits one ``cross_check_complete`` summary event per run so the
     Investigator timeline shows when the check happened, regardless of
     whether disagreements were found. Event is fired exactly once,
-    gated by ``state.cross_checks_announced``.
+    gated by ``state.cross_checks_announced`` under a per-state lock
+    (PR-C — fixes the duplicate-emission race).
     """
     try:
         from src.agents.cross_check import check_metrics_logs_divergence
 
-        divergences = check_metrics_logs_divergence(
-            metrics=state.metrics_analysis,
-            logs=state.log_analysis,
-        )
+        # Lock covers the read-modify-write pair on
+        # ``state.cross_checks_announced``. Running the pure-function
+        # divergence check under the lock is fine — the check itself is
+        # idempotent and cheap relative to the race window we're
+        # closing.
+        async with _cross_check_lock_for(state):
+            divergences = check_metrics_logs_divergence(
+                metrics=state.metrics_analysis,
+                logs=state.log_analysis,
+            )
 
-        existing_keys = {(d.kind, d.service_name) for d in state.divergence_findings}
-        new_divergences = [
-            d for d in divergences
-            if (d.kind, d.service_name) not in existing_keys
-        ]
+            existing_keys = {(d.kind, d.service_name) for d in state.divergence_findings}
+            new_divergences = [
+                d for d in divergences
+                if (d.kind, d.service_name) not in existing_keys
+            ]
 
-        if new_divergences:
-            state.divergence_findings.extend(new_divergences)
+            if new_divergences:
+                state.divergence_findings.extend(new_divergences)
 
-        if event_emitter:
-            for d in new_divergences:
-                await event_emitter.emit(
-                    "supervisor", "finding",
-                    f"[divergence] {d.human_summary}",
-                    details={
-                        "kind": d.kind,
-                        "service": d.service_name,
-                        "severity": d.severity,
-                    },
-                )
+            if event_emitter:
+                for d in new_divergences:
+                    await event_emitter.emit(
+                        "supervisor", "finding",
+                        f"[divergence] {d.human_summary}",
+                        details={
+                            "kind": d.kind,
+                            "service": d.service_name,
+                            "severity": d.severity,
+                        },
+                    )
 
-            if "metrics_logs" not in state.cross_checks_announced:
-                state.cross_checks_announced.add("metrics_logs")
-                total = len(divergences)
-                summary = (
-                    f"cross-check: metrics ↔ logs agreed"
-                    if total == 0
-                    else f"cross-check: metrics ↔ logs — {total} signal "
-                         f"disagreement{'s' if total != 1 else ''}"
-                )
-                await event_emitter.emit(
-                    "supervisor", "summary", summary,
-                    details={
-                        "action": "cross_check_complete",
-                        "cross_check": "metrics_logs",
-                        "divergence_count": total,
-                    },
-                )
+                if "metrics_logs" not in state.cross_checks_announced:
+                    state.cross_checks_announced.add("metrics_logs")
+                    total = len(divergences)
+                    summary = (
+                        f"cross-check: metrics ↔ logs agreed"
+                        if total == 0
+                        else f"cross-check: metrics ↔ logs — {total} signal "
+                             f"disagreement{'s' if total != 1 else ''}"
+                    )
+                    await event_emitter.emit(
+                        "supervisor", "summary", summary,
+                        details={
+                            "action": "cross_check_complete",
+                            "cross_check": "metrics_logs",
+                            "divergence_count": total,
+                        },
+                    )
     except Exception:
         logger.exception("metrics↔logs divergence check failed")
+
+
+def reset_cross_check_state_for_reinvestigation(state) -> None:
+    """Clear divergence findings + cross-check announcement set when an
+    investigation re-runs.
+
+    PR-C — SDET audit Bug #8. Without this, running an investigation,
+    observing divergences, then hitting ``re_investigating`` and re-
+    running left the old divergences on state, doubled + tripled the
+    DisagreementStrip count, and showed stale service names that no
+    longer applied. Supervisor calls this when transitioning into the
+    ``re_investigating`` phase.
+    """
+    state.divergence_findings.clear()
+    state.cross_checks_announced.clear()
+    # Also clear any queued per-state lock; a fresh run deserves a
+    # fresh serializer.
+    _CROSS_CHECK_LOCKS.pop(id(state), None)
 
 
 class SupervisorAlreadyConsumed(RuntimeError):
@@ -395,6 +439,11 @@ class SupervisorAgent:
             ),
             cluster_url=initial_input.get("cluster_url"),
             namespace=initial_input.get("namespace"),
+            # PR-C — record whether the operator explicitly supplied a
+            # namespace so downstream auto-detect never clobbers it.
+            # A caller-provided key with any non-empty value counts as
+            # "user set", including the string "default".
+            namespace_user_set=bool(initial_input.get("namespace")),
             repo_url=initial_input.get("repo_url"),
             elk_index=initial_input.get("elk_index"),
         )
@@ -745,6 +794,7 @@ class SupervisorAgent:
                                     f"Challenged: {finding.summary} — {verdict.reasoning}"
                                 )
                                 if re_investigation_count < max_re_investigations:
+                                    reset_cross_check_state_for_reinvestigation(state)
                                     state.phase = DiagnosticPhase.RE_INVESTIGATING
                                     re_investigation_count += 1
                                 else:
@@ -1836,9 +1886,15 @@ class SupervisorAgent:
                         details={"hypotheses": [{"id": h.hypothesis_id, "category": h.category} for h in state.hypotheses]},
                     )
 
-            # Auto-detect namespace from logs when user didn't provide one
+            # Auto-detect namespace from logs ONLY when the user didn't
+            # supply one at session start. PR-C (SDET audit Bug #6):
+            # the previous guard `not state.namespace or state.namespace
+            # == "default"` silently clobbered operator-provided "default"
+            # namespaces, which is a legitimate value. Now gated on the
+            # explicit `namespace_user_set` flag.
             detected_ns = result.get("detected_namespace")
-            if detected_ns and (not state.namespace or state.namespace == "default"):
+            user_set = getattr(state, "namespace_user_set", False)
+            if detected_ns and not user_set and not state.namespace:
                 logger.info("Namespace auto-detected from logs", extra={
                     "session_id": getattr(state, 'session_id', ''),
                     "agent_name": "supervisor",
@@ -1846,6 +1902,16 @@ class SupervisorAgent:
                     "extra": {"namespace": detected_ns},
                 })
                 state.namespace = detected_ns
+            elif detected_ns and user_set and detected_ns != state.namespace:
+                logger.info("Namespace auto-detect suppressed — user-set namespace preserved", extra={
+                    "session_id": getattr(state, 'session_id', ''),
+                    "agent_name": "supervisor",
+                    "action": "namespace_detect_skipped",
+                    "extra": {
+                        "user_namespace": state.namespace,
+                        "detected_namespace": detected_ns,
+                    },
+                })
 
             # Cross-check: metrics ↔ logs. Fires from whichever agent lands
             # second — see _run_metrics_logs_cross_check for dedup logic.
@@ -2177,44 +2243,45 @@ class SupervisorAgent:
                 try:
                     from src.agents.cross_check import check_tracing_metrics_divergence
 
-                    divergences = check_tracing_metrics_divergence(
-                        metrics=state.metrics_analysis,
-                        trace=state.trace_analysis,
-                    )
-                    existing_keys = {(d.kind, d.service_name) for d in state.divergence_findings}
-                    new_divergences = [
-                        d for d in divergences
-                        if (d.kind, d.service_name) not in existing_keys
-                    ]
-                    if new_divergences:
-                        state.divergence_findings.extend(new_divergences)
+                    async with _cross_check_lock_for(state):
+                        divergences = check_tracing_metrics_divergence(
+                            metrics=state.metrics_analysis,
+                            trace=state.trace_analysis,
+                        )
+                        existing_keys = {(d.kind, d.service_name) for d in state.divergence_findings}
+                        new_divergences = [
+                            d for d in divergences
+                            if (d.kind, d.service_name) not in existing_keys
+                        ]
+                        if new_divergences:
+                            state.divergence_findings.extend(new_divergences)
 
-                    if event_emitter:
-                        for d in new_divergences:
-                            await event_emitter.emit(
-                                "supervisor", "finding",
-                                f"[divergence] {d.human_summary}",
-                                details={"kind": d.kind, "service": d.service_name,
-                                         "severity": d.severity},
-                            )
+                        if event_emitter:
+                            for d in new_divergences:
+                                await event_emitter.emit(
+                                    "supervisor", "finding",
+                                    f"[divergence] {d.human_summary}",
+                                    details={"kind": d.kind, "service": d.service_name,
+                                             "severity": d.severity},
+                                )
 
-                        if "tracing_metrics" not in state.cross_checks_announced:
-                            state.cross_checks_announced.add("tracing_metrics")
-                            total = len(divergences)
-                            summary = (
-                                f"cross-check: tracing ↔ metrics agreed"
-                                if total == 0
-                                else f"cross-check: tracing ↔ metrics — {total} signal "
-                                     f"disagreement{'s' if total != 1 else ''}"
-                            )
-                            await event_emitter.emit(
-                                "supervisor", "summary", summary,
-                                details={
-                                    "action": "cross_check_complete",
-                                    "cross_check": "tracing_metrics",
-                                    "divergence_count": total,
-                                },
-                            )
+                            if "tracing_metrics" not in state.cross_checks_announced:
+                                state.cross_checks_announced.add("tracing_metrics")
+                                total = len(divergences)
+                                summary = (
+                                    f"cross-check: tracing ↔ metrics agreed"
+                                    if total == 0
+                                    else f"cross-check: tracing ↔ metrics — {total} signal "
+                                         f"disagreement{'s' if total != 1 else ''}"
+                                )
+                                await event_emitter.emit(
+                                    "supervisor", "summary", summary,
+                                    details={
+                                        "action": "cross_check_complete",
+                                        "cross_check": "tracing_metrics",
+                                        "divergence_count": total,
+                                    },
+                                )
                 except Exception:
                     logger.exception("tracing↔metrics divergence check failed")
 

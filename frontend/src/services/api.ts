@@ -331,15 +331,32 @@ export const runPromQLQuery = async (
   query: string,
   start: string,
   end: string,
-  step: string = '60s'
+  step: string = '60s',
+  sessionId?: string,
 ): Promise<{ data_points: { timestamp: string; value: number }[]; current_value: number; error?: string }> => {
+  // PR-C — body is JSON, so we don't URL-encode ourselves. Passing
+  // session_id lets the backend key its rate limiter per-session
+  // instead of per-host (one runaway browser tab can't starve another
+  // operator's session).
+  const body: Record<string, unknown> = { query, start, end, step };
+  if (sessionId) body.session_id = sessionId;
   const response = await fetch(`${API_BASE_URL}/api/v4/promql/query`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query, start, end, step }),
+    body: JSON.stringify(body),
   });
   if (!response.ok) {
-    return { data_points: [], current_value: 0, error: 'Request failed' };
+    // Surface rate-limit (429) and validation (400) errors as text so
+    // the UI can render why the run was refused rather than a silent
+    // "Request failed".
+    let detail = 'Request failed';
+    try {
+      const parsed = await response.json();
+      if (parsed && typeof parsed.detail === 'string') detail = parsed.detail;
+    } catch {
+      // fall through to default detail
+    }
+    return { data_points: [], current_value: 0, error: detail };
   }
   return response.json();
 };

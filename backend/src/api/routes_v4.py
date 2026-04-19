@@ -1629,12 +1629,131 @@ class PromQLRequest(BaseModel):
     start: str
     end: str
     step: str = "60s"
+    # PR-C — optional session_id so the rate limiter can key per-session
+    # instead of global. Missing → bucket is keyed on remote host.
+    session_id: Optional[str] = None
+
+
+# PR-C — rate limit budget for UI "Run inline" PromQL. 30 runs / minute
+# per session is a comfortable ceiling (an engineer tweaking a query
+# clicks Run maybe 2-3 times a minute) while cheap to enforce.
+_PROMQL_RATE_LIMIT_MAX = 30
+_PROMQL_RATE_LIMIT_WINDOW_S = 60
+
+
+async def _enforce_promql_rate_limit(key: str) -> None:
+    """Per-key token bucket, Redis-backed, for UI PromQL runs.
+
+    Keyed on session_id when present; otherwise remote host. Uses the
+    familiar INCR + EXPIRE idiom: first call in the window sets the key
+    with TTL = window; subsequent calls in the window increment and
+    compare to the budget. Beyond the budget, raises HTTP 429.
+
+    Graceful degradation — if Redis is unavailable, the limiter is a
+    no-op (the UI path is still protected by validate_promql_run).
+    Better to serve than to block when infra is degraded.
+    """
+    try:
+        from src.api.main import app
+        redis_client = getattr(app.state, "redis", None)
+    except Exception:
+        redis_client = None
+    if redis_client is None:
+        return
+
+    bucket_key = f"promql_run_rl:{key}"
+    try:
+        count = await redis_client.incr(bucket_key)
+        if count == 1:
+            await redis_client.expire(bucket_key, _PROMQL_RATE_LIMIT_WINDOW_S)
+        if count > _PROMQL_RATE_LIMIT_MAX:
+            raise HTTPException(
+                status_code=429,
+                detail=(
+                    f"PromQL run rate limit exceeded "
+                    f"({_PROMQL_RATE_LIMIT_MAX}/{_PROMQL_RATE_LIMIT_WINDOW_S}s "
+                    f"per session). Wait for the window to reset."
+                ),
+            )
+    except HTTPException:
+        raise
+    except Exception as e:
+        # Don't fail the request on Redis glitches.
+        logger.warning("PromQL rate-limit check skipped: %s", e)
+
+
+def _audit_promql_run(
+    key: str,
+    query: str,
+    start: str,
+    end: str,
+    step: str,
+    outcome: str,
+) -> None:
+    """Append a one-line audit entry per PromQL run.
+
+    Emitted as a structured log record (JSON-formatter downstream) so
+    the usual log aggregator ingests it alongside other routes_v4 logs.
+    A dedicated table is carry-forward work — logs are sufficient for
+    SIEM-level audit today and avoid a schema migration on the hot path.
+    """
+    logger.info(
+        "PromQL run audit",
+        extra={
+            "action": "promql_run_audit",
+            "extra": {
+                "caller": key,
+                "query": (query or "")[:500],
+                "start": start,
+                "end": end,
+                "step": step,
+                "outcome": outcome,
+            },
+        },
+    )
 
 
 @router_v4.post("/promql/query")
-async def proxy_promql_query(request: PromQLRequest):
-    """Proxy a PromQL range query to Prometheus for the frontend Run button."""
+async def proxy_promql_query(request: PromQLRequest, raw_request: Request):
+    """Proxy a PromQL range query to Prometheus for the frontend Run button.
+
+    PR-C (audit Bug #10): before this, any authenticated client could
+    POST arbitrary PromQL with arbitrary window/step. UI-originated
+    queries are now enforced by ``validate_promql_run`` (4h window cap,
+    15s–300s step, rejection of destructive wildcard patterns), gated
+    by a per-session rate limit (30/min), and every run is audit-logged.
+    """
     import httpx
+    from src.tools.promql_safety import validate_promql_run, UnsafeQuery
+
+    # Rate-limit key — session_id when the UI wired one, else remote host.
+    # The latter lets us bound abuse from tools that call the endpoint
+    # directly without going through the session-start flow.
+    rl_key = request.session_id or (
+        raw_request.client.host if raw_request.client else "anonymous"
+    )
+
+    try:
+        validate_promql_run(
+            request.query,
+            request.start,
+            request.end,
+            request.step,
+        )
+    except UnsafeQuery as e:
+        logger.warning(
+            "PromQL run rejected", extra={
+                "action": "promql_run_rejected",
+                "extra": {"reason": str(e), "query_len": len(request.query or "")},
+            },
+        )
+        _audit_promql_run(
+            rl_key, request.query, request.start, request.end, request.step,
+            outcome=f"rejected_validation: {e}",
+        )
+        raise HTTPException(status_code=400, detail=f"Invalid PromQL run: {e}")
+
+    await _enforce_promql_rate_limit(rl_key)
 
     prometheus_url = os.getenv("PROMETHEUS_URL", "http://localhost:9090")
     url = f"{prometheus_url}/api/v1/query_range"
@@ -1652,10 +1771,18 @@ async def proxy_promql_query(request: PromQLRequest):
             data = resp.json()
 
         if data.get("status") != "success":
+            _audit_promql_run(
+                rl_key, request.query, request.start, request.end, request.step,
+                outcome="prometheus_error",
+            )
             return {"data_points": [], "current_value": 0, "error": data.get("error", "Unknown Prometheus error")}
 
         results = data.get("data", {}).get("result", [])
         if not results:
+            _audit_promql_run(
+                rl_key, request.query, request.start, request.end, request.step,
+                outcome="no_data",
+            )
             return {"data_points": [], "current_value": 0, "error": "No data returned"}
 
         # Take first result series, apply LTTB downsampling (max 150 points)
@@ -1672,12 +1799,24 @@ async def proxy_promql_query(request: PromQLRequest):
         ]
         current_value = float(downsampled[-1][1]) if downsampled else 0
 
+        _audit_promql_run(
+            rl_key, request.query, request.start, request.end, request.step,
+            outcome="success",
+        )
         return {"data_points": data_points, "current_value": current_value}
     except httpx.HTTPStatusError as e:
         logger.warning("Prometheus query failed: %s", e)
+        _audit_promql_run(
+            rl_key, request.query, request.start, request.end, request.step,
+            outcome=f"http_{e.response.status_code}",
+        )
         return {"data_points": [], "current_value": 0, "error": f"Prometheus returned {e.response.status_code}"}
     except Exception as e:
         logger.warning("PromQL proxy error: %s", e)
+        _audit_promql_run(
+            rl_key, request.query, request.start, request.end, request.step,
+            outcome=f"error: {e}",
+        )
         return {"data_points": [], "current_value": 0, "error": str(e)}
 
 
