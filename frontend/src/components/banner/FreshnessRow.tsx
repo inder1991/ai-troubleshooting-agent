@@ -134,6 +134,11 @@ export const FreshnessRow: React.FC<FreshnessRowProps> = ({
     isHistorical: isArchived,
   });
 
+  // PR-H (audit Bug #24) — assistive tech needs a polite live region
+  // so screen-reader users hear the state label change ("live" → "stale"
+  // → "resolved") instead of silently re-rendering. Keep the whole
+  // first clause line as the live region so dot-change, freshness-age,
+  // tokens, and cost all coalesce into one announcement.
   return (
     <div
       className="freshness-row px-6 py-1.5 flex flex-col gap-0.5"
@@ -143,7 +148,12 @@ export const FreshnessRow: React.FC<FreshnessRowProps> = ({
           (Copy link, Cancel) hug the right edge so they never steal
           attention but are always reachable. */}
       <div className="flex items-baseline gap-3">
-      <p className="flex-1 min-w-0 flex items-baseline flex-wrap gap-x-2 text-[12px] leading-[1.5]">
+      <p
+        className="flex-1 min-w-0 flex items-baseline flex-wrap gap-x-2 text-[12px] leading-[1.5]"
+        aria-live="polite"
+        aria-atomic="true"
+        role="status"
+      >
         <span className="inline-flex items-baseline gap-1.5 text-wr-paper font-medium">
           <span
             className={`inline-block w-1.5 h-1.5 rounded-full ${dotClass}`}
@@ -196,11 +206,16 @@ export const FreshnessRow: React.FC<FreshnessRowProps> = ({
       )}
       </div>
 
-      {/* Phase narrative line */}
+      {/* Phase narrative line — separate live region so phase-change
+          narration ("Log Agent is investigating…" → "Metric Scanner is
+          correlating…") is announced independently of the freshness
+          clause. Polite to avoid interrupting the operator mid-task. */}
       {narrative && (
         <p
           className="font-editorial italic text-[12px] leading-[1.4] text-wr-text-subtle"
           data-testid="phase-narrative"
+          aria-live="polite"
+          aria-atomic="true"
         >
           {narrative}
         </p>

@@ -56,6 +56,30 @@ describe('InvestigationView polling gates (PR-G)', () => {
     expect(source).toMatch(/if\s*\(isHistorical\)\s*return;\s*let relevant/);
   });
 
+  // ── PR-H: a11y landmarks ────────────────────────────────────────
+
+  it('wraps each War Room region with role=region + aria-labelledby (PR-H)', () => {
+    // Each column (Investigator, Evidence, Navigator) must be a
+    // <section role="region"> with an sr-only heading, so screen-reader
+    // regions rotor lists them as first-class jump targets.
+    expect(source).toMatch(/aria-labelledby=['"]wr-region-label-investigator['"]/);
+    expect(source).toMatch(/aria-labelledby=['"]wr-region-label-evidence['"]/);
+    expect(source).toMatch(/aria-labelledby=['"]wr-region-label-navigator['"]/);
+    expect(source).toMatch(/id=['"]wr-region-label-investigator['"]/);
+    expect(source).toMatch(/id=['"]wr-region-label-evidence['"]/);
+    expect(source).toMatch(/id=['"]wr-region-label-navigator['"]/);
+  });
+
+  it('uses semantic <section> (not <div>) for the region wrappers', () => {
+    // Grep that the role=region attribute sits on a section element
+    // so the underlying semantic role is correct even if aria-labelledby
+    // is stripped by a future refactor.
+    const investigatorSection = source.match(
+      /<section[^>]*wr-region-investigator[^>]*role=['"]region['"]/s,
+    );
+    expect(investigatorSection).not.toBeNull();
+  });
+
   it('keeps the initial fetch so deep-links still load data', () => {
     // Critical: we DO want the first fetch so a user opening an
     // archived incident sees its findings — just not the recurring
