@@ -37,10 +37,11 @@ cd "$ROOT"
 # the cyan. Scoping lint-to-new-files keeps PR 1's foundation green while
 # still guarding the editorial components as they land.
 TARGETS=(
+  "frontend/src/components/Investigation/Investigator.tsx"         # PR 3 (cyan removed)
   "frontend/src/components/Investigation/Verdict.tsx"              # PR 2
   "frontend/src/components/Investigation/StatusStrip.tsx"          # PR 2
   "frontend/src/components/Investigation/PatientZeroMetadata.tsx"  # PR 2b
-  "frontend/src/components/Investigation/InvestigationLog.tsx"     # PR 3 (not yet present)
+  "frontend/src/components/Investigation/InvestigationLog.tsx"     # PR 3
 )
 
 EXISTING=()
