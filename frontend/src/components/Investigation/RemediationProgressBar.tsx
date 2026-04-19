@@ -1,11 +1,22 @@
 import React from 'react';
-import type { DiagnosticPhase, TokenUsage } from '../../types';
+import type {
+  DiagnosticPhase,
+  TokenUsage,
+  BudgetTelemetry,
+  SelfConsistencySummary,
+} from '../../types';
+import { BudgetPill } from './BudgetPill';
+import { SelfConsistencyBadge } from './SelfConsistencyBadge';
 
 interface RemediationProgressBarProps {
   phase: DiagnosticPhase | null;
   confidence: number;
   tokenUsage: TokenUsage[];
   wsConnected: boolean;
+  // Relocated from Investigator.tsx in PR 4 — session-wide telemetry
+  // belongs in the session-wide footer, not the left panel.
+  budget?: BudgetTelemetry | null;
+  selfConsistency?: SelfConsistencySummary | null;
 }
 
 interface StepDef {
@@ -52,7 +63,9 @@ const RemediationProgressBar: React.FC<RemediationProgressBarProps> = ({
   phase,
   confidence,
   tokenUsage,
-  wsConnected,
+  wsConnected: _wsConnected,
+  budget = null,
+  selfConsistency = null,
 }) => {
   const activeIdx = getActiveStepIndex(phase);
   const totalTokens = (tokenUsage || []).reduce((sum, t) => sum + t.total_tokens, 0);
@@ -109,6 +122,35 @@ const RemediationProgressBar: React.FC<RemediationProgressBarProps> = ({
             })}
           </div>
         </div>
+
+        {/* Session-wide telemetry (relocated from left panel in PR 4).
+            Rendered only when the backend emits them — never placeholders. */}
+        {(budget || selfConsistency) && (
+          <div
+            className="shrink-0 flex items-center gap-2 pl-8 border-l border-wr-border"
+            data-testid="session-telemetry"
+          >
+            {budget && (
+              <BudgetPill
+                toolCalls={{
+                  used: budget.tool_calls_used,
+                  max: budget.tool_calls_max,
+                }}
+                llmUsd={{
+                  used: budget.llm_usd_used,
+                  max: budget.llm_usd_max,
+                }}
+              />
+            )}
+            {selfConsistency && (
+              <SelfConsistencyBadge
+                nRuns={selfConsistency.n_runs}
+                agreedCount={selfConsistency.agreed_count}
+                penaltyPct={selfConsistency.penalty_pct}
+              />
+            )}
+          </div>
+        )}
 
         {/* Right section: Resolution CTA - matches reference */}
         <div className="shrink-0 flex items-center gap-4 pl-8 border-l border-wr-border">

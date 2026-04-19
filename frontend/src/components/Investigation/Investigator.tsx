@@ -115,15 +115,18 @@ const Investigator: React.FC<InvestigatorProps> = ({
       {/* Hypothesis Scoreboard removed — its role is now owned by
           <Verdict /> above, promoted to a hero slot under Patient Zero.
           See docs/design/left-panel-editorial.md. */}
-      {/* Feedback row (Task 4.13) — user labels the outcome; priors update server-side.
-          Gating on phase === 'complete' is scheduled for PR 4. */}
-      <FeedbackRow
-        runId={`investigation-${sessionId}`}
-        submit={async (payload) => {
-          await submitInvestigationFeedback(payload);
-          return { ok: true };
-        }}
-      />
+      {/* Feedback row — gated on terminal phases. Asking "was this
+          right?" during minute 2 of an investigation is premature;
+          only surface once there's something to give feedback on. */}
+      {(status?.phase === 'complete' || status?.phase === 'diagnosis_complete') && (
+        <FeedbackRow
+          runId={`investigation-${sessionId}`}
+          submit={async (payload) => {
+            await submitInvestigationFeedback(payload);
+            return { ok: true };
+          }}
+        />
+      )}
     </div>
   );
 };
