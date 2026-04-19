@@ -232,6 +232,73 @@ describe('FreshnessRow', () => {
     expect(screen.getByTestId('freshness-cost').textContent).toMatch(/\$0\.087/);
   });
 
+  // ── PR-E: signature-match pill + stop-reason line ───────────────
+
+  it('renders a signature-match pill when status.signature_match is present', () => {
+    const s = status({
+      signature_match: {
+        pattern_name: 'oom_killer_v2',
+        confidence: 0.87,
+        summary: 'Container OOM-killed within 30s of a memory spike.',
+        remediation: 'Raise memory limits or lower GOGC.',
+      },
+    });
+    render(<Harness status={s} />);
+    const pill = screen.getByTestId('signature-match-pill');
+    expect(pill.textContent).toMatch(/oom_killer_v2/);
+    expect(pill.textContent).toMatch(/87%/);
+  });
+
+  it('omits the pill when signature_match is null', () => {
+    render(<Harness />);
+    expect(screen.queryByTestId('signature-match-pill')).toBeNull();
+  });
+
+  it('renders a stop-reason line when diagnosis_stop_reason is set', () => {
+    const s = status({
+      phase: 'complete',
+      diagnosis_stop_reason: 'high_confidence_no_challenges',
+    });
+    render(<Harness status={s} now={Date.parse('2026-04-19T00:01:00Z')} />);
+    expect(screen.getByTestId('freshness-stop-reason').textContent).toMatch(
+      /Confident verdict; no open challenges/,
+    );
+  });
+
+  it('maps signature_matched_<name> stop reason to a human phrase', () => {
+    const s = status({
+      phase: 'complete',
+      diagnosis_stop_reason: 'signature_matched_oom_killer_v2',
+    });
+    render(<Harness status={s} now={Date.parse('2026-04-19T00:01:00Z')} />);
+    expect(screen.getByTestId('freshness-stop-reason').textContent).toMatch(
+      /Known pattern matched/,
+    );
+  });
+
+  it('suppresses stop-reason line for "cancelled" (phase dot already says so)', () => {
+    const s = status({
+      phase: 'cancelled',
+      diagnosis_stop_reason: 'cancelled',
+    });
+    render(<Harness status={s} />);
+    expect(screen.queryByTestId('freshness-stop-reason')).toBeNull();
+  });
+
+  it('suppresses stop-reason line for "error" (handled by error banner)', () => {
+    const s = status({
+      phase: 'error',
+      diagnosis_stop_reason: 'error',
+    });
+    render(<Harness status={s} />);
+    expect(screen.queryByTestId('freshness-stop-reason')).toBeNull();
+  });
+
+  it('omits stop-reason line when reason is null (investigation still running)', () => {
+    render(<Harness />);
+    expect(screen.queryByTestId('freshness-stop-reason')).toBeNull();
+  });
+
   // ── PR-H: a11y live regions ─────────────────────────────────────
 
   it('marks the clause line as a polite live region (screen-reader announcements)', () => {

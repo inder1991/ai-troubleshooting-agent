@@ -496,6 +496,13 @@ export interface V4SessionStatus {
   self_consistency?: SelfConsistencySummary;
   /** Winning-hypothesis critic dissent (Task 2.6 + UI Task 4.16). */
   winner_critic_dissent?: WinnerCriticDissent | null;
+  /** PR-E — explicit answer to "why did the investigation stop?".
+   *  Backend enum: max_rounds_reached | high_confidence_no_challenges |
+   *  coverage_saturated_no_new_signal | planner_empty |
+   *  signature_matched_<name> | cancelled | error. Null while running. */
+  diagnosis_stop_reason?: string | null;
+  /** PR-E — the signature library's match for this incident. */
+  signature_match?: SignatureMatch | null;
   created_at: string;
   updated_at: string;
   capability?: CapabilityType;
@@ -513,6 +520,14 @@ export interface SelfConsistencySummary {
   n_runs: number;
   agreed_count: number;
   penalty_pct: number;
+}
+
+export interface SignatureMatch {
+  pattern_name: string;
+  confidence: number;     // 0..1
+  matched_at_ms?: number;
+  summary?: string;
+  remediation?: string;
 }
 
 export interface WinnerCriticDissent {

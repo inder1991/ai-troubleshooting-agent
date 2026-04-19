@@ -4,6 +4,7 @@ import { synthesizePhaseNarrative } from './phaseNarrative';
 import { useIncidentLifecycle } from '../../contexts/IncidentLifecycleContext';
 import { useAppControl } from '../../contexts/AppControlContext';
 import SessionControlsRow from './SessionControlsRow';
+import SignatureMatchPill from './SignatureMatchPill';
 
 /**
  * FreshnessRow — the always-on second line of the War Room banner
@@ -45,6 +46,32 @@ function formatTokens(tokens: number): string {
     return `${(tokens / 1000).toFixed(1)}k tokens`;
   }
   return `${tokens} tokens`;
+}
+
+/**
+ * PR-E — translate a backend diagnosis_stop_reason enum into an
+ * editorial one-liner. The enum values are deliberately technical
+ * (max_rounds_reached, coverage_saturated_no_new_signal, etc.) so
+ * they read fine in logs and metrics but are hostile as UI copy.
+ * Here we turn them into calm, human-readable prose.
+ *
+ * Returns null when the investigation is still running (stop reason
+ * not yet set) or when the reason maps to phase state already shown
+ * elsewhere (e.g. `cancelled` — the freshness dot already says so).
+ */
+function formatStopReason(reason: string | null | undefined): string | null {
+  if (!reason) return null;
+  if (reason === 'cancelled' || reason === 'error') return null;
+  if (reason.startsWith('signature_matched_')) {
+    return 'Known pattern matched — stopped early.';
+  }
+  const map: Record<string, string> = {
+    max_rounds_reached: 'Reached the round budget without converging.',
+    high_confidence_no_challenges: 'Confident verdict; no open challenges.',
+    coverage_saturated_no_new_signal: 'Coverage saturated — no new signal.',
+    planner_empty: 'Planner had nothing left to dispatch.',
+  };
+  return map[reason] ?? null;
 }
 
 function formatClosedAgo(updatedAtMs: number | null): string {
@@ -192,6 +219,12 @@ export const FreshnessRow: React.FC<FreshnessRowProps> = ({
             · {costClause}
           </span>
         )}
+
+        {/* PR-E — signature-match pill hugs the clause line. Pattern
+            name + confidence live here; details expand on hover. */}
+        {status?.signature_match && (
+          <SignatureMatchPill match={status.signature_match} />
+        )}
       </p>
 
       {/* Session controls — always-on right-aligned cluster. Copy link
@@ -220,6 +253,26 @@ export const FreshnessRow: React.FC<FreshnessRowProps> = ({
           {narrative}
         </p>
       )}
+
+      {/* PR-E — stop-reason line. Backend has emitted
+          diagnosis_stop_reason for months; the UI never rendered it,
+          so "why did the investigation end?" was invisible to
+          operators. Surface it as a small italic line beneath the
+          phase narrative, only when the investigation has actually
+          stopped and the reason maps to a human-readable phrase. */}
+      {(() => {
+        const stopPhrase = formatStopReason(status?.diagnosis_stop_reason);
+        if (!stopPhrase) return null;
+        return (
+          <p
+            className="font-editorial italic text-[12px] leading-[1.4] text-wr-text-subtle"
+            data-testid="freshness-stop-reason"
+            aria-live="polite"
+          >
+            {stopPhrase}
+          </p>
+        );
+      })()}
     </div>
   );
 };
