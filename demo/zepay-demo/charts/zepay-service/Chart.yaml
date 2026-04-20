@@ -1,0 +1,15 @@
+apiVersion: v2
+name: zepay-service
+description: |
+  Library-style chart used by each of the 8 Go services + the Java
+  payment-service. A service's release specifies its name, image,
+  port, replica count, and env vars; this chart renders the Deployment,
+  Service, and ServiceMonitor.
+
+  Installed one release per service:
+    helm upgrade --install api-gateway ./charts/zepay-service \
+      -f services/api-gateway/values.yaml
+
+type: application
+version: 0.1.0
+appVersion: "demo-0.1.0"

@@ -1,0 +1,9 @@
+name: inventory-service
+image:
+  repository: zepay/inventory-service
+  tag: demo-0.1.0
+port: 8086
+env:
+- name: PG_SCHEMA
+  value: inventory
+

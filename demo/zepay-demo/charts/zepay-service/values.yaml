@@ -1,0 +1,33 @@
+# Defaults applied to every service release. Per-service values.yaml
+# overrides `name`, `image`, `port`, `env`, and optionally `resources`
+# + `replicas`.
+
+name: ""          # REQUIRED (per-release)
+namespace: payments-prod
+
+image:
+  repository: ""  # REQUIRED (per-release)
+  tag:        demo-0.1.0
+  pullPolicy: IfNotPresent
+
+port: 8080
+
+replicas: 2
+
+resources:
+  requests: {cpu: 100m, memory: 128Mi}
+  limits:   {cpu: 300m, memory: 256Mi}
+
+env: []
+# Example:
+#   env:
+#   - name: CHECKOUT_URL
+#     value: http://checkout-service:8083
+#   - name: PG_SCHEMA
+#     value: wallet
+
+serviceMonitor:
+  enabled: true
+  interval: 15s
+  labels:
+    release: kube-prometheus-stack

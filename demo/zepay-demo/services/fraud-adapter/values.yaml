@@ -1,0 +1,6 @@
+name: fraud-adapter
+image:
+  repository: zepay/fraud-adapter
+  tag: demo-0.1.0
+port: 8085
+

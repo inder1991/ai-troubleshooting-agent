@@ -1,0 +1,6 @@
+name: auth-service
+image:
+  repository: zepay/auth-service
+  tag: demo-0.1.0
+port: 8081
+

@@ -1,0 +1,9 @@
+name: api-gateway
+image:
+  repository: zepay/api-gateway
+  tag: demo-0.1.0
+port: 8080
+env:
+- name: CHECKOUT_URL
+  value: http://checkout-service:8083
+

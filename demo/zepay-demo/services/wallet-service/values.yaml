@@ -1,0 +1,9 @@
+name: wallet-service
+image:
+  repository: zepay/wallet-service
+  tag: demo-0.1.0
+port: 8087
+env:
+- name: PG_SCHEMA
+  value: wallet
+
