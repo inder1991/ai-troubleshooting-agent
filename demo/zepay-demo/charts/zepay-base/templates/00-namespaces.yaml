@@ -1,0 +1,25 @@
+{{/*
+  Two namespaces:
+    - payments-prod  holds the 9 microservices + postgres + redis + cronjob
+    - demo-ctrl      holds the demo-controller + k6 traffic generator
+
+  Both are opted into Istio sidecar injection (`istio-injection=enabled`)
+  so every request between services gets a sidecar and a trace span.
+  Without this, tracing_agent would see no spans and the demo narrative
+  collapses.
+*/}}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.namespaces.scenario }}
+  labels:
+    istio-injection: enabled
+    zepay.demo/role: scenario
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.namespaces.control }}
+  labels:
+    istio-injection: enabled
+    zepay.demo/role: control

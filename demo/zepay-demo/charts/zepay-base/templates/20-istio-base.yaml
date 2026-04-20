@@ -1,0 +1,27 @@
+{{/*
+  Baseline Istio config:
+    - STRICT mTLS for payments-prod (realistic production posture).
+    - A Gateway that k6 + external curl use to reach api-gateway.
+    - NO VirtualService for fault-injection here — that manifest lives
+      at demo/zepay-demo/istio/inventory-timeout-fault.yaml and is
+      applied on demand by the demo-controller (storyboard §4 + §5).
+*/}}
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: default-mtls
+  namespace: {{ .Values.namespaces.scenario }}
+spec:
+  mtls:
+    mode: {{ if .Values.istio.strictMTLS }}STRICT{{ else }}PERMISSIVE{{ end }}
+---
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: {{ .Values.istio.gatewayName }}
+  namespace: {{ .Values.namespaces.scenario }}
+spec:
+  selector: {istio: ingressgateway}
+  servers:
+  - port:  {number: 80, name: http, protocol: HTTP}
+    hosts: [{{ .Values.istio.gatewayHost | quote }}]
