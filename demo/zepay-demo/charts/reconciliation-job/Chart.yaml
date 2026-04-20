@@ -1,0 +1,10 @@
+apiVersion: v2
+name: reconciliation-job
+description: |
+  Zepay demo reconciliation-job — nightly CronJob + long-running
+  Deployment variant exposing /demo/run-now for mid-demo triggers.
+  Houses Bug #3 (the $0.02 auto-round threshold that silently
+  swallows duplicate-charge signals).
+type: application
+version: 0.1.0
+appVersion: "demo-0.1.0"

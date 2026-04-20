@@ -1,0 +1,36 @@
+{{- if .Values.cronjob.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: reconciliation-job
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: reconciliation-job
+    zepay.demo/role: scenario-service
+spec:
+  schedule: {{ .Values.cronjob.schedule | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: reconciliation-job
+            zepay.demo/role: scenario-service
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: reconciliation-job
+            image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+            imagePullPolicy: {{ .Values.image.pullPolicy }}
+            env:
+            - {name: RECONCILE_MODE, value: cronjob}
+            - {name: RECONCILE_AUTO_ROUND_USD, value: {{ .Values.reconcileAutoRoundUsd | quote }}}
+            - {name: RECONCILE_MINOR_DRIFT_USD, value: {{ .Values.reconcileMinorDriftUsd | quote }}}
+            envFrom:
+            - secretRef: {name: zepay-postgres-auth}
+            - configMapRef: {name: reconciliation-job-env, optional: true}
+            resources: {{ toYaml .Values.cronjob.resources | nindent 14 }}
+{{- end }}
