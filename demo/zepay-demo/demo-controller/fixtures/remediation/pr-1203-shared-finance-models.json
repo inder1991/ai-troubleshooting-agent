@@ -1,0 +1,34 @@
+{
+  "pr_id": 1203,
+  "repo": "zepay/shared-finance-models",
+  "title": "Replace double with BigDecimal; deprecate .plus() variant without currency scale",
+  "author": "ai-troubleshooting-workflow",
+  "base": "main",
+  "head": "fix/pr-k4-money-bigdecimal",
+  "causal_role": "contributing",
+  "group": "must_fix_to_prevent_recurrence",
+  "changed_lines": {"added": 47, "removed": 22},
+  "semver_impact": "breaking",
+  "files": [
+    {
+      "file_path": "src/main/java/com/zepay/finance/Money.java",
+      "language": "java",
+      "diff": "@@ -1,43 +1,58 @@\n package com.zepay.finance;\n \n+import java.math.BigDecimal;\n+import java.math.RoundingMode;\n import java.util.Objects;\n \n public final class Money {\n \n-    private final double amount;     // \u2190 the IEEE-754 sin\n+    private final BigDecimal amount;   // exact decimal, scaled per currency\n     private final Currency currency;\n \n+    /** Construction MUST pre-scale to the currency's minor-unit precision. */\n     public Money(double amount, Currency currency) {\n-        this.amount = amount;\n+        this(BigDecimal.valueOf(amount), currency);\n+    }\n+\n+    public Money(BigDecimal amount, Currency currency) {\n+        Objects.requireNonNull(amount);\n+        this.amount = amount.setScale(currency.scale(), RoundingMode.UNNECESSARY);\n         this.currency = Objects.requireNonNull(currency);\n     }\n \n-    public double amount()    { return amount; }\n+    public BigDecimal amount() { return amount; }\n     public Currency currency() { return currency; }\n \n-    /** \u2190 Bug #2 lived here. Fixed: exact decimal add, no drift. */\n     public Money plus(Money other) {\n         if (other.currency != this.currency) {\n             throw new IllegalArgumentException(\n                 \"cannot add \" + currency + \" to \" + other.currency);\n         }\n-        return new Money(this.amount + other.amount, this.currency);\n+        return new Money(this.amount.add(other.amount), this.currency);\n     }\n \n     public long toMinorUnits() {\n-        return (long) (this.amount * 100.0);\n+        // BigDecimal preserves scale, so unscaled value * 10^(2-scale) is exact.\n+        return this.amount\n+            .movePointRight(currency.scale())\n+            .longValueExact();\n     }\n }\n"
+    },
+    {
+      "file_path": "src/main/java/com/zepay/finance/Currency.java",
+      "language": "java",
+      "diff": "@@ -1,7 +1,17 @@\n package com.zepay.finance;\n \n public enum Currency {\n-    USD,\n-    EUR,\n-    JPY\n+    USD(2),\n+    EUR(2),\n+    JPY(0);\n+\n+    private final int scale;\n+    Currency(int scale) { this.scale = scale; }\n+    public int scale() { return scale; }\n }\n"
+    }
+  ],
+  "verification": {
+    "downstream_consumers_tested": [
+      "payment-service",
+      "reconciliation-job (python mirror)",
+      "wallet-service (no direct consumer; interface is amount_cents long)"
+    ],
+    "downstream_status": "all 14 consumers' test suites pass against Money 4.3.0"
+  },
+  "rollback_plan": "pin consumer POMs to shared-finance-models:4.2.0-demo; revert. Ledger DB schema unchanged.",
+  "commit_sha": "3f2b91c0d8a4"
+}

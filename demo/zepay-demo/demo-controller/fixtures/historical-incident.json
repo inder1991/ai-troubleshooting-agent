@@ -1,0 +1,23 @@
+{
+  "incident_id": "INC-2026-0211-checkout-cart-sync-drift",
+  "service_name": "cart-service",
+  "title": "Cart items out of sync between Redis and Postgres projection",
+  "phase": "complete",
+  "confidence": 86,
+  "created_at": "2026-02-11T14:22:00Z",
+  "updated_at": "2026-02-11T18:14:00Z",
+  "resolved_at": "2026-02-11T18:14:00Z",
+  "duration_minutes": 232,
+  "winning_hypothesis": {
+    "pattern_name": "stale_read_model_after_cache_bust",
+    "confidence": 0.88,
+    "summary": "cart-service wrote directly to Redis without invalidating the Postgres projection; session-service served stale reads for ~30s per cart mutation."
+  },
+  "fix_prs": [
+    {"repo": "zepay/cart-service", "pr": 7102, "causal_role": "root_cause"}
+  ],
+  "affected_customers": 162,
+  "dollar_exposure_usd": 0,
+  "coverage_gaps": [],
+  "notes": "Seeded by demo-controller into the workflow-backend archive so the CXO demo can say 'this is the 3rd checkout-area incident this quarter'."
+}

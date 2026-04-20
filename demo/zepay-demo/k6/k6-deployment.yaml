@@ -1,0 +1,42 @@
+# k6 traffic generator — one Deployment in demo-ctrl namespace.
+# Script ships in a ConfigMap; a restart is enough to change RPS
+# (demo-controller patches the pod's env RPS then bounces it).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: k6-script
+  namespace: demo-ctrl
+data:
+  traffic.js: |-
+    // Content kept in a separate file for version control; paste from
+    // demo/zepay-demo/k6/traffic.js when applying.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: k6-traffic
+  namespace: demo-ctrl
+  labels: {app: k6-traffic}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: k6-traffic}}
+  template:
+    metadata:
+      labels: {app: k6-traffic}
+    spec:
+      containers:
+      - name: k6
+        image: grafana/k6:0.51.0
+        args: ["run", "/scripts/traffic.js"]
+        env:
+        - {name: GATEWAY_URL, value: "http://api-gateway.payments-prod.svc.cluster.local:8080"}
+        - {name: RPS,         value: "50"}
+        - {name: DURATION,    value: "24h"}
+        volumeMounts:
+        - {name: script, mountPath: /scripts}
+        resources:
+          requests: {cpu: 500m, memory: 256Mi}
+          limits:   {cpu: 1000m, memory: 512Mi}
+      volumes:
+      - name: script
+        configMap: {name: k6-script}
