@@ -1,0 +1,39 @@
+{{- if .Values.redis.enabled }}
+{{/*
+  Plain Redis, no persistence, no auth. The only consumer in the
+  scenario is cart-service (session/cart state). Anything else that
+  needs ephemeral state uses Postgres.
+*/}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: {{ .Values.namespaces.scenario }}
+  labels: {app: redis}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: redis}}
+  template:
+    metadata:
+      labels: {app: redis}
+    spec:
+      containers:
+      - name: redis
+        image: {{ .Values.redis.image }}
+        args: ["--save", "", "--appendonly", "no"]
+        ports: [{containerPort: 6379, name: redis}]
+        resources: {{ toYaml .Values.redis.resources | nindent 10 }}
+        readinessProbe:
+          exec: {command: [redis-cli, ping]}
+          periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: {{ .Values.namespaces.scenario }}
+  labels: {app: redis}
+spec:
+  selector: {app: redis}
+  ports: [{name: redis, port: 6379, targetPort: 6379}]
+{{- end }}

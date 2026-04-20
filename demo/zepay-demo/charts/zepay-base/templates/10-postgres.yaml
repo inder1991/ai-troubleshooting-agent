@@ -1,0 +1,135 @@
+{{- if .Values.postgres.enabled }}
+{{/*
+  Single Postgres instance with 6 per-service schemas. Realistic
+  microservice pattern (separate schemas, separate owners, shared
+  physical instance) and cheap on a laptop. In production each
+  schema would typically live on its own managed instance; we're
+  not modeling that here.
+
+  Password comes from the Helm value. Production must override.
+*/}}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: zepay-postgres-auth
+  namespace: {{ .Values.namespaces.scenario }}
+type: Opaque
+stringData:
+  POSTGRES_USER: zepay
+  POSTGRES_PASSWORD: {{ .Values.postgres.password | quote }}
+  POSTGRES_DB: zepay
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: zepay-postgres-init
+  namespace: {{ .Values.namespaces.scenario }}
+data:
+  init.sql: |
+    -- Per-service schemas. Each microservice has read+write on its own
+    -- schema; the reconciliation-job has read-only on ledger + wallet.
+    -- Grants are set after the demo services deploy (PR-K3) so this
+    -- file only creates the schemas.
+    {{- range .Values.postgres.schemas }}
+    CREATE SCHEMA IF NOT EXISTS {{ . }};
+    {{- end }}
+
+    -- Core tables used in the storyboard narrative. Kept minimal: every
+    -- additional column is one more thing the service code has to mock
+    -- before we can move on.
+
+    CREATE TABLE IF NOT EXISTS wallet.balances (
+      customer_id     TEXT PRIMARY KEY,
+      balance_cents   BIGINT NOT NULL DEFAULT 0,
+      currency        TEXT   NOT NULL DEFAULT 'USD',
+      updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+
+    CREATE TABLE IF NOT EXISTS ledger.txns (
+      txn_id          TEXT PRIMARY KEY,
+      customer_id     TEXT NOT NULL,
+      amount_cents    BIGINT NOT NULL,
+      currency        TEXT   NOT NULL,
+      direction       TEXT   NOT NULL CHECK (direction IN ('debit','credit')),
+      idempotency_key TEXT,
+      created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+    -- Pre-fix there is NO UNIQUE constraint on idempotency_key. That is
+    -- the data-model half of Bug #1. The fix in PR-K4 adds it.
+    CREATE INDEX IF NOT EXISTS ledger_txns_customer_ts_idx
+      ON ledger.txns (customer_id, created_at DESC);
+
+    CREATE TABLE IF NOT EXISTS inventory.items (
+      order_id     TEXT PRIMARY KEY,
+      items        JSONB NOT NULL,
+      reserved_at  TIMESTAMPTZ
+    );
+
+    CREATE TABLE IF NOT EXISTS cart.carts (
+      cart_id      TEXT PRIMARY KEY,
+      customer_id  TEXT NOT NULL,
+      items        JSONB NOT NULL,
+      updated_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+
+    CREATE TABLE IF NOT EXISTS notif.outbox (
+      msg_id       TEXT PRIMARY KEY,
+      customer_id  TEXT NOT NULL,
+      kind         TEXT NOT NULL,
+      payload      JSONB NOT NULL,
+      sent_at      TIMESTAMPTZ
+    );
+
+    CREATE TABLE IF NOT EXISTS auth.tokens (
+      token_id     TEXT PRIMARY KEY,
+      customer_id  TEXT NOT NULL,
+      issued_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+      expires_at   TIMESTAMPTZ NOT NULL
+    );
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: {{ .Values.namespaces.scenario }}
+  labels: {app: postgres}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: postgres}}
+  template:
+    metadata:
+      labels: {app: postgres}
+      annotations:
+        # Prometheus scrapes its own /metrics via a sidecar exporter in
+        # production; for the demo we don't instrument Postgres directly
+        # — the storyboard doesn't reference postgres-level metrics.
+        prometheus.io/scrape: "false"
+    spec:
+      containers:
+      - name: postgres
+        image: {{ .Values.postgres.image }}
+        envFrom: [{secretRef: {name: zepay-postgres-auth}}]
+        ports: [{containerPort: 5432, name: pg}]
+        resources: {{ toYaml .Values.postgres.resources | nindent 10 }}
+        volumeMounts:
+        - {name: initsql, mountPath: /docker-entrypoint-initdb.d}
+        - {name: data,    mountPath: /var/lib/postgresql/data}
+        readinessProbe:
+          exec: {command: [pg_isready, -U, zepay, -d, zepay]}
+          periodSeconds: 5
+      volumes:
+      - name: initsql
+        configMap: {name: zepay-postgres-init}
+      - name: data
+        emptyDir: {sizeLimit: {{ .Values.postgres.storage }}}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: {{ .Values.namespaces.scenario }}
+  labels: {app: postgres}
+spec:
+  selector: {app: postgres}
+  ports: [{name: pg, port: 5432, targetPort: 5432}]
+{{- end }}

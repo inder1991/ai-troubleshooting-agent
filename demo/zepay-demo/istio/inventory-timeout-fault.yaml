@@ -1,0 +1,46 @@
+# Istio fault-injection manifest — applied on demand by the demo-controller,
+# NOT by the Helm chart. Keeps the cluster clean between demo runs: absent
+# until the operator clicks "Inject Fault", removed on "Reset".
+#
+# What this does (storyboard §4, repeated here for on-disk clarity):
+#
+#   - For requests arriving at inventory-service whose path starts with
+#     /v1/inventory/reserve, Istio's sidecar adds a 15-second delay
+#     before forwarding, on 20% of requests.
+#   - Those requests then time out upstream in payment-service (Spring's
+#     default HTTP client is configured at 15s read-timeout), which
+#     raises UpstreamTimeoutException, which triggers @Retryable,
+#     which re-runs the entire PaymentExecutor.execute() — including
+#     the already-successful ledger.debit() call. Customer is debited
+#     twice. That is the bug reproducing in real code.
+#
+# Why 20% and not 100%:
+#   At 100% every transaction fails, which is too loud — error rate
+#   would spike visibly, some real production dashboards WOULD alert,
+#   the narrative's "everything looks green" beat collapses. At 20%,
+#   the signal is buried in 80% healthy traffic, which is exactly the
+#   shape of the real incident.
+#
+# Apply:  kubectl apply -f demo/zepay-demo/istio/inventory-timeout-fault.yaml
+# Remove: kubectl delete -f demo/zepay-demo/istio/inventory-timeout-fault.yaml
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: inventory-timeout-fault
+  namespace: payments-prod
+  labels:
+    zepay.demo/managed-by: demo-controller
+    zepay.demo/purpose: "reproduces the Istio 15s timeout that triggers Bug #1 in payment-service"
+spec:
+  hosts: [inventory-service]
+  http:
+  - match:
+    - uri: {prefix: /v1/inventory/reserve}
+    fault:
+      delay:
+        percentage: {value: 20.0}
+        fixedDelay: 15s
+    route:
+    - destination:
+        host: inventory-service
+        port: {number: 8086}

@@ -1,0 +1,31 @@
+apiVersion: v2
+name: zepay-base
+description: |
+  Base infrastructure for the Zepay fintech demo scenario.
+
+  This chart provisions ONLY the foundation that the 9 demo microservices
+  and the demo-controller will depend on:
+    - payments-prod + demo-ctrl namespaces
+    - Postgres (1 instance, 6 schemas)
+    - Redis (1 instance)
+    - Istio PeerAuthentication + Gateway (no fault-injection — that's
+      applied on demand by the demo-controller)
+    - Prometheus ServiceMonitor CRDs for each planned service
+    - RBAC: a read-only ServiceAccount + ClusterRole the workflow
+      backend uses when k8s_agent queries the cluster.
+
+  The microservices themselves ship in separate Helm releases per
+  service (PR-K3, K4, K5) and depend on this chart being installed.
+
+type: application
+version: 0.1.0
+appVersion: "demo-0.1.0"
+
+keywords:
+  - demo
+  - fintech
+  - zepay
+
+maintainers:
+  - name: ai-troubleshooting-systetm
+    url: https://github.com/inder1991/ai-troubleshooting-agent

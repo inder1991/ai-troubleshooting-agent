@@ -1,0 +1,59 @@
+# Zepay demo — base infrastructure values.
+#
+# The numbers here were chosen from the resource-envelope table in
+# docs/plans/2026-04-19-zepay-fintech-demo-scenario.md §12. Keep this
+# file and that doc in sync.
+
+namespaces:
+  scenario: payments-prod
+  control:  demo-ctrl
+
+postgres:
+  enabled: true
+  image:   postgres:16-alpine
+  storage: 2Gi
+  # Password is a demo-only placeholder. Real deployments MUST override
+  # via --set postgres.password=... or a sealed secret; never commit.
+  password: zepay-demo-password
+  resources:
+    requests: {cpu: 250m, memory: 512Mi}
+    limits:   {cpu: 500m, memory: 1Gi}
+
+  # Six schemas, one per service that holds state. See §7 of the
+  # storyboard for the service→schema mapping.
+  schemas:
+    - auth
+    - wallet
+    - ledger
+    - inventory
+    - cart
+    - notif
+
+redis:
+  enabled: true
+  image:   redis:7-alpine
+  resources:
+    requests: {cpu: 100m, memory: 128Mi}
+    limits:   {cpu: 200m, memory: 256Mi}
+
+istio:
+  # Baseline Istio posture for payments-prod. Fault-injection VirtualServices
+  # are NOT applied here — the demo-controller applies them on demand so
+  # the cluster is clean between demo runs (storyboard §4).
+  strictMTLS:   true
+  gatewayName:  zepay-gateway
+  gatewayHost:  "*.zepay.demo.local"
+
+prometheus:
+  # The nine services ship their own ServiceMonitor manifests in PR-K3/K4.
+  # This chart only creates a namespace-level discovery label and confirms
+  # the `monitoring` namespace is expected to exist.
+  expectedMonitoringNamespace: monitoring
+  serviceMonitorLabel: {release: kube-prometheus-stack}
+
+workflowBackend:
+  # The workflow backend (runs on your laptop) uses this SA's token
+  # to talk to the cluster via kubectl port-forward. We scope it
+  # READ-ONLY on payments-prod + demo-ctrl. No write perms, ever.
+  serviceAccountName: workflow-backend-reader
+  clusterRoleName:    zepay-demo-readonly
