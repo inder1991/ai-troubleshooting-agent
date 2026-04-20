@@ -1,0 +1,38 @@
+namespace: payments-prod
+
+image:
+  repository: zepay/reconciliation-job
+  tag: demo-0.1.0
+  pullPolicy: IfNotPresent
+
+# Nightly CronJob — matches the "3am recon" narrative in storyboard §1.2.
+# Cluster TZ-dependent; the spec is UTC. For a demo laptop in most US
+# timezones, 3am UTC is late-evening the night before — fine.
+cronjob:
+  enabled: true
+  schedule: "0 3 * * *"
+  resources:
+    requests: {cpu: 250m, memory: 256Mi}
+    limits:   {cpu: 500m, memory: 512Mi}
+
+# Long-running /demo/run-now deployment — the demo-controller calls it
+# to trigger a reconcile mid-demo without waiting for the CronJob.
+web:
+  enabled: true
+  replicas: 1
+  port: 8090
+  resources:
+    requests: {cpu: 100m, memory: 128Mi}
+    limits:   {cpu: 300m, memory: 256Mi}
+  serviceMonitor:
+    enabled: true
+    interval: 15s
+    labels:
+      release: kube-prometheus-stack
+
+# Bug #3's threshold — $0.02 by default (demo state). The fix PR in
+# the RemediationCampaign sets this to 0.001.
+reconcileAutoRoundUsd: "0.02"
+reconcileMinorDriftUsd: "1.00"
+
+env: []

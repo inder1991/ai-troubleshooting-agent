@@ -1,0 +1,3 @@
+# Minimal deps — the bug is plain arithmetic + a stdlib HTTP server.
+psycopg[binary]==3.2.1
+prometheus-client==0.20.0
