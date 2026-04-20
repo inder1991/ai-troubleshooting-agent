@@ -1,0 +1,39 @@
+spring:
+  application:
+    name: payment-service
+  datasource:
+    url: jdbc:postgresql://${PG_HOST:postgres}:${PG_PORT:5432}/${PG_DB:zepay}?currentSchema=${PG_SCHEMA:ledger}
+    username: ${PG_USER:zepay}
+    password: ${PG_PASSWORD:zepay-demo-password}
+    hikari:
+      maximum-pool-size: 10
+      connection-timeout: 5000
+
+server:
+  port: ${PORT:8084}
+
+# Actuator: /actuator/health for the k8s probes, /actuator/prometheus
+# for metrics_agent's scrape path.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  metrics:
+    tags:
+      application: payment-service
+      namespace: payments-prod
+
+logging:
+  # Structured JSON so log_agent's cluster-by-exception-type pipeline
+  # picks up RetryAttempt=N entries uniformly with the Go services.
+  pattern:
+    console: '{"ts":"%d{yyyy-MM-dd''T''HH:mm:ss.SSSXXX}","service":"${spring.application.name}","level":"%p","logger":"%c{1}","msg":%replace(%msg){''"'',''\\"''},"trace_id":"%X{trace_id:-}","span_id":"%X{span_id:-}"}%n'
+
+zepay:
+  wallet-url:    ${ZEPAY_WALLET_URL:http://wallet-service:8087}
+  inventory-url: ${ZEPAY_INVENTORY_URL:http://inventory-service:8086}

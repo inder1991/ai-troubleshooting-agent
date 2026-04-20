@@ -1,0 +1,29 @@
+name: payment-service
+image:
+  repository: zepay/payment-service
+  tag: demo-0.1.0
+port: 8084
+
+# Spring Boot startup is heavier than Go — give it more CPU/mem up-front
+# and relax the readiness probe timing accordingly.
+replicas: 2
+resources:
+  requests: {cpu: 500m, memory: 512Mi}
+  limits:   {cpu: 1000m, memory: 1Gi}
+
+env:
+- {name: PG_SCHEMA,          value: ledger}
+- {name: ZEPAY_WALLET_URL,   value: http://wallet-service:8087}
+- {name: ZEPAY_INVENTORY_URL, value: http://inventory-service:8086}
+
+# Probes answer /livez + /readyz via HealthController.java — matches
+# the Go services so the zepay-service chart needs zero per-language
+# probe branching.
+serviceMonitor:
+  enabled: true
+  interval: 15s
+  # Spring Boot Actuator exposes Prometheus at /actuator/prometheus;
+  # override the chart default of /metrics.
+  path: /actuator/prometheus
+  labels:
+    release: kube-prometheus-stack
