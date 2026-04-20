@@ -11,6 +11,6 @@ spec:
   namespaceSelector: {matchNames: [{{ .Values.namespace }}]}
   endpoints:
   - port: http
-    path: /metrics
+    path: {{ .Values.serviceMonitor.path | default "/metrics" }}
     interval: {{ .Values.serviceMonitor.interval }}
 {{- end }}

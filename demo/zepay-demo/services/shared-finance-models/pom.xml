@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0">
+  <modelVersion>4.0.0</modelVersion>
+
+  <!--
+    shared-finance-models — Zepay demo common library.
+
+    Storyboard role:
+      Houses Bug #2 (Money.java uses `double`). Consumed by
+      payment-service and (PR-K5) reconciliation-job via a
+      Python-side mirror. Kept deliberately minimal — one class —
+      so the "one jar, one bug" story is legible to a CXO.
+  -->
+
+  <groupId>com.zepay</groupId>
+  <artifactId>shared-finance-models</artifactId>
+  <version>4.2.0-demo</version>
+  <packaging>jar</packaging>
+  <name>shared-finance-models</name>
+
+  <properties>
+    <maven.compiler.source>21</maven.compiler.source>
+    <maven.compiler.target>21</maven.compiler.target>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
+
+  <dependencies>
+    <!-- Intentionally zero runtime dependencies — the bug is in basic arithmetic. -->
+  </dependencies>
+</project>

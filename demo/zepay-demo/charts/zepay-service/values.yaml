@@ -29,5 +29,8 @@ env: []
 serviceMonitor:
   enabled: true
   interval: 15s
+  # Most services expose Prometheus at /metrics; Spring Boot's Actuator
+  # defaults to /actuator/prometheus — per-service override.
+  path: /metrics
   labels:
     release: kube-prometheus-stack
