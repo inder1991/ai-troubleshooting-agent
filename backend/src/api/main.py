@@ -240,6 +240,11 @@ def create_app() -> FastAPI:
     from .health import router as health_router
     app.include_router(health_router)
 
+    # Zepay live-cluster demo — DEMO_MODE=on gates the endpoint inside
+    # the router itself; the router can be mounted safely in prod.
+    from .routes_demo_seed import router as demo_seed_router
+    app.include_router(demo_seed_router)
+
     # Include routes
     app.include_router(pr_router, prefix="/api")
     app.include_router(router_v4)
