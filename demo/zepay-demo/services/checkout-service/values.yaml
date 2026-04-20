@@ -1,0 +1,9 @@
+name: checkout-service
+image:
+  repository: zepay/checkout-service
+  tag: demo-0.1.0
+port: 8083
+env:
+- name: PAYMENT_URL
+  value: http://payment-service:8084
+

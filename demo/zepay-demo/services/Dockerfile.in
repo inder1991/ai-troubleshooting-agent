@@ -1,0 +1,29 @@
+# Shared Dockerfile for every Go demo service. Copied (not ARGed) into
+# each service dir because Docker build-contexts are per-service.
+#
+# Usage (per service):
+#   SERVICE_NAME=api-gateway
+#   docker build -t zepay/$SERVICE_NAME:demo-0.1.0 services/$SERVICE_NAME
+#
+# Each service dir has: main.go, Dockerfile (copied from here),
+# go.mod (with `replace github.com/zepay/go-common => ../go-common`).
+
+FROM golang:1.22-alpine AS build
+WORKDIR /src
+
+# go-common lives a directory up; copy both in via the parent-aware build.
+# Services are built with `docker build services/<name>` so the COPY paths
+# below are relative to the *service* dir. The build script tars the
+# service + go-common together into the build context.
+COPY go.mod go.sum* ./
+COPY . .
+
+# go-common is expected at ./go-common inside the build context.
+# The build script handles staging.
+RUN go mod download
+RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/app ./
+
+FROM gcr.io/distroless/static-debian12:nonroot
+COPY --from=build /out/app /app
+EXPOSE 8080
+ENTRYPOINT ["/app"]

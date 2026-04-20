@@ -1,0 +1,9 @@
+name: notification-service
+image:
+  repository: zepay/notification-service
+  tag: demo-0.1.0
+port: 8088
+env:
+- name: PG_SCHEMA
+  value: notif
+

@@ -1,0 +1,6 @@
+name: cart-service
+image:
+  repository: zepay/cart-service
+  tag: demo-0.1.0
+port: 8082
+
