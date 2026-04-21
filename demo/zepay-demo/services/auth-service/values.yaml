@@ -4,3 +4,6 @@ image:
   tag: demo-0.1.0
 port: 8081
 
+env:
+- name: PG_SCHEMA
+  value: auth

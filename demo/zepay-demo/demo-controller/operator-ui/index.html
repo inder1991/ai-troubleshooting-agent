@@ -74,12 +74,25 @@
 </div>
 
 <div class="card">
-  <h2>Controls</h2>
+  <h2>Scenario Replayer (Plan 2)</h2>
+  <div class="muted" style="margin-bottom: 8px;">
+    Launches a ~90-second scripted investigation that drives the War Room
+    through all four phases with ReAct loops, critic rounds, and
+    sequential PR merges. No cluster required.
+  </div>
+  <button id="btn-scenario-start" class="primary">▶ Start Scenario Demo</button>
+  <button id="btn-scenario-approve">Approve Fix (release attestation gate)</button>
+  <button id="btn-scenario-cancel">Cancel Scenario</button>
+  <div class="muted" id="scenario-line" style="margin-top: 8px;"></div>
+</div>
+
+<div class="card">
+  <h2>Live-cluster controls</h2>
   <div class="grid">
     <button id="btn-reset">Reset</button>
     <button id="btn-traffic">Start Traffic (50 RPS)</button>
     <button id="btn-fault">Inject Fault</button>
-    <button id="btn-trigger" class="primary">Trigger Incident</button>
+    <button id="btn-trigger">Trigger Incident (live)</button>
     <button id="btn-spike">Spike RPS → 500 (60s)</button>
     <button id="btn-history">Seed History</button>
   </div>
@@ -151,6 +164,57 @@ $("btn-fault").onclick         = () => post('/demo/inject-fault');
 $("btn-trigger").onclick       = () => post('/demo/trigger-incident');
 $("btn-spike").onclick         = () => post('/demo/spike?rps=500&duration_s=60');
 $("btn-history").onclick       = () => post('/demo/historical-seed');
+
+// ── Plan 2 — scenario replayer ─────────────────────────────────────
+const BACKEND = 'http://localhost:8000';
+let scenarioSession = null;
+
+async function scenarioStart() {
+  try {
+    const r = await fetch(`${BACKEND}/api/v4/demo/scenario/start`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({scenario: 'zepay-main-incident', service_name: 'checkout-service'}),
+    });
+    const body = await r.json();
+    scenarioSession = body.session_id;
+    log({status: r.status, ...body});
+    if (scenarioSession) {
+      $("scenario-line").textContent =
+        `▶ session ${scenarioSession.slice(0,8)}… running. War Room: ` +
+        `http://localhost:5173/v4/investigation/${scenarioSession}`;
+      window.open(`http://localhost:5173/v4/investigation/${scenarioSession}`, '_blank');
+    }
+  } catch (e) { log(`scenario start failed: ${e}`); }
+}
+
+async function scenarioApprove() {
+  if (!scenarioSession) return log('no active scenario session');
+  try {
+    const r = await fetch(
+      `${BACKEND}/api/v4/demo/scenario/approve?session_id=${scenarioSession}`,
+      {method: 'POST'},
+    );
+    log({status: r.status, ...(await r.json())});
+  } catch (e) { log(`approve failed: ${e}`); }
+}
+
+async function scenarioCancel() {
+  if (!scenarioSession) return log('no active scenario session');
+  try {
+    const r = await fetch(
+      `${BACKEND}/api/v4/demo/scenario/cancel?session_id=${scenarioSession}`,
+      {method: 'POST'},
+    );
+    log({status: r.status, ...(await r.json())});
+    $("scenario-line").textContent = 'cancelled';
+    scenarioSession = null;
+  } catch (e) { log(`cancel failed: ${e}`); }
+}
+
+$("btn-scenario-start").onclick   = scenarioStart;
+$("btn-scenario-approve").onclick = scenarioApprove;
+$("btn-scenario-cancel").onclick  = scenarioCancel;
 
 // initial
 refreshHealth();

@@ -34,7 +34,11 @@ build_one() {
   local svc="$1"
   local ctx
   ctx="$(mktemp -d)"
-  cp -R "$SERVICES_DIR/$svc/"* "$ctx/"
+  # Dockerfile.in expects two sibling dirs in the build context:
+  #   service/      — the service's own source (go.mod has `replace ../go-common`)
+  #   go-common/    — the shared module the replace points at
+  mkdir -p "$ctx/service"
+  cp -R "$SERVICES_DIR/$svc/"* "$ctx/service/"
   cp -R "$SERVICES_DIR/go-common"  "$ctx/go-common"
   cp    "$SERVICES_DIR/Dockerfile.in" "$ctx/Dockerfile"
   echo "=== building zepay/$svc:$TAG ==="

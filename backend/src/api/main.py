@@ -244,6 +244,8 @@ def create_app() -> FastAPI:
     # the router itself; the router can be mounted safely in prod.
     from .routes_demo_seed import router as demo_seed_router
     app.include_router(demo_seed_router)
+    from .routes_demo_scenario import router as demo_scenario_router
+    app.include_router(demo_scenario_router)
 
     # Include routes
     app.include_router(pr_router, prefix="/api")
