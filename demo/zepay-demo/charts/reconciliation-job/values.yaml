@@ -30,6 +30,13 @@ web:
     labels:
       release: kube-prometheus-stack
 
+# Istio sidecar overrides — same 1/3-of-default as zepay-service.
+sidecar:
+  proxyCPU:         33m
+  proxyMemory:      43Mi
+  proxyCPULimit:    666m
+  proxyMemoryLimit: 341Mi
+
 # Bug #3's threshold — $0.02 by default (demo state). The fix PR in
 # the RemediationCampaign sets this to 0.001.
 reconcileAutoRoundUsd: "0.02"

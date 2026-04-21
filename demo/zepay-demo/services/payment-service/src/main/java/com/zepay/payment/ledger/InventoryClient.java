@@ -8,7 +8,6 @@ import org.springframework.stereotype.Component;
 
 import java.net.URI;
 import java.net.http.HttpClient;
-import java.net.http.HttpConnectTimeoutException;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.net.http.HttpTimeoutException;
@@ -69,7 +68,10 @@ public class InventoryClient {
             }
             log.info("inventory reserve OK order_id={}", orderId);
 
-        } catch (HttpTimeoutException | HttpConnectTimeoutException e) {
+        } catch (HttpTimeoutException e) {
+            // HttpConnectTimeoutException extends HttpTimeoutException,
+            // so this catch covers both the read-timeout (Istio's 15s
+            // fault) and connect-timeout cases.
             // This is the exception @Retryable catches. When Istio's
             // 15s fault fires, we end up here; Spring re-runs
             // PaymentExecutor.execute() and the ledger.debit above

@@ -15,6 +15,13 @@ spec:
       labels:
         app: reconciliation-job-web
         zepay.demo/role: scenario-service
+      annotations:
+        {{- with .Values.sidecar }}
+        sidecar.istio.io/proxyCPU:         {{ .proxyCPU | quote }}
+        sidecar.istio.io/proxyMemory:      {{ .proxyMemory | quote }}
+        sidecar.istio.io/proxyCPULimit:    {{ .proxyCPULimit | quote }}
+        sidecar.istio.io/proxyMemoryLimit: {{ .proxyMemoryLimit | quote }}
+        {{- end }}
     spec:
       containers:
       - name: reconciliation-job-web

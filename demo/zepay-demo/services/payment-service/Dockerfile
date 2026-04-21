@@ -17,8 +17,12 @@ WORKDIR /src/payment-service
 RUN mvn -q -B package -DskipTests && \
     cp target/payment-service-*.jar /app.jar
 
-# Fetch the OTel Java agent.
-ADD https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v2.6.0/opentelemetry-javaagent.jar /otel/agent.jar
+# OTel Java agent is pre-downloaded into the repo to avoid the
+# occasional GitHub HTTP/2 PROTOCOL_ERROR during image build. Refresh
+# with:
+#   curl -fsSL -o services/payment-service/opentelemetry-javaagent.jar \
+#     https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v2.6.0/opentelemetry-javaagent.jar
+COPY payment-service/opentelemetry-javaagent.jar /otel/agent.jar
 
 FROM eclipse-temurin:21-jre
 WORKDIR /app

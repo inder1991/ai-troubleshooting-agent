@@ -1,0 +1,3039 @@
+[
+  {
+    "t": 0.0,
+    "kind": "phase_change",
+    "phase": "collecting_context"
+  },
+  {
+    "t": 0.1,
+    "kind": "event",
+    "event": {
+      "agent_name": "supervisor",
+      "event_type": "summary",
+      "message": "Session started \u2014 operator flagged checkout-service as patient zero.",
+      "details": {
+        "service_name": "checkout-service"
+      }
+    }
+  },
+  {
+    "t": 0.5,
+    "kind": "event",
+    "event": {
+      "agent_name": "supervisor",
+      "event_type": "started",
+      "message": "Dispatching log_agent first \u2014 cheapest signal, widest coverage.",
+      "details": {
+        "plan": [
+          "log_agent",
+          "metric_agent",
+          "tracing_agent",
+          "k8s_agent"
+        ]
+      }
+    }
+  },
+  {
+    "t": 1.0,
+    "kind": "event",
+    "event": {
+      "agent_name": "log_agent",
+      "event_type": "started",
+      "message": "Scanning 4-hour window across payments-prod Elasticsearch indices.",
+      "details": {}
+    }
+  },
+  {
+    "t": 1.5,
+    "kind": "event",
+    "event": {
+      "agent_name": "log_agent",
+      "event_type": "tool_call",
+      "message": "elasticsearch.search(index='payments-prod-*', size=5000, query={exception_type OR level:ERROR OR level:WARN}, window=4h)",
+      "details": {
+        "tool": "elasticsearch.search",
+        "params": {
+          "size": 5000,
+          "window_hours": 4
+        }
+      }
+    }
+  },
+  {
+    "t": 2.1,
+    "kind": "event",
+    "event": {
+      "agent_name": "log_agent",
+      "event_type": "reasoning",
+      "message": "2.1M log lines in window. Filtering to error/warn bands before clustering.",
+      "details": {}
+    }
+  },
+  {
+    "t": 2.7,
+    "kind": "event",
+    "event": {
+      "agent_name": "log_agent",
+      "event_type": "progress",
+      "message": "Batch 1/8: 264K lines processed, 31 exception types surfaced.",
+      "details": {
+        "batch": "1/8",
+        "lines": 264000
+      }
+    }
+  },
+  {
+    "t": 3.0,
+    "kind": "state_patch",
+    "patch": {
+      "state": {
+        "token_usage[+]": {
+          "agent_name": "log_agent",
+          "input_tokens": 2100,
+          "output_tokens": 40,
+          "total_tokens": 2140
+        }
+      }
+    }
+  },
+  {
+    "t": 3.4,
+    "kind": "event",
+    "event": {
+      "agent_name": "log_agent",
+      "event_type": "progress",
+      "message": "Batch 3/8: clustering by exception_type. Top: UpstreamTimeoutException (47), NullPointerException (14), FraudScoreProviderSlowdown (206).",
+      "details": {
+        "batch": "3/8"
+      }
+    }
+  },
+  {
+    "t": 4.0,
+    "kind": "event",
+    "event": {
+      "agent_name": "log_agent",
+      "event_type": "tool_call",
+      "message": "elasticsearch.search(exception_type:UpstreamTimeoutException, correlation_ids:*)",
+      "details": {}
+    }
+  },
+  {
+    "t": 4.2,
+    "kind": "event",
+    "event": {
+      "agent_name": "supervisor",
+      "event_type": "summary",
+      "message": "log_agent progressing; dispatching metric_agent + tracing_agent in parallel.",
+      "details": {}
+    }
+  },
+  {
+    "t": 4.4,
+    "kind": "event",
+    "event": {
+      "agent_name": "log_agent",
+      "event_type": "reasoning",
+      "message": "UpstreamTimeoutException: 47 occurrences, all from payment-service. Each followed within 3ms by INFO 'RetryAttempt=2 for inventory-reserve'.",
+      "details": {}
+    }
+  },
+  {
+    "t": 4.8,
+    "kind": "event",
+    "event": {
+      "agent_name": "metric_agent",
+      "event_type": "started",
+      "message": "Opening Prometheus range-query session; 6 suggested queries from log_agent.",
+      "details": {}
+    }
+  },
+  {
+    "t": 5.0,
+    "kind": "event",
+    "event": {
+      "agent_name": "log_agent",
+      "event_type": "progress",
+      "message": "Batch 6/8: correlating log timestamps against customer-complaint window.",
+      "details": {}
+    }
+  },
+  {
+    "t": 5.2,
+    "kind": "state_patch",
+    "patch": {
+      "state": {
+        "token_usage[+]": {
+          "agent_name": "log_agent",
+          "input_tokens": 4100,
+          "output_tokens": 180,
+          "total_tokens": 4280
+        }
+      }
+    }
+  },
+  {
+    "t": 5.4,
+    "kind": "event",
+    "event": {
+      "agent_name": "tracing_agent",
+      "event_type": "started",
+      "message": "Opening Jaeger. Priority trace-IDs seeded from log_agent's complaint correlations.",
+      "details": {}
+    }
+  },
+  {
+    "t": 5.5,
+    "kind": "event",
+    "event": {
+      "agent_name": "metric_agent",
+      "event_type": "tool_call",
+      "message": "prometheus.query_range(payment_ledger_write_total{retry=true}, window=4h, step=60s)",
+      "details": {
+        "tool": "prometheus.query_range"
+      }
+    }
+  },
+  {
+    "t": 5.8,
+    "kind": "event",
+    "event": {
+      "agent_name": "log_agent",
+      "event_type": "finding",
+      "message": "UpstreamTimeoutException cluster \u2014 47 occurrences, payment-service primary. RetryAttempt=2 pattern precedes each.",
+      "details": {
+        "pattern_id": "p-upstream-timeout",
+        "exception_type": "UpstreamTimeoutException",
+        "frequency": 47,
+        "affected_components": [
+          "payment-service",
+          "istio-proxy",
+          "inventory-service"
+        ],
+        "priority_rank": 1,
+        "confidence_score": 89,
+        "causal_role": "root_cause_tentative"
+      }
+    }
+  },
+  {
+    "t": 6.0,
+    "kind": "event",
+    "event": {
+      "agent_name": "metric_agent",
+      "event_type": "reasoning",
+      "message": "Baselining retry-counter against 6-week history. Target: signal > 3\u00d7 baseline.",
+      "details": {}
+    }
+  },
+  {
+    "t": 6.0,
+    "kind": "state_patch",
+    "patch": {
+      "state": {
+        "log_analysis": {
+          "primary_pattern": {
+            "pattern_id": "p-upstream-timeout",
+            "exception_type": "UpstreamTimeoutException",
+            "error_message": "Read timeout after 15000ms calling inventory-service.reserve",
+            "frequency": 47,
+            "severity": "high",
+            "affected_components": [
+              "payment-service",
+              "istio-proxy",
+              "inventory-service"
+            ],
+            "sample_logs": [
+              {
+                "timestamp": "2026-04-21T14:47:18.023Z",
+                "level": "WARN",
+                "msg": "upstream connect error 504 inventory-service",
+                "trace_id": "T-sarah-1234-001"
+              },
+              {
+                "timestamp": "2026-04-21T14:47:18.024Z",
+                "level": "INFO",
+                "msg": "RetryAttempt=2 for inventory-reserve",
+                "trace_id": "T-sarah-1234-001"
+              }
+            ],
+            "confidence_score": 89,
+            "priority_rank": 1,
+            "priority_reasoning": "15\u00d7 baseline for retry-flagged pattern; 47/47 correlate to customer complaints",
+            "causal_role": "root_cause",
+            "correlation_ids": [
+              "T-demo-0000",
+              "T-demo-0001",
+              "T-demo-0002",
+              "T-demo-0003",
+              "T-demo-0004",
+              "T-demo-0005",
+              "T-demo-0006",
+              "T-demo-0007",
+              "T-demo-0008",
+              "T-demo-0009",
+              "T-demo-0010",
+              "T-demo-0011",
+              "T-demo-0012",
+              "T-demo-0013",
+              "T-demo-0014",
+              "T-demo-0015",
+              "T-demo-0016",
+              "T-demo-0017",
+              "T-demo-0018",
+              "T-demo-0019",
+              "T-demo-0020",
+              "T-demo-0021",
+              "T-demo-0022",
+              "T-demo-0023",
+              "T-demo-0024",
+              "T-demo-0025",
+              "T-demo-0026",
+              "T-demo-0027",
+              "T-demo-0028",
+              "T-demo-0029",
+              "T-demo-0030",
+              "T-demo-0031",
+              "T-demo-0032",
+              "T-demo-0033",
+              "T-demo-0034",
+              "T-demo-0035",
+              "T-demo-0036",
+              "T-demo-0037",
+              "T-demo-0038",
+              "T-demo-0039",
+              "T-demo-0040",
+              "T-demo-0041",
+              "T-demo-0042",
+              "T-demo-0043",
+              "T-demo-0044",
+              "T-demo-0045",
+              "T-demo-0046"
+            ]
+          },
+          "secondary_patterns": [
+            {
+              "pattern_id": "p-fraud-slow",
+              "exception_type": "FraudScoreProviderSlowdown",
+              "frequency": 206,
+              "severity": "medium",
+              "affected_components": [
+                "fraud-adapter"
+              ],
+              "confidence_score": 71,
+              "priority_rank": 2,
+              "priority_reasoning": "Latency 2.7\u00d7 baseline but uncorrelated to complaints",
+              "causal_role": "correlated_anomaly"
+            }
+          ],
+          "negative_findings": [
+            "No WARN/ERROR cluster on wallet-service: replication lag < 50ms throughout.",
+            "checkout-service error-rate 0.04% \u2014 within 7d baseline."
+          ],
+          "overall_confidence": 84
+        }
+      }
+    }
+  },
+  {
+    "t": 6.2,
+    "kind": "state_patch",
+    "patch": {
+      "state": {
+        "token_usage[+]": {
+          "agent_name": "metric_agent",
+          "input_tokens": 1800,
+          "output_tokens": 50,
+          "total_tokens": 1850
+        }
+      }
+    }
+  },
+  {
+    "t": 6.3,
+    "kind": "event",
+    "event": {
+      "agent_name": "log_agent",
+      "event_type": "finding",
+      "message": "Patient Zero reframe: operator flagged checkout-service, evidence points to payment-service.",
+      "details": {
+        "old_patient_zero": "checkout-service",
+        "new_patient_zero": "payment-service"
+      }
+    }
+  },
+  {
+    "t": 6.5,
+    "kind": "state_patch",
+    "patch": {
+      "state": {
+        "patient_zero": {
+          "service": "payment-service",
+          "first_error_time": "2026-04-21T14:47:03.012Z",
+          "reasoning": "47/47 UpstreamTimeoutException clusters originate at payment-service.execute"
+        },
+        "detected_namespace": "payments-prod",
+        "target_service": "payment-service",
+        "inferred_dependencies": [
+          {
+            "source": "api-gateway",
+            "target": "checkout-service",
+            "kind": "http"
+          },
+          {
+            "source": "checkout-service",
+            "target": "payment-service",
+            "kind": "http"
+          },
+          {
+            "source": "payment-service",
+            "target": "wallet-service",
+            "kind": "http"
+          },
+          {
+            "source": "payment-service",
+            "target": "inventory-service",
+            "kind": "http"
+          },
+          {
+            "source": "payment-service",
+            "target": "fraud-adapter",
+            "kind": "http"
+          },
+          {
+            "source": "payment-service",
+            "target": "notification-service",
+            "kind": "http"
+          },
+          {
+            "source": "checkout-service",
+            "target": "cart-service",
+            "kind": "http"
+          },
+          {
+            "source": "api-gateway",
+            "target": "auth-service",
+            "kind": "http"
+          }
+        ],
+        "service_flow": [
+          {
+            "service": "api-gateway",
+            "order": 1
+          },
+          {
+            "service": "checkout-service",
+            "order": 2
+          },
+          {
+            "service": "payment-service",
+            "order": 3
+          },
+          {
+            "service": "wallet-service",
+            "order": 4
+          },
+          {
+            "service": "inventory-service",
+            "order": 5
+          }
+        ],
+        "suggested_promql_queries": [
+          {
+            "metric": "payment_ledger_write_total",
+            "query": "sum by (retry) (rate(payment_ledger_write_total{namespace=\"payments-prod\"}[5m]))",
+            "rationale": "Break out retry=true \u2014 the path hiding the duplicate-debit signal."
+          },
+          {
+            "metric": "istio_request_duration_seconds",
+            "query": "histogram_quantile(0.99, sum by (le,destination_service) (rate(istio_request_duration_seconds_bucket{source_service=\"payment-service\",namespace=\"payments-prod\"}[5m])))",
+            "rationale": "p99 from payment-service's perspective \u2014 reveals the 15s sidecar wall."
+          },
+          {
+            "metric": "wallet_balance_changes_total",
+            "query": "sum by (customer_id) (increase(wallet_balance_changes_total{namespace=\"payments-prod\"}[1h]))",
+            "rationale": ">1 change per txn_id is the smoking gun."
+          },
+          {
+            "metric": "checkout_payment_latency_seconds",
+            "query": "histogram_quantile(0.95, sum by (le) (rate(checkout_payment_latency_seconds_bucket{namespace=\"payments-prod\"}[5m])))",
+            "rationale": "Proves checkout's latency spiked to 15s \u2014 matching the user spinner."
+          },
+          {
+            "metric": "reconciliation_drift_dollars",
+            "query": "sum(reconciliation_drift_dollars{namespace=\"payments-prod\"})",
+            "rationale": "Pre-auto-round drift; would have surfaced duplicates if threshold tighter."
+          },
+          {
+            "metric": "kafka_consumer_lag",
+            "query": "sum by (consumer_group) (kafka_consumergroup_lag{topic=\"wallet-events\",namespace=\"payments-prod\"})",
+            "rationale": "Rules out event-sourced projector as contributing cause."
+          }
+        ]
+      }
+    }
+  },
+  {
+    "t": 6.6,
+    "kind": "event",
+    "event": {
+      "agent_name": "tracing_agent",
+      "event_type": "tool_call",
+      "message": "jaeger.search(service=payment-service, tags={error:true, http.status:504}, limit=100)",
+      "details": {}
+    }
+  },
+  {
+    "t": 7.0,
+    "kind": "event",
+    "event": {
+      "agent_name": "log_agent",
+      "event_type": "summary",
+      "message": "Log clusters complete. 1 primary (UpstreamTimeoutException, r=0.89), 1 secondary (FraudScoreProviderSlowdown, r=0.71). Patient Zero: payment-service.",
+      "details": {
+        "duration_s": 6.0,
+        "clusters": 2,
+        "confidence": 84
+      }
+    }
+  },
+  {
+    "t": 7.0,
+    "kind": "state_patch",
+    "patch": {
+      "state": {
+        "token_usage[+]": {
+          "agent_name": "log_agent",
+          "input_tokens": 300,
+          "output_tokens": 120,
+          "total_tokens": 420
+        }
+      }
+    }
+  },
+  {
+    "t": 7.1,
+    "kind": "state_patch",
+    "patch": {
+      "state": {
+        "agents_completed[+]": "log_agent"
+      }
+    }
+  },
+  {
+    "t": 7.5,
+    "kind": "event",
+    "event": {
+      "agent_name": "metric_agent",
+      "event_type": "tool_call",
+      "message": "prometheus.query_range(istio_request_duration_p99{destination=inventory-service}, window=4h)",
+      "details": {}
+    }
+  },
+  {
+    "t": 7.8,
+    "kind": "event",
+    "event": {
+      "agent_name": "tracing_agent",
+      "event_type": "reasoning",
+      "message": "Sampling 1% gives ~0.01% chance of capturing both debit spans per customer; targeting trace-IDs from log_agent correlations instead of random sample.",
+      "details": {}
+    }
+  },
+  {
+    "t": 8.0,
+    "kind": "state_patch",
+    "patch": {
+      "state": {
+        "token_usage[+]": {
+          "agent_name": "tracing_agent",
+          "input_tokens": 2400,
+          "output_tokens": 60,
+          "total_tokens": 2460
+        }
+      }
+    }
+  },
+  {
+    "t": 8.1,
+    "kind": "event",
+    "event": {
+      "agent_name": "metric_agent",
+      "event_type": "finding",
+      "message": "Anomaly: payment_ledger_write_total{retry=true} 15\u00d7 over 6-week baseline.",
+      "details": {
+        "metric": "payment_ledger_write_total",
+        "baseline": 0.02,
+        "peak": 0.31,
+        "severity": "medium",
+        "confidence": 88
+      }
+    }
+  },
+  {
+    "t": 8.3,
+    "kind": "state_patch",
+    "patch": {
+      "state": {
+        "metric_anomalies[+]": {
+          "metric_name": "payment_ledger_write_total",
+          "promql_query": "sum by (retry) (rate(payment_ledger_write_total{retry=\"true\",namespace=\"payments-prod\"}[5m]))",
+          "baseline_value": 0.02,
+          "current_value": 0.31,
+          "peak_value": 0.31,
+          "spike_start": "2026-04-21T14:00:00Z",
+          "spike_end": "2026-04-21T18:47:00Z",
+          "severity": "medium",
+          "correlation_to_incident": "Retry-flagged ledger writes elevated 15\u00d7 over 6-week baseline; aligns 1:1 with customer complaint window.",
+          "confidence_score": 88
+        }
+      }
+    }
+  },
+  {
+    "t": 8.6,
+    "kind": "event",
+    "event": {
+      "agent_name": "metric_agent",
+      "event_type": "tool_call",
+      "message": "prometheus.query_range(checkout_payment_latency_seconds_p95, window=4h)",
+      "details": {}
+    }
+  },
+  {
+    "t": 8.8,
+    "kind": "event",
+    "event": {
+      "agent_name": "k8s_agent",
+      "event_type": "started",
+      "message": "Opening Kubernetes API \u2014 ruling out infra hypotheses.",
+      "details": {}
+    }
+  },
+  {
+    "t": 9.2,
+    "kind": "event",
+    "event": {
+      "agent_name": "metric_agent",
+      "event_type": "finding",
+      "message": "Anomaly: istio_request_duration_p99{destination=inventory-service} \u2014 140ms \u2192 15.003s.",
+      "details": {
+        "metric": "istio_request_duration_seconds",
+        "peak": 15.003,
+        "severity": "high",
+        "confidence": 95
+      }
+    }
+  },
+  {
+    "t": 9.4,
+    "kind": "event",
+    "event": {
+      "agent_name": "k8s_agent",
+      "event_type": "tool_call",
+      "message": "kubectl.get(pods, namespace=payments-prod, labelSelector=app=payment-service)",
+      "details": {}
+    }
+  },
+  {
+    "t": 9.4,
+    "kind": "state_patch",
+    "patch": {
+      "state": {
+        "metric_anomalies[+]": {
+          "metric_name": "istio_request_duration_seconds",
+          "promql_query": "histogram_quantile(0.99, sum by (le) (rate(istio_request_duration_seconds_bucket{destination_service=\"inventory-service\",namespace=\"payments-prod\"}[5m])))",
+          "baseline_value": 0.14,
+          "current_value": 15.003,
+          "peak_value": 15.003,
+          "spike_start": "2026-04-21T14:00:00Z",
+          "spike_end": "2026-04-21T18:47:00Z",
+          "severity": "high",
+          "correlation_to_incident": "Istio sidecar timeouts on inventory-reserve at the 15s boundary; drives retry behavior upstream.",
+          "confidence_score": 95
+        }
+      }
+    }
+  },
+  {
+    "t": 9.5,
+    "kind": "event",
+    "event": {
+      "agent_name": "tracing_agent",
+      "event_type": "tool_call",
+      "message": "jaeger.replay(trace_id=T-sarah-1234-001) \u2014 walking span waterfall",
+      "details": {}
+    }
+  },
+  {
+    "t": 10.0,
+    "kind": "event",
+    "event": {
+      "agent_name": "metric_agent",
+      "event_type": "reasoning",
+      "message": "checkout_payment_latency p95: 1.8s \u2192 15.2s. Checkout sits behind payment during the retry.",
+      "details": {}
+    }
+  },
+  {
+    "t": 10.2,
+    "kind": "event",
+    "event": {
+      "agent_name": "k8s_agent",
+      "event_type": "finding",
+      "message": "payment-service: 2 replicas, both Running, restart count 0 over 24h, CPU p95 35%, memory p95 52%.",
+      "details": {
+        "service": "payment-service",
+        "healthy": true
+      }
+    }
+  },
+  {
+    "t": 10.3,
+    "kind": "event",
+    "event": {
+      "agent_name": "tracing_agent",
+      "event_type": "finding",
+      "message": "Trace T-sarah-1234-001: TWO wallets.UPDATE spans for customer C-CHEN-SARAH-8741, 15.203s apart, different span_ids, identical amount.",
+      "details": {
+        "trace_id": "T-sarah-1234-001",
+        "duplicate_count": 2,
+        "gap_seconds": 15.203
+      }
+    }
+  },
+  {
+    "t": 10.6,
+    "kind": "event",
+    "event": {
+      "agent_name": "metric_agent",
+      "event_type": "finding",
+      "message": "Anomaly: checkout_payment_latency p95 \u2014 1.8s baseline \u2192 15.2s.",
+      "details": {
+        "metric": "checkout_payment_latency",
+        "peak": 15.2,
+        "severity": "high",
+        "confidence": 92
+      }
+    }
+  },
+  {
+    "t": 10.8,
+    "kind": "state_patch",
+    "patch": {
+      "state": {
+        "metric_anomalies[+]": {
+          "metric_name": "checkout_payment_latency_seconds",
+          "promql_query": "histogram_quantile(0.95, sum by (le) (rate(checkout_payment_latency_seconds_bucket{namespace=\"payments-prod\"}[5m])))",
+          "baseline_value": 1.8,
+          "current_value": 15.2,
+          "peak_value": 15.2,
+          "spike_start": "2026-04-21T14:00:00Z",
+          "spike_end": "2026-04-21T18:47:00Z",
+          "severity": "high",
+          "correlation_to_incident": "Checkout waits 15s behind payment retry \u2014 explains user-visible spinner.",
+          "confidence_score": 92
+        }
+      }
+    }
+  },
+  {
+    "t": 11.0,
+    "kind": "event",
+    "event": {
+      "agent_name": "k8s_agent",
+      "event_type": "tool_call",
+      "message": "kubectl.describe(deploy/payment-service) + get events 4h",
+      "details": {}
+    }
+  },
+  {
+    "t": 11.2,
+    "kind": "event",
+    "event": {
+      "agent_name": "metric_agent",
+      "event_type": "reasoning",
+      "message": "Negative control: payment_txn_success_ratio = 99.97% (unchanged). Duplicates count as successes \u2014 surface metric dashboards would not alarm.",
+      "details": {}
+    }
+  },
+  {
+    "t": 11.8,
+    "kind": "event",
+    "event": {
+      "agent_name": "metric_agent",
+      "event_type": "summary",
+      "message": "3 anomalies surfaced. Retry-counter is the narrowest signal; Istio p99 is the timing source; checkout p95 is the user-visible symptom.",
+      "details": {
+        "anomalies": 3,
+        "confidence": 91
+      }
+    }
+  },
+  {
+    "t": 11.8,
+    "kind": "event",
+    "event": {
+      "agent_name": "k8s_agent",
+      "event_type": "reasoning",
+      "message": "No deploys in 24h. Recent events: 4\u00d7 BackOff on inventory-service istio-proxy (1 day old).",
+      "details": {}
+    }
+  },
+  {
+    "t": 12.0,
+    "kind": "state_patch",
+    "patch": {
+      "state": {
+        "token_usage[+]": {
+          "agent_name": "metric_agent",
+          "input_tokens": 2200,
+          "output_tokens": 140,
+          "total_tokens": 2340
+        }
+      }
+    }
+  },
+  {
+    "t": 12.2,
+    "kind": "state_patch",
+    "patch": {
+      "state": {
+        "token_usage[+]": {
+          "agent_name": "k8s_agent",
+          "input_tokens": 1400,
+          "output_tokens": 45,
+          "total_tokens": 1445
+        }
+      }
+    }
+  },
+  {
+    "t": 12.4,
+    "kind": "event",
+    "event": {
+      "agent_name": "k8s_agent",
+      "event_type": "tool_call",
+      "message": "kubectl.get(pods, namespace=payments-prod, all)",
+      "details": {}
+    }
+  },
+  {
+    "t": 12.5,
+    "kind": "event",
+    "event": {
+      "agent_name": "tracing_agent",
+      "event_type": "tool_call",
+      "message": "jaeger.replay(trace_id=T-acme-corp-0042) \u2014 validating pattern",
+      "details": {}
+    }
+  },
+  {
+    "t": 13.0,
+    "kind": "event",
+    "event": {
+      "agent_name": "k8s_agent",
+      "event_type": "finding",
+      "message": "All 9 services healthy. 18 pods Running, 0 crashlooping, 0 OOMKilled, 0 ImagePullBackOff.",
+      "details": {
+        "pods_total": 18,
+        "healthy": 18
+      }
+    }
+  },
+  {
+    "t": 13.6,
+    "kind": "event",
+    "event": {
+      "agent_name": "k8s_agent",
+      "event_type": "tool_call",
+      "message": "istio.query_sidecar_metrics(inventory-service)",
+      "details": {}
+    }
+  },
+  {
+    "t": 13.7,
+    "kind": "event",
+    "event": {
+      "agent_name": "tracing_agent",
+      "event_type": "reasoning",
+      "message": "Identical pattern on Acme Logistics trace: two wallet-update spans, 15.2s apart.",
+      "details": {}
+    }
+  },
+  {
+    "t": 14.4,
+    "kind": "event",
+    "event": {
+      "agent_name": "k8s_agent",
+      "event_type": "finding",
+      "message": "Sidecar on inventory-service: upstream_cx_overflow elevated. Not an outage \u2014 a connection-pool-depth event.",
+      "details": {
+        "metric": "upstream_cx_overflow",
+        "state": "elevated"
+      }
+    }
+  },
+  {
+    "t": 14.8,
+    "kind": "state_patch",
+    "patch": {
+      "state": {
+        "k8s_analysis": {
+          "cluster_name": "zepay-prod-kind",
+          "namespace": "payments-prod",
+          "service_name": "payment-service",
+          "pod_statuses": [
+            {
+              "pod_name": "payment-service-0",
+              "namespace": "payments-prod",
+              "status": "Running",
+              "restart_count": 0,
+              "container_count": 2,
+              "ready_containers": 2
+            },
+            {
+              "pod_name": "payment-service-1",
+              "namespace": "payments-prod",
+              "status": "Running",
+              "restart_count": 0,
+              "container_count": 2,
+              "ready_containers": 2
+            }
+          ],
+          "events": [],
+          "is_crashloop": false,
+          "total_restarts_last_hour": 0,
+          "resource_mismatch": null,
+          "negative_findings": [
+            "No crashlooping pods.",
+            "No OOMKilled pods.",
+            "No recent Deployment rollouts.",
+            "All Istio sidecars Ready."
+          ],
+          "breadcrumbs": [],
+          "overall_confidence": 97
+        }
+      }
+    }
+  },
+  {
+    "t": 15.0,
+    "kind": "event",
+    "event": {
+      "agent_name": "k8s_agent",
+      "event_type": "summary",
+      "message": "Infrastructure ruled out. 4 negative findings. Bug is in code, not pods.",
+      "details": {
+        "duration_s": 6.2,
+        "confidence": 97
+      }
+    }
+  },
+  {
+    "t": 15.2,
+    "kind": "event",
+    "event": {
+      "agent_name": "tracing_agent",
+      "event_type": "tool_call",
+      "message": "jaeger.batch_replay(complaint_trace_ids=[47 traces]) \u2014 exhaustive confirmation",
+      "details": {}
+    }
+  },
+  {
+    "t": 15.2,
+    "kind": "state_patch",
+    "patch": {
+      "state": {
+        "token_usage[+]": {
+          "agent_name": "k8s_agent",
+          "input_tokens": 600,
+          "output_tokens": 90,
+          "total_tokens": 690
+        }
+      }
+    }
+  },
+  {
+    "t": 15.3,
+    "kind": "state_patch",
+    "patch": {
+      "state": {
+        "agents_completed[+]": "k8s_agent"
+      }
+    }
+  },
+  {
+    "t": 17.8,
+    "kind": "event",
+    "event": {
+      "agent_name": "tracing_agent",
+      "event_type": "progress",
+      "message": "Batch replay: 47 of 47 complaint traces show the double-wallets.UPDATE pattern.",
+      "details": {}
+    }
+  },
+  {
+    "t": 18.2,
+    "kind": "event",
+    "event": {
+      "agent_name": "tracing_agent",
+      "event_type": "finding",
+      "message": "Pattern confirmed 47/47 complaint traces. Bottleneck: istio-proxy.CONNECT inventory-service (15.003s p99).",
+      "details": {
+        "pattern": "double_wallets_update_same_customer_different_txn_id",
+        "count": 47,
+        "confidence": 0.97
+      }
+    }
+  },
+  {
+    "t": 18.5,
+    "kind": "state_patch",
+    "patch": {
+      "state": {
+        "trace_analysis": {
+          "failure_service_from_trace": "payment-service",
+          "critical_path_services": [
+            "api-gateway",
+            "checkout-service",
+            "payment-service",
+            "inventory-service"
+          ],
+          "services_from_traces": [
+            "api-gateway",
+            "auth-service",
+            "cart-service",
+            "checkout-service",
+            "payment-service",
+            "inventory-service",
+            "wallet-service",
+            "fraud-adapter",
+            "notification-service"
+          ],
+          "trace_ids_mined": [
+            "T-demo-0000",
+            "T-demo-0001",
+            "T-demo-0002",
+            "T-demo-0003",
+            "T-demo-0004",
+            "T-demo-0005",
+            "T-demo-0006",
+            "T-demo-0007",
+            "T-demo-0008",
+            "T-demo-0009",
+            "T-demo-0010",
+            "T-demo-0011",
+            "T-demo-0012",
+            "T-demo-0013",
+            "T-demo-0014",
+            "T-demo-0015",
+            "T-demo-0016",
+            "T-demo-0017",
+            "T-demo-0018",
+            "T-demo-0019",
+            "T-demo-0020",
+            "T-demo-0021",
+            "T-demo-0022",
+            "T-demo-0023",
+            "T-demo-0024",
+            "T-demo-0025",
+            "T-demo-0026",
+            "T-demo-0027",
+            "T-demo-0028",
+            "T-demo-0029",
+            "T-demo-0030",
+            "T-demo-0031",
+            "T-demo-0032",
+            "T-demo-0033",
+            "T-demo-0034",
+            "T-demo-0035",
+            "T-demo-0036",
+            "T-demo-0037",
+            "T-demo-0038",
+            "T-demo-0039",
+            "T-demo-0040",
+            "T-demo-0041",
+            "T-demo-0042",
+            "T-demo-0043",
+            "T-demo-0044",
+            "T-demo-0045",
+            "T-demo-0046"
+          ],
+          "hot_services_from_traces": [
+            "payment-service",
+            "inventory-service"
+          ],
+          "bottleneck_operations": [
+            [
+              "istio-proxy",
+              "CONNECT inventory-service"
+            ],
+            [
+              "payment-service",
+              "@Retryable execute"
+            ]
+          ],
+          "pattern_findings_from_traces": [
+            {
+              "pattern": "double_wallets_update_same_customer_different_txn_id",
+              "count": 47,
+              "confidence": 0.97
+            }
+          ],
+          "negative_findings": [
+            "fraud-adapter.score spans complete in 340-420ms \u2014 not timeout-related.",
+            "auth-service spans <8ms \u2014 not on critical path."
+          ],
+          "overall_confidence": 94
+        }
+      }
+    }
+  },
+  {
+    "t": 18.8,
+    "kind": "event",
+    "event": {
+      "agent_name": "tracing_agent",
+      "event_type": "summary",
+      "message": "Trace analysis complete. Smoking gun: double wallets.UPDATE spans.",
+      "details": {
+        "duration_s": 13.4,
+        "traces_analyzed": 52,
+        "confidence": 94
+      }
+    }
+  },
+  {
+    "t": 19.0,
+    "kind": "state_patch",
+    "patch": {
+      "state": {
+        "token_usage[+]": {
+          "agent_name": "tracing_agent",
+          "input_tokens": 900,
+          "output_tokens": 200,
+          "total_tokens": 1100
+        }
+      }
+    }
+  },
+  {
+    "t": 19.1,
+    "kind": "state_patch",
+    "patch": {
+      "state": {
+        "agents_completed[+]": "tracing_agent"
+      }
+    }
+  },
+  {
+    "t": 20.0,
+    "kind": "phase_change",
+    "phase": "collecting_context"
+  },
+  {
+    "t": 20.3,
+    "kind": "event",
+    "event": {
+      "agent_name": "supervisor",
+      "event_type": "summary",
+      "message": "All 4 context agents complete. Initiating cross-checks.",
+      "details": {}
+    }
+  },
+  {
+    "t": 20.8,
+    "kind": "event",
+    "event": {
+      "agent_name": "supervisor",
+      "event_type": "tool_call",
+      "message": "cross_check.metrics_logs(divergence_keys=[service,exception_type])",
+      "details": {
+        "check": "metrics_logs"
+      }
+    }
+  },
+  {
+    "t": 21.4,
+    "kind": "event",
+    "event": {
+      "agent_name": "supervisor",
+      "event_type": "reasoning",
+      "message": "metrics say `payment_txn_retry_total = 0` (no surface retries). logs show 47\u00d7 `RetryAttempt=2`. That's a cardinality mismatch.",
+      "details": {}
+    }
+  },
+  {
+    "t": 22.0,
+    "kind": "event",
+    "event": {
+      "agent_name": "supervisor",
+      "event_type": "finding",
+      "message": "Divergence: metrics report 0 retries; logs show 47. Retry-counter wired to wrong span of the code.",
+      "details": {
+        "divergence_kind": "metric_log",
+        "severity": "high"
+      }
+    }
+  },
+  {
+    "t": 22.2,
+    "kind": "state_patch",
+    "patch": {
+      "state": {
+        "divergence_findings[+]": {
+          "kind": "metric_log",
+          "service_name": "payment-service",
+          "severity": "high",
+          "human_summary": "metrics \u2194 logs \u2014 1 signal disagreement: retry-counter zeroed while log shows 47 retries",
+          "metric_value": 0,
+          "log_value": 47
+        }
+      }
+    }
+  },
+  {
+    "t": 22.6,
+    "kind": "event",
+    "event": {
+      "agent_name": "supervisor",
+      "event_type": "summary",
+      "message": "cross-check: metrics \u2194 logs \u2014 1 signal disagreement",
+      "details": {
+        "action": "cross_check_complete",
+        "cross_check": "metrics_logs",
+        "divergence_count": 1
+      }
+    }
+  },
+  {
+    "t": 23.2,
+    "kind": "event",
+    "event": {
+      "agent_name": "supervisor",
+      "event_type": "tool_call",
+      "message": "cross_check.tracing_metrics(divergence_keys=[span_name,txn_id])",
+      "details": {
+        "check": "tracing_metrics"
+      }
+    }
+  },
+  {
+    "t": 23.8,
+    "kind": "event",
+    "event": {
+      "agent_name": "supervisor",
+      "event_type": "reasoning",
+      "message": "metrics count successful txns per txn_id. Tracing shows TWO wallets.UPDATE spans per txn_id. Our own instrumentation contradicts itself.",
+      "details": {}
+    }
+  },
+  {
+    "t": 24.5,
+    "kind": "event",
+    "event": {
+      "agent_name": "supervisor",
+      "event_type": "finding",
+      "message": "Divergence: metrics see 1 successful transaction per txn_id; traces see 2 wallet writes.",
+      "details": {
+        "divergence_kind": "metric_trace",
+        "severity": "critical"
+      }
+    }
+  },
+  {
+    "t": 24.7,
+    "kind": "state_patch",
+    "patch": {
+      "state": {
+        "divergence_findings[+]": {
+          "kind": "metric_trace",
+          "service_name": "wallet-service",
+          "severity": "critical",
+          "human_summary": "metrics \u2194 tracing \u2014 47 disagreements: same txn_id has 2 wallets.UPDATE spans",
+          "metric_cardinality_per_txn": 1,
+          "trace_cardinality_per_txn": 2
+        }
+      }
+    }
+  },
+  {
+    "t": 25.1,
+    "kind": "event",
+    "event": {
+      "agent_name": "supervisor",
+      "event_type": "summary",
+      "message": "cross-check: tracing \u2194 metrics \u2014 47 signal disagreements",
+      "details": {
+        "action": "cross_check_complete",
+        "cross_check": "tracing_metrics",
+        "divergence_count": 47
+      }
+    }
+  },
+  {
+    "t": 25.8,
+    "kind": "state_patch",
+    "patch": {
+      "state": {
+        "hypotheses": [
+          {
+            "hypothesis_id": "H1",
+            "category": "fraud_provider_slowdown",
+            "status": "testing",
+            "confidence": 71,
+            "evidence_for_count": 2,
+            "evidence_against_count": 0,
+            "evidence_for": [
+              {
+                "signal": "fraud-adapter p95 2.7\u00d7 baseline"
+              },
+              {
+                "signal": "FraudScoreProviderSlowdown WARN \u00d7 206"
+              }
+            ],
+            "evidence_against": []
+          },
+          {
+            "hypothesis_id": "H2",
+            "category": "istio_sidecar_outage",
+            "status": "testing",
+            "confidence": 58,
+            "evidence_for_count": 1,
+            "evidence_against_count": 0,
+            "evidence_for": [
+              {
+                "signal": "47\u00d7 Istio 504 on inventory-reserve"
+              }
+            ],
+            "evidence_against": []
+          },
+          {
+            "hypothesis_id": "H3",
+            "category": "non_idempotent_retry_with_reconciliation_masking",
+            "status": "testing",
+            "confidence": 82,
+            "evidence_for_count": 3,
+            "evidence_against_count": 0,
+            "evidence_for": [
+              {
+                "signal": "double wallets.UPDATE in 47/47 traces"
+              },
+              {
+                "signal": "RetryAttempt=2 log cluster 47\u00d7"
+              },
+              {
+                "signal": "payment_ledger_write_total{retry=true} 15\u00d7 baseline"
+              }
+            ],
+            "evidence_against": []
+          },
+          {
+            "hypothesis_id": "H4",
+            "category": "wallet_replication_lag_stale_read",
+            "status": "testing",
+            "confidence": 41,
+            "evidence_for_count": 0,
+            "evidence_against_count": 0,
+            "evidence_for": [],
+            "evidence_against": []
+          }
+        ]
+      }
+    }
+  },
+  {
+    "t": 26.2,
+    "kind": "event",
+    "event": {
+      "agent_name": "supervisor",
+      "event_type": "summary",
+      "message": "4 hypotheses under evaluation: H1 fraud-slow (71%), H2 istio-outage (58%), H3 retry-without-idempotency (82%), H4 wallet-replication-lag (41%).",
+      "details": {
+        "hypothesis_count": 4
+      }
+    }
+  },
+  {
+    "t": 27.0,
+    "kind": "event",
+    "event": {
+      "agent_name": "supervisor",
+      "event_type": "started",
+      "message": "Testing H1 (fraud-adapter). If true, latency distribution should be unimodal near 380ms.",
+      "details": {}
+    }
+  },
+  {
+    "t": 27.4,
+    "kind": "event",
+    "event": {
+      "agent_name": "metric_agent",
+      "event_type": "reasoning",
+      "message": "REASON: H1 says fraud-adapter slowdown caused the incident.",
+      "details": {}
+    }
+  },
+  {
+    "t": 27.8,
+    "kind": "event",
+    "event": {
+      "agent_name": "metric_agent",
+      "event_type": "tool_call",
+      "message": "prometheus.query_range(histogram_quantile(0.99, fraud_score_duration_seconds), window=4h)",
+      "details": {}
+    }
+  },
+  {
+    "t": 28.5,
+    "kind": "event",
+    "event": {
+      "agent_name": "metric_agent",
+      "event_type": "finding",
+      "message": "OBSERVE: fraud-adapter distribution is bimodal \u2014 two peaks (140ms baseline, 380ms elevated). A unimodal shift would be consistent with H1; observed shape isn't.",
+      "details": {
+        "h": "H1",
+        "observation": "bimodal_distribution"
+      }
+    }
+  },
+  {
+    "t": 29.0,
+    "kind": "event",
+    "event": {
+      "agent_name": "metric_agent",
+      "event_type": "reasoning",
+      "message": "REFLECT: contribution math: fraud ~240ms (2.7\u00d7 baseline); istio ~14,863ms. fraud explains 1.6% of incident latency. H1 ruled out.",
+      "details": {}
+    }
+  },
+  {
+    "t": 29.4,
+    "kind": "event",
+    "event": {
+      "agent_name": "supervisor",
+      "event_type": "finding",
+      "message": "H1 eliminated: fraud-adapter accounts for 1.6% of incident latency \u2014 not load-bearing.",
+      "details": {
+        "h": "H1",
+        "outcome": "eliminated",
+        "confidence": 94
+      }
+    }
+  },
+  {
+    "t": 29.6,
+    "kind": "state_patch",
+    "patch": {
+      "state": {
+        "token_usage[+]": {
+          "agent_name": "metric_agent",
+          "input_tokens": 400,
+          "output_tokens": 60,
+          "total_tokens": 460
+        }
+      }
+    }
+  },
+  {
+    "t": 30.2,
+    "kind": "event",
+    "event": {
+      "agent_name": "supervisor",
+      "event_type": "started",
+      "message": "Testing H2 (istio outage).",
+      "details": {}
+    }
+  },
+  {
+    "t": 30.6,
+    "kind": "event",
+    "event": {
+      "agent_name": "k8s_agent",
+      "event_type": "reasoning",
+      "message": "REASON: H2 requires istio pods Unready or CrashLoop.",
+      "details": {}
+    }
+  },
+  {
+    "t": 31.0,
+    "kind": "event",
+    "event": {
+      "agent_name": "k8s_agent",
+      "event_type": "tool_call",
+      "message": "kubectl.get(pods, namespace=istio-system)",
+      "details": {}
+    }
+  },
+  {
+    "t": 31.4,
+    "kind": "event",
+    "event": {
+      "agent_name": "k8s_agent",
+      "event_type": "finding",
+      "message": "OBSERVE: all istio-system pods Ready; zero restarts. Sidecars healthy.",
+      "details": {
+        "h": "H2",
+        "observation": "istio_all_ready"
+      }
+    }
+  },
+  {
+    "t": 31.8,
+    "kind": "event",
+    "event": {
+      "agent_name": "k8s_agent",
+      "event_type": "reasoning",
+      "message": "REFLECT: upstream_cx_overflow is a connection-pool-depth event, not an outage. H2 fails.",
+      "details": {}
+    }
+  },
+  {
+    "t": 32.2,
+    "kind": "event",
+    "event": {
+      "agent_name": "supervisor",
+      "event_type": "finding",
+      "message": "H2 eliminated: istio data plane healthy; the 504 is a configured 15s timeout, not a failure.",
+      "details": {
+        "h": "H2",
+        "outcome": "eliminated",
+        "confidence": 91
+      }
+    }
+  },
+  {
+    "t": 32.4,
+    "kind": "state_patch",
+    "patch": {
+      "state": {
+        "token_usage[+]": {
+          "agent_name": "k8s_agent",
+          "input_tokens": 200,
+          "output_tokens": 50,
+          "total_tokens": 250
+        }
+      }
+    }
+  },
+  {
+    "t": 33.0,
+    "kind": "event",
+    "event": {
+      "agent_name": "supervisor",
+      "event_type": "started",
+      "message": "Testing H4 (wallet replication lag).",
+      "details": {}
+    }
+  },
+  {
+    "t": 33.4,
+    "kind": "event",
+    "event": {
+      "agent_name": "metric_agent",
+      "event_type": "tool_call",
+      "message": "prometheus.query_range(wallet_replication_lag_ms, window=4h)",
+      "details": {}
+    }
+  },
+  {
+    "t": 34.0,
+    "kind": "event",
+    "event": {
+      "agent_name": "metric_agent",
+      "event_type": "finding",
+      "message": "wallet replication lag <50ms throughout incident. No stale reads possible.",
+      "details": {
+        "h": "H4",
+        "observation": "replication_lag_low"
+      }
+    }
+  },
+  {
+    "t": 34.4,
+    "kind": "event",
+    "event": {
+      "agent_name": "supervisor",
+      "event_type": "finding",
+      "message": "H4 eliminated: replication lag never exceeded 50ms.",
+      "details": {
+        "h": "H4",
+        "outcome": "eliminated",
+        "confidence": 97
+      }
+    }
+  },
+  {
+    "t": 34.6,
+    "kind": "state_patch",
+    "patch": {
+      "state": {
+        "token_usage[+]": {
+          "agent_name": "metric_agent",
+          "input_tokens": 180,
+          "output_tokens": 40,
+          "total_tokens": 220
+        }
+      }
+    }
+  },
+  {
+    "t": 35.0,
+    "kind": "state_patch",
+    "patch": {
+      "state": {
+        "hypotheses": [
+          {
+            "hypothesis_id": "H1",
+            "category": "fraud_provider_slowdown",
+            "status": "eliminated",
+            "confidence": 6,
+            "elimination_reason": "Latency contribution 1.6%; bimodal distribution",
+            "elimination_phase": "cross_check"
+          },
+          {
+            "hypothesis_id": "H2",
+            "category": "istio_sidecar_outage",
+            "status": "eliminated",
+            "confidence": 9,
+            "elimination_reason": "Istio data plane healthy; 504 is a configured timeout",
+            "elimination_phase": "cross_check"
+          },
+          {
+            "hypothesis_id": "H3",
+            "category": "non_idempotent_retry_with_reconciliation_masking",
+            "status": "winner",
+            "confidence": 88,
+            "evidence_for_count": 5,
+            "evidence_against_count": 0
+          },
+          {
+            "hypothesis_id": "H4",
+            "category": "wallet_replication_lag_stale_read",
+            "status": "eliminated",
+            "confidence": 3,
+            "elimination_reason": "Replication lag <50ms throughout",
+            "elimination_phase": "cross_check"
+          }
+        ],
+        "hypothesis_result": {
+          "status": "provisional",
+          "winner_id": "H3",
+          "elimination_log": [
+            {
+              "h": "H1",
+              "reason": "Latency contribution 1.6%; bimodal distribution"
+            },
+            {
+              "h": "H2",
+              "reason": "Istio data plane healthy; 504 is a configured timeout"
+            },
+            {
+              "h": "H4",
+              "reason": "Replication lag <50ms throughout"
+            }
+          ],
+          "recommendations": []
+        }
+      }
+    }
+  },
+  {
+    "t": 35.4,
+    "kind": "event",
+    "event": {
+      "agent_name": "supervisor",
+      "event_type": "summary",
+      "message": "Elimination round complete: H1, H2, H4 ruled out. H3 is the winner candidate (88% prov.).",
+      "details": {}
+    }
+  },
+  {
+    "t": 36.0,
+    "kind": "state_patch",
+    "patch": {
+      "session": {
+        "budget": {
+          "tool_calls_used": 11,
+          "tool_calls_max": 40,
+          "llm_usd_used": 0.015,
+          "llm_usd_max": 1.0
+        }
+      }
+    }
+  },
+  {
+    "t": 38.0,
+    "kind": "phase_change",
+    "phase": "diagnosing"
+  },
+  {
+    "t": 38.2,
+    "kind": "event",
+    "event": {
+      "agent_name": "code_agent",
+      "event_type": "started",
+      "message": "Opening repos: zepay/payment-service, zepay/shared-finance-models, zepay/reconciliation-job.",
+      "details": {}
+    }
+  },
+  {
+    "t": 38.8,
+    "kind": "event",
+    "event": {
+      "agent_name": "code_agent",
+      "event_type": "tool_call",
+      "message": "github.clone(zepay/payment-service, ref=main)",
+      "details": {}
+    }
+  },
+  {
+    "t": 39.4,
+    "kind": "event",
+    "event": {
+      "agent_name": "code_agent",
+      "event_type": "tool_call",
+      "message": "ripgrep('@Retryable' in payment-service/src) \u2014 locating retry wrappers",
+      "details": {}
+    }
+  },
+  {
+    "t": 40.0,
+    "kind": "event",
+    "event": {
+      "agent_name": "code_agent",
+      "event_type": "finding",
+      "message": "Found @Retryable on PaymentExecutor.execute() \u2014 wraps BOTH ledger.debit() AND inventoryClient.reserve(). Retry re-runs the mutation.",
+      "details": {
+        "file_path": "payment-service/src/main/java/com/zepay/payment/ledger/PaymentExecutor.java",
+        "line": 127
+      }
+    }
+  },
+  {
+    "t": 40.2,
+    "kind": "state_patch",
+    "patch": {
+      "state": {
+        "token_usage[+]": {
+          "agent_name": "code_agent",
+          "input_tokens": 3200,
+          "output_tokens": 180,
+          "total_tokens": 3380
+        }
+      }
+    }
+  },
+  {
+    "t": 40.8,
+    "kind": "event",
+    "event": {
+      "agent_name": "code_agent",
+      "event_type": "reasoning",
+      "message": "The mutation (ledger.debit) has no idempotency-key. On retry, fresh txn_id \u2192 second row in ledger.txns.",
+      "details": {}
+    }
+  },
+  {
+    "t": 41.4,
+    "kind": "event",
+    "event": {
+      "agent_name": "code_agent",
+      "event_type": "tool_call",
+      "message": "github.clone(zepay/shared-finance-models)",
+      "details": {}
+    }
+  },
+  {
+    "t": 42.0,
+    "kind": "event",
+    "event": {
+      "agent_name": "code_agent",
+      "event_type": "tool_call",
+      "message": "open(shared-finance-models/Money.java:38)",
+      "details": {}
+    }
+  },
+  {
+    "t": 42.6,
+    "kind": "event",
+    "event": {
+      "agent_name": "code_agent",
+      "event_type": "finding",
+      "message": "Money.java stores `amount` as `double`. $87.41 + $87.41 = 174.81999999999999 (IEEE-754 drift).",
+      "details": {
+        "file_path": "shared-finance-models/src/main/java/com/zepay/finance/Money.java",
+        "line": 38,
+        "defect": "double-based arithmetic"
+      }
+    }
+  },
+  {
+    "t": 43.2,
+    "kind": "event",
+    "event": {
+      "agent_name": "code_agent",
+      "event_type": "tool_call",
+      "message": "github.clone(zepay/reconciliation-job)",
+      "details": {}
+    }
+  },
+  {
+    "t": 43.8,
+    "kind": "event",
+    "event": {
+      "agent_name": "code_agent",
+      "event_type": "tool_call",
+      "message": "open(reconciliation-job/src/reconcile/NightlyReconcile.py:88)",
+      "details": {}
+    }
+  },
+  {
+    "t": 44.4,
+    "kind": "event",
+    "event": {
+      "agent_name": "code_agent",
+      "event_type": "finding",
+      "message": "NightlyReconcile auto-rounds any drift < $0.02 \u2014 swallows duplicate-charge signals.",
+      "details": {
+        "file_path": "reconciliation-job/src/reconcile/NightlyReconcile.py",
+        "line": 88,
+        "defect": "threshold absorbs signal"
+      }
+    }
+  },
+  {
+    "t": 45.0,
+    "kind": "event",
+    "event": {
+      "agent_name": "code_agent",
+      "event_type": "reasoning",
+      "message": "Three-bug stack confirmed. Primary: PaymentExecutor. Amplifier: Money. Suppressor: NightlyReconcile.",
+      "details": {}
+    }
+  },
+  {
+    "t": 45.3,
+    "kind": "state_patch",
+    "patch": {
+      "state": {
+        "code_analysis": {
+          "root_cause_location": {
+            "file_path": "payment-service/src/main/java/com/zepay/payment/ledger/PaymentExecutor.java",
+            "impact_type": "direct_error",
+            "relevant_lines": [
+              {
+                "start": 127,
+                "end": 145
+              }
+            ],
+            "code_snippet": "@Retryable(retryFor={UpstreamTimeoutException.class}, maxAttempts=2)\npublic PaymentResult execute(PaymentRequest req) {\n    LedgerTxn txn = ledger.debit(req.customer_id(), req.amount_cents(), req.currency());\n    inventoryClient.reserve(req.cart_id(), ...);\n    return PaymentResult.success(txn.id());\n}",
+            "relationship": "root",
+            "fix_relevance": "must_fix"
+          },
+          "impacted_files": [
+            {
+              "file_path": "shared-finance-models/src/main/java/com/zepay/finance/Money.java",
+              "impact_type": "contributing",
+              "relevant_lines": [
+                {
+                  "start": 38,
+                  "end": 54
+                }
+              ],
+              "relationship": "amplifier",
+              "fix_relevance": "should_fix"
+            },
+            {
+              "file_path": "reconciliation-job/src/reconcile/NightlyReconcile.py",
+              "impact_type": "contributing",
+              "relevant_lines": [
+                {
+                  "start": 88,
+                  "end": 96
+                }
+              ],
+              "relationship": "signal_masker",
+              "fix_relevance": "should_fix"
+            }
+          ],
+          "suggested_fix_areas": [
+            {
+              "file_path": "payment-service/src/main/java/com/zepay/payment/ledger/PaymentExecutor.java",
+              "description": "Add idempotency-key to ledger.debit; move mutation outside @Retryable.",
+              "suggested_change": "Thread req.idempotency_key() \u2192 ledger.debit(customerId, amount, currency, idempotencyKey); retry only the reserve call."
+            },
+            {
+              "file_path": "shared-finance-models/src/main/java/com/zepay/finance/Money.java",
+              "description": "Replace double with BigDecimal; enforce currency scale.",
+              "suggested_change": "Migrate Money.amount to BigDecimal.setScale(currency.scale(), RoundingMode.UNNECESSARY)."
+            },
+            {
+              "file_path": "reconciliation-job/src/reconcile/NightlyReconcile.py",
+              "description": "Lower auto-round threshold; escalate sub-cent diffs.",
+              "suggested_change": "Drop threshold from $0.02 to $0.001; P3 alert for any drift > $0.001."
+            }
+          ],
+          "code_call_chain": [
+            "api-gateway.POST /api/v1/checkout",
+            "checkout-service.POST /pay",
+            "payment-service.PaymentExecutor.execute",
+            "payment-service.LedgerClient.debit",
+            "wallet-service.POST /v1/debit",
+            "payment-service.InventoryClient.reserve",
+            "istio-proxy \u2192 inventory-service (15s timeout)",
+            "@Retryable reissue \u2192 PaymentExecutor.execute (2nd time)",
+            "payment-service.LedgerClient.debit (2nd call, fresh txn_id)",
+            "wallet-service.POST /v1/debit (GHOST DEBIT)"
+          ],
+          "code_cross_repo_findings": [
+            {
+              "repo": "zepay/payment-service",
+              "role": "primary_cause",
+              "evidence": "Retry wrapper re-runs mutation without idempotency-key."
+            },
+            {
+              "repo": "zepay/shared-finance-models",
+              "role": "contributing_library",
+              "evidence": "double-based Money arithmetic masks sub-cent duplicate drift."
+            },
+            {
+              "repo": "zepay/reconciliation-job",
+              "role": "signal_masker",
+              "evidence": "$0.02 auto-round threshold swallows the duplicate-charge signal."
+            }
+          ],
+          "code_overall_confidence": 94
+        }
+      }
+    }
+  },
+  {
+    "t": 45.8,
+    "kind": "event",
+    "event": {
+      "agent_name": "code_agent",
+      "event_type": "summary",
+      "message": "3 defects across 3 repos. Primary: PaymentExecutor.java:127. Amplifier: Money.java:38. Suppressor: NightlyReconcile.py:88.",
+      "details": {
+        "duration_s": 7.6,
+        "defects": 3,
+        "confidence": 94
+      }
+    }
+  },
+  {
+    "t": 46.0,
+    "kind": "state_patch",
+    "patch": {
+      "state": {
+        "token_usage[+]": {
+          "agent_name": "code_agent",
+          "input_tokens": 1200,
+          "output_tokens": 480,
+          "total_tokens": 1680
+        }
+      }
+    }
+  },
+  {
+    "t": 46.2,
+    "kind": "state_patch",
+    "patch": {
+      "state": {
+        "agents_completed[+]": "code_agent"
+      }
+    }
+  },
+  {
+    "t": 47.0,
+    "kind": "event",
+    "event": {
+      "agent_name": "critic",
+      "event_type": "started",
+      "message": "Critic ensemble activating. advocate, challenger, judge.",
+      "details": {}
+    }
+  },
+  {
+    "t": 47.5,
+    "kind": "event",
+    "event": {
+      "agent_name": "critic",
+      "event_type": "reasoning",
+      "message": "ADVOCATE: three independent signals \u2014 trace double-span, log retry-cluster, metric retry-counter \u2014 all point to the same defect.",
+      "details": {}
+    }
+  },
+  {
+    "t": 48.0,
+    "kind": "event",
+    "event": {
+      "agent_name": "critic",
+      "event_type": "finding",
+      "message": "advocate verdict: CONFIRMED (89%)",
+      "details": {
+        "role": "advocate",
+        "verdict": "confirmed",
+        "confidence": 89
+      }
+    }
+  },
+  {
+    "t": 48.6,
+    "kind": "event",
+    "event": {
+      "agent_name": "critic",
+      "event_type": "reasoning",
+      "message": "CHALLENGER: looking for failure modes \u2014 is attribution across all 47 complaints sound?",
+      "details": {}
+    }
+  },
+  {
+    "t": 49.2,
+    "kind": "event",
+    "event": {
+      "agent_name": "critic",
+      "event_type": "tool_call",
+      "message": "jaeger.replay(trace_ids=[control group, 5 non-complaint traces])",
+      "details": {}
+    }
+  },
+  {
+    "t": 49.8,
+    "kind": "event",
+    "event": {
+      "agent_name": "critic",
+      "event_type": "finding",
+      "message": "Some control traces don't have the double-span pattern. Evidence gap: subset of 47 may include card-network-side dupes.",
+      "details": {
+        "role": "challenger",
+        "evidence_gap": "attribution_completeness"
+      }
+    }
+  },
+  {
+    "t": 50.2,
+    "kind": "event",
+    "event": {
+      "agent_name": "critic",
+      "event_type": "finding",
+      "message": "challenger verdict: CHALLENGED (74%) \u2014 attribution uncertain on ~5/47.",
+      "details": {
+        "role": "challenger",
+        "verdict": "challenged",
+        "confidence": 74
+      }
+    }
+  },
+  {
+    "t": 50.8,
+    "kind": "event",
+    "event": {
+      "agent_name": "critic",
+      "event_type": "reasoning",
+      "message": "JUDGE: even if 5/47 are card-network dupes, the code defect is independently proven. Recommend fix code now; reconcile attribution after.",
+      "details": {}
+    }
+  },
+  {
+    "t": 51.3,
+    "kind": "event",
+    "event": {
+      "agent_name": "critic",
+      "event_type": "finding",
+      "message": "judge verdict: CONFIRMED with caveat.",
+      "details": {
+        "role": "judge",
+        "verdict": "confirmed_with_caveat",
+        "confidence": 88,
+        "caveat": "Per-customer attribution subject to post-fix audit"
+      }
+    }
+  },
+  {
+    "t": 51.5,
+    "kind": "state_patch",
+    "patch": {
+      "state": {
+        "critic_verdicts": [
+          {
+            "finding_index": 0,
+            "verdict": "confirmed",
+            "confidence_in_verdict": 89,
+            "reasoning": "Three independent signals converge on H3"
+          },
+          {
+            "finding_index": 0,
+            "verdict": "challenged",
+            "confidence_in_verdict": 74,
+            "reasoning": "Attribution gap on ~5/47 complaints"
+          },
+          {
+            "finding_index": 0,
+            "verdict": "confirmed",
+            "confidence_in_verdict": 88,
+            "reasoning": "Code defect independently proven; attribution refinement post-fix"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "t": 52.0,
+    "kind": "event",
+    "event": {
+      "agent_name": "supervisor",
+      "event_type": "started",
+      "message": "Challenger dissent exceeds threshold. Triggering one re-investigation round.",
+      "details": {}
+    }
+  },
+  {
+    "t": 52.5,
+    "kind": "event",
+    "event": {
+      "agent_name": "metric_agent",
+      "event_type": "started",
+      "message": "Re-running with narrower window.",
+      "details": {}
+    }
+  },
+  {
+    "t": 52.9,
+    "kind": "event",
+    "event": {
+      "agent_name": "metric_agent",
+      "event_type": "reasoning",
+      "message": "REASON: tight window on last 90min should sharpen retry-counter signal.",
+      "details": {}
+    }
+  },
+  {
+    "t": 53.3,
+    "kind": "event",
+    "event": {
+      "agent_name": "metric_agent",
+      "event_type": "tool_call",
+      "message": "prometheus.query_range(payment_ledger_write_total{retry=true}, window=90m, step=15s)",
+      "details": {}
+    }
+  },
+  {
+    "t": 54.0,
+    "kind": "event",
+    "event": {
+      "agent_name": "metric_agent",
+      "event_type": "finding",
+      "message": "OBSERVE: 15.3\u00d7 baseline sustained in tight window. Not spurious.",
+      "details": {
+        "refined_metric": "payment_ledger_write_total{retry=true}",
+        "tight_window_peak": 0.29,
+        "baseline": 0.019
+      }
+    }
+  },
+  {
+    "t": 54.6,
+    "kind": "event",
+    "event": {
+      "agent_name": "metric_agent",
+      "event_type": "reasoning",
+      "message": "REFLECT: attribution uncertainty doesn't affect the code defect. Confidence rebounds.",
+      "details": {}
+    }
+  },
+  {
+    "t": 55.0,
+    "kind": "event",
+    "event": {
+      "agent_name": "supervisor",
+      "event_type": "finding",
+      "message": "Confidence rebounded 74% \u2192 92% after re-investigation.",
+      "details": {
+        "before": 74,
+        "after": 92
+      }
+    }
+  },
+  {
+    "t": 55.2,
+    "kind": "state_patch",
+    "patch": {
+      "state": {
+        "hypothesis_result": {
+          "status": "resolved",
+          "winner_id": "H3",
+          "confidence_reasoning": "3 independent signals; critic 2/3 confirmed; re-investigation rebounded",
+          "elimination_log": [
+            {
+              "h": "H1",
+              "reason": "Latency contribution 1.6%; bimodal distribution"
+            },
+            {
+              "h": "H2",
+              "reason": "Istio data plane healthy; 504 is a configured timeout"
+            },
+            {
+              "h": "H4",
+              "reason": "Replication lag <50ms throughout"
+            }
+          ],
+          "recommendations": [
+            "Add idempotency-key to ledger.debit (PaymentExecutor.java:127)",
+            "Migrate Money to BigDecimal (Money.java:38)",
+            "Tighten reconciliation threshold (NightlyReconcile.py:88)"
+          ]
+        },
+        "overall_confidence": 92
+      }
+    }
+  },
+  {
+    "t": 55.4,
+    "kind": "state_patch",
+    "patch": {
+      "session": {
+        "confidence": 92,
+        "winner_critic_dissent": {
+          "advocate_verdict": "confirmed",
+          "challenger_verdict": "challenged",
+          "judge_verdict": "confirmed",
+          "summary": "2/3 critics confirmed after re-investigation; caveat on per-customer attribution"
+        }
+      }
+    }
+  },
+  {
+    "t": 56.2,
+    "kind": "event",
+    "event": {
+      "agent_name": "supervisor",
+      "event_type": "started",
+      "message": "Synthesizing verdict + blast-radius + signature-library lookup.",
+      "details": {}
+    }
+  },
+  {
+    "t": 57.0,
+    "kind": "event",
+    "event": {
+      "agent_name": "supervisor",
+      "event_type": "tool_call",
+      "message": "causal_forest.synthesize(winner=H3, affected_services=[payment, checkout, wallet])",
+      "details": {}
+    }
+  },
+  {
+    "t": 57.8,
+    "kind": "event",
+    "event": {
+      "agent_name": "supervisor",
+      "event_type": "finding",
+      "message": "Blast radius: 3 services directly affected; 47 customers double-charged; $4,089 refund exposure.",
+      "details": {}
+    }
+  },
+  {
+    "t": 58.0,
+    "kind": "state_patch",
+    "patch": {
+      "state": {
+        "blast_radius_result": {
+          "primary_service": "payment-service",
+          "upstream_affected": [
+            "checkout-service",
+            "api-gateway"
+          ],
+          "downstream_affected": [
+            "wallet-service"
+          ],
+          "shared_resources": [
+            "reconciliation-job",
+            "shared-finance-models"
+          ],
+          "estimated_user_impact": "47 confirmed duplicate charges totaling $4,089 in refund exposure + ~$880 in Stripe dispute fees. Three VIP escalations: Acme Logistics ($2.1M monthly, SLA clause triggered \u2014 $50K + $840K peer-ARR risk); Sarah Chen (184K-follower food blogger, 2.3M impressions); @sarah_trades_btc (340K crypto followers, quote-tweeted by @patio11).",
+          "scope": "service_group",
+          "notable_affected_accounts": [
+            {
+              "customer_id": "C-CORP-ACME-LOG-0042",
+              "tier": "business_enterprise",
+              "stakes_summary": "Acme Logistics \u2014 $2.1M/mo volume, SLA tier-1 contract. $50K penalty clause triggered. 3 peer accounts at ARR risk ($840K/yr).",
+              "escalation_channel": "relationship_manager + legal",
+              "business_severity": "critical"
+            },
+            {
+              "customer_id": "C-CHEN-SARAH-8741",
+              "tier": "consumer_premium",
+              "stakes_summary": "Sarah Chen \u2014 food blogger, 184K followers. Pinned tweet on r/personalfinance, 2.3M impressions.",
+              "escalation_channel": "pr_team",
+              "business_severity": "high"
+            },
+            {
+              "customer_id": "C-INFLUENCER-BTC-2291",
+              "tier": "consumer_premium",
+              "stakes_summary": "@sarah_trades_btc \u2014 fintech-Twitter influencer, 340K followers, quote-tweeted by @patio11. Trending #6.",
+              "escalation_channel": "pr_team + brand_risk",
+              "business_severity": "high"
+            }
+          ],
+          "business_impact": [
+            {
+              "capability": "checkout",
+              "severity": "critical",
+              "affected_services": [
+                "checkout-service"
+              ]
+            },
+            {
+              "capability": "billing_integrity",
+              "severity": "critical",
+              "affected_services": [
+                "payment-service",
+                "reconciliation-job"
+              ]
+            },
+            {
+              "capability": "customer_trust",
+              "severity": "high",
+              "affected_services": [
+                "notification-service"
+              ]
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "t": 58.8,
+    "kind": "event",
+    "event": {
+      "agent_name": "supervisor",
+      "event_type": "tool_call",
+      "message": "signature_library.match(winner=H3, evidence=[retry,mutation,no_idempotency])",
+      "details": {}
+    }
+  },
+  {
+    "t": 59.5,
+    "kind": "event",
+    "event": {
+      "agent_name": "supervisor",
+      "event_type": "finding",
+      "message": "Signature match: retry_without_idempotency_key (89%). Seen in Stripe Q3-2024, Square Q1-2025.",
+      "details": {
+        "pattern_name": "retry_without_idempotency_key",
+        "confidence": 0.89
+      }
+    }
+  },
+  {
+    "t": 59.7,
+    "kind": "state_patch",
+    "patch": {
+      "session": {
+        "signature_match": {
+          "pattern_name": "retry_without_idempotency_key",
+          "confidence": 0.89,
+          "matched_at_ms": 0,
+          "summary": "Retry wrapper re-executes a mutating operation without an idempotency key.",
+          "remediation": "Add idempotency-key header to mutation endpoints; move the mutation outside the retry boundary; or introduce a transactional idempotency table keyed on (client_id, request_id)."
+        },
+        "diagnosis_stop_reason": "high_confidence_no_challenges"
+      }
+    }
+  },
+  {
+    "t": 60.2,
+    "kind": "state_patch",
+    "patch": {
+      "state": {
+        "severity_result": {
+          "severity": "P1",
+          "reasoning": "Financial-integrity violation + active social-media exposure + regulatory-reporting implications (FDIC dispute-reporting threshold exceeded).",
+          "regulatory_flags": [
+            "FDIC",
+            "PCI-DSS 10.8"
+          ],
+          "recommended_responders": [
+            "payments-oncall",
+            "platform-oncall",
+            "finance-controller",
+            "legal-regulatory"
+          ]
+        }
+      }
+    }
+  },
+  {
+    "t": 60.5,
+    "kind": "state_patch",
+    "patch": {
+      "state": {
+        "past_incidents": [
+          {
+            "incident_id": "INC-2026-0211-checkout-cart-sync-drift",
+            "title": "Cart items out of sync between Redis and Postgres projection",
+            "resolved_at": "2026-02-11T18:14:00Z",
+            "similarity_score": 0.32,
+            "shared_services": [
+              "checkout-service"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "t": 61.0,
+    "kind": "state_patch",
+    "patch": {
+      "state": {
+        "evidence_pins": [
+          {
+            "id": "pin-1",
+            "label": "Retry log cluster (47 occurrences)",
+            "source": "log_agent",
+            "confidence": 89
+          },
+          {
+            "id": "pin-2",
+            "label": "Double wallets.UPDATE spans (47/47 complaint traces)",
+            "source": "tracing_agent",
+            "confidence": 97
+          },
+          {
+            "id": "pin-3",
+            "label": "payment_ledger_write_total{retry=true} 15\u00d7 baseline",
+            "source": "metric_agent",
+            "confidence": 88
+          },
+          {
+            "id": "pin-4",
+            "label": "PaymentExecutor.java:127 @Retryable wrapping mutation",
+            "source": "code_agent",
+            "confidence": 94
+          },
+          {
+            "id": "pin-5",
+            "label": "Reconciliation $0.02 auto-round silences signal",
+            "source": "code_agent",
+            "confidence": 93
+          }
+        ],
+        "reasoning_chain": [
+          {
+            "step": 1,
+            "claim": "User perception: checkout broken",
+            "refuted_by": "log_agent cluster points at payment-service"
+          },
+          {
+            "step": 2,
+            "claim": "Retry fires 47\u00d7 on inventory-reserve",
+            "evidence": [
+              "log cluster",
+              "metric counter"
+            ]
+          },
+          {
+            "step": 3,
+            "claim": "Retry re-runs ledger.debit() \u2014 mutation",
+            "evidence": [
+              "trace waterfall shows 2\u00d7 wallets.UPDATE"
+            ]
+          },
+          {
+            "step": 4,
+            "claim": "Reconciliation should have caught; didn't",
+            "evidence": [
+              "$0.02 threshold absorbs drift from Money.java float-math"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "t": 61.4,
+    "kind": "event",
+    "event": {
+      "agent_name": "supervisor",
+      "event_type": "summary",
+      "message": "Verdict landed. Non-idempotent retry under Istio sidecar timeout. Confidence 92%. Severity P1 \u2014 financial-integrity + social-media + regulatory.",
+      "details": {
+        "confidence": 92,
+        "severity": "P1"
+      }
+    }
+  },
+  {
+    "t": 62.0,
+    "kind": "state_patch",
+    "patch": {
+      "session": {
+        "budget": {
+          "tool_calls_used": 23,
+          "tool_calls_max": 40,
+          "llm_usd_used": 0.028,
+          "llm_usd_max": 1.0
+        }
+      }
+    }
+  },
+  {
+    "t": 62.5,
+    "kind": "phase_change",
+    "phase": "diagnosis_complete"
+  },
+  {
+    "t": 63.0,
+    "kind": "event",
+    "event": {
+      "agent_name": "code_agent",
+      "event_type": "started",
+      "message": "Generating fix diffs across 3 repos.",
+      "details": {}
+    }
+  },
+  {
+    "t": 63.6,
+    "kind": "event",
+    "event": {
+      "agent_name": "code_agent",
+      "event_type": "tool_call",
+      "message": "generate_fix(repo=zepay/payment-service, file=PaymentExecutor.java:127)",
+      "details": {}
+    }
+  },
+  {
+    "t": 64.2,
+    "kind": "event",
+    "event": {
+      "agent_name": "code_agent",
+      "event_type": "finding",
+      "message": "Fix drafted for payment-service: idempotency-key threading + mutation outside @Retryable.",
+      "details": {
+        "repo": "zepay/payment-service",
+        "pr": 8427,
+        "lines_added": 31,
+        "lines_removed": 8
+      }
+    }
+  },
+  {
+    "t": 65.0,
+    "kind": "event",
+    "event": {
+      "agent_name": "code_agent",
+      "event_type": "tool_call",
+      "message": "generate_fix(repo=zepay/shared-finance-models, file=Money.java:38)",
+      "details": {}
+    }
+  },
+  {
+    "t": 65.6,
+    "kind": "event",
+    "event": {
+      "agent_name": "code_agent",
+      "event_type": "finding",
+      "message": "Fix drafted for shared-finance-models: double \u2192 BigDecimal; breaking semver.",
+      "details": {
+        "repo": "zepay/shared-finance-models",
+        "pr": 1203,
+        "lines_added": 47,
+        "lines_removed": 22
+      }
+    }
+  },
+  {
+    "t": 66.2,
+    "kind": "event",
+    "event": {
+      "agent_name": "code_agent",
+      "event_type": "tool_call",
+      "message": "generate_fix(repo=zepay/reconciliation-job, file=NightlyReconcile.py:88)",
+      "details": {}
+    }
+  },
+  {
+    "t": 66.8,
+    "kind": "event",
+    "event": {
+      "agent_name": "code_agent",
+      "event_type": "finding",
+      "message": "Fix drafted for reconciliation-job: threshold $0.02 \u2192 $0.001; P3 escalation for sub-cent.",
+      "details": {
+        "repo": "zepay/reconciliation-job",
+        "pr": 294,
+        "lines_added": 19,
+        "lines_removed": 5
+      }
+    }
+  },
+  {
+    "t": 67.2,
+    "kind": "state_patch",
+    "patch": {
+      "state": {
+        "fix_result": {
+          "campaign_id": "campaign-zepay-demo-0001",
+          "repos": [
+            {
+              "repo_url": "zepay/payment-service",
+              "service_name": "payment-service",
+              "pr_url": "https://github.com/zepay/payment-service/pull/8427",
+              "pr_number": 8427,
+              "causal_role": "root_cause",
+              "status": "drafted",
+              "lines_added": 31,
+              "lines_removed": 8,
+              "fix_explanation": "Add idempotency-key to ledger.debit; move mutation outside @Retryable.",
+              "diff": "@@ -121,15 +121,24 @@\n-@Retryable(retryFor={UpstreamTimeoutException.class}, maxAttempts=2)\n public PaymentResult execute(PaymentRequest req) {\n-    LedgerTxn txn = ledger.debit(req.customer_id(), req.amount_cents(), req.currency());\n-    inventoryClient.reserve(req.cart_id(), items);\n+    String idemKey = req.idempotency_key() != null ? req.idempotency_key()\n+                         : (req.customer_id() + \":\" + req.cart_id());\n+    LedgerTxn txn = ledger.debit(req.customer_id(), req.amount_cents(), req.currency(), idemKey);\n+    reserveWithRetry(req.cart_id(), idemKey);\n     return PaymentResult.success(txn.id());\n }\n+\n+@Retryable(retryFor={UpstreamTimeoutException.class}, maxAttempts=2)\n+private void reserveWithRetry(String cartId, String idemKey) {\n+    inventoryClient.reserve(cartId, items, idemKey);\n+}"
+            },
+            {
+              "repo_url": "zepay/shared-finance-models",
+              "service_name": "shared-finance-models",
+              "pr_url": "https://github.com/zepay/shared-finance-models/pull/1203",
+              "pr_number": 1203,
+              "causal_role": "contributing",
+              "status": "drafted",
+              "lines_added": 47,
+              "lines_removed": 22,
+              "fix_explanation": "Replace double with BigDecimal; deprecate .plus() without currency scale.",
+              "diff": "@@ -1,43 +1,58 @@\n-private final double amount;\n+private final BigDecimal amount;\n ...\n-return new Money(this.amount + other.amount, this.currency);\n+return new Money(this.amount.add(other.amount), this.currency);"
+            },
+            {
+              "repo_url": "zepay/reconciliation-job",
+              "service_name": "reconciliation-job",
+              "pr_url": "https://github.com/zepay/reconciliation-job/pull/294",
+              "pr_number": 294,
+              "causal_role": "signal_masker",
+              "status": "drafted",
+              "lines_added": 19,
+              "lines_removed": 5,
+              "fix_explanation": "Lower drift threshold to $0.001; escalate sub-cent diffs as P3.",
+              "diff": "@@ -82,10 +82,15 @@\n-if abs(diff) < 0.02:\n-    log.info(...)\n-    continue\n+if abs(diff) < 0.001:\n+    continue\n+if abs(diff) < 0.02:\n+    log.warning(\"sub-cent drift\"); alert_finance_oncall(P3)\n+    continue"
+            }
+          ],
+          "overall_status": "awaiting_approval",
+          "approved_count": 0,
+          "total_count": 3
+        }
+      }
+    }
+  },
+  {
+    "t": 67.8,
+    "kind": "event",
+    "event": {
+      "agent_name": "supervisor",
+      "event_type": "finding",
+      "message": "FixReadyBar activated. 3 PRs drafted. Primary stops-the-bleeding; 2 prevent recurrence.",
+      "details": {}
+    }
+  },
+  {
+    "t": 68.0,
+    "kind": "phase_change",
+    "phase": "awaiting_approval"
+  },
+  {
+    "t": 68.2,
+    "kind": "await_approval",
+    "message": "Three fix PRs drafted \u2014 awaiting operator approval to merge sequence.",
+    "pending_action": {
+      "type": "attestation",
+      "title": "Approve 3 PRs to remediate INC-2026-0421-payment-ledger-ghost-debits",
+      "description": "Primary: payment-service #8427 (stop the bleeding). Secondary: shared-finance-models #1203 + reconciliation-job #294 (close blind spot).",
+      "options": [
+        {
+          "value": "approved",
+          "label": "Approve & merge (sequential)"
+        },
+        {
+          "value": "rejected",
+          "label": "Reject \u2014 escalate to payments lead"
+        }
+      ]
+    }
+  },
+  {
+    "t": 68.8,
+    "kind": "phase_change",
+    "phase": "fix_in_progress"
+  },
+  {
+    "t": 69.0,
+    "kind": "event",
+    "event": {
+      "agent_name": "supervisor",
+      "event_type": "summary",
+      "message": "Approval received. Starting sequential rollout. Primary fix first.",
+      "details": {}
+    }
+  },
+  {
+    "t": 70.0,
+    "kind": "event",
+    "event": {
+      "agent_name": "supervisor",
+      "event_type": "tool_call",
+      "message": "github.open_pr(zepay/payment-service, branch=fix/pr-k4-retry-safety)",
+      "details": {
+        "pr": 8427
+      }
+    }
+  },
+  {
+    "t": 70.6,
+    "kind": "event",
+    "event": {
+      "agent_name": "supervisor",
+      "event_type": "summary",
+      "message": "PR #8427 opened on zepay/payment-service. CI triggering.",
+      "details": {}
+    }
+  },
+  {
+    "t": 71.2,
+    "kind": "event",
+    "event": {
+      "agent_name": "supervisor",
+      "event_type": "progress",
+      "message": "PR #8427 \u2014 unit tests running (3/9 passed)",
+      "details": {}
+    }
+  },
+  {
+    "t": 72.0,
+    "kind": "event",
+    "event": {
+      "agent_name": "supervisor",
+      "event_type": "progress",
+      "message": "PR #8427 \u2014 unit tests passing (9/9)",
+      "details": {}
+    }
+  },
+  {
+    "t": 72.6,
+    "kind": "event",
+    "event": {
+      "agent_name": "supervisor",
+      "event_type": "progress",
+      "message": "PR #8427 \u2014 integration tests running (2/4)",
+      "details": {}
+    }
+  },
+  {
+    "t": 73.4,
+    "kind": "event",
+    "event": {
+      "agent_name": "supervisor",
+      "event_type": "progress",
+      "message": "PR #8427 \u2014 integration tests passing (4/4)",
+      "details": {}
+    }
+  },
+  {
+    "t": 74.0,
+    "kind": "event",
+    "event": {
+      "agent_name": "supervisor",
+      "event_type": "success",
+      "message": "PR #8427 merged to main. Rollout canary 25% \u2192 50% \u2192 100%.",
+      "details": {}
+    }
+  },
+  {
+    "t": 74.2,
+    "kind": "state_patch",
+    "patch": {
+      "state": {
+        "fix_result": {
+          "repos": [
+            {
+              "repo_url": "zepay/payment-service",
+              "pr_number": 8427,
+              "status": "merged",
+              "merge_sha": "0a7e4f3b9c1e"
+            },
+            {
+              "repo_url": "zepay/shared-finance-models",
+              "pr_number": 1203,
+              "status": "drafted"
+            },
+            {
+              "repo_url": "zepay/reconciliation-job",
+              "pr_number": 294,
+              "status": "drafted"
+            }
+          ],
+          "overall_status": "primary_merged",
+          "approved_count": 1,
+          "total_count": 3
+        }
+      }
+    }
+  },
+  {
+    "t": 75.0,
+    "kind": "event",
+    "event": {
+      "agent_name": "supervisor",
+      "event_type": "tool_call",
+      "message": "github.open_pr(zepay/shared-finance-models, branch=fix/money-bigdecimal)",
+      "details": {
+        "pr": 1203
+      }
+    }
+  },
+  {
+    "t": 75.6,
+    "kind": "event",
+    "event": {
+      "agent_name": "supervisor",
+      "event_type": "summary",
+      "message": "PR #1203 opened on zepay/shared-finance-models. 14 downstream consumers verifying.",
+      "details": {}
+    }
+  },
+  {
+    "t": 76.4,
+    "kind": "event",
+    "event": {
+      "agent_name": "supervisor",
+      "event_type": "progress",
+      "message": "PR #1203 \u2014 semver check: BREAKING (expected)",
+      "details": {}
+    }
+  },
+  {
+    "t": 77.2,
+    "kind": "event",
+    "event": {
+      "agent_name": "supervisor",
+      "event_type": "progress",
+      "message": "PR #1203 \u2014 downstream consumer tests running",
+      "details": {}
+    }
+  },
+  {
+    "t": 78.0,
+    "kind": "event",
+    "event": {
+      "agent_name": "supervisor",
+      "event_type": "progress",
+      "message": "PR #1203 \u2014 14/14 consumer suites green",
+      "details": {}
+    }
+  },
+  {
+    "t": 78.6,
+    "kind": "event",
+    "event": {
+      "agent_name": "supervisor",
+      "event_type": "success",
+      "message": "PR #1203 merged. shared-finance-models v4.3.0 published.",
+      "details": {}
+    }
+  },
+  {
+    "t": 78.8,
+    "kind": "state_patch",
+    "patch": {
+      "state": {
+        "fix_result": {
+          "repos": [
+            {
+              "repo_url": "zepay/payment-service",
+              "pr_number": 8427,
+              "status": "merged",
+              "merge_sha": "0a7e4f3b9c1e"
+            },
+            {
+              "repo_url": "zepay/shared-finance-models",
+              "pr_number": 1203,
+              "status": "merged",
+              "merge_sha": "3f2b91c0d8a4"
+            },
+            {
+              "repo_url": "zepay/reconciliation-job",
+              "pr_number": 294,
+              "status": "drafted"
+            }
+          ],
+          "overall_status": "amplifier_merged",
+          "approved_count": 2,
+          "total_count": 3
+        }
+      }
+    }
+  },
+  {
+    "t": 79.4,
+    "kind": "event",
+    "event": {
+      "agent_name": "supervisor",
+      "event_type": "tool_call",
+      "message": "github.open_pr(zepay/reconciliation-job, branch=fix/threshold-tighten)",
+      "details": {
+        "pr": 294
+      }
+    }
+  },
+  {
+    "t": 80.0,
+    "kind": "event",
+    "event": {
+      "agent_name": "supervisor",
+      "event_type": "summary",
+      "message": "PR #294 opened on zepay/reconciliation-job. Config-only change.",
+      "details": {}
+    }
+  },
+  {
+    "t": 80.6,
+    "kind": "event",
+    "event": {
+      "agent_name": "supervisor",
+      "event_type": "progress",
+      "message": "PR #294 \u2014 replaying last 90 days of reconciliation at new threshold",
+      "details": {}
+    }
+  },
+  {
+    "t": 81.4,
+    "kind": "event",
+    "event": {
+      "agent_name": "supervisor",
+      "event_type": "progress",
+      "message": "PR #294 \u2014 0 false positives detected at $0.001 threshold",
+      "details": {}
+    }
+  },
+  {
+    "t": 82.0,
+    "kind": "event",
+    "event": {
+      "agent_name": "supervisor",
+      "event_type": "success",
+      "message": "PR #294 merged. Next recon run at 03:00 UTC will use new threshold.",
+      "details": {}
+    }
+  },
+  {
+    "t": 82.2,
+    "kind": "state_patch",
+    "patch": {
+      "state": {
+        "fix_result": {
+          "repos": [
+            {
+              "repo_url": "zepay/payment-service",
+              "pr_number": 8427,
+              "status": "merged",
+              "merge_sha": "0a7e4f3b9c1e"
+            },
+            {
+              "repo_url": "zepay/shared-finance-models",
+              "pr_number": 1203,
+              "status": "merged",
+              "merge_sha": "3f2b91c0d8a4"
+            },
+            {
+              "repo_url": "zepay/reconciliation-job",
+              "pr_number": 294,
+              "status": "merged",
+              "merge_sha": "91eac47b6d22"
+            }
+          ],
+          "overall_status": "all_merged",
+          "approved_count": 3,
+          "total_count": 3
+        }
+      }
+    }
+  },
+  {
+    "t": 83.0,
+    "kind": "event",
+    "event": {
+      "agent_name": "supervisor",
+      "event_type": "tool_call",
+      "message": "verify.deploy_health(payment-service, window=5min)",
+      "details": {}
+    }
+  },
+  {
+    "t": 83.8,
+    "kind": "event",
+    "event": {
+      "agent_name": "supervisor",
+      "event_type": "success",
+      "message": "Post-fix verification: retry-counter baseline, duplicate-wallets-span pattern 0/0 in last 5 min.",
+      "details": {}
+    }
+  },
+  {
+    "t": 84.2,
+    "kind": "state_patch",
+    "patch": {
+      "state": {
+        "closure_state": {
+          "status": "resolved",
+          "resolution_summary": "3 PRs merged (payment-service #8427, shared-finance-models #1203, reconciliation-job #294). Retry-counter baseline restored. No duplicate-debit events in post-fix window.",
+          "resolved_at": "2026-04-21T20:00:00Z",
+          "time_to_resolution_seconds": 84
+        }
+      }
+    }
+  },
+  {
+    "t": 85.0,
+    "kind": "phase_change",
+    "phase": "complete"
+  },
+  {
+    "t": 85.2,
+    "kind": "event",
+    "event": {
+      "agent_name": "supervisor",
+      "event_type": "summary",
+      "message": "Incident resolved. Postmortem dossier available. Total time-to-resolution: ~85 seconds.",
+      "details": {
+        "ttr_seconds": 85,
+        "prs_merged": 3
+      }
+    }
+  },
+  {
+    "t": 85.4,
+    "kind": "state_patch",
+    "patch": {
+      "state": {
+        "token_usage[+]": {
+          "agent_name": "critic",
+          "input_tokens": 800,
+          "output_tokens": 300,
+          "total_tokens": 1100
+        }
+      }
+    }
+  },
+  {
+    "t": 85.6,
+    "kind": "state_patch",
+    "patch": {
+      "session": {
+        "budget": {
+          "tool_calls_used": 31,
+          "tool_calls_max": 40,
+          "llm_usd_used": 0.041,
+          "llm_usd_max": 1.0
+        }
+      }
+    }
+  }
+]

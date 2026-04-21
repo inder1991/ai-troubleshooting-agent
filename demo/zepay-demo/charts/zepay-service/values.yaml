@@ -26,6 +26,19 @@ env: []
 #   - name: PG_SCHEMA
 #     value: wallet
 
+# Istio sidecar resource overrides — applied as pod annotations so the
+# sidecar injector scales the envoy container down. Kind memory budget
+# is tight (~8 GiB node), default Istio sidecar asks for 100m / 128Mi
+# per pod × 10 pods = 1.28 GiB before any app work. Here we cut to 1/3.
+# Re-apply-safe: every helm upgrade writes these under
+# spec.template.metadata.annotations, so future rollouts keep the
+# override.
+sidecar:
+  proxyCPU:         33m
+  proxyMemory:      43Mi
+  proxyCPULimit:    666m
+  proxyMemoryLimit: 341Mi
+
 serviceMonitor:
   enabled: true
   interval: 15s
