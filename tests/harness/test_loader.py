@@ -94,3 +94,17 @@ def test_loader_text_mode_emits_concatenated_block() -> None:
     )
     assert result.returncode == 0
     assert "# ROOT" in result.stdout, "text mode should label the root section"
+
+
+def test_loader_records_malformed_cross_cutting() -> None:
+    """If a .harness/*.md file has no front-matter, it's recorded as malformed
+    rather than silently included or crashing the loader (H-25)."""
+    fake = REPO_ROOT / ".harness/_test_malformed.md"
+    fake.write_text("# I have no front matter\nbody only\n")
+    try:
+        result = _run_loader("backend/src/learning/contracts.py")
+        assert any(
+            ".harness/_test_malformed.md" in p for p in result["malformed_files"]
+        ), "malformed cross-cutting file should be recorded"
+    finally:
+        fake.unlink(missing_ok=True)
