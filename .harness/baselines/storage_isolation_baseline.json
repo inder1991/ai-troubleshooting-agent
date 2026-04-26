@@ -1,0 +1,2122 @@
+[
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/confidence_calibrator.py",
+    "line": 112,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/confidence_calibrator.py",
+    "line": 126,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/confidence_calibrator.py",
+    "line": 152,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/supervisor.py",
+    "line": 1053,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/supervisor.py",
+    "line": 1079,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
+    "line": 539,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
+    "line": 575,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/health.py",
+    "line": 100,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/main.py",
+    "line": 861,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/main.py",
+    "line": 896,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_alert_endpoints.py",
+    "line": 68,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_event_endpoints.py",
+    "line": 61,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_event_endpoints.py",
+    "line": 84,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_event_endpoints.py",
+    "line": 96,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_probe_endpoints.py",
+    "line": 32,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_probe_endpoints.py",
+    "line": 57,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_feedback.py",
+    "line": 45,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_feedback.py",
+    "line": 80,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/search_endpoints.py",
+    "line": 61,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/search_endpoints.py",
+    "line": 67,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/search_endpoints.py",
+    "line": 99,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/search_endpoints.py",
+    "line": 100,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/search_endpoints.py",
+    "line": 101,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/search_endpoints.py",
+    "line": 105,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/search_endpoints.py",
+    "line": 114,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/cloud/cloud_store.py",
+    "line": 50,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/cloud/cloud_store.py",
+    "line": 51,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/cloud/cloud_store.py",
+    "line": 66,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/cloud/cloud_store.py",
+    "line": 78,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/cloud/cloud_store.py",
+    "line": 92,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/cloud/policy_store.py",
+    "line": 50,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/cloud/policy_store.py",
+    "line": 51,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/cloud/policy_store.py",
+    "line": 66,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/cloud/policy_store.py",
+    "line": 162,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/cloud/policy_store.py",
+    "line": 167,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/diagnostic_store.py",
+    "line": 23,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/diagnostic_store.py",
+    "line": 39,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/diagnostic_store.py",
+    "line": 47,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/diagnostic_store.py",
+    "line": 71,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/diagnostic_store.py",
+    "line": 78,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/diagnostic_store.py",
+    "line": 86,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/diagnostic_store.py",
+    "line": 93,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/engine.py",
+    "line": 60,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/evidence_store.py",
+    "line": 22,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/evidence_store.py",
+    "line": 35,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/evidence_store.py",
+    "line": 64,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/evidence_store.py",
+    "line": 78,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/evidence_store.py",
+    "line": 91,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/network_chat_store.py",
+    "line": 26,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/network_chat_store.py",
+    "line": 27,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/network_chat_store.py",
+    "line": 34,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/network_chat_store.py",
+    "line": 44,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/network_chat_store.py",
+    "line": 57,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/network_chat_store.py",
+    "line": 68,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/network_chat_store.py",
+    "line": 78,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/network_chat_store.py",
+    "line": 89,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/network_chat_store.py",
+    "line": 106,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/network_chat_store.py",
+    "line": 127,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/network_chat_store.py",
+    "line": 144,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/network_chat_store.py",
+    "line": 155,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/network_chat_store.py",
+    "line": 171,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/profile_store.py",
+    "line": 23,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/profile_store.py",
+    "line": 40,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/profile_store.py",
+    "line": 42,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/profile_store.py",
+    "line": 60,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/profile_store.py",
+    "line": 80,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/profile_store.py",
+    "line": 89,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/profile_store.py",
+    "line": 117,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/profile_store.py",
+    "line": 124,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/integrations/audit_store.py",
+    "line": 30,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/integrations/audit_store.py",
+    "line": 57,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/integrations/audit_store.py",
+    "line": 90,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/integrations/audit_store.py",
+    "line": 96,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/integrations/backend_audit.py",
+    "line": 147,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/integrations/profile_store.py",
+    "line": 27,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/integrations/profile_store.py",
+    "line": 42,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/integrations/profile_store.py",
+    "line": 52,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/integrations/profile_store.py",
+    "line": 60,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/integrations/profile_store.py",
+    "line": 66,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/integrations/profile_store.py",
+    "line": 75,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/integrations/profile_store.py",
+    "line": 81,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/integrations/profile_store.py",
+    "line": 89,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/integrations/profile_store.py",
+    "line": 90,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/integrations/profile_store.py",
+    "line": 116,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/integrations/profile_store.py",
+    "line": 130,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/integrations/profile_store.py",
+    "line": 140,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/integrations/profile_store.py",
+    "line": 148,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/integrations/profile_store.py",
+    "line": 154,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/integrations/profile_store.py",
+    "line": 163,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/integrations/store.py",
+    "line": 13,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/integrations/store.py",
+    "line": 24,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/integrations/store.py",
+    "line": 32,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/integrations/store.py",
+    "line": 39,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/integrations/store.py",
+    "line": 45,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/integrations/store.py",
+    "line": 52,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/collectors/event_store.py",
+    "line": 26,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/collectors/event_store.py",
+    "line": 33,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/collectors/event_store.py",
+    "line": 45,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/collectors/event_store.py",
+    "line": 58,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/collectors/event_store.py",
+    "line": 62,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/collectors/event_store.py",
+    "line": 66,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/collectors/event_store.py",
+    "line": 70,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/collectors/event_store.py",
+    "line": 74,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/collectors/event_store.py",
+    "line": 78,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/collectors/event_store.py",
+    "line": 88,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/collectors/event_store.py",
+    "line": 129,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/collectors/event_store.py",
+    "line": 203,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/collectors/event_store.py",
+    "line": 248,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/collectors/event_store.py",
+    "line": 276,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/collectors/event_store.py",
+    "line": 281,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/collectors/event_store.py",
+    "line": 310,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/collectors/event_store.py",
+    "line": 315,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/collectors/event_store.py",
+    "line": 332,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/collectors/event_store.py",
+    "line": 335,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/collectors/instance_store.py",
+    "line": 26,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/collectors/instance_store.py",
+    "line": 31,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/collectors/instance_store.py",
+    "line": 51,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/collectors/instance_store.py",
+    "line": 72,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/collectors/instance_store.py",
+    "line": 81,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/collectors/instance_store.py",
+    "line": 120,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/collectors/instance_store.py",
+    "line": 127,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/collectors/instance_store.py",
+    "line": 134,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/collectors/instance_store.py",
+    "line": 139,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/collectors/instance_store.py",
+    "line": 145,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/collectors/instance_store.py",
+    "line": 150,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/collectors/instance_store.py",
+    "line": 157,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/collectors/instance_store.py",
+    "line": 166,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/collectors/instance_store.py",
+    "line": 205,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/collectors/instance_store.py",
+    "line": 212,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/collectors/instance_store.py",
+    "line": 217,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/config_drift.py",
+    "line": 55,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/config_drift.py",
+    "line": 62,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/config_drift.py",
+    "line": 88,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/config_drift.py",
+    "line": 99,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/config_drift.py",
+    "line": 102,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/config_drift.py",
+    "line": 109,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/config_drift.py",
+    "line": 117,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/flow_store.py",
+    "line": 28,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/flow_store.py",
+    "line": 58,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/flow_store.py",
+    "line": 67,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/flow_store.py",
+    "line": 76,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/flow_store.py",
+    "line": 85,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/flow_store.py",
+    "line": 94,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/flow_store.py",
+    "line": 104,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/flow_store.py",
+    "line": 113,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/sqlite_alert_engine.py",
+    "line": 70,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/sqlite_metrics_store.py",
+    "line": 35,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/sqlite_metrics_store.py",
+    "line": 36,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/sqlite_metrics_store.py",
+    "line": 114,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/sqlite_metrics_store.py",
+    "line": 122,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/sqlite_metrics_store.py",
+    "line": 130,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/sqlite_metrics_store.py",
+    "line": 138,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/sqlite_metrics_store.py",
+    "line": 147,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/sqlite_metrics_store.py",
+    "line": 160,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/sqlite_metrics_store.py",
+    "line": 172,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/sqlite_metrics_store.py",
+    "line": 180,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/sqlite_metrics_store.py",
+    "line": 209,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/sqlite_metrics_store.py",
+    "line": 214,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/sqlite_metrics_store.py",
+    "line": 219,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/sqlite_metrics_store.py",
+    "line": 237,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/sqlite_metrics_store.py",
+    "line": 245,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 57,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 58,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 59,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 572,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 579,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 595,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 604,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 611,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 638,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 661,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 699,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 703,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 737,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 745,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 746,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 747,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 748,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 749,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 750,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 751,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 768,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 781,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 799,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 809,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 819,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 839,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 858,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 866,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 885,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 905,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 913,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1144,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1165,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1173,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1203,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1208,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1218,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1223,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1230,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1240,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1258,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1259,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1295,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1303,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1319,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1345,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1358,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1389,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1405,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1410,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1430,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1434,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1444,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1463,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1483,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1504,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1511,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1516,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1531,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1532,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1566,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1625,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1699,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1718,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1720,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1728,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1747,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1755,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1761,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1767,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1780,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1788,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1791,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1807,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1811,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1818,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1822,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1824,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1829,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1835,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1849,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1856,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1860,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1866,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1884,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1897,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1907,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1917,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1929,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1944,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1971,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1972,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1982,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 1993,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2001,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2019,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2029,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2040,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2048,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2066,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2076,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2087,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2095,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2103,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2118,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2144,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2182,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2206,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2218,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2241,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2255,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2267,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2294,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2295,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2305,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2322,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2324,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2352,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2369,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2386,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2407,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2434,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2452,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2478,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2526,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2553,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2555,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2566,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2574,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2577,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2578,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2589,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2601,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2609,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2618,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2644,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2646,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2654,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2663,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2677,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2679,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2688,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2702,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2704,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2721,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2732,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2746,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2758,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2770,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2782,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2794,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2806,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2819,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2833,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2845,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2861,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2873,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2887,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2909,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2932,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2955,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2956,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2964,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2975,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2983,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 2991,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3003,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3017,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3035,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3046,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3064,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3077,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3098,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3116,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3125,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3136,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3140,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3150,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3241,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3470,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3482,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3496,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3507,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3509,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3517,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3528,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3539,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3551,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3564,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3576,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3577,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3586,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3598,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3600,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3609,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3621,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3630,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3642,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3651,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3664,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3679,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3691,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3700,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3712,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3714,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3723,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3736,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3748,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3760,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3769,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3782,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3784,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3793,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3809,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3825,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3837,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3846,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3858,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3867,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3880,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3898,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3915,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3916,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3925,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3936,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3948,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3956,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3963,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3975,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3992,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 3996,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 4009,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 4021,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 4032,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 4043,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 4055,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 4070,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 4086,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 4125,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 4139,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 4156,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 4164,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 4178,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 4193,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 4203,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 4214,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 4229,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 4260,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 4272,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 4276,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 4289,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 4305,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "line": 4309,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/prompts/registry.py",
+    "line": 168,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/scripts/seed_fixtures.py",
+    "line": 162,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/scripts/seed_fixtures.py",
+    "line": 189,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/workers/trace_baseline_populator.py",
+    "line": 66,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/workers/trace_baseline_populator.py",
+    "line": 108,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/workers/trace_baseline_populator.py",
+    "line": 217,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/workflows/investigation_store.py",
+    "line": 23,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/workflows/investigation_store.py",
+    "line": 34,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/workflows/outbox_relay.py",
+    "line": 53,
+    "rule": "storage.execute-outside-gateway"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/workflows/resume.py",
+    "line": 58,
+    "rule": "storage.execute-outside-gateway"
+  }
+]
