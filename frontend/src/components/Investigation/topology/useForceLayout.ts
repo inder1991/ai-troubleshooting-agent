@@ -36,18 +36,21 @@ export function useForceLayout(
       target: e.target,
     }));
 
-    // 3. Create simulation
+    // 3. Create simulation. Tuned for breathing room: link distance
+    //    stretched to 140 (was 100), mutual repulsion doubled to -600,
+    //    collide gap raised to NODE_RADIUS + 28 (was +15) so labels
+    //    never overlap.
     const simulation = forceSimulation<TopologyNodeDatum>(simNodes)
       .force(
         'link',
         forceLink<TopologyNodeDatum, SimulationLinkDatum<TopologyNodeDatum>>(simEdges)
           .id((d) => d.id)
-          .distance(100)
+          .distance(140)
           .strength(0.8),
       )
-      .force('charge', forceManyBody().strength(-300))
+      .force('charge', forceManyBody().strength(-600))
       .force('center', forceCenter(width / 2, height / 2))
-      .force('collide', forceCollide<TopologyNodeDatum>(NODE_RADIUS + 15));
+      .force('collide', forceCollide<TopologyNodeDatum>(NODE_RADIUS + 28));
 
     // 4. Pin P0 to center
     for (const node of simNodes) {

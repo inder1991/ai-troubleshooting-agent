@@ -10,14 +10,20 @@ interface LiveIntelligenceFeedProps {
   filterActive?: boolean;
 }
 
-const phaseToStatus = (phase: DiagnosticPhase): { status: SystemStatus; label: string } => {
-  if (['initial', 'collecting_context'].includes(phase)) return { status: 'in_progress', label: 'Collecting' };
-  if (['logs_analyzed', 'metrics_analyzed', 'k8s_analyzed', 'tracing_analyzed', 'code_analyzed'].includes(phase)) return { status: 'in_progress', label: 'Analyzing' };
-  if (['validating', 're_investigating'].includes(phase)) return { status: 'in_progress', label: 'Validating' };
-  if (phase === 'fix_in_progress') return { status: 'degraded', label: 'Remediating' };
-  if (['diagnosis_complete', 'complete'].includes(phase)) return { status: 'healthy', label: 'Resolved' };
-  if (phase === 'error') return { status: 'critical', label: 'Error' };
-  return { status: 'unknown', label: String(phase) };
+const phaseToStatus = (phase: DiagnosticPhase | string): { status: SystemStatus; label: string } => {
+  const p = String(phase);
+  if (['initial', 'collecting_context'].includes(p)) return { status: 'in_progress', label: 'Collecting' };
+  if (['logs_analyzed', 'metrics_analyzed', 'k8s_analyzed', 'tracing_analyzed', 'code_analyzed'].includes(p)) return { status: 'in_progress', label: 'Analyzing' };
+  if (p === 'diagnosing') return { status: 'in_progress', label: 'Diagnosing' };
+  if (['validating', 're_investigating'].includes(p)) return { status: 'in_progress', label: 'Validating' };
+  if (p === 'awaiting_approval') return { status: 'degraded', label: 'Awaiting approval' };
+  if (p === 'fix_in_progress') return { status: 'degraded', label: 'Remediating' };
+  if (['diagnosis_complete', 'complete'].includes(p)) return { status: 'healthy', label: 'Resolved' };
+  if (p === 'error') return { status: 'critical', label: 'Error' };
+  if (p === 'cancelled') return { status: 'degraded', label: 'Cancelled' };
+  // Humanize anything else rather than leaking a snake_case enum to the feed.
+  const humanized = p.replace(/_/g, ' ').replace(/^./, (c) => c.toUpperCase());
+  return { status: 'in_progress', label: humanized };
 };
 
 const capabilityAgents = (cap?: string): string[] => {

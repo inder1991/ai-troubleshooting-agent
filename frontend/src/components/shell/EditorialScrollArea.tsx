@@ -51,7 +51,13 @@ export const EditorialScrollArea: React.FC<EditorialScrollAreaProps> = ({
     >
       <ScrollArea.Viewport
         ref={viewportRef}
-        className="h-full w-full"
+        // [&>div]:!block + !min-w-0 — Radix wraps the children in a
+        // `display: table; min-width: 100%` div by default, which lets
+        // wide content (4-up stat grids, long pre blocks, unwrapped
+        // hashes) expand past the column and then get clipped by the
+        // region's overflow:hidden. Force block layout so the viewport
+        // constrains its content to the grid column width.
+        className="h-full w-full [&>div]:!block [&>div]:!min-w-0"
         onScroll={onScroll}
       >
         {children}

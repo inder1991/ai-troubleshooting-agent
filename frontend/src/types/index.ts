@@ -457,16 +457,6 @@ export interface V4Session {
   critical_count?: number;
 }
 
-export interface AttestationGateData {
-  gate_type: 'discovery_complete' | 'pre_remediation' | 'post_remediation';
-  human_decision: 'approve' | 'reject' | 'modify' | null;
-  decided_by: string | null;
-  decided_at: string | null;
-  proposed_action: string | null;
-  findings_count?: number;
-  confidence?: number;
-}
-
 export interface PendingAction {
   type: 'attestation_required' | 'fix_approval' | 'repo_confirm' | 'campaign_execute_confirm' | 'code_agent_question';
   blocking: boolean;
@@ -1254,6 +1244,21 @@ export interface BlastRadiusData {
   estimated_user_impact: string;
   scope: 'single_service' | 'service_group' | 'namespace' | 'cluster_wide';
   business_impact?: BusinessCapabilityImpact[];
+  /** Count of customer IDs with a confirmed duplicate-debit event in
+   *  the window — derived from a ledger-count tool, never from CRM.
+   *  Identity / tier / contract resolution is explicitly a downstream
+   *  handoff, not an agent capability. */
+  affected_customer_count?: number;
+  /** Tool provenance for every fact rendered on the blast-radius card.
+   *  Agents can not invent business context; anything shown here must
+   *  trace back to one of these integrations. */
+  data_sources?: BlastRadiusDataSource[];
+}
+
+export interface BlastRadiusDataSource {
+  tool: string;
+  integration: string;
+  contributed: string;
 }
 
 export interface SeverityData {

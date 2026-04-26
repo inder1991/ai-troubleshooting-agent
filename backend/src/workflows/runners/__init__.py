@@ -47,6 +47,8 @@ def init_runners() -> AgentRunnerRegistry:
             "intent_parser",
         ]:
             reg.register(name, 1, stub)
+        # tracing_agent manifest is at v2; stub must cover that version too.
+        reg.register("tracing_agent", 2, stub)
         _registry = reg
         return reg
 
@@ -68,7 +70,11 @@ def init_runners() -> AgentRunnerRegistry:
     reg.register("log_agent", 1, LogAgentRunner())
     reg.register("k8s_agent", 1, K8sAgentRunner())
     reg.register("metrics_agent", 1, MetricsAgentRunner())
-    reg.register("tracing_agent", 1, TracingAgentRunner())
+    # tracing_agent's manifest ships at v2 (TA-PR1/PR2 additions); the
+    # runner is backwards-compatible, so register it under both versions.
+    _tracing_runner = TracingAgentRunner()
+    reg.register("tracing_agent", 1, _tracing_runner)
+    reg.register("tracing_agent", 2, _tracing_runner)
     reg.register("code_agent", 1, CodeAgentRunner())
     reg.register("change_agent", 1, ChangeAgentRunner())
     reg.register("critic_agent", 1, CriticAgentRunner())

@@ -57,7 +57,23 @@ export default function FlowTab(props: FlowTabProps) {
   const height = Math.max(...nodes.map((n) => n.y)) + 120;
 
   return (
-    <div className="relative w-full h-full overflow-auto bg-wr-bg-deep">
+    <div className="relative w-full h-full flex flex-col bg-wr-bg-deep">
+      {/* Cascade path header — lifted out of the SVG canvas so it can
+          never overlap with service nodes. Sits in its own strip above
+          the graph; long paths wrap instead of bleeding sideways. */}
+      {cascadePath.length > 0 && (
+        <div className="shrink-0 px-4 py-2 border-b border-wr-border bg-wr-bg/70 backdrop-blur-sm flex items-baseline gap-3">
+          <span className="text-body-xs font-bold uppercase tracking-widest text-slate-400 shrink-0">
+            Cascade path
+          </span>
+          <span className="text-body-xs text-wr-text-muted font-mono leading-snug break-words">
+            {cascadePath.join(' → ')}
+          </span>
+        </div>
+      )}
+
+      {/* Graph canvas */}
+      <div className="flex-1 overflow-auto">
       <svg
         width={width}
         height={height}
@@ -150,12 +166,7 @@ export default function FlowTab(props: FlowTabProps) {
         </g>
       </svg>
 
-      {cascadePath.length > 0 && (
-        <div className="absolute top-3 left-3 bg-wr-bg/90 border border-wr-border rounded-md px-3 py-2 text-body-xs">
-          <span className="font-semibold text-wr-text mb-1 block">Cascade path</span>
-          <span className="text-wr-text-muted">{cascadePath.join(' → ')}</span>
-        </div>
-      )}
+      </div>
     </div>
   );
 }

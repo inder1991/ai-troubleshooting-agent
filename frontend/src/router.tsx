@@ -156,11 +156,40 @@ function CapabilityFormRoute() {
 
   const handleSubmit = async (data: CapabilityFormData) => {
     try {
+      const anyData = data as any;
+      const serviceName: string = (anyData.service_name || '').trim();
+
+      // Internal trigger for the Zepay investigation timeline. Operators
+      // enter a reserved service name to route the form into the prepared
+      // investigation instead of starting fresh agents.
+      const presetMatch =
+        capability === 'troubleshoot_app'
+          ? serviceName.toLowerCase() === 'zepay-demo'
+            ? 'zepay-main-incident'
+            : serviceName.toLowerCase().startsWith('demo:')
+              ? serviceName.slice(5).trim() || 'zepay-main-incident'
+              : null
+          : null;
+
+      if (presetMatch) {
+        const resp = await fetch(`${API_BASE_URL}/api/v4/demo/scenario/start`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            scenario: presetMatch,
+            service_name: 'checkout-service',
+          }),
+        });
+        if (!resp.ok) throw new Error(await resp.text());
+        const body = await resp.json();
+        navigate(`/investigations/${body.session_id}`);
+        return;
+      }
+
       // Thread every form field through. Backend branches on `capability`
       // and reads capability-specific fields from request/extra.
-      const anyData = data as any;
       const session = await startSessionV4({
-        service_name: anyData.service_name || anyData.cluster_id || capability,
+        service_name: serviceName || anyData.cluster_id || capability,
         time_window: anyData.time_window || '1h',
         capability,
         ...anyData,

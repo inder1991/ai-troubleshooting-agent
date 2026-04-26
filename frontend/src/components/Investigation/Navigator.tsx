@@ -38,7 +38,7 @@ const Navigator: React.FC<NavigatorProps> = ({ findings, status, events, session
       </StickyStack>
 
       <EditorialScrollArea className="flex-1">
-        <div className="p-4 space-y-5">
+        <div className="p-4 space-y-5 min-w-0 max-w-full">
         {/* AGENTS card — promoted to column top in PR 5. Gives the right
             panel a hero slot that answers "is the investigation alive /
             making progress?" at a glance. Fuses the old left-panel Agent

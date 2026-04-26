@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import type { V4Session, V4Findings, V4SessionStatus, ChatMessage, TaskEvent, DiagnosticPhase, TokenUsage, AttestationGateData } from '../../types';
+import type { V4Session, V4Findings, V4SessionStatus, ChatMessage, TaskEvent, DiagnosticPhase, TokenUsage } from '../../types';
 import { getFindings, getSessionStatus, sendChatMessage } from '../../services/api';
 import { useChatUI, useInvestigationContext } from '../../contexts/ChatContext';
 import { useCampaignContext } from '../../contexts/CampaignContext';
@@ -7,7 +7,6 @@ import Investigator from './Investigator';
 import EvidenceFindings from './EvidenceFindings';
 import Navigator from './Navigator';
 import RemediationProgressBar from './RemediationProgressBar';
-import AttestationGateUI from '../Remediation/AttestationGateUI';
 import ChatDrawer from '../Chat/ChatDrawer';
 import LedgerTriggerTab from '../Chat/LedgerTriggerTab';
 import SurgicalTelescope from './SurgicalTelescope';
@@ -28,8 +27,6 @@ interface InvestigationViewProps {
   phase: DiagnosticPhase | null;
   confidence: number;
   tokenUsage: TokenUsage[];
-  attestationGate?: AttestationGateData | null;
-  onAttestationDecision?: (decision: string) => void;
   onNavigateToDossier?: () => void;
 }
 
@@ -40,8 +37,6 @@ const InvestigationView: React.FC<InvestigationViewProps> = ({
   phase,
   confidence,
   tokenUsage,
-  attestationGate,
-  onAttestationDecision,
   onNavigateToDossier,
 }) => {
   // ── Single source of truth for findings + status ──────────────────────
@@ -175,8 +170,6 @@ const InvestigationView: React.FC<InvestigationViewProps> = ({
             phase={phase}
             confidence={confidence}
             tokenUsage={tokenUsage}
-            attestationGate={attestationGate}
-            onAttestationDecision={onAttestationDecision}
             onNavigateToDossier={onNavigateToDossier}
             findings={findings}
             sessionStatus={sessionStatus}
@@ -201,8 +194,6 @@ interface WarRoomGridProps {
   phase: DiagnosticPhase | null;
   confidence: number;
   tokenUsage: TokenUsage[];
-  attestationGate?: AttestationGateData | null;
-  onAttestationDecision?: (decision: string) => void;
   onNavigateToDossier?: () => void;
   findings: V4Findings | null;
   sessionStatus: V4SessionStatus | null;
@@ -220,8 +211,6 @@ const WarRoomGrid: React.FC<WarRoomGridProps> = ({
   phase,
   confidence,
   tokenUsage,
-  attestationGate,
-  onAttestationDecision,
   onNavigateToDossier,
   findings,
   sessionStatus,
@@ -249,7 +238,6 @@ const WarRoomGrid: React.FC<WarRoomGridProps> = ({
         wsConnected={wsConnected}
         fetchFailCount={fetchFailCount}
         fetchErrorDismissed={fetchErrorDismissed}
-        attestationGate={attestationGate ?? null}
         onRetryFetch={fetchSharedData}
         sessionId={session.session_id}
       />
@@ -345,15 +333,9 @@ const WarRoomGrid: React.FC<WarRoomGridProps> = ({
         />
       </div>
 
-      {/* Attestation Gate Modal — true modal, not a pane drawer */}
-      {attestationGate && onAttestationDecision && (
-        <AttestationGateUI
-          gate={attestationGate}
-          evidencePins={[]}
-          onDecision={(decision, _notes) => onAttestationDecision(decision)}
-          onClose={() => onAttestationDecision('dismiss')}
-        />
-      )}
+      {/* Attestation gate is ledger-driven now — no modal popup. The old
+          <AttestationGateUI> modal was removed; approvals surface through
+          the ledger drawer which reads `pending_action` off /status. */}
 
       {/* ChatDrawer mounts into Navigator via PaneDrawer; LedgerTab
           mounts into the gutter rail. Both read refs from

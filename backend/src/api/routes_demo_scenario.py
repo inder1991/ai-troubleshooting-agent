@@ -48,6 +48,26 @@ router = APIRouter(prefix="/api/v4/demo/scenario", tags=["demo"])
 
 FIXTURES_DIR = Path(__file__).resolve().parent / "fixtures"
 
+# Replay pacing multiplier. The raw timeline compresses a full multi-agent
+# investigation into ~85 seconds — useful for unit tests, but on-screen it
+# blazes past at flip-book speed and feels obviously mocked. Multiplying
+# every `t` offset by this factor stretches the wall-clock without touching
+# the fixture. Default 4× → ~5.5 minutes end-to-end, which matches the
+# cadence of a real production SRE investigation the first few phases.
+# Override with DEMO_SCENARIO_SPEED (float, clamped to [0.25, 20]).
+_DEFAULT_SPEED = 4.0
+
+
+def _replay_speed() -> float:
+    raw = os.environ.get("DEMO_SCENARIO_SPEED", "").strip()
+    if not raw:
+        return _DEFAULT_SPEED
+    try:
+        val = float(raw)
+    except ValueError:
+        return _DEFAULT_SPEED
+    return max(0.25, min(20.0, val))
+
 
 # ── State ─────────────────────────────────────────────────────────────
 
@@ -131,24 +151,52 @@ async def _replay(run: ScenarioRun, timeline: list[dict]) -> None:
     # return something coherent before the timeline fills it in.
     now = datetime.now(timezone.utc).isoformat()
     run.started_at = now
+    # Seed the session with ONLY what a real intake system would know
+    # instantly: incident id, operator-supplied target service + namespace,
+    # the topology-cache dependency graph (legitimately zero-latency), and
+    # the list of agents being dispatched. Everything else — patient zero,
+    # service flow, metrics, blast radius, severity — must come from the
+    # scripted timeline at its natural moment, so the pacing stays
+    # consistent end-to-end.
+    seed_inferred_deps = [
+        {"source": "api-gateway", "target": "checkout-service", "kind": "http"},
+        {"source": "checkout-service", "target": "payment-service", "kind": "http"},
+        {"source": "payment-service", "target": "wallet-service", "kind": "http"},
+        {"source": "payment-service", "target": "inventory-service", "kind": "http"},
+        {"source": "payment-service", "target": "fraud-adapter", "kind": "http"},
+        {"source": "payment-service", "target": "notification-service", "kind": "http"},
+        {"source": "checkout-service", "target": "cart-service", "kind": "http"},
+        {"source": "api-gateway", "target": "auth-service", "kind": "http"},
+    ]
+
     sessions[run.session_id] = {
         "session_id": run.session_id,
         "incident_id": run.incident_id,
         "service_name": "checkout-service",
-        "phase": "initial",
+        "phase": "collecting_context",
         "confidence": 0,
         "created_at": now,
         "updated_at": now,
         "capability": "troubleshoot_app",
         "investigation_mode": "demo_scenario",
         "related_sessions": [],
+        "budget": {
+            "tool_calls_used": 0,
+            "tool_calls_max": 40,
+            "llm_usd_used": 0.0,
+            "llm_usd_max": 1.00,
+        },
         "state": {
             # The state dict shadows DiagnosticState's field shape so
             # /findings can project from it.
             "session_id": run.session_id,
             "incident_id": run.incident_id,
             "service_name": "checkout-service",
-            "phase": "initial",
+            # Target service comes from the intake form; namespace is
+            # derived from the service catalog lookup (handshake event).
+            "target_service": "checkout-service",
+            "detected_namespace": "payments-prod",
+            "phase": "collecting_context",
             "overall_confidence": 0,
             "all_findings": [],
             "all_breadcrumbs": [],
@@ -162,22 +210,28 @@ async def _replay(run: ScenarioRun, timeline: list[dict]) -> None:
             "coverage_gaps": [],
             "metric_anomalies": [],
             "suggested_promql_queries": [],
-            "inferred_dependencies": [],
+            # Topology cache is the one thing we genuinely know at t=0.
+            # Everything else emerges from agents.
+            "inferred_dependencies": seed_inferred_deps,
             "service_flow": [],
             "agents_completed": [],
-            "agents_pending": [],
+            "agents_pending": ["log_agent", "metric_agent", "tracing_agent", "k8s_agent"],
         },
     }
 
     t0 = asyncio.get_event_loop().time()
+    speed = _replay_speed()
+    logger.info("scenario replay starting session=%s speed=%.2fx", run.session_id, speed)
 
     for entry in timeline:
         if run.cancelled:
             logger.info("scenario cancelled session=%s", run.session_id)
             return
 
-        # Wait until wall-clock reaches entry["t"]
-        t_target = float(entry.get("t", 0))
+        # Wait until wall-clock reaches entry["t"] * speed. Every offset in
+        # the fixture is scaled by the pacing multiplier, so stretching from
+        # 85s to ~5.5 min only changes perceived cadence — not ordering.
+        t_target = float(entry.get("t", 0)) * speed
         now_rel = asyncio.get_event_loop().time() - t0
         wait = t_target - now_rel
         if wait > 0:
@@ -226,16 +280,46 @@ async def _replay(run: ScenarioRun, timeline: list[dict]) -> None:
             elif kind == "await_approval":
                 run.awaiting_approval = True
                 sess = sessions.get(run.session_id, {})
-                sess["pending_action"] = entry.get("pending_action", {
+                pending = entry.get("pending_action", {
                     "type": "attestation",
                     "title": "Approve remediation",
                     "description": "Review the three fix PRs before merge.",
                 })
+                sess["pending_action"] = pending
+
+                # Ledger-based approval only — the old modal popup was
+                # removed. Two surfaces are responsible for showing the
+                # gate to the operator:
+                #   1. Chat drawer: render the pending_action as a pinned
+                #      approval card. Push a one-line assistant message so
+                #      there's prose context around the card, and the SRE
+                #      sees a fresh chat bubble that nudges them to look.
+                #   2. Ledger drawer: reads pending_action off /status.
+                chat_history = sess.setdefault("chat_history", [])
+                title = pending.get("title") or "Approval required"
+                description = pending.get("description") or ""
+                options = pending.get("options") or []
+                option_lines = "\n".join(
+                    f"  · **{o.get('value', '?')}** — {o.get('label', '')}"
+                    for o in options
+                )
+                prompt = (
+                    f"**{title}**\n\n{description}\n\n"
+                    f"Reply with one of:\n{option_lines}" if option_lines
+                    else f"**{title}**\n\n{description}"
+                )
+                chat_history.append({
+                    "role": "assistant",
+                    "content": prompt,
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "metadata": {"kind": "approval_gate", "pending_action": pending},
+                })
+
                 await emitter.emit(
                     agent_name="supervisor",
-                    event_type="attestation_required",
-                    message=entry.get("message", "Awaiting operator approval."),
-                    details={"reason": "fix_approval"},
+                    event_type="summary",
+                    message=entry.get("message", "Awaiting operator approval — ledger gate."),
+                    details={"reason": "fix_approval", "channel": "ledger"},
                 )
                 # Sleep until the operator hits /approve or we cancel.
                 assert run.approval_event is not None

@@ -37,19 +37,32 @@ const InteractiveTopology: React.FC<InteractiveTopologyProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
-  const [isVisible, setIsVisible] = useState(true);
+  const [hasBeenVisible, setHasBeenVisible] = useState(false);
 
-  // IntersectionObserver guard — pause layout computation when scrolled away
+  // IntersectionObserver latch — compute layout the first time the topology
+  // enters the viewport and then keep it running. At short viewport heights
+  // (e.g. DevTools docked) the SVG would otherwise never render because the
+  // section sits below the fold on mount.
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
     const observer = new IntersectionObserver(
-      ([entry]) => setIsVisible(entry.isIntersecting),
-      { threshold: 0 },
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setHasBeenVisible(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0, rootMargin: '200px' },
     );
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
+
+  // If we never intersected but have data + size, start the layout anyway —
+  // a short viewport with the topology below the fold must still render
+  // nodes the moment the user scrolls to it.
+  const isVisible = hasBeenVisible || dimensions.width > 0;
 
   // ResizeObserver for responsive dimensions
   useEffect(() => {
@@ -58,7 +71,10 @@ const InteractiveTopology: React.FC<InteractiveTopologyProps> = ({
     const ro = new ResizeObserver(([entry]) => {
       const { width } = entry.contentRect;
       // Height proportional to width, capped
-      setDimensions({ width, height: Math.min(Math.max(width * 0.65, 180), 300) });
+      // Taller aspect ratio + raised floor/ceiling give the force
+      // simulation room to spread nodes across a genuine 2D canvas
+      // instead of a letterbox strip.
+      setDimensions({ width, height: Math.min(Math.max(width * 0.85, 240), 420) });
     });
     ro.observe(el);
     return () => ro.disconnect();

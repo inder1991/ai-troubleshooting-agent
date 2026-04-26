@@ -5,24 +5,61 @@
     "phase": "collecting_context"
   },
   {
-    "t": 0.1,
+    "t": 0.05,
     "kind": "event",
     "event": {
       "agent_name": "supervisor",
       "event_type": "summary",
-      "message": "Session started \u2014 operator flagged checkout-service as patient zero.",
+      "message": "Incident intake \u2014 locking context for checkout-service.",
       "details": {
         "service_name": "checkout-service"
       }
     }
   },
   {
-    "t": 0.5,
+    "t": 0.15,
     "kind": "event",
     "event": {
       "agent_name": "supervisor",
-      "event_type": "started",
-      "message": "Dispatching log_agent first \u2014 cheapest signal, widest coverage.",
+      "event_type": "tool_call",
+      "message": "service_catalog.lookup(checkout-service)",
+      "details": {
+        "tool": "service_catalog.lookup"
+      }
+    }
+  },
+  {
+    "t": 0.3,
+    "kind": "event",
+    "event": {
+      "agent_name": "supervisor",
+      "event_type": "summary",
+      "message": "Topology cache hit \u2014 8 upstream/downstream edges resolved in 47ms.",
+      "details": {
+        "edges": 8,
+        "cache_latency_ms": 47
+      }
+    }
+  },
+  {
+    "t": 0.45,
+    "kind": "event",
+    "event": {
+      "agent_name": "supervisor",
+      "event_type": "tool_call",
+      "message": "change_db.recent_deploys(window=24h)",
+      "details": {
+        "tool": "change_db.recent_deploys"
+      }
+    }
+  },
+  {
+    "t": 0.55,
+    "kind": "event",
+    "event": {
+      "agent_name": "supervisor",
+      "event_type": "summary",
+      "message": "Dispatch plan: log_agent, metric_agent, tracing_agent, k8s_agent in parallel.",
       "details": {
         "plan": [
           "log_agent",
@@ -34,6 +71,99 @@
     }
   },
   {
+    "t": 0.6,
+    "kind": "event",
+    "event": {
+      "agent_name": "supervisor",
+      "event_type": "started",
+      "message": "Spawning 4 context agents in parallel.",
+      "details": {
+        "plan": [
+          "log_agent",
+          "metric_agent",
+          "tracing_agent",
+          "k8s_agent"
+        ]
+      }
+    }
+  },
+  {
+    "t": 0.75,
+    "kind": "event",
+    "event": {
+      "agent_name": "log_agent",
+      "event_type": "started",
+      "message": "Agent online \u2014 connecting to Elasticsearch cluster payments-prod.",
+      "details": {}
+    }
+  },
+  {
+    "t": 0.8,
+    "kind": "event",
+    "event": {
+      "agent_name": "metric_agent",
+      "event_type": "started",
+      "message": "Agent online \u2014 connecting to Prometheus federation.",
+      "details": {}
+    }
+  },
+  {
+    "t": 0.85,
+    "kind": "event",
+    "event": {
+      "agent_name": "tracing_agent",
+      "event_type": "started",
+      "message": "Agent online \u2014 opening Jaeger query session.",
+      "details": {}
+    }
+  },
+  {
+    "t": 0.88,
+    "kind": "event",
+    "event": {
+      "agent_name": "k8s_agent",
+      "event_type": "started",
+      "message": "Agent online \u2014 opening Kubernetes API in namespace payments-prod.",
+      "details": {}
+    }
+  },
+  {
+    "t": 0.9,
+    "kind": "event",
+    "event": {
+      "agent_name": "log_agent",
+      "event_type": "tool_call",
+      "message": "elasticsearch.cluster.health()",
+      "details": {
+        "tool": "elasticsearch.cluster.health"
+      }
+    }
+  },
+  {
+    "t": 0.95,
+    "kind": "event",
+    "event": {
+      "agent_name": "metric_agent",
+      "event_type": "tool_call",
+      "message": "prometheus.federated_targets()",
+      "details": {
+        "tool": "prometheus.federated_targets"
+      }
+    }
+  },
+  {
+    "t": 1.0,
+    "kind": "event",
+    "event": {
+      "agent_name": "tracing_agent",
+      "event_type": "tool_call",
+      "message": "jaeger.services.list()",
+      "details": {
+        "tool": "jaeger.services.list"
+      }
+    }
+  },
+  {
     "t": 1.0,
     "kind": "event",
     "event": {
@@ -41,6 +171,67 @@
       "event_type": "started",
       "message": "Scanning 4-hour window across payments-prod Elasticsearch indices.",
       "details": {}
+    }
+  },
+  {
+    "t": 1.02,
+    "kind": "event",
+    "event": {
+      "agent_name": "k8s_agent",
+      "event_type": "tool_call",
+      "message": "kubectl.auth.whoami()",
+      "details": {
+        "tool": "kubectl.auth.whoami"
+      }
+    }
+  },
+  {
+    "t": 1.05,
+    "kind": "event",
+    "event": {
+      "agent_name": "log_agent",
+      "event_type": "summary",
+      "message": "ES green \u2014 18 shards healthy, session bound.",
+      "details": {
+        "shards": 18
+      }
+    }
+  },
+  {
+    "t": 1.1,
+    "kind": "event",
+    "event": {
+      "agent_name": "metric_agent",
+      "event_type": "summary",
+      "message": "Prometheus federation reachable \u2014 142 targets, scrape interval 15s.",
+      "details": {
+        "targets": 142
+      }
+    }
+  },
+  {
+    "t": 1.15,
+    "kind": "event",
+    "event": {
+      "agent_name": "tracing_agent",
+      "event_type": "summary",
+      "message": "Jaeger online \u2014 9 services instrumented, 1% head-based + tail sampler.",
+      "details": {
+        "services": 9,
+        "sampling": "1% head + tail"
+      }
+    }
+  },
+  {
+    "t": 1.18,
+    "kind": "event",
+    "event": {
+      "agent_name": "k8s_agent",
+      "event_type": "summary",
+      "message": "K8s API reachable \u2014 ServiceAccount has read access on payments-prod.",
+      "details": {
+        "namespace": "payments-prod"
+      }
     }
   },
   {
@@ -248,13 +439,13 @@
                 "timestamp": "2026-04-21T14:47:18.023Z",
                 "level": "WARN",
                 "msg": "upstream connect error 504 inventory-service",
-                "trace_id": "T-sarah-1234-001"
+                "trace_id": "T-7f3a9c2e-0001"
               },
               {
                 "timestamp": "2026-04-21T14:47:18.024Z",
                 "level": "INFO",
                 "msg": "RetryAttempt=2 for inventory-reserve",
-                "trace_id": "T-sarah-1234-001"
+                "trace_id": "T-7f3a9c2e-0001"
               }
             ],
             "confidence_score": 89,
@@ -419,25 +610,61 @@
         "service_flow": [
           {
             "service": "api-gateway",
-            "order": 1
+            "timestamp": "2026-04-21T14:47:02.800Z",
+            "operation": "POST /api/v1/checkout",
+            "status": "ok",
+            "status_detail": "HTTP 200",
+            "message": "Request accepted",
+            "is_new_service": false
           },
           {
             "service": "checkout-service",
-            "order": 2
+            "timestamp": "2026-04-21T14:47:02.870Z",
+            "operation": "POST /pay",
+            "status": "timeout",
+            "status_detail": "WAITING 15s",
+            "message": "Awaiting payment-service \u2014 observed spinner",
+            "is_new_service": false
           },
           {
             "service": "payment-service",
-            "order": 3
+            "timestamp": "2026-04-21T14:47:03.012Z",
+            "operation": "PaymentExecutor.execute",
+            "status": "error",
+            "status_detail": "RETRY TRIGGERED",
+            "message": "UpstreamTimeoutException on inventory-reserve \u2192 @Retryable reissued the whole method, re-running ledger.debit()",
+            "is_new_service": false
           },
           {
             "service": "wallet-service",
-            "order": 4
+            "timestamp": "2026-04-21T14:47:03.089Z",
+            "operation": "POST /v1/debit (txn-A)",
+            "status": "ok",
+            "status_detail": "200 OK",
+            "message": "First debit committed",
+            "is_new_service": false
           },
           {
             "service": "inventory-service",
-            "order": 5
+            "timestamp": "2026-04-21T14:47:18.021Z",
+            "operation": "POST /reserve",
+            "status": "timeout",
+            "status_detail": "ISTIO 504",
+            "message": "istio-proxy 15.003s timeout \u2014 sidecar connect wall",
+            "is_new_service": false
+          },
+          {
+            "service": "wallet-service",
+            "timestamp": "2026-04-21T14:47:18.207Z",
+            "operation": "POST /v1/debit (txn-B \u2014 GHOST)",
+            "status": "error",
+            "status_detail": "DUPLICATE DEBIT",
+            "message": "Second debit for same customer, fresh txn_id \u2014 no idempotency key enforced",
+            "is_new_service": true
           }
         ],
+        "flow_source": "jaeger",
+        "flow_confidence": 94,
         "suggested_promql_queries": [
           {
             "metric": "payment_ledger_write_total",
@@ -661,7 +888,7 @@
     "event": {
       "agent_name": "tracing_agent",
       "event_type": "tool_call",
-      "message": "jaeger.replay(trace_id=T-sarah-1234-001) \u2014 walking span waterfall",
+      "message": "jaeger.replay(trace_id=T-7f3a9c2e-0001) \u2014 walking span waterfall",
       "details": {}
     }
   },
@@ -694,9 +921,9 @@
     "event": {
       "agent_name": "tracing_agent",
       "event_type": "finding",
-      "message": "Trace T-sarah-1234-001: TWO wallets.UPDATE spans for customer C-CHEN-SARAH-8741, 15.203s apart, different span_ids, identical amount.",
+      "message": "Trace T-7f3a9c2e-0001: TWO wallets.UPDATE spans for customer_id=C-2f91ac, 15.203s apart, different span_ids, identical amount.",
       "details": {
-        "trace_id": "T-sarah-1234-001",
+        "trace_id": "T-7f3a9c2e-0001",
         "duplicate_count": 2,
         "gap_seconds": 15.203
       }
@@ -824,7 +1051,7 @@
     "event": {
       "agent_name": "tracing_agent",
       "event_type": "tool_call",
-      "message": "jaeger.replay(trace_id=T-acme-corp-0042) \u2014 validating pattern",
+      "message": "jaeger.replay(trace_id=T-7f3a9c2e-0042) \u2014 validating pattern",
       "details": {}
     }
   },
@@ -857,7 +1084,7 @@
     "event": {
       "agent_name": "tracing_agent",
       "event_type": "reasoning",
-      "message": "Identical pattern on Acme Logistics trace: two wallet-update spans, 15.2s apart.",
+      "message": "Identical pattern on a second trace for a different customer: two wallet-update spans, 15.2s apart.",
       "details": {}
     }
   },
@@ -993,14 +1220,43 @@
     "patch": {
       "state": {
         "trace_analysis": {
-          "failure_service_from_trace": "payment-service",
+          "trace_id": "T-7f3a9c2e-0001",
+          "total_duration_ms": 15230,
+          "total_services": 9,
+          "total_spans": 18,
+          "trace_source": "jaeger",
+          "overall_confidence": 94,
+          "retry_detected": true,
+          "cascade_path": [
+            "api-gateway",
+            "checkout-service",
+            "payment-service",
+            "inventory-service",
+            "wallet-service"
+          ],
+          "service_dependency_graph": {
+            "api-gateway": [
+              "checkout-service",
+              "auth-service"
+            ],
+            "checkout-service": [
+              "payment-service",
+              "cart-service"
+            ],
+            "payment-service": [
+              "wallet-service",
+              "inventory-service",
+              "fraud-adapter",
+              "notification-service"
+            ]
+          },
           "critical_path_services": [
             "api-gateway",
             "checkout-service",
             "payment-service",
             "inventory-service"
           ],
-          "services_from_traces": [
+          "services_in_chain": [
             "api-gateway",
             "auth-service",
             "cart-service",
@@ -1011,7 +1267,11 @@
             "fraud-adapter",
             "notification-service"
           ],
-          "trace_ids_mined": [
+          "hot_services": [
+            "payment-service",
+            "inventory-service"
+          ],
+          "mined_trace_ids": [
             "T-demo-0000",
             "T-demo-0001",
             "T-demo-0002",
@@ -1060,10 +1320,8 @@
             "T-demo-0045",
             "T-demo-0046"
           ],
-          "hot_services_from_traces": [
-            "payment-service",
-            "inventory-service"
-          ],
+          "cross_trace_consensus": "unanimous",
+          "sampling_mode": "tail_based",
           "bottleneck_operations": [
             [
               "istio-proxy",
@@ -1074,18 +1332,156 @@
               "@Retryable execute"
             ]
           ],
-          "pattern_findings_from_traces": [
+          "call_chain": [
             {
-              "pattern": "double_wallets_update_same_customer_different_txn_id",
-              "count": 47,
-              "confidence": 0.97
+              "span_id": "s-gw-001",
+              "service": "api-gateway",
+              "service_name": "api-gateway",
+              "operation": "POST /api/v1/checkout",
+              "operation_name": "POST /api/v1/checkout",
+              "duration_ms": 15230,
+              "status": "ok",
+              "error": false,
+              "parent_span_id": null,
+              "critical_path": true,
+              "start_offset_ms": 0
+            },
+            {
+              "span_id": "s-co-002",
+              "service": "checkout-service",
+              "service_name": "checkout-service",
+              "operation": "POST /pay",
+              "operation_name": "POST /pay",
+              "duration_ms": 15210,
+              "status": "timeout",
+              "error": false,
+              "parent_span_id": "s-gw-001",
+              "critical_path": true,
+              "start_offset_ms": 8
+            },
+            {
+              "span_id": "s-py-003",
+              "service": "payment-service",
+              "service_name": "payment-service",
+              "operation": "PaymentExecutor.execute",
+              "operation_name": "PaymentExecutor.execute",
+              "duration_ms": 15180,
+              "status": "error",
+              "error": true,
+              "error_message": "UpstreamTimeoutException after 15003ms on inventory-reserve",
+              "parent_span_id": "s-co-002",
+              "critical_path": true,
+              "start_offset_ms": 18
+            },
+            {
+              "span_id": "s-wl-004",
+              "service": "wallet-service",
+              "service_name": "wallet-service",
+              "operation": "POST /v1/debit (txn-A)",
+              "operation_name": "POST /v1/debit",
+              "duration_ms": 62,
+              "status": "ok",
+              "error": false,
+              "parent_span_id": "s-py-003",
+              "critical_path": true,
+              "start_offset_ms": 77
+            },
+            {
+              "span_id": "s-inv-005",
+              "service": "inventory-service",
+              "service_name": "inventory-service",
+              "operation": "POST /reserve",
+              "operation_name": "POST /reserve",
+              "duration_ms": 15003,
+              "status": "timeout",
+              "error": true,
+              "error_message": "istio.504 sidecar timeout",
+              "parent_span_id": "s-py-003",
+              "critical_path": true,
+              "start_offset_ms": 140
+            },
+            {
+              "span_id": "s-py-006",
+              "service": "payment-service",
+              "service_name": "payment-service",
+              "operation": "PaymentExecutor.execute (RETRY)",
+              "operation_name": "PaymentExecutor.execute",
+              "duration_ms": 118,
+              "status": "ok",
+              "error": false,
+              "parent_span_id": "s-co-002",
+              "critical_path": true,
+              "start_offset_ms": 15145
+            },
+            {
+              "span_id": "s-wl-007",
+              "service": "wallet-service",
+              "service_name": "wallet-service",
+              "operation": "POST /v1/debit (txn-B GHOST)",
+              "operation_name": "POST /v1/debit",
+              "duration_ms": 58,
+              "status": "ok",
+              "error": false,
+              "parent_span_id": "s-py-006",
+              "critical_path": true,
+              "start_offset_ms": 15165
             }
           ],
-          "negative_findings": [
-            "fraud-adapter.score spans complete in 340-420ms \u2014 not timeout-related.",
-            "auth-service spans <8ms \u2014 not on critical path."
+          "failure_point": {
+            "span_id": "s-inv-005",
+            "service": "inventory-service",
+            "service_name": "inventory-service",
+            "operation": "POST /reserve",
+            "operation_name": "POST /reserve",
+            "duration_ms": 15003,
+            "status": "timeout",
+            "error": true,
+            "error_message": "istio-proxy 504 after 15.003s \u2014 sidecar connect wall",
+            "parent_span_id": "s-py-003",
+            "critical_path": true,
+            "start_offset_ms": 140
+          },
+          "latency_bottlenecks": [
+            {
+              "span_id": "s-inv-005",
+              "service": "inventory-service",
+              "service_name": "inventory-service",
+              "operation": "POST /reserve",
+              "operation_name": "POST /reserve",
+              "duration_ms": 15003,
+              "status": "timeout",
+              "error": true,
+              "parent_span_id": "s-py-003",
+              "critical_path": true
+            }
           ],
-          "overall_confidence": 94
+          "envoy_findings": [
+            {
+              "span_id": "s-inv-005",
+              "service_name": "inventory-service",
+              "flag": "UT",
+              "human_summary": "Upstream request timeout at istio-proxy after 15s \u2014 sidecar connect wall reached."
+            }
+          ],
+          "pattern_findings": [
+            {
+              "kind": "app_level_retry",
+              "severity": "high",
+              "human_summary": "47/47 sampled traces show @Retryable reissuing the full method \u2014 mutation re-runs.",
+              "metadata": {
+                "attempts": 2,
+                "all_failed": false
+              }
+            },
+            {
+              "kind": "critical_path_hotspot",
+              "severity": "critical",
+              "human_summary": "Inventory-service timeout dominates the request \u2014 98% of wall time.",
+              "metadata": {
+                "fraction_of_trace": 0.98
+              }
+            }
+          ]
         }
       }
     }
@@ -1172,7 +1568,7 @@
       "event_type": "finding",
       "message": "Divergence: metrics report 0 retries; logs show 47. Retry-counter wired to wrong span of the code.",
       "details": {
-        "divergence_kind": "metric_log",
+        "divergence_kind": "log_error_cluster_no_metric_anomaly",
         "severity": "high"
       }
     }
@@ -1183,12 +1579,15 @@
     "patch": {
       "state": {
         "divergence_findings[+]": {
-          "kind": "metric_log",
+          "kind": "log_error_cluster_no_metric_anomaly",
           "service_name": "payment-service",
           "severity": "high",
           "human_summary": "metrics \u2194 logs \u2014 1 signal disagreement: retry-counter zeroed while log shows 47 retries",
-          "metric_value": 0,
-          "log_value": 47
+          "metadata": {
+            "metric_value": 0,
+            "log_value": 47
+          },
+          "deterministic": true
         }
       }
     }
@@ -1237,7 +1636,7 @@
       "event_type": "finding",
       "message": "Divergence: metrics see 1 successful transaction per txn_id; traces see 2 wallet writes.",
       "details": {
-        "divergence_kind": "metric_trace",
+        "divergence_kind": "trace_failure_service_no_metric_anomaly",
         "severity": "critical"
       }
     }
@@ -1248,12 +1647,15 @@
     "patch": {
       "state": {
         "divergence_findings[+]": {
-          "kind": "metric_trace",
+          "kind": "trace_failure_service_no_metric_anomaly",
           "service_name": "wallet-service",
           "severity": "critical",
           "human_summary": "metrics \u2194 tracing \u2014 47 disagreements: same txn_id has 2 wallets.UPDATE spans",
-          "metric_cardinality_per_txn": 1,
-          "trace_cardinality_per_txn": 2
+          "metadata": {
+            "metric_cardinality_per_txn": 1,
+            "trace_cardinality_per_txn": 2
+          },
+          "deterministic": true
         }
       }
     }
@@ -1281,63 +1683,102 @@
           {
             "hypothesis_id": "H1",
             "category": "fraud_provider_slowdown",
-            "status": "testing",
+            "status": "active",
             "confidence": 71,
             "evidence_for_count": 2,
             "evidence_against_count": 0,
             "evidence_for": [
               {
-                "signal": "fraud-adapter p95 2.7\u00d7 baseline"
+                "signal_name": "fraud_adapter_p95_2_7x_baseline",
+                "signal_type": "metric_anomaly",
+                "source_agent": "metrics_agent",
+                "strength": 0.72
               },
               {
-                "signal": "FraudScoreProviderSlowdown WARN \u00d7 206"
+                "signal_name": "FraudScoreProviderSlowdown_warn_x206",
+                "signal_type": "log_cluster",
+                "source_agent": "log_agent",
+                "strength": 0.68
               }
             ],
-            "evidence_against": []
+            "evidence_against": [],
+            "downstream_effects": [
+              "slower checkout p95"
+            ],
+            "elimination_reason": null,
+            "elimination_phase": null
           },
           {
             "hypothesis_id": "H2",
             "category": "istio_sidecar_outage",
-            "status": "testing",
+            "status": "active",
             "confidence": 58,
             "evidence_for_count": 1,
             "evidence_against_count": 0,
             "evidence_for": [
               {
-                "signal": "47\u00d7 Istio 504 on inventory-reserve"
+                "signal_name": "istio_504_on_inventory_reserve_x47",
+                "signal_type": "metric_anomaly",
+                "source_agent": "metrics_agent",
+                "strength": 0.65
               }
             ],
-            "evidence_against": []
+            "evidence_against": [],
+            "downstream_effects": [
+              "upstream retries",
+              "p99 spike"
+            ],
+            "elimination_reason": null,
+            "elimination_phase": null
           },
           {
             "hypothesis_id": "H3",
             "category": "non_idempotent_retry_with_reconciliation_masking",
-            "status": "testing",
+            "status": "active",
             "confidence": 82,
             "evidence_for_count": 3,
             "evidence_against_count": 0,
             "evidence_for": [
               {
-                "signal": "double wallets.UPDATE in 47/47 traces"
+                "signal_name": "double_wallets_update_47_of_47_traces",
+                "signal_type": "trace_pattern",
+                "source_agent": "tracing_agent",
+                "strength": 0.97
               },
               {
-                "signal": "RetryAttempt=2 log cluster 47\u00d7"
+                "signal_name": "RetryAttempt_2_log_cluster_x47",
+                "signal_type": "log_cluster",
+                "source_agent": "log_agent",
+                "strength": 0.89
               },
               {
-                "signal": "payment_ledger_write_total{retry=true} 15\u00d7 baseline"
+                "signal_name": "payment_ledger_write_total_retry_true_15x_baseline",
+                "signal_type": "metric_anomaly",
+                "source_agent": "metrics_agent",
+                "strength": 0.88
               }
             ],
-            "evidence_against": []
+            "evidence_against": [],
+            "downstream_effects": [
+              "duplicate debits",
+              "refund exposure",
+              "reconciliation drift"
+            ],
+            "elimination_reason": null,
+            "elimination_phase": null
           },
           {
             "hypothesis_id": "H4",
             "category": "wallet_replication_lag_stale_read",
-            "status": "testing",
+            "status": "active",
             "confidence": 41,
             "evidence_for_count": 0,
             "evidence_against_count": 0,
             "evidence_for": [],
-            "evidence_against": []
+            "evidence_against": [],
+            "downstream_effects": [],
+            "elimination_reason": null,
+            "elimination_phase": null
           }
         ]
       }
@@ -1589,6 +2030,31 @@
             "category": "fraud_provider_slowdown",
             "status": "eliminated",
             "confidence": 6,
+            "evidence_for_count": 2,
+            "evidence_against_count": 1,
+            "evidence_for": [
+              {
+                "signal_name": "fraud_adapter_p95_2_7x_baseline",
+                "signal_type": "metric_anomaly",
+                "source_agent": "metrics_agent",
+                "strength": 0.72
+              },
+              {
+                "signal_name": "FraudScoreProviderSlowdown_warn_x206",
+                "signal_type": "log_cluster",
+                "source_agent": "log_agent",
+                "strength": 0.68
+              }
+            ],
+            "evidence_against": [
+              {
+                "signal_name": "bimodal_distribution_contradicts_unimodal_slowdown",
+                "signal_type": "metric_shape",
+                "source_agent": "metrics_agent",
+                "strength": 0.94
+              }
+            ],
+            "downstream_effects": [],
             "elimination_reason": "Latency contribution 1.6%; bimodal distribution",
             "elimination_phase": "cross_check"
           },
@@ -1597,6 +2063,25 @@
             "category": "istio_sidecar_outage",
             "status": "eliminated",
             "confidence": 9,
+            "evidence_for_count": 1,
+            "evidence_against_count": 1,
+            "evidence_for": [
+              {
+                "signal_name": "istio_504_on_inventory_reserve_x47",
+                "signal_type": "metric_anomaly",
+                "source_agent": "metrics_agent",
+                "strength": 0.65
+              }
+            ],
+            "evidence_against": [
+              {
+                "signal_name": "istio_system_pods_all_ready_zero_restarts",
+                "signal_type": "k8s_state",
+                "source_agent": "k8s_agent",
+                "strength": 0.91
+              }
+            ],
+            "downstream_effects": [],
             "elimination_reason": "Istio data plane healthy; 504 is a configured timeout",
             "elimination_phase": "cross_check"
           },
@@ -1606,32 +2091,90 @@
             "status": "winner",
             "confidence": 88,
             "evidence_for_count": 5,
-            "evidence_against_count": 0
+            "evidence_against_count": 0,
+            "evidence_for": [
+              {
+                "signal_name": "double_wallets_update_47_of_47_traces",
+                "signal_type": "trace_pattern",
+                "source_agent": "tracing_agent",
+                "strength": 0.97
+              },
+              {
+                "signal_name": "RetryAttempt_2_log_cluster_x47",
+                "signal_type": "log_cluster",
+                "source_agent": "log_agent",
+                "strength": 0.89
+              },
+              {
+                "signal_name": "payment_ledger_write_total_retry_true_15x_baseline",
+                "signal_type": "metric_anomaly",
+                "source_agent": "metrics_agent",
+                "strength": 0.88
+              },
+              {
+                "signal_name": "PaymentExecutor_Retryable_wraps_mutation",
+                "signal_type": "code_defect",
+                "source_agent": "code_agent",
+                "strength": 0.94
+              },
+              {
+                "signal_name": "reconciliation_auto_round_0_02_masks_duplicates",
+                "signal_type": "code_defect",
+                "source_agent": "code_agent",
+                "strength": 0.93
+              }
+            ],
+            "evidence_against": [],
+            "downstream_effects": [
+              "duplicate debits",
+              "refund exposure",
+              "reconciliation drift"
+            ],
+            "elimination_reason": null,
+            "elimination_phase": null
           },
           {
             "hypothesis_id": "H4",
             "category": "wallet_replication_lag_stale_read",
             "status": "eliminated",
             "confidence": 3,
+            "evidence_for_count": 0,
+            "evidence_against_count": 1,
+            "evidence_for": [],
+            "evidence_against": [
+              {
+                "signal_name": "wallet_replication_lag_lt_50ms_throughout",
+                "signal_type": "metric_baseline",
+                "source_agent": "metrics_agent",
+                "strength": 0.97
+              }
+            ],
+            "downstream_effects": [],
             "elimination_reason": "Replication lag <50ms throughout",
             "elimination_phase": "cross_check"
           }
         ],
         "hypothesis_result": {
-          "status": "provisional",
+          "status": "inconclusive",
           "winner_id": "H3",
           "elimination_log": [
             {
-              "h": "H1",
-              "reason": "Latency contribution 1.6%; bimodal distribution"
+              "hypothesis_id": "H1",
+              "reason": "Latency contribution 1.6%; bimodal distribution",
+              "phase": "cross_check",
+              "confidence": 94
             },
             {
-              "h": "H2",
-              "reason": "Istio data plane healthy; 504 is a configured timeout"
+              "hypothesis_id": "H2",
+              "reason": "Istio data plane healthy; 504 is a configured timeout",
+              "phase": "cross_check",
+              "confidence": 91
             },
             {
-              "h": "H4",
-              "reason": "Replication lag <50ms throughout"
+              "hypothesis_id": "H4",
+              "reason": "Replication lag <50ms throughout",
+              "phase": "cross_check",
+              "confidence": 97
             }
           ],
           "recommendations": []
@@ -2168,16 +2711,22 @@
           "confidence_reasoning": "3 independent signals; critic 2/3 confirmed; re-investigation rebounded",
           "elimination_log": [
             {
-              "h": "H1",
-              "reason": "Latency contribution 1.6%; bimodal distribution"
+              "hypothesis_id": "H1",
+              "reason": "Latency contribution 1.6%; bimodal distribution",
+              "phase": "cross_check",
+              "confidence": 94
             },
             {
-              "h": "H2",
-              "reason": "Istio data plane healthy; 504 is a configured timeout"
+              "hypothesis_id": "H2",
+              "reason": "Istio data plane healthy; 504 is a configured timeout",
+              "phase": "cross_check",
+              "confidence": 91
             },
             {
-              "h": "H4",
-              "reason": "Replication lag <50ms throughout"
+              "hypothesis_id": "H4",
+              "reason": "Replication lag <50ms throughout",
+              "phase": "cross_check",
+              "confidence": 97
             }
           ],
           "recommendations": [
@@ -2211,8 +2760,20 @@
     "event": {
       "agent_name": "supervisor",
       "event_type": "started",
-      "message": "Synthesizing verdict + blast-radius + signature-library lookup.",
+      "message": "Synthesizing verdict + blast-radius scope + signature-library lookup.",
       "details": {}
+    }
+  },
+  {
+    "t": 56.6,
+    "kind": "event",
+    "event": {
+      "agent_name": "supervisor",
+      "event_type": "tool_call",
+      "message": "topology.impact_scope(patient_zero=payment-service, hypothesis=H3)",
+      "details": {
+        "tool": "topology.impact_scope"
+      }
     }
   },
   {
@@ -2221,18 +2782,24 @@
     "event": {
       "agent_name": "supervisor",
       "event_type": "tool_call",
-      "message": "causal_forest.synthesize(winner=H3, affected_services=[payment, checkout, wallet])",
-      "details": {}
+      "message": "wallet_ledger.count_duplicate_debits(window=4h, hypothesis=H3)",
+      "details": {
+        "tool": "wallet_ledger.count_duplicate_debits",
+        "integration": "ledger"
+      }
     }
   },
   {
-    "t": 57.8,
+    "t": 57.3,
     "kind": "event",
     "event": {
       "agent_name": "supervisor",
       "event_type": "finding",
-      "message": "Blast radius: 3 services directly affected; 47 customers double-charged; $4,089 refund exposure.",
-      "details": {}
+      "message": "Ledger: 47 duplicate-debit events detected in window.",
+      "details": {
+        "affected_txns": 47,
+        "source": "wallet_ledger.count_duplicate_debits"
+      }
     }
   },
   {
@@ -2253,31 +2820,9 @@
             "reconciliation-job",
             "shared-finance-models"
           ],
-          "estimated_user_impact": "47 confirmed duplicate charges totaling $4,089 in refund exposure + ~$880 in Stripe dispute fees. Three VIP escalations: Acme Logistics ($2.1M monthly, SLA clause triggered \u2014 $50K + $840K peer-ARR risk); Sarah Chen (184K-follower food blogger, 2.3M impressions); @sarah_trades_btc (340K crypto followers, quote-tweeted by @patio11).",
+          "estimated_user_impact": "47 duplicate-debit events detected in wallet_ledger (window 4h).",
           "scope": "service_group",
-          "notable_affected_accounts": [
-            {
-              "customer_id": "C-CORP-ACME-LOG-0042",
-              "tier": "business_enterprise",
-              "stakes_summary": "Acme Logistics \u2014 $2.1M/mo volume, SLA tier-1 contract. $50K penalty clause triggered. 3 peer accounts at ARR risk ($840K/yr).",
-              "escalation_channel": "relationship_manager + legal",
-              "business_severity": "critical"
-            },
-            {
-              "customer_id": "C-CHEN-SARAH-8741",
-              "tier": "consumer_premium",
-              "stakes_summary": "Sarah Chen \u2014 food blogger, 184K followers. Pinned tweet on r/personalfinance, 2.3M impressions.",
-              "escalation_channel": "pr_team",
-              "business_severity": "high"
-            },
-            {
-              "customer_id": "C-INFLUENCER-BTC-2291",
-              "tier": "consumer_premium",
-              "stakes_summary": "@sarah_trades_btc \u2014 fintech-Twitter influencer, 340K followers, quote-tweeted by @patio11. Trending #6.",
-              "escalation_channel": "pr_team + brand_risk",
-              "business_severity": "high"
-            }
-          ],
+          "affected_customer_count": 47,
           "business_impact": [
             {
               "capability": "checkout",
@@ -2293,13 +2838,18 @@
                 "payment-service",
                 "reconciliation-job"
               ]
+            }
+          ],
+          "data_sources": [
+            {
+              "tool": "topology.impact_scope",
+              "integration": "topology_cache",
+              "contributed": "service-level scope (upstream, downstream, shared)"
             },
             {
-              "capability": "customer_trust",
-              "severity": "high",
-              "affected_services": [
-                "notification-service"
-              ]
+              "tool": "wallet_ledger.count_duplicate_debits",
+              "integration": "ledger",
+              "contributed": "47 duplicate-debit events"
             }
           ]
         }
@@ -2352,7 +2902,7 @@
       "state": {
         "severity_result": {
           "severity": "P1",
-          "reasoning": "Financial-integrity violation + active social-media exposure + regulatory-reporting implications (FDIC dispute-reporting threshold exceeded).",
+          "reasoning": "Financial-integrity violation confirmed by wallet_ledger (47 duplicate-debit events in window) + regulatory reporting threshold crossed per compliance_rules.evaluate.",
           "regulatory_flags": [
             "FDIC",
             "PCI-DSS 10.8"
@@ -2362,6 +2912,10 @@
             "platform-oncall",
             "finance-controller",
             "legal-regulatory"
+          ],
+          "data_sources": [
+            "wallet_ledger.count_duplicate_debits",
+            "compliance_rules.evaluate"
           ]
         }
       }
@@ -2644,19 +3198,21 @@
     "kind": "await_approval",
     "message": "Three fix PRs drafted \u2014 awaiting operator approval to merge sequence.",
     "pending_action": {
-      "type": "attestation",
-      "title": "Approve 3 PRs to remediate INC-2026-0421-payment-ledger-ghost-debits",
-      "description": "Primary: payment-service #8427 (stop the bleeding). Secondary: shared-finance-models #1203 + reconciliation-job #294 (close blind spot).",
-      "options": [
-        {
-          "value": "approved",
-          "label": "Approve & merge (sequential)"
-        },
-        {
-          "value": "rejected",
-          "label": "Reject \u2014 escalate to payments lead"
-        }
-      ]
+      "type": "fix_approval",
+      "blocking": true,
+      "actions": [
+        "approve",
+        "reject",
+        "details"
+      ],
+      "expires_at": null,
+      "context": {
+        "title": "Approve 3 PRs to remediate INC-2026-0421-payment-ledger-ghost-debits",
+        "diff_summary": "Primary: zepay/payment-service #8427 (stop the bleeding). Secondary: zepay/shared-finance-models #1203 + zepay/reconciliation-job #294 (close blind spot).",
+        "repo_count": 3,
+        "findings_count": 5,
+        "confidence": 0.92
+      }
     }
   },
   {

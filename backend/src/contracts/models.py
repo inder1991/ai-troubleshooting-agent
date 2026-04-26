@@ -19,14 +19,22 @@ class ManifestValidationError(ValueError):
 
 
 class CostHint(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    # PR-K8: agent manifests have accumulated richer cost hints
+    # (tier_0_percent_estimate, tier_1_llm_calls, weighted_cost_usd_estimate,
+    # etc.) that this model doesn't declare. Using `ignore` so manifest
+    # evolution doesn't require a model-rev coupling. The fields we DO
+    # care about stay explicit.
+    model_config = ConfigDict(extra="ignore")
 
     llm_calls: int = 0
     typical_duration_s: float = 0.0
 
 
 class AgentContract(BaseModel):
-    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+    # Same rationale as CostHint — manifests carry a `config` block and
+    # other agent-specific extras. Ignoring them keeps the backend
+    # startable while preserving validation on the fields we rely on.
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     name: str
     version: int = Field(gt=0)

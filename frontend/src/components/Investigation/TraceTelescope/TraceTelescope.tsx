@@ -47,6 +47,14 @@ export default function TraceTelescope(props: TraceTelescopeProps) {
     return () => window.removeEventListener('keydown', handler);
   }, [onClose]);
 
+  // Lock body scroll while the telescope is open so the War Room
+  // underneath can't scroll through the overlay.
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, []);
+
   // Clicking a span in Flow/Waterfall auto-switches to Detail.
   useEffect(() => {
     if (selection.selectedSpanId && activeTab !== 'detail') {
@@ -59,11 +67,30 @@ export default function TraceTelescope(props: TraceTelescopeProps) {
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-wr-bg-deep/95 flex flex-col"
+      className="fixed inset-0 z-50 flex items-stretch justify-center"
       role="dialog"
+      aria-modal="true"
       aria-label="Trace Telescope"
       data-testid="trace-telescope"
     >
+      {/* Dim + blur layer sits between the War Room and the telescope
+          frame. Explicitly opaque-ish black with a heavy backdrop blur so
+          the amber War Room panels stop bleeding through the trace
+          waterfall. Click to dismiss. */}
+      <button
+        type="button"
+        aria-label="Close Trace Telescope"
+        onClick={onClose}
+        className="absolute inset-0 bg-[#05070a]/90 backdrop-blur-xl cursor-default focus:outline-none"
+        data-testid="telescope-dimmer"
+      />
+
+      {/* Framed telescope window — sits above the dimmer. Stops click
+          propagation so clicking inside does NOT dismiss. */}
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="relative z-10 m-4 md:m-8 w-full max-w-[1600px] max-h-[calc(100dvh-2rem)] md:max-h-[calc(100dvh-4rem)] flex flex-col bg-[#0f1115] border border-wr-border rounded-lg shadow-[0_30px_80px_rgba(0,0,0,0.85)] overflow-hidden"
+      >
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-3 border-b border-wr-border bg-wr-bg/80 backdrop-blur">
         <div>
@@ -149,6 +176,7 @@ export default function TraceTelescope(props: TraceTelescopeProps) {
             backendUrl={backendUrl}
           />
         )}
+      </div>
       </div>
     </div>
   );

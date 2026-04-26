@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import type { V4Findings, V4SessionStatus, TaskEvent, AttestationGateData } from '../../types';
+import type { V4Findings, V4SessionStatus, TaskEvent } from '../../types';
 import { scheduleSignals, Signal } from './signalScheduler';
 import BannerRow from './BannerRow';
 import FreshnessRow from './FreshnessRow';
@@ -27,7 +27,6 @@ interface BannerRegionProps {
   wsConnected: boolean;
   fetchFailCount: number;
   fetchErrorDismissed: boolean;
-  attestationGate?: AttestationGateData | null;
   /** Fired when the user clicks the banner's action button. */
   onBannerAction?: (signal: Signal) => void;
   /** Fired when the user clicks the Retry button on a fetch-fail banner. */
@@ -46,7 +45,6 @@ export const BannerRegion: React.FC<BannerRegionProps> = ({
   wsConnected,
   fetchFailCount,
   fetchErrorDismissed,
-  attestationGate,
   onBannerAction,
   onRetryFetch,
   sessionId,
@@ -61,9 +59,6 @@ export const BannerRegion: React.FC<BannerRegionProps> = ({
         fetchErrorDismissed,
         wsConnected,
         phase: status?.phase ?? null,
-        attestationGate: attestationGate
-          ? { title: attestationGate.proposed_action ?? undefined }
-          : null,
         budget: status?.budget ?? null,
         isHistorical: lifecycle === 'historical',
       }),
@@ -72,7 +67,6 @@ export const BannerRegion: React.FC<BannerRegionProps> = ({
       fetchErrorDismissed,
       wsConnected,
       status?.phase,
-      attestationGate,
       status?.budget,
       lifecycle,
     ],

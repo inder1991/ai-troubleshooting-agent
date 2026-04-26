@@ -37,16 +37,6 @@ describe('scheduleSignals', () => {
     expect(s.top?.kind).toBe('ws-disconnected');
   });
 
-  it('attestation beats fetch-fail (higher severity)', () => {
-    const s = scheduleSignals({
-      ...base(),
-      fetchFailCount: 5,
-      attestationGate: { title: 'Approve fix on Payments' },
-    });
-    expect(s.top?.kind).toBe('attestation');
-    expect(s.suppressed.map((x) => x.kind)).toContain('fetch-fail');
-  });
-
   it('respects severity order across all kinds', () => {
     const s = scheduleSignals({
       ...base(),
@@ -61,12 +51,10 @@ describe('scheduleSignals', () => {
       },
       parallelIncidentIds: ['INC-999'],
       idleSeconds: 700,
-      attestationGate: { title: 'act' },
     });
-    expect(s.top?.kind).toBe('attestation');
+    expect(s.top?.kind).toBe('fetch-fail');
     const order = s.suppressed.map((x) => x.kind);
     expect(order).toEqual([
-      'fetch-fail',
       'drain',
       'budget-cap',
       'parallel-incident',

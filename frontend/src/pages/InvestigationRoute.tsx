@@ -6,11 +6,10 @@ import type {
   DiagnosticPhase,
   TokenUsage,
   ChatMessage,
-  AttestationGateData,
 } from '../types';
 import { useWebSocketV4 } from '../hooks/useWebSocket';
 import type { ChatStreamEndPayload } from '../hooks/useWebSocket';
-import { getSessionStatus, submitAttestation } from '../services/api';
+import { getSessionStatus } from '../services/api';
 import { useToast } from '../components/Toast/ToastContext';
 import { ChatProvider } from '../contexts/ChatContext';
 import { CampaignProvider } from '../contexts/CampaignContext';
@@ -36,7 +35,6 @@ export default function InvestigationRoute() {
   const [currentPhase, setCurrentPhase] = useState<DiagnosticPhase | null>(null);
   const [confidence, setConfidence] = useState(0);
   const [tokenUsage, setTokenUsage] = useState<TokenUsage[]>([]);
-  const [attestationGate, setAttestationGate] = useState<AttestationGateData | null>(null);
   const [wsMaxReconnectsHit, setWsMaxReconnectsHit] = useState(false);
 
   // Fetch session on mount
@@ -92,17 +90,10 @@ export default function InvestigationRoute() {
       if (event.event_type === 'summary' && event.details?.confidence != null) {
         setConfidence(event.details.confidence as number);
       }
-      if (event.event_type === 'attestation_required' && event.details) {
-        setAttestationGate({
-          gate_type: event.details.gate_type as AttestationGateData['gate_type'],
-          human_decision: null,
-          decided_by: null,
-          decided_at: null,
-          proposed_action: event.details.proposed_action as string,
-          findings_count: event.details.findings_count as number,
-          confidence: event.details.confidence as number,
-        });
-      }
+      // `attestation_required` used to open a modal popup; approvals now
+      // flow through the ledger drawer via `pending_action` on /status.
+      // Intentionally ignore the event so a stray emit can't re-open the
+      // old modal.
       if (
         ['summary', 'finding', 'phase_change', 'success', 'waiting_for_input'].includes(
           event.event_type,
@@ -173,18 +164,6 @@ export default function InvestigationRoute() {
   const handleNavigateToDossier = useCallback(
     () => navigate(`/investigations/${sessionId}/dossier`),
     [navigate, sessionId],
-  );
-
-  const handleAttestationDecision = useCallback(
-    (decision: string) => {
-      if (sessionId && attestationGate) {
-        submitAttestation(sessionId, attestationGate.gate_type, decision, 'user').catch((err) => {
-          addToast('error', err instanceof Error ? err.message : 'Failed to submit attestation');
-        });
-      }
-      setAttestationGate(null);
-    },
-    [sessionId, attestationGate, addToast],
   );
 
   // Loading state
@@ -296,8 +275,6 @@ export default function InvestigationRoute() {
                 phase={currentPhase}
                 confidence={confidence}
                 tokenUsage={tokenUsage}
-                attestationGate={attestationGate}
-                onAttestationDecision={handleAttestationDecision}
                 onNavigateToDossier={handleNavigateToDossier}
               />
             )}

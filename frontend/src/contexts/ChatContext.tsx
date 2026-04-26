@@ -305,13 +305,24 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({
     }
   }, [sessionId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Poll session status for pending actions
+  // Poll session status for pending actions.
+  // When a new pending_action appears, auto-open the chat drawer so the
+  // approval surface is always in front of the SRE. Ledger-based approvals
+  // replaced the modal popup — if the drawer stays collapsed, the operator
+  // would miss the gate entirely.
+  const prevPendingRef = useRef<string | null>(null);
   useEffect(() => {
     if (!sessionId) return;
     const fetchPending = async () => {
       try {
         const status = await getSessionStatus(sessionId);
-        setPendingAction(status.pending_action || null);
+        const next = status.pending_action || null;
+        const nextKey = next ? `${next.type}:${(next as { title?: string }).title ?? ''}` : null;
+        if (nextKey && nextKey !== prevPendingRef.current) {
+          setIsOpen(true);
+        }
+        prevPendingRef.current = nextKey;
+        setPendingAction(next);
       } catch { /* silent */ }
     };
     fetchPending();

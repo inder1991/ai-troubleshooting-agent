@@ -238,7 +238,7 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
             themed scrollbars that mouse-only users can reach. */}
         <LayoutGroup>
           <EditorialScrollArea className="flex-1">
-            <div className="p-6">
+            <div className="p-6 min-w-0 max-w-full">
             {/* Topology service filter banner */}
             <AnimatePresence>
               {selectedService && (
@@ -326,7 +326,11 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
             {findings === null ? (
               <SkeletonStack count={3} />
             ) : !hasContent ? (
-              <PhaseAwareEmptyState phase={phase || null} />
+              <AgentsInFlight
+                events={events}
+                findings={findings}
+                phase={phase || null}
+              />
             ) : (
               <LogicVineContainer>
                 {/* Hypothesis Evidence Map (only when 2+ hypotheses) */}
@@ -582,7 +586,7 @@ const EvidenceFindings: React.FC<EvidenceFindingsProps> = ({ findings, status: _
                           const pods = filteredPodStatuses;
                           return (
                           <>
-                            <div className="grid grid-cols-4 gap-3 mb-3">
+                            <div className="grid grid-cols-2 @[420px]:grid-cols-4 gap-2 mb-3 min-w-0">
                               <StatBox label="Pods" value={pods.length} />
                               <StatBox label="Restarts" value={pods.reduce((s, p) => s + (p.restart_count || 0), 0)} color="text-amber-500" />
                               <StatBox label="Healthy" value={pods.filter((p) => p.ready).length} color="text-green-500" />
@@ -1097,6 +1101,47 @@ const BlastRadiusCard: React.FC<{ blast: BlastRadiusData | null; severity: Sever
           {blast.estimated_user_impact && (
             <div className="text-body-xs text-slate-400 pt-1 border-t border-wr-border">
               Est. User Impact: {blast.estimated_user_impact}
+            </div>
+          )}
+
+          {/* Customer-impact handoff pill — agents know only the COUNT
+              of affected customer IDs (from the ledger). Who those
+              customers are, their tier, SLA, or contract value is
+              resolved by a downstream Customer Success system, not the
+              troubleshooting agent. */}
+          {typeof blast.affected_customer_count === 'number' && blast.affected_customer_count > 0 && (
+            <div className="pt-1 border-t border-wr-border">
+              <button
+                type="button"
+                className="w-full flex items-center gap-2 px-3 py-2 rounded-md border border-wr-border bg-wr-bg/40 hover:bg-wr-surface/40 text-left transition-colors"
+                onClick={() => {/* operator wires to their CS escalation surface */}}
+              >
+                <span className="material-symbols-outlined text-[16px] text-amber-400" aria-hidden="true">forward_to_inbox</span>
+                <span className="text-body-xs text-slate-300 flex-1">
+                  Hand off <span className="font-mono text-amber-300">{blast.affected_customer_count}</span> affected customer IDs to Customer Success
+                </span>
+                <span className="material-symbols-outlined text-[14px] text-slate-500" aria-hidden="true">chevron_right</span>
+              </button>
+            </div>
+          )}
+
+          {/* Provenance footer — every fact on this card is attributable
+              to a visible tool-call. If it's not in data_sources, an
+              agent didn't derive it — full stop. */}
+          {blast.data_sources && blast.data_sources.length > 0 && (
+            <div className="pt-1 border-t border-wr-border">
+              <span className="text-body-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                Data sources
+              </span>
+              <ul className="space-y-0.5">
+                {blast.data_sources.map((ds) => (
+                  <li key={ds.tool} className="text-body-xs text-slate-500 leading-snug">
+                    <span className="font-mono text-amber-400/80">{ds.tool}</span>
+                    <span className="text-slate-600"> · </span>
+                    <span className="text-slate-400">{ds.contributed}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
         </div>
@@ -1939,6 +1984,165 @@ const PhaseAwareEmptyState: React.FC<{ phase: DiagnosticPhase | null }> = ({ pha
         )}
       </div>
     </div>
+  );
+};
+
+// ─── Agents-in-flight live view ──────────────────────────────────────────
+// Rendered instead of a passive "no findings yet" message while agents are
+// scanning. Shows the 4 context agents, their latest tool_call + summary,
+// and a rolling tool-call counter so the center column is never blank.
+const AGENT_META: Record<string, { code: string; name: string; accent: string; dot: string }> = {
+  log_agent:     { code: 'L', name: 'Log Analyzer',   accent: 'border-red-500/40',    dot: 'bg-red-400' },
+  metric_agent:  { code: 'M', name: 'Metric Scanner', accent: 'border-amber-500/40',  dot: 'bg-amber-400' },
+  tracing_agent: { code: 'T', name: 'Trace Walker',   accent: 'border-violet-500/40', dot: 'bg-violet-400' },
+  k8s_agent:     { code: 'K', name: 'K8s Probe',      accent: 'border-orange-500/40', dot: 'bg-orange-400' },
+  code_agent:    { code: 'D', name: 'Code Navigator', accent: 'border-blue-500/40',   dot: 'bg-blue-400' },
+  change_agent:  { code: 'C', name: 'Change Intel',   accent: 'border-emerald-500/40',dot: 'bg-emerald-400' },
+};
+
+const AGENT_ORDER = ['log_agent', 'metric_agent', 'tracing_agent', 'k8s_agent'] as const;
+
+interface AgentsInFlightProps {
+  events: TaskEvent[];
+  findings: V4Findings | null;
+  phase: DiagnosticPhase | null;
+}
+
+const AgentsInFlight: React.FC<AgentsInFlightProps> = ({ events, findings, phase }) => {
+  const [nowMs, setNowMs] = useState(() => Date.now());
+  useEffect(() => {
+    const iv = setInterval(() => setNowMs(Date.now()), 1000);
+    return () => clearInterval(iv);
+  }, []);
+
+  const firstEventMs = useMemo(() => {
+    if (events.length === 0) return nowMs;
+    const t = new Date(events[0].timestamp).getTime();
+    return Number.isFinite(t) ? t : nowMs;
+  }, [events, nowMs]);
+  const elapsedSec = Math.max(0, Math.floor((nowMs - firstEventMs) / 1000));
+  const mm = String(Math.floor(elapsedSec / 60)).padStart(2, '0');
+  const ss = String(elapsedSec % 60).padStart(2, '0');
+
+  const toolCallCount = events.filter((e) => e.event_type === 'tool_call').length;
+  const findingsCount = events.filter((e) => e.event_type === 'finding').length;
+
+  // Latest signal by agent — use the most recent interesting event.
+  const latestByAgent = useMemo(() => {
+    const out: Record<string, TaskEvent | undefined> = {};
+    for (const e of events) {
+      if (!AGENT_META[e.agent_name]) continue;
+      if (e.event_type === 'tool_call' || e.event_type === 'summary' || e.event_type === 'reasoning' || e.event_type === 'finding' || e.event_type === 'progress') {
+        out[e.agent_name] = e;
+      }
+    }
+    return out;
+  }, [events]);
+
+  const agentsCompleted = new Set(findings?.agents_completed ?? []);
+  const patientZero = findings?.patient_zero?.service;
+
+  return (
+    <section className="space-y-4" data-testid="agents-in-flight">
+      {/* Header row */}
+      <header className="flex items-baseline justify-between flex-wrap gap-2">
+        <div className="flex items-baseline gap-3">
+          <h2 className="text-sm font-display font-bold text-slate-200 tracking-tight">
+            Investigation in progress
+          </h2>
+          {patientZero && (
+            <span className="text-body-xs text-slate-400">
+              patient zero <span className="font-mono text-amber-300">{patientZero}</span>
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-3 text-body-xs font-mono text-slate-400">
+          <span className="tabular-nums">elapsed {mm}:{ss}</span>
+          <span className="text-slate-600">·</span>
+          <span>{toolCallCount} tool calls</span>
+          <span className="text-slate-600">·</span>
+          <span>{findingsCount} findings</span>
+        </div>
+      </header>
+
+      {/* Agent cards */}
+      <div className="grid grid-cols-1 @[560px]:grid-cols-2 gap-2">
+        {AGENT_ORDER.map((key) => {
+          const meta = AGENT_META[key];
+          const latest = latestByAgent[key];
+          const completed = agentsCompleted.has(key);
+          const status = completed
+            ? { label: 'complete', cls: 'text-emerald-300 bg-emerald-500/10 border-emerald-500/30' }
+            : latest
+              ? { label: 'running', cls: 'text-amber-300 bg-amber-500/10 border-amber-500/30' }
+              : { label: 'queued',  cls: 'text-slate-400 bg-slate-500/10 border-slate-500/30' };
+          return (
+            <div
+              key={key}
+              className={`border-l-2 ${meta.accent} bg-wr-surface/40 rounded-md px-3 py-2.5`}
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <span className={`w-5 h-5 rounded-full ${meta.dot} text-[10px] text-slate-900 font-bold flex items-center justify-center`}>
+                  {meta.code}
+                </span>
+                <span className="text-body-xs font-bold text-slate-200">{meta.name}</span>
+                <span className={`ml-auto text-body-xs px-1.5 py-0.5 rounded border font-mono ${status.cls}`}>
+                  {status.label}
+                </span>
+              </div>
+              <p className="text-body-xs text-slate-400 leading-snug line-clamp-2 min-h-[2.25em]">
+                {latest?.message || (completed ? 'Scan complete.' : 'Awaiting dispatch…')}
+              </p>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Latest activity feed — last 5 tool_call / finding events */}
+      <div className="border border-wr-border rounded-md overflow-hidden">
+        <div className="px-3 py-1.5 bg-wr-bg/60 border-b border-wr-border">
+          <span className="text-body-xs font-bold uppercase tracking-widest text-slate-400">
+            Live activity
+          </span>
+        </div>
+        <ul className="divide-y divide-wr-border/50 max-h-[240px] overflow-y-auto">
+          {events.length === 0 ? (
+            <li className="px-3 py-3 text-body-xs text-slate-500 font-editorial italic">
+              connecting to telemetry sources…
+            </li>
+          ) : (
+            events
+              .slice()
+              .reverse()
+              .slice(0, 12)
+              .map((e, i) => {
+                const meta = AGENT_META[e.agent_name];
+                const tsMs = new Date(e.timestamp).getTime();
+                const secsAgo = Math.max(0, Math.floor((nowMs - tsMs) / 1000));
+                return (
+                  <li key={`${e.timestamp}-${i}`} className="px-3 py-1.5 flex items-start gap-2">
+                    <span className={`mt-[3px] w-1.5 h-1.5 rounded-full shrink-0 ${meta?.dot ?? 'bg-slate-500'}`} />
+                    <span className="text-body-xs text-slate-300 flex-1 leading-snug">
+                      <span className="text-slate-500 font-mono mr-1.5">{meta?.code ?? '·'}</span>
+                      {e.message}
+                    </span>
+                    <span className="text-body-xs text-slate-500 font-mono tabular-nums shrink-0">
+                      {secsAgo}s
+                    </span>
+                  </li>
+                );
+              })
+          )}
+        </ul>
+      </div>
+
+      {/* Phase hint */}
+      {phase && (
+        <p className="text-body-xs text-slate-500 font-editorial italic">
+          phase · {phase.replace(/_/g, ' ')}
+        </p>
+      )}
+    </section>
   );
 };
 

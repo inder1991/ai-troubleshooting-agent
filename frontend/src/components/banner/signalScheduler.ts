@@ -1,25 +1,17 @@
-import type { V4SessionStatus, V4Findings, DiagnosticPhase } from '../../types';
+import type { V4SessionStatus, DiagnosticPhase } from '../../types';
 
 /**
  * Signal scheduler for the War Room banner region.
  *
- * Takes every system-state input that could trigger a top-of-page
- * message and returns exactly one "top" signal (the highest-severity
- * one) plus the list of suppressed signals (for the "+N hidden
- * warnings" Popover).
- *
- * Deterministic, pure. No side effects. Unit-testable.
- *
  * Severity order (highest wins):
- *   attestation > fetch-fail > drain > budget-cap >
- *   parallel-incident > stale-session > ws-disconnected
+ *   fetch-fail > drain > budget-cap > parallel-incident >
+ *   stale-session > ws-disconnected
  *
- * A single active signal ⇒ Mode 3 (banner row renders).
- * No active signals ⇒ Mode 1 (freshness row only).
+ * Attestation signals were removed when approvals moved fully to the
+ * ledger drawer — the banner no longer surfaces approval prompts.
  */
 
 export type SignalKind =
-  | 'attestation'
   | 'fetch-fail'
   | 'drain'
   | 'budget-cap'
@@ -49,8 +41,6 @@ export interface SchedulerInputs {
   wsConnected: boolean;
   /** Current incident phase. */
   phase: DiagnosticPhase | null;
-  /** Attestation gate payload. */
-  attestationGate?: { title?: string } | null;
   /** Drain-mode flag (backend is shutting down). */
   drainMode?: boolean;
   /** Current budget telemetry from session status. */
@@ -64,7 +54,6 @@ export interface SchedulerInputs {
 }
 
 const SEVERITY_ORDER: Record<SignalKind, number> = {
-  attestation:          7,
   'fetch-fail':         6,
   drain:                5,
   'budget-cap':         4,
@@ -85,17 +74,6 @@ export interface ScheduledSignals {
 /** Generate all active signals in an arbitrary order. */
 function collectSignals(inp: SchedulerInputs): Signal[] {
   const out: Signal[] = [];
-
-  if (inp.attestationGate) {
-    out.push({
-      kind: 'attestation',
-      severity: 'page',
-      headline:
-        inp.attestationGate.title ??
-        'Action requires approval.',
-      actionLabel: 'Review',
-    });
-  }
 
   if (inp.fetchFailCount >= 3 && !inp.fetchErrorDismissed) {
     out.push({

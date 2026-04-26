@@ -262,23 +262,6 @@ export const getFixStatus = async (
   return response.json();
 };
 
-export const submitAttestation = async (
-  sessionId: string,
-  gateType: string,
-  decision: string,
-  decidedBy: string
-): Promise<{ status: string; response: string }> => {
-  const response = await fetch(`${API_BASE_URL}/api/v4/session/${sessionId}/attestation`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ gate_type: gateType, decision, decided_by: decidedBy }),
-  });
-  if (!response.ok) {
-    throw new Error(await extractErrorDetail(response, 'Failed to submit attestation'));
-  }
-  return response.json();
-};
-
 export const decideOnFix = async (
   sessionId: string,
   decision: string
@@ -847,9 +830,16 @@ export const fetchEnvironmentHealth = async (): Promise<HealthNode[]> => {
   const snapshot = await fetchMonitorSnapshot();
   const nodes: HealthNode[] = [];
 
-  // Map devices from snapshot to HealthNode format
+  // Map devices from snapshot to HealthNode format. Skip rows with no
+  // resolvable identity (hostname/ip missing) — those would render as a
+  // row of "Unknown / critical / 0ms" entries, which is the exact garbage
+  // the monitor store accumulates when devices are seeded without
+  // hostnames. Real devices always have one of hostname/ip.
   if (snapshot.devices && Array.isArray(snapshot.devices)) {
     for (const device of snapshot.devices) {
+      const resolvedName = device.hostname || device.ip;
+      if (!resolvedName) continue;
+
       const deviceStatus = device.status?.toLowerCase() ?? 'unknown';
       let healthStatus: HealthNode['status'] = 'healthy';
       if (deviceStatus === 'critical' || deviceStatus === 'down') healthStatus = 'critical';
@@ -858,7 +848,7 @@ export const fetchEnvironmentHealth = async (): Promise<HealthNode[]> => {
 
       nodes.push({
         id: device.id || device.ip || `device-${nodes.length}`,
-        name: device.hostname || device.ip || 'Unknown',
+        name: resolvedName,
         type: device.device_type?.includes('switch') || device.device_type?.includes('router') ? 'network' : 'service',
         status: healthStatus,
         latencyMs: device.latency_ms ?? device.response_time_ms,

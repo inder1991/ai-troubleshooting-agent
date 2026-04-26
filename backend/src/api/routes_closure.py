@@ -367,6 +367,13 @@ async def preview_postmortem(session_id: str):
     if not state:
         raise HTTPException(status_code=400, detail="Session not ready")
 
+    # Demo-scenario sessions carry a plain-dict state (no DiagnosticState
+    # object), so the PostMortemRenderer + _ensure_closure_state helpers
+    # (which do attribute access) will AttributeError. Render markdown
+    # directly from the dict instead — same fields, same shape, no LLM.
+    if session.get("investigation_mode") == "demo_scenario" and isinstance(state, dict):
+        return _render_demo_scenario_postmortem(session, state)
+
     from src.integrations.postmortem_renderer import PostMortemRenderer
     from src.utils.llm_client import AnthropicClient
 
@@ -384,6 +391,144 @@ async def preview_postmortem(session_id: str):
     closure.postmortem_preview = result["body_markdown"]
 
     return result
+
+
+def _render_demo_scenario_postmortem(session: dict, state: dict) -> dict:
+    """Build a deterministic post-mortem for dict-shaped demo_scenario state.
+
+    Emits the same JSON shape as the DiagnosticState-based renderer:
+    {title, body_markdown, executive_summary, impact_statement}.
+    """
+    incident_id = state.get("incident_id") or session.get("incident_id") or "INC"
+    service = state.get("target_service") or session.get("service_name") or "service"
+    severity = (state.get("severity_result") or {}).get("severity", "P3")
+    confidence = state.get("overall_confidence") or session.get("confidence") or 0
+    patient_zero = (state.get("patient_zero") or {}).get("service") or service
+    blast = state.get("blast_radius_result") or {}
+    hyp_result = state.get("hypothesis_result") or {}
+    winner_id = hyp_result.get("winner_id")
+    hypotheses = state.get("hypotheses") or []
+    winner = next((h for h in hypotheses if h.get("hypothesis_id") == winner_id), None)
+    code = state.get("code_analysis") or {}
+    root_cause_location = code.get("root_cause_location") or {}
+    fix_data = state.get("fix_result") or {}
+    signature = session.get("signature_match") or {}
+    evidence_pins = state.get("evidence_pins") or []
+    reasoning = state.get("reasoning_chain") or []
+    divergences = state.get("divergence_findings") or []
+    critic_verdicts = state.get("critic_verdicts") or []
+
+    title = f"Post-mortem: {incident_id} — {service}"
+
+    exec_summary_lines = []
+    if winner:
+        exec_summary_lines.append(
+            f"**Winning hypothesis:** {winner.get('category', 'n/a')} ({int(winner.get('confidence') or 0)}% confidence)."
+        )
+    if patient_zero:
+        exec_summary_lines.append(f"**Patient zero:** `{patient_zero}`.")
+    if severity:
+        exec_summary_lines.append(f"**Severity:** `{severity}` · **Overall confidence:** {int(confidence)}%.")
+    if signature and signature.get("pattern_name"):
+        exec_summary_lines.append(
+            f"**Signature match:** `{signature['pattern_name']}` ({int(float(signature.get('confidence', 0)) * 100)}%)."
+        )
+    executive_summary = "\n\n".join(exec_summary_lines)
+
+    impact_lines = []
+    if blast.get("primary_service"):
+        impact_lines.append(f"- Primary service: `{blast['primary_service']}`")
+    if blast.get("upstream_affected"):
+        impact_lines.append(f"- Upstream affected: {', '.join(f'`{s}`' for s in blast['upstream_affected'])}")
+    if blast.get("downstream_affected"):
+        impact_lines.append(f"- Downstream affected: {', '.join(f'`{s}`' for s in blast['downstream_affected'])}")
+    if blast.get("affected_customer_count"):
+        impact_lines.append(f"- Customer IDs with a confirmed event: **{blast['affected_customer_count']}**")
+    if blast.get("estimated_user_impact"):
+        impact_lines.append(f"- Scope: {blast['estimated_user_impact']}")
+    impact_statement = "\n".join(impact_lines) if impact_lines else "Scope under evaluation."
+
+    parts: list[str] = []
+    parts.append(f"# {title}\n")
+    parts.append(f"**Incident:** `{incident_id}` · **Service:** `{service}` · **Severity:** `{severity}`\n")
+
+    parts.append("## Executive summary\n")
+    parts.append(executive_summary or "_No summary available._")
+
+    parts.append("\n## Impact\n")
+    parts.append(impact_statement)
+
+    if root_cause_location.get("file_path"):
+        parts.append("\n## Root cause\n")
+        parts.append(f"**File:** `{root_cause_location['file_path']}`")
+        if root_cause_location.get("relevant_lines"):
+            rng = root_cause_location["relevant_lines"][0]
+            parts.append(f"**Lines:** `{rng.get('start')}–{rng.get('end')}`")
+        if root_cause_location.get("code_snippet"):
+            parts.append("\n```java\n" + root_cause_location["code_snippet"] + "\n```")
+
+    if hypotheses:
+        parts.append("\n## Hypothesis set\n")
+        for h in hypotheses:
+            status_marker = {"winner": "✓", "eliminated": "✗", "active": "•"}.get(h.get("status", ""), "•")
+            parts.append(
+                f"- {status_marker} **{h.get('category', 'n/a')}** "
+                f"({int(h.get('confidence') or 0)}%)"
+                + (f" — _eliminated: {h['elimination_reason']}_" if h.get("elimination_reason") else "")
+            )
+
+    if evidence_pins:
+        parts.append("\n## Key evidence\n")
+        for p in evidence_pins:
+            parts.append(f"- **{p.get('label', '')}** — {p.get('source', '?')} ({int(p.get('confidence') or 0)}%)")
+
+    if reasoning:
+        parts.append("\n## Reasoning chain\n")
+        for step in reasoning:
+            parts.append(f"{step.get('step', '?')}. {step.get('claim', '')}")
+            if step.get("evidence"):
+                parts.append(f"   - evidence: {', '.join(step['evidence'])}")
+            if step.get("refuted_by"):
+                parts.append(f"   - refuted by: {step['refuted_by']}")
+
+    if divergences:
+        parts.append("\n## Cross-agent divergences\n")
+        for d in divergences:
+            parts.append(f"- `{d.get('kind', '')}` on `{d.get('service_name', '')}` — {d.get('human_summary', '')}")
+
+    if critic_verdicts:
+        parts.append("\n## Critic verdicts\n")
+        for v in critic_verdicts:
+            parts.append(
+                f"- **{v.get('verdict', '').replace('_', ' ')}** "
+                f"({int(v.get('confidence_in_verdict') or 0)}%) — {v.get('reasoning', '')}"
+            )
+
+    if fix_data and fix_data.get("repos"):
+        parts.append("\n## Remediation\n")
+        for r in fix_data["repos"]:
+            parts.append(
+                f"- **{r.get('service_name', r.get('repo_url', '?'))}** "
+                f"— PR #{r.get('pr_number', '?')} "
+                f"[{r.get('status', '?')}] "
+                f"· +{r.get('lines_added', 0)} / −{r.get('lines_removed', 0)} lines"
+            )
+            if r.get("fix_explanation"):
+                parts.append(f"  - {r['fix_explanation']}")
+
+    if hyp_result.get("recommendations"):
+        parts.append("\n## Action items\n")
+        for rec in hyp_result["recommendations"]:
+            parts.append(f"- [ ] {rec}")
+
+    body_markdown = "\n".join(parts)
+
+    return {
+        "title": title,
+        "body_markdown": body_markdown,
+        "executive_summary": executive_summary,
+        "impact_statement": impact_statement,
+    }
 
 
 @router.post("/{session_id}/closure/confluence/publish")

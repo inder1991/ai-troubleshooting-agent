@@ -251,7 +251,7 @@ const ChatDrawer: React.FC = () => {
               onScroll={handleScroll}
               className="flex-1 overflow-y-auto px-3 py-3 custom-scrollbar"
             >
-              {messages.length === 0 && !isStreaming ? (
+              {messages.length === 0 && !isStreaming && !pendingAction ? (
                 <div className="flex flex-col items-center justify-center h-full text-slate-500 gap-3">
                   <span
                     className="material-symbols-outlined text-[40px]"
@@ -263,6 +263,10 @@ const ChatDrawer: React.FC = () => {
                 </div>
               ) : (
                 <>
+                  {/* Pending-action card renders even when the message
+                      history is empty — approvals (ledger-backed) must
+                      always surface in chat, whether or not the SRE has
+                      chatted yet. */}
                   {pendingAction && (
                     <PinnedActionCard
                       pendingAction={pendingAction}

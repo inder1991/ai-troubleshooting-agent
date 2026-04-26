@@ -18,7 +18,10 @@ export default function SettingsLayout() {
           </NavLink>
         ))}
       </nav>
-      <div className="flex-1 overflow-hidden"><Outlet /></div>
+      {/* flex + min-h-0 lets the Outlet child's `flex-1 overflow-y-auto`
+          region resolve a bounded height — otherwise the Integrations
+          page grows to content and its scroll region is never created. */}
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden"><Outlet /></div>
     </div>
   );
 }

@@ -1054,6 +1054,39 @@ async def chat(session_id: str, request: ChatRequest, raw_request: Request):
     from src.api.session_auth import enforce_session_owner
     enforce_session_owner(session, raw_request)
 
+    # Short-circuit for sessions the supervisor is not driving. Chat
+    # intents from the pinned approval card (`__intent:approve_*` /
+    # `__intent:reject_*`) release the gate or cancel; any free-form
+    # text gets an acknowledgement without leaking implementation detail
+    # to the operator.
+    if session.get("investigation_mode") == "demo_scenario":
+        from src.api.routes_demo_scenario import _RUNS as _DEMO_RUNS
+        text = (request.message or "").strip()
+        run = _DEMO_RUNS.get(session_id)
+        if text.startswith("__intent:") and run is not None:
+            intent = text[len("__intent:"):].lower()
+            if intent.startswith("approve") and run.approval_event is not None:
+                run.approval_event.set()
+                reply = "Approval recorded — merging the three fix PRs sequentially."
+            elif intent.startswith("reject") and run.approval_event is not None:
+                run.cancelled = True
+                if run.approval_event is not None:
+                    run.approval_event.set()
+                session["pending_action"] = None
+                reply = "Rejection recorded — escalating to the payments on-call lead."
+            else:
+                reply = "Acknowledged."
+        else:
+            reply = (
+                "Investigation in progress. Use the buttons on the pinned "
+                "approval card to proceed when the gate opens."
+            )
+        return ChatResponse(
+            response=reply,
+            phase=session.get("phase", "initial"),
+            confidence=session.get("confidence", 0),
+        )
+
     # Branch by capability
     if session.get("capability") == "cluster_diagnostics":
         response_text = await _handle_cluster_chat(session, request.message)
@@ -1309,6 +1342,32 @@ async def get_session_status(session_id: str):
             result["findings_count"] = len(state.get("findings", []))
         return result
 
+    # PR-K8 demo-scenario sessions: `state` is a plain dict that the
+    # replayer progressively populates. Project its keys into the
+    # status response directly — no SupervisorAgent object to read.
+    if session.get("investigation_mode") == "demo_scenario":
+        if state and isinstance(state, dict):
+            result["incident_id"]          = state.get("incident_id", result.get("incident_id"))
+            result["agents_completed"]     = state.get("agents_completed", [])
+            result["findings_count"]       = len(state.get("all_findings", []))
+            result["token_usage"]          = state.get("token_usage", [])
+            result["breadcrumbs"]          = state.get("all_breadcrumbs", [])
+            result["coverage_gaps"]        = state.get("coverage_gaps", [])
+            result["diagnosis_stop_reason"] = session.get("diagnosis_stop_reason") or state.get("diagnosis_stop_reason")
+            result["signature_match"]      = session.get("signature_match") or state.get("signature_match")
+            result["winning_agents"]       = state.get("winning_agents", [])
+            result["self_consistency"]     = state.get("self_consistency")
+            result["winner_critic_dissent"] = session.get("winner_critic_dissent")
+            if session.get("budget"):
+                result["budget"] = session["budget"]
+        # The replayer writes the attestation gate into session["pending_action"];
+        # the early path above overwrote result["pending_action"] from the
+        # Redis session_store (None) — restore the in-memory value so the UI
+        # renders the gate.
+        if session.get("pending_action"):
+            result["pending_action"] = session["pending_action"]
+        return result
+
     # App sessions: state is a SupervisorAgent state object
     if state:
         result["incident_id"] = state.incident_id
@@ -1410,6 +1469,68 @@ async def get_findings(session_id: str):
                 "hypothesis_selection": health_report.get("hypothesis_selection") if health_report else None,
             }
         return {**common, "platform": "", "platform_version": "", "platform_health": "PENDING", "data_completeness": 0.0, "domain_reports": []}
+
+    # PR-K8 demo-scenario sessions: state is a plain dict the replayer
+    # populates incrementally. Project it directly to the V4Findings-
+    # shaped response without needing a SupervisorAgent object.
+    if session.get("investigation_mode") == "demo_scenario":
+        state = session.get("state", {}) or {}
+        log_analysis = state.get("log_analysis", {}) or {}
+        error_patterns: list = []
+        if log_analysis.get("primary_pattern"):
+            error_patterns.append(log_analysis["primary_pattern"])
+        error_patterns.extend(log_analysis.get("secondary_patterns", []))
+
+        code_analysis = state.get("code_analysis", {}) or {}
+        return {
+            "session_id":                     session_id,
+            "incident_id":                    state.get("incident_id"),
+            "target_service":                 state.get("target_service"),
+            "findings":                       state.get("all_findings", []),
+            "negative_findings":              state.get("all_negative_findings", []),
+            "critic_verdicts":                state.get("critic_verdicts", []),
+            "error_patterns":                 error_patterns,
+            "metric_anomalies":               state.get("metric_anomalies", []),
+            "correlated_signals":             state.get("correlated_signals", []),
+            "event_markers":                  state.get("event_markers", []),
+            "pod_statuses":                   (state.get("k8s_analysis", {}) or {}).get("pod_statuses", []),
+            "k8s_events":                     (state.get("k8s_analysis", {}) or {}).get("events", []),
+            "trace_spans":                    state.get("trace_spans", []),
+            "trace_analysis":                 state.get("trace_analysis"),
+            "impacted_files":                 code_analysis.get("impacted_files", []),
+            "diff_analysis":                  code_analysis.get("diff_analysis", []),
+            "suggested_fix_areas":            code_analysis.get("suggested_fix_areas", []),
+            "root_cause_location":            code_analysis.get("root_cause_location"),
+            "code_call_chain":                code_analysis.get("code_call_chain", []),
+            "code_dependency_graph":          code_analysis.get("code_dependency_graph", {}),
+            "code_shared_resource_conflicts": code_analysis.get("code_shared_resource_conflicts", []),
+            "code_cross_repo_findings":       code_analysis.get("code_cross_repo_findings", []),
+            "code_mermaid_diagram":           code_analysis.get("code_mermaid_diagram", ""),
+            "code_overall_confidence":        code_analysis.get("code_overall_confidence", 0),
+            "change_correlations":            state.get("change_correlations", []),
+            "change_summary":                 state.get("change_summary"),
+            "change_high_priority_files":     state.get("change_high_priority_files", []),
+            "blast_radius":                   state.get("blast_radius_result"),
+            "severity_recommendation":        state.get("severity_result"),
+            "past_incidents":                 state.get("past_incidents", []),
+            "service_flow":                   state.get("service_flow", []),
+            "flow_source":                    state.get("flow_source"),
+            "flow_confidence":                state.get("flow_confidence", 0),
+            "patient_zero":                   state.get("patient_zero"),
+            "inferred_dependencies":          state.get("inferred_dependencies", []),
+            "reasoning_chain":                state.get("reasoning_chain", []),
+            "suggested_promql_queries":       state.get("suggested_promql_queries", []),
+            "time_series_data":               state.get("time_series_data", {}),
+            "fix_data":                       state.get("fix_result"),
+            "closure_state":                  state.get("closure_state"),
+            "evidence_pins":                  state.get("evidence_pins", []),
+            "causal_forest":                  state.get("causal_forest", []),
+            "evidence_graph":                 state.get("evidence_graph"),
+            "divergence_findings":            state.get("divergence_findings", []),
+            "hypotheses":                     state.get("hypotheses", []),
+            "hypothesis_result":              state.get("hypothesis_result"),
+            "message":                        None,
+        }
 
     state = session.get("state")
     logger.info("Findings requested", extra={"session_id": session_id, "action": "findings_requested", "extra": {"findings_count": len(state.all_findings) if state else 0}})
