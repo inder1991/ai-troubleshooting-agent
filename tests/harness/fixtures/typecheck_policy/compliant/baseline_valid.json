@@ -1,0 +1,8 @@
+[
+  {
+    "file": "backend/src/storage/gateway.py",
+    "line": 99,
+    "code": "return",
+    "message": "Missing return statement"
+  }
+]

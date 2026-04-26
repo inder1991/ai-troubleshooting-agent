@@ -1,0 +1,2 @@
+backend/src/api/routes_v4.py:42: error: Argument 1 to "fetch_incident" has incompatible type "int"; expected "str"  [arg-type]
+backend/src/storage/gateway.py:99: error: Missing return statement  [return]
