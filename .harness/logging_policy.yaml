@@ -13,11 +13,11 @@ logger_attr_names:
   - exception
 
 secret_log_patterns:
-  - password=
-  - passwd=
-  - secret=
-  - api_key=
-  - apikey=
-  - token=
-  - bearer
-  - authorization:
+  - "password="
+  - "passwd="
+  - "secret="
+  - "api_key="
+  - "apikey="
+  - "token="
+  - "bearer "
+  - "authorization:"
