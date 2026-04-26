@@ -1,11 +1,47 @@
-# Rules deliberately documentation-only — no programmatic check.
+# Rules deliberately documentation-only — no per-rule programmatic check.
 # Each entry MUST include a `reason:` so future readers understand why.
+# Substrate rules (loader, orchestrator, baseline machinery) are enforced
+# implicitly by the harness wiring rather than by per-file checks.
 exemptions:
+  - rule: H-2
+    reason: harness directory layout; enforced implicitly by tools/load_harness.py
+  - rule: H-3
+    reason: per-file shape (frontmatter); enforced by tools/_common.py parser
+  - rule: H-4
+    reason: generated artifact regeneration via make harness target; substrate
+  - rule: H-5
+    reason: every check is a standalone .py script; auto-discovered by orchestrator glob
   - rule: H-7
     reason: progressive-rollout cadence is process guidance, not enforced via static checks
+  - rule: H-8
+    reason: orchestrator H-14 contract (run_validate.py); substrate
+  - rule: H-9
+    reason: orchestrator aggregates exit codes; substrate
+  - rule: H-10
+    reason: H-16/H-23 output shape enforced by output_format_conformance.py
+  - rule: H-11
+    reason: baseline file convention; enforced by typecheck_policy + _common.load_baseline
+  - rule: H-12
+    reason: ADR template lives at docs/decisions/_TEMPLATE.md; enforced by Q15.adr-required-on-change
+  - rule: H-13
+    reason: pretend-path mechanism; substrate convention used by every check
+  - rule: H-14
+    reason: single-orchestrator contract; tools/run_validate.py is the implementation
+  - rule: H-15
+    reason: validate-fast vs validate-full split; orchestrator-level
+  - rule: H-17
+    reason: 30s wall budget; enforced by H.1d.5 perf regression test
+  - rule: H-18
+    reason: pre-commit installer; tools/install_pre_commit.sh substrate
   - rule: H-19
     reason: discipline checklist lives in CONTRIBUTING.md; humans enforce
+  - rule: H-20
+    reason: convention-vs-style separation; documented in plan, not statically checked
   - rule: H-22
     reason: meta-rule about rule writing; reviewed by team on PR, not statically
+  - rule: H-24
+    reason: paired fixture convention; enforced by H.1d.3 harness_fixture_pairing
   - rule: H-25
     reason: docstring discipline self-enforced via review and convention
+  - rule: H-26
+    reason: every Q-decision yields rule id(s); convention satisfied by check naming
