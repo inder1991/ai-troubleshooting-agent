@@ -1,0 +1,42 @@
+[
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_profiles.py",
+    "line": 271,
+    "rule": "Q13.tls-verify-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/integrations/probe.py",
+    "line": 345,
+    "rule": "Q13.tls-verify-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/models/schemas.py",
+    "line": 826,
+    "rule": "Q13.dangerous-pattern"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/models/schemas.py",
+    "line": 878,
+    "rule": "Q13.dangerous-pattern"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/models/schemas.py",
+    "line": 892,
+    "rule": "Q13.dangerous-pattern"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/workflows/run_lock.py",
+    "line": 114,
+    "rule": "Q13.dangerous-pattern"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/workflows/run_lock.py",
+    "line": 134,
+    "rule": "Q13.dangerous-pattern"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Agent2/Mermaid.tsx",
+    "line": 206,
+    "rule": "Q13.dangerous-pattern"
+  }
+]
