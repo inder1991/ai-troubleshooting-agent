@@ -1,0 +1,17 @@
+auth_dependency_names:
+  - get_current_user
+  - require_user
+  - require_admin
+  - require_tenant_admin
+
+auth_decorator_names:
+  - authenticated
+  - requires
+
+rate_limit_exempt:
+  - GET:/healthz
+  - GET:/metrics
+  - GET:/version
+
+csrf_exempt:
+  - POST:/api/v4/webhooks/*
