@@ -1,0 +1,11 @@
+# Rules deliberately documentation-only — no programmatic check.
+# Each entry MUST include a `reason:` so future readers understand why.
+exemptions:
+  - rule: H-7
+    reason: progressive-rollout cadence is process guidance, not enforced via static checks
+  - rule: H-19
+    reason: discipline checklist lives in CONTRIBUTING.md; humans enforce
+  - rule: H-22
+    reason: meta-rule about rule writing; reviewed by team on PR, not statically
+  - rule: H-25
+    reason: docstring discipline self-enforced via review and convention
