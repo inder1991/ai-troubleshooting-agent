@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Q15 documentation policy",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "spine_python_paths": {"type": "array", "items": {"type": "string"}},
+    "frontend_jsdoc_paths": {"type": "array", "items": {"type": "string"}},
+    "adr_required_on_change": {"type": "array", "items": {"type": "string"}}
+  }
+}

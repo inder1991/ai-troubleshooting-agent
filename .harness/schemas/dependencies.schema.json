@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Q11 dependency policy",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "python": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "npm": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "global_blacklist": {
+      "type": "array",
+      "items": {"type": "string"}
+    }
+  }
+}

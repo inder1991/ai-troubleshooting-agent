@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Q17 error-handling policy",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "spine_paths": {"type": "array", "items": {"type": "string"}},
+    "http_exception_names": {"type": "array", "items": {"type": "string"}},
+    "generic_exception_names": {"type": "array", "items": {"type": "string"}}
+  }
+}

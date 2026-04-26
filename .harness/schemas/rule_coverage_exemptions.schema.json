@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "H-21 rule-coverage exemptions",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["exemptions"],
+  "properties": {
+    "exemptions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["rule", "reason"],
+        "additionalProperties": false,
+        "properties": {
+          "rule": {"type": "string"},
+          "reason": {"type": "string"}
+        }
+      }
+    }
+  }
+}

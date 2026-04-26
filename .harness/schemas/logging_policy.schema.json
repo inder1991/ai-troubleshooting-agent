@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Q16 logging policy",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "spine_paths": {"type": "array", "items": {"type": "string"}},
+    "logger_attr_names": {"type": "array", "items": {"type": "string"}},
+    "secret_log_patterns": {"type": "array", "items": {"type": "string"}}
+  }
+}
