@@ -1,0 +1,7 @@
+name: log_agent
+version: 1
+cost_hint:
+  tool_calls_max: 99
+  tokens_max: 100000
+  wall_clock_max_ms: 60000
+tool_schema: {}

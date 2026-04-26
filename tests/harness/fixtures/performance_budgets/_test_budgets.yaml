@@ -1,0 +1,11 @@
+agent_budgets:
+  tool_calls_max: 8
+  tokens_max: 4000
+  wall_clock_max_ms: 30000
+
+db_query_max_ms: 100
+
+bundle_kb:
+  initial: 220
+  route: 100
+  css: 50
