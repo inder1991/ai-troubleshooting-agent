@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["models"],
+  "properties": {
+    "models": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "class", "config", "fields", "file"],
+        "properties": {
+          "kind": {"type": "string"},
+          "class": {"type": "string"},
+          "file": {"type": "string"},
+          "config": {"type": "object"},
+          "fields": {"type": "array", "items": {"type": "object"}}
+        }
+      }
+    }
+  }
+}

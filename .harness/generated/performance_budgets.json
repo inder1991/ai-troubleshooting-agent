@@ -1,0 +1,17 @@
+{
+  "agent_caps": {
+    "tokens_max": 20000,
+    "tool_calls_max": 20,
+    "wall_clock_max_s": 30
+  },
+  "bundle_kb": {
+    "initial_js_kb_gzipped": 220,
+    "per_route_chunk_kb_gzipped": 100,
+    "total_css_kb_gzipped": 50
+  },
+  "db_query_max_ms": 100,
+  "soft_track": [
+    "api_latency",
+    "frontend_rendering"
+  ]
+}

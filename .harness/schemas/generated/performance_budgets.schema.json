@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["agent_caps", "db_query_max_ms", "bundle_kb", "soft_track"],
+  "properties": {
+    "agent_caps": {"type": "object"},
+    "db_query_max_ms": {"type": ["integer", "number", "null"]},
+    "bundle_kb": {"type": "object"},
+    "soft_track": {"type": "array", "items": {"type": "string"}}
+  }
+}

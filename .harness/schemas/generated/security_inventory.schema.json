@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["auth_dependency_names", "rate_limit_exempt", "csrf_exempt", "routes_summary"],
+  "properties": {
+    "auth_dependency_names": {"type": "array", "items": {"type": "string"}},
+    "rate_limit_exempt": {"type": "array", "items": {"type": "string"}},
+    "csrf_exempt": {"type": "array", "items": {"type": "string"}},
+    "routes_summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["total", "with_auth", "with_rate_limit", "with_csrf"],
+      "properties": {
+        "total": {"type": "integer"},
+        "with_auth": {"type": "integer"},
+        "with_rate_limit": {"type": "integer"},
+        "with_csrf": {"type": "integer"}
+      }
+    }
+  }
+}

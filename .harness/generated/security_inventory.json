@@ -1,0 +1,22 @@
+{
+  "auth_dependency_names": [
+    "get_current_user",
+    "require_admin",
+    "require_tenant_admin",
+    "require_user"
+  ],
+  "csrf_exempt": [
+    "POST:/api/v4/webhooks/*"
+  ],
+  "rate_limit_exempt": [
+    "GET:/healthz",
+    "GET:/metrics",
+    "GET:/version"
+  ],
+  "routes_summary": {
+    "total": 131,
+    "with_auth": 18,
+    "with_csrf": 0,
+    "with_rate_limit": 0
+  }
+}
