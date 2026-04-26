@@ -35,7 +35,10 @@ sys.path.insert(0, str(REPO_ROOT / ".harness/checks"))
 from _common import emit, load_baseline  # noqa: E402
 
 DEFAULT_ROOTS = (REPO_ROOT / "backend" / "src",)
-EXCLUDE = ("__pycache__", ".venv", "node_modules", "tests/harness/fixtures")
+EXCLUDE = (
+    "__pycache__", ".venv", "/venv/", "node_modules",
+    "tests/harness/fixtures", "site-packages", ".git", ".pytest_cache",
+)
 BASELINE = load_baseline("backend_db_layer")
 
 RAW_SQL_RE = re.compile(r"\b(SELECT|INSERT|UPDATE|DELETE)\s+\w", re.IGNORECASE)

@@ -55,7 +55,7 @@ def collect_targets() -> list[Path]:
     for path in REPO_ROOT.rglob("CLAUDE.md"):
         if path == root:
             continue
-        if any(part in (".git", "node_modules", "__pycache__", ".venv") for part in path.parts):
+        if any(part in (".git", "node_modules", "__pycache__", ".venv", "venv", "site-packages", "dist", ".pytest_cache") for part in path.parts):
             continue
         targets.append(path)
     harness_dir = REPO_ROOT / ".harness"

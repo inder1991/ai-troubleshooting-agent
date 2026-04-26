@@ -38,7 +38,10 @@ sys.path.insert(0, str(REPO_ROOT / ".harness/checks"))
 from _common import emit, load_baseline  # noqa: E402
 
 DEFAULT_ROOTS = (REPO_ROOT / "backend",)
-EXCLUDE = ("__pycache__", ".venv", "node_modules", "tests/harness/fixtures")
+EXCLUDE = (
+    "__pycache__", ".venv", "/venv/", "node_modules",
+    "tests/harness/fixtures", "site-packages", ".git", ".pytest_cache",
+)
 BASELINE = load_baseline("backend_testing")
 
 EXTRACTOR_PREFIXES = ("extract_", "parse_", "resolve_", "calibrate_", "score_")
@@ -66,18 +69,22 @@ def _is_test_file(virtual: str) -> bool:
 
 
 def _is_learning_source(virtual: str) -> bool:
+    name = Path(virtual).name
     return (
         virtual.startswith("backend/src/learning/")
         and virtual.endswith(".py")
-        and not Path(virtual).name.startswith("test_")
+        and not name.startswith("test_")
+        and name != "__init__.py"
     )
 
 
 def _is_parser_source(virtual: str) -> bool:
+    name = Path(virtual).name
     return (
         "/parsers/" in virtual
         and virtual.startswith("backend/src/")
-        and not Path(virtual).name.startswith("test_")
+        and not name.startswith("test_")
+        and name != "__init__.py"
     )
 
 
@@ -218,10 +225,8 @@ def _scan_source_file(path: Path, virtual: str, tree: ast.AST,
     if virtual.startswith("backend/src/"):
         names = _collect_extractor_names(tree)
         if names:
-            test_root = REPO_ROOT / "backend" / "tests"
-            referenced = hypothesis_refs | _hypothesis_referenced_names_in_dir(test_root)
             for name in sorted(names):
-                if name not in referenced:
+                if name not in hypothesis_refs:
                     if _emit(path, "Q9.extractor-needs-hypothesis",
                              f"function `{name}` matches extract_*/parse_*/resolve_*/calibrate_*/score_* but no Hypothesis test references it",
                              f"add `from hypothesis import given` test that calls {name}", 1):
@@ -253,17 +258,28 @@ def scan(roots: Iterable[Path], pretend_path: str | None) -> int:
                  f"target path does not exist: {root}",
                  "pass an existing file or directory via --target", line=0)
             return 2
+        # Cache: when scanning the live repo (or any dir containing backend/tests/),
+        # collect hypothesis refs once across the canonical test roots.
+        cached_refs: set[str] = set()
+        live_test_root = REPO_ROOT / "backend" / "tests"
+        if live_test_root.exists() and root.is_dir() and (
+            root == REPO_ROOT or root == REPO_ROOT / "backend"
+            or live_test_root.is_relative_to(root) if hasattr(Path, "is_relative_to") else False
+        ):
+            cached_refs = _hypothesis_referenced_names_in_dir(live_test_root)
+
         if root.is_file() and root.suffix == ".py":
             virtual = pretend_path or (
                 str(root.relative_to(REPO_ROOT))
                 if root.is_relative_to(REPO_ROOT) else root.name
             )
-            # For single-file mode, also scan sibling files for hypothesis refs.
+            # For single-file mode, also scan sibling files for hypothesis refs
+            # plus the cached canonical test-root refs.
             sibling_refs = _hypothesis_referenced_names_in_paths(root.parent.iterdir())
-            total_errors += _scan_file(root, virtual, sibling_refs)
+            total_errors += _scan_file(root, virtual, sibling_refs | cached_refs)
         else:
             # Directory mode — collect hypothesis refs from all .py under this root first.
-            local_refs = _hypothesis_referenced_names_in_paths(_walk_python(root))
+            local_refs = _hypothesis_referenced_names_in_paths(_walk_python(root)) | cached_refs
             for path in _walk_python(root):
                 virtual = (
                     str(path.relative_to(REPO_ROOT))
