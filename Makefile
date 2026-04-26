@@ -106,3 +106,24 @@ clean:  ## Remove dangling Docker resources
 	@docker system prune -f
 
 clean-volumes: reset  ## Alias for `reset`
+
+# ─── AI Harness ───────────────────────────────────────────────────────────────
+# Single contract entry point. All five execution contexts (AI loop,
+# terminal, pre-commit, CI, autonomous agent) call the same targets.
+# Same script, same checks, same output format. Per H-14 / H-20.
+
+.PHONY: validate-fast validate-full validate harness harness-install
+
+validate-fast:  ## Inner-loop gate (< 30 s). Lint + typecheck + custom checks.
+	@python3 tools/run_validate.py --fast
+
+validate-full:  ## Pre-commit / CI gate. Fast + tests + heavy audits.
+	@python3 tools/run_validate.py --full
+
+validate: validate-full  ## Default validate is the full gate.
+
+harness:  ## Regenerate .harness/generated/ from code (per H-4).
+	@python3 tools/run_harness_regen.py
+
+harness-install:  ## One-time installer for the pre-commit hook (per H-18).
+	@bash tools/install_pre_commit.sh
