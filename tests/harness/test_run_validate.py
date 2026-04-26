@@ -76,3 +76,31 @@ def test_run_validate_fast_under_30_seconds() -> None:
         f"validate-fast took {elapsed:.1f}s, exceeds 30s budget (H-17). "
         f"Output: {result.stdout[-500:]}"
     )
+
+
+def test_run_validate_fast_holds_budget_with_full_suite() -> None:
+    """H.1d.5 — same wall-time gate, plus surface the suite size in the
+    failure message so a regression is easy to triage. Supersedes the
+    earlier H.0a budget test in spirit (kept above for backward compat)."""
+    import time
+    start = time.monotonic()
+    result = subprocess.run(
+        [sys.executable, str(RUN_VALIDATE), "--fast"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
+    elapsed = time.monotonic() - start
+    suite_size = result.stdout.count("[VALIDATE] check:")
+    assert elapsed < 30.0, (
+        f"validate-fast took {elapsed:.1f}s, exceeds 30s budget (H-17). "
+        f"Suite size: {suite_size} checks. "
+        f"Last 1KB output: {result.stdout[-1024:]}"
+    )
+    # Sanity floor: regression-detect if the orchestrator silently stops
+    # discovering checks (e.g. glob breaks, FULL_ONLY_CHECKS over-grows).
+    assert suite_size >= 18, (
+        f"validate-fast ran only {suite_size} checks; expected >=18. "
+        f"Discovery may have broken. Output: {result.stdout[-500:]}"
+    )

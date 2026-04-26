@@ -76,10 +76,22 @@ def run_typecheck(full: bool) -> int:
 # Skipped by run_custom_checks (the auto-glob); invoked via dedicated runners.
 DEDICATED_RUNNERS = {"typecheck_policy.py"}
 
+# Heavy checks that exceed per-iteration cost in the fast tier. They run only
+# in --full mode. Each one earned its slot here by exceeding ~3s wall and
+# enforcing rules that don't typically change between consecutive commits
+# (output shape, fixture-driven self-tests).
+FULL_ONLY_CHECKS = {
+    "output_format_conformance.py",
+    "backend_testing.py",
+    "frontend_testing.py",
+    "backend_async_correctness.py",
+    "backend_db_layer.py",
+}
 
-def run_custom_checks() -> int:
-    """Invoke every .harness/checks/*.py except _common.py / __init__.py and
-    DEDICATED_RUNNERS (which have their own gated invocation)."""
+
+def run_custom_checks(full: bool) -> int:
+    """Invoke every .harness/checks/*.py except _common.py / __init__.py,
+    DEDICATED_RUNNERS, and (in --fast mode) FULL_ONLY_CHECKS."""
     if not CHECKS_DIR.is_dir():
         return 0
     overall = 0
@@ -87,6 +99,8 @@ def run_custom_checks() -> int:
         if script.name in ("__init__.py", "_common.py"):
             continue
         if script.name in DEDICATED_RUNNERS:
+            continue
+        if not full and script.name in FULL_ONLY_CHECKS:
             continue
         rc = _run(f"check:{script.stem}", [sys.executable, str(script)])
         if rc != 0:
@@ -118,7 +132,7 @@ def main(argv: list[str] | None = None) -> int:
     overall = 0
     overall |= run_lint()
     overall |= run_typecheck(full=args.full)
-    overall |= run_custom_checks()
+    overall |= run_custom_checks(full=args.full)
 
     if args.full:
         overall |= run_tests()
